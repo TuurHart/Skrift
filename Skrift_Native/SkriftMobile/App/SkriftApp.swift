@@ -151,8 +151,12 @@ struct SkriftApp: App {
                 // `.transcribing` forever (2026-06-16 device bug). Any memo still
                 // `.transcribing` at launch is orphaned by definition — re-run it.
                 // Skipped on the seeded sim/UI-test path (no Neural Engine).
+                // C99: rebuild any take a kill/force-quit left behind as a
+                // note FIRST (it lands `.transcribing`), then the transcription
+                // recovery below transcribes it — one task, so they never race.
                 .task {
                     if LaunchFlags.seedTranscript == nil {
+                        await MemoSaver().recoverInterruptedRecordings()
                         await MemoSaver().recoverStuckTranscriptions()
                     }
                 }

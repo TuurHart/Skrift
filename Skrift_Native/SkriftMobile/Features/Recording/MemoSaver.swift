@@ -36,8 +36,13 @@ struct MemoSaver {
     /// transcript so Memo detail shows text immediately), transcribe + capture
     /// metadata in the background. Returns the new memo id for navigation.
     @discardableResult
-    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil, capturedMetadata: MemoMetadata? = nil) -> UUID {
+    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil, capturedMetadata: MemoMetadata? = nil, title: String? = nil) -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: provisionalTranscript)
+        if let title, let memo = repository.memo(id: id) {
+            // An honest note about how the take ended (R46: storage ran out).
+            memo.title = title
+            repository.save()
+        }
         Task {
             await applyMetadata(id: id, pre: capturedMetadata)
             // OCR the just-captured photos NOW (after the metadata merge so the
@@ -198,7 +203,7 @@ struct MemoSaver {
         }.value
     }
 
-    nonisolated private static func mergeAudioSync(sources: [URL], to dest: URL) throws {
+    nonisolated static func mergeAudioSync(sources: [URL], to dest: URL) throws {
         try? FileManager.default.removeItem(at: dest)
         var out: AVAudioFile?
         var outFormat: AVAudioFormat?
@@ -750,7 +755,12 @@ struct MemoSaver {
             // if that also fails the insert still happens so the memo surfaces as
             // .failed instead of the recording vanishing without a trace.
             DevLog.log("persist[\(id)]: audio move FAILED (\(error)) — trying copy fallback")
-            do { try FileManager.default.copyItem(at: tempURL, to: dest) }
+            do {
+                try FileManager.default.copyItem(at: tempURL, to: dest)
+                // The launch recording sweep would rebuild a leftover rec_tmp_*
+                // as a second note — the copy landed, so the original goes.
+                try? FileManager.default.removeItem(at: tempURL)
+            }
             catch { DevLog.log("persist[\(id)]: copy fallback FAILED — \(filename) missing: \(error)") }
         }
 
@@ -789,7 +799,7 @@ struct MemoSaver {
         return manifest
     }
 
-    private func runTranscription(id: UUID) async {
+    func runTranscription(id: UUID) async {
         // Use the memo's actual filename (recordings are memo_<id>.m4a; imports
         // preserve the source extension, e.g. .opus/.wav/.mp3).
         let filename = repository.memo(id: id)?.audioFilename ?? "memo_\(id.uuidString).m4a"
@@ -862,8 +872,18 @@ struct MemoSaver {
     }
 
     func recoverStuckTranscriptions() async {
+        // C263: a memo the user edited (an append that died mid-way, a hand-fixed
+        // transcript) is NEVER re-transcribed — that would run over their words.
+        // Release it from the spinner with its text untouched instead.
+        for memo in repository.allMemos() where Self.isStuckButUserEdited(memo) {
+            let hasText = !(memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            memo.transcriptStatus = hasText ? .done : .failed
+            RecordingLifecycleLog.log("recover-skip", "memo=\(memo.id) transcriptUserEdited — not re-transcribed")
+        }
+        repository.save()
         let stuck = repository.allMemos().filter { memo in
             memo.transcriptStatus == .transcribing
+                && !memo.transcriptUserEdited
                 && !memo.audioFilename.isEmpty
                 && !memo.isBookCapture
                 && Self.ownsForRecovery(memo.recordingDeviceID)
@@ -877,6 +897,14 @@ struct MemoSaver {
             DevLog.log("recover stuck transcription — memo \(memo.id)")
             await runTranscription(id: memo.id)
         }
+    }
+
+    /// A memo the launch transcription recovery would pick up, except the user
+    /// edited its transcript (C263).
+    static func isStuckButUserEdited(_ memo: Memo) -> Bool {
+        memo.transcriptStatus == .transcribing && memo.transcriptUserEdited
+            && !memo.audioFilename.isEmpty && !memo.isBookCapture
+            && ownsForRecovery(memo.recordingDeviceID)
     }
 
     /// Split an already-saved memo into speakers (the detail's "Split speakers" button):

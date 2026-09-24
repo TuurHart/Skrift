@@ -38,6 +38,10 @@ final class LiveRecordingService {
     /// mid-recording (e.g. AirPods pulled out) — so the user knows capture may
     /// have hiccuped without the recording being dropped. nil = nothing to show.
     private(set) var routeNotice: String?
+    /// Set when a buffer could not be written (disk full, R46): the take has
+    /// stopped capturing and everything that landed is kept. The owning screen
+    /// stops + saves on this and says so. nil = healthy.
+    private(set) var writeFailure: String?
 
     /// Whether live captioning is on (Settings toggle; default on). Off = record
     /// + waveform only, transcript comes from the one-shot pass after stop.
@@ -74,6 +78,18 @@ final class LiveRecordingService {
     @ObservationIgnored private var engine: AVAudioEngine?
     @ObservationIgnored private var audioFile: AVAudioFile?
     @ObservationIgnored private var tempURL: URL?
+    /// Segment + marker persistence for this take (C99/D26). Read by the tap's
+    /// writer block on `writerQueue`; set/cleared on main only with the queue
+    /// drained, so the unsynchronised access is safe.
+    @ObservationIgnored private nonisolated(unsafe) var checkpoint: RecordingCheckpoint?
+    /// Latched by the writer on the first failed write — later buffers drop.
+    @ObservationIgnored private nonisolated(unsafe) var writeFailed = false
+    /// Captions paused because the app went to the background (D131); they
+    /// resume on the way back to the foreground.
+    @ObservationIgnored private var captionsSuspendedForBackground = false
+    /// Captions dropped on a memory warning (D131); the model reloads after Stop.
+    @ObservationIgnored private var captionsDroppedForMemory = false
+    @ObservationIgnored private var lifecycleObservers: [NSObjectProtocol] = []
     /// UID of the input port the CURRENT tap was built for — used to spot
     /// route-change notifications that are just echoes of our OWN session
     /// activation (`.categoryChange` right after `start()`), where nothing
@@ -164,6 +180,7 @@ final class LiveRecordingService {
         if let mediaServicesObserver { NotificationCenter.default.removeObserver(mediaServicesObserver) }
         if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
         if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
+        for o in lifecycleObservers { NotificationCenter.default.removeObserver(o) }
     }
 
     // MARK: - Pre-warm (2026-07-26: "clicking record should start immediately")
@@ -430,8 +447,13 @@ final class LiveRecordingService {
         waveform = []
         liveCaption = ""
         liveCommittedWordCount = 0
-        let url = AppPaths.recordingsDirectory.appendingPathComponent("rec_tmp_\(UUID().uuidString).m4a")
+        let takeID = UUID().uuidString
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(RecordingCheckpoint.mainFilename(take: takeID))
         tempURL = url
+        writeFailure = nil
+        writeFailed = false
+        captionsSuspendedForBackground = false
+        captionsDroppedForMemory = false
 
         tapPaused = false
         tapStopped = false
@@ -449,7 +471,9 @@ final class LiveRecordingService {
             mockRevealed = 0
         } else {
             DevLog.log("record start — live=\(liveTranscription)")
-            try startEngine(writingTo: url)
+            try startEngine(writingTo: url, takeID: takeID)
+            installLifecycleObservers()
+            RecordingLifecycleLog.log("start", "take=\(takeID) live=\(liveTranscription)")
             if liveTranscription {
                 Task { await TranscriptionService.shared.beginStream() }
                 startCaptionPolling()
@@ -553,14 +577,20 @@ final class LiveRecordingService {
             // could open a not-yet-finalized file and transcribe it WITHOUT the
             // last stretch of speech (the intermittent cut-off-tail bug).
             audioFile?.close()
+            if let merged = finishCheckpoint(mainURL: tempURL) { duration = merged }
             engine = nil
             audioFile = nil
             tapInputUID = nil
+            if captionsDroppedForMemory {
+                // D131: the transcriber was unloaded mid-take — bring it back now.
+                captionsDroppedForMemory = false
+                Task { try? await TranscriptionService.shared.ensureLoaded() }
+            }
             logSessionHandback("stop")
             releaseSessionUnlessAnotherRecords("stop")
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
             RecordingActivityManager.shared.end()
-            DevLog.log("record stop — duration=\(String(format: "%.2f", duration))s")
+            RecordingLifecycleLog.log("finalize", "reason=stop duration=\(String(format: "%.2f", duration))s")
         }
         isRecording = false
         isPaused = false
@@ -581,6 +611,8 @@ final class LiveRecordingService {
             engine?.stop()
             writerQueue.sync {}    // drain pending writes before finalizing the file
             audioFile?.close()     // finalize before the temp file is deleted below
+            checkpoint?.discard()
+            checkpoint = nil
             engine = nil
             audioFile = nil
             tapInputUID = nil
@@ -588,7 +620,7 @@ final class LiveRecordingService {
             releaseSessionUnlessAnotherRecords("cancel")
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
             RecordingActivityManager.shared.end()
-            DevLog.log("record cancel")
+            RecordingLifecycleLog.log("cancel")
         }
         if let url = tempURL { try? FileManager.default.removeItem(at: url) }
         tempURL = nil
@@ -600,6 +632,146 @@ final class LiveRecordingService {
         waveform = []
         liveCaption = ""
         liveCommittedWordCount = 0
+    }
+
+    // MARK: - Durability (C99/D26, R46, D131)
+
+    /// Writer-queue side of a failed write: latch, then stop the take on main.
+    nonisolated private func noteWriteFailure(_ error: Error) {
+        guard !writeFailed else { return }
+        writeFailed = true
+        let text = error.localizedDescription
+        Task { @MainActor [weak self] in self?.handleWriteFailure(text) }
+    }
+
+    /// R46: the disk refused a buffer. Stop capturing (nothing more can land),
+    /// close the open segment so what landed is safe, and tell the owner — the
+    /// record screen stops + saves on `writeFailure` and the note says why.
+    private func handleWriteFailure(_ detail: String) {
+        guard isRecording, writeFailure == nil else { return }
+        tapStopped = true
+        writerQueue.sync { checkpoint?.rotate(reason: "write-failed") }
+        RecordingLifecycleLog.log("write-failed", detail)
+        writeFailure = Self.diskFullMessage
+    }
+
+    static let diskFullMessage = "Recording stopped: the phone ran out of storage. Everything recorded up to that point is saved."
+
+    /// Close the open segment and rewrite the marker NOW (interruption,
+    /// background, memory warning) — drains queued buffers first.
+    private func checkpointNow(_ reason: String) {
+        writerQueue.sync { checkpoint?.rotate(reason: reason) }
+    }
+
+    /// Normal stop: the main file is closed. Keep it when it reads back; when it
+    /// does not (a disk-full take whose index never got written), rebuild it from
+    /// the closed segments. Returns the rebuilt duration when a rebuild ran.
+    private func finishCheckpoint(mainURL: URL?) -> TimeInterval? {
+        guard let cp = checkpoint else { return nil }
+        checkpoint = nil
+        cp.rotate(reason: "stop")
+        guard let main = mainURL, !RecordingCheckpoint.isReadableAudio(main) else {
+            cp.discard()
+            return nil
+        }
+        let segments = cp.segmentURLs.filter(RecordingCheckpoint.isReadableAudio)
+        guard !segments.isEmpty else { cp.discard(); return nil }
+        do {
+            try MemoSaver.mergeAudioSync(sources: segments, to: main)
+            let f = try AVAudioFile(forReading: main)
+            cp.discard()
+            RecordingLifecycleLog.log("finalize", "rebuilt main file from \(segments.count) segment(s)")
+            return Double(f.length) / f.fileFormat.sampleRate
+        } catch {
+            RecordingLifecycleLog.log("finalize", "rebuild from segments FAILED (\(error)) — marker kept for the launch sweep")
+            return nil
+        }
+    }
+
+    private func installLifecycleObservers() {
+        guard lifecycleObservers.isEmpty else { return }
+        let nc = NotificationCenter.default
+        func on(_ name: Notification.Name, _ body: @escaping @MainActor (LiveRecordingService) -> Void) {
+            lifecycleObservers.append(nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { if let self { body(self) } }
+            })
+        }
+        on(UIApplication.didEnterBackgroundNotification) { $0.handleDidEnterBackground() }
+        on(UIApplication.willEnterForegroundNotification) { $0.handleWillEnterForeground() }
+        on(UIApplication.didReceiveMemoryWarningNotification) { $0.handleMemoryWarning() }
+        on(UIApplication.willTerminateNotification) { $0.handleWillTerminate() }
+    }
+
+    /// D131: in the background the recording continues and live captions stop.
+    /// A segment is closed on the way out — background is where kills happen.
+    private func handleDidEnterBackground() {
+        guard isRecording, !mock else { return }
+        checkpointNow("background")
+        guard liveTranscription, !captionsSuspendedForBackground else { return }
+        captionsSuspendedForBackground = true
+        tapLive = false
+        captionTask?.cancel(); captionTask = nil
+        Task { await TranscriptionService.shared.endStream() }
+        RecordingLifecycleLog.log("captions-stopped", "reason=background")
+    }
+
+    private func handleWillEnterForeground() {
+        guard captionsSuspendedForBackground else { return }
+        captionsSuspendedForBackground = false
+        guard isRecording, !mock, liveTranscription else { return }
+        tapLive = true
+        liveCommittedWordCount = 0
+        Task { await TranscriptionService.shared.beginStream() }
+        startCaptionPolling()
+        RecordingLifecycleLog.log("captions-resumed", "reason=foreground")
+    }
+
+    /// D131, in this order: the recording is saved first, then the memory goes.
+    enum MemoryWarningStep: String, CaseIterable {
+        case flushAudio, writeCheckpoint, stopCaptions, unloadTranscriber
+    }
+    static let memoryWarningOrder: [MemoryWarningStep] = [.flushAudio, .writeCheckpoint, .stopCaptions, .unloadTranscriber]
+
+    func handleMemoryWarning() {
+        guard isRecording, !mock else { return }
+        for step in Self.memoryWarningOrder {
+            switch step {
+            case .flushAudio:
+                writerQueue.sync {}
+            case .writeCheckpoint:
+                checkpoint?.rotate(reason: "memory")
+            case .stopCaptions:
+                captionsSuspendedForBackground = false
+                liveTranscription = false
+                tapLive = false
+                captionTask?.cancel(); captionTask = nil
+            case .unloadTranscriber:
+                // endStream first: `unload()` refuses while a stream is open.
+                captionsDroppedForMemory = true
+                Task {
+                    await TranscriptionService.shared.endStream()
+                    await TranscriptionService.shared.unload()
+                }
+            }
+            RecordingLifecycleLog.log("memory-warning", "step=\(step.rawValue)")
+        }
+    }
+
+    /// Force-quit: close the main file and every segment, and mark the take
+    /// finalized — the next launch's sweep turns it into a note.
+    private func handleWillTerminate() {
+        guard isRecording, !mock else { return }
+        tapStopped = true
+        engine?.inputNode.removeTap(onBus: 0)
+        engine?.stop()
+        writerQueue.sync {}
+        audioFile?.close()
+        if let url = tempURL, RecordingCheckpoint.isReadableAudio(url) {
+            checkpoint?.finalize()
+        } else {
+            checkpoint?.rotate(reason: "terminate")
+        }
+        RecordingLifecycleLog.log("finalize", "reason=terminate")
     }
 
     // MARK: - Real engine
@@ -653,7 +825,7 @@ final class LiveRecordingService {
         try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
     }
 
-    private func startEngine(writingTo url: URL) throws {
+    private func startEngine(writingTo url: URL, takeID: String) throws {
         // STAGE TIMINGS (2026-07-25, "Starting… takes a while"): every stage below
         // is a synchronous MAIN-ACTOR call into mediaserverd, so their sum IS the
         // "Starting…" placeholder's lifetime. Logged as one summary line per
@@ -711,17 +883,32 @@ final class LiveRecordingService {
         ]
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.audioFile = file
+        // Segments + marker beside the main file (C99): the marker exists from
+        // this instant, so even a kill in the first second leaves a findable take.
+        checkpoint?.discard()
+        checkpoint = RecordingCheckpoint(directory: url.deletingLastPathComponent(), takeID: takeID,
+                                         settings: settings, sampleRate: format.sampleRate)
         let tFile = Date()
 
         guard installRecordingTap(on: input, file: file) else {
             // Don't leave the just-created empty .m4a behind across retries.
             self.audioFile = nil
+            checkpoint?.discard()
+            checkpoint = nil
             try? FileManager.default.removeItem(at: url)
             DevLog.log("start refused — tap install failed · burned=\(Self.ms(tStart))ms")
             throw StartError.inputFormatNotReady   // startRetrying retries
         }
         let tTap = Date()
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            writerQueue.sync {}
+            checkpoint?.discard()
+            checkpoint = nil
+            throw error
+        }
         self.engine = engine
         DevLog.log("engine started — input=\(currentInputName()) \(Self.describe(format))"
                    + " · warm=\(warm) cat=\(Self.ms(tStart, tCategory))ms"
@@ -798,6 +985,7 @@ final class LiveRecordingService {
                   let copy = Self.copyBuffer(buffer) else { return }
             let live = self.tapLive
             self.writerQueue.async { [weak self] in
+                if self?.writeFailed == true { return }
                 let out: AVAudioPCMBuffer
                 if let converter {
                     guard let converted = Self.convert(copy, with: converter, to: writeFormat) else { return }
@@ -805,7 +993,16 @@ final class LiveRecordingService {
                 } else {
                     out = copy
                 }
-                try? file.write(from: out)
+                // R46: a failed write (disk full) used to be a silent `try?` per
+                // buffer — the timer kept counting over a file that stopped
+                // growing. Now the first failure stops the take honestly.
+                do {
+                    try file.write(from: out)
+                    try self?.checkpoint?.write(out)
+                } catch {
+                    self?.noteWriteFailure(error)
+                    return
+                }
                 // Tap-swap diagnostics: first write through a rebuilt tap.
                 // POST-NOTIFICATION view only — the OS stops the mic at the
                 // START of a route transition and posts at its END, so the
@@ -925,11 +1122,14 @@ final class LiveRecordingService {
         case .began:
             interruptionActive = true
             DevLog.log("interruption BEGAN — engineRunning=\(engine?.isRunning == true) paused=\(isPaused)")
+            RecordingLifecycleLog.log("interrupt", "began")
+            checkpointNow("interrupt")
             showRouteNotice("Interrupted — recording resumes when it's over")
         case .ended:
             let optsRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             let shouldResume = AVAudioSession.InterruptionOptions(rawValue: optsRaw).contains(.shouldResume)
             interruptionActive = false
+            RecordingLifecycleLog.log("interrupt", "ended shouldResume=\(shouldResume)")
             if let engine, engine.isRunning {
                 DevLog.log("interruption ENDED (shouldResume=\(shouldResume)) — capture already healthy")
                 return
@@ -1193,6 +1393,8 @@ final class LiveRecordingService {
         interruptionActive = false
         stallSince = nil
         noticeClearTimer?.invalidate(); noticeClearTimer = nil
+        for o in lifecycleObservers { NotificationCenter.default.removeObserver(o) }
+        lifecycleObservers = []
         routeNotice = nil
     }
 
