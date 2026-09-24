@@ -61,7 +61,7 @@ node: Podcasts
 do: The tab in direction A "Shelf" from `Skrift_Native/SkriftDesktop/mocks/Q5-long-form-inspiration.html`, named "Library"; captures stay in Notes, not on the tab (D134): long-form sources only (book, episode, article, PDF, talk), door-based routing (share-sheet PDF → the tab with "Added to Library · add to a note instead"), capture and "send to a note" on every source, "move to Library" on a note, per-book "N notes" with jump-back, the empty-tab call to action (D90, D126, D127, D128).
 check: Tuur clicked through it and said go.
 
-### Q7 [auto] (todo) build quick note
+### Q7 [auto] (doing) build quick note
 spec: C112 C114 C43
 needs: Q1 Q22 Q26
 do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: cursor in the body, silent discard; the phone's New Note placement follows the signed Q22 second pass, D135 — the same Import · Record · New Note verbs as iPad/Mac) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
@@ -410,3 +410,4 @@ check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:50 Q29 -> done — gate pass @438ba0f9
 - 2026-09-24 22:50 Q38 added
 - 2026-09-24 22:50 Q39 added
+- 2026-09-24 22:50 Q7 -> doing — worker out
