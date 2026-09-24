@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>One Notes List</title>
 <style>
 /* App colours = the Q2 mock's phone pairs (Shared Palette); Mac = the same Palette's mac text
@@ -190,6 +192,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .toast{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);background:var(--t1);color:var(--bg);font-size:12.5px;padding:8px 13px;border-radius:10px;max-width:86%;text-align:center;opacity:0;transition:opacity .18s;pointer-events:none;z-index:9;line-height:1.35}
 .toast.show{opacity:.95}
 .mac .toast,.ipad .toast{bottom:24px}
+.iflag{display:block;width:max-content;max-width:calc(100% - 28px);margin:2px 14px 4px;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);border:1.2px dashed var(--redLine);border-radius:6px;padding:2px 6px;background:var(--redSoft)}
 .flag{position:absolute;z-index:6;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);background:var(--page);border:1.2px dashed var(--redLine);border-radius:6px;padding:2px 5px;pointer-events:none;white-space:nowrap}
 .pr{outline:1.5px dashed var(--redLine);outline-offset:2px;border-radius:6px}
 
@@ -501,29 +504,29 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     if(d==="phone"){
       h+='<div class="frame phone"><div class="status"><span>15:10</span><span style="font-size:12px">▮▮▮ ▮</span></div><div class="scroller" id="scr">';
       h+='<div class="phdr" style="position:relative"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button>'+
-        (S.select?'':'<button class="ic pr" data-act="new" aria-label="New note">'+ic('pen')+'</button><button class="ic" data-toast="Import: audio or video from Files, video from Photos" aria-label="Import">'+ic('dl')+'</button><button class="ic" data-toast="Scan a document" aria-label="Scan">'+ic('scan')+'</button>')+
+        (S.select?'':'<button class="ic" data-act="new" aria-label="New note">'+ic('pen')+'</button><button class="ic" data-toast="Import: audio or video from Files, video from Photos" aria-label="Import">'+ic('dl')+'</button><button class="ic" data-toast="Scan a document" aria-label="Scan">'+ic('scan')+'</button>')+
         '</div>';
-      h+=belowHeader()+listBody();
+      if(!S.select) h+='<span class="iflag" style="margin-left:auto;margin-right:16px">&uarr; &#9998; BESIDE SELECT: Q1, SIGNED</span>';
+      h+=belowHeader()+'<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: CHIPS + TRIAGE LINE (FILTER MOVED HERE)</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'<button class="fab" data-toast="Record (unchanged: the thumb button stays on the phone)" aria-label="Record">'+ic('mic')+'</button>');
-      if(!S.select) h+='<span class="flag" style="right:60px;top:60px">Q1 ✎ SIGNED</span><span class="flag" style="left:16px;top:171px">NEW ON PHONE: CHIPS + TRIAGE LINE</span>';
       h+='<div class="toast" id="toast"></div></div>';
     } else if(d==="ipad"){
       h+='<div class="frame ipad"><span class="edgehint"></span><div class="scroller" id="scr">';
       h+='<div style="position:relative"><div class="idrow"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button></div><span class="tog" style="position:absolute;left:14px;top:9px;width:30px;height:30px;border-radius:8px;background:var(--elev);display:grid;place-items:center;color:var(--t2);font-size:15px">'+ic('sidebar')+'</span></div>';
       h+='<div class="verbs"><button class="vb" data-toast="Import menu (unchanged)">'+ic('plus')+'Import</button><button class="vb rec" data-toast="Record (unchanged)"><b></b>Record</button><button class="vb pen" data-act="new" aria-label="New note">'+ic('pen')+'</button></div>';
       h+='<button class="proc" style="width:calc(100% - 28px)" data-toast="Process runs the rated pile on this iPad">'+ic('play')+'Process <small>1</small></button>';
-      h+='<div style="height:4px"></div>'+belowHeader()+listBody();
+      h+='<div style="height:4px"></div>'+belowHeader()+'<span class="iflag">&uarr; MOVED: SEARCH NOW ABOVE THE CHIPS, AS ON THE MAC</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
-      h+='<span class="flag" style="left:14px;top:176px">MOVED: SEARCH ABOVE CHIPS</span><div class="toast" id="toast"></div></div>';
+      h+='<div class="toast" id="toast"></div></div>';
     } else {
       h+='<div class="frame mac"><div class="macbar"><i></i><i></i><i></i></div><div class="scroller" id="scr">';
       h+='<div class="surf" style="margin-top:0"><span class="on">Notes</span><span>Review</span></div>';
       h+='<div class="macid"><span class="lg">S</span><span class="t">Skrift</span><button class="g" data-toast="Settings">'+ic('gear')+'</button></div>';
       h+='<div class="macstack"><div class="verbs"><button class="vb" data-toast="Import panel (unchanged)">'+ic('plus')+'Import</button><button class="vb rec" data-toast="Record (unchanged)"><b></b>Record</button><button class="vb pen" data-act="new" aria-label="New note">'+ic('pen')+'</button></div>';
       h+='<button class="proc" data-toast="Process (unchanged)">'+ic('play')+'Process <small>1</small></button></div>';
-      h+=belowHeader()+listBody();
+      h+=belowHeader()+'<span class="iflag" style="margin-left:8px">NEW ON MAC: DAY GROUPS, BALLS, CHIPS, TIME &darr;</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
-      h+='<span class="flag" style="left:10px;top:238px">NEW ON MAC: DAY GROUPS, BALLS, CHIPS</span><div class="toast" id="toast"></div></div>';
+      h+='<div class="toast" id="toast"></div></div>';
     }
     var stage=document.getElementById('stage');
     var prev=stage.querySelector('#scr'), top=prev?prev.scrollTop:0, hadFocus=document.activeElement&&document.activeElement.id==="q";
