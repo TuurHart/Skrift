@@ -1737,9 +1737,17 @@ private struct MemoPageView: View {
         return Binding(
             get: { e.copyedit },
             set: { newValue in
+                guard newValue != e.copyedit else { return }
                 e.copyedit = newValue
                 e.enhancedByDeviceID = DeviceID.current()
                 e.enhancedAt = Date()
+                // C98 (Q38): a typed edit of the polished body is a words edit for
+                // conflict detection. Next main-queue turn, like `markEdited`'s stamp.
+                let m = self.memo
+                DispatchQueue.main.async {
+                    guard !m.isDeleted, let ctx = m.modelContext else { return }
+                    if EditConflicts.recordPolishedEdit(m, in: ctx), ctx.hasChanges { try? ctx.save() }
+                }
             }
         )
     }

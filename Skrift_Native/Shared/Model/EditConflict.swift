@@ -46,6 +46,11 @@ struct NoteWords: Equatable {
     var body: String?
     var tags: [String]
     var editedAt: Date
+    /// The polished body (`MemoEnhancement.copyedit`) this version carries; nil = none (Q38).
+    var polished: String? = nil
+
+    /// The body he reads and edits: the polish when there is one, else the raw transcript.
+    var shownBody: String? { polished ?? body }
 }
 
 /// THE conflict record (C98): one note, two versions of its words that neither device saw
@@ -67,6 +72,14 @@ struct EditConflict: Equatable {
 /// device, two heads whose vectors are CONCURRENT (neither saw the other's edit) and whose
 /// words differ = a conflict. A device that saw the other's edit before typing carries a
 /// vector that dominates it, so ordinary back-and-forth editing never conflicts.
+///
+/// **The polished body counts as words (Q38).** On a Mac-polished note the body he edits is
+/// `MemoEnhancement.copyedit`, not `Memo.transcript`, and the enhancement row is newest-wins
+/// too. A USER edit of it (`recordPolishedEdit`: the phone's polished editor, the Mac's
+/// review-screen edit write-back) bumps the vector and writes the head with the polished text
+/// in `polishedBody`; every words head carries the polish the device held. The Mac's own
+/// polish write (`MacCloudWriteBack.upsert` after a pass) and the one-time body normalisation
+/// never call either recorder, so they never count as edits.
 ///
 /// Only words conflict: rating, lock, reminder and destination never touch the vector and
 /// stay newest-wins. New notes never conflict: a note has no heads until it is edited, and
@@ -99,6 +112,44 @@ enum EditConflicts {
     }
     static func hash(_ memo: Memo) -> String { hash(title: memo.title, body: memo.transcript, tags: memo.tags) }
 
+    /// Hash of a polished body alone (`Memo.polishStampHash`).
+    static func polishHash(_ polished: String?) -> String? {
+        polished.map { SHA256.hash(data: Data($0.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined() }
+    }
+
+    /// Words hash with the polished body folded in. nil polish = exactly the three-part hash,
+    /// so heads written before Q38 keep their hash.
+    static func combine(_ words: String?, _ polish: String?) -> String? {
+        guard let polish else { return words }
+        let s = (words ?? "\u{0}") + "\u{3}" + polish
+        return SHA256.hash(data: Data(s.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func hash(title: String?, body: String?, tags: [String], polished: String?) -> String {
+        combine(hash(title: title, body: body, tags: tags), polishHash(polished))!
+    }
+
+    // MARK: - The polished body
+
+    static func canHoldPolish(in ctx: ModelContext) -> Bool {
+        ctx.container.schema.entities.contains { $0.name == "MemoEnhancement" }
+    }
+
+    /// The note's polished body as this device holds it: the newest enhancement's copy-edit,
+    /// nil when there is none (or it is blank).
+    static func polishedBody(for memoID: UUID, in ctx: ModelContext) -> String? {
+        guard let e = enhancement(for: memoID, in: ctx) else { return nil }
+        return e.copyedit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : e.copyedit
+    }
+
+    private static func enhancement(for memoID: UUID, in ctx: ModelContext) -> MemoEnhancement? {
+        guard canHoldPolish(in: ctx) else { return nil }
+        var d = FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID },
+                                                 sortBy: [SortDescriptor(\.enhancedAt, order: .reverse)])
+        d.fetchLimit = 1
+        return (try? ctx.fetch(d))?.first
+    }
+
     // MARK: - Recording a local edit
 
     /// True when `ctx`'s container can hold heads (a test container built from a partial
@@ -116,23 +167,44 @@ enum EditConflicts {
     static func recordEdit(_ memo: Memo, in ctx: ModelContext, device: String = DeviceID.current(),
                            kind: String = EditConflicts.thisDeviceKind, now: Date = Date()) -> Bool {
         guard canRecord(in: ctx) else { return false }
-        let h = hash(memo)
-        if memo.editStampHash == h { return false }
+        if memo.editStampHash == hash(memo) { return false }
+        return stamp(memo, in: ctx, device: device, kind: kind, now: now)
+    }
+
+    /// Stamp a USER edit of the POLISHED body (Q38). Call it only where he typed into the
+    /// polished text (the phone's polished editor, the Mac's edit write-back), never after a
+    /// polish pass or a migration. A no-op when the polish equals what was last stamped and
+    /// while the note is in conflict. Returns true when it stamped.
+    @discardableResult
+    static func recordPolishedEdit(_ memo: Memo, in ctx: ModelContext, device: String = DeviceID.current(),
+                                   kind: String = EditConflicts.thisDeviceKind, now: Date = Date()) -> Bool {
+        guard canRecord(in: ctx), canHoldPolish(in: ctx) else { return false }
+        let p = polishedBody(for: memo.id, in: ctx)
+        if p == nil || memo.polishStampHash == polishHash(p) { return false }
+        return stamp(memo, in: ctx, device: device, kind: kind, now: now)
+    }
+
+    /// Bump this device's slot and write its head with the note's current words + polish.
+    private static func stamp(_ memo: Memo, in ctx: ModelContext, device: String, kind: String,
+                              now: Date) -> Bool {
         let heads = self.heads(for: memo.id, in: ctx)
         if detect(memo: memo, heads: heads, thisDevice: device) != nil { return false }
+        let polished = polishedBody(for: memo.id, in: ctx)
         var v = memo.editVector
         v[device] = (v[device] ?? 0) + 1
-        let base = memo.editStampHash
+        let base = combine(memo.editStampHash, memo.polishStampHash)
         memo.editVector = v
-        memo.editStampHash = h
+        memo.editStampHash = hash(memo)
+        memo.polishStampHash = polishHash(polished)
         upsertHead(memo: memo, heads: heads, device: device, kind: kind, vector: v, baseHash: base,
-                   words: (memo.title, memo.transcript, memo.tags), now: now, in: ctx)
+                   words: (memo.title, memo.transcript, memo.tags), polished: polished, now: now, in: ctx)
         return true
     }
 
     private static func upsertHead(memo: Memo, heads: [MemoEditHead], device: String, kind: String,
                                    vector: EditVector, baseHash: String?,
-                                   words: (String?, String?, [String]), now: Date, in ctx: ModelContext) {
+                                   words: (String?, String?, [String]), polished: String?,
+                                   now: Date, in ctx: ModelContext) {
         let mine = heads.filter { $0.deviceID == device }
         let head: MemoEditHead
         if let first = mine.first {
@@ -142,11 +214,12 @@ enum EditConflicts {
             head.baseHash = baseHash
             head.deviceKind = kind
             head.title = words.0; head.body = words.1; head.tags = words.2
+            head.polishedBody = polished
             head.editedAt = now
         } else {
             head = MemoEditHead(memoID: memo.id, deviceID: device, deviceKind: kind, vector: vector,
                                 baseHash: baseHash, title: words.0, body: words.1, tags: words.2,
-                                editedAt: now)
+                                editedAt: now, polishedBody: polished)
             ctx.insert(head)
         }
     }
@@ -207,7 +280,7 @@ enum EditConflicts {
 
     private static func words(_ h: MemoEditHead) -> NoteWords {
         NoteWords(deviceID: h.deviceID, deviceKind: h.deviceKind, title: h.title, body: h.body,
-                  tags: h.tags, editedAt: h.editedAt)
+                  tags: h.tags, editedAt: h.editedAt, polished: h.polishedBody)
     }
 
     // MARK: - Resolution (D139)
@@ -229,14 +302,26 @@ enum EditConflicts {
         // the conflict clears here and, once synced, on every other device too.
         var v = EditVectors.merged(heads.map(\.vector) + [memo.editVector])
         v[device] = (v[device] ?? 0) + 1
-        let base = memo.editStampHash
+        let base = combine(memo.editStampHash, memo.polishStampHash)
+        let original = enhancement(for: memo.id, in: ctx)
         memo.title = kept.title
         memo.transcript = kept.body
         memo.tags = kept.tags
+        // The kept polished body goes back on the note's enhancement (Q38), stamped as the
+        // newest write so it wins every device's newest-wins merge of that row.
+        if let polished = kept.polished, canHoldPolish(in: ctx) {
+            let e: MemoEnhancement
+            if let original { e = original } else { e = MemoEnhancement(memoID: memo.id); ctx.insert(e) }
+            e.copyedit = polished
+            e.enhancedByDeviceID = device
+            e.enhancedAt = now
+        }
+        let keptPolish = kept.polished ?? polishedBody(for: memo.id, in: ctx)
         memo.editVector = v
         memo.editStampHash = hash(memo)
+        memo.polishStampHash = polishHash(keptPolish)
         upsertHead(memo: memo, heads: heads, device: device, kind: kind, vector: v, baseHash: base,
-                   words: (kept.title, kept.body, kept.tags), now: now, in: ctx)
+                   words: (kept.title, kept.body, kept.tags), polished: keptPolish, now: now, in: ctx)
         memo.editedAt = now
         memo.keptAt = now
 
@@ -247,6 +332,14 @@ enum EditConflicts {
             copy.replacedAt = now
         }
         ctx.insert(copy)
+        // The other version's polished body travels with its copy (Q38): its own enhancement,
+        // marked processed so no device re-polishes over the text he wrote.
+        if let polished = spare.polished, canHoldPolish(in: ctx) {
+            ctx.insert(MemoEnhancement(memoID: copy.id, copyedit: polished,
+                                       title: original?.title ?? "", summary: original?.summary ?? "",
+                                       enhancedByDeviceID: device, enhancedAt: now,
+                                       processedAt: original?.processedAt ?? now))
+        }
         try ctx.save()
         return copy
     }
