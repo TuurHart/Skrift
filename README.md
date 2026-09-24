@@ -21,6 +21,7 @@ names database (bidirectional last-write-wins):
 | `CLAUDE.md` | How the repo is run + conventions + build/run commands |
 | `roadmap/roadmap.yaml` | The live plan (done / now / next), rendered by the Tiuri Command Center |
 | `SPEC.md` | The constitution (confirmed 2026-09-22) — point, done-means, marked clauses, decisions; `gate.sh` beside it |
+| `QUEUE.md` | The work queue from `/2-plan` — items, lanes, gate; `/3-session` runs it |
 | `archive/state-2026-09/` | The pre-spec state docs (backlog, SSOT, plans, surveys), frozen — the why behind a clause |
 | `test-fixtures/corpus/` | The synthetic note corpus (106 notes) the v2 rewrite is judged on |
 | `BUGS.md` | Every open bug in one list, worst first — pulled out of the ledger, each re-checked against source |
