@@ -880,8 +880,13 @@ Audiobooks, locks, reminders, export:
 - C275 [auto] A spoken hashtag becomes a real tag, by rule and not by the model: "hashtag
   motivation" / "hashtag motivatie" → `#motivation` / `#motivatie` in the body; a run of spoken
   hashtags at the end of a note becomes one tag line; the raw transcript keeps the words.
-  || check: corpus `voice-spoken-hashtags` (owed: EN + NL note, three tags at the end, one
-  mid-sentence). — Tuur: "I would often talk and then in the end I would end with some hashtags"
+  || check: corpus `voice-spoken-hashtags` (synthetic EN + NL, owed) + the REAL one he recorded
+  2026-09-24 in Skrift Dev (0:31, Benfica, transcript ends "Hashtag production. C and C hashtag
+  design hashtag GFR. Okay."): expect `#production #cnc #design #gfr`, the trailing "Okay"
+  dropped; pull it into `test-fixtures/dutch-rambles/` with `import_dev_notes.py` once the Mac
+  Dev store has it. Note the mishearing "C and C" for CNC, a custom-vocab case (C85), and the
+  capital "Hashtag" after a full stop. — Tuur: "I would often talk and then in the end I would
+  end with some hashtags"
 
 - C276 [auto] A cited document is not a folded document. Every plan, handoff, audit and backlog
   doc in the repo (`archive/state-2026-09/*`, `archive/handoffs/*`, root ledgers) has one row per
