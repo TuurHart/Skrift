@@ -64,7 +64,7 @@ check: Tuur clicked through it and said go.
 ### Q7 [auto] (todo) build quick note
 spec: C112 C114 C43
 needs: Q1
-do: Build the signed Q1 mock on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). Test the routing and the discard in `QuickNoteTests`.
+do: Build the signed Q1 mock on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
 check: `plan/mtest.sh QuickNoteTests`
 
 ### Q8 [auto] (todo) build three-ball importance on all three devices
