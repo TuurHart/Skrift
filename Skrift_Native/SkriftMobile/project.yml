@@ -92,6 +92,8 @@ targets:
       # Pipeline: pure parity algorithms both apps must run identically (vocab
       # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Pipeline
+      # Body v2 (Q11): beside v1 until the swap (C2).
+      - path: ../Shared/BodyV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
       - path: ../Shared/Corpus
       - path: ../Shared/Recording
