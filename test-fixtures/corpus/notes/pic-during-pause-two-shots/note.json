@@ -1,0 +1,69 @@
+{
+  "id": "0E16ED72-276A-5CCB-A79B-39FD42F932FB",
+  "slug": "pic-during-pause-two-shots",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "adjacent-markers",
+    "pause-tie"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-14T09:15:00+01:00",
+  "createdAt": "2026-08-14T09:15:00+01:00",
+  "editedAt": null,
+  "duration": 5.11,
+  "audio": "audio.m4a",
+  "transcript": "Checking the second firing before we open the kiln. [[img_001]] [[img_002]] Everything came out even this time.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.55,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-14T09:15:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_0E16ED72-276A-5CCB-A79B-39FD42F932FB_001.jpg",
+        "offsetSeconds": 2.75
+      },
+      {
+        "filename": "photo_0E16ED72-276A-5CCB-A79B-39FD42F932FB_002.jpg",
+        "offsetSeconds": 2.83
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_0E16ED72-276A-5CCB-A79B-39FD42F932FB_001.jpg",
+      "file": "photo_001.jpg"
+    },
+    {
+      "filename": "photo_0E16ED72-276A-5CCB-A79B-39FD42F932FB_002.jpg",
+      "file": "photo_002.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Two photos snapped a beat apart during the same pause: both resolve to the SAME nearest word - manifest order must be preserved (img_001 then img_002), never reversed by the tie-break."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "_schema": "Q23 ADDITIVE companion to expected-differences.json (protected, additive-only per the item's gate+ rule - a new mapping file rather than an edit): slug -> [R id], same semantics, read by BodyGoldenQ23Tests.swift over manifest-q23.json's 4 fixtures instead of the generated manifest.json.",
+  "_not_registered": {
+    "migrated-stale-name-offsets": "R25's fixture now EXISTS (folder + note.json), but its bug (stale NAME-LINK offsets after marker relocation) is not representable by this body-only harness: CorpusSeed.Note/makeMemo hardcodes nameResolutionsData to nil, so there is no per-note name-offset field to assert against. v1's BODY computation for this note already matches C11 (single sentence, marker snaps to the end) - registering it here would fail as 'registeredButActuallyMatches'. A later item must add a name-offset field to the corpus schema and its own check before this row can move to a real R25 registration."
+  },
+  "pic-during-pause-two-shots": ["R74"],
+  "pic-burst-same-offset": ["R74"],
+  "ingress-p3-five-clips-one-picture": ["R33"]
+}

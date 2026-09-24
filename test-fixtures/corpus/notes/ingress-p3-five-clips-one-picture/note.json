@@ -1,0 +1,61 @@
+{
+  "id": "518FF247-ECCE-597D-B688-BB6A8A1C7CB7",
+  "slug": "ingress-p3-five-clips-one-picture",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "share",
+    "ingress",
+    "mixed-bundle"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-14T09:30:00+01:00",
+  "createdAt": "2026-08-14T09:30:00+01:00",
+  "editedAt": null,
+  "duration": 16.35,
+  "audio": "audio.m4a",
+  "transcript": "Loaded the kiln shelves this morning before the market opened. Lotte brought the new glaze test tiles from her studio. We stacked them by cone six on the bottom two shelves. Bruno wants first pick of the celadon batch when it is done. Firing starts tonight around nine once the shop closes.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-14T09:30:00+01:00",
+    "tags": [
+      "workshop"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_518FF247-ECCE-597D-B688-BB6A8A1C7CB7_001.jpg",
+        "offsetSeconds": 10.7
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_518FF247-ECCE-597D-B688-BB6A8A1C7CB7_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Ingress P3: a mixed bundle of 5 clips + 1 picture that arrived between clip 3 and clip 4, with no moment of its own. C12 keeps it at that SHARE-ORDER spot (its own paragraph between clip 3 and clip 4), not wherever nearest-word math lands it."
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "F8B5EC7B-8B66-5FDE-AEF4-5C021179D77D",
+  "slug": "migrated-stale-name-offsets",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "migrated",
+    "name-offset"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-14T09:35:00+01:00",
+  "createdAt": "2026-08-14T09:35:00+01:00",
+  "editedAt": null,
+  "duration": 3.99,
+  "audio": "audio.m4a",
+  "transcript": "We checked the crack near the handle and Lotte thought it might still be fireable.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-14T09:35:00+01:00",
+    "tags": [
+      "studio"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_F8B5EC7B-8B66-5FDE-AEF4-5C021179D77D_001.jpg",
+        "offsetSeconds": 1.6
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_F8B5EC7B-8B66-5FDE-AEF4-5C021179D77D_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needsVerdict": "Documents the R25/D4 fixture shape (marker baked mid-sentence, BEFORE a roster name whose character offset shifts once the marker relocates during normalisation). v1's body computation already snaps this single-sentence note correctly (C11) - no body-level diff to register here. The NAME-OFFSET re-derivation half of D4/R25 has no automated check in this corpus/harness yet (CorpusSeed hardcodes nameResolutionsData to nil); a later item must add one."
+  }
+}
