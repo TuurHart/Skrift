@@ -35,10 +35,14 @@ final class PolishedEditConflictTests: XCTestCase {
         let id = UUID()
         let t0 = Date(timeIntervalSince1970: 1_000)
         for ctx in [a, b] {
-            ctx.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a", recordedAt: t0, tags: ["house"],
-                            title: "Tiles for the bathroom floor",
-                            transcript: "uh the hexagon ones from the shop in grey", transcriptStatus: .done,
-                            significance: 0.6, createdAt: t0, recordingDeviceID: phone))
+            let m = Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a", recordedAt: t0, tags: ["house"],
+                         title: "Tiles for the bathroom floor",
+                         transcript: "uh the hexagon ones from the shop in grey", transcriptStatus: .done,
+                         significance: 0.6, createdAt: t0, recordingDeviceID: phone)
+            // Its words were stamped once before (a note never stamped counts its first touch
+            // as an edit by Q29's design, whatever the polish does).
+            m.editStampHash = EditConflicts.hash(m)
+            ctx.insert(m)
             ctx.insert(MemoEnhancement(memoID: id, copyedit: polished ?? seedPolish, title: "Bathroom tiles",
                                        summary: "Hexagon tiles.", enhancedByDeviceID: mac, enhancedAt: t0,
                                        processedAt: t0))
