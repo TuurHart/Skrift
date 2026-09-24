@@ -1,0 +1,739 @@
+<meta charset="utf-8">
+<title>Tag Editor Revamp</title>
+<style>
+/* App colours = Shared/UI/Palette.swift (phone pairs; bg = Palette.bg.phone, D135/D136).
+   Redline = mock-only annotation ink; it never appears in the app. Tokens match the signed
+   neighbours three-ball-importance.html (Q2) and one-notes-list.html (Q22). */
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --elev:#ebebf0;
+  --t1:#1c1c1e; --t2:#6c6c72; --t3:#a3a3aa;
+  --accent:#6c5ce0; --accent-rgb:108 92 224; --accentText:#6051c8; --accentSoft:rgb(108 92 224 / .14);
+  --green:#0f9d72; --amber:#d97706; --danger:#dc2626;
+  --ring:rgba(0,0,0,.18); --hair:rgba(0,0,0,.08); --macStroke:rgba(0,0,0,.07);
+  --kb:#d1d3d9; --menu:#ffffff;
+  --page:#e9e8ee; --ink:#26242e; --inkDim:#6d6a78;
+  --red:#d6336c; --redSoft:rgba(214,51,108,.09); --redLine:rgba(214,51,108,.45);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+    --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+    --green:#34d399; --amber:#f59e0b; --danger:#ef4444;
+    --ring:rgba(255,255,255,.22); --hair:rgba(255,255,255,.08); --macStroke:rgba(255,255,255,.07);
+    --kb:#2a2c35; --menu:#23263a;
+    --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3;
+    --red:#ff6b9a; --redSoft:rgba(255,107,154,.1); --redLine:rgba(255,107,154,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+  --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+  --green:#34d399; --amber:#f59e0b; --danger:#ef4444;
+  --ring:rgba(255,255,255,.22); --hair:rgba(255,255,255,.08); --macStroke:rgba(255,255,255,.07);
+  --kb:#2a2c35; --menu:#23263a;
+  --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3;
+  --red:#ff6b9a; --redSoft:rgba(255,107,154,.1); --redLine:rgba(255,107,154,.5);
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;padding-inline:16px;padding-block:14px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:6px}
+code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:var(--hair);padding:1px 5px;border-radius:5px}
+
+/* ── mock chrome (same as Q2/Q22) ─────────────── */
+.head h1{font-size:19px;font-weight:700;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.head .meta{font-size:12px;color:var(--inkDim);margin-top:2px}
+.head .meta b{color:var(--ink);font-weight:600}
+.picks{border:1.5px dashed var(--redLine);border-radius:14px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:7px;background:var(--redSoft)}
+.ph{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red)}
+.pick{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:8px}
+.pick .k{font-size:11.5px;font-weight:650;color:var(--ink)}
+.seg{display:flex;background:var(--hair);border-radius:9px;padding:2px;gap:2px}
+.seg button{flex:1;min-height:34px;border-radius:7px;font-size:12.5px;color:var(--inkDim);padding:4px 6px;line-height:1.2}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg .tagp{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--red);margin-left:4px;vertical-align:1px}
+.tabs{display:flex;gap:6px;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--page);padding-block:6px}
+.tabs button{flex:1;min-height:40px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--inkDim);border:1px solid var(--hair)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+.when{display:flex;gap:8px;align-items:center}
+.when .seg{flex:1}
+.redline{font-size:12px;color:var(--red);line-height:1.45;border-left:2px solid var(--redLine);padding:2px 0 2px 10px}
+.redline b{font-weight:700}
+.foot{font-size:12.5px;color:var(--inkDim);line-height:1.5}
+.foot h2{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);margin:0 0 6px}
+.foot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.foot li b{color:var(--ink);font-weight:600}
+.gone s{color:var(--inkDim)}
+.ask{border-left:3px solid var(--red);padding:4px 0 4px 12px;font-size:13.5px;line-height:1.45}
+.ask .ph{display:block;margin-bottom:2px}
+.try{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--inkDim)}
+.try button{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:var(--surface);border:1px solid var(--hair);border-radius:8px;padding:6px 9px;min-height:32px}
+.store{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--inkDim)}
+.store code{font-size:12px;padding:3px 7px;border-radius:6px;transition:background .3s}
+.store code.flash{background:var(--redSoft);color:var(--red)}
+
+/* ── device stages (app palette, 1:1 points) ─── */
+.stagewrap{margin-inline:-16px;display:flex;justify-content:center}
+@media (min-width:430px){.stagewrap{margin-inline:0}}
+.scroll-x{overflow-x:auto;width:100%}
+.stage{background:var(--bg);color:var(--t1);position:relative;overflow:hidden;border:1px solid var(--hair)}
+.stage.phone{width:390px;max-width:100vw;min-height:600px;border-radius:0;margin-inline:auto}
+@media (min-width:430px){.stage.phone{border-radius:34px}}
+.stage.ipad{width:700px;min-height:600px;border-radius:22px;margin-inline:auto}
+.stage.mac{width:720px;min-height:560px;border-radius:12px;margin-inline:auto}
+.screen{padding:8px 20px 28px}
+.nav{display:flex;justify-content:space-between;align-items:center;height:44px;color:var(--accent);font-size:16px}
+.nav .more{color:var(--t2);letter-spacing:2px}
+.ptitle{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:2px 0 10px;color:var(--t1);text-wrap:balance}
+.col{max-width:640px;margin-inline:auto}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--t2);background:var(--elev);border-radius:7px;padding:2px 7px;line-height:16px;white-space:nowrap}
+.chip svg{width:10px;height:10px;flex:none}
+.chip.tag{color:var(--accentText);background:var(--accentSoft)}
+.body{font-size:16px;line-height:1.5;color:var(--t1);margin-top:16px}
+.body p{margin:0 0 10px}
+.mac .tb{height:28px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--hair)}
+.mac .tb i{width:11px;height:11px;border-radius:50%;display:block}
+.mac .tb i:nth-child(1){background:#ff5f57}.mac .tb i:nth-child(2){background:#febc2e}.mac .tb i:nth-child(3){background:#28c840}
+.mac .tb span{font-size:11px;color:var(--t3);margin-left:8px}
+.mac .screen{padding:16px 22px 22px;display:flex;flex-direction:column;gap:13px}
+.mac .ptitle{font-size:19px;margin:0}
+.mac .body{font-size:14px;margin-top:0}
+
+/* importance card, static, from signed Q2 */
+.imp{background:var(--surface);border-radius:16px;padding:12px 13px;margin-top:14px}
+.mac .imp{border-radius:12px;box-shadow:inset 0 0 0 1px var(--macStroke);margin-top:0}
+.imp .r{display:flex;align-items:center;justify-content:space-between}
+.imp .l{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--t3)}
+.imp .balls{display:flex;gap:10px}
+.imp .balls i{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--ring);display:block}
+.mac .imp .balls{gap:8px}.mac .imp .balls i{width:10px;height:10px}
+.imp .balls i.on{background:var(--accent);border-color:var(--accent)}
+.imp .v{font-size:11.5px;font-weight:600;color:var(--accent)}
+
+/* ── PROPOSED tag row ─────────────────────────── */
+.tagrow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:10px}
+.tg{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--accentText);background:var(--accentSoft);
+  border-radius:999px;height:30px;padding:0 12px;white-space:nowrap;border:1px solid transparent;transition:background .15s,border-color .15s,transform .12s}
+.tg .x{font-size:10px;font-weight:800;opacity:.65;display:inline-grid;place-items:center;width:16px;height:16px;margin-right:-4px}
+.tg.armed{border-color:var(--danger);color:var(--danger);background:transparent}
+.tg.armed .x{opacity:1}
+.tg.flash{animation:flash .9s ease}
+@keyframes flash{0%,100%{transform:scale(1)}30%{transform:scale(1.12);box-shadow:0 0 0 4px rgb(var(--accent-rgb)/.25)}}
+.tg.new{animation:pop .25s ease}
+@keyframes pop{from{transform:scale(.7);opacity:.2}to{transform:scale(1);opacity:1}}
+.addbtn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 12px;border-radius:999px;font-size:14px;color:var(--t2);border:1px dashed var(--ring)}
+.tagin{height:30px;border-radius:999px;border:1.5px solid var(--accent);background:var(--surface);color:var(--t1);
+  font:14px -apple-system,system-ui,sans-serif;padding:0 12px;width:9.5em;min-width:0;outline:none}
+.sugg{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;margin:-2px -20px 0;padding-inline:20px;scrollbar-width:none}
+.sugg::-webkit-scrollbar{display:none}
+.sg{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:999px;font-size:14px;color:var(--t1);background:var(--surface);border:1px solid var(--hair);white-space:nowrap}
+.sg.create{color:var(--accent);border-color:rgb(var(--accent-rgb)/.45);font-weight:600}
+.sg .n{font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+mark{background:none;color:inherit;font-weight:700}
+.slab{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin:0 0 6px}
+.hint{font-size:12px;color:var(--t2);min-height:0;margin:-4px 0 10px}
+.hint.warn{color:var(--amber)}
+.hint.no{color:var(--danger)}
+.editing-note{font-size:11px;color:var(--t3);margin:-2px 0 10px}
+
+/* Mac proposed / today */
+.mac .tg{font-size:12px;height:22px;padding:0 9px;gap:4px}
+.mac .tg .x{width:14px;height:14px;font-size:8px;opacity:.6;margin-right:-3px;display:none}
+.mac .tg:hover .x,.mac .tg.always .x,.mac .tg.armed .x{display:inline-grid}
+.mac .tg.armed .x{opacity:1}
+.mac .addbtn{height:22px;font-size:12px;padding:0 9px}
+.mac .tagin{height:22px;font-size:12px;width:8em;padding:0 9px}
+.mac .tagrow{gap:6px;margin:0;position:relative}
+.menu{position:absolute;z-index:6;width:260px;background:var(--menu);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18),0 0 0 1px var(--hair);padding:4px 0}
+.menu button{display:flex;align-items:center;gap:7px;width:100%;padding:5px 10px;font-size:12px;color:var(--t1);text-align:left}
+.menu button .ic{width:12px;color:var(--t3);font-size:11px;text-align:center}
+.menu button.acc,.menu button.acc .ic{color:var(--accent)}
+.menu button.sel{background:rgb(var(--accent-rgb)/.14)}
+.menu .kb{font-size:10.5px;color:var(--t3);padding:4px 10px 2px;border-top:1px solid var(--hair);margin-top:3px}
+.menu .muted{font-size:11px;color:var(--t3);padding:5px 10px}
+.dash{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;color:var(--t2);border:.5px dashed var(--ring)}
+
+/* TODAY — drawn from source */
+.old-tag{font-size:11px;color:var(--accentText);background:var(--accentSoft);border-radius:7px;padding:2px 7px;line-height:16px}
+.old-add{font-size:11px;color:var(--t2);background:var(--elev);border-radius:7px;padding:2px 7px;line-height:16px}
+.sheet-dim{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:120px;z-index:9;background:var(--bg);border-radius:14px 14px 0 0;display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(0,0,0,.2)}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--ring);margin:6px auto 0}
+.sheet .sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:44px;padding:0 16px}
+.sheet .sh b{font-size:16px;font-weight:600;text-align:center}
+.sheet .sh button{justify-self:end;color:var(--accent);font-weight:600;font-size:16px;min-height:44px}
+.sheet .sb{padding:4px 20px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+.sheet .sec{display:flex;flex-direction:column;gap:8px}
+.cap13{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:6px 10px;border-radius:999px;line-height:1}
+.cap13.on{font-weight:500;color:var(--accentText);background:var(--accentSoft);border:1px solid rgb(var(--accent-rgb)/.35)}
+.cap13.on .x{font-size:9px;font-weight:800;opacity:.7}
+.cap13.sug{color:var(--t2);background:rgba(127,127,127,.06);border:1px solid var(--hair)}
+.cap13.sug.vault{border-color:rgb(15 157 114/.35)}
+.field{font-size:15px;color:var(--t1);background:var(--elev);border-radius:10px;border:1px solid var(--hair);padding:10px 12px;width:100%;outline:none;font-family:inherit}
+.field:focus{border-color:rgb(var(--accent-rgb)/.45)}
+.help{font-size:11.5px;color:var(--t3)}
+.help.acc{color:var(--accent)}
+
+.toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:12;background:var(--t1);color:var(--bg);border-radius:999px;
+  display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;font-size:13.5px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.toast button{font-weight:700;color:#fff;padding:6px 12px;border-radius:999px;background:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <h1>Tags, edited on the note</h1>
+    <div class="meta"><b>Q3</b> · C241 C93 · D23 D107 D135 · no sheet: tap <b>+ tag</b>, type or pick, the chips land in place · rules unchanged</div>
+  </header>
+
+  <section class="picks" aria-label="Choices to overrule">
+    <div class="ph">Three picks to overrule · flip any, all three devices follow</div>
+    <div class="pick"><span class="k">1 Where</span>
+      <div class="seg"><button id="p-inline" data-set="surface:inline">On the note<span class="tagp">PICK</span></button><button id="p-sheet" data-set="surface:sheet">In a sheet</button></div></div>
+    <div class="pick"><span class="k">2 Remove</span>
+      <div class="seg"><button id="p-arm" data-set="remove:arm">Tap, tap again<span class="tagp">PICK</span></button><button id="p-always" data-set="remove:always">✕ on every chip</button></div></div>
+    <div class="pick"><span class="k">3 Row</span>
+      <div class="seg"><button id="p-row" data-set="place:row">Own row, under title<span class="tagp">PICK</span></button><button id="p-mixed" data-set="place:mixed">Mixed into the facts</button></div></div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Device">
+    <button role="tab" id="tab-phone" data-dev="phone">iPhone</button>
+    <button role="tab" id="tab-ipad" data-dev="ipad">iPad</button>
+    <button role="tab" id="tab-mac" data-dev="mac">Mac</button>
+  </nav>
+  <div class="when">
+    <div class="seg" role="group" aria-label="Version">
+      <button id="v-new" data-ver="new">Proposed</button>
+      <button id="v-today" data-ver="today">Today (from source)</button>
+    </div>
+  </div>
+
+  <div class="stagewrap"><div class="scroll-x" id="stagebox"></div></div>
+  <div class="store" id="store"></div>
+
+  <div class="try" id="try">
+    <span>Type into the field, or tap one:</span>
+    <button data-try="Lisbon, market">Lisbon, market</button>
+    <button data-try="#design">#design</button>
+    <button data-try="LISBON">LISBON</button>
+    <button data-try="[]">[]</button>
+    <button data-try="inspiration">inspiration</button>
+    <button data-try="Wood">Wood</button>
+    <button data-try="gf">gf</button>
+  </div>
+
+  <div class="redline" id="redline"></div>
+
+  <section class="foot">
+    <h2>The C93 rules, and where each one shows</h2>
+    <ul>
+      <li><b>Comma or new line splits.</b> <code>Lisbon, market</code> becomes two chips. Return and comma both add and keep the field open for the next tag.</li>
+      <li><b>Needs a letter or digit.</b> <code>[]</code> is refused with a line under the row; the field keeps the text so you can fix it.</li>
+      <li><b><code>#</code> stripped once, case kept.</b> <code>#design</code> lands as <code>design</code>; <code>Wood</code> stays <code>Wood</code>.</li>
+      <li><b>Case-variants fold to the first spelling (D23).</b> <code>LISBON</code> on a note that has <code>Lisbon</code> adds nothing; the existing chip pulses and the line says so.</li>
+      <li><b>All four destination words are tags.</b> <code>inspiration</code> is accepted and says it will ask the archive for a credit (today's copy, kept).</li>
+      <li><b>Typeahead</b> is prefix, case-insensitive, and shows the spelling you already use. A <b>Create</b> chip leads only when the text is new everywhere.</li>
+    </ul>
+  </section>
+
+  <section class="foot gone">
+    <h2>Gone from today</h2>
+    <p style="margin:0">Phone: <s>the Tags sheet and its Done button</s>, <s>the 40-chip "TAP TO ADD" wall</s>, <s>the green vault edge and its caption</s>, <s>"Separate multiple tags with commas."</s>, <s>11 pt tag chips that only open the sheet</s>, <s>a tap on a sheet chip deleting it with no undo</s>. Mac: <s>Return closing the field after one tag</s>, <s>the ✕ always visible at half opacity</s>.</p>
+  </section>
+
+  <section class="foot">
+    <h2>What source does today that breaks C93 (build fixes these either way)</h2>
+    <ul>
+      <li>Mac <code>TagEditor.commitOne</code> lowercases a tag picked or created from the menu (<code>NoteProperties.swift:460</code>), while Return (<code>commit</code>, line 467) keeps the case. Try <code>Alfama</code> both ways on the Mac "Today" view.</li>
+      <li>No case fold anywhere: both apps test <code>tags.contains(t)</code> exactly (<code>TagEditorSheet.swift</code> <code>add</code>, <code>NoteProperties.swift:467</code>), so <code>LISBON</code> sits next to <code>Lisbon</code>.</li>
+      <li><code>Memo.splitTagInput</code> removes every <code>#</code>, not one (<code>Memo.swift:284</code>).</li>
+    </ul>
+  </section>
+
+  <div class="ask"><span class="ph">The one question</span>You type <code>Wood</code> and your other notes already use <code>wood</code>. C93 keeps it as typed, so the vault ends up with both. Should the fold reach across your library, so it becomes <code>wood</code>?</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ── data (fake) ──────────────────────────────────
+  var LIB = ["furniture","Lisbon","gfr","design","production","cnc","wood","market","family","reading","woodworking","gifts","house","idea-dump","sketch"];
+  var LIBN = {furniture:14,Lisbon:31,gfr:22,design:19,production:12,cnc:9,wood:8,market:6,family:11,reading:7,woodworking:3,gifts:2,house:5,"idea-dump":4,sketch:3};
+  var VAULT = ["feira","restoration","joinery"];            // phone: VaultTagScanner
+  var NOTE_SUG = ["chair","wood"];                           // Mac: PipelineFile.tagSuggestions (TagMatcher)
+  LIB.sort(function(a,b){ return (LIBN[b]||0)-(LIBN[a]||0); });   // most-used first, as TagLibrary does
+
+  var S = { device:"phone", ver:"new", surface:"inline", remove:"arm", place:"row",
+            tags:["Lisbon","furniture"], editing:false, draft:"", armed:null, hint:null, hintCls:"",
+            sel:-1, sheetOpen:false, toast:null, lastRemoved:null };
+  try{ var d=localStorage.getItem("q3-device"); if(d) S.device=d; }catch(e){}
+  var h=(location.hash||"").slice(1); if(["phone","ipad","mac"].indexOf(h)>=0) S.device=h;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  var lc = function(s){ return s.toLowerCase(); };
+  var isMac = function(){ return S.device==="mac"; };
+
+  // ── the C93 parser, as specced ───────────────────
+  function parseNew(raw){
+    var out=[], refused=[];
+    raw.split(/[,\n]/).forEach(function(p){
+      var w=p.trim(); if(!w) return;
+      if(w.charAt(0)==="#") w=w.slice(1).trim();            // # stripped ONCE
+      if(!/[\p{L}\p{N}]/u.test(w)){ refused.push(p.trim()); return; }
+      out.push(w);                                           // case kept
+    });
+    return {tags:out, refused:refused};
+  }
+  // today's Memo.splitTagInput: every # removed, exact-match dedupe later
+  function parseToday(raw){
+    var out=[];
+    raw.split(/[,\n]/).forEach(function(p){
+      var w=p.replace(/#/g,"").trim();
+      if(/[\p{L}\p{N}]/u.test(w)) out.push(w);
+    });
+    return out;
+  }
+
+  // ── IC glyphs for the facts chips ────────────────
+  var IC={
+    cal:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1.8" width="8" height="7.2" rx="1.3"/><path d="M1 4.2h8M3.2 .8v2M6.8 .8v2"/></svg>',
+    pin:'<svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 .6a3.2 3.2 0 0 0-3.2 3.2C1.8 6.2 5 9.4 5 9.4s3.2-3.2 3.2-5.6A3.2 3.2 0 0 0 5 .6zm0 4.4a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/></svg>',
+    sun:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><circle cx="5" cy="5" r="2"/><path d="M5 .5v1.3M5 8.2v1.3M.5 5h1.3M8.2 5h1.3M1.8 1.8l.9.9M7.3 7.3l.9.9M1.8 8.2l.9-.9M7.3 2.7l.9-.9"/></svg>',
+    mic:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="3.3" y=".8" width="3.4" height="5.4" rx="1.7"/><path d="M1.8 4.8a3.2 3.2 0 0 0 6.4 0M5 8v1.3"/></svg>',
+    clock:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><circle cx="5" cy="5" r="4.1"/><path d="M5 2.6V5l1.6 1"/></svg>'
+  };
+  function fact(t,ic){ return '<span class="chip">'+(ic?IC[ic]:"")+esc(t)+'</span>'; }
+  var FACTS = fact("24 Sep, 09:12","cal")+fact("Feira da Ladra","pin")+fact("19° clear","sun")+fact("Morning","sun")+fact("Voice memo","mic")+fact("3:42","clock");
+  var TITLE = "Chair from the Feira da Ladra";
+  var BODY = '<p>Found a bentwood chair at the Feira da Ladra, the seller wanted 25 but took 18. The back rail is loose, the joint just needs regluing.</p><p>Could be the template for the stool series: same bend, shorter legs.</p>';
+  var IMP = '<div class="imp"><div class="r"><div class="l">Importance<div class="balls"><i class="on"></i><i class="on"></i><i></i></div></div><span class="v">Useful</span></div></div>';
+
+  // ── suggestion source (proposed) ─────────────────
+  function sources(){ return isMac() ? NOTE_SUG.concat(LIB) : LIB.concat(VAULT); }
+  function matches(typed, cap){
+    var t=lc(typed.trim().replace(/^#/,"")), have={}, out=[], seen={};
+    S.tags.forEach(function(x){ have[lc(x)]=1; });
+    sources().forEach(function(x){
+      var k=lc(x); if(have[k]||seen[k]) return;
+      if(t && k.indexOf(t)!==0) return;
+      seen[k]=1; out.push(x);
+    });
+    return out.slice(0,cap);
+  }
+  function createable(typed){
+    var p=parseNew(typed); if(p.tags.length!==1) return null;
+    var k=lc(p.tags[0]);
+    var all=S.tags.concat(sources()); for(var i=0;i<all.length;i++) if(lc(all[i])===k) return null;
+    return p.tags[0];
+  }
+  function markPrefix(tag, typed){
+    var t=typed.trim().replace(/^#/,""); if(!t) return "<span>#"+esc(tag)+"</span>";
+    return "<span>#<mark>"+esc(tag.slice(0,t.length))+"</mark>"+esc(tag.slice(t.length))+"</span>";
+  }
+
+  // ── actions (proposed) ───────────────────────────
+  var hintTimer=null;
+  function setHint(msg, cls){
+    S.hint=msg; S.hintCls=cls||""; paintHint();
+    clearTimeout(hintTimer); if(msg) hintTimer=setTimeout(function(){ S.hint=null; paintHint(); }, 3600);
+  }
+  function addNew(list){
+    var added=[], folded=null;
+    list.forEach(function(t){
+      var k=lc(t), hit=null;
+      S.tags.forEach(function(x){ if(lc(x)===k) hit=x; });
+      if(hit){ folded={typed:t, kept:hit}; return; }
+      S.tags.push(t); added.push(t);
+      if(t.toLowerCase()==="inspiration") setHint("Noted — this note will ask the archive for a credit.","warn");
+    });
+    S.armed=null;
+    paintChips(added, folded && folded.kept);
+    if(folded) setHint("Already on this note as #"+folded.kept+".","");
+    if(added.length) flashStore();
+    return added.length>0 || !!folded;
+  }
+  function commitDraft(){
+    var raw=S.draft; if(!raw.trim()) return false;
+    var p=parseNew(raw);
+    if(p.refused.length && !p.tags.length){ setHint('"'+p.refused[0]+'" has no letter or digit, so it isn\'t a tag.',"no"); return false; }
+    addNew(p.tags);
+    if(p.refused.length) setHint('Skipped "'+p.refused[0]+'" — no letter or digit.',"no");
+    setDraft("");
+    return true;
+  }
+  function removeTag(t){
+    var i=S.tags.indexOf(t); if(i<0) return;
+    S.tags.splice(i,1); S.armed=null; S.lastRemoved={tag:t, at:i};
+    paintChips(); flashStore(); showToast("Removed #"+t);
+  }
+  function setDraft(v){
+    S.draft=v; S.sel=-1;
+    var inp=$("tagin"); if(inp && inp.value!==v) inp.value=v;
+    paintSugg();
+  }
+
+  var toastTimer=null;
+  function showToast(msg){
+    S.toast=msg; paintToast();
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ S.toast=null; paintToast(); },4000);
+  }
+
+  // ── rendering: proposed ──────────────────────────
+  function chipNew(t){
+    var armed = S.remove==="arm" && S.armed===t, always=S.remove==="always";
+    var showX = armed || always || (isMac() && S.remove==="arm");
+    return '<button class="tg'+(armed?" armed":"")+(always?" always":"")+'" data-chip="'+esc(t)+'" aria-label="'+(armed?"Remove #"+esc(t):"#"+esc(t))+'">'+
+      '#'+esc(t)+(showX?'<span class="x" data-x="'+esc(t)+'">✕</span>':'')+'</button>';
+  }
+  function addSlot(){
+    if(S.editing && S.surface==="inline")
+      return '<input id="tagin" class="tagin" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="tag" aria-label="Add a tag" value="'+esc(S.draft)+'">';
+    return '<button class="addbtn" id="addbtn">+ tag</button>';
+  }
+  function tagRowNew(){
+    var chips='<span class="chipsT" style="display:contents"></span>';
+    if(S.place==="row")
+      return '<div class="tagrow" id="tagrow">'+chips+addSlot()+(isMac()?'<div id="menuSlot"></div>':'')+'</div>';
+    return '<div class="tagrow flow" id="tagrow" style="gap:6px">'+FACTS+chips+addSlot()+(isMac()?'<div id="menuSlot"></div>':'')+'</div>';
+  }
+  function proposedPhone(){
+    var ipad=S.device==="ipad";
+    var s='<div class="screen'+(ipad?' col':'')+'">'+
+      (ipad?'<div class="nav"><span>‹ Notes</span><span class="more">•••</span></div>':'<div class="nav"><span>‹ Notes</span><span class="more">•••</span></div>')+
+      '<div class="ptitle">'+TITLE+'</div>'+
+      tagRowNew()+
+      (S.surface==="inline"?'<div id="suggSlot"></div>':'')+
+      '<div class="hint" id="hint"></div>'+
+      (S.place==="row"?'<div class="flow">'+FACTS+'</div>':'')+
+      IMP+'<div class="body">'+BODY+'</div></div>';
+    if(S.surface==="sheet" && S.editing) s+=sheetNew();
+    return s;
+  }
+  function sheetNew(){
+    return '<div class="sheet-dim" id="dim"></div><div class="sheet" role="dialog" aria-label="Tags"><div class="grab"></div>'+
+      '<div class="sh"><span></span><b>Tags</b><button id="sheetDone">Done</button></div>'+
+      '<div class="sb" style="gap:12px">'+
+        '<input id="tagin" class="field" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Type a tag" aria-label="Add a tag" value="'+esc(S.draft)+'">'+
+        '<div class="hint" id="hint2" style="margin:0"></div>'+
+        '<div id="suggSlot"></div>'+
+        '<div class="sec"><div class="slab">On this note</div><div class="tagrow" style="margin:0"><span class="chipsT" style="display:contents"></span></div></div>'+
+      '</div></div>';
+  }
+  function proposedMac(){
+    return '<div class="tb"><i></i><i></i><i></i><span>Skrift — Notes</span></div>'+
+      '<div class="screen"><div class="ptitle">'+TITLE+'</div>'+
+      tagRowNew()+
+      '<div id="suggSlot"></div>'+
+      '<div class="hint" id="hint" style="margin:-6px 0 0"></div>'+
+      (S.place==="row"?'<div class="flow">'+FACTS+'</div>':'')+
+      IMP+'<div class="body">'+BODY+'</div></div>'+
+      (S.surface==="sheet" && S.editing ? sheetNew() : '');
+  }
+
+  function paintChips(addedList, pulse){
+    document.querySelectorAll(".chipsT").forEach(function(box){
+      box.innerHTML = S.ver==="new" ? S.tags.map(chipNew).join("") : "";
+    });
+    if(addedList) addedList.forEach(function(t){ var el=document.querySelector('.chipsT [data-chip="'+CSS.escape(t)+'"]'); if(el) el.classList.add("new"); });
+    if(pulse){ var el=document.querySelector('.chipsT [data-chip="'+CSS.escape(pulse)+'"]'); if(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } }
+    paintSugg(); paintStore();
+  }
+  function paintHint(){
+    ["hint","hint2"].forEach(function(id){
+      var el=$(id); if(!el) return;
+      el.textContent=S.hint||""; el.className="hint"+(S.hintCls?" "+S.hintCls:"");
+      if(id==="hint") el.style.display = S.hint? "block":"none";
+    });
+  }
+  function paintSugg(){
+    if(S.ver!=="new") return;
+    var slot=$("suggSlot"), menu=$("menuSlot");
+    if(!S.editing){ if(slot) slot.innerHTML=""; if(menu) menu.innerHTML=""; return; }
+    var typed=S.draft, cr=createable(typed);
+    if(isMac() && S.surface==="inline"){
+      // typeahead dropdown (kept from source) + empty-field note suggestions (kept from source)
+      if(!typed.trim()){
+        if(menu) menu.innerHTML="";
+        var ns=NOTE_SUG.filter(function(x){ return !S.tags.some(function(y){return lc(y)===lc(x);}); });
+        slot.innerHTML = ns.length ? '<div class="flow" style="margin-top:-4px">'+ns.map(function(x){ return '<button class="dash" data-add="'+esc(x)+'">+ #'+esc(x)+'</button>'; }).join("")+
+          '<span class="chip" style="background:none;color:var(--t3)">for this note</span></div>' : "";
+        return;
+      }
+      slot.innerHTML="";
+      var m=matches(typed,8), rows=[];
+      if(cr) rows.push({t:cr, create:true});
+      m.forEach(function(x){ rows.push({t:x}); });
+      var inp=$("tagin"), row=$("tagrow");
+      var left = inp && row ? (inp.offsetLeft) : 0, top = inp && row ? inp.offsetTop+inp.offsetHeight+4 : 26;
+      var html='<div class="menu" style="left:'+left+'px;top:'+top+'px">';
+      if(!rows.length){
+        var k=lc(typed.trim().replace(/^#/,"")), hit=S.tags.filter(function(y){return lc(y)===k;})[0];
+        html+='<div class="muted">'+(hit?'#'+esc(hit)+' — already on this note':'No letter or digit — not a tag')+'</div>';
+      }
+      rows.forEach(function(r,i){
+        html+='<button class="'+(r.create?"acc ":"")+(i===S.sel?"sel":"")+'" data-add="'+esc(r.t)+'"><span class="ic">'+(r.create?"+":"#")+'</span>'+(r.create?'Create #'+esc(r.t):markPrefix(r.t,typed))+
+          (!r.create&&LIBN[r.t]?'<span style="margin-left:auto;font-size:10.5px;color:var(--t3)">'+LIBN[r.t]+'</span>':'')+'</button>';
+      });
+      html+='<div class="kb">↩ add · , add next · ⇥ top match · esc close</div></div>';
+      menu.innerHTML=html; S._rows=rows;
+      return;
+    }
+    // phone / iPad / sheet: one horizontal strip (inline) or a list (sheet)
+    var list = matches(typed, 24), items="";
+    if(cr) items+='<button class="sg create" data-add="'+esc(cr)+'">+ Create #'+esc(cr)+'</button>';
+    list.forEach(function(x){ items+='<button class="sg" data-add="'+esc(x)+'">'+markPrefix(x,typed)+(LIBN[x]?'<span class="n">'+LIBN[x]+'</span>':'')+'</button>'; });
+    if(!items){
+      var k2=lc(typed.trim().replace(/^#/,"")), hit2=S.tags.filter(function(y){return lc(y)===k2;})[0];
+      items='<span class="editing-note" style="margin:6px 0">'+(hit2?'#'+esc(hit2)+' is already on this note':'Nothing matches')+'</span>';
+    }
+    var label = typed.trim() ? "" : '<div class="slab">Your tags, most used first</div>';
+    if(S.surface==="sheet"){
+      slot.innerHTML = label+'<div class="flow" style="gap:7px">'+items+'</div>';
+    } else {
+      slot.innerHTML = label+'<div class="sugg">'+items+'</div>';
+    }
+  }
+  function paintToast(){
+    var old=document.querySelector(".toast"); if(old) old.remove();
+    if(!S.toast) return;
+    var st=$("stage"); if(!st) return;
+    var t=document.createElement("div"); t.className="toast"; t.setAttribute("role","status");
+    t.innerHTML='<span>'+esc(S.toast)+'</span>'+(S.lastRemoved?'<button id="undo">Undo</button>':'');
+    st.appendChild(t);
+  }
+
+  // ── rendering: today (from source) ───────────────
+  // Phone: MemoDetailView.noteHeaderCore + TagEditorSheet. Mac: NoteProperties.TagEditor.
+  var OT = { adding:false, draft:"" };
+  function todayPhone(){
+    var ipad=S.device==="ipad";
+    var tags=S.tags.map(function(t){ return '<button class="old-tag" data-open="1">#'+esc(t)+'</button>'; }).join("");
+    var s='<div class="screen'+(ipad?' col':'')+'"><div class="nav"><span>‹ Notes</span><span class="more">•••</span></div>'+
+      '<div class="ptitle">'+TITLE+'</div>'+
+      '<div class="flow">'+FACTS+tags+'<button class="old-add" data-open="1">+ Tag</button></div>'+
+      IMP+'<div class="body">'+BODY+'</div></div>';
+    if(S.sheetOpen){
+      var have={}; S.tags.forEach(function(t){have[lc(t)]=1;});
+      var typed=lc(OT.draft.trim()), seen={}, sug=[];
+      LIB.concat(VAULT).forEach(function(t){ var k=lc(t); if(have[k]||seen[k]) return; if(typed&&k.indexOf(typed)!==0) return; seen[k]=1; sug.push(t); });
+      s+='<div class="sheet-dim" id="odim"></div><div class="sheet" role="dialog" aria-label="Tags (today)"><div class="grab"></div>'+
+        '<div class="sh"><span></span><b>Tags</b><button id="oDone">Done</button></div><div class="sb">'+
+        (S.tags.length?'<div class="sec"><div class="slab">On this note</div><div class="flow" style="gap:8px">'+
+          S.tags.map(function(t){ return '<button class="cap13 on" data-orm="'+esc(t)+'">#'+esc(t)+' <span class="x">✕</span></button>'; }).join("")+'</div></div>':'')+
+        (sug.length?'<div class="sec"><div class="slab">Tap to add</div><div class="flow" style="gap:8px">'+
+          sug.slice(0,40).map(function(t){ return '<button class="cap13 sug'+(VAULT.indexOf(t)>=0?' vault':'')+'" data-oadd="'+esc(t)+'">#'+esc(t)+'</button>'; }).join("")+
+          '</div><div class="help">Green-edged tags already exist in your vault.</div></div>':'')+
+        '<div class="sec"><div class="slab">Add</div><input id="ofield" class="field" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" enterkeyhint="done" placeholder="tag, tag, tag" value="'+esc(OT.draft)+'">'+
+        '<div class="help" id="ohelp">Separate multiple tags with commas.</div></div>'+
+        '</div></div>';
+    }
+    return s;
+  }
+  function todayMac(){
+    var chips=S.tags.map(function(t){ return '<span class="tg always" style="font-size:11px;height:20px">#'+esc(t)+'<button class="x" data-orm="'+esc(t)+'" style="opacity:.5">✕</button></span>'; }).join("");
+    var add = OT.adding
+      ? '<input id="ofield" class="tagin" style="width:90px;height:20px;font-size:11px;border:0;background:var(--hair)" type="text" placeholder="tag" value="'+esc(OT.draft)+'">'
+      : '<button class="dash" id="oadd" style="height:20px;font-size:11px">+ add tag</button>';
+    return '<div class="tb"><i></i><i></i><i></i><span>Skrift — Notes</span></div>'+
+      '<div class="screen"><div class="ptitle">'+TITLE+'</div>'+
+      '<div class="tagrow flow" id="tagrow" style="gap:6px">'+FACTS+chips+add+'<div id="menuSlot"></div></div>'+
+      '<div id="suggSlot"></div>'+IMP+'<div class="body">'+BODY+'</div></div>';
+  }
+  function paintTodayMacMenu(){
+    var slot=$("suggSlot"), menu=$("menuSlot"); if(!slot||!menu) return;
+    slot.innerHTML=""; menu.innerHTML="";
+    if(!OT.adding) return;
+    var typed=lc(OT.draft.trim());
+    if(!typed){
+      var ai=NOTE_SUG.filter(function(x){ return S.tags.indexOf(x)<0; }).slice(0,4);
+      slot.innerHTML = ai.length? '<div class="flow" style="margin-top:-6px">'+ai.map(function(x){return '<button class="dash" style="height:20px;font-size:11px" data-oadd="'+esc(x)+'">+ #'+esc(x)+'</button>';}).join("")+'</div>':"";
+      return;
+    }
+    var have={}; S.tags.forEach(function(t){have[lc(t)]=1;});
+    var seen={}, m=[];
+    NOTE_SUG.concat(LIB).forEach(function(t){ var k=lc(t); if(have[k]||seen[k]||k.indexOf(typed)!==0) return; seen[k]=1; if(m.length<8) m.push(t); });
+    var exact = S.tags.concat(LIB, NOTE_SUG).some(function(t){ return lc(t)===typed; });
+    var inp=$("ofield");
+    var html='<div class="menu" style="left:'+(inp?inp.offsetLeft:0)+'px;top:'+(inp?inp.offsetTop+inp.offsetHeight+4:24)+'px">';
+    if(!exact) html+='<button class="acc" data-omac="'+esc(typed)+'"><span class="ic">+</span>Create #'+esc(typed)+'</button>';
+    m.forEach(function(t){ html+='<button data-omac="'+esc(t)+'"><span class="ic">#</span>#'+esc(t)+'</button>'; });
+    if(exact && !m.length) html+='<div class="muted">#'+esc(typed)+' — already on this note</div>';
+    menu.innerHTML=html+'</div>';
+  }
+
+  // ── store + redline ──────────────────────────────
+  function paintStore(){
+    $("store").innerHTML='<span>Exported frontmatter</span><code id="yaml">tags: ['+S.tags.map(esc).join(", ")+']</code>';
+  }
+  function flashStore(){ var y=$("yaml"); if(!y) return; y.classList.remove("flash"); void y.offsetWidth; y.classList.add("flash"); setTimeout(function(){ y&&y.classList.remove("flash"); },700); }
+  function paintRedline(){
+    var r=$("redline"), mac=isMac();
+    if(S.ver==="today"){
+      r.innerHTML = mac
+        ? '<b>Today, Mac:</b> tags share the facts row. Type <code>Alfama</code> and click <b>Create</b>: it lands as <code>alfama</code>. Type it again and press Return: it keeps the capital. Two paths, two spellings. Return also closes the field.'
+        : '<b>Today, '+(S.device==="ipad"?"iPad":"iPhone")+':</b> 11 pt tags at the end of the facts row; any tap opens the Tags sheet. In the sheet a tap on a tag deletes it at once, no undo. Type <code>LISBON</code>: it sits next to <code>Lisbon</code>.';
+      return;
+    }
+    var bits=[];
+    bits.push(S.surface==="inline"
+      ? (mac ? '<b>On the note:</b> the field opens in the row; Return and comma add and keep it open; ↑↓ walk the menu; Esc or a click away closes.'
+             : '<b>On the note:</b> + tag turns into the field in the row, and your tags scroll in one strip under it, above the keyboard. Return on an empty field closes.')
+      : '<b>In a sheet:</b> the field sits on top and is focused on open; picks and chips live under it. Done closes.');
+    bits.push(S.remove==="arm"
+      ? (mac ? 'Remove: hover shows ✕.' : 'Remove: tap a tag, it turns red with ✕, tap again. Backspace in an empty field does the same to the last tag.')
+      : 'Remove: every tag carries ✕. One tap.');
+    bits.push('Every removal offers Undo for 4 s.');
+    bits.push(S.place==="row" ? (mac ? 'Tags sit on their own row, 12 pt, 22 pt tall (today 11 pt, 20 pt).' : 'Tags sit on their own row, 14 pt, 30 pt tall (today 11 pt, 20 pt).') : 'Tags follow the facts in one wrapping row, D107 order kept.');
+    if(mac) bits.push('Kept from source: the Create row, prefix match, 8-row cap, the note\'s own dashed suggestions.');
+    r.innerHTML=bits.join(" ");
+  }
+
+  // ── full render ──────────────────────────────────
+  function render(){
+    ["phone","ipad","mac"].forEach(function(dv){ $("tab-"+dv).setAttribute("aria-selected", String(S.device===dv)); });
+    $("v-new").setAttribute("aria-pressed", String(S.ver==="new"));
+    $("v-today").setAttribute("aria-pressed", String(S.ver==="today"));
+    document.querySelectorAll("[data-set]").forEach(function(b){ var kv=b.getAttribute("data-set").split(":"); b.setAttribute("aria-pressed", String(S[kv[0]]===kv[1])); });
+    document.querySelector(".picks").style.opacity = S.ver==="new" ? 1 : .45;
+    var cls = S.device==="mac"?"mac":S.device==="ipad"?"ipad":"phone";
+    var inner = S.ver==="new" ? (isMac()?proposedMac():proposedPhone()) : (isMac()?todayMac():todayPhone());
+    $("stagebox").innerHTML='<div class="stage '+cls+'" id="stage">'+inner+'</div>';
+    if(S.ver==="new"){ paintChips(); paintHint(); }
+    else { paintTodayMacMenu(); paintStore(); }
+    paintToast(); paintRedline();
+    try{ localStorage.setItem("q3-device", S.device); }catch(e){}
+  }
+  function focusField(){ var i=$("tagin")||$("ofield"); if(i){ i.focus(); var v=i.value; i.setSelectionRange(v.length,v.length); } }
+  function openEditor(){ S.editing=true; S.armed=null; render(); focusField(); }
+  function closeEditor(){ if(S.draft.trim()) commitDraft(); S.editing=false; S.draft=""; render(); }
+
+  // ── events ───────────────────────────────────────
+  document.addEventListener("click", function(e){
+    var t=e.target.closest("button, #stage, .sheet-dim"); var el=e.target;
+    var b=el.closest("button");
+    if(b && b.dataset.dev){ S.device=b.dataset.dev; S.editing=false; S.sheetOpen=false; OT.adding=false; history.replaceState(null,"","#"+S.device); render(); return; }
+    if(b && b.dataset.ver){ S.ver=b.dataset.ver; S.editing=false; S.sheetOpen=false; OT.adding=false; render(); return; }
+    if(b && b.dataset.set){ var kv=b.dataset.set.split(":"); S[kv[0]]=kv[1]; S.ver="new"; S.editing=false; S.armed=null; render(); return; }
+    if(b && b.dataset.try!==undefined){
+      var v=b.dataset.try;
+      if(S.ver==="today"){
+        if(isMac()){ OT.adding=true; OT.draft=v; render(); paintTodayMacMenu(); }
+        else { S.sheetOpen=true; OT.draft=v; render(); }
+        focusField(); return;
+      }
+      if(!S.editing){ S.editing=true; render(); }
+      setDraft(v); focusField(); return;
+    }
+    if(!el.closest("#stage")) return;
+
+    // ── today handlers
+    if(S.ver==="today"){
+      if(b && b.dataset.open){ S.sheetOpen=true; OT.draft=""; render(); return; }
+      if(b && b.id==="oDone"){ todayCommit(); S.sheetOpen=false; render(); return; }
+      if(el.id==="odim"){ S.sheetOpen=false; render(); return; }
+      if(b && b.dataset.orm){ S.tags=S.tags.filter(function(x){return x!==b.dataset.orm;}); render(); flashStore(); return; }
+      if(b && b.dataset.oadd){ if(S.tags.indexOf(b.dataset.oadd)<0) S.tags.push(b.dataset.oadd); render(); flashStore(); return; }
+      if(b && b.id==="oadd"){ OT.adding=true; OT.draft=""; render(); focusField(); return; }
+      if(b && b.dataset.omac!==undefined){ // NoteProperties.commitOne: lowercases (source line 460)
+        var tt=b.dataset.omac.trim().toLowerCase().replace(/#/g,"");
+        if(tt && S.tags.indexOf(tt)<0) S.tags.push(tt);
+        OT.draft=""; render(); flashStore(); focusField(); return;
+      }
+      return;
+    }
+
+    // ── proposed handlers
+    if(b && b.id==="undo" && S.lastRemoved){ S.tags.splice(S.lastRemoved.at,0,S.lastRemoved.tag); var back=S.lastRemoved.tag; S.lastRemoved=null; S.toast=null; paintToast(); paintChips([back]); flashStore(); return; }
+    if(b && b.id==="addbtn"){ openEditor(); return; }
+    if(b && b.id==="sheetDone"){ closeEditor(); return; }
+    if(el.classList && el.classList.contains("sheet-dim")){ closeEditor(); return; }
+    if(b && b.dataset.add!==undefined){ addNew([b.dataset.add]); setDraft(""); focusField(); return; }
+    if(el.dataset && el.dataset.x){ removeTag(el.dataset.x); return; }
+    if(b && b.dataset.chip){
+      var c=b.dataset.chip;
+      if(S.remove==="always"){ return; }
+      if(isMac()) return;                                        // Mac: hover ✕ does it
+      if(S.armed===c){ removeTag(c); } else { S.armed=c; paintChips(); }
+      if(S.editing) focusField();
+      return;
+    }
+    // tap elsewhere: disarm; close the inline field if it's empty
+    if(S.armed){ S.armed=null; paintChips(); }
+    if(S.editing && S.surface==="inline" && !el.closest("#tagin") && !el.closest("#suggSlot") && !el.closest("#menuSlot")){ closeEditor(); }
+  });
+
+  function todayCommit(){ // TagEditorSheet.addTyped
+    var raw=OT.draft; OT.draft="";
+    var split=parseToday(raw);
+    split.forEach(function(t){ if(S.tags.indexOf(t)<0) S.tags.push(t); });
+    if(split.length) flashStore();
+    return split.some(function(t){ return lc(t)==="inspiration"; });
+  }
+
+  document.addEventListener("input", function(e){
+    if(e.target.id==="tagin"){
+      var v=e.target.value;
+      if(/[,\n]/.test(v)){                                     // comma adds and keeps going
+        var parts=v.split(/[,\n]/), rest=parts.pop();
+        S.draft=parts.join(","); commitDraft(); setDraft(rest.replace(/^\s+/,""));
+        return;
+      }
+      S.draft=v; S.sel=-1; S.armed=null; paintSugg(); paintChips();
+      var inp=$("tagin"); if(inp && document.activeElement!==inp) focusField();
+    }
+    if(e.target.id==="ofield"){
+      OT.draft=e.target.value;
+      if(isMac()) paintTodayMacMenu();
+      else { // sheet suggestions re-filter live (source: prefix filter on typed)
+        var pos=e.target.selectionStart; render(); var f=$("ofield"); if(f){ f.focus(); f.setSelectionRange(pos,pos); }
+      }
+    }
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.target.id==="tagin"){
+      var rows=S._rows||[];
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(isMac() && S.sel>=0 && rows[S.sel]){ addNew([rows[S.sel].t]); setDraft(""); return; }
+        if(!S.draft.trim()){ if(S.surface==="inline") closeEditor(); return; }
+        commitDraft(); focusField(); return;
+      }
+      if(e.key==="Escape"){ e.preventDefault(); S.draft=""; S.editing=false; render(); return; }
+      if(e.key==="Tab" && isMac() && S.draft.trim()){
+        e.preventDefault(); var top=rows.filter(function(r){return !r.create;})[0]; if(top) setDraft(top.t); focusField(); return;
+      }
+      if(e.key==="ArrowDown" && isMac()){ e.preventDefault(); S.sel=Math.min(rows.length-1,S.sel+1); paintSugg(); return; }
+      if(e.key==="ArrowUp" && isMac()){ e.preventDefault(); S.sel=Math.max(-1,S.sel-1); paintSugg(); return; }
+      if(e.key==="Backspace" && !S.draft && S.tags.length){
+        e.preventDefault();
+        var last=S.tags[S.tags.length-1];
+        if(S.armed===last) removeTag(last); else { S.armed=last; paintChips(); }
+        return;
+      }
+    }
+    if(e.target.id==="ofield"){
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(isMac()){ // NoteProperties.commit: parse, add, CLOSE the field
+          parseToday(OT.draft).forEach(function(t){ if(S.tags.indexOf(t)<0) S.tags.push(t); });
+          OT.draft=""; OT.adding=false; render(); flashStore(); return;
+        }
+        var credit=todayCommit(); render(); focusField();
+        var hp=$("ohelp"); if(hp && credit){ hp.textContent="Noted — this note will ask the archive for a credit."; hp.className="help acc"; }
+      }
+      if(e.key==="Escape" && isMac()){ OT.draft=""; OT.adding=false; render(); }
+    }
+  });
+
+  render();
+})();
+</script>
