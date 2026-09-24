@@ -49,7 +49,10 @@ struct NoteBodyView: UIViewRepresentable {
     var nameSpans: [NameSpan] = []
     var onTapName: (NameSpan) -> Void = { _ in }
     var polishedBinding: Binding<String>? = nil
-    var onCommit: () -> Void = {}
+    /// `wordsChanged`: true only when this commit wrote `memo.transcript` (the `.raw`
+    /// target) — a `.polished` commit already stamps its own edit via
+    /// `recordPolishedEdit` and must not ALSO stamp the (unchanged) raw words (C98).
+    var onCommit: (_ wordsChanged: Bool) -> Void = { _ in }
     var header: AnyView = AnyView(EmptyView())
     var footer: AnyView = AnyView(EmptyView())
     /// Off-screen pager pages must vanish from the accessibility tree (XCUITest
@@ -178,7 +181,7 @@ struct NoteBodyView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
         var memo: Memo
-        let onCommit: () -> Void
+        let onCommit: (Bool) -> Void
         weak var textView: NoteBodyTextView?
         weak var player: AudioPlayerModel?
         var polishedBinding: Binding<String>?
@@ -253,7 +256,7 @@ struct NoteBodyView: UIViewRepresentable {
         /// keeps the marker mid-sentence exactly as spoken.
         static let displayOnlyKey = NSAttributedString.Key("skriftDisplayOnly")
 
-        init(memo: Memo, onCommit: @escaping () -> Void) {
+        init(memo: Memo, onCommit: @escaping (Bool) -> Void) {
             self.memo = memo
             self.onCommit = onCommit
         }
@@ -1171,6 +1174,11 @@ struct NoteBodyView: UIViewRepresentable {
             draftTarget = nil
             let text = committedBody(reconstruct(tv.attributedText))
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // C98: only the `.raw` targets touch `memo.transcript` (the words hash) —
+            // `.polished` writes the copy-edit and stamps its OWN conflict record via
+            // `recordPolishedEdit` (the binding's setter), so `onCommit` must not also
+            // stamp the (unchanged) raw words.
+            var wordsChanged = false
             switch target {
             case .polished(let binding):
                 binding.wrappedValue = text          // setter stamps provenance
@@ -1181,6 +1189,7 @@ struct NoteBodyView: UIViewRepresentable {
                 memo.transcript = memo.captureQuote!.body(withRamble: text)
                 memo.transcriptStatus = .done
                 loaded = memo.transcript
+                wordsChanged = true
             case .raw:
                 let wasNonEmpty = !(loaded ?? "").isEmpty
                 memo.transcript = trimmed.isEmpty ? nil : text
@@ -1189,10 +1198,11 @@ struct NoteBodyView: UIViewRepresentable {
                     DevLog.log("editor cleared body → transcript=nil memo \(memo.id)")
                 }
                 loaded = memo.transcript ?? ""
+                wordsChanged = true
             }
             memo.transcriptUserEdited = true         // Mac trusts it → no re-transcribe
             rebuildWordRanges()
-            onCommit()
+            onCommit(wordsChanged)
         }
 
         /// C10 at the editor commit: a body carrying pictures is written through body v2

@@ -1053,13 +1053,13 @@ struct MemosListView: View {
             Task {
                 guard await LockGate.shared.authorizeRemoveLock() else { return }
                 memo.locked = false
-                memo.markEdited()
+                memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
                 NotesRepository.shared.save()
             }
         } else {
             guard LockGate.shared.canAuthenticate() else { return }
             memo.locked = true
-            memo.markEdited()
+            memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
             NotesRepository.shared.save()
             if ObsidianVault.hasPublished(memo.id) { lockVaultNotice = true }
         }

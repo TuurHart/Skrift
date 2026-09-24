@@ -665,13 +665,13 @@ struct MemoDetailView: View {
             Task {
                 guard await LockGate.shared.authorizeRemoveLock() else { return }
                 memo.locked = false
-                memo.markEdited()
+                memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
                 repository.save()
             }
         } else {
             guard LockGate.shared.canAuthenticate() else { return }
             memo.locked = true
-            memo.markEdited()
+            memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
             repository.save()
             player.stopAndClear()
             if ObsidianVault.hasPublished(memo.id) { lockVaultNotice = true }
@@ -1155,8 +1155,10 @@ private struct MemoPageView: View {
                 nameSpans: spans,
                 onTapName: { resolveTarget = NameResolveTarget(span: $0) },
                 polishedBinding: isInlineImageCapture ? captureAnnotationBinding : polishedBinding,
-                onCommit: {
-                    memo.markEdited()
+                onCommit: { wordsChanged in
+                    // C98: a `.polished` commit already stamped itself via
+                    // `recordPolishedEdit` — don't ALSO stamp the untouched raw words.
+                    memo.markEdited(stampWords: wordsChanged)
                     repository.save()
                     recomputeSpans()
                 },
@@ -1291,7 +1293,7 @@ private struct MemoPageView: View {
                                          set: { memo.destination = $0 }),
                     folderLabel: { $0.archiveFolder.map { "\($0)/" } },
                     onPick: { _ in
-                        memo.markEdited()
+                        memo.markEdited(stampWords: false)   // destination isn't title/body/tags (C98)
                         repository.save()
                     },
                     style: .phone)
@@ -1866,7 +1868,7 @@ private struct MemoPageView: View {
         withAnimation(Theme.Motion.spring) {
             undoToast = NameUndoToast(message: "Unlinked — “\(alias)” is plain text here") {
                 memo.nameResolutions = prior
-                memo.markEdited(); repository.save()
+                memo.markEdited(stampWords: false); repository.save()   // nameResolutions (C98)
                 recomputeSpans()
                 withAnimation(Theme.Motion.spring) { undoToast = nil }
             }

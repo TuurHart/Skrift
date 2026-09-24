@@ -136,7 +136,7 @@ extension Memo {
         r.namePicks[key] = NamesMerge.normaliseCanonical(canonical)
         r.unlinkedNames.removeAll { NamesMerge.keyName($0).lowercased() == NamesMerge.keyName(canonical).lowercased() }
         nameResolutions = r
-        markEdited()
+        markEdited(stampWords: false)   // nameResolutions isn't title/body/tags (C98)
     }
 
     /// KEEP an alias plain for this note (the reversible "keep as plain text" / unlink):
@@ -147,7 +147,7 @@ extension Memo {
         var r = nameResolutions
         r.namePicks[key] = ""
         nameResolutions = r
-        markEdited()
+        markEdited(stampWords: false)   // nameResolutions isn't title/body/tags (C98)
     }
 
     /// REVERT an alias to its default tier (undo a link / keep-plain) — removes the
@@ -158,6 +158,6 @@ extension Memo {
         guard r.namePicks[key] != nil else { return }
         r.namePicks.removeValue(forKey: key)
         nameResolutions = r
-        markEdited()
+        markEdited(stampWords: false)   // nameResolutions isn't title/body/tags (C98)
     }
 }
