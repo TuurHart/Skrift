@@ -392,8 +392,12 @@ struct VaultWriter {
     private static func writeAsset(_ asset: VaultAsset, into dir: URL, id: UUID) -> Bool {
         switch asset.source {
         case .data(let data):
-            let dest = dir.appendingPathComponent(asset.name)
-            do { try writeAtomic(data, to: dest); return true } catch { return false }
+            // R7/R77 for the phone lane: this used to `writeAtomic` blind under
+            // `asset.name`, clobbering an existing vault attachment we don't own — the
+            // same hole the `.file` branch had before C54/C58. Same ownership rule,
+            // in-memory bytes instead of a source file to compare against.
+            return VaultAttachmentOwnership.writeOwned(data, preferredName: asset.name,
+                                                       into: dir, id: id) != nil
         case .file(let src):
             // R77: this used to unconditionally `removeItem` then `copyItem` under the
             // ORIGINAL name — an existing vault attachment we don't own got clobbered with
@@ -443,6 +447,34 @@ enum VaultAttachmentOwnership {
         let dest = dir.appendingPathComponent(preferredName)
         guard fm.fileExists(atPath: dest.path) else { return preferredName }
         if filesAreIdentical(dest, src, fm: fm) { return preferredName }
+        return disambiguated(preferredName, id: id)
+    }
+
+    /// Same rule for in-memory bytes (the phone's `MemoAsset` blobs — no source file on
+    /// disk to hand `copyOwned`): `preferredName` when free or byte-identical to `data`,
+    /// else the id8-disambiguated name, and the untouched-foreign-file guarantee holds.
+    static func ownedName(preferredName: String, matching data: Data, in dir: URL, id: UUID,
+                          fileManager fm: FileManager = .default) -> String {
+        let dest = dir.appendingPathComponent(preferredName)
+        guard fm.fileExists(atPath: dest.path) else { return preferredName }
+        if let existing = try? Data(contentsOf: dest), existing == data { return preferredName }
+        return disambiguated(preferredName, id: id)
+    }
+
+    /// Writes `data` into `dir` under an ownership-safe name (see `ownedName(preferredName:matching data:…)`).
+    /// Returns the URL actually written (existing untouched file → same URL, nothing
+    /// rewritten), or nil on a genuine I/O failure. Never removes an existing file.
+    @discardableResult
+    static func writeOwned(_ data: Data, preferredName: String, into dir: URL, id: UUID,
+                           fileManager fm: FileManager = .default) -> URL? {
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let name = ownedName(preferredName: preferredName, matching: data, in: dir, id: id, fileManager: fm)
+        let dest = dir.appendingPathComponent(name)
+        guard !fm.fileExists(atPath: dest.path) else { return dest }   // already correct — no-op
+        do { try VaultWriter.writeAtomic(data, to: dest); return dest } catch { return nil }
+    }
+
+    private static func disambiguated(_ preferredName: String, id: UUID) -> String {
         let stem = (preferredName as NSString).deletingPathExtension
         let ext = (preferredName as NSString).pathExtension
         let short = id.uuidString.prefix(8)
