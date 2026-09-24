@@ -823,11 +823,12 @@ struct MemoSaver {
             }
             guard let memo = repository.memo(id: id) else { return }
             let text = storedText.trimmingCharacters(in: .whitespacesAndNewlines)
-            // Paragraph the stored transcript (hybrid: long pause after a sentence,
-            // or every ~4 sentences) so the memo + Obsidian export read as paragraphs
-            // instead of a wall of text. Token-preserving (punctuation + [[img]]
-            // markers intact); karaoke is newline-aware so word-timing alignment holds.
-            memo.transcript = text.isEmpty ? nil : Paragrapher.paragraphed(transcript: storedText, words: storedTimings)
+            // Body v2 (C10, C20): speech paragraphs first, then every picture as its own
+            // paragraph placed from its moment (D140). Karaoke is newline-aware, so
+            // word-timing alignment holds. `.speech` only with real word times.
+            memo.transcript = text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
+                text: storedText, words: storedTimings, manifest: manifest,
+                source: storedTimings.isEmpty ? .typed : .speech))
             memo.transcriptConfidence = result.confidence
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done
