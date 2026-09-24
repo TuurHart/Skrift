@@ -22,13 +22,13 @@ Staged, not dropped. Each comes back as items at the next resync (`/2-plan`), in
 
 ## Items
 
-### Q1 [tuur] (tuur) mockup: quick note
+### Q1 [tuur] (done) mockup: quick note
 spec: C112 C114 C43
 needs: -
 do: One clickable HTML page: the app opening into the list with the New Note action one tap away; the Lock Screen / Control Center widget and the Siri path each landing in an empty note with the keyboard up; leaving an untouched empty note discards it (D91). Phone and iPad frames.
 check: Tuur clicked through it and said go.
 
-### Q2 [tuur] (tuur) mockup: three-ball importance
+### Q2 [tuur] (done) mockup: three-ball importance
 spec: C94 C210 C183
 needs: -
 node: i23
@@ -47,7 +47,7 @@ needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
 check: Tuur clicked through it and said go.
 
-### Q5 [tuur] (tuur) inspiration board: the long-form sources tab
+### Q5 [tuur] (done) inspiration board: the long-form sources tab
 spec: C229
 needs: -
 node: Podcasts
@@ -58,20 +58,20 @@ check: Tuur picked a direction.
 spec: C229 C79
 needs: Q5
 node: Podcasts
-do: The tab in the direction Tuur picked in Q5, with its name: long-form sources only (book, episode, article, PDF, talk), door-based routing (share-sheet PDF → the tab with "Added to Library · add to a note instead"), capture and "send to a note" on every source, "move to Library" on a note, per-book "N notes" with jump-back, the empty-tab call to action (D90, D126, D127, D128).
+do: The tab in direction A "Shelf" from `Skrift_Native/SkriftDesktop/mocks/Q5-long-form-inspiration.html`, named "Library"; captures stay in Notes, not on the tab (D134): long-form sources only (book, episode, article, PDF, talk), door-based routing (share-sheet PDF → the tab with "Added to Library · add to a note instead"), capture and "send to a note" on every source, "move to Library" on a note, per-book "N notes" with jump-back, the empty-tab call to action (D90, D126, D127, D128).
 check: Tuur clicked through it and said go.
 
 ### Q7 [auto] (todo) build quick note
 spec: C112 C114 C43
 needs: Q1
-do: Build the signed Q1 mock on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
+do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: ✎ in the list HEADER beside Select, cursor in the body, silent discard) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
 check: `plan/mtest.sh QuickNoteTests`
 
 ### Q8 [auto] (todo) build three-ball importance on all three devices
 spec: C94 C210 C183 C240
 needs: Q2
 node: i23
-do: Build the signed Q2 mock as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
+do: Build the signed Q2 mock (`Skrift_Native/SkriftDesktop/mocks/three-ball-importance.html`, D134: one row, cumulative fill, word-only readout) as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
 check: `grep -rqE "class ThreeBallScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "litCount" Skrift_Native/Shared Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q9 [auto] (done) corpus expectations become data + v1 body goldens
@@ -87,7 +87,7 @@ spec: C5 C6 C9 C253
 needs: Q9
 gate+: yes
 node: V2Core
-do: `BodyDiffHarnessTests` (desktop target) runs every registered body engine (v1 now) over the whole corpus and classes each note identical / expected-different / unexplained against the v1 goldens and `expect_body.txt`; `test-fixtures/corpus/expected-differences.json` maps slug → R id (R1 R2 R25 R33 R74, plus R95 once Tuur confirms it: every voice note with a picture, which v1 never speech-paragraphs — Q9 finding in plan/RUN.md); any unexplained row, or an R row where the engine MATCHES v1, fails (C5). For v1 itself, the notes failing their `expect_body` must be exactly the registered set. Body invariants from C6 as assertions: markers in = markers out, paragraph count never drops, `BodyTransform` round-trip identical, idempotent, pieces cover the body, and (for any non-v1 engine) no `[[img_` inside a sentence.
+do: `BodyDiffHarnessTests` (desktop target) runs every registered body engine (v1 now) over the whole corpus and classes each note identical / expected-different / unexplained against the v1 goldens and `expect_body.txt`; `test-fixtures/corpus/expected-differences.json` maps slug → R id (R1 R2 R25 R33 R74, R95: every voice note with a picture, which v1 never speech-paragraphs — confirmed D134); any unexplained row, or an R row where the engine MATCHES v1, fails (C5). For v1 itself, the notes failing their `expect_body` must be exactly the registered set. Body invariants from C6 as assertions: markers in = markers out, paragraph count never drops, `BodyTransform` round-trip identical, idempotent, pieces cover the body, and (for any non-v1 engine) no `[[img_` inside a sentence.
 check: `grep -qE '"R74"' test-fixtures/corpus/expected-differences.json && grep -rqE "class BodyDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q11 [auto] (todo) body/image v2 beside v1
@@ -171,6 +171,12 @@ node: AuditFix2
 do: One Shared predicate decides whether a note's content may show without auth; `WayOutView` (Fading / Recently Deleted) shows the "Locked note" placeholder the list already shows; the three delete entry points in `MemosListView` check the lock; `copyTranscript` / `copyableText` are gated behind auth (R88). Test in `LockedNoteVisibilityTests` (phone target).
 check: `plan/mtest.sh LockedNoteVisibilityTests`
 
+### Q22 [tuur] (todo) mockup: one notes list across phone, iPad and Mac
+spec: C117 C114
+needs: -
+do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
+check: Tuur clicked through it and said go.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -181,3 +187,7 @@ check: `plan/mtest.sh LockedNoteVisibilityTests`
 - 2026-09-24 11:39 Q1 -> tuur — built @54d80333 — awaiting sitting
 - 2026-09-24 11:40 Q5 -> tuur — built @23c7662b — awaiting sitting
 - 2026-09-24 11:49 Q9 -> done — gate pass @0efe1220
+- 2026-09-24 12:05 Q2 -> done — signed as drawn: one row, cumulative, word-only (D134)
+- 2026-09-24 12:05 Q1 -> done — signed with ✎ in the header beside Select (D134)
+- 2026-09-24 12:05 Q5 -> done — A Shelf, tab named Library; captures stay in Notes (D134)
+- 2026-09-24 12:05 Q22 added

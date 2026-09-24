@@ -1351,6 +1351,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R92 | `MemosListView.swift:462-463,544` reads `enhancedTitleByMemoID`/`searchFadingIDs` as computed properties inside `ForEach` | hoist every per-row derived lookup out of the list body into one pre-render pass, folded into the existing `Derived`/`lifecycle` structs | rendering N rows performs O(1) corpus scans, not O(N) | C279 |
 | R93 | `AppPaths.recordingsDirectory` (`Shared/Model/AppPaths.swift:19-23`) calls `createDirectory` on every read | create data directories once at bootstrap; make the accessor a `static let` | N calls to `recordingsDirectory` in one launch produce at most 1 `createDirectory` syscall | C280 |
 | R94 | `SkriftApp.swift:108-203` fires nine main-actor sweeps unconditionally on every launch and foreground | each sweep records a high-water mark (last-seen memo count/timestamp) and no-ops when nothing changed since | a foreground with 0 new/changed memos runs 0 sweep bodies (or all nine only on the first foreground after launch) | C281 |
+| R95 | a voice note with a picture never gets speech paragraphs (`MemoSaver.runTranscription` inserts markers before `Paragrapher.paragraphed`, which skips text containing `\n`) | speech paragraphs per C20, each picture its own paragraph per C10 | every voice `pic-*` note | C10, C20 |
 Pre-registered as IDENTICAL (unchanged on purpose): a second person with the same full name merges into the first (R61 withdrawn, D96); `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (the
 withdrawn R10 — its row is gone; under C5 a row cannot be both a required difference and
 IDENTICAL).
@@ -1746,3 +1747,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      vault (C61 narrows C197). — SPEC.md C197
 133. **D133 Photo viewer.** ✅ DECIDED 2026-09-24: closed by the inline photo blocks; a tap opens
     the photo full screen, nothing more. — sources.md #10
+134. **D134 Round-1 mock verdicts.** ✅ DECIDED 2026-09-24 (sitting): Q2 three balls signed as
+     drawn — one row, cumulative fill, the word alone as readout ("this is so nicely done").
+     Q1 quick note signed with ✎ in the HEADER beside Select, not beside the mic ("two bubbles
+     on the bottom right is a bit much, it's already going over other notes"); cursor in the
+     body, silent discard. Q5 direction = A Shelf, the tab named "Library"; captures stay in
+     Notes, not on the tab. Voice notes with a photo get speech paragraphs like any other (R95);
+     the photo stays its own paragraph (C10). New: the notes LIST is unified across phone,
+     iPad and Mac, mock first.
