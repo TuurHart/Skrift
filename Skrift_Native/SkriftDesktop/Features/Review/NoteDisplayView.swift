@@ -41,6 +41,10 @@ struct NoteDisplayView: View {
     /// of the note's override sets, so undo just restores them + re-derives. Stays until
     /// dismissed/undone; cleared on note switch.
     @State private var namingUndo: NamingUndo?
+    /// A tag removal's Undo pill (Q41) — hoisted to the note COLUMN (the
+    /// `GeometryReader`'s own `.overlay`, below `unlockedContent`), not
+    /// `TagEditorRow`'s own bounds, which run narrower than the column.
+    @State private var tagToast: TagEditorRow.TagToast?
     /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
     /// body's right-click "A new person…" / the suggestion popover's "New person…".
     @State private var editorRequest: PersonEditorRequest?
@@ -235,6 +239,12 @@ struct NoteDisplayView: View {
                         .transition(.move(edge: .trailing))
                 }
             }
+            // Tag removal → its own Undo toast (Q41): anchored to the READING
+            // AREA's own frame (the GeometryReader above), so it centres across
+            // the whole column and stops exactly where the docked player begins
+            // (a sibling below, not inside this frame) — no player-height padding
+            // to keep in sync, unlike the phone/iPad's floating capsule.
+            .overlay(alignment: .bottom) { tagToastView }
             // The player DOCKS at the note's bottom edge — iPad parity (Tuur
             // 2026-07-25: "keep the apps looking the same"). Because the inspector
             // overlays only the scroll area above, the dock is never covered and
@@ -261,7 +271,8 @@ struct NoteDisplayView: View {
     /// note's override sets and re-derives the body deterministically (no LLM).
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            NoteProperties(file: file, interactive: scrollable, canExport: capabilities.pipeline)
+            NoteProperties(file: file, interactive: scrollable, canExport: capabilities.pipeline,
+                           onTagToast: { tagToast = $0 })
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
                 // The shared thing itself, pinned above the annotation body —
@@ -417,6 +428,24 @@ struct NoteDisplayView: View {
         .padding(.horizontal, 13).padding(.vertical, 8)
         .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.10), lineWidth: 0.5))
+    }
+
+    /// The floating tag-removal Undo pill (Q41, mock `tag-ui-revamp.html`) — unlike
+    /// `namingUndoToast` above (an inline row that stays in the flow), this one
+    /// floats and self-dismisses after 4 s, matching the mock's "every removal
+    /// offers Undo for 4 s".
+    @ViewBuilder private var tagToastView: some View {
+        if let toast = tagToast {
+            TagUndoToastView(tag: toast.tag, style: .mac, onUndo: {
+                toast.undo()
+                tagToast = nil
+            })
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .task(id: toast.id) {
+                try? await Task.sleep(for: .seconds(4))
+                if tagToast?.id == toast.id { tagToast = nil }
+            }
+        }
     }
 
     /// Right-click "A new person…" → open the shared editor (mocks/opt-in-naming.html panel 3)

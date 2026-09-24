@@ -839,6 +839,10 @@ private struct MemoPageView: View {
     @State private var people: [Person] = []
     @State private var resolveTarget: NameResolveTarget?
     @State private var undoToast: NameUndoToast?
+    /// A tag removal's Undo pill — hoisted here (Q41) so it renders at the PAGE
+    /// level (`tagToastView`'s own `.overlay`), not `TagEditorRow`'s own bounds
+    /// (which ran the pill off the left screen edge, Q36 finding).
+    @State private var tagToast: TagEditorRow.TagToast?
     @State private var personSheet: PersonSheetRequest?
     @State private var showPeopleSheet = false
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
@@ -1017,6 +1021,8 @@ private struct MemoPageView: View {
         }
         // Unlink → an Undo toast (reversible; mock build note #6).
         .overlay(alignment: .bottom) { undoToastView }
+        // Tag removal → its own Undo toast (Q41), centred on the whole page.
+        .overlay(alignment: .bottom) { tagToastView }
     }
 
     // MARK: - Page kinds (B2 pinned title + body)
@@ -1256,7 +1262,11 @@ private struct MemoPageView: View {
             // field, comma/Return commits, tap-arms-then-removes with a 4 s Undo.
             TagEditorRow(tags: $memo.tags, library: repository.allTags(),
                          style: .phone, onChanged: { memo.markEdited(); repository.save() },
-                         idSuffix: suffix)
+                         idSuffix: suffix,
+                         // Q41: the toast is HOISTED to the page's own overlay
+                         // (`tagToastView`, below) so it centres on the whole
+                         // screen, not this row's own narrower bounds.
+                         onToast: { tagToast = $0 })
                 .padding(.top, 8)
 
             // The 10-circle significance control (SignificanceCircles.swift —
@@ -1882,6 +1892,21 @@ private struct MemoPageView: View {
             .task(id: toast.id) {
                 try? await Task.sleep(for: .seconds(4))
                 if undoToast?.id == toast.id { withAnimation(Theme.Motion.spring) { undoToast = nil } }
+            }
+        }
+    }
+
+    @ViewBuilder private var tagToastView: some View {
+        if let toast = tagToast {
+            TagUndoToastView(tag: toast.tag, style: .phone, onUndo: {
+                toast.undo()
+                withAnimation(Theme.Motion.spring) { tagToast = nil }
+            })
+            .padding(.bottom, 96)                          // clear the floating player bar
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .task(id: toast.id) {
+                try? await Task.sleep(for: .seconds(4))
+                if tagToast?.id == toast.id { withAnimation(Theme.Motion.spring) { tagToast = nil } }
             }
         }
     }

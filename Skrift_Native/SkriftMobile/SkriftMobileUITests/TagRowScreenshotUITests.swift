@@ -17,8 +17,16 @@ final class TagRowScreenshotUITests: XCTestCase {
 
     func testTagRowStates() {
         let app = XCUIApplication()
-        // Absolute path (this worktree) to the synthetic corpus (C4) — never the live Dev store.
-        let corpus = "/Users/tiurihartog/Hackerman/Skrift/.claude/worktrees/agent-a454772dafb066cb4/test-fixtures/corpus"
+        // Path to the synthetic corpus (C4) — never the live Dev store. Derived from
+        // `#filePath` (compiled inside THIS worktree) rather than hardcoded, since a
+        // hardcoded sibling worktree path dies the moment that worktree is cleaned up
+        // (Q36 left one pointing at a since-removed worktree).
+        let corpus = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()   // SkriftMobileUITests
+            .deletingLastPathComponent()   // SkriftMobile
+            .deletingLastPathComponent()   // Skrift_Native
+            .deletingLastPathComponent()   // repo root
+            .appendingPathComponent("test-fixtures/corpus").path
         app.launchArguments = ["-inMemoryStore", "-corpus", corpus, "-selectFirstMemo"]
         app.launch()
 
