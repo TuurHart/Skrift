@@ -344,12 +344,12 @@ struct VaultWriter {
             profile.assetsBesideNote ? beside : root.appendingPathComponent(named, isDirectory: true)
         }
         var written = 0
-        for a in attachments where Self.writeAsset(a, into: folder(attachmentsFolder)) { written += 1 }
-        for d in documents where Self.writeAsset(d, into: folder(documentsFolder)) { written += 1 }
+        for a in attachments where Self.writeAsset(a, into: folder(attachmentsFolder), id: id) { written += 1 }
+        for d in documents where Self.writeAsset(d, into: folder(documentsFolder), id: id) { written += 1 }
         var audioURL: URL?
         if let audio {
             let dir = folder(audioFolder)
-            if Self.writeAsset(audio, into: dir) {
+            if Self.writeAsset(audio, into: dir, id: id) {
                 audioURL = dir.appendingPathComponent(audio.name)
             }
         }
@@ -388,27 +388,72 @@ struct VaultWriter {
         return data.flatMap { String(data: $0, encoding: .utf8) }
     }
 
-    private static func writeAsset(_ asset: VaultAsset, into dir: URL) -> Bool {
-        let dest = dir.appendingPathComponent(asset.name)
-        do {
-            switch asset.source {
-            case .data(let data):
-                try writeAtomic(data, to: dest)
-            case .file(let src):
-                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-                var coordError: NSError?
-                var copyError: Error?
-                NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &coordError) { url in
-                    do {
-                        try? FileManager.default.removeItem(at: url)
-                        try FileManager.default.copyItem(at: src, to: url)
-                    } catch { copyError = error }
-                }
-                if let e = coordError ?? (copyError.map { $0 as NSError }) { throw e }
-            }
-            return true
-        } catch {
-            return false
+    /// `id` disambiguates a foreign collision (C58) — see `VaultAttachmentOwnership`.
+    private static func writeAsset(_ asset: VaultAsset, into dir: URL, id: UUID) -> Bool {
+        switch asset.source {
+        case .data(let data):
+            let dest = dir.appendingPathComponent(asset.name)
+            do { try writeAtomic(data, to: dest); return true } catch { return false }
+        case .file(let src):
+            // R77: this used to unconditionally `removeItem` then `copyItem` under the
+            // ORIGINAL name — an existing vault attachment we don't own got clobbered with
+            // no check at all. Route through the same "provably ours and untouched" rule
+            // the markdown lane already applies (C54/C58).
+            return VaultAttachmentOwnership.copyOwned(from: src, preferredName: asset.name,
+                                                      into: dir, id: id) != nil
         }
+    }
+}
+
+/// The ownership rule attachments must obey too (C58): never remove or clobber a vault
+/// file this device doesn't own. There's no text stamp to read for a binary attachment
+/// (unlike `VaultStamp` for markdown), so ownership is judged the only way it can be:
+/// byte-identical to what we're about to write ⇒ ours already, safe no-op; anything
+/// else already sitting at the target name is untouched, and the incoming file is
+/// written under a disambiguated name instead (the same twin-on-collision answer C54
+/// gives a foreign markdown file) — so no attachment lane ever deletes a file it
+/// doesn't own.
+enum VaultAttachmentOwnership {
+    /// Copies `src` into `dir`, choosing an ownership-safe name first. Returns the URL
+    /// actually written (existing untouched file → same URL, nothing copied), or nil on
+    /// a genuine I/O failure.
+    @discardableResult
+    static func copyOwned(from src: URL, preferredName: String, into dir: URL, id: UUID,
+                          fileManager fm: FileManager = .default) -> URL? {
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let name = ownedName(preferredName: preferredName, matching: src, in: dir, id: id, fileManager: fm)
+        let dest = dir.appendingPathComponent(name)
+        guard !fm.fileExists(atPath: dest.path) else { return dest }   // already correct — no-op
+
+        var coordError: NSError?
+        var copyError: Error?
+        NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &coordError) { url in
+            do { try FileManager.default.copyItem(at: src, to: url) } catch { copyError = error }
+        }
+        if coordError != nil || copyError != nil { return nil }
+        return dest
+    }
+
+    /// `preferredName` when nothing occupies it yet, or when what's there is
+    /// byte-identical to `src` (ours already, unchanged). Otherwise the name is left
+    /// completely alone and a disambiguated one (` <id8>` suffix, before the extension)
+    /// is returned instead.
+    static func ownedName(preferredName: String, matching src: URL, in dir: URL, id: UUID,
+                          fileManager fm: FileManager = .default) -> String {
+        let dest = dir.appendingPathComponent(preferredName)
+        guard fm.fileExists(atPath: dest.path) else { return preferredName }
+        if filesAreIdentical(dest, src, fm: fm) { return preferredName }
+        let stem = (preferredName as NSString).deletingPathExtension
+        let ext = (preferredName as NSString).pathExtension
+        let short = id.uuidString.prefix(8)
+        return ext.isEmpty ? "\(stem) \(short)" : "\(stem) \(short).\(ext)"
+    }
+
+    private static func filesAreIdentical(_ a: URL, _ b: URL, fm: FileManager) -> Bool {
+        guard let sizeA = (try? fm.attributesOfItem(atPath: a.path))?[.size] as? Int,
+              let sizeB = (try? fm.attributesOfItem(atPath: b.path))?[.size] as? Int,
+              sizeA == sizeB else { return false }
+        guard let da = try? Data(contentsOf: a), let db = try? Data(contentsOf: b) else { return false }
+        return da == db
     }
 }
