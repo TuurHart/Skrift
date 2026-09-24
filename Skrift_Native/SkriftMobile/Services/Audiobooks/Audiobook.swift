@@ -498,8 +498,11 @@ final class AudiobookLibraryStore: ObservableObject {
         self.directory = directory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let indexURL = directory.appendingPathComponent("library.json")
-        if let data = try? Data(contentsOf: indexURL),
-           let decoded = try? JSONDecoder().decode([Audiobook].self, from: data) {
+        // Q18/C265/R78: a present-but-undecodable library.json is quarantined by
+        // SafeJSONStore (never treated as "fresh install, zero books" and never
+        // overwritten) — this session simply starts with an empty in-memory
+        // library until the user re-imports; the corrupt file is preserved.
+        if let decoded = SafeJSONStore.load([Audiobook].self, from: indexURL).value {
             books = decoded
         }
     }
@@ -591,12 +594,6 @@ final class AudiobookLibraryStore: ObservableObject {
     }
 
     private func persist() {
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        guard let data = try? JSONEncoder().encode(books) else { return }
-        do {
-            try data.write(to: indexURL, options: .atomic)
-        } catch {
-            print("[Skrift] Audiobook library persist failed: \(error)")
-        }
+        SafeJSONStore.write(books, to: indexURL)
     }
 }

@@ -481,6 +481,14 @@ enum AudiobookCloudSync {
         let appliedKey = transcriptAppliedKey(book.id)
         guard defaults.string(forKey: appliedKey) != record.transcriptSignature else { return }
         try? await transport.download(transcriptRefs(for: book), into: folder) { _ in }
+        // Q18/C218/R59: verify the sidecars actually LANDED on disk (like
+        // `receiveEpubs`'s `landed` check) before restamping/marking applied —
+        // a partial/failed download must not be latched as done, which would
+        // strand this device on a stale or absent transcript forever.
+        let landed = book.files.indices.allSatisfy {
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent(transcriptFilename($0)).path)
+        }
+        guard landed else { return }
         restampTranscripts(book, library: library)
         defaults.set(record.transcriptSignature, forKey: appliedKey)
     }

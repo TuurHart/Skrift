@@ -38,7 +38,13 @@ enum AudiobookBookmarkSyncCore {
         for extra in mine where extra !== newest { delete(extra) }
 
         if newest.modifiedAt > localModifiedAt {
-            let items = (try? JSONDecoder().decode([AudiobookBookmark].self, from: newest.itemsBlob)) ?? []
+            // Q18/C218/R42: a carrier blob that fails to decode is IGNORED, never
+            // adopted as an empty list — adopting `[]` here would wipe this
+            // device's real bookmarks and (being newer) push that emptiness back
+            // out to every other device on the next reconcile.
+            guard let items = try? JSONDecoder().decode([AudiobookBookmark].self, from: newest.itemsBlob) else {
+                return .noop
+            }
             return .adoptRemote(items: items, modifiedAt: newest.modifiedAt)
         } else if localModifiedAt > newest.modifiedAt {
             guard let blob = try? JSONEncoder().encode(localItems) else { return .noop }

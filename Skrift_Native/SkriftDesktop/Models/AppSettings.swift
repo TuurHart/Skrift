@@ -147,12 +147,15 @@ final class SettingsStore {
         self.encoder = e
     }
 
+    /// Q18/C265/R78: a present-but-undecodable `settings.json` is never adopted
+    /// as "fresh install empty" — `SafeJSONStore` quarantines the bad file
+    /// (to `settings.json.corrupt-<timestamp>`, preserved, recovery surfaced)
+    /// before this falls back to `freshDefault` for the running session. A
+    /// genuinely missing file (real fresh install) also gets `freshDefault`,
+    /// same as before.
     func load() -> AppSettings {
-        guard let data = try? Data(contentsOf: fileURL),
-              let parsed = try? decoder.decode(AppSettings.self, from: data) else {
-            return Self.freshDefault
-        }
-        return parsed
+        let outcome = SafeJSONStore.load(AppSettings.self, from: fileURL, decoder: decoder)
+        return outcome.value ?? Self.freshDefault
     }
 
     /// Defaults for a fresh install (no settings file yet). The Debug ("Skrift Dev")
@@ -169,9 +172,7 @@ final class SettingsStore {
 
     @discardableResult
     func save(_ settings: AppSettings) -> AppSettings {
-        if let encoded = try? encoder.encode(settings) {
-            try? encoded.write(to: fileURL)
-        }
+        SafeJSONStore.write(settings, to: fileURL, encoder: encoder)
         return settings
     }
 }

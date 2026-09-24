@@ -42,10 +42,12 @@ struct BookmarkStore: Sendable {
         folder(forBookID: bookID).appendingPathComponent("bookmarks.json")
     }
 
-    /// All bookmarks for a book, sorted by position. Empty when none / unreadable.
+    /// All bookmarks for a book, sorted by position. Empty when none. A
+    /// present-but-undecodable file (Q18/C218/R59) is quarantined by
+    /// `SafeJSONStore` (never adopted as an empty list, never overwritten by
+    /// the next `add`/`remove`) — this call just sees "no file" afterwards.
     func load(bookID: UUID) -> [AudiobookBookmark] {
-        guard let data = try? Data(contentsOf: fileURL(bookID: bookID)),
-              let list = try? JSONDecoder().decode([AudiobookBookmark].self, from: data) else { return [] }
+        let list = SafeJSONStore.load([AudiobookBookmark].self, from: fileURL(bookID: bookID)).value ?? []
         return list.sorted { $0.position < $1.position }
     }
 
