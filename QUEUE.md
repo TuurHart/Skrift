@@ -47,7 +47,7 @@ needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
 check: Tuur clicked through it and said go.
 
-### Q5 [tuur] (doing) inspiration board: the long-form sources tab
+### Q5 [tuur] (tuur) inspiration board: the long-form sources tab
 spec: C229
 needs: -
 node: Podcasts
@@ -179,3 +179,4 @@ check: `plan/mtest.sh LockedNoteVisibilityTests`
 - 2026-09-24 11:25 Q9 -> doing — worker out
 - 2026-09-24 11:33 Q2 -> tuur — built @86142b9a — awaiting sitting
 - 2026-09-24 11:39 Q1 -> tuur — built @54d80333 — awaiting sitting
+- 2026-09-24 11:40 Q5 -> tuur — built @23c7662b — awaiting sitting
