@@ -300,7 +300,7 @@ gate+: yes
 do: Q29 finding: conflict detection watches `Memo` only, but a body edit on a Mac-polished note lands in `MemoEnhancement.copyedit` — the most common edit. Extend the `MemoEditHead` / edit-vector scheme to the polished body (the text he actually edits), so two devices editing the same polished note apart yield a conflict record, not an LWW overwrite. Keep new fields optional/additive (CloudKit). Test in a new `PolishedEditConflictTests` (desktop target, two in-memory stores).
 check: `grep -rqE "class PolishedEditConflictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q39 [auto] (todo) edit-conflict prompt, banner and pill rendered and checked against the mock
+### Q39 [auto] (doing) edit-conflict prompt, banner and pill rendered and checked against the mock
 spec: C242 C117 C4
 needs: Q29
 do: Q29 never rendered its UI. From an ISOLATED store seeded with the synthetic corpus plus one forced conflict (never the live Dev store), capture: the phone prompt, the phone banner after "Later", the list row "2 versions" pill, the Mac prompt; LOOK at each against `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` and fix clipping/overflow/differences. Confirm editing is blocked on the iPad workbench until a pick. Commit PNGs under `plan/reads/conflict-q39/`.
@@ -345,7 +345,7 @@ needs: Q41
 do: Q41 finding: `plan/reads/tags-q41/phone-undo-toast.png` shows the toast centred horizontally but floating mid-screen over the Importance card. Place it as the mock does (`Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`): a centred pill anchored to the bottom safe area, just above the player (keyboard down) or above the keyboard accessory bar (keyboard up), never covering note content; same on iPad and the Mac column. Re-shoot on the iPhone 17 sim (synthetic corpus, isolated store) with the keyboard up AND down; LOOK at both. Commit under `plan/reads/tags-q44/`. NEVER `open -a` a Skrift app; never capture the whole screen.
 check: `test $(ls plan/reads/tags-q44/*.png | wc -l) -ge 2 && ./gate.sh`
 
-### Q45 [auto] (todo) non-word edits (audio trim, annotation) never stamp words for conflicts
+### Q45 [auto] (doing) non-word edits (audio trim, annotation) never stamp words for conflicts
 spec: C98
 needs: Q42
 gate+: yes
@@ -480,3 +480,5 @@ check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftD
 - 2026-09-24 23:38 Q42 -> done — gate pass @78045573
 - 2026-09-24 23:38 Q44 added
 - 2026-09-24 23:38 Q45 added
+- 2026-09-24 23:39 Q39 -> doing — worker out
+- 2026-09-24 23:39 Q45 -> doing — worker out
