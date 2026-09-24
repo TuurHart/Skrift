@@ -155,7 +155,9 @@ final class LiveRecordingSession {
                         // `ArrivalPath.run`, right after this closure) — that ordering is what
                         // lets `author` read "transcript already set on a fresh recording" as
                         // the user-edited signal (see `MacMemoAuthor.author`'s own comment).
-                        pf.transcript = finalTranscript
+                        // Body v2 (C10): an edited take is the person's text — commit it as an edit.
+                        pf.transcript = BodyV2.committed(BodyV2.Input(
+                            text: finalTranscript, source: .speech, userEdited: true))
                         pf.transcribeStatus = .done
                         // The pane's "✎ edited while recording" chip reads this local
                         // mirror; the synced Memo's own flag is inferred by `author()`
