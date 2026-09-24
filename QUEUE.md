@@ -345,7 +345,7 @@ needs: Q41
 do: Q41 finding: `plan/reads/tags-q41/phone-undo-toast.png` shows the toast centred horizontally but floating mid-screen over the Importance card. Place it as the mock does (`Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`): a centred pill anchored to the bottom safe area, just above the player (keyboard down) or above the keyboard accessory bar (keyboard up), never covering note content; same on iPad and the Mac column. Re-shoot on the iPhone 17 sim (synthetic corpus, isolated store) with the keyboard up AND down; LOOK at both. Commit under `plan/reads/tags-q44/`. NEVER `open -a` a Skrift app; never capture the whole screen.
 check: `test $(ls plan/reads/tags-q44/*.png | wc -l) -ge 2 && ./gate.sh`
 
-### Q45 [auto] (doing) non-word edits (audio trim, annotation) never stamp words for conflicts
+### Q45 [auto] (done) non-word edits (audio trim, annotation) never stamp words for conflicts
 spec: C98
 needs: Q42
 gate+: yes
@@ -482,3 +482,4 @@ check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftD
 - 2026-09-24 23:38 Q45 added
 - 2026-09-24 23:39 Q39 -> doing — worker out
 - 2026-09-24 23:39 Q45 -> doing — worker out
+- 2026-09-24 23:52 Q45 -> done — gate pass @355a60aa
