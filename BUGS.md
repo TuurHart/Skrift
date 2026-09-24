@@ -331,6 +331,14 @@ Leads. Check them against source before you act — section 5 is why.
 - [ ] **Mac row repeats an untitled note's first line.** `QueueRowView` uses the first body line as
       the title and then the whole body as the snippet. Found reading source for Q22, 2026-09-24.
 
+- [ ] **Mac tag picker lowercases, Return doesn't.** `NoteProperties.swift:460` lowercases a tag
+      picked/created from the dropdown; `:467` (Return) keeps the case — one tag, two spellings.
+      Breaks C93 (case kept). Found reading source for the Q3 tag mock, 2026-09-24.
+- [ ] **No case-variant fold on either app.** Both apps check exact-match only, so `LISBON` lands
+      beside `Lisbon` (C93: fold to the FIRST spelling). Found for Q3, 2026-09-24.
+- [ ] **`Memo.splitTagInput` strips every `#`, not one** (`Memo.swift:284`; C93: `#` stripped
+      once). Found for Q3, 2026-09-24.
+
 ## 5. Already fixed — do not re-open
 
 - ✅ **WhatsApp voice messages import as a link.** The ledger says `SharePayloadLoader` has no
