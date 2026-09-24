@@ -187,7 +187,15 @@ enum MacMemoAuthor {
     /// flag makes the transcript TRUSTED cross-device. Together with `.done` this keeps
     /// `Memo.isTrustedTranscript` coherent.
     private static func markTranscribed(_ memo: Memo, transcript: String, userEdited: Bool = false) {
-        memo.transcript = transcript
+        // Body v2 (C10): a body carrying pictures is committed through the one writer (a
+        // speech row was already committed by BatchRunner, so that is a no-op). A body with
+        // no picture is stored as-is: C19's whitespace pass would flatten an imported
+        // note's nested-list indentation.
+        let manifest = memo.metadata?.imageManifest ?? []
+        memo.transcript = BodyV2Marker.runs(in: transcript, manifestCount: manifest.count).isEmpty
+            ? transcript
+            : BodyV2.committed(BodyV2.Input(text: transcript, manifest: manifest,
+                                            source: .speech, userEdited: userEdited))
         memo.transcriptStatus = .done
         memo.transcriptConfidence = 1.0
         memo.transcriptUserEdited = userEdited

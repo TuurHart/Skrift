@@ -48,18 +48,14 @@ struct BatchRunner {
             pf.transcribeStatus = .processing
             if let audioURL {
                 let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
-                // Paragraph the stored transcript exactly like the phone does at the same
-                // moment (`MemoSaver.runTranscription` → shared `Paragrapher`): a long pause
-                // after a finished sentence starts a new paragraph, so a Mac-transcribed
-                // note reads like a phone-transcribed one instead of a wall of text.
-                // Token-preserving (punctuation + [[img]] markers intact); karaoke is
-                // newline-aware so word-timing alignment holds.
-                // longFormGap, not the phone default: Mac thinking-aloud pauses at most
-                // sentence ends, so 0.65s shredded real takes into one-line paragraphs
-                // (ROUND 11) — and the live join uses the same constant, so the draft
-                // and the resting note paragraph alike.
-                pf.transcript = Paragrapher.paragraphed(transcript: result.text, words: result.wordTimings,
-                                                        gapThreshold: Paragrapher.longFormGap)
+                // Body v2, exactly as the phone writes at the same moment
+                // (`MemoSaver.runTranscription`): speech paragraphs on the one gap every
+                // device uses (C20, D5), then each picture as its own paragraph placed
+                // from its moment (C10, D140). Karaoke is newline-aware, so word-timing
+                // alignment holds. `.speech` only with real word times.
+                pf.transcript = BodyV2.committed(BodyV2.Input(
+                    text: result.text, words: result.wordTimings, manifest: imageManifest,
+                    source: result.wordTimings.isEmpty ? .typed : .speech))
                 pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
                 didTranscribe = true
             }
@@ -82,6 +78,12 @@ struct BatchRunner {
             // and Mac-diarized paths render identically.
             pf.transcript = SpeakerFusion.attributedTranscript(words: pf.wordTimings, segments: out.segments) { slot in
                 out.slotNames[slot] ?? "Speaker \(slot + 1)"
+            }
+            // Fusion rebuilds from the words and drops the picture markers — body v2 places
+            // them again, after the sentence within the turn (C169), like the phone.
+            if !imageManifest.isEmpty, let t = pf.transcript {
+                pf.transcript = BodyV2.committed(BodyV2.Input(text: t, words: pf.wordTimings,
+                                                              manifest: imageManifest, source: .speech))
             }
             // Retain the diarization so a speaker's voice can be enrolled later from the
             // review screen (slice their audio by these segments → embedSpeaker) without

@@ -187,7 +187,7 @@ struct ObsidianPublisher {
         // heavy blobs are only fetched when a write actually happens.
         let manifest = memo.metadata?.imageManifest ?? []
         let (converted, embedNames) = Self.convertPhotoMarkers(
-            BodyTransform.snappedImageBody(markdown), manifest: manifest, stem: stem,
+            BodyV2Legacy.shown(markdown).text, manifest: manifest, stem: stem,
             profile: profile)
 
         // Cheap unchanged check BEFORE touching any blob: candidate vs on-disk,
