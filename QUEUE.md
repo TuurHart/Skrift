@@ -113,7 +113,7 @@ node: V2Core
 do: (Q11 finding: call `BodyV2.committed(BodyV2.Input(text:words:manifest:source:userEdited:))` at every write site, `.speech` only with real word times; `BodyTransform.snappedImageBody` and v1's `ImageMarkers.insert → Paragrapher` leave in the same swap; thumbnail = `BodyV2Thumbnail.pick`.) Point every place a body is WRITTEN at body v2: phone capture (`MemoSaver`), share drain, editor commit, imports, the Mac author path and Mac recordings. Renderers and both exporters stop calling the render-time snap (`snapImages`, `SnapResult`), the display-only `imageBreaks` and the export-time `snappedImageBody` (the v1 functions stay in place for Q15 to delete). The three offset remaps collapse to one (marker → one glyph).
 check: `! grep -rnE "snapImages\(|snappedImageBody\(|imageBreaks" Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features Skrift_Native/SkriftMobile/Services`
 
-### Q14 [auto] (todo) old notes normalised once
+### Q14 [auto] (doing) old notes normalised once
 spec: C10 C203
 needs: Q13 Q31
 gate+: yes
@@ -284,6 +284,13 @@ node: V2Core
 do: Q28 finding: bring the built tag editor to the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139): restore the Mac's keyboard-navigable suggestion menu (↑↓, Tab/Return accept, a "Create #x" row) that Q28 replaced with a chip strip; Undo as the mock's floating 4 s toast, not an inline row. Rewrite or retire `SkriftMobileUITests/TagSheetUITests.swift` (it drives the deleted sheet and the pre-2026-08-27 "destination words refused" rule; destination words ARE tags per C93). Screenshots from the SYNTHETIC corpus only in an isolated store (`-inMemoryStore -corpus test-fixtures/corpus`, never the live Dev store): phone note header with tags, the armed-remove state, the Undo toast, the Mac menu open — LOOK at each vs the mock and fix differences. Commit PNGs under `plan/reads/tags-q36/`.
 check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
 
+### Q37 [auto] (todo) Mac sidebar left-edge verdict from a real window + one chip count on every device
+spec: C117 C4 C240
+needs: Q35
+node: V2Core
+do: Q35 finding. (1) The dispatcher sees the Mac sidebar's left ~12 px cut in `plan/reads/list-q35/mac-sidebar-dark.png` ("ODAY", "AT 19 SEP", logo, "All" chip). Launch the DEV Mac app built from your worktree against an ISOLATED store seeded from the synthetic corpus (never the live Dev store, never /Applications/Skrift.app; quit it after; one instance only) and capture the real window with `screencapture -l <windowid>`. If the left edge is cut there, fix the layout; if not, fix `-snapshot-shell`'s crop so its PNG matches the real window. (2) The same corpus shows "Needs Work 6 · Unrated 5" on the Mac and "Needs Work 99 · Unrated 6" on the iPad: find why, and make every device count from the shared `NotesListModel` on the same inputs (one definition per chip), with a test in a new `ChipCountParityTests` (desktop target) feeding the corpus. Commit PNGs under `plan/reads/list-q37/`.
+check: `test $(ls plan/reads/list-q37/*.png | wc -l) -ge 1 && grep -rqE "class ChipCountParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -385,3 +392,5 @@ check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:14 Q29 -> doing — worker out (opus)
 - 2026-09-24 22:17 Q20 -> tuur — awaiting sitting: xctrace on iPhone 13 + Mac
 - 2026-09-24 22:23 Q35 -> done — gate pass @67bd1faf
+- 2026-09-24 22:23 Q37 added
+- 2026-09-24 22:23 Q14 -> doing — worker out
