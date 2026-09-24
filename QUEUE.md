@@ -180,7 +180,7 @@ needs: -
 do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
 check: Tuur clicked through it and said go.
 
-### Q23 [auto] (doing) corpus notes for R25, R33 and R74 that SPEC cites but never existed
+### Q23 [auto] (done) corpus notes for R25, R33 and R74 that SPEC cites but never existed
 spec: C4 C13 C12 C10
 needs: -
 gate+: yes
@@ -257,3 +257,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:55 Q4 -> tuur — built @5b77e43f — awaiting sitting
 - 2026-09-24 15:02 Q3 -> tuur — built @840e77be — awaiting sitting
 - 2026-09-24 15:09 Q21 -> done — gate pass @9d3d583b
+- 2026-09-24 15:13 Q23 -> done — gate pass @12a1ca1a
