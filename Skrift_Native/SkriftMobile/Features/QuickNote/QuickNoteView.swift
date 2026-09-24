@@ -90,7 +90,6 @@ struct QuickNoteView: View {
             if let memo = draft.memo { RecordView(appendTo: memo.id) }
         }
         .onDisappear { draft.leave(context: context) }
-        .accessibilityIdentifier("quick-note-view")
     }
 
     private var titleField: some View {

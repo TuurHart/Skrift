@@ -36,10 +36,25 @@ final class QuickNoteQ43UITests: XCTestCase {
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the ✎ new-note button never appeared")
         newNote.tap()
 
-        let screen = app.descendants(matching: .any).matching(identifier: "quick-note-view").firstMatch
-        XCTAssertTrue(screen.waitForExistence(timeout: 10), "the quick-note screen did not open")
-        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body-textview").firstMatch
+        // "quick-note-view" (the screen's own accessibilityIdentifier) is a
+        // container with no AX node of its own — SwiftUI leaked THAT identifier
+        // onto every descendant AX element when it was present, clobbering
+        // "quick-note-title"/"quick-note-body" too, so the screen is confirmed
+        // via its back button instead (Q43 fix: dropped the container identifier).
+        let back = app.buttons["quick-note-back"]
+        XCTAssertTrue(back.waitForExistence(timeout: 10), "the quick-note screen did not open")
+        // The wrapper's own `.accessibilityIdentifier("quick-note-body")` (SwiftUI)
+        // wins over the UIKit-level `tv.accessibilityIdentifier` set inside
+        // `makeUIView` — the AX tree only ever shows the outer one.
+        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5), "the quick-note body text view is missing")
+
+        // A fresh simulator's first-ever keyboard appearance shows Apple's
+        // one-time "slide to type" tip over the keys — dismiss it so the
+        // screenshot shows the real keyboard, like the mock.
+        let continueTip = app.buttons["Continue"]
+        if continueTip.waitForExistence(timeout: 2) { continueTip.tap() }
+
         capture(app, "phone-quick-note-empty")
     }
 }
