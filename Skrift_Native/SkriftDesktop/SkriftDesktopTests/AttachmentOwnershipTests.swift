@@ -98,7 +98,9 @@ final class AttachmentOwnershipTests: XCTestCase {
         let md = "---\ntitle: \"A note\"\nlastTouched:\n---\n\nBody.\n"
         _ = try writer.commit(markdown: md, id: id, relativePath: rel,
                               attachments: [VaultAsset(name: "photo.jpg", source: .file(src1))])
-        let attPath = vaultRoot.appendingPathComponent("photo.jpg")
+        // Attachments land in the writer's images subfolder (`VaultLayout.images`), not
+        // beside the note — this VaultWriter uses the default `.obsidian` profile.
+        let attPath = vaultRoot.appendingPathComponent(VaultLayout.images).appendingPathComponent("photo.jpg")
         XCTAssertEqual(try Data(contentsOf: attPath), Data([1, 2, 3]))
 
         // Now something ELSE occupies that same attachment name in the vault (a file
