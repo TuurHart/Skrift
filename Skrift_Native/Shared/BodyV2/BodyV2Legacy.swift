@@ -1,7 +1,10 @@
 import Foundation
 
-/// Q13 READ-ONLY FALLBACK — Q14 deletes this file and its callers once old notes are
-/// normalised at first open (C10). Every write site stores body v2 now, but a body stored
+/// Q13 READ-ONLY FALLBACK. Q14 KEPT it: `BodyNormaliseMigration` rewrites an old body at the
+/// note's first open (onAppear, after the first render), but the vault exporter, the phone
+/// publisher and the snapshot tool read bodies of notes never opened on this device, a v1 body
+/// can arrive over CloudKit while its note is on screen, and a refused rewrite stays v1 — all
+/// of those still need the snap. Every write site stores body v2 now, but a body stored
 /// before the swap (v1 wrote `sat\n\n[[img_001]]\n\n down.` at the photo's moment; a v1 edit
 /// or a copy-edit can leave a marker inline) would render with the photo mid-sentence
 /// without the old snap. Such a body is still shown and exported through v1's snap, exactly
@@ -13,23 +16,7 @@ enum BodyV2Legacy {
     /// after a blank line, markers `\n\n`-separated, then a blank line straight into the next
     /// paragraph (v1's wrap leaves a space there) or the end.
     static func isUnnormalised(_ body: String) -> Bool {
-        guard body.contains("[[img_") else { return false }
-        let ns = body as NSString
-        for run in BodyV2Marker.runs(in: body, manifestCount: .max) {
-            let r = ns.substring(with: run.range) as NSString
-            let first = r.range(of: "[[").location
-            let lastEnd = r.range(of: "]]", options: .backwards).location + 2
-            let core = r.substring(with: NSRange(location: first, length: lastEnd - first))
-            guard core == BodyV2Marker.block(run.numbers) else { return true }
-            let end = run.range.location + run.range.length
-            let atTop = ns.substring(to: run.range.location + first)
-                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            guard atTop || run.newlinesBefore >= 2 else { return true }
-            if end == ns.length { continue }
-            guard run.newlinesAfter >= 2, r.hasSuffix("\n") else { return true }
-            if ",;:.!?)".contains(Character(UnicodeScalar(ns.character(at: end)) ?? " ")) { return true }
-        }
-        return false
+        BodyNormaliseMigration.needsNormalise(body)
     }
 
     /// The text to show / export for a stored body, and the map from a stored (raw) range

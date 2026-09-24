@@ -1,0 +1,7 @@
+{
+  "_schema": "Q14 ADDITIVE (read by CorpusSeed.nameOffsets, optional beside note.json): the body a pre-v2 phone STORED for this note (v1 put the marker at the photo's moment, 1.6 s = after 'handle', mid-sentence) and the name offsets (UTF-16) stored against it. `offsetAfter` is where each name sits once the one-time normalisation has moved the marker (R25).",
+  "legacyBody": "We checked the crack near the handle\n\n[[img_001]]\n\n and Lotte thought it might still be fireable.",
+  "names": [
+    { "alias": "Lotte", "offset": 56, "length": 5, "offsetAfter": 41 }
+  ]
+}

@@ -84,6 +84,26 @@ enum CorpusSeed {
         }
     }
 
+    /// The optional `name_offsets.json` beside a note's `note.json` (Q14, R25): the body a
+    /// pre-v2 device STORED for the note and the name offsets (UTF-16) stored against it, plus
+    /// where each name sits after the one-time normalisation. Additive: a note without the file
+    /// has none, and `note.json`'s schema is unchanged.
+    struct NameOffsets: Decodable {
+        struct Name: Decodable {
+            let alias: String
+            let offset: Int
+            let length: Int
+            let offsetAfter: Int
+        }
+        let legacyBody: String
+        let names: [Name]
+    }
+
+    static func nameOffsets(folder: URL) -> NameOffsets? {
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent("name_offsets.json")) else { return nil }
+        return try? JSONDecoder().decode(NameOffsets.self, from: data)
+    }
+
     /// Minimal JSON passthrough so a blob round-trips byte-for-byte in meaning.
     enum JSONValue: Decodable {
         case object([String: JSONValue]), array([JSONValue]), string(String), number(Double), bool(Bool), null
