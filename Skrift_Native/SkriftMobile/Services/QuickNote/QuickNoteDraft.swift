@@ -45,6 +45,14 @@ final class QuickNoteDraft {
         self.memo = nil
     }
 
+    /// Explicit delete (the note screen's own ⋯ → Delete) — unlike `leave`,
+    /// this discards a NON-empty note too, and only on the user's own request.
+    func discard(context: ModelContext) {
+        if let memo { context.delete(memo) }
+        try? context.save()
+        memo = nil
+    }
+
     private func isBlank(_ s: String?) -> Bool {
         (s ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
