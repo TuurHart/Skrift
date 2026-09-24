@@ -420,6 +420,11 @@ targets:
       - path: DesignSystem/Components.swift
       - path: DesignSystem/Haptics.swift
       - path: ../Shared/UI/FlowLayout.swift
+      # Theme.swift's TagRowStyle.phone extension needs TagRowStyle/TagRules in
+      # scope (Q28) — the extension itself never presents a tag editor, but it
+      # compiles the same DesignSystem/Theme.swift the app does.
+      - path: ../Shared/UI/TagRules.swift
+      - path: ../Shared/UI/TagEditorRow.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox
       # (both are the shared C3/metadata schema — Shared/Model, one copy).
       - path: ../Shared/Model/MemoMetadata.swift
