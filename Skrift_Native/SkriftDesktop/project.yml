@@ -62,7 +62,7 @@ packages:
   # swift-collections#733. Drop this pin once a toolchain ships the fix.
   swift-collections:
     url: https://github.com/apple/swift-collections
-    exactVersion: "1.6.0"
+    exactVersion: 1.6.0
 
 targets:
   SkriftDesktop:
