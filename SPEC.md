@@ -1770,3 +1770,6 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      review · N to process" line (Mac `SidebarView.swift:588-591`) confused him — builder default:
      the line goes on all three devices and its counts move onto the chips. Worker branches
      (`wt/*`) may be pushed (his worker agent rule); the dispatcher deletes each after merge.
+137. **D137 No bulk rating.** ✅ DECIDED 2026-09-24: the Mac's "Mark all as Passing" button
+     (`SidebarView.swift:570-583`) is REMOVED with the triage line: "rating a note should be an
+     intentional choice". Reverses the 2026-07-23 bulk verb. Q22 third pass signed.
