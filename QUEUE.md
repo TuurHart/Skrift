@@ -128,7 +128,7 @@ node: V2Core
 do: Tag the current commit `v1-body`, then in ONE commit delete the v1 snap code (`snapImages`, `SnapResult`, `imageBreaks`, `snappedImageBody`) and the tests that pin it: `NoteBodyTests` render-time snap cases and `VaultExporterTests` export-time snap case (C252). This touches protected test files on purpose, so accept.sh parks it stuck; Tuur approves the diff in the sitting and the orchestrator merges it.
 check: `git rev-parse -q --verify refs/tags/v1-body >/dev/null && ! grep -rqE "snapImages|SnapResult|snappedImageBody|imageBreaks" Skrift_Native --include='*.swift'`
 
-### Q16 [auto] (stuck) a recording is never lost
+### Q16 [auto] (done) a recording is never lost
 spec: C99 C287 C288 C263
 needs: Q25
 gate+: yes
@@ -233,3 +233,5 @@ check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && 
 - 2026-09-24 13:58 Q6 -> done — signed: tap opens, 'Add note' capture, jump-back (D135)
 - 2026-09-24 14:05 Q22 -> tuur — built @2d8c92a7 — awaiting sitting
 - 2026-09-24 14:11 Q25 -> done — gate pass @ec9282f1
+- 2026-09-24 14:11 Q16 -> doing — re-accept after Q25 pin
+- 2026-09-24 14:12 Q16 -> done — gate pass @4ce87f55
