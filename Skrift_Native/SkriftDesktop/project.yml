@@ -56,6 +56,13 @@ packages:
   CoreMLLLM:
     url: https://github.com/john-rocky/CoreML-LLM
     from: "1.9.0"
+  # TRANSITIVE pin (unused by any target): swift-collections ≥1.7.0 strong-links
+  # `_swift_initBorrow`, which is absent from the iOS 26.x runtimes' libswiftCore —
+  # dyld abort at launch. Root cause: swiftlang/swift#92574 (unmerged); tracked at
+  # swift-collections#733. Drop this pin once a toolchain ships the fix.
+  swift-collections:
+    url: https://github.com/apple/swift-collections
+    exactVersion: "1.6.0"
 
 targets:
   SkriftDesktop:

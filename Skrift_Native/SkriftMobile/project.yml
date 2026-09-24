@@ -45,6 +45,13 @@ packages:
   swift-jinja:
     url: https://github.com/huggingface/swift-jinja.git
     exactVersion: "2.3.6"   # transitive pin: transformers Config vs Jinja 2.4 ObjectKey
+  # TRANSITIVE pin (unused by any target): swift-collections ≥1.7.0 strong-links
+  # `_swift_initBorrow`, which is absent from the iOS 26.x runtimes' libswiftCore —
+  # dyld abort at launch. Root cause: swiftlang/swift#92574 (unmerged); tracked at
+  # swift-collections#733. Drop this pin once a toolchain ships the fix.
+  swift-collections:
+    url: https://github.com/apple/swift-collections
+    exactVersion: "1.6.0"
 
 # Signing: bake the dev team into the project so `xcodegen generate` never drops it.
 # Without this, every regeneration reset DEVELOPMENT_TEAM to None and the app + its
