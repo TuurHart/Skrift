@@ -332,7 +332,7 @@ gate+: yes
 do: Q38 finding: `EditConflicts.recordEdit` stamps the first touch on a never-stamped (pre-Q29) note even when no words changed, so a first audio trim / annotation counts as a word edit and can produce a false "2 versions". Seed the stamp from the current words WITHOUT bumping the edit vector on first touch; bump only when words actually differ. Same for `recordPolishedEdit`. Also make the Mac `MacCloudEditSync.flush` compare the polished body before/after `unlinkToSpoken` round-trip so a title-only edit is not a polished edit. Test in a new `ConflictFirstTouchTests` (desktop target).
 check: `grep -rqE "class ConflictFirstTouchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q43 [auto] (todo) quick-note screen rendered and matched to the note editor and the mock
+### Q43 [auto] (doing) quick-note screen rendered and matched to the note editor and the mock
 spec: C112 C117 C4
 needs: Q7
 node: V2Core
@@ -485,3 +485,4 @@ check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftD
 - 2026-09-24 23:52 Q45 -> done — gate pass @355a60aa
 - 2026-09-24 23:52 Q45 -> done — accepted
 - 2026-09-24 23:58 Q39 -> done — gate pass @26db0381
+- 2026-09-24 23:58 Q43 -> doing — worker out
