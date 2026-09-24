@@ -317,6 +317,13 @@ do: Q14 finding. (1) The one-time migration (`Shared/BodyV2/BodyNormaliseMigrati
  That` as finished and keeps the leading space, so the body still breaks C10: strip the leading horizontal run of a paragraph that follows a picture paragraph (C19), and drop the migration's plain-marker-move fallback once v2 handles it. Test in a new `PolishedNormaliseTests` (desktop target) incl. `conv-with-picture`.
 check: `grep -rqE "class PolishedNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
+### Q41 [auto] (todo) tag Undo toast centred at the bottom of the screen, not on the tag row
+spec: C241 C117
+needs: Q36
+node: V2Core
+do: Q36 finding: on the phone the "Removed #x · Undo" toast is overlaid on the tag row, so it runs off the left screen edge and covers the remaining chips (`plan/reads/tags-q36/phone-undo-toast.png`). Hoist the toast to the note screen (phone + iPad) and the Mac note column so it is a centred pill near the bottom, above the player/keyboard, as in `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`; also show per-tag usage counts in the Mac menu rows as the mock does. Re-shoot the toast on the phone (synthetic corpus, isolated store) and LOOK at it; commit under `plan/reads/tags-q41/`.
+check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -430,3 +437,4 @@ check: `grep -rqE "class PolishedNormaliseTests\b" Skrift_Native/SkriftDesktop/S
 - 2026-09-24 22:54 Q15 -> tuur — awaiting sitting: tag v1-body + delete v1 (Q14 done)
 - 2026-09-24 22:54 Q40 -> doing — worker out (opus)
 - 2026-09-24 22:55 Q36 -> done — gate pass @f5b7a0b7
+- 2026-09-24 22:56 Q41 added
