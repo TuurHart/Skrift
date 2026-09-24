@@ -209,7 +209,7 @@ gate+: yes
 do: Build the signed `Skrift_Native/SkriftDesktop/mocks/one-notes-list.html` ("One list" tab; D134–D137) on all three devices through the shared `Shared/UI/NoteCardView.swift` + per-app style: the phone gets the iPad/Mac Import · Record · ✎ verb row and loses the red mic corner button; all three on the phone's grey `Palette.bg.phone`; status pill only while working/broken; display-only three balls on rows; day groups everywhere; chip bar All · Needs Work N · Done N · Unrated N + icon-only Filter; the "ready to review · to process" line and "Mark all as Passing" are REMOVED (Process button unaffected). Fix the two BUGS §4 leads on the way: unrated rows double-dimmed (MemoCard 0.55 × NoteCardView 0.62) and the Mac untitled-row first-line repeat (QueueRowView). Test the chip counts and row inputs in a new `NotesListModelTests` (desktop target).
 check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "Mark all as Passing|ready to review" Skrift_Native --include='*.swift'`
 
-### Q27 [auto] (doing) recovery sweep quarantines unreadable orphans, never deletes them
+### Q27 [auto] (done) recovery sweep quarantines unreadable orphans, never deletes them
 spec: C99 C288
 needs: Q16
 gate+: yes
@@ -293,3 +293,4 @@ check: `grep -rqE "class EditConflictTests\b" Skrift_Native/SkriftDesktop/Skrift
 - 2026-09-24 20:18 Q4 -> done — signed with all picks; unkept → Recently Deleted (D139)
 - 2026-09-24 20:18 Q28 added
 - 2026-09-24 20:18 Q29 added
+- 2026-09-24 20:21 Q27 -> done — gate pass @94cab5b1
