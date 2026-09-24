@@ -321,6 +321,35 @@ struct VaultWriter {
                 attachments: [VaultAsset] = [], audio: VaultAsset? = nil,
                 documents: [VaultAsset] = []) throws -> Result {
         let dest = root.appendingPathComponent(relativePath)
+
+        // WHERE the media goes. The vault keeps its subfolders (`Images/`, `Recordings/`,
+        // `Documents/`) so a note's attachments stay out of the way of a folder you file out
+        // of. The archive puts them BESIDE the note, sharing its basename — that pair is what
+        // makes an entry able to walk out whole. Needed BEFORE the stamp now (below), not just
+        // at write time, so a name collision can be resolved before the embed is frozen.
+        let beside = dest.deletingLastPathComponent()
+        func folder(_ named: String) -> URL {
+            profile.assetsBesideNote ? beside : root.appendingPathComponent(named, isDirectory: true)
+        }
+
+        // C58/C56: a caller compiles its embed against a PREFERRED name, but only the vault
+        // on disk can say whether that name is free — a foreign file may already own it, in
+        // which case the write lands under the id8-disambiguated name instead. Resolve that
+        // HERE, before the stamp, and patch any embed the caller wrote for the old name to
+        // match. This is the one documented patch point (C56) — everything downstream
+        // (`writeAsset`) writes under the name already settled here, never re-decides it.
+        var markdown = markdown
+        var resolvedAttachments: [VaultAsset] = []
+        for asset in attachments {
+            let owned = Self.resolvedName(for: asset, into: folder(attachmentsFolder), id: id)
+            if owned != asset.name {
+                markdown = markdown
+                    .replacingOccurrences(of: "[[\(asset.name)]]", with: "[[\(owned)]]")
+                    .replacingOccurrences(of: "](\(asset.name))", with: "](\(owned))")
+            }
+            resolvedAttachments.append(VaultAsset(name: owned, source: asset.source))
+        }
+
         let stamped = VaultStamp.apply(to: markdown, id: id, touchedAt: now())
 
         let existing = Self.readCoordinated(dest)
@@ -335,16 +364,8 @@ struct VaultWriter {
         // Assets ride along on a real write. Failures are counted, never fatal — a
         // note without its image beats no note, and the Mac's old `try?` swallowing
         // (which made a missing attachment look like success) stays fixed.
-        // WHERE the media goes. The vault keeps its subfolders (`Images/`, `Recordings/`,
-        // `Documents/`) so a note's attachments stay out of the way of a folder you file out
-        // of. The archive puts them BESIDE the note, sharing its basename — that pair is what
-        // makes an entry able to walk out whole.
-        let beside = dest.deletingLastPathComponent()
-        func folder(_ named: String) -> URL {
-            profile.assetsBesideNote ? beside : root.appendingPathComponent(named, isDirectory: true)
-        }
         var written = 0
-        for a in attachments where Self.writeAsset(a, into: folder(attachmentsFolder), id: id) { written += 1 }
+        for a in resolvedAttachments where Self.writeAsset(a, into: folder(attachmentsFolder), id: id) { written += 1 }
         for d in documents where Self.writeAsset(d, into: folder(documentsFolder), id: id) { written += 1 }
         var audioURL: URL?
         if let audio {
@@ -358,6 +379,21 @@ struct VaultWriter {
         return Result(outcome: created ? .created(relativePath: relativePath)
                                        : .updated(relativePath: relativePath),
                       markdownURL: dest, audioURL: audioURL, attachmentsWritten: written)
+    }
+
+    /// The OWNED name an attachment will actually land under, resolved against `dir` —
+    /// the same rule `writeAsset` applies when it writes, exposed here so the markdown
+    /// embed can be patched to match BEFORE the stamp is applied (see `commit`).
+    private static func resolvedName(for asset: VaultAsset, into dir: URL, id: UUID,
+                                     fileManager fm: FileManager = .default) -> String {
+        switch asset.source {
+        case .data(let data):
+            return VaultAttachmentOwnership.ownedName(preferredName: asset.name, matching: data,
+                                                      in: dir, id: id, fileManager: fm)
+        case .file(let src):
+            return VaultAttachmentOwnership.ownedName(preferredName: asset.name, matching: src,
+                                                      in: dir, id: id, fileManager: fm)
+        }
     }
 
     // ── IO (coordinated: the vault lives in iCloud) ──
