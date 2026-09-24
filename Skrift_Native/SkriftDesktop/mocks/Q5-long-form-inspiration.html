@@ -1,0 +1,561 @@
+<title>Long-form Tab Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Skrift tokens, transcribed from Shared/UI/Palette.swift + SkriftMobile/DesignSystem/Theme.swift (phone column). */
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --chip:#ebebf0;
+  --text:#1c1c1e; --dim:#6c6c72; --faint:#a3a3aa;
+  --accent:#6c5ce0; --accent-text:#6051c8; --accent-soft:rgba(108,92,224,.13);
+  --border:rgba(0,0,0,.09); --green:#0f9d72;
+  /* page chrome + sketches (not app tokens) */
+  --page:#ecebf1; --ink:#1c1c22; --ink2:#5d5c69; --rule:rgba(28,28,34,.12);
+  --sk-line:#8f8e9c; --sk-fill:#d9d8e1; --sk-bg:#f7f7fa;
+  --warn-bg:#fff4d6; --warn-ink:#7a5400;
+  --cv-book1:#2f4a3a; --cv-book2:#6b3b2a; --cv-ep:#1f3b57; --cv-art:#efe7d6; --cv-art-ink:#2a2418;
+  --cv-pdf:#e9ecf1; --cv-pdf-ink:#3a4150; --cv-talk:#241b2f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1117; --surface:#181a23; --chip:#1e2130;
+    --text:#e4e4e7; --dim:#8b8b97; --faint:#55556a;
+    --accent:#7c6bf5; --accent-text:#b9acff; --accent-soft:rgba(124,107,245,.13);
+    --border:rgba(255,255,255,.06); --green:#34d399;
+    --page:#08090d; --ink:#e8e8ee; --ink2:#9a99a8; --rule:rgba(255,255,255,.1);
+    --sk-line:#5d5c6e; --sk-fill:#262634; --sk-bg:#12131a;
+    --warn-bg:#2b2310; --warn-ink:#f1c668;
+    --cv-art:#2a261d; --cv-art-ink:#efe4cc; --cv-pdf:#20242d; --cv-pdf-ink:#c9d0dc;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --chip:#1e2130;
+  --text:#e4e4e7; --dim:#8b8b97; --faint:#55556a;
+  --accent:#7c6bf5; --accent-text:#b9acff; --accent-soft:rgba(124,107,245,.13);
+  --border:rgba(255,255,255,.06); --green:#34d399;
+  --page:#08090d; --ink:#e8e8ee; --ink2:#9a99a8; --rule:rgba(255,255,255,.1);
+  --sk-line:#5d5c6e; --sk-fill:#262634; --sk-bg:#12131a;
+  --warn-bg:#2b2310; --warn-ink:#f1c668;
+  --cv-art:#2a261d; --cv-art-ink:#efe4cc; --cv-pdf:#20242d; --cv-pdf-ink:#c9d0dc;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;padding-inline:16px;padding-block:20px 90px}
+.wrap{max-width:780px;margin:0 auto}
+.wide{max-width:1260px;margin:0 auto}
+h1,h2,h3{font-family:"Bricolage Grotesque",-apple-system,system-ui,sans-serif;text-wrap:balance;margin:0}
+h1{font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.5px}
+h2{font-size:24px;font-weight:800;letter-spacing:-.3px}
+h3{font-size:17px;font-weight:600}
+.eyebrow{font:600 11px/1.3 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+p{margin:0}
+.lede{color:var(--ink2);max-width:62ch;margin-top:10px}
+section{margin-top:40px}
+.caveat{margin-top:16px;background:var(--warn-bg);color:var(--warn-ink);border-radius:12px;padding:12px 14px;font-size:13.5px}
+.caveat b{font-weight:700}
+
+/* door rule */
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.door{border:1px solid var(--rule);border-radius:12px;padding:12px}
+.door h3{font-size:15px;margin-bottom:6px}
+.door ul{margin:0;padding-left:18px;color:var(--ink2);font-size:13.5px}
+.hatch{grid-column:1/-1;font-size:13px;color:var(--ink2)}
+.hatch code{font:12.5px ui-monospace,Menlo,monospace;color:var(--ink)}
+
+/* groups */
+.group{margin-top:26px;border-top:1px solid var(--rule);padding-top:16px}
+.group .gh{display:flex;flex-direction:column;gap:3px;margin-bottom:14px}
+.group .gh p{color:var(--ink2);font-size:14px;max-width:62ch}
+.apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:22px 14px}
+.app{display:flex;flex-direction:column;gap:8px}
+.app .name{font-weight:700;font-size:15px}
+.mixes{display:flex;flex-wrap:wrap;gap:4px}
+.mixes span{font:600 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--rule);border-radius:5px;padding:3px 5px;color:var(--ink2)}
+.take{font-size:13.5px;line-height:1.4}
+.take b{color:var(--accent-text)}
+.sure{font-size:11.5px;color:var(--ink2)}
+
+/* sketches: grey wireframes so they never read as Skrift */
+.sk{width:100%;max-width:150px;aspect-ratio:9/17;border:1.5px solid var(--sk-line);border-radius:20px;background:var(--sk-bg);padding:14px 9px 7px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.sk .b{background:var(--sk-fill);border-radius:4px;flex-shrink:0}
+.sk .l{height:4px;border-radius:2px;background:var(--sk-line);opacity:.55;flex-shrink:0}
+.sk .L{height:8px;border-radius:2px;background:var(--sk-line);opacity:.85;flex-shrink:0}
+.sk .row{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.sk .col{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.sk .tb{margin-top:auto;display:flex;justify-content:space-around;border-top:1px solid var(--sk-fill);padding-top:5px;flex-shrink:0}
+.sk .tb i{width:9px;height:9px;border-radius:3px;background:var(--sk-line);opacity:.5}
+.sk .tb i.on{opacity:1}
+.sk .pill{height:9px;border-radius:5px;border:1px solid var(--sk-line);flex-shrink:0}
+.sk .lab{font:600 7px/1 ui-monospace,Menlo,monospace;color:var(--sk-line);letter-spacing:.05em;text-transform:uppercase}
+
+/* directions */
+.namebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.seg{display:inline-flex;background:var(--rule);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{font:600 13px/1 -apple-system,system-ui,sans-serif;border:0;background:transparent;color:var(--ink2);padding:8px 11px;border-radius:8px;cursor:pointer;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg button:focus-visible,.dirpick:focus-visible,.m button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dirtabs{margin-top:18px}
+.dirs{display:grid;gap:34px;margin-top:18px}
+.dir{display:flex;flex-direction:column;gap:12px}
+.dir .dh{display:flex;flex-direction:column;gap:4px;max-width:390px;margin:0 auto;width:100%}
+.dir .dh .letter{font:800 13px/1 "Bricolage Grotesque",system-ui,sans-serif;color:var(--accent-text)}
+.bets{font-size:13.5px;color:var(--ink2);display:grid;gap:4px}
+.bets b{color:var(--ink)}
+.lean{display:inline-block;font:700 10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;border-radius:5px;padding:4px 6px;margin-left:6px;vertical-align:2px}
+.dirpick{align-self:center;width:100%;max-width:390px;font:700 15px/1 -apple-system,system-ui,sans-serif;border:1.5px solid var(--accent);color:var(--accent-text);background:transparent;border-radius:12px;padding:14px;cursor:pointer}
+.dirpick[aria-pressed="true"]{background:var(--accent);color:#fff}
+@media (min-width:1240px){
+  .dirs{grid-template-columns:repeat(3,390px);justify-content:center;gap:40px}
+  .dirtabs{display:none}
+  .dir[hidden]{display:flex!important}
+}
+
+/* ===== the phone mocks (1 CSS px = 1 pt at 390 wide) ===== */
+.m{width:390px;max-width:100%;margin:0 auto;background:var(--bg);color:var(--text);border-radius:44px;border:8px solid #000;overflow:hidden;position:relative;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+@media (max-width:430px){.m{margin-inline:-16px;width:calc(100% + 32px);max-width:none;border:0;border-radius:0;border-block:1px solid var(--rule)}}
+:where(.m) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.st{display:flex;justify-content:space-between;padding:12px 30px 4px;font-size:15px;font-weight:600}
+.top{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 0}
+.stitle{font-size:30px;font-weight:700;letter-spacing:-.2px}
+.plus{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent-text);display:grid!important;place-items:center;font-size:20px;font-weight:600;text-align:center!important}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 20px 12px}
+.sortchip{font-size:11.5px;font-weight:500;color:var(--dim);background:var(--chip);border-radius:8px;padding:4px 10px}
+.count{font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 20px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;font-size:13px!important;font-weight:500;padding:6px 12px!important;border-radius:16px;background:var(--chip)!important;color:var(--dim)!important;min-height:30px}
+.chip[aria-pressed="true"]{background:var(--accent-soft)!important;color:var(--accent-text)!important}
+.new{outline:1.5px dashed var(--accent);outline-offset:3px;border-radius:10px}
+.newtag{font:700 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:var(--accent-text);text-transform:uppercase;padding:0 20px 4px;display:block}
+.sech{font-size:17px;font-weight:700;padding:14px 20px 8px;display:flex;justify-content:space-between;align-items:baseline}
+.sech small{font-size:12px;font-weight:500;color:var(--accent-text)}
+.tabbar{position:sticky;bottom:0;display:flex;justify-content:space-around;padding:7px 8px calc(6px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:.5px solid var(--border);margin-top:18px}
+.tabbar button{display:flex!important;flex-direction:column;align-items:center;gap:2px;font-size:10px!important;font-weight:500;color:var(--faint)!important;width:25%;text-align:center!important;min-height:44px}
+.tabbar button.on{color:var(--accent)!important}
+.tabbar svg{width:24px;height:24px}
+
+/* covers */
+.cv{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1;box-shadow:0 3px 6px rgba(0,0,0,.3);display:flex;flex-direction:column;justify-content:flex-end;padding:10%;color:#f4efe6;flex-shrink:0}
+.cv .ct{font-family:Georgia,"Times New Roman",serif;font-weight:700;line-height:1.05;text-wrap:balance}
+.cv .ca{font-size:.62em;opacity:.8;margin-top:4px}
+.cv.book1{background:linear-gradient(160deg,#4f7a5f,var(--cv-book1))}
+.cv.book2{background:linear-gradient(160deg,#a8664a,var(--cv-book2))}
+.cv.ep{background:radial-gradient(circle at 70% 25%,#3f6f99,var(--cv-ep) 70%)}
+.cv.ep .ct{font-family:-apple-system,system-ui,sans-serif;font-weight:800;letter-spacing:-.02em}
+.cv.art{background:var(--cv-art);color:var(--cv-art-ink);justify-content:space-between}
+.cv.art .dom{font:600 .55em/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.cv.pdf{background:var(--cv-pdf);color:var(--cv-pdf-ink);justify-content:flex-start;gap:6%}
+.cv.pdf:after{content:"";position:absolute;top:0;right:0;width:22%;height:22%;background:linear-gradient(225deg,var(--bg) 50%,rgba(0,0,0,.18) 50%)}
+.cv.pdf .pl{height:3px;border-radius:2px;background:currentColor;opacity:.25}
+.cv.talk{background:linear-gradient(180deg,#3a2c4a,var(--cv-talk));align-items:flex-start}
+.cv.talk .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:28%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.cv.talk .play:after{content:"";border-left:.8em solid #fff;border-top:.5em solid transparent;border-bottom:.5em solid transparent;margin-left:.2em}
+.badge{position:absolute;top:6px;left:6px;font:700 8.5px/1 -apple-system,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;border-radius:5px;padding:4px 5px;display:flex;gap:3px;align-items:center}
+.done-cv{filter:saturate(.3);opacity:.75}
+
+/* Direction A: shelf */
+.cont{display:flex;gap:12px;overflow-x:auto;padding:0 20px 4px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.cont::-webkit-scrollbar{display:none}
+.ccard{flex:0 0 300px;scroll-snap-align:start;background:var(--surface);border-radius:16px;padding:12px;display:flex!important;gap:12px;align-items:center;border:.5px solid var(--border)}
+.ccard .cv{width:84px;font-size:10px}
+.ccard .ti{font-size:14px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ccard .by{font-size:11.5px;color:var(--dim);margin-top:2px}
+.bar{height:3px;border-radius:2px;background:var(--border);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.bar.fin i{background:var(--green)}
+.meta{font-size:10px;color:var(--faint);display:flex;justify-content:space-between;margin-top:4px;font-variant-numeric:tabular-nums;gap:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 18px;padding:0 20px}
+.tile{display:flex!important;flex-direction:column}
+.tile .cv{width:100%;font-size:15px}
+.tile .tt{font-size:12px;font-weight:600;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Direction B: list (today's compact Books row, generalized) */
+.bseg{margin:4px 20px 8px;display:flex;background:var(--chip);border-radius:9px;padding:2px}
+.bseg button{flex:1;text-align:center!important;font-size:13px!important;font-weight:500;padding:6px 0!important;border-radius:7px;color:var(--dim)!important;min-height:30px}
+.bseg button[aria-pressed="true"]{background:var(--surface)!important;color:var(--text)!important;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.list{display:flex;flex-direction:column;gap:8px;padding:0 20px}
+.brow{display:flex!important;gap:12px;align-items:center;padding:4px 0}
+.brow .cv{width:54px;border-radius:9px;font-size:7px;padding:6px}
+.brow .cv .ct{font-size:7px}
+.brow .info{flex:1;min-width:0}
+.brow .ti{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .by{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tline{font-size:10.5px;color:var(--faint);display:flex;gap:6px;align-items:center;margin-top:1px}
+.tline .ty{color:var(--accent-text);font-weight:600}
+.capn{flex-shrink:0;font-size:11px;color:var(--dim);background:var(--chip);border-radius:7px;padding:3px 7px;font-variant-numeric:tabular-nums}
+.empty{color:var(--faint);font-size:13px;padding:20px;text-align:center}
+
+/* Direction C: front page */
+.date{font-size:13px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:0 20px}
+.hero{margin:10px 20px 0;background:var(--surface);border-radius:18px;overflow:hidden;border:.5px solid var(--border);display:block!important;width:calc(100% - 40px)}
+.hero .art{height:170px;position:relative;background:radial-gradient(circle at 75% 20%,#4a7fae,var(--cv-ep) 72%);color:#fff;padding:16px;display:flex;flex-direction:column;justify-content:flex-end}
+.hero .art .show{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.hero .body{padding:12px 14px 14px}
+.hero .kick{font-size:11px;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:.04em}
+.hero .ti{font-size:19px;font-weight:700;line-height:1.2;margin-top:4px}
+.hero .by{font-size:12px;color:var(--dim);margin-top:4px}
+.resume{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--accent);color:#fff;border-radius:18px;padding:8px 14px;font-size:13px;font-weight:600}
+.caps{display:flex;flex-direction:column;gap:10px;padding:0 20px}
+.cap{display:block!important;background:var(--surface);border-radius:14px;padding:12px;border:.5px solid var(--border);width:100%}
+.cap .src{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--dim)}
+.cap .src .cv{width:26px;border-radius:6px;padding:0;box-shadow:none}
+.cap .src b{color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;display:inline-block;vertical-align:bottom}
+.qchip{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:11.5px;color:var(--accent-text);font-weight:600}
+.qchip .wv{display:inline-flex;gap:2px;align-items:center}
+.qchip .wv i{width:2px;background:var(--accent-text);border-radius:1px}
+.qbar{margin-top:9px;border-left:3px solid var(--accent);padding-left:9px;font-style:italic;color:var(--dim);font-size:13px}
+.ramble{font-size:14px;line-height:1.4;margin-top:8px}
+.tonotes{font-size:11px;color:var(--faint);margin-top:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}
+.mini{display:block!important;background:var(--surface);border-radius:14px;overflow:hidden;border:.5px solid var(--border)}
+.mini .cv{width:100%;aspect-ratio:16/10;border-radius:0;box-shadow:none;font-size:12px;padding:10px}
+.mini .ti{font-size:12.5px;font-weight:600;line-height:1.25;padding:8px 10px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mini .by{font-size:10.5px;color:var(--dim);padding:2px 10px 10px}
+.newep{margin:0 20px;display:flex!important;gap:12px;align-items:center;background:var(--surface);border-radius:14px;padding:10px;border:.5px solid var(--border);width:calc(100% - 40px)}
+.newep .cv{width:48px;border-radius:8px;font-size:7px;padding:5px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--page);font-size:13.5px;padding:11px 16px;border-radius:12px;max-width:min(360px,calc(100vw - 32px));transition:opacity .2s,transform .2s;pointer-events:none;z-index:50;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+.ask{margin-top:18px;border:2px solid var(--accent);border-radius:14px;padding:16px}
+.ask p{font-size:17px;font-weight:600;line-height:1.35}
+.ask .sub{font-size:13.5px;font-weight:400;color:var(--ink2);margin-top:8px}
+.picked{margin-top:10px;font-size:13.5px;color:var(--accent-text);font-weight:600;min-height:1.4em}
+@media (max-width:430px){.doors{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Skrift · Q5 · C229 · D90 · 24 Sep 2026</p>
+  <h1 style="margin-top:8px">The long-form tab: what to steal</h1>
+  <p class="lede">Seven apps that hold books, episodes, articles, PDFs or talks, grouped by how they mix them, one line each on what Skrift should take. Three directions at the bottom, each a clickable phone. Pick one.</p>
+  <p class="caveat"><b>These are sketches, not screenshots.</b> The page is one file with no outside images, so each app is drawn as a grey wireframe from memory of its layout. None were checked against the current app versions. Open the real apps next to this page before you pick.</p>
+
+  <section>
+    <h2>The rule the tab has to hold</h2>
+    <p class="lede">From D90 (decided 24 Sep): long-form means a place you come back to. The door decides where a thing lands.</p>
+    <div class="doors">
+      <div class="door"><h3>Goes to Notes</h3><ul><li>WhatsApp and other messengers</li><li>Camera, photo of a page</li><li>Microphone</li><li>Screenshot</li></ul></div>
+      <div class="door"><h3>Goes to the tab</h3><ul><li>Audiobook file</li><li>Podcast feed or show link</li><li>ePub, PDF from Files</li><li>Article link, talk</li></ul></div>
+      <p class="hatch">Two hatches, one action each: <code>move to Library</code> on a note, <code>send to a note</code> on a source. A capture always lands in Notes and links back to its source.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Seven apps, three ways of mixing</h2>
+
+    <div class="group">
+      <div class="gh"><p class="eyebrow">Group 1</p><h3>One list, type is a filter</h3><p>Everything sits in one library. Articles, PDFs and books look alike as rows; a chip or menu narrows by type.</p></div>
+      <div class="apps">
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Readwise Reader library">
+            <div class="L" style="width:55%"></div>
+            <div class="row"><span class="pill" style="width:30%"></span><span class="pill" style="width:26%"></span><span class="pill" style="width:30%"></span></div>
+            <div class="row" style="gap:3px"><span class="lab">all</span><span class="lab">art</span><span class="lab">pdf</span><span class="lab">epub</span><span class="lab">vid</span></div>
+            <div class="row"><div class="b" style="width:22px;height:22px"></div><div class="col"><div class="l" style="width:90%"></div><div class="l" style="width:55%"></div></div></div>
+            <div class="row"><div class="b" style="width:22px;height:22px"></div><div class="col"><div class="l" style="width:80%"></div><div class="l" style="width:45%"></div></div></div>
+            <div class="row"><div class="b" style="width:22px;height:22px"></div><div class="col"><div class="l" style="width:95%"></div><div class="l" style="width:60%"></div></div></div>
+            <div class="row"><div class="b" style="width:22px;height:22px"></div><div class="col"><div class="l" style="width:70%"></div><div class="l" style="width:50%"></div></div></div>
+            <div class="row"><div class="b" style="width:22px;height:22px"></div><div class="col"><div class="l" style="width:85%"></div><div class="l" style="width:40%"></div></div></div>
+            <div class="tb"><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="name">Readwise Reader</div>
+          <div class="mixes"><span>articles</span><span>ePub</span><span>PDF</span><span>video</span><span>email</span></div>
+          <p class="take"><b>Take:</b> type as a chip over one list, and Inbox · Later · Archive as the only other split.</p>
+        </div>
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Matter queue">
+            <div class="L" style="width:45%"></div>
+            <div class="b" style="height:54px"></div><div class="l" style="width:90%"></div><div class="l" style="width:50%"></div>
+            <div class="b" style="height:54px;margin-top:4px"></div><div class="l" style="width:80%"></div><div class="l" style="width:45%"></div>
+            <div class="row" style="margin-top:auto;border:1px solid var(--sk-line);border-radius:6px;padding:4px"><div class="b" style="width:14px;height:14px"></div><div class="col"><div class="l" style="width:70%"></div></div><span class="lab">▶</span></div>
+            <div class="tb" style="margin-top:4px"><i class="on"></i><i></i><i></i></div>
+          </div>
+          <div class="name">Matter</div>
+          <div class="mixes"><span>articles</span><span>newsletters</span></div>
+          <p class="take"><b>Take:</b> any text can also be played aloud, from a player docked under the list.</p>
+          <p class="sure">Least sure of this sketch. Check the dock in the app.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="gh"><p class="eyebrow">Group 2</p><h3>One feed, editorial rhythm</h3><p>Mixed media in one scroll, ordered by an editor or by time. Size carries the hierarchy, and type is a small label on the card.</p></div>
+      <div class="apps">
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Apple News Today feed">
+            <div class="l" style="width:35%"></div><div class="L" style="width:40%"></div>
+            <div class="b" style="height:70px"></div><div class="L" style="width:92%;height:6px"></div><div class="l" style="width:60%"></div>
+            <div class="row" style="margin-top:4px"><div class="col"><div class="l" style="width:95%"></div><div class="l" style="width:70%"></div></div><div class="b" style="width:26px;height:26px"></div></div>
+            <div class="row"><div class="col"><div class="l" style="width:85%"></div><div class="l" style="width:60%"></div></div><div class="b" style="width:26px;height:26px"></div></div>
+            <div class="row"><div class="col"><div class="l" style="width:90%"></div><div class="l" style="width:50%"></div></div><div class="b" style="width:26px;height:26px"></div></div>
+            <div class="tb"><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="name">Apple News</div>
+          <div class="mixes"><span>articles</span><span>narrated audio</span><span>puzzles</span></div>
+          <p class="take"><b>Take:</b> one big hero card, then compact rows. Hierarchy comes from size, never from type.</p>
+        </div>
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Flipboard magazines">
+            <div class="L" style="width:50%"></div>
+            <div class="row" style="gap:5px"><div class="b" style="flex:1;height:62px"></div><div class="b" style="flex:1;height:62px"></div></div>
+            <div class="row" style="gap:5px"><div class="l" style="flex:1"></div><div class="l" style="flex:1"></div></div>
+            <div class="row" style="gap:5px;margin-top:4px"><div class="b" style="flex:1;height:62px"></div><div class="b" style="flex:1;height:62px"></div></div>
+            <div class="row" style="gap:5px"><div class="l" style="flex:1"></div><div class="l" style="flex:1"></div></div>
+            <div class="tb"><i></i><i class="on"></i><i></i><i></i></div>
+          </div>
+          <div class="name">Flipboard</div>
+          <div class="mixes"><span>articles</span><span>video</span><span>magazines</span></div>
+          <p class="take"><b>Take:</b> collections you build by hand, each with a cover. A themed shelf you curate.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="gh"><p class="eyebrow">Group 3</p><h3>One medium, done deeply</h3><p>These don't mix at all. They're here for their capture and resume idioms, which the mixed apps do worse.</p></div>
+      <div class="apps">
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Snipd snips list">
+            <div class="L" style="width:40%"></div>
+            <div style="border:1px solid var(--sk-line);border-radius:6px;padding:5px;display:flex;flex-direction:column;gap:3px"><div class="row"><div class="b" style="width:16px;height:16px"></div><div class="l" style="width:50%"></div><span class="lab">12:04</span></div><div class="L" style="width:80%;height:5px"></div><div class="l"></div><div class="l" style="width:85%"></div><div class="l" style="width:60%"></div></div>
+            <div style="border:1px solid var(--sk-line);border-radius:6px;padding:5px;display:flex;flex-direction:column;gap:3px"><div class="row"><div class="b" style="width:16px;height:16px"></div><div class="l" style="width:45%"></div><span class="lab">48:31</span></div><div class="L" style="width:70%;height:5px"></div><div class="l"></div><div class="l" style="width:75%"></div></div>
+            <div class="tb"><i></i><i></i><i class="on"></i><i></i></div>
+          </div>
+          <div class="name">Snipd</div>
+          <div class="mixes"><span>podcasts</span></div>
+          <p class="take"><b>Take:</b> the snip card (show art, timestamp, transcript excerpt, a title). The nearest cousin to a Skrift capture.</p>
+        </div>
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Apple Podcasts home">
+            <div class="L" style="width:40%"></div><div class="l" style="width:30%"></div>
+            <div class="row" style="gap:5px"><div class="b" style="flex:0 0 78%;height:86px"></div><div class="b" style="flex:1;height:86px"></div></div>
+            <div class="l" style="width:65%"></div><div class="l" style="width:35%"></div>
+            <div class="l" style="width:40%;margin-top:6px"></div>
+            <div class="row" style="gap:4px"><div class="b" style="flex:1;aspect-ratio:1"></div><div class="b" style="flex:1;aspect-ratio:1"></div><div class="b" style="flex:1;aspect-ratio:1"></div></div>
+            <div class="tb"><i class="on"></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="name">Apple Podcasts</div>
+          <div class="mixes"><span>episodes</span><span>transcripts</span></div>
+          <p class="take"><b>Take:</b> the Up Next row. What you're partway through sits first, big, one swipe wide.</p>
+        </div>
+        <div class="app">
+          <div class="sk" aria-label="Sketch of Bound library">
+            <div class="L" style="width:45%"></div>
+            <div class="row" style="gap:6px"><div class="b" style="flex:1;aspect-ratio:1"></div><div class="b" style="flex:1;aspect-ratio:1"></div></div>
+            <div class="row" style="gap:6px"><div class="l" style="flex:1"></div><div class="l" style="flex:1"></div></div>
+            <div class="row" style="gap:6px;margin-top:4px"><div class="b" style="flex:1;aspect-ratio:1"></div><div class="b" style="flex:1;aspect-ratio:1"></div></div>
+            <div class="row" style="gap:6px"><div class="l" style="flex:1"></div><div class="l" style="flex:1"></div></div>
+            <div class="tb"><i class="on"></i><i></i><i></i></div>
+          </div>
+          <div class="name">Bound</div>
+          <div class="mixes"><span>audiobooks</span></div>
+          <p class="take"><b>Take:</b> already taken. The iPad Books shelf is Bound-style (<code>BookShelfTile.swift</code>). Covers stay the hero.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Three directions</h2>
+    <p class="lede">Same seven sources in each (example data). The top bar, + button, sort chip, row and tile styling are drawn from the current Books tab source. Anything new is outlined in dashed purple.</p>
+    <div class="namebar">
+      <span class="eyebrow">Tab name</span>
+      <div class="seg" id="nameSeg" role="group" aria-label="Tab name">
+        <button type="button" data-name="Library" aria-pressed="true">Library</button>
+        <button type="button" data-name="Sources" aria-pressed="false">Sources</button>
+        <button type="button" data-name="Shelf" aria-pressed="false">Shelf</button>
+        <button type="button" data-name="Books" aria-pressed="false">Books</button>
+      </div>
+    </div>
+    <p class="sure" style="margin-top:6px">"Library" is the default because D90's hatch and Q6's toast already say "move to Library" and "Added to Library".</p>
+  </section>
+</div>
+
+<div class="wide">
+  <div class="dirtabs" style="text-align:center">
+    <div class="seg" id="dirSeg" role="group" aria-label="Direction">
+      <button type="button" data-dir="A" aria-pressed="true">A · Shelf</button>
+      <button type="button" data-dir="B" aria-pressed="false">B · List</button>
+      <button type="button" data-dir="C" aria-pressed="false">C · Front page</button>
+    </div>
+  </div>
+  <div class="dirs">
+    <div class="dir" id="dirA">
+      <div class="dh">
+        <span class="letter">A</span>
+        <h3>The Shelf <span class="lean">my lean</span></h3>
+        <div class="bets"><span><b>From:</b> Bound, Apple Podcasts' Up Next, Reader's type chips.</span><span><b>Bets:</b> covers look best, and the iPad shelf grid (C229) already works this way.</span><span><b>Risks:</b> articles and PDFs have no cover art, so they get typographic covers that may look fake next to real book art.</span></div>
+      </div>
+      <div class="m" id="mA"></div>
+      <button type="button" class="dirpick" data-pick="A" aria-pressed="false">Pick A · The Shelf</button>
+    </div>
+    <div class="dir" id="dirB" hidden>
+      <div class="dh">
+        <span class="letter">B</span>
+        <h3>The List</h3>
+        <div class="bets"><span><b>From:</b> Readwise Reader, and today's compact Books row.</span><span><b>Bets:</b> honest about mixed types and cheapest to build. It is the current Books list plus a type line and Reading · Later · Done.</span><span><b>Risks:</b> it is the least likely to "look really good".</span></div>
+      </div>
+      <div class="m" id="mB"></div>
+      <button type="button" class="dirpick" data-pick="B" aria-pressed="false">Pick B · The List</button>
+    </div>
+    <div class="dir" id="dirC" hidden>
+      <div class="dh">
+        <span class="letter">C</span>
+        <h3>The Front Page</h3>
+        <div class="bets"><span><b>From:</b> Apple News, Snipd's snip cards, a feed's "new episode".</span><span><b>Bets:</b> the "almost like a news app" candidate. What you're in the middle of leads, and your captures show under it.</span><span><b>Risks:</b> captures are notes, so they would show in two tabs. No type filter; sections replace it.</span></div>
+      </div>
+      <div class="m" id="mC"></div>
+      <button type="button" class="dirpick" data-pick="C" aria-pressed="false">Pick C · The Front Page</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section>
+    <div class="ask">
+      <p class="eyebrow" style="margin-bottom:8px">The one question</p>
+      <p>Which direction is the tab: A Shelf, B List, or C Front Page?</p>
+      <p class="sub">Inside that: C is the only one that shows your captures on this tab. If you want captures there, C is the answer. If captures belong in Notes only, pick between A and B. My lean is A: covers are the best-looking thing Skrift already has, and the iPad shelf is already a grid.</p>
+      <p class="picked" id="picked" aria-live="polite"></p>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var S=[
+    {id:'uur',type:'episode',cv:'ep',title:'Joris Luyendijk: Ik zit in een rouwproces om de wereld die er niet meer is',short:'Het Uur',by:'NRC Het Uur · 26 Jun 2026',pct:.42,pos:'23:41',left:'38 min left',caps:2,st:'reading',open:'Plays the episode at 23:41 in the one player'},
+    {id:'ftw',type:'book',sub:'audiobook',cv:'book1',title:'Four Thousand Weeks',by:'Oliver Burkeman',pct:.54,pos:'ch 7 · 54%',left:'2:41 left',caps:5,st:'reading',open:'Plays the audiobook at ch 7 in the one player'},
+    {id:'lfs',type:'article',cv:'art',dom:'inkandswitch.com',title:'Local-first software',by:'Ink & Switch',pct:.3,pos:'30%',left:'29 min read',caps:1,st:'reading',open:'Opens the article in reader mode at 30%'},
+    {id:'pdf',type:'pdf',cv:'pdf',title:'GFR grant application, draft 3',by:'PDF from Files',pct:4/18,pos:'p. 4 of 18',left:'14 pages',caps:3,st:'reading',open:'Opens the PDF at page 4'},
+    {id:'ovs',type:'book',sub:'ePub',cv:'book2',title:'The Overstory',by:'Richard Powers',pct:212/502,pos:'p. 212',left:'290 pages',caps:0,st:'reading',open:'Opens the ePub at page 212'},
+    {id:'iop',type:'talk',cv:'talk',title:'Inventing on Principle',by:'Bret Victor · CUSEC 2012',pct:0,pos:'not started',left:'54 min',caps:0,st:'later',open:'Plays the talk from the start'},
+    {id:'wwl',type:'article',cv:'art',dom:'anildash.com',title:'The Web We Lost',by:'Anil Dash',pct:1,pos:'finished',left:'',caps:2,st:'done',open:'Opens the finished article'}
+  ];
+  var TYPES=[['all','All'],['book','Books'],['episode','Episodes'],['article','Articles'],['pdf','PDFs'],['talk','Talks']];
+  var LABEL={book:'Book',episode:'Episode',article:'Article',pdf:'PDF',talk:'Talk'};
+  var CAPS=[
+    {src:'uur',at:'at 23:41',kind:'audio',len:'quote 0:18',when:'Tue',ramble:'Grief for a world that isn’t coming back. Same feeling as the robotics funding thing. Write this up for the newsletter.'},
+    {src:'ftw',at:'ch 7 · 1:12:05',kind:'audio',len:'quote 0:31',when:'Mon',ramble:'Finite time, so pick the three. Ask Hendri what his three are.'},
+    {src:'pdf',at:'p. 4 highlight',kind:'text',len:'The sensor budget line',when:'Sun',ramble:'The budget table undersells the sensor work. Move it above the fold.'}
+  ];
+  var tabName='Library';
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function byId(id){for(var i=0;i<S.length;i++)if(S[i].id===id)return S[i]}
+
+  function cover(s,opts){
+    opts=opts||{};
+    var badge=opts.badge?'<span class="badge">'+esc(s.sub==='ePub'?'ePub':LABEL[s.type])+'</span>':'';
+    var cls='cv '+s.cv+(s.st==='done'?' done-cv':'');
+    var inner;
+    if(s.cv==='art') inner='<span class="dom">'+esc(s.dom)+'</span><span class="ct">'+esc(s.title)+'</span>';
+    else if(s.cv==='pdf') inner='<span class="ct" style="font-family:-apple-system,system-ui,sans-serif;font-size:.8em">'+esc(s.title)+'</span><span class="pl" style="width:90%"></span><span class="pl" style="width:75%"></span><span class="pl" style="width:85%"></span><span class="pl" style="width:60%"></span>';
+    else if(s.cv==='talk') inner='<span class="play"></span><span class="ct" style="margin-top:auto">'+esc(s.title)+'</span><span class="ca">Bret Victor</span>';
+    else if(s.cv==='ep') inner='<span class="ct">Het Uur</span><span class="ca">NRC · podcast</span>';
+    else inner='<span class="ct">'+esc(s.title)+'</span><span class="ca">'+esc(s.by)+'</span>';
+    if(opts.tiny) inner='';
+    return '<div class="'+cls+'">'+badge+inner+'</div>';
+  }
+  function bar(s){return '<div class="bar'+(s.pct>=1?' fin':'')+'"><i style="width:'+Math.max(2,s.pct*100)+'%"></i></div>'}
+
+  var ICONS={
+    notes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4.5"/></svg>',
+    lib:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5c-3.5-.5-6.5 0-8.5 1.5zM12 6.5v13"/></svg>',
+    review:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 4.5v3.6h3.6"/><path d="M12 8v4.3l2.8 1.7"/></svg>',
+    set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.2" stroke-dasharray="3.2 2.4" stroke-width="3"/></svg>'
+  };
+  function chrome(body,countTxt){
+    return '<div class="st"><span>9:41</span><span>●●●</span></div>'+
+      '<div class="top"><span class="stitle tabname">'+esc(tabName)+'</span><button type="button" class="plus" data-act="add" aria-label="Add a source">+</button></div>'+
+      body+
+      '<nav class="tabbar"><button type="button" data-act="tab" data-t="Notes">'+ICONS.notes+'<span>Notes</span></button><button type="button" class="on" data-act="tab" data-t="self">'+ICONS.lib+'<span class="tabname">'+esc(tabName)+'</span></button><button type="button" data-act="tab" data-t="Review">'+ICONS.review+'<span>Review</span></button><button type="button" data-act="tab" data-t="Settings">'+ICONS.set+'<span>Settings</span></button></nav>';
+  }
+  function chips(group,cur){
+    var h='<span class="newtag">new · type filter</span><div class="chips new" style="margin:0 12px;padding-inline:8px" role="group" aria-label="Filter by type">';
+    TYPES.forEach(function(t){h+='<button type="button" class="chip" data-act="chip" data-g="'+group+'" data-f="'+t[0]+'" aria-pressed="'+(t[0]===cur)+'">'+t[1]+'</button>'});
+    return h+'</div>';
+  }
+  function hdr(n,extra){return '<div class="hdr"><button type="button" class="sortchip" data-act="sort">Recently played ▾</button><span class="count">'+n+' '+(n===1?'source':'sources')+(extra||'')+'</span></div>'}
+
+  var fA='all',fB='all',segB='reading';
+  function renderA(){
+    var cont=S.filter(function(s){return s.st==='reading'}).slice(0,3);
+    var items=S.filter(function(s){return fA==='all'||s.type===fA});
+    var body='<span class="newtag" style="margin-top:10px">new · continue row</span><div class="cont new" style="margin:0 12px;padding-inline:8px">';
+    cont.forEach(function(s){body+='<button type="button" class="ccard" data-act="open" data-id="'+s.id+'">'+cover(s,{badge:true})+'<div style="flex:1;min-width:0"><div class="ti">'+esc(s.title)+'</div><div class="by">'+esc(s.by)+'</div>'+bar(s)+'<div class="meta"><span>'+esc(s.pos)+'</span><span>'+esc(s.left)+'</span></div></div></button>'});
+    body+='</div><div style="height:12px"></div>'+chips('A',fA)+hdr(items.length,' · 1 listening')+'<div class="grid">';
+    items.forEach(function(s){body+='<button type="button" class="tile" data-act="open" data-id="'+s.id+'">'+cover(s,{badge:true})+'<div class="tt">'+esc(s.title)+'</div><div style="margin-top:6px">'+bar(s)+'</div><div class="meta"><span>'+esc(s.pos)+'</span><span>'+(s.pct<1&&s.left?esc(s.left):'')+'</span></div></button>'});
+    if(!items.length) body+='<p class="empty" style="grid-column:1/-1">No sources of this type yet.</p>';
+    body+='</div>';
+    document.getElementById('mA').innerHTML=chrome(body);
+  }
+  function renderB(){
+    var items=S.filter(function(s){return s.st===segB&&(fB==='all'||s.type===fB)});
+    var body='<span class="newtag" style="margin-top:12px">new · status segments (replaces the sort chip)</span><div class="bseg new" role="group" aria-label="Status">';
+    [['reading','Reading'],['later','Later'],['done','Done']].forEach(function(x){body+='<button type="button" data-act="seg" data-s="'+x[0]+'" aria-pressed="'+(x[0]===segB)+'">'+x[1]+'</button>'});
+    body+='</div>'+chips('B',fB)+'<div class="hdr"><span></span><span class="count">'+items.length+' '+(items.length===1?'source':'sources')+'</span></div><div class="list">';
+    items.forEach(function(s){
+      body+='<button type="button" class="brow" data-act="open" data-id="'+s.id+'">'+cover(s)+'<div class="info"><div class="ti">'+esc(s.title)+'</div><div class="by">'+esc(s.by)+'</div><div class="tline"><span class="ty">'+esc(s.sub?s.sub:LABEL[s.type])+'</span><span>'+esc(s.pos)+'</span>'+(s.left&&s.pct<1?'<span>· '+esc(s.left)+'</span>':'')+'</div>'+bar(s)+'</div>'+(s.caps?'<span class="capn" title="captures">'+s.caps+' notes</span>':'')+'</button>';
+    });
+    if(!items.length) body+='<p class="empty">Nothing here with this filter.</p>';
+    body+='</div>';
+    document.getElementById('mB').innerHTML=chrome(body);
+  }
+  function wave(){var h='<span class="wv">';[5,9,13,7,11,6,10,4].forEach(function(v){h+='<i style="height:'+v+'px"></i>'});return h+'</span>'}
+  function renderC(){
+    var hs=byId('uur');
+    var body='<p class="date">Thursday 24 September</p>'+
+      '<button type="button" class="hero" data-act="open" data-id="uur"><div class="art"><span class="badge">Episode</span><span class="show">Het Uur</span><span style="font-size:12px;opacity:.85">NRC · 26 Jun 2026</span></div><div class="body"><div class="kick">Continue · '+esc(hs.left)+'</div><div class="ti">'+esc(hs.title)+'</div>'+bar(hs)+'<span class="resume">▶ Resume at 23:41</span></div></button>'+
+      '<div class="sech"><span>Your captures this week</span><small>in Notes</small></div><span class="newtag">new · captures shown here AND in Notes</span><div class="caps new" style="margin:0 12px;padding:8px">';
+    CAPS.forEach(function(c){var s=byId(c.src);
+      body+='<button type="button" class="cap" data-act="cap" data-id="'+c.src+'"><div class="src">'+cover(s,{tiny:true})+'<span><b>'+esc(s.short||s.title)+'</b> · '+esc(c.at)+'</span><span style="margin-left:auto">'+esc(c.when)+'</span></div>'+
+      (c.kind==='audio'?'<div class="qchip">'+wave()+esc(c.len)+'</div>':'<div class="qbar">'+esc(c.len)+'</div>')+
+      '<div class="ramble">'+esc(c.ramble)+'</div><div class="tonotes">Your ramble · opens the note</div></button>'});
+    body+='</div><div class="sech"><span>Also in progress</span><small>See all</small></div><div class="two">';
+    ['ftw','lfs','pdf','ovs'].forEach(function(id){var s=byId(id);body+='<button type="button" class="mini" data-act="open" data-id="'+id+'">'+cover(s,{badge:true})+'<div class="ti">'+esc(s.title)+'</div><div class="by">'+esc(s.pos)+' · '+esc(s.left)+'</div></button>'});
+    body+='</div><div class="sech"><span>New from your shows</span></div><span class="newtag">new · feed arrivals (RSS)</span><button type="button" class="newep new" data-act="newep">'+cover(hs)+'<div style="flex:1;min-width:0"><div style="font-size:11px;color:var(--accent-text);font-weight:700">NEW · 1 Oct</div><div style="font-size:13.5px;font-weight:600">Next Het Uur episode (example)</div><div style="font-size:11.5px;color:var(--dim)">NRC Het Uur · from the show’s RSS feed</div></div></button>';
+    document.getElementById('mC').innerHTML=chrome(body);
+  }
+  function renderAll(){renderA();renderB();renderC()}
+
+  var tEl=document.getElementById('toast'),tT;
+  function toast(msg){tEl.textContent=msg;tEl.classList.add('show');clearTimeout(tT);tT=setTimeout(function(){tEl.classList.remove('show')},2400)}
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-act]');if(!b)return;
+    var a=b.getAttribute('data-act');
+    if(a==='chip'){var g=b.getAttribute('data-g'),f=b.getAttribute('data-f');if(g==='A'){fA=f;renderA()}else{fB=f;renderB()}}
+    else if(a==='seg'){segB=b.getAttribute('data-s');renderB()}
+    else if(a==='open'){var s=byId(b.getAttribute('data-id'));toast(s.open+(s.caps?' · '+s.caps+' notes link back here':''))}
+    else if(a==='cap'){toast('Opens this capture as a note in Notes, with a link back to the source')}
+    else if(a==='add'){toast('Add: audiobook file, podcast link, ePub, PDF from Files, article link')}
+    else if(a==='sort'){toast('Sort menu: Recently played, Title, Author, Recently added')}
+    else if(a==='newep'){toast('Opens the new episode. Arrived through the show’s public RSS feed')}
+    else if(a==='tab'){var t=b.getAttribute('data-t');toast(t==='self'?'You are on '+tabName:'Only the '+tabName+' tab is drawn in this mock')}
+  });
+
+  var nameSeg=document.getElementById('nameSeg');
+  nameSeg.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    tabName=b.getAttribute('data-name');
+    [].forEach.call(nameSeg.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed',String(x===b))});
+    renderAll();toast('Tab renamed to '+tabName+' in all three mocks');});
+
+  var dirSeg=document.getElementById('dirSeg');
+  function showDir(d){['A','B','C'].forEach(function(x){document.getElementById('dir'+x).hidden=(x!==d)});
+    [].forEach.call(dirSeg.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed',String(x.getAttribute('data-dir')===d))});}
+  dirSeg.addEventListener('click',function(e){var b=e.target.closest('button');if(b)showDir(b.getAttribute('data-dir'))});
+
+  var NAMES={A:'A · The Shelf',B:'B · The List',C:'C · The Front Page'};
+  var pickedEl=document.getElementById('picked');
+  function setPick(p){[].forEach.call(document.querySelectorAll('.dirpick'),function(x){x.setAttribute('aria-pressed',String(x.getAttribute('data-pick')===p))});
+    pickedEl.textContent=p?'Picked on this device: '+NAMES[p]+', tab named '+tabName+'. Say it in the sitting; this page does not send it anywhere.':'';}
+  document.addEventListener('click',function(e){var b=e.target.closest('.dirpick');if(!b)return;var p=b.getAttribute('data-pick');
+    setPick(p);try{localStorage.setItem('q5pick',p)}catch(err){}toast('Picked '+NAMES[p])});
+
+  renderAll();
+  try{var saved=localStorage.getItem('q5pick');if(saved&&NAMES[saved])setPick(saved)}catch(err){}
+  var h=(location.hash||'').replace('#','').toUpperCase();if(NAMES[h])showDir(h);
+})();
+</script>
