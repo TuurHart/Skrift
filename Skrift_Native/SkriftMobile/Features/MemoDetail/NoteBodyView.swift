@@ -323,12 +323,10 @@ struct NoteBodyView: UIViewRepresentable {
                 if t == loaded { return }
                 if tv.isFirstResponder || draftDirty { return }        // don't yank text mid-edit
             }
-            // Photos snap to their sentence end for DISPLAY (shared with the Mac +
-            // the Obsidian export); the stored transcript keeps the marker at its
-            // recorded moment until the user edits (`reconstruct` then writes the
-            // snapped form, which edited/trusted notes carry harmlessly). Idempotent,
-            // so the equality check below never spuriously rebuilds.
-            let display = BodyTransform.snappedImageBody(protectedQuote?.ramble ?? t)
+            // Body v2 stores every picture as its own paragraph (C10), so the display IS
+            // the stored text. A body stored before v2 still goes through the Q13
+            // read-only fallback (`BodyV2Legacy`, Q14 removes it).
+            let display = BodyV2Legacy.shown(protectedQuote?.ramble ?? t).text
             if !force, display == reconstruct(tv.attributedText) { loaded = t; return }
             // Carry the (clamped) selection across the rebuild so the caret —
             // and with it the visible spot — stays put.
@@ -546,15 +544,16 @@ struct NoteBodyView: UIViewRepresentable {
                 storage.addAttribute(.foregroundColor, value: UIColor(Color.skText), range: range)
             }
             var built: [(NSRange, NameSpan)] = []
-            // Name spans carry RAW offsets; the display is snapped, so map each span
-            // through the snap (raw → snapped) before collapsing markers → glyphs.
-            let snap = BodyTransform.snapImages(protectedQuote?.ramble ?? bodyText)
+            // Name spans carry stored offsets; the ONE remap is marker → one glyph (C17).
+            // (`shown.map` is the identity for a v2 body; only a pre-v2 body goes through
+            // the Q13 fallback's snap map — Q14 removes it.)
+            let shown = BodyV2Legacy.shown(protectedQuote?.ramble ?? bodyText)
             // ONE pieces() pass for all spans (the per-span displayRange re-scanned
             // the whole document each call — S+1 full regex passes for S names).
-            let snappedRanges = nameSpans.map { snap.snapped(rawRange: $0.range) }
-            let displayRanges: [NSRange?] = snap.text.isEmpty
-                ? snappedRanges
-                : BodyTransform.displayRanges(forRaw: snappedRanges, in: snap.text)
+            let storedRanges = nameSpans.map { shown.map($0.range) }
+            let displayRanges: [NSRange?] = shown.text.isEmpty
+                ? storedRanges
+                : BodyTransform.displayRanges(forRaw: storedRanges, in: shown.text)
             for (span, dr) in zip(nameSpans, displayRanges) {
                 guard let dr, dr.location + dr.length <= storage.length else { continue }
                 NameTierStyle.apply(span.tier, to: storage, range: dr)
@@ -746,6 +745,9 @@ struct NoteBodyView: UIViewRepresentable {
             tv.selectedRange = NSRange(location: at + piece.length, length: 0)
             textViewDidChange(tv)
             commitDraft()          // persist text + manifest atomically
+            // The commit may have moved the picture to its sentence end (C10) — show
+            // what was stored.
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
         }
 
         // MARK: name taps (via the selection, not a gesture)
@@ -1167,7 +1169,7 @@ struct NoteBodyView: UIViewRepresentable {
             draftDirty = false
             let target = draftTarget ?? (polishedBinding.map { .polished($0) } ?? .raw)
             draftTarget = nil
-            let text = reconstruct(tv.attributedText)
+            let text = committedBody(reconstruct(tv.attributedText))
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             switch target {
             case .polished(let binding):
@@ -1193,6 +1195,17 @@ struct NoteBodyView: UIViewRepresentable {
             onCommit()
         }
 
+        /// C10 at the editor commit: a body carrying pictures is written through body v2
+        /// (an edit: every marker keeps its place in the sequence, one inside a sentence
+        /// moves to that sentence's end). A body with no picture is stored as typed, so
+        /// the whitespace the user is still typing is left alone.
+        private func committedBody(_ text: String) -> String {
+            let manifest = memo.metadata?.imageManifest ?? []
+            guard !BodyV2Marker.runs(in: text, manifestCount: manifest.count).isEmpty else { return text }
+            return BodyV2.committed(BodyV2.Input(text: text, manifest: manifest,
+                                                 source: memo.bodyV2Source, userEdited: true))
+        }
+
         // MARK: attributed text ⇄ marker string (round-trip)
 
         private func baseAttributes() -> [NSAttributedString.Key: Any] {
@@ -1206,25 +1219,16 @@ struct NoteBodyView: UIViewRepresentable {
         private func attributed(from transcript: String) -> NSAttributedString {
             let result = NSMutableAttributedString()
             let base = baseAttributes()
-            var displayBreak: NSAttributedString {
-                var attrs = base
-                attrs[Self.displayOnlyKey] = true
-                return NSAttributedString(string: "\n", attributes: attrs)
-            }
             for piece in BodyTransform.pieces(of: transcript) {
                 switch piece.segment {
                 case .text(let s):
                     result.append(NSAttributedString(string: s, attributes: base))
                 case .image(let n):
-                    // Photos render as their own display BLOCK (signed off
-                    // 2026-07-07): tagged, display-only breaks — the raw
-                    // marker stays mid-sentence.
-                    let breaks = BodyTransform.imageBreaks(for: piece, in: transcript)
-                    if breaks.leading { result.append(displayBreak) }
+                    // A picture is its own paragraph in the stored body (C10): the
+                    // marker becomes one glyph, no display-only breaks (C17).
                     let a = NSMutableAttributedString(attachment: imageAttachment(markerIndex: n))
                     a.addAttribute(Self.markerKey, value: n, range: NSRange(location: 0, length: a.length))
                     result.append(a)
-                    if breaks.trailing { result.append(displayBreak) }
                 case .task(let checked):
                     let a = NSMutableAttributedString(attachment: Self.taskAttachment(checked: checked))
                     a.addAttribute(Self.taskKey, value: checked, range: NSRange(location: 0, length: a.length))

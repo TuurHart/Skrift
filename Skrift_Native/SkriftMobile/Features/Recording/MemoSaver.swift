@@ -659,7 +659,10 @@ struct MemoSaver {
         }
 
         let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        memo.transcript = existing.isEmpty ? newText : existing + "\n\n" + newText
+        // Body v2 (C10): the combined body is an edit — every picture keeps its place.
+        memo.transcript = BodyV2.committed(BodyV2.Input(
+            text: existing.isEmpty ? newText : existing + "\n\n" + newText,
+            manifest: memo.metadata?.imageManifest ?? [], source: .speech, userEdited: true))
         memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
         memo.transcriptStatus = .done
         memo.markEdited()
@@ -967,11 +970,11 @@ struct MemoSaver {
         }
         guard let memo = repository.memo(id: id) else { return }
         // Fusion rebuilds from the words, which drops the `[[img_NNN]]` photo markers — so
-        // re-insert them by timestamp, landing each in the turn being spoken when it was
-        // taken (photos + manifest are untouched; this restores the inline markers).
+        // body v2 places them again from their moments, each after the sentence within the
+        // turn being spoken when it was taken (C169; photos + manifest are untouched).
         if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
-            let tw = words.map { TimedWord(text: $0.word, start: $0.start, end: $0.end) }
-            attributed = ImageMarkers.insert(transcript: attributed, words: tw, manifest: manifest)
+            attributed = BodyV2.committed(BodyV2.Input(text: attributed, words: words,
+                                                       manifest: manifest, source: .speech))
         }
         memo.transcript = attributed
         memo.transcriptStatus = .done
