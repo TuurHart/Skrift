@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Tag Editor Revamp</title>
 <style>
 /* App colours = Shared/UI/Palette.swift (phone pairs; bg = Palette.bg.phone, D135/D136).
@@ -82,7 +83,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
 @media (min-width:430px){.stagewrap{margin-inline:0}}
 .scroll-x{overflow-x:auto;width:100%}
 .stage{background:var(--bg);color:var(--t1);position:relative;overflow:hidden;border:1px solid var(--hair)}
-.stage.phone{width:390px;max-width:100vw;min-height:640px;border-radius:0}
+.stage.phone{width:390px;max-width:100vw;min-height:600px;border-radius:0;margin-inline:auto}
 @media (min-width:430px){.stage.phone{border-radius:34px}}
 .stage.ipad{width:700px;min-height:600px;border-radius:22px;margin-inline:auto}
 .stage.mac{width:720px;min-height:560px;border-radius:12px;margin-inline:auto}
@@ -135,7 +136,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
 .sg{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;border-radius:999px;font-size:14px;color:var(--t1);background:var(--surface);border:1px solid var(--hair);white-space:nowrap}
 .sg.create{color:var(--accent);border-color:rgb(var(--accent-rgb)/.45);font-weight:600}
 .sg .n{font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums}
-.sg mark{background:none;color:inherit;font-weight:700}
+mark{background:none;color:inherit;font-weight:700}
 .slab{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin:0 0 6px}
 .hint{font-size:12px;color:var(--t2);min-height:0;margin:-4px 0 10px}
 .hint.warn{color:var(--amber)}
@@ -144,8 +145,8 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
 
 /* Mac proposed / today */
 .mac .tg{font-size:12px;height:22px;padding:0 9px;gap:4px}
-.mac .tg .x{width:14px;height:14px;font-size:8px;opacity:0;margin-right:-3px}
-.mac .tg:hover .x,.mac .tg.always .x{opacity:.6}
+.mac .tg .x{width:14px;height:14px;font-size:8px;opacity:.6;margin-right:-3px;display:none}
+.mac .tg:hover .x,.mac .tg.always .x,.mac .tg.armed .x{display:inline-grid}
 .mac .tg.armed .x{opacity:1}
 .mac .addbtn{height:22px;font-size:12px;padding:0 9px}
 .mac .tagin{height:22px;font-size:12px;width:8em;padding:0 9px}
@@ -182,7 +183,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
 
 .toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:12;background:var(--t1);color:var(--bg);border-radius:999px;
   display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;font-size:13.5px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.toast button{font-weight:700;color:var(--accentText);padding:6px 10px;border-radius:999px;background:rgb(var(--accent-rgb)/.22)}
+.toast button{font-weight:700;color:#fff;padding:6px 12px;border-radius:999px;background:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -250,7 +251,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
   <section class="foot">
     <h2>What source does today that breaks C93 (build fixes these either way)</h2>
     <ul>
-      <li>Mac <code>TagEditor.commitOne</code> lowercases a picked or created tag (<code>NoteProperties.swift:460</code>): <code>Lisbon</code> becomes <code>lisbon</code>. Try it on the Mac "Today" view.</li>
+      <li>Mac <code>TagEditor.commitOne</code> lowercases a tag picked or created from the menu (<code>NoteProperties.swift:460</code>), while Return (<code>commit</code>, line 467) keeps the case. Try <code>Alfama</code> both ways on the Mac "Today" view.</li>
       <li>No case fold anywhere: both apps test <code>tags.contains(t)</code> exactly (<code>TagEditorSheet.swift</code> <code>add</code>, <code>NoteProperties.swift:467</code>), so <code>LISBON</code> sits next to <code>Lisbon</code>.</li>
       <li><code>Memo.splitTagInput</code> removes every <code>#</code>, not one (<code>Memo.swift:284</code>).</li>
     </ul>
@@ -267,7 +268,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
   var LIBN = {furniture:14,Lisbon:31,gfr:22,design:19,production:12,cnc:9,wood:8,market:6,family:11,reading:7,woodworking:3,gifts:2,house:5,"idea-dump":4,sketch:3};
   var VAULT = ["feira","restoration","joinery"];            // phone: VaultTagScanner
   var NOTE_SUG = ["chair","wood"];                           // Mac: PipelineFile.tagSuggestions (TagMatcher)
-  var DEST = ["personal","made","idea","inspiration"];
+  LIB.sort(function(a,b){ return (LIBN[b]||0)-(LIBN[a]||0); });   // most-used first, as TagLibrary does
 
   var S = { device:"phone", ver:"new", surface:"inline", remove:"arm", place:"row",
             tags:["Lisbon","furniture"], editing:false, draft:"", armed:null, hint:null, hintCls:"",
@@ -334,8 +335,8 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
     return p.tags[0];
   }
   function markPrefix(tag, typed){
-    var t=typed.trim().replace(/^#/,""); if(!t) return "#"+esc(tag);
-    return "#<mark>"+esc(tag.slice(0,t.length))+"</mark>"+esc(tag.slice(t.length));
+    var t=typed.trim().replace(/^#/,""); if(!t) return "<span>#"+esc(tag)+"</span>";
+    return "<span>#<mark>"+esc(tag.slice(0,t.length))+"</mark>"+esc(tag.slice(t.length))+"</span>";
   }
 
   // ── actions (proposed) ───────────────────────────
@@ -577,7 +578,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
     var r=$("redline"), mac=isMac();
     if(S.ver==="today"){
       r.innerHTML = mac
-        ? '<b>Today, Mac:</b> tags share the facts row. Pick <code>Lisbon</code> or create <code>Wood</code> from the menu and watch the frontmatter: <b>it lowercases</b>. Return adds and closes the field.'
+        ? '<b>Today, Mac:</b> tags share the facts row. Type <code>Alfama</code> and click <b>Create</b>: it lands as <code>alfama</code>. Type it again and press Return: it keeps the capital. Two paths, two spellings. Return also closes the field.'
         : '<b>Today, '+(S.device==="ipad"?"iPad":"iPhone")+':</b> 11 pt tags at the end of the facts row; any tap opens the Tags sheet. In the sheet a tap on a tag deletes it at once, no undo. Type <code>LISBON</code>: it sits next to <code>Lisbon</code>.';
       return;
     }
@@ -590,7 +591,7 @@ code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);ba
       ? (mac ? 'Remove: hover shows ✕.' : 'Remove: tap a tag, it turns red with ✕, tap again. Backspace in an empty field does the same to the last tag.')
       : 'Remove: every tag carries ✕. One tap.');
     bits.push('Every removal offers Undo for 4 s.');
-    bits.push(S.place==="row" ? 'Tags sit on their own row, 14 pt, 30 pt tall (today 11 pt, 18 pt).' : 'Tags follow the facts in one wrapping row, D107 order kept.');
+    bits.push(S.place==="row" ? (mac ? 'Tags sit on their own row, 12 pt, 22 pt tall (today 11 pt, 20 pt).' : 'Tags sit on their own row, 14 pt, 30 pt tall (today 11 pt, 20 pt).') : 'Tags follow the facts in one wrapping row, D107 order kept.');
     if(mac) bits.push('Kept from source: the Create row, prefix match, 8-row cap, the note\'s own dashed suggestions.');
     r.innerHTML=bits.join(" ");
   }
