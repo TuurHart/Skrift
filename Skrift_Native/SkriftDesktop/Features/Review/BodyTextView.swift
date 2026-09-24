@@ -336,8 +336,17 @@ struct BodyTextView: NSViewRepresentable {
             updateTagSuggest(tv)
         }
 
+        /// Body v2 (C10/C19): commit ONCE the editing session ends — never per keystroke
+        /// (`textDidChange` above stays raw, so the in-session round-trip is untouched).
+        /// No manifest is threaded down to this leaf, so a marker literal already in the
+        /// text is left as inert text (its whitespace commits like any other), never
+        /// repositioned here.
         func textDidEndEditing(_ notification: Notification) {
             hideTagSuggest()
+            guard let tv = notification.object as? SelfSizingTextView else { return }
+            let current = modelString(tv)
+            let committed = BodyV2.committed(BodyV2.Input(text: current, source: .typed))
+            if committed != current { parent.text = committed }
         }
 
         /// The `[[` trigger (phone chunk-5 parity): when the two chars just before the caret are
