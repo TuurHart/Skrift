@@ -25,5 +25,14 @@ struct SkriftShortcuts: AppShortcutsProvider {
             shortTitle: "Resume book",
             systemImageName: "book.circle.fill"
         )
+        // D135: the phrase must name Skrift — plain "new note" goes to Apple Notes.
+        AppShortcut(
+            intent: NewNoteIntent(),
+            phrases: [
+                "New note in \(.applicationName)",
+            ],
+            shortTitle: "New Note",
+            systemImageName: "square.and.pencil"
+        )
     }
 }

@@ -69,6 +69,7 @@ struct SkriftApp: App {
         StartRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStart() } }
         ResumeAudiobookIntent.performer = { await MainActor.run { AudiobookSession.shared.resumeLastPlayed() } }
         StopRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStop() } }
+        NewNoteIntent.performer = { await MainActor.run { QuickNoteBridge.shared.requestNew() } }
 
         // Register the whole-book background-transcribe handler before the scene
         // connects (BGTaskScheduler requires registration at launch).

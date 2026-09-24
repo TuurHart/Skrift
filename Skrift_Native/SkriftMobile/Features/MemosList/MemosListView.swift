@@ -77,8 +77,16 @@ struct MemosListView: View {
     /// here: a cover on the card itself would die when its List row unmounts).
     @State private var showBookPlayer = false
     @State private var lastHandledStart = 0
+    @State private var lastHandledQuickNote = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
+    @ObservedObject private var quickNoteBridge = QuickNoteBridge.shared
+    /// Set only while a quick note (Q7) is the open screen: `openMemo`'s id is
+    /// a navigation token, not yet a real `Memo.id` (`QuickNoteDraft` creates
+    /// the row on the first keystroke). Distinguishes "route to QuickNoteView"
+    /// from "route to MemoDetailView" for the SAME `UUID`-keyed navigation the
+    /// list already uses (`path` / `selectedMemoID`).
+    @State private var quickNoteDraftID: UUID?
     /// Long-press → "Remind me…" (chunk 7).
     @State private var reminderMemo: Memo?
     /// Locking a memo that's already published → honest notice (chunk 8).
@@ -202,7 +210,16 @@ struct MemosListView: View {
             // Phone (and iPad compact / Split View): today's stack, byte-for-byte.
             NavigationStack(path: $path) {
                 notesRoot
-                    .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
+                    .navigationDestination(for: UUID.self) { id in
+                        if id == quickNoteDraftID {
+                            QuickNoteView(draftID: id) {
+                                quickNoteDraftID = nil
+                                if !path.isEmpty { path.removeLast() }
+                            }
+                        } else {
+                            MemoDetailView(initialID: id)
+                        }
+                    }
             }
         }
     }
@@ -289,12 +306,13 @@ struct MemosListView: View {
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
             .onChange(of: memoOpen.requestID) { handleOpenRequest() }
+            .onChange(of: quickNoteBridge.requestID) { handleQuickNoteRequest() }
             // Also catch a request that fired during a COLD launch (App Intent /
             // widget / deep link / shared video) BEFORE this view subscribed —
             // onChange alone misses it, which left Siri/widget "opens but doesn't
             // record" and a shared video not opening on a cold launch.
             .onAppear {
-                handleStartRequest(); handleOpenRequest()
+                handleStartRequest(); handleOpenRequest(); handleQuickNoteRequest()
                 // Round-2 evidence for the invisible doc-scan button: was the
                 // capability gate the culprit, or the iOS-26 toolbar?
                 DevLog.log("docScan: isSupported=\(DocScanView.isSupported)")
@@ -351,8 +369,16 @@ struct MemosListView: View {
     private var noteStack: some View {
         NavigationStack {
             if let id = selectedMemoID {
-                MemoDetailView(initialID: id, listVisible: $listVisible)
+                if id == quickNoteDraftID {
+                    QuickNoteView(draftID: id) {
+                        quickNoteDraftID = nil
+                        selectedMemoID = nil
+                    }
                     .id(id)
+                } else {
+                    MemoDetailView(initialID: id, listVisible: $listVisible)
+                        .id(id)
+                }
             } else {
                 ZStack {
                     Color.skBg.ignoresSafeArea()
@@ -373,12 +399,16 @@ struct MemosListView: View {
         if isRegular { selectedMemoID = id } else { path = [id] }
     }
 
-    /// Create a typed note and open it — the Mac's ✎/⌘N verb, same author
-    /// (`Memo.newTyped`: unrated, `.done`, the `"typed"` marker), landing in the
-    /// workbench pane where the body editor is the way in.
+    /// Open the quick-note screen (Q7/C112/C114) — the app's own ✎, same
+    /// entry point Lock Screen / Control Center / Siri route to via
+    /// `QuickNoteBridge`. Unlike the Mac's ✎/⌘N (`Memo.newTyped` on the tap),
+    /// nothing is created here: the pushed id is a navigation token only, and
+    /// `QuickNoteDraft` authors the actual `Memo` on the first keystroke, so
+    /// an untouched note never exists to sync anywhere (D91/C43).
     private func newTypedNote() {
-        guard let memo = try? Memo.newTyped(into: repository.container.mainContext) else { return }
-        openMemo(memo.id)
+        let draftID = UUID()
+        quickNoteDraftID = draftID
+        openMemo(draftID)
     }
 
     // MARK: - Content
@@ -971,6 +1001,16 @@ struct MemosListView: View {
     /// resetting the path to it (like the record-saved path) lands the user on it.
     private func handleOpenRequest() {
         if let id = memoOpen.consume() { openMemo(id) }
+    }
+
+    /// A New Note request (widget / Control Center / Siri / `skrift://newnote`)
+    /// → open the same quick-note screen the app's own ✎ opens.
+    /// `lastHandledQuickNote` fires it once per request and catches a request
+    /// that arrived during a cold launch before `.onChange` was subscribed.
+    private func handleQuickNoteRequest() {
+        guard quickNoteBridge.requestID > lastHandledQuickNote else { return }
+        lastHandledQuickNote = quickNoteBridge.requestID
+        newTypedNote()
     }
 
     // (recordFAB moved into NotesBottomChrome — the Option-A split row at the

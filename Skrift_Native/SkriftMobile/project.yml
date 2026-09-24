@@ -341,6 +341,7 @@ targets:
       # into the app process. SkriftShortcuts stays app-only (AppShortcutsProvider).
       - path: App/Intents/StartRecordingIntent.swift
       - path: App/Intents/StopRecordingIntent.swift
+      - path: App/Intents/NewNoteIntent.swift
     info:
       path: SkriftWidget/Info.plist
       properties:
