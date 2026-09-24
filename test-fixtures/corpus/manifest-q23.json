@@ -1,0 +1,11 @@
+{
+  "_schema": "Q23 ADDITIVE manifest: the R25/R33/R74 fixtures SPEC.md's required-difference table names but the generated `manifest.json` never listed (that file is protected/generator-owned; this one is hand-authored and additive, read by BodyGoldenQ23Tests.swift alongside it, never merged into it). Same shape as `manifest.json`'s `notes` array; `folder` names match exactly (no NNN- prefix).",
+  "generatedBy": "hand-authored for Q23 (not generate.py)",
+  "count": 4,
+  "notes": [
+    { "index": 1, "slug": "pic-during-pause-two-shots", "id": "0E16ED72-276A-5CCB-A79B-39FD42F932FB", "kind": "voice", "lang": "en", "shape": ["voice", "pictures", "adjacent-markers", "pause-tie"], "folder": "pic-during-pause-two-shots" },
+    { "index": 2, "slug": "pic-burst-same-offset", "id": "2EF4640D-E633-5374-8FDC-8283163A7F2F", "kind": "voice", "lang": "en", "shape": ["voice", "pictures", "adjacent-markers", "same-offset"], "folder": "pic-burst-same-offset" },
+    { "index": 3, "slug": "ingress-p3-five-clips-one-picture", "id": "518FF247-ECCE-597D-B688-BB6A8A1C7CB7", "kind": "voice", "lang": "en", "shape": ["voice", "share", "ingress", "mixed-bundle"], "folder": "ingress-p3-five-clips-one-picture" },
+    { "index": 4, "slug": "migrated-stale-name-offsets", "id": "F8B5EC7B-8B66-5FDE-AEF4-5C021179D77D", "kind": "voice", "lang": "en", "shape": ["voice", "pictures", "migrated", "name-offset"], "folder": "migrated-stale-name-offsets" }
+  ]
+}
