@@ -18,6 +18,9 @@ struct NoteProperties: View {
     /// `includeAudioInExport` is Mac-local and unsynced, so flipping it on a
     /// projection would silently go nowhere.
     var canExport = true
+    /// Reports a tag removal so the CALLER can show the Undo pill at the note-column
+    /// level (Q41) — `TagEditorRow`'s own bounds run narrower than the column.
+    var onTagToast: (TagEditorRow.TagToast?) -> Void = { _ in }
 
     /// Which title card is selected — EXPLICIT state, not derived from comparing
     /// `enhancedTitle` to a candidate (that flipped the active card the instant you
@@ -48,7 +51,8 @@ struct NoteProperties: View {
             // `.onChange(of: file.tags)` below already mirrors any tag edit to the
             // phone — no extra sync call needed here.
             TagEditorRow(tags: $file.tags, library: TagLibrary.mostUsedFirst(file.modelContext),
-                         style: .mac)
+                         style: .mac, libraryCounts: TagLibrary.counts(file.modelContext),
+                         onToast: onTagToast)
             SignificanceCircles(value: $file.significance)
             // WHERE this note goes when it leaves — the SHARED `DestinationRowView`, in
             // the same place as the phone's (signed mock note-destination-tags.html,
@@ -246,13 +250,20 @@ struct NoteProperties: View {
 /// suggestion surfaces can't disagree.
 @MainActor enum TagLibrary {
     static func mostUsedFirst(_ context: ModelContext?) -> [String] {
-        guard let context else { return [] }
+        let c = counts(context)
+        return c.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
+
+    /// How many (non-deleted) notes carry each tag — the Mac menu's trailing usage
+    /// count (Q41, mock `LIBN`), and the sort key `mostUsedFirst` already used.
+    static func counts(_ context: ModelContext?) -> [String: Int] {
+        guard let context else { return [:] }
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         var counts: [String: Int] = [:]
         for f in files where f.deletedAt == nil {
             for t in f.tags { counts[t, default: 0] += 1 }
         }
-        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+        return counts
     }
 }
 

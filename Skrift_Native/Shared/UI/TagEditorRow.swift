@@ -50,11 +50,29 @@ struct TagEditorRow: View {
     /// renders (headless `-snapshot-tags`, no real keyboard/typing available there).
     var seedAdding = false
     var seedDraft = ""
+    /// Mac dropdown only (D139/Q41, mock `LIBN`): library-wide usage count per tag,
+    /// shown trailing on non-create menu rows. Empty on phone/iPad (not asked there).
+    var libraryCounts: [String: Int] = [:]
+    /// A removal's Undo toast is HOISTED to the note screen (Q41): this row's own
+    /// bounds can be narrower than the screen (a leading chip flow), so anchoring
+    /// the pill to the row's own `.overlay` ran it off the LEFT screen edge over
+    /// the remaining chips (caught in the Q36 screenshot pass). The caller owns an
+    /// `@State private var tagToast: TagToast?`, sets it here, and renders
+    /// `TagUndoToastView` at the SCREEN level — see that view's doc.
+    var onToast: (TagToast?) -> Void = { _ in }
+
+    /// One removal's Undo state, reported to the caller via `onToast`. `undo()`
+    /// closes over this row's own `tags` binding, so the caller doesn't need to
+    /// know the removed tag's original index.
+    struct TagToast: Identifiable {
+        let id = UUID()
+        let tag: String
+        let undo: () -> Void
+    }
 
     @State private var editing = false
     @State private var draft = ""
     @State private var armed: String?
-    @State private var removed: (tag: String, index: Int, id: UUID)?
     @State private var refusalHint: String?
     /// Mac dropdown only: which row (`menuRows`) the arrow keys have highlighted.
     /// `-1` = nothing selected, so Return falls through to `commitDraft()`.
@@ -131,9 +149,6 @@ struct TagEditorRow: View {
             }
         }
         .onAppear { if seedAdding { editing = true; draft = seedDraft } }
-        // Undo — a FLOATING toast (D139 mock: "every removal offers Undo for 4 s"),
-        // not an inline row that permanently reflows the layout underneath it.
-        .overlay(alignment: .bottom) { undoToastView }
     }
 
     /// The Mac's keyboard-navigable suggestion menu (D139 signed mock
@@ -155,6 +170,14 @@ struct TagEditorRow: View {
                             .font(.system(size: 12, weight: row.isCreate ? .semibold : .regular))
                             .lineLimit(1)
                         Spacer(minLength: 8)
+                        // Library-wide usage count (mock `LIBN`) — how many notes
+                        // already carry this tag, so a near-duplicate ("cnc" vs
+                        // "CNC") reads as the well-used one before you pick it.
+                        if !row.isCreate, let n = libraryCounts[row.tag], n > 0 {
+                            Text("\(n)")
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(style.dimTextColor)
+                        }
                     }
                     .foregroundStyle(row.isCreate ? style.textColor : style.dimTextColor)
                     .padding(.horizontal, 9).padding(.vertical, 5)
@@ -175,36 +198,6 @@ struct TagEditorRow: View {
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(style.fieldBorder, lineWidth: 1))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .accessibilityIdentifier("tag-menu")
-    }
-
-    @ViewBuilder private var undoToastView: some View {
-        if let removed {
-            HStack(spacing: 12) {
-                Text("Removed #\(removed.tag)")
-                    .font(.system(size: 13)).foregroundStyle(Color.white)
-                Button("Undo") { undoRemove() }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(style.textColor, in: .capsule)
-            }
-            .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 6)
-            .background(Color.black.opacity(0.85), in: .capsule)
-            .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
-            // The overlay is proposed the ROW's current width, which can be narrower
-            // than the tag row was a moment ago (a chip just left) — `.fixedSize()`
-            // keeps the pill at its own ideal width instead of being squeezed and
-            // truncated ("Remov…" / "U…", caught in the Q36 screenshot pass).
-            .fixedSize()
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-            .accessibilityIdentifier("tag-undo-toast")
-            .task(id: removed.id) {
-                try? await Task.sleep(for: .seconds(4))
-                if self.removed?.id == removed.id {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { self.removed = nil }
-                }
-            }
-        }
     }
 
     @ViewBuilder private func chip(_ tag: String) -> some View {
@@ -308,28 +301,56 @@ struct TagEditorRow: View {
             tags.append(contentsOf: result.toAdd)
             onChanged()
         }
-        removed = nil
+        // Adding a tag dismisses any live removal toast — a stale Undo shouldn't
+        // outlive a change that already moved past it.
+        onToast(nil)
     }
 
     private func removeTag(_ tag: String) {
         guard let i = tags.firstIndex(of: tag) else { return }
         tags.remove(at: i)
         armed = nil
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-            removed = (tag, i, UUID())
-        }
         onChanged()
-        // Auto-dismiss lives on the toast's own `.task(id:)` (undoToastView) — a single
-        // owner, so a second removal of the same tag within the 4 s window gets its OWN
-        // id and can't be clobbered by the first removal's timer.
+        // The Undo closure closes over this row's OWN `tags` binding (stable
+        // regardless of how many times this View struct is re-created before the
+        // caller invokes it — the binding always resolves to the live source of
+        // truth), so the caller only has to display the toast, not know the index.
+        let binding = $tags
+        let onChangedCopy = onChanged
+        onToast(TagToast(tag: tag, undo: {
+            let idx = min(i, binding.wrappedValue.count)
+            binding.wrappedValue.insert(tag, at: idx)
+            onChangedCopy()
+        }))
     }
+}
 
-    private func undoRemove() {
-        guard let removed else { return }
-        let idx = min(removed.index, tags.count)
-        tags.insert(removed.tag, at: idx)
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { self.removed = nil }
-        onChanged()
+/// The tag-removal Undo pill (D139 signed mock `tag-ui-revamp.html`), HOISTED to
+/// the note screen (Q41 — see `TagEditorRow.onToast`'s doc for why). The caller
+/// renders this via `.overlay(alignment: .bottom)` on the whole note screen/column
+/// (never on the tag row itself), padded to clear the player/keyboard.
+struct TagUndoToastView: View {
+    let tag: String
+    let style: TagRowStyle
+    let onUndo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("Removed #\(tag)")
+                .font(.system(size: 13)).foregroundStyle(Color.white)
+            Button("Undo", action: onUndo)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(style.textColor, in: .capsule)
+        }
+        .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 6)
+        .background(Color.black.opacity(0.85), in: .capsule)
+        .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+        // Proposed the screen's full width — `.fixedSize()` keeps the pill at its
+        // own ideal width instead of stretching/squeezing to fill it.
+        .fixedSize()
+        .accessibilityIdentifier("tag-undo-toast")
     }
 }
 
