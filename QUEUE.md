@@ -143,7 +143,7 @@ node: AuditFix2
 do: Install the Dev build on the iPhone 13. Take 1: record, take a phone call mid-take, hang up. Take 2: record, force-quit mid-take. Relaunch after each; pull `Documents/devlog.txt`.
 check: Both notes are present after relaunch with all audio up to the event, and Tuur says so.
 
-### Q18 [auto] (doing) a corrupt local file is never loaded as empty
+### Q18 [auto] (done) a corrupt local file is never loaded as empty
 spec: C50 C265 C218
 needs: -
 gate+: yes
@@ -308,3 +308,4 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 20:49 Q30 -> done — hand-merged (D141/D142 protected edits only), gate green @4e02061b
 - 2026-09-24 20:59 Q13 -> doing — worker out
 - 2026-09-24 20:59 Q18 -> doing — worker out
+- 2026-09-24 21:15 Q18 -> done — gate pass @3dc27cbc
