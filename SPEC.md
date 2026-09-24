@@ -1673,13 +1673,17 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      C86); the phone's `VoiceEnrollView` and the Mac placeholder go away. — plan/sources.md #7, #12
 118. **D118 Phone word-select "add as name".** ✅ DECIDED 2026-09-23: yes, like the Mac. —
      plan/sources.md #9
-119. **D119 Storage stats + "Clear synced memos".** Build Settings extras (storage stats,
-     "Clear synced memos", a persisted last-sync time) on whichever app still lacks them, or
-     drop the wish? Default: parked. — plan/sources.md #11
-120. **D120 Per-Person "treat as distinctive" override.** Build Q7's stoplist override, or
-     park it under a named roadmap idea? Default: parked idea. — plan/sources.md #13
-121. **D121 Vault-completeness indicator.** Surface a coarse "is my vault a full mirror of my
-     rated notes" signal, or leave it unanswered? Default: yes, coarse. — plan/sources.md #16
+119. **D119 Storage stats, "clear synced memos", last-sync line.** ✅ DECIDED 2026-09-24: dropped.
+     "I don't understand the purpose"; a reset button hides a sync bug instead of fixing it, and
+     the sync pill (fixed under BUGS §2 "Waiting pill reads Bonjour state") already says whether
+     sync is alive. — plan/sources.md #11
+120. **D120 Per-person "treat as distinctive" override.** ✅ DECIDED 2026-09-24: parked. —
+     plan/sources.md #13
+121. **D121 Vault completeness.** ✅ DECIDED 2026-09-24 (default applied after his question): one
+     coarse line, "N of N rated notes exported, last 2 min ago", red when short. It counts only
+     notes that still exist in Skrift: deleting a rated note in Skrift, which he may do once
+     Obsidian is his reader, leaves the vault file in place (D103) and drops the note from the
+     count, never a "missing". — plan/sources.md #16
 122. **D122 Mac reminders.** ✅ DECIDED 2026-09-23: yes, the Mac fires the synced `remindAt`
      alarm with the same `UserNotifications` API as the phone. — plan/sources.md #19
 123. **D123 Bookmark on an un-transcribed book.** ✅ DECIDED 2026-09-23: allowed, time-only. —
@@ -1689,223 +1693,27 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      at `:491-499`); the old commit wish is done. Nothing to build. — plan/sources.md #22
 125. **D125 Cmd+F on the Mac.** ✅ DECIDED 2026-09-23: yes, find in the open note. —
      plan/sources.md #23
-126. **D126 Board A #3b PDF follow-ups.** Give each follow-up (the mock's first-page inline
-     PDF render on Mac, the `PDFTextExtract` Mac-wire fallback, a vault copy of the capture
-     document on export) its own backlog line and device round, or drop them? Default: queue
-     them. — plan/sources.md #49
-127. **D127 Per-book "N notes" surface.** Build a per-book note count with a note→book
-     jump-back, or skip it? Default: yes. — plan/sources.md #54
-128. **D128 Books empty-state CTA.** Give the Books empty state a real call-to-action button,
-     tied to the Books-tab reframe (D90), or leave it bare? Default: yes, with the Books-tab
-     reframe D90. — plan/sources.md #56
-129. **D129 Phone Connections failure-state parity.** Port the Mac's Connections
-     query-failure empty state to the phone, or leave the phone silent on failure? Default:
-     yes, parity. — plan/sources.md #63
-130. **D130 Paragrapher in reading mode.** Wire the audiobook reading-mode display into
-     Paragrapher's grouping, or keep reading mode's own grouping? Default: excluded. —
+126. **D126 The three PDF leftovers.** ✅ DECIDED 2026-09-24: "all those need to be fixed":
+     inline first-page render on the Mac, the Mac text-extract fallback for PDFs with no text
+     layer, and the PDF copied into the vault on export; rule = match the best-working device.
+     Where an imported PDF lives (his question): a PDF shared INTO a note stays in that note as a
+     capture item; a PDF imported as something to read goes to the reframed tab as a source (D90,
+     "text he reads"), and captures from it become notes that link back to it. Builder default,
+     say if wrong. — plan/sources.md #49
+127. **D127 Per-book "N notes".** ✅ DECIDED 2026-09-24: yes, with the note→book jump-back. —
+     plan/sources.md #54
+128. **D128 Empty-tab call to action.** ✅ DECIDED 2026-09-24: yes, with the tab reframe (D90):
+     "add your first book, podcast, article or PDF". — plan/sources.md #56
+129. **D129 Phone Connections failure state.** ✅ DECIDED 2026-09-24: yes, the phone shows the
+     Mac's message when the index fails. — plan/sources.md #63
+130. **D130 Paragraphs in reading mode.** ✅ DECIDED 2026-09-24: reading mode keeps its own
+     sentence grouping, "especially after an ePub is merged"; Paragrapher stays out of it. —
      plan/sources.md #65
-131. **D131 Captions backgrounded + memory-warning unload.** Do live captions keep running
-     while the app is backgrounded, and does a memory-warning `unload()` interrupt
-     mid-recording? Default: captions stop in background; unload never fires mid-recording. —
+131. **D131 Two recording safety rules.** ✅ DECIDED 2026-09-24 (first half; second re-asked):
+     live captions stop while the app is in the background, the recording itself continues.
+     Second half owed: a low-memory warning never unloads the transcriber mid-recording. —
      plan/sources.md #66
-132. **D132 Full-exportability narrowing.** C197's full-exportability doctrine is narrowed by
-     C61 to processed notes only. Confirm the narrowing. Default: confirmed. — SPEC.md C197
-
-133. **D133 Photo viewer.** The old wish for a photo filmstrip with offset labels and a
-    full-screen viewer: do inline photo blocks in the editor close it? Default: yes, closed by
-    inline embeds; a full-screen viewer is a tap on a block, nothing more. — sources.md #10
-
-Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
-modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
-commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
-Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-era notes,
-per-book quotes page (i16), ePub images in the reader, per-book language, cross-chapter
-quotes, player polish P9b, unlinked-mention mining (i21), names → vocab auto-boost,
-place-triggered resurfacing, query expansion / themes (i18), people pages (P7), Mac Names
-parity (i6), scan-into-this-note, lasso multi-select, the wall-card design round, Mac
-in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI (owed after v2). Added from the source ledger 2026-09-23 (plan/sources.md rows): sentiment as a retrieval facet (#85), cluster labels (#86), a running decision log (#87), action/todo extraction (#88), LLM confirm step for open loops (#89), closed-set tag suggestion (#90), a contradiction/evolution detector (#91), per-turn conversation summary (#92), person digest (#93), memory-aid prompts on the record screen (#75), cellular "ready to sync · N MB" tap-to-pull (#84), per-file align resume + BGProcessingTask align-on-lock + AlignmentCore progress % + the 30 s gap-bridge tune + per-file coverage in the sidecar (#70–#74), a Mac mirror of whole-book text-capture transcription (#99), a direct Bookmarks tab (#100), one Library import affordance instead of two (#97).
-
----
-
-## Not doing
-
-- No rewrite of views, the CloudKit schema or the audio/hardware paths in v2; no real
-  notes in the corpus; v1 is never the judge.
-- No Python, Electron, React Native, Bonjour; CloudKit is the only transport; no
-  iCloud-Drive file sync.
-- No cloud AI; no AI or agent reads his vault; no analytics; no subscription, no IAP.
-- No third app; the iPad is the iPhone target; the Mac stays a separate UI over shared code.
-- No LLM in naming, tagging or importance; no NER; no auto "new person?"; no
-  per-occurrence name resolver; no destination suggestion engine; never two destinations.
-- No similarity slider; no stale Connections sidecar; no semantic linking while typing.
-- No vision pipeline; no chat/ask; no export preview; no LLM narration of "how my
-  thinking evolved" yet.
-- No audio mark-in/out capture; no audio trim; no Review screen after recording; no
-  Re-transcribe on the phone; no phone-side export; nothing auto-publishes on iOS.
-- No vCard → Names, no `.ics` meeting scaffold; Apple Books / Kindle quote shares parked.
-- No video export to the vault; no bubble chrome on shared input; no 4-bit iPad model; no `Skrift/`
-  prefix forced BEYOND `<pick>/Skrift` and the three fixed media subfolders (D11, C53, C192);
-  no Flag verb.
-
-## Decisions (dated, his words where recorded — the full list is `plan/extraction/decisions.md` §A)
-
-- 2026-09-18 Rewrite the core as v2, one subsystem at a time, spec-first, judged by output
-  diffs — "months of AI patches accreted weird bugs"; "will you copy over the bugs?" → v1
-  is the change detector, never the judge.
-- 2026-09-18 The corpus is synthetic — "the app is filled with my thoughts already… make a
-  testing vault".
-- 2026-09-18 Whole project in one sitting — "I don't like the start stop start stop".
-- 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
-  wanna write something down I reach for Apple Notes… either record or just start a new
-  note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
-- 2026-09-22 Third run, capture probe + twelve data-loss sweeps on Sonnet (`plan/scenarios-capture.md`,
-  `plan/data-loss.md`): R70–R89, C261–C274, D97–D99, BUGS §1 D5–D19. Three repeating shapes:
-  two writers on one field (append vs first transcription, editor commit vs Mac polish), a corrupt
-  cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
-  with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
-  note is readable with no Face ID (R88).
-- 2026-09-23 Decision round 3 (D110, D115, D118, D122–D125): Mac models page yes; the editor gets
-  Apple Notes' formatting bar + Aa menu over dim marks, "award-winning good and elegant"; phone
-  add-as-name yes; Mac reminders yes; time-only bookmarks allowed; the pause button already
-  exists (closed); Cmd+F yes. D119–D121, D126 re-asked with an explanation.
-- 2026-09-23 Decision round 2 (D109–D117): the timeline is already the Connections panel by date
-  (D105); Send feedback goes to HIS SERVER on both apps, master24's review-items pattern (D111);
-  photo drag works like Apple Notes (D112); shared source taxonomy, Mac filter/sort parity, colour
-  dedup all yes; NO manual voice enrollment anywhere, assigning a speaker enrolls (D117). D110
-  (Mac models screen) and D115 (markdown formatting) re-asked with an explanation.
-- 2026-09-23 Decision round 1 (D100–D108): Personal / Projects are the export names; nicknames stay
-  as aliases; trash never deletes from Obsidian; the daily-spoken digest folds into the monthly one
-  (monthly, vault-only, silence when quiet); the main-column polish is yes on all three devices;
-  the Mac Names screen goes mock-first. D102's portfolio questions: `_inspiration` IS the folder,
-  the site accepts video, he takes many videos and some will come through Skrift.
-- 2026-09-23 D90 decided: every media group is in v1 of the reframed tab, "all of it"; it must
-  "look really good, almost like a news app", sortable by type. Mock first.
-- 2026-09-23 Podcasts join the reframed Books tab (D90): RSS-feed ingest only, first fixture NRC Het
-  Uur 2026-06-26 (found on the public feed, MP3 enclosure). Media groups for the tab listed under
-  D90, his pick owed. The 31 ledger rows the fold left unplaced are landed: D133, C297–C298, two
-  BUGS rows, the rest named in Parked ideas or the verify/tooling lists (plan/sources.md).
-- 2026-09-23 Source ledger (C276) folded: 249 raw OPEN items across 19 slices, 121 after
-  de-duplication → C283–C296, D101–D132, 6 BUGS rows, 8 ledger corrections, 19 device checks.
-  Biggest: C181 still required the caption Tuur killed in July; the roadmap still showed
-  export destinations in progress; CLAUDE.md called two built features unbuilt.
-- 2026-09-23 Cap corrected to 120 ("if nobody cares"). The merge notice on same-name people is
-  required, not optional ("it should not be silent"). The August audit plan's main-thread lag
-  items were cited by the extraction but never taken up: a source ledger with a verdict per
-  item is now the rule (C276, `plan/sources.md`), and /2-plan waits for it. Performance sweep
-  running.
-- 2026-09-23 Performance sweep on Sonnet (`plan/perf-sweep.md`, static): 16 of the August audit plan's
-  17 items still in the code (one fixed, eb8de896); 11 candidates; R90–R94, C277–C282. The Mac editor
-  rebuilds and restyles the WHOLE document and writes the model on EVERY keystroke with no debounce
-  (`BodyTextView.swift:232-239`), the phone debounces 1 s; "slow and clunky" has a mechanism now.
-  A measurement on the iPhone 13 precedes any fix (C282).
-- 2026-09-23 Tuur's answers to the third wave: the archive export KEEPS `location:` (C137); the
-  filename cap is 80 (C165); same full name = same person, merge on purpose (D96, R61 withdrawn);
-  spoken "hashtag X" becomes a real tag by rule (C275); the second destination needs a plainer name
-  than "archive" (D100, default Personal / Projects).
-- 2026-09-22 Third run, names probe on Sonnet (`plan/scenarios-names.md`, 25 scenarios: 8
-  clean, 11 broken): R61–R69, C254–C260, D96. Two same-name people silently fuse; a mid-body
-  quote links names against the D21 verdict; `#tag` splits into `#[[Name]]`; the names file is
-  still a non-atomic write in the native port (D1 re-confirmed).
-- 2026-09-22 Multiplatform research done (`plan/research/multiplatform-swiftui.md`): keep two
-  apps, grow `Shared/UI` on the note-card pattern; no Catalyst, no one-target template, no SPM
-  package yet; the Mac editor stays an AppKit leaf. C240 amended.
-- 2026-09-22 Second run, four Sonnet hunters (adverse conditions, the archive as consumer +
-  the reviewer's day, test coverage, the outer bug-shape sweep): R44–R60, D93–D95, C252–C253.
-  The archive's OWN parser garbles Skrift's `people:`; Redo clobbers hand edits; a fast clock
-  gets its polish refused forever; the sweep can trash the note open on the Mac.
-- 2026-09-22 First run of the catching method (parity tables `plan/parity.md`, bug-shape sweep
-  `plan/bug-shapes.md`, both on Sonnet): 12 one-way data cells, 9 verb gaps, 9 new required
-  differences R35–R43 — the timings gap is the Mac's whole write-back (no asset writer), name
-  picks are one-way in three directions, the model repo can float again, a failed sweep is
-  silent, a corrupt bookmark blob wipes bookmarks.
-- 2026-09-22 "How do we make sure you catch these things" (after the Mac-timings gap was
-  explained away as expected): parity tables from code, the bug-shape sweep, round trips as
-  tests, no uncited "expected", a scenario probe per swap — C247–C251.
-- 2026-09-22 Sitting closed: a video selected with voice notes joins the same note; the phone
-  drops its people chip row and links names in the text like the Mac. Every D1–D89 has a
-  verdict or a marked builder default; D90 (the Books tab) is open by design, mock first.
-- 2026-09-22 Sitting round 9: export stays a button; audio-only .mp4 opens as audio; five Dutch
-  rambles owed by him; UI test suite retired; privacy boundary = cloud vs local ("the future
-  assistant would have wide access because it will be local").
-- 2026-09-22 Sitting round 8: the 29 internal engineering defaults (D53–D89 minus the eight
-  user-visible ones) taken as builder defaults, marked, vetoable; voice enrolment = 2 s. New:
-  a playing book never stops in the background (device test owed); battery measured.
-- 2026-09-22 Sitting round 7: adding a person re-links all notes automatically; failed link
-  fetches retry; email shares; long notes copy-edited in paragraph blocks; per-note recognition
-  mode; stuck transcriptions taken over; sync health shown; "Fix quote"; reminders clear on
-  first acknowledgement; the two network calls stated openly.
-- 2026-09-22 Sitting round 6 (partial): opens into the list; WhatsApp chooser stays; Podcasts
-  node demoted, to be built; old state docs to archive/; same file twice = one note. The Books
-  tab "feels bolted on" (Hendri) — reframe as the things he captures from, mock first (D90).
-- 2026-09-22 Sitting round 5: archive files named by ANY title (generated too), timestamp only
-  without one; name picks honoured on every device; no links inside quotes; a text file is
-  the body; case-variant tags fold, and the tag UI gets a revamp; offline edit conflicts are
-  SHOWN and chosen, never silent; shares stay unrated; a recording is never lost ("never ever
-  ever"); book-sharing branch merges.
-- 2026-09-22 Sitting round 4: archive files named by his title or a timestamp, never a model
-  title; the refine pass (his own forced read-through) dropped — three importance balls, no
-  fourth; YouTube = card only, no scraping ("broken features suck"); Instagram card + caption;
-  a text URL is a link; GIFs kept as GIFs; Apple Notes dated by creation date or marked
-  unknown; ALL THREE APPS IMPORT THE SAME THINGS through one shared layer, plus a twin audit
-  and shared UI where possible.
-- 2026-09-22 Sitting round 3: vault folder model as coded; `duration` + created date added to
-  frontmatter, no coordinates; `date:` = local day everywhere; trash leaves the vault file;
-  re-filing removes the old archive file when ours; renames happen in Obsidian. "I could
-  actually make a second Obsidian vault for my projects" — yes: point Obsidian at the
-  portfolio folder; it is Obsidian-openable by design, nothing to build.
-- 2026-09-22 Sitting round 2: prompt override migrated; a locked note keeps processing ("it's
-  just that no one should see it"); Skrift's copy-edit IS the archive's "cleaned" ("removing
-  fillers and shit is good"); `_inbox/Skrift/` stands; no ideas back into Skrift in v2; the
-  movie syncs for archive notes.
-- 2026-09-22 Sitting round 1 (D1–D8): all defaults, except the paragraph pause is 2.0 s on
-  both devices and typed text is never auto-paragraphed ("no speech data, no 2s rule").
-- 2026-09-21 Quick note builds early, mock first; the editor rebuilds after the body v2 —
-  "the note writing itself should be better. it's quite slow and clunky atm". Confirmed.
-- 2026-09-21 Sender name on a messenger share: "can just be filled in on the share screen or
-  later in the note itself" — a field, not a fetch.
-- 2026-09-21 The archive contract is part of this spec: "Skrift and that one are growing
-  towards each other here, so there is a tricky grey area" — the grey area is written down
-  as C129–C139 and D38–D41, not guessed.
-- 2026-09-21 Dev only during the rewrite; v2 beside v1; nothing lost (branch, tag before
-  each swap, v1 deleted in its own commit).
-- 2026-08-27 The archive keeps `[[names]]` — "credit where credit is due"; don't fix back.
-- 2026-08-26 The destination is a privacy boundary, not a filing shelf; one of four; a
-  stored field, never a tag; no suggestion engine — "I know what I'm recording".
-- 2026-08-26 A pass that ran with nothing to say is still processed (`processedAt`).
-- 2026-08-20 A waiting thing is never turned into a different thing (audio not synced ≠
-  text note); a fresh row adopts this Mac's own enhancement.
-- 2026-08-19 The shrink guard keeps the unedited body — "a raw note is honest, a bitten
-  one is silent data loss".
-- 2026-08-12 One model on every device, revision pinned — identical polish everywhere.
-- 2026-08-11 The phone does not export (only processing devices do); 2026-08-18 the picked
-  folder is the consent (Settings toggle + "Export now" deleted, b151); nothing on iOS
-  auto-publishes.
-- 2026-07-28 Transcription is capture, processing is gated by the rating; the Mac copies
-  the phone when unsure.
-- 2026-07-26 The rating is CONSENT — "until judged, Skrift spends nothing on a note and
-  shows it nowhere but back to you"; an unrated note IS a normal note; rating is a one-way
-  door on synced notes (decided as-is).
-- 2026-07-26 One vault-write engine: the picked folder is the destination; the file stamp
-  is identity; never write over what isn't provably ours; moved notes are never respawned.
-- 2026-07-23 No note dies unseen: the final doors move only at an app-open.
-- 2026-07-22 ONE clock: touch restarts 30 days; "Fading" is the word; rating IS the flag.
-- 2026-07-21 Both devices are collectors; Mac-only files dissolve into synced memos.
-- 2026-07-16 Shared code first; mock "as-is" elements drawn from source; markdown marks
-  dim-visible, never vanishing.
-- 2026-07-12 Shared inputs never get bubble chrome — "again — I keep telling you".
-- 2026-07-10 Share-sheet dictation retired (iOS blocks it); every share jumps to its note.
-- 2026-07-07 Photos are blocks in the editor; tasks, memo-links, accessory bar locked.
-- 2026-06-16 Naming: opt-out, risk-tiered, known-roster only, no LLM — "never misses
-  KNOWN people".
-- 2026-06-15 Standalone: $0.69, no IAP, CloudKit sync, one-way publish, on-device polish
-  as a gated spike; no invented polish modes.
-- 2026-06-13 Text-first quote capture is the only capture flow; whole-book pre-transcribe.
-- 2026-06-11 Audiobook authors never enter the names DB; `[[Author]]` at export only.
-- 2026-06-04 Skrift feeds Obsidian, it does not replace it; north star "see how my
-  thinking evolved".
-
-## Gate — measured
-
-- 2026-09-21 `./gate.sh` → GREEN: desktop unit suite 769 tests, 0 failures, 3.2 s of test
-  time (build excluded). Phone corpus test green on the iPhone 17 sim; full Mac MLX build
-  green (after the mlx-swift-lm pin bump for Xcode 27.0).
+132. **D132 Export scope.** ✅ DECIDED 2026-09-24: confirmed, only processed notes go to the
+     vault (C61 narrows C197). — SPEC.md C197
+133. **D133 Photo viewer.** ✅ DECIDED 2026-09-24: closed by the inline photo blocks; a tap opens
+    the photo full screen, nothing more. — sources.md #10
