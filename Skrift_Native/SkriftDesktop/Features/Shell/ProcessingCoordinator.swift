@@ -90,7 +90,10 @@ final class ProcessingCoordinator {
     }
 
     // ── Process (transcribe → enhance → tag → name-link → compile) ──
-    func process(fileIDs: [String], context: ModelContext) async {
+    /// `retranscribeIDs` — files in `fileIDs` that must force a fresh ASR pass even
+    /// though their `transcribeStatus` is already `.done` (the ⋯ menu's "Re-transcribe",
+    /// C51/R9). Normal auto-run processing passes none.
+    func process(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = []) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
 
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
@@ -177,13 +180,18 @@ final class ProcessingCoordinator {
             let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
             do {
                 try await runner.run(pf, audioURL: audioURL,
-                                     imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [])
+                                     imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
+                                     retranscribe: retranscribeIDs.contains(pf.id))
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
                 pf.error = nil
                 pf.lastActivityAt = Date()
             } catch {
                 pf.error = String(describing: error)
-                if (pf.transcript ?? "").isEmpty { pf.transcribeStatus = .error }
+                // A missing audio file is always a TRANSCRIBE error (C51/R9), even when an
+                // older transcript is still sitting on the row (a re-transcribe whose audio
+                // vanished mid-race) — the emptiness heuristic below is for every other failure.
+                if error is BatchRunnerError { pf.transcribeStatus = .error }
+                else if (pf.transcript ?? "").isEmpty { pf.transcribeStatus = .error }
                 else { pf.enhanceStatus = .error }
                 lastError = "Processing failed: \(error.localizedDescription)"
             }
@@ -365,24 +373,26 @@ final class ProcessingCoordinator {
     /// when a fresh run failed midway.)
     func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
-        pf.transcript = nil
-        pf.wordTimings = []
-        pf.diarizationSegments = []
-        if !pf.path.isEmpty {
-            DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
+        // Missing audio file is an ERROR on the row, not a silent clear (C51/R9) — checked
+        // before touching anything, so a re-transcribe over a deleted file leaves the note
+        // (transcript + every derivative) exactly as it was.
+        guard !pf.path.isEmpty, FileManager.default.fileExists(atPath: pf.path) else {
+            pf.error = "Re-transcribe failed: audio file not found."
+            pf.transcribeStatus = .error
+            try? context.save()
+            lastError = pf.error
+            return
         }
-        pf.sanitised = nil
-        pf.ambiguousNames = nil
-        pf.enhancedCopyedit = nil
-        pf.enhancedSummary = nil
-        pf.titleSuggested = nil
-        pf.compiledText = nil
-        pf.transcribeStatus = .pending
+        // Nothing is cleared here. `BatchRunner.run(retranscribe: true)` only drops the OLD
+        // transcript's derivatives (word timings, diarization, sanitised body, copy-edit,
+        // summary, suggested title, compiled draft) once the fresh ASR pass actually
+        // succeeds — a run that fails partway must leave the note untouched (C51/R9).
+        // Just re-open the gates so `needsProcessing` picks this note back up.
         pf.sanitiseStatus = .pending
         pf.enhanceStatus = .pending
         pf.error = nil
         try? context.save()
-        await process(fileIDs: [pf.id], context: context)
+        await process(fileIDs: [pf.id], context: context, retranscribeIDs: [pf.id])
     }
 
     /// "Flatten to monologue": UNDO a wrong speaker split (Sortformer over-split a

@@ -1,6 +1,17 @@
 import Foundation
 import os
 
+/// Thrown by `BatchRunner.run` when the pipeline can't proceed for a reason the row
+/// should surface as an error rather than silently mark done (C51/R9).
+enum BatchRunnerError: LocalizedError {
+    case missingAudioFile
+    var errorDescription: String? {
+        switch self {
+        case .missingAudioFile: return "Audio file not found."
+        }
+    }
+}
+
 /// The unattended auto-run for one file: transcribe → copy-edit / title / summary
 /// (all on the RAW transcript) → deterministic tag candidates → name-link (on the
 /// copy-edit, the LAST deterministic step) → compile the review draft → Ready for
@@ -28,8 +39,12 @@ struct BatchRunner {
     /// instant you stop recording; polish / name-linking / export are PROCESSING, and that is
     /// what a note's rating gates. A recording is unrated, so it must get its words without
     /// the Mac spending anything else on it.
+    /// `retranscribe` — force a fresh ASR pass even though `transcribeStatus == .done`
+    /// (the ⋯ menu's "Re-transcribe"). C51/R9: nothing of the OLD transcript is cleared
+    /// until the NEW one actually exists — a run that fails (or finds the audio file
+    /// gone) must leave the note exactly as it was, with an error on the row instead.
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = [],
-             stopAfterTranscribe: Bool = false) async throws {
+             stopAfterTranscribe: Bool = false, retranscribe: Bool = false) async throws {
         // Captures (C3) never transcribe or diarize — their annotation is already text.
         // Enhancement-lite runs on the annotation: title + tags + summary, NO copy-edit
         // (the annotation is intentional prose, not speech artifacts). Sanitise runs as normal.
@@ -38,31 +53,56 @@ struct BatchRunner {
             return
         }
 
-        // 1. Transcribe — skipped when already done (trusted phone transcript / note).
-        // `didTranscribe` = the Mac ran its OWN ASR this run (so the word-timings are the
-        // Mac's). A trusted phone memo skips this → didTranscribe stays false even though
-        // pf.wordTimings may be present (the phone now uploads them for karaoke), which is
-        // exactly what gates the re-diarize below off a phone transcript.
+        // 1. Transcribe — skipped when already done (trusted phone transcript / note),
+        // UNLESS this is an explicit re-transcribe. `didTranscribe` = the Mac ran its OWN
+        // ASR this run (so the word-timings are the Mac's). A trusted phone memo skips
+        // this → didTranscribe stays false even though pf.wordTimings may be present (the
+        // phone now uploads them for karaoke), which is exactly what gates the re-diarize
+        // below off a phone transcript.
         var didTranscribe = false
-        if pf.transcribeStatus != .done {
+        if retranscribe || pf.transcribeStatus != .done {
             pf.transcribeStatus = .processing
-            if let audioURL {
-                let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
-                // Paragraph the stored transcript exactly like the phone does at the same
-                // moment (`MemoSaver.runTranscription` → shared `Paragrapher`): a long pause
-                // after a finished sentence starts a new paragraph, so a Mac-transcribed
-                // note reads like a phone-transcribed one instead of a wall of text.
-                // Token-preserving (punctuation + [[img]] markers intact); karaoke is
-                // newline-aware so word-timing alignment holds.
-                // longFormGap, not the phone default: Mac thinking-aloud pauses at most
-                // sentence ends, so 0.65s shredded real takes into one-line paragraphs
-                // (ROUND 11) — and the live join uses the same constant, so the draft
-                // and the resting note paragraph alike.
-                pf.transcript = Paragrapher.paragraphed(transcript: result.text, words: result.wordTimings,
-                                                        gapThreshold: Paragrapher.longFormGap)
-                pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
-                didTranscribe = true
+            guard let audioURL else {
+                // The audio file is gone — an ERROR on the row, not a silent "done" with
+                // nothing transcribed (R9/R77 required-difference: this used to mark
+                // transcribeStatus .done regardless, so the note came out enhanced-and-empty
+                // with no error at all). The OLD transcript/derivatives are untouched.
+                pf.transcribeStatus = .error
+                throw BatchRunnerError.missingAudioFile
             }
+            let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+            // Paragraph the stored transcript exactly like the phone does at the same
+            // moment (`MemoSaver.runTranscription` → shared `Paragrapher`): a long pause
+            // after a finished sentence starts a new paragraph, so a Mac-transcribed
+            // note reads like a phone-transcribed one instead of a wall of text.
+            // Token-preserving (punctuation + [[img]] markers intact); karaoke is
+            // newline-aware so word-timing alignment holds.
+            // longFormGap, not the phone default: Mac thinking-aloud pauses at most
+            // sentence ends, so 0.65s shredded real takes into one-line paragraphs
+            // (ROUND 11) — and the live join uses the same constant, so the draft
+            // and the resting note paragraph alike.
+            let newTranscript = Paragrapher.paragraphed(transcript: result.text, words: result.wordTimings,
+                                                         gapThreshold: Paragrapher.longFormGap)
+            // The ASR succeeded — the new transcript EXISTS now. Only at this point does a
+            // re-transcribe drop every derivative of the OLD one (C51): word timings,
+            // diarization (+ its sidecar), sanitised body, ambiguous names, copy-edit,
+            // summary, suggested title, compiled draft — so the run below can't mix stale
+            // state with the fresh transcript.
+            if retranscribe {
+                pf.diarizationSegments = []
+                if !pf.path.isEmpty {
+                    DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
+                }
+                pf.sanitised = nil
+                pf.ambiguousNames = nil
+                pf.enhancedCopyedit = nil
+                pf.enhancedSummary = nil
+                pf.titleSuggested = nil
+                pf.compiledText = nil
+            }
+            pf.transcript = newTranscript
+            pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
+            didTranscribe = true
             pf.transcribeStatus = .done
         }
 
