@@ -79,7 +79,9 @@ final class ProcessingCoordinator {
     /// phone" (Tuur). Forwards to the pure `WayOutRules` copy so the MLX-free
     /// `SkriftDesktopTests` target (which doesn't compile this class) can test
     /// the actual logic directly.
-    func needsProcessing(_ pf: PipelineFile) -> Bool { WayOutRules.needsProcessing(pf) }
+    func needsProcessing(_ pf: PipelineFile) -> Bool {
+        WayOutRules.needsProcessing(pf) && !EditConflictHold.isHeld(pf.id)   // D139: two versions → wait for the pick
+    }
 
     /// On launch, recover notes stranded mid-run by a crash/quit (a `.processing`
     /// step with no run actually active) so the queue can pick them up again. A

@@ -262,9 +262,11 @@ final class Memo {
     /// reads; edits stopped being immortality when Parked died). Every caller
     /// is a genuine user investment (audited 2026-07-22), so the coupling is
     /// safe — system writes never call this.
-    func markEdited(_ date: Date = Date()) {
+    /// `stampWords: false` for a touch that changes no words (reminder) — it must never count
+    /// as a words edit for conflict detection (C98: only body, title and tags conflict).
+    func markEdited(_ date: Date = Date(), stampWords: Bool = true) {
         editedAt = date; keptAt = date
-        scheduleEditStamp()
+        if stampWords { scheduleEditStamp() }
     }
 
     /// Stamp the words edit for conflict detection (`EditConflicts.recordEdit`) on the NEXT

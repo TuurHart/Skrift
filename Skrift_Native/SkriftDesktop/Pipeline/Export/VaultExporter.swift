@@ -55,8 +55,10 @@ enum VaultExporter {
     enum ExportError: LocalizedError {
         case noVault
         case lockedNote
+        case twoVersions
         var errorDescription: String? {
             switch self {
+            case .twoVersions: return "This note has two versions. Pick one to export it."
             case .noVault: return "Set your Obsidian vault path in Settings first."
             case .lockedNote: return "This note is locked — locked notes stay inside Skrift (the vault is plain text). Unlock it on any device to export."
             }
@@ -76,6 +78,8 @@ enum VaultExporter {
         // promise the phone's PublishCoordinator makes. (Locking never deletes an
         // already-exported file; the phone's lock flow says so to the user.)
         guard !pf.locked else { throw ExportError.lockedNote }
+        // D139: a note with two versions waits until he picks one.
+        guard !EditConflictHold.isHeld(pf.id) else { throw ExportError.twoVersions }
         // WHERE and HOW both follow the note's destination — `.personal` is the Obsidian
         // vault and today's layout, unchanged; an archive destination is its folder inside
         // the archive root, written flat (`ExportProfile`).

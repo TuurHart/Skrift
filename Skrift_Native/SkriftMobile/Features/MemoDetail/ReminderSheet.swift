@@ -105,7 +105,7 @@ struct ReminderSheet: View {
 
     private func set(_ date: Date) {
         memo.remindAt = date
-        memo.markEdited()
+        memo.markEdited(stampWords: false)   // a reminder is not a words edit (C98)
         onChanged()
         Task {
             let granted = await ReminderScheduler.requestAuthorization()
@@ -117,7 +117,7 @@ struct ReminderSheet: View {
 
     private func clear() {
         memo.remindAt = nil
-        memo.markEdited()
+        memo.markEdited(stampWords: false)   // a reminder is not a words edit (C98)
         onChanged()
         ReminderScheduler.run(NotesRepository.shared)
         dismiss()
