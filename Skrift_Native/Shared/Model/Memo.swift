@@ -278,16 +278,15 @@ final class Memo {
     /// `needs: - credit` the same way the folder does, so an Idea sparked by someone else's work
     /// does not quietly lose the prompt to go and credit them.
     static func splitTagInput(_ raw: String) -> (accepted: [String], reserved: [NoteDestination]) {
-        var accepted: [String] = []
+        // Splitting/refusal is single-sourced in `TagRules` (Q28/C241) — this used to
+        // strip EVERY `#` instead of one (BUGS §4); `TagRules.split` strips just the
+        // leading one and keeps case.
+        let split = TagRules.split(raw)
         var reserved: [NoteDestination] = []
-        for piece in raw.split(whereSeparator: { $0 == "," || $0 == "\n" }) {
-            let word = piece.replacingOccurrences(of: "#", with: "")
-                .trimmingCharacters(in: .whitespaces)
-            guard word.contains(where: { $0.isLetter || $0.isNumber }) else { continue }
+        for word in split.accepted {
             if let d = NoteDestination.reserved(word), !reserved.contains(d) { reserved.append(d) }
-            accepted.append(word)
         }
-        return (accepted, reserved)
+        return (split.accepted, reserved)
     }
 
     /// This note's destination, one of four. Unknown/corrupt raw values read as `.personal`
