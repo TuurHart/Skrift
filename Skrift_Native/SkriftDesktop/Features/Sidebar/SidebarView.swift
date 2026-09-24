@@ -697,18 +697,37 @@ struct SidebarView: View {
         // quiet rows (D135's "display-only balls on rows" applies here too).
         m.balls = memo.locked ? nil : 0
         // The card's stamp already prints the date — hand the quiet line WITHOUT
-        // its leading date or the row reads "07 Aug · 7 Aug · …" (Tuur's first
-        // m2 eyeball catch, 2026-08-19).
+        // its leading date (Tuur's first m2 eyeball catch, 2026-08-19), and WITHOUT
+        // duration (Q35: mocks/one-notes-list.html's "One list" tab — the shared
+        // `oneModel` — puts duration in the chip row for EVERY card, rated or not;
+        // it never lives in the line text).
         // A RATED memo among the quiet rows is a stranded one (`WayOutRules.stranded`) —
         // the ordinary quiet rows are all unrated. It gets the honest waiting line rather
         // than the spine's "processes on next run", which it can't do without a row.
-        var line = NoteConsent.isRated(memo) ? WayOutRules.strandedLine(for: memo)
-                                             : WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
-        if memo.duration > 0 { line = "\(SkriftFormat.clock(memo.duration)) · \(line)" }
-        m.quietLine = line
+        m.quietLine = NoteConsent.isRated(memo) ? WayOutRules.strandedLine(for: memo)
+                                                : WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
         m.selected = selected
         m.locked = memo.locked
-        m.title = WayOutRules.displayTitle(memo)
+        // Snippet + chips (Q35, BUGS "not fixed" note on Q33 — CH.mac's signed diff): a
+        // quiet row gets the SAME body-derived title/snippet split QueueRowView uses for a
+        // rated row, not just a title + line. An explicit phone `title` keeps the full body
+        // as the snippet; an untitled note leaves the card title nil and the body alone
+        // carries the row (never repeats the first line as both title and snippet — the
+        // Q26 fix this mirrors).
+        let hasExplicitTitle = !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
+        let body = (memo.transcript ?? "")
+            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if hasExplicitTitle {
+            m.title = memo.title
+            m.snippet = body.isEmpty ? nil : body
+        } else if !body.isEmpty {
+            m.snippet = body
+        } else {
+            m.title = WayOutRules.displayTitle(memo)   // "Voice note" / "Note" fallback
+        }
+        if memo.duration > 0 { m.chips.append(.init(text: SkriftFormat.clock(memo.duration))) }
         return NoteCardView(model: m, style: .mac)
             .contentShape(Rectangle())
             .onTapGesture { openInPane(memo) }

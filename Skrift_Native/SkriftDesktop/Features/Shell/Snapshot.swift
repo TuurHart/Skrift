@@ -82,8 +82,12 @@ enum Snapshot {
         }
         if let p = path("-snapshot-shell") {
             let w = CGFloat(path("-shellWidth").flatMap { Double($0) } ?? 1180)
-            let sb = CGFloat(path("-sidebarWidth").flatMap { Double($0) } ?? 228)
-            MainActor.assumeIsolated { renderShell(to: p, width: w, sidebar: sb); exit(0) }
+            // RootView's real sidebar column is minWidth 240 / idealWidth 292 (Features/Shell/
+            // RootView.swift:73) — the old 228 default here sat BELOW the app's own floor and
+            // is what clipped the day-header text ("ODAY", "UE 22 SEP") in the Q33 shot; the
+            // app can never actually open that narrow.
+            let sb = CGFloat(path("-sidebarWidth").flatMap { Double($0) } ?? 292)
+            MainActor.assumeIsolated { renderShell(to: p, width: w, sidebar: sb, corpusPath: path("-corpus")); exit(0) }
         }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
@@ -208,16 +212,36 @@ enum Snapshot {
     /// placeholder (its search field, Menus and buttons are AppKit-backed), which
     /// means the Mac's list column has never been eyeball-comparable against the
     /// iPad's. Added 2026-07-25 for exactly that comparison.
-    /// `-snapshot-shell <path>` · add `-shellWidth <n>` for another window width.
-    @MainActor private static func renderShell(to path: String, width: CGFloat, sidebar: CGFloat) {
+    /// `-snapshot-shell <path>` · add `-shellWidth <n>` for another window width ·
+    /// `-corpus <path-to-test-fixtures/corpus>` to seed the quiet (unrated) rows from the
+    /// SYNTHETIC corpus instead of leaving them empty.
+    ///
+    /// **Isolation (Q35 fix):** the plain `fixtureCloudMemos == nil` path opens
+    /// `MemoCloudStore.container`, the LIVE Dev CloudKit store — Q33's shot rendered Tuur's
+    /// real notes. This render now ALWAYS passes `fixtureCloudMemos` (never nil), sourced from
+    /// an in-memory `Memo`/`MemoAsset`/`MemoEnhancement` container seeded by `CorpusSeed` when
+    /// `-corpus` is given, or an empty array otherwise — the real store is never touched.
+    @MainActor private static func renderShell(to path: String, width: CGFloat, sidebar: CGFloat,
+                                                corpusPath: String? = nil) {
         guard let container = try? ModelContainer(
-            for: PipelineFile.self,
+            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
         for f in files { ctx.insert(f) }
         try? ctx.save()
+
+        var quietMemos: [Memo] = []
+        if let corpusPath {
+            let corpusURL = URL(fileURLWithPath: (corpusPath as NSString).expandingTildeInPath, isDirectory: true)
+            let tmpRecordings = FileManager.default.temporaryDirectory
+                .appendingPathComponent("snapshot-shell-corpus-\(UUID().uuidString)")
+            let result = try? CorpusSeed.seed(from: corpusURL, into: ctx, recordingsDirectory: tmpRecordings)
+            print("renderShell corpus seed: \(result.map(String.init(describing:)) ?? "FAILED")")
+            quietMemos = (try? ctx.fetch(FetchDescriptor<Memo>())) ?? []
+        }
+
         let model = AppModel()
         model.activeID = files.first?.id
         if let id = files.first?.id { model.selection = [id] }
@@ -225,7 +249,8 @@ enum Snapshot {
 
         let view = HStack(spacing: 0) {
             SidebarView(model: model, files: files, coordinator: coordinator,
-                        session: fixtureSession(coordinator: coordinator))
+                        session: fixtureSession(coordinator: coordinator),
+                        fixtureCloudMemos: quietMemos)
                 .frame(width: sidebar)
             NoteDisplayView(file: files.first, coordinator: coordinator, onOpenMemo: { _ in })
                 .frame(maxWidth: .infinity)
