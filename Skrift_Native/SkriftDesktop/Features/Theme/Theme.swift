@@ -138,5 +138,6 @@ extension TagRowStyle {
         fieldWidth: 90, armsOnTap: false,
         textColor: Theme.accent, backgroundColor: Theme.accentSoft, dimTextColor: Theme.textSecondary,
         elevColor: Theme.chip, borderColor: Theme.hairline.opacity(0.2), dangerColor: Theme.destructive,
-        fieldBackground: Theme.hairline.opacity(0.06), fieldBorder: Theme.hairline.opacity(0.2))
+        fieldBackground: Theme.hairline.opacity(0.06), fieldBorder: Theme.hairline.opacity(0.2),
+        usesDropdownMenu: true)
 }

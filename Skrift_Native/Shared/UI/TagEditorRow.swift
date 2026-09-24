@@ -22,6 +22,12 @@ struct TagRowStyle {
     var dangerColor: Color
     var fieldBackground: Color
     var fieldBorder: Color
+    /// Mac only (D139 signed mock `tag-ui-revamp.html`): a keyboard-navigable dropdown
+    /// menu under the field (↑↓ select, Tab jumps to the top match, Return accepts the
+    /// selection, a leading "Create #x" row when the typed text is new) instead of the
+    /// phone/iPad's horizontal tap-to-pick strip — the Mac already has arrow keys and a
+    /// pointer, so a browsable list is the native idiom there.
+    var usesDropdownMenu: Bool = false
 }
 
 /// ONE shared tag editor: chips + an inline "+ tag" control that turns into a text
@@ -48,8 +54,11 @@ struct TagEditorRow: View {
     @State private var editing = false
     @State private var draft = ""
     @State private var armed: String?
-    @State private var removed: (tag: String, index: Int)?
+    @State private var removed: (tag: String, index: Int, id: UUID)?
     @State private var refusalHint: String?
+    /// Mac dropdown only: which row (`menuRows`) the arrow keys have highlighted.
+    /// `-1` = nothing selected, so Return falls through to `commitDraft()`.
+    @State private var selectedIndex = -1
     @FocusState private var fieldFocused: Bool
 
     private var typed: String { draft.trimmingCharacters(in: .whitespaces) }
@@ -70,13 +79,37 @@ struct TagEditorRow: View {
         return out
     }
 
+    /// The Mac menu's leading "Create #x" row, D139/mock `createable`: the typed text
+    /// parses to exactly one clean tag (no refusal) that doesn't already exist on this
+    /// note or anywhere in `library` (case-folded) — a second spelling of an existing
+    /// tag offers to PICK it, not create a duplicate.
+    private var creatableTag: String? {
+        let split = TagRules.split(typed)
+        guard split.accepted.count == 1, split.refused.isEmpty else { return nil }
+        let candidate = split.accepted[0]
+        let key = candidate.lowercased()
+        guard !(tags + library).contains(where: { $0.lowercased() == key }) else { return nil }
+        return candidate
+    }
+
+    private struct MenuRow { let tag: String; let isCreate: Bool }
+    /// Mac dropdown rows: the Create row (if any) leads, then the prefix matches.
+    private var menuRows: [MenuRow] {
+        var rows: [MenuRow] = []
+        if let c = creatableTag { rows.append(MenuRow(tag: c, isCreate: true)) }
+        rows += matches.map { MenuRow(tag: $0, isCreate: false) }
+        return rows
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             FlowLayout(spacing: 7, lineSpacing: 7) {
                 ForEach(tags, id: \.self) { chip($0) }
                 addControl
             }
-            if editing, !matches.isEmpty {
+            if editing, style.usesDropdownMenu, !menuRows.isEmpty {
+                macMenu
+            } else if editing, !style.usesDropdownMenu, !matches.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 7) {
                         ForEach(matches, id: \.self) { m in
@@ -93,19 +126,80 @@ struct TagEditorRow: View {
                     }
                 }
             }
-            if let removed {
-                HStack(spacing: 8) {
-                    Text("Removed #\(removed.tag)")
-                        .font(.system(size: 12)).foregroundStyle(style.dimTextColor)
-                    Button("Undo") { undoRemove() }
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(style.textColor)
-                }
-            } else if let refusalHint {
+            if let refusalHint {
                 Text(refusalHint).font(.system(size: 11.5)).foregroundStyle(style.dangerColor)
             }
         }
         .onAppear { if seedAdding { editing = true; draft = seedDraft } }
+        // Undo — a FLOATING toast (D139 mock: "every removal offers Undo for 4 s"),
+        // not an inline row that permanently reflows the layout underneath it.
+        .overlay(alignment: .bottom) { undoToastView }
+    }
+
+    /// The Mac's keyboard-navigable suggestion menu (D139 signed mock
+    /// `tag-ui-revamp.html`): ↑↓ move the highlight, Tab jumps the field to the top
+    /// match, Return accepts the highlighted row, a "Create #x" row leads when the
+    /// typed text is new. Replaces the phone/iPad horizontal tap strip on the Mac,
+    /// which has a keyboard and a pointer instead of a thumb.
+    @ViewBuilder private var macMenu: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(Array(menuRows.enumerated()), id: \.offset) { i, row in
+                Button {
+                    commit([row.tag]); draft = ""; selectedIndex = -1; fieldFocused = true
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: row.isCreate ? "plus" : "number")
+                            .font(.system(size: 10, weight: .semibold))
+                            .frame(width: 12)
+                        Text(row.isCreate ? "Create #\(row.tag)" : "#\(row.tag)")
+                            .font(.system(size: 12, weight: row.isCreate ? .semibold : .regular))
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                    }
+                    .foregroundStyle(row.isCreate ? style.textColor : style.dimTextColor)
+                    .padding(.horizontal, 9).padding(.vertical, 5)
+                    .background(i == selectedIndex ? style.backgroundColor : .clear,
+                                in: .rect(cornerRadius: 6))
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("tag-menu-row-\(row.tag)")
+            }
+            Text("↩ add · , add next · ⇥ top match · esc close")
+                .font(.system(size: 10.5)).foregroundStyle(style.dimTextColor)
+                .padding(.horizontal, 9).padding(.top, 3)
+        }
+        .padding(.vertical, 4)
+        .frame(width: 250, alignment: .leading)
+        .background(style.elevColor, in: .rect(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(style.fieldBorder, lineWidth: 1))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .accessibilityIdentifier("tag-menu")
+    }
+
+    @ViewBuilder private var undoToastView: some View {
+        if let removed {
+            HStack(spacing: 12) {
+                Text("Removed #\(removed.tag)")
+                    .font(.system(size: 13)).foregroundStyle(Color.white)
+                Button("Undo") { undoRemove() }
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(style.textColor, in: .capsule)
+            }
+            .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 6)
+            .background(Color.black.opacity(0.85), in: .capsule)
+            .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityIdentifier("tag-undo-toast")
+            .task(id: removed.id) {
+                try? await Task.sleep(for: .seconds(4))
+                if self.removed?.id == removed.id {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { self.removed = nil }
+                }
+            }
+        }
     }
 
     @ViewBuilder private func chip(_ tag: String) -> some View {
@@ -128,10 +222,12 @@ struct TagEditorRow: View {
                 .background(style.fieldBackground, in: .capsule)
                 .overlay(Capsule().strokeBorder(style.fieldBorder, lineWidth: 1))
                 .focused($fieldFocused)
+                .accessibilityIdentifier("tag-input" + idSuffix)
                 .onSubmit {
                     if typed.isEmpty { editing = false } else { commitDraft(); fieldFocused = true }
                 }
                 .onChange(of: draft) { _, v in
+                    selectedIndex = -1
                     // Comma/Return-in-the-middle commits everything BEFORE the last
                     // separator and keeps typing the rest — you never lose the field
                     // (mock: "Return and comma both add and keep the field open").
@@ -141,6 +237,33 @@ struct TagEditorRow: View {
                     draft = tail
                     commitDraft(text: head)
                     fieldFocused = true
+                }
+                // Mac only (D139 mock): ↑↓ walk the menu, Tab jumps to the top match,
+                // Return accepts a highlighted row, Esc closes. Unhandled keys (.ignored)
+                // fall through to the field's normal typing / `onSubmit`.
+                .onKeyPress(.upArrow) {
+                    guard style.usesDropdownMenu, !menuRows.isEmpty else { return .ignored }
+                    selectedIndex = max(-1, selectedIndex - 1)
+                    return .handled
+                }
+                .onKeyPress(.downArrow) {
+                    guard style.usesDropdownMenu, !menuRows.isEmpty else { return .ignored }
+                    selectedIndex = min(menuRows.count - 1, selectedIndex + 1)
+                    return .handled
+                }
+                .onKeyPress(.tab) {
+                    guard style.usesDropdownMenu, let top = menuRows.first(where: { !$0.isCreate }) else { return .ignored }
+                    draft = top.tag
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    guard style.usesDropdownMenu, selectedIndex >= 0, selectedIndex < menuRows.count else { return .ignored }
+                    commit([menuRows[selectedIndex].tag]); draft = ""; selectedIndex = -1; fieldFocused = true
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    draft = ""; editing = false; selectedIndex = -1
+                    return .handled
                 }
         } else {
             Button {
@@ -187,19 +310,20 @@ struct TagEditorRow: View {
         guard let i = tags.firstIndex(of: tag) else { return }
         tags.remove(at: i)
         armed = nil
-        removed = (tag, i)
-        onChanged()
-        let token = tag
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            if removed?.tag == token { removed = nil }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            removed = (tag, i, UUID())
         }
+        onChanged()
+        // Auto-dismiss lives on the toast's own `.task(id:)` (undoToastView) — a single
+        // owner, so a second removal of the same tag within the 4 s window gets its OWN
+        // id and can't be clobbered by the first removal's timer.
     }
 
     private func undoRemove() {
         guard let removed else { return }
         let idx = min(removed.index, tags.count)
         tags.insert(removed.tag, at: idx)
-        self.removed = nil
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { self.removed = nil }
         onChanged()
     }
 }
