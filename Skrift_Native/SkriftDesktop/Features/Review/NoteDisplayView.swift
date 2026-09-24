@@ -98,7 +98,10 @@ struct NoteDisplayView: View {
             if let file {
                 content(file)
                     .task(id: file.id) { audio.load(path: file.path) }
-                    .onChange(of: file.id, initial: true) { _, _ in namingUndo = nil }
+                    .onChange(of: file.id, initial: true) { _, _ in
+                        namingUndo = nil
+                        file.normaliseBodyOnce()   // C10/D4: old body → v2 once, at first open
+                    }
                     .sheet(item: $editorRequest) { req in
                         PersonEditor(request: req,
                                      onSave: { original, person in savePerson(original, person, for: file) },
