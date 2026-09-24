@@ -1791,3 +1791,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      fire"): Keep both is the default (Return on Mac); the prompt opens on note open and blocks
      editing until picked, "Later" leaves an amber banner + "2 versions" pill; the unkept version
      goes to Recently Deleted as a "replaced" row (14 days), Bring back makes it its own note.
+140. **D140 A photo at a sentence's start goes before it.** ✅ DECIDED 2026-09-24: a picture whose
+     `offsetSeconds` falls within the first 1.0 s of a spoken sentence lands BEFORE that sentence
+     ("if you snap a photo in the first moment of a sentence, it should be put at the start");
+     otherwise after the sentence being spoken (C11 narrowed). Settles pic-at-start, pic-ocr-text,
+     pic-three-spread #3 if they fall in that window; any that don't keep C11.
