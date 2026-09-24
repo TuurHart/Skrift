@@ -35,13 +35,13 @@ node: i23
 do: The importance control as three balls (Passing 0.3 / Useful 0.6 / Important 1.0), tap sets, re-tap clears to Not rated, no fourth button, "Importance" label; shown on the Mac note column, the phone note and the iPad note, one size smaller than today (D107). Draw the current control from source beside it.
 check: Tuur clicked through it and said go.
 
-### Q3 [tuur] (tuur) mockup: tag UI revamp
+### Q3 [tuur] (done) mockup: tag UI revamp
 spec: C241 C93
 needs: -
 do: A redesigned tag editor for phone and Mac that keeps the C93 rules (comma/newline split, `#` stripped, case kept, case-variants fold to the first spelling, destination words allowed). Start from today's tag chips drawn from source, show add / remove / suggest / typeahead.
 check: Tuur clicked through it and said go.
 
-### Q4 [tuur] (tuur) mockup: edit-conflict prompt
+### Q4 [tuur] (done) mockup: edit-conflict prompt
 spec: C242 C98
 needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
@@ -217,6 +217,20 @@ node: AuditFix2
 do: Device evidence 2026-09-24 (iPhone 13, Dev build 171, devlog 15:34:49): the Q16 launch sweep logged `rec recover-failed — no readable audio — cleaned 1 file(s)` for 5 legacy pre-segment `rec_tmp_*` orphans and DELETED them. An m4a with no moov atom is unreadable to AVFoundation but often rescuable (`tools/rescue-lost-recordings.py`), so on prod's first launch this would destroy his real orphaned recordings. Change the failed-recovery branch: MOVE every unreadable orphan (rec_tmp_*, rec_seg_*, rec_ckpt_*) into `Documents/QuarantinedRecordings/` with a sidecar JSON (take id, sizes, first-seen date), never delete it; log `rec quarantined`; a later explicit user action or the rescue tool is the only way out. C288's cleanup now means "out of the recording dir", not "deleted". Test in a NEW `RecoveryQuarantineTests` (phone target): a truncated m4a is quarantined byte-identical, nothing is removed.
 check: `plan/mtest.sh RecoveryQuarantineTests && ! grep -rnE "removeItem" Skrift_Native/SkriftMobile/Features/Recording/RecordingRecovery.swift`
 
+### Q28 [auto] (todo) build the tag editor on phone, iPad and Mac
+spec: C241 C93 C240
+needs: Q26
+gate+: yes
+do: Build the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139 picks: inline field in the tag row, no sheet; tap-twice remove + 4 s Undo, Mac ✕ on hover; own row under the title, 14 pt / 30 pt) as ONE shared view in `Shared/UI/` with a per-app style (C240). Tag rules single-sourced in Shared: comma/newline split, `#` stripped ONCE, case kept on first use, and a new tag whose case-folded form exists ANYWHERE in the library reuses that spelling (D139). Fix the three BUGS §4 tag leads on the way (Mac `NoteProperties.swift:460` lowercases on pick; no case fold; `Memo.splitTagInput` strips every `#`). Test in a new `TagRulesTests` (desktop target).
+check: `grep -rqE "class TagRulesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q29 [auto] (todo) build edit conflicts: detect, prompt, keep both
+spec: C98 C242
+needs: Q26
+gate+: yes
+do: Build the signed `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` (D139): a same-note edit on two devices that meet after being apart becomes a conflict record, never a silent overwrite (C98) — only body, title and tags conflict; rating, lock and reminder stay newest-wins; new notes never conflict. The note shows the "2 versions" pill in the list and the prompt on open (Keep both = default/Return; Keep this device / Keep the other); editing blocked until picked, "Later" leaves the amber banner; the unkept version goes to Recently Deleted as a "replaced" row (14 days); the Mac holds processing/export until picked. Test in a new `EditConflictTests` (desktop target): two in-memory stores with diverging edits → a conflict record, no loss.
+check: `grep -rqE "class EditConflictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -275,3 +289,7 @@ check: `plan/mtest.sh RecoveryQuarantineTests && ! grep -rnE "removeItem" Skrift
 - 2026-09-24 15:51 Q27 -> todo — paused at Mac shutdown; 6fb419de on wt/Q27 in /Users/tiurihartog/Hackerman/Skrift/.claude/worktrees/agent-a65afc383d479ab53 — two holes still open: success path deletes unmerged unreadable take files, quarantine deletes an existing copy; resume there with that fix
 - 2026-09-24 20:06 Q27 -> doing — resumed after restart
 - 2026-09-24 20:06 Q24 -> doing — resumed after restart
+- 2026-09-24 20:18 Q3 -> done — signed: inline field, tap-twice remove, own row; case fold across library (D139)
+- 2026-09-24 20:18 Q4 -> done — signed with all picks; unkept → Recently Deleted (D139)
+- 2026-09-24 20:18 Q28 added
+- 2026-09-24 20:18 Q29 added

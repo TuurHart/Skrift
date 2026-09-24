@@ -1783,3 +1783,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      question "what happens during export?" answered, say if wrong. Q24 approved: retire or
      rewrite the five 10-circle protected tests (SignificanceScaleTests, SignificanceCirclesTests,
      SignificanceCirclesRenderTests, UnratedTakeTests, NoteConsentTests) — "yes".
+139. **D139 Tags and conflicts signed.** ✅ DECIDED 2026-09-24 (sitting): Q3 tag editor signed with
+     all three picks — edit inline in the tag row (no sheet), tap-twice remove with 4 s Undo (Mac ✕
+     on hover), tags on their own row under the title at 14 pt ("beautiful"). Tags do NOT care about
+     capitalisation ACROSS THE LIBRARY: typing `Wood` when `wood` exists anywhere reuses the existing
+     spelling (widens C93's per-note fold). Q4 conflict prompt signed with all picks ("you're on
+     fire"): Keep both is the default (Return on Mac); the prompt opens on note open and blocks
+     editing until picked, "Later" leaves an amber banner + "2 versions" pill; the unkept version
+     goes to Recently Deleted as a "replaced" row (14 days), Bring back makes it its own note.
