@@ -448,14 +448,14 @@ struct MemoDetailView: View {
             RecordView(appendTo: selection)
         }
         .onAppear {
-            currentMemo?.normaliseBodyOnce()   // C10/D4: old body → v2 once, at first open
+            normaliseCurrentOnce()   // C10/D4: old body + polish → v2 once, at first open
             loadCurrentAudio()
         }
         .onChange(of: selection) { old, newID in
             // Re-target the bar when paging settles; ignore the transient nil the
             // paging scroll reports between snap points (don't stop audio mid-swipe).
             guard let newID else { return }
-            currentMemo?.normaliseBodyOnce()
+            normaliseCurrentOnce()
             loadCurrentAudio()
             if old != nil, old != newID, memos.count > 1 { pageFlash = true }
             // Connections is PER NOTE (signed 2026-07-24): switching notes
@@ -643,6 +643,12 @@ struct MemoDetailView: View {
             items.append(url)
         }
         return items
+    }
+
+    /// C10/D4 + Q40: the current note's body and its polished copy-edit, normalised once each.
+    private func normaliseCurrentOnce() {
+        guard let memo = currentMemo else { return }
+        memo.normaliseBodyOnce(enhancement: repository.enhancement(forMemo: memo.id))
     }
 
     /// Load the CURRENT memo's audio — unless its content is lock-gated

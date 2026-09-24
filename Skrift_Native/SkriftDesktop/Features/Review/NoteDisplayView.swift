@@ -100,7 +100,9 @@ struct NoteDisplayView: View {
                     .task(id: file.id) { audio.load(path: file.path) }
                     .onChange(of: file.id, initial: true) { _, _ in
                         namingUndo = nil
-                        file.normaliseBodyOnce()   // C10/D4: old body → v2 once, at first open
+                        // C10/D4 + Q40: old body + polish (local and the synced row) → v2 once, at first open
+                        file.normaliseBodyOnce(cloud: SettingsStore.shared.load().cloudKitMacSyncEnabled
+                                                   ? MemoCloudStore.container?.mainContext : nil)
                     }
                     .sheet(item: $editorRequest) { req in
                         PersonEditor(request: req,

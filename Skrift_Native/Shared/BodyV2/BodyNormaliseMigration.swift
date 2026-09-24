@@ -270,6 +270,38 @@ enum BodyNormaliseMigration {
         return record.outcome
     }
 
+    // MARK: - the polished text (Q40)
+
+    /// The polished copy-edit (`MemoEnhancement.copyedit`, the text he reads and edits, and the
+    /// Mac's local copy of it) gets its OWN once-flag under this key: a polish can land long
+    /// after the note's first open, and must still get its one pass.
+    static func polishedKey(_ id: String) -> String { "\(id).polished" }
+
+    /// The same guarded, once-only, undoable rewrite over a note's polished text. Always
+    /// marker-move only (`machineText: false`): the polish is reading text the user edits, and
+    /// every device must compute the IDENTICAL result from the identical input, so two devices
+    /// migrating the same synced copy-edit write the same string. Nothing is flagged while no
+    /// polished text exists yet. Callers write the text ONLY — never `enhancedAt`, the author
+    /// id, `processedAt`, `editedAt` or an edit vector.
+    @discardableResult
+    static func runPolished(id: String, bodies: [Body], manifestCount: Int, legacyShape: Bool,
+                            ledger: Ledger = .standard, now: Date = Date(),
+                            didRewrite: (String, String, String) -> Void = { _, _, _ in }) -> Outcome? {
+        let key = polishedKey(id)
+        guard !ledger.hasRun(key),
+              bodies.contains(where: { !($0.get() ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+        else { return nil }
+        return run(id: key, bodies: bodies, manifestCount: manifestCount, machineText: false,
+                   legacyShape: legacyShape, ledger: ledger, now: now, didRewrite: didRewrite)
+    }
+
+    /// `undo` for the polished text's record.
+    @discardableResult
+    static func undoPolished(id: String, bodies: [Body], ledger: Ledger = .standard, now: Date = Date(),
+                             didRestore: (String, String, String) -> Void = { _, _, _ in }) -> [String] {
+        undo(id: polishedKey(id), bodies: bodies, ledger: ledger, now: now, didRestore: didRestore)
+    }
+
     /// Puts back every original whose body is still exactly the migrated text (a later edit
     /// wins and is left alone) and marks the note `undone`, so it is never migrated again.
     /// Returns the names of the bodies restored.
