@@ -57,21 +57,27 @@ final class BodyGoldenTests: XCTestCase {
         return decoded.imageManifest ?? []
     }
 
-    /// v1's body for one note. `ImageMarkers.insert` self-guards on empty words/manifest,
-    /// so a note with no `word_timings.json` (no engine ever ran on it) or no manifest
-    /// simply passes the bare transcript through untouched — the same no-op
-    /// `ASRPostProcess.finish` performs.
+    /// v1's body for one note — `MemoSaver.runTranscription`'s own order (markers,
+    /// THEN the stored-transcript paragrapher), then the display/export snap:
+    /// `ImageMarkers.insert` self-guards on empty words/manifest (a note with no
+    /// `word_timings.json`, i.e. no engine ever ran on it, or no manifest passes the
+    /// bare transcript through untouched); `Paragrapher.paragraphed(transcript:words:)`
+    /// self-guards on an already-structured transcript (any existing `\n` — every
+    /// picture note, every conversation turn, every quote — passes through untouched,
+    /// so it's always safe to call); `BodyTransform.snappedImageBody` is the display AND
+    /// export photo-snap, applied last because it's never stored, only rendered.
     private func v1Body(note: CorpusSeed.Note, folder: URL) throws -> String {
         let bare = bareTranscript(note.transcript ?? "")
-        var words: [TimedWord] = []
+        var timings: [WordTiming] = []
         if let wt = note.wordTimings {
             let data = try Data(contentsOf: folder.appendingPathComponent(wt))
-            let timings = try JSONDecoder().decode([WordTiming].self, from: data)
-            words = timings.map { TimedWord(text: $0.word, start: $0.start, end: $0.end) }
+            timings = try JSONDecoder().decode([WordTiming].self, from: data)
         }
+        let words = timings.map { TimedWord(text: $0.word, start: $0.start, end: $0.end) }
         let manifest = manifestEntries(from: note.metadata)
         let withMarkers = ImageMarkers.insert(transcript: bare, words: words, manifest: manifest)
-        return BodyTransform.snappedImageBody(withMarkers)
+        let stored = timings.isEmpty ? withMarkers : Paragrapher.paragraphed(transcript: withMarkers, words: timings)
+        return BodyTransform.snappedImageBody(stored)
     }
 
     func testV1BodyGoldens() throws {
