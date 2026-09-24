@@ -306,7 +306,7 @@ needs: Q29
 do: Q29 never rendered its UI. From an ISOLATED store seeded with the synthetic corpus plus one forced conflict (never the live Dev store), capture: the phone prompt, the phone banner after "Later", the list row "2 versions" pill, the Mac prompt; LOOK at each against `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` and fix clipping/overflow/differences. Confirm editing is blocked on the iPad workbench until a pick. Commit PNGs under `plan/reads/conflict-q39/`.
 check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 
-### Q40 [auto] (doing) old-note normalisation covers the polished text + v2 drops v1's leading space
+### Q40 [auto] (done) old-note normalisation covers the polished text + v2 drops v1's leading space
 spec: C10 C19
 needs: Q14
 gate+: yes
@@ -440,3 +440,4 @@ check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 - 2026-09-24 22:55 Q36 -> done — gate pass @f5b7a0b7
 - 2026-09-24 22:56 Q41 added
 - 2026-09-24 22:56 Q37 -> doing — worker out
+- 2026-09-24 23:06 Q40 -> done — gate pass @049a2722
