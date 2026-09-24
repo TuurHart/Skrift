@@ -177,7 +177,7 @@ struct CaptureVoiceAnnotate: View {
                 memo.annotationText = BodyV2.committed(BodyV2.Input(
                     text: existing.isEmpty ? text : existing + "\n\n" + text,
                     manifest: memo.metadata?.imageManifest ?? [], source: memo.bodyV2Source, userEdited: true))
-                memo.markEdited()
+                memo.markEdited(stampWords: false)   // annotationText isn't title/body/tags (C98)
                 repository.save()
             }
             try? FileManager.default.removeItem(at: result.url)   // dictation model: text stays, audio goes
