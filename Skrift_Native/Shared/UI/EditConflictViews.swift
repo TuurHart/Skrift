@@ -59,28 +59,31 @@ struct EditConflictPrompt: View {
             }
             Divider()
             VStack(spacing: 7) {
-                phoneButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
+                pillButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
                     .accessibilityIdentifier("conflict-keep-both")
-                phoneButton("Keep \(thisName(hereKind))'s",
-                            sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
+                pillButton("Keep \(thisName(hereKind))'s",
+                           sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
                     .accessibilityIdentifier("conflict-keep-this")
-                phoneButton("Keep \(otherName(there.deviceKind))'s",
-                            sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
+                pillButton("Keep \(otherName(there.deviceKind))'s",
+                           sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
                     .accessibilityIdentifier("conflict-keep-other")
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 20)
         }
     }
 
-    private func phoneButton(_ title: String, sub: String, primary: Bool = false,
-                             action: @escaping () -> Void) -> some View {
+    /// Custom-drawn (never system `.bordered`/`.borderedProminent` chrome): the headless
+    /// hostPNG snapshot path is known to misdraw system button chrome, and this way the
+    /// phone and the Mac render the identical pill, just at different scale (Q39).
+    private func pillButton(_ title: String, sub: String, primary: Bool = false,
+                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(title).font(.system(size: 16, weight: .semibold))
-                Text(sub).font(.system(size: 11.5, weight: .medium))
+                Text(title).font(.system(size: look == .phone ? 16 : 14, weight: .semibold))
+                Text(sub).font(.system(size: look == .phone ? 11.5 : 11, weight: .medium))
                     .foregroundStyle(primary ? Color.white.opacity(0.82) : style.textDim)
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
+            .frame(maxWidth: .infinity, minHeight: look == .phone ? 48 : 40)
             .foregroundStyle(primary ? Color.white : style.accent)
             .background(primary ? style.accent : style.surface, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(primary ? style.accent : style.border, lineWidth: 1))
@@ -96,14 +99,15 @@ struct EditConflictPrompt: View {
             versionCard(here, isHere: true)
             versionCard(there, isHere: false)
             sameLine
-            VStack(spacing: 6) {
-                Button { onPick(.keepBoth) } label: { Text("Keep Both").frame(maxWidth: .infinity) }
+            VStack(spacing: 7) {
+                pillButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("conflict-keep-both")
-                Button { onPick(.keepThis) } label: { Text("Keep \(thisName(hereKind).capitalizedFirst)'s").frame(maxWidth: .infinity) }
+                pillButton("Keep \(thisName(hereKind))'s",
+                           sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
                     .accessibilityIdentifier("conflict-keep-this")
-                Button { onPick(.keepOther) } label: { Text("Keep \(otherName(there.deviceKind))'s").frame(maxWidth: .infinity) }
+                pillButton("Keep \(otherName(there.deviceKind))'s",
+                           sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
                     .accessibilityIdentifier("conflict-keep-other")
                 Button("Later", action: onLater)
                     .buttonStyle(.plain)
@@ -111,7 +115,7 @@ struct EditConflictPrompt: View {
                     .keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("conflict-later")
             }
-            .controlSize(.large)
+            .padding(.top, 4)
         }
         .padding(16)
         .frame(width: 380)

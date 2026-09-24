@@ -67,7 +67,11 @@ final class EditConflictQ39UITests: XCTestCase {
         XCTAssertTrue(banner.waitForExistence(timeout: 5), "the amber banner did not appear on the workbench after Later")
         capture(app, "ipad-workbench-blocked")
 
-        let title = app.textFields["detail-title"]
+        // The pager keeps an adjacent page realised (a different memo, its OWN "detail-title"
+        // field) — two matches for the identifier, so pick the CURRENT page's (index 0; the
+        // conflicted memo is page 0 since `-selectFirstMemo` selects the newest, and the pager
+        // realises the current page before its neighbour).
+        let title = app.descendants(matching: .any).matching(identifier: "detail-title").element(boundBy: 0)
         XCTAssertTrue(title.waitForExistence(timeout: 5), "the note title field is missing")
         XCTAssertFalse(title.isEnabled, "the note stayed editable with an unresolved conflict — a third version could land")
     }
