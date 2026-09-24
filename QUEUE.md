@@ -247,7 +247,7 @@ node: V2Core
 do: Q13 finding (plan/RUN.md): switch the four write sites Q13 left on v1 to `BodyV2.committed` — dictation text append, voice-annotate text append, Mac text imports, the Mac editor commit. Fix the v2 bug: `BodyV2Text.normalised` must collapse whitespace runs INSIDE a line only (C19) and keep leading indentation, so nested lists survive; add a corpus-style test with a nested list. Remove the two stopgaps: `ASRPostProcess`'s v1 `ImageMarkers.insert` call, and the typed-body-with-photo passed to `BodyV2Thumbnail.pick` as `.speech` (make `pick` handle a typed body that has a picture, C170). Test in a new `BodyV2WriteSitesTests` (desktop target).
 check: `grep -rqE "class BodyV2WriteSitesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rnE "ImageMarkers\.insert\(" Skrift_Native/Shared/Pipeline/ASRPostProcess*.swift && ./gate.sh`
 
-### Q32 [auto] (doing) the .data attachment lane obeys ownership too
+### Q32 [auto] (done) the .data attachment lane obeys ownership too
 spec: C58 C54
 needs: Q19
 gate+: yes
@@ -337,3 +337,4 @@ check: `grep -rqE "class DataAttachmentOwnershipTests\b" Skrift_Native/SkriftDes
 - 2026-09-24 21:36 Q32 added
 - 2026-09-24 21:36 Q32 -> doing — worker out
 - 2026-09-24 21:41 Q26 -> done — gate pass @e1658dc1
+- 2026-09-24 21:42 Q32 -> done — gate pass @aff15db7
