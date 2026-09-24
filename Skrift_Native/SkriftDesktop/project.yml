@@ -222,6 +222,9 @@ targets:
       # Shared/Pipeline's NoteWorkState names its buttons from it, and this bundle
       # compiles all of Shared/Pipeline.
       - path: ../Shared/UI/SharedCopy.swift
+      # Q26 unified notes list: chip counts / day groups / pill rule, Foundation-only
+      # (no SwiftUI), same discipline as Palette/SharedCopy above.
+      - path: ../Shared/UI/NotesListModel.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
