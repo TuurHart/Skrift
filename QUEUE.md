@@ -166,7 +166,7 @@ node: AuditFix2
 do: Claude prepares the `xctrace` commands; Tuur runs Time Profiler on the iPhone 13 PROD build during a list scroll and a note open, and a typing session in a 5,000-word note on the Mac (Dev, the corpus `typed-wall-7k` note). Claude writes the top frames of both traces into `plan/perf-measured.md`.
 check: `test -s plan/perf-measured.md`
 
-### Q21 [auto] (doing) a locked note stays locked in Fading and Recently Deleted
+### Q21 [auto] (done) a locked note stays locked in Fading and Recently Deleted
 spec: C161 C213 C91
 needs: -
 node: AuditFix2
@@ -256,3 +256,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:53 Q21 -> doing — worker out
 - 2026-09-24 14:55 Q4 -> tuur — built @5b77e43f — awaiting sitting
 - 2026-09-24 15:02 Q3 -> tuur — built @840e77be — awaiting sitting
+- 2026-09-24 15:09 Q21 -> done — gate pass @9d3d583b
