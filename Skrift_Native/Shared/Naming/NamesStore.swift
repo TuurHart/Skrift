@@ -17,6 +17,18 @@ final class NamesStore {
     private let encoder: JSONEncoder
     private let decoder = JSONDecoder()
 
+    /// Actor-guard (Q18/C50): every read-modify-write sequence below (load →
+    /// mutate → save) takes this lock for its whole span, so a Mac-originated
+    /// edit and a phone-originated `addVoiceEmbedding` (called off-main by
+    /// `VoiceEnroller`, BUGS D1) can't race and clobber each other.
+    private let lock = NSLock()
+
+    /// Last successfully-decoded roster (Q18/C50/D1: "a torn read never
+    /// produces an empty roster"). A corrupt on-disk file falls back to this
+    /// in memory rather than presenting empty; only a genuinely fresh
+    /// install (no file yet, never loaded before) is allowed to be empty.
+    private var lastGood: NamesData?
+
     init(fileURL: URL = AppPaths.namesFile) {
         self.fileURL = fileURL
         let e = JSONEncoder()
@@ -26,11 +38,24 @@ final class NamesStore {
 
     /// Full file including tombstones (what the phone's `GET /api/names` consumes).
     func load() -> NamesData {
-        guard let data = try? Data(contentsOf: fileURL),
-              let parsed = try? decoder.decode(NamesData.self, from: data) else {
-            return NamesData(lastModifiedAt: ISO8601.now(), people: [])
+        lock.lock(); defer { lock.unlock() }
+        return unlockedLoad()
+    }
+
+    /// MUST be called with `lock` already held.
+    private func unlockedLoad() -> NamesData {
+        let outcome = SafeJSONStore.load(NamesData.self, from: fileURL, decoder: decoder)
+        if let value = outcome.value {
+            lastGood = value
+            return value
         }
-        return parsed
+        if outcome.wasCorrupt, let cached = lastGood {
+            return cached
+        }
+        // Genuinely missing (fresh install) — the empty roster is real, not adopted-from-corruption.
+        let fresh = NamesData(lastModifiedAt: ISO8601.now(), people: [])
+        if !outcome.wasCorrupt { lastGood = fresh }
+        return fresh
     }
 
     /// Live people only (tombstones filtered) — for the desktop UI + sanitisation.
@@ -38,17 +63,29 @@ final class NamesStore {
         load().people.filter { !$0.isDeleted }
     }
 
+    /// MUST be called with `lock` already held.
+    private func unlockedLivePeople() -> [Person] {
+        unlockedLoad().people.filter { !$0.isDeleted }
+    }
+
     /// Write verbatim (caller owns merge), recomputing the top-level timestamp and
     /// sorting. Used by the phone-sync `PUT` and internally. Mirrors `write_names`.
     @discardableResult
     func save(_ data: NamesData) -> NamesData {
+        lock.lock(); defer { lock.unlock() }
+        return unlockedSave(data)
+    }
+
+    /// MUST be called with `lock` already held. Atomic write via `SafeJSONStore`
+    /// (Q18/C50) — never a torn/partial file on disk — and refreshes `lastGood`
+    /// so a subsequent corrupt read still has this write to fall back to.
+    private func unlockedSave(_ data: NamesData) -> NamesData {
         let out = NamesData(
             lastModifiedAt: NamesMerge.topLevelTimestamp(data.people),
             people: NamesMerge.sortPeople(data.people)
         )
-        if let encoded = try? encoder.encode(out) {
-            try? encoded.write(to: fileURL)
-        }
+        SafeJSONStore.write(out, to: fileURL, encoder: encoder)
+        lastGood = out
         return out
     }
 
@@ -58,7 +95,13 @@ final class NamesStore {
     /// `write_with_smart_bumps`.
     @discardableResult
     func writeWithSmartBumps(_ newPeople: [Person]) -> NamesData {
-        let existing = load()
+        lock.lock(); defer { lock.unlock() }
+        return unlockedWriteWithSmartBumps(newPeople)
+    }
+
+    /// MUST be called with `lock` already held.
+    private func unlockedWriteWithSmartBumps(_ newPeople: [Person]) -> NamesData {
+        let existing = unlockedLoad()
         var existingByCanonical: [String: Person] = [:]
         for p in existing.people where !p.isDeleted { existingByCanonical[p.canonical] = p }
 
@@ -103,7 +146,7 @@ final class NamesStore {
             normalised.append(prev)
         }
 
-        return save(NamesData(lastModifiedAt: now, people: normalised))
+        return unlockedSave(NamesData(lastModifiedAt: now, people: normalised))
     }
 
     /// Append a voiceprint to a person (de-duped by vector, union — multi-embedding,
@@ -113,7 +156,8 @@ final class NamesStore {
     func addVoiceEmbedding(canonical: String, embedding: VoiceEmbedding) {
         let c = NamesMerge.normaliseCanonical(canonical)
         guard !c.isEmpty, !embedding.vector.isEmpty else { return }
-        var data = load()
+        lock.lock(); defer { lock.unlock() }
+        var data = unlockedLoad()
         if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
             var p = data.people[idx]
             p.voiceEmbeddings = NamesMerge.unionEmbeddings(p.voiceEmbeddings, [embedding]) ?? [embedding]
@@ -124,7 +168,7 @@ final class NamesStore {
             data.people.append(Person(canonical: c, aliases: [], short: nil,
                                       voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
         }
-        _ = save(data)
+        _ = unlockedSave(data)
     }
 
     /// Add or update a person by canonical (phone convenience — the quick-add
@@ -133,7 +177,8 @@ final class NamesStore {
     func upsert(canonical: String, aliases: [String], short: String?) {
         let c = NamesMerge.normaliseCanonical(canonical)
         guard !c.isEmpty else { return }
-        var data = load()
+        lock.lock(); defer { lock.unlock() }
+        var data = unlockedLoad()
         let cleanedAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         let cleanedShort = (short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
         if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
@@ -146,7 +191,7 @@ final class NamesStore {
         } else {
             data.people.append(Person(canonical: c, aliases: cleanedAliases, short: cleanedShort, lastModifiedAt: ISO8601.now()))
         }
-        _ = save(data)
+        _ = unlockedSave(data)
     }
 
     /// Insert or update ONE person from the detail editor (mocks/opt-in-naming.html panel 3),
@@ -155,7 +200,8 @@ final class NamesStore {
     /// canonical (a no-rename edit) or appending (a brand-new person). Persists + syncs via
     /// `writeWithSmartBumps` (which also carries forward voiceprints the editor doesn't round-trip).
     func upsert(_ person: Person, replacing originalCanonical: String?) {
-        var people = livePeople()
+        lock.lock(); defer { lock.unlock() }
+        var people = unlockedLivePeople()
         func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
         let newKey = key(person.canonical)
         if let orig = originalCanonical, let i = people.firstIndex(where: { key($0.canonical) == key(orig) }) {
@@ -175,7 +221,7 @@ final class NamesStore {
         } else {
             people.append(person)
         }
-        _ = writeWithSmartBumps(people)
+        _ = unlockedWriteWithSmartBumps(people)
     }
 
     /// Seed the roster from `People/` note titles (chunk 2, archive/state-2026-09/NAMING_MODEL.md decision 5).
@@ -190,7 +236,8 @@ final class NamesStore {
     /// count added. PRIVACY: titles only, app code, no AI (the scanner reads filenames).
     @discardableResult
     func seedRoster(titles: [String]) -> Int {
-        let existing = livePeople()
+        lock.lock(); defer { lock.unlock() }
+        let existing = unlockedLivePeople()
         func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
         var have = Set(existing.map { key($0.canonical) })
         var added: [Person] = []
@@ -210,24 +257,26 @@ final class NamesStore {
                                  aliases: aliases, short: nil, lastModifiedAt: now))
         }
         guard !added.isEmpty else { return 0 }
-        _ = writeWithSmartBumps(existing + added)
+        _ = unlockedWriteWithSmartBumps(existing + added)
         return added.count
     }
 
     /// Tombstone ONE person (detail editor "Delete"). `writeWithSmartBumps` tombstones the
     /// removed canonical (kept for LWW sync) and preserves everyone else.
     func delete(canonical: String) {
+        lock.lock(); defer { lock.unlock() }
         let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces).lowercased()
-        let remaining = livePeople().filter {
+        let remaining = unlockedLivePeople().filter {
             NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() != key
         }
-        _ = writeWithSmartBumps(remaining)
+        _ = unlockedWriteWithSmartBumps(remaining)
     }
 
     /// Drop tombstones older than `maxAgeDays`. Returns the count pruned.
     @discardableResult
     func pruneOldTombstones(maxAgeDays: Int = 90) -> Int {
-        let data = load()
+        lock.lock(); defer { lock.unlock() }
+        let data = unlockedLoad()
         let cutoff = Date().timeIntervalSince1970 - Double(maxAgeDays) * 86_400
         var kept: [Person] = []
         var pruned = 0
@@ -240,7 +289,7 @@ final class NamesStore {
             }
             kept.append(p)
         }
-        if pruned > 0 { _ = save(NamesData(lastModifiedAt: ISO8601.now(), people: kept)) }
+        if pruned > 0 { _ = unlockedSave(NamesData(lastModifiedAt: ISO8601.now(), people: kept)) }
         return pruned
     }
 
