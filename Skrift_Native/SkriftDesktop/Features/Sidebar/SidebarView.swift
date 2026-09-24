@@ -578,10 +578,10 @@ struct SidebarView: View {
         Binding(get: { model.dateTo ?? Date() }, set: { model.dateTo = $0 })
     }
 
-    // D136/D137: the triage line ("N ready to review · N to process") and its
-    // "Mark all as Passing" bulk-rate button are GONE — "rating a note should be
-    // an intentional choice". The chips now carry the counts (`chipCounts`
-    // below); Process is unaffected, it already showed its own pile size.
+    // D136/D137: the old two-count triage line and its bulk-rate-everything
+    // button are GONE — "rating a note should be an intentional choice". The
+    // chips now carry the counts (`chipCounts` below); Process is unaffected,
+    // it already showed its own pile size.
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {

@@ -63,12 +63,13 @@ struct RootView: View {
                             // 240 is the MEASURED floor for the header row (identity +
                             // gear, Import + Process, the four filter chips) — at the
                             // old ideal 228 that content overflowed and clipped on BOTH
-                            // sides: the app badge sliced in half, "All" and the
-                            // "N ready to review" count cut off. Found 2026-07-25 by the
-                            // hosted `-snapshot-shell` render (the plain ImageRenderer
-                            // path draws this whole column as one placeholder, which is
-                            // why it hid for so long). minWidth rises with it — dragging
-                            // below the content's floor is what produced the clip.
+                            // sides: the app badge sliced in half, "All" and the old
+                            // triage line's count cut off (that line is gone now, D136).
+                            // Found 2026-07-25 by the hosted `-snapshot-shell` render (the
+                            // plain ImageRenderer path draws this whole column as one
+                            // placeholder, which is why it hid for so long). minWidth
+                            // rises with it — dragging below the content's floor is what
+                            // produced the clip.
                             .frame(minWidth: 240, idealWidth: 292, maxWidth: 360)   // m2 cards breathe at ~290 (signed mock)
                     }
 
