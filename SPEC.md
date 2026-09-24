@@ -1577,6 +1577,13 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     pass over existing apps that mix media types (Apple News, Readwise Reader, Matter, Snipd,
     Apple Podcasts, Flipboard, Bound) with screenshots, he picks a direction, then the mock is
     drawn to it. Biggest mock of the queue; the tab's name is part of it. Mock first.
+    2026-09-24, the split between the two tabs (his question "images and voice memos from
+    people, what is the workflow"): the tab holds LONG-FORM sources he consumes (a book, an
+    episode, an article, a PDF, a talk); anything short or handed to him (a voice message, a
+    photo of a page, a forward, a screenshot) stays a NOTE in Notes as today, with the sender
+    (C123). A source reaches Notes only through capture (quote/highlight + his voice) or "send
+    to a note", and the capture links back to its source. Builder default. Parked idea: a Skrift
+    highlighter browser extension in place of Readwise ("interesting, but for later").
 
 91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
@@ -1696,10 +1703,12 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 126. **D126 The three PDF leftovers.** ✅ DECIDED 2026-09-24: "all those need to be fixed":
      inline first-page render on the Mac, the Mac text-extract fallback for PDFs with no text
      layer, and the PDF copied into the vault on export; rule = match the best-working device.
-     Where an imported PDF lives (his question): a PDF shared INTO a note stays in that note as a
-     capture item; a PDF imported as something to read goes to the reframed tab as a source (D90,
-     "text he reads"), and captures from it become notes that link back to it. Builder default,
-     say if wrong. — plan/sources.md #49
+     Where a PDF lives, by the door it came through (Tuur asked "how does that work as UX"):
+     the SHARE SHEET from another app puts it in the reading tab as a source, with a toast
+     "Added to Library · add to a note instead"; the "+" INSIDE a note attaches it to that note
+     as a block, like Apple Notes; and every source in the tab has "capture" (a quote or
+     highlight plus his voice) and "send to a note", which is how a tab item reaches Notes.
+     Builder default, say if wrong. — plan/sources.md #49
 127. **D127 Per-book "N notes".** ✅ DECIDED 2026-09-24: yes, with the note→book jump-back. —
      plan/sources.md #54
 128. **D128 Empty-tab call to action.** ✅ DECIDED 2026-09-24: yes, with the tab reframe (D90):
@@ -1709,10 +1718,12 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 130. **D130 Paragraphs in reading mode.** ✅ DECIDED 2026-09-24: reading mode keeps its own
      sentence grouping, "especially after an ePub is merged"; Paragrapher stays out of it. —
      plan/sources.md #65
-131. **D131 Two recording safety rules.** ✅ DECIDED 2026-09-24 (first half; second re-asked):
-     live captions stop while the app is in the background, the recording itself continues.
-     Second half owed: a low-memory warning never unloads the transcriber mid-recording. —
-     plan/sources.md #66
+131. **D131 Two recording safety rules.** ✅ DECIDED 2026-09-24: live captions stop while the
+     app is in the background, the recording continues. On a low-memory warning the RECORDING
+     is saved first: the audio file is flushed and a checkpoint row is written so recovery can
+     find it (C99/D26), THEN the transcriber is unloaded to avoid the crash, captions stop,
+     and the model reloads after Stop. "If memory is low the phone might crash, we need to
+     save the recording as a first priority." — plan/sources.md #66
 132. **D132 Export scope.** ✅ DECIDED 2026-09-24: confirmed, only processed notes go to the
      vault (C61 narrows C197). — SPEC.md C197
 133. **D133 Photo viewer.** ✅ DECIDED 2026-09-24: closed by the inline photo blocks; a tap opens
