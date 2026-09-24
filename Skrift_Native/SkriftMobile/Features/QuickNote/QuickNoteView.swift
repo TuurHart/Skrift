@@ -25,7 +25,7 @@ struct QuickNoteView: View {
     @Environment(\.modelContext) private var context
     @FocusState private var focused: Field?
     @State private var title = ""
-    @State private var body = ""
+    @State private var bodyText = ""
     @State private var draft = QuickNoteDraft()
 
     private enum Field { case title, body }
@@ -42,7 +42,7 @@ struct QuickNoteView: View {
                     .submitLabel(.next)
                     .onSubmit { focused = .body }
                     .focused($focused, equals: .title)
-                    .onChange(of: title) { _, v in draft.edited(title: v, body: body, context: context) }
+                    .onChange(of: title) { _, v in draft.edited(title: v, body: bodyText, context: context) }
                     .accessibilityIdentifier("quick-note-title")
                 bodyEditor
             }
@@ -56,13 +56,13 @@ struct QuickNoteView: View {
     }
 
     private var bodyEditor: some View {
-        TextEditor(text: $body)
+        TextEditor(text: $bodyText)
             .font(.system(size: 17))
             .foregroundStyle(Color.skText)
             .tint(.skAccent)
             .scrollContentBackground(.hidden)
             .focused($focused, equals: .body)
-            .onChange(of: body) { _, v in draft.edited(title: title, body: v, context: context) }
+            .onChange(of: bodyText) { _, v in draft.edited(title: title, body: v, context: context) }
             .accessibilityIdentifier("quick-note-body")
     }
 
