@@ -390,16 +390,17 @@ targets:
       # EXIF taken-date reader (A4) — the extension reads it BEFORE the
       # downsample re-encode strips metadata; the app's drainer parses it back.
       - path: Services/Capture/ImageDates.swift
-      # SignificanceCircles + its dependencies (the SHARED SignificanceScale,
+      # SignificanceCircles + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
-      # it can render the significance control without importing the app target.
+      # it can render the importance control without importing the app target.
       # Since 2026-08-12 the control itself is the SHARED view and this file is
       # only the phone's style table — both halves have to be here or the
-      # extension won't build (the app target gets them via ../Shared/UI).
+      # extension won't build (the app target gets them via ../Shared/UI). Q8
+      # (2026-09-24) swapped the 10-circle SignificanceCirclesView/SignificanceScale
+      # pairing for the 3-ball ThreeBallImportanceView/ThreeBallScale.
       - path: Features/MemoDetail/SignificanceCircles.swift
-      - path: ../Shared/UI/SignificanceCirclesView.swift
-      - path: ../Shared/UI/SignificanceWarmFill.swift
-      - path: ../Shared/Model/SignificanceScale.swift
+      - path: ../Shared/UI/ThreeBallImportanceView.swift
+      - path: ../Shared/Model/ThreeBallScale.swift
       # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
       # so it builds cleanly in the extension process. Theme sources its cross-app
       # hex values from the shared Palette table.
