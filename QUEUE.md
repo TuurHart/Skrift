@@ -136,7 +136,7 @@ node: AuditFix2
 do: The phone persists audio in segments on every interruption and every 60 s with a marker; a launch sweep rebuilds the note from the segments and says so; a force-quit finalises; disk full stops the take with an honest error and keeps what landed (R46). D131: on a low-memory warning the audio is flushed and a checkpoint row written FIRST, then the transcriber unloads, captions stop, the model reloads after Stop; in the background live captions stop and the recording continues. Recovery never runs over a `transcriptUserEdited` memo (C263); unrecoverable `rec_tmp_*` are cleaned after a failed sweep (C288); every lifecycle transition logs a Release-safe `os_log` line (C287). Test in `RecoverySweepTests`. Hardware-flavoured: per CLAUDE.md the orchestrator owns route/audio-session changes; the worker keeps to persistence + sweep.
 check: `plan/mtest.sh RecoverySweepTests`
 
-### Q17 [tuur] (doing) iPhone 13: call and force-quit mid-take
+### Q17 [tuur] (tuur) iPhone 13: call and force-quit mid-take
 spec: C99
 needs: Q16
 node: AuditFix2
@@ -251,3 +251,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:47 Q23 -> doing — worker out
 - 2026-09-24 14:47 Q3 -> doing — mockup out
 - 2026-09-24 14:47 Q4 -> doing — mockup out
+- 2026-09-24 14:53 Q17 -> tuur — built @798e826f — awaiting sitting
