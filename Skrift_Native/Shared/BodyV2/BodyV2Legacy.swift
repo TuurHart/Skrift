@@ -13,23 +13,7 @@ enum BodyV2Legacy {
     /// after a blank line, markers `\n\n`-separated, then a blank line straight into the next
     /// paragraph (v1's wrap leaves a space there) or the end.
     static func isUnnormalised(_ body: String) -> Bool {
-        guard body.contains("[[img_") else { return false }
-        let ns = body as NSString
-        for run in BodyV2Marker.runs(in: body, manifestCount: .max) {
-            let r = ns.substring(with: run.range) as NSString
-            let first = r.range(of: "[[").location
-            let lastEnd = r.range(of: "]]", options: .backwards).location + 2
-            let core = r.substring(with: NSRange(location: first, length: lastEnd - first))
-            guard core == BodyV2Marker.block(run.numbers) else { return true }
-            let end = run.range.location + run.range.length
-            let atTop = ns.substring(to: run.range.location + first)
-                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            guard atTop || run.newlinesBefore >= 2 else { return true }
-            if end == ns.length { continue }
-            guard run.newlinesAfter >= 2, r.hasSuffix("\n") else { return true }
-            if ",;:.!?)".contains(Character(UnicodeScalar(ns.character(at: end)) ?? " ")) { return true }
-        }
-        return false
+        BodyNormaliseMigration.needsNormalise(body)
     }
 
     /// The text to show / export for a stored body, and the map from a stored (raw) range
