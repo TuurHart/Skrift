@@ -237,18 +237,10 @@ struct MemosListView: View {
                     selectionBar
                 } else {
                     // ONE bottom row (Option A, mocks/notes-bottom-chrome.html):
-                    // compact book pill left (session-gated) + record right —
-                    // explicitly side by side so they can never overlap (the
-                    // build-40 regression: a tab-level safeAreaInset never
-                    // propagated into this NavigationStack on iOS 26 and the
-                    // capsule buried the record button). At regular width this
-                    // row rides INSIDE the sidebar column (capture is a
-                    // list-side act; the reading pane stays calm — m1).
-                    // At regular width Record lives in the header verb row (the
-                    // Mac's construction, Tuur 2026-08-18) — the corner FAB would
-                    // be a second record button in the same column, so it yields;
-                    // the row stays for the book pill. Compact keeps the FAB.
-                    NotesBottomChrome(showRecordButton: !isRegular) {
+                    // the book pill only now — D136 drops the phone's red mic
+                    // corner button too ("reaching up to record is not that bad"),
+                    // Record lives ONLY in `verbRow` on every width now.
+                    NotesBottomChrome(showRecordButton: false) {
                         intentBridge.clearPendingStart()
                         // PRESTART (2026-07-26): capture begins HERE, at the
                         // button, while the cover is still animating in —
@@ -442,11 +434,11 @@ struct MemosListView: View {
             // Same rule for the backlink scan (never per row) — feeds the
             // Mac-parity clock line on unrated rows.
             let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
-            // The Mac sidebar's triage line (regular only): chips carry membership
-            // (the count line is the two ACTIONABLE numbers — ready to review · to
-            // process — with the sort control trailing, exactly like the Mac). The
-            // chips themselves ride in `macStyleHeader` above, under search.
-            if isRegular { macTriageLine }
+            // D136: the triage line is gone on every width — each chip carries
+            // its own count now (`chipCounts`), Filter ends the bar. On BOTH
+            // widths now (was iPad-regular only) — the phone's chip bar filters
+            // the list too.
+            filterChips
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -1197,7 +1189,9 @@ struct MemosListView: View {
     private func matchesFilter(_ memo: Memo, enhanced: Set<UUID>) -> Bool {
         // The Mac's triage chip (regular width only). `.all` is a no-op, so
         // compact and the phone are untouched (listChip stays .all there).
-        if isRegular && !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
+        // D136: the chip bar filters on EVERY width now (was iPad-regular only —
+        // `listChip` stayed `.all` on the phone before, a no-op).
+        if !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
         if filter.notRatedOnly && (NoteConsent.isRated(memo) || memo.locked) { return false }
