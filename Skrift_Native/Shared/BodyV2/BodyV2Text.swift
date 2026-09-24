@@ -5,11 +5,19 @@ enum BodyV2Text {
 
     // MARK: - C19
 
-    /// The ONE whitespace rule, applied once at commit: CRLF/CR → LF; horizontal runs inside a
-    /// line → one space; ≥3 line breaks → one blank line; ends trimmed.
+    /// The ONE whitespace rule, applied once at commit: CRLF/CR → LF; horizontal runs INSIDE a
+    /// line → one space (leading indentation is left alone, so a nested list survives); ≥3 line
+    /// breaks → one blank line; ends trimmed.
     static func normalised(_ s: String) -> String {
         var t = s.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
-        t = t.replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
+        let lines = t.components(separatedBy: "\n").map { line -> String in
+            guard let leadingRange = line.range(of: #"^[\t\p{Zs}]*"#, options: .regularExpression) else { return line }
+            let leading = line[leadingRange]
+            let rest = line[leadingRange.upperBound...]
+                .replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
+            return leading + rest
+        }
+        t = lines.joined(separator: "\n")
         t = t.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
     }

@@ -94,7 +94,10 @@ enum CaptureDictation {
         }
 
         let typed = (memo.annotationText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        memo.annotationText = typed.isEmpty ? text : typed + "\n\n" + text
+        // Body v2 (C10): the combined annotation is an edit — every picture keeps its place.
+        memo.annotationText = BodyV2.committed(BodyV2.Input(
+            text: typed.isEmpty ? text : typed + "\n\n" + text,
+            manifest: memo.metadata?.imageManifest ?? [], source: memo.bodyV2Source, userEdited: true))
         memo.transcriptStatus = .done
         repository.save()
         // Text landed — the audio has served its purpose (captures carry no
