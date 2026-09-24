@@ -217,7 +217,7 @@ node: AuditFix2
 do: Device evidence 2026-09-24 (iPhone 13, Dev build 171, devlog 15:34:49): the Q16 launch sweep logged `rec recover-failed — no readable audio — cleaned 1 file(s)` for 5 legacy pre-segment `rec_tmp_*` orphans and DELETED them. An m4a with no moov atom is unreadable to AVFoundation but often rescuable (`tools/rescue-lost-recordings.py`), so on prod's first launch this would destroy his real orphaned recordings. Change the failed-recovery branch: MOVE every unreadable orphan (rec_tmp_*, rec_seg_*, rec_ckpt_*) into `Documents/QuarantinedRecordings/` with a sidecar JSON (take id, sizes, first-seen date), never delete it; log `rec quarantined`; a later explicit user action or the rescue tool is the only way out. C288's cleanup now means "out of the recording dir", not "deleted". Test in a NEW `RecoveryQuarantineTests` (phone target): a truncated m4a is quarantined byte-identical, nothing is removed.
 check: `plan/mtest.sh RecoveryQuarantineTests && ! grep -rnE "removeItem" Skrift_Native/SkriftMobile/Features/Recording/RecordingRecovery.swift`
 
-### Q28 [auto] (doing) build the tag editor on phone, iPad and Mac
+### Q28 [auto] (done) build the tag editor on phone, iPad and Mac
 spec: C241 C93 C240
 needs: Q26
 gate+: yes
@@ -372,3 +372,4 @@ check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/rea
 - 2026-09-24 22:05 Q33 -> done — gate pass @ff543191
 - 2026-09-24 22:07 Q35 added
 - 2026-09-24 22:07 Q35 -> doing — worker out
+- 2026-09-24 22:13 Q28 -> done — gate pass @b22f6538
