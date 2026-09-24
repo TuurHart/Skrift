@@ -1,0 +1,655 @@
+<meta charset="utf-8">
+<title>Skrift Quick Note</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* ---------- page chrome tokens (the mock workbench, not the app) ---------- */
+:root{
+  --pg-bg:#f1f0f6; --pg-ink:#1b1a24; --pg-dim:#5f5d70; --pg-faint:#9b99ab;
+  --pg-card:#ffffff; --pg-line:#dcdae6; --pg-accent:#6c5ce0; --pg-accent-soft:rgba(108,92,224,.12);
+  --pg-pick:#c2410c; --pg-pick-soft:rgba(194,65,12,.10);
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"IBM Plex Sans",-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0b0c11; --pg-ink:#e6e5ee; --pg-dim:#9a98ad; --pg-faint:#5d5b70;
+    --pg-card:#15161f; --pg-line:#262736; --pg-accent:#9d8ff7; --pg-accent-soft:rgba(157,143,247,.14);
+    --pg-pick:#fb923c; --pg-pick-soft:rgba(251,146,60,.12);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0b0c11; --pg-ink:#e6e5ee; --pg-dim:#9a98ad; --pg-faint:#5d5b70;
+  --pg-card:#15161f; --pg-line:#262736; --pg-accent:#9d8ff7; --pg-accent-soft:rgba(157,143,247,.14);
+  --pg-pick:#fb923c; --pg-pick-soft:rgba(251,146,60,.12);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sans);font-size:14px;line-height:1.45;padding:0 16px;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-block:14px 48px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-dim)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 2px;text-wrap:balance}
+.lede{color:var(--pg-dim);margin:0 0 12px;max-width:62ch}
+.lede code,.cap code,.pick code{font-family:var(--mono);font-size:12px}
+
+.controls{display:flex;flex-direction:column;gap:8px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pg-bg);padding-block:6px}
+.seg{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:0 0 auto;font:500 13px var(--sans);color:var(--pg-dim);background:var(--pg-card);border:1px solid var(--pg-line);border-radius:9px;padding:7px 11px;cursor:pointer;min-height:36px}
+.seg button[aria-pressed="true"]{color:var(--pg-accent);border-color:var(--pg-accent);background:var(--pg-accent-soft)}
+.seg button:focus-visible,.btn:focus-visible,.alt button:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.seg .n{font-family:var(--mono);font-size:11px;opacity:.7;margin-right:4px}
+
+.layout{display:grid;grid-template-columns:1fr;gap:18px;margin-top:6px}
+@media (min-width:900px){.layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}}
+.stage{display:flex;flex-direction:column;align-items:center;gap:10px}
+.host{width:100%;position:relative;margin:0 auto}
+.host.phone{max-width:390px}
+.host.zoomed{overflow-x:auto;max-width:100%}
+.screen{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;border-radius:46px;box-shadow:0 0 0 7px #1d1d22,0 0 0 8px #3a3a44,0 18px 40px rgba(0,0,0,.28)}
+.host.ipad .screen{border-radius:24px;box-shadow:0 0 0 12px #1d1d22,0 0 0 13px #3a3a44,0 18px 40px rgba(0,0,0,.28)}
+.cap{width:100%;max-width:560px;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.cap .step{font-family:var(--mono);font-size:11px;color:var(--pg-accent);white-space:nowrap;padding-top:2px}
+.cap p{margin:0}
+.cap .say{color:var(--pg-dim);font-size:12.5px;margin-top:3px}
+.cap .say b{color:var(--pg-pick);font-weight:600}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{font:500 13px var(--sans);color:var(--pg-ink);background:var(--pg-card);border:1px solid var(--pg-line);border-radius:9px;padding:7px 12px;cursor:pointer;min-height:36px}
+
+aside{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:12px 14px}
+.panel h2{font-size:13px;margin:0 0 8px;font-family:var(--mono);font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--pg-dim)}
+.pick{border-top:1px solid var(--pg-line);padding-top:10px;margin-top:10px}
+.pick:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.pick .tag{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;color:var(--pg-pick);background:var(--pg-pick-soft);border-radius:5px;padding:1px 6px;margin-bottom:4px}
+.pick p{margin:0 0 6px}
+.pick .why{color:var(--pg-dim);font-size:12.5px}
+.alt{display:flex;gap:4px;flex-wrap:wrap}
+.alt button{font:500 12px var(--sans);border:1px solid var(--pg-line);background:transparent;color:var(--pg-dim);border-radius:7px;padding:5px 9px;cursor:pointer;min-height:32px}
+.alt button[aria-pressed="true"]{border-color:var(--pg-pick);color:var(--pg-pick);background:var(--pg-pick-soft)}
+.q{border:1.5px solid var(--pg-accent);background:var(--pg-accent-soft)}
+.q p{margin:0;font-size:15px;font-weight:600;text-wrap:balance}
+.clauses{font-size:12.5px;color:var(--pg-dim)}
+.clauses dt{font-family:var(--mono);font-size:11.5px;color:var(--pg-ink);margin-top:6px}
+.clauses dd{margin:0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- THE APP (drawn from source: Shared/UI/Palette.swift dark pair) ---------- */
+.app{--bg:#0f1117;--surface:#181a23;--elev:#1e2130;--border:rgba(255,255,255,.08);--t1:#e4e4e7;--t2:#8b8b97;--t3:#55556a;
+  --accent:#7c6bf5;--accentSoft:rgba(124,107,245,.13);--accentText:#b9acff;--red:#ef4444;--amber:#f59e0b;--green:#34d399;
+  font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--t1);background:var(--bg);position:absolute;inset:0;overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none}
+.app svg{display:block}
+.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.i.f{fill:currentColor;stroke:none}
+.tap{cursor:pointer}
+.sbar{position:absolute;left:0;right:0;top:0;height:47px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;font:600 16px -apple-system,system-ui;z-index:20}
+.sbar .notch{position:absolute;left:50%;top:0;width:162px;height:32px;margin-left:-81px;background:#000;border-radius:0 0 20px 20px}
+.sbar .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.batt{width:25px;height:12px;border:1.5px solid currentColor;border-radius:4px;opacity:.9;position:relative}
+.batt:after{content:"";position:absolute;inset:1.5px;width:15px;background:currentColor;border-radius:1.5px}
+.home-ind{position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#fff;opacity:.85;z-index:30}
+
+/* list */
+.hdr{position:absolute;left:0;right:0;top:55px;padding:0 16px;display:flex;align-items:center;gap:18px}
+.hdr .title{font-size:30px;font-weight:700;letter-spacing:.2px;flex:1}
+.hdr .lnk{color:var(--accent);font-size:16px}
+.hdr .ic{color:var(--accent);font-size:19px}
+.search{position:absolute;left:16px;right:16px;top:104px;height:38px;border-radius:11px;background:var(--elev);display:flex;align-items:center;gap:8px;padding:0 11px;color:var(--t3);font-size:14px}
+.list{position:absolute;left:0;right:0;top:152px;bottom:96px;overflow:hidden;padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px 14px;display:flex;flex-direction:column;gap:4px}
+.card .stamp{font-size:12px;color:var(--t3);display:flex;gap:6px}
+.card .stamp .fade{color:var(--amber)}
+.card .t{font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .s{font-size:13.5px;color:var(--t2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .chips{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+.chip{font-size:11.5px;color:var(--t2);background:var(--elev);border-radius:6px;padding:2px 7px;display:flex;gap:4px;align-items:center}
+.card.quiet{background:transparent;border-style:dashed}
+.card.quiet .t{color:var(--t2)}
+.card.fresh{animation:fresh 1.6s ease-out}
+@keyframes fresh{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.bchrome{position:absolute;right:14px;left:14px;bottom:104px;display:flex;align-items:center;justify-content:flex-end;gap:16px;z-index:10}
+.fab{width:60px;height:60px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:23px;box-shadow:0 0 0 4px rgba(255,255,255,.12) inset,0 8px 24px rgba(239,68,68,.45)}
+.newbtn{width:52px;height:52px;border-radius:50%;background:var(--elev);border:1px solid var(--border);color:var(--t1);display:grid;place-items:center;font-size:21px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.pickring{outline:2.5px dashed #fb923c;outline-offset:4px}
+.pickflag{position:absolute;font:600 10px var(--mono);letter-spacing:.04em;color:#1b1a24;background:#fb923c;border-radius:4px;padding:2px 5px;white-space:nowrap;z-index:40;pointer-events:none}
+.tabbar{position:absolute;left:18px;right:18px;bottom:30px;height:62px;border-radius:31px;background:rgba(40,42,56,.82);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(20px);display:flex;justify-content:space-around;align-items:center;z-index:10}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--t2);padding:6px 12px;border-radius:24px}
+.tabbar div svg{font-size:21px}
+.tabbar .on{color:var(--accent);background:rgba(255,255,255,.07)}
+.toast{position:absolute;left:50%;top:58px;transform:translateX(-50%);background:var(--elev);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;white-space:nowrap;z-index:25;animation:drop .25s ease-out}
+@keyframes drop{from{opacity:0;transform:translate(-50%,-8px)}}
+
+/* note */
+.nav{position:absolute;left:0;right:0;top:50px;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:5}
+.glass{background:rgba(44,46,60,.85);border:1px solid rgba(255,255,255,.1);border-radius:22px;display:flex;align-items:center;color:var(--t1)}
+.back{width:44px;height:44px;justify-content:center;font-size:20px}
+.trail{height:44px;padding:0 6px;gap:0}
+.trail span{width:36px;height:36px;display:grid;place-items:center;color:var(--t2);font-size:17px}
+.ttl{position:absolute;left:0;right:0;top:104px;padding:4px 16px 9px;border-bottom:.5px solid var(--border);font-size:17px;font-weight:700;min-height:36px;display:flex;align-items:center}
+.ttl .ph{color:var(--t3)}
+.bodyed{position:absolute;left:0;right:0;top:150px;padding:6px 16px;font-size:17px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.caret{display:inline-block;width:2px;height:21px;background:var(--accent);vertical-align:-4px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.accbar{position:absolute;left:50%;transform:translateX(-50%);height:44px;border-radius:22px;padding:0 8px;gap:2px;z-index:6}
+.accbar span{width:40px;height:40px;display:grid;place-items:center;font-size:17px;color:var(--t1)}
+.kb{position:absolute;left:0;right:0;bottom:0;background:#2b2b31;padding:8px 3px 0;z-index:6;display:flex;flex-direction:column;gap:11px;animation:kbup .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes kbup{from{transform:translateY(100%)}}
+.pred{display:flex;height:36px;align-items:center;color:#e5e5ea;font-size:16px;margin:-2px 0 -4px}
+.pred div{flex:1;text-align:center;border-right:1px solid #48484f}
+.pred div:last-child{border:0}
+.kr{display:flex;justify-content:center;gap:6px;padding:0 3px}
+.k{height:43px;flex:0 0 32.6px;background:#6b6b70;border-radius:5px;display:grid;place-items:center;font-size:22px;color:#fff;box-shadow:0 1px 0 #111;cursor:pointer}
+.k:active{background:#8e8e93}
+.k.fn{background:#46464b;font-size:15px}
+.k.wide{flex:0 0 42px}
+.k.space{flex:1 1 auto;font-size:15px}
+.k.ret{flex:0 0 88px;font-size:15px}
+.kb .spacer{height:34px}
+
+/* lock screen */
+.wall{position:absolute;inset:0;background:radial-gradient(120% 70% at 30% 18%,#3c2f86 0%,#1a1740 45%,#07070d 100%)}
+.lk-date{position:absolute;left:0;right:0;top:92px;text-align:center;font-size:20px;font-weight:600;color:rgba(255,255,255,.85)}
+.lk-time{position:absolute;left:0;right:0;top:112px;text-align:center;font-size:96px;font-weight:700;letter-spacing:-2px;color:rgba(255,255,255,.92);font-family:"SF Pro Rounded",-apple-system,system-ui}
+.lk-wid{position:absolute;left:0;right:0;top:238px;display:flex;justify-content:center;gap:16px}
+.acc{width:66px;height:66px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);display:grid;place-items:center;color:#fff;font-size:26px}
+.lkctl{position:absolute;bottom:52px;width:50px;height:50px;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(12px);display:grid;place-items:center;color:#fff;font-size:21px}
+.lk-lock{position:absolute;left:50%;top:58px;margin-left:-10px;color:#fff;font-size:20px}
+.faceid{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);z-index:15}
+.faceid .fx{width:90px;height:90px;border-radius:22px;background:rgba(60,60,70,.9);display:grid;place-items:center;color:#34d399;font-size:44px;animation:pulse .6s ease-in-out}
+@keyframes pulse{50%{transform:scale(1.08)}}
+
+/* control center */
+.cc{position:absolute;inset:0;background:rgba(10,10,18,.55);backdrop-filter:blur(26px)}
+.cc-bg{position:absolute;inset:0;filter:blur(8px) brightness(.55)}
+.ccgrid{position:absolute;left:26px;right:26px;top:110px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.tile{background:rgba(120,120,140,.28);border-radius:22px;aspect-ratio:1;display:grid;place-items:center;color:#fff;font-size:24px}
+.tile.w2{grid-column:span 2;aspect-ratio:auto;height:72px;display:flex;align-items:center;gap:10px;padding:0 14px;justify-content:flex-start;border-radius:36px}
+.tile.big{grid-column:span 2;grid-row:span 2;aspect-ratio:1;border-radius:26px}
+.tile.tall{grid-row:span 2;aspect-ratio:auto;border-radius:26px;align-items:end;padding-bottom:12px}
+.tile .dot{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);flex:0 0 auto}
+.tile .lbl{font-size:13px;font-weight:600;line-height:1.15}
+.tile .lbl small{display:block;font-size:11.5px;font-weight:400;opacity:.7}
+.tile.skr .dot{background:#fff;color:#1b1b22}
+.ccsec{grid-column:1/-1;font-size:12px;color:rgba(255,255,255,.55);margin:4px 0 -8px 4px}
+
+/* siri */
+.siri-glow{position:absolute;inset:0;border-radius:46px;box-shadow:inset 0 0 0 6px rgba(124,107,245,.0);z-index:12;pointer-events:none}
+.siri-glow.on{animation:glow 1.3s ease-in-out infinite;box-shadow:inset 0 0 26px 8px rgba(255,120,180,.55),inset 0 0 60px 18px rgba(96,165,250,.45)}
+@keyframes glow{50%{box-shadow:inset 0 0 34px 12px rgba(124,107,245,.65),inset 0 0 70px 22px rgba(251,146,60,.35)}}
+.siri-bub{position:absolute;left:20px;right:20px;bottom:120px;background:rgba(40,40,52,.9);border-radius:20px;padding:12px 16px;font-size:17px;z-index:13}
+.siri-bub small{display:block;color:var(--t2);font-size:12px;margin-bottom:2px}
+.speak{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);background:rgba(255,255,255,.14);border-radius:24px;padding:10px 18px;font-size:14px;font-weight:600;color:#fff;z-index:13;white-space:nowrap}
+.homegrid{position:absolute;left:28px;right:28px;top:80px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px 22px}
+.appic{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:#fff}
+.appic i{width:62px;height:62px;border-radius:15px;background:rgba(255,255,255,.14);display:block}
+.appic.skr i{background:#0f1117;display:grid;place-items:center;color:#7c6bf5;font-size:30px;font-style:normal;border:1px solid rgba(255,255,255,.12)}
+
+/* ---------- iPad (1180 x 820 landscape) ---------- */
+.ipad .sbar{height:26px;padding:4px 22px 0;font-size:14px}
+.ipad .sbar .notch{display:none}
+.ipad .home-ind{width:180px;margin-left:-90px}
+.ptabs{position:absolute;left:50%;top:30px;transform:translateX(-50%);display:flex;gap:2px;background:rgba(40,42,56,.82);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px;z-index:8}
+.ptabs div{font-size:13px;font-weight:600;color:var(--t2);padding:6px 16px;border-radius:16px}
+.ptabs .on{color:var(--t1);background:rgba(255,255,255,.1)}
+.side{position:absolute;left:0;top:0;bottom:0;width:372px;border-right:1px solid var(--border);background:#11131a}
+.side .idrow{position:absolute;left:48px;right:14px;top:30px;height:48px;display:flex;align-items:center}
+.side .idrow b{font-size:22px;flex:1}
+.side .idrow span{color:var(--accent);font-size:13px}
+.side .pane-tog{position:absolute;left:14px;top:42px;color:var(--t2);font-size:18px}
+.verbs{position:absolute;left:14px;right:14px;top:84px;display:flex;flex-direction:column;gap:7px}
+.verbs .r{display:flex;gap:7px}
+.vb{flex:1;background:var(--elev);border-radius:8px;height:30px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600}
+.vb.rec{color:var(--red)}
+.vb.rec i{width:9px;height:9px;border-radius:50%;background:var(--red);display:block}
+.vb.pen{flex:0 0 34px}
+.vb.proc{background:var(--accent);color:#fff}
+.side .search{top:160px;left:14px;right:14px;height:34px;font-size:13px}
+.pchips{position:absolute;left:14px;right:14px;top:202px;display:flex;gap:5px}
+.pchips div{font-size:11px;color:var(--t2);padding:4px 9px;border-radius:6px}
+.pchips .on{color:var(--accent);background:rgba(124,107,245,.14);border:1px solid rgba(124,107,245,.22)}
+.triage{position:absolute;left:16px;right:16px;top:232px;font-size:11px;display:flex;align-items:center}
+.triage b{color:var(--accentText)}
+.triage .flt{margin-left:auto;color:var(--t2);background:rgba(255,255,255,.06);border-radius:6px;padding:3px 8px;font-size:10.5px}
+.side .list{top:258px;padding:0 12px;gap:8px}
+.side .card{padding:10px 12px;border-radius:12px}
+.side .card .t{font-size:14px}
+.side .card .s{font-size:12.5px}
+.side .card.sel{background:var(--accentSoft);border-color:rgba(124,107,245,.5)}
+.detail{position:absolute;left:372px;right:0;top:0;bottom:0}
+.detail .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--t3);font-size:15px}
+.dchrome{position:absolute;left:0;right:0;top:30px;height:48px;display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:0 18px;color:var(--t2);font-size:17px}
+.dchrome span{width:34px;height:34px;display:grid;place-items:center}
+.ipad .ttl{top:84px;left:60px;right:60px;padding-left:0;padding-right:0;font-size:22px}
+.ipad .bodyed{top:134px;left:60px;right:60px;padding-left:0;padding-right:0}
+.ipad .kb{padding:8px 6px 0;gap:9px}
+.ipad .kr{gap:9px}
+.ipad .k{height:62px;flex:0 0 88px;font-size:22px;border-radius:7px}
+.ipad .k.fn{font-size:16px}
+.ipad .k.wide{flex:0 0 124px}
+.ipad .k.ret{flex:0 0 150px}
+.ipad .pred{height:44px}
+.ipad .kb .spacer{height:18px}
+.ipad .lk-time{top:70px;font-size:120px}
+.ipad .lk-date{top:50px}
+.ipad .lk-wid{top:230px}
+.ipad .ccgrid{left:auto;right:40px;width:380px;top:60px}
+.ipad .siri-glow{border-radius:24px}
+.ipad .siri-bub{left:auto;right:40px;width:420px;bottom:80px}
+.ipad .homegrid{grid-template-columns:repeat(6,1fr);left:120px;right:120px;top:90px;gap:40px 50px}
+</style>
+
+<!-- SVG sprite: SF-Symbol stand-ins, named after the symbols the source uses -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="square.and.pencil" viewBox="0 0 24 24"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></symbol>
+  <symbol id="mic.fill" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="quote.opening" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M4 16.5a3.5 3.5 0 1 0 3.5-3.5c0-2.5 1.2-4 3-5L9.6 6.5C6 8.2 4 11.5 4 16.5zm9 0a3.5 3.5 0 1 0 3.5-3.5c0-2.5 1.2-4 3-5l-.9-1.5C15 8.2 13 11.5 13 16.5z"/></symbol>
+  <symbol id="magnifyingglass" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></symbol>
+  <symbol id="filter" viewBox="0 0 24 24"><path d="M3 6h18M6.5 12h11M10 18h4"/></symbol>
+  <symbol id="square.and.arrow.down" viewBox="0 0 24 24"><path d="M8 10H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-2M12 3v11m-4-4 4 4 4-4"/></symbol>
+  <symbol id="doc.viewfinder" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M9 8h6v8H9z"/></symbol>
+  <symbol id="chevron.left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="ellipsis" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></symbol>
+  <symbol id="note.text" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="book" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14c-3-.5-6 0-8 1.5zM12 6v14"/></symbol>
+  <symbol id="clock.arrow" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3 3v4h4M12 7.5V12l3 2"/></symbol>
+  <symbol id="gearshape" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="flashlight" viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor" stroke="none"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="lock.open" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor" stroke="none"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="faceid" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M9 9v1.5M15 9v1.5M12 9v4h-1M9 16c1.8 1.3 4.2 1.3 6 0"/></symbol>
+  <symbol id="undo" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-2"/></symbol>
+  <symbol id="redo" viewBox="0 0 24 24"><path d="m15 7 5 5-5 5M20 12H9a5 5 0 0 0 0 10h2"/></symbol>
+  <symbol id="checklist" viewBox="0 0 24 24"><path d="m3.5 6.5 1.5 1.5 3-3M3.5 14.5l1.5 1.5 3-3M11 7h10M11 15h10"/></symbol>
+  <symbol id="arrow.right" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="sidebar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13V9M9 2h6"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
+  <symbol id="speaker" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 9a4 4 0 0 1 0 6"/></symbol>
+</svg>
+
+<div class="wrap">
+  <div class="eyebrow">Q1 · mock · C112 · C114 · C43 / D91</div>
+  <h1>Quick note: from anywhere to an empty note with the keyboard up</h1>
+  <p class="lede">Tap through each way in. Everything inside the frame responds: the keys type, Back leaves the note, and an empty note you leave is thrown away. The orange dashed outlines mark the choices you're most likely to overrule.</p>
+
+  <div class="controls">
+    <div class="seg" id="devSeg" role="group" aria-label="Device">
+      <button id="dev-phone" data-dev="phone" aria-pressed="true">iPhone 13</button>
+      <button id="dev-ipad" data-dev="ipad" aria-pressed="false">iPad (landscape)</button>
+    </div>
+    <div class="seg" id="flowSeg" role="group" aria-label="Way in">
+      <button id="fl-app" data-flow="app" aria-pressed="true"><span class="n">1</span>In the app</button>
+      <button id="fl-lock" data-flow="lock" aria-pressed="false"><span class="n">2</span>Lock Screen</button>
+      <button id="fl-cc" data-flow="cc" aria-pressed="false"><span class="n">3</span>Control Center</button>
+      <button id="fl-siri" data-flow="siri" aria-pressed="false"><span class="n">4</span>Siri</button>
+      <button id="fl-empty" data-flow="empty" aria-pressed="false"><span class="n">5</span>Leave it empty</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="stage">
+      <div class="host phone" id="host"><div class="screen" id="screen"></div></div>
+      <div class="cap" id="cap"><span class="step" id="capStep">1 / 2</span><div><p id="capText"></p><p class="say" id="capSay"></p></div></div>
+      <div class="row-btns">
+        <button class="btn" id="restart">Start this way in over</button>
+        <button class="btn" id="zoom" hidden>Zoom iPad</button>
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel q">
+        <h2>The one question</h2>
+        <p>On the phone, does New Note sit next to the red mic at the bottom, or up in the header beside Select?</p>
+      </div>
+
+      <div class="panel">
+        <h2>Choices to overrule</h2>
+
+        <div class="pick">
+          <span class="tag">PICK 1 · PHONE PLACEMENT</span>
+          <p>New Note is a 52pt ✎ button to the left of the red mic, in the bottom row you reach with your thumb.</p>
+          <p class="why">Today the phone has no New Note button at all (only the iPad has ✎, in its verb row). The header already holds Select, Import, Scan and Filter. With a book playing, the book pill takes the left of the row: pill · ✎ · mic.</p>
+          <div class="alt" role="group" aria-label="Placement">
+            <button id="pl-bottom" data-place="bottom" aria-pressed="true">Bottom, beside mic (pick)</button>
+            <button id="pl-header" data-place="header" aria-pressed="false">Header icon</button>
+          </div>
+        </div>
+
+        <div class="pick">
+          <span class="tag">PICK 2 · WHERE THE CURSOR LANDS</span>
+          <p>The cursor lands in the body. The title stays empty and shows the faint "Add a title" prompt.</p>
+          <p class="why">You start with the thought, not with naming it. The list row falls back to the first line when there's no title, as it does today.</p>
+          <div class="alt" role="group" aria-label="Cursor">
+            <button id="cu-body" data-cursor="body" aria-pressed="true">Body (pick)</button>
+            <button id="cu-title" data-cursor="title" aria-pressed="false">Title first</button>
+          </div>
+        </div>
+
+        <div class="pick">
+          <span class="tag">PICK 3 · HOW THE DISCARD FEELS</span>
+          <p>The discard is silent: no toast, no undo. A note counts as empty when it has no title text, no body text and no photo at the moment you leave, so typing something and deleting it all also discards.</p>
+          <p class="why">D91 says "untouched". This reads it as "empty when you leave" rather than "no key was ever pressed". Build note: create the Memo on the first keystroke, not on the tap, so an empty note never syncs to the Mac. Today <code>Memo.newTyped</code> saves on the tap.</p>
+          <div class="alt" role="group" aria-label="Discard">
+            <button id="ds-silent" data-discard="silent" aria-pressed="true">Silent (pick)</button>
+            <button id="ds-toast" data-discard="toast" aria-pressed="false">Toast "Empty note discarded"</button>
+          </div>
+        </div>
+
+        <div class="pick">
+          <span class="tag">PICK 4 · A SECOND BUTTON, NOT A CHANGED ONE</span>
+          <p>New Note is its own control and widget next to the existing Record (❝) one, with the same ✎ glyph the app uses. Siri phrase: "New note in Skrift".</p>
+          <p class="why">The Lock Screen corner slot and Control Center both take one Control; you place Record and New Note separately. Plain "new note" goes to Apple Notes, so the phrase has to name Skrift.</p>
+        </div>
+      </div>
+
+      <div class="panel clauses">
+        <h2>What this mocks</h2>
+        <dl>
+          <dt>C112</dt><dd>New Note from the app, the Lock Screen / Control Center widget and Siri opens an empty note, keyboard up, in under a second.</dd>
+          <dt>C114</dt><dd>The app opens into the list, New Note one tap away. Widget and Siri push the note on top of the list, so Back lands in the list.</dd>
+          <dt>C43 / D91</dt><dd>An untouched empty typed note is discarded when you leave it and never listed.</dd>
+          <dt>From source</dt><dd>List header, cards, mic button, iPad verb row, note nav bar, title row and accessory pill are drawn from <code>MemosListView.swift</code>, <code>NoteCardView.swift</code>, <code>MemoDetailView.swift</code>, <code>NoteAccessoryBar.swift</code> and <code>RecordWidget.swift</code>. The ✎ buttons on the phone, the New Note widgets and the Siri phrase are new.</dd>
+          <dt>Not verified</dt><dd>Whether iPadOS offers Lock Screen corner controls. The iPad lock screen here shows widgets only.</dd>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+  const S = {dev:'phone', flow:'app', screen:'list', place:'bottom', cursor:'body', discard:'silent',
+             title:'', body:'', field:'body', fresh:null, toast:null, notes:null, note:false, siri:0};
+  const screenEl = document.getElementById('screen'), host = document.getElementById('host');
+  const ic = (id, extra) => `<svg class="i${extra?' '+extra:''}"><use href="#${id}"/></svg>`;
+  const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  const seedNotes = () => ([
+    {stamp:'Thu · 08:12', t:'Tram 28 idea for the plugin menu', s:'What if the menu only shows the three verbs I actually use, and everything else hides behind one more tap', chips:['2:14','Graça']},
+    {stamp:'Wed · 22:40', t:'Groceries for Sunday', s:'eggs, lemons, the good bread from the place on Rua da Rosa, coffee beans', chips:[], glyph:true},
+    {stamp:'Wed · 18:05', t:'Call with Jack about the CNC bed', s:'He thinks the flatness problem is the spoilboard, not the gantry. Surface it first, then measure again', chips:['6:48','Alfama']},
+    {stamp:'Tue · 07:55', t:'Morning pages', s:'Slept badly. The idea about the fading shelf keeps coming back, maybe it is simpler than I think', chips:['11:02']},
+    {stamp:'Mon · 21:17', t:'Robot arm gripper tolerances', s:'0.2 mm was too tight on the PETG print, try 0.35 and a chamfer on the lip', chips:['3:30']},
+  ]);
+  S.notes = seedNotes();
+
+  const FLOWS = {
+    app:  {steps:2, text:['The app opens into the list. Tap ✎ New note.', 'Empty note, keyboard up. Type on the keys, then tap ‹ to go back to the list.']},
+    lock: {steps:2, text:['Locked phone. Tap ✎: either the widget under the clock or the corner control (bottom left, where the flashlight was).', 'Face ID, then straight into the empty note with the keyboard up. Back goes to the list.']},
+    cc:   {steps:2, text:['Control Center. Tap New Note in the Skrift row.', 'Straight into the empty note. Back goes to the list.']},
+    siri: {steps:2, text:['Tap the pill to say it.', 'Siri hands off to the app: empty note, keyboard up. Back goes to the list.']},
+    empty:{steps:2, text:['An empty note, keyboard up. Don\'t type anything. Tap ‹.', '']},
+  };
+
+  function capUpdate(){
+    const f = FLOWS[S.flow];
+    const onNote = S.screen === 'note';
+    let step = onNote ? 2 : 1;
+    let text = f.text[step-1];
+    let say = '';
+    if (S.flow === 'empty' && S.screen === 'list') { step = 2; text = S.lastDiscard ? 'Back in the list. The empty note is gone and was never listed.' : 'Back in the list. You typed something, so the note stayed. Start over and leave it empty.'; }
+    if (S.flow === 'app' && S.screen === 'list' && S.lastLeft) { step = 2; text = S.lastDiscard ? 'Back in the list. You left it empty, so it was thrown away.' : 'Back in the list. Your note is at the top, dashed because it is not rated yet.'; }
+    if (['lock','cc','siri'].includes(S.flow) && S.screen === 'list') { step = 2; text = S.lastDiscard ? 'Back in the list. Empty, so discarded.' : 'Back in the list, your note on top.'; }
+    if (S.screen === 'faceid') { step = 2; text = 'Face ID…'; }
+    if (S.flow === 'siri' && S.screen === 'siri' && S.siri === 1) text = 'Listening…';
+    if (S.screen === 'note') say = 'Budget: under a second from tap to keyboard. Picks in play: <b>' + (S.cursor==='body'?'cursor in body':'cursor in title') + '</b>, <b>' + (S.discard==='silent'?'silent discard':'toast on discard') + '</b>.';
+    if (S.screen === 'list' && S.dev==='phone' && S.flow==='app' && !S.lastLeft) say = 'Pick in play: <b>' + (S.place==='bottom'?'✎ beside the mic':'✎ in the header') + '</b>. Flip it in "Choices to overrule".';
+    if (S.screen === 'list' && S.dev==='ipad' && S.flow==='app' && !S.lastLeft) say = 'The iPad already has this ✎ in its verb row (Import · Record · ✎). Only the landing and the discard are new here.';
+    document.getElementById('capStep').textContent = step + ' / ' + f.steps;
+    document.getElementById('capText').textContent = text;
+    document.getElementById('capSay').innerHTML = say;
+  }
+
+  /* ---------- building blocks ---------- */
+  function statusBar(dark){
+    return `<div class="sbar" style="color:${dark?'#fff':'#fff'}">${S.dev==='phone'?'<div class="notch"></div>':''}<span>9:41</span><span class="r">${ic('wifi')}<span class="batt"></span></span></div>`;
+  }
+  function card(n, i){
+    const cls = ['card']; if (n.quiet) cls.push('quiet'); if (n === S.fresh) cls.push('fresh');
+    if (S.dev==='ipad' && n.sel) cls.push('sel');
+    const chips = n.chips.length ? `<div class="chips">${n.chips.map(c=>`<span class="chip">${esc(c)}</span>`).join('')}</div>` : '';
+    const quiet = (S.dev==='ipad' && n.quiet) ? ` · <span>starts fading 24 Oct</span>` : '';
+    return `<div class="${cls.join(' ')}"><div class="stamp"><span>${n.stamp}${quiet}</span></div><div class="t">${esc(n.t)}</div>${n.s?`<div class="s">${esc(n.s)}</div>`:''}${chips}</div>`;
+  }
+  function tabbar(){
+    return `<div class="tabbar"><div class="on">${ic('note.text')}Notes</div><div>${ic('book')}Books</div><div>${ic('clock.arrow')}Review</div><div>${ic('gearshape')}Settings</div></div>`;
+  }
+  function flag(txt, style){ return `<div class="pickflag" style="${style}">${txt}</div>`; }
+
+  function phoneList(){
+    const headerPen = S.place==='header'
+      ? `<span class="ic tap pickring" data-act="new" style="border-radius:6px" aria-label="New note">${ic('square.and.pencil')}</span>` : '';
+    const bottomPen = S.place==='bottom'
+      ? `<div class="newbtn tap pickring" data-act="new" aria-label="New note">${ic('square.and.pencil')}</div>` : '';
+    const fl = S.place==='bottom' ? flag('PICK 1: ✎ BESIDE MIC','right:92px;bottom:176px') : flag('PICK 1 ALT: ✎ IN HEADER','right:16px;top:96px');
+    return `${statusBar(true)}
+      <div class="hdr"><span class="title">Notes</span><span class="lnk">Select</span>${headerPen}<span class="ic">${ic('square.and.arrow.down')}</span><span class="ic">${ic('doc.viewfinder')}</span><span class="ic">${ic('filter')}</span></div>
+      <div class="search">${ic('magnifyingglass')}Search memos</div>
+      <div class="list">${S.notes.map(card).join('')}</div>
+      <div class="bchrome">${bottomPen}<div class="fab">${ic('mic.fill','f')}</div></div>
+      ${fl}
+      ${tabbar()}
+      ${S.toast?`<div class="toast">${S.toast}</div>`:''}
+      <div class="home-ind"></div>`;
+  }
+
+  function keyboard(){
+    const rows = ['qwertyuiop','asdfghjkl','zxcvbnm'];
+    const r = rows.map((row,idx)=>{
+      let keys = row.split('').map(c=>`<div class="k" data-key="${c}">${c}</div>`).join('');
+      if (idx===2) keys = `<div class="k fn wide" data-key="shift">⇧</div>${keys}<div class="k fn wide" data-key="del">⌫</div>`;
+      return `<div class="kr">${keys}</div>`;
+    }).join('');
+    return `<div class="kb"><div class="pred"><div>I</div><div>The</div><div>Just</div></div>${r}
+      <div class="kr"><div class="k fn wide">123</div><div class="k space" data-key=" ">space</div><div class="k fn ret" data-key="ret">return</div></div><div class="spacer"></div></div>`;
+  }
+  function accbar(bottom){
+    return `<div class="glass accbar" style="bottom:${bottom}px">${['undo','redo','checklist','camera','arrow.right','magnifyingglass'].map(x=>`<span>${ic(x)}</span>`).join('')}</div>`;
+  }
+  function noteFields(){
+    const tCaret = S.field==='title' ? '<span class="caret"></span>' : '';
+    const bCaret = S.field==='body' ? '<span class="caret"></span>' : '';
+    const title = S.title ? esc(S.title)+tCaret : (tCaret + `<span class="ph">Add a title</span>`);
+    const fl = S.cursor==='body' ? flag('PICK 2: CURSOR IN BODY', S.dev==='phone'?'right:16px;top:162px':'right:60px;top:140px')
+                                 : flag('PICK 2 ALT: TITLE FIRST', S.dev==='phone'?'right:16px;top:112px':'right:60px;top:92px');
+    return `<div class="ttl tap" data-act="field-title">${title}</div>
+      <div class="bodyed tap" data-act="field-body" style="bottom:${S.dev==='phone'?400:420}px">${esc(S.body)}${bCaret}</div>${fl}`;
+  }
+  function phoneNote(){
+    return `${statusBar(true)}
+      <div class="nav"><div class="glass back tap" data-act="back" aria-label="Back to Notes">${ic('chevron.left')}</div>
+        <div class="glass trail"><span>${ic('plus')}</span><span>${ic('ellipsis')}</span></div></div>
+      ${noteFields()}
+      ${accbar(344)}
+      ${keyboard()}
+      <div class="home-ind"></div>`;
+  }
+
+  function lockScreen(){
+    const pad = S.dev==='ipad';
+    return `<div class="wall"></div>${statusBar(true)}
+      <div class="lk-lock">${ic('lock')}</div>
+      <div class="lk-date">Thursday 24 September</div>
+      <div class="lk-time">9:41</div>
+      <div class="lk-wid"><div class="acc" aria-label="Record">${ic('quote.opening')}</div><div class="acc tap pickring" data-act="unlock" aria-label="New note">${ic('square.and.pencil')}</div></div>
+      ${flag('PICK 4: NEW WIDGET BESIDE RECORD', pad?'left:50%;margin-left:-100px;top:306px':'left:50%;margin-left:-100px;top:314px')}
+      ${pad?'':`<div class="lkctl tap pickring" data-act="unlock" style="left:46px" aria-label="New note control">${ic('square.and.pencil')}</div>
+      <div class="lkctl" style="right:46px">${ic('camera')}</div>
+      ${flag('CORNER CONTROL (WAS FLASHLIGHT)','left:26px;bottom:112px')}`}
+      ${S.screen==='faceid'?`<div class="faceid"><div class="fx">${ic('faceid')}</div></div>`:''}
+      <div class="home-ind"></div>`;
+  }
+
+  function controlCenter(){
+    return `<div class="cc-bg">${S.dev==='phone'?phoneListStatic():ipadListStatic()}</div><div class="cc"></div>${statusBar(true)}
+      <div class="ccgrid">
+        <div class="tile big" style="display:grid;grid-template-columns:1fr 1fr;padding:14px;gap:10px;place-items:center">${['wifi','moon','timer','flashlight'].map(x=>`<div class="dot" style="font-size:20px">${ic(x)}</div>`).join('')}</div>
+        <div class="tile big" style="align-content:end;justify-items:start;padding:16px;font-size:13px;font-weight:600;color:rgba(255,255,255,.8)">Not playing</div>
+        <div class="tile tall">${ic('sun')}</div><div class="tile tall">${ic('speaker')}</div>
+        <div class="tile">${ic('timer')}</div><div class="tile">${ic('camera')}</div>
+        <div class="ccsec">Skrift</div>
+        <div class="tile w2 skr"><div class="dot">${ic('quote.opening')}</div><div class="lbl">Record<small>Skrift</small></div></div>
+        <div class="tile w2 skr tap pickring" data-act="open"><div class="dot">${ic('square.and.pencil')}</div><div class="lbl">New Note<small>Skrift</small></div></div>
+      </div>
+      ${flag('PICK 4: ITS OWN CONTROL', S.dev==='phone'?'right:30px;top:520px':'right:44px;top:470px')}
+      <div class="home-ind"></div>`;
+  }
+
+  function siriScreen(){
+    const names = ['Photos','Mail','Maps','Calendar','Clock','Weather','Music','Notes','Files','Settings','Camera'];
+    const grid = names.slice(0, S.dev==='phone'?11:11).map((n,i)=>`<div class="appic"><i></i>${n}</div>`).join('') + `<div class="appic skr"><i>${ic('quote.opening')}</i>Skrift</div>`;
+    return `<div class="wall" style="filter:brightness(.8)"></div>${statusBar(true)}
+      <div class="homegrid">${grid}</div>
+      <div class="siri-glow ${S.siri?'on':''}"></div>
+      ${S.siri?`<div class="siri-bub"><small>Siri</small>“New note in Skrift”</div>`:''}
+      ${S.siri?'':`<div class="speak tap pickring" data-act="siri">Say “New note in Skrift”</div>${flag('PICK 4: PHRASE MUST NAME SKRIFT', S.dev==='phone'?'left:50%;margin-left:-104px;bottom:100px':'left:50%;margin-left:-104px;bottom:100px')}`}
+      <div class="home-ind"></div>`;
+  }
+
+  /* ---------- iPad ---------- */
+  function ipadSide(){
+    return `<div class="side">
+      <div class="pane-tog">${ic('sidebar')}</div>
+      <div class="idrow"><b>Notes</b><span>Select</span></div>
+      <div class="verbs"><div class="r"><div class="vb">${ic('plus')} Import</div><div class="vb rec"><i></i>Record</div><div class="vb pen tap pickring" data-act="new" aria-label="New note">${ic('square.and.pencil')}</div></div>
+        <div class="r"><div class="vb proc">${ic('play')} Process <span style="opacity:.8">3</span></div></div></div>
+      <div class="search">${ic('magnifyingglass')}Search memos</div>
+      <div class="pchips"><div class="on">All</div><div>Needs Work</div><div>Done</div><div>Unrated</div></div>
+      <div class="triage"><b>2 ready to review</b><span style="color:var(--t3)">&nbsp;· 3 to process</span><span class="flt">Filter</span></div>
+      <div class="list">${S.notes.map(card).join('')}</div>
+    </div>`;
+  }
+  function ipadListStatic(){ return `<div class="app">${ipadSide()}<div class="detail"><div class="empty">No note selected</div></div></div>`; }
+  function phoneListStatic(){ return `<div class="app">${phoneList()}</div>`; }
+  function ipadList(){
+    return `${statusBar(true)}${ipadSide()}<div class="detail"><div class="empty">No note selected</div></div>
+      <div class="ptabs"><div class="on">Notes</div><div>Books</div><div>Review</div><div>Settings</div></div>
+      ${flag('EXISTS TODAY (iPad ✎, mac-new-note m2)','left:240px;top:122px')}
+      ${S.toast?`<div class="toast" style="left:186px">${S.toast}</div>`:''}
+      <div class="home-ind"></div>`;
+  }
+  function ipadNote(){
+    return `${statusBar(true)}${ipadSide()}
+      <div class="detail"><div class="dchrome"><span class="tap" data-act="back" title="Leave note" style="margin-right:auto;color:var(--accent);width:auto;font-size:15px">${ic('chevron.left')}</span><span>${ic('plus')}</span><span>${ic('ellipsis')}</span></div>
+      ${noteFields()}</div>
+      <div class="ptabs"><div class="on">Notes</div><div>Books</div><div>Review</div><div>Settings</div></div>
+      ${accbar(376)}
+      ${keyboard()}
+      <div class="home-ind"></div>`;
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    const pad = S.dev==='ipad';
+    let inner = '';
+    if (S.screen==='list') inner = pad ? ipadList() : phoneList();
+    else if (S.screen==='note') inner = pad ? ipadNote() : phoneNote();
+    else if (S.screen==='lock' || S.screen==='faceid') inner = lockScreen();
+    else if (S.screen==='cc') inner = controlCenter();
+    else if (S.screen==='siri') inner = siriScreen();
+    screenEl.innerHTML = `<div class="app ${pad?'ipad':''}">${inner}</div>`;
+    capUpdate();
+    fit();
+  }
+
+  function fit(){
+    const pad = S.dev==='ipad', zoom = pad && S.zoom;
+    const W = pad?1180:390, H = pad?820:844;
+    host.className = 'host ' + (pad?'ipad':'phone') + (zoom?' zoomed':'');
+    const hw = host.clientWidth || host.parentElement.clientWidth;
+    let scale = Math.min(1, (hw - 18) / W);
+    if (zoom) scale = Math.max(scale, 0.62);
+    screenEl.style.width = W+'px'; screenEl.style.height = H+'px';
+    screenEl.style.transform = 'scale('+scale+')';
+    screenEl.style.top = '9px';
+    screenEl.style.left = (zoom ? 9 : Math.max(9, (hw - W*scale)/2)) + 'px';
+    host.style.height = (H*scale + 18) + 'px';
+    spacer(zoom ? W*scale + 18 : 0);
+  }
+  function spacer(w){
+    let sp = host.querySelector('.zsp');
+    if (!w){ if (sp) sp.remove(); return; }
+    if (!sp){ sp = document.createElement('div'); sp.className='zsp'; sp.style.height='1px'; host.appendChild(sp); }
+    sp.style.width = w+'px';
+  }
+
+  function openNote(){
+    S.title=''; S.body=''; S.field = S.cursor; S.screen='note'; S.toast=null; S.lastLeft=false;
+    S.notes.forEach(n=>n.sel=false);
+    render();
+  }
+  function leave(){
+    const empty = !S.title.trim() && !S.body.trim();
+    S.lastLeft = true; S.lastDiscard = empty;
+    if (empty){
+      S.fresh = null;
+      S.toast = S.discard==='toast' ? 'Empty note discarded' : null;
+      if (S.toast) setTimeout(()=>{ S.toast=null; if(S.screen==='list') render(); }, 2200);
+    } else {
+      const first = S.body.split('\n').find(l=>l.trim()) || '';
+      const n = {stamp:'Thu · 09:41', t: S.title.trim() || first.trim(), s: S.title.trim() ? S.body.trim() : S.body.trim().split('\n').slice(1).join(' '), chips:[], quiet:true, sel:S.dev==='ipad'};
+      S.notes.unshift(n); S.fresh = n;
+    }
+    S.screen='list'; render();
+  }
+  function startFlow(){
+    S.notes = seedNotes(); S.fresh=null; S.toast=null; S.lastLeft=false; S.lastDiscard=false; S.siri=0;
+    if (S.flow==='app') { S.screen='list'; render(); }
+    else if (S.flow==='lock') { S.screen='lock'; render(); }
+    else if (S.flow==='cc') { S.screen='cc'; render(); }
+    else if (S.flow==='siri') { S.screen='siri'; render(); }
+    else if (S.flow==='empty') { openNote(); }
+  }
+
+  let shift = false;
+  screenEl.addEventListener('click', e=>{
+    const k = e.target.closest('[data-key]');
+    if (k && S.screen==='note'){
+      const key = k.dataset.key; const f = S.field;
+      let v = S[f];
+      if (key==='del') v = v.slice(0,-1);
+      else if (key==='shift') { shift = !shift; return; }
+      else if (key==='ret') { if (f==='title') { S.field='body'; render(); return; } v += '\n'; }
+      else { let c = key; if (shift || (!v.length && c!==' ') || /[.!?]\s$/.test(v)) c = c.toUpperCase(); shift=false; v += c; }
+      S[f] = v; render(); return;
+    }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const act = a.dataset.act;
+    if (act==='new' || act==='open') openNote();
+    else if (act==='back') leave();
+    else if (act==='field-title') { S.field='title'; render(); }
+    else if (act==='field-body') { S.field='body'; render(); }
+    else if (act==='unlock') { S.screen='faceid'; render(); setTimeout(()=>{ if(S.screen==='faceid') openNote(); }, 650); }
+    else if (act==='siri') { S.siri=1; render(); setTimeout(()=>{ if(S.screen==='siri') openNote(); }, 1100); }
+  });
+
+  function bindSeg(id, attr, key, after){
+    document.getElementById(id).addEventListener('click', e=>{
+      const b = e.target.closest('button'); if (!b) return;
+      S[key] = b.dataset[attr];
+      document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+      after();
+    });
+  }
+  bindSeg('devSeg','dev','dev', ()=>{ document.getElementById('zoom').hidden = S.dev!=='ipad'; S.zoom=false; startFlow(); });
+  bindSeg('flowSeg','flow','flow', startFlow);
+  document.querySelectorAll('.alt').forEach(g=>g.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if (!b) return;
+    const [k] = Object.keys(b.dataset); S[k] = b.dataset[k];
+    g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+    if (k==='cursor' && S.screen==='note') S.field = S.cursor;
+    if (k==='place' && S.dev!=='phone') { document.getElementById('dev-phone').click(); return; }
+    render();
+  }));
+  document.getElementById('restart').addEventListener('click', startFlow);
+  document.getElementById('zoom').addEventListener('click', ()=>{ S.zoom=!S.zoom; document.getElementById('zoom').textContent = S.zoom?'Fit iPad':'Zoom iPad'; render(); });
+  if ('ResizeObserver' in window) new ResizeObserver(()=>fit()).observe(host.parentElement); else window.addEventListener('resize', fit);
+  startFlow();
+})();
+</script>
