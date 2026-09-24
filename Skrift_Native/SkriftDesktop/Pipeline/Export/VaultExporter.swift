@@ -139,9 +139,9 @@ enum VaultExporter {
             // memos. Legacy marker-less captures keep the copy-under-original-name path
             // (their pinned `![[filename]]` embed references the original name).
             if pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
-                (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown)
+                (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown, id: id)
             } else {
-                (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe, into: attDir)
+                (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe, into: attDir, id: id)
             }
         }
 
@@ -153,7 +153,7 @@ enum VaultExporter {
                 .appendingPathComponent("Attachments", isDirectory: true)
             if FileManager.default.fileExists(atPath: attSrc.path) {
                 let attDir = imageDestination(vaultURL: vaultURL, relativePath: relPath, profile: profile)
-                let (rewritten, copied) = convertNoteAttachments(finalMarkdown, attachmentsSrc: attSrc, into: attDir)
+                let (rewritten, copied) = convertNoteAttachments(finalMarkdown, attachmentsSrc: attSrc, into: attDir, id: id)
                 finalMarkdown = rewritten
                 imageCount += copied
             }
@@ -209,7 +209,11 @@ enum VaultExporter {
     /// Replace `[[img_NNN]]` markers with `![[<safe>_NNN.ext]]` Obsidian embeds,
     /// copying the matched image (by `img_NNN`/`_NNN.` name, else the NNN-th file)
     /// into `attDir` under the new name. Returns the rewritten markdown + copy count.
-    static func convertImageMarkers(_ markdown: String, imagesDir: URL, safe: String, into attDir: URL) -> (String, Int) {
+    /// `id` disambiguates a name collision with a file this device doesn't own (C58) —
+    /// same ownership rule the markdown lane already applies (C54): never a blind
+    /// `removeItem`, a foreign occupant gets left alone and ours lands under a suffix.
+    static func convertImageMarkers(_ markdown: String, imagesDir: URL, safe: String,
+                                    into attDir: URL, id: UUID) -> (String, Int) {
         let fm = FileManager.default
         let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])
             .filter { !$0.lastPathComponent.hasPrefix(".") }
@@ -227,12 +231,13 @@ enum VaultExporter {
                 ?? ((0..<files.count).contains(idx) ? files[idx] : nil)
             guard let file else { continue }
             let ext = file.pathExtension.isEmpty ? "jpg" : file.pathExtension
-            let newName = "\(safe)_\(nnn).\(ext)"
-            try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
-            let dest = attDir.appendingPathComponent(newName)
-            try? fm.removeItem(at: dest)
-            if loggedCopy(fm, from: file, to: dest) { copied += 1 }
-            replacements.append((m.range, "![[\(newName)]]"))
+            let preferredName = "\(safe)_\(nnn).\(ext)"
+            guard let written = VaultAttachmentOwnership.copyOwned(from: file, preferredName: preferredName,
+                                                                    into: attDir, id: id) else {
+                Self.logCopyFailure(name: file.lastPathComponent); continue
+            }
+            copied += 1
+            replacements.append((m.range, "![[\(written.lastPathComponent)]]"))
         }
         var out = markdown
         for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
@@ -241,41 +246,49 @@ enum VaultExporter {
         return (out, copied)
     }
 
-    /// One attachment copy with the failure LOGGED — a `try?` here made a missing
-    /// attachment indistinguishable from success (the embed got written either way).
-    private static func loggedCopy(_ fm: FileManager, from src: URL, to dest: URL) -> Bool {
-        do { try fm.copyItem(at: src, to: dest); return true }
-        catch {
-            Logger(subsystem: "com.skrift.desktop", category: "export")
-                .error("attachment copy FAILED \(src.lastPathComponent, privacy: .public) — embed will dangle: \(error)")
-            return false
-        }
+    /// A copy failure LOGGED — a bare `try?` made a missing attachment indistinguishable
+    /// from success (the embed got written either way).
+    private static func logCopyFailure(name: String) {
+        Logger(subsystem: "com.skrift.desktop", category: "export")
+            .error("attachment copy FAILED \(name, privacy: .public) — embed will dangle")
     }
 
     /// LEGACY (pre-Wave-2) captures: copy images from the capture's `images/` folder to
     /// the vault attachments folder under their original names — no `[[img_NNN]]` markers
     /// in the body, the Compiler emitted a pinned `![[filename]]` embed instead. Wave-2
-    /// captures carry markers and go through `convertImageMarkers` like memos.
-    static func copyCaptureFolderImages(imagesDir: URL, into attDir: URL, markdown: String) -> (String, Int) {
+    /// captures carry markers and go through `convertImageMarkers` like memos. A name
+    /// collision with a file this device doesn't own (C58) never deletes it — ours lands
+    /// under a disambiguated name instead, and the pinned embed is rewritten to match.
+    static func copyCaptureFolderImages(imagesDir: URL, into attDir: URL, markdown: String, id: UUID) -> (String, Int) {
         let fm = FileManager.default
         let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])
             .filter { !$0.lastPathComponent.hasPrefix(".") }
         guard !files.isEmpty else { return (markdown, 0) }
-        try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
         var copied = 0
+        var out = markdown
         for file in files {
-            let dest = attDir.appendingPathComponent(file.lastPathComponent)
-            try? fm.removeItem(at: dest)
-            if loggedCopy(fm, from: file, to: dest) { copied += 1 }
+            let originalName = file.lastPathComponent
+            guard let written = VaultAttachmentOwnership.copyOwned(from: file, preferredName: originalName,
+                                                                    into: attDir, id: id) else {
+                Self.logCopyFailure(name: originalName); continue
+            }
+            copied += 1
+            if written.lastPathComponent != originalName {
+                // The pinned embed the Compiler already baked in references the ORIGINAL
+                // name — a foreign file occupied it, so keep the reference pointed at what
+                // we actually wrote.
+                out = out.replacingOccurrences(of: "[[\(originalName)]]", with: "[[\(written.lastPathComponent)]]")
+            }
         }
-        return (markdown, copied)
+        return (out, copied)
     }
 
     /// Copy an Apple Note's `Attachments/` files referenced as `![alt](Attachments/x)`
     /// or `[alt](Attachments/x)` into `attDir`, and convert the refs to Obsidian
     /// embeds/links (`![[x]]` / `[[x]]`). Robust to spaces in the renamed files (the
     /// wikilink form sidesteps markdown URL escaping). Returns rewritten md + copies.
-    static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL) -> (String, Int) {
+    /// `id` disambiguates a name collision with a file this device doesn't own (C58).
+    static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL, id: UUID) -> (String, Int) {
         let fm = FileManager.default
         guard let rx = try? NSRegularExpression(pattern: "(!?)\\[[^\\]]*\\]\\(Attachments/([^)]+)\\)") else {
             return (markdown, 0)
@@ -289,11 +302,12 @@ enum VaultExporter {
             let name = raw.removingPercentEncoding ?? raw
             let src = attachmentsSrc.appendingPathComponent(name)
             guard fm.fileExists(atPath: src.path) else { continue }
-            try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
-            let dest = attDir.appendingPathComponent(name)
-            try? fm.removeItem(at: dest)
-            if loggedCopy(fm, from: src, to: dest) { copied += 1 }
-            replacements.append((m.range, "\(bang)[[\(name)]]"))
+            guard let written = VaultAttachmentOwnership.copyOwned(from: src, preferredName: name,
+                                                                    into: attDir, id: id) else {
+                Self.logCopyFailure(name: name); continue
+            }
+            copied += 1
+            replacements.append((m.range, "\(bang)[[\(written.lastPathComponent)]]"))
         }
         var out = markdown
         for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {

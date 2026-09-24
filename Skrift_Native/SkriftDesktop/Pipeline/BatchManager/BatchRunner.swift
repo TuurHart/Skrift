@@ -70,7 +70,15 @@ struct BatchRunner {
                 pf.transcribeStatus = .error
                 throw BatchRunnerError.missingAudioFile
             }
-            let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+            let result: TranscriptionResult
+            do {
+                result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+            } catch {
+                // A failed ASR pass is a transcribe-stage error on the row — the OLD
+                // transcript/derivatives haven't been touched yet, so they stay put (C51/R9).
+                pf.transcribeStatus = .error
+                throw error
+            }
             // Paragraph the stored transcript exactly like the phone does at the same
             // moment (`MemoSaver.runTranscription` → shared `Paragrapher`): a long pause
             // after a finished sentence starts a new paragraph, so a Mac-transcribed
