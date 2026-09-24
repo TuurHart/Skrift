@@ -293,7 +293,7 @@ node: V2Core
 do: Q35 finding. (1) The dispatcher sees the Mac sidebar's left ~12 px cut in `plan/reads/list-q35/mac-sidebar-dark.png` ("ODAY", "AT 19 SEP", logo, "All" chip). Launch the DEV Mac app built from your worktree against an ISOLATED store seeded from the synthetic corpus (never the live Dev store, never /Applications/Skrift.app; quit it after; one instance only) and capture the real window with `screencapture -l <windowid>`. If the left edge is cut there, fix the layout; if not, fix `-snapshot-shell`'s crop so its PNG matches the real window. (2) The same corpus shows "Needs Work 6 · Unrated 5" on the Mac and "Needs Work 99 · Unrated 6" on the iPad: find why, and make every device count from the shared `NotesListModel` on the same inputs (one definition per chip), with a test in a new `ChipCountParityTests` (desktop target) feeding the corpus. Commit PNGs under `plan/reads/list-q37/`.
 check: `test $(ls plan/reads/list-q37/*.png | wc -l) -ge 1 && grep -rqE "class ChipCountParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q38 [auto] (doing) edit conflicts also catch edits to a Mac-polished note
+### Q38 [auto] (done) edit conflicts also catch edits to a Mac-polished note
 spec: C98 C242
 needs: Q29
 gate+: yes
@@ -442,3 +442,4 @@ check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 - 2026-09-24 22:56 Q37 -> doing — worker out
 - 2026-09-24 23:06 Q40 -> done — gate pass @049a2722
 - 2026-09-24 23:06 Q38 -> doing — worker out (opus)
+- 2026-09-24 23:16 Q38 -> done — gate pass @6b216dbb
