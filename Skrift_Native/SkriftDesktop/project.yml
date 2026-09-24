@@ -225,6 +225,9 @@ targets:
       # Q26 unified notes list: chip counts / day groups / pill rule, Foundation-only
       # (no SwiftUI), same discipline as Palette/SharedCopy above.
       - path: ../Shared/UI/NotesListModel.swift
+      # Q28 tag revamp: the C93/D139 split + library-fold rules, Foundation-only
+      # (no SwiftUI), same discipline as Palette/SharedCopy above.
+      - path: ../Shared/UI/TagRules.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests

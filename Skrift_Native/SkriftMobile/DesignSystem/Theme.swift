@@ -124,3 +124,14 @@ extension RoundedRectangle {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
     }
 }
+
+/// The phone/iPad look for the shared `TagEditorRow` (C240) — 14 pt chips, 30 pt
+/// tall, tap-arms-then-removes (D139 signed mock `tag-ui-revamp.html`).
+extension TagRowStyle {
+    static let phone = TagRowStyle(
+        chipFont: .system(size: 14, weight: .medium), chipHeight: 30, chipHPad: 12,
+        fieldWidth: 110, armsOnTap: true,
+        textColor: .skAccentText, backgroundColor: .skAccentSoft, dimTextColor: .skTextDim,
+        elevColor: .skElev, borderColor: .skBorder, dangerColor: .skRed,
+        fieldBackground: .skElev, fieldBorder: .skBorder)
+}

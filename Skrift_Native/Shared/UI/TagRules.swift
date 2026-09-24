@@ -53,6 +53,11 @@ enum TagRules {
     /// a different case), the fold record (typed spelling → the spelling kept).
     static func fold(_ accepted: [String], existing: [String], library: [String]) -> (toAdd: [String], folds: [Fold]) {
         var have = Set(existing.map { $0.lowercased() })
+        // The spelling actually kept for each case-folded key so far — seeded from
+        // `existing`, then updated as this batch adds its own tags, so a SECOND
+        // same-batch variant (`fold(["Wood", "wood"], …)`) folds onto the FIRST
+        // spelling in the batch, not just onto what was already on the note.
+        var keptSpelling: [String: String] = Dictionary(uniqueKeysWithValues: existing.map { ($0.lowercased(), $0) })
         var toAdd: [String] = []
         var folds: [Fold] = []
         let widerLibrary = library + existing
@@ -60,12 +65,16 @@ enum TagRules {
             let resolved = resolveSpelling(typed, library: widerLibrary)
             let key = resolved.lowercased()
             if have.contains(key) {
-                let kept = existing.first { $0.lowercased() == key } ?? resolved
+                let kept = keptSpelling[key] ?? resolved
                 if kept != typed { folds.append(Fold(typed: typed, kept: kept)) }
                 continue
             }
             have.insert(key)
+            keptSpelling[key] = resolved
             toAdd.append(resolved)
+            // Still added (new to the note) but under a library-wide spelling other
+            // than what was typed — worth a fold record so the caller can say so.
+            if resolved != typed { folds.append(Fold(typed: typed, kept: resolved)) }
         }
         return (toAdd, folds)
     }

@@ -795,8 +795,6 @@ private struct MemoPageView: View {
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
     /// touch check (backlinked notes never fade).
     @State private var detailBacklinkedIDs: Set<UUID> = []
-    @State private var showTagEditor = false
-    @State private var libraryTags: [String] = []
     /// What the QuickLook viewer is showing: an inline photo (marker set — an
     /// edit re-mirrors + re-OCRs it) or a shared-document capture (marker nil).
     struct QuickLookTarget: Identifiable {
@@ -913,11 +911,6 @@ private struct MemoPageView: View {
         .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
         .sheet(isPresented: $showReminderSheet) {
             ReminderSheet(memo: memo) { repository.save() }
-        }
-        // Tag CHIP editor (chunk 3): chips with explicit ✕, comma input kept,
-        // autocomplete from every tag in the library.
-        .sheet(isPresented: $showTagEditor) {
-            TagEditorSheet(memo: memo, allTags: libraryTags) { repository.save() }
         }
         // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
         // and the editor's inline photos (tap a photo → viewer).
@@ -1224,17 +1217,6 @@ private struct MemoPageView: View {
                 ForEach(metaChips) { chip in
                     ContextChip(text: chip.text, systemImage: chip.symbol)
                 }
-                ForEach(memo.tags, id: \.self) { tag in
-                    // Opens the tag editor — the old tap DELETED the tag
-                    // silently (review-1 finding).
-                    Button { openTagEditor() } label: {
-                        Text("#\(tag)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.skAccentText)
-                            .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
-                    }
-                }
                 // Reminder chip — visible whenever a reminder is set (future =
                 // accent bell, past = faint); tap to change/remove.
                 if let at = memo.remindAt {
@@ -1252,15 +1234,15 @@ private struct MemoPageView: View {
                     }
                     .accessibilityIdentifier("reminder-chip")
                 }
-                Button { openTagEditor() } label: {
-                    Text("+ Tag")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.skTextDim)
-                        .padding(.horizontal, 7).padding(.vertical, 2)
-                        .background(Color.skElev, in: .rect(cornerRadius: 7, style: .continuous))
-                }
-                .accessibilityIdentifier("add-tag-button" + suffix)
             }
+
+            // Tags — their OWN row under the title (D139 pick 3, signed mock
+            // `mocks/tag-ui-revamp.html`), no sheet: `+ tag` turns into an inline
+            // field, comma/Return commits, tap-arms-then-removes with a 4 s Undo.
+            TagEditorRow(tags: $memo.tags, library: repository.allTags(),
+                         style: .phone, onChanged: { memo.markEdited(); repository.save() },
+                         idSuffix: suffix)
+                .padding(.top, 8)
 
             // The 10-circle significance control (SignificanceCircles.swift —
             // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
@@ -1714,11 +1696,6 @@ private struct MemoPageView: View {
             .replacingOccurrences(of: #"^\*\*.+?:\*\*\s*"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
         return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
-    }
-
-    private func openTagEditor() {
-        libraryTags = repository.allTags()
-        showTagEditor = true
     }
 
     // MARK: - Mac polish (Phase 4)

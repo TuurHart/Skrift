@@ -53,9 +53,17 @@ final class TagRulesTests: XCTestCase {
         XCTAssertTrue(r.folds.isEmpty)
     }
 
-    func testFoldReusesLibrarySpellingAndSkipsDuplicate() {
+    func testFoldReusesLibrarySpellingWhenAddingANewNoteTag() {
+        // Not yet on THIS note, so it's still added — under the library's existing
+        // spelling rather than what was typed (D139).
         let r = TagRules.fold(["LISBON"], existing: [], library: ["Lisbon", "furniture"])
-        XCTAssertTrue(r.toAdd.isEmpty, "Lisbon already exists in the library under a different case")
+        XCTAssertEqual(r.toAdd, ["Lisbon"])
+        XCTAssertEqual(r.folds, [TagRules.Fold(typed: "LISBON", kept: "Lisbon")])
+    }
+
+    func testFoldSkipsACaseVariantAlreadyOnTheNote() {
+        let r = TagRules.fold(["LISBON"], existing: ["Lisbon"], library: [])
+        XCTAssertTrue(r.toAdd.isEmpty, "already on this note, just under a different case")
         XCTAssertEqual(r.folds, [TagRules.Fold(typed: "LISBON", kept: "Lisbon")])
     }
 
