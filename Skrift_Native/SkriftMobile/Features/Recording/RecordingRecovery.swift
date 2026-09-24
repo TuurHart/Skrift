@@ -191,7 +191,9 @@ extension MemoSaver {
     /// quarantine, with a sidecar JSON (take id, each file's size, first-seen
     /// date) — the take's own audio is only ever moved, never deleted (C288/C99).
     /// A move that fails leaves the source file where it was, so the next sweep
-    /// sees it again.
+    /// sees it again. Never deletes inside quarantine either: a name collision
+    /// (an earlier quarantined copy, or two takes producing the same filename)
+    /// gets a unique `_2`, `_3`, … suffix instead.
     private static func quarantine(take: String, files: [String], in directory: URL) {
         let fm = FileManager.default
         let dest = quarantineDirectory(besideRecordings: directory)
@@ -200,13 +202,33 @@ extension MemoSaver {
         for f in files {
             let src = directory.appendingPathComponent(f)
             sizes[f] = (try? fm.attributesOfItem(atPath: src.path))?[.size] as? Int ?? 0
-            let dstURL = dest.appendingPathComponent(f)
-            RecordingCheckpoint.discardIfExists(dstURL)   // a prior quarantine attempt left a copy
-            try? fm.moveItem(at: src, to: dstURL)
+            let dstURL = Self.uniqueQuarantineURL(for: f, in: dest)
+            do {
+                try fm.moveItem(at: src, to: dstURL)
+            } catch {
+                RecordingLifecycleLog.log("rec quarantine-failed", "take=\(take) file=\(f) \(error.localizedDescription)")
+            }
         }
         let sidecar = QuarantinedTakeSidecar(take: take, firstSeen: firstSeen, fileSizes: sizes)
-        let sidecarURL = dest.appendingPathComponent("quarantine_\(take).json")
+        let sidecarURL = Self.uniqueQuarantineURL(for: "quarantine_\(take).json", in: dest)
         try? JSONEncoder().encode(sidecar).write(to: sidecarURL, options: .atomic)
+    }
+
+    /// A URL for `name` inside `dest` that names nothing on disk yet — `_2`,
+    /// `_3`, … on collision. Never overwrites (and never deletes) whatever is
+    /// already in quarantine.
+    private static func uniqueQuarantineURL(for name: String, in dest: URL) -> URL {
+        var candidate = dest.appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
+        let ext = (name as NSString).pathExtension
+        let base = (name as NSString).deletingPathExtension
+        var n = 2
+        repeat {
+            let suffixed = ext.isEmpty ? "\(base)_\(n)" : "\(base)_\(n).\(ext)"
+            candidate = dest.appendingPathComponent(suffixed)
+            n += 1
+        } while FileManager.default.fileExists(atPath: candidate.path)
+        return candidate
     }
 
     private static func liveMarker(take: String, in directory: URL) -> RecordingMarker? {
