@@ -198,7 +198,7 @@ struct MemoSaver {
         }.value
     }
 
-    nonisolated private static func mergeAudioSync(sources: [URL], to dest: URL) throws {
+    nonisolated static func mergeAudioSync(sources: [URL], to dest: URL) throws {
         try? FileManager.default.removeItem(at: dest)
         var out: AVAudioFile?
         var outFormat: AVAudioFormat?
@@ -789,7 +789,7 @@ struct MemoSaver {
         return manifest
     }
 
-    private func runTranscription(id: UUID) async {
+    func runTranscription(id: UUID) async {
         // Use the memo's actual filename (recordings are memo_<id>.m4a; imports
         // preserve the source extension, e.g. .opus/.wav/.mp3).
         let filename = repository.memo(id: id)?.audioFilename ?? "memo_\(id.uuidString).m4a"
