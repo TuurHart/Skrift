@@ -325,6 +325,12 @@ Leads. Check them against source before you act — section 5 is why.
 
 ---
 
+- [ ] **Unrated rows dimmed twice on phone and iPad.** `MemoCard` applies opacity 0.55 and the
+      shared `Shared/UI/NoteCardView.swift` applies 0.62, so an unrated row shows at ~0.34, not 0.62.
+      Found reading source for the Q22 notes-list mock, 2026-09-24; not run on a device.
+- [ ] **Mac row repeats an untitled note's first line.** `QueueRowView` uses the first body line as
+      the title and then the whole body as the snippet. Found reading source for Q22, 2026-09-24.
+
 ## 5. Already fixed — do not re-open
 
 - ✅ **WhatsApp voice messages import as a link.** The ledger says `SharePayloadLoader` has no
