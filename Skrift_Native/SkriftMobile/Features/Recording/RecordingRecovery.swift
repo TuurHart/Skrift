@@ -89,7 +89,19 @@ extension MemoSaver {
             // memo's file, verified it opens with frames, and inserted + SAVED
             // the note to the repository (see rebuildNote below) — so the
             // original take files are only discarded after the new note's
-            // audio exists on disk and is recorded in the store.
+            // audio exists on disk and is recorded in the store. But `sources`
+            // can be a STRICT SUBSET of `files`: an unfinalized main or a
+            // truncated in-progress segment that `recoverableSources` skipped as
+            // unreadable is still on disk and still rescuable — quarantine those,
+            // and delete only what actually made it into the new memo (the
+            // merged sources) plus the marker, which is pure metadata.
+            let mergedNames = Set(sources.map(\.lastPathComponent))
+            let markerName = RecordingCheckpoint.markerFilename(take: take)
+            let unmerged = files.filter { $0 != markerName && !mergedNames.contains($0) }
+            if !unmerged.isEmpty {
+                Self.quarantine(take: take, files: unmerged, in: directory)
+                RecordingLifecycleLog.log("rec quarantined", "take=\(take) unmerged \(unmerged.count) file(s) alongside the rebuilt note")
+            }
             RecordingCheckpoint.discardTakeFiles(take: take, in: directory)
             report.recovered.append(id)
             RecordingLifecycleLog.log("recovered", "take=\(take) memo=\(id) sources=\(sources.count)"
