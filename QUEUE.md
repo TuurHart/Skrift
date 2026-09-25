@@ -429,7 +429,7 @@ node: AuditFix2
 do: From `plan/sweep-d-mac.md` + R90: `backlinkedIDs` recomputed per quiet row in SidebarView (SidebarView.swift:79,641,718) — once per render; `VaultExporter.export` runs file copies + compile + vault write synchronously on main, and multi-select export loops it (ProcessingCoordinator.swift:331 → VaultExporter.swift:69-186, SidebarView.swift:981) — make it async off-main like IngestService; `TagLibrary` full fetch as a body expression in NoteProperties.swift:53-54 — cache; R90: BodyTextView restyles the full document and writes the model per keystroke — scope restyle to the edited paragraph and debounce the model write (1 s). Remove the dead `quietMeta`/`process(_:)` in SidebarView. Test in a new `MacMainThreadCostTests` (desktop target).
 check: `grep -rqE "class MacMainThreadCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q57 [auto] (doing) audiobooks: no full decodes on main, linear alignment, quiet player ticks
+### Q57 [auto] (done) audiobooks: no full decodes on main, linear alignment, quiet player ticks
 spec: C218
 needs: -
 gate+: yes
@@ -437,7 +437,7 @@ node: AuditFix2
 do: From `plan/sweep-c-record-books-share.md`: `localAlignmentSignature` full-decodes every alignment sidecar on @MainActor on every reconcile — fired by each bookmark tap (AudiobookCloudSync.swift:611-620 ← AudiobookPlayerView.swift:482, ChaptersBookmarksSheet.swift:97) — use cached file stats like its transcript twin (:421-432); `BookAlignment.mergeSentences` is O(n²) (BookAlignment.swift:723-747) — make it linear (sorted merge) without changing output (prove on an existing alignment test); `AudiobookSession` is ObservableObject re-rendering the whole player every 0.5 s tick — move to @Observable with the tick isolated, like LiveRecordingService. Load shared photos/audio concurrently in SharePayloadLoader.swift:227-264,345-370. Test in a new `AudiobookCostTests` (phone target).
 check: `plan/mtest.sh AudiobookCostTests && ./gate.sh`
 
-### Q58 [auto] (todo) twins and dead code from sweep E fixed (vocab re-warm, lock predicate, tombstones, durations)
+### Q58 [auto] (doing) twins and dead code from sweep E fixed (vocab re-warm, lock predicate, tombstones, durations)
 spec: C240 C50
 needs: -
 gate+: yes
@@ -669,3 +669,5 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 20:58 Q63 -> tuur — awaiting sitting
 - 2026-09-25 20:58 Q64 -> tuur — awaiting sitting
 - 2026-09-25 20:58 Q49 -> tuur — built @5f2e5e79 — awaiting sitting
+- 2026-09-25 21:02 Q58 -> doing — worker out
+- 2026-09-25 21:03 Q57 -> done — gate pass @a05a6166
