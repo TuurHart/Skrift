@@ -273,6 +273,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Same-titled notes overwrite each other's images on export.** `convertImageMarkers` names
       images `<safe-title>_NNN.ext`, so two notes with the exact same title collide in the vault
       attachments folder. Uniquify by the note stem, which the `.md` already uniquifies.
+- [ ] **The phone filters Unrated twice.** The Unrated chip and the Filter sheet's "Not rated" toggle
+      (`MemosListView.swift:338` passes `showNotRated: !isRegular`, toggle at `:1619`) combine, so
+      Done + Not rated empties the list with no explanation. Found by the Q49 mock; every Q49 option
+      removes the duplicate.
 
 ---
 
