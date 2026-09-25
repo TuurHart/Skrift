@@ -33,13 +33,33 @@ enum SpeakerTranscript {
     /// header sits (this type parses to values and drops the ranges the renderers need).
     static let headerPattern = #"(?m)^[ \t]*\*\*([^*\n]+?):\*\*[ \t]*"#
 
+    /// Compiled ONCE (was a fresh `NSRegularExpression` per call — every one of
+    /// `parse`/`parseWithPreamble`/`withPreamble` compiled its own, and `parse`
+    /// alone is called from 5+ sites in `MemoDetailView` per commit; C277/C282).
+    private static let headerRegex = try! NSRegularExpression(pattern: headerPattern)
+
+    /// `parse`'s own single-slot cache, keyed on the transcript text: a commit
+    /// that fires `parse` from more than one call site (recomputeSpans' onChange
+    /// + the direct onCommit call, before that duplicate was removed; still true
+    /// of the 5 call sites in the same file) now rescans the text at most once.
+    /// DEBUG-only counter for tests; harmless to read/increment in Release.
+    private static let parseCache = CommitOnceCache<String, [Turn]?>()
+    #if DEBUG
+    /// Exposed for `TypingPathCostTests` only — how many times `parseUncached`
+    /// actually ran, to prove repeat `parse(_:)` calls on the same text are free.
+    static var debugParseComputeCount: Int { parseCache.computeCount }
+    #endif
+
     /// The `**Name:**` turns, or nil when fewer than 2 headers — `name` has the `[[ ]]`
     /// stripped (so `[[Tiuri Hartog]]` and a plain `Tiuri Hartog` header read the same).
     static func parse(_ transcript: String?) -> [Turn]? {
-        guard let t = transcript,
-              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
+        guard let t = transcript else { return nil }
+        return parseCache.value(for: t) { parseUncached(t) }
+    }
+
+    private static func parseUncached(_ t: String) -> [Turn]? {
         let ns = t as NSString
-        let matches = re.matches(in: t, range: NSRange(location: 0, length: ns.length))
+        let matches = headerRegex.matches(in: t, range: NSRange(location: 0, length: ns.length))
         guard matches.count >= 2 else { return nil }
         var turns: [Turn] = []
         for (i, m) in matches.enumerated() {
@@ -58,10 +78,9 @@ enum SpeakerTranscript {
     /// `[[img_NNN]]` photo marker inserted before the first spoken word. Lets callers
     /// PRESERVE that preamble instead of dropping it. nil when not ≥2 turns.
     static func parseWithPreamble(_ transcript: String?) -> (preamble: String, turns: [Turn])? {
-        guard let t = transcript, let turns = parse(t),
-              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
+        guard let t = transcript, let turns = parse(t) else { return nil }
         let ns = t as NSString
-        let firstLoc = re.firstMatch(in: t, range: NSRange(location: 0, length: ns.length))?.range.location ?? 0
+        let firstLoc = headerRegex.firstMatch(in: t, range: NSRange(location: 0, length: ns.length))?.range.location ?? 0
         let preamble = ns.substring(to: firstLoc).trimmingCharacters(in: .whitespacesAndNewlines)
         return (preamble, turns)
     }
@@ -70,8 +89,8 @@ enum SpeakerTranscript {
     /// header) onto a rebuilt turns body, so an edit / merge / rename never silently
     /// drops it. No-op when there's no preamble.
     static func withPreamble(of original: String?, _ body: String) -> String {
-        guard let original, let re = try? NSRegularExpression(pattern: headerPattern),
-              let first = re.firstMatch(in: original, range: NSRange(location: 0, length: (original as NSString).length)),
+        guard let original,
+              let first = headerRegex.firstMatch(in: original, range: NSRange(location: 0, length: (original as NSString).length)),
               first.range.location > 0 else { return body }
         let preamble = (original as NSString).substring(to: first.range.location)
             .trimmingCharacters(in: .whitespacesAndNewlines)
