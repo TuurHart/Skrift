@@ -44,6 +44,15 @@ enum NamesCloudSync {
             delete: { context.delete($0) }) else { return false }
 
         if outcome.localChanged { _ = store.save(outcome.merged) }
+        // Once per launch/foreground/import reconcile (sweep E finding #3): drop
+        // tombstones older than the default 90-day window, well past any realistic
+        // sync gap. A no-op run makes no write — `pruneOldTombstones` only saves
+        // when it actually drops a row.
+        let pruned = store.pruneOldTombstones()
+        if pruned > 0 {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .info("names: pruned \(pruned) old tombstone(s)")
+        }
         do { try context.save() }
         catch {
             Logger(subsystem: "com.skrift.desktop", category: "cloudkit")

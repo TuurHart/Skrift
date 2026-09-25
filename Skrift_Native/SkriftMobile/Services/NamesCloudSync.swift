@@ -32,6 +32,12 @@ enum NamesCloudSync {
             _ = store.save(outcome.merged)
             DevLog.log("names: merged remote → local (\(outcome.merged.people.count) people)")
         }
+        // Once per launch/foreground reconcile (sweep E finding #3): drop tombstones
+        // older than the default 90-day window, well past any realistic sync gap. A
+        // no-op run (nothing to prune) makes no write — `pruneOldTombstones` only
+        // saves when it actually drops a row.
+        let pruned = store.pruneOldTombstones()
+        if pruned > 0 { DevLog.log("names: pruned \(pruned) old tombstone(s)") }
         repository.save()
     }
 }

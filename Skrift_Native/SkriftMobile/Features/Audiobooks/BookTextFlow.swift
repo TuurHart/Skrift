@@ -69,10 +69,20 @@ struct BookTextFlow: ViewModifier {
             let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id) { stage in
                 Task { @MainActor in busyMessage = stage }
             }
+            // Better no info than bad info (feedback_no_bad_information.md): a
+            // DRM-protected ePub parses to little or no readable text, so alignment
+            // against it is meaningless — say so up front rather than let a silent
+            // "no match" read as a bug (sweep E finding #6).
+            let drmPrefix: String
+            if case .protected = summary.drm {
+                drmPrefix = "This ePub looks DRM-protected, so Skrift may not be able to read its text. "
+            } else {
+                drmPrefix = ""
+            }
             if summary.deferredWhileTranscribing {
-                outcome = "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
+                outcome = drmPrefix + "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
             } else if summary.totalFiles == 0 {
-                outcome = "No transcript yet — the text will align on its own when transcription finishes."
+                outcome = drmPrefix + "No transcript yet — the text will align on its own when transcription finishes."
             } else if summary.alignedFiles == 0 {
                 rejected = (book, url.lastPathComponent)
             } else if summary.alignedFiles == summary.totalFiles {

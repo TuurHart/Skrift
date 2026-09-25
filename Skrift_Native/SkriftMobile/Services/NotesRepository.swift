@@ -160,13 +160,24 @@ final class NotesRepository {
     /// expected (downloading / pending materialization) even if its file isn't on
     /// disk yet. Drives the "Downloading from iCloud…" placeholder.
     /// Every tag across live memos, most-used first (the tag editor's
-    /// autocomplete source).
+    /// autocomplete source). Was a full re-fetch + re-sort of every memo on
+    /// EVERY call — it's constructed inline in a view initializer
+    /// (`MemoDetailView`'s `TagEditorRow(..., library: repository.allTags(), ...)`),
+    /// so it re-ran on every body re-evaluation while typing (C277/C282,
+    /// measured in `plan/perf-measured.md`). Cached, invalidated by
+    /// `memoSetVersion` — bumped once per `save()`, i.e. once per debounced
+    /// commit, not once per keystroke.
+    private let tagsCache = CommitOnceCache<Int, [String]>()
+    private var memoSetVersion = 0
+
     func allTags() -> [String] {
-        var counts: [String: Int] = [:]
-        for memo in allMemos() {
-            for tag in memo.tags { counts[tag, default: 0] += 1 }
+        tagsCache.value(for: memoSetVersion) {
+            var counts: [String: Int] = [:]
+            for memo in allMemos() {
+                for tag in memo.tags { counts[tag, default: 0] += 1 }
+            }
+            return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
         }
-        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
     }
 
     func hasAsset(filename: String) -> Bool {
@@ -265,5 +276,8 @@ final class NotesRepository {
             do { try context.save() }
             catch { DevLog.log("save FAILED after retry — pending changes NOT persisted: \(error)") }
         }
+        // Any save can change tag membership (a tag added/removed/a memo added or
+        // deleted) — bump so the next `allTags()` recomputes once, lazily.
+        memoSetVersion += 1
     }
 }

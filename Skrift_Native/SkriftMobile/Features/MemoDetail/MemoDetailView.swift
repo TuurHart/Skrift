@@ -1173,7 +1173,11 @@ private struct MemoPageView: View {
                     // `recordPolishedEdit` — don't ALSO stamp the untouched raw words.
                     memo.markEdited(stampWords: wordsChanged)
                     repository.save()
-                    recomputeSpans()
+                    // recomputeSpans() is NOT called here (Q53/C277/C282): committing
+                    // sets either `memo.transcript` (.raw) or `macPolish?.copyedit`
+                    // (.polished) above, and `.onChange` on each (932/935) already
+                    // fires it — calling it here too ran the name-span scan twice
+                    // per commit.
                 },
                 header: AnyView(VStack(alignment: .leading, spacing: 0) {
                     noteHeaderCore(isCurrent: isCurrent)

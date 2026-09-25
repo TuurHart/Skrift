@@ -32,11 +32,11 @@ struct NoteToolbar: View {
             }
 
             HStack(spacing: 11) {
-                Text(SkriftFormat.clock(audio.currentTime))
+                Text(SkriftFormat.duration(seconds: audio.currentTime))
                     .font(.system(size: 11.5, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
                 scrubber
-                Text(SkriftFormat.clock(total))
+                Text(SkriftFormat.duration(seconds: total))
                     .font(.system(size: 11.5, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
             }

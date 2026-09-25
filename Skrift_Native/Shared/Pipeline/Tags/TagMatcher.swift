@@ -37,11 +37,16 @@ enum TagMatcher {
         }
     }
 
+    /// Fixed pattern — hoisted so `spokenHashtags` (called once per file inside
+    /// `VaultTagScanner.scan(root:)`'s loop, up to 5000× per scan) doesn't rebuild it
+    /// on every call (sweep E finding #4).
+    private static let hashtagRegex = try! NSRegularExpression(pattern: #"(?<!\w)#([^\W\d_][\w\-/]*)"#)
+
     /// Explicit `#hashtags` literally in the text — committed directly (high
     /// precision). Lowercased, no leading '#', numeric-only dropped, deduped.
     static func spokenHashtags(in text: String) -> [String] {
-        guard !text.isEmpty,
-              let rx = try? NSRegularExpression(pattern: #"(?<!\w)#([^\W\d_][\w\-/]*)"#) else { return [] }
+        guard !text.isEmpty else { return [] }
+        let rx = hashtagRegex
         let ns = text as NSString
         var seen = Set<String>()
         var out: [String] = []
