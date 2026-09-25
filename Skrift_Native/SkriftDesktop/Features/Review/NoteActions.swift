@@ -129,7 +129,7 @@ struct NoteActions: View {
         if !enhanceDone {
             Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
         } else {
-            coordinator.export(file, context: ctx)
+            Task { await coordinator.export(file, context: ctx) }
         }
     }
 
