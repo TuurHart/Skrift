@@ -56,6 +56,27 @@ final class LaunchWorkTests: XCTestCase {
                       "editedAt moved with no new memo — the batch must still run again")
     }
 
+    /// A `MemoAsset` synced in from ANOTHER device touches no `Memo` field on this
+    /// one — no new memo, no local edit — so the memo count/editedAt alone would
+    /// never notice it, and AssetMaterializer/PhotoTextIndexer would stall until an
+    /// unrelated local change happened to run next.
+    func testSyncedAssetWithNoLocalMemoChangeTripsTheGate() {
+        let repo = NotesRepository(inMemory: true)
+        let memo = Memo(audioFilename: "")
+        repo.insert(memo)
+        _ = LaunchWorkGate.shouldRunSweeps(repository: repo)
+        XCTAssertFalse(LaunchWorkGate.shouldRunSweeps(repository: repo))
+
+        // The memo itself is untouched — only a new asset row lands (as CloudKit
+        // materializing another device's audio would do).
+        repo.context.insert(MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
+                                      filename: "memo_synced.m4a", blob: Data("x".utf8)))
+        repo.save()
+
+        XCTAssertTrue(LaunchWorkGate.shouldRunSweeps(repository: repo),
+                      "asset count moved with memo count/editedAt unchanged — the asset sweeps must still run")
+    }
+
     // MARK: - C99: recovery is never behind the gate
 
     func testRecoveryRunsRegardlessOfGateState() async throws {
