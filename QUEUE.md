@@ -371,7 +371,7 @@ needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
 check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh`
 
-### Q49 [tuur] (doing) mockup: one filter mechanism instead of chips + Filter icon
+### Q49 [tuur] (tuur) mockup: one filter mechanism instead of chips + Filter icon
 spec: C117
 needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
@@ -383,7 +383,7 @@ needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
 check: Tuur clicked through it and said go.
 
-### Q51 [tuur] (todo) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
+### Q51 [tuur] (doing) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
 spec: C117 C238
 needs: -
 do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
@@ -472,13 +472,13 @@ needs: Q60
 do: `plan/periphery.md` CHECK section: 116 functions have their own tests but no caller in the app (like `NamesStore.pruneOldTombstones`). A sitting sheet groups them by feature with one line each (what it was for, who built it when — git log), and Tuur picks per group: WIRE IN (becomes an auto item) or DELETE (with its tests; protected-test change approved per group).
 check: Tuur picked per group.
 
-### Q63 [tuur] (todo) Mac typing feel after Q56: headings and links while typing
+### Q63 [tuur] (tuur) Mac typing feel after Q56: headings and links while typing
 spec: C277 R90
 needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live.
 check: Tuur typed on the Mac and said the flash is fine, or it became an item.
 
-### Q64 [tuur] (todo) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
+### Q64 [tuur] (tuur) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
 spec: C112 C114
 needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
@@ -663,3 +663,9 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 20:50 Q47 -> doing — re-accept: block lacked gate+ for its required new test file
 - 2026-09-25 20:53 Q47 -> done — gate pass @07f78c62
 - 2026-09-25 20:53 Q64 added
+- 2026-09-25 20:55 Q51 -> doing — worker out
+- 2026-09-25 20:57 Q57 -> stuck — check failed — .queue/Q57.check.log
+- 2026-09-25 20:58 Q57 -> doing — resumed: accept check plan/mtest.sh AudiobookCostTests -> TEST FAILED
+- 2026-09-25 20:58 Q63 -> tuur — awaiting sitting
+- 2026-09-25 20:58 Q64 -> tuur — awaiting sitting
+- 2026-09-25 20:58 Q49 -> tuur — built @5f2e5e79 — awaiting sitting
