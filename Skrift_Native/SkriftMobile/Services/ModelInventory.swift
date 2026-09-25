@@ -14,8 +14,6 @@ enum ModelInventory {
         let directory: URL
         /// nil = not downloaded (directory missing/empty).
         let sizeBytes: Int64?
-
-        var isDownloaded: Bool { (sizeBytes ?? 0) > 0 }
     }
 
     /// Snapshot of every model Skrift can have on this device.
