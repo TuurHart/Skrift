@@ -383,7 +383,7 @@ needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
 check: Tuur clicked through it and said go.
 
-### Q51 [tuur] (doing) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
+### Q51 [tuur] (tuur) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
 spec: C117 C238
 needs: -
 do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
@@ -413,7 +413,7 @@ node: AuditFix2
 do: From `plan/sweep-b-list-launch.md`: `filterChips` re-runs uncached `chipCounts` per chip (MemosListView.swift:846-895, ~16 full-corpus scans per render) — compute once per render/memo-set change; hoist per-row lookups (`enhancedTitleByMemoID`, `searchFadingIDs`, `backlinkedIDs`, partition — R92/C278) into one pre-render pass; use the shared `NotesListModel.dayGroups` instead of the hand-rolled `groups(from:)` (MemosListView.swift:1171-1183); delete the ~90 dead MemoCard helper lines it lists. Test in a new `ListRenderCostTests` (desktop target) counting scans per render.
 check: `grep -rqE "class ListRenderCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q55 [auto] (todo) phone launch and foreground do only what changed
+### Q55 [auto] (doing) phone launch and foreground do only what changed
 spec: C279
 needs: -
 gate+: yes
@@ -671,3 +671,5 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 20:58 Q49 -> tuur — built @5f2e5e79 — awaiting sitting
 - 2026-09-25 21:02 Q58 -> doing — worker out
 - 2026-09-25 21:03 Q57 -> done — gate pass @a05a6166
+- 2026-09-25 21:04 Q55 -> doing — worker out
+- 2026-09-25 21:06 Q51 -> tuur — built @1b7bbf64 — awaiting sitting
