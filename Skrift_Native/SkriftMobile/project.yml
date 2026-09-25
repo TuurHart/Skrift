@@ -69,7 +69,7 @@ settings:
     # shipped 167 — Apple only validates version parity for extensions/App
     # Clips/watch apps, so nothing ever failed and nothing ever caught it.
     SKRIFT_MARKETING_VERSION: "0.2.0"
-    SKRIFT_BUILD: "171"
+    SKRIFT_BUILD: "172"
 
 targets:
   SkriftMobile:
