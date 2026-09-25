@@ -370,7 +370,7 @@ needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
 check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh`
 
-### Q49 [tuur] (todo) mockup: one filter mechanism instead of chips + Filter icon
+### Q49 [tuur] (doing) mockup: one filter mechanism instead of chips + Filter icon
 spec: C117
 needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
@@ -420,7 +420,7 @@ node: AuditFix2
 do: From `plan/sweep-b-list-launch.md` + SPEC R91/R93/R94: `SkriftApp` runs ~10 main-actor sweeps unconditionally on every launch AND foreground — gate each on what changed, move the heavy ones off the main actor; `AppPaths.recordingsDirectory` calls `createDirectory` on every read (R93) — create once; `AssetMaterializer.captureMissing` unscoped fetch (R91) — scope it. Keep the recording-recovery sweep FIRST (C99). Test in a new `LaunchWorkTests` (phone target) asserting a foreground with no changes runs no full-store sweep.
 check: `plan/mtest.sh LaunchWorkTests && ./gate.sh`
 
-### Q56 [auto] (doing) Mac: sidebar, editor and export stop blocking the main thread
+### Q56 [auto] (done) Mac: sidebar, editor and export stop blocking the main thread
 spec: C277 R90
 needs: -
 gate+: yes
@@ -642,3 +642,5 @@ check: Tuur picked per group.
 - 2026-09-25 20:39 Q50 -> doing — re-accept: gate died at Resolve Package Graph while a worker ran the same desktop scheme
 - 2026-09-25 20:40 Q57 -> doing — worker out
 - 2026-09-25 20:42 Q50 -> tuur — built @95b9d312 — awaiting sitting
+- 2026-09-25 20:43 Q49 -> doing — worker out
+- 2026-09-25 20:43 Q56 -> done — gate pass @e673611d
