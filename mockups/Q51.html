@@ -74,7 +74,8 @@ code{font-family:var(--mono);font-size:.86em}
 .steps button[aria-current="step"]{border-color:var(--pg-accent);color:var(--pg-accent);font-weight:600}
 
 /* stage */
-.stage{display:flex;justify-content:center}
+.stage{display:flex;flex-direction:column;align-items:center}
+.stage>.macscale,.stage>.macfull{width:100%}
 .phone{width:100%;max-width:390px;background:var(--a-bg);border-radius:22px;box-shadow:var(--a-shadow);overflow:hidden;display:flex;flex-direction:column;color:var(--a-text);min-height:640px;border:1px solid var(--a-border)}
 .nav{display:grid;grid-template-columns:70px 1fr 70px;align-items:center;padding:12px 12px 8px;background:var(--a-bg)}
 .nav .l,.nav .r{font-size:15px;color:var(--a-accent);background:none;border:0;cursor:pointer;padding:4px 0;text-align:left}
@@ -85,6 +86,8 @@ code{font-family:var(--mono);font-size:.86em}
 .foot{padding:10px 14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--a-bg);border-top:1px solid var(--a-border)}
 .primary{border:0;background:var(--a-accent);color:#fff;font-weight:600;font-size:15.5px;padding:12px;border-radius:12px;cursor:pointer;width:100%}
 .primary[disabled]{opacity:.45;cursor:default}
+.primary.stop{background:var(--a-chip);color:var(--a-red)}
+.macfull{overflow-x:auto;overflow-y:hidden}
 .ghost{border:0;background:none;color:var(--a-accent);font-weight:500;font-size:14px;padding:6px;cursor:pointer}
 .danger{color:var(--a-red)}
 
@@ -110,7 +113,7 @@ code{font-family:var(--mono);font-size:.86em}
 .row:first-child{border-top:0}
 .row.sub{padding-left:34px}
 .row .cnt{font-size:13px;color:var(--a-dim);font-variant-numeric:tabular-nums}
-.row .exp{border:0;background:none;color:var(--a-faint);cursor:pointer;font-size:13px;padding:2px 4px}
+.row .exp{border:0;background:var(--a-chip);color:var(--a-dim);cursor:pointer;font-size:12px;width:26px;height:26px;border-radius:50%}
 .row.off .nm{color:var(--a-faint)}
 .cb{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--a-faint);display:grid;place-items:center;cursor:pointer;background:none;padding:0}
 .cb[aria-checked="true"]{background:var(--a-accent);border-color:var(--a-accent)}
@@ -220,7 +223,7 @@ code{font-family:var(--mono);font-size:.86em}
       <li class="no"><span><b>Checklists, tags, folders:</b> no mapping step; whatever text the export holds passes through.</span></li>
       <li class="no"><span><b>No report:</b> a file Skrift can't read is skipped silently.</span></li>
     </ul>
-    <div class="src">IngestService.swift: ingestNote :169, importAttachments :358, appleNoteTitle :416, ingestFolder :433 · PipelineFile.swift :60 (uploadedAt = Date()) · plan/extraction/ingress.md P11, M3, M4</div>
+    <div class="src">IngestService.swift: ingestNote :169, importAttachments :358, appleNoteTitle :416, ingestFolder :432 · PipelineFile.swift :60 (uploadedAt = Date()) · plan/extraction/ingress.md P11, M3, M4</div>
   </section>
 
   <section class="picks" aria-label="Choices this mock made">
@@ -396,7 +399,7 @@ function stepImport(){
     <div class="big-num">${done}<span style="font-size:18px;color:var(--a-dim);font-weight:500"> / ${t.imp}</span></div>
     <div class="prog"><i style="width:${S.prog*100}%"></i></div>
     <p class="hint">${S.prog>=1?"Done.":"Importing “"+esc(cur)+"”"}</p>
-    <p class="hint">${S.dev==="mac"?"You can close this window. The import keeps going.":"Keep Skrift open. If you stop, what is already in stays in."}</p>
+    ${S.prog>=1?"":`<p class="hint">${S.dev==="mac"?"You can close this window. The import keeps going.":"Keep Skrift open. If you stop, what is already in stays in."}</p>`}
    </div>`;
 }
 function stepReport(){
@@ -434,15 +437,15 @@ function render(){
   const secondary = S.step===4 && !S.undone ? `<button class="ghost danger" id="undo">Undo this import</button>` : S.step>0 && S.step<3 ? `<button class="ghost" id="back">Back</button>` : "";
   let html;
   if(S.dev==="phone"){
-    html=`<div class="phone"><div class="nav"><button class="l" id="cancel">${S.step===4?"":"Cancel"}</button><div class="t">Import Apple Notes<small>${S.step+1} of 5 · ${STEPS[S.step]}</small></div><span></span></div>
+    html=`<div class="phone"><div class="nav"><button class="l" id="cancel">${S.step>=3?"":"Cancel"}</button><div class="t">Import Apple Notes<small>${S.step+1} of 5 · ${STEPS[S.step]}</small></div><span></span></div>
       <div class="body">${body()}</div>
-      <div class="foot"><button class="primary" id="go" ${p.dis?"disabled":""}>${p.label}</button>${secondary}</div></div>`;
+      <div class="foot"><button class="primary${p.stop?" stop":""}" id="go" ${p.dis?"disabled":""}>${p.label}</button>${secondary}</div></div>`;
     $("stage").innerHTML=html;
   } else {
-    html=`<div class="macscale" id="ms"><div class="mac" id="macw"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">Import Apple Notes</span></div>
+    html=`<button class="ghost" id="macsize" style="align-self:flex-start;color:var(--pg-accent);padding:0 0 6px">${S.macFull?"Fit to screen":"View at full size (scroll sideways)"}</button><div class="${S.macFull?"macfull":"macscale"}" id="ms"><div class="mac" id="macw"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">Import Apple Notes</span></div>
       <nav class="rail">${STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}><b>${i+1}</b>${s}</button>`).join("")}</nav>
       <div class="body">${body()}</div>
-      <div class="foot">${S.step===4?"":'<button class="ghost" id="cancel">Cancel</button>'}${secondary}<button class="primary" id="go" ${p.dis?"disabled":""}>${p.label}</button></div></div></div>`;
+      <div class="foot">${S.step>=3?"":'<button class="ghost" id="cancel">Cancel</button>'}${secondary}<button class="primary${p.stop?" stop":""}" id="go" ${p.dis?"disabled":""}>${p.label}</button></div></div></div>`;
     $("stage").innerHTML=html; fitMac();
   }
   $("jump").innerHTML=STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}>${i+1} ${s}</button>`).join("");
@@ -451,7 +454,7 @@ function render(){
     : "iPhone: a full-screen sheet over the notes list. Every step is one scroll; the primary button stays at the bottom.";
   $("dev-phone").setAttribute("aria-pressed",S.dev==="phone"); $("dev-mac").setAttribute("aria-pressed",S.dev==="mac");
 }
-function fitMac(){const ms=$("ms"),w=$("macw"); if(!ms||!w) return; const sc=Math.min(1,ms.clientWidth/720); w.style.transform=`scale(${sc})`; ms.style.height=(w.offsetHeight*sc)+"px"}
+function fitMac(){const ms=$("ms"),w=$("macw"); if(!ms||!w) return; if(S.macFull){w.style.transform="";ms.style.height="";return} const sc=Math.min(1,ms.clientWidth/720); w.style.transform=`scale(${sc})`; ms.style.height=(w.offsetHeight*sc)+"px"}
 window.addEventListener("resize",fitMac);
 
 function runImport(){
@@ -469,6 +472,7 @@ document.addEventListener("click",e=>{
   if(b.id==="dev-phone"){S.dev="phone";render();return}
   if(b.id==="dev-mac"){S.dev="mac";render();return}
   if(b.id==="go"){go();return}
+  if(b.id==="macsize"){S.macFull=!S.macFull;render();return}
   if(b.id==="back"){S.step=Math.max(0,S.step-1);render();return}
   if(b.id==="cancel"){toast("Mock: Cancel closes the sheet. Nothing was written.");return}
   if(b.id==="undo"){S.confirmUndo=true;render();return}
