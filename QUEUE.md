@@ -164,7 +164,7 @@ check: `grep -rqE "class RetranscribeKeepsTextTests\b" Skrift_Native/SkriftDeskt
 spec: C282
 needs: -
 node: AuditFix2
-do: Claude prepares the `xctrace` commands; Tuur runs Time Profiler on the iPhone 13 PROD build during a list scroll and a note open, and a typing session in a 5,000-word note on the Mac (Dev, the corpus `typed-wall-7k` note). Claude writes the top frames of both traces into `plan/perf-measured.md`.
+do: Claude prepares the `xctrace` commands; Tuur runs Time Profiler on the iPhone 13 during a list scroll, a note open AND typing in a note (D145: "super laggy"), and a typing session in a 5,000-word note on the Mac (Dev, the corpus `typed-wall-7k` note). Claude writes the top frames of both traces into `plan/perf-measured.md`.
 check: `test -s plan/perf-measured.md`
 
 ### Q21 [auto] (done) a locked note stays locked in Fading and Recently Deleted
@@ -358,6 +358,24 @@ needs: Q45
 do: Regression from Q45: `NoteBodyView.onCommit` is now `(Bool) -> Void` and the protected `SkriftMobileTests/NoteBodyTests.swift` + `QuotePresentationTests.swift` call `onCommit: {}` (17 sites), so the phone test target no longer compiles. Without touching any protected file, make the zero-argument form compile again (e.g. an extra `init` overload taking `onCommit: @escaping () -> Void` that forwards as `{ _ in onCommit() }` treating it as wordsChanged = true, or a default) while Q45's `wordsChanged` path keeps working. Prove with `xcodebuild build-for-testing` for SkriftMobile AND two phone test classes.
 check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh`
 
+### Q47 [auto] (todo) quick note opens the full note screen; ✎ never opens an old note; toolbar stays
+spec: C112 C114 C43
+needs: -
+do: D145 + BUGS §3 (build 172): the quick note must be the FULL note screen (MemoDetailView in a draft state: date, tags, importance visible, cursor in body, keyboard up) — retire the separate `QuickNoteView`; keep first-keystroke creation + empty discard. Fix: the first ✎ tap opened an OLD note (the recovered recording) — find why the route resolved to an existing memo (stale deep link / draft id / selection state) and add a test; the keyboard accessory bar must never disappear while typing. QuickNoteTests stay green; add `QuickNoteRouteTests` (phone target). Sim screenshot, synthetic corpus, isolated store; LOOK; commit under `plan/reads/quicknote-q47/`.
+check: `plan/mtest.sh QuickNoteRouteTests && plan/mtest.sh QuickNoteTests && test $(ls plan/reads/quicknote-q47/*.png | wc -l) -ge 1 && ./gate.sh`
+
+### Q48 [auto] (todo) filter chips switch with one consistent animation; verb row a little bigger
+spec: C117 C240
+needs: -
+do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
+check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh`
+
+### Q49 [tuur] (todo) mockup: one filter mechanism instead of chips + Filter icon
+spec: C117
+needs: -
+do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
+check: Tuur clicked through it and said go.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -500,3 +518,6 @@ check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh
 - 2026-09-25 00:36 Q43 -> done — gate pass @58aee0f3
 - 2026-09-25 00:36 Q44 -> doing — worker out
 - 2026-09-25 00:52 Q44 -> done — gate pass @34d24430
+- 2026-09-25 15:15 Q47 added
+- 2026-09-25 15:15 Q48 added
+- 2026-09-25 15:15 Q49 added

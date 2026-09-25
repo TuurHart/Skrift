@@ -278,6 +278,16 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 3. Reported on device, not yet diagnosed
 
+- [ ] **Typing is very laggy in a note on the phone** (Dev build 172, iPhone 13, 2026-09-25, quick note
+      and a normal note): "super laggy… not nice to use at all… I think it was always laggy". Not
+      measured yet → Q20 baseline first, then a perf item.
+- [ ] **✎ New note opened an OLD note** (the recovered recording) on the first tap; a second tap opened a
+      fresh note. Build 172.
+- [ ] **Quick note: the accessory toolbar above the keyboard disappeared** while typing, so Done was
+      unreachable. Build 172.
+- [ ] **Filter chips animate differently per chip**: Needs Work "flies up from the bottom", Done's date
+      headers "fly in last". Switching chips should look the same every time. Build 172.
+
 These need a device round or a log pull before they can be fixed.
 
 - [ ] **Semantic search intermittently finds nothing.** "I'm trying" stopped surfacing the testing

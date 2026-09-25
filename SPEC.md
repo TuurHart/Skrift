@@ -1813,3 +1813,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      to the show's RSS feed per D90, refuse plainly if it is Spotify-exclusive). Joins the first
      fixture, NRC Het Uur (D90). CloudKit schema deploy for the Q29/Q38 fields: at prod
      promotion, Tuur's timing ("later").
+145. **D145 Build-172 feel check.** ✅ 2026-09-25 (Tuur on the iPhone 13): the list "looks pretty sleek…
+     nicely done". Changes: the Import · Record · ✎ row a little BIGGER; a quick note opens the FULL
+     note screen (date, tags, importance visible while typing — "just a text field seems strange"),
+     not a separate minimal editor; the two filter mechanisms (chips + Filter icon) read as "difficult
+     or tricky" — open, mock owed. Empty quick note discarded on back = as designed (D91).
