@@ -191,7 +191,6 @@ struct SkriftApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
-                        MemoDeduper.run(repository)   // CloudKit dupes can land mid-session
                         // Every foreground is an open (v3, 2026-07-23): a phone
                         // resumed after weeks suspended must stamp purge clocks
                         // + sweep exactly like a cold launch. Idempotent. The
@@ -200,17 +199,35 @@ struct SkriftApp: App {
                         // first on a cold start — it's once-per-device, so it's
                         // a defaults-flag no-op every time after.
                         MemoLifecycle.runOneClockMigrationOnce(context: repository.container.mainContext)
+                        // Time/open-gated, not corpus-derived — must run on EVERY
+                        // foreground regardless of the R94 gate below: FadingSweep
+                        // stamps trash-seen purge clocks purely by wall-clock time
+                        // (a note trashed without any other edit must still get
+                        // seen), ReminderScheduler reconciles due dates that pass
+                        // just from time elapsing, and the inbox drainer is what
+                        // TURNS a pending capture into a memo — gating it on "did
+                        // the memo count change" would never let a new capture in.
                         FadingSweep.run(repository: repository)
                         Task { await CaptureInboxDrainer.drain(into: repository) }
-                        AssetMaterializer.run(repository)
-                        PhotoTextIndexer.run(repository)
                         ReminderScheduler.run(repository)
-                        NamesCloudSync.run(repository)
-                        VocabularyCloudSync.run(repository)
-                        Task { await AudiobookCloudSync.reconcile(repository: repository) }
                         // P8 retrieval index — inert until the Journal UI's consent
                         // flow enables it AND the model is on disk (no surprise 295 MB).
                         JournalIndexService.shared.sweepSoon(repository)
+
+                        // R94/C281: the rest are pure re-derivations of the memo
+                        // corpus (dupes, on-disk↔CloudKit asset capture, photo-text
+                        // index, names/vocab/audiobook cloud reconcile) — safe to
+                        // skip on a foreground where nothing changed since the last
+                        // check. LaunchWorkGate's mark advances on this ONE call, so
+                        // it must stay a single call per foreground, not one per sweep.
+                        if LaunchWorkGate.shouldRunSweeps(repository: repository) {
+                            MemoDeduper.run(repository)   // CloudKit dupes can land mid-session
+                            AssetMaterializer.run(repository)
+                            PhotoTextIndexer.run(repository)
+                            NamesCloudSync.run(repository)
+                            VocabularyCloudSync.run(repository)
+                            Task { await AudiobookCloudSync.reconcile(repository: repository) }
+                        }
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).

@@ -64,7 +64,14 @@ enum AssetMaterializer {
     /// their files live on disk until the purge and a cross-device restore must be
     /// lossless. Saves once if anything changed.
     static func captureMissing(_ repository: NotesRepository) {
-        let byFilename = indexByFilename(repository.allAssets())
+        // R91/C278: scoped like `materializeMissing` above — a plain fetch faults
+        // every asset's blob into memory (row-level faulting) the moment ANY field
+        // is touched. This loop only ever reads `.filename`/`.byteCount`, so those
+        // are the only columns fetched; over 200 notes' worth of assets, capturing
+        // nothing touches zero blob bytes.
+        var descriptor = FetchDescriptor<MemoAsset>()
+        descriptor.propertiesToFetch = [\.filename, \.byteCount]
+        let byFilename = indexByFilename((try? repository.context.fetch(descriptor)) ?? [])
         var dirty = false
         for memo in repository.allMemosIncludingTrashed() {
             if captureFiles(of: memo, existing: byFilename, repository: repository) { dirty = true }
