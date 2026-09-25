@@ -88,6 +88,19 @@ final class NoteAccessoryBar: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
+    /// BUGS §3 (build 172, quick note): the accessory bar disappeared mid-
+    /// typing. It was sized only by its initial `frame` (width 0) plus
+    /// `autoresizingMask` — no Auto Layout intrinsic size of its own. A
+    /// keyboard/accessory host that runs its OWN layout pass concurrently
+    /// with a SwiftUI-driven layout invalidation (here: the toolbar's
+    /// add-recording/⋯ buttons fading in on the first keystroke, right as
+    /// the accessory host relayouts) can read that as "wants zero size" and
+    /// collapse it. An explicit intrinsic size makes it self-describing
+    /// regardless of which layout system asks.
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: 54)
+    }
+
     /// Reflect the text view's state: the undo stack, and whether the caret
     /// sits in a checklist line (the ☑ lights up — it will REMOVE the box).
     func refresh(canUndo: Bool, canRedo: Bool, inChecklist: Bool = false) {
