@@ -110,7 +110,14 @@ final class AudiobookCostTests: XCTestCase {
     // MARK: - 4. `SharePayloadLoader.loadImages` — concurrent, provider order preserved
 
     private func solidPNG(side: CGFloat) -> Data {
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
+        // Force scale 1 — the default `UIGraphicsImageRenderer` scale is the SIMULATOR
+        // SCREEN's scale (3x on iPhone 17), so a "4pt" image was rendering as a 12px PNG.
+        // That's a fixed ×3 offset on every width, NOT an order mismatch: it made the
+        // first assertion (12.0 vs expected 4.0) look like a collision-order bug when the
+        // concurrency/order code was actually correct throughout.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
         let img = renderer.image { _ in
             UIColor.red.setFill()
             UIRectFill(CGRect(x: 0, y: 0, width: side, height: side))
