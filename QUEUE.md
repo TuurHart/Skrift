@@ -358,7 +358,7 @@ needs: Q45
 do: Regression from Q45: `NoteBodyView.onCommit` is now `(Bool) -> Void` and the protected `SkriftMobileTests/NoteBodyTests.swift` + `QuotePresentationTests.swift` call `onCommit: {}` (17 sites), so the phone test target no longer compiles. Without touching any protected file, make the zero-argument form compile again (e.g. an extra `init` overload taking `onCommit: @escaping () -> Void` that forwards as `{ _ in onCommit() }` treating it as wordsChanged = true, or a default) while Q45's `wordsChanged` path keeps working. Prove with `xcodebuild build-for-testing` for SkriftMobile AND two phone test classes.
 check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh`
 
-### Q47 [auto] (todo) quick note opens the full note screen; ✎ never opens an old note; toolbar stays
+### Q47 [auto] (doing) quick note opens the full note screen; ✎ never opens an old note; toolbar stays
 spec: C112 C114 C43
 needs: -
 do: D145 + BUGS §3 (build 172): the quick note must be the FULL note screen (MemoDetailView in a draft state: date, tags, importance visible, cursor in body, keyboard up) — retire the separate `QuickNoteView`; keep first-keystroke creation + empty discard. Fix: the first ✎ tap opened an OLD note (the recovered recording) — find why the route resolved to an existing memo (stale deep link / draft id / selection state) and add a test; the keyboard accessory bar must never disappear while typing. QuickNoteTests stay green; add `QuickNoteRouteTests` (phone target). Sim screenshot, synthetic corpus, isolated store; LOOK; commit under `plan/reads/quicknote-q47/`.
@@ -376,7 +376,7 @@ needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
 check: Tuur clicked through it and said go.
 
-### Q50 [tuur] (todo) mockup: one compact note header (date + place, tags, importance)
+### Q50 [tuur] (tuur) mockup: one compact note header (date + place, tags, importance)
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
@@ -420,7 +420,7 @@ node: AuditFix2
 do: From `plan/sweep-b-list-launch.md` + SPEC R91/R93/R94: `SkriftApp` runs ~10 main-actor sweeps unconditionally on every launch AND foreground — gate each on what changed, move the heavy ones off the main actor; `AppPaths.recordingsDirectory` calls `createDirectory` on every read (R93) — create once; `AssetMaterializer.captureMissing` unscoped fetch (R91) — scope it. Keep the recording-recovery sweep FIRST (C99). Test in a new `LaunchWorkTests` (phone target) asserting a foreground with no changes runs no full-store sweep.
 check: `plan/mtest.sh LaunchWorkTests && ./gate.sh`
 
-### Q56 [auto] (todo) Mac: sidebar, editor and export stop blocking the main thread
+### Q56 [auto] (doing) Mac: sidebar, editor and export stop blocking the main thread
 spec: C277 R90
 needs: -
 gate+: yes
@@ -428,7 +428,7 @@ node: AuditFix2
 do: From `plan/sweep-d-mac.md` + R90: `backlinkedIDs` recomputed per quiet row in SidebarView (SidebarView.swift:79,641,718) — once per render; `VaultExporter.export` runs file copies + compile + vault write synchronously on main, and multi-select export loops it (ProcessingCoordinator.swift:331 → VaultExporter.swift:69-186, SidebarView.swift:981) — make it async off-main like IngestService; `TagLibrary` full fetch as a body expression in NoteProperties.swift:53-54 — cache; R90: BodyTextView restyles the full document and writes the model per keystroke — scope restyle to the edited paragraph and debounce the model write (1 s). Remove the dead `quietMeta`/`process(_:)` in SidebarView. Test in a new `MacMainThreadCostTests` (desktop target).
 check: `grep -rqE "class MacMainThreadCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q57 [auto] (todo) audiobooks: no full decodes on main, linear alignment, quiet player ticks
+### Q57 [auto] (doing) audiobooks: no full decodes on main, linear alignment, quiet player ticks
 spec: C218
 needs: -
 gate+: yes
@@ -635,3 +635,10 @@ check: Tuur picked per group.
 - 2026-09-25 20:10 Q60 -> done — gate pass @dc1e645d
 - 2026-09-25 20:10 Q61 added
 - 2026-09-25 20:10 Q62 added
+- 2026-09-25 20:23 Q47 -> doing — worker out
+- 2026-09-25 20:23 Q56 -> doing — worker out
+- 2026-09-25 20:23 Q50 -> doing — worker out
+- 2026-09-25 20:37 Q50 -> stuck — gate failed — .queue/Q50.gate.log
+- 2026-09-25 20:39 Q50 -> doing — re-accept: gate died at Resolve Package Graph while a worker ran the same desktop scheme
+- 2026-09-25 20:40 Q57 -> doing — worker out
+- 2026-09-25 20:42 Q50 -> tuur — built @95b9d312 — awaiting sitting
