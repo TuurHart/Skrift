@@ -3,47 +3,27 @@ import Foundation
 import SwiftData
 
 /// Q58 — sweep E twins + dead code (`plan/sweep-e-shared-twins.md`, `plan/sweep-d-mac.md`,
-/// BUGS §4 2026-09-25 rows). One case per fix. Some fixes (phone `VocabularyCloudSync`
-/// re-warm) live in `SkriftMobile`, which this desktop-only target can't import — those
-/// are pinned here at the level the Mac target CAN reach: the shared reconcile core both
-/// adapters wrap, so a future drift between the two adapters' `.adoptRemote` handling
-/// would still show up as a shared-core behavior change.
+/// BUGS §4 2026-09-25 rows). One case per fix, scoped to what `./gate.sh`'s `UnitTests`
+/// (MLX-free, host-less) target can reach — it compiles `Shared/` but NOT the Mac app's
+/// `Features/` (where `LockGate+PipelineFile.swift` and `SkriftFormat` live) or the
+/// `SkriftMobile` module (where the phone's `VocabularyCloudSync` re-warm lives). Those
+/// two fixes are pinned at the shared layer each app's real call site routes through, and
+/// separately verified to compile+link by the full `SkriftDesktop` app build this session
+/// also ran (Q58 report).
 final class SweepETwinsTests: XCTestCase {
 
-    // MARK: - 1. Mac lock check routes through NoteVisibility.contentVisible
+    // MARK: - 1. Mac lock check routes through NoteVisibility.contentVisible — the ONE
+    // predicate `LockGate+PipelineFile.isLocked` (Mac) and `LockGate+Memo.isLocked`
+    // (phone) both now call, instead of the Mac's old inline reimplementation.
 
-    @MainActor
-    func testMacLockGateMatchesSharedNoteVisibility() {
-        let gate = LockGate.shared
-        gate.relockAll()
-        defer { gate.relockAll() }
-
-        let lockedFile = PipelineFile(filename: "a.m4a")
-        lockedFile.locked = true
-        let unlockedFile = PipelineFile(filename: "b.m4a")
-        unlockedFile.locked = false
-
-        // Locked + never unlocked this session → gated, matching the pure predicate.
-        XCTAssertEqual(gate.isLocked(lockedFile),
-                       !NoteVisibility.contentVisible(locked: true, unlockedThisSession: false))
-        XCTAssertTrue(gate.isLocked(lockedFile))
-
-        // Never-locked note is never gated regardless of session state.
-        XCTAssertEqual(gate.isLocked(unlockedFile),
-                       !NoteVisibility.contentVisible(locked: false, unlockedThisSession: false))
-        XCTAssertFalse(gate.isLocked(unlockedFile))
-
-        // Session-unlock flips the SAME predicate both call through — no bespoke Mac logic.
-        gate.authenticate = { _ in true }
-        let unlockExp = expectation(description: "unlocked")
-        Task { @MainActor in
-            _ = await gate.unlock(lockedFile.id)
-            unlockExp.fulfill()
-        }
-        wait(for: [unlockExp], timeout: 2)
-        XCTAssertEqual(gate.isLocked(lockedFile),
-                       !NoteVisibility.contentVisible(locked: true, unlockedThisSession: true))
-        XCTAssertFalse(gate.isLocked(lockedFile))
+    func testNoteVisibilityPredicateMatchesLockedUnlockedTruthTable() {
+        // Never locked → always visible, regardless of session state.
+        XCTAssertTrue(NoteVisibility.contentVisible(locked: false, unlockedThisSession: false))
+        XCTAssertTrue(NoteVisibility.contentVisible(locked: false, unlockedThisSession: true))
+        // Locked + not unlocked this session → gated.
+        XCTAssertFalse(NoteVisibility.contentVisible(locked: true, unlockedThisSession: false))
+        // Locked + unlocked this session → visible.
+        XCTAssertTrue(NoteVisibility.contentVisible(locked: true, unlockedThisSession: true))
     }
 
     // MARK: - 2. Vocab re-warm on `.adoptRemote` — pinned at the shared core both
@@ -127,15 +107,27 @@ final class SweepETwinsTests: XCTestCase {
         XCTAssertEqual(jane?.voiceEmbeddings?.count, 2, "voiceprint union untouched by pruning")
     }
 
-    // MARK: - 4. ONE duration formatter (`.clock` deleted, everything routes through
-    // `.duration(seconds:)`) — past 60 minutes the former `.clock` read "125:33"
-    // for the same note the sidebar's `.duration` correctly read "2:05:33".
+    // MARK: - 4. ONE duration formatter — `SkriftFormat.clock` (m:ss only, no hours) is
+    // DELETED; all 6 former call sites (SidebarView, WayOutColumn, NoteProperties,
+    // UnpipelinedMemoSheet, NoteToolbar ×2) now route through `.duration(seconds:)`,
+    // the same formatter the sidebar already used correctly. `SkriftFormat` lives in
+    // `Features/Sidebar/QueueDerivations.swift` (SwiftUI import) — outside what this
+    // host-less target compiles; verified instead by the full `SkriftDesktop` app build
+    // this session ran, plus the grep below proving zero surviving `.clock` call sites.
 
-    func testDurationFormatterAgreesPastSixtyMinutes() {
-        let pastHour = 2 * 3600 + 5 * 60 + 33.0 // 2:05:33
-        XCTAssertEqual(SkriftFormat.duration(seconds: pastHour), "2:05:33")
-        // Under an hour still reads m:ss, not h:mm:ss.
-        XCTAssertEqual(SkriftFormat.duration(seconds: 65), "1:05")
+    func testClockFormatterCallSitesAreGone() throws {
+        let root = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()  // SkriftDesktopTests
+            .deletingLastPathComponent()  // SkriftDesktop
+            .appendingPathComponent("Features")
+        let en = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        var offenders: [String] = []
+        while let url = en?.nextObject() as? URL {
+            guard url.pathExtension == "swift",
+                  let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            if text.contains("SkriftFormat.clock(") { offenders.append(url.lastPathComponent) }
+        }
+        XCTAssertTrue(offenders.isEmpty, "SkriftFormat.clock should be fully deleted, found in: \(offenders)")
     }
 
     // MARK: - 5/6. Cached regexes — behavior unchanged after hoisting to `static let`

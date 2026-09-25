@@ -228,6 +228,10 @@ targets:
       # Q28 tag revamp: the C93/D139 split + library-fold rules, Foundation-only
       # (no SwiftUI), same discipline as Palette/SharedCopy above.
       - path: ../Shared/UI/TagRules.swift
+      # Q58 sweep E: the ONE lock-visibility predicate both apps' isLocked(_:) route
+      # through — Foundation-only, same file-by-file discipline as Palette/SharedCopy
+      # above (the rest of Shared/Session pulls in LocalAuthentication/AppKit).
+      - path: ../Shared/Session/NoteVisibility.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
