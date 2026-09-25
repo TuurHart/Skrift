@@ -104,7 +104,7 @@ struct NoteProperties: View {
         // glyph and the list glyph can never disagree.
         chips.append(MacChip(text: sourceLabel, symbol: file.sourceSymbol))
         if file.durationSeconds > 0 {
-            chips.append(MacChip(text: SkriftFormat.clock(file.durationSeconds), symbol: "waveform"))
+            chips.append(MacChip(text: SkriftFormat.duration(seconds: file.durationSeconds), symbol: "waveform"))
         }
         if let urlVal = captureURLDisplayValue {
             chips.append(MacChip(text: urlVal, symbol: "link", tint: .link))

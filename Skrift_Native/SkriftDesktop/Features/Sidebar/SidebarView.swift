@@ -741,7 +741,7 @@ struct SidebarView: View {
         } else {
             m.title = WayOutRules.displayTitle(memo)   // "Voice note" / "Note" fallback
         }
-        if memo.duration > 0 { m.chips.append(.init(text: SkriftFormat.clock(memo.duration))) }
+        if memo.duration > 0 { m.chips.append(.init(text: SkriftFormat.duration(seconds: memo.duration))) }
         return NoteCardView(model: m, style: .mac)
             .contentShape(Rectangle())
             .onTapGesture { openInPane(memo) }

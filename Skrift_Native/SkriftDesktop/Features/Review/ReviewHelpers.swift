@@ -36,12 +36,11 @@ extension SkriftFormat {
     // `PipelineFile.durationSeconds(fromMetadataValue:)`, which handles the numeric
     // shape too. This left a string-only parser sitting next to a reader that needed
     // both, which is how the synced-note duration went missing.
-
-    /// seconds → "m:ss" clock for the transport.
-    static func clock(_ s: Double) -> String {
-        let t = Int(max(0, s.isFinite ? s : 0))
-        return String(format: "%d:%02d", t / 60, t % 60)
-    }
+    //
+    // `.clock(_:)` (m:ss only, no hours) is GONE (sweep E finding #10, sweep-d-mac.md
+    // #10): it disagreed with `.duration(seconds:)` past 60 minutes — the header/
+    // player read e.g. "125:33" for the SAME note the sidebar correctly read "2:05:33".
+    // Every former `.clock` call site now routes through `.duration(seconds:)`.
 
     private static let breadcrumbDF: DateFormatter = {
         let f = DateFormatter()

@@ -342,6 +342,10 @@ enum BookAlignmentRunner {
         /// wastes minutes and yields misleading verdicts) — the transcription job's
         /// finish call to `alignIfNeeded` does the real pass. Drives the outcome copy.
         var deferredWhileTranscribing: Bool = false
+        /// `EPubParse.evaluateDRM`'s verdict for the attached file — surfaced to the
+        /// user (sweep E finding #6: previously computed and stored on `EPubBook.drm`
+        /// but read nowhere but a debug log line on the Mac).
+        var drm: EPubDRMVerdict = .none
     }
 
     /// True while the whole-book transcribe job is live for `bookID` — the window in
@@ -433,7 +437,8 @@ enum BookAlignmentRunner {
                 }
             }
             return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig,
-                                 transcriptSigs: transcriptSigs, aligned: aligned, rejected: rejected, total: total)
+                                 transcriptSigs: transcriptSigs, aligned: aligned, rejected: rejected, total: total,
+                                 drm: epubBook.drm)
         }.value
         progress?("Placing chapters…")
 
@@ -451,7 +456,8 @@ enum BookAlignmentRunner {
             newlyAttachedFilename: filename
         )
         return AttachSummary(alignedFiles: outcome.aligned, rejectedFiles: outcome.rejected,
-                             totalFiles: outcome.total, deferredWhileTranscribing: deferring)
+                             totalFiles: outcome.total, deferredWhileTranscribing: deferring,
+                             drm: outcome.drm)
     }
 
     private struct AttachOutcome: Sendable {
@@ -463,6 +469,7 @@ enum BookAlignmentRunner {
         var aligned: Int
         var rejected: Int
         var total: Int
+        var drm: EPubDRMVerdict = .none
     }
 
     // MARK: Incremental re-align

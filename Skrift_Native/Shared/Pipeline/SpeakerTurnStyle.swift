@@ -82,8 +82,12 @@ enum SpeakerTurnStyle {
     /// ≥2 line-anchored `**Name:**` headers AND ≥2 distinct speakers. Deliberately the same
     /// test the Sanitiser routes on — a body the linker already treated as a conversation is
     /// the body that should render as one, and a single bold lead-in never sprouts a gutter.
+    /// Fixed pattern — hoisted so `turns(in:)` (called on EVERY keystroke via
+    /// `BodyTextView.restyle`, R90) doesn't recompile it each time (sweep E finding #5).
+    private static let headerRegex = try! NSRegularExpression(pattern: SpeakerTranscript.headerPattern)
+
     static func turns(in text: String, people: [Person]) -> [Turn] {
-        guard let re = try? NSRegularExpression(pattern: SpeakerTranscript.headerPattern) else { return [] }
+        let re = headerRegex
         let ns = text as NSString
         let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
         guard matches.count >= 2 else { return [] }
