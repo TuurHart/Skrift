@@ -1,0 +1,424 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One Filter Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Page chrome tokens (same as Q50's mock) + in-app tokens from Shared/UI/Palette.swift */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce024; --a-accent-edge:#6c5ce038;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-red:#dc2626; --a-green:#0f9d72; --a-amber:#d97706; --a-mac-chip:rgba(0,0,0,.06); --a-mac-stroke:rgba(0,0,0,.07);
+  --a-mac-bg:#f7f7fa; --a-sheet:#f2f2f7; --a-scrim:rgba(0,0,0,.28);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf524; --a-accent-edge:#7c6bf538;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+    --a-red:#ef4444; --a-green:#34d399; --a-amber:#f59e0b; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+    --a-mac-bg:#0f1117; --a-sheet:#15171f; --a-scrim:rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf524; --a-accent-edge:#7c6bf538;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+  --a-red:#ef4444; --a-green:#34d399; --a-amber:#f59e0b; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+  --a-mac-bg:#0f1117; --a-sheet:#15171f; --a-scrim:rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;margin:0}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+h2{font-size:18px;margin:0;text-wrap:balance}
+p{margin:0;max-width:68ch}
+code{font-family:var(--mono);font-size:.82em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.q b{font-size:16px}
+.q .pick{font-family:var(--mono);font-size:12px;color:var(--pg-warn);background:var(--pg-warn-soft);border-radius:6px;padding:3px 7px;align-self:flex-start}
+/* option tabs */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--pg-bg);padding-block:8px}
+.tab{font:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--pg-line);background:var(--pg-card);color:var(--pg-ink);border-radius:10px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
+.tab small{font-weight:400;font-size:10.5px;color:var(--pg-dim)}
+.tab[aria-selected="true"]{border-color:var(--pg-accent);background:var(--pg-accent-soft)}
+.tab.mine{position:relative}
+.tab.mine::after{content:"my pick";position:absolute;top:-8px;right:4px;font-family:var(--mono);font-size:9.5px;font-weight:600;background:var(--pg-warn);color:#fff;border-radius:4px;padding:0 4px}
+.tab:focus-visible,.fb:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.panel{display:flex;flex-direction:column;gap:14px}
+.lead{font-size:15px}
+.gives{border-left:3px solid var(--pg-warn);background:var(--pg-warn-soft);padding:8px 10px;border-radius:0 8px 8px 0;font-size:14px}
+.gives b{color:var(--pg-warn)}
+.frames{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.fcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.try{font-size:13px;color:var(--pg-dim);margin-top:6px;max-width:358px}
+/* control table */
+.ctl{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--pg-card);border-radius:12px;overflow:hidden}
+.ctl th,.ctl td{text-align:left;padding:7px 10px;border-top:1px solid var(--pg-line);vertical-align:top}
+.ctl thead th{border-top:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-faint);font-weight:500}
+.ctl td:first-child{white-space:nowrap;font-weight:600}
+.ctl .src{font-family:var(--mono);font-size:10.5px;color:var(--pg-faint);display:block}
+.ctl tr.warn td{background:var(--pg-warn-soft)}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--pg-line)}
+
+/* ─────────── In-app: phone frame ─────────── */
+.phone{width:358px;max-width:100%;height:650px;border-radius:34px;border:6px solid #1b1b1f;background:var(--a-bg);position:relative;overflow:hidden;font-family:var(--sys);color:var(--a-text);display:flex;flex-direction:column}
+.sbar{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12px;font-weight:600;flex:none}
+.p-head{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 6px}
+.p-head .t{font-size:30px;font-weight:700;letter-spacing:-.01em}
+.p-head .sel{font-size:16px;color:var(--a-accent)}
+.verbs{display:flex;gap:7px;padding:0 14px 2px}
+.verb{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:8px;background:var(--a-chip);color:var(--a-text)}
+.verb.rec{color:var(--a-red)} .verb.rec i{width:9px;height:9px;border-radius:50%;background:var(--a-red);display:block}
+.verb.pen{flex:none;width:34px}
+.p-search{margin:4px 16px 6px;display:flex;align-items:center;gap:8px;background:var(--a-surface);border:1px solid var(--a-border);border-radius:10px;padding:8px 12px;font-size:14px;color:var(--a-faint)}
+/* chip bar — MemosListView.swift:846-885 (11pt, radius 6, pad 9×4, accent wash + edge when on) */
+.cbar{display:flex;align-items:center;gap:5px;padding:2px 16px 4px;flex:none;min-height:30px}
+.chip{font:inherit;font-size:11px;line-height:1.3;white-space:nowrap;border:1px solid transparent;background:transparent;color:var(--a-dim);padding:4px 9px;border-radius:6px;cursor:pointer;display:inline-flex;gap:3px;align-items:center}
+.chip b{font-weight:600}
+.chip.on{color:var(--a-accent);background:var(--a-accent-soft);border-color:var(--a-accent-edge)}
+.chip.extra{border-color:var(--a-border);border-style:dashed}
+.chip.extra.on{border-style:solid}
+.spacer{flex:1}
+.ficon{font:inherit;border:none;background:var(--a-chip);color:var(--a-dim);border-radius:6px;padding:6px;cursor:pointer;display:inline-flex;line-height:0}
+.ficon.on{color:var(--a-accent)}
+.ficon svg{width:13px;height:13px}
+.sortw{font:inherit;font-size:11px;font-weight:600;border:none;background:none;color:var(--a-dim);cursor:pointer;white-space:nowrap;padding:4px 2px}
+.scrollrow{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.scrollrow::-webkit-scrollbar{display:none}
+.oneb{font:inherit;flex:1;display:flex;align-items:center;gap:6px;border:1px solid var(--a-border);background:var(--a-surface);color:var(--a-text);border-radius:8px;padding:6px 10px;font-size:12.5px;cursor:pointer;min-width:0}
+.oneb .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:left}
+.oneb .n{color:var(--a-dim);font-weight:600}
+.oneb.on{border-color:var(--a-accent-edge);background:var(--a-accent-soft);color:var(--a-accent)}
+.oneb svg{width:13px;height:13px;flex:none}
+.strip{margin:0 16px 6px;background:var(--a-surface);border:1px solid var(--a-border);border-radius:10px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.seg{display:inline-flex;background:var(--a-chip);border-radius:7px;padding:2px}
+.seg button{font:inherit;font-size:11.5px;border:none;background:none;color:var(--a-dim);padding:3px 8px;border-radius:5px;cursor:pointer}
+.seg button.on{background:var(--a-surface);color:var(--a-text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.pill{font:inherit;font-size:11.5px;border:1px solid var(--a-border);background:none;color:var(--a-dim);border-radius:7px;padding:3px 8px;cursor:pointer}
+.pill.on{color:var(--a-accent);border-color:var(--a-accent-edge);background:var(--a-accent-soft)}
+.linkb{font:inherit;font-size:11.5px;border:none;background:none;color:var(--a-accent);cursor:pointer;padding:3px 4px}
+/* list */
+.list{flex:1;overflow-y:auto;padding:0 16px 20px}
+.grp{font-size:12px;font-weight:600;color:var(--a-dim);padding:10px 2px 5px;text-transform:none}
+.card{background:var(--a-surface);border-radius:12px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.card .tt{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .sn{font-size:12.5px;color:var(--a-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .meta{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--a-faint);margin-top:2px}
+.balls{display:inline-flex;gap:2px}
+.balls i{width:7px;height:7px;border-radius:50%;border:1.2px solid var(--a-faint);display:block}
+.balls i.f{background:var(--a-accent);border-color:var(--a-accent)}
+.tagu{color:var(--a-amber)}
+.empty{text-align:center;color:var(--a-dim);font-size:13px;padding:40px 10px}
+.empty b{display:block;color:var(--a-text);font-size:14px;margin-bottom:4px}
+.bott{height:18px;flex:none;display:flex;justify-content:center;align-items:center}
+.bott i{width:120px;height:4px;border-radius:3px;background:var(--a-text);opacity:.8;display:block}
+/* phone sheet */
+.scrim{position:absolute;inset:0;background:var(--a-scrim);z-index:5}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:44px;background:var(--a-sheet);border-radius:14px 14px 0 0;z-index:6;display:flex;flex-direction:column;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.sheet,.pop{animation:none}}
+.sh-nav{display:flex;align-items:center;justify-content:center;position:relative;padding:14px 16px 8px;font-weight:600;font-size:15px}
+.sh-nav button{position:absolute;right:14px;font:inherit;font-weight:600;color:var(--a-accent);background:none;border:none;cursor:pointer;font-size:15px}
+.sh-body{overflow-y:auto;padding:0 16px 20px;flex:1}
+.sec{font-size:11.5px;color:var(--a-dim);text-transform:uppercase;letter-spacing:.03em;padding:12px 14px 5px}
+.grpbox{background:var(--a-surface);border-radius:10px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;font-size:14.5px;border-top:.5px solid var(--a-border);cursor:pointer;width:100%;background:none;border-left:none;border-right:none;border-bottom:none;font-family:inherit;color:var(--a-text);text-align:left}
+.row:first-child{border-top:none}
+.row .ck{color:var(--a-accent);font-weight:700}
+.row .cnt{color:var(--a-dim);font-weight:600;font-size:13px;margin-left:auto;margin-right:10px}
+.row.dup{background:var(--pg-warn-soft)}
+.tog{width:40px;height:24px;border-radius:12px;background:var(--a-chip);position:relative;flex:none;transition:background .15s}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
+.tog.on{background:var(--a-green)} .tog.on::after{left:18px}
+.foot{font-size:12px;color:var(--a-dim);padding:6px 14px}
+.clear{color:var(--a-red)!important;justify-content:center!important}
+.dupnote{font-family:var(--mono);font-size:10px;color:var(--pg-warn);display:block}
+
+/* ─────────── In-app: Mac sidebar frame ─────────── */
+.mac{width:290px;max-width:100%;height:560px;border-radius:12px;border:1px solid var(--pg-line);background:var(--a-mac-bg);position:relative;overflow:hidden;font-family:var(--sys);color:var(--a-text);display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(20,10,60,.10)}
+.m-top{padding:12px 12px 0;display:flex;flex-direction:column;gap:12px}
+.lights{display:flex;gap:7px;height:12px}
+.lights i{width:11px;height:11px;border-radius:50%;display:block}
+.m-id{display:flex;align-items:center;justify-content:space-between}
+.m-id .l{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
+.m-id .logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#8e7dff,#6a59ef);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center}
+.m-id .gear{color:var(--a-dim);font-size:14px}
+.m-verbs{display:flex;gap:7px}
+.m-verbs .verb{background:var(--a-mac-chip)}
+.m-proc{background:var(--a-accent);color:#fff;border-radius:8px;padding:7px;text-align:center;font-size:12.5px;font-weight:600}
+.m-proc span{opacity:.8;font-weight:700;margin-left:4px}
+.m-search{display:flex;align-items:center;gap:6px;background:var(--a-mac-chip);border:.5px solid var(--a-mac-stroke);border-radius:7px;padding:5px 8px;font-size:12px;color:var(--a-faint)}
+.mac .cbar{padding:0 0 11px}
+.mac .chip:not(.on){color:var(--a-dim)}
+.mac .ficon{background:var(--a-mac-chip)}
+.mac .ficon svg{width:12px;height:12px}
+.mac .strip{margin:0 0 8px}
+.mac .oneb{background:var(--a-mac-chip)}
+.m-hair{height:.5px;background:var(--a-border)}
+.mac .list{padding:0 10px 14px}
+.mac .card{background:transparent;border-radius:8px;padding:7px 9px;margin-bottom:2px}
+.mac .card .tt{font-size:13px}
+.mac .card .sn{font-size:11.5px}
+.mac .grp{font-size:11px;padding:9px 9px 3px}
+.pop{position:absolute;z-index:6;background:var(--a-surface);border:1px solid var(--a-border);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);width:260px;max-width:calc(100% - 12px);right:6px;animation:up .18s ease-out;padding-bottom:12px;max-height:calc(100% - 30px);overflow-y:auto}
+.pop h4{margin:0;font-size:14px;padding:14px 16px 6px}
+.pop .ph{font-size:10px;font-weight:700;color:var(--a-faint);padding:6px 16px 2px;letter-spacing:.02em}
+.pop .pr{display:flex;align-items:center;justify-content:space-between;width:100%;font:inherit;font-size:13px;color:var(--a-text);background:none;border:none;padding:6px 16px;cursor:pointer;text-align:left}
+.pop .pr:hover{background:var(--a-accent-soft)}
+.pop .ck{color:var(--a-accent);font-weight:700;font-size:12px}
+.pop .cnt{color:var(--a-dim);font-weight:600;font-size:12px;margin-left:auto;margin-right:10px}
+.pop .cb{display:inline-flex;align-items:center;gap:6px}
+.pop .cb i{width:13px;height:13px;border-radius:3px;border:1px solid var(--a-faint);display:grid;place-items:center;font-style:normal;font-size:10px;color:#fff}
+.pop .cb i.on{background:var(--a-accent);border-color:var(--a-accent)}
+.pop .dv{height:1px;background:var(--a-border);margin:6px 16px}
+.pop .dt{font-size:12px;color:var(--a-dim)}
+.pop .clr{color:var(--a-accent);font-size:12px}
+.popscrim{position:absolute;inset:0;z-index:5}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q49 · mock · spec C117 · from D145</div>
+    <h1>One filter mechanism for the notes list</h1>
+    <p style="margin-top:6px;color:var(--pg-dim)">Build 172 feel check: the chips plus the Filter icon read as "difficult or tricky". Below is what ships today, drawn from source, then three ways to make it one thing. Every frame is clickable: chips filter the fake list, the icon or button opens its sheet or popover.</p>
+  </header>
+
+  <section class="q" aria-label="The question">
+    <b>1. Which option do we build: A, B, C, or none?</b>
+    <span style="font-size:14px;color:var(--pg-dim)">Tap through all four tabs on the phone. Each option shows the phone and the Mac sidebar, and what it costs you.</span>
+    <span class="pick">My pick: A. It keeps the counts on the chips (D135) and drops the hidden sheet.</span>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-asis" aria-selected="true" data-tab="asis">Today<small>as-is</small></button>
+    <button class="tab mine" role="tab" id="t-a" aria-selected="false" data-tab="a">A<small>chips carry all</small></button>
+    <button class="tab" role="tab" id="t-b" aria-selected="false" data-tab="b">B<small>one menu</small></button>
+    <button class="tab" role="tab" id="t-c" aria-selected="false" data-tab="c">C<small>cut it</small></button>
+  </div>
+
+  <!-- ─────────── AS-IS ─────────── -->
+  <section class="panel" id="p-asis" role="tabpanel">
+    <h2>Today: four chips, then a Filter icon that opens a second, different filter</h2>
+    <p class="lead">The chips pick a status and show counts. The icon hides sort, a date range, Unsynced, and on the phone a second copy of Unrated. Both apply at once, and the icon only lights up for what is inside it.</p>
+    <div class="gives"><b>Found in source:</b> the phone shows the <i>Unrated</i> chip and a <i>Not rated</i> toggle in the sheet for the same set of notes (<code>MemosListView.swift:338</code> passes <code>showNotRated: !isRegular</code>). Tap <b>Done</b>, then open the icon and turn on <b>Not rated</b>: the list goes empty and nothing on the bar says why.</div>
+    <div class="frames">
+      <div><div class="fcap">iPhone 13 · compact</div><div data-frame="asis" data-dev="phone"></div></div>
+      <div><div class="fcap">Mac sidebar</div><div data-frame="asis" data-dev="mac"></div></div>
+    </div>
+    <div class="tw"><table class="ctl">
+      <thead><tr><th>Control</th><th>What it filters</th></tr></thead>
+      <tbody>
+        <tr><td>All</td><td>Every live note. No count.<span class="src">QueueFilter.swift:14 · ProcessPile.swift:56</span></td></tr>
+        <tr><td>Needs Work N</td><td>Rated, not yet processed on any device. Mac: pipeline row not complete.<span class="src">ProcessPile.swift:57 · AppModel.swift:75</span></td></tr>
+        <tr><td>Done N</td><td>Rated and processed. Mac: pipeline row complete.<span class="src">ProcessPile.swift:58 · AppModel.swift:76</span></td></tr>
+        <tr><td>Unrated N</td><td>No rating yet and not locked. Mac shows the quiet memo rows.<span class="src">ProcessPile.swift:59 · SidebarView.swift:671</span></td></tr>
+        <tr><td>Filter icon, phone</td><td>Opens the Sort &amp; Filter sheet: 5 sorts, Not rated, Unsynced only, date range on Recorded or Added.<span class="src">MemosListView.swift:871, 1582-1662</span></td></tr>
+        <tr class="warn"><td>Not rated toggle</td><td>Same set as the Unrated chip. Phone only. The two stack (AND).<span class="src">MemosListView.swift:1239, 1619</span></td></tr>
+        <tr><td>Filter icon, Mac</td><td>Opens a popover: 3 sorts (Newest, Oldest, Title A–Z) and a From/To on the upload date. No Unsynced, no Not rated.<span class="src">SidebarView.swift:508-561</span></td></tr>
+        <tr><td>Icon highlight</td><td>Turns accent only for sheet filters (phone) or dates (Mac). Never for a chip, never for a non-default sort.<span class="src">MemosListView.swift:872 · SidebarView.swift:512</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ─────────── A ─────────── -->
+  <section class="panel" id="p-a" role="tabpanel" hidden>
+    <h2>A · The chips carry everything</h2>
+    <p class="lead">No icon. The chip row gets two more chips, <b>Date</b> and <b>Unsynced</b>, after the four status chips. Sort becomes a word at the end of the row (<b>Newest ↓</b>) that steps to the next order on each tap, the idiom the code already has as <code>MemoSort.next</code> and <code>SidebarSort.next</code>. Date opens a small strip under the row, not a sheet. The duplicate Not rated toggle is gone.</p>
+    <div class="gives"><b>What you give up:</b> on a 390 pt phone the row no longer fits. Date and Unsynced sit past the right edge and you swipe the row to reach them. The row also mixes two kinds of chip: the four status chips pick one, the dashed ones stack on top.</div>
+    <div class="frames">
+      <div><div class="fcap">iPhone 13 · compact</div><div data-frame="a" data-dev="phone"></div><p class="try">Swipe the chip row left to reach Date. Tap Newest ↓ to step through the sorts.</p></div>
+      <div><div class="fcap">Mac sidebar</div><div data-frame="a" data-dev="mac"></div><p class="try">Mac has no Unsynced today, so it gets Date only.</p></div>
+    </div>
+  </section>
+
+  <!-- ─────────── B ─────────── -->
+  <section class="panel" id="p-b" role="tabpanel" hidden>
+    <h2>B · One Filter button, the chips move inside it</h2>
+    <p class="lead">The chip row is replaced by one button that names what you are looking at: <b>All notes · Newest</b>, or <b>Needs Work 3 · Oldest · from 22 Sep</b>. Tapping it opens one sheet (phone) or popover (Mac) with Show (the four statuses, each with its count), Sort, Date and Unsynced.</p>
+    <div class="gives"><b>What you give up:</b> the counts are no longer visible at a glance. D135 put them on the chips ("each chip counts its own notes"); here you see only the count of the set you are in. Switching from Needs Work to Done is two taps instead of one.</div>
+    <div class="frames">
+      <div><div class="fcap">iPhone 13 · compact</div><div data-frame="b" data-dev="phone"></div><p class="try">Tap the button. Pick a status, a sort and a date, then watch the button's label change.</p></div>
+      <div><div class="fcap">Mac sidebar</div><div data-frame="b" data-dev="mac"></div></div>
+    </div>
+  </section>
+
+  <!-- ─────────── C ─────────── -->
+  <section class="panel" id="p-c" role="tabpanel" hidden>
+    <h2>C · Keep the chips, cut the rest</h2>
+    <p class="lead">Four chips and nothing else to filter with. Sort moves into the search field as a word (<b>Newest ↓</b>) that steps on tap. The date range and Unsynced only are removed on both devices.</p>
+    <div class="gives"><b>What you give up:</b> the date range and Unsynced only. You kept both on 2026-07-23 when Photos and Place were cut ("Sort + Unsynced + Date on both"). Finding notes by date would then rely on scrolling the day groups.</div>
+    <div class="frames">
+      <div><div class="fcap">iPhone 13 · compact</div><div data-frame="c" data-dev="phone"></div><p class="try">Tap Newest ↓ inside the search field to change the sort.</p></div>
+      <div><div class="fcap">Mac sidebar</div><div data-frame="c" data-dev="mac"></div></div>
+    </div>
+  </section>
+
+  <p style="font-size:12.5px;color:var(--pg-faint)">Fake notes. Chip counts are computed from the ten notes in the frame, over all notes, as D135 does. The chip bar, sheet and popover are drawn from <code>MemosListView.swift:846-885, 1582-1662</code> and <code>SidebarView.swift:204-254, 473-561</code> on <code>bde5bfa0</code>.</p>
+</div>
+
+<script>
+(function(){
+const FUNNEL='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 4h12M4.5 8h7M7 12h2"/></svg>';
+const FUNNEL_ON='<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7.5" fill="currentColor"/><path d="M4.2 5.4h7.6M5.6 8h4.8M7.1 10.6h1.8" stroke="var(--a-surface)" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const NOTES=[
+ {t:"Lease call with Marta",s:"She can do the 1st if we sign by Friday",g:"Today",sig:2,proc:true,sync:true,day:25,len:312},
+ {t:"Balcony bike rack",s:"Wall mount, not the floor stand. Measure first.",g:"Today",sig:1,proc:false,sync:false,day:25,len:48},
+ {t:"Voice memo 14:02",s:"okay so the thing about the chapter three ending",g:"Today",sig:0,proc:false,sync:true,day:25,len:95},
+ {t:"Prompt idea: summary last",s:"Ask for the summary at the end, not first.",g:"Yesterday",sig:3,proc:true,sync:true,day:24,len:61},
+ {t:"Pastelarias to try",s:"Manteigaria, Aloma, the one near Anjos",g:"Yesterday",sig:1,proc:true,sync:true,day:24,len:33},
+ {t:"Voice memo 08:47",s:"Remind me to call the dentist about Thursday",g:"Yesterday",sig:0,proc:false,sync:false,day:24,len:12},
+ {t:"Gripper pads slip",s:"Silicone slips on wet glass. Try TPU next.",g:"Tue 22 Sep",sig:2,proc:false,sync:true,day:22,len:204},
+ {t:"Quote from The Overstory",s:"The best arguments in the world won't change a mind",g:"Tue 22 Sep",sig:2,proc:true,sync:true,day:22,len:40},
+ {t:"Voice memo 21:15",s:"Walking home, thinking about the Porto weekend",g:"Mon 21 Sep",sig:0,proc:false,sync:true,day:21,len:188},
+ {t:"Flight to Porto",s:"Friday 07:10 from LIS. Bring the charger.",g:"Mon 21 Sep",sig:1,proc:false,sync:true,day:21,len:20}
+];
+const STATUS=["All","Needs Work","Done","Unrated"];
+const isIn=(st,n)=>st==="All"||(st==="Needs Work"&&n.sig>0&&!n.proc)||(st==="Done"&&n.sig>0&&n.proc)||(st==="Unrated"&&n.sig===0);
+const COUNT={};STATUS.forEach(s=>COUNT[s]=NOTES.filter(n=>isIn(s,n)).length);
+const SORTS={phone:[["Recently added","Newest"],["Recently edited","Edited"],["Recently recorded","Recorded"],["Oldest first","Oldest"],["Longest first","Longest"]],
+             mac:[["Newest first","Newest"],["Oldest first","Oldest"],["Title (A–Z)","Title"]]};
+
+function newState(){return {status:"All",sort:0,from:false,to:false,dateField:"Recorded",unsynced:false,notRated:false,open:false,strip:false};}
+
+function visible(st,dev){
+  let out=NOTES.filter(n=>isIn(st.status,n));
+  if(st.notRated) out=out.filter(n=>n.sig===0);
+  if(st.unsynced) out=out.filter(n=>!n.sync);
+  if(st.from) out=out.filter(n=>n.day>=22);
+  if(st.to) out=out.filter(n=>n.day<=25);
+  const key=SORTS[dev][st.sort][1];
+  if(key==="Oldest") out=out.slice().reverse();
+  if(key==="Title") return [{g:"A–Z",items:out.slice().sort((a,b)=>a.t.localeCompare(b.t))}];
+  if(key==="Longest") return [{g:"Longest first",items:out.slice().sort((a,b)=>b.len-a.len)}];
+  const gs=[];out.forEach(n=>{let g=gs.find(x=>x.g===n.g);if(!g){g={g:n.g,items:[]};gs.push(g);}g.items.push(n);});
+  return gs;
+}
+const balls=n=>'<span class="balls">'+[0,1,2].map(i=>'<i class="'+(i<n?'f':'')+'"></i>').join('')+'</span>';
+function listHTML(st,dev){
+  const gs=visible(st,dev);
+  if(!gs.length||!gs.some(g=>g.items.length)) return '<div class="empty"><b>No notes match</b>'+(st.notRated&&st.status!=="All"&&st.status!=="Unrated"?'The '+st.status+' chip and the sheet\'s Not rated toggle both apply.':'Try a different filter.')+'</div>';
+  return gs.map(g=>'<div class="grp">'+g.g+'</div>'+g.items.map(n=>'<div class="card"><div class="tt">'+n.t+'</div><div class="sn">'+n.s+'</div><div class="meta">'+balls(n.sig)+(n.sig===0?'<span>unrated</span>':'')+(!n.sync?'<span class="tagu">not synced</span>':'')+'</div></div>').join('')).join('');
+}
+const chip=(label,n,on,act,extra)=>'<button class="chip'+(on?' on':'')+(extra?' extra':'')+'" data-act="'+act+'">'+label+(n!=null?' <b>'+n+'</b>':'')+'</button>';
+const statusChips=st=>STATUS.map(s=>chip(s,s==="All"?null:COUNT[s],st.status===s,"status:"+s)).join('');
+const dateLabel=st=>st.from&&st.to?'22–25 Sep':st.from?'from 22 Sep':st.to?'to 25 Sep':'';
+const sortWord=(st,dev)=>'<button class="sortw" data-act="cycle" title="Tap for the next sort">'+SORTS[dev][st.sort][1]+' ↓</button>';
+
+function barHTML(v,st,dev){
+  if(v==="asis"){
+    const on=dev==="phone"?(st.notRated||st.unsynced||st.from||st.to):(st.from||st.to);
+    return '<div class="cbar">'+statusChips(st)+'<span class="spacer"></span><button class="ficon'+(on?' on':'')+'" data-act="open" aria-label="Sort and filter">'+(on&&dev==="phone"?FUNNEL_ON:FUNNEL)+'</button></div>';
+  }
+  if(v==="a"){
+    const d=st.from||st.to;
+    let h='<div class="cbar"><div class="scrollrow">'+statusChips(st)+chip('Date'+(d?' · '+dateLabel(st):'')+' ▾',null,d||st.strip,"strip",true)+(dev==="phone"?chip('Unsynced',null,st.unsynced,"unsynced",true):'')+'</div>'+sortWord(st,dev)+'</div>';
+    if(st.strip) h+='<div class="strip">'+(dev==="phone"?'<span class="seg"><button class="'+(st.dateField==="Recorded"?'on':'')+'" data-act="field:Recorded">Recorded</button><button class="'+(st.dateField==="Added"?'on':'')+'" data-act="field:Added">Added</button></span>':'<span style="color:var(--a-dim)">Uploaded</span>')+'<button class="pill'+(st.from?' on':'')+'" data-act="from">From 22 Sep</button><button class="pill'+(st.to?' on':'')+'" data-act="to">To 25 Sep</button>'+(d?'<button class="linkb" data-act="cleardate">Clear</button>':'')+'</div>';
+    return h;
+  }
+  if(v==="b"){
+    const parts=[st.status==="All"?'All notes':st.status];
+    parts.push(SORTS[dev][st.sort][1]);
+    if(st.from||st.to) parts.push(dateLabel(st));
+    if(st.unsynced) parts.push('unsynced');
+    const n=visible(st,dev).reduce((a,g)=>a+g.items.length,0);
+    const changed=st.status!=="All"||st.sort||st.from||st.to||st.unsynced;
+    return '<div class="cbar"><button class="oneb'+(changed?' on':'')+'" data-act="open">'+FUNNEL+'<span class="lbl">'+parts.join(' · ')+'</span><span class="n">'+n+'</span><span>▾</span></button></div>';
+  }
+  return '<div class="cbar">'+statusChips(st)+'</div>';
+}
+function searchHTML(v,st,dev){
+  const cls=dev==="phone"?'p-search':'m-search';
+  const icon='<span aria-hidden="true">⌕</span>';
+  if(v==="c") return '<div class="'+cls+'">'+icon+'<span style="flex:1">Search memos</span>'+sortWord(st,dev)+'</div>';
+  return '<div class="'+cls+'">'+icon+'<span>Search memos</span></div>';
+}
+function tog(on){return '<span class="tog'+(on?' on':'')+'"></span>';}
+function phoneSheet(v,st){
+  let h='<div class="scrim" data-act="close"></div><div class="sheet" role="dialog"><div class="sh-nav">'+(v==="b"?'Filter':'Sort &amp; Filter')+'<button data-act="close">Done</button></div><div class="sh-body">';
+  if(v==="b"){
+    h+='<div class="sec">Show</div><div class="grpbox">'+STATUS.map(s=>'<button class="row" data-act="status:'+s+'">'+s+'<span class="cnt">'+(s==="All"?NOTES.length:COUNT[s])+'</span>'+(st.status===s?'<span class="ck">✓</span>':'<span></span>')+'</button>').join('')+'</div>';
+  }
+  h+='<div class="sec">Sort</div><div class="grpbox">'+SORTS.phone.map((s,i)=>'<button class="row" data-act="sort:'+i+'">'+s[0]+(st.sort===i?'<span class="ck">✓</span>':'')+'</button>').join('')+'</div>';
+  h+='<div class="sec">Filter</div><div class="grpbox">';
+  if(v==="asis") h+='<button class="row dup" data-act="notrated"><span>Not rated<span class="dupnote">same set as the Unrated chip</span></span>'+tog(st.notRated)+'</button>';
+  h+='<button class="row" data-act="unsynced">Unsynced only'+tog(st.unsynced)+'</button></div>';
+  h+='<div class="sec">Date</div><div class="grpbox"><div class="row" style="cursor:default"><span class="seg" style="width:100%;display:flex"><button style="flex:1" class="'+(st.dateField==="Recorded"?'on':'')+'" data-act="field:Recorded">Recorded</button><button style="flex:1" class="'+(st.dateField==="Added"?'on':'')+'" data-act="field:Added">Added</button></span></div><button class="row" data-act="from">From'+(st.from?' <span style="color:var(--a-accent);margin-left:auto;margin-right:10px;font-size:13px">22 Sep 2026</span>':'')+tog(st.from)+'</button><button class="row" data-act="to">To'+(st.to?' <span style="color:var(--a-accent);margin-left:auto;margin-right:10px;font-size:13px">25 Sep 2026</span>':'')+tog(st.to)+'</button></div><div class="foot">Filter by when each note was '+(st.dateField==="Added"?'added to Skrift':'recorded')+'.</div>';
+  const active=st.notRated||st.unsynced||st.from||st.to||(v==="b"&&(st.status!=="All"));
+  if(active) h+='<div class="grpbox" style="margin-top:12px"><button class="row clear" data-act="clearall">Clear filters</button></div>';
+  return h+'</div></div>';
+}
+function macPop(v,st){
+  let h='<div class="popscrim" data-act="close"></div><div class="pop" style="top:'+(v==="b"?214:236)+'px"><h4>'+(v==="b"?'Filter':'Sort &amp; Filter')+'</h4>';
+  if(v==="b") h+='<div class="ph">SHOW</div>'+STATUS.map(s=>'<button class="pr" data-act="status:'+s+'">'+s+'<span class="cnt">'+(s==="All"?NOTES.length:COUNT[s])+'</span>'+(st.status===s?'<span class="ck">✓</span>':'<span style="width:9px"></span>')+'</button>').join('')+'<div class="dv"></div>';
+  h+='<div class="ph">SORT</div>'+SORTS.mac.map((s,i)=>'<button class="pr" data-act="sort:'+i+'">'+s[0]+(st.sort===i?'<span class="ck">✓</span>':'')+'</button>').join('');
+  h+='<div class="dv"></div><div class="ph">FILTER BY DATE (UPLOADED)</div>';
+  h+='<button class="pr" data-act="from"><span class="cb"><i class="'+(st.from?'on':'')+'">'+(st.from?'✓':'')+'</i>From</span>'+(st.from?'<span class="dt">22/09/2026</span>':'')+'</button>';
+  h+='<button class="pr" data-act="to"><span class="cb"><i class="'+(st.to?'on':'')+'">'+(st.to?'✓':'')+'</i>To</span>'+(st.to?'<span class="dt">25/09/2026</span>':'')+'</button>';
+  if(st.from||st.to) h+='<button class="pr clr" data-act="cleardate">Clear dates</button>';
+  return h+'</div>';
+}
+function render(el){
+  const v=el.dataset.frame,dev=el.dataset.dev,st=el._st;
+  let h;
+  if(dev==="phone"){
+    h='<div class="phone"><div class="sbar"><span>9:41</span><span>●●● ▮</span></div>'
+     +'<div class="p-head"><span class="t">Notes</span><span class="sel">Select</span></div>'
+     +'<div class="verbs"><span class="verb">＋ Import</span><span class="verb rec"><i></i>Record</span><span class="verb pen">✎</span></div>'
+     +searchHTML(v,st,dev)+barHTML(v,st,dev)
+     +'<div class="list">'+listHTML(st,dev)+'</div><div class="bott"><i></i></div>'
+     +(st.open?phoneSheet(v,st):'')+'</div>';
+  }else{
+    h='<div class="mac"><div class="m-top"><div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>'
+     +'<div class="m-id"><span class="l"><span class="logo">S</span>Skrift</span><span class="gear">⚙</span></div>'
+     +'<div class="m-verbs"><span class="verb">＋ Import</span><span class="verb rec"><i></i>Record</span><span class="verb pen">✎</span></div>'
+     +'<div class="m-proc">▶ Process<span>'+COUNT["Needs Work"]+'</span></div>'
+     +searchHTML(v,st,dev)+barHTML(v,st,dev)+'</div><div class="m-hair"></div>'
+     +'<div class="list">'+listHTML(st,dev)+'</div>'+(st.open?macPop(v,st):'')+'</div>';
+  }
+  const sl=el.querySelector('.scrollrow'),sx=sl?sl.scrollLeft:0;
+  el.innerHTML=h;
+  const nsl=el.querySelector('.scrollrow'); if(nsl) nsl.scrollLeft=sx;
+}
+function act(el,a){
+  const st=el._st,dev=el.dataset.dev;
+  const [k,val]=a.split(':');
+  switch(k){
+    case "status": st.status=val; if(el.dataset.frame==="b"){} break;
+    case "open": st.open=true; break;
+    case "close": st.open=false; break;
+    case "sort": st.sort=+val; break;
+    case "cycle": st.sort=(st.sort+1)%SORTS[dev].length; break;
+    case "notrated": st.notRated=!st.notRated; break;
+    case "unsynced": st.unsynced=!st.unsynced; break;
+    case "from": st.from=!st.from; break;
+    case "to": st.to=!st.to; break;
+    case "field": st.dateField=val; break;
+    case "strip": st.strip=!st.strip; break;
+    case "cleardate": st.from=false; st.to=false; break;
+    case "clearall": Object.assign(st,newState(),{open:true}); break;
+  }
+  render(el);
+}
+document.querySelectorAll('[data-frame]').forEach(el=>{
+  el._st=newState(); render(el);
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-act]'); if(b&&el.contains(b)) act(el,b.dataset.act);});
+});
+const tabs=[...document.querySelectorAll('.tab')];
+function show(id){
+  tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.tab===id?'true':'false'));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='p-'+id);
+}
+tabs.forEach(t=>t.addEventListener('click',()=>{show(t.dataset.tab); try{history.replaceState(null,'','#'+t.dataset.tab);}catch(e){}}));
+const h=(location.hash||'').slice(1); if(['asis','a','b','c'].includes(h)) show(h);
+})();
+</script>
