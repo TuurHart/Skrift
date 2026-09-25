@@ -413,7 +413,7 @@ node: AuditFix2
 do: From `plan/sweep-b-list-launch.md`: `filterChips` re-runs uncached `chipCounts` per chip (MemosListView.swift:846-895, ~16 full-corpus scans per render) — compute once per render/memo-set change; hoist per-row lookups (`enhancedTitleByMemoID`, `searchFadingIDs`, `backlinkedIDs`, partition — R92/C278) into one pre-render pass; use the shared `NotesListModel.dayGroups` instead of the hand-rolled `groups(from:)` (MemosListView.swift:1171-1183); delete the ~90 dead MemoCard helper lines it lists. Test in a new `ListRenderCostTests` (desktop target) counting scans per render.
 check: `grep -rqE "class ListRenderCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q55 [auto] (doing) phone launch and foreground do only what changed
+### Q55 [auto] (stuck) phone launch and foreground do only what changed
 spec: C279
 needs: -
 gate+: yes
@@ -437,7 +437,7 @@ node: AuditFix2
 do: From `plan/sweep-c-record-books-share.md`: `localAlignmentSignature` full-decodes every alignment sidecar on @MainActor on every reconcile — fired by each bookmark tap (AudiobookCloudSync.swift:611-620 ← AudiobookPlayerView.swift:482, ChaptersBookmarksSheet.swift:97) — use cached file stats like its transcript twin (:421-432); `BookAlignment.mergeSentences` is O(n²) (BookAlignment.swift:723-747) — make it linear (sorted merge) without changing output (prove on an existing alignment test); `AudiobookSession` is ObservableObject re-rendering the whole player every 0.5 s tick — move to @Observable with the tick isolated, like LiveRecordingService. Load shared photos/audio concurrently in SharePayloadLoader.swift:227-264,345-370. Test in a new `AudiobookCostTests` (phone target).
 check: `plan/mtest.sh AudiobookCostTests && ./gate.sh`
 
-### Q58 [auto] (doing) twins and dead code from sweep E fixed (vocab re-warm, lock predicate, tombstones, durations)
+### Q58 [auto] (done) twins and dead code from sweep E fixed (vocab re-warm, lock predicate, tombstones, durations)
 spec: C240 C50
 needs: -
 gate+: yes
@@ -677,3 +677,5 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 21:15 Q53 -> done — gate pass @6adb30d6
 - 2026-09-25 21:23 Q62 -> doing — worker out: prepare the sitting sheet
 - 2026-09-25 22:14 Q54 -> done — gate pass @2d3ceaab
+- 2026-09-25 22:16 Q55 -> stuck — check failed — .queue/Q55.check.log
+- 2026-09-25 22:18 Q58 -> done — gate pass @2c4f232f
