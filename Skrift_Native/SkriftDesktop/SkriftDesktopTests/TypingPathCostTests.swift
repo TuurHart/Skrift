@@ -7,6 +7,7 @@ import XCTest
 /// (`QuickNoteView`, `NotesRepository`, `MemoDetailView`) aren't reachable from
 /// this host-less desktop bundle — `plan/mtest.sh QuickNoteTests` covers those
 /// directly on the phone target.
+@MainActor
 final class TypingPathCostTests: XCTestCase {
 
     // MARK: - 1. Quick Note save debounce (was: `context.save()` per keystroke)
