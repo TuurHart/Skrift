@@ -450,7 +450,7 @@ spec: C240
 needs: Q53 Q54 Q56
 node: AuditFix2
 do: Elegance pass after the perf items land (sweeps A, B, E): split `SkriftMobile/Features/MemoDetail/MemoDetailView.swift` (~2,560 lines, one struct with 138 members), `SkriftMobile/Features/MemosList/MemosListView.swift` (~1,780) and `Shared/Naming/Sanitiser.swift` (781, four jobs in one enum) into files along the seams the sweeps name. Pure moves + extracted subviews/types; no behaviour change; every existing test stays green unchanged; phone `build-for-testing` passes.
-check: `test $(wc -l < Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift) -lt 1200 && test $(wc -l < Skrift_Native/SkriftMobile/Features/MemosList/MemosListView.swift) -lt 900 && ./gate.sh`
+check: `test $(wc -l < Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift) -lt 1200 && test $(wc -l < Skrift_Native/SkriftMobile/Features/MemosList/MemosListView.swift) -lt 900 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q60 [auto] (done) dead-code scan with Periphery on both apps (report only)
 spec: C240
