@@ -388,13 +388,68 @@ needs: -
 do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
 check: Tuur clicked through it and said go.
 
-### Q52 [auto] (todo) typing never re-renders the notes list behind the editor (R92)
+### Q52 [auto] (dead) typing never re-renders the notes list behind the editor (R92)
 spec: C277 C282
 needs: -
 gate+: yes
 node: AuditFix2
 do: Measured 2026-09-25 (`plan/perf-measured.md`, phone typing, Dev 172, FAST state): 93% of SkriftMobile samples on the main thread; the top app-code cost while typing is the notes LIST behind the editor re-evaluating on every keystroke — `MemosListView.body`/`notesRoot` (258 samples), `listContent` (225), recomputing `allTags`, `allMemos`, `backlinkedIDs`, `filterChips` — plus `MemoPageView.body` (174), `NoteBodyTextView.layoutSubviews` (37), `NoteBodyView.Coordinator.sanitizeTypingAttributes` (33), `NotesRepository.save` (15). This is R92. Make the list's derived collections cached/memoised and invalidated only when the memo set changes (not on a body edit), so a keystroke in the editor does not re-run the list's body; debounce the editor's save like the phone's 1 s `commitDraft`. Prove with a test in a new `ListNotReRenderedWhileTypingTests` (desktop target, shared model) and a re-recorded trace in the laggy state if Tuur can reproduce it.
 check: `grep -rqE "class ListNotReRenderedWhileTypingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q53 [auto] (todo) phone typing: nothing heavy runs per keystroke
+spec: C277 C282
+needs: -
+gate+: yes
+node: AuditFix2
+do: Merge with Q52's scope. From `plan/sweep-a-editor.md` + `plan/sweep-b-list-launch.md` + `plan/perf-measured.md`: debounce Quick Note's per-keystroke `context.save()` (QuickNoteDraft.swift:20-31, QuickNoteView.swift:104,115) like the editor's 1 s commit; stop `NotesRepository.allTags()` refetching every memo while typing (NotesRepository.swift:164-170 ← MemoDetailView.swift:1278) — cache it, invalidate on memo-set change; parse `SpeakerTranscript` once per text with a cached regex (MemoDetailView.swift:914,1564,1612,1633,1749); fire `recomputeSpans()` once per commit, not twice (MemoDetailView.swift:932,935,1171-1177); plus Q52 (the list behind the editor must not re-render per keystroke). Test in a new `TypingPathCostTests` (desktop target, shared code) asserting each runs at most once per commit.
+check: `grep -rqE "class TypingPathCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q54 [auto] (todo) phone notes list: one scan per render, not dozens
+spec: C278
+needs: -
+gate+: yes
+node: AuditFix2
+do: From `plan/sweep-b-list-launch.md`: `filterChips` re-runs uncached `chipCounts` per chip (MemosListView.swift:846-895, ~16 full-corpus scans per render) — compute once per render/memo-set change; hoist per-row lookups (`enhancedTitleByMemoID`, `searchFadingIDs`, `backlinkedIDs`, partition — R92/C278) into one pre-render pass; use the shared `NotesListModel.dayGroups` instead of the hand-rolled `groups(from:)` (MemosListView.swift:1171-1183); delete the ~90 dead MemoCard helper lines it lists. Test in a new `ListRenderCostTests` (desktop target) counting scans per render.
+check: `grep -rqE "class ListRenderCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q55 [auto] (todo) phone launch and foreground do only what changed
+spec: C279
+needs: -
+gate+: yes
+node: AuditFix2
+do: From `plan/sweep-b-list-launch.md` + SPEC R91/R93/R94: `SkriftApp` runs ~10 main-actor sweeps unconditionally on every launch AND foreground — gate each on what changed, move the heavy ones off the main actor; `AppPaths.recordingsDirectory` calls `createDirectory` on every read (R93) — create once; `AssetMaterializer.captureMissing` unscoped fetch (R91) — scope it. Keep the recording-recovery sweep FIRST (C99). Test in a new `LaunchWorkTests` (phone target) asserting a foreground with no changes runs no full-store sweep.
+check: `plan/mtest.sh LaunchWorkTests && ./gate.sh`
+
+### Q56 [auto] (todo) Mac: sidebar, editor and export stop blocking the main thread
+spec: C277 R90
+needs: -
+gate+: yes
+node: AuditFix2
+do: From `plan/sweep-d-mac.md` + R90: `backlinkedIDs` recomputed per quiet row in SidebarView (SidebarView.swift:79,641,718) — once per render; `VaultExporter.export` runs file copies + compile + vault write synchronously on main, and multi-select export loops it (ProcessingCoordinator.swift:331 → VaultExporter.swift:69-186, SidebarView.swift:981) — make it async off-main like IngestService; `TagLibrary` full fetch as a body expression in NoteProperties.swift:53-54 — cache; R90: BodyTextView restyles the full document and writes the model per keystroke — scope restyle to the edited paragraph and debounce the model write (1 s). Remove the dead `quietMeta`/`process(_:)` in SidebarView. Test in a new `MacMainThreadCostTests` (desktop target).
+check: `grep -rqE "class MacMainThreadCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q57 [auto] (todo) audiobooks: no full decodes on main, linear alignment, quiet player ticks
+spec: C218
+needs: -
+gate+: yes
+node: AuditFix2
+do: From `plan/sweep-c-record-books-share.md`: `localAlignmentSignature` full-decodes every alignment sidecar on @MainActor on every reconcile — fired by each bookmark tap (AudiobookCloudSync.swift:611-620 ← AudiobookPlayerView.swift:482, ChaptersBookmarksSheet.swift:97) — use cached file stats like its transcript twin (:421-432); `BookAlignment.mergeSentences` is O(n²) (BookAlignment.swift:723-747) — make it linear (sorted merge) without changing output (prove on an existing alignment test); `AudiobookSession` is ObservableObject re-rendering the whole player every 0.5 s tick — move to @Observable with the tick isolated, like LiveRecordingService. Load shared photos/audio concurrently in SharePayloadLoader.swift:227-264,345-370. Test in a new `AudiobookCostTests` (phone target).
+check: `plan/mtest.sh AudiobookCostTests && ./gate.sh`
+
+### Q58 [auto] (todo) twins and dead code from sweep E fixed (vocab re-warm, lock predicate, tombstones, durations)
+spec: C240 C50
+needs: -
+gate+: yes
+node: AuditFix2
+do: From `plan/sweep-e-shared-twins.md`, `plan/sweep-d-mac.md` and BUGS §4 (2026-09-25 rows): phone re-warms `VocabularyBooster` after adopting a synced word (SkriftMobile/Services/VocabularyCloudSync.swift:21-24, like the Mac :63-69); Mac lock check routes through `NoteVisibility.contentVisible` (LockGate+PipelineFile.swift:6-9); call `NamesStore.pruneOldTombstones` (Shared/Naming/NamesStore.swift:277-291) on a sensible cadence (keep names.json byte-compatible, LWW + voiceprint union intact); ONE duration formatter so the Mac header/player agree with the sidebar past 60 min; cache the per-call regexes in Shared/Pipeline/Tags (VaultTagScanner/TagMatcher) and SpeakerTurnStyle.swift; surface or delete the unused ePub DRM result. Test in a new `SweepETwinsTests` (desktop target).
+check: `grep -rqE "class SweepETwinsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q59 [auto] (todo) split the three oversized files along clear seams (no behaviour change)
+spec: C240
+needs: Q53 Q54 Q56
+node: AuditFix2
+do: Elegance pass after the perf items land (sweeps A, B, E): split `SkriftMobile/Features/MemoDetail/MemoDetailView.swift` (~2,560 lines, one struct with 138 members), `SkriftMobile/Features/MemosList/MemosListView.swift` (~1,780) and `Shared/Naming/Sanitiser.swift` (781, four jobs in one enum) into files along the seams the sweeps name. Pure moves + extracted subviews/types; no behaviour change; every existing test stays green unchanged; phone `build-for-testing` passes.
+check: `test $(wc -l < Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift) -lt 1200 && test $(wc -l < Skrift_Native/SkriftMobile/Features/MemosList/MemosListView.swift) -lt 900 && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -547,3 +602,11 @@ check: `grep -rqE "class ListNotReRenderedWhileTypingTests\b" Skrift_Native/Skri
 - 2026-09-25 19:05 Q15 -> done — hand-merged (D146); tag v1-body=8581f09d; 6 protected test files lose v1-only cases
 - 2026-09-25 19:07 Q52 added
 - 2026-09-25 19:13 Q20 -> done — baseline in plan/perf-measured.md; rest dropped by D147
+- 2026-09-25 19:24 Q53 added
+- 2026-09-25 19:24 Q54 added
+- 2026-09-25 19:24 Q55 added
+- 2026-09-25 19:24 Q56 added
+- 2026-09-25 19:24 Q57 added
+- 2026-09-25 19:24 Q58 added
+- 2026-09-25 19:24 Q52 -> dead — merged into Q53
+- 2026-09-25 19:24 Q59 added

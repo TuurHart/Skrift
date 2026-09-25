@@ -349,6 +349,11 @@ Leads. Check them against source before you act — section 5 is why.
 - [ ] **`Memo.splitTagInput` strips every `#`, not one** (`Memo.swift:284`; C93: `#` stripped
       once). Found for Q3, 2026-09-24.
 
+- [ ] **Phone never re-warms the custom-vocab booster after a synced word arrives** — `SkriftMobile/Services/VocabularyCloudSync.swift:21-24` (the Mac does, `SkriftDesktop/App/VocabularyCloudSync.swift:63-69`). Same shape as the 2026-06-13 "custom vocab never corrected" bug. Sweep E, 2026-09-25, source only.
+- [ ] **Mac note header + player show the wrong duration past 60 minutes** — two `SkriftFormat` time formatters (`.duration` vs `.clock`) disagree; the sidebar row is right. Sweep D, 2026-09-25, source only.
+- [ ] **`NamesStore.pruneOldTombstones` is never called** — `Shared/Naming/NamesStore.swift:277-291`; tombstones pile up in `names.json` forever. Sweep E.
+- [ ] **Mac lock check bypasses the shared predicate** — `SkriftDesktop/Features/Shell/LockGate+PipelineFile.swift:6-9` reimplements `NoteVisibility.contentVisible` inline. Sweep E.
+
 ## 5. Already fixed — do not re-open
 
 - ✅ **WhatsApp voice messages import as a link.** The ledger says `SharePayloadLoader` has no
