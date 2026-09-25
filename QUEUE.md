@@ -419,7 +419,7 @@ needs: -
 gate+: yes
 node: AuditFix2
 do: From `plan/sweep-b-list-launch.md` + SPEC R91/R93/R94: `SkriftApp` runs ~10 main-actor sweeps unconditionally on every launch AND foreground — gate each on what changed, move the heavy ones off the main actor; `AppPaths.recordingsDirectory` calls `createDirectory` on every read (R93) — create once; `AssetMaterializer.captureMissing` unscoped fetch (R91) — scope it. Keep the recording-recovery sweep FIRST (C99). Test in a new `LaunchWorkTests` (phone target) asserting a foreground with no changes runs no full-store sweep.
-check: `plan/mtest.sh LaunchWorkTests && ./gate.sh`
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LaunchWorkTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh`
 
 ### Q56 [auto] (done) Mac: sidebar, editor and export stop blocking the main thread
 spec: C277 R90
@@ -443,7 +443,7 @@ needs: -
 gate+: yes
 node: AuditFix2
 do: From `plan/sweep-e-shared-twins.md`, `plan/sweep-d-mac.md` and BUGS §4 (2026-09-25 rows): phone re-warms `VocabularyBooster` after adopting a synced word (SkriftMobile/Services/VocabularyCloudSync.swift:21-24, like the Mac :63-69); Mac lock check routes through `NoteVisibility.contentVisible` (LockGate+PipelineFile.swift:6-9); call `NamesStore.pruneOldTombstones` (Shared/Naming/NamesStore.swift:277-291) on a sensible cadence (keep names.json byte-compatible, LWW + voiceprint union intact); ONE duration formatter so the Mac header/player agree with the sidebar past 60 min; cache the per-call regexes in Shared/Pipeline/Tags (VaultTagScanner/TagMatcher) and SpeakerTurnStyle.swift; surface or delete the unused ePub DRM result. Test in a new `SweepETwinsTests` (desktop target).
-check: `grep -rqE "class SweepETwinsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+check: `grep -rqE "class SweepETwinsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
 ### Q59 [auto] (todo) split the three oversized files along clear seams (no behaviour change)
 spec: C240
@@ -466,7 +466,7 @@ node: AuditFix2
 do: Tuur 2026-09-25: "clean away the bullshit… be very careful". Delete the SAFE list in `plan/periphery.md` (245 items, ≤ ~1,976 lines) one folder per commit. Before each deletion re-grep the symbol across the WHOLE repo incl. tests, Info.plists, entitlements, .intentdefinition, AppShortcuts, storyboards and string-based lookups; anything referenced moves to CHECK in the report instead. Never touch CHECK/KEEP items, @Model types, Codable fields, AppIntents or anything under Tests. After each folder: `./gate.sh` and phone `xcodebuild build-for-testing`; a red folder is reverted, not fixed forward. Update `plan/periphery.md` with what was removed per commit and the real line count removed.
 check: `./gate.sh && grep -qE "removed" plan/periphery.md`
 
-### Q62 [tuur] (todo) decide: wire in or delete the 116 built-and-tested-but-unused functions
+### Q62 [tuur] (doing) decide: wire in or delete the 116 built-and-tested-but-unused functions
 spec: C240
 needs: Q60
 do: `plan/periphery.md` CHECK section: 116 functions have their own tests but no caller in the app (like `NamesStore.pruneOldTombstones`). A sitting sheet groups them by feature with one line each (what it was for, who built it when — git log), and Tuur picks per group: WIRE IN (becomes an auto item) or DELETE (with its tests; protected-test change approved per group).
@@ -675,3 +675,4 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 21:06 Q51 -> tuur — built @1b7bbf64 — awaiting sitting
 - 2026-09-25 21:13 Q54 -> doing — worker out
 - 2026-09-25 21:15 Q53 -> done — gate pass @6adb30d6
+- 2026-09-25 21:23 Q62 -> doing — worker out: prepare the sitting sheet
