@@ -22,6 +22,10 @@ enum VocabularyCloudSync {
         case .adoptRemote(let words, let ts):
             CustomVocabularyStore.adoptSynced(words, modifiedAt: ts, defaults: defaults)
             DevLog.log("vocab: adopted \(words.count) synced words")
+            // Re-warm the booster so a word synced in mid-session (not just at cold
+            // launch) boosts the NEXT transcription — matches the Mac adapter
+            // (SkriftDesktop/App/VocabularyCloudSync.swift), sweep E finding #2.
+            Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: words) }
         case .pushedLocal(let ts, seededLocalStamp: true):
             CustomVocabularyStore.adoptSynced(localWords, modifiedAt: ts, defaults: defaults)
         case .pushedLocal, .noop:

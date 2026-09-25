@@ -39,11 +39,14 @@ enum VaultTagScanner {
         if !t.isEmpty, !t.allSatisfy(\.isNumber) { tags.insert(t) }
     }
 
+    /// Fixed pattern, no per-call variation — hoisted so `scan(root:)` doesn't rebuild
+    /// it on every `.md` file (up to 5000× per scan; sweep E finding #4).
+    private static let frontmatterRegex = try! NSRegularExpression(pattern: "^---\\n([\\s\\S]*?)\\n---")
+
     /// The leading `--- … ---` YAML block, if present.
     private static func frontmatter(_ text: String) -> String? {
         guard text.hasPrefix("---"),
-              let rx = try? NSRegularExpression(pattern: "^---\\n([\\s\\S]*?)\\n---"),
-              let m = rx.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) else { return nil }
+              let m = frontmatterRegex.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) else { return nil }
         return (text as NSString).substring(with: m.range(at: 1))
     }
 
