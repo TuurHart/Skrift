@@ -24,9 +24,6 @@ enum SharedCopy {
     /// is display-only.
     static let processVerb = "Process"
 
-    /// Settings destination for the on-device model + prompts (iPad).
-    static let processSettingsTitle = "Process on this iPad"
-
     /// THE verb for bringing external audio/video in — "Import" on both apps
     /// (Tuur, 2026-07-23: "make both mac and ipad import"; the Mac's button said
     /// "Upload"). The Mac still opens its file panel, the iPad offers Files vs

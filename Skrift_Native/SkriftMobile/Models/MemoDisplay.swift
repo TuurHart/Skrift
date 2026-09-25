@@ -333,15 +333,6 @@ extension Memo {
 enum MemoStatusKind: Equatable {
     case synced, waiting, transcribing, error
 
-    var pillStyle: PillStyle {
-        switch self {
-        case .synced: return .synced
-        case .waiting: return .waiting
-        case .transcribing: return .working
-        case .error: return .error
-        }
-    }
-
     var label: String {
         switch self {
         case .synced: return "Synced"

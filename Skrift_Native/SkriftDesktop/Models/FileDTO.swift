@@ -27,21 +27,3 @@ struct UploadResponseDTO: Codable, Sendable {
     var message: String
     var errors: [String]?
 }
-
-extension PipelineFile {
-    var dto: FileDTO {
-        FileDTO(
-            id: id,
-            filename: filename,
-            size: size,
-            uploadedAt: ISO8601.string(from: uploadedAt),
-            sourceType: sourceType.rawValue,
-            steps: StepsDTO(
-                transcribe: transcribeStatus.rawValue,
-                sanitise: sanitiseStatus.rawValue,
-                enhance: enhanceStatus.rawValue,
-                export: exportStatus.rawValue
-            )
-        )
-    }
-}

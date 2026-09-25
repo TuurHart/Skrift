@@ -36,7 +36,6 @@ actor TranscriptionService: Transcribing {
     /// Nonisolated, thread-safe mirror of `isModelReady` so the synchronous /health
     /// handler can read it without hopping onto the actor. Kept in sync with `asr`.
     private let ready = OSAllocatedUnfairLock(initialState: false)
-    nonisolated var isModelReadySync: Bool { ready.withLock { $0 } }
 
     private init() {}
 

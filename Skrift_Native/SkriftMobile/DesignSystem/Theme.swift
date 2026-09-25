@@ -84,14 +84,11 @@ extension Color {
 /// spacing scale, continuous corners, and one spring for everything.
 enum Theme {
     enum Space {
-        static let xs: CGFloat = 4
         static let sm: CGFloat = 8
         static let md: CGFloat = 16
         static let lg: CGFloat = 24
-        static let xl: CGFloat = 32
         /// Card inner padding + inter-card gap from the mockups.
         static let cardPadding: CGFloat = 13
-        static let cardGap: CGFloat = 10
         /// Screen side margins.
         static let margin: CGFloat = 20
     }
@@ -99,7 +96,6 @@ enum Theme {
     enum Radius {
         static let card: CGFloat = 16
         static let field: CGFloat = 11
-        static let editBox: CGFloat = 12
         static let chip: CGFloat = 8
         static let sheet: CGFloat = 24
         static let group: CGFloat = 16
@@ -110,11 +106,6 @@ enum Theme {
     enum Motion {
         static let spring = SkMotion.spring
         static let snappy = SkMotion.snappy
-    }
-
-    /// The recording timer's custom font — the only non-Dynamic-Type face.
-    static func timerFont(_ size: CGFloat = 52) -> Font {
-        .system(size: size, weight: .semibold, design: .rounded).monospacedDigit()
     }
 }
 

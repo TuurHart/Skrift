@@ -569,26 +569,6 @@ struct SettingsView: View {
     }
 
 
-    /// Pick a subfolder rooted at the vault; store the path RELATIVE to the vault
-    /// (a name like "Voice Memos"), or the folder name if chosen elsewhere.
-    private func chooseSubfolder(_ key: WritableKeyPath<AppSettings, String>) {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Choose"
-        if !settings.noteFolder.isEmpty { panel.directoryURL = URL(fileURLWithPath: settings.noteFolder) }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let vault = settings.noteFolder
-        if !vault.isEmpty, url.path.hasPrefix(vault) {
-            let rel = String(url.path.dropFirst(vault.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            settings[keyPath: key] = rel.isEmpty ? url.lastPathComponent : rel
-        } else {
-            settings[keyPath: key] = url.lastPathComponent
-        }
-    }
-
     private var highpassHelp: String {
         let hz = settings.highpassFreqHz
         return hz == 0

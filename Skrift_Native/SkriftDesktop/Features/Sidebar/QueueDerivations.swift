@@ -110,24 +110,6 @@ extension PipelineFile {
 
     /// Title shown in the queue row.
     var queueTitle: String { displayTitle }   // enhanced title → first body line → filename (phone parity)
-
-    /// Secondary meta line: "06 Jun · 2:14" / "05 Jun · Link" / "03 Jun · Apple Note".
-    var queueMeta: String {
-        let date = SkriftFormat.shortDate(uploadedAt)
-        if let dur = durationString { return "\(date) · \(dur)" }
-        switch sourceType {
-        case .note: return "\(date) · Apple Note"
-        case .audio: return date
-        case .capture:
-            switch sharedContentType {
-            case "url":   return "\(date) · Link"
-            case "image": return "\(date) · Image"
-            case "file":  return "\(date) · File"
-            case "text":  return "\(date) · Text"
-            default:      return date
-            }
-        }
-    }
 }
 
 enum SkriftFormat {
