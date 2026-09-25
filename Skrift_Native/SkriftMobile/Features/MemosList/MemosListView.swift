@@ -873,7 +873,17 @@ struct MemosListView: View {
                 .overlay(RoundedRectangle(cornerRadius: 6)
                     .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
                 .contentShape(Rectangle())
-                .onTapGesture { withAnimation(Theme.Motion.snappy) { listChip = chip } }
+                // Q48/D145 (BUGS §3): this used to wrap the `listChip` write in
+                // `withAnimation`, which put the List's own ForEach/Section diff
+                // inside that animation transaction — SwiftUI then auto-animates
+                // each section's insert/remove individually (Needs Work flying up
+                // from the bottom, Done's headers arriving last), a different
+                // motion per chip. A plain (unanimated) write swaps the list
+                // instantly and identically every time — list identity stays the
+                // memo id via `Identifiable`, nothing here re-keys it. The pill
+                // highlight below still animates on its own, short and the same
+                // for every chip (`.animation(value: listChip)` on the row).
+                .onTapGesture { listChip = chip }
                 .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
             }
             Spacer(minLength: 0)
@@ -894,6 +904,11 @@ struct MemosListView: View {
         .padding(.horizontal, 16)
         .padding(.top, 2)
         .padding(.bottom, 4)
+        // Scoped to this row ONLY — the highlight pill still gets one quick,
+        // consistent motion on every chip switch. It does not reach the List
+        // below (a sibling, not a descendant), so the row content swaps
+        // instantly with no section-by-section animation.
+        .animation(Theme.Motion.snappy, value: listChip)
     }
 
     /// D135: "each chip counts its own notes" — over ALL live notes (not the

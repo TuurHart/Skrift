@@ -501,6 +501,10 @@ struct SidebarView: View {
             Spacer(minLength: 0)
             filterControl
         }
+        // Q48: same quick, consistent pill motion as the phone/iPad chip row
+        // (`SkMotion.snappy`) — scoped to this row, never reaching `queue`
+        // below (a sibling), so the list swap stays instant, not section-animated.
+        .animation(SkMotion.snappy, value: model.filter)
     }
 
     /// ONE Filter control (Tuur 2026-07-23: "that filter button should also be
