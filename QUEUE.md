@@ -405,7 +405,7 @@ node: AuditFix2
 do: Merge with Q52's scope. From `plan/sweep-a-editor.md` + `plan/sweep-b-list-launch.md` + `plan/perf-measured.md`: debounce Quick Note's per-keystroke `context.save()` (QuickNoteDraft.swift:20-31, QuickNoteView.swift:104,115) like the editor's 1 s commit; stop `NotesRepository.allTags()` refetching every memo while typing (NotesRepository.swift:164-170 ← MemoDetailView.swift:1278) — cache it, invalidate on memo-set change; parse `SpeakerTranscript` once per text with a cached regex (MemoDetailView.swift:914,1564,1612,1633,1749); fire `recomputeSpans()` once per commit, not twice (MemoDetailView.swift:932,935,1171-1177); plus Q52 (the list behind the editor must not re-render per keystroke). Test in a new `TypingPathCostTests` (desktop target, shared code) asserting each runs at most once per commit.
 check: `grep -rqE "class TypingPathCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q54 [auto] (doing) phone notes list: one scan per render, not dozens
+### Q54 [auto] (done) phone notes list: one scan per render, not dozens
 spec: C278
 needs: -
 gate+: yes
@@ -676,3 +676,4 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 21:13 Q54 -> doing — worker out
 - 2026-09-25 21:15 Q53 -> done — gate pass @6adb30d6
 - 2026-09-25 21:23 Q62 -> doing — worker out: prepare the sitting sheet
+- 2026-09-25 22:14 Q54 -> done — gate pass @2d3ceaab
