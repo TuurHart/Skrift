@@ -358,7 +358,7 @@ needs: Q45
 do: Regression from Q45: `NoteBodyView.onCommit` is now `(Bool) -> Void` and the protected `SkriftMobileTests/NoteBodyTests.swift` + `QuotePresentationTests.swift` call `onCommit: {}` (17 sites), so the phone test target no longer compiles. Without touching any protected file, make the zero-argument form compile again (e.g. an extra `init` overload taking `onCommit: @escaping () -> Void` that forwards as `{ _ in onCommit() }` treating it as wordsChanged = true, or a default) while Q45's `wordsChanged` path keeps working. Prove with `xcodebuild build-for-testing` for SkriftMobile AND two phone test classes.
 check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh`
 
-### Q47 [auto] (stuck) quick note opens the full note screen; ✎ never opens an old note; toolbar stays
+### Q47 [auto] (done) quick note opens the full note screen; ✎ never opens an old note; toolbar stays
 spec: C112 C114 C43
 needs: -
 gate+: yes
@@ -654,3 +654,5 @@ check: Tuur typed on the Mac and said the flash is fine, or it became an item.
 - 2026-09-25 20:44 Q63 added
 - 2026-09-25 20:49 Q53 -> doing — worker out
 - 2026-09-25 20:49 Q47 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/QuickNoteRouteTests.swift 
+- 2026-09-25 20:50 Q47 -> doing — re-accept: block lacked gate+ for its required new test file
+- 2026-09-25 20:53 Q47 -> done — gate pass @07f78c62
