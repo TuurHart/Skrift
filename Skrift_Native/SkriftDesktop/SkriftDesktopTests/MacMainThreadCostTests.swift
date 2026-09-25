@@ -43,7 +43,10 @@ final class MacMainThreadCostTests: XCTestCase {
         let ids = MemoLifecycle.backlinkedIDs(in: memos)
         let elapsedMs = (CFAbsoluteTimeGetCurrent() - start) * 1000
 
-        XCTAssertTrue(ids.isEmpty, "the synthetic bodies link to fresh UUIDs, never each other's id")
+        // `backlinkedIDs` collects every `[[memo:ID|…]]` target it finds, regardless
+        // of whether that ID belongs to another memo in the list — 1000 of the 3000
+        // synthetic bodies (i % 3 == 0) carry one link each.
+        XCTAssertEqual(ids.count, 1000)
         // Generous: a real vault is nowhere near 3000 memos. The point isn't
         // shaving microseconds — it's that ONE call is cheap, so caching it once
         // per render (instead of the old once-PER-ROW) is exactly the right fix.
