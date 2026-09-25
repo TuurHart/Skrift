@@ -608,13 +608,16 @@ enum AudiobookCloudSync {
     }
 
     /// Content signature of the local alignment sidecars — `FileAlignment.cloudSignaturePart()`
-    /// joined with "|", mirroring `localTranscriptSignature`'s shape exactly.
+    /// joined with "|", mirroring `localTranscriptSignature`'s shape exactly. Q57/C218:
+    /// cache-served off each sidecar's own file stats (`BookAlignmentStore.cloudSignaturePart`)
+    /// like the transcript twin above — this used to full-decode every alignment sidecar on
+    /// @MainActor on every reconcile, fired by each bookmark tap.
     private static func localAlignmentSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
         let store = BookAlignmentStore(directory: library.directory)
         var parts: [String] = []
         for i in book.files.indices {
-            if let fa = store.fileAlignment(bookID: book.id, fileIndex: i) {
-                parts.append(fa.cloudSignaturePart())
+            if let part = store.cloudSignaturePart(bookID: book.id, fileIndex: i) {
+                parts.append(part)
             }
         }
         return parts.joined(separator: "|")

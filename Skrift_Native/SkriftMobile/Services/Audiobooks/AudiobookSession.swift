@@ -1,7 +1,7 @@
 import AVFoundation
-import Combine
 import Foundation
 import MediaPlayer
+import Observation
 import UIKit
 
 /// The one active audiobook listening session (CROSS-LANE CONTRACT C3): a
@@ -14,20 +14,28 @@ import UIKit
 /// previous session. AVPlayer (not AVAudioPlayer) so a 15 h m4b streams from
 /// disk instead of loading whole, with speed + background playback + the
 /// lock-screen transport (MPNowPlayingInfoCenter / MPRemoteCommandCenter).
+///
+/// Q57/C218: `@Observable` (per-property, like `LiveRecordingService`), not
+/// `ObservableObject`/`@Published` — the old combined `objectWillChange` meant
+/// the 0.5 s `currentTime` tick re-rendered EVERY view holding `.shared`
+/// (mini player, library rows, chapters sheet, …) even ones that never read
+/// `currentTime`. Fine-grained observation isolates the tick to only the
+/// views that actually read it.
 @MainActor
-final class AudiobookSession: ObservableObject {
+@Observable
+final class AudiobookSession {
     static let shared = AudiobookSession()
 
     /// C3: a book session is active (playing or paused-with-book-loaded).
-    @Published var isActive: Bool = false
-    @Published private(set) var book: Audiobook?
-    @Published private(set) var isPlaying = false
-    @Published private(set) var currentTime: TimeInterval = 0
-    @Published private(set) var rate: Double = 1.0
+    var isActive: Bool = false
+    private(set) var book: Audiobook?
+    private(set) var isPlaying = false
+    private(set) var currentTime: TimeInterval = 0
+    private(set) var rate: Double = 1.0
     /// Wall-clock the sleep timer fires (nil = off / end-of-chapter mode).
-    @Published private(set) var sleepUntil: Date?
+    private(set) var sleepUntil: Date?
     /// Sleep at the end of the current chapter.
-    @Published private(set) var sleepAtChapterEnd = false
+    private(set) var sleepAtChapterEnd = false
 
     // nonisolated: plain Sendable constants — referenced from non-main contexts
     // (remote-command handler closures) without an actor hop.

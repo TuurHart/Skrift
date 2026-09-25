@@ -9,7 +9,7 @@ struct ChaptersBookmarksSheet: View {
     /// Which tab opens first — the Bookmark button deep-links to .bookmarks.
     var initialTab: Tab = .chapters
 
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab
     @State private var bookmarks: [AudiobookBookmark] = []

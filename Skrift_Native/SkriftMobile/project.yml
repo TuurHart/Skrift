@@ -81,6 +81,11 @@ targets:
       - path: Services
       - path: Features
       - path: DesignSystem
+      # Multi-target source membership like CaptureInbox below: the app target
+      # (and its test bundle) needs `SharePayloadLoader` in scope so
+      # `AudiobookCostTests` can exercise the extension's concurrent-load fix
+      # (Q57/C218) — there's no separate SkriftShareTests bundle.
+      - path: SkriftShare/SharePayloadLoader.swift
       # Shared cross-app source (one physical copy → no phone↔Mac drift). Naming
       # types (Person/NamesMerge/NamesData) live here; engine + more land in Phase 0.
       # Export adds the shared Compiler + neutral CompilerInput DTO (standalone Phase 2).

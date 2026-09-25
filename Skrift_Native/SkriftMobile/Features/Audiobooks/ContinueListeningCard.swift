@@ -19,7 +19,7 @@ struct ContinueListeningCard: View {
     /// session starts, which would tear the cover down mid-present).
     var openPlayer: () -> Void = {}
 
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @ObservedObject private var store = AudiobookLibraryStore.shared
     /// "yyyy-MM-dd" of the last ×-dismissal — the card stays gone for that day.
     /// (The play-again VOIDS-dismissal rule lives in `NotesBottomChrome`, which

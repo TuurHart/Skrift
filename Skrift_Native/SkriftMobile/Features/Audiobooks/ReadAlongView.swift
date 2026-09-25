@@ -138,7 +138,7 @@ struct ReadAlongView: View {
     /// an updated `bookmarks` (2026-06-21 — replaces the bottom button).
     var onToggleBookmarkInSpan: (TimeInterval, TimeInterval) -> Void = { _, _ in }
 
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @ObservedObject private var transcribeJob = BookTranscriptionJob.shared
     @StateObject private var model = ReadAlongModel()
 

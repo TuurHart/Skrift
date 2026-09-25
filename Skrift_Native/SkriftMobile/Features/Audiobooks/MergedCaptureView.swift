@@ -64,7 +64,7 @@ struct MergedCaptureView: View {
     /// branch below tries it first so the saved quote is the VERBATIM published
     /// sentence wherever the alignment trusts its own match.
     private let alignmentStore = BookAlignmentStore(directory: AudiobookLibraryStore.shared.directory)
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @State private var state: LoadState = .loading
     @State private var sel = TextCaptureSelection(lo: 0, hi: 0)
     @State private var significance: Double = 0

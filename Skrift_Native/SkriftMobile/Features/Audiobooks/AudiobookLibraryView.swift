@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 /// the session here too, so the row keeps only the current-book tint.
 struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
     /// iPad wave: regular width trades the 54pt rows for a cover shelf (grid).
     /// Compact (incl. a split-view/Stage-Manager iPad) keeps today's List.

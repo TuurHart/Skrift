@@ -9,7 +9,7 @@ import UIKit
 /// Chapters + Bookmark row sits above the hero Capture pill. Swipe down to
 /// collapse to the mini-player; tap the cover to edit book details.
 struct AudiobookPlayerView: View {
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
     /// iPad wave: regular width uses the room (transport left, read-along at
     /// a reading measure, chapters/bookmarks as a standing rail). Compact

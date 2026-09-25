@@ -221,7 +221,56 @@ final class BookAlignmentStore: Sendable {
               let fa = try? JSONDecoder().decode(FileAlignment.self, from: data),
               fa.schema == FileAlignment.currentSchema
         else { return nil }
+        Self.prime(fa, bookID: bookID, signature: sidecarSignature(bookID: bookID, fileIndex: fileIndex))
         return fa
+    }
+
+    // MARK: - Cloud-signature cache (cheap reads)
+
+    /// Process-wide (sidecar signature → `cloudSignaturePart()`) per file, primed by
+    /// `fileAlignment`/`save`. Lets `AudiobookCloudSync.localAlignmentSignature` ask "what's
+    /// this file's cloud signature part?" — fired on every reconcile, from each bookmark tap
+    /// (`AudiobookPlayerView`/`ChaptersBookmarksSheet`) — without decoding the whole sentence
+    /// array every time. Mirrors `BookTranscriptStore`'s `Frontier` cache exactly. NSCache —
+    /// thread-safe across any isolation context.
+    private final class CloudStats: NSObject {
+        let signature: String
+        let part: String
+        init(signature: String, part: String) { self.signature = signature; self.part = part }
+    }
+    private static let cloudStatsCache = NSCache<NSString, CloudStats>()
+    private static func cloudStatsKey(_ id: UUID, _ fileIndex: Int) -> NSString {
+        "\(id.uuidString):\(fileIndex)" as NSString
+    }
+    private static func prime(_ fa: FileAlignment, bookID: UUID, signature: String) {
+        guard !signature.isEmpty else { return }
+        cloudStatsCache.setObject(CloudStats(signature: signature, part: fa.cloudSignaturePart()),
+                                  forKey: cloudStatsKey(bookID, fa.fileIndex))
+    }
+
+    /// `"<size>:<mtime>"` of the sidecar file itself — the cache-freshness key. A foreign write
+    /// (a receiver's download, a re-align, a strip) changes this even when this `store` instance
+    /// never touched it, so a stale cache entry always misses.
+    private func sidecarSignature(bookID: UUID, fileIndex: Int) -> String {
+        guard let attrs = try? FileManager.default.attributesOfItem(
+            atPath: sidecarURL(bookID: bookID, fileIndex: fileIndex).path) else { return "" }
+        let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+        let mtime = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+        return "\(size):\(Int(mtime))"
+    }
+
+    /// This file's `FileAlignment.cloudSignaturePart()` — cache-served off the sidecar's own
+    /// (size, mtime) on a warm hit, no full JSON decode. Q57/C218: `localAlignmentSignature`
+    /// used to full-decode every alignment sidecar on @MainActor per reconcile.
+    func cloudSignaturePart(bookID: UUID, fileIndex: Int) -> String? {
+        let sig = sidecarSignature(bookID: bookID, fileIndex: fileIndex)
+        guard !sig.isEmpty else { return nil }
+        if let hit = Self.cloudStatsCache.object(forKey: Self.cloudStatsKey(bookID, fileIndex)),
+           hit.signature == sig {
+            return hit.part
+        }
+        guard let fa = fileAlignment(bookID: bookID, fileIndex: fileIndex) else { return nil }
+        return fa.cloudSignaturePart()
     }
 
     /// Atomically persist one file's alignment (write temp → replace), creating the book folder
@@ -231,6 +280,7 @@ final class BookAlignmentStore: Sendable {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(fa)
         try data.write(to: sidecarURL(bookID: bookID, fileIndex: fa.fileIndex), options: .atomic)
+        Self.prime(fa, bookID: bookID, signature: sidecarSignature(bookID: bookID, fileIndex: fa.fileIndex))
     }
 
     /// Fresh = `fa.transcriptSignature` matches the CURRENT transcript sidecar's signature for
@@ -722,27 +772,79 @@ enum BookAlignmentRunner {
     /// Deterministic (BASE.md's collision rule).
     static func mergeSentences(into keep: [AlignedSentence], adding incoming: [AlignedSentence],
                                textRank: [String: Int]) -> [AlignedSentence] {
-        var result = keep
+        guard !incoming.isEmpty else { return keep }
+
+        // Q57/C218: `keep` is already internally non-overlapping (the class invariant on
+        // `FileAlignment.sentences`), so sorting it ONCE by `start` also sorts it by `end` —
+        // every incoming sentence's overlap set is then a CONTIGUOUS run inside that sorted
+        // order, found by binary search instead of a full scan. Was O(keep.count *
+        // incoming.count) (every ns re-scanned the whole growing `result`); now
+        // O((keep.count + incoming.count) * log keep.count) in the real single-text-per-call
+        // shape (every real caller's `incoming` shares one `textFile` — `mergedFileAlignment`
+        // passes one attached text's own fresh batch). Output is the SAME array shape the old
+        // scan produced: surviving `keep` entries in their original relative order, followed by
+        // every entry `incoming` contributed, in incoming's order — because the old code only
+        // ever removed-in-place (never reordered survivors) and only ever appended at the tail.
+        let order = keep.indices.sorted { keep[$0].start < keep[$1].start }
+        var keepRemoved = Array(repeating: false, count: keep.count)
+        var appended: [AlignedSentence] = []
+        var appendedRemoved: [Bool] = []
+        var appendedTextFiles: Set<String> = []
+
         for ns in incoming {
-            // Collisions contest BETWEEN texts only (2026-07-23 Odyssey verify round): a
-            // text's own batch routinely has hairline time overlaps between ADJACENT
-            // sentences (exact per-word times straddle sentence seams), and the strict-win
-            // tie rule made the later same-text sentence vanish — 196 of the Odyssey's
-            // 7506 direct-matched sentences, including both user-reported holes.
-            let conflicts = result.indices.filter {
-                result[$0].textFile != ns.textFile
-                    && result[$0].start < ns.end && ns.start < result[$0].end
+            let nsText = ns.textFile ?? ""
+            var conflicts: [(inKeep: Bool, idx: Int)] = []
+
+            // First `keep` entry (by sorted start) whose end reaches past `ns.start`.
+            var lo = 0, hi = order.count
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if keep[order[mid]].end > ns.start { hi = mid } else { lo = mid + 1 }
             }
-            guard !conflicts.isEmpty else { result.append(ns); continue }
-            let maxConfidence = conflicts.map { result[$0].confidence }.max()!
-            let tiedAtMax = conflicts.filter { result[$0].confidence == maxConfidence }
-            let toughestRank = tiedAtMax.map { textRank[result[$0].textFile ?? ""] ?? Int.max }.min()!
-            let nsRank = textRank[ns.textFile ?? ""] ?? Int.max
+            var cursor = lo
+            while cursor < order.count, keep[order[cursor]].start < ns.end {
+                let idx = order[cursor]
+                // Collisions contest BETWEEN texts only (2026-07-23 Odyssey verify round): a
+                // text's own batch routinely has hairline time overlaps between ADJACENT
+                // sentences (exact per-word times straddle sentence seams), and the strict-win
+                // tie rule made the later same-text sentence vanish — 196 of the Odyssey's
+                // 7506 direct-matched sentences, including both user-reported holes.
+                if !keepRemoved[idx], keep[idx].textFile != ns.textFile {
+                    conflicts.append((true, idx))
+                }
+                cursor += 1
+            }
+            // `appended` only ever needs scanning when it holds a text OTHER than `ns`'s own —
+            // the degenerate case (this call's `incoming` mixes texts, which no real caller
+            // does). The common case (one shared textFile) skips this in O(1).
+            if !(appendedTextFiles.isEmpty || appendedTextFiles == [nsText]) {
+                for i in appended.indices where !appendedRemoved[i] && appended[i].textFile != ns.textFile
+                                              && appended[i].start < ns.end && ns.start < appended[i].end {
+                    conflicts.append((false, i))
+                }
+            }
+
+            func appendNs() {
+                appended.append(ns); appendedRemoved.append(false)
+                appendedTextFiles.insert(nsText)
+            }
+            guard !conflicts.isEmpty else { appendNs(); continue }
+            let maxConfidence = conflicts.map { $0.inKeep ? keep[$0.idx].confidence : appended[$0.idx].confidence }.max()!
+            let tiedAtMax = conflicts.filter { ($0.inKeep ? keep[$0.idx].confidence : appended[$0.idx].confidence) == maxConfidence }
+            let toughestRank = tiedAtMax.map {
+                textRank[($0.inKeep ? keep[$0.idx].textFile : appended[$0.idx].textFile) ?? ""] ?? Int.max
+            }.min()!
+            let nsRank = textRank[nsText] ?? Int.max
             let nsWins = ns.confidence > maxConfidence || (ns.confidence == maxConfidence && nsRank < toughestRank)
             guard nsWins else { continue }
-            for idx in conflicts.sorted(by: >) { result.remove(at: idx) }
-            result.append(ns)
+            for c in conflicts {
+                if c.inKeep { keepRemoved[c.idx] = true } else { appendedRemoved[c.idx] = true }
+            }
+            appendNs()
         }
+
+        var result = keep.indices.filter { !keepRemoved[$0] }.map { keep[$0] }
+        result.append(contentsOf: appended.indices.filter { !appendedRemoved[$0] }.map { appended[$0] })
         return result
     }
 
