@@ -71,7 +71,7 @@ struct MemosListView: View {
     @Environment(\.modelContext) private var context
     private let repository = NotesRepository.shared
 
-    @State private var path: [UUID] = []
+    @State private var path: [NoteRoute] = []
     @State private var showRecord = false
     /// Presents the audiobook player for the continue-card's body tap (hoisted
     /// here: a cover on the card itself would die when its List row unmounts).
@@ -81,12 +81,6 @@ struct MemosListView: View {
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
     @ObservedObject private var quickNoteBridge = QuickNoteBridge.shared
-    /// Set only while a quick note (Q7) is the open screen: `openMemo`'s id is
-    /// a navigation token, not yet a real `Memo.id` (`QuickNoteDraft` creates
-    /// the row on the first keystroke). Distinguishes "route to QuickNoteView"
-    /// from "route to MemoDetailView" for the SAME `UUID`-keyed navigation the
-    /// list already uses (`path` / `selectedMemoID`).
-    @State private var quickNoteDraftID: UUID?
     /// Long-press → "Remind me…" (chunk 7).
     @State private var reminderMemo: Memo?
     /// Locking a memo that's already published → honest notice (chunk 8).
@@ -130,8 +124,12 @@ struct MemosListView: View {
     @Environment(\.horizontalSizeClass) private var hSize
     /// The note shown in the workbench pane at regular width. nil on the
     /// phone (compact pushes onto `path` instead), so the whole pane path is a
-    /// no-op there.
-    @State private var selectedMemoID: UUID?
+    /// no-op there. Carries its own draft/memo kind (`NoteRoute`, Q47) so
+    /// routing can never desync from a separate id.
+    @State private var selectedRoute: NoteRoute?
+    /// Read-only convenience for row-highlight compares, which only ever
+    /// care about the raw id.
+    private var selectedMemoID: UUID? { selectedRoute?.id }
     /// The two panel toggles (iPad regular width, Tuur 2026-07-23): hide the notes
     /// list, hide Connections, or both — "sometimes I just want to focus on writing
     /// and I don't want any distractions". Remembered between launches. This is
@@ -202,21 +200,21 @@ struct MemosListView: View {
             // the app… empty. strange"): no selection → show the newest note.
             // (`-selectFirstMemo` now just names the default behavior.)
             .onAppear {
-                if selectedMemoID == nil {
-                    selectedMemoID = memos.first?.id
+                if selectedRoute == nil {
+                    selectedRoute = memos.first.map { .existing($0.id) }
                 }
             }
         } else {
             // Phone (and iPad compact / Split View): today's stack, byte-for-byte.
             NavigationStack(path: $path) {
                 notesRoot
-                    .navigationDestination(for: UUID.self) { id in
-                        if id == quickNoteDraftID {
+                    .navigationDestination(for: NoteRoute.self) { route in
+                        switch route {
+                        case .draft(let id):
                             QuickNoteView(draftID: id) {
-                                quickNoteDraftID = nil
                                 if !path.isEmpty { path.removeLast() }
                             }
-                        } else {
+                        case .memo(let id):
                             MemoDetailView(initialID: id)
                         }
                     }
@@ -368,14 +366,14 @@ struct MemosListView: View {
     /// covers this pane too), so neither branch draws its own.
     private var noteStack: some View {
         NavigationStack {
-            if let id = selectedMemoID {
-                if id == quickNoteDraftID {
+            if let route = selectedRoute {
+                switch route {
+                case .draft(let id):
                     QuickNoteView(draftID: id) {
-                        quickNoteDraftID = nil
-                        selectedMemoID = nil
+                        selectedRoute = nil
                     }
                     .id(id)
-                } else {
+                case .memo(let id):
                     MemoDetailView(initialID: id, listVisible: $listVisible)
                         .id(id)
                 }
@@ -396,7 +394,15 @@ struct MemosListView: View {
     /// regular width, a reset push on the stack at compact.
     /// (Row taps append instead — see `listContent`.)
     private func openMemo(_ id: UUID) {
-        if isRegular { selectedMemoID = id } else { path = [id] }
+        openRoute(.existing(id))
+    }
+
+    /// Route a navigation token to the active navigation model: the
+    /// workbench pane at regular width, a reset push on the stack at
+    /// compact. A single write of ONE value, never a pair of independently
+    /// settable ones (Q47).
+    private func openRoute(_ route: NoteRoute) {
+        if isRegular { selectedRoute = route } else { path = [route] }
     }
 
     /// Open the quick-note screen (Q7/C112/C114) — the app's own ✎, same
@@ -404,11 +410,13 @@ struct MemosListView: View {
     /// `QuickNoteBridge`. Unlike the Mac's ✎/⌘N (`Memo.newTyped` on the tap),
     /// nothing is created here: the pushed id is a navigation token only, and
     /// `QuickNoteDraft` authors the actual `Memo` on the first keystroke, so
-    /// an untouched note never exists to sync anywhere (D91/C43).
+    /// an untouched note never exists to sync anywhere (D91/C43). Always a
+    /// FRESH `.draft` route (`NoteRoute.newDraft()`) — never reused, never
+    /// compared against a second piece of state, so it can't be mistaken for
+    /// whatever memo the launch recovery sweep may just have created
+    /// (BUGS §3: the "Recovered recording…" note).
     private func newTypedNote() {
-        let draftID = UUID()
-        quickNoteDraftID = draftID
-        openMemo(draftID)
+        openRoute(.newDraft())
     }
 
     // MARK: - Content
@@ -508,8 +516,8 @@ struct MemosListView: View {
                                 if !q.isEmpty { SearchHitBridge.pending = (memo.id, q) }
                                 // Regular width (iPad split view) drives the detail
                                 // pane; compact pushes onto the stack as before.
-                                if isRegular { selectedMemoID = memo.id }
-                                else { path.append(memo.id) }
+                                if isRegular { selectedRoute = .existing(memo.id) }
+                                else { path.append(.existing(memo.id)) }
                             }
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
@@ -579,8 +587,8 @@ struct MemosListView: View {
                         ForEach(d.related) { memo in
                             MemoRow(memo: memo, enhancedTitle: enhancedTitleByMemoID[memo.id],
                                     selected: memo.id == selectedMemoID) {
-                                if isRegular { selectedMemoID = memo.id }
-                                else { path.append(memo.id) }
+                                if isRegular { selectedRoute = .existing(memo.id) }
+                                else { path.append(.existing(memo.id)) }
                             }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)

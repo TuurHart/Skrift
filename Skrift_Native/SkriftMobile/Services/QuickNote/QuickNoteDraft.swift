@@ -17,11 +17,21 @@ final class QuickNoteDraft {
 
     /// Call on every title/body change. A no-op until the first non-empty
     /// edit; from then on keeps the created `Memo` in sync.
+    ///
+    /// `seedTags`/`seedSignificance` (Q47/D145): the quick note now shows
+    /// tags + importance chrome from the moment it opens, before any Memo
+    /// exists (a plain local `@State` on the screen). Only TEXT creates the
+    /// row (D91 stays literal — "the first keystroke"), but whatever the
+    /// user had already picked before typing a word rides along onto the
+    /// row the instant it's born, instead of silently resetting to nothing.
     @discardableResult
-    func edited(title: String, body: String, context: ModelContext) -> Memo? {
+    func edited(title: String, body: String, context: ModelContext,
+                seedTags: [String] = [], seedSignificance: Double = 0) -> Memo? {
         if memo == nil {
             guard !title.isEmpty || !body.isEmpty else { return nil }
             memo = try? Memo.newTyped(into: context)
+            memo?.tags = seedTags
+            memo?.significance = seedSignificance
         }
         guard let memo else { return nil }
         memo.title = title.isEmpty ? nil : title
