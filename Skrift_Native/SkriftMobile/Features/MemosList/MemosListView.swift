@@ -329,7 +329,7 @@ struct MemosListView: View {
                         $0.text?.lowercased().contains(query) == true
                     } == true
                 }.count
-                DevLog.log("search '\(query)' → \(filtered.count)/\(memos.count) hits, \(photoHits) via photoText")
+                DevLog.log("search '\(query)' → \(derived.groups.reduce(0) { $0 + $1.memos.count })/\(memos.count) hits, \(photoHits) via photoText")
             }
             #endif
             .sheet(isPresented: $showSortFilter) {
@@ -475,9 +475,9 @@ struct MemosListView: View {
             // ONE derived pass for the whole body eval — the per-row flatIndex
             // access used to re-run the entire filter+sort each time (O(N²)).
             let d = derived
-            // Same rule for the backlink scan (never per row) — feeds the
-            // Mac-parity clock line on unrated rows.
-            let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+            // Same backlink scan `derived` already ran (never a second one per
+            // render) — feeds the Mac-parity clock line on unrated rows.
+            let backlinked = d.backlinked
             // D136: the triage line is gone on every width — each chip carries
             // its own count now (`chipCounts`), Filter ends the bar. On BOTH
             // widths now (was iPad-regular only) — the phone's chip bar filters
@@ -498,8 +498,8 @@ struct MemosListView: View {
                 ForEach(d.groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
-                            MemoRow(memo: memo, enhancedTitle: enhancedTitleByMemoID[memo.id],
-                                    fading: searchFadingIDs.contains(memo.id),
+                            MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
+                                    fading: d.searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
                                     quiet: isUnratedLive(memo),
                                     // D136 (one-notes-list, Q33 visual check): the iPad's
@@ -585,7 +585,7 @@ struct MemosListView: View {
                 if !d.related.isEmpty {
                     Section {
                         ForEach(d.related) { memo in
-                            MemoRow(memo: memo, enhancedTitle: enhancedTitleByMemoID[memo.id],
+                            MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     selected: memo.id == selectedMemoID) {
                                 if isRegular { selectedRoute = .existing(memo.id) }
                                 else { path.append(.existing(memo.id)) }
@@ -852,12 +852,16 @@ struct MemosListView: View {
     /// (the old triage line's numbers moved here) and Filter ends the bar,
     /// icon-only — on the phone too now, not just the iPad.
     private var filterChips: some View {
-        HStack(spacing: 5) {
+        // Computed ONCE for the whole row, not per chip — `chipCounts` used to
+        // be read as a property inside the ForEach, so its 3 corpus filters +
+        // `enhancedMemoIDs` rebuild reran on each of the 4 chip iterations.
+        let counts = chipCounts
+        return HStack(spacing: 5) {
             ForEach(QueueFilter.allCases, id: \.self) { chip in
                 let on = listChip == chip
                 HStack(spacing: 3) {
                     Text(chip.rawValue)
-                    if let n = chipCounts[chip] {
+                    if let n = counts[chip] {
                         Text("\(n)").fontWeight(.semibold)
                     }
                 }
@@ -915,7 +919,9 @@ struct MemosListView: View {
     /// memoID → the Mac's GENERATED title, off the same one query (never a fetch per row).
     /// Lets a row show a real title where the user hasn't chosen one, instead of falling
     /// through to the body — which is what made the list disagree with the detail screen.
-    private var enhancedTitleByMemoID: [UUID: String] {
+    /// Built ONCE per render inside `derived` now (R92/C278) — was a computed
+    /// property read per-row inside `ForEach`, rebuilding the whole dictionary N times.
+    private func enhancedTitleByMemoID() -> [UUID: String] {
         Dictionary(enhancements.lazy.compactMap { e -> (UUID, String)? in
             let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
             return t.isEmpty ? nil : (e.memoID, t)
@@ -1139,14 +1145,20 @@ struct MemosListView: View {
     /// main LIST — but not SEARCH (no-bad-info, 2026-07-21): "no results" about
     /// a note that exists-and-is-recoverable is the worst possible answer to
     /// "where did my note go?". A fading search hit wears an amber tag.
-    private var lifecycle: (live: [Memo], fading: [Memo]) { MemoLifecycle.partition(memos) }
+    /// Takes the backlink set as a parameter (R92/C278) — the caller computes
+    /// `MemoLifecycle.backlinkedIDs(in:)` ONCE per render and threads it through,
+    /// instead of `MemoLifecycle.partition` re-running that corpus scan itself.
+    private func lifecycle(backlinked: Set<UUID>) -> (live: [Memo], fading: [Memo]) {
+        var live: [Memo] = [], fading: [Memo] = []
+        for m in memos where m.deletedAt == nil {
+            if MemoLifecycle.isFading(m, backlinked: backlinked) { fading.append(m) } else { live.append(m) }
+        }
+        return (live, fading)
+    }
 
     private var searchingNow: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
 
-    private var filtered: [Memo] {
-        // Built ONCE per body eval — the chip predicate needs it per row, and a
-        // per-row rebuild would be O(N·E) (the frozen-library trap in miniature).
-        let enhanced = enhancedMemoIDs
+    private func filtered(lifecycle: (live: [Memo], fading: [Memo]), enhanced: Set<UUID>) -> [Memo] {
         var out = lifecycle.live.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
         if searchingNow {
             out += lifecycle.fading.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
@@ -1154,40 +1166,47 @@ struct MemosListView: View {
         return out.sorted(by: sortComparator)
     }
 
-    /// Ids of fading notes currently surfaced by search — drives the row tag.
-    private var searchFadingIDs: Set<UUID> {
-        guard searchingNow else { return [] }
-        return Set(lifecycle.fading.map(\.id))
-    }
-
     private struct Group { let title: String; let memos: [Memo] }
 
-    /// Everything the list body derives from one filter+sort pass. These were
-    /// separate computed properties, and the per-ROW `flatIndex` access re-ran
-    /// the whole filter+sort (metadata decodes included) once per visible row.
-    private struct Derived { let groups: [Group]; let flatIndex: [UUID: Int]; let related: [Memo] }
+    /// Everything the list body derives from ONE filter+sort pass (R92/C278):
+    /// `flatIndex`, `enhancedTitleByMemoID` and `searchFadingIDs` used to be
+    /// separate computed properties read per visible ROW inside `ForEach`, each
+    /// re-running its own full corpus scan N times. Now built once here and
+    /// read by index/lookup in the row loop — O(1) scans per render, not O(N).
+    private struct Derived {
+        let groups: [Group]
+        let flatIndex: [UUID: Int]
+        let related: [Memo]
+        let enhancedTitleByMemoID: [UUID: String]
+        let searchFadingIDs: Set<UUID>
+        let backlinked: Set<UUID>
+    }
 
     private var derived: Derived {
-        let f = filtered
+        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+        let enhanced = enhancedMemoIDs
+        let split = lifecycle(backlinked: backlinked)
+        let f = filtered(lifecycle: split, enhanced: enhanced)
+        let fadingIDs: Set<UUID> = searchingNow ? Set(split.fading.map(\.id)) : []
         return Derived(
             groups: groups(from: f),
             flatIndex: Dictionary(f.enumerated().map { ($0.element.id, $0.offset) },
                                   uniquingKeysWith: { a, _ in a }),
-            related: relatedDisplay(excluding: Set(f.map(\.id))))
+            related: relatedDisplay(excluding: Set(f.map(\.id)), enhanced: enhanced),
+            enhancedTitleByMemoID: enhancedTitleByMemoID(),
+            searchFadingIDs: fadingIDs,
+            backlinked: backlinked)
     }
 
     private func groups(from filtered: [Memo]) -> [Group] {
         if sort == .longest {
             return filtered.isEmpty ? [] : [Group(title: "Longest first", memos: filtered)]
         }
-        var order: [String] = []
-        var bucket: [String: [Memo]] = [:]
-        for memo in filtered {
-            let key = MemoDate.group(groupDate(memo))
-            if bucket[key] == nil { order.append(key); bucket[key] = [] }
-            bucket[key]?.append(memo)
-        }
-        return order.map { Group(title: $0, memos: bucket[$0] ?? []) }
+        // Shared cross-app grouping pass (NotesListModel.dayGroups) instead of
+        // a hand-rolled order-array + bucket-dict loop duplicating the exact
+        // same logic (sweep-b finding #9).
+        return NotesListModel.dayGroups(filtered) { MemoDate.group(groupDate($0)) }
+            .map { Group(title: $0.title, memos: $0.items) }
     }
 
 
@@ -1196,10 +1215,10 @@ struct MemosListView: View {
     }
 
     /// The rendered Related section: raw semantic hits minus exact matches,
-    /// passed through the same filter sheet as everything else.
-    private func relatedDisplay(excluding exact: Set<UUID>) -> [Memo] {
+    /// passed through the same filter sheet as everything else. `enhanced` is
+    /// threaded in from `derived`'s one-per-render `enhancedMemoIDs` build.
+    private func relatedDisplay(excluding exact: Set<UUID>, enhanced: Set<UUID>) -> [Memo] {
         guard !related.isEmpty else { return [] }
-        let enhanced = enhancedMemoIDs
         return related.filter { !exact.contains($0.id) && matchesFilter($0, enhanced: enhanced) }
     }
 
@@ -1417,93 +1436,6 @@ private struct MemoCard: View {
         return m
     }
 
-    // A failed on-device transcription is informational, not a dead end: the memo
-    // syncs as raw audio (the Mac transcribes it) and can be hand-edited in detail.
-    // `statusKind` is nil for phone-only (significance 0) memos → no sync pill.
-    @ViewBuilder private var statusPill: some View {
-        if let kind = memo.statusKind {
-            StatusPill(style: kind.pillStyle, label: kind.label)
-        }
-    }
-
-    /// Leading source icon for C3 share-item captures (link/text/image glyph per
-    /// the mock's `.mrow .ic`). Uses the same 32×32 rounded-rect as `bookGlyph`.
-    private var captureGlyph: some View {
-        RoundedRectangle.sk(10)
-            .fill(Color.skElev)
-            .frame(width: 32, height: 32)
-            .overlay(
-                Image(systemName: memo.shareCaptureGlyph)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.skTextDim)
-            )
-            .accessibilityIdentifier("capture-row-glyph")
-    }
-
-    /// Leading source icon for the default branch — taxonomy-derived: mic for a
-    /// voice memo, ✎ for a typed note, the note glyph for an Apple Note import
-    /// (before 2026-08-18 this was a hardcoded mic, so a typed note wore a mic
-    /// and read as a recording it never was).
-    private var voiceGlyph: some View {
-        RoundedRectangle.sk(10)
-            .fill(Color.skElev)
-            .frame(width: 32, height: 32)
-            .overlay(
-                Image(systemName: SourceKind.of(memo).glyph)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.skTextDim)
-            )
-            .accessibilityIdentifier("voice-row-glyph")
-    }
-
-    /// Leading source icon for video imports (a neutral film glyph, matching the
-    /// share-capture source-glyph family — same 32×32 rounded-rect).
-    private var videoGlyph: some View {
-        RoundedRectangle.sk(10)
-            .fill(Color.skElev)
-            .frame(width: 32, height: 32)
-            .overlay(
-                Image(systemName: SourceKind.video.glyph)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.skTextDim)
-            )
-            .accessibilityIdentifier("video-row-glyph")
-    }
-
-    /// Leading source icon for audiobook capture rows (accent-tinted book, per
-    /// the mock's `.mrow.cap .ic`).
-    private var bookGlyph: some View {
-        RoundedRectangle.sk(10)
-            .fill(Color.skAccentSoft)
-            .frame(width: 32, height: 32)
-            .overlay(
-                Image(systemName: SourceKind.audiobookQuote.glyph)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.skAccent)
-            )
-    }
-
-    /// "❝ quote" — accent, heavy quote mark + italic body. The caller sets the
-    /// line's base font/color, which the explicitly-styled ❝ keeps overriding.
-    private func quoteText(_ quote: String) -> Text {
-        Text("❝ ").foregroundStyle(Color.skAccent).fontWeight(.heavy)
-            + Text(quote).italic()
-    }
-
-    @ViewBuilder private var photoThumb: some View {
-        // Downsampled + cached decode (MemoImageLoader is the "600× with a
-        // picture" fix from the editor) — a full-res UIImage here decoded the
-        // whole photo at compositing time for a 48pt tile, per row, uncached.
-        if let filename = memo.thumbnailPhotoFilename,
-           let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
-            Image(uiImage: img).resizable().scaledToFill()
-                .frame(width: 48, height: 48)
-                .clipShape(.rect(cornerRadius: 11, style: .continuous))
-        } else {
-            Image(systemName: "photo").font(.system(size: 16)).foregroundStyle(Color.skTextFaint)
-        }
-    }
-
     private struct Chip: Hashable { let text: String; let symbol: String? }
 
     private var chips: [Chip] {
@@ -1536,10 +1468,6 @@ private struct MemoCard: View {
         return out
     }
 
-    private var hasTranscript: Bool { !(memo.transcript ?? "").isEmpty }
-    /// A photo tile shows iff the NOTE visibly carries a photo (deleting every
-    /// photo from the body must clear the tile too, not just swap it).
-    private var hasPhoto: Bool { memo.thumbnailPhotoFilename != nil }
     /// True when this row has a title to lead with — the user's own, else the Mac's
     /// generated one. Without the second arm a polished note showed its title in detail
     /// and its body text in the list.
