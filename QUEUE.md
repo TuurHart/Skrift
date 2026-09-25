@@ -471,6 +471,12 @@ needs: Q60
 do: `plan/periphery.md` CHECK section: 116 functions have their own tests but no caller in the app (like `NamesStore.pruneOldTombstones`). A sitting sheet groups them by feature with one line each (what it was for, who built it when — git log), and Tuur picks per group: WIRE IN (becomes an auto item) or DELETE (with its tests; protected-test change approved per group).
 check: Tuur picked per group.
 
+### Q63 [tuur] (todo) Mac typing feel after Q56: headings and links while typing
+spec: C277 R90
+needs: Q56
+do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live.
+check: Tuur typed on the Mac and said the flash is fine, or it became an item.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -644,3 +650,4 @@ check: Tuur picked per group.
 - 2026-09-25 20:42 Q50 -> tuur — built @95b9d312 — awaiting sitting
 - 2026-09-25 20:43 Q49 -> doing — worker out
 - 2026-09-25 20:43 Q56 -> done — gate pass @e673611d
+- 2026-09-25 20:44 Q63 added
