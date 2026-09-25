@@ -120,9 +120,7 @@ struct FeedbackItem: Identifiable, Hashable {
     var hasScreenshot: Bool { metadata.hasScreenshot }
     var durationSeconds: Double { metadata.durationSeconds }
     var sentAt: Date? { metadata.sentAt }
-    var isSent: Bool { metadata.sentAt != nil }
     var screenshotURL: URL { folder.appendingPathComponent("screenshot.png") }
-    var screenshotImage: UIImage? { hasScreenshot ? UIImage(contentsOfFile: screenshotURL.path) : nil }
 
     static func load(from folder: URL) -> FeedbackItem? {
         guard let metadata = FeedbackMetadata.load(from: folder) else { return nil }

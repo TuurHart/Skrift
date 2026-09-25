@@ -592,19 +592,6 @@ struct NoteBodyView: UIViewRepresentable {
             return BodyTransform.displayRange(forRaw: raw, in: transcript)
         }
 
-        /// The name span under a point. `closestPosition(to:)` snaps the tap to
-        /// the nearest character, so a tap at a name's edge still resolves; ±1
-        /// char of tolerance keeps short names comfortable.
-        func spanAt(_ point: CGPoint) -> NameSpan? {
-            guard let tv = textView, !displaySpans.isEmpty,
-                  let idx = tv.characterIndex(at: point) else { return nil }
-            for entry in displaySpans {
-                let r = entry.range
-                if idx >= r.location - 1 && idx <= r.location + r.length { return entry.span }
-            }
-            return nil
-        }
-
         // MARK: tap routing
 
         /// PLAYING-mode word-seek. (While editable, the system text interaction
