@@ -365,7 +365,7 @@ gate+: yes
 do: D145 + BUGS §3 (build 172): the quick note must be the FULL note screen (MemoDetailView in a draft state: date, tags, importance visible, cursor in body, keyboard up) — retire the separate `QuickNoteView`; keep first-keystroke creation + empty discard. Fix: the first ✎ tap opened an OLD note (the recovered recording) — find why the route resolved to an existing memo (stale deep link / draft id / selection state) and add a test; the keyboard accessory bar must never disappear while typing. QuickNoteTests stay green; add `QuickNoteRouteTests` (phone target). Sim screenshot, synthetic corpus, isolated store; LOOK; commit under `plan/reads/quicknote-q47/`.
 check: `plan/mtest.sh QuickNoteRouteTests && plan/mtest.sh QuickNoteTests && test $(ls plan/reads/quicknote-q47/*.png | wc -l) -ge 1 && ./gate.sh`
 
-### Q48 [auto] (todo) filter chips switch with one consistent animation; verb row a little bigger
+### Q48 [auto] (doing) filter chips switch with one consistent animation; verb row a little bigger
 spec: C117 C240
 needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
@@ -413,7 +413,7 @@ node: AuditFix2
 do: From `plan/sweep-b-list-launch.md`: `filterChips` re-runs uncached `chipCounts` per chip (MemosListView.swift:846-895, ~16 full-corpus scans per render) — compute once per render/memo-set change; hoist per-row lookups (`enhancedTitleByMemoID`, `searchFadingIDs`, `backlinkedIDs`, partition — R92/C278) into one pre-render pass; use the shared `NotesListModel.dayGroups` instead of the hand-rolled `groups(from:)` (MemosListView.swift:1171-1183); delete the ~90 dead MemoCard helper lines it lists. Test in a new `ListRenderCostTests` (desktop target) counting scans per render.
 check: `grep -rqE "class ListRenderCostTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q55 [auto] (stuck) phone launch and foreground do only what changed
+### Q55 [auto] (done) phone launch and foreground do only what changed
 spec: C279
 needs: -
 gate+: yes
@@ -680,3 +680,8 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:16 Q55 -> stuck — check failed — .queue/Q55.check.log
 - 2026-09-25 22:18 Q58 -> done — gate pass @2c4f232f
 - 2026-09-25 22:19 Q62 -> tuur — built @2a70ae57 — awaiting sitting
+- 2026-09-25 22:19 Q55 -> doing — resumed: accept check -> TEST FAILED (LaunchWorkTests or RecoverySweepTests)
+- 2026-09-25 22:19 Q48 -> doing — worker out
+- 2026-09-25 22:25 Q55 -> stuck — check failed — .queue/Q55.check.log
+- 2026-09-25 22:27 Q55 -> doing — re-accept: both reds were sim-launch collisions with Q48's UI tests; mtest.sh now locks the sim
+- 2026-09-25 22:32 Q55 -> done — gate pass @cbe5bfb8
