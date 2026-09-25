@@ -388,6 +388,14 @@ needs: -
 do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
 check: Tuur clicked through it and said go.
 
+### Q52 [auto] (todo) typing never re-renders the notes list behind the editor (R92)
+spec: C277 C282
+needs: -
+gate+: yes
+node: AuditFix2
+do: Measured 2026-09-25 (`plan/perf-measured.md`, phone typing, Dev 172, FAST state): 93% of SkriftMobile samples on the main thread; the top app-code cost while typing is the notes LIST behind the editor re-evaluating on every keystroke — `MemosListView.body`/`notesRoot` (258 samples), `listContent` (225), recomputing `allTags`, `allMemos`, `backlinkedIDs`, `filterChips` — plus `MemoPageView.body` (174), `NoteBodyTextView.layoutSubviews` (37), `NoteBodyView.Coordinator.sanitizeTypingAttributes` (33), `NotesRepository.save` (15). This is R92. Make the list's derived collections cached/memoised and invalidated only when the memo set changes (not on a body edit), so a keystroke in the editor does not re-run the list's body; debounce the editor's save like the phone's 1 s `commitDraft`. Prove with a test in a new `ListNotReRenderedWhileTypingTests` (desktop target, shared model) and a re-recorded trace in the laggy state if Tuur can reproduce it.
+check: `grep -rqE "class ListNotReRenderedWhileTypingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -537,3 +545,4 @@ check: Tuur clicked through it and said go.
 - 2026-09-25 18:56 Q50 added
 - 2026-09-25 18:56 Q51 added
 - 2026-09-25 19:05 Q15 -> done — hand-merged (D146); tag v1-body=8581f09d; 6 protected test files lose v1-only cases
+- 2026-09-25 19:07 Q52 added
