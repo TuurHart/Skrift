@@ -153,12 +153,6 @@ enum WayOutRules {
         files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
     }
 
-    /// SF Symbol for a quiet row — delegates to the SHARED taxonomy
-    /// (`Shared/Pipeline/SourceTaxonomy.swift`), the one copy both apps read.
-    static func sourceGlyph(for memo: Memo) -> String {
-        SourceKind.of(memo).glyph
-    }
-
     /// Free-text match for a quiet (unrated) row — title + transcript, the
     /// memo-side mirror of `AppModel.matchesSearch`. Empty query matches all.
     static func matchesSearch(_ memo: Memo, query: String) -> Bool {
