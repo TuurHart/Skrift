@@ -745,8 +745,11 @@ struct MemosListView: View {
                 Label(SharedCopy.importVerb, systemImage: "plus")
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(Color.skText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
+                    // Q48/D145: "a bit small" (Tuur, b172) — was `.padding(.vertical, 7)`
+                    // over ~16pt of content, ≈30pt tall. `minHeight: 44` is Apple's HIG
+                    // tap-target floor, which this row was under; that floor (not the
+                    // brief's ~20% guideline) is the binding number here.
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .accessibilityIdentifier("ipad-import-button")
@@ -765,8 +768,7 @@ struct MemosListView: View {
                 }
                 .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(Color.skRed)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -780,8 +782,9 @@ struct MemosListView: View {
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.skText)
-                    .frame(width: 34)
-                    .padding(.vertical, 7)
+                    // Widened alongside the height (34 → 44) so the square stays a
+                    // square, not a tall sliver next to the two wide buttons.
+                    .frame(width: 44, height: 44)
                     .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.plain)
