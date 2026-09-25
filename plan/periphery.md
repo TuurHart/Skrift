@@ -1,4 +1,4 @@
-# Periphery dead-code scan (Q60) — report only, no deletions
+# Periphery dead-code scan (Q60) + Q61 removal pass
 
 Periphery 2.21.2, installed from the release zip to `~/bin` — the brew cask
 errored on a homebrew-core policy check (`depends_on macos: :catalina` disabled),
@@ -12,7 +12,10 @@ Raw logs (not committed, machine-local): `/private/tmp/claude-501/-Users-tiuriha
 ## Totals: 374 unique findings (263 raw mobile + 163 raw desktop, 52 overlap in Shared/)
 SAFE 245 (~1976 lines,
 brace-matched span estimate — an upper bound, since an unused enum/struct and its
-own unused members each get spanned separately) · CHECK 127 (116 test-only + 11 structural) · KEEP 2
+own unused members each get spanned separately) · CHECK 127 (116 test-only + 11 structural) · KEEP 2.
+**Q61 update:** of the 245 SAFE, 18 removed (150 real lines, see below) + 227 moved to
+CHECK after whole-repo grep re-verification (span estimates were never trustworthy
+enough to delete on their own — see the Q61 section below).
 
 **Biggest finding of this scan: Periphery alone was not enough.** 116 of the
 374 unique findings looked identical to genuine dead code (zero references in the app
@@ -96,83 +99,127 @@ packed as file:line(s)(lines) → test file
 - CaptureMath.swift:16,20,25,36,43,63,73,227,266,306,351,372(265l)→AudiobookCaptureMathTests.swift; ChapterDetector.swift:340(3l)→ChapterDetectorTests.swift; DevLog.swift:62(1l)→DevLogTests.swift
 - MemoExporter.swift:38,46,53,182,228(65l)→MemoExporterTests.swift; MemoLinking.swift:33(3l)→MemoLinkingTests.swift; PublishCoordinator.swift:37,155(31l)→PublishCoordinatorTests.swift
 
-## SAFE list (245 findings across 109 files, no test found either) — file:line(s)(lines)
+## Q61 — SAFE list processed: 18 removed (150 lines), 227 moved to CHECK
 
-**Skrift_Native/SkriftMobile/Services**
-- AudiobookAudioTransport.swift:53(33l); AudiobookImporter.swift:89(3l); AudiobookSession.swift:368,466,602(23l); BookAlignment.swift:288(1l)
-- BookBundle.swift:43,258(16l); BookTranscriptionJob.swift:79,402(17l); CaptureMath.swift:13,23,55,212,222,223,279,385(139l); QuoteCaptureProcessor.swift:30,47,76,279,308,357(126l)
-- CaptureInbox.swift:234(4l); DiarizationService.swift:27(1l); SpeakerEmbedder.swift:18,40,77(6l); ArchiveVault.swift:48(1l)
-- MemoExporter.swift:244(42l); ObsidianPublisher.swift:40(1l); MemoDeduper.swift:43(3l); WeatherClient.swift:30(9l)
-- ModelInventory.swift:14,18(2l); NotesRepository.swift:102,253(10l); RecordingActivityManager.swift:69(1l); RecordingCheckpoint.swift:29,85(5l)
-- TranscriptionService.swift:22,33,43,249,263,291(14l); VocabularyBooster.swift:67(1l)
+Every one of the 245 SAFE findings was re-verified before touching anything, per the
+item's instruction: a whole-repo `grep` (Swift, tests, plists, entitlements,
+`.intentdefinition`, mocks, docs — everything, not just app targets) for the symbol's
+base identifier, excluding only the symbol's own declaration span (not its whole file —
+an early pass that excluded the whole file missed a same-file caller: `remap(_:from:to:)`
+calls the SAFE-listed `offsetMap(from:to:)` from three lines away in
+`BodyNormaliseMigration.swift`, which would have broken the build). A second, more
+"precise" label-anchored regex pass was tried and abandoned: it missed
+`RetrievalGate.derive(...)` being called from `ConnectionsPanel.swift:58` because the real
+call site wraps its 7 labeled parameters across multiple lines and `grep -E` patterns
+don't span newlines — a false "clean" that would have broken the Mac build. Base-name
+whole-repo matching, own-span excluded, was the only pass trusted for deletion.
 
-**Skrift_Native/SkriftMobile/Features**
-- AudiobookPlayerView.swift:122,122,122(3l); AudiobookSyncSheet.swift:14(6l); BookTextSheet.swift:22(10l); ChaptersBookmarksSheet.swift:10,202(72l)
-- MergedCaptureView.swift:67(23l); SyncedAudiobooksView.swift:10(9l); FeedbackMailComposer.swift:20(3l); FeedbackStore.swift:27,69,120,121,123,124,125(10l)
-- CaptureQuoteViews.swift:109(32l); ConnectionsPanel.swift:75(3l); MemoDetailView.swift:16,2416(2l); NoteBodyView.swift:267,590,598(16l)
-- MemosListView.swift:16,27,1415,1423,1439,1453,1467,1480,1485,1531,1534,1727(93l); QuickNoteView.swift:23(1l); MemoSaver.swift:316(3l)
+**Span caveat found along the way:** `plan/periphery.md`'s brace-matched span estimates
+are wrong for brace-less one-line declarations (`static let xs: CGFloat = 4` has no `{`,
+so the span algorithm over-counts to the next enclosing `}` it finds — e.g. it claimed 13
+lines for `Theme.Space.xs`, a single line). Every deletion below was done by reading the
+real source around the reported line, never by trusting the `span` number.
 
-**Skrift_Native/Shared/Pipeline**
-- ASRLanguageMode.swift:29,49,63(13l); AlignmentCore.swift:457(81l); AudioRMS.swift:34(11l); BodyMarkdown.swift:12(31l)
-- BodyTransform.swift:78,78,87,110,134(50l); DiarizingContract.swift:29(3l); ImageMarkers.swift:9(55l); LookbackProvider.swift:115(8l)
-- MemoDuplicates.swift:20(7l); MemoSpine.swift:227(7l); NoteWorkState.swift:51(1l); PDFTextExtract.swift:13(17l)
-- Paragrapher.swift:23,142(31l); ProcessPile.swift:24,42(9l); SpeakerTranscript.swift:72,82,105(19l); SpeakerTurnStyle.swift:64(14l)
-- TranscribingContract.swift:13,14,16,27,31,37,47(22l); VocabularyTermParsing.swift:49(1l)
+Only 18 of 245 came out fully clean (zero hits anywhere outside their own declaration,
+whole repo, any file type) — the rest had a base-name collision (same short name reused
+elsewhere, e.g. a different type's property, a local variable, a doc-comment mention,
+or a genuine same-file caller) that a plain grep can't safely disambiguate from a real
+reference without full type-checking. Per the item's rule ("any hit outside its own
+definition moves to CHECK, do not delete"), all 227 of those move to CHECK now — most are
+probably still genuinely dead (periphery's own SourceKit-based analysis said so), but
+proving it needs semantic (not textual) verification that's out of scope here. A follow-up
+pass with Xcode's own "Unused" index (or a periphery re-run that already excludes these 18)
+could recover more.
 
-**Skrift_Native/SkriftDesktop/Features**
-- JournalView.swift:16(1l); RecordingDraftView.swift:56(1l); ConnectionsPanel.swift:50(1l); PersonEditor.swift:19(1l)
-- SettingsView.swift:574(17l); AppModel.swift:15,23(11l); LifecycleSweepScheduler.swift:49(1l); LiveRecordingSession.swift:204(8l)
-- QueueDerivations.swift:115,154,161(26l); SidebarView.swift:37,421,778,800,1252,1261(49l); Theme.swift:42(11l)
+### Removed (Q61, 18 items, 150 lines, one commit per folder — see git log `Q61:`)
 
-**Skrift_Native/Shared/Naming**
-- NameMatch.swift:35(27l); NamesStore.swift:97,177,238(48l); SafeJSONStore.swift:31,99,100,101,107,119(13l); Sanitiser.swift:51,600,614,623,634,648,675(40l)
+- Shared/UI/SharedCopy.swift:28 `processSettingsTitle`
+- SkriftDesktop/Engines/TranscriptionService.swift:39 `isModelReadySync`
+- SkriftDesktop/Features/Settings/SettingsView.swift:574 `chooseSubfolder(_:)`
+- SkriftDesktop/Features/Sidebar/QueueDerivations.swift:115 `queueMeta`
+- SkriftDesktop/Models/FileDTO.swift:32 `PipelineFile.dto` (+ its now-empty extension)
+- SkriftDesktop/Pipeline/WayOutRules.swift:158 `sourceGlyph(for:)`
+- SkriftMobile/DesignSystem/Components.swift:18 `SkScreenBackground`
+- SkriftMobile/DesignSystem/Components.swift:183 `TagChip` (its only user, `TagChipStyle`, left in place — now itself dead, not on this list)
+- SkriftMobile/DesignSystem/Theme.swift:87,91,94,102,116 `Space.xs`, `Space.xl`, `Space.cardGap`, `Radius.editBox`, `timerFont(_:)`
+- SkriftMobile/Features/Feedback/FeedbackStore.swift:123,125 `isSent`, `screenshotImage` (`screenshotURL`, its only other user, left in place — now itself dead, not on this list)
+- SkriftMobile/Features/MemoDetail/NoteBodyView.swift:598 `spanAt(_:)`
+- SkriftMobile/Models/MemoDisplay.swift:336 `pillStyle`
+- SkriftMobile/Services/ModelInventory.swift:18 `isDownloaded`
 
-**Skrift_Native/Shared/Model**
-- CaptureQuote.swift:35,43,62,102(34l); Memo.swift:258,317,381,384(21l); MemoEnhancement.swift:76(7l); MemoLinkSyntax.swift:19,43(11l)
-- MemoMetadata.swift:91(3l); NoteDestination.swift:93,110(11l)
+Verified per commit: `./gate.sh` GREEN (894 tests, 0 failures), full Mac build
+(`xcodebuild -scheme SkriftDesktop -skipMacroValidation`) exit 0, phone
+`plan/mtest.sh QuickNoteRouteTests` exit 0. Nothing reverted — zero red folders.
 
-**Skrift_Native/SkriftMobile/DesignSystem**
-- Components.swift:18,183(46l); Theme.swift:87,88,89,90,91,94,102,103,104,105,116(94l)
+**Deliberately left alone despite zero code callers:** `Memo.trustConfidenceThreshold` /
+`Memo.isTrustedTranscript(userEdited:confidence:)` (Shared/Model/Memo.swift:381,384) — this
+is THE trust gate CLAUDE.md names as the sync-contract spine
+(`transcriptUserEdited || transcriptConfidence ≥ 0.7`); the rule is duplicated inline at
+`MemoSpine.swift:228`, `RoundTripParityTests.swift:48` and `CorpusSeedTests.swift:72`
+rather than calling this named implementation, so it reads as dead by the letter of the
+scan — too structurally significant to blind-delete on that alone. Left in CHECK below.
 
-**Skrift_Native/Shared/Retrieval**
-- ConnectionWhy.swift:40(15l); EmbeddingEngine.swift:45(30l); EmbeddingIndex.swift:30,178(24l); RetrievalGate.swift:8,9,13,14,17,18,23(47l)
+### CHECK — Q61 grep re-verification (227), `symbol` list per file, reason: grep found a hit outside its own declaration span
 
-**Skrift_Native/SkriftDesktop/Engines**
-- EnhancementService.swift:29(1l); MacRecorder.swift:114,325(7l); TranscriptionService.swift:22,39,43,182(6l); VocabularyBooster.swift:31(1l)
+Skrift_Native/Shared/BodyV2 (4)
+  BodyNormaliseMigration.swift: offsetMap(from:to:); contentUnits(_:); undoPolished(id:bodies:ledger:now:didRestore:) | BodyV2Thumbnail.swift: BodyV2Thumbnail
 
-**Skrift_Native/Shared/UI**
-- DestinationRowView.swift:37(1l); NoteMenu.swift:63,84(20l); Palette.swift:22(1l); SharedCopy.swift:28,44,55(10l)
+Skrift_Native/Shared/Corpus (1)
+  CorpusSeed.swift: nameOffsets(folder:)
 
-**Skrift_Native/SkriftMobile/Models**
-- Memo+BodyNormalise.swift:70(12l); Memo+Mobile.swift:119,155(13l); MemoDisplay.swift:74,206,336(27l)
+Skrift_Native/Shared/Export (4)
+  ExportProfile.swift: usesWikiEmbeds; imageMarkdown(_:) | VaultWrite.swift: isWrittenOrCurrent; markdownURL
 
-**Skrift_Native/Shared/Recording**
-- LiveCaptionEngine.swift:181,268,277,362,423(34l)
+Skrift_Native/Shared/Model (14)
+  CaptureQuote.swift: spokenWordCount; lineRanges(in:); markerLength(ofLine:); body(withRamble:) | Memo.swift: addedAt; splitTagInput(_:); trustConfidenceThreshold; isTrustedTranscript(userEdited:confidence:) | MemoEnhancement.swift: isProcessed | MemoLinkSyntax.swift: link(id:title:); targets(in:) | MemoMetadata.swift: Source | NoteDestination.swift: archiveRootKey; resetIfRequested()
 
-**Skrift_Native/SkriftDesktop/Pipeline**
-- DiarizationSidecar.swift:26,69(9l); MemoCloudReconciler.swift:184(8l); MultipartPart.swift:11(1l); WayOutRules.swift:158(3l)
+Skrift_Native/Shared/Naming (17)
+  NameMatch.swift: NameSpan | NamesStore.swift: writeWithSmartBumps(_:); upsert(canonical:aliases:short:); seedRoster(titles:) | SafeJSONStore.swift: quarantinedTo; url; quarantinedTo; at; found; reset() | Sanitiser.swift: prunedKeys; hasCanonicalLink(_:in:); unlinkOccurrence(text:canonical:index:alias:); linkDisplay(_:); relinkOccurrence(text:canonical:index:newCanonical:); unlinkAll(text:canonical:alias:); spokenAlias(for:)
 
-**Skrift_Native/Shared/BodyV2**
-- BodyNormaliseMigration.swift:124,132,300(25l); BodyV2Thumbnail.swift:4(13l)
+Skrift_Native/Shared/Pipeline (34)
+  ASRLanguageMode.swift: settingKey; footer; mode(defaults:) | AlignmentCore.swift: bookWords | AudioRMS.swift: rms(of:) | BodyMarkdown.swift: BodyMarkdown | BodyTransform.swift: displayLength(of:in:); raw; displayRange(forRaw:in:); displayRanges(forRaw:in:); containsTaskSyntax(_:) | DiarizingContract.swift: diarize(audioURL:) | ImageMarkers.swift: ImageMarkers | LookbackProvider.swift: importantLately(for:now:calendar:limit:) | MemoDuplicates.swift: isContentClone(_:of:) | MemoSpine.swift: touchVerb(for:) | NoteWorkState.swift: wantsProcessing | PDFTextExtract.swift: PDFTextExtract | Paragrapher.swift: defaultGap; splitSentences(_:) | ProcessPile.swift: isWaiting(_:enhancedIDs:); isDone(_:enhancedIDs:) | SpeakerTranscript.swift: withPreamble(of:_:); isUnnamed(_:); flattened(_:) | SpeakerTurnStyle.swift: Turn | TranscribingContract.swift: confidence; durationMs; markersInjected; transcribe(buffer:); transcribe(audioURL:); transcribe(buffer:); writeWAV(_:to:) | VocabularyTermParsing.swift: canonical(_:)
 
-**Skrift_Native/Shared/Export**
-- ExportProfile.swift:41,111(4l); VaultWrite.swift:193,313(7l)
+Skrift_Native/Shared/Recording (5)
+  LiveCaptionEngine.swift: caption(); finish(); finishParts(); shouldRotate(sinceRotation:lastSnapshotCost:interval:); copyBuffer(_:)
 
-**Skrift_Native/SkriftMobile/App**
-- LaunchArgs.swift:18,34,37,40(4l)
+Skrift_Native/Shared/Retrieval (11)
+  ConnectionWhy.swift: wikiNames(inSanitised:) | EmbeddingEngine.swift: MockEmbedder | EmbeddingIndex.swift: relatedK; gistPairScores(limit:) | RetrievalGate.swift: gate; downloading(fraction:); preparing; indexing(done:total:); finding; ready; derive(enabled:modelDownloaded:downloadFraction:sweeping:sweepProgress:hasRows:querying:) — the last one is a CONFIRMED real catch: it IS called from ConnectionsPanel.swift:58 (multi-line call site), an earlier precise-regex pass missed it
 
-**Skrift_Native/Shared/Session**
-- LockGate.swift:36,62,68(7l)
+Skrift_Native/Shared/RetrievalEngine (1)
+  GemmaEmbedder.swift: unloadNow()
 
-**Skrift_Native/SkriftDesktop/Models**
-- FileDTO.swift:32(15l); PipelineFile+BodyNormalise.swift:105(14l)
+Skrift_Native/Shared/Session (3)
+  LockGate.swift: resignObserver; authorizeRemoveLock(); canAuthenticate()
 
-**Skrift_Native/Shared/Corpus**
-- CorpusSeed.swift:102(4l)
+Skrift_Native/Shared/UI (6)
+  DestinationRowView.swift: text | NoteMenu.swift: systemImage; lockItem(isLocked:) | Palette.swift: mac | SharedCopy.swift: processingStep(_:_:of:); processingDownload(_:)
 
-**Skrift_Native/Shared/RetrievalEngine**
-- GemmaEmbedder.swift:138(6l)
+Skrift_Native/SkriftDesktop/Engines (7)
+  EnhancementService.swift: isModelReady | MacRecorder.swift: isRecording; cancel() | TranscriptionService.swift: models; isModelReady; liveCaption() | VocabularyBooster.swift: replacementCount
 
-**Skrift_Native/SkriftMobile/SkriftShare**
-- SharePayloadLoader.swift:22(1l)
+Skrift_Native/SkriftDesktop/Features (17)
+  JournalView.swift: coordinator | RecordingDraftView.swift: everEdited | ConnectionsPanel.swift: count | PersonEditor.swift: request | AppModel.swift: short; next | LifecycleSweepScheduler.swift: activationObserver | LiveRecordingSession.swift: cancel() | QueueDerivations.swift: shortDF; shortDate(_:) | SidebarView.swift: queuedCount; filled; quietMeta(_:); process(_:); sidebarRowSelection(_:hovering:); StatusPill | Theme.swift: violet
 
+Skrift_Native/SkriftDesktop/Models (1)
+  PipelineFile+BodyNormalise.swift: undoBodyNormalise(ledger:cloud:)
+
+Skrift_Native/SkriftDesktop/Pipeline (4)
+  DiarizationSidecar.swift: init(segments:slotNames:turnSlots:); load(in:id:) | MemoCloudReconciler.swift: existingFile(id:filename:in:) | MultipartPart.swift: contentType
+
+Skrift_Native/SkriftMobile/App (4)
+  LaunchArgs.swift: intValue(_:); destinationsOn; seedArchiveFolder; selectFirstMemo
+
+Skrift_Native/SkriftMobile/DesignSystem (6)
+  Theme.swift: sm; md; lg; chip; sheet; group
+
+Skrift_Native/SkriftMobile/Features (35)
+  AudiobookPlayerView.swift: token; up; playing | AudiobookSyncSheet.swift: dismiss | BookTextSheet.swift: detent | ChaptersBookmarksSheet.swift: initialTab; ChaptersBookmarksRail | MergedCaptureView.swift: session | SyncedAudiobooksView.swift: repository | FeedbackMailComposer.swift: init(items:onSent:) | FeedbackStore.swift: count; delete(_:); hasScreenshot; durationSeconds; screenshotURL | CaptureQuoteViews.swift: sync | ConnectionsPanel.swift: ordered(_:byDate:) | MemoDetailView.swift: initialID; tight | NoteBodyView.swift: init(memo:onCommit:); displayRange(forRaw:transcript:) | MemosListView.swift: short; next; statusPill; captureGlyph; voiceGlyph; videoGlyph; bookGlyph; quoteText(_:); photoThumb; hasTranscript; hasPhoto; SelectableCard | QuickNoteView.swift: draftID | MemoSaver.swift: importVideoAsync(id:source:fallbackDate:)
+
+Skrift_Native/SkriftMobile/Models (5)
+  Memo+BodyNormalise.swift: undoBodyNormalise(enhancement:ledger:) | Memo+Mobile.swift: nameSpans(people:); clearNameResolution(alias:) | MemoDisplay.swift: trashCountdownLabel(now:); rambleSnippet
+
+Skrift_Native/SkriftMobile/Services (47)
+  AudiobookAudioTransport.swift: InMemoryAudiobookTransport | AudiobookImporter.swift: importBook(from:libraryDirectory:) | AudiobookSession.swift: sleepLabel; time; shouldResumeAfterInterruption(pausedByInterruption:shouldResumeHint:recordingActive:) | BookAlignment.swift: rejectedFiles | BookBundle.swift: typeIdentifier; bookID | BookTranscriptionJob.swift: levelObserver; starts | CaptureMath.swift: lookback; transcriptionPadding; replayWindow(now:in:); Snapped; closers; terminators; inIndex(starts:words:proposedIn:); CaptureScrub | QuoteCaptureProcessor.swift: spanEnd; bufferOffset; process(bookAudio:span:bookDuration:); TrimResult; applyTrim(output:included:initialIncluded:); isUnchangedTrim(included:sentences:) | CaptureInbox.swift: imageURL(for:entryDir:) | DiarizationService.swift: isModelReady | SpeakerEmbedder.swift: ensureLoaded(); isModelReady; ensureLoaded() | ArchiveVault.swift: clear() | MemoExporter.swift: QuoteCard | ObsidianPublisher.swift: clear() | MemoDeduper.swift: isContentClone(_:of:) | WeatherClient.swift: setAPIKey(_:) | ModelInventory.swift: directory | NotesRepository.swift: restore(_:); delete(_:) | RecordingActivityManager.swift: isRunning | RecordingCheckpoint.swift: recent; mainURL | TranscriptionService.swift: models; multilingualKey; isModelReady; liveCaption(); finishStream(); shouldRotate(sinceRotation:lastSnapshotCost:) | VocabularyBooster.swift: replacementCount
+
+Skrift_Native/SkriftMobile/SkriftShare (1)
+  SharePayloadLoader.swift: mimeType
