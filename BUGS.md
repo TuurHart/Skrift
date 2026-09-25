@@ -277,6 +277,12 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       (`MemosListView.swift:338` passes `showNotRated: !isRegular`, toggle at `:1619`) combine, so
       Done + Not rated empties the list with no explanation. Found by the Q49 mock; every Q49 option
       removes the duplicate.
+- [ ] **The Apple Notes import is lossy today** (read from source by the Q51 mock, not re-run):
+      `IngestService.importAttachments` (`SkriftDesktop/Pipeline/Ingest/IngestService.swift:358`) copies
+      the whole shared `Attachments/` folder into EVERY note; every note is dated at import time
+      (`PipelineFile.uploadedAt` defaults to `Date()`, `PipelineFile.swift:60`, against D18);
+      `ingestFolder` (:432) skips subfolders; the phone takes one `.md` and leaves its
+      `(Attachments/…)` links dangling; unreadable files are skipped with no report.
 
 ---
 
