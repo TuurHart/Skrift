@@ -376,6 +376,18 @@ needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
 check: Tuur clicked through it and said go.
 
+### Q50 [tuur] (todo) mockup: one compact note header (date + place, tags, importance)
+spec: C117 C94
+needs: -
+do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
+check: Tuur clicked through it and said go.
+
+### Q51 [tuur] (todo) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
+spec: C117 C238
+needs: -
+do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
+check: Tuur clicked through it and said go.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -522,3 +534,5 @@ check: Tuur clicked through it and said go.
 - 2026-09-25 15:15 Q48 added
 - 2026-09-25 15:15 Q49 added
 - 2026-09-25 18:45 Q15 -> doing — approved D146; worker out
+- 2026-09-25 18:56 Q50 added
+- 2026-09-25 18:56 Q51 added
