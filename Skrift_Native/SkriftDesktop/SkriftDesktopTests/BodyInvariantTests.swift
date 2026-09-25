@@ -1,82 +1,22 @@
 import XCTest
 
 /// C6 body invariants, asserted WITHOUT reference to v1 (they must hold on whatever
-/// engine produced the text) — the body-relevant slice of C6's 54-item list: markers
-/// in = markers out; paragraph count never drops; the editor round-trip returns the
-/// identical string; every transform is idempotent; the pieces of a body cover it
-/// exactly; no `[[img_` inside a sentence in any stored body. Runs both on synthetic
-/// strings (so the invariant reads on its own, corpus or no corpus) and on the real
-/// corpus's v1 goldens / `expect_body.txt` files where present.
+/// engine produced the text) — the body-relevant slice of C6's 54-item list: the editor
+/// round-trip returns the identical string; the pieces of a body cover it exactly; no
+/// `[[img_` inside a sentence in any stored body.
+///
+/// Q15: the v1-snap-specific invariants (markers-in=markers-out, paragraph-count-never-
+/// drops, idempotence — all asserted by calling v1's own body-snap function, plus
+/// their shared `corpusGoldenSlugs()` helper and `knownSnapIdempotenceGaps`) are deleted
+/// along with v1 (tag `v1-body`); `BodyV2HarnessTests.testV2IsIdempotent` /
+/// `testV2PicturesAreOwnParagraphsAndWordsSurvive` now assert the v2 equivalents with no
+/// snap-gap excuses (C17).
 final class BodyInvariantTests: XCTestCase {
 
     // MARK: - helpers
 
     /// `[[img_NNN]]` marker numbers present in a string, in order of appearance.
     private static let markerRegex = try! NSRegularExpression(pattern: #"\[\[img_(\d{3})\]\]"#)
-    private func markerNumbers(in s: String) -> [Int] {
-        let ns = s as NSString
-        return Self.markerRegex.matches(in: s, range: NSRange(location: 0, length: ns.length)).compactMap {
-            Int(ns.substring(with: $0.range(at: 1)))
-        }
-    }
-
-    /// Non-empty `\n\n`-delimited paragraph count.
-    private func paragraphCount(_ s: String) -> Int {
-        s.components(separatedBy: "\n\n").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count
-    }
-
-    private func corpusGoldenSlugs() -> [(slug: String, text: String)] {
-        let dir = BodyGoldenTests.goldenDir
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path) else { return [] }
-        return names.filter { $0.hasSuffix(".txt") }.compactMap { name in
-            guard let text = try? String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8) else { return nil }
-            return (String(name.dropLast(4)), text)
-        }
-    }
-
-    // MARK: - markers in = markers out
-
-    func testMarkersInEqualMarkersOut_synthetic() {
-        let raw = "First bit [[img_002]] of prose. Second sentence [[img_001]] continues. [[img_003]] Trailing."
-        let snapped = BodyTransform.snappedImageBody(raw)
-        XCTAssertEqual(Set(markerNumbers(in: snapped)), Set(markerNumbers(in: raw)))
-        XCTAssertEqual(markerNumbers(in: snapped).count, markerNumbers(in: raw).count,
-                       "no marker merged or duplicated, only relocated")
-    }
-
-    func testMarkersInEqualMarkersOut_corpusGoldens() {
-        for (slug, golden) in corpusGoldenSlugs() where golden.contains("[[img_") {
-            // The snap is idempotent (asserted below) so re-running it must not change
-            // the marker set already baked into a recorded golden.
-            let resnapped = BodyTransform.snappedImageBody(golden)
-            XCTAssertEqual(Set(markerNumbers(in: resnapped)), Set(markerNumbers(in: golden)), slug)
-        }
-    }
-
-    // MARK: - paragraph count never drops
-
-    func testSnapNeverDropsAParagraph_synthetic() {
-        let cases = [
-            "Alpha sentence. [[img_001]] Beta sentence.",
-            "Already done.\n\n[[img_001]]\n\nStructured next.",
-            "[[img_001]] Lone lead-in marker, then prose.",
-            "Trailing marker at the end. [[img_001]]",
-        ]
-        for raw in cases {
-            let before = paragraphCount(raw)
-            let after = paragraphCount(BodyTransform.snappedImageBody(raw))
-            XCTAssertGreaterThanOrEqual(after, before, raw)
-        }
-    }
-
-    func testSnapNeverDropsAParagraph_corpusGoldens() {
-        // Re-snapping an already-snapped golden (idempotent point) must never lose a
-        // paragraph the golden itself already has.
-        for (slug, golden) in corpusGoldenSlugs() {
-            let resnapped = BodyTransform.snappedImageBody(golden)
-            XCTAssertGreaterThanOrEqual(paragraphCount(resnapped), paragraphCount(golden), slug)
-        }
-    }
 
     // MARK: - pieces cover the body exactly + editor round-trip
 
@@ -112,38 +52,6 @@ final class BodyInvariantTests: XCTestCase {
             let literal = (raw as NSString).substring(with: piece.rawRange)
             XCTAssertEqual(BodyTransform.rawTask(checked: checked).lowercased(), literal.lowercased(),
                            "rawTask(checked:) must round-trip the matched task syntax")
-        }
-    }
-
-    // MARK: - idempotence
-
-    func testSnapImagesIsIdempotent_synthetic() {
-        let cases = [
-            "A photo [[img_001]] mid sentence. Then more [[img_002]] words.",
-            "[[img_001]]\n\n[[img_002]]\n\nAlready blocked.",
-            "No markers here at all.",
-            "",
-        ]
-        for raw in cases {
-            let once = BodyTransform.snappedImageBody(raw)
-            let twice = BodyTransform.snappedImageBody(once)
-            XCTAssertEqual(once, twice, "snapImages must be a fixed point on its own output: \(raw)")
-        }
-    }
-
-    /// Discovered by this harness (2026-09-24), not yet a registered SPEC bug (SPEC.md
-    /// is protected — Q10 documents, Q11 decides fix-vs-register): `pic-user-snapped-markers`
-    /// (a marker already followed by "\n\n" + prose loses that blank line on a 2nd snap)
-    /// and `pic-in-task-list` (a marker sitting between two task lines glues the
-    /// surrounding tasks together on a 2nd snap) are real, narrow violations of
-    /// `BodyTransform.snapImages`'s own "Idempotent." doc claim. Excluded here so the
-    /// other ~100 corpus notes still guard the general property; not silently dropped.
-    private static let knownSnapIdempotenceGaps: Set<String> = ["pic-user-snapped-markers", "pic-in-task-list"]
-
-    func testSnapImagesIsIdempotent_corpusGoldens() {
-        for (slug, golden) in corpusGoldenSlugs() where !Self.knownSnapIdempotenceGaps.contains(slug) {
-            let twice = BodyTransform.snappedImageBody(golden)
-            XCTAssertEqual(golden, twice, "\(slug): a recorded golden must already be a snap fixed point")
         }
     }
 

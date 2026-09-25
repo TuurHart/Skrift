@@ -599,7 +599,8 @@ enum Snapshot {
 
     /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector
     /// dropped MID-SENTENCE must render the sentence WHOLE, then the photo as its own
-    /// full-width block beneath it (shared `BodyTransform.snapImages`). HOSTED render
+    /// full-width block beneath it (body v2 keeps every picture its own paragraph at
+    /// commit, C10/C17; a pre-v2 body still gets this via `BodyV2Legacy`). HOSTED render
     /// (real NSTextView) with a real on-disk image so the thumbnail actually decodes.
     /// Triggered by: `-snapshot-photoblock <path>`.
     @MainActor private static func renderPhotoBlock(to path: String) {

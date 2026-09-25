@@ -188,24 +188,10 @@ final class BodyTransformTests: XCTestCase {
         let raw = "- [ ] see [[img_001]] Jack"
         let jack = (raw as NSString).range(of: "Jack")
         let display = BodyTransform.displayRange(forRaw: jack, in: raw)
-        // task "- [ ]" (5→1) saves 4; the mid-line img becomes a display BLOCK
-        // (\n + glyph + \n, 11→3) saving 8 → display loc = 22-12
-        XCTAssertEqual(display, NSRange(location: jack.location - 12, length: 4))
-    }
-
-    func testImageBreaksMakeMidSentencePhotosBlocks() {
-        func breaks(_ raw: String) -> (Bool, Bool) {
-            let piece = BodyTransform.pieces(of: raw).first {
-                if case .image = $0.segment { return true }; return false
-            }!
-            return BodyTransform.imageBreaks(for: piece, in: raw)
-        }
-        XCTAssertTrue(breaks("was fantastic [[img_001]] and then") == (true, true),
-                      "mid-sentence photo needs both breaks")
-        XCTAssertTrue(breaks("look\n[[img_001]]\nafter") == (false, false),
-                      "a photo already on its own line needs none")
-        XCTAssertTrue(breaks("[[img_001]] tail") == (false, true))
-        XCTAssertTrue(breaks("head [[img_001]]") == (true, false))
+        // task "- [ ]" (5→1) saves 4; the img marker (11→1) saves 10 — no display-only
+        // breaks any more (C17: a picture is always its own paragraph in v2's stored
+        // shape) → display loc = 22-14
+        XCTAssertEqual(display, NSRange(location: jack.location - 14, length: 4))
     }
 
     @MainActor
@@ -236,75 +222,6 @@ final class BodyTransformTests: XCTestCase {
         XCTAssertEqual(memo.transcript, "- [ ] buy milk")
     }
 
-    // MARK: image-at-sentence-end snap (photo reflow)
-
-    private func snap(_ raw: String) -> String { BodyTransform.snapImages(raw).text }
-
-    func testSnapMovesWrappedMidSentencePhotoToSentenceEnd() {
-        // The injector wraps a marker in \n\n at the closest WORD (mid-sentence).
-        XCTAssertEqual(snap("The cat sat\n\n[[img_001]]\n\n down. Later."),
-                       "The cat sat down.\n\n[[img_001]]\n\n Later.")
-    }
-
-    func testSnapMovesInlinePhotoAndKeepsSingleSpace() {
-        // A Gemma-reflowed body can carry the marker truly inline (no \n\n).
-        XCTAssertEqual(snap("The cat sat [[img_001]] down. Later."),
-                       "The cat sat down.\n\n[[img_001]]\n\n Later.")
-    }
-
-    func testSnapLeavesPhotoAlreadyAtSentenceEndInPlace() {
-        let already = "The cat sat down.\n\n[[img_001]]\n\n Later."
-        XCTAssertEqual(snap(already), already, "a boundary photo normalizes to itself")
-    }
-
-    func testSnapIsIdempotent() {
-        for raw in ["The cat sat\n\n[[img_001]]\n\n down. Later.",
-                    "The cat sat [[img_001]] down. Later.",
-                    "A [[img_001]] B [[img_002]] C. D.",
-                    "[[img_001]] Hello world."] {
-            let once = snap(raw)
-            XCTAssertEqual(snap(once), once, "snap(snap(x)) == snap(x) for \(raw)")
-        }
-    }
-
-    func testSnapTwoPhotosInOneSentenceBlockInOrderAfterIt() {
-        XCTAssertEqual(snap("A [[img_001]] B [[img_002]] C. D."),
-                       "A B C.\n\n[[img_001]]\n\n[[img_002]]\n\n D.")
-    }
-
-    func testSnapPhotoBeforeAnySentenceBlocksAtTop() {
-        XCTAssertEqual(snap("[[img_001]] Hello world."),
-                       "[[img_001]]\n\n Hello world.")
-    }
-
-    func testSnapNoImagesIsUnchanged() {
-        XCTAssertEqual(snap("Just some prose. No photos here."),
-                       "Just some prose. No photos here.")
-    }
-
-    func testSnapGuardsWordMergeWhenNoSeparatingSpace() {
-        // Degenerate input (marker glued between two words) must not merge them.
-        XCTAssertEqual(snap("thought[[img_001]]second. x"),
-                       "thought second.\n\n[[img_001]]\n\n x")
-    }
-
-    func testSnapOffsetMapPlacesTailAndRestSpans() {
-        let raw = "The cat sat\n\n[[img_001]]\n\n down. Later."
-        let result = BodyTransform.snapImages(raw)
-        // "down" lives in the pulled tail — it must land in the snapped sentence,
-        // BEFORE the relocated marker.
-        let downRaw = (raw as NSString).range(of: "down")
-        let downSnapped = result.snapped(rawRange: downRaw)
-        XCTAssertEqual((result.text as NSString).substring(with: downSnapped), "down")
-        XCTAssertLessThan(downSnapped.location,
-                          (result.text as NSString).range(of: "[[img_001]]").location)
-        // "Later" is the remainder — after the marker block.
-        let laterRaw = (raw as NSString).range(of: "Later")
-        let laterSnapped = result.snapped(rawRange: laterRaw)
-        XCTAssertEqual((result.text as NSString).substring(with: laterSnapped), "Later")
-        XCTAssertGreaterThan(laterSnapped.location,
-                             (result.text as NSString).range(of: "[[img_001]]").location)
-    }
 }
 
 /// Memo↔memo link syntax + editor round-trip (chunk 5).
@@ -819,7 +736,8 @@ final class SearchHitFlashTests: XCTestCase {
 
 /// Photo display-block (image-at-sentence-end reflow, 2026-07-16): a mid-sentence
 /// photo renders the SENTENCE whole, then drops to its own `\n\n` block after it
-/// (shared `BodyTransform.snapImages`, matched by the Mac + the Obsidian export).
+/// (a pre-v2 body reflows via `BodyV2Legacy`, matched by the Mac + the Obsidian export;
+/// a v2-committed body already keeps every picture its own paragraph, C10/C17).
 /// The display snaps; `reconstruct` yields the snapped form (edited/trusted notes
 /// carry it, the moment lives in `imageManifest.offsetSeconds`); no inherited
 /// attribute can corrupt the round-trip.
