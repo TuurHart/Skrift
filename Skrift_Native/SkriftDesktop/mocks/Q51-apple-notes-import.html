@@ -1,0 +1,490 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apple Notes Import</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Page chrome tokens (same set as Q50) + in-app tokens from Shared/UI/Palette.swift */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-amber:#d97706; --a-green:#0f9d72; --a-red:#dc2626; --a-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 28px rgba(40,30,90,.10);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+    --a-amber:#f59e0b; --a-green:#34d399; --a-red:#ef4444; --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+  --a-amber:#f59e0b; --a-green:#34d399; --a-red:#ef4444; --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+h2{font-size:16px;margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em}
+
+/* the question */
+.q{border:2px solid var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:14px 14px 13px;display:flex;flex-direction:column;gap:8px}
+.q .n{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--pg-warn);letter-spacing:.04em}
+.q p{font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty}
+.q small{font-size:13px;color:var(--pg-dim);line-height:1.4;display:block}
+
+/* today panel */
+.today{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.today h3{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:0;color:var(--pg-dim)}
+.today ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.today li{font-size:13.5px;line-height:1.4;display:grid;grid-template-columns:18px 1fr;gap:6px}
+.today li b{font-weight:600}
+.today .ok::before{content:"+";color:var(--a-green);font-family:var(--mono);font-weight:600}
+.today .no::before{content:"\2212";color:var(--pg-warn);font-family:var(--mono);font-weight:600}
+.today .src{font-family:var(--mono);font-size:11px;color:var(--pg-faint);line-height:1.5}
+
+/* picks */
+.picks{display:flex;flex-direction:column;gap:8px}
+.pickrow{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13.5px}
+.tagP{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;color:#fff;background:var(--pg-warn);border-radius:4px;padding:2px 6px;white-space:nowrap}
+
+/* controls */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--pg-dim);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:#fff}
+.steps{display:flex;gap:4px;flex-wrap:wrap}
+.steps button{border:1px solid var(--pg-line);background:var(--pg-card);border-radius:6px;padding:4px 8px;font-family:var(--mono);font-size:11px;color:var(--pg-dim);cursor:pointer}
+.steps button[aria-current="step"]{border-color:var(--pg-accent);color:var(--pg-accent);font-weight:600}
+
+/* stage */
+.stage{display:flex;justify-content:center}
+.phone{width:100%;max-width:390px;background:var(--a-bg);border-radius:22px;box-shadow:var(--a-shadow);overflow:hidden;display:flex;flex-direction:column;color:var(--a-text);min-height:640px;border:1px solid var(--a-border)}
+.nav{display:grid;grid-template-columns:70px 1fr 70px;align-items:center;padding:12px 12px 8px;background:var(--a-bg)}
+.nav .l,.nav .r{font-size:15px;color:var(--a-accent);background:none;border:0;cursor:pointer;padding:4px 0;text-align:left}
+.nav .r{text-align:right}
+.nav .t{text-align:center;font-weight:600;font-size:15.5px}
+.nav .t small{display:block;font-size:11.5px;font-weight:500;color:var(--a-dim)}
+.body{flex:1;padding:4px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.foot{padding:10px 14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--a-bg);border-top:1px solid var(--a-border)}
+.primary{border:0;background:var(--a-accent);color:#fff;font-weight:600;font-size:15.5px;padding:12px;border-radius:12px;cursor:pointer;width:100%}
+.primary[disabled]{opacity:.45;cursor:default}
+.ghost{border:0;background:none;color:var(--a-accent);font-weight:500;font-size:14px;padding:6px;cursor:pointer}
+.danger{color:var(--a-red)}
+
+/* Mac window */
+.macscale{width:100%;overflow:hidden}
+.mac{width:720px;transform-origin:top left;background:var(--a-bg);color:var(--a-text);border-radius:12px;box-shadow:var(--a-shadow);border:1px solid var(--a-border);overflow:hidden;display:grid;grid-template-columns:170px 1fr;grid-template-rows:auto 1fr auto;min-height:560px}
+.mac .tb{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--a-border);font-size:13px;font-weight:600}
+.mac .tb i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.mac .rail{border-right:1px solid var(--a-border);padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:var(--a-surface)}
+.mac .rail button{border:0;background:none;text-align:left;padding:7px 9px;border-radius:7px;font-size:13px;color:var(--a-dim);cursor:pointer;display:flex;gap:8px}
+.mac .rail button b{font-family:var(--mono);font-weight:500;font-size:11px;color:var(--a-faint);padding-top:1px}
+.mac .rail button[aria-current="step"]{background:var(--a-accent-soft);color:var(--a-accent-text);font-weight:600}
+.mac .body{padding:14px 18px}
+.mac .foot{grid-column:1/-1;flex-direction:row;justify-content:flex-end;align-items:center;gap:10px;padding:10px 14px}
+.mac .primary{width:auto;padding:7px 16px;font-size:13px;border-radius:7px}
+.mac .ghost{font-size:13px}
+.mac .twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+
+/* in-app pieces */
+.hint{font-size:13px;color:var(--a-dim);line-height:1.4}
+.card{background:var(--a-surface);border-radius:12px;border:1px solid var(--a-border);overflow:hidden}
+.row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--a-border);font-size:14.5px}
+.row:first-child{border-top:0}
+.row.sub{padding-left:34px}
+.row .cnt{font-size:13px;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.row .exp{border:0;background:none;color:var(--a-faint);cursor:pointer;font-size:13px;padding:2px 4px}
+.row.off .nm{color:var(--a-faint)}
+.cb{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--a-faint);display:grid;place-items:center;cursor:pointer;background:none;padding:0}
+.cb[aria-checked="true"]{background:var(--a-accent);border-color:var(--a-accent)}
+.cb[aria-checked="true"]::after{content:"";width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.cb[aria-checked="mixed"]{border-color:var(--a-accent)}
+.cb[aria-checked="mixed"]::after{content:"";width:9px;height:2px;background:var(--a-accent);border-radius:1px}
+.noterow{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:center;padding:7px 12px 7px 40px;border-top:1px solid var(--a-border);font-size:13.5px}
+.noterow .d{font-size:11.5px;color:var(--a-dim)}
+.noterow.lk{color:var(--a-faint)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;background:var(--a-chip);border-radius:999px;padding:3px 9px;color:var(--a-dim)}
+.chip.acc{background:var(--a-accent-soft);color:var(--a-accent-text)}
+.chip.warn{background:rgba(217,119,6,.14);color:var(--a-amber)}
+.sect{font-size:12px;font-weight:600;color:var(--a-dim);text-transform:uppercase;letter-spacing:.05em;padding:4px 2px 0}
+.map{display:grid;grid-template-columns:1fr 16px 1fr 18px;gap:6px 6px;align-items:start;padding:9px 12px;border-top:1px solid var(--a-border);font-size:13px;line-height:1.35}
+.map:first-child{border-top:0}
+.map .ar{color:var(--a-faint);text-align:center}
+.map .to{color:var(--a-text)}
+.map .from{color:var(--a-dim)}
+.st{font-family:var(--mono);font-size:12px;text-align:right}
+.st.y{color:var(--a-green)} .st.p{color:var(--a-amber)} .st.x{color:var(--a-red)}
+.sample{display:flex;flex-direction:column;gap:8px;padding:12px}
+.sample .hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sample .hd button{border:0;background:var(--a-chip);color:var(--a-text);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px}
+.srcmd{font-family:var(--mono);font-size:11.5px;line-height:1.5;background:var(--a-chip);border-radius:8px;padding:8px 10px;white-space:pre-wrap;word-break:break-word;color:var(--a-dim)}
+.note{display:flex;flex-direction:column;gap:6px}
+.note h4{margin:0;font-size:17px;font-weight:700}
+.note .meta{font-size:12px;color:var(--a-dim)}
+.note p,.note li{font-size:14px;line-height:1.45}
+.note ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.note li{display:grid;grid-template-columns:20px 1fr;gap:6px;align-items:start}
+.note li .bx{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--a-faint);margin-top:2px}
+.note li .bx.on{background:var(--a-accent);border-color:var(--a-accent)}
+.note li.done span{color:var(--a-faint);text-decoration:line-through}
+.pic{height:92px;border-radius:8px;background:linear-gradient(135deg,var(--a-chip),var(--a-accent-soft));display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--a-dim)}
+.marker{font-family:var(--mono);font-size:12px;color:var(--a-amber);background:rgba(217,119,6,.10);border-radius:6px;padding:4px 8px}
+.tbl{border-collapse:collapse;font-size:12.5px;width:100%}
+.tbl td,.tbl th{border:1px solid var(--a-border);padding:3px 6px;text-align:left}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:var(--a-surface);border:1px solid var(--a-border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.tile b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile span{font-size:12.5px;color:var(--a-dim);line-height:1.3}
+.tile.big{grid-column:1/-1;background:var(--a-accent-soft);border-color:transparent}
+.tile.big b{font-size:30px;color:var(--a-accent-text)}
+.tile.w b{color:var(--a-amber)}
+.opt{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:11px 12px;border-top:1px solid var(--a-border);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.opt:first-child{border-top:0}
+.opt .rd{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--a-faint);margin-top:1px}
+.opt[aria-checked="true"] .rd{border:6px solid var(--a-accent)}
+.opt b{font-size:14.5px;display:block}
+.opt span{font-size:12.5px;color:var(--a-dim);line-height:1.35;display:block}
+.prog{height:8px;border-radius:4px;background:var(--a-chip);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--a-accent);width:0;transition:width .2s linear}
+.big-num{font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.rep{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 12px;border-top:1px solid var(--a-border);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.rep:first-child{border-top:0}
+.rep b{font-size:14.5px}
+.rep .c{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--a-amber)}
+.rep .why{grid-column:1/-1;font-size:12.5px;color:var(--a-dim);line-height:1.35}
+.rep .ex{grid-column:1/-1;font-size:12.5px;color:var(--a-text);display:flex;flex-direction:column;gap:2px;padding-top:4px}
+.menu{background:var(--a-surface);border-radius:12px;border:1px solid var(--a-border);box-shadow:var(--a-shadow);width:260px;max-width:100%;overflow:hidden;font-size:14.5px;color:var(--a-text)}
+.menu div{padding:10px 14px;border-top:1px solid var(--a-border);display:flex;justify-content:space-between;gap:10px}
+.menu div:first-child{border-top:0}
+.menu .new{background:var(--a-accent-soft);color:var(--a-accent-text);font-weight:600}
+.menu small{color:var(--a-faint);font-family:var(--mono);font-size:11px}
+.confirm{background:rgba(220,38,38,.08);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.confirm .btns{display:flex;gap:8px}
+.confirm button{border:0;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:13.5px}
+.confirm .yes{background:var(--a-red);color:#fff}
+.confirm .no{background:var(--a-chip)}
+
+/* pick annotation: flippable */
+.pick{position:relative;outline:2px dashed var(--pg-warn);outline-offset:3px;border-radius:10px}
+.pick .flag{position:absolute;top:-11px;right:8px;z-index:2;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;background:var(--pg-warn);border:0;border-radius:4px;padding:2px 6px;cursor:pointer;letter-spacing:.03em}
+
+.entry{display:grid;grid-template-columns:1fr;gap:10px;justify-items:start}
+.cap{font-size:13px;color:var(--pg-dim);line-height:1.45;max-width:65ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pg-ink);color:var(--pg-bg);font-size:13.5px;padding:9px 14px;border-radius:10px;max-width:calc(100% - 32px);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.prog i,.toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q51 · mock · fake data · C117 C238 C76 D18</div>
+    <h1>Apple Notes import wizard</h1>
+  </header>
+
+  <section class="q" aria-label="Question for Tuur">
+    <div class="n">QUESTION 1 OF 1</div>
+    <p>When you import 400 Apple Notes at once, should they land quiet (unrated: nothing polished, nothing exported to Obsidian until you rate one), or rated (the Mac polishes all of them and exports them to your vault)?</p>
+    <small>Today a Mac import is rated at the 0.1 floor ("an import is consent"), so a 400-note import would queue 400 polishes. The mock picks quiet (PICK B, step 2). Tap its orange flag to see the other answer.</small>
+  </section>
+
+  <section class="today" aria-label="What imports today">
+    <h3>Today, from the source</h3>
+    <ul>
+      <li class="ok"><span><b>Mac only:</b> Import → pick a folder of Apple Notes <code>.md</code> exports; each file becomes one note.</span></li>
+      <li class="ok"><span><b>Title</b> = the first <code># </code> heading, else the filename.</span></li>
+      <li class="ok"><span><b>Body</b> = the markdown as written, marked typed, glyph "Apple Note", never re-transcribed.</span></li>
+      <li class="ok"><span><b>Pictures</b> in <code>Attachments/</code> are copied and relinked; HEIC becomes JPEG.</span></li>
+      <li class="ok"><span><b>Phone:</b> one shared or opened <code>.md</code> becomes the body text of a note.</span></li>
+      <li class="no"><span><b>Date:</b> every note is dated to the import moment. D18 says it must be the note's creation date.</span></li>
+      <li class="no"><span><b>Subfolders</b> are skipped, so a nested Notes folder never imports.</span></li>
+      <li class="no"><span><b>Every note copies the whole <code>Attachments/</code> folder</b>, not only its own pictures.</span></li>
+      <li class="no"><span><b>Phone:</b> pictures are not imported; the <code>(Attachments/…)</code> links stay dangling.</span></li>
+      <li class="no"><span><b>Checklists, tags, folders:</b> no mapping step; whatever text the export holds passes through.</span></li>
+      <li class="no"><span><b>No report:</b> a file Skrift can't read is skipped silently.</span></li>
+    </ul>
+    <div class="src">IngestService.swift: ingestNote :169, importAttachments :358, appleNoteTitle :416, ingestFolder :433 · PipelineFile.swift :60 (uploadedAt = Date()) · plan/extraction/ingress.md P11, M3, M4</div>
+  </section>
+
+  <section class="picks" aria-label="Choices this mock made">
+    <div class="eyebrow">Choices made here, flip or overrule</div>
+    <div class="pickrow"><span class="tagP">PICK A</span><span>An Apple Notes folder becomes a tag, <code>notes/Kiln &amp; glazes</code>. Skrift has one list and no folders. Other answer: drop the folder.</span></div>
+    <div class="pickrow"><span class="tagP">PICK B</span><span>Imported notes land quiet (unrated). Other answer: rated, and the Mac polishes and exports them.</span></div>
+    <div class="pickrow"><span class="tagP">PICK C</span><span>One wizard, same five steps on iPhone and Mac (C238), started from the existing Import menu. Other answer: Mac only.</span></div>
+  </section>
+
+  <section class="entry" aria-label="Where it starts">
+    <div class="eyebrow">Where it starts · PICK C</div>
+    <div class="menu pick" style="margin-top:6px">
+      <span class="flag" style="cursor:default">PICK C</span>
+      <div><span>Audio or video from Files</span><small>today</small></div>
+      <div><span>Video from Photos</span><small>today</small></div>
+      <div><span>Scan a document</span><small>today</small></div>
+      <div class="new"><span>Apple Notes export…</span><small>new</small></div>
+    </div>
+    <p class="cap">The phone's Import menu, items drawn from MemosListView.swift :734. The Mac's Import button opens the same wizard. Skrift can't read the Notes app directly, so both start from a folder you exported out of Notes. Which exporter that is gets decided at build time (D18).</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-label="The wizard">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Device">
+        <button id="dev-phone" aria-pressed="true">iPhone</button>
+        <button id="dev-mac" aria-pressed="false">Mac</button>
+      </div>
+      <div class="steps" id="jump" aria-label="Jump to step"></div>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="cap" id="stagecap"></p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+const STEPS=["Pick","Mapping","Dry run","Import","Report"];
+const FOLDERS=[
+ {id:"notes",name:"Notes",n:142,pics:61,checks:9,tags:14,nodate:4,draw:2,audio:1,pinned:3,dupes:2,on:true,
+  items:["Tram idea: glaze as map","Passwords to change (no values)","Dentist 12 Oct","Gift ideas for Mo","Portuguese verbs"]},
+ {id:"kiln",name:"Kiln & glazes",n:38,pics:44,checks:6,tags:9,nodate:0,draw:3,audio:0,pinned:1,dupes:0,on:true,
+  items:["Shino recipe v3","Cone 6 celadon test","Firing log, September","Glaze shopping list","Kiln shelf layout"]},
+ {id:"recipes",name:"Recipes",n:51,pics:37,checks:14,tags:6,nodate:3,draw:0,audio:0,pinned:0,dupes:1,on:true,
+  items:["Bacalhau à Brás","Sourdough schedule","Caldo verde","Pastéis attempt 2"]},
+ {id:"flat",name:"Lisbon flat",n:24,pics:19,checks:5,tags:3,nodate:0,draw:1,audio:0,pinned:1,dupes:0,on:true,
+  items:["Meter readings","Landlord contacts","Paint colours","Wi-Fi setup"]},
+ {id:"books",name:"Books to read",n:17,pics:0,checks:2,tags:4,nodate:0,draw:0,audio:0,pinned:0,dupes:0,on:true,
+  items:["From Tomas","Sci-fi list","Dutch novels"]},
+ {id:"gfr",name:"Good Friday Robotics",n:51,pics:28,checks:11,tags:12,nodate:1,draw:2,audio:2,pinned:1,dupes:0,on:true,
+  items:["Gripper v2 notes","Investor call prep","Servo torque table"]},
+ {id:"sup",parent:"gfr",name:"Suppliers",n:12,pics:4,checks:1,tags:2,nodate:0,draw:0,audio:0,pinned:0,dupes:0,on:true,
+  items:["Misumi order","Local machinist"]},
+ {id:"quick",name:"Quick Notes",n:71,pics:12,checks:4,tags:5,nodate:1,draw:1,audio:1,pinned:0,dupes:0,on:true,
+  items:["Parking level 3","Call back Rui","Words for the song"]},
+ {id:"deleted",name:"Recently Deleted",n:9,pics:3,checks:0,tags:0,nodate:0,draw:0,audio:0,pinned:0,dupes:0,on:false,
+  items:["Old shopping list","Test"]}
+];
+FOLDERS.forEach(f=>{f.itemOn=f.items.map(()=>f.on)});
+
+const SAMPLES=[
+ {title:"Shino recipe v3",folder:"Kiln & glazes",date:"14 Mar 2024, 21:12",
+  md:"# Shino recipe v3\n\nCone 6, reduction. Try on the tall jar.\n\n- [x] Nepheline syenite 40\n- [x] Spodumene 20\n- [ ] Soda ash 4 (buy)\n\n#glaze #kiln\n\n![](Attachments/IMG_0412.heic)",
+  out:()=>`<p>Cone 6, reduction. Try on the tall jar.</p>
+   <ul><li class="done"><i class="bx on"></i><span>Nepheline syenite 40</span></li><li class="done"><i class="bx on"></i><span>Spodumene 20</span></li><li><i class="bx"></i><span>Soda ash 4 (buy)</span></li></ul>
+   <div class="pic">IMG_0412.heic → JPEG, in place</div>`,
+  chips:["#glaze","#kiln"]},
+ {title:"Meter readings",folder:"Lisbon flat",date:"2 Jan 2025, 09:40",
+  md:"# Meter readings\n\n| Month | Water | Power |\n|---|---|---|\n| Nov | 412 | 8811 |\n| Dec | 431 | 9104 |\n\n#flat",
+  out:()=>`<table class="tbl"><tr><th>Month</th><th>Water</th><th>Power</th></tr><tr><td>Nov</td><td>412</td><td>8811</td></tr><tr><td>Dec</td><td>431</td><td>9104</td></tr></table>
+   <p class="meta">Tables stay a markdown table. Obsidian renders it; Skrift shows it as a table.</p>`,
+  chips:["#flat"]},
+ {title:"Tram idea: glaze as map",folder:"Notes",date:null,
+  md:"# Tram idea: glaze as map\n\nCrawl glaze that cracks like the 28 route.\n\n[drawing]\n\n🎤 Recording 3.m4a",
+  out:()=>`<p>Crawl glaze that cracks like the 28 route.</p>
+   <div class="marker">[drawing not in the export]</div>
+   <div class="chip" style="align-self:flex-start">Recording 3.m4a · attached, not transcribed</div>`,
+  chips:[]}
+];
+
+const S={dev:"phone",step:0,sample:0,folderAsTag:true,quiet:true,expanded:{kiln:true},prog:0,running:false,undone:false,confirmUndo:false,openRep:{}};
+let timer=null;
+
+const $=id=>document.getElementById(id);
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2200)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function picked(f){const k=f.itemOn.filter(Boolean).length; if(k===f.items.length) return f.on? f.n:0; if(k===0) return 0; return k}
+function state(f){const k=f.itemOn.filter(Boolean).length; return k===0?"false":k===f.items.length?"true":"mixed"}
+function totals(){
+  const t={notes:0,pics:0,checks:0,tags:0,nodate:0,draw:0,audio:0,pinned:0,dupes:0,folders:0};
+  FOLDERS.forEach(f=>{const p=picked(f); if(!p) return; const r=p/f.n; t.folders++;
+    t.notes+=p; ["pics","checks","tags","nodate","draw","audio","pinned","dupes"].forEach(k=>t[k]+=Math.round(f[k]*r));});
+  t.imp=t.notes-t.dupes; t.part=t.nodate+t.draw+t.audio+t.pinned; return t;
+}
+
+/* ---------- step bodies ---------- */
+function stepPick(){
+  const t=totals();
+  const rows=FOLDERS.map(f=>{
+    const st=state(f), p=picked(f), ex=S.expanded[f.id];
+    let h=`<div class="row${f.parent?" sub":""}${st==="false"?" off":""}">
+      <button class="cb" role="checkbox" aria-checked="${st}" data-f="${f.id}" aria-label="${esc(f.name)}"></button>
+      <span class="nm">${esc(f.name)}${f.id==="deleted"?' <span class="chip">off by default</span>':""}</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="cnt">${p||0}/${f.n}</span><button class="exp" data-x="${f.id}" aria-label="Show notes">${ex?"▾":"▸"}</button></span></div>`;
+    if(ex){ h+=f.items.map((it,i)=>`<div class="noterow"><button class="cb" role="checkbox" aria-checked="${f.itemOn[i]}" data-f="${f.id}" data-i="${i}" aria-label="${esc(it)}"></button><span>${esc(it)}</span></div>`).join("")
+      + (f.n>f.items.length?`<div class="noterow"><span></span><span class="d">+ ${f.n-f.items.length} more (fake)</span></div>`:""); }
+    return h;}).join("");
+  return `<p class="hint">Folder: <b>Notes export 25 Sep</b> · 415 notes in 9 folders. Tick folders, or open one to pick single notes.</p>
+   <div class="card">${rows}</div>
+   <p class="hint">Locked notes are not in an Apple Notes export, so they can't show up here.</p>
+   <p class="hint"><b>${t.notes}</b> notes picked from ${t.folders} folders.</p>`;
+}
+function stepMap(){
+  const s=SAMPLES[S.sample];
+  const tagChips=(S.folderAsTag?[`<span class="chip acc">notes/${esc(s.folder)}</span>`]:[]).concat(s.chips.map(c=>`<span class="chip acc">${esc(c)}</span>`));
+  const dateChip=s.date?`<span class="chip">${s.date}</span>`:`<span class="chip warn">date unknown</span>`;
+  const mapRows=[
+   ["Title (first heading)","Note title","y","✓"],
+   ["Text, headings, lists","Body, as written","y","✓"],
+   ["Checklists","Checklist, ticks kept","y","✓"],
+   ["#tags in the text","Tags","y","✓"],
+   ["__folder"],
+   ["Created date","Note date. None in export → \"date unknown\"","p","~"],
+   ["Photos, scans (HEIC)","Pictures in place, JPEG","y","✓"],
+   ["PDFs, other files","File attached to the note","y","✓"],
+   ["Tables","Markdown table","y","✓"],
+   ["Audio recordings","File attached, not transcribed","p","~"],
+   ["Drawings","A marker where it was","p","~"],
+   ["Pinned, shared with","Dropped","x","✗"]
+  ].map(r=>{
+    if(r[0]==="__folder") return `<div class="map pick" style="margin:6px 4px"><button class="flag" data-flip="A">PICK A · tap to flip</button><span class="from">Folder</span><span class="ar">→</span><span class="to">${S.folderAsTag?"Tag <code>notes/&lt;folder&gt;</code>":"Dropped. The folder name is lost."}</span><span class="st ${S.folderAsTag?"y":"x"}">${S.folderAsTag?"✓":"✗"}</span></div>`;
+    return `<div class="map"><span class="from">${r[0]}</span><span class="ar">→</span><span class="to">${r[1]}</span><span class="st ${r[2]}">${r[3]}</span></div>`;}).join("");
+  const sample=`<div class="card sample">
+     <div class="hd"><button data-s="-1" aria-label="Previous sample">‹</button><span class="hint">Sample ${S.sample+1} of 3 from your picks</span><button data-s="1" aria-label="Next sample">›</button></div>
+     <div class="sect" style="padding:0">In the export</div>
+     <div class="srcmd">${esc(s.md)}</div>
+     <div class="sect" style="padding:0">In Skrift</div>
+     <div class="note"><h4>${esc(s.title)}</h4><div class="chips">${dateChip}<span class="chip">Apple Note</span>${tagChips.join("")}<span class="chip">Personal</span></div>${s.out()}</div>
+   </div>`;
+  const after=`<div class="sect">After import</div>
+   <div class="card pick" style="overflow:visible"><button class="flag" data-flip="B">PICK B · tap to flip</button>
+    <button class="opt" role="radio" aria-checked="${S.quiet}" data-q="1"><i class="rd"></i><span><b>Quiet</b><span>Unrated. Nothing polished, nothing exported. They sit in your list until you rate one.</span></span></button>
+    <button class="opt" role="radio" aria-checked="${!S.quiet}" data-q="0"><i class="rd"></i><span><b>Rated</b><span>The Mac polishes every imported note and exports it to your Obsidian vault.</span></span></button>
+   </div>
+   <p class="hint">All imports go to Personal. Change a note's destination later, one at a time.</p>`;
+  return S.dev==="mac"
+   ? `<div class="twocol"><div style="display:flex;flex-direction:column;gap:10px">${sample}</div><div style="display:flex;flex-direction:column;gap:10px"><div class="card">${mapRows}</div>${after}</div></div>`
+   : `${sample}<div class="sect">How each thing maps</div><div class="card" style="overflow:visible">${mapRows}</div>${after}`;
+}
+function stepDry(){
+  const t=totals();
+  const gb=(t.pics*2.4/1024).toFixed(1);
+  return `<p class="hint">Nothing is written yet. This is what Import will do.</p>
+   <div class="tiles">
+    <div class="tile big"><b>${t.imp}</b><span>notes will be imported</span></div>
+    <div class="tile"><b>${t.pics}</b><span>pictures, about ${gb} GB into your iCloud</span></div>
+    <div class="tile"><b>${t.checks}</b><span>notes with checklists</span></div>
+    <div class="tile"><b>${t.tags + (S.folderAsTag?t.folders:0)}</b><span>tags${S.folderAsTag?`, ${t.folders} of them from folders`:""}</span></div>
+    <div class="tile w"><b>${t.nodate}</b><span>have no date → "date unknown"</span></div>
+    <div class="tile w"><b>${t.draw+t.audio+t.pinned}</b><span>have a part that won't map fully</span></div>
+    <div class="tile"><b>${t.dupes}</b><span>already in Skrift, skipped</span></div>
+   </div>
+   <div class="card" style="padding:10px 12px"><p class="hint">${S.quiet
+     ? `<b>Quiet:</b> nothing is polished or exported. The ${t.imp} notes show only in your list.`
+     : `<b>Rated:</b> the Mac then polishes ${t.imp} notes and exports them to Obsidian. At about 20 s each (made-up estimate) that is ${Math.round(t.imp*20/3600*10)/10} h of Mac time.`}</p></div>`;
+}
+function stepImport(){
+  const t=totals(); const done=Math.round(t.imp*S.prog);
+  const names=FOLDERS.filter(f=>picked(f)).flatMap(f=>f.items.map(i=>i));
+  const cur=names[Math.min(names.length-1,Math.floor(S.prog*names.length))]||"";
+  return `<div style="display:flex;flex-direction:column;gap:10px;padding-top:10px">
+    <div class="big-num">${done}<span style="font-size:18px;color:var(--a-dim);font-weight:500"> / ${t.imp}</span></div>
+    <div class="prog"><i style="width:${S.prog*100}%"></i></div>
+    <p class="hint">${S.prog>=1?"Done.":"Importing “"+esc(cur)+"”"}</p>
+    <p class="hint">${S.dev==="mac"?"You can close this window. The import keeps going.":"Keep Skrift open. If you stop, what is already in stays in."}</p>
+   </div>`;
+}
+function stepReport(){
+  const t=totals();
+  if(S.undone) return `<div style="padding-top:12px;display:flex;flex-direction:column;gap:10px"><div class="big-num">0</div><p class="hint">Import undone. ${t.imp} notes moved to Trash. Trash empties on its usual clock.</p></div>`;
+  const groups=[
+   ["nodate","Date unknown",t.nodate,"The export had no creation date. Shown as \"date unknown\", sorted last. Set a date from the note.",["Tram idea: glaze as map","Caldo verde","Pastéis attempt 2"]],
+   ["draw","Drawings",t.draw,"The export has no image for them. The note keeps a [drawing not in the export] marker.",["Kiln shelf layout","Gripper v2 notes"]],
+   ["audio","Audio recordings",t.audio,"Attached as a file. Not transcribed.",["Tram idea: glaze as map","Investor call prep"]],
+   ["pinned","Pinned",t.pinned,"Skrift has no pins. The pin is dropped; the note is in.",["Shino recipe v3","Dentist 12 Oct"]],
+   ["dupes","Already in Skrift",t.dupes,"Same file imported before. Skipped (C127).",["Sourdough schedule","Gift ideas for Mo"]]
+  ].filter(g=>g[2]>0);
+  return `<div style="display:flex;gap:18px;align-items:baseline;padding-top:4px"><div><div class="big-num">${t.imp}</div><span class="hint">imported</span></div><div><div class="big-num" style="color:var(--a-amber)">${t.part}</div><span class="hint">need a look</span></div></div>
+   <div class="sect">What didn't map</div>
+   <div class="card">${groups.map(g=>`<button class="rep" data-r="${g[0]}" aria-expanded="${!!S.openRep[g[0]]}"><b>${g[1]}</b><span class="c">${g[2]}</span><span class="why">${g[3]}</span>${S.openRep[g[0]]?`<span class="ex">${g[4].map(x=>"· "+esc(x)).join("<br>")}</span>`:""}</button>`).join("")}</div>
+   <p class="hint">Locked notes weren't in the export. Unlock them in Notes and export again.</p>
+   <p class="hint">Skrift can't change anything in Apple Notes. Delete the originals there when you trust the import.</p>
+   ${S.confirmUndo?`<div class="confirm"><span>Move all ${t.imp} imported notes to Trash?</span><div class="btns"><button class="yes" data-u="yes">Move to Trash</button><button class="no" data-u="no">Keep them</button></div></div>`:""}`;
+}
+
+/* ---------- chrome ---------- */
+function primaryFor(){
+  const t=totals();
+  return [
+    {label:`Next · ${t.notes} notes`,dis:t.notes===0},
+    {label:"Next · check the numbers"},
+    {label:`Import ${t.imp} notes`},
+    {label:S.prog>=1?"See the report":S.running?"Stop":"Start",stop:S.running&&S.prog<1},
+    {label:S.undone?"Done":"Show imported notes"}
+  ][S.step];
+}
+function body(){return [stepPick,stepMap,stepDry,stepImport,stepReport][S.step]()}
+function render(){
+  const p=primaryFor();
+  const secondary = S.step===4 && !S.undone ? `<button class="ghost danger" id="undo">Undo this import</button>` : S.step>0 && S.step<3 ? `<button class="ghost" id="back">Back</button>` : "";
+  let html;
+  if(S.dev==="phone"){
+    html=`<div class="phone"><div class="nav"><button class="l" id="cancel">${S.step===4?"":"Cancel"}</button><div class="t">Import Apple Notes<small>${S.step+1} of 5 · ${STEPS[S.step]}</small></div><span></span></div>
+      <div class="body">${body()}</div>
+      <div class="foot"><button class="primary" id="go" ${p.dis?"disabled":""}>${p.label}</button>${secondary}</div></div>`;
+    $("stage").innerHTML=html;
+  } else {
+    html=`<div class="macscale" id="ms"><div class="mac" id="macw"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">Import Apple Notes</span></div>
+      <nav class="rail">${STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}><b>${i+1}</b>${s}</button>`).join("")}</nav>
+      <div class="body">${body()}</div>
+      <div class="foot">${S.step===4?"":'<button class="ghost" id="cancel">Cancel</button>'}${secondary}<button class="primary" id="go" ${p.dis?"disabled":""}>${p.label}</button></div></div></div>`;
+    $("stage").innerHTML=html; fitMac();
+  }
+  $("jump").innerHTML=STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}>${i+1} ${s}</button>`).join("");
+  $("stagecap").textContent = S.dev==="mac"
+    ? "Mac: the same five steps as a sheet with a step rail. Mapping shows the sample and the table side by side. Scaled to fit; the real sheet is 720 pt wide."
+    : "iPhone: a full-screen sheet over the notes list. Every step is one scroll; the primary button stays at the bottom.";
+  $("dev-phone").setAttribute("aria-pressed",S.dev==="phone"); $("dev-mac").setAttribute("aria-pressed",S.dev==="mac");
+}
+function fitMac(){const ms=$("ms"),w=$("macw"); if(!ms||!w) return; const sc=Math.min(1,ms.clientWidth/720); w.style.transform=`scale(${sc})`; ms.style.height=(w.offsetHeight*sc)+"px"}
+window.addEventListener("resize",fitMac);
+
+function runImport(){
+  S.running=true; clearInterval(timer);
+  timer=setInterval(()=>{S.prog=Math.min(1,S.prog+0.035); if(S.prog>=1){S.running=false;clearInterval(timer)} render()},90);
+}
+function go(){
+  if(S.step===3){ if(S.prog>=1){S.step=4;render();return} if(S.running){clearInterval(timer);S.running=false;toast(`Stopped. ${Math.round(totals().imp*S.prog)} notes are in.`);render();return} runImport(); render(); return; }
+  if(S.step===4){ toast(S.undone?"Mock: closes the sheet.":"Mock: opens the notes list filtered to the imported notes."); return; }
+  S.step++; if(S.step===3){S.prog=0; runImport();} render(); window.scrollTo({top:$("stage").offsetTop-60,behavior:"smooth"});
+}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.id==="dev-phone"){S.dev="phone";render();return}
+  if(b.id==="dev-mac"){S.dev="mac";render();return}
+  if(b.id==="go"){go();return}
+  if(b.id==="back"){S.step=Math.max(0,S.step-1);render();return}
+  if(b.id==="cancel"){toast("Mock: Cancel closes the sheet. Nothing was written.");return}
+  if(b.id==="undo"){S.confirmUndo=true;render();return}
+  if(b.dataset.u){ if(b.dataset.u==="yes"){S.undone=true;toast("Moved to Trash.")} S.confirmUndo=false; render(); return }
+  if(b.dataset.j!==undefined){clearInterval(timer);S.running=false;S.step=+b.dataset.j; if(S.step===3&&S.prog<1){S.prog=0;runImport()} if(S.step===4)S.prog=1; render();return}
+  if(b.dataset.x){S.expanded[b.dataset.x]=!S.expanded[b.dataset.x];render();return}
+  if(b.dataset.f){const f=FOLDERS.find(x=>x.id===b.dataset.f);
+    if(b.dataset.i!==undefined){const i=+b.dataset.i; f.itemOn[i]=!f.itemOn[i]; f.on=f.itemOn.every(Boolean)?true:f.on;}
+    else {const v=state(f)!=="true"; f.on=v; f.itemOn=f.items.map(()=>v);}
+    render();return}
+  if(b.dataset.s){S.sample=(S.sample+ +b.dataset.s+3)%3;render();return}
+  if(b.dataset.flip==="A"){S.folderAsTag=!S.folderAsTag;toast(S.folderAsTag?"PICK A: folder → tag":"Other answer: folder dropped");render();return}
+  if(b.dataset.flip==="B"){S.quiet=!S.quiet;toast(S.quiet?"PICK B: quiet (unrated)":"Other answer: rated, Mac polishes + exports");render();return}
+  if(b.dataset.q!==undefined){S.quiet=b.dataset.q==="1";render();return}
+  if(b.dataset.r){S.openRep[b.dataset.r]=!S.openRep[b.dataset.r];render();return}
+});
+render();
+})();
+</script>
