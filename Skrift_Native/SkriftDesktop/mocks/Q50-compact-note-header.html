@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Compact Note Header</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -33,7 +35,7 @@
 }
 *{box-sizing:border-box}
 body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px}
-.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
 h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
 h2{font-size:18px;margin:0;text-wrap:balance;display:flex;align-items:baseline;gap:10px}
@@ -54,6 +56,7 @@ code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);pa
 .seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px}
 .seg button{font:500 14px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:36px;padding:0 12px;border-radius:8px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--pg-accent);color:#fff}
+@media (max-width:480px){.seglabel{display:none}.seg button{padding:0 10px}}
 .seglabel{font-family:var(--mono);font-size:11px;color:var(--pg-faint);text-transform:uppercase;letter-spacing:.06em}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim)}
 .chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
@@ -219,8 +222,8 @@ function macChips(){
 function chip(t,ic){ return `<span class="cchip">${ic?SVG[ic]:''}${t}</span>`; }
 // Options use ONE date format everywhere (MemoDate.label) and date + place only.
 function metaText(dev){
-  const place = S.kind==='voice' ? ` · ${SVG.pin.replace('class="ic"','class="ic" style="color:var(--a-faint)"')}Alfama` : '';
-  return `<span>${DATE_PHONE}</span>${place ? `<span style="display:inline-flex;align-items:center;gap:3px">&nbsp;·&nbsp;${SVG.pin.replace('class="ic"','class="ic" style="width:10px;height:10px"')}Alfama</span>` : ''}`;
+  const place = S.kind==='voice' ? `<span style="display:inline-flex;align-items:center;gap:3px">&nbsp;·&nbsp;${SVG.pin}Alfama</span>` : '';
+  return `<span>${DATE_PHONE}</span>${place}`;
 }
 function tagsRow(extra, cls){
   return `<div class="tags ${cls||''}">${TAGS.map(t=>`<span class="tchip">#${t}</span>`).join('')}<button class="addtag" data-ack="Adds an inline tag field (unchanged)">+ tag</button>${extra||''}</div>`;
@@ -306,7 +309,7 @@ const OPTS = [
      <p>Drift you can see here: the phone date shows the time and no glyph; the Mac date has a calendar glyph and no time.</p>`, cramps:[]},
   {id:'A', tag:'A', name:'One strip: date + place left, balls right', pitch:
     `<p><b>Change:</b> the card goes. Date and place become one quiet line with the three balls at its right end. Tags keep their own row. The word "Importance", the value word and the sync sentence leave the phone; a tap shows the tier word as a toast. The Mac keeps the word, since it has room.</p>`,
-    cramps:[['1','Phone, voice note: date and place truncate once the balls take their 132 pt of touch targets. Weather and daypart are already gone.'],['2','The balls carry no label on the phone. An unrated note shows three empty rings and nothing that says what they are.']]},
+    cramps:[['1','Phone, voice note: "Today · 14:29 · Alfama" just fits beside the balls' 132 pt of touch targets. A place name longer than about 12 characters truncates. Weather and daypart are gone from the header.'],['2','The balls carry no label on the phone. An unrated note shows three empty rings and nothing that says what they are.']]},
   {id:'B', tag:'B', name:'Everything is a chip', pitch:
     `<p><b>Change:</b> one wrapping row holds the date+place chip, the tags, <code>+ tag</code> and an importance pill. Tapping the pill steps Not rated → Passing → Useful → Important → Not rated. Tag chips shrink from 30 to 26 pt.</p>`,
     cramps:[['1','Where the pill lands depends on how many tags the note has. With three tags on the phone it wraps to its own line, so importance moves from note to note.'],['–','Tap-to-cycle means going from Important back to Passing takes three taps. 26 pt chips are under the 44 pt touch guideline.']]},
@@ -325,9 +328,9 @@ function render(){
     return `<section class="opt" id="opt-${o.id}">
       <h2><span class="tag">${o.tag}</span>${o.name}</h2>
       <div class="desc">${o.pitch}${cr}</div>
+      <div class="devcap">${S.dev==='phone'?'iPhone 13 · 390 pt wide':S.dev==='ipad'?'iPad · 834 pt wide · note column capped at 640 pt':'Mac · note column · approx. 760 pt'}</div>
       <div class="meas" data-meas="${o.id}"></div>
       <div class="fit"><div class="fitin"><div class="frame ${S.dev} ${S.cramp?'cramp-on':''}">${frame}</div></div></div>
-      <div class="devcap">${S.dev==='phone'?'iPhone 13 · 390 pt wide':S.dev==='ipad'?'iPad · 834 pt wide · note column capped at 640 pt':'Mac · note column · approx. 760 pt'}</div>
     </section>`;
   }).join('');
   requestAnimationFrame(()=>{ layout(); measure(); });
