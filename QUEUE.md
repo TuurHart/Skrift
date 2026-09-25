@@ -466,7 +466,7 @@ node: AuditFix2
 do: Tuur 2026-09-25: "clean away the bullshit… be very careful". Delete the SAFE list in `plan/periphery.md` (245 items, ≤ ~1,976 lines) one folder per commit. Before each deletion re-grep the symbol across the WHOLE repo incl. tests, Info.plists, entitlements, .intentdefinition, AppShortcuts, storyboards and string-based lookups; anything referenced moves to CHECK in the report instead. Never touch CHECK/KEEP items, @Model types, Codable fields, AppIntents or anything under Tests. After each folder: `./gate.sh` and phone `xcodebuild build-for-testing`; a red folder is reverted, not fixed forward. Update `plan/periphery.md` with what was removed per commit and the real line count removed.
 check: `./gate.sh && grep -qE "removed" plan/periphery.md`
 
-### Q62 [tuur] (doing) decide: wire in or delete the 116 built-and-tested-but-unused functions
+### Q62 [tuur] (tuur) decide: wire in or delete the 116 built-and-tested-but-unused functions
 spec: C240
 needs: Q60
 do: `plan/periphery.md` CHECK section: 116 functions have their own tests but no caller in the app (like `NamesStore.pruneOldTombstones`). A sitting sheet groups them by feature with one line each (what it was for, who built it when — git log), and Tuur picks per group: WIRE IN (becomes an auto item) or DELETE (with its tests; protected-test change approved per group).
@@ -679,3 +679,4 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:14 Q54 -> done — gate pass @2d3ceaab
 - 2026-09-25 22:16 Q55 -> stuck — check failed — .queue/Q55.check.log
 - 2026-09-25 22:18 Q58 -> done — gate pass @2c4f232f
+- 2026-09-25 22:19 Q62 -> tuur — built @2a70ae57 — awaiting sitting
