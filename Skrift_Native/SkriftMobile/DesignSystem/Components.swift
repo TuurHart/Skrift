@@ -15,12 +15,6 @@ struct ScreenTitle: View {
     }
 }
 
-struct SkScreenBackground: View {
-    var body: some View {
-        Color.skBg.ignoresSafeArea()
-    }
-}
-
 extension View {
     /// Surface card: bg + hairline border + continuous 16-corner + padding.
     func skCard(padding: CGFloat = Theme.Space.cardPadding) -> some View {
@@ -178,46 +172,3 @@ struct SearchField: View {
 
 enum TagChipStyle { case applied, suggestion, add }
 
-/// A `#tag` chip: applied (filled accent), suggestion (dashed outline), or the
-/// `+ Add tag` affordance.
-struct TagChip: View {
-    let label: String
-    let style: TagChipStyle
-
-    var body: some View {
-        Text(label)
-            .font(.system(size: 12.5, weight: .semibold))
-            .foregroundStyle(fg)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 5)
-            .background(background)
-            .overlay(overlay)
-    }
-
-    private var fg: Color {
-        switch style {
-        case .applied: return .white
-        case .suggestion: return Color.skAccentText
-        case .add: return .skTextDim
-        }
-    }
-
-    @ViewBuilder private var background: some View {
-        switch style {
-        case .applied: Capsule().fill(Color.skAccent)
-        case .suggestion: Capsule().fill(Color.clear)
-        case .add: Capsule().fill(Color.skElev)
-        }
-    }
-
-    @ViewBuilder private var overlay: some View {
-        switch style {
-        case .applied:
-            EmptyView()
-        case .suggestion:
-            Capsule().strokeBorder(Color.skAccent.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
-        case .add:
-            Capsule().strokeBorder(Color.skBorder, lineWidth: 1)
-        }
-    }
-}
