@@ -33,6 +33,17 @@ struct NoteProperties: View {
         file.steps.transcribe == .done && !suggested.isEmpty && !original.isEmpty && suggested != original
     }
 
+    /// Q56/R90: `TagLibrary.counts` was a full `PipelineFile` fetch called TWICE
+    /// as a body expression (once inside `mostUsedFirst`, once directly for
+    /// `libraryCounts`) — on every render. Cached instead; refreshed on note
+    /// switch and on this note's own tag edits (the `.onChange(of: file.tags)`
+    /// below already fires for those).
+    @State private var tagCounts: [String: Int] = [:]
+    private var tagLibrary: [String] {
+        tagCounts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
+    private func refreshTagCounts() { tagCounts = TagLibrary.counts(file.modelContext) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             titleSection
@@ -50,8 +61,8 @@ struct NoteProperties: View {
             // an inline field (no sheet), `✕` on hover, library-wide case fold (C93/D139).
             // `.onChange(of: file.tags)` below already mirrors any tag edit to the
             // phone — no extra sync call needed here.
-            TagEditorRow(tags: $file.tags, library: TagLibrary.mostUsedFirst(file.modelContext),
-                         style: .mac, libraryCounts: TagLibrary.counts(file.modelContext),
+            TagEditorRow(tags: $file.tags, library: tagLibrary,
+                         style: .mac, libraryCounts: tagCounts,
                          onToast: onTagToast)
             SignificanceCircles(value: $file.significance)
             // WHERE this note goes when it leaves — the SHARED `DestinationRowView`, in
@@ -69,9 +80,10 @@ struct NoteProperties: View {
         }
         .onChange(of: file.id, initial: true) { _, _ in
             selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
+            refreshTagCounts()
         }
         // Push a Mac tag / importance edit to the phone (widen the Mac→phone channel).
-        .onChange(of: file.tags) { MacCloudMetaSync.mirror([file]) }
+        .onChange(of: file.tags) { refreshTagCounts(); MacCloudMetaSync.mirror([file]) }
         // The rating goes through its OWN call, not the passive mirror: only here do we
         // know a nil means "the user cleared it" rather than "never rated" — and the
         // mirror can't tell those apart, so it declines to guess.

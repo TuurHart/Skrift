@@ -76,7 +76,11 @@ struct SidebarView: View {
     /// `unpipelinedMemos` on purpose: these are RATED, so they must not swell the "N not
     /// rated" count or the Process-all set. They only need to be SEEN.
     private var strandedMemos: [Memo] { WayOutRules.stranded(memos: effectiveCloudMemos, files: files) }
-    private var backlinkedIDs: Set<UUID> { MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos) }
+    /// Q56/R90: was a computed property re-run by EVERY quiet row's `quietMemoRow`
+    /// call — O(quietRows × cloudMemos) per render. Cached instead, refreshed
+    /// alongside `cloudMemos` (the only thing it derives from) — one scan per
+    /// render, not one per row.
+    @State private var backlinkedIDs: Set<UUID> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -775,14 +779,8 @@ struct SidebarView: View {
     }
 
 
-    private func quietMeta(_ memo: Memo) -> String {
-        let date = memo.recordedAt.formatted(.dateTime.day().month(.abbreviated))
-        let one = WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
-        guard memo.duration > 0 else { return "\(date) · \(one)" }
-        return "\(date) · \(SkriftFormat.clock(memo.duration)) · \(one)"
-    }
-
     private func refreshCloudMemos() {
+        defer { backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos) }
         guard fixtureCloudMemos == nil else { return }   // snapshot fixtures: never open the real store
         guard let cloud = MemoCloudStore.container else { cloudMemos = []; return }
         // FRESH CONTEXT, not `mainContext` — the same trap `MemoCloudReconciler.reconcile`
@@ -791,17 +789,6 @@ struct SidebarView: View {
         // `mainContext`, so it hands back STALE memos and a just-synced one is missing.
         // A brand-new context has an empty row cache, so every fetch hits the store.
         cloudMemos = (try? ModelContext(cloud).fetch(FetchDescriptor<Memo>())) ?? []
-    }
-
-    /// Q2: the one-click minimum flag — same cloud write lane as Keep/Restore
-    /// (FadingShelfColumn's `keptAt` precedent), just a different field. Then
-    /// kick the reconcile sweep (read-only call into `MemoCloudReconciler`,
-    /// which LANE_AUTHOR owns) so the new queue row appears promptly.
-    private func process(_ memo: Memo) {
-        memo.significance = 0.1
-        try? MemoCloudStore.container?.mainContext.save()
-        MemoCloudReconciler.reconcileSoon()
-        refreshCloudMemos()
     }
 
     /// Search/filter excluded every memo (the queue itself isn't empty). Mirrors
@@ -978,7 +965,9 @@ struct SidebarView: View {
             }
             let exportable = targets.filter { $0.steps.enhance == .done }
             if !exportable.isEmpty {
-                Button("Export \(exportable.count) to Obsidian") { for t in exportable { coordinator.export(t, context: ctx) } }
+                Button("Export \(exportable.count) to Obsidian") {
+                    Task { for t in exportable { await coordinator.export(t, context: ctx) } }
+                }
             }
             Divider()
             Button("Delete \(targets.count)", role: .destructive) {
@@ -1014,7 +1003,9 @@ struct SidebarView: View {
                     }
                     Button("Summary") { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
                 }
-                Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") { coordinator.export(f, context: ctx) }
+                Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") {
+                    Task { await coordinator.export(f, context: ctx) }
+                }
             }
             Divider()
             Button("Reveal in Finder") { revealInFinder(f) }

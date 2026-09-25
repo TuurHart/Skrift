@@ -328,10 +328,17 @@ final class ProcessingCoordinator {
     }
 
     // ── Export to the Obsidian vault (markdown + audio + images) ──
-    func export(_ pf: PipelineFile, context: ModelContext) {
+    /// Q56/R90: `VaultExporter.export` does synchronous file copies + compile + vault
+    /// write — the same class of work `IngestService` already runs off-main via
+    /// `Task.detached`. This is `async` so a multi-select export loop (SidebarView)
+    /// awaits each file in turn without blocking the main thread on any one of them;
+    /// the `-runfile … -export` headless harness (`RunFile.swift`) awaits it directly.
+    func export(_ pf: PipelineFile, context: ModelContext) async {
         let settings = SettingsStore.shared.load()
         do {
-            let result = try VaultExporter.export(pf, settings: settings)
+            let result = try await Task.detached(priority: .userInitiated) {
+                try VaultExporter.export(pf, settings: settings)
+            }.value
             let name = result.markdownURL.deletingPathExtension().lastPathComponent
             // The engine tells the truth per outcome; the WORDS are shared with the phone
             // (`ExportOutcomeCopy`) so one verb can't mean two things on two devices.

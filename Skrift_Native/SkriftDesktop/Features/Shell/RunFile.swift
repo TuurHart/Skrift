@@ -1015,7 +1015,7 @@ enum RunFile {
             if let err = pf.error { log("error: \(err)") }
             log(">>> COMPILED (\((pf.compiledText ?? "").count) chars):\n\(pf.compiledText ?? "(nil)")")
             if doExport {
-                coordinator.export(pf, context: ctx)
+                await coordinator.export(pf, context: ctx)
                 if let exportErr = coordinator.lastError { log(">>> EXPORT ERROR: \(exportErr)") }
                 log(">>> EXPORTED: \(pf.exported ?? "(nil)")  status=\(pf.exportStatus.rawValue)")
             }
