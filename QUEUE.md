@@ -464,7 +464,7 @@ spec: C240
 needs: Q60
 node: AuditFix2
 do: Tuur 2026-09-25: "clean away the bullshit… be very careful". Delete the SAFE list in `plan/periphery.md` (245 items, ≤ ~1,976 lines) one folder per commit. Before each deletion re-grep the symbol across the WHOLE repo incl. tests, Info.plists, entitlements, .intentdefinition, AppShortcuts, storyboards and string-based lookups; anything referenced moves to CHECK in the report instead. Never touch CHECK/KEEP items, @Model types, Codable fields, AppIntents or anything under Tests. After each folder: `./gate.sh` and phone `xcodebuild build-for-testing`; a red folder is reverted, not fixed forward. Update `plan/periphery.md` with what was removed per commit and the real line count removed.
-check: `./gate.sh && grep -qE "removed" plan/periphery.md`
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet) && grep -qE "removed" plan/periphery.md`
 
 ### Q62 [tuur] (tuur) decide: wire in or delete the 116 built-and-tested-but-unused functions
 spec: C240
