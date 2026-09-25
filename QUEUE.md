@@ -458,6 +458,19 @@ node: AuditFix2
 do: Tuur 2026-09-25: "clean away the bullshit and just keep to the core and be very careful about it". Install Periphery (Homebrew, approved by Tuur) and scan SkriftMobile (+ extensions) and SkriftDesktop (full MLX scheme). Write `plan/periphery.md`: totals, then findings grouped by folder with line counts, each marked SAFE (no references, not @objc/intent/entitlement/Codable/SwiftData/preview/test-only), CHECK (reflection, AppIntents, SwiftData models, string-based lookups, DEBUG harness) or KEEP (false positive + why). No deletions in this item.
 check: `test -s plan/periphery.md`
 
+### Q61 [auto] (todo) remove the SAFE dead code from plan/periphery.md, folder by folder
+spec: C240
+needs: Q60
+node: AuditFix2
+do: Tuur 2026-09-25: "clean away the bullshit… be very careful". Delete the SAFE list in `plan/periphery.md` (245 items, ≤ ~1,976 lines) one folder per commit. Before each deletion re-grep the symbol across the WHOLE repo incl. tests, Info.plists, entitlements, .intentdefinition, AppShortcuts, storyboards and string-based lookups; anything referenced moves to CHECK in the report instead. Never touch CHECK/KEEP items, @Model types, Codable fields, AppIntents or anything under Tests. After each folder: `./gate.sh` and phone `xcodebuild build-for-testing`; a red folder is reverted, not fixed forward. Update `plan/periphery.md` with what was removed per commit and the real line count removed.
+check: `./gate.sh && grep -qE "removed" plan/periphery.md`
+
+### Q62 [tuur] (todo) decide: wire in or delete the 116 built-and-tested-but-unused functions
+spec: C240
+needs: Q60
+do: `plan/periphery.md` CHECK section: 116 functions have their own tests but no caller in the app (like `NamesStore.pruneOldTombstones`). A sitting sheet groups them by feature with one line each (what it was for, who built it when — git log), and Tuur picks per group: WIRE IN (becomes an auto item) or DELETE (with its tests; protected-test change approved per group).
+check: Tuur picked per group.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -620,3 +633,5 @@ check: `test -s plan/periphery.md`
 - 2026-09-25 19:50 Q60 added
 - 2026-09-25 19:50 Q60 -> doing — worker out
 - 2026-09-25 20:10 Q60 -> done — gate pass @dc1e645d
+- 2026-09-25 20:10 Q61 added
+- 2026-09-25 20:10 Q62 added
