@@ -445,7 +445,7 @@ node: AuditFix2
 do: From `plan/sweep-e-shared-twins.md`, `plan/sweep-d-mac.md` and BUGS §4 (2026-09-25 rows): phone re-warms `VocabularyBooster` after adopting a synced word (SkriftMobile/Services/VocabularyCloudSync.swift:21-24, like the Mac :63-69); Mac lock check routes through `NoteVisibility.contentVisible` (LockGate+PipelineFile.swift:6-9); call `NamesStore.pruneOldTombstones` (Shared/Naming/NamesStore.swift:277-291) on a sensible cadence (keep names.json byte-compatible, LWW + voiceprint union intact); ONE duration formatter so the Mac header/player agree with the sidebar past 60 min; cache the per-call regexes in Shared/Pipeline/Tags (VaultTagScanner/TagMatcher) and SpeakerTurnStyle.swift; surface or delete the unused ePub DRM result. Test in a new `SweepETwinsTests` (desktop target).
 check: `grep -rqE "class SweepETwinsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q59 [auto] (todo) split the three oversized files along clear seams (no behaviour change)
+### Q59 [auto] (done) split the three oversized files along clear seams (no behaviour change)
 spec: C240
 needs: Q53 Q54 Q56
 node: AuditFix2
@@ -686,3 +686,5 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:27 Q55 -> doing — re-accept: both reds were sim-launch collisions with Q48's UI tests; mtest.sh now locks the sim
 - 2026-09-25 22:32 Q55 -> done — gate pass @cbe5bfb8
 - 2026-09-25 22:38 Q48 -> done — gate pass @290dbdf4
+- 2026-09-25 22:39 Q59 -> doing — worker out
+- 2026-09-25 22:59 Q59 -> done — gate pass @5e014195
