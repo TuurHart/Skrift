@@ -1808,3 +1808,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      lists stay nested; any other line's leading run collapses per C19 (a leading tab before plain
      text would render as a code block in Obsidian). A typed note with an inserted photo keeps its
      photo as the list thumbnail (today's behaviour; C170's "typed → none" means typed WITHOUT one).
+144. **D144 Podcast test list.** 2026-09-25, Tuur: add to the podcasts to try when the Library
+     tab is built — https://open.spotify.com/episode/6w01CT5nyx5EmACYk5H80U (Spotify link; resolve
+     to the show's RSS feed per D90, refuse plainly if it is Spotify-exclusive). Joins the first
+     fixture, NRC Het Uur (D90). CloudKit schema deploy for the Q29/Q38 fields: at prod
+     promotion, Tuur's timing ("later").
