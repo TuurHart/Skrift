@@ -1818,3 +1818,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      note screen (date, tags, importance visible while typing — "just a text field seems strange"),
      not a separate minimal editor; the two filter mechanisms (chips + Filter icon) read as "difficult
      or tricky" — open, mock owed. Empty quick note discarded on back = as designed (D91).
+146. **D146 Q15 approved.** ✅ 2026-09-25: tag `v1-body`, then delete the v1 snap code and the
+     protected tests that only pin it — "yes delete".
