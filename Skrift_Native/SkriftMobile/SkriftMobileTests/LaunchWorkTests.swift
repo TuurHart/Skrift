@@ -60,7 +60,11 @@ final class LaunchWorkTests: XCTestCase {
 
     func testRecoveryRunsRegardlessOfGateState() async throws {
         let repo = NotesRepository(inMemory: true)
-        let edited = Memo(audioFilename: "memo_launchwork_\(UUID().uuidString).m4a")
+        let audio = "memo_launchwork_\(UUID().uuidString).m4a"
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(audio)
+        FileManager.default.createFile(atPath: url.path, contents: Data("audio".utf8))
+        defer { try? FileManager.default.removeItem(at: url) }
+        let edited = Memo(audioFilename: audio)
         edited.transcriptStatus = .transcribing
         repo.insert(edited)
 
