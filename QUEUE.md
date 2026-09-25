@@ -365,7 +365,7 @@ gate+: yes
 do: D145 + BUGS §3 (build 172): the quick note must be the FULL note screen (MemoDetailView in a draft state: date, tags, importance visible, cursor in body, keyboard up) — retire the separate `QuickNoteView`; keep first-keystroke creation + empty discard. Fix: the first ✎ tap opened an OLD note (the recovered recording) — find why the route resolved to an existing memo (stale deep link / draft id / selection state) and add a test; the keyboard accessory bar must never disappear while typing. QuickNoteTests stay green; add `QuickNoteRouteTests` (phone target). Sim screenshot, synthetic corpus, isolated store; LOOK; commit under `plan/reads/quicknote-q47/`.
 check: `plan/mtest.sh QuickNoteRouteTests && plan/mtest.sh QuickNoteTests && test $(ls plan/reads/quicknote-q47/*.png | wc -l) -ge 1 && ./gate.sh`
 
-### Q48 [auto] (doing) filter chips switch with one consistent animation; verb row a little bigger
+### Q48 [auto] (done) filter chips switch with one consistent animation; verb row a little bigger
 spec: C117 C240
 needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
@@ -685,3 +685,4 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:25 Q55 -> stuck — check failed — .queue/Q55.check.log
 - 2026-09-25 22:27 Q55 -> doing — re-accept: both reds were sim-launch collisions with Q48's UI tests; mtest.sh now locks the sim
 - 2026-09-25 22:32 Q55 -> done — gate pass @cbe5bfb8
+- 2026-09-25 22:38 Q48 -> done — gate pass @290dbdf4
