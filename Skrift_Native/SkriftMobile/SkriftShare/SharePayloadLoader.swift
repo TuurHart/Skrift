@@ -224,36 +224,48 @@ enum SharePayloadLoader {
     /// handles or fails that memo honestly downstream. Clips are ordered
     /// oldest→newest when every clip carries a readable file date (a forwarded
     /// WhatsApp thread reads chronologically); otherwise provider order is kept.
-    private static func loadAudio(from providers: [NSItemProvider]) async -> SharePayload {
-        var items: [SharedAudioItem] = []
-        for provider in providers {
-            let typeID = provider.registeredTypeIdentifiers.first {
-                UTType($0)?.conforms(to: .audio) == true
-            } ?? UTType.audio.identifier
-            let copied: (url: URL, date: Date?)? = await withCheckedContinuation { cont in
-                provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
-                    guard let url else { cont.resume(returning: nil); return }
-                    // Original file date, read BEFORE the copy (best-effort order key).
-                    let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
-                    let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
-                    let dest = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
-                    do {
-                        try? FileManager.default.removeItem(at: dest)
-                        try FileManager.default.copyItem(at: url, to: dest)
-                        cont.resume(returning: (dest, date))
-                    } catch {
-                        cont.resume(returning: nil)
+    ///
+    /// Q57/C218: each provider's copy + duration read runs CONCURRENTLY (a
+    /// `TaskGroup`, was a sequential `for` loop) — the slow part is per-clip
+    /// disk I/O, independent across clips. Results land in a slot array keyed
+    /// by original index so provider order survives regardless of which task
+    /// finishes first (`stableClipOrder` below still needs that order intact).
+    static func loadAudio(from providers: [NSItemProvider]) async -> SharePayload {
+        var slots: [SharedAudioItem?] = Array(repeating: nil, count: providers.count)
+        await withTaskGroup(of: (Int, SharedAudioItem?).self) { group in
+            for (i, provider) in providers.enumerated() {
+                group.addTask {
+                    let typeID = provider.registeredTypeIdentifiers.first {
+                        UTType($0)?.conforms(to: .audio) == true
+                    } ?? UTType.audio.identifier
+                    let copied: (url: URL, date: Date?)? = await withCheckedContinuation { cont in
+                        provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
+                            guard let url else { cont.resume(returning: nil); return }
+                            // Original file date, read BEFORE the copy (best-effort order key).
+                            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+                            let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
+                            let dest = FileManager.default.temporaryDirectory
+                                .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                            do {
+                                try? FileManager.default.removeItem(at: dest)
+                                try FileManager.default.copyItem(at: url, to: dest)
+                                cont.resume(returning: (dest, date))
+                            } catch {
+                                cont.resume(returning: nil)
+                            }
+                        }
                     }
+                    guard let copied else { return (i, nil) }
+                    var duration: TimeInterval?
+                    if let f = try? AVAudioFile(forReading: copied.url) {
+                        duration = Double(f.length) / f.fileFormat.sampleRate
+                    }
+                    return (i, SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date))
                 }
             }
-            guard let copied else { continue }
-            var duration: TimeInterval?
-            if let f = try? AVAudioFile(forReading: copied.url) {
-                duration = Double(f.length) / f.fileFormat.sampleRate
-            }
-            items.append(SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date))
+            for await (i, item) in group { slots[i] = item }
         }
+        var items = slots.compactMap { $0 }
         // Oldest → newest via the STABLE order helper. Device round 1 finding:
         // WhatsApp materializes every temp copy at share time → near-identical
         // dates, and Swift's sort is NOT stable — equal dates scrambled the
@@ -342,30 +354,41 @@ enum SharePayloadLoader {
     /// would blow the extension's ~120 MB ceiling, and a multi-select multiplies
     /// that. Normalised to JPEG 0.85 for consistent storage. Unreadable images
     /// are skipped; multiple photos always combine into ONE note (B2).
-    private static func loadImages(from providers: [NSItemProvider]) async -> SharePayload {
-        var items: [SharedImageItem] = []
-        for provider in providers {
-            let typeID: String
-            if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
-                typeID = UTType.png.identifier
-            } else if provider.hasItemConformingToTypeIdentifier(UTType.jpeg.identifier) {
-                typeID = UTType.jpeg.identifier
-            } else {
-                typeID = UTType.image.identifier
-            }
-            let rawData: Data? = await withCheckedContinuation { cont in
-                provider.loadDataRepresentation(forTypeIdentifier: typeID) { data, _ in
-                    cont.resume(returning: data)
+    ///
+    /// Q57/C218: each provider's data load + downsample runs CONCURRENTLY (a
+    /// `TaskGroup`, was a sequential `for` loop), results landing in a slot
+    /// array keyed by original index — provider order survives regardless of
+    /// completion order.
+    static func loadImages(from providers: [NSItemProvider]) async -> SharePayload {
+        var slots: [SharedImageItem?] = Array(repeating: nil, count: providers.count)
+        await withTaskGroup(of: (Int, SharedImageItem?).self) { group in
+            for (i, provider) in providers.enumerated() {
+                group.addTask {
+                    let typeID: String
+                    if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
+                        typeID = UTType.png.identifier
+                    } else if provider.hasItemConformingToTypeIdentifier(UTType.jpeg.identifier) {
+                        typeID = UTType.jpeg.identifier
+                    } else {
+                        typeID = UTType.image.identifier
+                    }
+                    let rawData: Data? = await withCheckedContinuation { cont in
+                        provider.loadDataRepresentation(forTypeIdentifier: typeID) { data, _ in
+                            cont.resume(returning: data)
+                        }
+                    }
+                    guard let rawData, let jpeg = downsampledJPEG(from: rawData) else { return (i, nil) }
+                    return (i, SharedImageItem(
+                        data: jpeg,
+                        fileName: "capture_\(UUID().uuidString).jpg",
+                        mimeType: "image/jpeg",
+                        recordedAt: ImageDates.exifDate(from: rawData)   // BEFORE the re-encode (A4)
+                    ))
                 }
             }
-            guard let rawData, let jpeg = downsampledJPEG(from: rawData) else { continue }
-            items.append(SharedImageItem(
-                data: jpeg,
-                fileName: "capture_\(UUID().uuidString).jpg",
-                mimeType: "image/jpeg",
-                recordedAt: ImageDates.exifDate(from: rawData)   // BEFORE the re-encode (A4)
-            ))
+            for await (i, item) in group { slots[i] = item }
         }
+        let items = slots.compactMap { $0 }
         return SharePayload(type: .image, imageItems: items, mimeType: items.isEmpty ? nil : "image/jpeg")
     }
 

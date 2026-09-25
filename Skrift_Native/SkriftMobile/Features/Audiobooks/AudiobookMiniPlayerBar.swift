@@ -13,7 +13,7 @@ import SwiftUI
 /// book is loaded, presents the full player (cover tap) and the capture flow
 /// (❝) on its own, and pauses the book before capture.
 struct AudiobookMiniPlayerBar: View {
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
 
     @State private var showPlayer = false
     @State private var showCapture = false
@@ -137,7 +137,7 @@ struct AudiobookMiniPlayerBar: View {
 /// they live in the full player, the Books-tab bar, and the lock screen.
 /// Renders nothing when no book session is active.
 struct AudiobookMiniPill: View {
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
 
     @State private var showPlayer = false
     @State private var showCapture = false

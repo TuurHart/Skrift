@@ -1682,7 +1682,7 @@ private struct NotesBottomChrome: View {
     /// (2026-08-18) — the row then carries only the book pill (or nothing).
     var showRecordButton = true
     let onRecord: () -> Void
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
     /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
     /// this view stays mounted while the card's List row comes and goes.

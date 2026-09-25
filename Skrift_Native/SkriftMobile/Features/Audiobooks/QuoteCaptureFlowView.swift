@@ -7,7 +7,7 @@ import SwiftUI
 /// finishes or is cancelled. Text capture is the only flow — the audio
 /// mark-in/out arm has been retired.
 struct QuoteCaptureFlowView: View {
-    @ObservedObject private var session = AudiobookSession.shared
+    private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
 
     private let book: Audiobook?
