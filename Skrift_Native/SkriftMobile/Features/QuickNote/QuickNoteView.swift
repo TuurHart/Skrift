@@ -46,6 +46,13 @@ struct QuickNoteView: View {
     @State private var significance: Double = 0
     @State private var tagToast: TagEditorRow.TagToast?
     private let repository = NotesRepository.shared
+    /// Q53/C277/C282: `draft.edited()` (a SwiftData save + a full-note hash,
+    /// `EditConflicts.hash`) used to run on EVERY keystroke, unlike the real
+    /// editor's 1 s debounced commit. Same coalescing here — the FIRST
+    /// keystroke still creates the Memo immediately (D91: "the first
+    /// keystroke", and the ✎ trailing buttons key off `draft.memo != nil`),
+    /// every keystroke after that is debounced.
+    @State private var commitDebouncer = CommitDebouncer()
 
     var body: some View {
         // NOT a SwiftUI `ScrollView` around the body: `QuickNoteBodyTextView`
@@ -114,7 +121,12 @@ struct QuickNoteView: View {
         .fullScreenCover(isPresented: $showAppendRecorder) {
             if let memo = draft.memo { RecordView(appendTo: memo.id) }
         }
-        .onDisappear { draft.leave(context: context) }
+        .onDisappear {
+            // Flush any pending debounced save first — `leave`'s empty check
+            // must see the latest typed text, not a stale pre-debounce value.
+            commitDebouncer.flush { commitEdit() }
+            draft.leave(context: context)
+        }
     }
 
     private var titleField: some View {
@@ -126,10 +138,7 @@ struct QuickNoteView: View {
             .onSubmit { titleFocused = false; bodyFocused = true }
             .focused($titleFocused)
             .onChange(of: titleFocused) { _, focused in if focused { bodyFocused = false } }
-            .onChange(of: title) { _, v in
-                draft.edited(title: v, body: bodyText, context: context,
-                             seedTags: tags, seedSignificance: significance)
-            }
+            .onChange(of: title) { _, _ in scheduleEdit() }
             .padding(.top, 8)
             .padding(.bottom, 4)
             .accessibilityIdentifier("quick-note-title")
@@ -140,10 +149,7 @@ struct QuickNoteView: View {
             bodyFocused = focused
             if focused { titleFocused = false }
         }
-        .onChange(of: bodyText) { _, v in
-            draft.edited(title: title, body: v, context: context,
-                         seedTags: tags, seedSignificance: significance)
-        }
+        .onChange(of: bodyText) { _, _ in scheduleEdit() }
         .accessibilityIdentifier("quick-note-body")
     }
 
@@ -184,7 +190,23 @@ struct QuickNoteView: View {
     }
 
     private func deleteAndLeave() {
+        commitDebouncer.cancel()   // a stale pending save must not resurrect the draft
         draft.discard(context: context)
         onLeave()
+    }
+
+    /// Title/body `onChange`: create the Memo on the very FIRST keystroke (D91,
+    /// unchanged), debounce every save after that (Q53/C277/C282).
+    private func scheduleEdit() {
+        if draft.memo == nil {
+            commitEdit()
+            return
+        }
+        commitDebouncer.schedule { commitEdit() }
+    }
+
+    private func commitEdit() {
+        draft.edited(title: title, body: bodyText, context: context,
+                     seedTags: tags, seedSignificance: significance)
     }
 }
