@@ -459,7 +459,7 @@ node: AuditFix2
 do: Tuur 2026-09-25: "clean away the bullshit and just keep to the core and be very careful about it". Install Periphery (Homebrew, approved by Tuur) and scan SkriftMobile (+ extensions) and SkriftDesktop (full MLX scheme). Write `plan/periphery.md`: totals, then findings grouped by folder with line counts, each marked SAFE (no references, not @objc/intent/entitlement/Codable/SwiftData/preview/test-only), CHECK (reflection, AppIntents, SwiftData models, string-based lookups, DEBUG harness) or KEEP (false positive + why). No deletions in this item.
 check: `test -s plan/periphery.md`
 
-### Q61 [auto] (todo) remove the SAFE dead code from plan/periphery.md, folder by folder
+### Q61 [auto] (done) remove the SAFE dead code from plan/periphery.md, folder by folder
 spec: C240
 needs: Q60
 node: AuditFix2
@@ -688,3 +688,5 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:38 Q48 -> done — gate pass @290dbdf4
 - 2026-09-25 22:39 Q59 -> doing — worker out
 - 2026-09-25 22:59 Q59 -> done — gate pass @5e014195
+- 2026-09-25 22:59 Q61 -> doing — worker out
+- 2026-09-25 23:32 Q61 -> done — gate pass @a6da1959
