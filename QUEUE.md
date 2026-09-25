@@ -478,6 +478,12 @@ needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live.
 check: Tuur typed on the Mac and said the flash is fine, or it became an item.
 
+### Q64 [tuur] (todo) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
+spec: C112 C114
+needs: Q47
+do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
+check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the toolbar up, or it became an item.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -656,3 +662,4 @@ check: Tuur typed on the Mac and said the flash is fine, or it became an item.
 - 2026-09-25 20:49 Q47 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/QuickNoteRouteTests.swift 
 - 2026-09-25 20:50 Q47 -> doing — re-accept: block lacked gate+ for its required new test file
 - 2026-09-25 20:53 Q47 -> done — gate pass @07f78c62
+- 2026-09-25 20:53 Q64 added
