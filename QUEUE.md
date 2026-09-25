@@ -451,7 +451,7 @@ node: AuditFix2
 do: Elegance pass after the perf items land (sweeps A, B, E): split `SkriftMobile/Features/MemoDetail/MemoDetailView.swift` (~2,560 lines, one struct with 138 members), `SkriftMobile/Features/MemosList/MemosListView.swift` (~1,780) and `Shared/Naming/Sanitiser.swift` (781, four jobs in one enum) into files along the seams the sweeps name. Pure moves + extracted subviews/types; no behaviour change; every existing test stays green unchanged; phone `build-for-testing` passes.
 check: `test $(wc -l < Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift) -lt 1200 && test $(wc -l < Skrift_Native/SkriftMobile/Features/MemosList/MemosListView.swift) -lt 900 && ./gate.sh`
 
-### Q60 [auto] (doing) dead-code scan with Periphery on both apps (report only)
+### Q60 [auto] (done) dead-code scan with Periphery on both apps (report only)
 spec: C240
 needs: -
 node: AuditFix2
@@ -619,3 +619,4 @@ check: `test -s plan/periphery.md`
 - 2026-09-25 19:24 Q59 added
 - 2026-09-25 19:50 Q60 added
 - 2026-09-25 19:50 Q60 -> doing — worker out
+- 2026-09-25 20:10 Q60 -> done — gate pass @dc1e645d
