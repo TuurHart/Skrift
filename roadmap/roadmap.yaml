@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 45
-updated: 2026-09-23T12:00:00.000Z
+updated: 2026-09-25T23:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -720,9 +720,9 @@ nodes:
       - {text: "whole-project spec extraction (plan/extraction, 5 reports) + SPEC.md draft (122 clauses, 34 open decisions) + gate.sh", done: 2026-09-21}
       - {text: "Tuur's spec sitting — nine rounds, every decision with a verdict; old state docs frozen under archive/state-2026-09", done: 2026-09-22}
       - {text: "three hunt waves (parity tables, bug-shape sweeps, adverse/archive/test-coverage, names + capture probes, 12 data-loss sweeps) + the Opus whole-spec re-read applied — SPEC.md at 274 clauses, R1–R89, D1–D99", done: 2026-09-22}
-      - "NEXT CHAT: Tuur rules on the two ⚠ (C137 location: in archive exports, C165 filename cap 80/120), then /2-plan → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books tab (D90). Subagents on SONNET. No handoff until he says."
+      - {text: "NEXT CHAT: Tuur rules on the two ⚠ (C137 location: in archive exports, C165 filename cap 80/120), then /2-plan → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books tab (D90). Subagents on SONNET. No handoff until he says.", done: 2026-09-24}
       - "source ledger (C276): 121 OPEN items verdicted 2026-09-23 → 14 clauses, ~30 decisions, 6 bugs, 19 device checks in plan/sources.md §verify"
-      - body/image model v2 behind the diff gate
+      - {text: "body/image model v2 behind the diff gate", done: 2026-09-25}
       - copy-edit pipeline v2
       - reconcile sweep v2
       - export compiler v2
@@ -1692,7 +1692,7 @@ nodes:
     title: Audit fix wave 2 — data loss + main-thread lag
     lane: 0
     order: 6.6
-    status: planned
+    status: inprogress
     eff: M
     ms: Foundation
     note: Six-agent read-only audit 2026-09-01 (AUDIT_PLAN.md). 3 data-loss paths
@@ -1703,15 +1703,15 @@ nodes:
       Profiler on that build (busy vs blocked).
     backlog:
       - D1 names.json atomic write + serialise NamesStore (LWW propagates the loss)
-      - D2 re-transcribe must not clear the transcript when the audio is missing
-      - D3 vault attachment copy must not delete a file the ledger does not claim
+      - {text: "D2 re-transcribe must not clear the transcript when the audio is missing", done: 2026-09-24}
+      - {text: "D3 vault attachment copy must not delete a file the ledger does not claim", done: 2026-09-24}
       - D4 an in-flight recording is persisted nowhere until stop() - any process
         death loses it, no recovery sweep, no warning (GitHub issue 14)
-      - P1 MemosListView 462-463 per-row full-corpus scans - hoist into Derived
-      - P2 AppPaths.recordingsDirectory - createDirectory on every access, 44 sites
+      - {text: "P1 MemosListView 462-463 per-row full-corpus scans - hoist into Derived", done: 2026-09-25}
+      - {text: "P2 AppPaths.recordingsDirectory - createDirectory on every access, 44 sites", done: 2026-09-25}
       - P3 MemosListView 306-318 DEBUG per-keystroke double corpus scan
-      - P4 NotesRepository.allAssets unscoped - faults every blob every sweep
-      - Sweep chain watermarks + off-main; Mac twin MemoCloudReconciler 117-122
+      - {text: "P4 NotesRepository.allAssets unscoped - faults every blob every sweep", done: 2026-09-25}
+      - {text: "Sweep chain watermarks + off-main; Mac twin MemoCloudReconciler 117-122", done: 2026-09-25}
       - Concurrency - isTranscribing counter, MacRecorder drain, caption ordering
       - SwiftLint baseline ratchet + duplication report + pipeline signposts
     win: "done when: the 3 data-loss paths are closed, tier-2 fixes are in, and a
