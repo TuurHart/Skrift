@@ -1820,3 +1820,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      or tricky" — open, mock owed. Empty quick note discarded on back = as designed (D91).
 146. **D146 Q15 approved.** ✅ 2026-09-25: tag `v1-body`, then delete the v1 snap code and the
      protected tests that only pin it — "yes delete".
+147. **D147 Perf from the code, not from recordings.** ✅ 2026-09-25, Tuur: "why did you need to measure
+     to find what we already knew… get a couple agents to trace the whole code and find bullshit to
+     fix". C282's baseline is satisfied by the phone typing trace in `plan/perf-measured.md`; no
+     laggy-state recording is owed. The perf lane starts now from `plan/perf-sweep.md` §2, R90–R94
+     and a fresh code sweep of the typing, list and launch paths.
