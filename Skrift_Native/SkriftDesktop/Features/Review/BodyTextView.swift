@@ -230,13 +230,44 @@ struct BodyTextView: NSViewRepresentable {
         private var peopleCache: [Person] = []
         init(_ parent: BodyTextView) { self.parent = parent }
 
+        /// R90: the pending debounced model commit — `modelString` (an O(document)
+        /// attachment walk) and the write into `parent.text` (the SwiftData model)
+        /// only run once per second of typing, the way the phone debounces
+        /// `commitDraft`, instead of on every keystroke.
+        private var commitTask: Task<Void, Never>?
+
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? SelfSizingTextView else { return }
-            parent.text = modelString(tv)   // attachments → [[img_NNN]] markers
-            restyle(tv)                      // in-place recolor + ambiguous marks (keeps attachments + caret)
+            // In-place, LOCAL recolor only — see `restyle`'s doc. The model write and
+            // the full (regex) restyle pass are debounced below.
+            restyle(tv, scope: tv.selectedRange())
             tv.invalidateIntrinsicContentSize()
             maybeShowLinkPicker(tv)          // just typed `[[` → open the memo-link picker
             updateTagSuggest(tv)             // typing a `#word` → the inline tag menu
+            scheduleModelCommit(tv)
+        }
+
+        private func scheduleModelCommit(_ tv: SelfSizingTextView) {
+            commitTask?.cancel()
+            commitTask = Task { [weak self, weak tv] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, let self, let tv else { return }
+                self.flushModelCommit(tv)
+            }
+        }
+
+        /// Write the reconstructed model string NOW and run one full (unscoped)
+        /// restyle pass. Called by the 1s debounce, and by every site that needs the
+        /// model current immediately — a decisive edit (task toggle, memo-link
+        /// insert) or the editing session ending (`textDidEndEditing`).
+        @discardableResult
+        func flushModelCommit(_ tv: SelfSizingTextView) -> String {
+            commitTask?.cancel()
+            commitTask = nil
+            let ms = modelString(tv)
+            if ms != parent.text { parent.text = ms }   // attachments → [[img_NNN]] markers
+            restyle(tv)                                  // full pass — links/headings/turns/suggested catch up
+            return ms
         }
 
         // MARK: inline `#` tag suggestions (Obsidian idiom)
@@ -344,7 +375,9 @@ struct BodyTextView: NSViewRepresentable {
         func textDidEndEditing(_ notification: Notification) {
             hideTagSuggest()
             guard let tv = notification.object as? SelfSizingTextView else { return }
-            let current = modelString(tv)
+            // The session is ending — flush any still-pending debounced commit NOW,
+            // don't wait out the rest of the 1s window (R90).
+            let current = flushModelCommit(tv)
             let committed = BodyV2.committed(BodyV2.Input(text: current, source: .typed))
             if committed != current { parent.text = committed }
         }
@@ -381,8 +414,7 @@ struct BodyTextView: NSViewRepresentable {
                 string: literal, attributes: [.font: BodyTextView.bodyFont,
                                               .foregroundColor: NSColor(Theme.textPrimary)]))
             spliceMemoLinkChips(tv)          // literal → atomic chip
-            restyle(tv)
-            parent.text = modelString(tv)    // persist + push (bodyBinding setter)
+            flushModelCommit(tv)             // decisive edit — persist + push (bodyBinding setter) now
             // The chip is one character where the `[[` began; put the caret just after it.
             let after = min(trigger.location + 1, (tv.string as NSString).length)
             tv.setSelectedRange(NSRange(location: after, length: 0))
@@ -655,22 +687,47 @@ struct BodyTextView: NSViewRepresentable {
         /// Reset to primary, accent the `[[links]]`, then mark ambiguous names — in
         /// place, so attachments and the caret/selection survive (no full storage
         /// rebuild per keystroke).
-        func restyle(_ tv: SelfSizingTextView) {
+        ///
+        /// `scope` (R90/C277): nil is a FULL pass — every full-document-dependent
+        /// pass runs (turn gutters, the leading quote block, every regex over the
+        /// whole body) — used for a note switch, leaving karaoke, a thumbnail
+        /// splice, and the debounced model commit below. Non-nil is a LIVE
+        /// keystroke: only the edited paragraph is reset to plain styling and the
+        /// function returns — the O(document) regex scans this exists to avoid
+        /// running on every character typed into a long note. Richer styling
+        /// (links/headings/turns/suggested) catches up on the next full pass, at
+        /// most 1s later.
+        func restyle(_ tv: SelfSizingTextView, scope: NSRange? = nil) {
             guard let storage = tv.textStorage else { return }
             lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
             let full = NSRange(location: 0, length: storage.length)
+            let window: NSRange
+            if let scope {
+                let loc = max(0, min(scope.location, storage.length))
+                let len = max(0, min(scope.length, storage.length - loc))
+                window = (storage.string as NSString).paragraphRange(for: NSRange(location: loc, length: len))
+            } else {
+                window = full
+            }
             storage.beginEditing()
-            storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: full)
+            storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: window)
             // Fonts reset every pass (headings/turn-headers/quote re-apply below) —
             // editing a heading line back to prose must drop its big font.
-            storage.addAttribute(.font, value: BodyTextView.bodyFont, range: full)
-            storage.removeAttribute(.backgroundColor, range: full)
-            storage.removeAttribute(.underlineStyle, range: full)
-            storage.removeAttribute(.underlineColor, range: full)
-            storage.removeAttribute(.toolTip, range: full)
+            storage.addAttribute(.font, value: BodyTextView.bodyFont, range: window)
+            storage.removeAttribute(.backgroundColor, range: window)
+            storage.removeAttribute(.underlineStyle, range: window)
+            storage.removeAttribute(.underlineColor, range: window)
+            storage.removeAttribute(.toolTip, range: window)
             // Turn-gutter geometry is re-derived below, so clear it first: a turn edited back
             // into ordinary prose must lose its indent and its kerned separator.
-            storage.removeAttribute(.kern, range: full)
+            storage.removeAttribute(.kern, range: window)
+            guard scope == nil else {
+                // Cheap path stops here — attachments already carry their own look
+                // (chips/checkboxes/gutter names), so a bare plain-styled edit window
+                // stays legible until the next full pass.
+                storage.endEditing()
+                return
+            }
             styleLeadingQuote(storage)   // clears .paragraphStyle over the full range first
             // Memo-link chips: hover names the target (the chip shows the title only).
             // Checked task lines: strike + mute the text after the box (Notes idiom).
@@ -926,8 +983,7 @@ struct BodyTextView: NSViewRepresentable {
                let box = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? TaskBoxAttachment {
                 storage.replaceCharacters(in: NSRange(location: idx, length: 1),
                                           with: NSAttributedString(attachment: TaskBoxAttachment(checked: !box.checked)))
-                parent.text = modelString(tv)
-                restyle(tv)
+                flushModelCommit(tv)          // a toggle is a decisive act — no debounce window
                 tv.invalidateIntrinsicContentSize()
                 return true
             }
