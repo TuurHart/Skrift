@@ -369,7 +369,7 @@ check: `plan/mtest.sh QuickNoteRouteTests && plan/mtest.sh QuickNoteTests && tes
 spec: C117 C240
 needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
-check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh`
+check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q49 [tuur] (tuur) mockup: one filter mechanism instead of chips + Filter icon
 spec: C117
