@@ -16,11 +16,14 @@ enum AppPaths {
     // and word-timing sidecars live in `Documents/recordings` (the RN-era layout).
     static var documentsDirectory: URL { URL.documentsDirectory }
 
-    static var recordingsDirectory: URL {
+    /// R93/C280: `static let`, not a computed `var` — the directory only needs
+    /// creating ONCE per process. 99 call sites across the repo read this; a
+    /// computed `var` ran `createDirectory` (mkdir+stat) on every single one.
+    static let recordingsDirectory: URL = {
         let dir = documentsDirectory.appendingPathComponent("recordings", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
-    }
+    }()
 
     static var namesFile: URL {
         documentsDirectory.appendingPathComponent(namesFileName)
