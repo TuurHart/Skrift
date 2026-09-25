@@ -12,9 +12,9 @@ import FluidAudio
 /// BORDERLESS (locked rule 2026-07-12: shared inputs never get bubble/box
 /// chrome) — the annotation reads and edits like the note body itself, exactly
 /// as the normal transcript editor does. Placeholder only when empty.
-private struct CaptureAnnotationEditor: View {
+struct CaptureAnnotationEditor: View {
     @Binding var text: String
-    @FocusState private var focused: Bool
+    @FocusState var focused: Bool
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -44,7 +44,7 @@ private struct CaptureAnnotationEditor: View {
 /// Hosts `SpeakerTurnsView` and owns the karaoke tick: it observes the player
 /// CLOCK, so during playback only this subtree re-evaluates per position change —
 /// the page above it re-renders only on rare player state (play/pause).
-private struct ConversationTurnsSection: View {
+struct ConversationTurnsSection: View {
     @ObservedObject var player: AudioPlayerModel
     @ObservedObject var clock: PlayerClock
     let timings: [WordTiming]
@@ -73,7 +73,7 @@ private struct ConversationTurnsSection: View {
 
 // MARK: - Player bar
 
-private struct PlayerBar: View {
+struct PlayerBar: View {
     @ObservedObject var player: AudioPlayerModel
     // Position ticks are observed HERE only — the page tree above stays out of
     // the 20 Hz re-render loop (note-editing study 2026-07-06).
@@ -149,7 +149,7 @@ private struct PlayerBar: View {
         .frame(height: 40)
     }
 
-    private var skipBack: some View {
+    var skipBack: some View {
         Button { player.skip(-10) } label: {
             Image(systemName: "gobackward.10")
                 .font(.system(size: 15, weight: .medium))
@@ -159,7 +159,7 @@ private struct PlayerBar: View {
         .accessibilityIdentifier("skip-back-button")
     }
 
-    private var skipForward: some View {
+    var skipForward: some View {
         Button { player.skip(10) } label: {
             Image(systemName: "goforward.10")
                 .font(.system(size: 15, weight: .medium))
@@ -171,7 +171,7 @@ private struct PlayerBar: View {
 
     /// Thin progress line with a knob; the FULL-HEIGHT zone around it accepts
     /// the scrub drag.
-    private var scrubber: some View {
+    var scrubber: some View {
         GeometryReader { geo in
             let progress = player.duration > 0 ? min(max(clock.time / player.duration, 0), 1) : 0
             ZStack(alignment: .leading) {
@@ -205,11 +205,11 @@ private struct PlayerBar: View {
         .accessibilityIdentifier("player-scrubber")
     }
 
-    private var rateLabel: String {
+    var rateLabel: String {
         player.rate == 1 ? "1×" : (player.rate == 1.5 ? "1.5×" : "2×")
     }
 
-    private func timeString(_ t: TimeInterval) -> String {
+    func timeString(_ t: TimeInterval) -> String {
         guard t.isFinite else { return "0:00" }
         let total = Int(t)
         return String(format: "%d:%02d", total / 60, total % 60)
@@ -239,7 +239,7 @@ enum MemoShare {
     }
 }
 
-private struct ActivityShareSheet: UIViewControllerRepresentable {
+struct ActivityShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)

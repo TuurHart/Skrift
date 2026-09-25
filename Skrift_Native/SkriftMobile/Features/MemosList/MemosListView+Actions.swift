@@ -6,7 +6,7 @@ extension MemosListView {
     /// "Importing N share(s)…" — visible only while the drainer is copying inbox
     /// blobs (A14). Same capsule styling as the sync banner so the top edge stays
     /// one visual language.
-    private var importPendingPill: some View {
+    var importPendingPill: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
             Text(drainState.pendingCount == 1 ? "Importing share…"
@@ -22,7 +22,7 @@ extension MemosListView {
         .accessibilityIdentifier("import-pending-pill")
     }
 
-    @ViewBuilder private var syncBannerView: some View {
+    @ViewBuilder var syncBannerView: some View {
         if let syncBanner {
             Text(syncBanner)
                 .font(.system(size: 13, weight: .semibold))
@@ -37,7 +37,7 @@ extension MemosListView {
 
     /// Show the top banner briefly. The token keeps an earlier banner's expiry
     /// from clipping a newer one.
-    private func flashBanner(_ text: String) {
+    func flashBanner(_ text: String) {
         bannerToken += 1
         let token = bannerToken
         syncBanner = text
@@ -50,7 +50,7 @@ extension MemosListView {
     /// Present the recorder + auto-start for a Record intent / widget / deep link.
     /// `lastHandledStart` makes it fire once per request and catches a request that
     /// arrived during a cold launch before `.onChange` was subscribed.
-    private func handleStartRequest() {
+    func handleStartRequest() {
         guard intentBridge.startRequestID > lastHandledStart else { return }
         lastHandledStart = intentBridge.startRequestID
         // Just present — RecordView consumes the bridge's pending start once it's
@@ -61,7 +61,7 @@ extension MemosListView {
     /// A shared video imported on foreground → open it. It relocates to the
     /// video's filming date, so it'd otherwise vanish from the top of the list;
     /// resetting the path to it (like the record-saved path) lands the user on it.
-    private func handleOpenRequest() {
+    func handleOpenRequest() {
         if let id = memoOpen.consume() { openMemo(id) }
     }
 
@@ -69,7 +69,7 @@ extension MemosListView {
     /// → open the same quick-note screen the app's own ✎ opens.
     /// `lastHandledQuickNote` fires it once per request and catches a request
     /// that arrived during a cold launch before `.onChange` was subscribed.
-    private func handleQuickNoteRequest() {
+    func handleQuickNoteRequest() {
         guard quickNoteBridge.requestID > lastHandledQuickNote else { return }
         lastHandledQuickNote = quickNoteBridge.requestID
         newTypedNote()
@@ -78,7 +78,7 @@ extension MemosListView {
     // (recordFAB moved into NotesBottomChrome — the Option-A split row at the
     // bottom of this file.)
 
-    private var selectionBar: some View {
+    var selectionBar: some View {
         HStack {
             Text("\(selected.count) selected").font(.subheadline.weight(.semibold)).foregroundStyle(Color.skTextDim)
             Spacer()
@@ -95,7 +95,7 @@ extension MemosListView {
 
     // MARK: - Actions
 
-    private func deleteSelected() {
+    func deleteSelected() {
         for id in selected {
             guard let memo = memos.first(where: { $0.id == id }) else { continue }
             deleteMemo(memo)
@@ -110,7 +110,7 @@ extension MemosListView {
     /// Lock (instant; honesty copy lives on the detail page too) / remove lock
     /// (requires auth — Apple Notes idiom). Locking an already-published memo
     /// surfaces the vault notice; Skrift never deletes vault files.
-    private func toggleLock(_ memo: Memo) {
+    func toggleLock(_ memo: Memo) {
         if memo.locked {
             Task {
                 guard await LockGate.shared.authorizeRemoveLock() else { return }
@@ -129,7 +129,7 @@ extension MemosListView {
 
     /// R88: `copyableText` itself refuses a locked, unauthenticated memo — this
     /// just supplies the right banner instead of the generic "nothing to copy".
-    private func copyTranscript(_ memo: Memo) {
+    func copyTranscript(_ memo: Memo) {
         guard let text = memo.copyableText else {
             flashBanner(LockGate.shared.isLocked(memo) ? "Locked note" : "Nothing to copy yet")
             return
@@ -145,7 +145,7 @@ extension MemosListView {
     /// all three entry points funnel through here, so gating it once (R88)
     /// covers all three: a locked note needs auth first, the same idiom
     /// `toggleLock`'s Remove-Lock path already uses.
-    private func deleteMemo(_ memo: Memo) {
+    func deleteMemo(_ memo: Memo) {
         guard LockGate.shared.isLocked(memo) else {
             repository.softDelete(memo)
             return

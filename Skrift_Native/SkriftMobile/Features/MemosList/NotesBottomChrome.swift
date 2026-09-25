@@ -7,16 +7,16 @@ import SwiftUI
 /// the two can never stack or overlap (the build-40 regression). No session →
 /// just the record button in the right corner. Its own view so only IT
 /// re-renders on the session's 2 Hz playback ticks, never the memos list.
-private struct NotesBottomChrome: View {
+struct NotesBottomChrome: View {
     /// false at iPad-regular width, where Record moved into the header verb row
     /// (2026-08-18) — the row then carries only the book pill (or nothing).
     var showRecordButton = true
     let onRecord: () -> Void
-    private var session = AudiobookSession.shared
+    var session = AudiobookSession.shared
     /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
     /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
     /// this view stays mounted while the card's List row comes and goes.
-    @AppStorage("continueCardDismissedDay") private var cardDismissedDay = ""
+    @AppStorage("continueCardDismissedDay") var cardDismissedDay = ""
 
     var body: some View {
         // 16pt pill↔record gap (V2a "real air" — Henry's separation note).
@@ -41,7 +41,7 @@ private struct NotesBottomChrome: View {
         }
     }
 
-    private var recordButton: some View {
+    var recordButton: some View {
         Button(action: onRecord) {
             Image(systemName: "mic.fill")
                 .font(.system(size: 23))
@@ -62,7 +62,7 @@ private struct NotesBottomChrome: View {
 /// accent-soft fill + accent hairline when it backs the split-view detail pane
 /// (m1). Kept local (not folded into `.skCard()`) because that shared helper is
 /// read-only this wave.
-private struct SelectableCard: ViewModifier {
+struct SelectableCard: ViewModifier {
     let selected: Bool
     func body(content: Content) -> some View {
         content
@@ -80,7 +80,7 @@ private struct SelectableCard: ViewModifier {
 /// (m7 — `.presentationSizing(.form)`, the room stays dimmed-but-visible behind
 /// it), a full-screen **cover** on the phone. Swapping the modifier type needs a
 /// ViewModifier (an `if` in a chain can't).
-private struct RecordPresentation<Presented: View>: ViewModifier {
+struct RecordPresentation<Presented: View>: ViewModifier {
     @Binding var isPresented: Bool
     let isPad: Bool
     @ViewBuilder var presented: () -> Presented

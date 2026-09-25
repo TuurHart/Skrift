@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Sort & Filter sheet
 
-private struct SortFilterSheet: View {
+struct SortFilterSheet: View {
     @Binding var sort: MemoSort
     @Binding var filter: MemoFilter
     /// The Unrated CHIP owns "not rated" at regular width, so the sheet hides that
@@ -10,21 +10,21 @@ private struct SortFilterSheet: View {
     /// gone from BOTH now (Tuur 2026-07-23: "we don't even need to filter by photos
     /// or place" — place lives on the Review screen). Sort + Unsynced + Date on both.
     var showNotRated = true
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
 
     // Optional-date bindings: a toggle enables the bound (today by default), the
     // DatePicker then adjusts it; toggling off clears back to nil (no filter).
-    private var fromEnabled: Binding<Bool> {
+    var fromEnabled: Binding<Bool> {
         Binding(get: { filter.from != nil },
                 set: { filter.from = $0 ? Calendar.current.startOfDay(for: Date()) : nil })
     }
-    private var toEnabled: Binding<Bool> {
+    var toEnabled: Binding<Bool> {
         Binding(get: { filter.to != nil }, set: { filter.to = $0 ? Date() : nil })
     }
-    private var fromBinding: Binding<Date> {
+    var fromBinding: Binding<Date> {
         Binding(get: { filter.from ?? Date() }, set: { filter.from = $0 })
     }
-    private var toBinding: Binding<Date> {
+    var toBinding: Binding<Date> {
         Binding(get: { filter.to ?? Date() }, set: { filter.to = $0 })
     }
 

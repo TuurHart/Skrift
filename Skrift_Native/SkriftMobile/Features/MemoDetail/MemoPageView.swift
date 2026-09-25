@@ -7,7 +7,7 @@ import FluidAudio
 
 // MARK: - One page
 
-private struct MemoPageView: View {
+struct MemoPageView: View {
     @Bindable var memo: Memo
     @ObservedObject var player: AudioPlayerModel
     /// Whether this page is the pager's current page — off-screen neighbours
@@ -15,11 +15,11 @@ private struct MemoPageView: View {
     var isCurrent: Bool = true
     /// iPad: at regular width the Connections panel stands beside the page, so the
     /// inline footer omits related/backlinks and the body caps to the reading measure.
-    @Environment(\.horizontalSizeClass) private var hSize
-    private let repository = NotesRepository.shared
+    @Environment(\.horizontalSizeClass) var hSize
+    let repository = NotesRepository.shared
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
     /// touch check (backlinked notes never fade).
-    @State private var detailBacklinkedIDs: Set<UUID> = []
+    @State var detailBacklinkedIDs: Set<UUID> = []
     /// What the QuickLook viewer is showing: an inline photo (marker set — an
     /// edit re-mirrors + re-OCRs it) or a shared-document capture (marker nil).
     struct QuickLookTarget: Identifiable {
@@ -29,8 +29,8 @@ private struct MemoPageView: View {
     }
     /// UIKit-presented viewer (P2#12): zoom transition off the tapped photo +
     /// markup save-back; edits are reported on dismissal only (erase-crash fix).
-    @State private var markupQuickLook = MarkupQuickLook()
-    @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
+    @State var markupQuickLook = MarkupQuickLook()
+    @State var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
     /// naming), the diarization slot (so a same-named twin isn't relabeled/enrolled too),
@@ -40,26 +40,26 @@ private struct MemoPageView: View {
     struct AssignTarget: Identifiable {
         let id = UUID(); let index: Int; let speaker: String; let slot: Int?; let turnSlots: [Int]
     }
-    @ObservedObject private var diarStatus = DiarizationStatus.shared
-    @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
-    @AppStorage("karaokeTapToSeek") private var tapToSeek = true   // default ON — must match TranscriptBodyView
+    @ObservedObject var diarStatus = DiarizationStatus.shared
+    @State var timings: [WordTiming] = []   // for karaoke highlight in the turn view
+    @AppStorage("karaokeTapToSeek") var tapToSeek = true   // default ON — must match TranscriptBodyView
 
     // Name-linking (mocks/phone-name-linking.html): the live names roster, the tapped
     // span's resolve sheet, the unlink-undo toast, and the person-card / new-person editor.
-    @State private var people: [Person] = []
-    @State private var resolveTarget: NameResolveTarget?
-    @State private var undoToast: NameUndoToast?
+    @State var people: [Person] = []
+    @State var resolveTarget: NameResolveTarget?
+    @State var undoToast: NameUndoToast?
     /// A tag removal's Undo pill — hoisted here (Q41) so it renders at the PAGE
     /// level (`tagToastView`'s own `.overlay`), not `TagEditorRow`'s own bounds
     /// (which ran the pill off the left screen edge, Q36 finding).
-    @State private var tagToast: TagEditorRow.TagToast?
+    @State var tagToast: TagEditorRow.TagToast?
     /// Q44: the tag toast's own screen already backs off for the keyboard (standard
     /// SwiftUI avoidance shrinks this Group's frame), so the fixed 96pt "clear the
     /// player" padding must drop to a hairline once a keyboard is up — otherwise the
     /// two paddings stack and the pill floats mid-screen over the Importance card.
-    @State private var keyboardVisible = false
-    @State private var personSheet: PersonSheetRequest?
-    @State private var showPeopleSheet = false
+    @State var keyboardVisible = false
+    @State var personSheet: PersonSheetRequest?
+    @State var showPeopleSheet = false
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
     // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
@@ -67,37 +67,37 @@ private struct MemoPageView: View {
     // the 2026-07-10 "truncated transcript" P0). @Query renders right on the first
     // body eval and live-updates when a polish arrives over CloudKit, which also
     // retires the onChange(sync.isSyncing) refetch hack.
-    @Query private var enhancements: [MemoEnhancement]
-    @State private var showTitleChooser = false
-    @FocusState private var titleFocused: Bool
+    @Query var enhancements: [MemoEnhancement]
+    @State var showTitleChooser = false
+    @FocusState var titleFocused: Bool
 
     /// Name spans over the active body — MEMOIZED (@State) and recomputed off-main
     /// only when the text / roster / resolutions actually change. (Was an uncached
     /// computed property that re-ran the full Sanitiser scan 2–3× per body eval —
     /// per keystroke — note-editing study 2026-07-06.)
-    @State private var spans: [NameSpan] = []
+    @State var spans: [NameSpan] = []
     /// Photo-at-caret (accessory 📷): the page presents the picker, the proxy
     /// hands the image to the live editor coordinator.
-    @State private var bodyProxy = NoteBodyProxy()
-    @State private var showPhotoPicker = false
-    @State private var pickedPhoto: PhotosPickerItem?
-    @State private var showPhotoSourceDialog = false
-    @State private var showCameraCapture = false
+    @State var bodyProxy = NoteBodyProxy()
+    @State var showPhotoPicker = false
+    @State var pickedPhoto: PhotosPickerItem?
+    @State var showPhotoSourceDialog = false
+    @State var showCameraCapture = false
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
-    @State private var showMemoLinkPicker = false
+    @State var showMemoLinkPicker = false
     /// Track B: the full extracted-PDF-text reader (wave-2 mock m3).
-    @State private var showPDFTextReader = false
+    @State var showPDFTextReader = false
     /// Reminder chip → the sheet (chunk 7).
-    @State private var showReminderSheet = false
-    @State private var backlinks: [(id: UUID, title: String)] = []
+    @State var showReminderSheet = false
+    @State var backlinks: [(id: UUID, title: String)] = []
     /// P8 Related card (chunk 7): semantic neighbours — loaded only while the
     /// journal index is active; the card is HIDDEN when nothing clears the floor
     /// (never an empty placeholder).
-    @State private var relatedMemos: [Memo] = []
+    @State var relatedMemos: [Memo] = []
     /// Jump the pager to another memo (link chips + backlink rows).
     var onOpenMemo: (UUID) -> Void = { _ in }
 
-    @ObservedObject private var lockGate = LockGate.shared
+    @ObservedObject var lockGate = LockGate.shared
 
     init(memo: Memo, player: AudioPlayerModel, isCurrent: Bool = true,
          onOpenMemo: @escaping (UUID) -> Void = { _ in }) {
@@ -253,7 +253,7 @@ private struct MemoPageView: View {
     /// The whole page while lock-gated: title + 🔒 + Unlock. Content, header
     /// chips, photos, and audio all stay behind Face ID; swiping to a locked
     /// neighbour lands here too (the pager can't bypass it).
-    private var lockedPlaceholder: some View {
+    var lockedPlaceholder: some View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "lock.fill")
@@ -289,7 +289,7 @@ private struct MemoPageView: View {
     /// The B2 pinned title row — always visible above the scrolling note, so you
     /// know which memo you're in while swiping between memos. The ✦ chooser rides
     /// along when the Mac sent a suggested title.
-    private var pinnedTitleRow: some View {
+    var pinnedTitleRow: some View {
         HStack(alignment: .center, spacing: 8) {
             TextField("", text: titleBinding, prompt: titlePrompt)
                 .font(.system(size: 17, weight: .bold))
@@ -320,7 +320,7 @@ private struct MemoPageView: View {
 
     /// COMPACT-width processing line. At regular width the note BAR owns this
     /// (signed mock A) — here it stays as the phone/narrow surface.
-    @ViewBuilder private var polishStatusBand: some View {
+    @ViewBuilder var polishStatusBand: some View {
         let phase = PolishCenter.shared.phase(for: memo.id)
         if hSize != .regular, let line = phase.line {
             HStack(spacing: 8) {
@@ -354,11 +354,11 @@ private struct MemoPageView: View {
     /// [[img_NNN]] pipeline, "like my Monday 22:34 note — just do that"). The
     /// drain writes the markers into the annotation; `captureAnnotationBinding`
     /// makes the body edit annotationText instead of the transcript.
-    private var isInlineImageCapture: Bool {
+    var isInlineImageCapture: Bool {
         memo.sharedContent?.type == .image && memo.transcriptStatus == .done
     }
 
-    private var captureAnnotationBinding: Binding<String> {
+    var captureAnnotationBinding: Binding<String> {
         Binding(
             get: { memo.annotationText ?? "" },
             set: { memo.annotationText = $0.isEmpty ? nil : $0 }
@@ -368,7 +368,7 @@ private struct MemoPageView: View {
     /// The re-founded monologue page: ONE scrolling text view is the body; the
     /// metadata header (chips/importance/summary/diar/quote) and the people-row
     /// footer scroll INSIDE it. Native selection/caret/undo mechanics throughout.
-    private var editorPage: some View {
+    var editorPage: some View {
         VStack(spacing: 0) {
             pinnedTitleRow
             polishStatusBand
@@ -435,7 +435,7 @@ private struct MemoPageView: View {
 
     /// Conversations + C3 share-captures keep the legacy outer-scroll layout for
     /// now (phase 2), under the same pinned title row.
-    private func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
+    func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
         VStack(spacing: 0) {
             pinnedTitleRow
             polishStatusBand
@@ -460,7 +460,7 @@ private struct MemoPageView: View {
     /// accessibility-hiding does NOT cross the UIKit hosting boundary (iOS 26
     /// toolchain), so an off-screen pager page suffixes its identifiers instead —
     /// XCUITest and VoiceOver then resolve exactly one "add-tag-button" etc.
-    private func noteHeaderCore(isCurrent: Bool) -> some View {
+    func noteHeaderCore(isCurrent: Bool) -> some View {
         let suffix = isCurrent ? "" : "-offscreen"
         return VStack(alignment: .leading, spacing: 0) {
             FlowLayout(spacing: 6, lineSpacing: 6) {
@@ -601,7 +601,7 @@ private struct MemoPageView: View {
         }
     }
 
-    private var transcriptionFailedMessage: some View {
+    var transcriptionFailedMessage: some View {
         VStack(alignment: .leading, spacing: 6) {
             StatusPill(style: .error, label: "Transcription failed", systemImage: "exclamationmark.triangle.fill")
             Text("It'll be transcribed on your Mac when you sync — or type it yourself below.")
@@ -613,7 +613,7 @@ private struct MemoPageView: View {
     /// "Linked from" backlinks + the Related card. `includeConnections` is false
     /// at regular width — related + backlinks move into the standing Connections
     /// panel (the people row always stays with the note).
-    private func noteFooter(isCurrent: Bool, includeConnections: Bool) -> some View {
+    func noteFooter(isCurrent: Bool, includeConnections: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if !spans.isEmpty {
                 peopleInNoteRow
@@ -657,7 +657,7 @@ private struct MemoPageView: View {
     /// The "View thread" CTA is GONE (Tuur 2026-07-25, after the iPad retirement:
     /// "remove it from the phone too, keep the apps looking the same") — Date mode
     /// in Connections is the arc, on every platform.
-    private func relatedSection(isCurrent: Bool) -> some View {
+    func relatedSection(isCurrent: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             SectionLabel("RELATED")
             ForEach(relatedMemos, id: \.id) { rel in
@@ -686,7 +686,7 @@ private struct MemoPageView: View {
 
     /// Semantic neighbours for the Related card — no-op unless the journal
     /// index is active (the card stays invisible for everyone else).
-    private func loadRelated() async {
+    func loadRelated() async {
         guard JournalIndexService.shared.isActive else { return }
         let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
         let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -697,7 +697,7 @@ private struct MemoPageView: View {
 
     /// Who links HERE: scan every live memo's transcript for this memo's id.
     /// Cheap contains() pre-filter, exact via MemoLinkSyntax; off-main.
-    private func recomputeBacklinks() {
+    func recomputeBacklinks() {
         let myID = memo.id
         // A memo-link can live in the raw transcript OR the Mac's polished copyedit — a Mac-made
         // link syncs into the enhancement, not the transcript (2026-07-15 device finding: the Mac
@@ -724,7 +724,7 @@ private struct MemoPageView: View {
 
     /// One downstream for both photo sources (camera + library): insert at the
     /// caret the accessory captured, mirror to CloudKit, OCR for search.
-    private func insertPickedPhoto(_ image: UIImage) {
+    func insertPickedPhoto(_ image: UIImage) {
         bodyProxy.insertPhoto(image)
         AssetMaterializer.capture(memoID: memo.id, repository: repository)
         PhotoTextIndexer.run(repository)
@@ -734,7 +734,7 @@ private struct MemoPageView: View {
     /// size-change capture), re-OCR an inline photo (its manifest text resets
     /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
     /// decodes fresh).
-    private func photoWasEdited(_ target: QuickLookTarget) {
+    func photoWasEdited(_ target: QuickLookTarget) {
         if let n = target.marker,
            var meta = memo.metadata, var manifest = meta.imageManifest,
            n >= 1, n <= manifest.count {
@@ -751,7 +751,7 @@ private struct MemoPageView: View {
     /// A memo-link target's CURRENT title (same rule as the picker), so chips show the live
     /// title instead of the snapshot frozen at creation. nil when the target isn't in the
     /// library → the chip keeps its snapshot. Called on display rebuild, not per keystroke.
-    private func liveLinkTitle(_ id: UUID) -> String? {
+    func liveLinkTitle(_ id: UUID) -> String? {
         guard let m = repository.allMemos().first(where: { $0.id == id }) else { return nil }
         // Only a REAL title overrides the chip's snapshot. A capture / Maps note with no title +
         // no transcript would otherwise resolve to "Untitled" and CLOBBER the good snapshot the
@@ -761,7 +761,7 @@ private struct MemoPageView: View {
     }
 
     /// Everything linkable from here: most recent first, self excluded.
-    private func memoLinkCandidates() -> [(id: UUID, title: String, subtitle: String)] {
+    func memoLinkCandidates() -> [(id: UUID, title: String, subtitle: String)] {
         repository.allMemos()
             .filter { $0.id != memo.id }
             .map { m in
@@ -774,7 +774,7 @@ private struct MemoPageView: View {
     /// Conversation body — speaker-attributed turns. The per-tick karaoke state
     /// is isolated in `ConversationTurnsSection` so only that subtree re-renders
     /// on the player clock, not this page.
-    @ViewBuilder private var conversationContent: some View {
+    @ViewBuilder var conversationContent: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             ConversationTurnsSection(
                 player: player, clock: player.clock, timings: timings, turns: turns,
@@ -797,7 +797,7 @@ private struct MemoPageView: View {
     /// photos read as huge banners stacked ABOVE the text — "I want them in
     /// line"): the annotation reads first, the photos flow below it at
     /// note-body size, like a recorded memo's inline photos.
-    @ViewBuilder private var captureContent: some View {
+    @ViewBuilder var captureContent: some View {
         if memo.sharedContent?.type == .image {
             captureAnnotationSection
                 .padding(.top, 18)
@@ -821,7 +821,7 @@ private struct MemoPageView: View {
     /// Re-derive the name tiers off-main (pure Sanitiser scan). Ordinary voice
     /// memos only — captures show a quote block, conversations route to
     /// SpeakerTurnsView.
-    private func recomputeSpans() {
+    func recomputeSpans() {
         guard !people.isEmpty, !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else {
             spans = []
@@ -838,7 +838,7 @@ private struct MemoPageView: View {
         }
     }
 
-    private func startAssigning(_ index: Int, _ speaker: String) {
+    func startAssigning(_ index: Int, _ speaker: String) {
         // Read the per-turn slot map FRESH from the sidecar (an in-place re-diarize may
         // have renumbered slots under the same memo id). Only trusted when it still lines
         // up with the current turns (no structural edit since diarize). Stale/absent →
@@ -851,7 +851,7 @@ private struct MemoPageView: View {
 
     /// Merge ONLY the tapped turn into another speaker (per-line) + re-fuse — fixes a
     /// mis-split line without collapsing the whole speaker. No enrollment (not a naming).
-    private func mergeTurn(at index: Int, into other: String) {
+    func mergeTurn(at index: Int, into other: String) {
         guard let updated = SpeakerTranscript.reassign(memo.transcript, turnAt: index, to: other) else { return }
         memo.transcript = updated
         memo.transcriptUserEdited = true
@@ -860,7 +860,7 @@ private struct MemoPageView: View {
     }
 
     /// Commit an inline edit to one turn's text (fix a word, move a boundary word).
-    private func editTurnText(at index: Int, to newText: String) {
+    func editTurnText(at index: Int, to newText: String) {
         guard let updated = SpeakerTranscript.setText(memo.transcript, turnAt: index, to: newText),
               updated != memo.transcript else { return }
         memo.transcript = updated
@@ -871,12 +871,12 @@ private struct MemoPageView: View {
 
     /// Resolve a turn's `[[img_NNN]]` marker (1-based) → its photo file (same mapping as
     /// the non-conversation transcript). Lets photos render inline within speaker turns.
-    private func turnImageURL(_ n: Int) -> URL? {
+    func turnImageURL(_ n: Int) -> URL? {
         memo.imageURL(markerIndex: n)
     }
 
     /// Karaoke tap-to-seek: jump playback to the tapped word.
-    private func seekToWord(_ i: Int) {
+    func seekToWord(_ i: Int) {
         guard i >= 0, i < timings.count else { return }
         player.seek(to: timings[i].start)
         if !player.isPlaying { player.play() }
@@ -886,7 +886,7 @@ private struct MemoPageView: View {
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
     /// assigning to a real person (not merging into another Speaker N) — learn the
     /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
-    private func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?, turnSlots: [Int]) {
+    func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?, turnSlots: [Int]) {
         let new = newName.trimmingCharacters(in: .whitespaces)
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
         // Slot-aware when the per-turn slot map still lines up — relabels ONLY this
@@ -928,7 +928,7 @@ private struct MemoPageView: View {
         await VoiceEnroller.enroll(name: new, clip: clip, using: EmbedderFactory.make())
     }
 
-    private var titleBinding: Binding<String> {
+    var titleBinding: Binding<String> {
         // Prefer the user's title; else default to the Mac's suggested title (so a polished
         // memo reads nicely instead of falling back to the um-filled first line). Editing
         // writes the user title.
@@ -936,7 +936,7 @@ private struct MemoPageView: View {
                 set: { memo.title = $0.isEmpty ? nil : $0; memo.markEdited() })
     }
 
-    private var titlePrompt: Text {
+    var titlePrompt: Text {
         // C3 captures: use the resolved capture title as the prompt (urlTitle /
         // text snippet / "Image") — there's no transcript line to fall back to.
         if memo.isShareCapture {
@@ -957,7 +957,7 @@ private struct MemoPageView: View {
     /// The polish to SHOW — only for an ordinary monologue voice memo (captures keep
     /// their quote block; conversations route to `SpeakerTurnsView`). nil = show raw.
     /// Newest `enhancedAt` first via the @Query sort — mirrors `repository.enhancement`.
-    private var macPolish: MemoEnhancement? {
+    var macPolish: MemoEnhancement? {
         guard let e = enhancements.first, e.hasContent,
               !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else { return nil }
@@ -966,12 +966,12 @@ private struct MemoPageView: View {
 
     /// The body the editor/karaoke/name-linking act on: the polished copy-edit when present,
     /// else the raw transcript.
-    private var activeBodyText: String { macPolish?.copyedit ?? (memo.transcript ?? "") }
+    var activeBodyText: String { macPolish?.copyedit ?? (memo.transcript ?? "") }
 
     /// Binding the editor writes when showing the polished body — persists the copy-edit +
     /// stamps provenance (this phone, now) so the edit syncs as the source of truth. The Mac
     /// won't re-polish an already-done memo, so it's never clobbered.
-    private var polishedBinding: Binding<String>? {
+    var polishedBinding: Binding<String>? {
         guard let e = macPolish else { return nil }
         return Binding(
             get: { e.copyedit },
@@ -993,11 +993,11 @@ private struct MemoPageView: View {
 
     /// The recording's first line (markers/speaker-prefix stripped) — the "From the
     /// recording" title option.
-    private var recordingFirstLine: String? {
+    var recordingFirstLine: String? {
         memo.firstTranscriptLine.map { String($0.prefix(60)) }
     }
 
-    private func summaryCard(_ summary: String) -> some View {
+    func summaryCard(_ summary: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 5) {
                 Image(systemName: "sparkles").font(.system(size: 10, weight: .bold))
@@ -1017,11 +1017,11 @@ private struct MemoPageView: View {
 
     // MARK: - Name resolution (the tapped-name sheet)
 
-    private var resolveDialogPresented: Binding<Bool> {
+    var resolveDialogPresented: Binding<Bool> {
         Binding(get: { resolveTarget != nil }, set: { if !$0 { resolveTarget = nil } })
     }
 
-    private var resolveDialogTitle: String {
+    var resolveDialogTitle: String {
         guard let span = resolveTarget?.span else { return "" }
         switch span.tier {
         case .linked:    return personDisplay(span.canonical) ?? span.alias
@@ -1031,7 +1031,7 @@ private struct MemoPageView: View {
         }
     }
 
-    private func resolveDialogMessage(for span: NameSpan) -> String? {
+    func resolveDialogMessage(for span: NameSpan) -> String? {
         switch span.tier {
         case .linked:    return "Linked in this note — only the first “\(span.alias)” carries the link."
         case .suggested: return "Tap to link “\(span.alias)” to this person."
@@ -1040,7 +1040,7 @@ private struct MemoPageView: View {
         }
     }
 
-    @ViewBuilder private func resolveActions(for span: NameSpan) -> some View {
+    @ViewBuilder func resolveActions(for span: NameSpan) -> some View {
         switch span.tier {
         case .linked:
             // Change person — only when the alias is shared (an ambiguous force-pick).
@@ -1070,24 +1070,24 @@ private struct MemoPageView: View {
         }
     }
 
-    private func candidateKey(_ canonical: String) -> String { NamesMerge.keyName(canonical).lowercased() }
-    private func candidateLabel(_ c: NameCandidate) -> String { NamesMerge.keyName(c.canonical) }
-    private func firstName(_ canonical: String) -> String {
+    func candidateKey(_ canonical: String) -> String { NamesMerge.keyName(canonical).lowercased() }
+    func candidateLabel(_ c: NameCandidate) -> String { NamesMerge.keyName(c.canonical) }
+    func firstName(_ canonical: String) -> String {
         NamesMerge.keyName(canonical).split(separator: " ").first.map(String.init) ?? NamesMerge.keyName(canonical)
     }
-    private func personDisplay(_ canonical: String?) -> String? { canonical.map { NamesMerge.keyName($0) } }
+    func personDisplay(_ canonical: String?) -> String? { canonical.map { NamesMerge.keyName($0) } }
 
-    private func applyLink(_ alias: String, to canonical: String) {
+    func applyLink(_ alias: String, to canonical: String) {
         memo.linkName(alias: alias, to: canonical); repository.save()
         recomputeSpans()
     }
-    private func applyKeepPlain(_ alias: String) {
+    func applyKeepPlain(_ alias: String) {
         memo.keepNamePlain(alias: alias); repository.save()
         recomputeSpans()
     }
     /// Unlink a LINKED name → plain, with a reversible Undo toast restoring the exact
     /// prior resolutions (the pick / auto-link), not just the default tier.
-    private func applyUnlink(_ span: NameSpan) {
+    func applyUnlink(_ span: NameSpan) {
         let prior = memo.nameResolutions
         memo.keepNamePlain(alias: span.alias); repository.save()
         recomputeSpans()
@@ -1102,7 +1102,7 @@ private struct MemoPageView: View {
         }
     }
 
-    @ViewBuilder private var undoToastView: some View {
+    @ViewBuilder var undoToastView: some View {
         if let toast = undoToast {
             HStack(spacing: 10) {
                 Text(toast.message).font(.system(size: 13)).foregroundStyle(Color.skText).lineLimit(2)
@@ -1125,7 +1125,7 @@ private struct MemoPageView: View {
         }
     }
 
-    @ViewBuilder private var tagToastView: some View {
+    @ViewBuilder var tagToastView: some View {
         if let toast = tagToast {
             TagUndoToastView(tag: toast.tag, style: .phone, onUndo: {
                 toast.undo()
@@ -1150,11 +1150,11 @@ private struct MemoPageView: View {
 
     // MARK: - People in this note (chip surface, mock state 4)
 
-    private var linkedCount: Int {
+    var linkedCount: Int {
         Set(spans.filter { $0.tier == .linked }.compactMap { $0.canonical?.lowercased() }).count
     }
 
-    private var peopleInNoteRow: some View {
+    var peopleInNoteRow: some View {
         Button { showPeopleSheet = true } label: {
             HStack(spacing: 8) {
                 Image(systemName: "person.crop.circle").font(.system(size: 15)).foregroundStyle(Color.skTextDim)
@@ -1172,11 +1172,11 @@ private struct MemoPageView: View {
 
     /// One candidate person for the note, with the alias they go by here + whether they're
     /// currently linked. Built from the spans (union of every span's candidates).
-    private struct PersonChip: Identifiable {
+    struct PersonChip: Identifiable {
         let id: String; let canonical: String; let display: String; let alias: String; let linked: Bool
     }
 
-    private var noteCandidateChips: [PersonChip] {
+    var noteCandidateChips: [PersonChip] {
         var aliasFor: [String: String] = [:], displayFor: [String: String] = [:]
         var order: [String] = [], linkedSet = Set<String>()
         for span in spans {
@@ -1197,7 +1197,7 @@ private struct MemoPageView: View {
         }
     }
 
-    private var peopleSheetView: some View {
+    var peopleSheetView: some View {
         NavigationStack {
             ZStack {
                 Color.skBg.ignoresSafeArea()
@@ -1229,7 +1229,7 @@ private struct MemoPageView: View {
         .presentationDetents([.medium, .large])
     }
 
-    private func chipLabel(_ chip: PersonChip) -> some View {
+    func chipLabel(_ chip: PersonChip) -> some View {
         HStack(spacing: 6) {
             Image(systemName: chip.linked ? "checkmark" : "plus").font(.system(size: 11, weight: .bold))
             Text(chip.display).font(.system(size: 13, weight: chip.linked ? .semibold : .regular))
@@ -1242,7 +1242,7 @@ private struct MemoPageView: View {
     }
 
     /// Chip tap: link a candidate's first mention, or unlink (→ a dotted, re-linkable token).
-    private func togglePersonChip(_ chip: PersonChip) {
+    func togglePersonChip(_ chip: PersonChip) {
         guard !chip.alias.isEmpty else { return }
         if chip.linked { memo.keepNamePlain(alias: chip.alias) }
         else { memo.linkName(alias: chip.alias, to: chip.canonical) }
@@ -1250,9 +1250,9 @@ private struct MemoPageView: View {
         recomputeSpans()
     }
 
-    private struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
+    struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
 
-    private var metaChips: [MetaChip] {
+    var metaChips: [MetaChip] {
         var chips: [MetaChip] = [MetaChip(text: MemoDate.label(memo.recordedAt), symbol: nil)]
         // C3 captures: show the source type label instead of location/weather chips.
         if memo.isShareCapture {
@@ -1279,7 +1279,7 @@ private struct MemoPageView: View {
 
     /// The pinned source block shown above the annotation body for captures:
     /// URL → link card with "Open ↗" button; text → blockquote; image → photo embed.
-    @ViewBuilder private var captureSourceBlock: some View {
+    @ViewBuilder var captureSourceBlock: some View {
         if let sc = memo.sharedContent {
             switch sc.type {
             case .url:
@@ -1325,7 +1325,7 @@ private struct MemoPageView: View {
     /// the filename + an Open button that previews it in QuickLook.
     /// (2026-06-21 "share a PDF and have it live in there"; PDFs themselves
     /// render inline since 2026-07-07 — CapturePDFInlineBlock.)
-    private func captureFileCard(sc: SharedContent) -> some View {
+    func captureFileCard(sc: SharedContent) -> some View {
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.skAccent.opacity(0.13))
@@ -1381,13 +1381,13 @@ private struct MemoPageView: View {
     /// A shared link's thumbnail, downloaded on drain (A1 enrichment). The field
     /// holds a RELATIVE recordings filename; legacy remote-url values are ignored
     /// (offline rule — never fetch at render).
-    private var linkThumbnail: UIImage? {
+    var linkThumbnail: UIImage? {
         guard let name = memo.sharedContent?.urlThumbnailUrl, !name.isEmpty,
               !name.contains("://") else { return nil }
         return UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(name).path)
     }
 
-    private func captureURLCard(sc: SharedContent) -> some View {
+    func captureURLCard(sc: SharedContent) -> some View {
         HStack(spacing: 10) {
             // A1: the og:image thumb when enrichment fetched one; globe otherwise.
             if let thumb = linkThumbnail {
@@ -1458,7 +1458,7 @@ private struct MemoPageView: View {
     /// Shared text renders as the AUDIOBOOK-QUOTE idiom (locked rule 2026-07-12:
     /// shared inputs NEVER get bubble/box chrome): accent left bar, italic quote
     /// at note-body size, borderless — it flows in the note, not in a card.
-    private func captureTextQuote(text: String) -> some View {
+    func captureTextQuote(text: String) -> some View {
         Text(text)
             .font(.system(size: 15).italic())
             .lineSpacing(4)
@@ -1473,7 +1473,7 @@ private struct MemoPageView: View {
             .accessibilityIdentifier("capture-text-quote")
     }
 
-    @ViewBuilder private var captureImageEmbed: some View {
+    @ViewBuilder var captureImageEmbed: some View {
         if let filename = memo.sharedContent?.fileName,
            let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
             captureImage(img)
@@ -1494,7 +1494,7 @@ private struct MemoPageView: View {
 
     /// One capture photo at note-body size (≤320 pt tall, same cap as inline
     /// [[img]] photos — round-1: full-width scaledToFit portraits were huge).
-    private func captureImage(_ img: UIImage) -> some View {
+    func captureImage(_ img: UIImage) -> some View {
         Image(uiImage: img)
             .resizable()
             .scaledToFit()
@@ -1512,7 +1512,7 @@ private struct MemoPageView: View {
     /// shows a placeholder prompt. While a dictated voice note is still
     /// transcribing, the editor is swapped for a status row — an open draft
     /// would clobber the landing text (same window the append flow closes).
-    @ViewBuilder private var captureAnnotationSection: some View {
+    @ViewBuilder var captureAnnotationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             // NO section label, NO box (locked rule 2026-07-12: shared inputs
             // never get bubble chrome) — the annotation IS the note body and

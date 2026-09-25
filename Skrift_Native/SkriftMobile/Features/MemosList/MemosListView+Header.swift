@@ -18,7 +18,7 @@ extension MemosListView {
     /// D136 second pass: the iPad-regular identity row is now JUST the title +
     /// Select — the verb row, Process and the chips all moved out into
     /// `notesRoot` so the phone can share them at compact width too.
-    private var macStyleHeader: some View {
+    var macStyleHeader: some View {
         HStack(spacing: 8) {
             // 22pt, hugging the top — "the notes title can be bigger, move
             // the whole notes bit up" (Tuur, live round b130).
@@ -50,7 +50,7 @@ extension MemosListView {
     /// Record, and the typed-note ✎ — the two verbs that BRING MATERIAL IN pair
     /// up with typing, the signed mocks mac-record-button.html option B +
     /// mac-new-note.html m2.
-    private var verbRow: some View {
+    var verbRow: some View {
         HStack(spacing: 7) {
             // Import IS the picker chooser now (Tuur: "when you click import
             // you should see if you want files or video from photos").
@@ -125,7 +125,7 @@ extension MemosListView {
     /// would pick up (ProcessPile.waiting), and pressing it RUNS that pile here
     /// — full-width, like the Mac's. Regular width only (D136's mock: the phone
     /// has no Process row in the unified list).
-    private var processRow: some View {
+    var processRow: some View {
         SwiftUI.Group {
             if PolishCenter.shared.isAvailable {
                 if let run = PolishCenter.shared.pileRun {
@@ -179,7 +179,7 @@ extension MemosListView {
     /// the list (`matchesFilter`); D136: each chip now carries ITS OWN count
     /// (the old triage line's numbers moved here) and Filter ends the bar,
     /// icon-only — on the phone too now, not just the iPad.
-    private var filterChips: some View {
+    var filterChips: some View {
         // Computed ONCE for the whole row, not per chip — `chipCounts` used to
         // be read as a property inside the ForEach, so its 3 corpus filters +
         // `enhancedMemoIDs` rebuild reran on each of the 4 chip iterations.
@@ -241,7 +241,7 @@ extension MemosListView {
 
     /// D135: "each chip counts its own notes" — over ALL live notes (not the
     /// filtered view), like the Mac's sidebar. `.all` carries no number.
-    private var chipCounts: [QueueFilter: Int] {
+    var chipCounts: [QueueFilter: Int] {
         let enhanced = enhancedMemoIDs
         return NotesListModel.chipCounts(
             needsWork: memos.filter { ProcessPile.matches(.needsWork, $0, enhancedIDs: enhanced) }.count,
@@ -251,11 +251,11 @@ extension MemosListView {
 
     /// The pile a polisher would pick up, by the shared rule. Built off ONE
     /// enhancements query rather than a fetch per memo (body-safe).
-    private var processPile: [Memo] {
+    var processPile: [Memo] {
         ProcessPile.waiting(memos: memos, enhancedIDs: enhancedMemoIDs)
     }
 
-    private var enhancedMemoIDs: Set<UUID> {
+    var enhancedMemoIDs: Set<UUID> {
         Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
     }
 
@@ -264,7 +264,7 @@ extension MemosListView {
     /// through to the body — which is what made the list disagree with the detail screen.
     /// Built ONCE per render inside `derived` now (R92/C278) — was a computed
     /// property read per-row inside `ForEach`, rebuilding the whole dictionary N times.
-    private func enhancedTitleByMemoID() -> [UUID: String] {
+    func enhancedTitleByMemoID() -> [UUID: String] {
         Dictionary(enhancements.lazy.compactMap { e -> (UUID, String)? in
             let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
             return t.isEmpty ? nil : (e.memoID, t)
@@ -274,7 +274,7 @@ extension MemosListView {
     /// D135/D136: the phone's header simplifies to JUST Notes + Select — Import,
     /// Scan and Filter all leave it (Import/Scan fold into the shared `verbRow`'s
     /// Import menu below; Filter moves into the chip bar's icon-only button).
-    private var headerRow: some View {
+    var headerRow: some View {
         HStack(spacing: 18) {
             ScreenTitle("Notes")
             Spacer(minLength: 0)

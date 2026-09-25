@@ -18,26 +18,26 @@ struct MemoDetailView: View {
     // Trashed memos (deletedAt != nil) are excluded so a soft-deleted memo
     // drops out of the pager immediately (same filter as MemosListView).
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
-           sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
-    @Environment(\.dismiss) private var dismiss
+           sort: \Memo.recordedAt, order: .reverse) var memos: [Memo]
+    @Environment(\.dismiss) var dismiss
     /// iPad wave: the note becomes list|detail at regular width — the Connections
     /// panel stands beside the page, the reading measure + player bar cap the note
     /// column. Compact (phone / iPad multitasking-compact) stays the phone layout.
-    @Environment(\.horizontalSizeClass) private var hSize
-    @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
-    @State private var showActions = false
-    @State private var showSplitOptions = false
-    @State private var showAppendRecorder = false
-    @State private var showShare = false
+    @Environment(\.horizontalSizeClass) var hSize
+    @State var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
+    @State var showActions = false
+    @State var showSplitOptions = false
+    @State var showAppendRecorder = false
+    @State var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
-    @State private var reminderMemo: Memo?
+    @State var reminderMemo: Memo?
     /// Transient "n / total" that ghosts in while swiping between memos —
     /// replaces the permanent page-dots row (compact-player spec).
-    @State private var pageFlash = false
-    @StateObject private var player = AudioPlayerModel()
-    @ObservedObject private var lockGate = LockGate.shared
-    @State private var lockVaultNotice = false
-    private let repository = NotesRepository.shared
+    @State var pageFlash = false
+    @StateObject var player = AudioPlayerModel()
+    @ObservedObject var lockGate = LockGate.shared
+    @State var lockVaultNotice = false
+    let repository = NotesRepository.shared
 
     /// iPad workbench: the ONE pinned ◧ list toggle lives in `MemosListView`'s
     /// screen overlay now (signed mock ipad-note-chrome-belongs.html); this
@@ -50,16 +50,16 @@ struct MemoDetailView: View {
     /// Connections = an on-demand sheet OVER the note, per note (Tuur, signed
     /// 2026-07-24: a 13" screen can't afford a standing 300pt column). Transient
     /// @State, auto-closed when the pager settles on a different memo.
-    @State private var showConnections = false
+    @State var showConnections = false
     /// Bumped on each chrome-bar export so `processControl` re-reads the export
     /// ledger (`hasPublished` is a disk fact, not a model field — without this
     /// the label would stay "Export to Obsidian" until the next page turn).
-    @State private var exportedBump = 0
+    @State var exportedBump = 0
     /// Why the export didn't happen — shown as an alert. A primary button that
     /// silently does nothing is how the no-vault iPad read as broken (2026-08-18).
-    @State private var exportNotice: String?
+    @State var exportNotice: String?
     /// Transient "Exported ✓" shown in the button's place for ~2s after a write.
-    @State private var exportFlash: String?
+    @State var exportFlash: String?
 
     init(initialID: UUID, listVisible: Binding<Bool>? = nil) {
         self.initialID = initialID
@@ -67,22 +67,22 @@ struct MemoDetailView: View {
         _selection = State(initialValue: initialID)
     }
 
-    private var currentMemo: Memo? { memos.first { $0.id == selection } }
+    var currentMemo: Memo? { memos.first { $0.id == selection } }
 
     /// List hidden = focus mode — the note takes the freed width. (Connections
     /// no longer occupies a column, so only the list gates focus now.)
-    private var listHidden: Bool { listVisible?.wrappedValue == false }
+    var listHidden: Bool { listVisible?.wrappedValue == false }
 
     /// The note bar's ⋯ — Split speakers leads it (moved off the bar: a
     /// once-per-note act, not a daily verb), then the same verbs the compact
     /// sheet offers, so nothing is reachable on one width only.
     /// One shared item → one `Label`, so a wording or glyph change lands on both
     /// apps at once.
-    private func menuLabel(_ item: NoteMenuItem) -> some View {
+    func menuLabel(_ item: NoteMenuItem) -> some View {
         Label(item.label, systemImage: item.systemImage)
     }
 
-    @ViewBuilder private func noteOverflowItems(_ memo: Memo) -> some View {
+    @ViewBuilder func noteOverflowItems(_ memo: Memo) -> some View {
         // Wording / glyph / ORDER come from the shared `NoteMenuItem` — the Mac's
         // ⋯ renders the same vocabulary (Tuur 2026-07-25). Which items exist is
         // still per-app: no Finder or Markdown-copy here, no Share on the Mac.
@@ -127,7 +127,7 @@ struct MemoDetailView: View {
     /// capsule hides itself otherwise. One rule (`ConnectionsPanelLogic
     /// .canSummon`): rated and not locked. An unrated note makes no connections
     /// claims in either direction, so it doesn't offer the surface either.
-    private var connectionsAvailable: Bool {
+    var connectionsAvailable: Bool {
         guard let memo = currentMemo else { return false }
         return ConnectionsPanelLogic.canSummon(memo, isLocked: lockGate.isLocked(memo))
     }
@@ -142,7 +142,7 @@ struct MemoDetailView: View {
     /// chip folded into ⋯ as Add recording — then the Connections summon — a
     /// plain WORD, not a ◨ glyph and not a count (capped at 7 it would read "7"
     /// forever; Tuur, 2026-07-24), quiet → accent while the sheet is up.
-    @ViewBuilder private var workbenchChrome: some View {
+    @ViewBuilder var workbenchChrome: some View {
         if let memo = currentMemo {
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
@@ -190,7 +190,7 @@ struct MemoDetailView: View {
     /// width beneath, nothing reflows — and it stops above the docked player so
     /// transport stays reachable. Per note: auto-closed when the pager settles
     /// on a different memo, never remembered across launches.
-    @ViewBuilder private var connectionsSheet: some View {
+    @ViewBuilder var connectionsSheet: some View {
         // Same `canSummon` rule as the capsule — the sheet must not render for a
         // note that can't summon it, even if `showConnections` got stuck true.
         if let memo = currentMemo,
@@ -217,7 +217,7 @@ struct MemoDetailView: View {
     /// the compact ⋯ dialog, which the iPad in full-screen never shows (Tuur:
     /// "I don't see the export button on the iPad in the same place that the
     /// Mac does").
-    @ViewBuilder private func processControl(_ memo: Memo) -> some View {
+    @ViewBuilder func processControl(_ memo: Memo) -> some View {
         let phase = PolishCenter.shared.phase(for: memo.id)
         switch phase {
         case .idle:
@@ -481,7 +481,7 @@ struct MemoDetailView: View {
     /// The horizontal pager (one page per memo) + the floating glass player bar.
     /// At regular width this is the note COLUMN (reading-measure-capped, beside the
     /// Connections panel); at compact it's the whole screen — byte-for-byte today.
-    private var notePager: some View {
+    var notePager: some View {
         ScrollViewReader { proxy in
             // SwiftUI-native horizontal pager. `.scrollPosition(id:)` tracks the page;
             // the ScrollViewReader does the initial jump (the binding's initial value
@@ -547,7 +547,7 @@ struct MemoDetailView: View {
     /// a full-width bar owned by the workbench's bottom edge (hairline top,
     /// `skSurface`) instead of a capsule hovering mid-air. The phone keeps its
     /// floating glass capsule (`bottomChrome`) byte-for-byte.
-    private var dockedPlayer: some View {
+    var dockedPlayer: some View {
         playerBarStack
             .padding(.horizontal, 6)
             .background(Color.skSurface)
@@ -556,7 +556,7 @@ struct MemoDetailView: View {
             }
     }
 
-    @ViewBuilder private var bottomChrome: some View {
+    @ViewBuilder var bottomChrome: some View {
         // REAL iOS-26 Liquid Glass on the floating playback bar (device + SDK are 26):
         // the transcript/photos refract through it as they scroll under (the bar is a
         // safeAreaInset, so the scroll content is in the same backdrop). A
@@ -590,7 +590,7 @@ struct MemoDetailView: View {
         }
     }
 
-    private var playerBarStack: some View {
+    var playerBarStack: some View {
         PlayerBar(player: player, clock: player.clock)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
@@ -617,13 +617,13 @@ struct MemoDetailView: View {
     /// transcript" — same function, one gate) through `GatedCopy` (R88/C213):
     /// a locked, not-yet-unlocked-this-session note asks for auth before
     /// copying — it does NOT silently no-op.
-    private func copyTranscript() {
+    func copyTranscript() {
         guard let memo = currentMemo else { return }
         Task { await GatedCopy.copyTranscript(memo, lockGate: lockGate) }
     }
 
     /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
-    private var memoStatsLine: String {
+    var memoStatsLine: String {
         guard let memo = currentMemo else { return "Note" }
         let words = MemoShare.wordCount(of: memo.transcript)
         var parts: [String] = [words == 1 ? "1 word" : "\(words) words"]
@@ -636,7 +636,7 @@ struct MemoDetailView: View {
 
     /// Share OUT (survey fold, user-approved): the note as markdown text, plus
     /// the recording file when there is one.
-    private func shareItems(for memo: Memo) -> [Any] {
+    func shareItems(for memo: Memo) -> [Any] {
         var items: [Any] = [MemoShare.markdown(title: memo.title ?? memo.firstTranscriptLine,
                                                body: memo.transcript ?? "")]
         if let url = memo.audioURL, FileManager.default.fileExists(atPath: url.path) {
@@ -646,21 +646,21 @@ struct MemoDetailView: View {
     }
 
     /// C10/D4 + Q40: the current note's body and its polished copy-edit, normalised once each.
-    private func normaliseCurrentOnce() {
+    func normaliseCurrentOnce() {
         guard let memo = currentMemo else { return }
         memo.normaliseBodyOnce(enhancement: repository.enhancement(forMemo: memo.id))
     }
 
     /// Load the CURRENT memo's audio — unless its content is lock-gated
     /// (chunk 8: the bar must not play a locked note around the placeholder).
-    private func loadCurrentAudio() {
+    func loadCurrentAudio() {
         guard let memo = currentMemo else { return }
         player.load(lockGate.isLocked(memo) ? nil : memo.audioURL)
     }
 
     /// Lock from ⋯ (instant, + vault notice when already published); removing
     /// the lock requires device-owner auth (Apple Notes idiom).
-    private func toggleLock(_ memo: Memo) {
+    func toggleLock(_ memo: Memo) {
         if memo.locked {
             Task {
                 guard await LockGate.shared.authorizeRemoveLock() else { return }
@@ -681,7 +681,7 @@ struct MemoDetailView: View {
     /// Re-point the player at the current memo's audio if an earlier `load()` failed
     /// because the file wasn't on disk yet (the async video-import extraction case).
     /// A no-op once audio is loaded, so it never disturbs active playback.
-    private func reloadIfAudioMissing() {
+    func reloadIfAudioMissing() {
         guard !player.hasAudio else { return }
         loadCurrentAudio()
     }
@@ -694,7 +694,7 @@ struct MemoDetailView: View {
     /// to live here in longhand moved into that predicate, where the Mac and the export gate
     /// read it too — and it now also answers YES for a pass that produced nothing, which is
     /// what stopped a wordless note offering "Process" forever (2026-08-26).
-    private func workState(for memo: Memo) -> NoteWorkState {
+    func workState(for memo: Memo) -> NoteWorkState {
         let hasPolish = repository.enhancement(forMemo: memo.id)?.isProcessed == true
         return .of(hasPolish: hasPolish, isExported: PublishCoordinator.hasPublished(memo))
     }
@@ -710,7 +710,7 @@ struct MemoDetailView: View {
     /// `skrift.author` that nothing ever wrote, so a per-note export compiled with a
     /// blank author and the same note exported by two devices would differ by a
     /// frontmatter line (the edit guard would then treat it as user-edited forever).
-    private func exportNow(_ memo: Memo) {
+    func exportNow(_ memo: Memo) {
         let author = UserDefaults.standard.string(forKey: "skrift.publish.author") ?? ""
         let coordinator = PublishCoordinator.live(author: author)
         if let refusal = coordinator.exportRefusal(memo) {
@@ -744,7 +744,7 @@ struct MemoDetailView: View {
 
     /// Say what the engine decided, in the SHARED words, with the shared rule about whether
     /// it may fade: a refusal stays until dismissed, anything else flashes.
-    private func say(_ outcome: VaultWriteOutcome) {
+    func say(_ outcome: VaultWriteOutcome) {
         let name = (currentMemo.map { MemoExporter.exportTitle(for: $0, people: []) } ?? "")
         let msg = ExportOutcomeCopy.message(for: outcome, noteName: name)
         if msg.isRefusal { exportNotice = msg.text } else { flashExport(msg.text) }
@@ -753,7 +753,7 @@ struct MemoDetailView: View {
     /// Show a short confirmation in the chrome where the button sits, then let the
     /// button re-render (its label re-reads the ledger, so success comes back as
     /// "Re-export").
-    private func flashExport(_ line: String) {
+    func flashExport(_ line: String) {
         withAnimation(Theme.Motion.snappy) { exportFlash = line }
         Task {
             try? await Task.sleep(for: .seconds(2.2))
@@ -762,7 +762,7 @@ struct MemoDetailView: View {
         }
     }
 
-    private func splitSpeakers(_ count: Int?) {
+    func splitSpeakers(_ count: Int?) {
         guard let id = currentMemo?.id else { return }
         // Keep the diarization alive if the user backgrounds the app mid-identify
         // (they often do — it can take a while). If iOS suspends/kills it anyway, the
@@ -780,7 +780,7 @@ struct MemoDetailView: View {
     /// so Restore is lossless; the startup purge removes them after the retention
     /// window. The pager's @Query excludes trashed memos, so the page disappears
     /// and we move to the next one (or dismiss when it was the last).
-    private func deleteCurrent() {
+    func deleteCurrent() {
         guard let memo = currentMemo,
               let idx = memos.firstIndex(where: { $0.id == memo.id }) else { return }
         // Land on the ADJACENT page after delete — the next memo, else the previous

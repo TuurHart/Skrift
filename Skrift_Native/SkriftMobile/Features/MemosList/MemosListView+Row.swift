@@ -7,7 +7,7 @@ import SwiftUI
 /// Conditionally attaching the tap (rather than guarding inside it) is what frees the
 /// tap for List selection — a no-op gesture would still swallow it. No NavigationLink,
 /// so no disclosure chevron over the card.
-private struct MemoRow: View {
+struct MemoRow: View {
     let memo: Memo
     /// The Mac's generated title, when the user hasn't chosen one (display-only).
     var enhancedTitle: String? = nil
@@ -21,7 +21,7 @@ private struct MemoRow: View {
     /// Always false on the phone (`selectedMemoID` is nil there).
     var selected: Bool = false
     let onTap: () -> Void
-    @Environment(\.editMode) private var editMode
+    @Environment(\.editMode) var editMode
 
     var body: some View {
         if editMode?.wrappedValue.isEditing == true {
@@ -47,7 +47,7 @@ private struct MemoRow: View {
 
 // MARK: - Card
 
-private struct MemoCard: View {
+struct MemoCard: View {
     let memo: Memo
     /// The Mac's generated title, when the user hasn't chosen one (display-only).
     var enhancedTitle: String? = nil
@@ -84,7 +84,7 @@ private struct MemoCard: View {
             .accessibilityIdentifier(memo.isShareCapture ? "capture-row" : "memo-card")
     }
 
-    private var cardModel: NoteCardModel {
+    var cardModel: NoteCardModel {
         var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
         m.fadingLine = clockLine ?? (fading ? "fading" : nil)
         m.quietLine = quietLine
@@ -143,9 +143,9 @@ private struct MemoCard: View {
         return m
     }
 
-    private struct Chip: Hashable { let text: String; let symbol: String? }
+    struct Chip: Hashable { let text: String; let symbol: String? }
 
-    private var chips: [Chip] {
+    var chips: [Chip] {
         var out: [Chip] = []
         // C3 share-item captures show a type label + optional domain instead of duration.
         if memo.isShareCapture {
@@ -178,11 +178,11 @@ private struct MemoCard: View {
     /// True when this row has a title to lead with — the user's own, else the Mac's
     /// generated one. Without the second arm a polished note showed its title in detail
     /// and its body text in the list.
-    private var hasTitle: Bool {
+    var hasTitle: Bool {
         if !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) { return true }
         return !(enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
-    private var snippet: String {
+    var snippet: String {
         // "Note" for a typed note, "Voice note" otherwise — the shared fallback
         // (mocks/mac-new-note.html m3: "Voice note" on something you wrote reads
         // as a bug).
@@ -201,7 +201,7 @@ private struct MemoCard: View {
     }
     /// Secondary line for titled rows: the transcript's first line, markers stripped.
     /// Nil when there's no transcript yet (the title alone carries the row).
-    private var transcriptSnippet: String? { memo.firstTranscriptLine }
+    var transcriptSnippet: String? { memo.firstTranscriptLine }
 }
 
 // MARK: - Quick copy

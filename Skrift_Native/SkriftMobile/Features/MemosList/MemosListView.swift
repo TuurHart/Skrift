@@ -60,76 +60,76 @@ struct MemosListView: View {
     // Trashed memos (deletedAt != nil) are excluded here and live in the
     // Recently Deleted screen until restored or purged.
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
-           sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+           sort: \Memo.recordedAt, order: .reverse) var memos: [Memo]
     /// ONE query behind the header's "Process N" — which notes already carry
     /// polished content. Per-memo enhancement fetches inside a body are the
     /// frozen-library trap (2026-07-23), so the set is built once here.
-    @Query private var enhancements: [MemoEnhancement]
+    @Query var enhancements: [MemoEnhancement]
     /// C98: every device's latest words per note. A change here (a head synced in, a pick
     /// made anywhere) recomputes which notes carry the "2 versions" pill — once, here.
-    @Query private var editHeads: [MemoEditHead]
-    @Environment(\.modelContext) private var context
-    private let repository = NotesRepository.shared
+    @Query var editHeads: [MemoEditHead]
+    @Environment(\.modelContext) var context
+    let repository = NotesRepository.shared
 
-    @State private var path: [NoteRoute] = []
-    @State private var showRecord = false
+    @State var path: [NoteRoute] = []
+    @State var showRecord = false
     /// Presents the audiobook player for the continue-card's body tap (hoisted
     /// here: a cover on the card itself would die when its List row unmounts).
-    @State private var showBookPlayer = false
-    @State private var lastHandledStart = 0
-    @State private var lastHandledQuickNote = 0
-    @ObservedObject private var intentBridge = RecordingIntentBridge.shared
-    @ObservedObject private var memoOpen = MemoOpenBridge.shared
-    @ObservedObject private var quickNoteBridge = QuickNoteBridge.shared
+    @State var showBookPlayer = false
+    @State var lastHandledStart = 0
+    @State var lastHandledQuickNote = 0
+    @ObservedObject var intentBridge = RecordingIntentBridge.shared
+    @ObservedObject var memoOpen = MemoOpenBridge.shared
+    @ObservedObject var quickNoteBridge = QuickNoteBridge.shared
     /// Long-press → "Remind me…" (chunk 7).
-    @State private var reminderMemo: Memo?
+    @State var reminderMemo: Memo?
     /// Locking a memo that's already published → honest notice (chunk 8).
-    @State private var lockVaultNotice = false
+    @State var lockVaultNotice = false
     /// In-app document scan (chunk 9) — device-only entry.
-    @State private var showDocScanner = false
+    @State var showDocScanner = false
     /// D8 in-app media import: Files picker (audio + video) and the Photos
     /// video picker — before this there was NO in-app way to import an audio
     /// file at all, and the video picker was built but never wired anywhere.
-    @State private var showMediaFileImporter = false
-    @State private var showVideoImporter = false
-    @State private var showSortFilter = false
+    @State var showMediaFileImporter = false
+    @State var showVideoImporter = false
+    @State var showSortFilter = false
     /// Presents WayOutView — the merged Fading + Recently Deleted shelf (Q4,
     /// 2026-07-20). One sheet now instead of two (`showTrash` retired).
     /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
-    @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+    @ObservedObject var cloudSync = CloudSyncMonitor.shared
     /// Share-imports being copied out of the inbox (A14) — drives the top pill so
     /// a big shared movie doesn't look like nothing happened until the drain ends.
-    @ObservedObject private var drainState = CaptureDrainState.shared
-    @State private var search = LaunchFlags.initialSearch ?? ""
+    @ObservedObject var drainState = CaptureDrainState.shared
+    @State var search = LaunchFlags.initialSearch ?? ""
     /// Semantic hits for the current search (P8) — empty unless the journal
     /// index is active AND something clears the floor.
-    @State private var related: [Memo] = []
+    @State var related: [Memo] = []
     /// Debounced semantic lookup, held in @State so view-identity churn (the
     /// ticking mini-player) can't cancel it — only a newer query does.
-    @State private var searchTask: Task<Void, Never>?
-    @State private var sort: MemoSort = .added
-    @State private var filter = MemoFilter()
+    @State var searchTask: Task<Void, Never>?
+    @State var sort: MemoSort = .added
+    @State var filter = MemoFilter()
     /// The Mac's triage chip, at regular width only (All / Needs Work / Done /
     /// Unrated — shared `QueueFilter`). Compact keeps the phone's funnel sheet.
-    @State private var listChip: QueueFilter = .all
-    @State private var editMode: EditMode = .inactive
-    @State private var selected: Set<UUID> = []
-    @State private var syncBanner: String?
-    @State private var bannerToken = 0
+    @State var listChip: QueueFilter = .all
+    @State var editMode: EditMode = .inactive
+    @State var selected: Set<UUID> = []
+    @State var syncBanner: String?
+    @State var bannerToken = 0
     /// iPad wave 1: layout branches on the horizontal size class (NEVER device
     /// idiom — Split View/Stage Manager can make the iPad compact, and compact
     /// must stay the phone layout, pixel-untouched).
-    @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.horizontalSizeClass) var hSize
     /// The note shown in the workbench pane at regular width. nil on the
     /// phone (compact pushes onto `path` instead), so the whole pane path is a
     /// no-op there. Carries its own draft/memo kind (`NoteRoute`, Q47) so
     /// routing can never desync from a separate id.
-    @State private var selectedRoute: NoteRoute?
+    @State var selectedRoute: NoteRoute?
     /// Read-only convenience for row-highlight compares, which only ever
     /// care about the raw id.
-    private var selectedMemoID: UUID? { selectedRoute?.id }
+    var selectedMemoID: UUID? { selectedRoute?.id }
     /// The two panel toggles (iPad regular width, Tuur 2026-07-23): hide the notes
     /// list, hide Connections, or both — "sometimes I just want to focus on writing
     /// and I don't want any distractions". Remembered between launches. This is
@@ -138,14 +138,14 @@ struct MemosListView: View {
     /// binding was the 129 unreliability). Connections is no longer a bound
     /// column: it's MemoDetailView's own per-note visitor sheet (signed
     /// 2026-07-24), so `ipadConnectionsVisible` is retired.
-    @AppStorage("ipadListVisible") private var listVisible = true
+    @AppStorage("ipadListVisible") var listVisible = true
     /// ⌘F focuses the Notes search field. The shared `SearchField` component
     /// can't carry a focus binding, so the field is inlined below (`searchField`)
     /// with this state; `SearchFocusBridge` posts the request from `.commands`.
-    @FocusState private var searchFocused: Bool
-    @ObservedObject private var searchFocusBridge = SearchFocusBridge.shared
+    @FocusState var searchFocused: Bool
+    @ObservedObject var searchFocusBridge = SearchFocusBridge.shared
 
-    private var isRegular: Bool { hSize == .regular }
+    var isRegular: Bool { hSize == .regular }
 
     var body: some View {
         if isRegular {
@@ -227,7 +227,7 @@ struct MemosListView: View {
     /// compact, and as the sliding list column at regular width.
     /// The ONLY per-branch difference is `.navigationDestination` (compact only),
     /// kept out here.
-    private var notesRoot: some View {
+    var notesRoot: some View {
         ZStack(alignment: .bottom) {
                 // D135/D136 (one-notes-list): the list column's ground is now the
                 // phone's grey EVERYWHERE — the iPad's separate white "surface"
@@ -364,7 +364,7 @@ struct MemosListView: View {
     /// `initialID`-seeded state actually re-seeds when you pick another note.
     /// The ◧ list toggle is the parent HStack's screen-pinned overlay (it
     /// covers this pane too), so neither branch draws its own.
-    private var noteStack: some View {
+    var noteStack: some View {
         NavigationStack {
             if let route = selectedRoute {
                 switch route {
@@ -393,7 +393,7 @@ struct MemosListView: View {
     /// Route a memo-open to the active navigation model: the workbench pane at
     /// regular width, a reset push on the stack at compact.
     /// (Row taps append instead — see `listContent`.)
-    private func openMemo(_ id: UUID) {
+    func openMemo(_ id: UUID) {
         openRoute(.existing(id))
     }
 
@@ -401,7 +401,7 @@ struct MemosListView: View {
     /// workbench pane at regular width, a reset push on the stack at
     /// compact. A single write of ONE value, never a pair of independently
     /// settable ones (Q47).
-    private func openRoute(_ route: NoteRoute) {
+    func openRoute(_ route: NoteRoute) {
         if isRegular { selectedRoute = route } else { path = [route] }
     }
 
@@ -415,7 +415,7 @@ struct MemosListView: View {
     /// compared against a second piece of state, so it can't be mistaken for
     /// whatever memo the launch recovery sweep may just have created
     /// (BUGS §3: the "Recovered recording…" note).
-    private func newTypedNote() {
+    func newTypedNote() {
         openRoute(.newDraft())
     }
 
@@ -425,7 +425,7 @@ struct MemosListView: View {
     /// (same tokens, same `memo-search` id) — reproduced here ONLY because that
     /// component (DesignSystem/Components.swift, read-only this wave) exposes no
     /// focus binding, and ⌘F needs `.focused($searchFocused)` on the TextField.
-    private var searchField: some View {
+    var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
             TextField("", text: $search, prompt: Text(SharedCopy.searchPlaceholder).foregroundStyle(Color.skTextFaint))
@@ -442,7 +442,7 @@ struct MemosListView: View {
         .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
     }
 
-    private var listContent: some View {
+    var listContent: some View {
         VStack(spacing: 0) {
             searchField
                 .sheet(item: $reminderMemo) { memo in
@@ -664,7 +664,7 @@ struct MemosListView: View {
         }
     }
 
-    private var emptyState: some View {
+    var emptyState: some View {
         VStack(spacing: 0) {
             ContentUnavailableView(
                 "No notes yet",
