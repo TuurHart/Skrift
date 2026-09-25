@@ -122,7 +122,7 @@ node: V2Core
 do: (Q23 finding: the corpus has no name-offset field — `CorpusSeed.Note`/`makeMemo` hardcode `nameResolutionsData = nil`; add one so `migrated-stale-name-offsets` proves R25.) At first open on any device, a note whose stored body breaks C10 is rewritten once to the v2 layout and its name offsets re-derived (D4, R25); a local per-note flag makes it one-time and a second run a no-op; the C203 legacy shapes (old test image-captures, pre-build-76 PDF captures) are left alone. Test in `BodyNormaliseMigrationTests` (desktop target) using the v1 goldens as the legacy bodies.
 check: `grep -rqE "class BodyNormaliseMigrationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q15 [tuur] (doing) delete v1 body after the tag
+### Q15 [tuur] (done) delete v1 body after the tag
 spec: C2 C17 C65 C252
 needs: Q14
 node: V2Core
@@ -536,3 +536,4 @@ check: Tuur clicked through it and said go.
 - 2026-09-25 18:45 Q15 -> doing — approved D146; worker out
 - 2026-09-25 18:56 Q50 added
 - 2026-09-25 18:56 Q51 added
+- 2026-09-25 19:05 Q15 -> done — hand-merged (D146); tag v1-body=8581f09d; 6 protected test files lose v1-only cases
