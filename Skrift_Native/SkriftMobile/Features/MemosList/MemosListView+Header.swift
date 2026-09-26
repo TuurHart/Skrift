@@ -239,6 +239,7 @@ extension MemosListView {
             // instantly with no section-by-section animation.
             .animation(Theme.Motion.snappy, value: listChip)
         }
+        .accessibilityIdentifier("filter-chip-scroll")
     }
 
     /// "22–25 Sep" / "from 22 Sep" / "to 25 Sep" — the Date chip's own label
