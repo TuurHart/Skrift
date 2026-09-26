@@ -81,10 +81,10 @@ code{font-family:var(--mono);font-size:.86em}
 .stage{display:flex;flex-direction:column;align-items:center}
 .stage>.macscale,.stage>.macfull{width:100%}
 .phone{width:100%;max-width:390px;background:var(--a-bg);border-radius:22px;box-shadow:var(--a-shadow);overflow:hidden;display:flex;flex-direction:column;color:var(--a-text);min-height:680px;border:1px solid var(--a-border)}
-.nav{display:grid;grid-template-columns:92px 1fr 92px;align-items:center;padding:10px 10px 6px;background:var(--a-bg)}
-.nav .l{font-size:15px;color:var(--a-accent);background:none;border:0;cursor:pointer;min-height:44px;padding:0 4px;text-align:left}
-.nav .t{text-align:center;font-weight:600;font-size:15.5px;line-height:1.25}
-.nav .t small{display:block;font-size:11.5px;font-weight:500;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.nav{display:flex;flex-direction:column;align-items:stretch;padding:4px 14px 8px;background:var(--a-bg)}
+.nav .l{align-self:flex-start;font-size:16px;color:var(--a-accent);background:none;border:0;cursor:pointer;min-height:44px;min-width:44px;padding:0;text-align:left}
+.nav .t{font-weight:700;font-size:24px;line-height:1.2}
+.nav .t small{display:block;font-size:13.5px;font-weight:600;color:var(--a-accent-text);font-variant-numeric:tabular-nums;padding-top:2px}
 .body{flex:1;padding:4px 14px 14px;display:flex;flex-direction:column;gap:12px}
 .foot{padding:10px 14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--a-bg);border-top:1px solid var(--a-border)}
 .primary{border:0;background:var(--a-accent);color:#fff;font-weight:600;font-size:15.5px;min-height:48px;padding:12px;border-radius:12px;cursor:pointer;width:100%}
@@ -259,6 +259,17 @@ code{font-family:var(--mono);font-size:.86em}
     <small>PICK B below switches the mock between the two. Every button on this page works on tap; nothing is stored, so a reload starts over.</small>
   </section>
 
+  <section style="display:flex;flex-direction:column;gap:12px" aria-label="The import">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Device">
+        <button id="dev-phone" aria-pressed="true">iPhone</button>
+        <button id="dev-mac" aria-pressed="false">Mac</button>
+      </div>
+      <div class="steps" id="jump" aria-label="Jump to step"></div>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="cap" id="stagecap"></p>
+  </section>
   <section class="picks" aria-label="Choices this mock made">
     <div class="eyebrow">Choices made here · tap to flip</div>
     <div id="picks" class="picks"></div>
@@ -293,17 +304,6 @@ code{font-family:var(--mono);font-size:.86em}
     <p class="cap">The phone's Import menu, items drawn from MemosListView.swift :734. The Mac's Import button opens the same flow (C238). Both start from a folder you exported out of Notes; the exporter is decided at build time (D18).</p>
   </section>
 
-  <section style="display:flex;flex-direction:column;gap:12px" aria-label="The import">
-    <div class="bar">
-      <div class="seg" role="group" aria-label="Device">
-        <button id="dev-phone" aria-pressed="true">iPhone</button>
-        <button id="dev-mac" aria-pressed="false">Mac</button>
-      </div>
-      <div class="steps" id="jump" aria-label="Jump to step"></div>
-    </div>
-    <div class="stage" id="stage"></div>
-    <p class="cap" id="stagecap"></p>
-  </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -490,11 +490,11 @@ function footNote(){const x=nextLabel();
 function stepTriagePhone(){
   const n=cur();
   if(S.pick.C){
-    return `<div class="pick" style="display:flex;flex-direction:column;gap:6px;padding:2px"><button class="flag" data-flip="C" data-val="0">PICK C · flip to list</button>${strip()}</div>
+    return `<div class="pick" style="display:flex;flex-direction:column;gap:6px;padding:2px;margin-top:12px"><button class="flag" data-flip="C" data-val="0">PICK C · flip to list</button>${strip()}</div>
       ${preview(n)}${impCard(n)}${actBtns(n)}`;
   }
   const bn=bNotes(S.batch);
-  return `<div class="pick" style="padding:2px"><button class="flag" data-flip="C" data-val="1">PICK C · other answer · flip back</button><p class="hint" style="padding:6px 4px 2px">All ten in one scroll. Each row: balls, Skip, Delete.</p></div>
+  return `<div class="pick" style="padding:2px;margin-top:12px"><button class="flag" data-flip="C" data-val="1">PICK C · other answer · flip back</button><p class="hint" style="padding:6px 4px 2px">All ten in one scroll. Each row: balls, Skip, Delete.</p></div>
     ${bn.map(x=>{const d=S.dec[x.i]; const lit=d&&d.k==="r"?d.v:0; const dim=d&&(d.k==="s"||d.k==="d");
       return `<div class="lrow">
       <div class="lh${dim?" dimmed":""}"><b>${esc(x.t)}</b><span>${x.date||"date unknown"}</span></div>
