@@ -1233,6 +1233,9 @@ private struct QueueRowView: View {
         if file.sourceType != .audio {
             m.chips.append(.init(text: file.sourceDescriptor.label, systemImage: file.sourceDescriptor.glyph))
         }
+        // Q65/Q68: the Mac row used to stop at duration/source and never show the
+        // note's own tags, unlike the phone's card. Same shared builder as the phone.
+        m.chips.append(contentsOf: NoteCardModel.tagChips(for: file.tags))
         return m
     }
 }

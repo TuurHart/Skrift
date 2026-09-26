@@ -55,6 +55,14 @@ struct NoteCardModel {
         var systemImage: String?
         var isTag = false
     }
+
+    /// C115 shared tag-chip builder — the ONE way a note's tags become chips, so
+    /// the phone and the Mac card models can't drift again (Q65 found the Mac
+    /// list carrying a tagged note's duration/source chips but never its
+    /// `#tags`; Q68 fixes it by routing BOTH card models through this).
+    static func tagChips(for tags: [String]) -> [Chip] {
+        tags.map { Chip(text: "#\($0)", isTag: true) }
+    }
 }
 
 /// Per-app colors — construct from each app's theme, never inline color literals
