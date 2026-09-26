@@ -476,6 +476,7 @@ check: Tuur picked per group.
 spec: C277 R90
 needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live.
+Also, in the same Dev window: does the sidebar's left edge cut the first letter of every row and day header ("ODAY", "AT 19 SEP")? The headless snapshot always shows it (Q35, Q37, Q65); a real window has never been checked.
 check: Tuur typed on the Mac and said the flash is fine, or it became an item.
 
 ### Q64 [tuur] (tuur) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
@@ -493,7 +494,7 @@ check: `test $(ls plan/reads/list-q65/*.png | wc -l) -ge 2 && ./gate.sh && (cd S
 ### Q66 [auto] (todo) build one filter mechanism, option A of the Q49 mock, on phone, iPad and Mac
 spec: C117 C115
 needs: Q65
-do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
+do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Take ONLY the chip row from the mock: its Mac panel draws the rows transparent, which is wrong — the app's Mac rows are already white cards on the phone's grey (Q65). Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
 check: `test $(ls plan/reads/filter-q66/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q67 [tuur] (doing) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
@@ -501,6 +502,12 @@ spec: C117 C238
 needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
 check: Tuur clicked through it and said go.
+
+### Q68 [auto] (todo) Mac list rows show the note's tag chips like the phone (QueueRowView.cardModel)
+spec: C115
+needs: -
+do: Q65 (2026-09-26) found the Mac row carries fewer chips than the same note's phone row: `QueueRowView.cardModel` fills only duration/source chips, never the note's tags (#studio etc.) — possibly because `PipelineFile` does not carry tags the way `Memo` does. Feed the Mac row the same tag chips the phone row gets, from the same shared source (one card model, C115). Test that one note yields the same chip list on both apps' card models (desktop test target); screenshot the Mac sidebar from the synthetic corpus, LOOK, commit under `plan/reads/list-q68/`.
+check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -717,3 +724,4 @@ check: Tuur clicked through it and said go.
 - 2026-09-26 07:29 Q67 -> doing — worker out
 - 2026-09-26 07:29 Q65 -> doing — worker out
 - 2026-09-26 07:30 Q50 -> tuur — built @eb0ee20d — awaiting sitting
+- 2026-09-26 07:45 Q68 added

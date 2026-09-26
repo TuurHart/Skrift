@@ -1831,4 +1831,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      and rate them as they come in, or skip import / delete them" → revised mock Q67.
 149. **D149 D135 repeated: the Mac list looks like the phone's.** ✅ 2026-09-26: "why are the
      background colors different again? I already mentioned this once… the way it looks on the
-     phone I like best" — the Mac sidebar still drew flat rows on its own grey after Q26 → Q65.
+     phone I like best". Q65 checked the APP: it already matches (NoteCardStyle.mac = Theme.surface
+     cards on Palette.bg.phone, pixel-sampled light + dark) — the Q49 MOCK drew the Mac wrong
+     (`.mac .card{background:transparent}`). Left open: Mac rows show no tag chips (Q68); the Mac
+     sidebar snapshot cuts ~12 px off its left edge, real window unverified (Q63).

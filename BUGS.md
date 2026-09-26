@@ -277,6 +277,9 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       (`MemosListView.swift:338` passes `showNotRated: !isRegular`, toggle at `:1619`) combine, so
       Done + Not rated empties the list with no explanation. Found by the Q49 mock; every Q49 option
       removes the duplicate.
+- [ ] **Mac list rows show no tag chips.** `QueueRowView.cardModel` fills only the duration/source
+      chips, so a note tagged `#studio` shows the tag on the phone row and not on the Mac row (Q65,
+      synthetic corpus). SPEC C115.
 - [ ] **The Apple Notes import is lossy today** (read from source by the Q51 mock, not re-run):
       `IngestService.importAttachments` (`SkriftDesktop/Pipeline/Ingest/IngestService.swift:358`) copies
       the whole shared `Attachments/` folder into EVERY note; every note is dated at import time
