@@ -224,7 +224,7 @@ code{font-family:var(--mono);font-size:.86em}
 .lrow .l1{font-size:13px;color:var(--a-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lrow .chips .chip{font-size:11px;padding:2px 6px}
 .lact{display:flex;align-items:center;gap:4px;margin-top:2px}
-.lact .imp-v{margin-left:4px;margin-right:auto}
+.lact .imp-v{margin-left:4px;margin-right:auto;white-space:nowrap}
 .lact .mini{min-height:40px;border:1px solid var(--a-border);background:none;border-radius:10px;padding:0 10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--a-text)}
 .lact .mini.del{color:var(--a-red)}
 .lact .mini[aria-pressed="true"]{background:var(--a-text);color:var(--a-bg)}
@@ -445,7 +445,6 @@ function marks(n,small){
   if(n.tbl) m.push(`<span class="chip">table</span>`);
   if(n.pdf) m.push(`<span class="chip">PDF attached</span>`);
   if(n.audio) m.push(`<span class="chip">audio · attached, not transcribed</span>`);
-  if(n.draw) m.push(`<span class="chip warn">drawing · not in the export</span>`);
   if(n.pin) m.push(`<span class="chip">pinned in Notes · pin dropped</span>`);
   return m.join("");
 }
@@ -497,7 +496,7 @@ function stepTriagePhone(){
   return `<div class="pick" style="padding:2px;margin-top:12px"><button class="flag" data-flip="C" data-val="1">PICK C · other answer · flip back</button><p class="hint" style="padding:6px 4px 2px">All ten in one scroll. Each row: balls, Skip, Delete.</p></div>
     ${bn.map(x=>{const d=S.dec[x.i]; const lit=d&&d.k==="r"?d.v:0; const dim=d&&(d.k==="s"||d.k==="d");
       return `<div class="lrow">
-      <div class="lh${dim?" dimmed":""}"><b>${esc(x.t)}</b><span>${x.date||"date unknown"}</span></div>
+      <div class="lh${dim?" dimmed":""}"><b>${esc(x.t)}</b><span>${x.date||""}</span></div>
       <div class="l1${dim?" dimmed":""}">${esc(x.l[0])}</div>
       ${x.draw?`<div class="marker" style="font-size:11px;padding:2px 6px">[drawing not in the export]</div>`:""}
       <div class="chips${dim?" dimmed":""}">${marks(x)}</div>
@@ -561,7 +560,7 @@ function primary(){
   return {label:S.undone?"Done":partial?`Continue at batch ${S.batch+1}`:"Show imported notes"};
 }
 function subtitle(){
-  if(S.step===1){const bn=bNotes(S.batch); return `${S.idx+1} of ${bn.length} · batch ${S.batch+1} of ${nB()}`}
+  if(S.step===1){const bn=bNotes(S.batch); return (S.dev==="phone"&&!S.pick.C)?`batch ${S.batch+1} of ${nB()} · ${bn.length} notes`:`${S.idx+1} of ${bn.length} · batch ${S.batch+1} of ${nB()}`}
   return S.step===0?"Pick what to go through":"Report";
 }
 function render(){
