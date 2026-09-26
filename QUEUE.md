@@ -497,7 +497,7 @@ needs: Q65
 do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Take ONLY the chip row from the mock: its Mac panel draws the rows transparent, which is wrong — the app's Mac rows are already white cards on the phone's grey (Q65). Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
 check: `test $(ls plan/reads/filter-q66/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q67 [tuur] (doing) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
+### Q67 [tuur] (tuur) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
 spec: C117 C238
 needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
@@ -734,3 +734,4 @@ check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd S
 - 2026-09-26 08:06 Q68 -> stuck — merge conflict onto claude/session-3-ab263e
 - 2026-09-26 08:08 Q68 -> doing — re-accept after merge onto d329b83a
 - 2026-09-26 08:09 Q68 -> done — gate pass @c80da099
+- 2026-09-26 08:10 Q67 -> tuur — built @db5b01d1 — awaiting sitting
