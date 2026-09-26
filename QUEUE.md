@@ -503,7 +503,7 @@ needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
 check: Tuur clicked through it and said go.
 
-### Q68 [auto] (stuck) Mac list rows show the note's tag chips like the phone (QueueRowView.cardModel)
+### Q68 [auto] (done) Mac list rows show the note's tag chips like the phone (QueueRowView.cardModel)
 spec: C115
 needs: -
 gate+: yes
@@ -730,3 +730,7 @@ check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd S
 - 2026-09-26 07:47 Q65 -> done — gate pass @034877fc
 - 2026-09-26 07:47 Q66 -> doing — worker out
 - 2026-09-26 08:05 Q68 -> stuck — touched protected: Skrift_Native/SkriftDesktop/SkriftDesktopTests/CardChipParityTests.swift 
+- 2026-09-26 08:05 Q68 -> doing — re-accept: block lacked gate+ for its required new test file
+- 2026-09-26 08:06 Q68 -> stuck — merge conflict onto claude/session-3-ab263e
+- 2026-09-26 08:08 Q68 -> doing — re-accept after merge onto d329b83a
+- 2026-09-26 08:09 Q68 -> done — gate pass @c80da099
