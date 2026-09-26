@@ -133,9 +133,7 @@ struct MemoCard: View {
                 m.chips.insert(.init(text: kind.label, systemImage: kind.glyph), at: 0)
             }
         }
-        for tag in memo.tags ?? [] {
-            m.chips.append(.init(text: "#\(tag)", isTag: true))
-        }
+        m.chips.append(contentsOf: NoteCardModel.tagChips(for: memo.tags))
         if let filename = memo.thumbnailPhotoFilename,
            let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
             m.thumb = Image(uiImage: img)
