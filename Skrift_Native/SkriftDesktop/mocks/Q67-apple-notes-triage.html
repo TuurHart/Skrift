@@ -1,0 +1,658 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apple Notes Triage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Page chrome tokens (same set as Q50/Q51) + in-app tokens from Shared/UI/Palette.swift */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-amber:#d97706; --a-green:#0f9d72; --a-red:#dc2626; --a-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 28px rgba(40,30,90,.10);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+    --a-amber:#f59e0b; --a-green:#34d399; --a-red:#ef4444; --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+  --a-amber:#f59e0b; --a-green:#34d399; --a-red:#ef4444; --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em}
+
+/* the question */
+.q{border:2px solid var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:14px 14px 13px;display:flex;flex-direction:column;gap:8px}
+.q .n{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--pg-warn);letter-spacing:.04em}
+.q p{font-size:16px;line-height:1.4;font-weight:600;text-wrap:pretty}
+.q ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-size:14.5px;line-height:1.4}
+.q small{font-size:13px;color:var(--pg-dim);line-height:1.4;display:block}
+
+/* picks, each one flippable right here */
+.picks{display:flex;flex-direction:column;gap:10px}
+.pickrow{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.pickrow .top{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13.5px;line-height:1.4}
+.tagP{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;color:#fff;background:var(--pg-warn);border-radius:4px;padding:2px 6px;white-space:nowrap;margin-top:1px}
+.flipseg{display:grid;grid-template-columns:1fr 1fr;background:var(--pg-bg);border:1px solid var(--pg-line);border-radius:9px;padding:2px;gap:2px}
+.flipseg button{border:0;background:none;min-height:40px;padding:6px 8px;border-radius:7px;font-size:13px;font-weight:600;color:var(--pg-dim);cursor:pointer;line-height:1.25}
+.flipseg button[aria-pressed="true"]{background:var(--pg-warn);color:#fff}
+
+/* today panel (kept from Q51) */
+.today{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.today h3{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:0;color:var(--pg-dim)}
+.today ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.today li{font-size:13.5px;line-height:1.4;display:grid;grid-template-columns:18px 1fr;gap:6px}
+.today li b{font-weight:600}
+.today .ok::before{content:"+";color:var(--a-green);font-family:var(--mono);font-weight:600}
+.today .no::before{content:"\2212";color:var(--pg-warn);font-family:var(--mono);font-weight:600}
+.today .src{font-family:var(--mono);font-size:11px;color:var(--pg-faint);line-height:1.5}
+
+/* controls */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:none;min-height:36px;padding:6px 16px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--pg-dim);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:#fff}
+.steps{display:flex;gap:4px;flex-wrap:wrap}
+.steps button{border:1px solid var(--pg-line);background:var(--pg-card);border-radius:6px;min-height:36px;padding:4px 10px;font-family:var(--mono);font-size:11.5px;color:var(--pg-dim);cursor:pointer}
+.steps button[aria-current="step"]{border-color:var(--pg-accent);color:var(--pg-accent);font-weight:600}
+
+/* stage */
+.stage{display:flex;flex-direction:column;align-items:center}
+.stage>.macscale,.stage>.macfull{width:100%}
+.phone{width:100%;max-width:390px;background:var(--a-bg);border-radius:22px;box-shadow:var(--a-shadow);overflow:hidden;display:flex;flex-direction:column;color:var(--a-text);min-height:680px;border:1px solid var(--a-border)}
+.nav{display:grid;grid-template-columns:92px 1fr 92px;align-items:center;padding:10px 10px 6px;background:var(--a-bg)}
+.nav .l{font-size:15px;color:var(--a-accent);background:none;border:0;cursor:pointer;min-height:44px;padding:0 4px;text-align:left}
+.nav .t{text-align:center;font-weight:600;font-size:15.5px;line-height:1.25}
+.nav .t small{display:block;font-size:11.5px;font-weight:500;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.body{flex:1;padding:4px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.foot{padding:10px 14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--a-bg);border-top:1px solid var(--a-border)}
+.primary{border:0;background:var(--a-accent);color:#fff;font-weight:600;font-size:15.5px;min-height:48px;padding:12px;border-radius:12px;cursor:pointer;width:100%}
+.primary[disabled]{opacity:.45;cursor:default}
+.primary.locked{opacity:.5}
+.ghost{border:0;background:none;color:var(--a-accent);font-weight:500;font-size:14px;min-height:40px;padding:6px;cursor:pointer}
+.danger{color:var(--a-red)}
+.footnote{font-size:12.5px;color:var(--a-dim);text-align:center;line-height:1.35;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
+
+/* Mac window */
+.macscale{width:100%;overflow:hidden}
+.macfull{overflow-x:auto;overflow-y:hidden}
+.mac{width:720px;transform-origin:top left;background:var(--a-bg);color:var(--a-text);border-radius:12px;box-shadow:var(--a-shadow);border:1px solid var(--a-border);overflow:hidden;display:grid;grid-template-columns:170px 1fr;grid-template-rows:auto 1fr auto;min-height:560px}
+.mac.tri{grid-template-columns:232px 1fr}
+.mac .tb{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--a-border);font-size:13px;font-weight:600}
+.mac .tb i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.mac .tb span.r{margin-left:auto;font-weight:500;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.mac .rail{border-right:1px solid var(--a-border);padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:var(--a-surface)}
+.mac .rail>button{border:0;background:none;text-align:left;padding:7px 9px;border-radius:7px;font-size:13px;color:var(--a-dim);cursor:pointer;display:flex;gap:8px}
+.mac .rail>button b{font-family:var(--mono);font-weight:500;font-size:11px;color:var(--a-faint);padding-top:1px}
+.mac .rail>button[aria-current="step"]{background:var(--a-accent-soft);color:var(--a-accent-text);font-weight:600}
+.mac .rail .rh{font-size:11px;font-weight:600;color:var(--a-dim);text-transform:uppercase;letter-spacing:.05em;padding:0 9px 6px}
+.mac .rail .li{display:grid;grid-template-columns:30px 1fr;gap:6px;align-items:center;color:var(--a-text)}
+.mac .rail .li span.tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.mac .rail .li small{display:block;font-size:10.5px;color:var(--a-dim)}
+.mac .body{padding:14px 18px}
+.mac .foot{grid-column:1/-1;flex-direction:row;justify-content:flex-end;align-items:center;gap:10px;padding:10px 14px}
+.mac .foot .cnt{margin-right:auto;font-size:12px;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.mac .primary{width:auto;min-height:0;padding:7px 16px;font-size:13px;border-radius:7px}
+.mac .ghost{font-size:13px;min-height:0}
+.kbd{font-size:11.5px;color:var(--a-dim);display:flex;flex-wrap:wrap;gap:10px}
+.kbd kbd{font-family:var(--mono);font-size:10.5px;background:var(--a-chip);border-radius:4px;padding:1px 5px;color:var(--a-text)}
+
+/* in-app pieces (kept from Q51) */
+.hint{font-size:13px;color:var(--a-dim);line-height:1.4}
+.card{background:var(--a-surface);border-radius:16px;border:1px solid var(--a-border);overflow:hidden}
+.row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--a-border);font-size:14.5px}
+.row:first-child{border-top:0}
+.row.sub{padding-left:34px}
+.row .cnt{font-size:13px;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.row .exp{border:0;background:var(--a-chip);color:var(--a-dim);cursor:pointer;font-size:12px;width:30px;height:30px;border-radius:50%}
+.row.off .nm{color:var(--a-faint)}
+.cb{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--a-faint);display:grid;place-items:center;cursor:pointer;background:none;padding:0}
+.cb[aria-checked="true"]{background:var(--a-accent);border-color:var(--a-accent)}
+.cb[aria-checked="true"]::after{content:"";width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.cb[aria-checked="mixed"]{border-color:var(--a-accent)}
+.cb[aria-checked="mixed"]::after{content:"";width:9px;height:2px;background:var(--a-accent);border-radius:1px}
+.noterow{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:center;padding:7px 12px 7px 40px;border-top:1px solid var(--a-border);font-size:13.5px}
+.noterow .d{font-size:11.5px;color:var(--a-dim)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;background:var(--a-chip);border-radius:8px;padding:3px 8px;color:var(--a-dim);line-height:1.35}
+.chip.acc{background:var(--a-accent-soft);color:var(--a-accent-text)}
+.chip.warn{background:rgba(217,119,6,.14);color:var(--a-amber)}
+.sect{font-size:12px;font-weight:600;color:var(--a-dim);text-transform:uppercase;letter-spacing:.05em;padding:4px 2px 0}
+.marker{font-family:var(--mono);font-size:12px;color:var(--a-amber);background:rgba(217,119,6,.10);border-radius:6px;padding:4px 8px;align-self:flex-start}
+.tbl{border-collapse:collapse;font-size:12.5px;width:100%}
+.tbl td,.tbl th{border:1px solid var(--a-border);padding:3px 6px;text-align:left;font-variant-numeric:tabular-nums}
+.big-num{font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.rep{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 12px;border-top:1px solid var(--a-border);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.rep:first-child{border-top:0}
+.rep b{font-size:14.5px}
+.rep .c{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--a-amber)}
+.rep .c.n{color:var(--a-dim)}
+.rep .why{grid-column:1/-1;font-size:12.5px;color:var(--a-dim);line-height:1.35}
+.rep .ex{grid-column:1/-1;font-size:12.5px;color:var(--a-text);display:flex;flex-direction:column;gap:2px;padding-top:4px}
+.menu{background:var(--a-surface);border-radius:12px;border:1px solid var(--a-border);box-shadow:var(--a-shadow);width:260px;max-width:100%;overflow:hidden;font-size:14.5px;color:var(--a-text)}
+.menu div{padding:10px 14px;border-top:1px solid var(--a-border);display:flex;justify-content:space-between;gap:10px}
+.menu div:first-child{border-top:0}
+.menu .new{background:var(--a-accent-soft);color:var(--a-accent-text);font-weight:600}
+.menu small{color:var(--a-faint);font-family:var(--mono);font-size:11px}
+.confirm{background:rgba(220,38,38,.08);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.confirm .btns{display:flex;gap:8px}
+.confirm button{border:0;border-radius:8px;min-height:40px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:13.5px}
+.confirm .yes{background:var(--a-red);color:#fff}
+.confirm .no{background:var(--a-chip)}
+
+/* ---- triage ---- */
+.strip{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.cell{height:34px;border-radius:8px;border:1.5px solid transparent;background:var(--a-chip);display:grid;place-items:center;cursor:pointer;padding:0;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--a-dim)}
+.cell.cur{border-color:var(--a-accent)}
+.cell.r{background:var(--a-accent-soft)}
+.cell.d{color:var(--a-red)}
+.cell.u{color:var(--a-faint)}
+.cell .md{display:flex;gap:2px}
+.cell .md i{width:5px;height:5px;border-radius:50%;background:var(--a-accent)}
+.legend{font-size:11.5px;color:var(--a-dim);display:flex;flex-wrap:wrap;gap:4px 12px}
+.prev{padding:13px;display:flex;flex-direction:column;gap:8px}
+.prev h4{margin:0;font-size:18px;font-weight:700;line-height:1.25}
+.prev p{font-size:14.5px;line-height:1.45}
+.prev .rep-n{font-family:var(--mono);font-size:10.5px;color:var(--a-faint)}
+.thumbs{display:flex;gap:6px}
+.thumb{width:58px;height:58px;border-radius:8px;background:linear-gradient(135deg,var(--a-chip),var(--a-accent-soft));display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--a-dim)}
+.dimmed{opacity:.45}
+.stamp{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;border-radius:6px;padding:3px 8px;align-self:flex-start}
+.stamp.s{background:var(--a-chip);color:var(--a-dim)}
+.stamp.d{background:rgba(220,38,38,.12);color:var(--a-red)}
+.stamp.u{background:var(--a-chip);color:var(--a-faint)}
+
+/* THE importance control, drawn from Shared/UI/ThreeBallImportanceView.swift
+   (phone: ball 15, target 44, gap 10, card radius 16, sync dot 6, sync font 10.5;
+    Mac: ball 10, target 20, gap 8, card radius 12, sync dot 5, sync font 11) */
+.imp{background:var(--a-surface);border-radius:16px;padding:13px 13px 12px;display:flex;flex-direction:column}
+.imp.dim{opacity:.5}
+.imp-top{display:flex;align-items:center;gap:8px}
+.imp-l{font-size:11px;font-weight:500;color:var(--a-faint);margin-right:10px}
+.balls{display:flex;gap:0}
+.ball{width:44px;height:44px;border:0;background:none;padding:0;display:grid;place-items:center;cursor:pointer;margin:-12px 0}
+.ball i{display:block;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--a-faint);transition:background .12s,border-color .12s}
+.ball.on i{background:var(--a-accent);border-color:var(--a-accent)}
+.imp-v{margin-left:auto;font-size:11.5px;font-weight:500;color:var(--a-faint)}
+.imp-v.on{font-weight:600;color:var(--a-accent-text)}
+.imp-div{height:.5px;background:var(--a-border);margin:11px 0 9px}
+.imp-sync{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--a-dim)}
+.imp-sync i{width:6px;height:6px;border-radius:50%;background:var(--a-faint)}
+.imp-sync i.g{background:var(--a-green)}
+.mac .imp{border-radius:12px;border:1px solid var(--a-border)}
+.mac .ball{width:20px;height:20px;margin:-4px 0}
+.mac .ball i{width:10px;height:10px}
+.mac .imp-l{margin-right:8px}
+.mac .imp-sync{font-size:11px}
+.mac .imp-sync i{width:5px;height:5px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{min-height:46px;border-radius:12px;border:1px solid var(--a-border);background:var(--a-surface);font-weight:600;font-size:14.5px;cursor:pointer;color:var(--a-text);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:6px}
+.act small{font-size:11px;font-weight:500;color:var(--a-dim)}
+.act.del{color:var(--a-red)}
+.act[aria-pressed="true"]{background:var(--a-text);color:var(--a-bg);border-color:var(--a-text)}
+.act[aria-pressed="true"] small{color:var(--a-bg);opacity:.75}
+.act.del[aria-pressed="true"]{background:var(--a-red);border-color:var(--a-red);color:#fff}
+.mac .act{min-height:34px;border-radius:8px;font-size:13px;flex-direction:row;gap:6px}
+.mac .act small{font-size:10.5px}
+
+/* list layout (PICK C, other answer) */
+.lrow{background:var(--a-surface);border-radius:14px;border:1px solid var(--a-border);padding:10px 12px 8px;display:flex;flex-direction:column;gap:4px}
+.lrow .lh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.lrow .lh b{font-size:15px}
+.lrow .lh span{font-size:11.5px;color:var(--a-dim);white-space:nowrap}
+.lrow .l1{font-size:13px;color:var(--a-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .chips .chip{font-size:11px;padding:2px 6px}
+.lact{display:flex;align-items:center;gap:4px;margin-top:2px}
+.lact .imp-v{margin-left:4px;margin-right:auto}
+.lact .mini{min-height:40px;border:1px solid var(--a-border);background:none;border-radius:10px;padding:0 10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--a-text)}
+.lact .mini.del{color:var(--a-red)}
+.lact .mini[aria-pressed="true"]{background:var(--a-text);color:var(--a-bg)}
+.lact .mini.del[aria-pressed="true"]{background:var(--a-red);color:#fff;border-color:var(--a-red)}
+.lact .ball{margin:0}
+
+/* pick annotation: flippable, in the wizard too */
+.pick{position:relative;outline:2px dashed var(--pg-warn);outline-offset:3px;border-radius:10px}
+.flag{font-family:var(--mono);font-size:10.5px;font-weight:600;color:#fff;background:var(--pg-warn);border:0;border-radius:5px;padding:4px 8px;cursor:pointer;letter-spacing:.03em;min-height:28px}
+.pick>.flag{position:absolute;top:-15px;right:8px;z-index:2}
+
+.entry{display:grid;grid-template-columns:1fr;gap:10px;justify-items:start}
+.cap{font-size:13px;color:var(--pg-dim);line-height:1.45;max-width:65ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pg-ink);color:var(--pg-bg);font-size:13.5px;padding:9px 14px;border-radius:10px;max-width:calc(100% - 32px);width:max-content;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.toast,.ball i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q67 · mock · fake data · C117 C238 · revises Q51</div>
+    <h1>Apple Notes import, ten at a time</h1>
+  </header>
+
+  <section class="q" aria-label="Question for Tuur">
+    <div class="n">QUESTION 1 OF 1</div>
+    <p>Skrift can't delete anything inside Apple Notes. When you tap Delete on a note in the triage, what should happen?</p>
+    <ol>
+      <li>It is never imported and never offered again. The end report lists it so you can delete it in Notes yourself. (the mock does this)</li>
+      <li>It is imported straight into Skrift's Recently Deleted, gone in 30 days unless you pull it back.</li>
+    </ol>
+    <small>PICK B below switches the mock between the two. Every button on this page works on tap; nothing is stored, so a reload starts over.</small>
+  </section>
+
+  <section class="picks" aria-label="Choices this mock made">
+    <div class="eyebrow">Choices made here · tap to flip</div>
+    <div id="picks" class="picks"></div>
+  </section>
+
+  <section class="today" aria-label="What imports today">
+    <h3>Today, from the source</h3>
+    <ul>
+      <li class="ok"><span><b>Mac only:</b> Import → pick a folder of Apple Notes <code>.md</code> exports; each file becomes one note.</span></li>
+      <li class="ok"><span><b>Title</b> = the first <code># </code> heading, else the filename.</span></li>
+      <li class="ok"><span><b>Body</b> = the markdown as written, marked typed, glyph "Apple Note", never re-transcribed.</span></li>
+      <li class="ok"><span><b>Pictures</b> in <code>Attachments/</code> are copied and relinked; HEIC becomes JPEG.</span></li>
+      <li class="ok"><span><b>Phone:</b> one shared or opened <code>.md</code> becomes the body text of a note.</span></li>
+      <li class="no"><span><b>Date:</b> every note is dated to the import moment. D18 says it must be the note's creation date.</span></li>
+      <li class="no"><span><b>Subfolders</b> are skipped, so a nested Notes folder never imports.</span></li>
+      <li class="no"><span><b>Every note copies the whole <code>Attachments/</code> folder</b>, not only its own pictures.</span></li>
+      <li class="no"><span><b>Phone:</b> pictures are not imported; the <code>(Attachments/…)</code> links stay dangling.</span></li>
+      <li class="no"><span><b>No choice per note:</b> the whole folder imports, rated at the 0.1 floor, so every note would queue a polish.</span></li>
+      <li class="no"><span><b>No report:</b> a file Skrift can't read is skipped silently.</span></li>
+    </ul>
+    <div class="src">IngestService.swift: ingestNote :169, importAttachments :358, appleNoteTitle :416, ingestFolder :432 · PipelineFile.swift :60 (uploadedAt = Date()) · plan/extraction/ingress.md P11, M3, M4</div>
+  </section>
+
+  <section class="entry" aria-label="Where it starts">
+    <div class="eyebrow">Where it starts</div>
+    <div class="menu">
+      <div><span>Audio or video from Files</span><small>today</small></div>
+      <div><span>Video from Photos</span><small>today</small></div>
+      <div><span>Scan a document</span><small>today</small></div>
+      <div class="new"><span>Apple Notes export…</span><small>new</small></div>
+    </div>
+    <p class="cap">The phone's Import menu, items drawn from MemosListView.swift :734. The Mac's Import button opens the same flow (C238). Both start from a folder you exported out of Notes; the exporter is decided at build time (D18).</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-label="The import">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Device">
+        <button id="dev-phone" aria-pressed="true">iPhone</button>
+        <button id="dev-mac" aria-pressed="false">Mac</button>
+      </div>
+      <div class="steps" id="jump" aria-label="Jump to step"></div>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="cap" id="stagecap"></p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+/* No localStorage/sessionStorage anywhere: all state lives in S and a reload starts over. */
+const STEPS=["Pick","Triage","Report"];
+const NAMES=["Passing","Useful","Important"]; /* ThreeBallScale.names */
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const FOLDERS=[
+ {id:"notes",name:"Notes",n:142,dupes:2,on:true,items:["Tram idea: glaze as map","Passwords to change","Dentist 12 Oct","Gift ideas for Mo","Portuguese verbs"]},
+ {id:"kiln",name:"Kiln & glazes",n:38,dupes:0,on:true,items:["Shino recipe v3","Cone 6 celadon test","Firing log, September","Glaze shopping list","Kiln shelf layout"]},
+ {id:"recipes",name:"Recipes",n:51,dupes:1,on:true,items:["Bacalhau à Brás","Sourdough schedule","Caldo verde","Pastéis attempt 2"]},
+ {id:"flat",name:"Lisbon flat",n:24,dupes:0,on:true,items:["Meter readings","Landlord contacts","Paint colours","Wi-Fi setup"]},
+ {id:"books",name:"Books to read",n:17,dupes:0,on:true,items:["Sci-fi list","Dutch novels"]},
+ {id:"gfr",name:"Good Friday Robotics",n:51,dupes:0,on:true,items:["Gripper v2 notes","Investor call prep","Servo torque table"]},
+ {id:"sup",parent:"gfr",name:"Suppliers",n:12,dupes:0,on:true,items:["Misumi order","Local machinist"]},
+ {id:"quick",name:"Quick Notes",n:71,dupes:0,on:true,items:["Parking level 3","Call back Rui","Words for the song"]},
+ {id:"deleted",name:"Recently Deleted",n:9,dupes:0,on:false,items:["Old shopping list","Test"]}
+];
+FOLDERS.forEach(f=>{f.itemOn=f.items.map(()=>f.on)});
+
+/* 30 made-up notes; the import repeats them (marked) after note 30. */
+const T=[
+ {t:"Shino recipe v3",f:"Kiln & glazes",l:["Cone 6, reduction. Try on the tall jar.","Nepheline syenite 40, spodumene 20, soda ash 4."],pics:1,ck:[2,3],tags:["#glaze"]},
+ {t:"Tram idea: glaze as map",f:"Notes",l:["Crawl glaze that cracks like the 28 route."],draw:1,audio:1,nod:1},
+ {t:"Meter readings",f:"Lisbon flat",l:["Readings for the landlord, every first of the month."],tbl:[["Month","Water","Power"],["Nov","412","8811"],["Dec","431","9104"]]},
+ {t:"Call back Rui",f:"Quick Notes",l:["About the van on Saturday. After 18h."]},
+ {t:"Gripper v2 notes",f:"Good Friday Robotics",l:["Finger pads slip on glossy boxes.","Try the softer silicone, shore 20A."],pics:3,draw:1,tags:["#gripper"]},
+ {t:"Bacalhau à Brás",f:"Recipes",l:["Onions thin, potatoes matchstick, eggs last and off the heat."],pics:2},
+ {t:"Gift ideas for Mo",f:"Notes",l:["Book on Japanese joinery. A good chisel. Concert tickets?"],ck:[1,4]},
+ {t:"Dentist 12 Oct",f:"Notes",l:["10:30, Rua Augusta. Bring the old X-rays."],pin:1},
+ {t:"Firing log, September",f:"Kiln & glazes",l:["Bisque 04 on the 3rd, glaze 6 on the 9th.","Shelf 2 underfired again."],pics:4,tbl:[["Date","Cone","Note"],["3 Sep","04","bisque"],["9 Sep","6","shelf 2 low"]]},
+ {t:"Investor call prep",f:"Good Friday Robotics",l:["Three numbers: units shipped, gross margin, pilot count."],audio:1,pdf:1},
+ {t:"Parking level 3",f:"Quick Notes",l:["P3, row F, next to the pillar with the blue stripe."]},
+ {t:"Sourdough schedule",f:"Recipes",l:["Feed 9:00, mix 14:00, shape 19:00, fridge overnight."],ck:[0,5]},
+ {t:"Paint colours",f:"Lisbon flat",l:["Hall: off-white, sample 3. Bedroom: the grey-green one."],pics:2},
+ {t:"Words for the song",f:"Quick Notes",l:["Second verse still missing. Something about the ferry."],audio:1},
+ {t:"Sci-fi list",f:"Books to read",l:["Exhalation. The Dispossessed. Something by Le Guin I haven't read."],ck:[1,6]},
+ {t:"Servo torque table",f:"Good Friday Robotics",l:["Measured at 6 V, stall."],tbl:[["Servo","kg·cm"],["MG996","9.4"],["DS3218","19.8"]],pdf:1},
+ {t:"Portuguese verbs",f:"Notes",l:["ter, ser, estar, ficar. Ficar is the hard one."],tags:["#pt"]},
+ {t:"Cone 6 celadon test",f:"Kiln & glazes",l:["Too green at 2% iron. Try 1.5 next firing."],pics:6},
+ {t:"Wi-Fi setup",f:"Lisbon flat",l:["Router in the hall cupboard. Guest network is the second one."]},
+ {t:"Misumi order",f:"Suppliers",l:["2x linear rail 300 mm, 4x carriage."],pdf:1,ck:[1,2]},
+ {t:"Caldo verde",f:"Recipes",l:["Kale sliced as thin as hair. Chouriço at the end."],nod:1},
+ {t:"Kiln shelf layout",f:"Kiln & glazes",l:["Three shelves, tall pots at the back."],draw:1},
+ {t:"Landlord contacts",f:"Lisbon flat",l:["Sr. Almeida for the boiler. Mornings only."],pin:1},
+ {t:"Dutch novels",f:"Books to read",l:["Het diner. De avonden. Max Havelaar, one day."]},
+ {t:"Pastéis attempt 2",f:"Recipes",l:["Oven not hot enough. Custard split."],pics:1,nod:1},
+ {t:"Glaze shopping list",f:"Kiln & glazes",l:["Before the October firing."],ck:[3,7]},
+ {t:"Local machinist",f:"Suppliers",l:["Two streets from the office. Does aluminium, not steel."]},
+ {t:"Passwords to change",f:"Notes",l:["Bank, email, router. (No passwords written here.)"],ck:[1,3]},
+ {t:"Weekend in Porto",f:"Notes",l:["Train 8:39 from Santa Apolónia. Book the flat by Friday."],pics:5,pin:1},
+ {t:"Pottery class",f:"Notes",l:["Tuesday evenings, beginner wheel, 8 weeks."]}
+];
+
+const S={dev:"phone",step:0,batch:0,idx:0,dec:{},committed:{},finished:false,undone:false,confirmUndo:false,openRep:{},expanded:{kiln:true},macFull:false,
+  pick:{A:true,B:true,C:true}};
+let NOTES=[]; let advT=null;
+
+const $=id=>document.getElementById(id);
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2400)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ---------- picks ---------- */
+const PICKS=[
+ {k:"A",text:"Tapping Next with notes still untouched imports them Not rated. Nothing forces you to decide all ten.",
+  yes:"Untouched → Not rated",no:"Next locked until all 10 decided"},
+ {k:"B",text:"Delete = never imported, never offered again, listed in the report so you delete it in Apple Notes yourself.",
+  yes:"Never offered again",no:"Into Recently Deleted"},
+ {k:"C",text:"On the iPhone you see one note at a time, with a strip of ten cells above it. Rating or skipping moves you to the next note. The Mac always shows the ten as a list beside the preview.",
+  yes:"One note at a time",no:"All ten in a list"}
+];
+function renderPicks(){
+  $("picks").innerHTML=PICKS.map(p=>`<div class="pickrow"><div class="top"><span class="tagP">PICK ${p.k}</span><span>${p.text}</span></div>
+    <div class="flipseg" role="group" aria-label="PICK ${p.k}"><button data-flip="${p.k}" data-val="1" aria-pressed="${S.pick[p.k]}">${p.yes}</button><button data-flip="${p.k}" data-val="0" aria-pressed="${!S.pick[p.k]}">${p.no}</button></div></div>`).join("");
+}
+function setPick(k,v){S.pick[k]=v; const p=PICKS.find(x=>x.k===k); toast(`PICK ${k}: ${v?p.yes+" (the mock's pick)":p.no+" (other answer)"}`); render();}
+
+/* ---------- pick step (kept from Q51) ---------- */
+function picked(f){const k=f.itemOn.filter(Boolean).length; if(k===f.items.length) return f.on? f.n:0; if(k===0) return 0; return k}
+function fstate(f){const k=f.itemOn.filter(Boolean).length; return k===0?"false":k===f.items.length?"true":"mixed"}
+function totals(){let notes=0,dupes=0,folders=0; FOLDERS.forEach(f=>{const p=picked(f); if(!p) return; folders++; notes+=p; dupes+=Math.round(f.dupes*p/f.n)}); return {notes,dupes,folders,imp:notes-dupes}}
+function stepPick(){
+  const t=totals();
+  const rows=FOLDERS.map(f=>{
+    const st=fstate(f), p=picked(f), ex=S.expanded[f.id];
+    let h=`<div class="row${f.parent?" sub":""}${st==="false"?" off":""}">
+      <button class="cb" role="checkbox" aria-checked="${st}" data-f="${f.id}" aria-label="${esc(f.name)}"></button>
+      <span class="nm">${esc(f.name)}${f.id==="deleted"?' <span class="chip">off by default</span>':""}</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="cnt">${p||0}/${f.n}</span><button class="exp" data-x="${f.id}" aria-label="Show notes">${ex?"▾":"▸"}</button></span></div>`;
+    if(ex){ h+=f.items.map((it,i)=>`<div class="noterow"><button class="cb" role="checkbox" aria-checked="${f.itemOn[i]}" data-f="${f.id}" data-i="${i}" aria-label="${esc(it)}"></button><span>${esc(it)}</span></div>`).join("")
+      + (f.n>f.items.length?`<div class="noterow"><span></span><span class="d">+ ${f.n-f.items.length} more (fake)</span></div>`:""); }
+    return h;}).join("");
+  return `<p class="hint">Folder: <b>Notes export 25 Sep</b> · 415 notes in 9 folders. Tick folders, or open one to pick single notes.</p>
+   <div class="card">${rows}</div>
+   <p class="hint"><b>${t.imp}</b> notes to go through, newest first, in <b>${Math.ceil(t.imp/10)}</b> batches of ten. ${t.dupes?`${t.dupes} are already in Skrift and won't be offered.`:""}</p>
+   <p class="hint">Nothing is written until you save a batch. Locked notes are not in an Apple Notes export, so they can't show up here.</p>`;
+}
+
+/* ---------- notes + decisions ---------- */
+function fmt(d){return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`}
+function buildNotes(n){NOTES=[]; const base=new Date(2026,8,24).getTime();
+  for(let i=0;i<n;i++){const tp=T[i%T.length]; NOTES.push(Object.assign({},tp,{i,date:tp.nod?null:fmt(new Date(base-Math.round(i*2.3)*86400000)),rep:i>=T.length}))}}
+function nB(){return Math.ceil(NOTES.length/10)}
+function bNotes(b){return NOTES.slice(b*10,b*10+10)}
+function cur(){return bNotes(S.batch)[S.idx]}
+function decide(n,d){
+  const old=S.dec[n.i];
+  const same=old&&old.k===d.k&&(d.k!=="r"||old.v===d.v);
+  if(same){delete S.dec[n.i]; toast(d.k==="r"?"Cleared: Not rated, undecided":"Undone: undecided"); render(); return}
+  S.dec[n.i]=d;
+  toast(d.k==="r"?`${NAMES[d.v-1]} · imported rated, the Mac will polish it`:d.k==="s"?"Skipped · not imported, offered again next import":(S.pick.B?"Deleted · never offered again, listed in the report":"Deleted · lands in Recently Deleted, gone in 30 days"));
+  render();
+  const oneAtATime = S.dev==="mac" || S.pick.C;
+  if(oneAtATime){ clearTimeout(advT); advT=setTimeout(()=>{const bn=bNotes(S.batch); for(let k=1;k<=bn.length;k++){const j=(S.idx+k)%bn.length; if(!S.dec[bn[j].i]){S.idx=j; render(); return}} },280); }
+}
+function fake(i){const r=(i*7+3)%10; return r<2?{k:"r",v:1}:r<4?{k:"r",v:2}:r===4?{k:"r",v:3}:r<7?{k:"u"}:r<9?{k:"s"}:{k:"d"}}
+function commit(){
+  const bn=bNotes(S.batch); const und=bn.filter(n=>!S.dec[n.i]);
+  if(!S.pick.A && und.length){toast(`Decide ${und.length} more first. (PICK A, other answer)`);return}
+  und.forEach(n=>S.dec[n.i]={k:"u"});
+  S.committed[S.batch]=true;
+  const c=count(bn);
+  toast(`Batch ${S.batch+1} saved: ${c.rated} rated, ${c.u} Not rated, ${c.s} skipped, ${c.d} deleted`);
+  if(S.batch+1>=nB()){S.finished=true;S.step=2} else {S.batch++;S.idx=0}
+  render(); scrollStage();
+}
+function count(list){const c={r1:0,r2:0,r3:0,u:0,s:0,d:0,rated:0,open:0}; list.forEach(n=>{const d=S.dec[n.i]; if(!d){c.open++;return} if(d.k==="r"){c["r"+d.v]++;c.rated++} else c[d.k]++}); return c}
+function scrollStage(){try{$("stage").scrollIntoView({block:"start",behavior:"smooth"})}catch(e){}}
+
+/* ---------- pieces ---------- */
+function marks(n,small){
+  const m=[];
+  if(!n.date) m.push(`<span class="chip warn">date unknown</span>`);
+  if(n.pics) m.push(`<span class="chip">${n.pics} picture${n.pics>1?"s":""}</span>`);
+  if(n.ck) m.push(`<span class="chip">checklist · ${n.ck[0]} of ${n.ck[1]} done</span>`);
+  if(n.tbl) m.push(`<span class="chip">table</span>`);
+  if(n.pdf) m.push(`<span class="chip">PDF attached</span>`);
+  if(n.audio) m.push(`<span class="chip">audio · attached, not transcribed</span>`);
+  if(n.draw) m.push(`<span class="chip warn">drawing · not in the export</span>`);
+  if(n.pin) m.push(`<span class="chip">pinned in Notes · pin dropped</span>`);
+  return m.join("");
+}
+function preview(n){
+  const d=S.dec[n.i];
+  const stamp=d&&d.k==="s"?`<span class="stamp s">SKIPPED · NOT IMPORTED</span>`:d&&d.k==="d"?`<span class="stamp d">${S.pick.B?"DELETED · NEVER OFFERED AGAIN":"DELETED · INTO RECENTLY DELETED"}</span>`:d&&d.k==="u"?`<span class="stamp u">IMPORTED · NOT RATED</span>`:"";
+  const thumbs=n.pics?`<div class="thumbs">${Array.from({length:Math.min(3,n.pics)},(_,k)=>`<span class="thumb">IMG ${k+1}</span>`).join("")}${n.pics>3?`<span class="thumb">+${n.pics-3}</span>`:""}</div>`:"";
+  const tbl=n.tbl?`<table class="tbl">${n.tbl.map((r,k)=>`<tr>${r.map(c=>k?`<td>${esc(c)}</td>`:`<th>${esc(c)}</th>`).join("")}</tr>`).join("")}</table>`:"";
+  const tags=[`<span class="chip acc">notes/${esc(n.f)}</span>`].concat((n.tags||[]).map(t=>`<span class="chip acc">${esc(t)}</span>`)).join("");
+  return `<div class="card prev${d&&(d.k==="s"||d.k==="d")?" dimmed":""}">
+    ${stamp}
+    <div class="chips">${n.date?`<span class="chip">${n.date}</span>`:""}<span class="chip">Apple Note</span>${tags}</div>
+    <h4>${esc(n.t)}</h4>
+    ${n.l.map(x=>`<p>${esc(x)}</p>`).join("")}
+    ${tbl}
+    ${n.draw?`<div class="marker">[drawing not in the export]</div>`:""}
+    ${thumbs}
+    <div class="chips">${marks(n)}</div>
+    ${n.rep?`<span class="rep-n">fake data repeats after note 30 · this is note ${n.i+1}</span>`:""}
+  </div>`;
+}
+function ballsBtns(n){const d=S.dec[n.i]; const lit=d&&d.k==="r"?d.v:0;
+  return [1,2,3].map(k=>`<button class="ball${k<=lit?" on":""}" data-ball="${k}" data-n="${n.i}" aria-label="Importance ${NAMES[k-1]}" aria-pressed="${k<=lit}"><i></i></button>`).join("")}
+function impCard(n){const d=S.dec[n.i]; const lit=d&&d.k==="r"?d.v:0; const dim=d&&(d.k==="s"||d.k==="d");
+  return `<div class="imp${dim?" dim":""}"><div class="imp-top"><span class="imp-l">Importance</span><span class="balls">${ballsBtns(n)}</span><span class="imp-v${lit?" on":""}">${lit?NAMES[lit-1]:"Not rated"}</span></div>
+    <div class="imp-div"></div><div class="imp-sync"><i class="${lit?"g":""}"></i>${lit?"Rated — ready to process":"Not rated — left alone"}</div></div>`}
+function actBtns(n){const d=S.dec[n.i];
+  return `<div class="acts"><button class="act" data-act="s" data-n="${n.i}" aria-pressed="${!!(d&&d.k==="s")}">Skip<small>don't import</small></button>
+    <button class="act del" data-act="d" data-n="${n.i}" aria-pressed="${!!(d&&d.k==="d")}">Delete<small>${S.pick.B?"never offer again":"to Recently Deleted"}</small></button></div>`}
+function cellGlyph(n){const d=S.dec[n.i]; if(!d) return ["",""]; if(d.k==="r") return [" r",`<span class="md">${"<i></i>".repeat(d.v)}</span>`]; if(d.k==="s") return [" s","–"]; if(d.k==="d") return [" d","×"]; return [" u","○"]}
+function strip(){const bn=bNotes(S.batch);
+  return `<div class="strip">${bn.map((n,k)=>{const g=cellGlyph(n); return `<button class="cell${g[0]}${k===S.idx?" cur":""}" data-cell="${k}" aria-label="Note ${k+1}">${g[1]}</button>`}).join("")}</div>
+   <div class="legend"><span>● rated</span><span>– skipped</span><span>× deleted</span><span>empty = not decided</span></div>`}
+function nextLabel(){const bn=bNotes(S.batch); const und=bn.filter(n=>!S.dec[n.i]).length; const last=S.batch+1>=nB();
+  if(!S.pick.A && und) return {label:`Decide ${und} more`,locked:true,und};
+  return {label:last?`Save batch ${S.batch+1} · finish`:`Save batch ${S.batch+1} · next 10`,locked:false,und};}
+function footNote(){const x=nextLabel();
+  const txt= S.pick.A ? (x.und?`${x.und} untouched → imported Not rated`:"All ten decided") : (x.und?`${x.und} still to decide`:"All ten decided");
+  return `<div class="footnote"><span>${txt}</span><button class="flag" data-flip="A" data-val="${S.pick.A?0:1}">PICK A · flip</button></div>`}
+
+/* ---------- triage ---------- */
+function stepTriagePhone(){
+  const n=cur();
+  if(S.pick.C){
+    return `<div class="pick" style="display:flex;flex-direction:column;gap:6px;padding:2px"><button class="flag" data-flip="C" data-val="0">PICK C · flip to list</button>${strip()}</div>
+      ${preview(n)}${impCard(n)}${actBtns(n)}`;
+  }
+  const bn=bNotes(S.batch);
+  return `<div class="pick" style="padding:2px"><button class="flag" data-flip="C" data-val="1">PICK C · other answer · flip back</button><p class="hint" style="padding:6px 4px 2px">All ten in one scroll. Each row: balls, Skip, Delete.</p></div>
+    ${bn.map(x=>{const d=S.dec[x.i]; const lit=d&&d.k==="r"?d.v:0; const dim=d&&(d.k==="s"||d.k==="d");
+      return `<div class="lrow">
+      <div class="lh${dim?" dimmed":""}"><b>${esc(x.t)}</b><span>${x.date||"date unknown"}</span></div>
+      <div class="l1${dim?" dimmed":""}">${esc(x.l[0])}</div>
+      ${x.draw?`<div class="marker" style="font-size:11px;padding:2px 6px">[drawing not in the export]</div>`:""}
+      <div class="chips${dim?" dimmed":""}">${marks(x)}</div>
+      <div class="lact"><span class="balls">${ballsBtns(x)}</span><span class="imp-v${lit?" on":""}">${lit?NAMES[lit-1]:"Not rated"}</span>
+        <button class="mini" data-act="s" data-n="${x.i}" aria-pressed="${!!(d&&d.k==="s")}">Skip</button><button class="mini del" data-act="d" data-n="${x.i}" aria-pressed="${!!(d&&d.k==="d")}">Delete</button></div></div>`}).join("")}`;
+}
+function stepTriageMac(){
+  const n=cur();
+  return `${preview(n)}${impCard(n)}${actBtns(n)}
+    <div class="kbd"><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> rate</span><span><kbd>S</kbd> skip</span><span><kbd>⌫</kbd> delete</span><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>⏎</kbd> save batch</span></div>`;
+}
+function macList(){const bn=bNotes(S.batch);
+  return `<div class="rh">Batch ${S.batch+1} of ${nB()}</div>`+bn.map((x,k)=>{const g=cellGlyph(x);
+    return `<button class="li" data-cell="${k}" ${k===S.idx?'aria-current="step"':""}><span class="cell${g[0]}" style="height:24px;pointer-events:none">${g[1]}</span><span class="tt">${esc(x.t)}<small>${x.date||"date unknown"}</small></span></button>`}).join("");}
+
+/* ---------- report ---------- */
+function stepReport(){
+  const t=totals();
+  const c=count(NOTES); const imported=c.rated+c.u; const remaining=c.open;
+  if(S.undone) return `<div style="padding-top:12px;display:flex;flex-direction:column;gap:10px"><div class="big-num">0</div><p class="hint">Import undone. ${imported} notes moved to Trash. Skipped and deleted choices are forgotten too. Trash empties on its usual clock.</p></div>`;
+  const imp=NOTES.filter(n=>{const d=S.dec[n.i]; return d&&(d.k==="r"||d.k==="u")});
+  const ex=f=>{const out=[]; imp.forEach(n=>{if(f(n)&&!out.includes(n.t)&&out.length<3) out.push(n.t)}); return out};
+  const cnt=f=>imp.filter(f).length;
+  const groups=[
+   ["nodate","Date unknown",cnt(n=>!n.date),"The export had no creation date. Shown as \"date unknown\", sorted last. Set a date from the note.",ex(n=>!n.date)],
+   ["draw","Drawings",cnt(n=>n.draw),"The export has no image for them. The note keeps a [drawing not in the export] marker.",ex(n=>n.draw)],
+   ["audio","Audio recordings",cnt(n=>n.audio),"Attached as a file. Not transcribed.",ex(n=>n.audio)],
+   ["pinned","Pinned",cnt(n=>n.pin),"Skrift has no pins. The pin is dropped; the note is in.",ex(n=>n.pin)]
+  ].filter(g=>g[2]>0);
+  const delNames=NOTES.filter(n=>{const d=S.dec[n.i];return d&&d.k==="d"}).map(n=>n.t);
+  const partial=!S.finished&&remaining>0;
+  const decisions=[
+   ["skip","Skipped",c.s,"Not imported. Offered again next time you import this export.",null],
+   ["del","Deleted",c.d,S.pick.B?"Never imported, never offered again. Skrift can't delete in Apple Notes; delete these there yourself.":"Imported into Recently Deleted. Gone in 30 days unless you pull one back.",delNames.filter((x,k,a)=>a.indexOf(x)===k).slice(0,6)]
+  ];
+  return `${partial?`<div class="card" style="padding:10px 12px"><p class="hint"><b>Stopped after batch ${S.batch} of ${nB()}.</b> ${remaining} notes still to go. What you saved stays in. Import Apple Notes again to continue where you stopped.</p></div>`:""}
+   <div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;padding-top:4px">
+     <div><div class="big-num">${imported}</div><span class="hint">imported</span></div>
+     <div><div class="big-num" style="color:var(--a-dim)">${c.s+c.d}</div><span class="hint">skipped or deleted</span></div>
+     <div><div class="big-num" style="color:var(--a-amber)">${groups.reduce((a,g)=>a+g[2],0)}</div><span class="hint">need a look</span></div>
+   </div>
+   <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+     <div class="chips"><span class="chip acc">Important ${c.r3}</span><span class="chip acc">Useful ${c.r2}</span><span class="chip acc">Passing ${c.r1}</span><span class="chip">Not rated ${c.u}</span></div>
+     <p class="hint">The Mac polishes the <b>${c.rated}</b> rated notes and exports them to Obsidian. The ${c.u} Not rated sit in your list until you rate one. ${t.dupes} were already in Skrift and never offered.</p>
+   </div>
+   <div class="sect">What you left out</div>
+   <div class="card">${decisions.map(g=>`<button class="rep" data-r="${g[0]}" aria-expanded="${!!S.openRep[g[0]]}"><b>${g[1]}</b><span class="c n">${g[2]}</span><span class="why">${g[3]}</span>${S.openRep[g[0]]&&g[4]&&g[4].length?`<span class="ex">${g[4].map(x=>"· "+esc(x)).join("<br>")}${g[2]>g[4].length?"<br>…":""}</span>`:""}</button>`).join("")}</div>
+   <div class="sect">What didn't map</div>
+   <div class="card">${groups.map(g=>`<button class="rep" data-r="${g[0]}" aria-expanded="${!!S.openRep[g[0]]}"><b>${g[1]}</b><span class="c">${g[2]}</span><span class="why">${g[3]}</span>${S.openRep[g[0]]?`<span class="ex">${g[4].map(x=>"· "+esc(x)).join("<br>")}</span>`:""}</button>`).join("")||'<div class="rep"><span class="why">Nothing so far.</span></div>'}</div>
+   <p class="hint">Tap a row to see which notes. Locked notes weren't in the export. Skrift can't change anything in Apple Notes.</p>
+   ${S.confirmUndo?`<div class="confirm"><span>Move all ${imported} imported notes to Trash?</span><div class="btns"><button class="yes" data-u="yes">Move to Trash</button><button class="no" data-u="no">Keep them</button></div></div>`:""}`;
+}
+
+/* ---------- chrome ---------- */
+function body(){ if(S.step===0) return stepPick(); if(S.step===1) return S.dev==="mac"?stepTriageMac():stepTriagePhone(); return stepReport(); }
+function primary(){
+  const t=totals();
+  if(S.step===0) return {label:`Start · ${t.imp} notes, ${Math.ceil(t.imp/10)} batches`,dis:t.imp===0};
+  if(S.step===1){const x=nextLabel(); return {label:x.label,locked:x.locked}}
+  const partial=!S.finished&&count(NOTES).open>0;
+  return {label:S.undone?"Done":partial?`Continue at batch ${S.batch+1}`:"Show imported notes"};
+}
+function subtitle(){
+  if(S.step===1){const bn=bNotes(S.batch); return `${S.idx+1} of ${bn.length} · batch ${S.batch+1} of ${nB()}`}
+  return S.step===0?"Pick what to go through":"Report";
+}
+function render(){
+  renderPicks();
+  const p=primary();
+  const prim=`<button class="primary${p.locked?" locked":""}" id="go" ${p.dis?"disabled":""}>${p.label}</button>`;
+  const secondary = S.step===2 && !S.undone ? `<button class="ghost danger" id="undo">Undo this import</button>` : "";
+  if(S.dev==="phone"){
+    const left = S.step===0?"Cancel":S.step===1?"Finish later":"";
+    $("stage").innerHTML=`<div class="phone"><div class="nav"><button class="l" id="${S.step===0?"cancel":"later"}">${left}</button><div class="t">Import Apple Notes<small>${subtitle()}</small></div><span></span></div>
+      <div class="body">${body()}</div>
+      <div class="foot">${prim}${S.step===1?footNote():""}${secondary}</div></div>`;
+  } else {
+    const tri=S.step===1;
+    const rail= tri? macList() : STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}><b>${i+1}</b>${s}</button>`).join("");
+    const left= S.step===0?'<button class="ghost" id="cancel">Cancel</button>':tri?'<button class="ghost" id="later">Finish later</button>':"";
+    $("stage").innerHTML=`<button class="ghost" id="macsize" style="align-self:flex-start;color:var(--pg-accent);padding:0 0 6px">${S.macFull?"Fit to screen":"View at full size (scroll sideways)"}</button><div class="${S.macFull?"macfull":"macscale"}" id="ms"><div class="mac${tri?" tri":""}" id="macw"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">Import Apple Notes</span><span class="r">${subtitle()}</span></div>
+      <nav class="rail">${rail}</nav>
+      <div class="body" style="display:flex;flex-direction:column;gap:10px">${body()}</div>
+      <div class="foot">${tri?`<span class="cnt">${S.pick.A?"":"Next locked until all ten are decided (PICK A, other answer)"}</span>`:""}${left}${secondary}${prim}</div></div></div>`;
+    fitMac();
+  }
+  $("jump").innerHTML=STEPS.map((s,i)=>`<button data-j="${i}" ${i===S.step?'aria-current="step"':""}>${i+1} ${s}</button>`).join("");
+  const caps={
+    phone:["iPhone: a full-screen sheet over the notes list. Pick folders, then triage.",
+      S.pick.C?"iPhone triage: one note at a time. Tap a ball to rate (tap it again to clear), or Skip or Delete; it moves to the next undecided note. Tap a cell in the strip to go back. The balls are the real control, drawn from ThreeBallImportanceView.swift.":"iPhone triage, list layout (other answer): all ten in one scroll, each row with the balls, Skip and Delete.",
+      "The end report. Tap a row to see which notes."],
+    mac:["Mac: the same steps as a sheet. Scaled to fit; the real sheet is 720 pt wide.",
+      "Mac triage: the batch of ten on the left, the selected note on the right. Keys work while this view is up: 1 2 3, S, Backspace, arrows, Return.",
+      "The end report, same content as the phone."]
+  };
+  $("stagecap").textContent=caps[S.dev][S.step];
+  $("dev-phone").setAttribute("aria-pressed",S.dev==="phone"); $("dev-mac").setAttribute("aria-pressed",S.dev==="mac");
+}
+function fitMac(){const ms=$("ms"),w=$("macw"); if(!ms||!w) return; if(S.macFull){w.style.transform="";ms.style.height="";return} const sc=Math.min(1,ms.clientWidth/720); w.style.transform=`scale(${sc})`; ms.style.height=(w.offsetHeight*sc)+"px"}
+window.addEventListener("resize",fitMac);
+
+function start(){const t=totals(); if(NOTES.length!==t.imp){buildNotes(t.imp); S.dec={}; S.committed={}; S.batch=0; S.idx=0; S.finished=false; S.undone=false}
+  S.step=1; render(); scrollStage();}
+function fillRest(){NOTES.forEach(n=>{if(!S.dec[n.i]) S.dec[n.i]=fake(n.i)}); for(let b=0;b<nB();b++) S.committed[b]=true; S.finished=true; S.batch=nB()-1; S.idx=0}
+function go(){
+  if(S.step===0){start();return}
+  if(S.step===1){commit();return}
+  if(S.undone){toast("Mock: closes the sheet.");return}
+  if(!S.finished&&count(NOTES).open>0){S.step=1;render();scrollStage();return}
+  toast("Mock: opens the notes list filtered to the imported notes.");
+}
+function later(){const bn=bNotes(S.batch); const done=bn.filter(n=>S.dec[n.i]).length;
+  S.step=2; S.finished=false; toast(`Stopped. ${done} decisions in this batch are saved; the rest wait for next time.`); render(); scrollStage();}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.id==="dev-phone"){S.dev="phone";render();return}
+  if(b.id==="dev-mac"){S.dev="mac";render();return}
+  if(b.id==="go"){go();return}
+  if(b.id==="later"){later();return}
+  if(b.id==="macsize"){S.macFull=!S.macFull;render();return}
+  if(b.id==="cancel"){toast("Mock: Cancel closes the sheet. Nothing was written.");return}
+  if(b.id==="undo"){S.confirmUndo=true;render();return}
+  if(b.dataset.u){ if(b.dataset.u==="yes"){S.undone=true;toast("Moved to Trash.")} else toast("Kept."); S.confirmUndo=false; render(); return }
+  if(b.dataset.flip){setPick(b.dataset.flip,b.dataset.val==="1");return}
+  if(b.dataset.j!==undefined){const j=+b.dataset.j;
+    if(j===0){S.step=0;render();return}
+    if(!NOTES.length) buildNotes(totals().imp);
+    if(j===1){if(S.batch>=nB()) S.batch=nB()-1; S.step=1; render(); return}
+    if(j===2){ if(count(NOTES).open>0){fillRest(); toast("Mock: the batches you didn't do are filled with made-up answers.")} S.step=2; render(); return }
+  }
+  if(b.dataset.cell!==undefined){S.idx=+b.dataset.cell;render();return}
+  if(b.dataset.ball){decide(NOTES[+b.dataset.n],{k:"r",v:+b.dataset.ball});return}
+  if(b.dataset.act){decide(NOTES[+b.dataset.n],{k:b.dataset.act});return}
+  if(b.dataset.x){S.expanded[b.dataset.x]=!S.expanded[b.dataset.x];render();return}
+  if(b.dataset.f){const f=FOLDERS.find(x=>x.id===b.dataset.f);
+    if(b.dataset.i!==undefined){const i=+b.dataset.i; f.itemOn[i]=!f.itemOn[i]; f.on=f.itemOn.every(Boolean)?true:f.on;}
+    else {const v=fstate(f)!=="true"; f.on=v; f.itemOn=f.items.map(()=>v);}
+    render();return}
+  if(b.dataset.r){S.openRep[b.dataset.r]=!S.openRep[b.dataset.r];render();return}
+});
+document.addEventListener("keydown",e=>{
+  if(S.dev!=="mac"||S.step!==1) return;
+  const n=cur(); if(!n) return; const bn=bNotes(S.batch);
+  if(["1","2","3"].includes(e.key)){decide(n,{k:"r",v:+e.key});e.preventDefault();return}
+  if(e.key==="s"||e.key==="S"){decide(n,{k:"s"});e.preventDefault();return}
+  if(e.key==="Backspace"||e.key==="Delete"){decide(n,{k:"d"});e.preventDefault();return}
+  if(e.key==="ArrowDown"){S.idx=Math.min(bn.length-1,S.idx+1);render();e.preventDefault();return}
+  if(e.key==="ArrowUp"){S.idx=Math.max(0,S.idx-1);render();e.preventDefault();return}
+  if(e.key==="Enter"){commit();e.preventDefault();return}
+});
+buildNotes(totals().imp);
+/* open mid-triage so the first frame shows the thing: batch 1 saved, batch 2 at note 3 */
+bNotes(0).forEach(n=>S.dec[n.i]=fake(n.i)); S.committed[0]=true;
+S.dec[10]={k:"r",v:2}; S.dec[11]={k:"s"}; S.batch=1; S.idx=2; S.step=1;
+render();
+})();
+</script>
