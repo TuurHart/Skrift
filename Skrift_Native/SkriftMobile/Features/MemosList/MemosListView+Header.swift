@@ -174,69 +174,84 @@ extension MemosListView {
         .padding(.horizontal, 14)
     }
 
-    /// The Mac sidebar's chip row (All / Needs Work / Done / Unrated), verbatim
-    /// idiom — one `QueueFilter`, the shared word set. Selecting a chip filters
-    /// the list (`matchesFilter`); D136: each chip now carries ITS OWN count
-    /// (the old triage line's numbers moved here) and Filter ends the bar,
-    /// icon-only — on the phone too now, not just the iPad.
+    /// Q66/D148 (option A, `mocks/Q49-one-filter.html`): the chip row carries
+    /// EVERYTHING now. All / Needs Work / Done / Unrated (verbatim, one shared
+    /// `QueueFilter`) come first, then Date and Unsynced past them, then a
+    /// sort word ending the row (`MemoSort.short`/`.next`). The Filter icon,
+    /// the Sort & Filter sheet's Sort/Unsynced sections and the sheet's
+    /// separate "Not rated" toggle are gone — the toggle was the SAME set as
+    /// the Unrated chip (BUGS §2: the phone filtered Unrated twice, together
+    /// they emptied the list). The whole row scrolls sideways when it doesn't
+    /// fit (a 390pt phone with a live date range, per the mock's own admission).
     var filterChips: some View {
         // Computed ONCE for the whole row, not per chip — `chipCounts` used to
         // be read as a property inside the ForEach, so its 3 corpus filters +
         // `enhancedMemoIDs` rebuild reran on each of the 4 chip iterations.
         let counts = chipCounts
-        return HStack(spacing: 5) {
-            ForEach(QueueFilter.allCases, id: \.self) { chip in
-                let on = listChip == chip
-                HStack(spacing: 3) {
-                    Text(chip.rawValue)
-                    if let n = counts[chip] {
-                        Text("\(n)").fontWeight(.semibold)
+        let chipStyle = ChipRowStyle(accent: .skAccent, dim: .skTextDim)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
+                ForEach(QueueFilter.allCases, id: \.self) { chip in
+                    let on = listChip == chip
+                    HStack(spacing: 3) {
+                        Text(chip.rawValue)
+                        if let n = counts[chip] {
+                            Text("\(n)").fontWeight(.semibold)
+                        }
                     }
+                    .font(.system(size: 11))
+                    .lineLimit(1).fixedSize()
+                    .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6)
+                        .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
+                    .contentShape(Rectangle())
+                    // Q48/D145 (BUGS §3): this used to wrap the `listChip` write in
+                    // `withAnimation`, which put the List's own ForEach/Section diff
+                    // inside that animation transaction — SwiftUI then auto-animates
+                    // each section's insert/remove individually (Needs Work flying up
+                    // from the bottom, Done's headers arriving last), a different
+                    // motion per chip. A plain (unanimated) write swaps the list
+                    // instantly and identically every time — list identity stays the
+                    // memo id via `Identifiable`, nothing here re-keys it. The pill
+                    // highlight below still animates on its own, short and the same
+                    // for every chip (`.animation(value: listChip)` on the row).
+                    .onTapGesture { listChip = chip }
+                    .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
                 }
-                .font(.system(size: 11))
-                .lineLimit(1).fixedSize()
-                .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
-                .padding(.horizontal, 9).padding(.vertical, 4)
-                .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
-                .contentShape(Rectangle())
-                // Q48/D145 (BUGS §3): this used to wrap the `listChip` write in
-                // `withAnimation`, which put the List's own ForEach/Section diff
-                // inside that animation transaction — SwiftUI then auto-animates
-                // each section's insert/remove individually (Needs Work flying up
-                // from the bottom, Done's headers arriving last), a different
-                // motion per chip. A plain (unanimated) write swaps the list
-                // instantly and identically every time — list identity stays the
-                // memo id via `Identifiable`, nothing here re-keys it. The pill
-                // highlight below still animates on its own, short and the same
-                // for every chip (`.animation(value: listChip)` on the row).
-                .onTapGesture { listChip = chip }
-                .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
+                ExtraFilterChip(label: filter.dateActive ? "Date · \(dateChipLabel)" : "Date",
+                                active: filter.dateActive, style: chipStyle)
+                    .onTapGesture { showDateFilter = true }
+                    .accessibilityIdentifier("chip-date")
+                ExtraFilterChip(label: "Unsynced", active: filter.unsyncedOnly, style: chipStyle)
+                    .onTapGesture { filter.unsyncedOnly.toggle() }
+                    .accessibilityIdentifier("chip-unsynced")
+                SortCycleWord(word: sort.short, style: chipStyle) { sort = sort.next }
+                    .accessibilityIdentifier("sort-cycle-word")
             }
-            Spacer(minLength: 0)
-            // Icon-only Filter (D136: "Filter" the word doesn't fit next to four
-            // counted chips) — same identifier as the old header icon so it
-            // stays discoverable at the same tap-order spot.
-            Button { showSortFilter = true } label: {
-                Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(filter.isActive ? Color.skAccent : Color.skTextDim)
-            .padding(6)
-            .background(Color.skElev, in: RoundedRectangle(cornerRadius: 6))
-            .accessibilityIdentifier("sort-filter-button")
-            .accessibilityLabel("Sort and filter")
+            .padding(.horizontal, 16)
+            .padding(.top, 2)
+            .padding(.bottom, 4)
+            // Scoped to this row ONLY — the highlight pill still gets one quick,
+            // consistent motion on every chip switch. It does not reach the List
+            // below (a sibling, not a descendant), so the row content swaps
+            // instantly with no section-by-section animation.
+            .animation(Theme.Motion.snappy, value: listChip)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 2)
-        .padding(.bottom, 4)
-        // Scoped to this row ONLY — the highlight pill still gets one quick,
-        // consistent motion on every chip switch. It does not reach the List
-        // below (a sibling, not a descendant), so the row content swaps
-        // instantly with no section-by-section animation.
-        .animation(Theme.Motion.snappy, value: listChip)
+    }
+
+    /// "22–25 Sep" / "from 22 Sep" / "to 25 Sep" — the Date chip's own label
+    /// once a range is live (mock's `dateLabel`).
+    var dateChipLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM"
+        switch (filter.from, filter.to) {
+        case let (from?, to?): return "\(f.string(from: from))–\(f.string(from: to))"
+        case let (from?, nil): return "from \(f.string(from: from))"
+        case let (nil, to?):   return "to \(f.string(from: to))"
+        default:               return ""
+        }
     }
 
     /// D135: "each chip counts its own notes" — over ALL live notes (not the

@@ -474,98 +474,90 @@ struct SidebarView: View {
         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.hairline.opacity(0.08), lineWidth: 0.5))
     }
 
+    /// Q66/D148 (option A, `mocks/Q49-one-filter.html`): the chip row carries
+    /// EVERYTHING now -- the four status chips, then Date, then a sort word
+    /// (`SidebarSort.short`/`.next`) ending the row. The old icon-only Filter
+    /// button + its Sort/Date popover are gone; Date keeps a popover of its
+    /// own (just the date range -- Sort moved to the word), and the whole row
+    /// scrolls sideways at the sidebar's 292pt floor. No Unsynced chip here
+    /// (the mock: "Mac has no Unsynced today").
     private var filterChips: some View {
-        HStack(spacing: 5) {
-            ForEach(QueueFilter.allCases, id: \.self) { f in
-                let on = model.filter == f
-                HStack(spacing: 3) {
-                    Text(f.rawValue)
-                    // D135: "All carries no number" — the other three show the
-                    // count `chipCounts` computed, over every live item.
-                    if let n = chipCounts[f] {
-                        Text("\(n)").fontWeight(.semibold)
+        let style = ChipRowStyle(accent: Theme.accent, dim: Theme.textSecondary)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
+                ForEach(QueueFilter.allCases, id: \.self) { f in
+                    let on = model.filter == f
+                    HStack(spacing: 3) {
+                        Text(f.rawValue)
+                        // D135: "All carries no number" -- the other three show the
+                        // count `chipCounts` computed, over every live item.
+                        if let n = chipCounts[f] {
+                            Text("\(n)").fontWeight(.semibold)
+                        }
                     }
+                    .font(.system(size: 11))
+                    .lineLimit(1).fixedSize()
+                    .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(on ? Theme.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6)
+                        .stroke(on ? Theme.accent.opacity(0.22) : .clear, lineWidth: 1))
+                    .contentShape(Rectangle())
+                    .onTapGesture { model.filter = f }
+                    .accessibilityIdentifier("sidebar.chip.\(f.rawValue)")
                 }
-                .font(.system(size: 11))
-                .lineLimit(1).fixedSize()
-                .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(on ? Theme.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(on ? Theme.accent.opacity(0.22) : .clear, lineWidth: 1))
-                .contentShape(Rectangle())
-                .onTapGesture { model.filter = f }
-                .accessibilityIdentifier("sidebar.chip.\(f.rawValue)")
+                ExtraFilterChip(label: model.dateFilterActive ? "Date · \(dateChipLabel)" : "Date",
+                                active: model.dateFilterActive, style: style)
+                    .onTapGesture { showFilterPopover.toggle() }
+                    .accessibilityIdentifier("sidebar.chip.Date")
+                    .popover(isPresented: $showFilterPopover, arrowEdge: .bottom) { datePopover }
+                SortCycleWord(word: model.sort.short, style: style) { model.sort = model.sort.next }
+                    .accessibilityIdentifier("sidebar.sort-word")
             }
-            Spacer(minLength: 0)
-            filterControl
+            // Q48: same quick, consistent pill motion as the phone/iPad chip row
+            // (`SkMotion.snappy`) -- scoped to this row, never reaching `queue`
+            // below (a sibling), so the list swap stays instant, not section-animated.
+            .animation(SkMotion.snappy, value: model.filter)
         }
-        // Q48: same quick, consistent pill motion as the phone/iPad chip row
-        // (`SkMotion.snappy`) — scoped to this row, never reaching `queue`
-        // below (a sibling), so the list swap stays instant, not section-animated.
-        .animation(SkMotion.snappy, value: model.filter)
     }
 
-    /// ONE Filter control (Tuur 2026-07-23: "that filter button should also be
-    /// on the Mac… similar between them") — icon-only now (D136: "Filter" the
-    /// word doesn't fit next to four counted chips), ending the chip bar like
-    /// the phone/iPad. A Button (not a Menu — a Menu can't render in
-    /// `ImageRenderer`, the snapshot harness) that toggles a popover; the
-    /// popover is unpresented at render time, so snapshots stay clean.
-    private var filterControl: some View {
-        Button { showFilterPopover.toggle() } label: {
-            Image(systemName: "line.3.horizontal.decrease")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(model.dateFilterActive ? Theme.accent : Theme.textSecondary)
-                .padding(6)
-                .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+    /// "22–25 Sep" / "from 22 Sep" / "to 25 Sep" -- the Date chip's own label
+    /// once a range is live (mirrors the phone's `dateChipLabel`).
+    private var dateChipLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM"
+        switch (model.dateFrom, model.dateTo) {
+        case let (from?, to?): return "\(f.string(from: from))–\(f.string(from: to))"
+        case let (from?, nil): return "from \(f.string(from: from))"
+        case let (nil, to?):   return "to \(f.string(from: to))"
+        default:               return ""
         }
-        .buttonStyle(.plain)
-        .help("Sort & filter")
-        .accessibilityIdentifier("sidebar.filter")
-        .popover(isPresented: $showFilterPopover, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Sort & Filter").font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 6)
-                Text("SORT").font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 16).padding(.top, 4)
-                ForEach(SidebarSort.allCases, id: \.self) { s in
-                    Button { model.sort = s } label: {
-                        HStack {
-                            Text(s.rawValue).font(.system(size: 13))
-                            Spacer()
-                            if model.sort == s {
-                                Image(systemName: "checkmark").font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(Theme.accent)
-                            }
-                        }
-                        .foregroundStyle(Theme.textPrimary)
-                        .padding(.horizontal, 16).padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
+    }
 
-                Divider().padding(.horizontal, 16).padding(.vertical, 6)
-                Text("FILTER BY DATE (UPLOADED)").font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 16)
-                datePickerRow(label: "From", isOn: fromEnabled, date: fromBinding)
-                datePickerRow(label: "To", isOn: toEnabled, date: toBinding)
-                if model.dateFilterActive {
-                    Button { model.dateFrom = nil; model.dateTo = nil } label: {
-                        Text("Clear dates").font(.system(size: 12))
-                            .foregroundStyle(Theme.accent)
-                            .padding(.horizontal, 16).padding(.top, 4)
-                    }
-                    .buttonStyle(.plain)
+    /// The Date chip's own popover -- just the upload-date range now (Sort
+    /// left for the row's own word). A Button/`.popover` pair (not a Menu -- a
+    /// Menu can't render in `ImageRenderer`, the snapshot harness).
+    private var datePopover: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Filter by date").font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+                .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 6)
+            Text("UPLOADED").font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.textMuted).padding(.horizontal, 16)
+            datePickerRow(label: "From", isOn: fromEnabled, date: fromBinding)
+            datePickerRow(label: "To", isOn: toEnabled, date: toBinding)
+            if model.dateFilterActive {
+                Button { model.dateFrom = nil; model.dateTo = nil } label: {
+                    Text("Clear dates").font(.system(size: 12))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 16).padding(.top, 4)
                 }
+                .buttonStyle(.plain)
             }
-            .frame(width: 260)
-            .padding(.bottom, 12)
         }
+        .frame(width: 260)
+        .padding(.bottom, 12)
     }
 
     /// One "From/To" row: a toggle that arms the bound (today by default) + a

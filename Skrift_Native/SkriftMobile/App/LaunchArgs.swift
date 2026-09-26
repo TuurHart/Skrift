@@ -123,8 +123,10 @@ enum LaunchFlags {
     static var fakePolishEngine: Bool { args.boolFlag("-fakePolishEngine") }
     /// …and make that engine claim its model is missing, for the download state.
     static var fakePolishNeedsDownload: Bool { args.boolFlag("-fakePolishNeedsDownload") }
-    /// Present the Sort & Filter sheet on launch (screenshot rig — the sim's
-    /// rotated tap space makes tapping the Filter button unreliable headless).
+    /// Present the Date filter sheet on launch (screenshot rig — the sim's
+    /// rotated tap space makes tapping a chip unreliable headless). Q66: the
+    /// old Sort & Filter sheet is gone; Date is the only chip left with a
+    /// sheet of its own.
     static var showFilterSheet: Bool { args.boolFlag("-showFilterSheet") }
     /// Inject a deterministic transcript instead of running FluidAudio (the
     /// Simulator has no Neural Engine). Its presence also puts recording in mock

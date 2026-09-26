@@ -40,16 +40,15 @@ enum MemoDateField: String, CaseIterable, Identifiable {
 struct MemoFilter: Equatable {
     var unsyncedOnly = false
     var hasPhotosOnly = false
-    /// Couch-triage mode (⏱ eyeball wave 2, 2026-07-22): the Mac's "Unrated"
-    /// chip as a pulled lever, not standing chrome — unrated, unlocked notes
-    /// only (locked = resolved, matching the Mac band).
-    var notRatedOnly = false
     var place: String?
     /// Optional date-range filter, applied to either the recorded or added date.
     var dateField: MemoDateField = .recorded
     var from: Date?
     var to: Date?
-    var isActive: Bool { unsyncedOnly || hasPhotosOnly || notRatedOnly || place != nil || from != nil || to != nil }
+    var isActive: Bool { unsyncedOnly || hasPhotosOnly || place != nil || from != nil || to != nil }
+    /// Just the date half — drives the Date chip's own "on" state (Q66: the
+    /// chip lights for a live range, Unsynced is its own separate chip now).
+    var dateActive: Bool { from != nil || to != nil }
 }
 
 /// The memos surface (mockup3): full-text search, day-group cards with honest
@@ -92,7 +91,10 @@ struct MemosListView: View {
     /// file at all, and the video picker was built but never wired anywhere.
     @State var showMediaFileImporter = false
     @State var showVideoImporter = false
-    @State var showSortFilter = false
+    /// Q66: the Date chip's own popover/sheet — the Sort & Filter sheet and its
+    /// Filter icon are gone; Unsynced and the sort word live as chips/a word in
+    /// the row itself now, so Date is the only thing left needing a surface.
+    @State var showDateFilter = false
     /// Presents WayOutView — the merged Fading + Recently Deleted shelf (Q4,
     /// 2026-07-20). One sheet now instead of two (`showTrash` retired).
     /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
@@ -276,7 +278,7 @@ struct MemosListView: View {
             .toolbar(.hidden, for: .navigationBar)
             // Screenshot rig (`-showFilterSheet`) — on notesRoot so it fires for
             // BOTH the phone (NavigationStack) and the iPad (split view).
-            .onAppear { if LaunchFlags.showFilterSheet { showSortFilter = true } }
+            .onAppear { if LaunchFlags.showFilterSheet { showDateFilter = true } }
             .overlay(alignment: .top) {
                 // Import pill outranks the transient sync banner (both are rare;
                 // the drain runs at foreground before sync chatter starts).
@@ -332,8 +334,8 @@ struct MemosListView: View {
                 DevLog.log("search '\(query)' → \(derived.groups.reduce(0) { $0 + $1.memos.count })/\(memos.count) hits, \(photoHits) via photoText")
             }
             #endif
-            .sheet(isPresented: $showSortFilter) {
-                SortFilterSheet(sort: $sort, filter: $filter, showNotRated: !isRegular)
+            .sheet(isPresented: $showDateFilter) {
+                DateFilterSheet(filter: $filter)
             }
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
