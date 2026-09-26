@@ -485,7 +485,7 @@ needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
 check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the toolbar up, or it became an item.
 
-### Q65 [auto] (doing) Mac sidebar looks like the phone list: grey background, white card rows (D135 miss)
+### Q65 [auto] (done) Mac sidebar looks like the phone list: grey background, white card rows (D135 miss)
 spec: C115 C240
 needs: -
 do: D135 said all three devices use the iPhone's GREY list background; Tuur 2026-09-26 ("why are the background colors different again? I already mentioned this once… the way it looks on the phone I like best"): the Mac sidebar still draws flat rows on its own grey (seen in the Q49 mock, drawn from source). First screenshot the real Mac sidebar next to the phone list (synthetic corpus, isolated store) and confirm the difference; then make the Mac sidebar match the phone: the same grey ground and white rounded card rows from the shared NoteCardView style, same spacing, light + dark. After-screenshots of both side by side, LOOK, commit under `plan/reads/list-q65/`.
@@ -503,7 +503,7 @@ needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
 check: Tuur clicked through it and said go.
 
-### Q68 [auto] (todo) Mac list rows show the note's tag chips like the phone (QueueRowView.cardModel)
+### Q68 [auto] (doing) Mac list rows show the note's tag chips like the phone (QueueRowView.cardModel)
 spec: C115
 needs: -
 do: Q65 (2026-09-26) found the Mac row carries fewer chips than the same note's phone row: `QueueRowView.cardModel` fills only duration/source chips, never the note's tags (#studio etc.) — possibly because `PipelineFile` does not carry tags the way `Memo` does. Feed the Mac row the same tag chips the phone row gets, from the same shared source (one card model, C115). Test that one note yields the same chip list on both apps' card models (desktop test target); screenshot the Mac sidebar from the synthetic corpus, LOOK, commit under `plan/reads/list-q68/`.
@@ -725,3 +725,5 @@ check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd S
 - 2026-09-26 07:29 Q65 -> doing — worker out
 - 2026-09-26 07:30 Q50 -> tuur — built @eb0ee20d — awaiting sitting
 - 2026-09-26 07:45 Q68 added
+- 2026-09-26 07:46 Q68 -> doing — worker out
+- 2026-09-26 07:47 Q65 -> done — gate pass @034877fc
