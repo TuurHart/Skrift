@@ -19,6 +19,8 @@ import AVFoundation
 ///   -snapshot-sidebar-selection <path> [+ `-light`] → both sidebar row kinds SELECTED,
 ///                                 side by side (the 2026-07-28 "can't see selection" fix)
 ///   -snapshot-conflict <path>   → the Q39 edit-conflict prompt (mocks/Q4-edit-conflict.html)
+///   -snapshot-shell <path> [+ `-light`] [+ `-corpus <dir>`] → the WHOLE Mac shell
+///                                 (sidebar + note), hosted in real AppKit (Q65)
 enum Snapshot {
     nonisolated static func renderIfRequested() {
         let args = ProcessInfo.processInfo.arguments
@@ -89,7 +91,13 @@ enum Snapshot {
             // is what clipped the day-header text ("ODAY", "UE 22 SEP") in the Q33 shot; the
             // app can never actually open that narrow.
             let sb = CGFloat(path("-sidebarWidth").flatMap { Double($0) } ?? 292)
-            MainActor.assumeIsolated { renderShell(to: p, width: w, sidebar: sb, corpusPath: path("-corpus")); exit(0) }
+            // Q65: `-light` renders the light variant (D135 needs both eyeballed).
+            let light = args.contains("-light")
+            MainActor.assumeIsolated {
+                renderShell(to: p, width: w, sidebar: sb, corpusPath: path("-corpus"),
+                            scheme: light ? .light : .dark)
+                exit(0)
+            }
         }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
@@ -224,7 +232,7 @@ enum Snapshot {
     /// an in-memory `Memo`/`MemoAsset`/`MemoEnhancement` container seeded by `CorpusSeed` when
     /// `-corpus` is given, or an empty array otherwise — the real store is never touched.
     @MainActor private static func renderShell(to path: String, width: CGFloat, sidebar: CGFloat,
-                                                corpusPath: String? = nil) {
+                                                corpusPath: String? = nil, scheme: ColorScheme = .dark) {
         guard let container = try? ModelContainer(
             for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
@@ -259,7 +267,7 @@ enum Snapshot {
         }
         .frame(width: width, height: 900)
         .background(Theme.bg)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(scheme)
         .modelContainer(container)
         hostPNG(view, size: NSSize(width: width, height: 900), to: path)
     }
