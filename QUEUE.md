@@ -371,19 +371,19 @@ needs: -
 do: D145 + BUGS §3 (build 172): switching chips (All / Needs Work / Done / Unrated) animates differently per chip (Needs Work flies up from the bottom, Done's date headers fly in last). Make a chip switch one consistent, quick transition on all three devices (no per-section insertion animations; list identity stable). Make the Import · Record · ✎ row a little taller (Tuur: "a bit small") on phone and iPad. Sim screenshots before/after; LOOK; commit under `plan/reads/list-q48/`.
 check: `test $(ls plan/reads/list-q48/*.png | wc -l) -ge 1 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q49 [tuur] (tuur) mockup: one filter mechanism instead of chips + Filter icon
+### Q49 [tuur] (done) mockup: one filter mechanism instead of chips + Filter icon
 spec: C117
 needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
 check: Tuur clicked through it and said go.
 
-### Q50 [tuur] (tuur) mockup: one compact note header (date + place, tags, importance)
+### Q50 [tuur] (doing) mockup: one compact note header (date + place, tags, importance)
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
 check: Tuur clicked through it and said go.
 
-### Q51 [tuur] (tuur) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
+### Q51 [tuur] (done) mockup: Apple Notes import wizard (for when Skrift replaces Notes)
 spec: C117 C238
 needs: -
 do: Tuur 2026-09-25: "a proper import wizard with full mockups… once I trust Skrift to be good enough to replace it". First read what the app imports from Apple Notes today (source) and the shared-import clauses (C238, C66–C79, C123–C128, C140–C147); then a clickable multi-step wizard mock: pick folders/notes, preview mapping (attachments, checklists, tags, dates), dry-run count, import, a report of what didn't map. LATER: not before the perf + editor work; Tuur decides when.
@@ -483,6 +483,24 @@ spec: C112 C114
 needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
 check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the toolbar up, or it became an item.
+
+### Q65 [auto] (todo) Mac sidebar looks like the phone list: grey background, white card rows (D135 miss)
+spec: C115 C240
+needs: -
+do: D135 said all three devices use the iPhone's GREY list background; Tuur 2026-09-26 ("why are the background colors different again? I already mentioned this once… the way it looks on the phone I like best"): the Mac sidebar still draws flat rows on its own grey (seen in the Q49 mock, drawn from source). First screenshot the real Mac sidebar next to the phone list (synthetic corpus, isolated store) and confirm the difference; then make the Mac sidebar match the phone: the same grey ground and white rounded card rows from the shared NoteCardView style, same spacing, light + dark. After-screenshots of both side by side, LOOK, commit under `plan/reads/list-q65/`.
+check: `test $(ls plan/reads/list-q65/*.png | wc -l) -ge 2 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q66 [auto] (todo) build one filter mechanism, option A of the Q49 mock, on phone, iPad and Mac
+spec: C117 C115
+needs: Q65
+do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
+check: `test $(ls plan/reads/filter-q66/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q67 [tuur] (todo) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
+spec: C117 C238
+needs: -
+do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
+check: Tuur clicked through it and said go.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -690,3 +708,9 @@ check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the t
 - 2026-09-25 22:59 Q59 -> done — gate pass @5e014195
 - 2026-09-25 22:59 Q61 -> doing — worker out
 - 2026-09-25 23:32 Q61 -> done — gate pass @a6da1959
+- 2026-09-26 07:28 Q49 -> done — Tuur 2026-09-26: option A (chips carry everything)
+- 2026-09-26 07:28 Q51 -> done — Tuur 2026-09-26: import in groups of 10; rate each as it comes in, or skip import / delete it (→ revised mock)
+- 2026-09-26 07:28 Q50 -> doing — Tuur 2026-09-26: page unresponsive, A/B/C cannot be clicked — mock agent fixing
+- 2026-09-26 07:28 Q65 added
+- 2026-09-26 07:28 Q66 added
+- 2026-09-26 07:28 Q67 added

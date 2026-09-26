@@ -1825,3 +1825,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      fix". C282's baseline is satisfied by the phone typing trace in `plan/perf-measured.md`; no
      laggy-state recording is owed. The perf lane starts now from `plan/perf-sweep.md` §2, R90–R94
      and a fresh code sweep of the typing, list and launch paths.
+148. **D148 Round-3 mock verdicts.** ✅ DECIDED 2026-09-26 (sitting): Q49 filters — option A, the chip
+     row carries everything (Date + Unsynced chips, sort as a tap-cycling word, no Filter icon) → Q66.
+     Q51 Apple Notes import — neither quiet nor rated: "groups of 10, where you can go through them
+     and rate them as they come in, or skip import / delete them" → revised mock Q67.
+149. **D149 D135 repeated: the Mac list looks like the phone's.** ✅ 2026-09-26: "why are the
+     background colors different again? I already mentioned this once… the way it looks on the
+     phone I like best" — the Mac sidebar still drew flat rows on its own grey after Q26 → Q65.
