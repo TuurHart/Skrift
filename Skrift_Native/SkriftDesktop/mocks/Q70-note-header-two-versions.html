@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Note Header 1 or 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -363,6 +365,7 @@ function render(){
     fr.innerHTML = S.dev==="mac" ? macFrame(opt) : touchFrame(S.dev, opt);
     document.querySelector('[data-cap="'+opt+'"]').innerHTML = capText(opt);
   });
+  layout(); measure();
   requestAnimationFrame(function(){ layout(); measure(); });
 }
 function measure(){
@@ -416,6 +419,7 @@ function setPick(p){
 try{ var p0 = localStorage.getItem("q70pick"); if (p0==="1"||p0==="2") setPick(p0); }catch(_){}
 var h0 = (location.hash||"").slice(1); if (W[h0]) { S.dev=h0; seg("dev",h0); }
 var rt; addEventListener("resize", function(){ clearTimeout(rt); rt=setTimeout(layout,80); });
+try{ if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ layout(); measure(); }); }catch(_){}
 render();
 })();
 </script>
