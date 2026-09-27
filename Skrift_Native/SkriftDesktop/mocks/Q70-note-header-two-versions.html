@@ -1,0 +1,421 @@
+<title>Note Header 1 or 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Page chrome tokens (violet-biased neutrals, Skrift's accent) */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  /* In-app tokens: Shared/UI/Palette.swift + SkriftMobile Theme.swift (light) */
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-ring:rgba(0,0,0,.18); --a-amber:#d97706; --a-green:#0f9d72; --a-mac-chip:rgba(0,0,0,.06); --a-mac-stroke:rgba(0,0,0,.07);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+    --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-green:#34d399; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+  --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-green:#34d399; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+h2{font-size:18px;margin:0;text-wrap:balance;display:flex;align-items:baseline;gap:10px}
+h2 .tag{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--pg-accent);background:var(--pg-accent-soft);padding:2px 8px;border-radius:6px;flex:none}
+p{margin:0;max-width:68ch}
+code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.q .n{font-family:var(--mono);font-weight:600;color:var(--pg-accent)}
+.q .qt{font-size:19px;font-weight:600}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.picks button{font:600 17px var(--sys);min-height:48px;min-width:88px;padding:0 18px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-ink);cursor:pointer}
+.picks button[aria-pressed="true"]{background:var(--pg-accent);border-color:var(--pg-accent);color:#fff}
+.picknote{font-size:13px;color:var(--pg-dim);min-height:1.3em}
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-variant-numeric:tabular-nums}
+.score div{background:var(--pg-bg);border-radius:9px;padding:7px 9px;display:flex;flex-direction:column;gap:1px}
+.score .l{font-family:var(--mono);font-size:10.5px;color:var(--pg-faint);text-transform:uppercase;letter-spacing:.06em}
+.score .v{font-family:var(--mono);font-size:17px;font-weight:600}
+.score .d{font-family:var(--mono);font-size:11px;color:var(--a-green);font-weight:600;min-height:1.2em}
+.scorecap{font-family:var(--mono);font-size:11px;color:var(--pg-faint)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pg-bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;border-bottom:1px solid var(--pg-line)}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px}
+.seg button{font:500 14px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:36px;padding:0 12px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:#fff}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim)}
+.chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+section.opt{display:flex;flex-direction:column;gap:10px;scroll-margin-top:64px}
+section.opt.chosen h2 .tag{background:var(--pg-accent);color:#fff}
+.desc{font-size:14px;color:var(--pg-dim);display:flex;flex-direction:column;gap:6px}
+.desc b{color:var(--pg-ink);font-weight:600}
+.desc ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.cramps{margin:0;padding-left:0!important;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.cramps li{display:flex;gap:8px;align-items:flex-start}
+.cramps .k{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:5px;padding:0 5px;line-height:18px}
+.meas{font-family:var(--mono);font-size:12.5px;color:var(--pg-dim);display:flex;gap:12px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.meas b{color:var(--pg-ink)}
+.meas .delta{color:var(--a-green);font-weight:600}
+.meas .delta.up{color:var(--pg-warn)}
+.fit{position:relative;width:100%;overflow:hidden}
+.fitin{transform-origin:0 0;position:absolute;left:0;top:0}
+.frame{border-radius:22px;border:1px solid var(--pg-line);overflow:hidden;background:var(--a-bg);position:relative}
+.frame.mac{border-radius:10px}
+.devcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint)}
+.devcap .d151{color:var(--pg-warn);font-weight:600}
+footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);padding-top:12px}
+
+/* ── In-app drawing (sizes in pt = CSS px, from source) ─────────────────── */
+.app{font-family:var(--sys);color:var(--a-text);background:var(--a-bg);position:relative}
+.app button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+.nav{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:var(--a-faint);font-size:15px}
+.nav i{font-style:normal;font-family:var(--mono);font-size:10px;opacity:.8}
+.hdr{position:relative}
+.titlerow{display:flex;align-items:center;gap:8px;padding:4px 20px 9px;border-bottom:.5px solid var(--a-border)}
+.title{font-size:17px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcore{padding:6px 20px 0}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:13px;color:var(--a-dim);background:var(--a-chip);padding:2px 7px;border-radius:7px;white-space:nowrap}
+.mac .cchip{background:var(--a-mac-chip)}
+.ic{width:10px;height:10px;flex:none}
+.tags{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.tchip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-accent-text);font-size:14px;font-weight:500}
+.addtag{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-size:12px}
+.sm .tchip,.sm .addtag{height:26px;padding:0 10px;font-size:13px}
+.sm .addtag{font-size:12px}
+.mac .tchip,.mac .addtag{height:22px;padding:0 9px;font-size:12px}
+.mac .tchip{color:var(--a-accent)}
+.card{background:var(--a-surface);border-radius:16px;padding:13px 13px 12px}
+.mac .card{border-radius:12px;box-shadow:inset 0 0 0 1px var(--a-mac-stroke)}
+.toprow{display:flex;align-items:center;gap:8px}
+.implabel{font-size:11px;font-weight:500;color:var(--a-faint);white-space:nowrap}
+.balls{display:inline-flex;align-items:center}
+.ball{display:inline-flex;align-items:center;justify-content:center}
+.ball span{display:block;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--a-ring);transition:background .12s,box-shadow .12s}
+.ball.lit span{background:var(--a-accent);box-shadow:inset 0 0 0 1.5px var(--a-accent)}
+.val{font-size:11.5px;font-weight:600;color:var(--a-accent);white-space:nowrap}
+.val.none{font-weight:500;color:var(--a-faint)}
+.divider{height:.5px;background:var(--a-border);margin:11px 0 9px}
+.sync{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--a-dim);white-space:nowrap}
+.mac .sync{font-size:11px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--a-faint);flex:none}
+.mac .dot{width:5px;height:5px}
+.dot.on{background:var(--a-green)}
+.life{font-size:11.5px;color:var(--a-amber);opacity:.9}
+.body{padding:14px 20px 22px;font-size:16px;line-height:1.5;color:var(--a-text)}
+.body p{max-width:none}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:13px;padding:8px 14px;border-radius:99px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:4}
+.toast.show{opacity:1}
+.cramp-on .cramp{outline:1.5px dashed var(--pg-warn);outline-offset:2px;position:relative}
+.cramp-on .cramp::before{content:attr(data-k);position:absolute;top:-9px;right:-6px;font:600 9px/14px var(--mono);color:#fff;background:var(--pg-warn);border-radius:4px;padding:0 3px;z-index:2}
+/* Version 1: the importance pill + its four-word picker */
+.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 9px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:12px;font-weight:600;color:var(--a-accent-text);white-space:nowrap;flex:none}
+.pill.none{background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-weight:500}
+.pill .pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
+.pill .pbs{display:inline-flex;gap:3px}
+.pill .pb.lit{background:var(--a-accent);box-shadow:none}
+.pill .chev{font-size:9px;opacity:.7;margin-left:-1px}
+.picker{display:inline-flex;height:30px;border-radius:99px;background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);padding:2px;gap:2px}
+.picker button{height:26px;padding:0 11px;border-radius:99px;font-size:12.5px;font-weight:500;color:var(--a-dim);white-space:nowrap}
+.picker button.on{background:var(--a-accent);color:#fff;font-weight:600}
+.mac .pill{height:22px;font-size:11.5px}
+.mac .picker{height:26px}.mac .picker button{height:22px;font-size:11.5px}
+.audiorow{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--a-dim)}
+.sw{width:26px;height:15px;border-radius:99px;background:var(--a-accent);position:relative;flex:none}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#fff}
+/* Mac */
+.mac.app{padding:22px 40px 0}
+.mac .col{display:flex;flex-direction:column;gap:13px}
+.mac .col.tight{gap:8px}
+.mac .mtitle{font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.mac .body{padding:24px 0 26px;font-size:15px}
+.mac .toolbar{height:38px;margin:-22px -40px 18px;border-bottom:1px solid var(--a-mac-stroke);display:flex;align-items:center;padding:0 14px;gap:6px;color:var(--a-faint);font-family:var(--mono);font-size:10px}
+.tl{width:11px;height:11px;border-radius:50%;background:var(--a-chip)}
+/* iPad */
+.ipad .colwrap{max-width:640px;margin:0 auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q70 · mock · C117 · C94 · after Q50</div>
+    <h1>Note header: B refined, or today squeezed</h1>
+  </header>
+
+  <div class="q" id="question">
+    <div class="qt"><span class="n">1.</span> 1 or 2?</div>
+    <div class="picks" role="group" aria-label="Pick a version">
+      <button id="pick-1" data-pick="1" aria-pressed="false">1 · pill</button>
+      <button id="pick-2" data-pick="2" aria-pressed="false">2 · squeezed</button>
+    </div>
+    <div class="picknote" id="picknote">Tap one. It only remembers it on this phone; say it in the sitting.</div>
+    <div class="scorecap" id="scorecap">Header height, title row to body</div>
+    <div class="score" id="score">
+      <div><span class="l">Today</span><span class="v" id="sc-asis">–</span><span class="d"></span></div>
+      <div><span class="l">1 · pill</span><span class="v" id="sc-v1">–</span><span class="d" id="sd-v1"></span></div>
+      <div><span class="l">2 · squeezed</span><span class="v" id="sc-v2">–</span><span class="d" id="sd-v2"></span></div>
+    </div>
+  </div>
+
+  <div class="bar" role="toolbar" aria-label="View controls">
+    <div class="seg" role="group" aria-label="Device">
+      <button id="dev-phone" data-dev="phone" aria-pressed="true">Phone</button>
+      <button id="dev-ipad" data-dev="ipad" aria-pressed="false">iPad</button>
+      <button id="dev-mac" data-dev="mac" aria-pressed="false">Mac</button>
+    </div>
+    <div class="seg" role="group" aria-label="Note kind">
+      <button id="kind-voice" data-kind="voice" aria-pressed="true">Voice</button>
+      <button id="kind-typed" data-kind="typed" aria-pressed="false">Typed</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="cramp-toggle" checked> cramped spots</label>
+  </div>
+
+  <section class="opt" id="opt-asis">
+    <h2><span class="tag">Today</span>As built, from source</h2>
+    <div class="desc">
+      <p>Phone and iPad run the same <code>noteHeaderCore</code>: chips, tags 8 pt lower, the importance card 14 pt lower, then the orange fading line 8 pt lower. The card is about 100 pt tall because each ball sits in a 44 pt touch target and the sync line sits under a divider with 20 pt of margin. The Mac stacks title, chips, tags and the card 13 pt apart and shows no fading line. A typed note today carries only the date chip.</p>
+    </div>
+    <div class="devcap" data-cap="asis"></div>
+    <div class="meas" data-meas="asis"></div>
+    <div class="fit"><div class="fitin"><div class="frame" data-frame="asis"></div></div></div>
+  </section>
+
+  <section class="opt" id="opt-v1">
+    <h2><span class="tag">1</span>B refined: the card becomes one pill</h2>
+    <div class="desc">
+      <ul>
+        <li><b>Row 1</b> is one wrapping row: a date + place chip, the weather chip, tags at 26 pt, <code>+ tag</code>. The daypart chip (Afternoon) is dropped because it repeats the time.</li>
+        <li><b>Row 2 always holds the pill</b>, with the orange fading line beside it. In Q50 the pill wandered with the tag count; here it has one fixed home.</li>
+        <li><b>Tap Not rated once and it is Passing.</b> Once rated, a tap opens the four words in place (Not rated, Passing, Useful, Important); pick one. Important to Passing is 2 taps, where Q50&rsquo;s cycle took 3.</li>
+        <li>The sync sentence leaves the header. The pill colour carries it: grey outline = left alone, violet = will be processed.</li>
+        <li>Mac: gets the fading line too (new; the Mac header has none today) and the phone date format with the time.</li>
+      </ul>
+      <ul class="cramps">
+        <li><span class="k">1</span><span>Phone: the pill and the fading line share one line with about 10 pt to spare. A longer date or larger text size pushes the line under the pill (+17 pt).</span></li>
+        <li><span class="k">2</span><span>Nothing on screen says what a rating does any more. A new user learns violet = processed by doing it once.</span></li>
+      </ul>
+    </div>
+    <div class="devcap" data-cap="v1"></div>
+    <div class="meas" data-meas="v1"></div>
+    <div class="fit"><div class="fitin"><div class="frame" data-frame="v1"></div></div></div>
+  </section>
+
+  <section class="opt" id="opt-v2">
+    <h2><span class="tag">2</span>Today, squeezed: same parts, gaps cut</h2>
+    <div class="desc">
+      <ul>
+        <li>Same parts, same order: chip row, tags at 30 pt, the importance card with <code>Importance</code>, the balls, the tier word and the sync line, then the fading line.</li>
+        <li><b>Gaps cut:</b> tags 8 to 6 pt under the chips; card 14 to 8 pt under the tags; card top padding 13 to 0; the divider and its 20 pt of margin gone; fading line 8 to 6 pt.</li>
+        <li>The balls keep full 44 pt touch targets. The sync line tucks up 8 pt into the empty bottom of those targets.</li>
+        <li>Mac: the sync line moves onto the balls&rsquo; row, since the Mac has the width. Gaps 13 to 8 pt.</li>
+      </ul>
+      <ul class="cramps">
+        <li><span class="k">1</span><span>Phone/iPad: the balls&rsquo; touch area now overlaps the start of the sync line. A tap on the words &ldquo;rated &mdash; left&rdquo; can rate the note.</span></li>
+        <li><span class="k">2</span><span>Still the tallest of the two by far: the 44 pt ball row is the floor, so this cannot go much lower without smaller targets.</span></li>
+      </ul>
+    </div>
+    <div class="devcap" data-cap="v2"></div>
+    <div class="meas" data-meas="v2"></div>
+    <div class="fit"><div class="fitin"><div class="frame" data-frame="v2"></div></div></div>
+  </section>
+
+  <footer>Every frame is live and shares one rating: tap a ball, the pill, or a word in the pill&rsquo;s picker, and all frames follow. Heights are measured from the rendered frame, top of the title row to the first line of the body, and compared against the Today frame for the same device and note kind (Q50 measured the phone voice header at 243 pt). Typed frames in 1 and 2 carry place and weather because typed notes will record them (D151); Today&rsquo;s typed frame is the app as built, without them. App sizes, colours and copy come from source: <code>MemoPageView.noteHeaderCore</code>, <code>ThreeBallImportanceView</code> with the phone (15 / 44 pt) and Mac (10 / 20 pt) styles in <code>SignificanceCircles.swift</code>, <code>ThreeBallScale</code> names and sync copy, <code>MemoSpine.oneLiner</code>, <code>TagEditorRow</code>, <code>NoteProperties</code>, <code>Palette.swift</code>. The phone nav bar, iPad side panels and Mac window chrome are placeholders. The Mac column width is approximate.</footer>
+</div>
+
+<script>
+(function(){
+var S = {dev:"phone", kind:"voice", rate:0, cramp:true, open:false};
+var NAMES = ["Not rated","Passing","Useful","Important"];
+function SYNC(r){ return r ? "Rated — ready to process" : "Not rated — left alone"; }
+var LIFE = "starts fading 25 Oct — rate it to keep it";
+var TITLE = "Spindle mount for the new router";
+var TAGS = ["cnc","workshop","router"];
+var BODY_TYPED = "Try the 65 mm clamp instead of the 52. Print a test ring in PETG first, check the runout with the dial gauge, then drill the four M6 holes through the gantry plate.";
+var BODY_VOICE = "So the 65 mm clamp is probably the right call, the 52 was always going to be a squeeze. Print a test ring in PETG first and check runout with the dial gauge before drilling anything.";
+var DATE_PHONE = "Today · 14:29";
+var DATE_MAC = "Thu, 25 Sep 2026";
+var W = {phone:390, ipad:834, mac:760};
+
+var SVG = {
+  pin:'<svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="currentColor"/><circle cx="6" cy="5" r="2.1" fill="var(--a-bg)"/><path d="M6 7.2 L6 9.6" stroke="var(--a-bg)" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  cloud:'<svg class="ic" viewBox="0 0 12 12"><circle cx="4" cy="4" r="2" fill="currentColor"/><path d="M3.2 10.5h5.6a2.2 2.2 0 0 0 0-4.4 3 3 0 0 0-5.6.9 1.8 1.8 0 0 0 0 3.5z" fill="currentColor"/></svg>',
+  sun:'<svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.6" fill="currentColor"/><g stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><path d="M6 .8v1.3M6 9.9v1.3M.8 6h1.3M9.9 6h1.3M2.3 2.3l.9.9M8.8 8.8l.9.9M2.3 9.7l.9-.9M8.8 3.2l.9-.9"/></g></svg>',
+  cal:'<svg class="ic" viewBox="0 0 12 12"><rect x="1" y="2" width="10" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M1 4.8h10M3.8 1v2M8.2 1v2" stroke="currentColor" stroke-width="1.1"/></svg>',
+  mic:'<svg class="ic" viewBox="0 0 12 12"><rect x="4" y="1" width="4" height="7" rx="2" fill="currentColor"/><path d="M2.5 6a3.5 3.5 0 0 0 7 0M6 9.5V11" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>',
+  pen:'<svg class="ic" viewBox="0 0 12 12"><rect x="1" y="2" width="8.5" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5 7l.5-1.8L10 .8l1.2 1.2-4.4 4.5z" fill="currentColor"/></svg>',
+  wave:'<svg class="ic" viewBox="0 0 12 12"><path d="M1 6h1M3 3.5v5M5 1.5v9M7 3v6M9 4.5v3M11 6h0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
+};
+
+function chip(t,ic){ return '<span class="cchip">'+(ic?SVG[ic]:'')+t+'</span>'; }
+function cramp(k, on){ return on ? ' cramp" data-k="'+k : ''; }
+// place + weather: voice notes today; typed notes after D151 (only in versions 1 and 2)
+function hasPlace(opt){ return S.kind==="voice" || opt!=="asis"; }
+
+function phoneChips(opt){
+  var c = [chip(DATE_PHONE)];
+  if (hasPlace(opt)) c.push(chip("Alfama","pin"), chip("22°","cloud"), chip("Afternoon","sun"));
+  return c.join("");
+}
+function macChips(opt){
+  var c = [chip(DATE_MAC,"cal")];
+  if (hasPlace(opt)) c.push(chip("Alfama","pin"), chip("22°","cloud"), chip("Afternoon","sun"));
+  c.push(macSource());
+  return c.join("");
+}
+function macSource(){ return S.kind==="voice" ? chip("Voice memo","mic")+chip("2:14","wave") : chip("Note","pen"); }
+function tagChips(){ return TAGS.map(function(t){ return '<span class="tchip">#'+t+'</span>'; }).join("") + '<button class="addtag" data-ack="Opens the inline tag field (unchanged)">+ tag</button>'; }
+function balls(size, target){
+  var h = '<span class="balls">';
+  for (var i=1;i<=3;i++){
+    h += '<button class="ball'+(i<=S.rate?' lit':'')+'" data-step="'+i+'" aria-label="Importance '+NAMES[i]+'" style="width:'+target+'px;height:'+target+'px"><span style="width:'+size+'px;height:'+size+'px"></span></button>';
+  }
+  return h + '</span>';
+}
+function valLabel(){ return '<span class="val'+(S.rate?'':' none')+'">'+NAMES[S.rate]+'</span>'; }
+function syncLine(extraCls, style){ return '<div class="sync'+(extraCls||'')+'"'+(style?' style="'+style+'"':'')+'><span class="dot'+(S.rate?' on':'')+'"></span>'+SYNC(S.rate)+'</div>'; }
+function life(mt){ return S.rate ? '' : '<div class="life" style="margin-top:'+mt+'px">'+LIFE+'</div>'; }
+
+// Today's card (ThreeBallImportanceView, unchanged)
+function impCard(mac){
+  return '<div class="card"><div class="toprow"><span style="display:inline-flex;align-items:center;gap:'+(mac?8:10)+'px"><span class="implabel">Importance</span>'+(mac?balls(10,20):balls(15,44))+'</span><span style="flex:1"></span>'+valLabel()+'</div><div class="divider"></div>'+syncLine()+'</div>';
+}
+// Version 2's card: same parts, gaps cut
+function impCardTight(mac, k){
+  if (mac){
+    return '<div class="card" style="padding:7px 12px"><div class="toprow"><span style="display:inline-flex;align-items:center;gap:8px"><span class="implabel">Importance</span>'+balls(10,20)+'</span>'+valLabel()+'<span style="flex:1"></span>'+syncLine()+'</div></div>';
+  }
+  return '<div class="card" style="padding:0 13px 9px"><div class="toprow"><span style="display:inline-flex;align-items:center;gap:10px"><span class="implabel">Importance</span>'+balls(15,44)+'</span><span style="flex:1"></span>'+valLabel()+'</div>'+syncLine(cramp(k, !!k), 'margin-top:-8px;position:relative')+'</div>';
+}
+// Version 1's pill + picker
+function pillRow(k, mac){
+  var inner;
+  if (S.open){
+    inner = '<span class="picker" role="group" aria-label="Importance">';
+    for (var i=0;i<4;i++) inner += '<button data-set="'+i+'" class="'+(i===S.rate?'on':'')+'">'+NAMES[i]+'</button>';
+    inner += '</span>';
+  } else {
+    var b=''; for (var j=1;j<=3;j++) b += '<span class="pb'+(j<=S.rate?' lit':'')+'"></span>';
+    inner = '<button class="pill'+(S.rate?'':' none')+'" data-pill="1" aria-label="Importance: '+NAMES[S.rate]+'"><span class="pbs">'+b+'</span><span>'+NAMES[S.rate]+'</span>'+(S.rate?'<span class="chev">▾</span>':'')+'</button>';
+    if (!S.rate) inner += '<span class="life">'+LIFE+'</span>';
+  }
+  return '<div class="pillrow'+cramp(k, !!k && !S.rate && !S.open)+'">'+inner+'</div>';
+}
+function body(){ return '<div class="body"><p>'+(S.kind==="voice"?BODY_VOICE:BODY_TYPED)+'</p></div>'; }
+
+function touchFrame(dev, opt){
+  var ph = dev==="phone", core;
+  if (opt==="asis"){
+    core = '<div class="flow">'+phoneChips(opt)+'</div><div style="margin-top:8px" class="tags">'+tagChips()+'</div><div style="margin-top:14px">'+impCard(false)+'</div>'+life(8);
+  } else if (opt==="v1"){
+    var dateChip = '<span class="cchip">'+DATE_PHONE+' · '+SVG.pin+'Alfama</span>';
+    core = '<div class="flow sm">'+dateChip+chip("22°","cloud")+tagChips()+'</div><div style="margin-top:8px">'+pillRow(ph?"1":"", false)+'</div>';
+  } else {
+    core = '<div class="flow">'+phoneChips(opt)+'</div><div style="margin-top:6px" class="tags">'+tagChips()+'</div><div style="margin-top:8px">'+impCardTight(false, ph?"1":"")+'</div>'+life(6);
+  }
+  var inner = '<div class="hdr"><div class="titlerow"><div class="title">'+TITLE+'</div></div><div class="hcore">'+core+'</div></div>'+body();
+  return '<div class="app '+dev+'" style="width:'+W[dev]+'px"><div class="nav"><span>‹ Notes</span><i>nav bar · not redrawn</i><span>•••</span></div>'+(dev==="ipad"?'<div class="colwrap">'+inner+'</div>':inner)+'<div class="toast"></div></div>';
+}
+
+function macFrame(opt){
+  var audio = S.kind==="voice" ? '<div class="audiorow"><span class="sw"></span>Include audio in export</div>' : '';
+  var mtitle = '<div style="display:flex"><div class="mtitle">'+TITLE+'</div></div>';
+  var col, cls = "col";
+  if (opt==="asis"){
+    col = mtitle+'<div class="flow">'+macChips(opt)+'</div><div class="tags">'+tagChips()+'</div>'+impCard(true)+audio;
+  } else if (opt==="v1"){
+    var dateChip = '<span class="cchip">'+SVG.cal+DATE_PHONE+' · Alfama</span>';
+    col = mtitle+'<div class="flow" style="gap:6px">'+dateChip+chip("22°","cloud")+macSource()+tagChips()+'</div>'+pillRow("", true)+audio;
+    cls = "col tight";
+  } else {
+    col = mtitle+'<div class="flow">'+macChips(opt)+'</div><div class="tags">'+tagChips()+'</div>'+impCardTight(true, "")+audio;
+    cls = "col tight";
+  }
+  return '<div class="app mac" style="width:'+W.mac+'px"><div class="toolbar"><span class="tl"></span><span class="tl"></span><span class="tl"></span>&nbsp; window chrome · sidebar left, Connections right · not redrawn</div><div class="hdr"><div class="'+cls+'">'+col+'</div></div>'+body()+'<div class="toast"></div></div>';
+}
+
+var OPTS = ["asis","v1","v2"];
+var asisH = {};
+function capText(opt){
+  var d = S.dev==="phone" ? "iPhone 13 · 390 pt wide" : S.dev==="ipad" ? "iPad · 834 pt wide · note column capped at 640 pt" : "Mac · note column · approx. 760 pt";
+  var k = S.kind==="voice" ? "voice note" : (opt==="asis" ? "typed note · as built, no place" : 'typed note · <span class="d151">after D151: place + weather</span>');
+  return d+" · "+k;
+}
+function render(){
+  OPTS.forEach(function(opt){
+    var fr = document.querySelector('[data-frame="'+opt+'"]');
+    fr.className = "frame "+S.dev+(S.cramp?" cramp-on":"");
+    fr.innerHTML = S.dev==="mac" ? macFrame(opt) : touchFrame(S.dev, opt);
+    document.querySelector('[data-cap="'+opt+'"]').innerHTML = capText(opt);
+  });
+  requestAnimationFrame(function(){ layout(); measure(); });
+}
+function measure(){
+  var hs = {};
+  OPTS.forEach(function(opt){ hs[opt] = Math.round(document.querySelector('[data-frame="'+opt+'"] .hdr').offsetHeight); });
+  var base = hs.asis;
+  OPTS.forEach(function(opt){
+    var h = hs[opt], d = "";
+    if (opt!=="asis"){ var x = h-base; d = '<span class="delta'+(x>0?' up':'')+'">'+(x>0?'+':'−')+Math.abs(x)+' pt vs today ('+base+' pt)</span>'; }
+    document.querySelector('[data-meas="'+opt+'"]').innerHTML = '<span>Header: <b>'+h+' pt</b></span>'+d;
+    document.getElementById("sc-"+opt).textContent = h+" pt";
+    if (opt!=="asis"){ var y = h-base; document.getElementById("sd-"+opt).textContent = (y>0?'+':'−')+Math.abs(y)+' pt'; }
+  });
+  var dn = S.dev==="phone" ? "Phone" : S.dev==="ipad" ? "iPad" : "Mac";
+  document.getElementById("scorecap").textContent = "Header height, title row to body · "+dn+" · "+S.kind+" note · "+NAMES[S.rate];
+}
+function layout(){
+  document.querySelectorAll(".fit").forEach(function(f){
+    var inn = f.firstElementChild, fr = inn.firstElementChild;
+    var s = Math.min(1, f.clientWidth / fr.offsetWidth);
+    inn.style.transform = "scale("+s+")";
+    f.style.height = (fr.offsetHeight * s) + "px";
+  });
+}
+function toastIn(opt, msg){
+  var t = document.querySelector('[data-frame="'+opt+'"] .toast'); if (!t) return;
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 1500);
+}
+function rated(opt){ toastIn(opt, NAMES[S.rate]+" — "+(S.rate?"ready to process":"left alone")); }
+document.addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+  var fr = b.closest("[data-frame]"), opt = fr ? fr.getAttribute("data-frame") : null;
+  if (b.dataset.step){ var i=+b.dataset.step; S.rate = S.rate===i?0:i; S.open=false; render(); rated(opt); return; }
+  if (b.dataset.pill){ if (!S.rate){ S.rate = 1; render(); rated(opt); } else { S.open = true; render(); } return; }
+  if (b.dataset.set){ S.rate = +b.dataset.set; S.open = false; render(); rated(opt); return; }
+  if (b.dataset.ack){ toastIn(opt, b.dataset.ack); return; }
+  if (b.dataset.dev){ S.dev=b.dataset.dev; seg("dev",S.dev); render(); return; }
+  if (b.dataset.kind){ S.kind=b.dataset.kind; seg("kind",S.kind); render(); return; }
+  if (b.dataset.pick){ setPick(b.dataset.pick); return; }
+});
+function seg(p,v){ document.querySelectorAll("[data-"+p+"]").forEach(function(x){ x.setAttribute("aria-pressed", String(x.dataset[p]===v)); }); }
+document.getElementById("cramp-toggle").addEventListener("change", function(e){ S.cramp=e.target.checked; render(); });
+function setPick(p){
+  document.querySelectorAll("[data-pick]").forEach(function(x){ x.setAttribute("aria-pressed", String(x.dataset.pick===p)); });
+  document.getElementById("opt-v1").classList.toggle("chosen", p==="1");
+  document.getElementById("opt-v2").classList.toggle("chosen", p==="2");
+  document.getElementById("picknote").textContent = "Picked "+p+". Say it in the sitting; this page sends nothing.";
+  try{ localStorage.setItem("q70pick", p); }catch(_){}
+}
+try{ var p0 = localStorage.getItem("q70pick"); if (p0==="1"||p0==="2") setPick(p0); }catch(_){}
+var h0 = (location.hash||"").slice(1); if (W[h0]) { S.dev=h0; seg("dev",h0); }
+var rt; addEventListener("resize", function(){ clearTimeout(rt); rt=setTimeout(layout,80); });
+render();
+})();
+</script>
