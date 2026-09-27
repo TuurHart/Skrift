@@ -523,7 +523,7 @@ needs: -
 do: Tuur 2026-09-27 on `mocks/Q50-compact-note-header.html`: A no ("the balls carrying [no] label, nobody will know what to do with them"), C no ("I don't like it to take part of the title"), B "probably the best one" — Not rated + the orange "starts fading on 25 Oct · Rate it to keep it" line, one tap to Passing. "Either we're going with B or we just go with what is today but then have it take up way less vertical space… so make two versions." Version 1 = B refined; version 2 = today's header (date chip row, tags, importance card with labels and the sync line) squeezed: cut the gaps between Not rated / Importance / the balls / the sync line. Phone + iPad + Mac, voice note AND typed note, each frame showing its height in pt against today's 243 pt. Every control must respond on tap in the artifact viewer. Publish; one numbered question: "1 or 2?"
 check: Tuur clicked through it and said go.
 
-### Q71 [tuur] (doing) mockup: Apple Notes triage v3 — his picks, rename Delete, resumable, import-so-far, tags
+### Q71 [tuur] (tuur) mockup: Apple Notes triage v3 — his picks, rename Delete, resumable, import-so-far, tags
 spec: C117 C238
 needs: Q72
 do: Tuur 2026-09-27 on `mocks/Q67-apple-notes-triage.html`. Picks: A = the next batch stays locked until all ten are decided; B = a declined note is never offered again; C = one note at a time on the phone. Changes: (1) "Delete" is the wrong name — Skrift cannot delete in Apple Notes; rename (e.g. "Never import") and show how a declined note is recognised next time (per Q72's finding; not by title — "if you change the title it might come in again"); (2) resumable over days: 500 notes are not one sitting — progress saved, a clear "continue where you left off"; (3) "import what I've decided so far" at any point, so he can go delete those in Apple Notes; (4) Apple Notes tags become Skrift tags on import; (5) the button he could not find: label it plainly ("Next 10") and show it locked until the ten are decided; (6) no folder step when the export has no folders (his Notes are one flat list; Skrift gets no folders); (7) a panel listing every Apple Notes media type and what happens to it, from Q72 (drawings included). Keep: tapping importance advances to the next note ("I quite like that"), the end report. Every control responds on tap. Publish; one numbered question.
@@ -780,3 +780,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && 
 - 2026-09-27 10:07 Q72 -> done — report plan/research/apple-notes-export.md
 - 2026-09-27 10:07 Q71 -> doing — worker out
 - 2026-09-27 10:23 Q70 -> tuur — built @03631705 — awaiting sitting
+- 2026-09-27 10:23 Q71 -> tuur — built @94beefe4 — awaiting sitting
