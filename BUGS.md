@@ -291,6 +291,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 3. Reported on device, not yet diagnosed
 
+- [ ] **A video dragged in from Photos on the Mac got diarized automatically** (Tuur 2026-09-27, prod
+      Mac build, "no good"). C102 says diarization is opt-in per note. Same screen: one person shows
+      under two labels ("Tiuri Hartog" and "Tiuri"), and list snippets show raw `**Speaker 1:**` and
+      `[[Tiuri Hartog]]` markup. Diagnose on the current branch first; the prod Mac is an older build.
 - [ ] **Typing is very laggy in a note on the phone** (Dev build 172, iPhone 13, 2026-09-25, quick note
       and a normal note): "super laggy… not nice to use at all… I think it was always laggy". Not
       measured yet → Q20 baseline first, then a perf item.
