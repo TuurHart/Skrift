@@ -1,0 +1,659 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apple Notes Triage v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Page chrome tokens (same set as Q50/Q51/Q67) + in-app tokens from Shared/UI/Palette.swift */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-amber:#b45309; --a-amber-soft:rgba(217,119,6,.13); --a-green:#0f8a64; --a-green-soft:rgba(15,157,114,.12);
+  --a-red:#dc2626; --a-red-soft:rgba(220,38,38,.10); --a-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 28px rgba(40,30,90,.10);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+    --a-amber:#f59e0b; --a-amber-soft:rgba(245,158,11,.14); --a-green:#34d399; --a-green-soft:rgba(52,211,153,.13);
+    --a-red:#ef4444; --a-red-soft:rgba(239,68,68,.14); --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.07);
+  --a-amber:#f59e0b; --a-amber-soft:rgba(245,158,11,.14); --a-green:#34d399; --a-green-soft:rgba(52,211,153,.13);
+  --a-red:#ef4444; --a-red-soft:rgba(239,68,68,.14); --a-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+h2{font-size:17px;line-height:1.25;margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;touch-action:manipulation}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em}
+.sec{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:13px;color:var(--pg-dim);line-height:1.45;max-width:65ch}
+
+/* the one question */
+.q{border:2px solid var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:14px}
+.q p{font-size:17px;line-height:1.4;font-weight:650;text-wrap:pretty}
+
+/* ---- recognition: two routes side by side ---- */
+.routes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rt{background:var(--pg-card);border:1.5px solid var(--pg-line);border-radius:12px;padding:10px 9px;display:flex;flex-direction:column;gap:8px;text-align:left;cursor:pointer;min-width:0}
+.rt[aria-pressed="true"]{border-color:var(--pg-accent);box-shadow:0 0 0 1px var(--pg-accent)}
+.rt .hd{display:flex;flex-direction:column;gap:3px}
+.rt .num{font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;background:var(--pg-ink);border-radius:5px;padding:1px 6px;align-self:flex-start}
+.rt[aria-pressed="true"] .num{background:var(--pg-accent)}
+.rt .ttl{font-size:14px;font-weight:650;line-height:1.25}
+.rt .viewing{font-family:var(--mono);font-size:10px;color:var(--pg-accent);letter-spacing:.04em;min-height:14px}
+.rt dl{margin:0;display:flex;flex-direction:column;gap:7px}
+.rt dt{font-size:10.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--pg-faint)}
+.rt dd{margin:1px 0 0;font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
+.good{color:var(--a-green)} .bad{color:var(--a-red)} .unk{color:var(--a-amber)}
+.v{font-weight:600}
+.demo{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.demo .nt{border-left:3px solid var(--pg-line);padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:2px}
+.demo .nt b{font-size:15px}
+.demo .nt span{font-size:13px;color:var(--pg-dim)}
+.demo .nt ins{text-decoration:none;background:var(--a-amber-soft);color:var(--pg-ink);border-radius:3px;padding:0 2px}
+.dbtns{display:flex;flex-wrap:wrap;gap:6px}
+.dbtn{border:1px solid var(--pg-line);background:var(--pg-bg);border-radius:9px;min-height:40px;padding:6px 12px;font-size:13.5px;font-weight:600;cursor:pointer}
+.dbtn[aria-pressed="true"]{background:var(--pg-ink);color:var(--pg-bg);border-color:var(--pg-ink)}
+.outc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.oc{border-radius:9px;padding:8px 9px;font-size:12.5px;line-height:1.35;background:var(--pg-bg)}
+.oc b{display:block;font-size:13.5px;margin-bottom:2px}
+.oc.ok b{color:var(--a-green)} .oc.back b{color:var(--a-red)}
+
+/* controls above the phone */
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:9px;padding:2px}
+.seg button{border:0;background:none;min-height:36px;padding:6px 12px;border-radius:7px;font-size:13px;font-weight:600;color:var(--pg-dim);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:#fff}
+.steps{display:flex;gap:4px;flex-wrap:wrap}
+.steps button{border:1px solid var(--pg-line);background:var(--pg-card);border-radius:6px;min-height:36px;padding:4px 9px;font-family:var(--mono);font-size:11.5px;color:var(--pg-dim);cursor:pointer}
+.steps button[aria-current="step"]{border-color:var(--pg-accent);color:var(--pg-accent);font-weight:600}
+.steps button.mockc{border-style:dashed}
+
+/* phone */
+.stage{display:flex;flex-direction:column;align-items:center}
+.phone{width:100%;max-width:390px;background:var(--a-bg);border-radius:22px;box-shadow:var(--a-shadow);overflow:hidden;display:flex;flex-direction:column;color:var(--a-text);min-height:700px;border:1px solid var(--a-border)}
+.nav{display:flex;flex-direction:column;align-items:stretch;padding:4px 14px 8px}
+.nav .l{align-self:flex-start;font-size:16px;color:var(--a-accent);background:none;border:0;cursor:pointer;min-height:44px;min-width:44px;padding:0;text-align:left}
+.nav .t{font-weight:700;font-size:24px;line-height:1.2}
+.nav .t small{display:block;font-size:13.5px;font-weight:600;color:var(--a-accent-text);font-variant-numeric:tabular-nums;padding-top:2px}
+.body{flex:1;padding:4px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.foot{padding:12px 14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--a-bg);border-top:1px solid var(--a-border)}
+.primary{border:0;background:var(--a-accent);color:#fff;font-weight:650;font-size:16px;min-height:50px;padding:10px 14px;border-radius:12px;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.primary.locked{background:var(--a-chip);color:var(--a-dim)}
+.primary .lk{width:15px;height:15px;flex:none}
+.primary small{font-weight:500;font-size:13px;opacity:.9}
+.ghost{border:0;background:none;color:var(--a-accent);font-weight:600;font-size:14.5px;min-height:44px;padding:6px;cursor:pointer}
+.danger{color:var(--a-red)}
+.footnote{font-size:12.5px;color:var(--a-dim);text-align:center;line-height:1.35}
+.hint{font-size:13px;color:var(--a-dim);line-height:1.4}
+.card{background:var(--a-surface);border-radius:16px;border:1px solid var(--a-border);overflow:hidden}
+.pad{padding:12px 13px;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;background:var(--a-chip);border-radius:8px;padding:3px 8px;color:var(--a-dim);line-height:1.35}
+.chip.acc{background:var(--a-accent-soft);color:var(--a-accent-text)}
+.chip.warn{background:var(--a-amber-soft);color:var(--a-amber)}
+.chip.ok{background:var(--a-green-soft);color:var(--a-green)}
+.sect{font-size:12px;font-weight:600;color:var(--a-dim);text-transform:uppercase;letter-spacing:.05em;padding:4px 2px 0}
+.marker{font-family:var(--mono);font-size:12px;color:var(--a-amber);background:var(--a-amber-soft);border-radius:6px;padding:4px 8px;align-self:flex-start}
+.tbl{border-collapse:collapse;font-size:12.5px;width:100%}
+.tbl td,.tbl th{border:1px solid var(--a-border);padding:3px 6px;text-align:left;font-variant-numeric:tabular-nums}
+.big-num{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.nums{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.nums>div{display:flex;flex-direction:column;gap:3px}
+.rep{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:11px 12px;border:0;border-top:1px solid var(--a-border);cursor:pointer;background:none;text-align:left;width:100%}
+.rep:first-child{border-top:0}
+.rep b{font-size:14.5px}
+.rep .c{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--a-amber)}
+.rep .c.n{color:var(--a-dim)}
+.rep .why{grid-column:1/-1;font-size:12.5px;color:var(--a-dim);line-height:1.35}
+.rep .ex{grid-column:1/-1;font-size:12.5px;color:var(--a-text);display:flex;flex-direction:column;gap:2px;padding-top:4px}
+.rep .more{grid-column:1/-1;font-size:12.5px;color:var(--a-accent-text);font-weight:600}
+.confirm{background:var(--a-red-soft);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.confirm .btns{display:flex;gap:8px}
+.confirm button{border:0;border-radius:8px;min-height:40px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:13.5px}
+.confirm .yes{background:var(--a-red);color:#fff}
+.confirm .no{background:var(--a-chip)}
+
+/* start screen */
+.prog{height:8px;border-radius:4px;background:var(--a-chip);overflow:hidden;display:flex}
+.prog i{display:block;height:100%}
+.prog .p1{background:var(--a-accent)} .prog .p2{background:var(--a-faint)}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px;font-variant-numeric:tabular-nums}
+.log li{display:flex;justify-content:space-between;gap:8px}
+.log li.today{font-weight:600}
+.srcline{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;font-size:14px}
+.srcline .ic{width:22px;height:22px;border-radius:6px;background:var(--a-accent-soft);color:var(--a-accent-text);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:600}
+.srcline small{display:block;font-size:12.5px;color:var(--a-dim)}
+
+/* triage */
+.strip{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.cell{height:34px;border-radius:8px;border:1.5px solid transparent;background:var(--a-chip);display:grid;place-items:center;cursor:pointer;padding:0;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--a-dim);position:relative}
+.cell.cur{border-color:var(--a-accent)}
+.cell.r{background:var(--a-accent-soft)}
+.cell.n{color:var(--a-red)}
+.cell.in::after{content:"";position:absolute;left:5px;right:5px;bottom:3px;height:2px;border-radius:1px;background:var(--a-green)}
+.cell .md{display:flex;gap:2px}
+.cell .md i{width:5px;height:5px;border-radius:50%;background:var(--a-accent)}
+.legend{font-size:11.5px;color:var(--a-dim);display:flex;flex-wrap:wrap;gap:4px 12px}
+.prev{padding:13px;display:flex;flex-direction:column;gap:8px}
+.prev h4{margin:0;font-size:18px;font-weight:700;line-height:1.25}
+.prev p{font-size:14.5px;line-height:1.45}
+.prev .rep-n{font-family:var(--mono);font-size:10.5px;color:var(--a-faint)}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.thumb{width:58px;height:58px;border-radius:8px;background:linear-gradient(135deg,var(--a-chip),var(--a-accent-soft));display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--a-dim)}
+.thumb.dr{width:120px;background:repeating-linear-gradient(135deg,var(--a-chip) 0 6px,var(--a-surface) 6px 12px);border:1px solid var(--a-border)}
+.dimmed{opacity:.45}
+.stamp{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;border-radius:6px;padding:3px 8px;align-self:flex-start}
+.stamp.s{background:var(--a-chip);color:var(--a-dim)}
+.stamp.n{background:var(--a-red-soft);color:var(--a-red)}
+.stamp.r{background:var(--a-accent-soft);color:var(--a-accent-text)}
+.stamp.in{background:var(--a-green-soft);color:var(--a-green)}
+.taghint{font-size:12px;color:var(--a-dim)}
+
+/* THE importance control, drawn from Shared/UI/ThreeBallImportanceView.swift
+   (phone: ball 15, target 44, gap 10, card radius 16, sync dot 6, sync font 10.5) */
+.imp{background:var(--a-surface);border-radius:16px;padding:13px 13px 12px;display:flex;flex-direction:column}
+.imp.dim{opacity:.5}
+.imp-top{display:flex;align-items:center;gap:8px}
+.imp-l{font-size:11px;font-weight:500;color:var(--a-faint);margin-right:10px}
+.balls{display:flex}
+.ball{width:44px;height:44px;border:0;background:none;padding:0;display:grid;place-items:center;cursor:pointer;margin:-12px 0}
+.ball i{display:block;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--a-faint);transition:background .12s,border-color .12s}
+.ball.on i{background:var(--a-accent);border-color:var(--a-accent)}
+.imp-v{margin-left:auto;font-size:11.5px;font-weight:500;color:var(--a-faint)}
+.imp-v.on{font-weight:600;color:var(--a-accent-text)}
+.imp-div{height:.5px;background:var(--a-border);margin:11px 0 9px}
+.imp-sync{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--a-dim)}
+.imp-sync i{width:6px;height:6px;border-radius:50%;background:var(--a-faint)}
+.imp-sync i.g{background:var(--a-green)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{min-height:50px;border-radius:12px;border:1px solid var(--a-border);background:var(--a-surface);font-weight:650;font-size:14.5px;cursor:pointer;color:var(--a-text);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:6px}
+.act small{font-size:11px;font-weight:500;color:var(--a-dim)}
+.act.nv{color:var(--a-red)}
+.act[aria-pressed="true"]{background:var(--a-text);color:var(--a-bg);border-color:var(--a-text)}
+.act[aria-pressed="true"] small{color:var(--a-bg);opacity:.75}
+.act.nv[aria-pressed="true"]{background:var(--a-red);border-color:var(--a-red);color:#fff}
+
+/* the contestable choices, loud */
+.pick{position:relative;outline:2px dashed var(--pg-warn);outline-offset:4px;border-radius:12px}
+.flag{font-family:var(--mono);font-size:10.5px;font-weight:600;color:#fff;background:var(--pg-warn);border:0;border-radius:5px;padding:4px 8px;cursor:pointer;letter-spacing:.03em;min-height:26px}
+.pick>.flag{position:absolute;top:-17px;right:8px;z-index:2}
+.choices{display:flex;flex-direction:column;gap:10px}
+.ch{background:var(--pg-card);border:1px solid var(--pg-line);border-left:4px solid var(--pg-warn);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:5px;font-size:13.5px;line-height:1.4}
+.ch .k{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);letter-spacing:.04em}
+.ch .alt{color:var(--pg-dim);font-size:13px}
+.ch.hl{box-shadow:0 0 0 2px var(--pg-warn)}
+.kept{font-size:13px;color:var(--pg-dim);line-height:1.45}
+
+/* media panel */
+.med{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;overflow:hidden}
+.mrow{display:flex;flex-direction:column;gap:6px;padding:11px 12px;border:0;border-top:1px solid var(--pg-line);width:100%;text-align:left;background:none;cursor:pointer}
+.mrow:first-child{border-top:0}
+.mrow .mh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mrow .mh b{font-size:14.5px}
+.mrow .mh span{font-family:var(--mono);font-size:11px;color:var(--pg-faint)}
+.mcols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mc{font-size:12.5px;line-height:1.35;display:flex;flex-direction:column;gap:3px}
+.st{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.03em;border-radius:4px;padding:1px 6px;align-self:flex-start}
+.st.kept{background:var(--a-green-soft);color:var(--a-green)}
+.st.partly{background:var(--a-amber-soft);color:var(--a-amber)}
+.st.lost{background:var(--a-red-soft);color:var(--a-red)}
+.st.unconfirmed{background:transparent;color:var(--a-amber);border:1px dashed var(--a-amber)}
+.mdo{font-size:13px;line-height:1.4}
+.mdo em{font-style:normal;color:var(--pg-dim)}
+.msrc{font-size:11.5px;color:var(--pg-faint);font-family:var(--mono);line-height:1.5}
+.mhead{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--pg-faint);padding:0 12px}
+
+/* entry menu */
+.menu{background:var(--a-surface);border-radius:12px;border:1px solid var(--a-border);box-shadow:var(--a-shadow);width:300px;max-width:100%;overflow:hidden;font-size:14.5px;color:var(--a-text)}
+.menu div{padding:10px 14px;border-top:1px solid var(--a-border);display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.menu div:first-child{border-top:0}
+.menu .new{background:var(--a-accent-soft);color:var(--a-accent-text);font-weight:600}
+.menu small{color:var(--a-faint);font-family:var(--mono);font-size:11px;white-space:nowrap}
+details.today{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:12px;padding:12px 14px}
+details.today summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-dim);min-height:28px;display:flex;align-items:center}
+details.today ul{list-style:none;margin:10px 0 8px;padding:0;display:flex;flex-direction:column;gap:7px}
+details.today li{font-size:13.5px;line-height:1.4;display:grid;grid-template-columns:18px 1fr;gap:6px}
+details.today .ok::before{content:"+";color:var(--a-green);font-family:var(--mono);font-weight:600}
+details.today .no::before{content:"\2212";color:var(--pg-warn);font-family:var(--mono);font-weight:600}
+details.today .src{font-family:var(--mono);font-size:11px;color:var(--pg-faint);line-height:1.5}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--pg-ink);color:var(--pg-bg);font-size:13.5px;padding:9px 14px;border-radius:10px;max-width:calc(100% - 32px);width:max-content;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.toast,.ball i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q71 · mock · fake notes · C117 C238 · revises Q67</div>
+    <h1>Apple Notes import, over as many days as it takes</h1>
+  </header>
+
+  <section class="q" aria-label="Question for Tuur">
+    <p>1. Recognise declined notes by the Mac's Notes database (1) or by export fingerprint (2)?</p>
+  </section>
+
+  <section class="sec" aria-label="How a Never import note is recognised next time">
+    <div class="eyebrow">How Skrift knows a note it has seen · tap a route to preview it below</div>
+    <div class="routes" id="routes"></div>
+    <div class="demo" id="demo"></div>
+    <p class="cap">Neither route uses the title. Both routes also use the same key to recognise notes already imported, so those are not offered twice. From plan/research/apple-notes-export.md (Q72).</p>
+  </section>
+
+  <section class="sec" aria-label="The import">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Route">
+        <button id="r1" data-route="1">Route 1</button>
+        <button id="r2" data-route="2">Route 2</button>
+      </div>
+      <div class="steps" id="jump" aria-label="Jump to screen"></div>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="cap" id="stagecap"></p>
+  </section>
+
+  <section class="sec" aria-label="Choices this mock made" id="choices">
+    <div class="eyebrow">Choices I made · tell me to flip one</div>
+    <div class="choices">
+      <div class="ch" id="ch1"><span class="k">CHOICE 1 · THE NAME</span><span>"Delete" is now <b>Never import</b>, with "stays in Notes" under it in the report.</span><span class="alt">Other names: Leave in Notes · Don't import · Not for Skrift.</span></div>
+      <div class="ch" id="ch2"><span class="k">CHOICE 2 · WHEN NOTES LAND</span><span>Each <b>Next 10</b> imports its rated notes straight away. <b>Import what I've decided so far</b> only adds the rated notes of the open batch, then shows the list to delete in Apple Notes.</span><span class="alt">Other answer: nothing lands in Skrift until you tap Import; Next 10 only moves on.</span></div>
+      <div class="ch" id="ch3"><span class="k">CHOICE 3 · SKIP STAYS</span><span><b>Skip for now</b> counts as a decision for the Next 10 lock. The note comes back next session.</span><span class="alt">Other answer: no Skip. Every note is either rated or Never import.</span></div>
+    </div>
+    <p class="kept">Your Q67 picks are built in and no longer flippable: Next 10 stays locked until all ten are decided (A); a Never import note is never offered again (B); the phone shows one note at a time and a ball tap moves to the next (C). The Mac sheet keeps the Q67 layout (list of ten beside the note) with these same buttons.</p>
+  </section>
+
+  <section class="sec" aria-label="What happens to each Apple Notes media type">
+    <div class="eyebrow">What happens to each kind of content · tap a row for the source</div>
+    <div class="mhead"><span>1 · Mac reads Notes</span><span>2 · Markdown export</span></div>
+    <div class="med" id="media"></div>
+    <p class="cap">"Unconfirmed" means nobody has published a first-hand test of it. One synthetic test note exported from macOS 26.6, renamed and exported again, would settle every unconfirmed cell in route 2 (Q72's next step).</p>
+  </section>
+
+  <section class="sec" aria-label="Where it starts">
+    <div class="eyebrow">Where it starts</div>
+    <div class="menu" id="menu"></div>
+    <p class="cap">The phone's Import menu, items drawn from MemosListView.swift :734. While an import is half done, the row says so and opens straight at the start screen. The Mac's Import button opens the same flow (C238).</p>
+  </section>
+
+  <details class="today">
+    <summary>What Skrift's importer does today, from source</summary>
+    <ul>
+      <li class="ok"><span><b>Mac only:</b> Import, then pick a folder of Apple Notes <code>.md</code> exports; each file becomes one note.</span></li>
+      <li class="ok"><span><b>Title</b> = the first <code># </code> heading, else the filename.</span></li>
+      <li class="ok"><span><b>Pictures</b> in <code>Attachments/</code> are copied and relinked; HEIC becomes JPEG.</span></li>
+      <li class="no"><span><b>Date:</b> every note is dated to the import moment. D18 says it must be the creation date.</span></li>
+      <li class="no"><span><b>Every note copies the whole <code>Attachments/</code> folder</b>, not only its own pictures.</span></li>
+      <li class="no"><span><b>No choice per note, no memory:</b> importing the same folder twice imports everything twice.</span></li>
+    </ul>
+    <div class="src">IngestService.swift: ingestNote :169, importAttachments :358, appleNoteTitle :416, ingestFolder :432 · PipelineFile.swift :60</div>
+  </details>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+/* All copy lives in template literals (backticks); no storage is used, so a reload starts over. */
+var NAMES=["Passing","Useful","Important"]; /* ThreeBallScale.names */
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var TOTAL=412;
+
+/* 30 made-up notes; they repeat (marked) after note 30. No folders: his Notes are one flat list. */
+var T=[
+ {t:`Shino recipe v3`,l:[`Cone 6, reduction. Try on the tall jar.`,`Nepheline syenite 40, spodumene 20, soda ash 4.`],pics:1,ck:[2,3],tags:[`glaze`]},
+ {t:`Tram idea: glaze as map`,l:[`Crawl glaze that cracks like the 28 route.`],draw:1,audio:1,tags:[`Kiln`]},
+ {t:`Meter readings`,l:[`Readings for the landlord, every first of the month.`],tbl:[[`Month`,`Water`,`Power`],[`Nov`,`412`,`8811`],[`Dec`,`431`,`9104`]]},
+ {t:`Call back Rui`,l:[`About the van on Saturday. After 18h.`]},
+ {t:`Gripper v2 notes`,l:[`Finger pads slip on glossy boxes.`,`Try the softer silicone, shore 20A.`],pics:3,draw:1,tags:[`gripper`,`gfr`]},
+ {t:`Bacalhau à Brás`,l:[`Onions thin, potatoes matchstick, eggs last and off the heat.`],pics:2,tags:[`recipe`]},
+ {t:`Gift ideas for Mo`,l:[`Book on Japanese joinery. A good chisel. Concert tickets?`],ck:[1,4],tags:[`gift ideas`]},
+ {t:`Dentist 12 Oct`,l:[`10:30, Rua Augusta. Bring the old X-rays.`],pin:1},
+ {t:`Firing log, September`,l:[`Bisque 04 on the 3rd, glaze 6 on the 9th.`,`Shelf 2 underfired again.`],pics:4,tbl:[[`Date`,`Cone`,`Note`],[`3 Sep`,`04`,`bisque`],[`9 Sep`,`6`,`shelf 2 low`]],tags:[`Kiln`]},
+ {t:`Investor call prep`,l:[`Three numbers: units shipped, gross margin, pilot count.`],audio:1,pdf:1,tags:[`gfr`]},
+ {t:`Parking level 3`,l:[`P3, row F, next to the pillar with the blue stripe.`]},
+ {t:`Sourdough schedule`,l:[`Feed 9:00, mix 14:00, shape 19:00, fridge overnight.`],ck:[0,5],tags:[`recipe`]},
+ {t:`Paint colours`,l:[`Hall: off-white, sample 3. Bedroom: the grey-green one.`],pics:2,scan:1},
+ {t:`Words for the song`,l:[`Second verse still missing. Something about the ferry.`],audio:1},
+ {t:`Sci-fi list`,l:[`Exhalation. The Dispossessed. Something by Le Guin I have not read.`],ck:[1,6],tags:[`books`]},
+ {t:`Servo torque table`,l:[`Measured at 6 V, stall.`],tbl:[[`Servo`,`kg·cm`],[`MG996`,`9.4`],[`DS3218`,`19.8`]],pdf:1,tags:[`gfr`]},
+ {t:`Portuguese verbs`,l:[`ter, ser, estar, ficar. Ficar is the hard one.`],tags:[`pt`]},
+ {t:`Cone 6 celadon test`,l:[`Too green at 2% iron. Try 1.5 next firing.`],pics:6,tags:[`glaze`]},
+ {t:`Wi-Fi setup`,l:[`Router in the hall cupboard. Guest network is the second one.`],nlink:1},
+ {t:`Misumi order`,l:[`2x linear rail 300 mm, 4x carriage.`],pdf:1,ck:[1,2],scan:1},
+ {t:`Caldo verde`,l:[`Kale sliced as thin as hair. Chouriço at the end.`],tags:[`recipe`]},
+ {t:`Kiln shelf layout`,l:[`Three shelves, tall pots at the back.`],draw:1,tags:[`Kiln`]},
+ {t:`Landlord contacts`,l:[`Sr. Almeida for the boiler. Mornings only.`],pin:1},
+ {t:`Dutch novels`,l:[`Het diner. De avonden. Max Havelaar, one day.`],tags:[`books`]},
+ {t:`Pastéis attempt 2`,l:[`Oven not hot enough. Custard split.`],pics:1},
+ {t:`Glaze shopping list`,l:[`Before the October firing.`],ck:[3,7],nlink:1},
+ {t:`Local machinist`,l:[`Two streets from the office. Does aluminium, not steel.`]},
+ {t:`Passwords to change`,l:[`Bank, email, router. (No passwords written here.)`],ck:[1,3]},
+ {t:`Weekend in Porto`,l:[`Train 8:39 from Santa Apolónia. Book the flat by Friday.`],pics:5,pin:1},
+ {t:`Pottery class`,l:[`Tuesday evenings, beginner wheel, 8 weeks.`]}
+];
+/* tags already in his Skrift library (TagRules.resolveSpelling folds case into these) */
+var LIB={kiln:`kiln`,glaze:`glaze`,books:`books`};
+
+var NOTES=[];
+function fmt(d){return d.getDate()+` `+MON[d.getMonth()]+` `+d.getFullYear()}
+function buildNotes(){NOTES=[];var base=new Date(2026,8,24).getTime();
+  for(var i=0;i<TOTAL;i++){var tp=T[i%T.length];NOTES.push(Object.assign({},tp,{i:i,date:fmt(new Date(base-Math.round(i*2.3)*86400000)),rep:i>=T.length}))}}
+function nB(){return Math.ceil(NOTES.length/10)}
+function bNotes(b){return NOTES.slice(b*10,b*10+10)}
+
+var DAY0=new Date(2026,8,27);
+function dayName(k){var d=new Date(DAY0.getTime()+k*86400000);return WD[d.getDay()]+` `+d.getDate()+` `+MON[d.getMonth()]}
+
+var S={route:1,step:`triage`,batch:18,idx:3,dec:{},imp:{},impToday:[],dayK:0,todayN:0,
+  log:[{d:`Thu 24 Sep`,n:80},{d:`Fri 25 Sep`,n:100}],rk:`sofar`,openRep:{},openMed:{},
+  demo:{ren:false,ed:false},finished:false,undone:false,confirmUndo:false,hl:0};
+var advT=null;
+
+var $=function(id){return document.getElementById(id)};
+function toast(t){var e=$(`toast`);e.textContent=t;e.classList.add(`on`);clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove(`on`)},2600)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":`&amp;`,"<":`&lt;`,">":`&gt;`,'"':`&quot;`}[c]})}
+function r1(){return S.route===1}
+
+/* ---------- decisions ---------- */
+function fake(i){var r=(i*7+3)%10;return r<2?{k:`r`,v:1}:r<4?{k:`r`,v:2}:r===4?{k:`r`,v:3}:r===5?{k:`r`,v:1}:r<8?{k:`s`}:{k:`n`}}
+function count(list){var c={r1:0,r2:0,r3:0,s:0,n:0,rated:0,open:0,imp:0};
+  list.forEach(function(n){var d=S.dec[n.i];if(S.imp[n.i])c.imp++;if(!d){c.open++;return}if(d.k===`r`){c[`r`+d.v]++;c.rated++}else c[d.k]++});return c}
+function decidedN(){return Object.keys(S.dec).length}
+function firstOpen(){for(var i=0;i<NOTES.length;i++){if(!S.dec[NOTES[i].i])return i}return NOTES.length-1}
+function cur(){return bNotes(S.batch)[S.idx]}
+
+function decide(n,d){
+  var old=S.dec[n.i];
+  if(S.imp[n.i]&&d.k!==`r`){toast(`Already in Skrift. Delete it there if you do not want it.`);return}
+  var same=old&&old.k===d.k&&(d.k!==`r`||old.v===d.v);
+  if(same){
+    if(S.imp[n.i]){toast(`Already in Skrift. Change its rating, or delete it there.`);return}
+    delete S.dec[n.i];S.todayN--;toast(`Cleared: back to undecided`);render();return}
+  if(!old)S.todayN++;
+  S.dec[n.i]=d;
+  var msg;
+  if(d.k===`r`) msg=S.imp[n.i]?`Rating changed to `+NAMES[d.v-1]:NAMES[d.v-1]+` · imports when you tap Next 10`;
+  else if(d.k===`s`) msg=`Skipped for now · comes back next session`;
+  else msg=r1()?`Never import · remembered by its Notes ID`:`Never import · remembered by its content`;
+  toast(msg);render();
+  clearTimeout(advT);advT=setTimeout(function(){var bn=bNotes(S.batch);for(var k=1;k<=bn.length;k++){var j=(S.idx+k)%bn.length;if(!S.dec[bn[j].i]){S.idx=j;render();return}}},280);
+}
+function importList(list){var k=0;list.forEach(function(n){var d=S.dec[n.i];if(d&&d.k===`r`&&!S.imp[n.i]){S.imp[n.i]=true;S.impToday.push(n.i);k++}});return k}
+function commit(){
+  var bn=bNotes(S.batch);var open=bn.filter(function(n){return !S.dec[n.i]});
+  if(open.length){S.idx=bn.indexOf(open[0]);render();toast(`Decide the `+open.length+` left first. Showing the first one.`);return}
+  var k=importList(bn);var c=count(bn);
+  toast(`Batch `+(S.batch+1)+`: `+k+` imported, `+c.s+` skipped, `+c.n+` never import`);
+  if(S.batch+1>=nB()){S.finished=true;S.step=`report`;S.rk=`end`}else{S.batch++;S.idx=0}
+  render();scrollStage();
+}
+function importSoFar(){var k=importList(bNotes(S.batch));S.step=`report`;S.rk=`sofar`;
+  toast(k?k+` more imported. Here is what you can delete in Apple Notes.`:`Nothing new to import. Here is what you can delete in Apple Notes.`);render();scrollStage()}
+function finishLater(){S.step=`start`;toast(`Saved at note `+(decidedN()+1)+` of `+TOTAL+`. Pick up here any time.`);render();scrollStage()}
+function nextDay(){if(S.todayN>0)S.log.push({d:dayName(S.dayK),n:S.todayN});S.dayK++;S.todayN=0;S.impToday=[];S.step=`start`;
+  toast(`Mock: it is now `+dayName(S.dayK)+`. Everything you decided is still there.`);render();scrollStage()}
+function resume(){var f=firstOpen();S.batch=Math.floor(f/10);S.idx=f%10;S.step=`triage`;S.undone=false;render();scrollStage()}
+function fillRest(){NOTES.forEach(function(n){if(!S.dec[n.i]){S.dec[n.i]=fake(n.i);S.todayN++}});importList(NOTES);S.finished=true;S.batch=nB()-1;S.idx=0}
+function scrollStage(){try{$(`stage`).scrollIntoView({block:`start`,behavior:`smooth`})}catch(e){}}
+
+/* ---------- note preview ---------- */
+function tagChip(t){var low=t.toLowerCase();var have=LIB[low];
+  return `<span class="chip acc">#`+esc(have||t)+`</span>`+(have&&have!==t?`<span class="chip">#`+esc(t)+` folds into your #`+esc(have)+`</span>`:``)}
+function marks(n){var m=[],one=r1();
+  if(n.pics)m.push(`<span class="chip">`+n.pics+` picture`+(n.pics>1?`s`:``)+`</span>`);
+  if(n.scan)m.push(one?`<span class="chip">scan · as images</span>`:`<span class="chip warn">scan · unconfirmed</span>`);
+  if(n.ck)m.push(one?`<span class="chip">checklist · `+n.ck[0]+` of `+n.ck[1]+` ticked</span>`:`<span class="chip warn">checklist · ticks unconfirmed</span>`);
+  if(n.tbl)m.push(one?`<span class="chip">table</span>`:`<span class="chip warn">table · unconfirmed</span>`);
+  if(n.pdf)m.push(`<span class="chip">PDF attached</span>`);
+  if(n.audio)m.push(`<span class="chip">audio · attached, not transcribed</span>`);
+  if(n.nlink)m.push(one?`<span class="chip">link to another note · kept</span>`:`<span class="chip warn">link to another note · plain text</span>`);
+  if(n.pin)m.push(`<span class="chip">pinned in Notes · pin dropped</span>`);
+  return m.join(``)}
+function stampFor(n){var d=S.dec[n.i];
+  if(S.imp[n.i])return `<span class="stamp in">IN SKRIFT</span>`;
+  if(!d)return ``;
+  if(d.k===`r`)return `<span class="stamp r">RATED · IMPORTS ON NEXT 10</span>`;
+  if(d.k===`s`)return `<span class="stamp s">SKIPPED · BACK NEXT SESSION</span>`;
+  return `<span class="stamp n">NEVER IMPORT · STAYS IN NOTES</span>`}
+function preview(n){var d=S.dec[n.i],one=r1();var dim=d&&(d.k===`s`||d.k===`n`);
+  var date=one?`<span class="chip">created `+n.date+`</span>`:`<span class="chip warn">date: file time, unconfirmed</span>`;
+  var thumbs=n.pics?`<div class="thumbs">`+Array.from({length:Math.min(3,n.pics)},function(_,k){return `<span class="thumb">IMG `+(k+1)+`</span>`}).join(``)+(n.pics>3?`<span class="thumb">+`+(n.pics-3)+`</span>`:``)+`</div>`:``;
+  var tbl=n.tbl?`<table class="tbl">`+n.tbl.map(function(r,k){return `<tr>`+r.map(function(c){return k?`<td>`+esc(c)+`</td>`:`<th>`+esc(c)+`</th>`}).join(``)+`</tr>`}).join(``)+`</table>`:``;
+  var draw=n.draw?(one?`<div class="thumbs"><span class="thumb dr">DRAWING · PNG</span></div>`:`<div class="marker">[drawing: may be missing from the export]</div>`):``;
+  var tags=(n.tags||[]).map(tagChip).join(``);
+  return `<div class="card prev`+(dim?` dimmed`:``)+`">`+stampFor(n)+
+    `<div class="chips">`+date+`<span class="chip">Apple Note</span>`+tags+`</div>`+
+    `<h4>`+esc(n.t)+`</h4>`+n.l.map(function(x){return `<p>`+esc(x)+`</p>`}).join(``)+tbl+draw+thumbs+
+    `<div class="chips">`+marks(n)+`</div>`+
+    (n.tags?`<span class="taghint">`+(one?`Notes tags become Skrift tags.`:`Notes tags become Skrift tags if the export keeps them (unconfirmed).`)+`</span>`:``)+
+    (n.rep?`<span class="rep-n">fake data repeats after note 30 · this is note `+(n.i+1)+`</span>`:``)+`</div>`}
+function ballsBtns(n){var d=S.dec[n.i];var lit=d&&d.k===`r`?d.v:0;
+  return [1,2,3].map(function(k){return `<button class="ball`+(k<=lit?` on`:``)+`" data-ball="`+k+`" data-n="`+n.i+`" aria-label="Importance `+NAMES[k-1]+`" aria-pressed="`+(k<=lit)+`"><i></i></button>`}).join(``)}
+function impCard(n){var d=S.dec[n.i];var lit=d&&d.k===`r`?d.v:0;var dim=d&&(d.k===`s`||d.k===`n`);
+  return `<div class="imp`+(dim?` dim`:``)+`"><div class="imp-top"><span class="imp-l">Importance</span><span class="balls">`+ballsBtns(n)+`</span><span class="imp-v`+(lit?` on`:``)+`">`+(lit?NAMES[lit-1]:`Not rated`)+`</span></div>`+
+    `<div class="imp-div"></div><div class="imp-sync"><i class="`+(lit?`g`:``)+`"></i>`+(lit?`Rated · imports into Skrift`:`Tap a ball to import it and rate it`)+`</div></div>`}
+function actBtns(n){var d=S.dec[n.i];
+  return `<div class="pick"><button class="flag" data-choice="1">CHOICE 1 + 3</button><div class="acts">`+
+    `<button class="act" data-act="s" data-n="`+n.i+`" aria-pressed="`+!!(d&&d.k===`s`)+`">Skip for now<small>back next session</small></button>`+
+    `<button class="act nv" data-act="n" data-n="`+n.i+`" aria-pressed="`+!!(d&&d.k===`n`)+`">Never import<small>`+(r1()?`remembered by Notes ID`:`remembered by content`)+`</small></button></div></div>`}
+function cellGlyph(n){var d=S.dec[n.i];var inn=S.imp[n.i]?` in`:``;if(!d)return [inn,``];
+  if(d.k===`r`)return [` r`+inn,`<span class="md">`+`<i></i>`.repeat(d.v)+`</span>`];if(d.k===`s`)return [` s`,`–`];return [` n`,`×`]}
+function strip(){var bn=bNotes(S.batch);
+  return `<div class="strip">`+bn.map(function(n,k){var g=cellGlyph(n);return `<button class="cell`+g[0]+(k===S.idx?` cur`:``)+`" data-cell="`+k+`" aria-label="Note `+(k+1)+`">`+g[1]+`</button>`}).join(``)+`</div>`+
+    `<div class="legend"><span>● rated</span><span>– skipped</span><span>× never import</span><span>green line = in Skrift</span></div>`}
+
+/* ---------- screens ---------- */
+function stepStart(){var one=r1();var dn=decidedN();var c=count(NOTES);var left=TOTAL-dn;var f=firstOpen();
+  var src=one?
+    `<div class="srcline"><span class="ic">1</span><span>Reading Apple Notes on your Mac<small>`+TOTAL+` notes · one list, no folders · read 2 min ago · Full Disk Access on</small></span></div><p class="hint">On the iPhone you triage the list the Mac read. New notes you write in Notes show up here by themselves.</p>`:
+    `<div class="srcline"><span class="ic">2</span><span>Notes export 25 Sep<small>iCloud Drive · `+TOTAL+` notes · one list, no folders</small></span></div><button class="ghost" id="newexport" style="align-self:flex-start;padding-left:0">Pick a newer export</button>`;
+  var logRows=S.log.map(function(x){return `<li><span>`+x.d+`</span><span>`+x.n+` decided</span></li>`}).join(``)+`<li class="today"><span>`+dayName(S.dayK)+`, today</span><span>`+S.todayN+` decided</span></li>`;
+  return `<div class="card pad">`+src+`<p class="hint">Your Notes are one flat list, so there is no folder step and Skrift adds no folder tags.</p></div>`+
+   `<div class="card pad"><b style="font-size:17px">Continue where you left off</b>`+
+   `<div class="prog" aria-label="`+dn+` of `+TOTAL+` decided"><i class="p1" style="width:`+(c.imp/TOTAL*100).toFixed(1)+`%"></i><i class="p2" style="width:`+((dn-c.imp)/TOTAL*100).toFixed(1)+`%"></i></div>`+
+   `<p class="hint"><b>`+dn+` of `+TOTAL+`</b> decided · `+left+` to go · next up: batch `+(Math.floor(f/10)+1)+` of `+nB()+`, note `+(f%10+1)+`</p>`+
+   `<div class="chips"><span class="chip acc">In Skrift `+c.imp+`</span><span class="chip">Never import `+c.n+`</span><span class="chip">Skipped `+c.s+`</span></div>`+
+   `<ul class="log">`+logRows+`</ul></div>`+
+   `<p class="hint">Every tap is saved the moment you make it. Close the sheet whenever you like.</p>`}
+
+function stepTriage(){var n=cur();
+  return `<div style="display:flex;flex-direction:column;gap:6px">`+strip()+`</div>`+preview(n)+impCard(n)+actBtns(n)}
+
+function listRows(ids,cap){var seen=ids.slice(0,cap);
+  return seen.map(function(i){var n=NOTES[i];return `· `+esc(n.t)+` <span style="color:var(--a-dim)">(`+n.date+`)</span>`}).join(`<br>`)}
+function stepReport(){var one=r1();var c=count(NOTES);var end=S.rk===`end`;
+  if(S.undone)return `<div style="padding-top:12px;display:flex;flex-direction:column;gap:10px"><div class="big-num">0</div><p class="hint">Import undone. `+c.imp+` notes moved to Trash. Never import and Skip choices are forgotten too, so every note is offered again.</p></div>`;
+  var impIds=NOTES.filter(function(n){return S.imp[n.i]}).map(function(n){return n.i});
+  var recent=S.impToday.slice().reverse().concat(impIds.filter(function(i){return S.impToday.indexOf(i)<0}).reverse());
+  var nevIds=NOTES.filter(function(n){var d=S.dec[n.i];return d&&d.k===`n`}).map(function(n){return n.i});
+  var imported=NOTES.filter(function(n){return S.imp[n.i]});
+  var cnt=function(f){return imported.filter(f).length};
+  var groups=[
+   [`draw`,`Drawings`,cnt(function(n){return n.draw}),one?`Imported as a picture of the drawing. Not editable as a drawing.`:`The export may not include them (unconfirmed). Where it did not, the note keeps a [drawing missing] marker.`],
+   [`audio`,`Audio recordings`,cnt(function(n){return n.audio}),`Attached as a file. Not transcribed.`],
+   [`pin`,`Pinned`,cnt(function(n){return n.pin}),`Skrift has no pins. The pin is dropped; the note is in.`]
+  ];
+  if(!one)groups.unshift([`date`,`Dates`,imported.length,`The export carries no dates that we know of. These notes use the file time, which is unconfirmed; D18 says date unknown otherwise.`]);
+  groups=groups.filter(function(g){return g[2]>0});
+  var open=S.openRep;
+  var delCard=`<div class="card">`+
+    `<button class="rep" data-r="del" aria-expanded="`+!!open.del+`"><b>Safe to delete in Apple Notes</b><span class="c n" style="color:var(--a-green)">`+c.imp+`</span>`+
+    `<span class="why">Everything here is in Skrift. `+(one?`Skrift reads Notes, so each one drops off this list once you delete it there.`:`This list shrinks when you pick a newer export without them.`)+`</span>`+
+    `<span class="ex">`+listRows(recent,open.del?40:5)+`</span>`+(c.imp>(open.del?40:5)?`<span class="more">`+(open.del?`Show fewer`:`Show `+Math.min(40,c.imp)+` of `+c.imp)+`</span>`:``)+`</button></div>`;
+  var leftCard=`<div class="card">`+
+    `<button class="rep" data-r="nev" aria-expanded="`+!!open.nev+`"><b>Never import</b><span class="c n">`+c.n+`</span><span class="why">Still in Apple Notes; Skrift will not offer them again. `+(one?`Recognised by their Notes ID, even after edits.`:`Recognised by their content. Edit one in Notes and it comes back as new.`)+` Delete them there if you do not need them.</span>`+
+    (open.nev?`<span class="ex">`+listRows(nevIds,12)+(c.n>12?`<br>…`:``)+`</span>`:``)+`</button>`+
+    `<button class="rep" data-r="skip" aria-expanded="`+!!open.skip+`"><b>Skipped for now</b><span class="c n">`+c.s+`</span><span class="why">Not imported. They come back in your next session.</span></button></div>`;
+  var head=end?
+    `<div class="nums"><div><div class="big-num">`+c.imp+`</div><span class="hint">in Skrift</span></div><div><div class="big-num" style="color:var(--a-dim)">`+(c.n+c.s)+`</div><span class="hint">left out</span></div><div><div class="big-num" style="color:var(--a-amber)">`+groups.reduce(function(a,g){return a+g[2]},0)+`</div><span class="hint">need a look</span></div></div>`+
+    `<div class="card pad"><div class="chips"><span class="chip acc">Important `+c.r3+`</span><span class="chip acc">Useful `+c.r2+`</span><span class="chip acc">Passing `+c.r1+`</span></div><p class="hint">The Mac polishes these and exports them to Obsidian.</p></div>`:
+    `<div class="nums"><div><div class="big-num">`+S.impToday.length+`</div><span class="hint">imported today</span></div><div><div class="big-num" style="color:var(--a-dim)">`+c.imp+`</div><span class="hint">in Skrift in total</span></div><div><div class="big-num" style="color:var(--a-dim)">`+c.open+`</div><span class="hint">still to decide</span></div></div>`;
+  return head+`<div class="sect">Now in Skrift</div>`+delCard+`<div class="sect">Left in Apple Notes</div>`+leftCard+
+    (end?`<div class="sect">What did not map</div><div class="card">`+(groups.map(function(g){return `<button class="rep" data-r="`+g[0]+`" aria-expanded="`+!!open[g[0]]+`"><b>`+g[1]+`</b><span class="c">`+g[2]+`</span>`+(open[g[0]]?`<span class="why">`+g[3]+`</span>`:`<span class="why">Tap for what happened.</span>`)+`</button>`}).join(``)||`<div class="rep"><span class="why">Nothing.</span></div>`)+`</div>`:``)+
+    `<p class="hint">Skrift can't delete anything in Apple Notes. Deleting there is up to you.</p>`+
+    (S.confirmUndo?`<div class="confirm"><span>Move all `+c.imp+` imported notes to Trash?</span><div class="btns"><button class="yes" data-u="yes">Move to Trash</button><button class="no" data-u="no">Keep them</button></div></div>`:``)}
+
+/* ---------- chrome ---------- */
+var LOCK=`<svg class="lk" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"></rect><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>`;
+function foot(){
+  if(S.step===`start`)return `<button class="primary" id="go">Continue · note `+(decidedN()+1)+` of `+TOTAL+`</button><button class="ghost" id="showdel">What can I delete in Apple Notes?</button>`;
+  if(S.step===`triage`){var bn=bNotes(S.batch);var open=bn.filter(function(n){return !S.dec[n.i]}).length;var last=S.batch+1>=nB();
+    var rated=bn.filter(function(n){var d=S.dec[n.i];return d&&d.k===`r`&&!S.imp[n.i]}).length;
+    var label=last?`Finish`:`Next 10`;
+    var prim=open?`<button class="primary locked" id="go">`+LOCK+label+` <small>· `+open+` left to decide</small></button>`:`<button class="primary" id="go">`+label+`</button>`;
+    return `<div class="pick" style="display:flex;flex-direction:column;gap:6px;padding:2px"><button class="flag" data-choice="2">CHOICE 2</button>`+prim+
+      `<p class="footnote">`+(open?`Next 10 unlocks when all ten are decided.`:`All ten decided. Next 10 imports the `+rated+` rated.`)+`</p>`+
+      `<button class="ghost" id="sofar">Import what I've decided so far</button></div>`}
+  if(S.undone)return `<button class="primary" id="go">Done</button>`;
+  var c=count(NOTES);
+  if(S.rk===`end`)return `<button class="primary" id="go">Show imported notes</button><button class="ghost danger" id="undo">Undo this import</button>`;
+  return `<button class="primary" id="go">Continue · note `+(decidedN()+1)+` of `+TOTAL+`</button><button class="ghost" id="later2">Done for today</button>`}
+function subtitle(){
+  if(S.step===`triage`){var bn=bNotes(S.batch);return (S.idx+1)+` of `+bn.length+` · batch `+(S.batch+1)+` of `+nB()}
+  if(S.step===`start`)return decidedN()+` of `+TOTAL+` decided`;
+  return S.rk===`end`?`All `+TOTAL+` decided`:`So far · `+decidedN()+` of `+TOTAL}
+function renderRoutes(){
+  var cols=[
+   {n:1,t:`Mac reads Apple Notes' database`,rows:[
+     [`Knows a note by`,`Apple's own note ID, the same on all your devices`,``],
+     [`You rename it`,`Stays hidden. Implied by the ID being the sync key, not directly confirmed`,`unk`],
+     [`You edit its text`,`Stays hidden`,`good`],
+     [`Needs`,`Full Disk Access, or you pick the Notes folder once`,`unk`],
+     [`Works on`,`Mac only. The iPhone triages the list the Mac read`,`unk`],
+     [`App Store`,`Unconfirmed whether a sandboxed app may read it`,`unk`],
+     [`Dates, tags, checklists`,`Kept`,`good`],
+     [`Risk`,`Undocumented format; Apple can change it with an OS update`,`bad`],
+     [`Each session`,`Nothing to do. Skrift reads the latest`,`good`]]},
+   {n:2,t:`Markdown export + a content fingerprint`,rows:[
+     [`Knows a note by`,`A fingerprint of its text and attachments, title left out`,``],
+     [`You rename it`,`Stays hidden if the text is unchanged`,`good`],
+     [`You edit its text`,`Comes back as a new note`,`bad`],
+     [`Needs`,`Nothing. Built into Notes`,`good`],
+     [`Works on`,`Any device. Whole list at once on the Mac; iPhone exports one note at a time`,`unk`],
+     [`App Store`,`Fine`,`good`],
+     [`Dates, tags, checklists`,`Unconfirmed in the export`,`unk`],
+     [`Risk`,`A documented menu; low`,`good`],
+     [`Each session`,`Re-export only to pick up new or changed notes`,`unk`]]}
+  ];
+  $(`routes`).innerHTML=cols.map(function(c){var on=S.route===c.n;
+    return `<button class="rt" data-route="`+c.n+`" aria-pressed="`+on+`"><span class="hd"><span class="num">`+c.n+`</span><span class="ttl">`+c.t+`</span><span class="viewing">`+(on?`PREVIEWING BELOW`:`tap to preview`)+`</span></span><dl>`+
+      c.rows.map(function(r){return `<div><dt>`+r[0]+`</dt><dd class="`+(r[2]?r[2]+` v`:``)+`">`+r[1]+`</dd></div>`}).join(``)+`</dl></button>`}).join(``);
+}
+function renderDemo(){var D=S.demo;
+  var title=D.ren?`Passwords, change by Nov`:`Passwords to change`;
+  var line=D.ed?`Bank, email, router. <ins>Also the Wi-Fi.</ins>`:`Bank, email, router. (No passwords written here.)`;
+  var o1=`<div class="oc ok"><b>1 · Stays hidden</b>Same Notes ID.`+(D.ren&&!D.ed?` (ID surviving a rename: implied, unconfirmed.)`:``)+`</div>`;
+  var o2=D.ed?`<div class="oc back"><b>2 · Comes back</b>The text changed, so the fingerprint no longer matches. It shows up in your next triage as new.</div>`:
+    `<div class="oc ok"><b>2 · Stays hidden</b>`+(D.ren?`The title is left out of the fingerprint and the text still matches. The export filename changed; Skrift ignores it.`:`Nothing changed.`)+`</div>`;
+  $(`demo`).innerHTML=`<span class="eyebrow">Try it · a note you marked Never import on 24 Sep</span>`+
+    `<div class="nt"><b>`+esc(title)+`</b><span>`+line+`</span></div>`+
+    `<div class="dbtns"><button class="dbtn" data-demo="ren" aria-pressed="`+D.ren+`">Rename it in Notes</button><button class="dbtn" data-demo="ed" aria-pressed="`+D.ed+`">Add a line</button><button class="dbtn" data-demo="reset">Reset</button></div>`+
+    `<span class="eyebrow">Next import</span><div class="outc">`+o1+o2+`</div>`;
+}
+var MEDIA=[
+ {k:`fmt`,n:`Text and formatting`,a:[`kept`,`headings, lists, bold, links`],b:[`partly`,`kept; highlight colours dropped`],s:`Markdown body, a typed note, never re-transcribed.`,src:`Gadget Hacks, MacRumors on the iOS 26 export`},
+ {k:`img`,n:`Pictures`,a:[`kept`,`copied from Notes' media folder`],b:[`kept`,`files in Attachments/, linked`],s:`Copied into the note; HEIC becomes JPEG. A picture the note links to but the folder lacks is flagged, never skipped quietly.`,src:`Podfeet (blocked, search snippet); Craft help; obsidian-importer #393`},
+ {k:`draw`,n:`Drawings`,a:[`kept`,`as a PNG; skipped if never downloaded from iCloud`],b:[`unconfirmed`,`reported missing, second-hand`],s:`A picture of the drawing when there is one; otherwise a [drawing missing] marker and a row in the report.`,src:`Tech2Geek (second-hand); obsidian-importer apple-notes.ts FallbackImages`},
+ {k:`scan`,n:`Scanned documents`,a:[`kept`,`images, or a PDF if edited on iOS 17+`],b:[`unconfirmed`,`not found`],s:`Attached as images or a PDF.`,src:`Obsidian help, Apple Notes import`},
+ {k:`tbl`,n:`Tables`,a:[`kept`,`real tables`],b:[`unconfirmed`,`"may not render correctly"`],s:`A Markdown table.`,src:`Apple World Today; apple_cloud_notes_parser`},
+ {k:`ck`,n:`Checklists`,a:[`kept`,`with ticks`],b:[`unconfirmed`,`not found`],s:`A checklist with its ticks.`,src:`apple_cloud_notes_parser; obsidian-importer #471 (a line starting with a link loses its box)`},
+ {k:`att`,n:`PDFs, audio, video, other files`,a:[`kept`,`copied out of Notes' storage`],b:[`kept`,`exported with the note`],s:`Attached to the note. Audio is not transcribed.`,src:`Bear FAQ; loran/AppleNotes-to-Obsidian`},
+ {k:`web`,n:`Web links`,a:[`kept`,``],b:[`kept`,``],s:`Stay links. Rich link previews become plain links (unconfirmed in both).`,src:`Bear FAQ (older HTML route)`},
+ {k:`nl`,n:`Links to other notes`,a:[`kept`,``],b:[`lost`,`become plain text`],s:`Route 1: a link to the Skrift note when both are imported. Route 2: plain text.`,src:`Gadget Hacks; Obsidian blog`},
+ {k:`tag`,n:`Tags`,a:[`kept`,`listed per note`],b:[`unconfirmed`,`not found`],s:`Become Skrift tags. Case folds into a tag you already have (#Kiln becomes your #kiln). Multi-word tags need care: other importers cut #gift ideas to #gift.`,src:`apple-notes-parser; obsidian-importer #471; TagRules.resolveSpelling`},
+ {k:`lock`,n:`Locked notes`,a:[`partly`,`title, dates, ID readable; text encrypted`],b:[`unconfirmed`,`not found`],s:`Offered by title only with a lock. Unlock it in Notes to import the text. Obsidian skips them.`,src:`Ciofeca Forensics (2020 schema); apple_cloud_notes_parser; Obsidian help`},
+ {k:`date`,n:`Created and modified dates`,a:[`kept`,`both`],b:[`unconfirmed`,`none in the file; file times untested`],s:`The note is dated to when it was created (D18). Without a date it is marked date unknown, never the import day.`,src:`jkeefe/notes-parser; obsidian-importer source`},
+ {k:`pin`,n:`Pinned notes`,a:[`kept`,``],b:[`lost`,``],s:`Skrift has no pins; the pin is dropped and the note is imported.`,src:`Mock choice, carried from Q67`}
+];
+function renderMedia(){
+  $(`media`).innerHTML=MEDIA.map(function(m){var on=S.openMed[m.k];
+    var cell=function(x){return `<div class="mc"><span class="st `+x[0]+`">`+x[0]+`</span>`+(x[1]?`<span>`+x[1]+`</span>`:``)+`</div>`};
+    return `<button class="mrow" data-med="`+m.k+`" aria-expanded="`+!!on+`"><span class="mh"><b>`+m.n+`</b><span>`+(on?`hide`:`source`)+`</span></span><span class="mcols">`+cell(m.a)+cell(m.b)+`</span>`+
+      `<span class="mdo"><em>Skrift: </em>`+m.s+`</span>`+(on?`<span class="msrc">`+m.src+`</span>`:``)+`</button>`}).join(``);
+}
+function renderMenu(){var dn=decidedN();var done=dn>=TOTAL;
+  $(`menu`).innerHTML=`<div><span>Audio or video from Files</span><small>today</small></div><div><span>Video from Photos</span><small>today</small></div><div><span>Scan a document</span><small>today</small></div>`+
+    `<div class="new"><span>`+(done?`Apple Notes`:`Apple Notes · continue`)+`</span><small>`+(done?`new`:dn+` / `+TOTAL)+`</small></div>`}
+
+function render(){
+  renderRoutes();renderDemo();renderMedia();renderMenu();
+  $(`r1`).setAttribute(`aria-pressed`,r1());$(`r2`).setAttribute(`aria-pressed`,!r1());
+  var bodyHtml=S.step===`start`?stepStart():S.step===`triage`?stepTriage():stepReport();
+  var left=S.step===`triage`?`<button class="l" id="later">Finish later</button>`:`<button class="l" id="close">Close</button>`;
+  $(`stage`).innerHTML=`<div class="phone"><div class="nav">`+left+`<div class="t">Import Apple Notes<small>`+subtitle()+`</small></div></div>`+
+    `<div class="body">`+bodyHtml+`</div><div class="foot">`+foot()+`</div></div>`;
+  var steps=[[`start`,`Start`],[`triage`,`Triage`],[`sofar`,`So far`],[`end`,`End report`]];
+  var curK=S.step===`report`?S.rk:S.step;
+  $(`jump`).innerHTML=steps.map(function(s){return `<button data-j="`+s[0]+`"`+(s[0]===curK?` aria-current="step"`:``)+`>`+s[1]+`</button>`}).join(``)+`<button class="mockc" id="nextday">Mock: next day</button>`;
+  var caps={
+    start:`Start screen, shown when you come back. It opens on your progress, not on a folder picker: this export has no folders.`,
+    triage:`One note at a time. Tap a ball to import and rate it; it moves to the next undecided note. Tap a cell to go back. Next 10 is locked until all ten are decided; tap it anyway and it takes you to the first open one.`,
+    report:S.rk===`end`?`The end report, after the last batch. Tap a row for detail.`:`After "Import what I've decided so far" or "Done for today": what landed, and what you can now delete in Apple Notes.`
+  };
+  $(`stagecap`).textContent=`Previewing route `+S.route+`. `+caps[S.step];
+  document.querySelectorAll(`.ch`).forEach(function(e){e.classList.toggle(`hl`,e.id===`ch`+S.hl)});
+}
+
+document.addEventListener(`click`,function(e){
+  var b=e.target.closest(`button`);if(!b)return;
+  if(b.dataset.route){S.route=+b.dataset.route;toast(`Previewing route `+S.route+(S.route===1?`: the Mac reads Notes`:`: Markdown export + fingerprint`));render();return}
+  if(b.dataset.demo){var k=b.dataset.demo;if(k===`reset`){S.demo={ren:false,ed:false}}else{S.demo[k]=!S.demo[k]}renderDemo();return}
+  if(b.dataset.med){S.openMed[b.dataset.med]=!S.openMed[b.dataset.med];renderMedia();return}
+  if(b.dataset.choice){S.hl=+b.dataset.choice;render();
+    try{$(`ch`+(S.hl===1?1:S.hl)).scrollIntoView({block:`center`,behavior:`smooth`})}catch(err){}
+    toast(S.hl===1?`Choices 1 and 3: the button names and Skip. See below.`:`Choice 2: when notes land in Skrift. See below.`);return}
+  if(b.id===`nextday`){nextDay();return}
+  if(b.id===`go`){
+    if(S.step===`start`){resume();return}
+    if(S.step===`triage`){commit();return}
+    if(S.undone){toast(`Mock: closes the sheet.`);return}
+    if(S.rk===`end`){toast(`Mock: opens the notes list filtered to the imported notes.`);return}
+    resume();return}
+  if(b.id===`sofar`){importSoFar();return}
+  if(b.id===`later`){finishLater();return}
+  if(b.id===`later2`){finishLater();return}
+  if(b.id===`close`){toast(`Mock: closes the sheet. Progress is kept.`);return}
+  if(b.id===`showdel`){S.step=`report`;S.rk=`sofar`;S.openRep.del=true;render();scrollStage();return}
+  if(b.id===`newexport`){toast(`Mock: pick a newer export. Notes you decided are matched by content; ones you edited since come back.`);return}
+  if(b.id===`undo`){S.confirmUndo=true;render();return}
+  if(b.dataset.u){if(b.dataset.u===`yes`){S.undone=true;toast(`Moved to Trash.`)}else toast(`Kept.`);S.confirmUndo=false;render();return}
+  if(b.dataset.j){var j=b.dataset.j;S.undone=false;
+    if(j===`start`){S.step=`start`}
+    else if(j===`triage`){if(S.finished){toast(`All decided. Showing the last batch.`)}S.step=`triage`}
+    else if(j===`sofar`){S.step=`report`;S.rk=`sofar`}
+    else{if(decidedN()<TOTAL){fillRest();toast(`Mock: the notes you had not reached are filled with made-up answers.`)}S.step=`report`;S.rk=`end`}
+    render();return}
+  if(b.dataset.cell!==undefined){S.idx=+b.dataset.cell;render();return}
+  if(b.dataset.ball){decide(NOTES[+b.dataset.n],{k:`r`,v:+b.dataset.ball});return}
+  if(b.dataset.act){decide(NOTES[+b.dataset.n],{k:b.dataset.act});return}
+  if(b.dataset.r){S.openRep[b.dataset.r]=!S.openRep[b.dataset.r];render();return}
+});
+
+buildNotes();
+/* Day 3 of the import: 18 batches done on Thu and Fri, batch 19 open at note 4. */
+for(var b0=0;b0<18;b0++)bNotes(b0).forEach(function(n){S.dec[n.i]=fake(n.i)});
+NOTES.slice(0,180).forEach(function(n){var d=S.dec[n.i];if(d&&d.k===`r`)S.imp[n.i]=true});
+S.dec[180]={k:`r`,v:2};S.dec[181]={k:`n`};S.dec[182]={k:`s`};S.todayN=3;
+render();
+})();
+</script>
