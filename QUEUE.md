@@ -529,7 +529,7 @@ needs: Q72
 do: Tuur 2026-09-27 on `mocks/Q67-apple-notes-triage.html`. Picks: A = the next batch stays locked until all ten are decided; B = a declined note is never offered again; C = one note at a time on the phone. Changes: (1) "Delete" is the wrong name — Skrift cannot delete in Apple Notes; rename (e.g. "Never import") and show how a declined note is recognised next time (per Q72's finding; not by title — "if you change the title it might come in again"); (2) resumable over days: 500 notes are not one sitting — progress saved, a clear "continue where you left off"; (3) "import what I've decided so far" at any point, so he can go delete those in Apple Notes; (4) Apple Notes tags become Skrift tags on import; (5) the button he could not find: label it plainly ("Next 10") and show it locked until the ten are decided; (6) no folder step when the export has no folders (his Notes are one flat list; Skrift gets no folders); (7) a panel listing every Apple Notes media type and what happens to it, from Q72 (drawings included). Keep: tapping importance advances to the next note ("I quite like that"), the end report. Every control responds on tap. Publish; one numbered question.
 check: Tuur clicked through it and said go.
 
-### Q72 [auto] (doing) research: what an Apple Notes export contains per media type, and what identifies a note across exports
+### Q72 [auto] (done) research: what an Apple Notes export contains per media type, and what identifies a note across exports
 spec: C238
 needs: -
 do: Research only (researcher agent, open web, no project code or data): Tuur needs to know, before the Apple Notes import is built: (1) which export routes exist from Apple Notes on macOS/iOS 26 (File → Export as PDF/Markdown/Pages, Share, third-party exporters, the NoteStore.sqlite route) and what each produces; (2) per media type inside a note — drawings/sketches, scanned documents, tables, checklists, attachments (images, PDF, audio, video), links, tags (#hashtags), mentions, locked notes, folders/smart folders — whether it survives each route and in what form; (3) what stable identity a note carries in each route (creation date, modified date, an ID) so a declined note can be recognised on a later export even after its title changes. Report in `plan/research/apple-notes-export.md` with URLs and one recommendation per question.
@@ -777,3 +777,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && 
 - 2026-09-27 09:59 Q73 added
 - 2026-09-27 09:59 Q70 -> doing — worker out
 - 2026-09-27 09:59 Q72 -> doing — worker out
+- 2026-09-27 10:07 Q72 -> done — report plan/research/apple-notes-export.md
