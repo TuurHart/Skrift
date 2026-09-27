@@ -1835,3 +1835,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      cards on Palette.bg.phone, pixel-sampled light + dark) — the Q49 MOCK drew the Mac wrong
      (`.mac .card{background:transparent}`). Left open: Mac rows show no tag chips (Q68); the Mac
      sidebar snapshot cuts ~12 px off its left edge, real window unverified (Q63).
+150. **D150 Round-4 mock verdicts.** ✅ 2026-09-27 (sitting): Q50 header — A no (unlabelled balls),
+     C no (balls in the title), B probably; two versions next: B refined, and today's header
+     squeezed vertically (Q70). Q67 import triage — next batch locked until all ten are decided;
+     a declined note is never offered again but is NOT called "Delete"; one note at a time on the
+     phone; resumable over days; "import what I've decided so far"; Apple Notes tags → Skrift
+     tags; no folders in Skrift (Q71, after the export research Q72).

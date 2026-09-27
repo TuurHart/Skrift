@@ -377,7 +377,7 @@ needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
 check: Tuur clicked through it and said go.
 
-### Q50 [tuur] (tuur) mockup: one compact note header (date + place, tags, importance)
+### Q50 [tuur] (done) mockup: one compact note header (date + place, tags, importance)
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
@@ -497,7 +497,7 @@ needs: Q65
 do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Take ONLY the chip row from the mock: its Mac panel draws the rows transparent, which is wrong — the app's Mac rows are already white cards on the phone's grey (Q65). Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
 check: `test $(ls plan/reads/filter-q66/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q67 [tuur] (tuur) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
+### Q67 [tuur] (done) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
 spec: C117 C238
 needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
@@ -516,6 +516,24 @@ needs: -
 gate+: yes
 do: Tuur 2026-09-27 on the prod Mac: videos dragged in from Photos came out diarized ("the automatically did diarization. no good"); C102 = diarization is opt-in per note. First check the CURRENT branch (prod is older): find the path that diarizes a Mac import without the user's toggle (IngestService / BatchRunner / DiarizationSidecar / MemoCloudIngest) and write a failing desktop test (a Mac-imported video with no opt-in comes out as a monologue). Fix. On the same screen one person showed as both "Tiuri Hartog" and "Tiuri", and list snippets showed raw `**Speaker 1:**` / `[[Tiuri Hartog]]` markup — fix both if they reproduce from the synthetic corpus, else log what you found. NEVER run SkriftDesktopUITests (they take the real mouse); Mac proof = unit tests + full build + headless `-snapshot-shell`.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q70 [tuur] (todo) mockup: compact note header, two versions — B refined, and today's layout squeezed
+spec: C117 C94
+needs: -
+do: Tuur 2026-09-27 on `mocks/Q50-compact-note-header.html`: A no ("the balls carrying [no] label, nobody will know what to do with them"), C no ("I don't like it to take part of the title"), B "probably the best one" — Not rated + the orange "starts fading on 25 Oct · Rate it to keep it" line, one tap to Passing. "Either we're going with B or we just go with what is today but then have it take up way less vertical space… so make two versions." Version 1 = B refined; version 2 = today's header (date chip row, tags, importance card with labels and the sync line) squeezed: cut the gaps between Not rated / Importance / the balls / the sync line. Phone + iPad + Mac, voice note AND typed note, each frame showing its height in pt against today's 243 pt. Every control must respond on tap in the artifact viewer. Publish; one numbered question: "1 or 2?"
+check: Tuur clicked through it and said go.
+
+### Q71 [tuur] (todo) mockup: Apple Notes triage v3 — his picks, rename Delete, resumable, import-so-far, tags
+spec: C117 C238
+needs: Q72
+do: Tuur 2026-09-27 on `mocks/Q67-apple-notes-triage.html`. Picks: A = the next batch stays locked until all ten are decided; B = a declined note is never offered again; C = one note at a time on the phone. Changes: (1) "Delete" is the wrong name — Skrift cannot delete in Apple Notes; rename (e.g. "Never import") and show how a declined note is recognised next time (per Q72's finding; not by title — "if you change the title it might come in again"); (2) resumable over days: 500 notes are not one sitting — progress saved, a clear "continue where you left off"; (3) "import what I've decided so far" at any point, so he can go delete those in Apple Notes; (4) Apple Notes tags become Skrift tags on import; (5) the button he could not find: label it plainly ("Next 10") and show it locked until the ten are decided; (6) no folder step when the export has no folders (his Notes are one flat list; Skrift gets no folders); (7) a panel listing every Apple Notes media type and what happens to it, from Q72 (drawings included). Keep: tapping importance advances to the next note ("I quite like that"), the end report. Every control responds on tap. Publish; one numbered question.
+check: Tuur clicked through it and said go.
+
+### Q72 [auto] (todo) research: what an Apple Notes export contains per media type, and what identifies a note across exports
+spec: C238
+needs: -
+do: Research only (researcher agent, open web, no project code or data): Tuur needs to know, before the Apple Notes import is built: (1) which export routes exist from Apple Notes on macOS/iOS 26 (File → Export as PDF/Markdown/Pages, Share, third-party exporters, the NoteStore.sqlite route) and what each produces; (2) per media type inside a note — drawings/sketches, scanned documents, tables, checklists, attachments (images, PDF, audio, video), links, tags (#hashtags), mentions, locked notes, folders/smart folders — whether it survives each route and in what form; (3) what stable identity a note carries in each route (creation date, modified date, an ID) so a declined note can be recognised on a later export even after its title changes. Report in `plan/research/apple-notes-export.md` with URLs and one recommendation per question.
+check: `test -s plan/research/apple-notes-export.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -744,3 +762,8 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-26 08:10 Q67 -> tuur — built @db5b01d1 — awaiting sitting
 - 2026-09-26 08:37 Q66 -> stuck — stopped by Tuur 2026-09-26 mid-proof; code + 4 screenshots on wt/Q66 (worktree agent-aa85e961dd572047e), check never run — resume by running the check there, then accept
 - 2026-09-27 09:37 Q69 added
+- 2026-09-27 09:50 Q50 -> done — Tuur 2026-09-27: A no (unlabelled balls, nobody will know), C no (takes part of the title), B probably best; make two versions: B, and today's layout squeezed vertically → Q70
+- 2026-09-27 09:50 Q67 -> done — Tuur 2026-09-27: A = Next locked until all ten decided; B = never offer again (but 'Delete' is the wrong name); C = one note at a time; + resumable, import-so-far, Apple tags → Skrift tags → Q71
+- 2026-09-27 09:50 Q70 added
+- 2026-09-27 09:50 Q71 added
+- 2026-09-27 09:50 Q72 added
