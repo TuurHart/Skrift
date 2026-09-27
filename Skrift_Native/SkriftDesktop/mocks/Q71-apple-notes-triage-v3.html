@@ -126,7 +126,7 @@ code{font-family:var(--mono);font-size:.86em}
 .rep .c{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--a-amber)}
 .rep .c.n{color:var(--a-dim)}
 .rep .why{grid-column:1/-1;font-size:12.5px;color:var(--a-dim);line-height:1.35}
-.rep .ex{grid-column:1/-1;font-size:12.5px;color:var(--a-text);display:flex;flex-direction:column;gap:2px;padding-top:4px}
+.rep .ex{grid-column:1/-1;font-size:12.5px;line-height:1.5;color:var(--a-text);display:block;padding-top:4px}
 .rep .more{grid-column:1/-1;font-size:12.5px;color:var(--a-accent-text);font-weight:600}
 .confirm{background:var(--a-red-soft);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
 .confirm .btns{display:flex;gap:8px}
@@ -409,7 +409,7 @@ function commit(){
 }
 function importSoFar(){var k=importList(bNotes(S.batch));S.step=`report`;S.rk=`sofar`;
   toast(k?k+` more imported. Here is what you can delete in Apple Notes.`:`Nothing new to import. Here is what you can delete in Apple Notes.`);render();scrollStage()}
-function finishLater(){S.step=`start`;toast(`Saved at note `+(decidedN()+1)+` of `+TOTAL+`. Pick up here any time.`);render();scrollStage()}
+function finishLater(){S.step=`start`;toast(`Saved at note `+(firstOpen()+1)+` of `+TOTAL+`. Pick up here any time.`);render();scrollStage()}
 function nextDay(){if(S.todayN>0)S.log.push({d:dayName(S.dayK),n:S.todayN});S.dayK++;S.todayN=0;S.impToday=[];S.step=`start`;
   toast(`Mock: it is now `+dayName(S.dayK)+`. Everything you decided is still there.`);render();scrollStage()}
 function resume(){var f=firstOpen();S.batch=Math.floor(f/10);S.idx=f%10;S.step=`triage`;S.undone=false;render();scrollStage()}
@@ -480,7 +480,7 @@ function stepTriage(){var n=cur();
   return `<div style="display:flex;flex-direction:column;gap:6px">`+strip()+`</div>`+preview(n)+impCard(n)+actBtns(n)}
 
 function listRows(ids,cap){var seen=ids.slice(0,cap);
-  return seen.map(function(i){var n=NOTES[i];return `· `+esc(n.t)+` <span style="color:var(--a-dim)">(`+n.date+`)</span>`}).join(`<br>`)}
+  return seen.map(function(i){var n=NOTES[i];return `· `+esc(n.t)+(r1()?` <span style="color:var(--a-dim)">(`+n.date+`)</span>`:``)}).join(`<br>`)}
 function stepReport(){var one=r1();var c=count(NOTES);var end=S.rk===`end`;
   if(S.undone)return `<div style="padding-top:12px;display:flex;flex-direction:column;gap:10px"><div class="big-num">0</div><p class="hint">Import undone. `+c.imp+` notes moved to Trash. Never import and Skip choices are forgotten too, so every note is offered again.</p></div>`;
   var impIds=NOTES.filter(function(n){return S.imp[n.i]}).map(function(n){return n.i});
@@ -516,7 +516,7 @@ function stepReport(){var one=r1();var c=count(NOTES);var end=S.rk===`end`;
 /* ---------- chrome ---------- */
 var LOCK=`<svg class="lk" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"></rect><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>`;
 function foot(){
-  if(S.step===`start`)return `<button class="primary" id="go">Continue · note `+(decidedN()+1)+` of `+TOTAL+`</button><button class="ghost" id="showdel">What can I delete in Apple Notes?</button>`;
+  if(S.step===`start`)return `<button class="primary" id="go">Continue · note `+(firstOpen()+1)+` of `+TOTAL+`</button><button class="ghost" id="showdel">What can I delete in Apple Notes?</button>`;
   if(S.step===`triage`){var bn=bNotes(S.batch);var open=bn.filter(function(n){return !S.dec[n.i]}).length;var last=S.batch+1>=nB();
     var rated=bn.filter(function(n){var d=S.dec[n.i];return d&&d.k===`r`&&!S.imp[n.i]}).length;
     var label=last?`Finish`:`Next 10`;
@@ -527,7 +527,7 @@ function foot(){
   if(S.undone)return `<button class="primary" id="go">Done</button>`;
   var c=count(NOTES);
   if(S.rk===`end`)return `<button class="primary" id="go">Show imported notes</button><button class="ghost danger" id="undo">Undo this import</button>`;
-  return `<button class="primary" id="go">Continue · note `+(decidedN()+1)+` of `+TOTAL+`</button><button class="ghost" id="later2">Done for today</button>`}
+  return `<button class="primary" id="go">Continue · note `+(firstOpen()+1)+` of `+TOTAL+`</button><button class="ghost" id="later2">Done for today</button>`}
 function subtitle(){
   if(S.step===`triage`){var bn=bNotes(S.batch);return (S.idx+1)+` of `+bn.length+` · batch `+(S.batch+1)+` of `+nB()}
   if(S.step===`start`)return decidedN()+` of `+TOTAL+` decided`;
@@ -578,12 +578,11 @@ var MEDIA=[
  {k:`tbl`,n:`Tables`,a:[`kept`,`real tables`],b:[`unconfirmed`,`"may not render correctly"`],s:`A Markdown table.`,src:`Apple World Today; apple_cloud_notes_parser`},
  {k:`ck`,n:`Checklists`,a:[`kept`,`with ticks`],b:[`unconfirmed`,`not found`],s:`A checklist with its ticks.`,src:`apple_cloud_notes_parser; obsidian-importer #471 (a line starting with a link loses its box)`},
  {k:`att`,n:`PDFs, audio, video, other files`,a:[`kept`,`copied out of Notes' storage`],b:[`kept`,`exported with the note`],s:`Attached to the note. Audio is not transcribed.`,src:`Bear FAQ; loran/AppleNotes-to-Obsidian`},
- {k:`web`,n:`Web links`,a:[`kept`,``],b:[`kept`,``],s:`Stay links. Rich link previews become plain links (unconfirmed in both).`,src:`Bear FAQ (older HTML route)`},
- {k:`nl`,n:`Links to other notes`,a:[`kept`,``],b:[`lost`,`become plain text`],s:`Route 1: a link to the Skrift note when both are imported. Route 2: plain text.`,src:`Gadget Hacks; Obsidian blog`},
+ {k:`web`,n:`Web links`,a:[`unconfirmed`,`not stated for the database`],b:[`kept`,``],s:`Stay links. Rich link previews become plain links (unconfirmed in both).`,src:`Bear FAQ (older HTML route)`},
+ {k:`nl`,n:`Links to other notes`,a:[`kept`,`the iOS 17 note links`],b:[`lost`,`become plain text`],s:`Route 1: a link to the Skrift note when both are imported. Route 2: plain text.`,src:`Gadget Hacks; Obsidian blog`},
  {k:`tag`,n:`Tags`,a:[`kept`,`listed per note`],b:[`unconfirmed`,`not found`],s:`Become Skrift tags. Case folds into a tag you already have (#Kiln becomes your #kiln). Multi-word tags need care: other importers cut #gift ideas to #gift.`,src:`apple-notes-parser; obsidian-importer #471; TagRules.resolveSpelling`},
  {k:`lock`,n:`Locked notes`,a:[`partly`,`title, dates, ID readable; text encrypted`],b:[`unconfirmed`,`not found`],s:`Offered by title only with a lock. Unlock it in Notes to import the text. Obsidian skips them.`,src:`Ciofeca Forensics (2020 schema); apple_cloud_notes_parser; Obsidian help`},
  {k:`date`,n:`Created and modified dates`,a:[`kept`,`both`],b:[`unconfirmed`,`none in the file; file times untested`],s:`The note is dated to when it was created (D18). Without a date it is marked date unknown, never the import day.`,src:`jkeefe/notes-parser; obsidian-importer source`},
- {k:`pin`,n:`Pinned notes`,a:[`kept`,``],b:[`lost`,``],s:`Skrift has no pins; the pin is dropped and the note is imported.`,src:`Mock choice, carried from Q67`}
 ];
 function renderMedia(){
   $(`media`).innerHTML=MEDIA.map(function(m){var on=S.openMed[m.k];
