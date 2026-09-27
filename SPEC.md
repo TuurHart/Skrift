@@ -1841,3 +1841,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      a declined note is never offered again but is NOT called "Delete"; one note at a time on the
      phone; resumable over days; "import what I've decided so far"; Apple Notes tags → Skrift
      tags; no folders in Skrift (Q71, after the export research Q72).
+151. **D151 A typed note records place and weather too.** ✅ 2026-09-27: "yes typed should also
+     record" — at creation, like a voice recording (Q73).
