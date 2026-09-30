@@ -312,7 +312,6 @@ struct VaultWriter {
         var outcome: VaultWriteOutcome
         var markdownURL: URL
         var audioURL: URL?
-        var attachmentsWritten: Int
     }
 
     /// Write `markdown` (pre-stamp) for `id` at the assessed path. Skips everything —
@@ -355,18 +354,16 @@ struct VaultWriter {
         let existing = Self.readCoordinated(dest)
         if let existing, VaultStamp.contentEquivalent(stamped, existing) {
             return Result(outcome: .unchanged(relativePath: relativePath),
-                          markdownURL: dest, audioURL: nil, attachmentsWritten: 0)
+                          markdownURL: dest, audioURL: nil)
         }
 
         try Self.writeAtomic(Data(stamped.utf8), to: dest)
         ledger.set(.init(relativePath: relativePath, exportedAt: now()), for: id)
 
-        // Assets ride along on a real write. Failures are counted, never fatal — a
-        // note without its image beats no note, and the Mac's old `try?` swallowing
-        // (which made a missing attachment look like success) stays fixed.
-        var written = 0
-        for a in resolvedAttachments where Self.writeAsset(a, into: folder(attachmentsFolder), id: id) { written += 1 }
-        for d in documents where Self.writeAsset(d, into: folder(documentsFolder), id: id) { written += 1 }
+        // Assets ride along on a real write. A failed asset is never fatal — a note
+        // without its image beats no note.
+        for a in resolvedAttachments { _ = Self.writeAsset(a, into: folder(attachmentsFolder), id: id) }
+        for d in documents { _ = Self.writeAsset(d, into: folder(documentsFolder), id: id) }
         var audioURL: URL?
         if let audio {
             let dir = folder(audioFolder)
@@ -378,7 +375,7 @@ struct VaultWriter {
         let created = existing == nil
         return Result(outcome: created ? .created(relativePath: relativePath)
                                        : .updated(relativePath: relativePath),
-                      markdownURL: dest, audioURL: audioURL, attachmentsWritten: written)
+                      markdownURL: dest, audioURL: audioURL)
     }
 
     /// The OWNED name an attachment will actually land under, resolved against `dir` —

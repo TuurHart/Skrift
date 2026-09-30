@@ -95,12 +95,11 @@ final class DataAttachmentOwnershipTests: XCTestCase {
 
         // A later commit with a different photo blob under the same name must not
         // delete the foreign file.
-        let r = try writer.commit(markdown: md + " ", id: id, relativePath: rel,
+        _ = try writer.commit(markdown: md + " ", id: id, relativePath: rel,
                                   attachments: [VaultAsset(name: "photo.jpg", source: .data(Data([4, 5, 6])))])
 
         XCTAssertEqual(try Data(contentsOf: attPath), foreignBytes,
                        "the writeAsset .data branch must never remove a file it doesn't own")
-        XCTAssertEqual(r.attachmentsWritten, 1, "our blob still lands, just under a disambiguated name")
         // Ours landed under the id8-disambiguated name, byte-correct, foreign file intact.
         let siblings = try FileManager.default.contentsOfDirectory(atPath: vaultRoot.appendingPathComponent(VaultLayout.images).path)
         let ours = try XCTUnwrap(siblings.first { $0 != "photo.jpg" })
@@ -125,10 +124,9 @@ final class DataAttachmentOwnershipTests: XCTestCase {
         let attPath = vaultRoot.appendingPathComponent(VaultLayout.images).appendingPathComponent("audio.m4a")
         let modBefore = try FileManager.default.attributesOfItem(atPath: attPath.path)[.modificationDate] as? Date
 
-        let r = try writer.commit(markdown: md + " ", id: id, relativePath: rel,
+        _ = try writer.commit(markdown: md + " ", id: id, relativePath: rel,
                                   attachments: [VaultAsset(name: "audio.m4a", source: .data(Data([7, 7])))])
 
-        XCTAssertEqual(r.attachmentsWritten, 1)
         let modAfter = try FileManager.default.attributesOfItem(atPath: attPath.path)[.modificationDate] as? Date
         XCTAssertEqual(modBefore, modAfter, "byte-identical re-export must not rewrite the file")
     }

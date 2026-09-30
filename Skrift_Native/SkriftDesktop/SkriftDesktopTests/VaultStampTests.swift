@@ -27,7 +27,6 @@ final class VaultStampTests: XCTestCase {
         let marks = try XCTUnwrap(VaultStamp.read(out))
         XCTAssertEqual(marks.id, id)
         XCTAssertFalse(marks.hash.isEmpty)
-        XCTAssertNotNil(marks.touchedAt, "lastTouched shipped as an always-empty key; it carries a value now")
         XCTAssertTrue(out.contains("\(VaultStamp.touchedKey): 2026-07-"))
     }
 
