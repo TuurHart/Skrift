@@ -568,7 +568,7 @@ gate+: yes
 do: Tuur 2026-09-30 on the prod Mac (an older build — reproduce on the current branch first, headless, synthetic corpus): (a) "I can't shift select multiple" notes in the sidebar — add range selection (shift-click) and ⌘-click to the Mac list, feeding the existing multi-select actions; (b) "when I uploaded the voice memos they didn't auto transcribe" — C49: a Mac import floors to 0.1 and must enter the pipeline without a manual Process; find why an imported voice memo sat untranscribed; (c) right-click → Process "worked flaky" — find the failure (race with the batch runner? selection vs clicked row?) and fix. Desktop tests (new file) for (b) and (c) through the ingest/processing seams; (a) proven by the full build + a headless snapshot with 3 rows selected. NEVER run SkriftDesktopUITests (they take the real mouse).
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q78 [auto] (todo) phone Journal previews show plain text, not raw markdown (use NoteSnippet.plain)
+### Q78 [auto] (doing) phone Journal previews show plain text, not raw markdown (use NoteSnippet.plain)
 spec: C115
 needs: -
 do: Q69 made one shared `Shared/Pipeline/NoteSnippet.plain` (no `**…**`, no `[[…]]`) and used it in the Mac sidebar and Mac Journal; the phone's `JournalHomeView.snippet` (SkriftMobile/Features/Journal/JournalHomeView.swift:381) still builds its own and shows raw markup. Route it (and any other phone snippet builder that shows raw `**Speaker n:**` / `[[Name]]`) through NoteSnippet.plain. Phone proof via `plan/mtest.sh` on an existing class.
@@ -609,7 +609,7 @@ gate+: yes
 do: Tuur 2026-09-30: "when a word is being highlighted you can click anywhere and the audio jumps to that. Apparently that doesn't work with audiobook quotes — I can't click those. Maybe there's no timestamps generated when the book is transcribed." Find why a quote-capture note's words are not tappable (no word timings stored for the quote, timings relative to the book not the clip, or the view never wires tap-to-seek for quotes), and make tapping a word in the quote seek the quote's audio, on phone and Mac. Test with a synthetic quote capture. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q84 [auto] (todo) destinations read Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, with a dashed line between the two sides
+### Q84 [auto] (doing) destinations read Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, with a dashed line between the two sides
 spec: C62
 needs: -
 gate+: yes
@@ -623,7 +623,7 @@ gate+: yes
 do: Build the signed header (mock `Skrift_Native/SkriftDesktop/mocks/Q75-note-header-final.html`, behaviour A — Tuur 2026-09-30: "tap is good, not drag"): the importance card becomes one pill; each tap steps Not rated → Passing → Useful → Important → Not rated (un-rating allowed, C88; a toast names each step); the orange "starts fading … — rate it to keep it" line beside it when unrated; the destination row (as renamed by Q84) 12 pt under it, shown only when destinations are on. Phone, iPad and Mac through the shared ThreeBallScale/NoteConsent model (C115). Phone header ≈173 pt at rest per the mock. Screenshots, LOOK, commit under `plan/reads/header-q85/`. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/header-q85/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q86 [tuur] (doing) mockup: Split speakers on the Mac as a per-note toggle, matching the phone, with the user flow walked end to end
+### Q86 [tuur] (tuur) mockup: Split speakers on the Mac as a per-note toggle, matching the phone, with the user flow walked end to end
 spec: C102 C117
 needs: -
 do: Tuur 2026-09-30: "yes split speaker should be a button or toggle or something. Have an agent verify the user flow and make sure it makes sense." Q69 made diarization a per-note opt-in (`PipelineFile.diarizeRequested`) with NO Mac control yet; the phone has a conversations toggle (draw it from source). Mock the Mac control (and the phone's, drawn as-is) in the note header/menu: turn it on for a note → the note re-transcribes with speakers → turns in the gutter (full name on a speaker's first turn, short name after — confirmed 2026-09-30, C84); turn it off → "Flatten to monologue". Then a SECOND agent walks the flow cold, step by step, and writes where a user would get stuck; fix those in the mock. Publish; one numbered question.
@@ -900,3 +900,6 @@ check: Tuur clicked through it and said go.
 - 2026-09-30 10:23 Q79 -> doing — worker out
 - 2026-09-30 10:23 Q77 -> doing — worker out
 - 2026-09-30 10:39 Q77 -> done — gate pass @e832dae4
+- 2026-09-30 10:39 Q84 -> doing — worker out
+- 2026-09-30 10:44 Q78 -> doing — worker out
+- 2026-09-30 10:45 Q86 -> tuur — built @ea492c1e — awaiting sitting
