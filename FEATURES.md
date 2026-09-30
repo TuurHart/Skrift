@@ -351,6 +351,10 @@ Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes syn
 | Compile Obsidian markdown (YAML frontmatter) | ➖ | ✅ | `Pipeline/Export/Compiler.swift:24-87` | title/date/author/source/**people**/location/weather/tags/significance/summary ✅ 2026-06-15: `source:` reflects the true origin — Video / Voice-memo / Apple-Note / Audiobook-quote / capture-url|text|image|file (was: a video exported as Voice-memo). |
 | `people:` frontmatter (opt-out naming) | ➖ | ✅ | `Pipeline/Export/Compiler.swift` (`peopleLinks`) | ✅ 2026-06-15: emits `people: [[A]], [[B]]` — the DISTINCT canonical wiki-links in the body, in reading order (img markers excluded, alias-display `[[A\|x]]` resolved to `[[A]]`). Derived from the rendered body so it can't drift from what's linked; one entry per person (one-note-one-link); conversations include their matched speakers. Empty `people:` when nobody is linked |
 | Export to vault + **copy audio** (per-note toggle) | ➖ | ✅ | `Pipeline/Export/VaultExporter.swift:20-79`; toggle `NoteProperties.swift:127-140` | `includeAudioInExport` (default on) → copies `.m4a` to audio subfolder |
+| ~~Share a note as **PDF**~~ (`MemoExporter.pdf`) | removed | ➖ | was `SkriftMobile/Services/Export/MemoExporter.swift` | ❌ **Removed 2026-09-30** (Q80, D154) — built 2026-06-21 (standalone Phase 2), never wired to any UI. Rebuild later if wanted |
+| ~~Share a note as a **quote card** image~~ (`MemoExporter.quoteCardImage`) | removed | ➖ | was `MemoExporter.swift` (`QuoteCard` view) | ❌ **Removed 2026-09-30** (Q80, D154) — never wired to any UI |
+| ~~Share a note as **plain text**~~ (`MemoExporter.plainText`) | removed | ➖ | was `MemoExporter.swift` | ❌ **Removed 2026-09-30** (Q80, D154) — never wired to any UI |
+| ~~**Publish all** eligible notes to the vault~~ (`PublishCoordinator.publishAll` + `Summary`) | removed | ➖ | was `SkriftMobile/Services/Export/PublishCoordinator.swift` | ❌ **Removed 2026-09-30** (Q80, D154) — the "Export now" button publishes per note; nothing called the batch |
 
 ## Settings / onboarding
 
