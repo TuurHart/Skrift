@@ -78,4 +78,29 @@ enum TagRules {
         }
         return (toAdd, folds)
     }
+
+    /// The "already on this note as #x" line (mock `tag-ui-revamp.html`, `addNew`): the
+    /// spelling ALREADY on the note that the first accepted tag case-folds onto, or nil
+    /// when every accepted tag is new to the note. Walks the batch in order like `fold`,
+    /// so a second same-batch variant (`["Wood", "wood"]`) reports the first spelling.
+    static func alreadyOnNote(_ accepted: [String], existing: [String], library: [String]) -> String? {
+        var have = existing
+        for typed in accepted {
+            let key = typed.lowercased()
+            if let kept = have.first(where: { $0.lowercased() == key }) { return kept }
+            have.append(resolveSpelling(typed, library: library + have))
+        }
+        return nil
+    }
+
+    /// The live line under the field while typing (mock `hit`): the note's own spelling
+    /// when the typed text (one leading `#` ignored) case-folds onto a tag already on the
+    /// note, else nil. Only meaningful when no suggestion row matches; the caller decides.
+    static func typedAlreadyOnNote(_ typed: String, existing: [String]) -> String? {
+        var t = typed.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("#") { t.removeFirst() }
+        t = t.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return nil }
+        return existing.first { $0.lowercased() == t.lowercased() }
+    }
 }

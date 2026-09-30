@@ -98,6 +98,15 @@ extension PipelineFile {
         return outcome
     }
 
+    /// True while the note's ⋯ menu should offer "Undo tidy-up": the local ledger still holds
+    /// the pre-tidy copy AND the text has not been edited since.
+    func canUndoBodyNormalise(ledger: BodyNormaliseMigration.Ledger = .standard,
+                              cloud: ModelContext? = nil) -> Bool {
+        BodyNormaliseMigration.canUndo(id: id, bodies: bodyNormaliseBodies, ledger: ledger)
+            || BodyNormaliseMigration.canUndo(id: BodyNormaliseMigration.polishedKey(id),
+                                              bodies: polishedBodies(cloud: cloudEnhancement(in: cloud)), ledger: ledger)
+    }
+
     /// Puts the pre-migration bodies back (each only if still the migrated text), with the
     /// name offsets mapped back, and marks the note so it is never migrated again. The synced
     /// polish row comes back too when `cloud` is given.

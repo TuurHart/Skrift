@@ -74,6 +74,9 @@ struct TagEditorRow: View {
     @State private var draft = ""
     @State private var armed: String?
     @State private var refusalHint: String?
+    /// "Already on this note as #x." after a commit that folded onto an existing tag
+    /// (mock `addNew`); clears itself after 3.6 s like the mock's hint.
+    @State private var dupHint: String?
     /// Mac dropdown only: which row (`menuRows`) the arrow keys have highlighted.
     /// `-1` = nothing selected, so Return falls through to `commitDraft()`.
     @State private var selectedIndex = -1
@@ -110,6 +113,9 @@ struct TagEditorRow: View {
         return candidate
     }
 
+    /// Mock `hit`: the typed text case-folds onto a tag already on this note.
+    private var typedHit: String? { TagRules.typedAlreadyOnNote(typed, existing: tags) }
+
     private struct MenuRow { let tag: String; let isCreate: Bool }
     /// Mac dropdown rows: the Create row (if any) leads, then the prefix matches.
     private var menuRows: [MenuRow] {
@@ -127,6 +133,18 @@ struct TagEditorRow: View {
             }
             if editing, style.usesDropdownMenu, !menuRows.isEmpty {
                 macMenu
+            } else if editing, style.usesDropdownMenu, let hit = typedHit {
+                Text("#\(hit) \u{2014} already on this note")
+                    .font(.system(size: 12)).foregroundStyle(style.dimTextColor)
+                    .padding(.horizontal, 9).padding(.vertical, 6)
+                    .background(style.elevColor, in: .rect(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(style.fieldBorder, lineWidth: 1))
+                    .accessibilityIdentifier("tag-already-on-note")
+            } else if editing, !style.usesDropdownMenu, matches.isEmpty, let hit = typedHit {
+                Text("#\(hit) is already on this note")
+                    .font(.system(size: 12)).foregroundStyle(style.dimTextColor)
+                    .padding(.vertical, 6)
+                    .accessibilityIdentifier("tag-already-on-note")
             } else if editing, !style.usesDropdownMenu, !matches.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 7) {
@@ -143,6 +161,10 @@ struct TagEditorRow: View {
                         }
                     }
                 }
+            }
+            if let dupHint {
+                Text(dupHint).font(.system(size: 12)).foregroundStyle(style.dimTextColor)
+                    .accessibilityIdentifier("tag-already-hint")
             }
             if let refusalHint {
                 Text(refusalHint).font(.system(size: 11.5)).foregroundStyle(style.dangerColor)
@@ -296,7 +318,16 @@ struct TagEditorRow: View {
 
     private func commit(_ accepted: [String]) {
         guard !accepted.isEmpty else { return }
+        let dup = TagRules.alreadyOnNote(accepted, existing: tags, library: library)
         let result = TagRules.fold(accepted, existing: tags, library: library)
+        if let dup {
+            let line = "Already on this note as #\(dup)."
+            dupHint = line
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3.6))
+                if dupHint == line { dupHint = nil }
+            }
+        } else { dupHint = nil }
         if !result.toAdd.isEmpty {
             tags.append(contentsOf: result.toAdd)
             onChanged()

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftData
 
 /// Contextual primary action (Process → Export to Obsidian → Re-export) plus a ⋯
 /// overflow (re-transcribe, redo per-step). Ported from `NoteActions.tsx`.
@@ -59,11 +60,24 @@ struct NoteActions: View {
     /// Remind me / Share note / Split speakers, and Lock — the Mac's lock lives
     /// only on the Review side's unrated `Memo` rows, and reaching it for an open
     /// `PipelineFile` needs a cloud write-back (its own chunk, see backlog).
+    /// Q14/Q40: the one-time body tidy-up of an old note keeps its pre-tidy copy in a local
+    /// ledger; the item shows while that copy exists and the text is still the tidied one.
+    private var cloudContext: ModelContext? {
+        SettingsStore.shared.load().cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
+    }
+
+    @ViewBuilder private var undoTidyUpItem: some View {
+        if file.canUndoBodyNormalise(cloud: cloudContext) {
+            Button(NoteMenuItem.undoTidyUp.label) { file.undoBodyNormalise(cloud: cloudContext) }
+        }
+    }
+
     @ViewBuilder private var overflowItems: some View {
         if copyOnly {
             // Reveal in Finder / Open in Obsidian are absent by FACT, not by policy:
             // an unrated note has no working folder and has never been exported.
             let locked = LockGate.shared.isLocked(file)
+            undoTidyUpItem
             Button(NoteMenuItem.copyTranscript.label) { copy(file.transcript ?? "") }
                 .disabled(locked)
             Button(NoteMenuItem.copyMarkdown.label) { copy(compiledMarkdown()) }
@@ -93,6 +107,7 @@ struct NoteActions: View {
                 Button(NoteRedoItem.summary.label) { Task { await coordinator.redo(.summary, for: file, context: ctx) } }
             }
         }
+        undoTidyUpItem
         Divider()
         // Copying a locked note leaks the gated content — the note view's own
         // unlock gate is the way in (same rule as the notes-list menu).

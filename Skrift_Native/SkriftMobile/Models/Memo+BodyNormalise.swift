@@ -64,6 +64,15 @@ extension Memo {
         return outcome
     }
 
+    /// True while the note's ⋯ menu should offer "Undo tidy-up": the local ledger still holds
+    /// the pre-tidy copy AND the body (or polish) has not been edited since.
+    func canUndoBodyNormalise(enhancement: MemoEnhancement? = nil,
+                              ledger: BodyNormaliseMigration.Ledger = .standard) -> Bool {
+        BodyNormaliseMigration.canUndo(id: id.uuidString, bodies: bodyNormaliseBodies, ledger: ledger)
+            || BodyNormaliseMigration.canUndo(id: BodyNormaliseMigration.polishedKey(id.uuidString),
+                                              bodies: Self.polishedBodies(enhancement), ledger: ledger)
+    }
+
     /// Puts the pre-migration body (and polished copy-edit) back, each only if it is still the
     /// migrated one, and marks the note so it is never migrated again. True when any came back.
     @discardableResult
