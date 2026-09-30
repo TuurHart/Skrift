@@ -491,7 +491,7 @@ needs: -
 do: D135 said all three devices use the iPhone's GREY list background; Tuur 2026-09-26 ("why are the background colors different again? I already mentioned this once… the way it looks on the phone I like best"): the Mac sidebar still draws flat rows on its own grey (seen in the Q49 mock, drawn from source). First screenshot the real Mac sidebar next to the phone list (synthetic corpus, isolated store) and confirm the difference; then make the Mac sidebar match the phone: the same grey ground and white rounded card rows from the shared NoteCardView style, same spacing, light + dark. After-screenshots of both side by side, LOOK, commit under `plan/reads/list-q65/`.
 check: `test $(ls plan/reads/list-q65/*.png | wc -l) -ge 2 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q66 [auto] (stuck) build one filter mechanism, option A of the Q49 mock, on phone, iPad and Mac
+### Q66 [auto] (doing) build one filter mechanism, option A of the Q49 mock, on phone, iPad and Mac
 spec: C117 C115
 needs: Q65
 do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Take ONLY the chip row from the mock: its Mac panel draws the rows transparent, which is wrong — the app's Mac rows are already white cards on the phone's grey (Q65). Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
@@ -643,6 +643,12 @@ needs: Q85
 gate+: yes
 do: Q85 built the signed pill header (`Shared/UI/NoteRatingPill.swift`: NoteRatingPill, NoteRatingRow, RatingToastView) into the note screen on phone, iPad and Mac, but left the OLD importance card in the quick note (QuickNoteView — D145 says the quick note IS the full note screen), MergedCapture, the share sheet and UnpipelinedMemoSheet. Move all of them to the same pill + fading line + destination row, so there is one header everywhere (C115). Update the phone UI tests that look up `importance-balls` (QuickNoteQ64SimUITests, QuickNoteFastTypingUITests…) to the pill's identifier — those are UITests, not the protected unit targets. Phone sim screenshots of each sheet → `plan/reads/pill-q88/`, LOOK. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q89 [auto] (doing) delete the test-only audiobook quote-capture function and the old importance circles, with their tests (D158)
+spec: C240
+needs: -
+do: Tuur 2026-09-30: "the two deletions, if we don't use them, we can get rid of them" (D158). Delete (1) `QuoteCaptureProcessor.process(bookAudio:span:bookDuration:)` and the four helpers only it calls — `CaptureSpan.transcriptionBuffer`, `SentenceSnap.snap`, `isSentenceEnd`, `inForwardSnapThreshold` (Q80 kept them because this function still called them; it has no production caller, only tests); (2) the old importance circles now used only by `SignificanceCirclesRenderTests` after Q88: `SignificanceCircles` (phone + Mac), `ThreeBallImportanceView`, `ThreeBallStyle` — keep `ThreeBallScale` and the new rating pill and its PhoneRatingRow/MacRatingRow. Re-grep every symbol by NAME across both apps, Shared, tests and project.yml files before deleting; a hit outside its own definition and own tests means keep and report. Delete their own tests with them (approved, hand-merge). Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -938,3 +944,6 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 13:41 Q82 -> doing — worker out
 - 2026-09-30 13:42 Q88 -> done — gate pass @1b7bc368
 - 2026-09-30 14:17 Q82 -> done — gate pass @b17fe1e0
+- 2026-09-30 15:38 Q89 added
+- 2026-09-30 15:38 Q66 -> doing — redispatch (D158): fresh worker from the current head, WIP on wt/Q66 f4981cf0 as reference
+- 2026-09-30 15:38 Q89 -> doing — worker out

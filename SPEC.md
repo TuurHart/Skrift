@@ -1871,3 +1871,6 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 157. **D157 Split speakers signed.** ✅ 2026-09-30: the Q86 mock, "looks great, on both phone and Mac…
      I like it all"; on the Mac it is a switch in the note header; the phone keeps its icon and gains
      Flatten to monologue (Q87).
+158. **D158 Finish what was stopped, delete what is unused.** ✅ 2026-09-30: the filter bar (Q66, stopped
+     in the mouse incident) "needs to be continued for sure"; the test-only quote-capture function and
+     the old importance circles go with their tests (Q89).
