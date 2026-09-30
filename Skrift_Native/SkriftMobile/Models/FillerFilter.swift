@@ -26,7 +26,6 @@ enum FillerFilter {
     struct Output: Equatable {
         var text: String
         var words: [WordTiming]
-        var removedCount: Int
     }
 
     /// Strip fillers from a transcript + its word timings (positionally
@@ -38,7 +37,7 @@ enum FillerFilter {
     /// stripping would empty the transcript.
     static func strip(transcript: String, words: [WordTiming]) -> Output {
         let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        let unchanged = Output(text: trimmed, words: words, removedCount: 0)
+        let unchanged = Output(text: trimmed, words: words)
         guard !trimmed.isEmpty, !words.isEmpty else { return unchanged }
         let tokens = trimmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
 
@@ -75,8 +74,7 @@ enum FillerFilter {
         // A transcript of ONLY fillers stays as-is — "Hmm." is a (tiny) memo,
         // an empty transcript reads as a failed one.
         guard outTokens.contains(where: { !$0.hasPrefix("[[") }) else { return unchanged }
-        return Output(text: outTokens.joined(separator: " "),
-                      words: outWords, removedCount: removed)
+        return Output(text: outTokens.joined(separator: " "), words: outWords)
     }
 
     /// Lowercased token with edge punctuation stripped ("Um," → "um").

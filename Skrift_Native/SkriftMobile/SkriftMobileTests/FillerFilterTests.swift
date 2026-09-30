@@ -15,7 +15,6 @@ final class FillerFilterTests: XCTestCase {
         let out = FillerFilter.strip(transcript: text, words: words)
         XCTAssertEqual(out.text, "I think we should go.")
         XCTAssertEqual(out.words.map(\.word), ["I", "think", "we", "should", "go."])
-        XCTAssertEqual(out.removedCount, 2)
         // Timings keep their original clock values.
         XCTAssertEqual(out.words[0].start, 0.3, accuracy: 0.001)
     }
@@ -26,7 +25,6 @@ final class FillerFilterTests: XCTestCase {
         let words = timings(["Er", "is", "like", "so", "much", "to", "do."])
         let out = FillerFilter.strip(transcript: text, words: words)
         XCTAssertEqual(out.text, text)
-        XCTAssertEqual(out.removedCount, 0)
     }
 
     func testSentenceTerminatorTransfersFromDroppedFiller() {
@@ -50,7 +48,6 @@ final class FillerFilterTests: XCTestCase {
         let words = timings(["Um,", "hmm."])
         let out = FillerFilter.strip(transcript: text, words: words)
         XCTAssertEqual(out.text, text)
-        XCTAssertEqual(out.removedCount, 0)
     }
 
     func testNoFillersIsIdentity() {
