@@ -108,6 +108,13 @@ enum ArrivalPath {
         hooks.reconcileSoon()
         if asRecording {
             await hooks.transcribe(created.map(\.id))
+        } else {
+            // C49 / Q77: an import is rated (0.1 floor), so it is a request to process — it
+            // must not sit wordless until someone right-clicks Process. Audio only: a note
+            // arrives with its text, and `created` also holds video-derived audio rows.
+            // Words only; polish stays with Process (the enhancement model is 9 GB).
+            let audioIDs = audio.map(\.id)
+            if !audioIDs.isEmpty { await hooks.transcribeImport(audioIDs) }
         }
         return created
     }

@@ -113,23 +113,23 @@ final class AppModel {
         }
     }
 
-    /// Click handling with native modifier semantics:
+    /// Where a ⇧-click range starts (`ListSelection`); moves on plain and ⌘ clicks only.
+    var selectionAnchor: String?
+
+    /// Click handling with native modifier semantics (rules in `ListSelection`, pure and tested):
     /// - plain click → select + open just this row
     /// - ⌘-click → toggle this row in/out of the multi-selection
-    /// - ⇧-click → extend the selection from the anchor to this row
-    func handleClick(_ id: String, in ordered: [String]) {
+    /// - ⇧-click → the range from the anchor to this row
+    /// `displayOrder` is every row as drawn (quiet notes included); `selectable` the rows that
+    /// can join a selection (the pipeline rows).
+    func handleClick(_ id: String, displayOrder: [String], selectable: Set<String>) {
         let mods = NSEvent.modifierFlags
-        if mods.contains(.command) {
-            if selection.contains(id) { selection.remove(id) } else { selection.insert(id) }
-            activeID = id
-        } else if mods.contains(.shift), let anchor = activeID,
-                  let a = ordered.firstIndex(of: anchor), let b = ordered.firstIndex(of: id) {
-            selection.formUnion(ordered[min(a, b)...max(a, b)])
-            activeID = id
-        } else {
-            selection = [id]
-            activeID = id
-        }
+        let kind: ListSelection.Click = mods.contains(.command) ? .toggle : (mods.contains(.shift) ? .range : .plain)
+        let next = ListSelection.apply(kind, id: id, displayOrder: displayOrder, selectable: selectable,
+                                       to: .init(selection: selection, active: activeID, anchor: selectionAnchor))
+        selection = next.selection
+        activeID = next.active
+        selectionAnchor = next.anchor
     }
 
     /// Open one note, replacing the selection. The id is a note id whichever kind it
@@ -137,6 +137,7 @@ final class AppModel {
     /// pipelined row and an unrated memo share one id space and one selection.
     func select(_ id: String) {
         activeID = id
+        selectionAnchor = id
         selection = [id]
     }
 }

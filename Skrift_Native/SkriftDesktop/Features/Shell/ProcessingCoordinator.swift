@@ -96,6 +96,38 @@ final class ProcessingCoordinator {
     /// though their `transcribeStatus` is already `.done` (the ⋯ menu's "Re-transcribe",
     /// C51/R9). Normal auto-run processing passes none.
     func process(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = []) async {
+        await submit(.process(ids: fileIDs, retranscribe: retranscribeIDs), context: context, announce: true)
+    }
+
+    // ── One run at a time; everything else WAITS (Q77) ──
+    // A request that arrives mid-run used to be refused ("A run is already going") or, for an
+    // import's own transcription, dropped without a word — so with several memos only the first
+    // right-click Process took ("worked flaky", Tuur 2026-09-30). It now queues in `waiting`
+    // and the caller that owns the live run drains it, oldest first, before letting go.
+    private var waiting = RunQueue()
+    private var draining = false
+
+    private func submit(_ job: RunQueue.Job, context: ModelContext, announce: Bool) async {
+        if isRunning || draining {
+            waiting.enqueue(job)
+            if announce { flash("Queued — starts when the current run finishes") }
+            return
+        }
+        draining = true
+        defer { draining = false }
+        var current: RunQueue.Job? = job
+        while let j = current {
+            switch j {
+            case .process(let ids, let retranscribe):
+                await runProcess(fileIDs: ids, context: context, retranscribeIDs: retranscribe)
+            case .transcribe(let ids):
+                await runTranscribe(fileIDs: ids, context: context)
+            }
+            current = waiting.next()
+        }
+    }
+
+    private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = []) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
 
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
@@ -211,7 +243,12 @@ final class ProcessingCoordinator {
     /// nothing here enhances. The transcript is reflected onto the synced `Memo` so the words
     /// reach the phone like any other capture.
     func transcribe(fileIDs: [String], context: ModelContext) async {
-        guard !isRunning else { return }   // silent: this is automatic, not a button press
+        // Automatic, not a button press, so no banner — but never dropped: it waits its turn.
+        await submit(.transcribe(ids: fileIDs), context: context, announce: false)
+    }
+
+    private func runTranscribe(fileIDs: [String], context: ModelContext) async {
+        guard !isRunning else { return }
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all.filter { fileIDs.contains($0.id) && $0.transcribeStatus != .done }
         guard !targets.isEmpty else { return }
