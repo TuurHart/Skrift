@@ -99,9 +99,11 @@ enum Snapshot {
             // row (dated months before the corpus) sits inside the fixed 900pt frame
             // instead of sinking under ~100 corpus rows — additive, default unchanged.
             let filterDone = args.contains("-filterDone")
+            // Q77: `-selectRows <n>` multi-selects the first n rows (the ⇧-range look).
+            let selectRows = path("-selectRows").flatMap { Int($0) } ?? 1
             MainActor.assumeIsolated {
                 renderShell(to: p, width: w, sidebar: sb, corpusPath: path("-corpus"),
-                            scheme: light ? .light : .dark, filterDone: filterDone)
+                            scheme: light ? .light : .dark, filterDone: filterDone, selectRows: selectRows)
                 exit(0)
             }
         }
@@ -239,7 +241,7 @@ enum Snapshot {
     /// `-corpus` is given, or an empty array otherwise — the real store is never touched.
     @MainActor private static func renderShell(to path: String, width: CGFloat, sidebar: CGFloat,
                                                 corpusPath: String? = nil, scheme: ColorScheme = .dark,
-                                                filterDone: Bool = false) {
+                                                filterDone: Bool = false, selectRows: Int = 1) {
         guard let container = try? ModelContainer(
             for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
@@ -262,6 +264,7 @@ enum Snapshot {
         let model = AppModel()
         model.activeID = files.first?.id
         if let id = files.first?.id { model.selection = [id] }
+        if selectRows > 1 { model.selection = Set(files.sorted { $0.uploadedAt > $1.uploadedAt }.prefix(selectRows).map(\.id)) }
         if filterDone { model.filter = .done }
         let coordinator = ProcessingCoordinator()
 
