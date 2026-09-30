@@ -33,9 +33,7 @@ extension Memo {
     /// First non-empty line of the transcript with `[[img_NNN]]` markers removed.
     var firstTranscriptLine: String? {
         guard let transcript else { return nil }
-        let cleaned = transcript.replacingOccurrences(
-            of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression
-        )
+        let cleaned = NoteSnippet.plain(transcript)   // C115: no `**Speaker n:**` / `[[Name]]` in a row
         let line = cleaned
             .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -205,9 +203,7 @@ extension Memo {
     /// yet ("Save & keep listening" without recording thoughts).
     var rambleSnippet: String? {
         guard let transcript else { return nil }
-        let cleaned = transcript.replacingOccurrences(
-            of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression
-        )
+        let cleaned = NoteSnippet.plain(transcript)
         // Quote lines only legally appear at the top (C1), so skipping every
         // "> " line is equivalent to skipping the head block — and simpler.
         for raw in cleaned.components(separatedBy: .newlines) {
