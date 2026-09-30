@@ -42,6 +42,8 @@ struct NoteRatingPill: View {
     /// Fires after the value is written — the phone's save + wall print.
     var onCommit: () -> Void = {}
     var onToast: (RatingToast) -> Void = { _ in }
+    /// Off-screen pager pages suffix their identifiers (see `MemoPageView.noteHeaderCore`).
+    var idSuffix: String = ""
 
     private var lit: Int { ThreeBallScale.step(for: value) }
     private var hitPad: CGFloat { max(0, (style.hitHeight - style.height) / 2) }
@@ -83,7 +85,7 @@ struct NoteRatingPill: View {
         .opacity(enabled ? 1 : 0.5)
         .fixedSize()
         .animation(style.animation, value: lit)
-        .accessibilityIdentifier("rating-pill")
+        .accessibilityIdentifier("rating-pill" + idSuffix)
         .accessibilityLabel("Importance: \(ThreeBallScale.label(forStep: lit))")
         .accessibilityHint("Tap to change")
     }
@@ -119,18 +121,20 @@ struct NoteRatingRow: View {
     var onTap: () -> Void = {}
     var onCommit: () -> Void = {}
     var onToast: (RatingToast) -> Void = { _ in }
+    /// Off-screen pager pages suffix their identifiers (see `MemoPageView.noteHeaderCore`).
+    var idSuffix: String = ""
 
     var body: some View {
         HStack(spacing: 9) {
             NoteRatingPill(value: $value, style: style, enabled: enabled,
-                           onTap: onTap, onCommit: onCommit, onToast: onToast)
+                           onTap: onTap, onCommit: onCommit, onToast: onToast, idSuffix: idSuffix)
             if let fadingLine {
                 Text(fadingLine)
                     .font(.system(size: lineFont))
                     .foregroundStyle(lineColor)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("detail-lifecycle-line")
+                    .accessibilityIdentifier("detail-lifecycle-line" + idSuffix)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

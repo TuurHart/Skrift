@@ -519,7 +519,8 @@ struct MemoPageView: View {
                     // Print-to-wall: an orange-tier rating enqueues a card (once, ever).
                     WallPrinter.shared.ratingCommitted(memo, repository: repository)
                 },
-                onToast: { ratingToast = $0 })
+                onToast: { ratingToast = $0 },
+                idSuffix: suffix)
                 .padding(.top, 8)
 
             // WHERE this note goes when it leaves — the shared `DestinationRowView`
