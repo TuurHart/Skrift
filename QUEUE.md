@@ -602,7 +602,7 @@ gate+: yes
 do: Tuur 2026-09-30 on the Q62 explainer: make phone and Mac use the SAME shared code, the Mac matching the phone where they differ: group 6 word highlight / karaoke ("which word is playing — unify between devices, also in karaoke mode"; tapping a highlighted word seeks there on every device), 8 Looking back, 9 notes-list core (fading, duplicates — "all devices use it the same way"), 11 conversation turns, 12 recording helpers, 13 search by meaning ("match the Mac to the phone and unify the code"). First write `plan/reads/unify-q82.md`: per group, what each app does today, file:line, and the one shared implementation it moves to; then move them one group per commit into `Shared/` with a test each that the same input gives the same output on both targets. Never run SkriftDesktopUITests.
 check: `test -s plan/reads/unify-q82.md && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q83 [auto] (doing) audiobook quote captures: tap a word to jump the audio there, like a voice note
+### Q83 [auto] (done) audiobook quote captures: tap a word to jump the audio there, like a voice note
 spec: C113 C218
 needs: -
 gate+: yes
@@ -914,3 +914,4 @@ check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 90
 - 2026-09-30 10:47 Q87 added
 - 2026-09-30 10:51 Q83 -> doing — worker out
 - 2026-09-30 11:03 Q78 -> done — gate pass @8a2be1e6
+- 2026-09-30 11:27 Q83 -> done — gate pass @4e3e1acf
