@@ -155,7 +155,12 @@ final class SettingsStore {
     /// same as before.
     func load() -> AppSettings {
         let outcome = SafeJSONStore.load(AppSettings.self, from: fileURL, decoder: decoder)
-        return outcome.value ?? Self.freshDefault
+        var s = outcome.value ?? Self.freshDefault
+        // C102: diarization is opt-in PER NOTE. An older build persisted `conversationMode`
+        // = true (its stored default), which made every Mac import diarize (Tuur 2026-09-27).
+        // A saved value is never honoured; the flag is an in-memory (test/headless) knob only.
+        s.conversationMode = nil
+        return s
     }
 
     /// Defaults for a fresh install (no settings file yet). The Debug ("Skrift Dev")

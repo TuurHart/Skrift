@@ -62,4 +62,14 @@ final class DiarizationOptInTests: XCTestCase {
                        "a legacy settings.json conversationMode=true must not diarize; got: \(pf.transcript ?? "")")
         XCTAssertTrue(pf.diarizationSegments.isEmpty)
     }
+
+    func testNoteThatOptedInIsDiarized() async throws {
+        let pf = macImport(id: "optin3")
+        pf.diarizeRequested = true
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
+                                 people: [], tagWhitelist: [], diarizer: TwoSpeakerStub())
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/optin3.mov"))
+        XCTAssertEqual(pf.transcript, "**Speaker 1:** one two\n\n**Speaker 2:** three four")
+        XCTAssertEqual(pf.diarizationSegments.count, 2)
+    }
 }

@@ -110,12 +110,12 @@ struct BatchRunner {
             pf.transcribeStatus = .done
         }
 
-        // 1b. Conversation mode: when the Mac transcribed this itself (so we have word
+        // 1b. Conversation mode — OPT-IN PER NOTE (C102: `pf.diarizeRequested`): when the Mac transcribed this itself (so we have word
         // timings) and it isn't already speaker-attributed, diarize + re-emit as
         // `**[[Person]]:**` (matched) / `**Speaker N:**` turns. A monologue (<2 speakers)
         // is left as plain prose. The Sanitiser then links any remaining plain aliases;
         // matched speakers already carry the canonical `[[ ]]` so they're skipped.
-        if let diarizer, settings.conversationModeEnabled, let audioURL, didTranscribe,
+        if let diarizer, pf.diarizeRequested || settings.conversationModeEnabled, let audioURL, didTranscribe,
            !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
            !SpeakerTranscript.isAttributed(pf.transcript),
            let out = try? await diarizer.diarize(audioURL: audioURL),
