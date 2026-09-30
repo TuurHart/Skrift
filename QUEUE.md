@@ -616,7 +616,7 @@ gate+: yes
 do: Tuur 2026-09-30: a PROPER rename everywhere, "I don't want old words creeping through again", even if the portfolio folders must change (D156, supersedes D155's keep-the-raw-value). (1) Words: Archive → Portfolio and Made → Project in every user-visible string, SPEC/FEATURES wording, code identifiers (`isArchive` → `isPortfolio`, `.made` → `.project`, types/functions/comments with archive/made in their names — 22 Swift files mention them) on phone, iPad and Mac; order Personal · Inspiration · Idea · Project; PRIVATE ¦ PORTFOLIO labels with a dashed divider between the two sides (Shared/UI/DestinationRowView.swift:155-164). (2) No migration: the destinations feature was never used on any device (Tuur 2026-09-30: "nothing has been saved with it"), so rename the raw value to "project" outright — no "made" decoding, no folder move. (3) Portfolio folders match the words (Tuur 2026-09-30: "projects to projects, ideas to ideas, inspiration to inspiration"): Project → `_projects/` (was `_inbox/`), Idea → `_ideas/`, Inspiration → `_inspiration/`; nothing to move, the feature was never used. (4) After the change `grep -rniE "\\bmade\\b|archive" ` over Swift sources, mocks for the destination row, SPEC.md and FEATURES.md shows only unrelated uses (list each one left in the commit message). Screenshots phone + Mac (headless), LOOK, commit under `plan/reads/dest-q84/`. Never run SkriftDesktopUITests; never read the real vault or portfolio folder.
 check: `test $(ls plan/reads/dest-q84/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q85 [auto] (doing) build the note header pill (tap steps Not rated → Passing → Useful → Important) on phone, iPad and Mac
+### Q85 [auto] (done) build the note header pill (tap steps Not rated → Passing → Useful → Important) on phone, iPad and Mac
 spec: C117 C94 C88
 needs: Q84
 gate+: yes
@@ -928,3 +928,4 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 11:32 Q81 -> doing — worker out
 - 2026-09-30 12:01 Q79 -> done — gate pass @3f97467c
 - 2026-09-30 12:30 Q88 added
+- 2026-09-30 12:34 Q85 -> done — gate pass @f7d923be
