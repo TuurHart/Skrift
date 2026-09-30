@@ -51,18 +51,18 @@ final class NotesRepository {
     /// (`deletedAt != nil`), so every caller — list and search — automatically
     /// skips the trash.
     func allMemos() -> [Memo] {
-        // One row per id — the Mac's rule (`MemoDuplicates.canonicalRows`): a CloudKit re-sync
-        // can leave exact clones until `MemoDeduper` heals them, and no reader should show two.
-        MemoDuplicates.canonicalRows(rawLiveMemos())
-    }
-
-    /// Every live row, clones included, newest first — only the deduper needs to see them.
-    func rawLiveMemos() -> [Memo] {
         let descriptor = FetchDescriptor<Memo>(
             predicate: #Predicate { $0.deletedAt == nil },
             sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor)) ?? []
+    }
+
+    /// One row per id — the Mac's rule (`MemoDuplicates.canonicalRows`) for every DISPLAY reader
+    /// (Notes list, Journal). A CloudKit re-sync can leave exact clones until `MemoDeduper`
+    /// heals them, and a reader must not show two. `allMemos()` stays raw for the deduper.
+    func canonicalMemos() -> [Memo] {
+        MemoDuplicates.canonicalRows(allMemos())
     }
 
     /// Trashed memos, most recently deleted first (the Recently Deleted screen).

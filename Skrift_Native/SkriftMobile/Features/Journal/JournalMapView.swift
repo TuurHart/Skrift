@@ -84,7 +84,7 @@ struct JournalMapCanvas: View {
             bottomCard
         }
         .onAppear {
-            clusters = PlaceCluster.build(from: repository.allMemos())
+            clusters = PlaceCluster.build(from: repository.canonicalMemos())
             // Enter already focused on the place that was tapped (iPad pane).
             if let focus = initialFocus, let match = clusters.first(where: { $0.id == focus.id }) {
                 dive(into: match)

@@ -16,9 +16,9 @@ import Foundation
 @MainActor
 enum MemoDeduper {
     static func run(_ repository: NotesRepository) {
-        // rawLiveMemos() is trash-filtered and NOT de-duplicated, so every row here is alive
+        // allMemos() is trash-filtered and NOT de-duplicated, so every row here is alive
         // and the clones are visible.
-        let groups = Dictionary(grouping: repository.rawLiveMemos(), by: \.id)
+        let groups = Dictionary(grouping: repository.allMemos(), by: \.id)
             .filter { $0.value.count > 1 }
         guard !groups.isEmpty else { return }
         for (id, rows) in groups {

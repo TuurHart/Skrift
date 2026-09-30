@@ -60,7 +60,10 @@ struct MemosListView: View {
     // Trashed memos (deletedAt != nil) are excluded here and live in the
     // Recently Deleted screen until restored or purged.
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
-           sort: \Memo.recordedAt, order: .reverse) var memos: [Memo]
+           sort: \Memo.recordedAt, order: .reverse) var rawMemos: [Memo]
+    /// One row per id, the Mac's rule (`MemoDuplicates.canonicalRows`): a CloudKit re-sync can
+    /// leave exact clones until `MemoDeduper` heals them, and the list must not show two.
+    var memos: [Memo] { MemoDuplicates.canonicalRows(rawMemos) }
     /// ONE query behind the header's "Process N" — which notes already carry
     /// polished content. Per-memo enhancement fetches inside a body are the
     /// frozen-library trap (2026-07-23), so the set is built once here.

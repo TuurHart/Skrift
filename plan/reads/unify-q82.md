@@ -44,7 +44,7 @@ Shared implementation: `Shared/Retrieval/SemanticSearch.swift` — `SemanticSear
 
 Behaviour differences to remove: the phone list shows duplicate clones the Mac hides; two copies each of bring-back, shelf order, one-liner and the urgency threshold.
 
-Shared implementation: `Shared/Pipeline/WayOut.swift` — `bringBack`, `fadingOrdered`, `deletedOrdered` (nil date last), `oneLiner`, `daysLeft(until:)`, `isUrgent`. Both apps' old entry points forward to it. The phone's `allMemos()` goes through `MemoDuplicates.canonicalRows`; `MemoDeduper` reads a new raw fetch. Deliberate platform differences kept and named: Mac has no Memo purge; phone has no peek sheet.
+Shared implementation: `Shared/Pipeline/WayOut.swift` — `bringBack`, `fadingOrdered`, `deletedOrdered` (nil date last), `oneLiner`, `daysLeft(until:)`, `isUrgent`. Both apps' old entry points forward to it. The phone's display readers (Notes list, Journal home/calendar/map) go through `MemoDuplicates.canonicalRows` via `NotesRepository.canonicalMemos()`; `allMemos()` stays raw because `MemoDeduperTests.testDivergentSameIdRowsAreLeftAlone` asserts both rows come back. Deliberate platform differences kept and named: Mac has no Memo purge; phone has no peek sheet.
 
 ## 11. Conversation turns
 
@@ -68,7 +68,7 @@ Shared implementation: `Shared/Pipeline/SpeakerNaming.swift` — `SpeakerNaming.
 
 Behaviour difference: the Mac shows a note in a lookback card that the phone would have shown under "Important lately".
 
-Shared implementation: `LookbackProvider.river(for:now:pair:showImportantLately:)` returns `{important, entries}` with the one exclusion rule; `ThenVsNow.window(now:)` + `ThenVsNow.recents(...)` hold the window and recents selection both apps duplicated. Mac keeps no important card (no signed Mac mock for it; `mocks/journal-desktop.html` has none), so it passes `showImportantLately: false` and the Mac's exclusion stays pair-only, stated in one flag rather than two copies of the rule. `Entry.date` becomes read by both cards.
+Shared implementation: `LookbackProvider.river(for:now:pair:showImportantLately:)` returns `{important, entries}` with the one exclusion rule; `ThenVsNow.window(now:)` + `ThenVsNow.recents(...)` hold the window and recents selection both apps duplicated. Mac keeps no important card (no signed Mac mock for it; `mocks/journal-desktop.html` has none), so it passes `showImportantLately: false` and the Mac's exclusion stays pair-only, stated in one flag rather than two copies of the rule. `Entry.date` stays phone-only: the Mac card prints `journalDate(memo)`, which is the same value.
 
 ## 12. Recording helpers
 

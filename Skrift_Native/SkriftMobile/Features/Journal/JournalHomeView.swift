@@ -158,7 +158,7 @@ struct JournalHomeView: View {
     private func reload() {
         // Fading notes leave Review too (MemoLifecycle) — the ⋯ shelf in Notes
         // is their only surface.
-        let split = MemoLifecycle.partition(repository.allMemos())
+        let split = MemoLifecycle.partition(repository.canonicalMemos())
         memos = split.live
         wayOutFading = split.fading
         wayOutDeletedCount = repository.deletedMemos().count
