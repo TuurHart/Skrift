@@ -510,7 +510,7 @@ gate+: yes
 do: Q65 (2026-09-26) found the Mac row carries fewer chips than the same note's phone row: `QueueRowView.cardModel` fills only duration/source chips, never the note's tags (#studio etc.) — possibly because `PipelineFile` does not carry tags the way `Memo` does. Feed the Mac row the same tag chips the phone row gets, from the same shared source (one card model, C115). Test that one note yields the same chip list on both apps' card models (desktop test target); screenshot the Mac sidebar from the synthetic corpus, LOOK, commit under `plan/reads/list-q68/`.
 check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q69 [auto] (todo) a Mac import never diarizes on its own (C102 opt-in); one label per person; no raw markup in list snippets
+### Q69 [auto] (doing) a Mac import never diarizes on its own (C102 opt-in); one label per person; no raw markup in list snippets
 spec: C102
 needs: -
 gate+: yes
@@ -535,7 +535,7 @@ needs: -
 do: Research only (researcher agent, open web, no project code or data): Tuur needs to know, before the Apple Notes import is built: (1) which export routes exist from Apple Notes on macOS/iOS 26 (File → Export as PDF/Markdown/Pages, Share, third-party exporters, the NoteStore.sqlite route) and what each produces; (2) per media type inside a note — drawings/sketches, scanned documents, tables, checklists, attachments (images, PDF, audio, video), links, tags (#hashtags), mentions, locked notes, folders/smart folders — whether it survives each route and in what form; (3) what stable identity a note carries in each route (creation date, modified date, an ID) so a declined note can be recognised on a later export even after its title changes. Report in `plan/research/apple-notes-export.md` with URLs and one recommendation per question.
 check: `test -s plan/research/apple-notes-export.md`
 
-### Q73 [auto] (todo) a typed note records place and weather when created, like a voice recording
+### Q73 [auto] (doing) a typed note records place and weather when created, like a voice recording
 spec: C112 C43
 needs: -
 gate+: yes
@@ -549,13 +549,13 @@ gate+: yes
 do: Tuur 2026-09-30: "when I upload three audio messages into Skrift desktop it should ask if I want it 1 note or three separate". The phone already has this chooser (C68 share sheet, C145 Files importer); C238 says a Mac drop of the same files must yield the same notes. Give every Mac entry point (Import button, sidebar drop incl. the Photos file-promise path, Finder open) the same One note / N notes chooser when 2+ audio files arrive together, reusing the phone's shared merge logic (clips merged in order, one transcription pass; default One note). Mock the Mac sheet first if the phone's has no Mac form. Desktop test (new file) that 3 audio files → 1 merged note or 3 notes per the choice. NEVER run SkriftDesktopUITests; Mac proof = unit tests + full build + headless snapshot.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q75 [tuur] (todo) mockup: note header final — the pill cycles all four states on tap, destination row included
+### Q75 [tuur] (doing) mockup: note header final — the pill cycles all four states on tap, destination row included
 spec: C117 C94 C62
 needs: -
 do: Tuur 2026-09-30 on `mocks/Q70-note-header-two-versions.html`: version 1, the pill ("the card becomes one pill, I think that's good"). Change: tapping cycles Not rated → Passing → Useful → Important → Not rated ("just tapping through it"; un-rating is allowed, C88) — no second tap to open a picker; also show a left-right drag across the pill as an alternative to compare. Missing today: the mocks left out the note's destination (Personal / Made / Idea / Inspiration, C62) — draw the destination row from source (`Shared/UI/DestinationRowView.swift`, NoteDestination) in its real place. Phone + iPad + Mac, voice and typed note (typed with place + weather, D151), heights in pt. Every control responds on tap; node --check the script; no copy inside JS strings. Publish; one numbered question.
 check: Tuur clicked through it and said go.
 
-### Q76 [auto] (todo) research: can a Mac app move notes between Apple Notes folders, and read NoteStore.sqlite inside the App Store sandbox
+### Q76 [auto] (done) research: can a Mac app move notes between Apple Notes folders, and read NoteStore.sqlite inside the App Store sandbox
 spec: C238
 needs: -
 do: Research only (researcher agent, open web): Tuur picked reading Apple Notes' own database on the Mac (D153) and asks: after a note is imported, can the app MOVE it into a folder in Apple Notes (e.g. "Imported to Skrift" / "Not imported yet") without deleting anything? Answer with URLs: (1) can the Notes AppleScript/JXA dictionary move a note between folders (`move note … to folder …`), does that survive iCloud sync, and what permission prompt it needs (Automation); (2) is writing NoteStore.sqlite directly ever safe (expected: no); (3) can a sandboxed Mac App Store app read ~/Library/Group Containers/group.com.apple.notes with Full Disk Access, or does it need to be outside the App Store; (4) whether AppleScript can read locked notes' titles. Report `plan/research/apple-notes-folders.md`, one recommendation per question.
@@ -813,3 +813,8 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-30 08:38 Q75 added
 - 2026-09-30 08:38 Q76 added
 - 2026-09-30 08:46 Q77 added
+- 2026-09-30 08:49 Q75 -> doing — worker out
+- 2026-09-30 08:49 Q76 -> doing — worker out
+- 2026-09-30 08:49 Q73 -> doing — worker out
+- 2026-09-30 08:57 Q69 -> doing — worker out
+- 2026-09-30 08:57 Q76 -> done — report plan/research/apple-notes-folders.md
