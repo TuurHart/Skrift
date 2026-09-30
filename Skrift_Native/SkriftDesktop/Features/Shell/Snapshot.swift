@@ -67,6 +67,8 @@ enum Snapshot {
         }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
         if let p = path("-snapshot-conflict")       { MainActor.assumeIsolated { renderConflict(to: p); exit(0) } }
+        if let p = path("-snapshot-audiochoice-light") { MainActor.assumeIsolated { renderAudioChoice(to: p, scheme: .light); exit(0) } }
+        if let p = path("-snapshot-audiochoice")    { MainActor.assumeIsolated { renderAudioChoice(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
         if let p = path("-snapshot-connections")    { MainActor.assumeIsolated { renderConnections(to: p); exit(0) } }
         if let p = path("-snapshot-inspector")      { MainActor.assumeIsolated { renderInspector(to: p); exit(0) } }
@@ -609,6 +611,15 @@ enum Snapshot {
             .background(Theme.bg)
             .preferredColorScheme(.dark)
         hostPNG(view, size: NSSize(width: 460, height: 640), to: path)
+    }
+
+    /// Q74: the Mac "One note / N notes" chooser (C68/C145) — the phone's two cards in a small
+    /// native sheet. Renders the sheet body directly (a real `.sheet` can't be snapshotted).
+    /// Triggered by: `-snapshot-audiochoice <path>` · `-snapshot-audiochoice-light <path>`.
+    @MainActor private static func renderAudioChoice(to path: String, scheme: ColorScheme = .dark) {
+        let view = AudioImportChoiceSheet(clipCount: 3, onConfirm: { _ in }, onCancel: {})
+            .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 420, height: 190), to: path)
     }
 
     /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector

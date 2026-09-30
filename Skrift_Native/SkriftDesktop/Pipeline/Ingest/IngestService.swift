@@ -39,10 +39,28 @@ struct IngestService: Sendable {
     /// runs on detached tasks; only the SwiftData inserts run on the caller's
     /// (main) actor. The old fully-synchronous form froze the UI for the whole
     /// video export when invoked from drag-drop / open-panel handlers.
+    ///
+    /// `combineAudio` is the answer to the C68 chooser ("One note"): when true and TWO OR
+    /// MORE plain-audio clips arrive together, they are stitched in the given order into ONE
+    /// `original.m4a` by the phone's own `AudioClipMerge`, so the pipeline sees one row and
+    /// runs ONE transcription pass. The merged note takes the slot of the first clip; anything
+    /// else in the same drop (a markdown note, a video, a folder) is ingested as before. The
+    /// default is `false`, so callers that never ask (the `-runfile` harness) keep today's
+    /// one-row-per-file behaviour.
     @discardableResult
-    func ingest(localURLs: [URL], into context: ModelContext) async throws -> [PipelineFile] {
+    func ingest(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> [PipelineFile] {
         var created: [PipelineFile] = []
+        let clips = combineAudio ? Self.audioClips(in: localURLs) : []
+        let merging = clips.count >= 2
+        let clipSet = Set(clips.map(\.standardizedFileURL))
+        var mergedDone = false
         for url in localURLs {
+            if merging, clipSet.contains(url.standardizedFileURL) {
+                guard !mergedDone else { continue }
+                mergedDone = true
+                created.append(try await ingestMergedAudio(clips, into: context))
+                continue
+            }
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
@@ -53,6 +71,49 @@ struct IngestService: Sendable {
         }
         try context.save()
         return created
+    }
+
+    /// The plain-audio clips among `urls`, in the given order: real files with an audio
+    /// extension, minus containers that actually carry a video track (those are C68 "video"
+    /// and follow the video path). Folders and notes are not voice notes.
+    static func audioClips(in urls: [URL]) -> [URL] {
+        urls.filter { isAudioClip($0) }
+    }
+
+    static func isAudioClip(_ url: URL) -> Bool {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
+        let ext = url.pathExtension.lowercased()
+        guard supportedAudio.contains(ext) else { return false }
+        if supportedVideo.contains(ext), hasVideoTrack(url) { return false }
+        return true
+    }
+
+    /// N clips → ONE audio PipelineFile: merged in order to `original.m4a`, named and dated
+    /// from the FIRST clip (the date ladder is C70's, same as a single import).
+    private func ingestMergedAudio(_ clips: [URL], into context: ModelContext) async throws -> PipelineFile {
+        let first = clips[0]
+        let filename = first.lastPathComponent
+        let id = UUID().uuidString
+        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let dest = folder.appendingPathComponent("original.m4a")
+        do {
+            try await Self.offMain {
+                try AudioClipMerge.merge(sources: clips, to: dest) { Self.log.error("\($0, privacy: .public)") }
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: folder)   // no half-made working folder
+            throw error
+        }
+        let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
+        let recorded = Self.dateFromFilename(filename)
+            ?? (try? first.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+            ?? Date()
+        let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
+                              sourceType: .audio, uploadedAt: recorded)
+        pf.isLocalRecording = isLocalRecording
+        context.insert(pf)
+        return pf
     }
 
     /// Run throwing file work on a detached task so a slow copy never parks the
