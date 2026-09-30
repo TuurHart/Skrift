@@ -44,6 +44,7 @@ struct QuickNoteView: View {
     /// `seedSignificance`) and written straight through once it exists.
     @State private var tags: [String] = []
     @State private var significance: Double = 0
+    @State private var destination: NoteDestination = .personal
     @State private var tagToast: TagEditorRow.TagToast?
     private let repository = NotesRepository.shared
     /// Q53/C277/C282: `draft.edited()` (a SwiftData save + a full-note hash,
@@ -68,8 +69,22 @@ struct QuickNoteView: View {
                          onChanged: syncMetaToMemo, idSuffix: "",
                          onToast: { tagToast = $0 })
                 .padding(.top, 8)
-            SignificanceCircles(value: $significance, onCommit: syncMetaToMemo)
-                .padding(.top, 14)
+            // Q88: the SAME header as the note screen (C115) — the rating pill + the orange
+            // fading line, then the destination row 12 pt under it (only when destinations
+            // are on). All of it works on this pre-memo draft state (D91 unchanged) and rides
+            // onto the row at the first keystroke (`seed*`).
+            SignificanceCircles(value: $significance, onCommit: syncMetaToMemo,
+                                fadingLine: fadingLine)
+                .padding(.top, 8)
+            if DestinationSettings.isEnabled {
+                DestinationRowView(
+                    destination: $destination,
+                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
+                    onPick: { _ in syncMetaToMemo() },
+                    style: .phone)
+                    .padding(.top, 12)
+                    .accessibilityIdentifier("destination-row")
+            }
             bodyEditor
                 .padding(.top, 14)
         }
@@ -170,8 +185,18 @@ struct QuickNoteView: View {
         guard let memo = draft.memo else { return }
         memo.tags = tags
         memo.significance = significance
+        memo.destination = destination
         memo.markEdited()
         try? context.save()
+    }
+
+    /// The orange "starts fading … — rate it to keep it" line, the note screen's own rule
+    /// (`MemoPageView.fadingLine`): only once the row exists (first keystroke) and while it
+    /// is unrated and could fade.
+    private var fadingLine: String? {
+        guard let memo = draft.memo, significance == 0,
+              !MemoLifecycle.neverFades(memo, backlinked: []) else { return nil }
+        return "\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: [])))) — rate it to keep it"
     }
 
     @ViewBuilder private var tagToastView: some View {
@@ -207,6 +232,7 @@ struct QuickNoteView: View {
 
     private func commitEdit() {
         draft.edited(title: title, body: bodyText, context: context,
-                     seedTags: tags, seedSignificance: significance)
+                     seedTags: tags, seedSignificance: significance,
+                     seedDestination: destination)
     }
 }

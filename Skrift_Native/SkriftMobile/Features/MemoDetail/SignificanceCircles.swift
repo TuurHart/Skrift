@@ -9,21 +9,41 @@ import SwiftUI
 // TARGETED_DEVICE_FAMILY "1,2"): which colours out of `Theme`, and the
 // measurements a touch screen was tuned to.
 
-/// The phone/iPad importance card. Keeps the call sites (`MemoDetailView`,
-/// `MergedCaptureView`, `ShareSheetView`) unchanged, including their non-optional
-/// `Double` binding — the shared view speaks `Double?` (nil = never rated), which
-/// the phone stores as 0.
+/// The phone/iPad importance control outside the note page. Since Q88 it is the SAME
+/// header pill as `MemoPageView` (`NoteRatingRow`: pill + orange fading line — one
+/// header everywhere, C115), used by the quick note, the audiobook capture sheet and
+/// the share sheet. Keeps the call sites' non-optional `Double` binding (the phone
+/// stores "never rated" as 0). The step toast is drawn here, just above the pill,
+/// because these hosts (a sheet, a share extension) have no screen-level toast layer.
 struct SignificanceCircles: View {
     @Binding var value: Double
     var onCommit: () -> Void
+    /// nil = no line (rated, or the note doesn't exist yet).
+    var fadingLine: String? = nil
+    @State private var toast: RatingToast?
 
     var body: some View {
-        ThreeBallImportanceView(
+        NoteRatingRow(
             value: Binding(get: { value == 0 ? nil : value },
                            set: { value = $0 ?? 0 }),
             style: .phone,
+            fadingLine: fadingLine,
+            lineColor: Color.skAmber.opacity(0.9),
             onTap: { Haptics.tap(.light) },
-            onCommit: onCommit)
+            onCommit: onCommit,
+            onToast: { toast = $0 })
+            .overlay(alignment: .top) {
+                if let toast {
+                    RatingToastView(toast: toast)
+                        .offset(y: -38)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .task(id: toast.id) {
+                            try? await Task.sleep(for: .seconds(1.6))
+                            if self.toast?.id == toast.id { withAnimation(SkMotion.snappy) { self.toast = nil } }
+                        }
+                }
+            }
     }
 }
 

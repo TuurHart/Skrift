@@ -38,12 +38,14 @@ final class QuickNoteDraft {
     /// row the instant it's born, instead of silently resetting to nothing.
     @discardableResult
     func edited(title: String, body: String, context: ModelContext,
-                seedTags: [String] = [], seedSignificance: Double = 0) -> Memo? {
+                seedTags: [String] = [], seedSignificance: Double = 0,
+                seedDestination: NoteDestination = .personal) -> Memo? {
         if memo == nil {
             guard !title.isEmpty || !body.isEmpty else { return nil }
             memo = try? Memo.newTyped(into: context)
             memo?.tags = seedTags
             memo?.significance = seedSignificance
+            memo?.destination = seedDestination
             if let memo { startCapture(for: memo) }
         }
         guard let memo else { return nil }
