@@ -657,6 +657,12 @@ gate+: yes
 do: Tuur 2026-09-30: a Mac import should arrive UNRATED ("yes it should") — reverses the 2026-07-26/28 rule "an import is consent, floors to 0.1" (plan/extraction/ledgers.md:263, decisions.md:145; memory project_note_consent). Make a Mac import author an unrated memo exactly like a Mac recording: it keeps its row, is transcribed on arrival (Q77's transcribeImport stays — words are not polish), shows Not rated in the pill with the fading line, and enters the Process queue / polish / export only once rated. Pressing Polish or Process on an unrated note still floors it to 0.1 (C40 — that door stays). Update NoteConsent's nil table and the MacMemoAuthor/ArrivalPath paths; protected tests that pin the old import floor (MacMemoAuthorSignificanceTests, ArrivalPathTests, any other) change to the new rule — approved (D159), will be hand-merged; add a test that an import is unrated, transcribed, and absent from the process queue. Update SPEC C49 wording and FEATURES.md. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q91 [auto] (todo) update the two UI tests that still drive the old Filter button to the new chip ids (never run the Mac one)
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -959,3 +965,4 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-30 16:08 Q90 -> doing — worker done; hand-merge queued
 - 2026-09-30 16:11 Q90 -> done — hand-merged (D159 approved: import-floor tests changed to the unrated rule)
 - 2026-09-30 16:17 Q66 -> done — gate pass @c0e6c5b4
+- 2026-09-30 16:18 Q91 added
