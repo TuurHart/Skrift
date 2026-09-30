@@ -25,8 +25,8 @@ import Foundation
 ///
 /// The doors OUT of unrated stay event-shaped at their own sites: the circles
 /// (both apps), Polish (`PolishCenter.polishNow` floors to 0.1 — pressing it
-/// IS a judgment), and a Mac IMPORT (`MacMemoAuthor`'s 0.1 floor; a Mac
-/// RECORDING stays unrated — capturing a thought is not judging it).
+/// IS a judgment; NOT on the Mac, whose Process just skips unrated notes). A Mac
+/// import and a Mac recording both arrive unrated (D159) — neither is a judgment.
 enum NoteConsent {
 
     /// Has this note been judged? `nil` and `0` both mean no —

@@ -122,10 +122,9 @@ final class ArrivalPathTests: XCTestCase {
 
     // MARK: - an import
 
-    /// The other edge, and the reason the flag exists: putting a file on the Mac IS a request
-    /// to process it, so an import still gets the floor — and must not jump the transcription
-    /// queue ahead of the Process button.
-    func testAnImportIsFlooredAndNotTranscribedOnArrival() async throws {
+    /// The other edge: an import arrives unrated too (D159) and never goes through the CAPTURE
+    /// transcribe hook — its words come from `transcribeImport` (Q77, MacImportUnratedTests).
+    func testAnImportIsNotTranscribedAsACaptureOnArrival() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
@@ -139,9 +138,9 @@ final class ArrivalPathTests: XCTestCase {
             into: ctx, cloudContext: cloud,
             hooks: hooks, service: IngestService(outputDir: work.appendingPathComponent("out")))
 
-        XCTAssertEqual(transcribeCalls, 0, "an import waits for Process — that's what the button is for")
+        XCTAssertEqual(transcribeCalls, 0, "an import has its own transcribe hook; the capture one is not called")
         XCTAssertTrue(try cloud.fetch(FetchDescriptor<Memo>()).isEmpty,
-                      "an import's Memo is the reconcile sweep's job, where the 0.1 floor applies")
+                      "an import's Memo is the reconcile sweep's job (authored unrated, D159)")
     }
 
     // MARK: - shared behaviour

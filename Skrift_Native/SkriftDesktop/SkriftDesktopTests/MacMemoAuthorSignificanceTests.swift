@@ -1,7 +1,8 @@
 import XCTest
 import SwiftData
 
-/// The significance floor in `MacMemoAuthor` — right for an import, wrong for a recording.
+/// `MacMemoAuthor` never floors the rating (D159, 2026-09-30): an import authors unrated like a
+/// recording. (Before D159 an import floored to 0.1.)
 final class MacMemoAuthorSignificanceTests: XCTestCase {
 
     private func ctx() throws -> ModelContext {
@@ -11,13 +12,12 @@ final class MacMemoAuthorSignificanceTests: XCTestCase {
         return ModelContext(c)
     }
 
-    /// An IMPORT still floors: adding a file to the Mac is a request to process it, and an
-    /// unrated memo the Mac silently processes would lie on the phone's flag-to-process UI.
-    func testImportFloorsAnUnratedFileToAMinimalRating() throws {
+    /// An IMPORT arrives unrated too (D159): adding a file is not judging it.
+    func testImportStaysUnrated() throws {
         let c = try ctx()
         let pf = PipelineFile(id: UUID().uuidString, filename: "a.m4a", path: "", size: 1, sourceType: .audio)
         let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
-        XCTAssertEqual(memo?.significance, 0.1)
+        XCTAssertEqual(memo?.significance, 0)
     }
 
     /// A RECORDING does NOT. Capturing a thought is not judging it — under the unrated model
@@ -27,18 +27,16 @@ final class MacMemoAuthorSignificanceTests: XCTestCase {
     func testRecordingStaysUnrated() throws {
         let c = try ctx()
         let pf = PipelineFile(id: UUID().uuidString, filename: "memo_x.m4a", path: "", size: 1, sourceType: .audio)
-        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c, floorSignificance: false)
+        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
         XCTAssertEqual(memo?.significance, 0, "a recording is unrated until it's judged")
     }
 
-    /// An EXPLICIT rating survives either way — the flag only governs the floor.
+    /// An EXPLICIT rating passes through unchanged.
     func testAnExplicitRatingIsNeverOverwritten() throws {
         let c = try ctx()
-        for floor in [true, false] {
-            let pf = PipelineFile(id: UUID().uuidString, filename: "b.m4a", path: "", size: 1, sourceType: .audio)
-            pf.significance = 0.7
-            let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c, floorSignificance: floor)
-            XCTAssertEqual(memo?.significance, 0.7)
-        }
+        let pf = PipelineFile(id: UUID().uuidString, filename: "b.m4a", path: "", size: 1, sourceType: .audio)
+        pf.significance = 0.7
+        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
+        XCTAssertEqual(memo?.significance, 0.7)
     }
 }

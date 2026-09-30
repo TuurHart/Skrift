@@ -13,17 +13,18 @@ import SwiftData
 /// • a PROJECTION (`modelContext == nil` — `MemoNoteProjection` maps an
 ///   unrated memo's 0 to nil and is never inserted into a context): the
 ///   memo's truth was 0 → **unrated**.
-/// • a local RECORDING (`isLocalRecording`): authored unrated on purpose —
-///   capture is not judgment → **unrated**.
-/// • a local IMPORT / legacy row: its authored `Memo` carries `MacMemoAuthor`'s
-///   0.1 floor (adding a file IS a request to process it); the row itself just
-///   never heard the number back → **rated**. Same nil-asymmetry
+/// • a local RECORDING (`isLocalRecording`) or IMPORT (`isLocalImport`, D159
+///   2026-09-30): authored unrated on purpose — capturing or adding a file is
+///   not judgment → **unrated**.
+/// • a LEGACY row (inserted, neither flag — an import from before D159, whose
+///   authored `Memo` carries the old 0.1 floor, or a synced row): the row itself
+///   just never heard the number back → **rated**. Same nil-asymmetry
 ///   `MacCloudMetaSync.mirror` documents: a passive pass must never read nil
 ///   as 0.
 extension NoteConsent {
     static func isRated(_ pf: PipelineFile) -> Bool {
         if let sig = pf.significance { return isRated(sig) }
-        return pf.modelContext != nil && !pf.isLocalRecording
+        return pf.modelContext != nil && !pf.isLocalCapture
     }
 
     /// Membership in the Mac's connections index (the idea graph): live AND

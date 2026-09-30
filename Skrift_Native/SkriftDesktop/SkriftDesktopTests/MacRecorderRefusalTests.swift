@@ -84,11 +84,10 @@ final class MacRecorderRefusalTests: XCTestCase {
     }
 }
 
-/// The rating floor, from the angle the 2026-07-28 harness run exposed: it is not enough for
-/// the CAPTURE path to ask for no floor, because it is not the only thing that authors Memos.
-/// `MemoCloudReconciler`'s sweep calls `backfill` — which takes the default `floorSignificance:
-/// true` — over every local row that lacks one, on its own schedule. It won that race against a
-/// real Mac take and rated it 0.1.
+/// The rating floor, from the angle the 2026-07-28 harness run exposed: the CAPTURE path is not
+/// the only thing that authors Memos. `MemoCloudReconciler`'s sweep calls `backfill` over every
+/// local row that lacks one, on its own schedule. It won that race against a real Mac take and
+/// rated it 0.1. D159 (2026-09-30) removed the floor altogether, so nobody can win it.
 final class LocalRecordingFloorTests: XCTestCase {
 
     private func cloudContext() throws -> ModelContext {
@@ -122,22 +121,13 @@ final class LocalRecordingFloorTests: XCTestCase {
                        "whoever authors a take first, it stays unrated — the rating is consent")
     }
 
-    /// The same call that floored it, spelled out: even asked explicitly to floor, a recording
-    /// doesn't. The flag is the row's own fact and outranks the caller's opinion.
-    func testAnExplicitFloorRequestStillCannotRateARecording() throws {
-        let cloud = try cloudContext()
-        let memo = try MacMemoAuthor.author(for: take(), audioURL: nil, into: cloud,
-                                            floorSignificance: true)
-        XCTAssertEqual(memo?.significance, 0)
-    }
-
-    /// The other edge, unchanged: an import is a request to process, so it still floors.
-    func testAnImportStillFloors() throws {
+    /// An import no longer floors either (D159): the sweep authors it unrated like a take.
+    func testAnImportIsAuthoredUnratedToo() throws {
         let cloud = try cloudContext()
         let pf = PipelineFile(id: UUID().uuidString, filename: "dropped.m4a",
                               path: tempAudio().path, sourceType: .audio)
         XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
-        XCTAssertEqual(try cloud.fetch(FetchDescriptor<Memo>()).first?.significance, 0.1)
+        XCTAssertEqual(try cloud.fetch(FetchDescriptor<Memo>()).first?.significance, 0)
     }
 
     /// A rating the user actually gave survives either way — the flag governs the FLOOR, and
@@ -152,7 +142,7 @@ final class LocalRecordingFloorTests: XCTestCase {
 
     func testAFreshPipelineFileIsNotARecordingUntilSaidOtherwise() {
         XCTAssertFalse(PipelineFile(id: UUID().uuidString, filename: "a.m4a").isLocalRecording,
-                       "the default must be the import behaviour — every other door relies on it")
+                       "the default must be the plain-file behaviour — every other door relies on it")
     }
 }
 

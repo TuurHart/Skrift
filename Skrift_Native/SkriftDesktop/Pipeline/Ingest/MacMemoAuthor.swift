@@ -40,29 +40,20 @@ enum MacMemoAuthor {
     /// already exists (idempotent — never re-author, never overwrite). Attaches a `MemoAsset`
     /// with the audio blob when `audioURL` resolves to a readable file; authors WITHOUT audio
     /// otherwise (an honest text-only note beats no note at all).
-    /// `floorSignificance` — whether an unrated file still gets a minimal 0.1 rating.
     ///
-    /// TRUE for an IMPORT, where the act of adding a file is a request to process it. FALSE
-    /// for a Mac RECORDING: capturing a thought is not judging it. Under the unrated model
-    /// (2026-07-26, which postdates this floor) the rating IS consent — the Mac spends nothing
-    /// on a note until you judge it — so a recording that floored to 0.1 arrived on the phone
-    /// pre-rated "passing" and queued itself for processing, which is precisely the lie this
-    /// floor was written to avoid, in the other direction (Tuur, 2026-07-28: "it shouldn't be.
-    /// Because it's an unrated note").
-    ///
-    /// The parameter only ever LOWERS the floor: `pf.isLocalRecording` overrides it, because a
-    /// recording must stay unrated no matter which caller gets here first. That is not
-    /// belt-and-braces — the sweep's `backfill` takes the default and genuinely does race the
-    /// arrival path (proven by `-recordingest` on 2026-07-28: the sweep authored the take's
-    /// Memo at 0.1 before the capture path could author it at 0).
+    /// **Never floors the rating** (D159, 2026-09-30, reversing the July 0.1 import floor): the
+    /// rating IS consent, and neither a recording nor an import is a judgment — both author
+    /// unrated (`pf.significance` nil → 0) and are rated only by the person, or by pressing
+    /// Polish/Process (C40). An explicit `pf.significance` passes through unchanged. There is
+    /// deliberately no "floor" argument any more: the sweep's `backfill` genuinely races the
+    /// arrival path (proven by `-recordingest` on 2026-07-28), and a caller-chosen floor is
+    /// exactly what let the sweep rate a real take.
     @discardableResult
-    static func author(for pf: PipelineFile, audioURL: URL?, into ctx: ModelContext,
-                       floorSignificance: Bool = true) throws -> Memo? {
+    static func author(for pf: PipelineFile, audioURL: URL?, into ctx: ModelContext) throws -> Memo? {
         guard let id = UUID(uuidString: pf.id) else { return nil }
         let already = try ctx.fetchCount(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id }))
         guard already == 0 else { return nil }
 
-        let floorSignificance = floorSignificance && !pf.isLocalRecording
         let sig = pf.significance ?? 0
         let memo = Memo(id: id, audioFilename: pf.filename,
                         duration: audioDuration(at: audioURL) ?? 0,
@@ -70,10 +61,8 @@ enum MacMemoAuthor {
                         // doc calls this the CONTENT date (filename-embedded / file creation date),
                         // not the upload time. PipelineFile carries no separate duration field.
                         recordedAt: pf.uploadedAt,
-                        // LOCKED (brief): a Mac capture is user-initiated processing — an unrated
-                        // Memo the Mac silently processes would lie on the phone's flag-to-process
-                        // UI, so an un-rated/zero pf still floors to a real (if minimal) rating.
-                        significance: (sig > 0 || !floorSignificance) ? sig : 0.1,
+                        // D159: no floor — an unrated file authors an unrated Memo.
+                        significance: sig,
                         recordingDeviceID: DeviceID.current())
         if let t = pf.transcript, !t.isEmpty {
             // A live-recording finalize (`LiveRecordingSession.stop()`) seeds `pf.transcript`
