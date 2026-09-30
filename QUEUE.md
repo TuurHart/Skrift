@@ -609,7 +609,7 @@ gate+: yes
 do: Tuur 2026-09-30: "when a word is being highlighted you can click anywhere and the audio jumps to that. Apparently that doesn't work with audiobook quotes — I can't click those. Maybe there's no timestamps generated when the book is transcribed." Find why a quote-capture note's words are not tappable (no word timings stored for the quote, timings relative to the book not the clip, or the view never wires tap-to-seek for quotes), and make tapping a word in the quote seek the quote's audio, on phone and Mac. Test with a synthetic quote capture. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q84 [auto] (doing) destinations read Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, with a dashed line between the two sides
+### Q84 [auto] (done) destinations read Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, with a dashed line between the two sides
 spec: C62
 needs: -
 gate+: yes
@@ -915,3 +915,4 @@ check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 90
 - 2026-09-30 10:51 Q83 -> doing — worker out
 - 2026-09-30 11:03 Q78 -> done — gate pass @8a2be1e6
 - 2026-09-30 11:27 Q83 -> done — gate pass @4e3e1acf
+- 2026-09-30 11:32 Q84 -> done — hand-merged (D156 rename: approved test/corpus renames)
