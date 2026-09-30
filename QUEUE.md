@@ -542,7 +542,7 @@ gate+: yes
 do: Tuur 2026-09-27: "yes typed should also record". Today only a voice recording runs `MetadataService.capture()` (RecordView.swift:160, MemoSaver.applyMetadata:740); `Memo.newTyped` (Shared/Model/Memo.swift:398) stores only {"mediaSource":"typed"}, so a typed note's header shows date + time and nothing else. Capture place, weather and daypart for a typed note the moment the note is created (first keystroke, D91), asynchronously — the keyboard must still be up in under a second (C112) and an empty discarded note must leave nothing behind. Same on the phone, iPad and quick note; the Mac only if it already has a location path. A nil GPS fix or geocode stays nil silently, as for voice notes. Test in the phone target (new file) that a typed note gets the metadata a voice note gets, with a stubbed capture.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && ./gate.sh`
 
-### Q74 [auto] (doing) Mac import of several audio files asks: one note or N notes (C68 chooser on the Mac)
+### Q74 [auto] (done) Mac import of several audio files asks: one note or N notes (C68 chooser on the Mac)
 spec: C68 C145 C238
 needs: -
 gate+: yes
@@ -838,3 +838,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.s
 - 2026-09-30 09:09 Q74 -> doing — worker out
 - 2026-09-30 09:11 Q79 added
 - 2026-09-30 09:12 Q64 -> tuur — built @305d47df — awaiting sitting
+- 2026-09-30 09:25 Q74 -> done — gate pass @c5512188
