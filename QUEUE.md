@@ -561,6 +561,13 @@ needs: -
 do: Research only (researcher agent, open web): Tuur picked reading Apple Notes' own database on the Mac (D153) and asks: after a note is imported, can the app MOVE it into a folder in Apple Notes (e.g. "Imported to Skrift" / "Not imported yet") without deleting anything? Answer with URLs: (1) can the Notes AppleScript/JXA dictionary move a note between folders (`move note … to folder …`), does that survive iCloud sync, and what permission prompt it needs (Automation); (2) is writing NoteStore.sqlite directly ever safe (expected: no); (3) can a sandboxed Mac App Store app read ~/Library/Group Containers/group.com.apple.notes with Full Disk Access, or does it need to be outside the App Store; (4) whether AppleScript can read locked notes' titles. Report `plan/research/apple-notes-folders.md`, one recommendation per question.
 check: `test -s plan/research/apple-notes-folders.md`
 
+### Q77 [auto] (todo) Mac sidebar: shift-click selects a range; imports transcribe on their own; right-click Process works every time
+spec: C49 C115
+needs: -
+gate+: yes
+do: Tuur 2026-09-30 on the prod Mac (an older build — reproduce on the current branch first, headless, synthetic corpus): (a) "I can't shift select multiple" notes in the sidebar — add range selection (shift-click) and ⌘-click to the Mac list, feeding the existing multi-select actions; (b) "when I uploaded the voice memos they didn't auto transcribe" — C49: a Mac import floors to 0.1 and must enter the pipeline without a manual Process; find why an imported voice memo sat untranscribed; (c) right-click → Process "worked flaky" — find the failure (race with the batch runner? selection vs clicked row?) and fix. Desktop tests (new file) for (b) and (c) through the ingest/processing seams; (a) proven by the full build + a headless snapshot with 3 rows selected. NEVER run SkriftDesktopUITests (they take the real mouse).
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -805,3 +812,4 @@ check: `test -s plan/research/apple-notes-folders.md`
 - 2026-09-30 08:38 Q71 -> done — Tuur 2026-09-30: route 1 (Mac Notes database, Full Disk Access is fine); locked notes stay behind; asks whether imported notes can be moved into an Apple Notes folder → Q76; drawings parked as an idea
 - 2026-09-30 08:38 Q75 added
 - 2026-09-30 08:38 Q76 added
+- 2026-09-30 08:46 Q77 added

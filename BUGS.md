@@ -291,6 +291,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 3. Reported on device, not yet diagnosed
 
+- [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
+      select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
+      Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that
+      right-click Process "worked flaky". Diagnose on the current branch first; prod is older.
 - [ ] **A video dragged in from Photos on the Mac got diarized automatically** (Tuur 2026-09-27, prod
       Mac build, "no good"). C102 says diarization is opt-in per note. Same screen: one person shows
       under two labels ("Tiuri Hartog" and "Tiuri"), and list snippets show raw `**Speaker 1:**` and
