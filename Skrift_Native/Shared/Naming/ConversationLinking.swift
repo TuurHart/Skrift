@@ -213,16 +213,4 @@ extension Sanitiser {
         return out
     }
 
-    /// Plain (not-inside-`[[ ]]`) whole-word occurrences of `alias` in `text`, in
-    /// reading order. Used by the unlink popover to count a person's plain mentions
-    /// (the short-name forms the Sanitiser already left/demoted). Each range covers
-    /// the alias (+ any trailing `'s`); skips matches inside an existing link.
-    static func plainOccurrences(of alias: String, in text: String) -> [NSRange] {
-        let a = alias.trimmingCharacters(in: .whitespaces)
-        guard !a.isEmpty, let rx = wordRegex(a) else { return [] }
-        return rx.matches(in: text, range: fullRange(text))
-            .map { $0.range }
-            .filter { !avoidInside || notInsideLink(text, $0.location) }
-    }
-
 }

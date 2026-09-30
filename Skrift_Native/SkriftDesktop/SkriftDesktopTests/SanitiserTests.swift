@@ -67,29 +67,6 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(r.sanitised, "[[Nick Jansen]]'s idea was great.")
     }
 
-    // MARK: plainOccurrences (drives the unlink popover's mention count)
-
-    func testPlainOccurrencesInOrderSkippingLinks() {
-        // Two plain "Jack"s + one already inside a link → the link one is skipped, and
-        // the two plain ones come back in reading order.
-        let text = "Met Jack, then [[Jack Timmons]], and later Jack again."
-        let ns = text as NSString
-        let occ = Sanitiser.plainOccurrences(of: "Jack", in: text)
-        XCTAssertEqual(occ.count, 2)
-        XCTAssertEqual(ns.substring(with: occ[0]), "Jack")
-        // First plain "Jack" precedes the link; second follows it.
-        XCTAssertLessThan(occ[0].location, (text as NSString).range(of: "[[Jack Timmons]]").location)
-        XCTAssertGreaterThan(occ[1].location, (text as NSString).range(of: "[[Jack Timmons]]").location)
-    }
-
-    func testPlainOccurrencesPossessiveRangeIncludesApostropheS() {
-        let text = "Jack's car."
-        let ns = text as NSString
-        let occ = Sanitiser.plainOccurrences(of: "Jack", in: text)
-        XCTAssertEqual(occ.count, 1)
-        XCTAssertEqual(ns.substring(with: occ[0]), "Jack's")
-    }
-
     // MARK: First-mention-only when the input ALREADY carries links (the 2026-06-10
     // "brackets on every mention" bug — Mac-diarized conversations arrive with
     // `**[[Person]]:**` on EVERY turn header)
