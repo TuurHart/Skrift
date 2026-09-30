@@ -561,7 +561,7 @@ needs: -
 do: Research only (researcher agent, open web): Tuur picked reading Apple Notes' own database on the Mac (D153) and asks: after a note is imported, can the app MOVE it into a folder in Apple Notes (e.g. "Imported to Skrift" / "Not imported yet") without deleting anything? Answer with URLs: (1) can the Notes AppleScript/JXA dictionary move a note between folders (`move note … to folder …`), does that survive iCloud sync, and what permission prompt it needs (Automation); (2) is writing NoteStore.sqlite directly ever safe (expected: no); (3) can a sandboxed Mac App Store app read ~/Library/Group Containers/group.com.apple.notes with Full Disk Access, or does it need to be outside the App Store; (4) whether AppleScript can read locked notes' titles. Report `plan/research/apple-notes-folders.md`, one recommendation per question.
 check: `test -s plan/research/apple-notes-folders.md`
 
-### Q77 [auto] (doing) Mac sidebar: shift-click selects a range; imports transcribe on their own; right-click Process works every time
+### Q77 [auto] (done) Mac sidebar: shift-click selects a range; imports transcribe on their own; right-click Process works every time
 spec: C49 C115
 needs: -
 gate+: yes
@@ -899,3 +899,4 @@ check: Tuur clicked through it and said go.
 - 2026-09-30 10:23 Q86 -> doing — worker out
 - 2026-09-30 10:23 Q79 -> doing — worker out
 - 2026-09-30 10:23 Q77 -> doing — worker out
+- 2026-09-30 10:39 Q77 -> done — gate pass @e832dae4
