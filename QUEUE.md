@@ -837,3 +837,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.s
 - 2026-09-30 09:09 Q78 added
 - 2026-09-30 09:09 Q74 -> doing — worker out
 - 2026-09-30 09:11 Q79 added
+- 2026-09-30 09:12 Q64 -> tuur — built @305d47df — awaiting sitting
