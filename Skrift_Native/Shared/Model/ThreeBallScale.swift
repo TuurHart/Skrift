@@ -74,4 +74,20 @@ enum ThreeBallScale {
     static func syncCopy(forStep step: Int) -> String {
         step == 0 ? "Not rated — left alone" : "Rated — ready to process"
     }
+
+    // ── The header pill (Q85, signed mock Q75-note-header-final, behaviour A) ──
+
+    /// One tap on the pill: Not rated → Passing → Useful → Important → Not rated.
+    /// Stepping off Important un-rates (C88: the row stays, the note leaves the
+    /// queue and every export). Returns the persisted value (0 = Not rated).
+    static func stepped(_ value: Double?) -> Double {
+        let next = (step(for: value) + 1) % (stepCount + 1)
+        return self.value(forStep: next)
+    }
+
+    /// The toast that names what a pill tap just did. `from`/`to` are steps 0...3.
+    static func toastCopy(from: Int, to: Int) -> String {
+        if to > 0 { return "\(name(forStep: to)) · ready to process" }
+        return from > 0 ? "Not rated · out of the queue, no export" : "Not rated · left alone"
+    }
 }
