@@ -5,6 +5,16 @@ import SwiftUI
 /// Added; the Mac has one date, so it passes `fixedLabel: "Uploaded"`), then a
 /// From and a To pill. An unset pill arms its bound to today on tap; a set one
 /// shows a compact DatePicker and a clear button. Clear drops both.
+extension View {
+    /// Q66 (mock A's `.scrollrow` mask): the chip row's trailing 15% fades out,
+    /// the cue that more chips sit past the edge and the row swipes sideways.
+    func chipRowFade() -> some View {
+        mask(LinearGradient(stops: [.init(color: .black, location: 0.85),
+                                    .init(color: .clear, location: 1)],
+                            startPoint: .leading, endPoint: .trailing))
+    }
+}
+
 struct DateRangeStrip: View {
     let style: ChipRowStyle
     @Binding var from: Date?
@@ -49,12 +59,19 @@ struct DateRangeStrip: View {
     private func pill(_ label: String, date: Binding<Date?>, arm: Date, id: String) -> some View {
         if let d = date.wrappedValue {
             HStack(spacing: 2) {
-                Text(label).font(.system(size: 11)).foregroundStyle(style.accent)
+                Text(label).font(.system(size: 11)).foregroundStyle(style.accent).fixedSize()
                 DatePicker(label, selection: Binding(get: { d }, set: { date.wrappedValue = $0 }),
                            displayedComponents: .date)
                     .labelsHidden()
-                    .scaleEffect(0.85, anchor: .leading)
-                    .frame(maxWidth: 100, alignment: .leading)
+                    #if os(iOS)
+                    // The compact picker ignores `.font`; shrink it to chip scale and
+                    // give the layout the shrunk size (scaleEffect alone keeps the big frame).
+                    .fixedSize()
+                    .scaleEffect(0.82)
+                    .frame(width: 108, height: 26)
+                    #else
+                    .datePickerStyle(.field).controlSize(.small)
+                    #endif
                 Button { date.wrappedValue = nil } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 11))
                 }

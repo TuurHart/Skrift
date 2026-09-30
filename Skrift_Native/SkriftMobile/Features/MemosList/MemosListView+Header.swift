@@ -236,6 +236,7 @@ extension MemosListView {
             // instantly with no section-by-section animation.
             .animation(Theme.Motion.snappy, value: listChip)
             }
+            .chipRowFade()
             .accessibilityIdentifier("filter-chip-scroll")
             // Pinned outside the scroll (mock A: the word ends the row and is
             // always reachable); one tap = the next sort.
@@ -248,7 +249,6 @@ extension MemosListView {
                                fieldIndex: Binding(
                                    get: { MemoDateField.allCases.firstIndex(of: filter.dateField) ?? 0 },
                                    set: { filter.dateField = MemoDateField.allCases[$0] }))
-                    .accessibilityIdentifier("date-strip")
             }
         }
         .padding(.horizontal, 16)

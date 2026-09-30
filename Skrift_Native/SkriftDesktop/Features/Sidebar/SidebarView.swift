@@ -73,7 +73,7 @@ struct SidebarView: View {
     }
     private var pendingCount: Int { pendingFiles.count }
     @State private var dragOver = false
-    @State private var showDateStrip = false
+    @State private var showDateStrip = ProcessInfo.processInfo.arguments.contains("-showDateStrip")  // snapshot rig
 
     // ── the Queue band (mocks/lifecycle-ia-explorations.html #m2) ───────────
     /// Cloud memos, refreshed on appear / when `files` changes / after any band
@@ -571,6 +571,7 @@ struct SidebarView: View {
                     // below (a sibling), so the list swap stays instant, not section-animated.
                     .animation(SkMotion.snappy, value: model.filter)
                 }
+                .chipRowFade()
                 SortCycleWord(word: model.sort.short, style: style) { model.sort = model.sort.next }
                     .accessibilityIdentifier("sidebar.sort-word")
             }
@@ -578,7 +579,6 @@ struct SidebarView: View {
                 DateRangeStrip(style: style,
                                from: $model.dateFrom, to: $model.dateTo,
                                fixedLabel: "Uploaded")
-                    .accessibilityIdentifier("sidebar.date-strip")
             }
         }
     }
