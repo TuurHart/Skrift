@@ -641,8 +641,7 @@ struct JournalView: View {
 
     private func snippet(_ memo: Memo) -> String {
         let raw = memo.annotationText ?? memo.transcript ?? ""
-        let cleaned = raw.replacingOccurrences(of: #"\[\[img_\d+\]\]"#,
-                                               with: "", options: .regularExpression)
+        let cleaned = NoteSnippet.plain(raw)
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespaces)
         return String(cleaned.prefix(180))

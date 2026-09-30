@@ -733,8 +733,7 @@ struct SidebarView: View {
         // carries the row (never repeats the first line as both title and snippet — the
         // Q26 fix this mirrors).
         let hasExplicitTitle = !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
-        let body = (memo.transcript ?? "")
-            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+        let body = NoteSnippet.plain(memo.transcript ?? "")
             .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if hasExplicitTitle {
@@ -1205,8 +1204,7 @@ private struct QueueRowView: View {
         if let id = UUID(uuidString: file.id), EditConflictWatch.shared.ids.contains(id) {
             m.statusPill = .twoVersions
         }
-        let body = (file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
-            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+        let body = NoteSnippet.plain(file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
             .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // The raw filename leak (Tuur's 11:26 screenshot): the filename arm of
