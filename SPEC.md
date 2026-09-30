@@ -1867,3 +1867,6 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      Archive → Portfolio, Made → Project in strings, code and stored values; no migration — the
      feature was never used ("nothing has been saved with it"). Portfolio folders match the words:
      `_projects/` (was `_inbox/`), `_ideas/`, `_inspiration/`. Supersedes D155's "stored value stays `made`" (Q84).
+157. **D157 Split speakers signed.** ✅ 2026-09-30: the Q86 mock, "looks great, on both phone and Mac…
+     I like it all"; on the Mac it is a switch in the note header; the phone keeps its icon and gains
+     Flatten to monologue (Q87).
