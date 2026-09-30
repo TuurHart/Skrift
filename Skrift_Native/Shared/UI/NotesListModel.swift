@@ -27,13 +27,4 @@ enum NotesListModel {
         }
         return order.map { (title: $0, items: bucket[$0] ?? []) }
     }
-
-    /// D136: a status pill shows ONLY while a note is being worked on or is
-    /// broken — never for a calm/finished state (the always-on-badge-is-no-signal
-    /// doctrine, locked before this list existed). Each app maps its own status
-    /// enum to one of these three before deciding whether to render a pill.
-    enum PillRule {
-        case working, broken, calm
-        var showsPill: Bool { self != .calm }
-    }
 }

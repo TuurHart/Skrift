@@ -45,14 +45,4 @@ final class NotesListModelTests: XCTestCase {
         let groups = NotesListModel.dayGroups([Dated](), dayLabel: { $0.day })
         XCTAssertTrue(groups.isEmpty)
     }
-
-    // MARK: PillRule
-
-    /// D136: a pill shows ONLY while working or broken — never for a calm,
-    /// finished state (the always-on-badge-is-no-signal doctrine).
-    func testPillRuleShowsOnlyWhileWorkingOrBroken() {
-        XCTAssertTrue(NotesListModel.PillRule.working.showsPill)
-        XCTAssertTrue(NotesListModel.PillRule.broken.showsPill)
-        XCTAssertFalse(NotesListModel.PillRule.calm.showsPill)
-    }
 }
