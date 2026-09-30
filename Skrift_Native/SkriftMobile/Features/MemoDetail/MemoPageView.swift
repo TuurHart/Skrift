@@ -53,6 +53,8 @@ struct MemoPageView: View {
     /// level (`tagToastView`'s own `.overlay`), not `TagEditorRow`'s own bounds
     /// (which ran the pill off the left screen edge, Q36 finding).
     @State var tagToast: TagEditorRow.TagToast?
+    /// Q85: the header pill's step toast ("Passing · ready to process"), page-level.
+    @State var ratingToast: RatingToast?
     /// Q44: the tag toast's own screen already backs off for the keyboard (standard
     /// SwiftUI avoidance shrinks this Group's frame), so the fixed 96pt "clear the
     /// player" padding must drop to a hairline once a keyboard is up — otherwise the
@@ -238,6 +240,7 @@ struct MemoPageView: View {
         .overlay(alignment: .bottom) { undoToastView }
         // Tag removal → its own Undo toast (Q41), centred on the whole page.
         .overlay(alignment: .bottom) { tagToastView }
+        .overlay(alignment: .bottom) { ratingToastView }
         // Q44: the toast anchors above the player (keyboard down) OR above the
         // keyboard's accessory bar (keyboard up) — never floating mid-screen.
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
@@ -498,22 +501,32 @@ struct MemoPageView: View {
                          onToast: { tagToast = $0 })
                 .padding(.top, 8)
 
-            // The 10-circle significance control (SignificanceCircles.swift —
-            // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
-            // Not rated. Flag-to-process: 0 = the Mac ignores it, >0 = polish.
-            SignificanceCircles(value: $memo.significance) {
-                repository.save()
-                // Print-to-wall: an orange-tier rating enqueues a card (once, ever).
-                WallPrinter.shared.ratingCommitted(memo, repository: repository)
-            }
-                .padding(.top, 14)
+            // Q85 (signed mock Q75-note-header-final, behaviour A): the importance card is
+            // ONE pill — each tap steps Not rated → Passing → Useful → Important → Not
+            // rated (C88 un-rating), a toast names the step. When the note is unrated the
+            // orange fading line sits beside it (the note narrates its own lifecycle,
+            // 2026-07-21: one clock, only rating/holds hide it). Flag-to-process: 0 = the
+            // Mac ignores it, >0 = polish.
+            NoteRatingRow(
+                value: Binding(get: { memo.significance == 0 ? nil : memo.significance },
+                               set: { memo.significance = $0 ?? 0 }),
+                style: .phone,
+                fadingLine: fadingLine,
+                lineColor: Color.skAmber.opacity(0.9),
+                onTap: { Haptics.tap(.light) },
+                onCommit: {
+                    repository.save()
+                    // Print-to-wall: an orange-tier rating enqueues a card (once, ever).
+                    WallPrinter.shared.ratingCommitted(memo, repository: repository)
+                },
+                onToast: { ratingToast = $0 },
+                idSuffix: suffix)
+                .padding(.top, 8)
 
             // WHERE this note goes when it leaves — the shared `DestinationRowView`
-            // (signed mock note-destination-tags.html, version B collapsed). It sits
-            // HERE, right under importance, because the two are the same kind of
-            // decision: importance says whether a note may leave Skrift, destination
-            // says where. Hidden entirely until destinations are switched on, so the
-            // default build is unchanged.
+            // (signed mock note-destination-tags.html, version B collapsed), 12 pt under
+            // the pill. Importance says whether a note may leave Skrift, destination says
+            // where. Hidden entirely until destinations are switched on.
             if DestinationSettings.isEnabled, memo.deletedAt == nil {
                 DestinationRowView(
                     destination: Binding(get: { memo.destination },
@@ -526,20 +539,6 @@ struct MemoPageView: View {
                     style: .phone)
                     .padding(.top, 12)
                     .accessibilityIdentifier("destination-row")
-            }
-
-            // The note narrates its own lifecycle (2026-07-21 — new-user
-            // discoverability without a tour): a clock-run note quietly says
-            // when it starts fading and how to keep it, exactly where the rule
-            // applies. One clock (2026-07-22): touches only restart the clock,
-            // so the line stays for touched notes too — only rating/holds hide it.
-            if memo.deletedAt == nil, memo.transcriptStatus == .done,
-               !MemoLifecycle.neverFades(memo, backlinked: detailBacklinkedIDs) {
-                Text("\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rate it to keep it")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Color.skAmber.opacity(0.9))
-                    .padding(.top, 8)
-                    .accessibilityIdentifier("detail-lifecycle-line")
             }
 
             // Mac's polish: the summary card (when present) above the body.
@@ -598,6 +597,27 @@ struct MemoPageView: View {
                 }
                 .padding(.top, 18)
             }
+        }
+    }
+
+    /// The orange "starts fading … — rate it to keep it" line (Q85: beside the pill,
+    /// unrated only). nil = no line: trashed, still transcribing, or the note never fades.
+    var fadingLine: String? {
+        guard memo.deletedAt == nil, memo.transcriptStatus == .done,
+              !MemoLifecycle.neverFades(memo, backlinked: detailBacklinkedIDs) else { return nil }
+        return "\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rate it to keep it"
+    }
+
+    /// Q85: the pill's step toast, at page level like the tag Undo pill; gone after 1.6 s.
+    @ViewBuilder var ratingToastView: some View {
+        if let toast = ratingToast {
+            RatingToastView(toast: toast)
+                .padding(.bottom, keyboardVisible ? 6 : 96)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .task(id: toast.id) {
+                    try? await Task.sleep(for: .seconds(1.6))
+                    if ratingToast?.id == toast.id { withAnimation(Theme.Motion.spring) { ratingToast = nil } }
+                }
         }
     }
 
@@ -1269,9 +1289,7 @@ struct MemoPageView: View {
         if let w = memo.metadata?.weather {
             chips.append(MetaChip(text: "\(w.temperature)°", symbol: "cloud.sun.fill"))
         }
-        if let period = memo.metadata?.dayPeriod {
-            chips.append(MetaChip(text: period.label, symbol: period.symbol))
-        }
+        // Q85: no daypart chip — the mock's chips row is date · place · weather.
         return chips
     }
 

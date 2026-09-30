@@ -49,6 +49,24 @@ extension ThreeBallStyle {
     }
 }
 
+extension NoteRatingPillStyle {
+    /// The header pill (Q85): 22pt tall, pointer-sized.
+    static var mac: NoteRatingPillStyle {
+        NoteRatingPillStyle(
+            accent: Theme.accent,
+            accentText: Theme.accentText,
+            accentSoft: Theme.accent.opacity(0.13),
+            surface: Theme.surface,
+            border: Theme.hairline.opacity(0.09),
+            ring: Theme.hairline.opacity(0.2),
+            textDim: Theme.textSecondary,
+            height: 22,
+            fontSize: 11.5,
+            hitHeight: 22,
+            animation: .easeOut(duration: 0.12))
+    }
+}
+
 extension DestinationRowStyle {
     /// The Mac's destination row. Portfolio family = the amber token, the same hue the
     /// sidebar already uses for "this wants your attention" — which is what a note about

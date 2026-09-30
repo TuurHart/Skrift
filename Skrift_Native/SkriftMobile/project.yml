@@ -415,6 +415,8 @@ targets:
       # pairing for the 3-ball ThreeBallImportanceView/ThreeBallScale.
       - path: Features/MemoDetail/SignificanceCircles.swift
       - path: ../Shared/UI/ThreeBallImportanceView.swift
+      # Q85: SignificanceCircles.swift also carries the header pill's phone style.
+      - path: ../Shared/UI/NoteRatingPill.swift
       - path: ../Shared/Model/ThreeBallScale.swift
       # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
       # so it builds cleanly in the extension process. Theme sources its cross-app

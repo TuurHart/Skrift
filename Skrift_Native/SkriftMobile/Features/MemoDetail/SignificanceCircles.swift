@@ -54,8 +54,26 @@ extension ThreeBallStyle {
     }
 
     /// Unlit ball ring — the mock's 20% hairline, adaptive.
-    private static let ring = Color(uiColor: UIColor { tc in
+    fileprivate static let ring = Color(uiColor: UIColor { tc in
         tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.22)
                                        : UIColor(white: 0, alpha: 0.18)
     })
+}
+
+extension NoteRatingPillStyle {
+    /// The header pill (Q85): 26pt tall, 44pt touch target, 12pt semibold.
+    static var phone: NoteRatingPillStyle {
+        NoteRatingPillStyle(
+            accent: .skAccent,
+            accentText: .skAccentText,
+            accentSoft: .skAccentSoft,
+            surface: .skSurface,
+            border: .skBorder,
+            ring: ThreeBallStyle.ring,
+            textDim: .skTextDim,
+            height: 26,
+            fontSize: 12,
+            hitHeight: 44,
+            animation: SkMotion.snappy)
+    }
 }
