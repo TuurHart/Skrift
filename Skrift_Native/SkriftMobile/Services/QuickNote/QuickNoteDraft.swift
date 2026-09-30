@@ -15,6 +15,18 @@ import SwiftData
 final class QuickNoteDraft {
     private(set) var memo: Memo?
 
+    /// D151/Q73: a typed note records place, weather and daypart like a voice
+    /// recording. `nil` (the default) captures nothing, which keeps unit tests off
+    /// the sensors and the network; `QuickNoteView` passes the real provider.
+    private let metadataProvider: (any MetadataProviding)?
+    /// The in-flight capture for the current note. Started once, at creation, and never
+    /// awaited by the keyboard path (C112). Internal so tests can await it.
+    private(set) var captureTask: Task<Void, Never>?
+
+    init(metadataProvider: (any MetadataProviding)? = nil) {
+        self.metadataProvider = metadataProvider
+    }
+
     /// Call on every title/body change. A no-op until the first non-empty
     /// edit; from then on keeps the created `Memo` in sync.
     ///
@@ -32,6 +44,7 @@ final class QuickNoteDraft {
             memo = try? Memo.newTyped(into: context)
             memo?.tags = seedTags
             memo?.significance = seedSignificance
+            if let memo { startCapture(for: memo) }
         }
         guard let memo else { return nil }
         memo.title = title.isEmpty ? nil : title
@@ -39,6 +52,21 @@ final class QuickNoteDraft {
         memo.markEdited()
         try? context.save()
         return memo
+    }
+
+    /// Fire-and-forget: the note and its keyboard exist first, the place lands a moment
+    /// later. A nil fix / geocode just leaves those fields nil (`LocationOneShot` drops
+    /// them silently). A kept note still receives its place after the screen is left; a
+    /// discarded one cancels the task.
+    private func startCapture(for memo: Memo) {
+        guard let metadataProvider else { return }
+        captureTask = Task { @MainActor in
+            let captured = await metadataProvider.capture()
+            // Cancelled = the note was discarded while the fix was in flight.
+            guard !Task.isCancelled else { return }
+            memo.mergeCapturedMetadata(captured)
+            try? memo.modelContext?.save()
+        }
     }
 
     /// Leaving the screen (D91/C43): a `Memo` that got created but is still
@@ -49,6 +77,7 @@ final class QuickNoteDraft {
         guard let memo else { return }
         let empty = isBlank(memo.title) && isBlank(memo.transcript)
         if empty {
+            captureTask?.cancel()
             context.delete(memo)
             try? context.save()
         }
@@ -58,6 +87,7 @@ final class QuickNoteDraft {
     /// Explicit delete (the note screen's own ⋯ → Delete) — unlike `leave`,
     /// this discards a NON-empty note too, and only on the user's own request.
     func discard(context: ModelContext) {
+        captureTask?.cancel()
         if let memo { context.delete(memo) }
         try? context.save()
         memo = nil

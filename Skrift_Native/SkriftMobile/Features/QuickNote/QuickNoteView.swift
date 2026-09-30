@@ -33,7 +33,7 @@ struct QuickNoteView: View {
     @State private var bodyText = ""
     /// D134: cursor lands in the body on open, not the title.
     @State private var bodyFocused = true
-    @State private var draft = QuickNoteDraft()
+    @State private var draft = QuickNoteDraft(metadataProvider: MetadataProviderFactory.make())
     @State private var showAppendRecorder = false
     @State private var showDeleteConfirm = false
     /// D145 (build-172 feel check, "just a text field seems strange"): the
