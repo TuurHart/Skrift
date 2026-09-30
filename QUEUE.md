@@ -588,7 +588,7 @@ gate+: yes
 do: Tuur approved per group on 2026-09-30 (D154) from the explainer https://claude.ai/artifact/TQKfanHMQasHHxFDmLQeyc (source list plan/reads/q62-unused-tested.md — its line anchors are wrong in places; the explainer re-derived them from tree 0d2779a6, re-grep every symbol by NAME on both apps before deleting). DELETE exactly the explainer's DELETE rows: 1 (edit-conflict record ids, PillRule — 3), 2 (old parseTagInput), 3 (touchedAt, attachmentsWritten), 4 (silenced set, plainOccurrences), 5 (15: old IN/OUT quote-capture math ×12, textSummary(bookID:), headings(in:), audioURL(of:)), 6 (normalize), 7 (the unused `now` parameter only), 9 (touch, MemoSpine.name(for:), ProcessPile.done), 10 (the three old paragraph splitters + the Mac DEBUG command that calls one), 11 (bodyRange), 12 (removedCount), 13 (createdAt), 14 (importance warm colour), 15 (PDF, quote card, plain-text share, publishAll ×2, the 3 convenience overloads — "delete it and if I want it we'll rebuild it later"). Delete each one's own tests with it: protected-test deletions are APPROVED (D154) and will be hand-merged like Q15 (D146). Never delete a KEEP row. One commit per group. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q81 [auto] (doing) wire in the 7 unfinished pieces: Undo for the old-note tidy-up, and the tag editor's 'already on this note' line
+### Q81 [auto] (done) wire in the 7 unfinished pieces: Undo for the old-note tidy-up, and the tag editor's 'already on this note' line
 spec: C240 C93
 needs: -
 gate+: yes
@@ -929,3 +929,4 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 12:01 Q79 -> done — gate pass @3f97467c
 - 2026-09-30 12:30 Q88 added
 - 2026-09-30 12:34 Q85 -> done — gate pass @f7d923be
+- 2026-09-30 12:35 Q81 -> done — gate pass @5c895bd3
