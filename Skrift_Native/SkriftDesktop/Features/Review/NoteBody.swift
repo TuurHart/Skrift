@@ -168,17 +168,8 @@ struct NoteBody: View {
             ? BodyText.karaokeFraction(currentTime: audio.currentTime, duration: duration, timings: timings)
             : min(1, Double(Karaoke.activeCount(times: times, currentTime: audio.currentTime)) / Double(max(1, displayedWords.count)))
         return .init(fraction: frac) { wordIndex in
-            let target: Double
-            if wordIndex >= 0, wordIndex < times.count {
-                target = times[wordIndex]                       // aligned time of the SHOWN word
-            } else if wordIndex >= 0, wordIndex < timings.count {
-                target = timings[wordIndex].start               // fallback: raw index
-            } else if timings.count > 1 {
-                target = duration * Double(wordIndex) / Double(timings.count - 1)
-            } else {
-                target = 0
-            }
-            audio.seek(to: max(0, min(target, duration)))
+            audio.seek(to: Karaoke.seekTarget(wordIndex: wordIndex, times: times,
+                                              timings: timings, duration: duration))
         }
     }
 
