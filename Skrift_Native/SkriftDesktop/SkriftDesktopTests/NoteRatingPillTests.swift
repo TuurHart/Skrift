@@ -2,8 +2,7 @@ import XCTest
 import Foundation
 
 /// Q85 (C94, C88): the header pill's pure logic — the step order of a tap and
-/// the toast copy. Lives outside `SkriftDesktopTests` (a protected path); the
-/// target's `project.yml` lists this folder explicitly.
+/// the toast copy.
 final class NoteRatingPillTests: XCTestCase {
 
     func testTapStepsNotRatedPassingUsefulImportantThenUnrates() {

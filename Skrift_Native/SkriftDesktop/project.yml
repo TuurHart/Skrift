@@ -183,8 +183,6 @@ targets:
     platform: macOS
     sources:
       - path: SkriftDesktopTests
-      # Tests added by later queue items (SkriftDesktopTests is a protected path).
-      - path: SkriftDesktopTestsNew
       - path: Models
       - path: Pipeline
       # NEW pure-logic folder (LiveRecordingDraft/LiveRecordingFinalize, the 2026-07-28
