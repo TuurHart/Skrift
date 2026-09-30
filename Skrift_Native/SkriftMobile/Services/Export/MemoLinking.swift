@@ -27,10 +27,4 @@ enum MemoLinking {
         }
         return Sanitiser.process(text: raw, people: live).sanitised
     }
-
-    /// Convenience over the live on-device names DB (`NamesStore`). Use the people-injected
-    /// overload in tests / where the roster is already loaded.
-    static func linkedTranscript(_ rawTranscript: String?) -> String {
-        linkedTranscript(rawTranscript, people: NamesStore.shared.load().people)
-    }
 }

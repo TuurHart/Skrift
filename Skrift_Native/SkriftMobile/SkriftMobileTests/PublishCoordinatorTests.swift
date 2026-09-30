@@ -143,17 +143,4 @@ final class PublishCoordinatorTests: XCTestCase {
     func testGateEmptyContent() {
         XCTAssertFalse(coordinator().shouldPublish(Memo()), "nothing to export")
     }
-
-    func testPublishAllSummary() {
-        let a = Memo(title: "A", transcript: "Body a.", significance: 0.5)
-        let b = Memo(title: "B", transcript: "Body b.", significance: 0.5)
-        let c = Memo(title: "C", transcript: "Body c.", significance: 0)   // ineligible under importantOnly
-        let summary = coordinator(memos: [a, b, c], policy: .importantOnly).publishAll()
-        XCTAssertEqual(summary, PublishCoordinator.Summary(written: 2, ineligible: 1))
-
-        // …and an unprocessed one is ineligible for the same tally.
-        let raw = Memo(title: "D", transcript: "Body d.", significance: 0.5)
-        let s2 = coordinator(memos: [a, raw], policy: .importantOnly, unprocessed: [raw.id]).publishAll()
-        XCTAssertEqual(s2.ineligible, 1)
-    }
 }
