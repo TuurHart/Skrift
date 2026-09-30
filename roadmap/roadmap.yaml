@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 45
-updated: 2026-09-25T23:30:00.000Z
+updated: 2026-09-30T23:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1716,6 +1716,18 @@ nodes:
       - SwiftLint baseline ratchet + duplication report + pipeline signposts
     win: "done when: the 3 data-loss paths are closed, tier-2 fixes are in, and a
       Release build on device is measurably smooth on list, note-open and read-along"
+  - id: SittingWave0930
+    title: Sitting wave — pill header, split speakers, Portfolio rename, one code path
+    lane: 1
+    order: 6.7
+    status: done
+    done: 2026-09-30
+    win: "done when: the signed round-3–6 mocks are built on phone, iPad and Mac and the
+      phone/Mac twins run one shared implementation"
+    note: "Q47–Q88 (D145–D157): full-screen quick note, one filter mock, rating pill (tap steps),
+      Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, split speakers switch,
+      typed notes record place, Mac one-or-many import, perf lane (Q53–Q59), 43 dead functions
+      deleted, groups 6/8/9/11/12/13 unified. Device checks owed: Q17, Q63, Q64."
   - id: P10
     title: Apple Watch capture
     lane: 4
