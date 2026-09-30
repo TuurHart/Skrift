@@ -1131,7 +1131,8 @@ enum Snapshot {
                 f.transcriptUserEdited = true
                 f.syncedSourceEditedAt = Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 28, hour: 18))
             }
-            ctx.insert(f)
+            // An unrated note is a PROJECTION with no pipeline row (C187) — never inserted.
+            if rated { ctx.insert(f) }
             return f
         }
         func shot(_ name: String, _ f: PipelineFile, confirm: SplitSpeakersRow.Confirm? = nil) {
