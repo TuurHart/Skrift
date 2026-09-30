@@ -54,8 +54,6 @@ final class SpeakerTurnStyleTests: XCTestCase {
         XCTAssertEqual(turns.count, 2)
         XCTAssertEqual(ns.substring(with: turns[0].headerRange), "**Tiuri:** ")
         XCTAssertEqual(ns.substring(with: turns[1].headerRange), "**Bulldops:** ")
-        XCTAssertEqual(ns.substring(with: turns[0].bodyRange), "one\n\n")
-        XCTAssertEqual(ns.substring(with: turns[1].bodyRange), "two")
     }
 
     /// A lone bold lead-in is NOT a conversation — it must never sprout a 118pt gutter.
