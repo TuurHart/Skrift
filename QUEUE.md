@@ -542,7 +542,7 @@ gate+: yes
 do: Tuur 2026-09-27: "yes typed should also record". Today only a voice recording runs `MetadataService.capture()` (RecordView.swift:160, MemoSaver.applyMetadata:740); `Memo.newTyped` (Shared/Model/Memo.swift:398) stores only {"mediaSource":"typed"}, so a typed note's header shows date + time and nothing else. Capture place, weather and daypart for a typed note the moment the note is created (first keystroke, D91), asynchronously — the keyboard must still be up in under a second (C112) and an empty discarded note must leave nothing behind. Same on the phone, iPad and quick note; the Mac only if it already has a location path. A nil GPS fix or geocode stays nil silently, as for voice notes. Test in the phone target (new file) that a typed note gets the metadata a voice note gets, with a stubbed capture.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && ./gate.sh`
 
-### Q74 [auto] (todo) Mac import of several audio files asks: one note or N notes (C68 chooser on the Mac)
+### Q74 [auto] (doing) Mac import of several audio files asks: one note or N notes (C68 chooser on the Mac)
 spec: C68 C145 C238
 needs: -
 gate+: yes
@@ -573,6 +573,13 @@ spec: C115
 needs: -
 do: Q69 made one shared `Shared/Pipeline/NoteSnippet.plain` (no `**…**`, no `[[…]]`) and used it in the Mac sidebar and Mac Journal; the phone's `JournalHomeView.snippet` (SkriftMobile/Features/Journal/JournalHomeView.swift:381) still builds its own and shows raw markup. Route it (and any other phone snippet builder that shows raw `**Speaker n:**` / `[[Name]]`) through NoteSnippet.plain. Phone proof via `plan/mtest.sh` on an existing class.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
+
+### Q79 [auto] (todo) quick note: typing fast never loses a character or Return while the first keystroke creates the note
+spec: C112 C113
+needs: -
+gate+: yes
+do: The Q64 simulator run (2026-09-30) typed "Tram 28 idea\nBuy pastel de nata\n…" at full speed into a fresh quick note and the FIRST Return was lost ("Tram 28 ideaBuy pastel de nata"); with 1.5 s pauses every Return survived. Suspect: `QuickNoteBodyTextView.updateUIView` (`if tv.text != text { tv.text = text }`) writing back a stale binding while the first keystroke creates the draft Memo (Q47/Q53/Q73 all touch that moment). Reproduce with a phone UI test typing fast (the Q64sim test in SkriftMobileUITests/QuickNoteQ64SimUITests.swift is the pattern; take the sim lock), fix so the text view is the source of truth while editing, and prove every character and Return survives at full speed, including a paste. Phone UI tests stay in the simulator; never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -828,3 +835,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-09-30 09:01 Q75 -> tuur — built @d8ca5308 — awaiting sitting
 - 2026-09-30 09:09 Q69 -> done — gate pass @f74a3381
 - 2026-09-30 09:09 Q78 added
+- 2026-09-30 09:09 Q74 -> doing — worker out
+- 2026-09-30 09:11 Q79 added
