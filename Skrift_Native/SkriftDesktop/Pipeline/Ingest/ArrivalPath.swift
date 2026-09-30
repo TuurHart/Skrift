@@ -39,6 +39,9 @@ enum ArrivalPath {
         static let inert = Hooks(recordingDate: { _ in nil }, reconcileSoon: {}, transcribe: { _ in })
     }
 
+    /// `combineAudio` carries the C68 chooser's answer ("One note") down to ingest; the doors
+    /// that ask (Import, drop, Photos promise) pass it, everything else keeps the default.
+    ///
     /// Ingest `urls`, then run the capture steps if `asRecording`. Returns the new rows in
     /// arrival order.
     ///
@@ -60,6 +63,7 @@ enum ArrivalPath {
                     cloudContext: ModelContext?,
                     hooks: Hooks,
                     service: IngestService = IngestService(),
+                    combineAudio: Bool = false,
                     onCreated: ([PipelineFile]) -> Void = { _ in }) async throws -> [PipelineFile] {
         guard !urls.isEmpty else { return [] }
         // The row is BORN knowing it's a capture. Not stamped afterwards: the reconcile sweep
@@ -68,7 +72,7 @@ enum ArrivalPath {
         // real takes before this moved (2026-07-28). Everything below can then take its time.
         var service = service
         service.isLocalRecording = asRecording
-        let created = try await service.ingest(localURLs: urls, into: context)
+        let created = try await service.ingest(localURLs: urls, combineAudio: combineAudio, into: context)
         onCreated(created)
 
         // Backfill the real recording date (async; survives copies because the date lives

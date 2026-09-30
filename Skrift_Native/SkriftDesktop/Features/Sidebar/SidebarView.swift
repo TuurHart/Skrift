@@ -26,6 +26,8 @@ struct SidebarView: View {
     @State private var pulse = false
     /// Why a take couldn't start — drives the alert. nil = nothing to say.
     @State private var micProblem: MacRecorder.Refusal?
+    /// Files waiting on the "One note / N notes" chooser (Q74). nil = nothing pending.
+    @State private var pendingAudioImport: PendingAudioImport?
 
     private var filtered: [PipelineFile] { model.visible(files) }
     /// `filtered` minus a quiet local take (unrated, error-free Mac recording — the
@@ -119,6 +121,19 @@ struct SidebarView: View {
         } message: {
             Text(micProblem?.message ?? "")
         }
+        .sheet(item: $pendingAudioImport) { pending in
+            AudioImportChoiceSheet(
+                clipCount: pending.clipCount,
+                onConfirm: { choice in
+                    pendingAudioImport = nil
+                    runIngest(pending.urls, asRecording: false, combineAudio: choice.combines,
+                              cleanup: pending.cleanup)
+                },
+                onCancel: {
+                    pendingAudioImport = nil
+                    pending.cleanup?()
+                })
+        }
         .task { refreshCloudMemos() }
         // A synced UNRATED memo changes nothing about `files` (it never becomes a
         // PipelineFile), so `files.count` below can't see it — that's why one stayed
@@ -137,7 +152,7 @@ struct SidebarView: View {
         // Photos app silently did nothing. This AppKit catcher registers ONLY for
         // file-promise types (Finder's plain-URL drags keep taking the SwiftUI path),
         // receives the promised files into a temp folder, and ingests the real URLs.
-        .overlay { FilePromiseDropCatcher(isTargeted: $dragOver) { ingest($0) } }
+        .overlay { FilePromiseDropCatcher(isTargeted: $dragOver) { urls, cleanup in ingest(urls, cleanup: cleanup) } }
         .overlay {
             if dragOver {
                 RoundedRectangle(cornerRadius: 10)
@@ -165,17 +180,41 @@ struct SidebarView: View {
     /// Hand files to the shared arrival path (`ArrivalPath`) and select what landed. The
     /// pipeline steps — date backfill, the unrated Memo, the immediate transcribe — live there
     /// so the Record button and the `-recordingest` harness cannot drift apart.
-    private func ingest(_ urls: [URL], asRecording: Bool = false) {
-        guard !urls.isEmpty else { return }
+    /// `cleanup` (Photos promise drops) removes the temp folder the promised files were
+    /// written to; it runs once the files are copied, or when the chooser is cancelled.
+    private func ingest(_ urls: [URL], asRecording: Bool = false, cleanup: (() -> Void)? = nil) {
+        guard !urls.isEmpty else { cleanup?(); return }
+        // The ONE decision point (Q74 / C68 / C145): the Import panel, the Finder drop and the
+        // Photos file-promise drop all land here, so a bundle of 2+ voice notes is asked
+        // "One note or N notes?" exactly once, before anything is copied. A recording is one
+        // file by construction and never asks.
+        if !asRecording {
+            Task { @MainActor in
+                // Probing containers for a video track is file I/O — off the main actor.
+                let clipCount = await Task.detached { IngestService.audioClips(in: urls).count }.value
+                if AudioImportChoice.needsChoice(clipCount: clipCount) {
+                    pendingAudioImport = PendingAudioImport(urls: urls, clipCount: clipCount, cleanup: cleanup)
+                } else {
+                    runIngest(urls, asRecording: false, combineAudio: false, cleanup: cleanup)
+                }
+            }
+            return
+        }
+        runIngest(urls, asRecording: asRecording, combineAudio: false, cleanup: cleanup)
+    }
+
+    private func runIngest(_ urls: [URL], asRecording: Bool, combineAudio: Bool, cleanup: (() -> Void)?) {
         // Async: the heavy file work (copies, video-audio export) runs off-main
         // inside IngestService — dropping a video used to beachball the whole
         // UI for the duration of the export.
         Task { @MainActor in
+            defer { cleanup?() }
             do {
                 try await ArrivalPath.run(
                     urls: urls, asRecording: asRecording, into: ctx,
                     cloudContext: MemoCloudStore.container?.mainContext,
                     hooks: .live(coordinator: coordinator, context: ctx),
+                    combineAudio: combineAudio,
                     // Select as soon as the row exists — not after transcription, which for a
                     // recording runs inside this same call and can take a while.
                     onCreated: { created in
@@ -1053,7 +1092,7 @@ struct SidebarView: View {
 /// types, not on `hitTest`.
 private struct FilePromiseDropCatcher: NSViewRepresentable {
     @Binding var isTargeted: Bool
-    var onDrop: ([URL]) -> Void
+    var onDrop: ([URL], (() -> Void)?) -> Void
 
     func makeNSView(context: Context) -> PromiseDropView {
         let view = PromiseDropView()
@@ -1071,7 +1110,7 @@ private struct FilePromiseDropCatcher: NSViewRepresentable {
 
 final class PromiseDropView: NSView {
     var onTargeted: (Bool) -> Void = { _ in }
-    var onDrop: ([URL]) -> Void = { _ in }
+    var onDrop: ([URL], (() -> Void)?) -> Void = { _, _ in }
 
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
     /// Serial queue the promises write their files on (Apple's recommended shape).
@@ -1120,7 +1159,7 @@ final class PromiseDropView: NSView {
             Self.log.warning("promise drop had no receivers and no file URLs")
             return false
         }
-        onDrop(urls)
+        onDrop(urls, nil)
         return true
     }
 
@@ -1160,8 +1199,11 @@ final class PromiseDropView: NSView {
         let deliver = onDrop   // capture the handler as of drop time
         group.notify(queue: .main) {
             let urls = received.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
-            if !urls.isEmpty { deliver(urls) }
-            try? FileManager.default.removeItem(at: dest)   // ingest copied; temp done
+            // The temp folder must outlive the C68 chooser (Q74): the sidebar asks "One note
+            // or N notes?" BEFORE it ingests, so it owns the cleanup and calls it once the
+            // files are copied (or the sheet is cancelled).
+            let cleanup = { try? FileManager.default.removeItem(at: dest) }
+            if urls.isEmpty { cleanup() } else { deliver(urls, { cleanup() }) }
         }
     }
 }

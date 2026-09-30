@@ -204,68 +204,12 @@ struct MemoSaver {
     }
 
     nonisolated static func mergeAudioSync(sources: [URL], to dest: URL) throws {
-        try? FileManager.default.removeItem(at: dest)
-        var out: AVAudioFile?
-        var outFormat: AVAudioFormat?
-        var wroteFrames = false
-
-        for src in sources {
-            guard let file = try? AVAudioFile(forReading: src) else {
-                DevLog.log("mergeAudio: skipping unreadable clip \(src.lastPathComponent)")
-                continue
-            }
-            let proc = file.processingFormat
-            if out == nil {
-                // AAC output at the first readable clip's rate/channels.
-                let settings: [String: Any] = [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVSampleRateKey: proc.sampleRate,
-                    AVNumberOfChannelsKey: proc.channelCount,
-                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
-                ]
-                out = try AVAudioFile(forWriting: dest, settings: settings)
-                outFormat = proc
-            }
-            guard let out, let outFormat else { continue }
-
-            // Later clips in a different PCM format get converted to the first
-            // clip's (rare — a WhatsApp batch is uniform). Per-file converter so
-            // its internal state never crosses clip boundaries.
-            let converter = proc == outFormat ? nil : AVAudioConverter(from: proc, to: outFormat)
-            let chunkFrames: AVAudioFrameCount = 32_768
-            // framePosition guard: AVAudioFile.read THROWS (-50) when asked to
-            // read at EOF rather than returning zero frames.
-            while file.framePosition < file.length {
-                guard let buf = AVAudioPCMBuffer(pcmFormat: proc, frameCapacity: chunkFrames) else { break }
-                try file.read(into: buf)
-                guard buf.frameLength > 0 else { break }
-                if let converter {
-                    let ratio = outFormat.sampleRate / proc.sampleRate
-                    let cap = AVAudioFrameCount(Double(buf.frameLength) * ratio) + 64
-                    guard let cbuf = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: cap) else { break }
-                    var fed = false
-                    var convErr: NSError?
-                    converter.convert(to: cbuf, error: &convErr) { _, status in
-                        if fed { status.pointee = .noDataNow; return nil }
-                        fed = true
-                        status.pointee = .haveData
-                        return buf
-                    }
-                    if convErr != nil {
-                        DevLog.log("mergeAudio: convert failed on \(src.lastPathComponent): \(convErr!)")
-                        break
-                    }
-                    if cbuf.frameLength > 0 {
-                        try out.write(from: cbuf)
-                        wroteFrames = true
-                    }
-                } else {
-                    try out.write(from: buf)
-                    wroteFrames = true
-                }
-            }
+        // The stitcher itself is shared with the Mac (Shared/Pipeline/AudioClipMerge.swift, Q74).
+        do {
+            try AudioClipMerge.merge(sources: sources, to: dest, log: { DevLog.log($0) })
+        } catch AudioClipMerge.MergeError.noAudio {
+            throw VideoImportError.noAudioTrack
         }
-        guard wroteFrames else { throw VideoImportError.noAudioTrack }
     }
 
     // MARK: - Video import (extract audio + 1 frame thumbnail)
