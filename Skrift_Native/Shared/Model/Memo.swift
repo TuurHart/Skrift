@@ -408,4 +408,22 @@ final class Memo {
         try ctx.save()
         return memo
     }
+
+    /// Merge a context capture (place / weather / daypart / …) into this memo's metadata
+    /// blob WITHOUT dropping the keys `MemoMetadata` does not model — above all the
+    /// `mediaSource: "typed"` marker `SourceKind.of` reads (D151: a typed note records
+    /// place and weather too). Keys the capture carries win; keys it omits (nil fields,
+    /// an empty `tags`, the image manifest of a picture added while typing) stay as they were.
+    func mergeCapturedMetadata(_ captured: MemoMetadata) {
+        var merged: [String: Any] = [:]
+        if let data = metadataData,
+           let old = try? JSONSerialization.jsonObject(with: data) as? [String: Any] { merged = old }
+        if let data = try? JSONEncoder().encode(captured),
+           var new = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if captured.tags.isEmpty { new["tags"] = nil }
+            for (k, v) in new { merged[k] = v }
+        }
+        if merged["tags"] == nil { merged["tags"] = [String]() }
+        metadataData = try? JSONSerialization.data(withJSONObject: merged, options: [.sortedKeys])
+    }
 }
