@@ -471,38 +471,6 @@ enum RunFile {
         return Double(prev[h.count]) / Double(r.count)
     }
 
-    /// `-paragraph <audio>` → transcribe the file WHOLE, then print it (a) as one block,
-    /// (b) exactly as the app now stores it (the shared `Paragrapher` defaults — the same
-    /// call `BatchRunner`/phone `MemoSaver` make), and (c) pause-only at several thresholds
-    /// for tuning sweeps. Runs the ONE shared `Paragrapher` (the inline mirror this harness
-    /// used to carry is gone — twin copies drift). DEBUG only.
-    nonisolated static func runParagraphDemoIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-paragraph"), i + 1 < args.count else { return }
-        let url = URL(fileURLWithPath: args[i + 1])
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
-            log("== PARAGRAPH \(url.lastPathComponent) ==")
-            guard let r = try? await TranscriptionService.shared.transcribe(audioURL: url) else {
-                log("transcribe failed"); exit(1)
-            }
-            let words = r.wordTimings
-            log("whole transcribe: \(words.count) words\n")
-            log("──────── ONE BLOCK (no paragraphs) ────────")
-            log(words.map(\.word).joined(separator: " "))
-            let stored = Paragrapher.paragraphed(words: words)
-            log("\n──────── AS STORED (defaults: pause ≥ \(Paragrapher.defaultGap)s or 4 sentences)"
-                + "  →  \(stored.components(separatedBy: "\n\n").count) paragraphs ────────")
-            log(stored)
-            for gap in [0.5, 0.65, 0.8, 1.0] {
-                let p = Paragrapher.paragraphed(words: words, gapThreshold: gap, maxSentences: 0)
-                log("\n──────── pause ≥ \(gap)s only  →  \(p.components(separatedBy: "\n\n").count) paragraphs ────────")
-                log(p)
-            }
-            exit(0)
-        }
-    }
-
     nonisolated static func runIfRequested() {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-runfile"), i + 1 < args.count else { return }
