@@ -78,7 +78,7 @@ struct ShareSheetView: View {
                 annotationField
                     .padding(.bottom, 12)
             }
-            SignificanceCircles(value: $significance) {}
+            PhoneRatingRow(value: $significance)
                 .padding(.bottom, 13)
             saveButton
                 // UIApplication.shared is unavailable in app extensions — SwiftUI's

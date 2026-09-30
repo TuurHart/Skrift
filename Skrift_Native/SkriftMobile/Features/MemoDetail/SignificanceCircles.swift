@@ -9,15 +9,32 @@ import SwiftUI
 // TARGETED_DEVICE_FAMILY "1,2"): which colours out of `Theme`, and the
 // measurements a touch screen was tuned to.
 
-/// The phone/iPad importance control outside the note page. Since Q88 it is the SAME
-/// header pill as `MemoPageView` (`NoteRatingRow`: pill + orange fading line — one
-/// header everywhere, C115), used by the quick note, the audiobook capture sheet and
-/// the share sheet. Keeps the call sites' non-optional `Double` binding (the phone
-/// stores "never rated" as 0). The step toast is drawn here, just above the pill,
-/// because these hosts (a sheet, a share extension) have no screen-level toast layer.
+/// The phone/iPad importance card. Keeps the call sites (`MemoDetailView`,
+/// `MergedCaptureView`, `ShareSheetView`) unchanged, including their non-optional
+/// `Double` binding — the shared view speaks `Double?` (nil = never rated), which
+/// the phone stores as 0.
 struct SignificanceCircles: View {
     @Binding var value: Double
     var onCommit: () -> Void
+
+    var body: some View {
+        ThreeBallImportanceView(
+            value: Binding(get: { value == 0 ? nil : value },
+                           set: { value = $0 ?? 0 }),
+            style: .phone,
+            onTap: { Haptics.tap(.light) },
+            onCommit: onCommit)
+    }
+}
+
+/// Q88: the note header's rating pill (`NoteRatingRow`: pill + orange fading line — one
+/// header everywhere, C115) for hosts outside the note page: the quick note, the audiobook
+/// capture sheet and the share sheet. Same non-optional `Double` binding as
+/// `SignificanceCircles` (the phone stores "never rated" as 0). The step toast is drawn
+/// here, just above the pill, because a sheet / share extension has no screen-level layer.
+struct PhoneRatingRow: View {
+    @Binding var value: Double
+    var onCommit: () -> Void = {}
     /// nil = no line (rated, or the note doesn't exist yet).
     var fadingLine: String? = nil
     @State private var toast: RatingToast?

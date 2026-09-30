@@ -169,7 +169,7 @@ struct UnpipelinedMemoSheet: View {
     /// user; "Flag for processing" no longer exists as a separate concept.
     private var circlesBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SignificanceCircles(value: $rating)
+            MacRatingRow(value: $rating)
             Text("tap the pill — any rating queues it · the rating IS the flag, no hidden 0.1")
                 .font(.system(size: 10)).foregroundStyle(Theme.textMuted)
                 .padding(.top, 8)

@@ -97,7 +97,7 @@ struct MergedCaptureView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            SignificanceCircles(value: $significance) { }
+            PhoneRatingRow(value: $significance)
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
             content

@@ -73,7 +73,7 @@ struct QuickNoteView: View {
             // fading line, then the destination row 12 pt under it (only when destinations
             // are on). All of it works on this pre-memo draft state (D91 unchanged) and rides
             // onto the row at the first keystroke (`seed*`).
-            SignificanceCircles(value: $significance, onCommit: syncMetaToMemo,
+            PhoneRatingRow(value: $significance, onCommit: syncMetaToMemo,
                                 fadingLine: fadingLine)
                 .padding(.top, 8)
             if DestinationSettings.isEnabled {
