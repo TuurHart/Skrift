@@ -33,10 +33,16 @@ enum ArrivalPath {
         var reconcileSoon: () -> Void
         /// Give these files their words. Called for captures only.
         var transcribe: ([String]) async -> Void
+        /// Give an IMPORT's audio rows their words (Q77 / C49). A Mac import floors to 0.1, which
+        /// is a request to process; Tuur's 2026-09-30 report was that imported voice memos just
+        /// sat there until a manual Process. Separate from `transcribe` so a capture's contract
+        /// (unrated, words on stop) and an import's stay independently pinned.
+        var transcribeImport: ([String]) async -> Void
 
         /// Wires nothing — for tests that only care about the store, and for callers with no
         /// engines at all.
-        static let inert = Hooks(recordingDate: { _ in nil }, reconcileSoon: {}, transcribe: { _ in })
+        static let inert = Hooks(recordingDate: { _ in nil }, reconcileSoon: {}, transcribe: { _ in },
+                                 transcribeImport: { _ in })
     }
 
     /// `combineAudio` carries the C68 chooser's answer ("One note") down to ingest; the doors
@@ -102,6 +108,13 @@ enum ArrivalPath {
         hooks.reconcileSoon()
         if asRecording {
             await hooks.transcribe(created.map(\.id))
+        } else {
+            // C49 / Q77: an import is rated (0.1 floor), so it is a request to process — it
+            // must not sit wordless until someone right-clicks Process. Audio only: a note
+            // arrives with its text, and `created` also holds video-derived audio rows.
+            // Words only; polish stays with Process (the enhancement model is 9 GB).
+            let audioIDs = audio.map(\.id)
+            if !audioIDs.isEmpty { await hooks.transcribeImport(audioIDs) }
         }
         return created
     }

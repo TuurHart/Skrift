@@ -15,7 +15,8 @@ extension ArrivalPath.Hooks {
         ArrivalPath.Hooks(
             recordingDate: { await AudioMetadata.recordingDate(of: $0) },
             reconcileSoon: { MemoCloudReconciler.reconcileSoon() },
-            transcribe: { ids in await coordinator.transcribe(fileIDs: ids, context: context) }
+            transcribe: { ids in await coordinator.transcribe(fileIDs: ids, context: context) },
+            transcribeImport: { ids in await coordinator.transcribe(fileIDs: ids, context: context) }
         )
     }
 }

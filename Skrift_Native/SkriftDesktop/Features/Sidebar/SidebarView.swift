@@ -36,6 +36,15 @@ struct SidebarView: View {
     /// renders instead via `quietMemoRow` (see `unpipelinedMemos`/`WayOutRules`).
     private var queueRowFiles: [PipelineFile] { filtered.filter { !WayOutRules.isQuietLocalTake($0) } }
     private var orderedIDs: [String] { queueRowFiles.map(\.id) }
+    /// Every row as drawn, quiet unrated notes included — the span a ⇧-click range runs over.
+    private var displayedIDs: [String] {
+        entries.map { entry in
+            switch entry {
+            case .file(let f): return f.id
+            case .memo(let m): return m.id.uuidString
+            }
+        }
+    }
     private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
     /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over
     /// ALL live items (not the filtered view), like the old triage line's counts.
@@ -219,8 +228,7 @@ struct SidebarView: View {
                     // recording runs inside this same call and can take a while.
                     onCreated: { created in
                         if let first = created.first {
-                            model.activeID = first.id
-                            model.selection = [first.id]
+                            model.select(first.id)
                         }
                     })
             } catch {
@@ -681,7 +689,7 @@ struct SidebarView: View {
                             switch entry {
                             case .file(let f):
                                 QueueRowView(file: f, selected: model.selection.contains(f.id)) {
-                                    model.handleClick(f.id, in: orderedIDs)
+                                    model.handleClick(f.id, displayOrder: displayedIDs, selectable: Set(orderedIDs))
                                 }
                                 .contextMenu { rowMenu(f) }
                             case .memo(let m):
