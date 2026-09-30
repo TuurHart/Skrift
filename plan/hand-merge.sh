@@ -1,13 +1,13 @@
 #!/bin/bash
 # plan/hand-merge.sh <id> <worktree-dir-name> "<decision>" — merge a worker branch whose protected-test
 # changes Tuur approved (accept.sh rejects any protected change). Same gate + item check as accept.sh;
-# on any red the merge is undone. Prints only tails.
+# on any red the merge is undone. Prints only tails. Run it under the accept lock:
+#   /usr/bin/lockf -t 7200 /tmp/skrift-accept.lock bash plan/hand-merge.sh <id> <wt> "<why>"
 set -u
 R="$(cd "$(dirname "$0")/.." && pwd)"; W="$(dirname "$R")"; ID=$1; WT="$W/$2"; WHY=$3
 cd "$R"
 busy() { ps -axo comm=,args= | awk '$1 ~ /xcodebuild$/ && /Skrift/ {f=1} END {exit !f}'; }
 n=0; while [ $n -lt 3 ]; do if busy; then n=0; else n=$((n+1)); fi; sleep 15; done
-exec 9>/tmp/skrift-accept.lock; /usr/bin/lockf -t 7200 9 true 2>/dev/null
 BR="$(git -C "$WT" branch --show-current)"
 PRE="$(git rev-parse HEAD)"
 git merge --no-ff "$BR" -m "Merge $BR into $(git branch --show-current) — hand-merged, protected changes approved ($WHY)" >/dev/null 2>&1 || { git merge --abort 2>/dev/null; echo "CONFLICT $ID"; exit 3; }
