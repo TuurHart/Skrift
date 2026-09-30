@@ -1845,3 +1845,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      record" — at creation, like a voice recording (Q73).
 152. **D152 The Mac asks one note or N notes too.** ✅ 2026-09-30: "when I upload three audio messages
      into Skrift desktop it should ask if I want it 1 note or three separate" — C68/C145 on the Mac (Q74).
+153. **D153 Round-5 verdicts.** ✅ 2026-09-30: note header = version 1, the pill; one tap steps Not
+     rated → Passing → Useful → Important → Not rated; the mocks lacked the destination row (Q75).
+     Apple Notes import reads the Mac's Notes database (route 1, Full Disk Access is fine); locked
+     notes stay behind; moving imported notes into an Apple Notes folder → research Q76. Drawings
+     in Skrift (PencilKit, iPad) — parked idea, "maybe feature creep".

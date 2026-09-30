@@ -517,13 +517,13 @@ gate+: yes
 do: Tuur 2026-09-27 on the prod Mac: videos dragged in from Photos came out diarized ("the automatically did diarization. no good"); C102 = diarization is opt-in per note. First check the CURRENT branch (prod is older): find the path that diarizes a Mac import without the user's toggle (IngestService / BatchRunner / DiarizationSidecar / MemoCloudIngest) and write a failing desktop test (a Mac-imported video with no opt-in comes out as a monologue). Fix. On the same screen one person showed as both "Tiuri Hartog" and "Tiuri", and list snippets showed raw `**Speaker 1:**` / `[[Tiuri Hartog]]` markup — fix both if they reproduce from the synthetic corpus, else log what you found. NEVER run SkriftDesktopUITests (they take the real mouse); Mac proof = unit tests + full build + headless `-snapshot-shell`.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q70 [tuur] (tuur) mockup: compact note header, two versions — B refined, and today's layout squeezed
+### Q70 [tuur] (done) mockup: compact note header, two versions — B refined, and today's layout squeezed
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-27 on `mocks/Q50-compact-note-header.html`: A no ("the balls carrying [no] label, nobody will know what to do with them"), C no ("I don't like it to take part of the title"), B "probably the best one" — Not rated + the orange "starts fading on 25 Oct · Rate it to keep it" line, one tap to Passing. "Either we're going with B or we just go with what is today but then have it take up way less vertical space… so make two versions." Version 1 = B refined; version 2 = today's header (date chip row, tags, importance card with labels and the sync line) squeezed: cut the gaps between Not rated / Importance / the balls / the sync line. Phone + iPad + Mac, voice note AND typed note, each frame showing its height in pt against today's 243 pt. Every control must respond on tap in the artifact viewer. Publish; one numbered question: "1 or 2?"
 check: Tuur clicked through it and said go.
 
-### Q71 [tuur] (tuur) mockup: Apple Notes triage v3 — his picks, rename Delete, resumable, import-so-far, tags
+### Q71 [tuur] (done) mockup: Apple Notes triage v3 — his picks, rename Delete, resumable, import-so-far, tags
 spec: C117 C238
 needs: Q72
 do: Tuur 2026-09-27 on `mocks/Q67-apple-notes-triage.html`. Picks: A = the next batch stays locked until all ten are decided; B = a declined note is never offered again; C = one note at a time on the phone. Changes: (1) "Delete" is the wrong name — Skrift cannot delete in Apple Notes; rename (e.g. "Never import") and show how a declined note is recognised next time (per Q72's finding; not by title — "if you change the title it might come in again"); (2) resumable over days: 500 notes are not one sitting — progress saved, a clear "continue where you left off"; (3) "import what I've decided so far" at any point, so he can go delete those in Apple Notes; (4) Apple Notes tags become Skrift tags on import; (5) the button he could not find: label it plainly ("Next 10") and show it locked until the ten are decided; (6) no folder step when the export has no folders (his Notes are one flat list; Skrift gets no folders); (7) a panel listing every Apple Notes media type and what happens to it, from Q72 (drawings included). Keep: tapping importance advances to the next note ("I quite like that"), the end report. Every control responds on tap. Publish; one numbered question.
@@ -548,6 +548,18 @@ needs: -
 gate+: yes
 do: Tuur 2026-09-30: "when I upload three audio messages into Skrift desktop it should ask if I want it 1 note or three separate". The phone already has this chooser (C68 share sheet, C145 Files importer); C238 says a Mac drop of the same files must yield the same notes. Give every Mac entry point (Import button, sidebar drop incl. the Photos file-promise path, Finder open) the same One note / N notes chooser when 2+ audio files arrive together, reusing the phone's shared merge logic (clips merged in order, one transcription pass; default One note). Mock the Mac sheet first if the phone's has no Mac form. Desktop test (new file) that 3 audio files → 1 merged note or 3 notes per the choice. NEVER run SkriftDesktopUITests; Mac proof = unit tests + full build + headless snapshot.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q75 [tuur] (todo) mockup: note header final — the pill cycles all four states on tap, destination row included
+spec: C117 C94 C62
+needs: -
+do: Tuur 2026-09-30 on `mocks/Q70-note-header-two-versions.html`: version 1, the pill ("the card becomes one pill, I think that's good"). Change: tapping cycles Not rated → Passing → Useful → Important → Not rated ("just tapping through it"; un-rating is allowed, C88) — no second tap to open a picker; also show a left-right drag across the pill as an alternative to compare. Missing today: the mocks left out the note's destination (Personal / Made / Idea / Inspiration, C62) — draw the destination row from source (`Shared/UI/DestinationRowView.swift`, NoteDestination) in its real place. Phone + iPad + Mac, voice and typed note (typed with place + weather, D151), heights in pt. Every control responds on tap; node --check the script; no copy inside JS strings. Publish; one numbered question.
+check: Tuur clicked through it and said go.
+
+### Q76 [auto] (todo) research: can a Mac app move notes between Apple Notes folders, and read NoteStore.sqlite inside the App Store sandbox
+spec: C238
+needs: -
+do: Research only (researcher agent, open web): Tuur picked reading Apple Notes' own database on the Mac (D153) and asks: after a note is imported, can the app MOVE it into a folder in Apple Notes (e.g. "Imported to Skrift" / "Not imported yet") without deleting anything? Answer with URLs: (1) can the Notes AppleScript/JXA dictionary move a note between folders (`move note … to folder …`), does that survive iCloud sync, and what permission prompt it needs (Automation); (2) is writing NoteStore.sqlite directly ever safe (expected: no); (3) can a sandboxed Mac App Store app read ~/Library/Group Containers/group.com.apple.notes with Full Disk Access, or does it need to be outside the App Store; (4) whether AppleScript can read locked notes' titles. Report `plan/research/apple-notes-folders.md`, one recommendation per question.
+check: `test -s plan/research/apple-notes-folders.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -789,3 +801,7 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-27 10:23 Q70 -> tuur — built @03631705 — awaiting sitting
 - 2026-09-27 10:23 Q71 -> tuur — built @94beefe4 — awaiting sitting
 - 2026-09-30 08:28 Q74 added
+- 2026-09-30 08:38 Q70 -> done — Tuur 2026-09-30: version 1, the pill; tapping cycles Not rated → Passing → Useful → Important → Not rated (maybe a left-right drag); mocks lack the destination row → Q75
+- 2026-09-30 08:38 Q71 -> done — Tuur 2026-09-30: route 1 (Mac Notes database, Full Disk Access is fine); locked notes stay behind; asks whether imported notes can be moved into an Apple Notes folder → Q76; drawings parked as an idea
+- 2026-09-30 08:38 Q75 added
+- 2026-09-30 08:38 Q76 added
