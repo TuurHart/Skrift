@@ -39,8 +39,7 @@ struct QuoteCaptureOutput: Sendable {
     /// Empty when the engine returned no word timings.
     var bufferSentences: [BufferSentence]
     /// The buffer audio file (span ± 20 s). Temp — cleaned up when the capture
-    /// flow is dismissed (the `defer` in `QuoteCaptureProcessor.process` is
-    /// replaced by caller-side cleanup). Non-optional; always present.
+    /// flow is dismissed (caller-side cleanup). Non-optional; always present.
     var bufferAudioURL: URL
     /// Time offset of the buffer's start relative to FILE-LOCAL time.
     /// `bufferLocalTime + bufferOffset = fileLocalTime`.
@@ -61,77 +60,11 @@ enum QuoteCaptureError: LocalizedError {
     }
 }
 
-/// Span-on-demand transcription (LOCKED: never the whole book): export the
-/// marked span ± 20 s to a temp file, run it through the existing on-device
-/// `Transcribing` (Parakeet), sentence-snap both edges OUTWARD, then trim the
-/// quote audio to the snapped span.
-///
-/// Times here are LOCAL to `bookAudio` — for a multi-file book the flow passes
-/// the ONE file the capture falls in (`bookDuration` = that file's length) and
-/// a span already rebased into it; a span can never cross a file boundary.
+/// Quote-capture output builders: transcribe a window on demand (never the
+/// whole book), then cut the chosen sentences to a quote clip.
 @MainActor
 struct QuoteCaptureProcessor {
     var transcriber: any Transcribing = TranscriberFactory.make()
-
-    func process(bookAudio: URL, span: CaptureSpan.Span, bookDuration: TimeInterval) async throws -> QuoteCaptureOutput {
-        let buffer = CaptureSpan.transcriptionBuffer(for: span, duration: bookDuration)
-        let tempDir = FileManager.default.temporaryDirectory
-        let bufferURL = tempDir.appendingPathComponent("quotebuf_\(UUID().uuidString).m4a")
-        // NOTE: bufferURL is NOT deferred-removed here — the capture sheet
-        // needs it for sentence-level audio re-trimming. The caller
-        // (QuoteCaptureFlowView) removes it on dismiss.
-
-        try await Self.exportSpan(of: bookAudio, start: buffer.start, end: buffer.end, to: bufferURL)
-
-        let result = try await transcriber.transcribe(audioURL: bufferURL, imageManifest: [])
-
-        // Marker times relative to the buffered audio.
-        let relIn = span.start - buffer.start
-        let relOut = span.end - buffer.start
-
-        let snapped: SentenceSnap.Snapped
-        if let s = SentenceSnap.snap(words: result.wordTimings, proposedIn: relIn, proposedOut: relOut) {
-            snapped = s
-        } else {
-            // No word timings (e.g. an engine without timings) — keep the raw
-            // span and the whole recognized text rather than failing.
-            let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            snapped = SentenceSnap.Snapped(start: relIn, end: relOut, text: text, words: [])
-        }
-        guard !snapped.text.isEmpty else {
-            try? FileManager.default.removeItem(at: bufferURL)
-            throw QuoteCaptureError.noSpeech
-        }
-
-        // Trim the quote audio to the snapped span (from the small buffer file,
-        // not the whole book).
-        let quoteURL = tempDir.appendingPathComponent("quote_\(UUID().uuidString).m4a")
-        try await Self.exportSpan(of: bufferURL, start: snapped.start, end: snapped.end, to: quoteURL)
-
-        // Rebase timings onto the trimmed audio (t = 0 at the snapped start).
-        let rebased = snapped.words.map {
-            WordTiming(word: $0.word, start: max(0, $0.start - snapped.start), end: max(0, $0.end - snapped.start))
-        }
-
-        // Build the sentence list for the trim sheet from buffer-local word timings.
-        let bufferSentences = Self.buildSentences(
-            from: result.wordTimings,
-            snappedStart: snapped.start,
-            snappedEnd: snapped.end
-        )
-
-        return QuoteCaptureOutput(
-            quote: snapped.text,
-            spanStart: buffer.start + snapped.start,
-            spanEnd: buffer.start + snapped.end,
-            audioURL: quoteURL,
-            duration: max(0, snapped.end - snapped.start),
-            wordTimings: rebased,
-            bufferSentences: bufferSentences,
-            bufferAudioURL: bufferURL,
-            bufferOffset: buffer.start
-        )
-    }
 
     // MARK: - Text capture: transcribe a window for the sentence-select screen
 
