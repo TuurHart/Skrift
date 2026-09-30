@@ -245,12 +245,7 @@ private struct WayOutRow: View {
     /// Red inside the countdown's last 3 days, amber otherwise — the same threshold
     /// FadingShelfView used, now shared by both sections (Don'ts: thresholds unchanged).
     private var urgencyColor: Color {
-        let daysLeft: Int
-        switch kind {
-        case .fading: daysLeft = MemoLifecycle.daysUntilSweep(memo)
-        case .deleted: daysLeft = memo.trashDaysRemaining() ?? 0
-        }
-        return daysLeft <= 3 ? Color.skRed : Color.skAmber
+        WayOut.isUrgent(MemoSpine.station(for: .from(memo, backlinked: []))) ? Color.skRed : Color.skAmber
     }
 }
 
@@ -288,20 +283,18 @@ extension WayOutView {
     /// the row was only fading, never deleted).
     @MainActor
     static func bringBack(_ memo: Memo, repository: NotesRepository) {
-        memo.keptAt = Date()
-        memo.deletedAt = nil
-        memo.trashSeenAt = nil   // purge-clock hygiene (v3); the validity guard ignores stale stamps anyway
+        WayOut.bringBack(memo)
         repository.save()
     }
 
     /// Fading rows, soonest-to-move-to-Recently-Deleted first.
     static func orderedByImminence(fading: [Memo]) -> [Memo] {
-        fading.sorted { MemoLifecycle.fadesAt($0) < MemoLifecycle.fadesAt($1) }
+        WayOut.fadingOrdered(fading)
     }
 
     /// Deleted rows, soonest-to-be-purged-for-good first.
     static func orderedByImminence(deleted: [Memo]) -> [Memo] {
-        deleted.sorted { ($0.deletedAt ?? .distantFuture) < ($1.deletedAt ?? .distantFuture) }
+        WayOut.deletedOrdered(deleted)
     }
 
     /// The merged shelf count shown in both the nav title and the ⋯ menu label.
@@ -314,7 +307,7 @@ extension WayOutView {
     /// picks the right branch on its own (`deletedAt` beats everything), so this is
     /// the ONE place either row kind reads its countdown from.
     static func oneLiner(for memo: Memo, now: Date = Date()) -> String {
-        MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: []), now: now), now: now)
+        WayOut.oneLiner(for: memo, now: now)
     }
 }
 

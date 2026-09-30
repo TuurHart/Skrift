@@ -99,14 +99,7 @@ enum SplitSpeakers {
     /// The other speakers in the note, for the popover's "move this line" list: distinct
     /// identities, first-appearance order, excluding the one wearing `displayed`.
     static func otherSpeakers(than displayed: String, in pf: PipelineFile, people: [Person]) -> [String] {
-        let resolver = SpeakerTurnStyle.HeaderResolver(people: people)
-        let me = resolver.identity(for: displayed)
-        var seen = Set<String>(), out: [String] = []
-        for label in turnLabels(in: pf) {
-            let id = resolver.identity(for: label)
-            if id != me, seen.insert(id).inserted { out.append(label) }
-        }
-        return out
+        SpeakerNaming.otherSpeakers(than: displayed, in: shownBody(pf), people: people)
     }
 
     /// A person names ALL of that speaker's turns. Rewrites the raw transcript (and the
@@ -117,13 +110,10 @@ enum SplitSpeakers {
     static func nameSpeaker(_ pf: PipelineFile, displayed: String, as newName: String, people: [Person]) -> Bool {
         let name = newName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty, isSplit(pf) else { return false }
-        let resolver = SpeakerTurnStyle.HeaderResolver(people: people)
-        let target = resolver.identity(for: SpeakerTurnStyle.label(for: displayed))
-        let matches: (String) -> Bool = { resolver.identity(for: SpeakerTurnStyle.label(for: $0)) == target }
-        guard let renamed = SpeakerTranscript.relabel(pf.transcript, where: matches, to: name) else { return false }
+        guard let renamed = SpeakerNaming.rename(pf.transcript, displayed: displayed, to: name, people: people) else { return false }
         pf.transcript = renamed
         if let ce = pf.enhancedCopyedit, SpeakerTranscript.isAttributed(ce) {
-            pf.enhancedCopyedit = SpeakerTranscript.relabel(ce, where: matches, to: name) ?? ce
+            pf.enhancedCopyedit = SpeakerNaming.rename(ce, displayed: displayed, to: name, people: people) ?? ce
         }
         return true
     }

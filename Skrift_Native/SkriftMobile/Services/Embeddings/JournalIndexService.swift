@@ -136,14 +136,10 @@ final class JournalIndexService {
     func thenVsNow(repository: NotesRepository) async -> ThenNowPair? {
         guard isActive else { return nil }
         let memos = repository.allMemos()
-        let calendar = Calendar.current
-        let now = Date()
-        guard let recentCut = calendar.date(byAdding: .day, value: -ThenVsNow.recentWindowDays, to: now),
-              let gapCut = calendar.date(byAdding: .month, value: -ThenVsNow.minGapMonths, to: now) else { return nil }
-        let dates = Dictionary(memos.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
-        let recents = memos.filter { $0.recordedAt >= recentCut }
-            .sorted { $0.recordedAt > $1.recordedAt }
-            .prefix(ThenVsNow.maxRecents)
+        guard let window = ThenVsNow.window(now: Date()) else { return nil }
+        let gapCut = window.gapCut
+        let dates = ThenVsNow.dates(of: memos)
+        let recents = ThenVsNow.recents(in: memos, since: window.recentCut)
         var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
         for memo in recents {
             candidates.append((memo.id, await relatedScores(to: memo.id, repository: repository)))
@@ -168,11 +164,8 @@ final class JournalIndexService {
                                memosByID: [UUID: Memo],
                                floor: Float = RetrievalTuning.searchFloor,
                                limit: Int = 8) -> [Memo] {
-        scores
-            .filter { $0.score >= floor && !exact.contains($0.memoID) }
-            .sorted { $0.score > $1.score }
-            .prefix(limit)
-            .compactMap { memosByID[$0.memoID] }
+        SemanticSearch.results(scores: scores, excluding: exact, floor: floor, limit: limit)
+            .compactMap { memosByID[$0] }
     }
 
     // ── snapshots ──
@@ -191,17 +184,11 @@ final class JournalIndexService {
             guard NoteConsent.isRated(memo) else { return nil }
             let enhancement = repository.enhancement(forMemo: memo.id)
             let polished = (enhancement?.hasContent == true) ? enhancement?.copyedit : nil
-            let body = polished ?? memo.transcript ?? ""
-            let annotated = memo.annotationText.map { body.isEmpty ? $0 : body + "\n" + $0 } ?? body
-            guard !annotated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-            return MemoSnapshot(
-                id: memo.id,
-                title: memo.title ?? enhancement?.title,
-                summary: enhancement?.summary,
-                body: annotated,
-                place: memo.metadata?.location?.placeName,
-                tags: memo.tags
-            )
+            return SemanticSearch.snapshot(
+                id: memo.id, userTitle: memo.title, enhancedTitle: enhancement?.title,
+                summary: enhancement?.summary, polished: polished, transcript: memo.transcript,
+                annotation: memo.annotationText, place: memo.metadata?.location?.placeName,
+                tags: memo.tags)
         }
     }
 

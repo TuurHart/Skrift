@@ -29,6 +29,8 @@ final class LiveRecordingService {
     private(set) var level: Float = 0
     /// Rolling level history (newest last) for the live waveform bars.
     private(set) var waveform: [Float] = []
+    /// The shared rolling level window (`RecordingCore.Meter`) behind `waveform`.
+    @ObservationIgnored private var meter = RecordingCore.Meter(width: 40)
     /// Best-effort live transcript shown caption-first while recording.
     private(set) var liveCaption: String = ""
     /// How many leading caption words are FINAL (rotated/committed chunks never
@@ -445,6 +447,7 @@ final class LiveRecordingService {
         elapsed = 0
         level = 0
         waveform = []
+        meter = RecordingCore.Meter(width: Self.waveformBars)
         liveCaption = ""
         liveCommittedWordCount = 0
         let takeID = UUID().uuidString
@@ -630,6 +633,7 @@ final class LiveRecordingService {
         elapsed = 0
         level = 0
         waveform = []
+        meter = RecordingCore.Meter(width: Self.waveformBars)
         liveCaption = ""
         liveCommittedWordCount = 0
     }
@@ -875,12 +879,7 @@ final class LiveRecordingService {
             throw StartError.inputFormatNotReady
         }
 
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: format.sampleRate,
-            AVNumberOfChannelsKey: format.channelCount,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
-        ]
+        let settings = RecordingCore.encoderSettings(for: format)   // one recipe, phone and Mac
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.audioFile = file
         // Segments + marker beside the main file (C99): the marker exists from
@@ -1017,7 +1016,7 @@ final class LiveRecordingService {
                                       + "notification→first-buffer=%.0fms (buffer fill %.0fms;"
                                       + " pre-notification transition time NOT included)", rawMs, fillMs))
                 }
-                let lvl = Self.rms(out)
+                let lvl = RecordingCore.level(out)
                 Task { @MainActor [weak self] in
                     guard let self, self.isRecording, !self.isPaused else { return }
                     self.level = lvl
@@ -1604,16 +1603,6 @@ final class LiveRecordingService {
         LiveCaptionEngine.pollDelay(afterSnapshotCost: cost, thermal: thermal)
     }
 
-    nonisolated private static func rms(_ buffer: AVAudioPCMBuffer) -> Float {
-        guard let ch = buffer.floatChannelData?[0] else { return 0 }
-        let n = Int(buffer.frameLength)
-        guard n > 0 else { return 0 }
-        var sum: Float = 0
-        for i in 0..<n { sum += ch[i] * ch[i] }
-        let rms = (sum / Float(n)).squareRoot()
-        return min(1, rms * 12)   // scale like Shhhcribble's AudioInput
-    }
-
     // MARK: - Timers / shared
 
     private func startDisplayTimer() {
@@ -1691,8 +1680,8 @@ final class LiveRecordingService {
     }
 
     private func pushWaveform(_ value: Float) {
-        waveform.append(value)
-        if waveform.count > Self.waveformBars { waveform.removeFirst(waveform.count - Self.waveformBars) }
+        meter.push(value)
+        waveform = meter.bars
     }
 
     private func accumulate() {

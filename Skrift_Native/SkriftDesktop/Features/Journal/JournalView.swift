@@ -113,15 +113,10 @@ struct JournalView: View {
         guard ConnectionsIndexService.shared.isActive else { thenNow = nil; return }
         let snapshot = memos
         Task { @MainActor in
-            let calendar = Calendar.current
-            let now = Date()
-            guard let recentCut = calendar.date(byAdding: .day, value: -ThenVsNow.recentWindowDays, to: now),
-                  let gapCut = calendar.date(byAdding: .month, value: -ThenVsNow.minGapMonths, to: now)
-            else { return }
-            let dates = Dictionary(snapshot.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
-            let recents = snapshot.filter { $0.recordedAt >= recentCut }
-                .sorted { $0.recordedAt > $1.recordedAt }
-                .prefix(ThenVsNow.maxRecents)
+            guard let window = ThenVsNow.window(now: Date()) else { return }
+            let gapCut = window.gapCut
+            let dates = ThenVsNow.dates(of: snapshot)
+            let recents = ThenVsNow.recents(in: snapshot, since: window.recentCut)
             var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
             for memo in recents {
                 candidates.append((memo.id, await ConnectionsIndexService.shared.relatedScores(to: memo.id)))
@@ -326,9 +321,10 @@ struct JournalView: View {
                     if let pair = thenNow { thenNowCard(pair) }
                     // The pair's notes never double-show as lookback cards
                     // (the phone's exclusion rule, verbatim).
-                    ForEach(LookbackProvider.entries(
+                    ForEach(LookbackProvider.river(
                         for: memos, now: selectedDay,
-                        excluding: Set([thenNow?.then.id, thenNow?.now.id].compactMap { $0 }))) { entry in
+                        thenNow: thenNow.map { ThenVsNow.Pair(then: $0.then.id, now: $0.now.id) },
+                        showImportantLately: false).entries) { entry in
                         if let memo = memos.first(where: { $0.id == entry.id }) {
                             card(memo, kick: entry.label, warmKick: false)
                         }

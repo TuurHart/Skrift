@@ -86,13 +86,26 @@ struct BodyTextView: NSViewRepresentable {
     /// nil/empty = no jump. Case-insensitive.
     var searchJumpToken: String? = nil
 
-    /// How far through the body's words to brighten (0…1) + a click-a-word → seek
-    /// callback (arg = the clicked word's INDEX, so the caller can seek to that word's
-    /// REAL start time from the word-timings — an index-proportional seek lands on the
-    /// wrong word when speech is uneven, e.g. a silent intro).
+    /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
+    /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
+    /// caller seeks to that word's time from the same track — an index-proportional seek
+    /// lands on the wrong word when speech is uneven, e.g. a silent intro).
     struct KaraokePlayback {
-        var fraction: Double
+        var active: Int?
         var seekWord: (Int) -> Void
+
+        /// A fixed mid-playback state for the headless snapshots: `fraction` of the way through
+        /// `body`'s words.
+        init(fractionOf body: String, fraction: Double) {
+            let n = body.split(whereSeparator: { $0.isWhitespace }).count
+            active = n > 0 ? min(n - 1, Int(fraction * Double(n))) : nil
+            seekWord = { _ in }
+        }
+
+        init(active: Int?, seekWord: @escaping (Int) -> Void) {
+            self.active = active
+            self.seekWord = seekWord
+        }
     }
 
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
@@ -190,7 +203,7 @@ struct BodyTextView: NSViewRepresentable {
             // Playing: lock editing and recolor in place (bright up to the current
             // word, dim the rest). Same view → identical layout, no reflow.
             if tv.isEditable { tv.isEditable = false }
-            context.coordinator.applyKaraoke(tv, fraction: k.fraction)
+            context.coordinator.applyKaraoke(tv, active: k.active)
         } else {
             if !tv.isEditable { tv.isEditable = true }
             tv.liveTurnLoc = nil          // paused → no turn is "now"
@@ -238,6 +251,8 @@ struct BodyTextView: NSViewRepresentable {
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).
         private var lastKaraoke: (active: Int, count: Int)?
+        /// Model word index of each storage word — built once per text, reset with `lastKaraoke`.
+        private var karaokeModelIndex: [Int]?
         /// Live-people snapshot for the link tooltips applied on every restyle —
         /// refreshed per render (note switch / external change) and per unlink click,
         /// NOT per keystroke (`livePeople()` reads names.json from disk).
@@ -499,6 +514,7 @@ struct BodyTextView: NSViewRepresentable {
             spliceMemoLinkChips(tv)   // [[memo:UUID|Title]] → titled chip (model keeps the literal)
             spliceTaskBoxes(tv)       // "- [ ]"/"- [x]" → toggleable checkbox (Obsidian task syntax)
             lastKaraoke = nil   // new text → force the next karaoke recolor
+            karaokeModelIndex = nil
             // Refresh the roster used to color person links / resolve unlink (injected people
             // for snapshots, else the live names DB). Per-render, not per-keystroke.
             peopleCache = parent.people.isEmpty ? NamesStore.shared.livePeople() : parent.people
@@ -508,30 +524,44 @@ struct BodyTextView: NSViewRepresentable {
             loadThumbnails(into: tv, model: model)
         }
 
-        /// In-place karaoke: brighten the first `fraction` of the body's words, dim the
-        /// rest — on the SAME text view as the editor, so playing never reflows. Skips
-        /// the work when the boundary hasn't moved (called ~20×/s while playing).
-        func applyKaraoke(_ tv: SelfSizingTextView, fraction: Double) {
+        /// In-place karaoke: the shared paint (`KaraokeRole`) on the SAME text view as the
+        /// editor, so playing never reflows — read words step back, the playing word takes
+        /// the accent, the rest stay full, exactly as on the phone. `active` is a MODEL word
+        /// index; an attachment can stand for several model words, so it is mapped onto the
+        /// STORAGE words first. Skips the work when the highlighted word hasn't moved (called
+        /// ~20×/s while playing).
+        func applyKaraoke(_ tv: SelfSizingTextView, active modelActive: Int?) {
             guard let storage = tv.textStorage else { return }
             let words = Coordinator.wordRanges(storage.string)
-            let active = max(0, min(words.count, Int((fraction * Double(words.count)).rounded())))
-            if let last = lastKaraoke, last.active == active, last.count == words.count { return }
-            lastKaraoke = (active, words.count)
+            if karaokeModelIndex == nil || karaokeModelIndex?.count != words.count {
+                karaokeModelIndex = words.indices.map { modelWordIndex($0, in: storage, words: words) }
+            }
+            let models = karaokeModelIndex ?? []
+            // The last storage word that has started: a multi-word attachment holds the
+            // highlight until the model index moves past all of it.
+            let active: Int? = modelActive.flatMap { m in models.lastIndex(where: { $0 <= m }) }
+            let marker = active.map { $0 + 1 } ?? 0     // `lastKaraoke.active` keeps its count meaning
+            if let last = lastKaraoke, last.active == marker, last.count == words.count { return }
+            lastKaraoke = (marker, words.count)
             // Mock E1 · b: mark the turn being read with a faint accent wash. The per-speaker
             // spine already means "who", so "now" has to speak on a different channel — it
             // must NOT reuse the spine (that was E3's mistake: two meanings, one edge).
-            let spoken = active > 0 ? words[active - 1].location : (words.first?.location ?? 0)
+            let spoken = active.map { words[$0].location } ?? (words.first?.location ?? 0)
             tv.liveTurnLoc = tv.speakerTurns.last { $0.loc <= spoken }?.loc
-            let bright = NSColor(Theme.textPrimary)
-            let dim = NSColor(Theme.textPrimary).withAlphaComponent(0.4)
+            let colors: [KaraokeRole: NSColor] = [
+                .read: NSColor(Theme.textSecondary),
+                .playing: NSColor(Theme.accent),
+                .upcoming: NSColor(Theme.textPrimary),
+            ]
             let full = NSRange(location: 0, length: storage.length)
             storage.beginEditing()
-            storage.addAttribute(.foregroundColor, value: dim, range: full)
+            storage.addAttribute(.foregroundColor, value: colors[.upcoming]!, range: full)
             storage.removeAttribute(.backgroundColor, range: full)
             storage.removeAttribute(.underlineStyle, range: full)
             storage.removeAttribute(.underlineColor, range: full)
-            for (i, r) in words.enumerated() where i < active {
-                storage.addAttribute(.foregroundColor, value: bright, range: r)
+            for (i, r) in words.enumerated() {
+                let role = KaraokeRole.of(word: i, active: active)
+                if role != .upcoming { storage.addAttribute(.foregroundColor, value: colors[role]!, range: r) }
             }
             storage.endEditing()
         }
@@ -714,6 +744,7 @@ struct BodyTextView: NSViewRepresentable {
         func restyle(_ tv: SelfSizingTextView, scope: NSRange? = nil) {
             guard let storage = tv.textStorage else { return }
             lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
+            karaokeModelIndex = nil
             let full = NSRange(location: 0, length: storage.length)
             let window: NSRange
             if let scope {

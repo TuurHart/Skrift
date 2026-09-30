@@ -177,16 +177,9 @@ struct WayOutColumn: View {
     /// reintroduced as new doctrine, just preserved): Fading stays amber until
     /// ≤3 days out, then red; Deleted stays muted until ≤3 days out, then red.
     private func urgencyColor(_ station: MemoSpine.Station) -> Color {
-        switch station {
-        case .fading(let deletedAt):
-            let days = Int(ceil(deletedAt.timeIntervalSinceNow / 86_400))
-            return days <= 3 ? Theme.destructive : Theme.amber
-        case .deleted(let goneAt):
-            let days = Int(ceil(goneAt.timeIntervalSinceNow / 86_400))
-            return days <= 3 ? Theme.destructive : Theme.textMuted
-        default:
-            return Theme.textMuted
-        }
+        if WayOut.isUrgent(station) { return Theme.destructive }
+        if case .fading = station { return Theme.amber }
+        return Theme.textMuted
     }
 
     // ── Mac-only tail (PipelineFile-backed, local) ───────────────────────

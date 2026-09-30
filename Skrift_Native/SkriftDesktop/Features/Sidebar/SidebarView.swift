@@ -80,6 +80,9 @@ struct SidebarView: View {
     /// Process action — the source for both the band's membership and (once
     /// step ③ lands) the one-trash footer count.
     @State private var cloudMemos: [Memo] = []
+    /// Search by meaning (Q82 group 13): note ids similar in MEANING to the query, best first —
+    /// the phone's RELATED section. Filled async under the exact matches.
+    @State private var relatedIDs: [UUID] = []
     /// Row-tap peek (read-only + Flag) — same sheet the Review river uses.
     private var effectiveCloudMemos: [Memo] { fixtureCloudMemos ?? cloudMemos }
     private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: effectiveCloudMemos, files: files) }
@@ -653,10 +656,12 @@ struct SidebarView: View {
         let rows = entries
         // A live take pins its own synthetic row (below) whether or not there's anything
         // else to show — an empty vault mid-first-recording is not the "No memos yet" state.
+        let related = relatedEntries(excluding: rows)
         if files.isEmpty && unpipelinedMemos.isEmpty && !sessionBusy {
             emptyQueue
-        } else if rows.isEmpty && !sessionBusy {
+        } else if rows.isEmpty && related.isEmpty && !sessionBusy {
             noMatches
+                .task(id: model.searchText) { await refreshRelated() }
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
@@ -698,8 +703,31 @@ struct SidebarView: View {
                         }
                     }
                 }
+                if !related.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text("RELATED").font(.system(size: 10.5, weight: .bold)).kerning(0.4)
+                            Text("similar in meaning").font(.system(size: 10.5))
+                        }
+                        .foregroundStyle(Theme.textMuted)
+                        .padding(.horizontal, 4)
+                        .accessibilityIdentifier("sidebar.related-header")
+                        ForEach(related) { entry in
+                            switch entry {
+                            case .file(let f):
+                                QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                                    model.handleClick(f.id, displayOrder: displayedIDs, selectable: Set(orderedIDs))
+                                }
+                                .contextMenu { rowMenu(f) }
+                            case .memo(let m):
+                                quietMemoRow(m)
+                            }
+                        }
+                    }
+                }
             }
             .padding(8)
+            .task(id: model.searchText) { await refreshRelated() }
 
             if scrollable {
                 ScrollView { content }
@@ -707,6 +735,37 @@ struct SidebarView: View {
                 VStack(spacing: 0) { content; Spacer(minLength: 0) }
             }
         }
+    }
+
+    /// The Related rows: the semantic hits that the exact search did not already show.
+    private func relatedEntries(excluding shown: [SidebarEntry]) -> [SidebarEntry] {
+        guard !relatedIDs.isEmpty else { return [] }
+        let exact = Set(shown.map(\.id))
+        let memos = Dictionary(effectiveCloudMemos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return relatedIDs.compactMap { id -> SidebarEntry? in
+            if let f = files.first(where: { $0.id == id.uuidString }) {
+                let e = SidebarEntry.file(f)
+                return exact.contains(e.id) ? nil : e
+            }
+            guard let m = memos[id], m.deletedAt == nil else { return nil }
+            let e = SidebarEntry.memo(m)
+            return exact.contains(e.id) ? nil : e
+        }
+    }
+
+    /// Debounced semantic lookup for the current query — the phone's `refreshRelated`, on the
+    /// same shared floor. Exact matches never wait on it.
+    private func refreshRelated() async {
+        let q = model.searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, ConnectionsIndexService.shared.isActive else {
+            if !relatedIDs.isEmpty { relatedIDs = [] }
+            return
+        }
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        let scores = await ConnectionsIndexService.shared.searchScores(q)
+        guard !Task.isCancelled else { return }
+        relatedIDs = SemanticSearch.results(scores: scores, excluding: [])
     }
 
     // ── Quiet rows — unrated notes IN the list (Tuur, 2026-07-21 round 3:

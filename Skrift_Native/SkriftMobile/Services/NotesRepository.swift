@@ -58,6 +58,13 @@ final class NotesRepository {
         return (try? context.fetch(descriptor)) ?? []
     }
 
+    /// One row per id — the Mac's rule (`MemoDuplicates.canonicalRows`) for every DISPLAY reader
+    /// (Notes list, Journal). A CloudKit re-sync can leave exact clones until `MemoDeduper`
+    /// heals them, and a reader must not show two. `allMemos()` stays raw for the deduper.
+    func canonicalMemos() -> [Memo] {
+        MemoDuplicates.canonicalRows(allMemos())
+    }
+
     /// Trashed memos, most recently deleted first (the Recently Deleted screen).
     func deletedMemos() -> [Memo] {
         let descriptor = FetchDescriptor<Memo>(

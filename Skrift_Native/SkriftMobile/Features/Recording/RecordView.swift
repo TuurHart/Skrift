@@ -597,10 +597,7 @@ struct RecordView: View {
 
 /// m:ss for the record timer (shared by the waveform row + camera header).
 private enum RecordClock {
-    static func string(_ elapsed: TimeInterval) -> String {
-        let total = Int(elapsed)
-        return String(format: "%d:%02d", total / 60, total % 60)
-    }
+    static func string(_ elapsed: TimeInterval) -> String { RecordingCore.elapsedLabel(elapsed) }
 }
 
 /// Reads the hot caption state (`liveCaption` + committed count, ~1.7 Hz) in

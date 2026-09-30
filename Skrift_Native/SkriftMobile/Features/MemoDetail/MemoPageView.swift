@@ -189,7 +189,7 @@ struct MemoPageView: View {
         .sheet(item: $assignTarget) { target in
             SpeakerAssignSheet(
                 speaker: target.speaker,
-                otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != target.speaker },
+                otherSpeakers: SpeakerNaming.otherSpeakers(than: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 people: NamesStore.shared.livePeople(),
                 onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
@@ -909,16 +909,10 @@ struct MemoPageView: View {
     func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?, turnSlots: [Int]) {
         let new = newName.trimmingCharacters(in: .whitespaces)
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
-        // Slot-aware when the per-turn slot map still lines up — relabels ONLY this
-        // speaker's slot, so a same-named twin (one voice split into two slots, both
-        // "Tiuri") is left alone. Otherwise relabel every `**old:**` header (the prior
-        // behaviour) — correct when the name is unique.
-        if let slot, let bySlot = SpeakerTranscript.relabelSlot(transcript, turnSlots: turnSlots, slot: slot, to: new) {
-            memo.transcript = bySlot
-        } else {
-            let relabeled = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
-            memo.transcript = SpeakerTranscript.mergeAdjacentTurns(relabeled)
-        }
+        // The shared naming rule (`SpeakerNaming`, the Mac's too): slot-aware while the per-turn
+        // slot map still lines up, else every turn whose header resolves to the same speaker.
+        memo.transcript = SpeakerNaming.rename(transcript, displayed: old, to: new, people: people,
+                                               turnSlots: turnSlots, slot: slot) ?? transcript
         memo.transcriptUserEdited = true
         memo.markEdited()
         repository.save()

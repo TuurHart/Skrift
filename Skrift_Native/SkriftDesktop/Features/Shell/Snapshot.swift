@@ -757,7 +757,7 @@ enum Snapshot {
                     .foregroundStyle(Theme.accentText).textCase(.uppercase).kerning(1.1)
                 // people: [] → BodyTextView reads the LIVE names DB, the real resolution path.
                 BodyTextView(text: .constant(body),
-                             karaoke: karaoke.map { BodyTextView.KaraokePlayback(fraction: $0, seekWord: { _ in }) })
+                             karaoke: karaoke.map { BodyTextView.KaraokePlayback(fractionOf: body, fraction: $0) })
                     .frame(width: 820)
             }
             .padding(.horizontal, 26).padding(.vertical, 18)
@@ -887,7 +887,7 @@ enum Snapshot {
                 Text(title).font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.accentText).textCase(.uppercase).kerning(1.1)
                 BodyTextView(text: .constant(text), people: people,
-                             karaoke: karaoke.map { BodyTextView.KaraokePlayback(fraction: $0, seekWord: { _ in }) })
+                             karaoke: karaoke.map { BodyTextView.KaraokePlayback(fractionOf: text, fraction: $0) })
                     .frame(width: 820)
             }
             .padding(.horizontal, 26).padding(.vertical, 18)
