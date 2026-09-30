@@ -542,6 +542,13 @@ gate+: yes
 do: Tuur 2026-09-27: "yes typed should also record". Today only a voice recording runs `MetadataService.capture()` (RecordView.swift:160, MemoSaver.applyMetadata:740); `Memo.newTyped` (Shared/Model/Memo.swift:398) stores only {"mediaSource":"typed"}, so a typed note's header shows date + time and nothing else. Capture place, weather and daypart for a typed note the moment the note is created (first keystroke, D91), asynchronously — the keyboard must still be up in under a second (C112) and an empty discarded note must leave nothing behind. Same on the phone, iPad and quick note; the Mac only if it already has a location path. A nil GPS fix or geocode stays nil silently, as for voice notes. Test in the phone target (new file) that a typed note gets the metadata a voice note gets, with a stubbed capture.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && ./gate.sh`
 
+### Q74 [auto] (todo) Mac import of several audio files asks: one note or N notes (C68 chooser on the Mac)
+spec: C68 C145 C238
+needs: -
+gate+: yes
+do: Tuur 2026-09-30: "when I upload three audio messages into Skrift desktop it should ask if I want it 1 note or three separate". The phone already has this chooser (C68 share sheet, C145 Files importer); C238 says a Mac drop of the same files must yield the same notes. Give every Mac entry point (Import button, sidebar drop incl. the Photos file-promise path, Finder open) the same One note / N notes chooser when 2+ audio files arrive together, reusing the phone's shared merge logic (clips merged in order, one transcription pass; default One note). Mock the Mac sheet first if the phone's has no Mac form. Desktop test (new file) that 3 audio files → 1 merged note or 3 notes per the choice. NEVER run SkriftDesktopUITests; Mac proof = unit tests + full build + headless snapshot.
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -781,3 +788,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TypedNoteMetadataTests && 
 - 2026-09-27 10:07 Q71 -> doing — worker out
 - 2026-09-27 10:23 Q70 -> tuur — built @03631705 — awaiting sitting
 - 2026-09-27 10:23 Q71 -> tuur — built @94beefe4 — awaiting sitting
+- 2026-09-30 08:28 Q74 added

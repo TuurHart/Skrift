@@ -1843,3 +1843,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      tags; no folders in Skrift (Q71, after the export research Q72).
 151. **D151 A typed note records place and weather too.** ✅ 2026-09-27: "yes typed should also
      record" — at creation, like a voice recording (Q73).
+152. **D152 The Mac asks one note or N notes too.** ✅ 2026-09-30: "when I upload three audio messages
+     into Skrift desktop it should ask if I want it 1 note or three separate" — C68/C145 on the Mac (Q74).
