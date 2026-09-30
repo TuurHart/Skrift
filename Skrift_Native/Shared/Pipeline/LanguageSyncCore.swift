@@ -25,8 +25,7 @@ enum LanguageSyncCore {
     /// deletes a row out from under it.
     static func reconcile(localMultilingual: Bool,
                           localModifiedAt: Date,
-                          records: [VocabularyRecord],
-                          now: Date = Date()) -> Outcome {
+                          records: [VocabularyRecord]) -> Outcome {
         guard let newest = records.max(by: { $0.modifiedAt < $1.modifiedAt }) else {
             // No carrier at all. Creating one is the vocab reconcile's job (it owns the
             // row's lifecycle); if this device has a real choice it lands on the next run.
