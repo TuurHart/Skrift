@@ -130,7 +130,7 @@ extension MemoSaver {
     /// the audio could not be written.
     private func rebuildNote(from sources: [URL], recordedAt: Date) async -> UUID? {
         let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         do {
             try await Task.detached(priority: .userInitiated) {

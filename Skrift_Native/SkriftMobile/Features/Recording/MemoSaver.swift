@@ -73,7 +73,7 @@ struct MemoSaver {
     func importAudio(from source: URL, recordedAt: Date? = nil) -> UUID? {
         let id = UUID()
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
-        let filename = "memo_\(id.uuidString).\(ext)"
+        let filename = RecordingCore.filename(id: id, ext: ext)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
 
         // Files shared from outside the sandbox arrive security-scoped.
@@ -133,7 +133,7 @@ struct MemoSaver {
         if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt) }
 
         let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
         repository.insert(Memo(
             id: id,
             audioFilename: filename,
@@ -159,7 +159,7 @@ struct MemoSaver {
     /// readable the memo fails honestly with a reason title, never a silent husk.
     @discardableResult
     func importAudioClipsAsync(id: UUID, sources: [URL]) async -> Bool {
-        let dest = AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).m4a")
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent(RecordingCore.filename(id: id))
         do {
             try await Self.mergeAudio(sources: sources, to: dest)
         } catch {
@@ -231,7 +231,7 @@ struct MemoSaver {
     @discardableResult
     func importVideo(from source: URL, creationDate: Date? = nil) -> UUID? {
         let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
 
         // Insert a placeholder memo right away so the UI shows it while the audio
         // extraction (which can be slow for long clips) runs in the background. The
@@ -263,7 +263,7 @@ struct MemoSaver {
 
     @discardableResult
     private func processVideo(id: UUID, source: URL, fallbackDate: Date?) async -> Bool {
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
 
         // Files shared from outside the sandbox arrive security-scoped.
@@ -458,7 +458,7 @@ struct MemoSaver {
         guard !transcript.isEmpty else { return nil }
 
         let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         do {
             try? FileManager.default.removeItem(at: dest)
@@ -691,7 +691,7 @@ struct MemoSaver {
 
     private func persist(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto], provisional: String?) -> UUID {
         let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
+        let filename = RecordingCore.filename(id: id)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         try? FileManager.default.removeItem(at: dest)
         do {
@@ -749,7 +749,7 @@ struct MemoSaver {
     func runTranscription(id: UUID) async {
         // Use the memo's actual filename (recordings are memo_<id>.m4a; imports
         // preserve the source extension, e.g. .opus/.wav/.mp3).
-        let filename = repository.memo(id: id)?.audioFilename ?? "memo_\(id.uuidString).m4a"
+        let filename = repository.memo(id: id)?.audioFilename ?? RecordingCore.filename(id: id)
         let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         let manifest = repository.memo(id: id)?.metadata?.imageManifest ?? []
         do {
