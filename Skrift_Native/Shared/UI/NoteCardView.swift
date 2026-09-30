@@ -36,7 +36,7 @@ struct NoteCardModel {
     var selected = false
     /// Display-only three-ball importance (Q26, one-notes-list D135): 0–3 lit
     /// balls in the stamp line, nil to omit entirely (locked rows). NEVER
-    /// tappable here — rating happens in detail, via `ThreeBallImportanceView`.
+    /// tappable here — rating happens in detail, via the rating pill.
     var balls: Int?
 
     struct Pill: Equatable {

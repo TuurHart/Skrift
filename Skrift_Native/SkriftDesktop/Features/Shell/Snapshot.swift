@@ -74,10 +74,6 @@ enum Snapshot {
         if let p = path("-snapshot-connections")    { MainActor.assumeIsolated { renderConnections(to: p); exit(0) } }
         if let p = path("-snapshot-inspector")      { MainActor.assumeIsolated { renderInspector(to: p); exit(0) } }
         if let p = path("-snapshot-unrated")        { MainActor.assumeIsolated { renderUnrated(to: p); exit(0) } }
-        if let p = path("-snapshot-significance") {
-            let light = args.contains("-light")
-            MainActor.assumeIsolated { renderSignificance(to: p, scheme: light ? .light : .dark); exit(0) }
-        }
         if let p = path("-snapshot-livedraft")      { MainActor.assumeIsolated { renderLiveDraft(to: p); exit(0) } }
         if let p = path("-snapshot-stranded") {
             let light = args.contains("-light")
@@ -992,36 +988,6 @@ enum Snapshot {
     /// Offscreen HOSTED render (real AppKit — NSHostingView + cacheDisplay): the tool
     /// for surfaces ImageRenderer can't draw (NSTextView bodies, MapKit views). Runs
     /// the main runloop briefly so .task loads land before capture.
-    /// The importance card in every state it has, both schemes, HOSTED — the
-    /// regression fixture for the 2026-08-12 un-twinning (one shared
-    /// `SignificanceCirclesView`, two style tables). Rendered before and after the
-    /// refactor and compared pixel-for-pixel: the whole claim is that it changes
-    /// nothing. Triggered by: `-snapshot-significance <path>`.
-    @MainActor private static func renderSignificance(to path: String, scheme: ColorScheme = .dark) {
-        // Theme tokens are NSColor providers — they read the APPEARANCE, not
-        // SwiftUI's colorScheme, and `hostPNG` draws into a real window. Pin the
-        // app appearance so the light pass is actually light (the same trap
-        // `writePNG` documents). `NSApplication.shared`, not `NSApp`: the global
-        // is still nil this early and reading it traps.
-        NSApplication.shared.appearance =
-            NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
-        let size = NSSize(width: 340, height: 700)
-        // Every branch the view has: unrated, below the wall, on the wall, full,
-        // and the Mac-only disabled state.
-        let view = VStack(alignment: .leading, spacing: 14) {
-            SignificanceCircles(value: .constant(nil))
-            SignificanceCircles(value: .constant(0.5))
-            SignificanceCircles(value: .constant(0.8))
-            SignificanceCircles(value: .constant(1.0))
-            SignificanceCircles(value: .constant(0.3), enabled: false)
-        }
-        .padding(16)
-        .frame(width: size.width, height: size.height, alignment: .top)
-        .background(Theme.bg)
-        .environment(\.colorScheme, scheme)
-        hostPNG(view, size: size, to: path)
-    }
-
     @MainActor private static func hostPNG<V: View>(_ view: V, size: NSSize, to path: String) {
         let host = NSHostingView(rootView: view)
         host.frame = NSRect(origin: .zero, size: size)
