@@ -1,0 +1,500 @@
+<title>Note Header Final</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one question on top, one "picked for you" list, a sticky switch bar, then the voice note and the typed note stacked. */
+:root{
+  /* Page chrome (violet-biased neutrals, Skrift's accent) */
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  /* In-app tokens: Shared/UI/Palette.swift + SkriftMobile Theme.swift (light) */
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-ring:rgba(0,0,0,.18); --a-amber:#d97706; --a-amber-soft:#d9770621; --a-amber-line:#d9770659; --a-accent-line:#6c5ce059;
+  --a-green:#0f9d72; --a-mac-chip:rgba(0,0,0,.06); --a-mac-stroke:rgba(0,0,0,.07);
+  --toast-bg:rgba(0,0,0,.85); --toast-fg:#ffffff; --on-accent:#ffffff;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+    --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
+    --a-green:#34d399; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+    --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111; --on-accent:#ffffff;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.06);
+  --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
+  --a-green:#34d399; --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07);
+  --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111; --on-accent:#ffffff;
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;margin:0}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 0;text-wrap:balance}
+h2{font-size:17px;margin:0;text-wrap:balance}
+p{margin:0;max-width:68ch}
+code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.q .n{font-family:var(--mono);font-weight:600;color:var(--pg-accent)}
+.q .qt{font-size:19px;font-weight:600}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.picks button{font:600 16px var(--sys);min-height:48px;min-width:120px;padding:0 16px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-ink);cursor:pointer}
+.picks button[aria-pressed="true"]{background:var(--pg-accent);border-color:var(--pg-accent);color:var(--on-accent)}
+.picknote{font-size:13px;color:var(--pg-dim);min-height:1.3em}
+.mine{border:1.5px dashed var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mine h2{color:var(--pg-warn);font-size:15px}
+.mine ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.mine li{display:flex;gap:9px;align-items:flex-start}
+.k{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:5px;padding:0 5px;line-height:18px;margin-top:1px}
+.mine b{font-weight:600}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pg-bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;border-bottom:1px solid var(--pg-line)}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px}
+.seg button{font:500 14px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:36px;padding:0 11px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:var(--on-accent)}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim);min-height:36px}
+.chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.how{font-size:14px;color:var(--pg-dim);background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:9px 12px}
+.how b{color:var(--pg-ink)}
+section.note{display:flex;flex-direction:column;gap:8px}
+.devcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint)}
+.devcap .d151{color:var(--pg-warn);font-weight:600}
+.meas{font-family:var(--mono);font-size:12.5px;color:var(--pg-dim);display:flex;gap:4px 12px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.meas b{color:var(--pg-ink)}
+.fit{position:relative;width:100%;overflow:hidden}
+.fitin{transform-origin:0 0;position:absolute;left:0;top:0}
+.frame{border-radius:22px;border:1px solid var(--pg-line);overflow:hidden;background:var(--a-bg);position:relative}
+.frame.mac{border-radius:10px}
+footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);padding-top:12px}
+
+/* ── In-app drawing (sizes in pt = CSS px, from source) ─────────────────── */
+.app{font-family:var(--sys);color:var(--a-text);background:var(--a-bg);position:relative}
+.app button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+.nav{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:var(--a-faint);font-size:15px}
+.nav i{font-style:normal;font-family:var(--mono);font-size:10px;opacity:.8}
+.hdr{position:relative}
+.titlerow{display:flex;align-items:center;gap:8px;padding:4px 20px 9px;border-bottom:.5px solid var(--a-border)}
+.title{font-size:17px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcore{padding:6px 20px 0}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:13px;color:var(--a-dim);background:var(--a-chip);padding:2px 7px;border-radius:7px;white-space:nowrap}
+.mac .cchip{background:var(--a-mac-chip)}
+.ic{width:10px;height:10px;flex:none}
+.tchip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-accent-text);font-size:13px;font-weight:500}
+.app .addtag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-size:12px}
+.app.mac .tchip,.app.mac .addtag{height:22px;padding:0 9px;font-size:12px}
+.mac .tchip{color:var(--a-accent)}
+.life{font-size:11.5px;color:var(--a-amber);opacity:.9}
+.body{padding:14px 20px 22px;font-size:16px;line-height:1.5;color:var(--a-text)}
+.body p{max-width:none}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:8px 14px;border-radius:99px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:4}
+.toast.show{opacity:1}
+.marks .mk{outline:1.5px dashed var(--pg-warn);outline-offset:3px;position:relative}
+.marks .mk::after{content:attr(data-k);position:absolute;top:-10px;right:-9px;font:600 9px/14px var(--mono);color:var(--on-accent);background:var(--pg-warn);border-radius:4px;padding:0 3px;z-index:2;pointer-events:none}
+
+/* The pill (version 1) */
+.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 9px}
+.app .pill{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:12px;font-weight:600;color:var(--a-accent-text);white-space:nowrap;flex:none;user-select:none;-webkit-user-select:none}
+.app .pill::before{content:"";position:absolute;inset:-9px -4px}  /* 44 pt tall hit area */
+.app .pill.none{background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-weight:500}
+.pill .pbs{display:inline-flex;gap:3px}
+.pill .pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
+.pill .pb.lit{background:var(--a-accent);box-shadow:none}
+.app.mac .pill{height:22px;font-size:11.5px}
+/* Behaviour B: fixed width so the four zones never move; grip marks say "slide me" */
+.app .pill.drag{width:128px;justify-content:flex-start;touch-action:pan-y;cursor:ew-resize}
+.pill .grip{margin-left:auto;font-size:10px;letter-spacing:-1px;opacity:.55}
+.app .pill.drag.dragging{box-shadow:inset 0 0 0 1.5px var(--a-accent);background:
+  linear-gradient(90deg,transparent calc(25% - .5px),var(--a-ring) calc(25% - .5px),var(--a-ring) calc(25% + .5px),transparent calc(25% + .5px),
+  transparent calc(50% - .5px),var(--a-ring) calc(50% - .5px),var(--a-ring) calc(50% + .5px),transparent calc(50% + .5px),
+  transparent calc(75% - .5px),var(--a-ring) calc(75% - .5px),var(--a-ring) calc(75% + .5px),transparent calc(75% + .5px)),var(--a-surface);color:var(--a-accent-text)}
+
+/* Destination row — Shared/UI/DestinationRowView.swift */
+.dest{display:flex;flex-direction:column;gap:7px;max-width:440px}
+.dfoot{display:flex;align-items:center;gap:8px}
+.app .dchip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:99px;font-size:11.5px;font-weight:600;line-height:14px;color:var(--a-accent-text);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line);position:relative}
+.app .dchip::before{content:"";position:absolute;inset:-10px -4px}
+.app .dchip.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
+.dchip .dd{width:6px;height:6px;border-radius:50%;background:var(--a-accent)}
+.dchip.arc .dd{background:var(--a-amber)}
+.dchip .dv{font-size:8px;opacity:.55;font-weight:700}
+.dfolder{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--a-dim);white-space:nowrap}
+.dfolder.arc{color:var(--a-amber)}
+.darrow{font-size:11px;color:var(--a-faint)}
+.dfam{display:grid;grid-template-columns:1fr 3fr;column-gap:6px;height:11px;font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--a-faint);text-align:center;line-height:11px}
+.dsegs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.app .dseg{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0;border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);font-size:11px;font-weight:600;color:var(--a-dim)}
+.dseg .dd{width:7px;height:7px;border-radius:50%;background:var(--a-faint)}
+.app .dseg.on{color:var(--a-accent);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
+.dseg.on .dd{background:var(--a-accent)}
+.app .dseg.on.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
+.dseg.on.arc .dd{background:var(--a-amber)}
+
+.audiorow{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--a-dim)}
+.sw{width:26px;height:15px;border-radius:99px;background:var(--a-accent);position:relative;flex:none}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:var(--on-accent)}
+/* Mac */
+.mac.app{padding:22px 40px 0}
+.mac .col{display:flex;flex-direction:column;gap:8px}
+.mac .mtitle{font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mac .body{padding:24px 0 26px;font-size:15px}
+.mac .toolbar{height:38px;margin:-22px -40px 18px;border-bottom:1px solid var(--a-mac-stroke);display:flex;align-items:center;padding:0 14px;gap:6px;color:var(--a-faint);font-family:var(--mono);font-size:10px}
+.tl{width:11px;height:11px;border-radius:50%;background:var(--a-chip)}
+/* iPad */
+.ipad .colwrap{max-width:640px;margin:0 auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q75 · mock · C117 · C94 · C62 · after Q70</div>
+    <h1>Note header, final: the pill, plus where the note goes</h1>
+  </header>
+
+  <div class="q" id="question">
+    <div class="qt"><span class="n">1.</span> Tap to step, or drag?</div>
+    <div class="picks" role="group" aria-label="Pick a behaviour">
+      <button id="pick-a" data-pick="a" aria-pressed="false">A · tap to step</button>
+      <button id="pick-b" data-pick="b" aria-pressed="false">B · drag</button>
+    </div>
+    <div class="picknote" id="picknote">Try both on the pills below first (the A / B switch in the bar). Your pick stays on this phone only; say it in the sitting.</div>
+  </div>
+
+  <div class="mine" id="mine">
+    <h2>Picked for you. Overrule any of these.</h2>
+    <ol>
+      <li><span class="k">1</span><span><b>The destination keeps its built place: its own row, 12 pt under the pill.</b> That is where <code>MemoPageView</code> and <code>NoteProperties</code> put it today, right under importance. It costs the phone header about 36 pt. The other home would be on the pill&rsquo;s row, but the fading line already sits there.</span></li>
+      <li><span class="k">2</span><span><b>Drag (B) is positional.</b> The pill is cut into four equal zones: left quarter Not rated, then Passing, Useful, Important. Where your finger is when you let go is the tier. In B a plain tap does nothing except show a hint, so the two behaviours stay clean to compare.</span></li>
+      <li><span class="k">3</span><span><b>In A, one tap on an Important note un-rates it.</b> The cycle wraps with no stop, so a stray tap drops the note out of the queue and out of every export (C88). The toast says so; nothing asks first.</span></li>
+    </ol>
+  </div>
+
+  <div class="bar" role="toolbar" aria-label="View controls">
+    <div class="seg" role="group" aria-label="Pill behaviour">
+      <button id="beh-a" data-beh="a" aria-pressed="true">A · tap</button>
+      <button id="beh-b" data-beh="b" aria-pressed="false">B · drag</button>
+    </div>
+    <div class="seg" role="group" aria-label="Device">
+      <button id="dev-phone" data-dev="phone" aria-pressed="true">Phone</button>
+      <button id="dev-ipad" data-dev="ipad" aria-pressed="false">iPad</button>
+      <button id="dev-mac" data-dev="mac" aria-pressed="false">Mac</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="dest-toggle" checked> Destinations on</label>
+    <label class="chk"><input type="checkbox" id="marks-toggle" checked> mark my picks</label>
+  </div>
+
+  <div class="how" id="how-a"><b>A · tap to step.</b> Each tap on the pill moves one step: Not rated → Passing → Useful → Important → Not rated. No picker opens.</div>
+  <div class="how" id="how-b" hidden><b>B · drag.</b> Press the pill and slide left or right; the pill shows the tier under your finger. Let go to set it. Arrow keys work too.</div>
+
+  <section class="note" id="note-voice">
+    <h2>Voice note</h2>
+    <div class="devcap" data-cap="voice"></div>
+    <div class="meas" data-meas="voice"></div>
+    <div class="fit"><div class="fitin"><div class="frame" data-frame="voice"></div></div></div>
+  </section>
+
+  <section class="note" id="note-typed">
+    <h2>Typed note</h2>
+    <div class="devcap" data-cap="typed"></div>
+    <div class="meas" data-meas="typed"></div>
+    <div class="fit"><div class="fitin"><div class="frame" data-frame="typed"></div></div></div>
+  </section>
+
+  <footer>The two notes are separate notes with their own rating and destination; each is shared across Phone, iPad and Mac the way sync would. The voice note starts Not rated and Personal; the typed note starts Useful and Idea. Heights are measured live from the rendered frame, top of the title row to the first line of the body; Q50 measured today&rsquo;s phone voice header at 243 pt and Q70&rsquo;s pill version at 136 pt without a destination row. The destination row is drawn from <code>Shared/UI/DestinationRowView.swift</code> (one chip at rest; tap for PRIVATE | ARCHIVE and four segments; an archive pick shows its folder in amber) and <code>NoteDestination</code>; in the app it is hidden until the Destinations switch in Settings is on, which the checkbox above mimics. The typed note carries place and weather because typed notes will record them (D151). Other sizes and copy come from <code>MemoPageView.noteHeaderCore</code>, <code>NoteProperties</code>, <code>ThreeBallScale</code>, <code>TagEditorRow</code>, <code>MemoSpine.oneLiner</code> and <code>Palette.swift</code>. The phone nav bar, iPad side panels and Mac window chrome are placeholders.</footer>
+</div>
+
+<!-- All user-facing copy used by the script lives here, so no text sits inside a JS string. -->
+<div id="copy" hidden>
+  <span data-c="t0">Not rated</span><span data-c="t1">Passing</span><span data-c="t2">Useful</span><span data-c="t3">Important</span>
+  <span data-c="ok">ready to process</span>
+  <span data-c="left">left alone</span>
+  <span data-c="unrated">Not rated · out of the queue, no export</span>
+  <span data-c="hintB">Press and slide left or right</span>
+  <span data-c="life">starts fading 25 Oct — rate it to keep it</span>
+  <span data-c="back">‹ Notes</span><span data-c="navph">nav bar · not redrawn</span><span data-c="more">•••</span>
+  <span data-c="macbar">window chrome · sidebar left, Connections right · not redrawn</span>
+  <span data-c="addtag">+ tag</span><span data-c="addtagAck">Opens the inline tag field (unchanged)</span>
+  <span data-c="title-voice">Spindle clamp, 65 or 52</span>
+  <span data-c="title-typed">Spindle mount for the new router</span>
+  <span data-c="body-voice">So the 65 mm clamp is probably the right call, the 52 was always going to be a squeeze. Print a test ring in PETG first and check runout with the dial gauge before drilling anything.</span>
+  <span data-c="body-typed">Try the 65 mm clamp instead of the 52. Print a test ring in PETG first, check the runout with the dial gauge, then drill the four M6 holes through the gantry plate.</span>
+  <span data-c="tags-voice">cnc workshop</span><span data-c="tags-typed">cnc workshop router</span>
+  <span data-c="date-voice">Today · 14:29</span><span data-c="date-typed">Today · 16:05</span>
+  <span data-c="place-voice">Alfama</span><span data-c="place-typed">Cais do Sodré</span>
+  <span data-c="temp-voice">22°</span><span data-c="temp-typed">24°</span>
+  <span data-c="src-voice">Voice memo</span><span data-c="dur-voice">2:14</span><span data-c="src-typed">Note</span>
+  <span data-c="audio">Include audio in export</span>
+  <span data-c="personal">Personal</span><span data-c="made">Made</span><span data-c="idea">Idea</span><span data-c="inspiration">Inspiration</span>
+  <span data-c="f-made">_inbox/</span><span data-c="f-idea">_ideas/</span><span data-c="f-inspiration">_inspiration/</span>
+  <span data-c="private">PRIVATE</span><span data-c="archive">ARCHIVE</span><span data-c="arrow">→</span><span data-c="chev">⌄</span>
+  <span data-c="to">Goes to</span><span data-c="vault">the vault</span>
+  <span data-c="cap-phone">iPhone 13 · 390 pt wide</span>
+  <span data-c="cap-ipad">iPad · 834 pt wide · note column capped at 640 pt</span>
+  <span data-c="cap-mac">Mac · note column · approx. 760 pt</span>
+  <span data-c="cap-voice">voice note</span>
+  <span data-c="cap-typed">typed note ·</span><span data-c="cap-d151">after D151: place + weather</span>
+  <span data-c="m-hdr">Header</span><span data-c="m-pill">pill row</span><span data-c="m-dest">destination row</span><span data-c="m-off">destination row hidden</span>
+  <span data-c="picked">Picked. Say it in the sitting; this page sends nothing.</span>
+</div>
+
+<script>
+(function(){
+  var C = {};
+  document.querySelectorAll("#copy [data-c]").forEach(function(e){ C[e.getAttribute("data-c")] = e.textContent; });
+  var TIERS = [C.t0, C.t1, C.t2, C.t3];
+  var DESTS = ["personal","made","idea","inspiration"];
+  var W = {phone:390, ipad:834, mac:760};
+  var S = {beh:"a", dev:"phone", destOn:true, marks:true,
+    notes:{ voice:{rate:0, dest:"personal", open:false}, typed:{rate:2, dest:"idea", open:false} }};
+
+  var SVG = {
+    pin:'<svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="currentColor"/><circle cx="6" cy="5" r="2.1" fill="var(--a-bg)"/><path d="M6 7.2 L6 9.6" stroke="var(--a-bg)" stroke-width="1.3" stroke-linecap="round"/></svg>',
+    cloud:'<svg class="ic" viewBox="0 0 12 12"><circle cx="4" cy="4" r="2" fill="currentColor"/><path d="M3.2 10.5h5.6a2.2 2.2 0 0 0 0-4.4 3 3 0 0 0-5.6.9 1.8 1.8 0 0 0 0 3.5z" fill="currentColor"/></svg>',
+    cal:'<svg class="ic" viewBox="0 0 12 12"><rect x="1" y="2" width="10" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M1 4.8h10M3.8 1v2M8.2 1v2" stroke="currentColor" stroke-width="1.1"/></svg>',
+    mic:'<svg class="ic" viewBox="0 0 12 12"><rect x="4" y="1" width="4" height="7" rx="2" fill="currentColor"/><path d="M2.5 6a3.5 3.5 0 0 0 7 0M6 9.5V11" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>',
+    pen:'<svg class="ic" viewBox="0 0 12 12"><rect x="1" y="2" width="8.5" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M5 7l.5-1.8L10 .8l1.2 1.2-4.4 4.5z" fill="currentColor"/></svg>',
+    wave:'<svg class="ic" viewBox="0 0 12 12"><path d="M1 6h1M3 3.5v5M5 1.5v9M7 3v6M9 4.5v3M11 6h0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
+  };
+
+  // Tiny DOM builder: text always goes in as a text node.
+  function h(tag, cls, kids, attrs){
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (attrs) Object.keys(attrs).forEach(function(k){ el.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function(k){
+      if (k == null || k === false) return;
+      if (typeof k === "string") el.appendChild(document.createTextNode(k)); else el.appendChild(k);
+    });
+    return el;
+  }
+  function icon(name){ var s = document.createElement("span"); s.style.display = "inline-flex"; s.innerHTML = SVG[name]; return s; }
+  function chip(text, ic){ return h("span","cchip",[ic ? icon(ic) : null, text]); }
+  function mark(el, k){ if (k){ el.classList.add("mk"); el.setAttribute("data-k", k); } return el; }
+
+  function tagChips(kind){
+    return C["tags-"+kind].split(" ").map(function(t){ return h("span","tchip",["#"+t]); })
+      .concat([h("button","addtag",[C.addtag],{"data-act":"ack","type":"button"})]);
+  }
+
+  function pill(kind){
+    var n = S.notes[kind], B = S.beh === "b";
+    var balls = h("span","pbs", [1,2,3].map(function(j){ return h("span","pb"+(j<=n.rate?" lit":"")); }));
+    var cls = "pill" + (n.rate ? "" : " none") + (B ? " drag" : "");
+    var el = h("button", cls, [balls, h("span","pw",[TIERS[n.rate]]), B ? h("span","grip",["‹ ›"]) : null],
+      {"data-act":"pill","data-note":kind,"type":"button","aria-label":TIERS[n.rate]});
+    return mark(el, B ? "2" : (n.rate === 3 ? "3" : ""));
+  }
+  function pillRow(kind){
+    var n = S.notes[kind];
+    return h("div","pillrow",[pill(kind), n.rate ? null : h("span","life",[C.life])]);
+  }
+
+  // DestinationRowView: resting = one chip (+ folder when archive); open = family labels, four segments, then the arrow line.
+  function destRow(kind, gap){
+    var n = S.notes[kind], arc = n.dest !== "personal";
+    var kids = [];
+    if (n.open){
+      kids.push(h("div","dfam",[h("span",null,[C.private]), h("span",null,[C.archive])],{"aria-hidden":"true"}));
+      kids.push(h("div","dsegs", DESTS.map(function(d){
+        var on = d === n.dest, a = d !== "personal";
+        return h("button","dseg"+(on?" on":"")+(a?" arc":""),[h("span","dd"), C[d]],
+          {"data-act":"dset","data-note":kind,"data-d":d,"type":"button","aria-pressed":String(on)});
+      })));
+      if (arc) kids.push(h("div","dfoot",[h("span","darrow",[C.arrow]), h("span","dfolder arc",[C["f-"+n.dest]])]));
+    } else {
+      var foot = [h("button","dchip"+(arc?" arc":""),[h("span","dd"), C[n.dest], h("span","dv",[C.chev])],
+        {"data-act":"dexp","data-note":kind,"type":"button","aria-label":C[n.dest]})];
+      if (arc) foot.push(h("span","dfolder arc",[C["f-"+n.dest]]));
+      kids.push(h("div","dfoot",foot));
+    }
+    var row = h("div","dest",kids,{"data-dest":"1"});
+    row.style.marginTop = gap + "px";
+    return mark(row, "1");
+  }
+
+  function body(kind){ return h("div","body",[h("p",null,[C["body-"+kind]])]); }
+  function toast(){ return h("div","toast",[],{"aria-live":"polite"}); }
+
+  function touchFrame(dev, kind){
+    var dateChip = h("span","cchip",[C["date-"+kind]+" · ", icon("pin"), C["place-"+kind]]);
+    var row1 = h("div","flow",[dateChip, chip(C["temp-"+kind],"cloud")].concat(tagChips(kind)));
+    var row2 = pillRow(kind); row2.style.marginTop = "8px"; row2.setAttribute("data-pillrow","1");
+    var core = h("div","hcore",[row1, row2, S.destOn ? destRow(kind, 12) : null]);
+    var hdr = h("div","hdr",[h("div","titlerow",[h("div","title",[C["title-"+kind]])]), core]);
+    var inner = [hdr, body(kind)];
+    var app = h("div","app "+dev,[
+      h("div","nav",[h("span",null,[C.back]), h("i",null,[C.navph]), h("span",null,[C.more])]),
+      dev === "ipad" ? h("div","colwrap",inner) : inner[0],
+      dev === "ipad" ? null : inner[1],
+      toast()
+    ]);
+    app.style.width = W[dev] + "px";
+    return app;
+  }
+
+  function macFrame(kind){
+    var src = kind === "voice" ? [chip(C["src-voice"],"mic"), chip(C["dur-voice"],"wave")] : [chip(C["src-typed"],"pen")];
+    var dateChip = h("span","cchip",[icon("cal"), C["date-"+kind]+" · "+C["place-"+kind]]);
+    var row1 = h("div","flow",[dateChip, chip(C["temp-"+kind],"cloud")].concat(src, tagChips(kind)));
+    var row2 = pillRow(kind); row2.setAttribute("data-pillrow","1");
+    var audio = kind === "voice" ? h("div","audiorow",[h("span","sw"), C.audio]) : null;
+    var col = h("div","col",[h("div","mtitle",[C["title-"+kind]]), row1, row2, S.destOn ? destRow(kind, 0) : null, audio]);
+    var app = h("div","app mac",[
+      h("div","toolbar",[h("span","tl"),h("span","tl"),h("span","tl"), " "+C.macbar]),
+      h("div","hdr",[col]), body(kind), toast()
+    ]);
+    app.style.width = W.mac + "px";
+    return app;
+  }
+
+  var KINDS = ["voice","typed"];
+  function capText(kind){
+    var el = document.querySelector('[data-cap="'+kind+'"]');
+    el.textContent = C["cap-"+S.dev] + " · " + (kind === "voice" ? C["cap-voice"] : C["cap-typed"]+" ");
+    if (kind === "typed") el.appendChild(h("span","d151",[C["cap-d151"]]));
+  }
+  function render(){
+    KINDS.forEach(function(kind){
+      var fr = document.querySelector('[data-frame="'+kind+'"]');
+      fr.className = "frame " + S.dev + (S.marks ? " marks" : "");
+      fr.textContent = "";
+      fr.appendChild(S.dev === "mac" ? macFrame(kind) : touchFrame(S.dev, kind));
+      capText(kind);
+    });
+    layout(); measure();
+    requestAnimationFrame(function(){ layout(); measure(); });
+  }
+  function measure(){
+    KINDS.forEach(function(kind){
+      var fr = document.querySelector('[data-frame="'+kind+'"]');
+      var hdr = fr.querySelector(".hdr"), d = fr.querySelector("[data-dest]"), p = fr.querySelector("[data-pillrow]");
+      var out = document.querySelector('[data-meas="'+kind+'"]');
+      out.textContent = "";
+      out.appendChild(h("span",null,[C["m-hdr"]+": ", h("b",null,[Math.round(hdr.offsetHeight)+" pt"])]));
+      out.appendChild(h("span",null,[C["m-pill"]+" "+Math.round(p.offsetHeight)+" pt"]));
+      if (d){
+        var gap = parseFloat(d.style.marginTop) || (S.dev === "mac" ? 8 : 0);
+        out.appendChild(h("span",null,[C["m-dest"]+" "+Math.round(d.offsetHeight + gap)+" pt"]));
+      } else out.appendChild(h("span",null,[C["m-off"]]));
+    });
+  }
+  function layout(){
+    document.querySelectorAll(".fit").forEach(function(f){
+      var inn = f.firstElementChild, fr = inn.firstElementChild;
+      var s = Math.min(1, f.clientWidth / fr.offsetWidth);
+      inn.style.transform = "scale("+s+")";
+      f.style.height = (fr.offsetHeight * s) + "px";
+    });
+  }
+  function toastIn(kind, msg){
+    var t = document.querySelector('[data-frame="'+kind+'"] .toast'); if (!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 1600);
+  }
+  function rateMsg(prev, now){
+    if (!now) return prev ? C.unrated : C.t0 + " · " + C.left;
+    return TIERS[now] + " · " + C.ok;
+  }
+  function setRate(kind, r){
+    var n = S.notes[kind], prev = n.rate;
+    n.rate = r; render();
+    if (prev !== r || S.beh === "a") toastIn(kind, rateMsg(prev, r));
+  }
+
+  // Clicks: pill (A), destination, tag, switches.
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if (!b) return;
+    var fr = b.closest("[data-frame]"), kind = fr ? fr.getAttribute("data-frame") : null;
+    var act = b.getAttribute("data-act");
+    if (act === "pill"){
+      if (S.beh === "a"){ setRate(kind, (S.notes[kind].rate + 1) % 4); }
+      else if (!b._dragged){ toastIn(kind, C.hintB); }
+      b._dragged = false;
+      return;
+    }
+    if (act === "dexp"){ S.notes[kind].open = true; render(); return; }
+    if (act === "dset"){
+      var n = S.notes[kind], d = b.getAttribute("data-d");
+      n.dest = d; n.open = false; render();
+      toastIn(kind, C.to + " " + (d === "personal" ? C.vault : C["f-"+d]));
+      return;
+    }
+    if (act === "ack"){ toastIn(kind, C.addtagAck); return; }
+    if (b.dataset.beh){ S.beh = b.dataset.beh; seg("beh", S.beh);
+      document.getElementById("how-a").hidden = S.beh !== "a"; document.getElementById("how-b").hidden = S.beh !== "b";
+      render(); save("q75beh", S.beh); return; }
+    if (b.dataset.dev){ S.dev = b.dataset.dev; seg("dev", S.dev); render(); return; }
+    if (b.dataset.pick){ setPick(b.dataset.pick); return; }
+  });
+
+  // Behaviour B: press on the pill, slide; the zone under the finger is the tier.
+  var drag = null;
+  function zoneAt(el, x){
+    var r = el.getBoundingClientRect();
+    var f = (x - r.left) / r.width;
+    return Math.max(0, Math.min(3, Math.floor(f * 4)));
+  }
+  function paintPill(el, r){
+    el.classList.toggle("none", !r);
+    el.querySelectorAll(".pb").forEach(function(pb, i){ pb.classList.toggle("lit", i < r); });
+    el.querySelector(".pw").textContent = TIERS[r];
+  }
+  document.addEventListener("pointerdown", function(e){
+    if (S.beh !== "b") return;
+    var el = e.target.closest('[data-act="pill"]'); if (!el) return;
+    drag = {el:el, kind:el.getAttribute("data-note"), x0:e.clientX, moved:false, r:S.notes[el.getAttribute("data-note")].rate};
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  document.addEventListener("pointermove", function(e){
+    if (!drag) return;
+    if (!drag.moved && Math.abs(e.clientX - drag.x0) < 4) return;
+    drag.moved = true; drag.el.classList.add("dragging");
+    drag.r = zoneAt(drag.el, e.clientX); paintPill(drag.el, drag.r);
+  });
+  function endDrag(){
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (d.moved){ d.el._dragged = true; setRate(d.kind, d.r); }
+  }
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+  document.addEventListener("keydown", function(e){
+    if (S.beh !== "b") return;
+    var el = e.target.closest && e.target.closest('[data-act="pill"]'); if (!el) return;
+    var kind = el.getAttribute("data-note"), r = S.notes[kind].rate;
+    if (e.key === "ArrowRight" && r < 3){ e.preventDefault(); setRate(kind, r + 1); refocus(kind); }
+    if (e.key === "ArrowLeft" && r > 0){ e.preventDefault(); setRate(kind, r - 1); refocus(kind); }
+  });
+  function refocus(kind){ var p = document.querySelector('[data-frame="'+kind+'"] [data-act="pill"]'); if (p) p.focus(); }
+
+  function seg(p, v){ document.querySelectorAll("[data-"+p+"]").forEach(function(x){ x.setAttribute("aria-pressed", String(x.dataset[p] === v)); }); }
+  document.getElementById("dest-toggle").addEventListener("change", function(e){ S.destOn = e.target.checked; render(); });
+  document.getElementById("marks-toggle").addEventListener("change", function(e){ S.marks = e.target.checked; render(); });
+  function save(k, v){ try{ localStorage.setItem(k, v); }catch(_){} }
+  function load(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } }
+  function setPick(p){
+    document.querySelectorAll("[data-pick]").forEach(function(x){ x.setAttribute("aria-pressed", String(x.dataset.pick === p)); });
+    document.getElementById("picknote").textContent = C.picked;
+    save("q75pick", p);
+  }
+  var p0 = load("q75pick"); if (p0 === "a" || p0 === "b") setPick(p0);
+  var h0 = (location.hash || "").slice(1); if (W[h0]){ S.dev = h0; seg("dev", h0); }
+  if (h0 === "b"){ S.beh = "b"; seg("beh","b"); document.getElementById("how-a").hidden = true; document.getElementById("how-b").hidden = false; }
+  var rt; addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(layout, 80); });
+  try{ if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ layout(); measure(); }); }catch(_){}
+  render();
+})();
+</script>
