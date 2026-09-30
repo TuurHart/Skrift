@@ -273,10 +273,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Same-titled notes overwrite each other's images on export.** `convertImageMarkers` names
       images `<safe-title>_NNN.ext`, so two notes with the exact same title collide in the vault
       attachments folder. Uniquify by the note stem, which the `.md` already uniquifies.
-- [ ] **The phone filters Unrated twice.** The Unrated chip and the Filter sheet's "Not rated" toggle
-      (`MemosListView.swift:338` passes `showNotRated: !isRegular`, toggle at `:1619`) combine, so
-      Done + Not rated empties the list with no explanation. Found by the Q49 mock; every Q49 option
-      removes the duplicate.
+- [x] **The phone filters Unrated twice.** (fixed Q66 2026-09-30: the Filter icon, the Sort & Filter
+      sheet and its "Not rated" toggle are deleted; `MemoFilter.notRatedOnly` is gone. The Unrated
+      chip is the only Unrated filter.) The Unrated chip and the Filter sheet's "Not rated" toggle
+      combined, so Done + Not rated emptied the list with no explanation. Found by the Q49 mock.
 - [ ] **Mac list rows show no tag chips.** `QueueRowView.cardModel` fills only the duration/source
       chips, so a note tagged `#studio` shows the tag on the phone row and not on the Mac row (Q65,
       synthetic corpus). SPEC C115.

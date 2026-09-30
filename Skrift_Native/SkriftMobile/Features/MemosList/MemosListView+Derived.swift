@@ -156,7 +156,6 @@ extension MemosListView {
         if !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
-        if filter.notRatedOnly && (NoteConsent.isRated(memo) || memo.locked) { return false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
         if filter.from != nil || filter.to != nil {
             let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
