@@ -658,10 +658,10 @@ do: Tuur 2026-09-30: a Mac import should arrive UNRATED ("yes it should") — re
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q91 [auto] (todo) update the two UI tests that still drive the old Filter button to the new chip ids (never run the Mac one)
-spec: -
+spec: C117
 needs: -
-do: (fill in)
-check: (fill in)
+do: Q66 (D148, option A) deleted the Filter button/sheet; two protected UI tests still drive it: `SkriftMobile/SkriftMobileUITests/MemosListUITests.swift:79` (`testFilterUnsyncedHidesSynced`: sort-filter-button → filter-unsynced → sortfilter-done) and `SkriftDesktop/SkriftDesktopUITests/SidebarSearchSortUITests.swift:26,42` (`sidebar.filter`). Point them at the new ids (`chip-unsynced`, `chip-date`, `sort-cycle-word`, `sidebar.chip.Date`, `sidebar.sort-word`) with the same assertions — the change follows Tuur's D148, hand-merge. Run the PHONE test in the simulator (sim lock). NEVER run the Mac UI test (it takes the real mouse) — compile-check it only with `xcodebuild build-for-testing` of the Mac UI-test target.
+check: `./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
