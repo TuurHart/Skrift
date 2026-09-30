@@ -27,6 +27,43 @@ struct SignificanceCircles: View {
     }
 }
 
+/// Q88: the note header's rating pill (`NoteRatingRow`: pill + orange fading line — one
+/// header everywhere, C115) for hosts outside the note page: the quick note, the audiobook
+/// capture sheet and the share sheet. Same non-optional `Double` binding as
+/// `SignificanceCircles` (the phone stores "never rated" as 0). The step toast is drawn
+/// here, just above the pill, because a sheet / share extension has no screen-level layer.
+struct PhoneRatingRow: View {
+    @Binding var value: Double
+    var onCommit: () -> Void = {}
+    /// nil = no line (rated, or the note doesn't exist yet).
+    var fadingLine: String? = nil
+    @State private var toast: RatingToast?
+
+    var body: some View {
+        NoteRatingRow(
+            value: Binding(get: { value == 0 ? nil : value },
+                           set: { value = $0 ?? 0 }),
+            style: .phone,
+            fadingLine: fadingLine,
+            lineColor: Color.skAmber.opacity(0.9),
+            onTap: { Haptics.tap(.light) },
+            onCommit: onCommit,
+            onToast: { toast = $0 })
+            .overlay(alignment: .top) {
+                if let toast {
+                    RatingToastView(toast: toast)
+                        .offset(y: -38)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .task(id: toast.id) {
+                            try? await Task.sleep(for: .seconds(1.6))
+                            if self.toast?.id == toast.id { withAnimation(SkMotion.snappy) { self.toast = nil } }
+                        }
+                }
+            }
+    }
+}
+
 extension ThreeBallStyle {
     /// Touch panel: 15pt balls at 10pt gaps in a 44pt touch target (D107 — one
     /// size down from the old 18pt/6pt control). No hover, the sync line

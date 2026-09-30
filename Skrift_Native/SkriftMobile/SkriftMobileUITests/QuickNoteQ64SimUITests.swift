@@ -142,7 +142,7 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         func assertChrome(_ when: String) {
             XCTAssertTrue(any(app, "quick-note-date").exists, "date chip missing \(when)")
             XCTAssertTrue(any(app, "add-tag-button").exists || any(app, "tag-input").exists, "tags row missing \(when)")
-            XCTAssertTrue(any(app, "importance-balls").exists, "importance missing \(when)")
+            XCTAssertTrue(any(app, "rating-pill").exists, "importance missing \(when)")
             XCTAssertTrue(app.keyboards.count > 0, "keyboard not up \(when)")
             XCTAssertTrue(app.buttons["accessory-done"].waitForExistence(timeout: 3), "accessory toolbar (accessory-done) missing \(when)")
             XCTAssertTrue(app.buttons["accessory-undo"].exists, "accessory-undo missing \(when)")

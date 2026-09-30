@@ -28,10 +28,10 @@ final class NameLinkingUITests: XCTestCase {
         // Tap the ambiguous "Jack" ("Met up with Jack…", first transcript line).
         // The editor element spans the WHOLE page body with the metadata header
         // scrolling inside it (note-editing re-foundation), so the first text
-        // line is ANCHORED off the importance card's bottom edge — not a guessed
+        // line is ANCHORED off the rating pill's bottom edge — not a guessed
         // fraction. Sweep a few x-positions along that line and stop when the
         // resolve sheet appears. A name tap must open the sheet, not the keyboard.
-        let importance = app.otherElements["significance-circles"].firstMatch
+        let importance = app.buttons["rating-pill"].firstMatch
         XCTAssertTrue(importance.waitForExistence(timeout: 5), "importance card missing from the header")
         let firstLineY = importance.frame.maxY + 26          // centre of the first text line
         let dy = (firstLineY - editor.frame.minY) / editor.frame.height

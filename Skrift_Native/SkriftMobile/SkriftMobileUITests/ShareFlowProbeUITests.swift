@@ -118,9 +118,9 @@ final class ShareFlowProbeUITests: XCTestCase {
             snap("05b-no-annotation-field")
         }
 
-        // Tap significance circle 4 (0.4) if reachable.
-        let circle = safari.otherElements["significance-circle-4"].firstMatch
-        let circleBtn = safari.buttons["significance-circle-4"].firstMatch
+        // Tap the rating pill once (Not rated -> Passing) if reachable.
+        let circle = safari.otherElements["rating-pill"].firstMatch
+        let circleBtn = safari.buttons["rating-pill"].firstMatch
         if circle.waitForExistence(timeout: 3) { circle.tap() }
         else if circleBtn.waitForExistence(timeout: 2) { circleBtn.tap() }
         sleep(1)

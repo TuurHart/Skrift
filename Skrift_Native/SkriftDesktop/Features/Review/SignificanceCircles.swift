@@ -22,6 +22,35 @@ struct SignificanceCircles: View {
     }
 }
 
+/// Q88: the note header's rating pill (`NoteRatingRow`, C115) for `UnpipelinedMemoSheet`,
+/// the one Mac host outside `NoteProperties`. The step toast is drawn here, just above the
+/// pill, because a sheet has no screen-level toast layer.
+struct MacRatingRow: View {
+    /// nil = the user hasn't rated this note yet. Set values are exact 0.1 snaps.
+    @Binding var value: Double?
+    var enabled: Bool = true
+    var fadingLine: String? = nil
+    @State private var toast: RatingToast?
+
+    var body: some View {
+        NoteRatingRow(value: $value, style: .mac, enabled: enabled,
+                      fadingLine: fadingLine, lineColor: Theme.amber.opacity(0.9),
+                      onToast: { toast = $0 })
+            .overlay(alignment: .top) {
+                if let toast {
+                    RatingToastView(toast: toast)
+                        .offset(y: -34)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .task(id: toast.id) {
+                            try? await Task.sleep(for: .seconds(1.6))
+                            if self.toast?.id == toast.id { withAnimation(.easeOut(duration: 0.12)) { self.toast = nil } }
+                        }
+                }
+            }
+    }
+}
+
 extension ThreeBallStyle {
     /// Desktop card: 10pt balls at 8pt gaps in a 20pt pointer target (D107 —
     /// one size down from the old 13pt/7pt control), hover + tooltips, an
