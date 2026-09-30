@@ -568,7 +568,7 @@ gate+: yes
 do: Tuur 2026-09-30 on the prod Mac (an older build — reproduce on the current branch first, headless, synthetic corpus): (a) "I can't shift select multiple" notes in the sidebar — add range selection (shift-click) and ⌘-click to the Mac list, feeding the existing multi-select actions; (b) "when I uploaded the voice memos they didn't auto transcribe" — C49: a Mac import floors to 0.1 and must enter the pipeline without a manual Process; find why an imported voice memo sat untranscribed; (c) right-click → Process "worked flaky" — find the failure (race with the batch runner? selection vs clicked row?) and fix. Desktop tests (new file) for (b) and (c) through the ingest/processing seams; (a) proven by the full build + a headless snapshot with 3 rows selected. NEVER run SkriftDesktopUITests (they take the real mouse).
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q78 [auto] (doing) phone Journal previews show plain text, not raw markdown (use NoteSnippet.plain)
+### Q78 [auto] (done) phone Journal previews show plain text, not raw markdown (use NoteSnippet.plain)
 spec: C115
 needs: -
 do: Q69 made one shared `Shared/Pipeline/NoteSnippet.plain` (no `**…**`, no `[[…]]`) and used it in the Mac sidebar and Mac Journal; the phone's `JournalHomeView.snippet` (SkriftMobile/Features/Journal/JournalHomeView.swift:381) still builds its own and shows raw markup. Route it (and any other phone snippet builder that shows raw `**Speaker n:**` / `[[Name]]`) through NoteSnippet.plain. Phone proof via `plan/mtest.sh` on an existing class.
@@ -602,7 +602,7 @@ gate+: yes
 do: Tuur 2026-09-30 on the Q62 explainer: make phone and Mac use the SAME shared code, the Mac matching the phone where they differ: group 6 word highlight / karaoke ("which word is playing — unify between devices, also in karaoke mode"; tapping a highlighted word seeks there on every device), 8 Looking back, 9 notes-list core (fading, duplicates — "all devices use it the same way"), 11 conversation turns, 12 recording helpers, 13 search by meaning ("match the Mac to the phone and unify the code"). First write `plan/reads/unify-q82.md`: per group, what each app does today, file:line, and the one shared implementation it moves to; then move them one group per commit into `Shared/` with a test each that the same input gives the same output on both targets. Never run SkriftDesktopUITests.
 check: `test -s plan/reads/unify-q82.md && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q83 [auto] (todo) audiobook quote captures: tap a word to jump the audio there, like a voice note
+### Q83 [auto] (doing) audiobook quote captures: tap a word to jump the audio there, like a voice note
 spec: C113 C218
 needs: -
 gate+: yes
@@ -912,3 +912,5 @@ check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 90
 - 2026-09-30 10:45 Q86 -> tuur — built @ea492c1e — awaiting sitting
 - 2026-09-30 10:47 Q86 -> done — Tuur 2026-09-30: "looks great, on both phone and Mac, I like it all" — the switch in the header
 - 2026-09-30 10:47 Q87 added
+- 2026-09-30 10:51 Q83 -> doing — worker out
+- 2026-09-30 11:03 Q78 -> done — gate pass @8a2be1e6
