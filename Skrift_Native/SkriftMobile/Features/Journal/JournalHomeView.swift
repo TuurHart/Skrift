@@ -162,9 +162,9 @@ struct JournalHomeView: View {
         memos = split.live
         wayOutFading = split.fading
         wayOutDeletedCount = repository.deletedMemos().count
-        important = LookbackProvider.importantLately(for: memos)
-        entries = LookbackProvider.entries(for: memos,
-                                           excluding: Set(important.map(\.id)))
+        let river = LookbackProvider.river(for: memos)
+        important = river.important
+        entries = river.entries
         // Then vs Now arrives async (embedding queries); lookbacks re-derive so
         // the pair's notes never double-show as lookback cards.
         Task {
@@ -173,9 +173,7 @@ struct JournalHomeView: View {
                 let byID = Dictionary(snapshot.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
                 if let then = byID[pair.then], let nowMemo = byID[pair.now] {
                     thenNow = (then, nowMemo)
-                    entries = LookbackProvider.entries(
-                        for: snapshot,
-                        excluding: Set(important.map(\.id)).union([pair.then, pair.now]))
+                    entries = LookbackProvider.river(for: snapshot, thenNow: pair).entries
                     return
                 }
             }

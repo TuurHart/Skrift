@@ -29,6 +29,26 @@ enum LookbackProvider {
         let date: Date
     }
 
+    /// Everything the Journal river shows above the calendar: the tier-anchored "Important
+    /// lately" notes and the time-anchored lookback cards, with ONE exclusion rule — a note
+    /// already shown by another card (Important lately, or the Then vs Now pair) never shows
+    /// twice. The phone/iPad pass `showImportantLately: true`; the Mac has no signed card for
+    /// it (`mocks/journal-desktop.html`), so it passes false and its lookbacks are excluded by
+    /// the pair only — a note the Mac does not show under Important stays visible as a lookback.
+    struct River {
+        let important: [Memo]
+        let entries: [Entry]
+    }
+
+    static func river(for memos: [Memo], now: Date = Date(), calendar: Calendar = .current,
+                      thenNow pair: ThenVsNow.Pair? = nil, showImportantLately: Bool = true) -> River {
+        let important = showImportantLately ? importantLately(for: memos, now: now, calendar: calendar) : []
+        var excluded = Set(important.map(\.id))
+        if let pair { excluded.formUnion([pair.then, pair.now]) }
+        return River(important: important,
+                     entries: entries(for: memos, now: now, calendar: calendar, excluding: excluded))
+    }
+
     /// The memo's date on the journal axis: when it was RECORDED (spoken), not
     /// `createdAt` — that's when it entered Skrift (an import gets today's
     /// `createdAt` but should look back to the moment it captures).

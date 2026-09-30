@@ -22,6 +22,26 @@ enum ThenVsNow {
     /// How many of the newest notes get a neighbour query per derivation.
     static let maxRecents = 6
 
+    /// The two cut-off dates: notes recorded after `recentCut` are "new", notes recorded on or
+    /// before `gapCut` may be "then". nil only if the calendar cannot do the date maths.
+    static func window(now: Date, calendar: Calendar = .current) -> (recentCut: Date, gapCut: Date)? {
+        guard let recentCut = calendar.date(byAdding: .day, value: -recentWindowDays, to: now),
+              let gapCut = calendar.date(byAdding: .month, value: -minGapMonths, to: now) else { return nil }
+        return (recentCut, gapCut)
+    }
+
+    /// The newest notes that get a neighbour query, and every note's journal date — the two
+    /// inputs each app feeds its own related-scores.
+    static func recents(in memos: [Memo], since recentCut: Date) -> [Memo] {
+        Array(memos.filter { $0.recordedAt >= recentCut }
+            .sorted { $0.recordedAt > $1.recordedAt }
+            .prefix(maxRecents))
+    }
+
+    static func dates(of memos: [Memo]) -> [UUID: Date] {
+        Dictionary(memos.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
+    }
+
     /// Pure pair-picking (unit-tested in both suites): best-scoring hit that is
     /// old enough. `candidates` = each recent note's related hits.
     static func pick(candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])],
