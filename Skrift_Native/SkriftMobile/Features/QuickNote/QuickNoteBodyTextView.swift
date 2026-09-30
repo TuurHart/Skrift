@@ -36,13 +36,29 @@ struct QuickNoteBodyTextView: UIViewRepresentable {
         return tv
     }
 
+    /// Q79 (C112/C113): while the user edits, the UITextView is the source of truth. The
+    /// binding can lag the text view by a keystroke or more (the first keystroke creates
+    /// the draft Memo on the main thread; SwiftUI defers state written mid-update), and
+    /// writing that stale value back ate Returns and characters. So the binding only
+    /// overwrites the view when nobody is editing it and no IME composition is open.
+    static func shouldPush(bound: String, current: String, isEditing: Bool, hasMarkedText: Bool) -> Bool {
+        bound != current && !isEditing && !hasMarkedText
+    }
+
     func updateUIView(_ tv: UITextView, context: Context) {
-        if tv.text != text { tv.text = text }
+        if Self.shouldPush(bound: text, current: tv.text, isEditing: tv.isFirstResponder,
+                           hasMarkedText: tv.markedTextRange != nil) {
+            tv.text = text
+        }
+        // Becoming/resigning first responder fires the delegate synchronously, which
+        // writes SwiftUI state ("Modifying state during view update"); defer those.
+        context.coordinator.isUpdating = true
         if isFocused, !tv.isFirstResponder {
             tv.becomeFirstResponder()
         } else if !isFocused, tv.isFirstResponder {
             tv.resignFirstResponder()
         }
+        context.coordinator.isUpdating = false
         context.coordinator.accessoryBar?.refresh(
             canUndo: tv.undoManager?.canUndo ?? false,
             canRedo: tv.undoManager?.canRedo ?? false)
@@ -54,6 +70,7 @@ struct QuickNoteBodyTextView: UIViewRepresentable {
         let text: Binding<String>
         let onFocusChange: (Bool) -> Void
         weak var accessoryBar: NoteAccessoryBar?
+        var isUpdating = false
 
         init(text: Binding<String>, onFocusChange: @escaping (Bool) -> Void) {
             self.text = text
@@ -66,7 +83,15 @@ struct QuickNoteBodyTextView: UIViewRepresentable {
                                    canRedo: textView.undoManager?.canRedo ?? false)
         }
 
-        func textViewDidBeginEditing(_ textView: UITextView) { onFocusChange(true) }
-        func textViewDidEndEditing(_ textView: UITextView) { onFocusChange(false) }
+        private func notifyFocus(_ focused: Bool) {
+            if isUpdating {
+                DispatchQueue.main.async { [onFocusChange] in onFocusChange(focused) }
+            } else {
+                onFocusChange(focused)
+            }
+        }
+
+        func textViewDidBeginEditing(_ textView: UITextView) { notifyFocus(true) }
+        func textViewDidEndEditing(_ textView: UITextView) { notifyFocus(false) }
     }
 }
