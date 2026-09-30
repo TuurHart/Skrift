@@ -238,7 +238,7 @@ mark{background:none;color:inherit;font-weight:700}
       <li><b>Needs a letter or digit.</b> <code>[]</code> is refused with a line under the row; the field keeps the text so you can fix it.</li>
       <li><b><code>#</code> stripped once, case kept.</b> <code>#design</code> lands as <code>design</code>; <code>Wood</code> stays <code>Wood</code>.</li>
       <li><b>Case-variants fold to the first spelling (D23).</b> <code>LISBON</code> on a note that has <code>Lisbon</code> adds nothing; the existing chip pulses and the line says so.</li>
-      <li><b>All four destination words are tags.</b> <code>inspiration</code> is accepted and says it will ask the archive for a credit (today's copy, kept).</li>
+      <li><b>All four destination words are tags.</b> <code>inspiration</code> is accepted and says it will ask the portfolio for a credit (today's copy, kept).</li>
       <li><b>Typeahead</b> is prefix, case-insensitive, and shows the spelling you already use. A <b>Create</b> chip leads only when the text is new everywhere.</li>
     </ul>
   </section>
@@ -352,7 +352,7 @@ mark{background:none;color:inherit;font-weight:700}
       S.tags.forEach(function(x){ if(lc(x)===k) hit=x; });
       if(hit){ folded={typed:t, kept:hit}; return; }
       S.tags.push(t); added.push(t);
-      if(t.toLowerCase()==="inspiration") setHint("Noted — this note will ask the archive for a credit.","warn");
+      if(t.toLowerCase()==="inspiration") setHint("Noted — this note will ask the portfolio for a credit.","warn");
     });
     S.armed=null;
     paintChips(added, folded && folded.kept);
@@ -728,7 +728,7 @@ mark{background:none;color:inherit;font-weight:700}
           OT.draft=""; OT.adding=false; render(); flashStore(); return;
         }
         var credit=todayCommit(); render(); focusField();
-        var hp=$("ohelp"); if(hp && credit){ hp.textContent="Noted — this note will ask the archive for a credit."; hp.className="help acc"; }
+        var hp=$("ohelp"); if(hp && credit){ hp.textContent="Noted — this note will ask the portfolio for a credit."; hp.className="help acc"; }
       }
       if(e.key==="Escape" && isMac()){ OT.draft=""; OT.adding=false; render(); }
     }

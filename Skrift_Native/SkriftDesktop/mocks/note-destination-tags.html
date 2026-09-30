@@ -68,7 +68,9 @@
   .helper.warn{color:#E5604B;}
 
   /* destination control */
-  .dest{display:flex;gap:6px;}
+  .dest{display:flex;gap:6px;position:relative;}
+  .dest .d.pri{position:relative;}
+  .dest .d.pri::after{content:"";position:absolute;right:-4px;top:-20px;bottom:0;border-right:1px dashed #44445a;}
   .dest .d{flex:1;border-radius:11px;padding:9px 4px 8px;text-align:center;border:1px solid rgba(255,255,255,.09);
            background:rgba(255,255,255,.03);}
   .dest .d .dot{width:7px;height:7px;border-radius:50%;background:#4e4e60;margin:0 auto 6px;}
@@ -144,14 +146,14 @@
   <b style="color:#34d399;">SIGNED OFF 2026-08-26 — version B, COLLAPSED (B1 · B2 · B3).</b>
   The destination row lives on the note beside the importance circles, resting as one chip and
   expanding to all four on tap. The two resting states are deliberately unequal: Personal shows a
-  quiet purple chip and nothing else; an archive destination also names its folder and says it will
+  quiet purple chip and nothing else; a portfolio destination also names its folder and says it will
   be read. B4 (chip inline with the tags) is REJECTED — it blurs the one distinction the feature
   exists to draw. Version A's tag sheet ships as B's tag sheet. C is rejected.
 </p>
 <p class="sub">
   Four destinations, <b>one-of-four</b> (never two — the destination is a privacy boundary, and
   <code>idea</code> vs <code>inspiration</code> is a question of authorship, so both-at-once is meaningless).
-  Personal is the default and means today's Obsidian path. The other three leave for the archive.
+  Personal is the default and means today's Obsidian path. The other three leave for the portfolio.
   Every version also re-does the tag sheet, because the current one is the annoying part.
 </p>
 
@@ -213,7 +215,7 @@
     <table>
       <tr><th>chip</th><th>goes to</th><th>the line</th><th>AI reads it</th></tr>
       <tr><td><b>Personal</b></td><td>your Obsidian vault</td><td>your own thoughts</td><td><span class="n">never</span></td></tr>
-      <tr><td><b>Made</b></td><td><code>portfolio/_inbox/</code></td><td>something you made</td><td><span class="y">yes</span></td></tr>
+      <tr><td><b>Project</b></td><td><code>portfolio/_projects/</code></td><td>something you are making or have made</td><td><span class="y">yes</span></td></tr>
       <tr><td><b>Idea</b></td><td><code>portfolio/_ideas/</code></td><td>something you want to make — <i>yours</i></td><td><span class="y">yes</span></td></tr>
       <tr><td><b>Inspiration</b></td><td><code>portfolio/_inspiration/</code></td><td>someone else's, that you liked</td><td><span class="y">yes</span></td></tr>
     </table>
@@ -243,12 +245,12 @@
         <div class="shead"><span class="t">Tags</span><span class="done">Done</span></div>
         <div class="sbody">
           <div class="slab">WHERE THIS GOES</div>
-          <div class="famline"><span class="a">PRIVATE</span><span class="b">ARCHIVE</span></div>
+          <div class="famline"><span class="a">PRIVATE</span><span class="b">PORTFOLIO</span></div>
           <div class="dest">
             <div class="d pri"><div class="dot"></div><div class="n">Personal</div></div>
-            <div class="d pub"><div class="dot"></div><div class="n">Made</div></div>
-            <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
             <div class="d pub"><div class="dot"></div><div class="n">Inspiration</div></div>
+            <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
+            <div class="d pub"><div class="dot"></div><div class="n">Project</div></div>
           </div>
           <div class="destfoot">
             <span>→</span><span class="path pub">portfolio/_ideas/2026-08/</span>
@@ -289,12 +291,12 @@
         <div class="shead"><span class="t">Tags</span><span class="done">Done</span></div>
         <div class="sbody">
           <div class="slab">WHERE THIS GOES</div>
-          <div class="famline"><span class="a">PRIVATE</span><span class="b">ARCHIVE</span></div>
+          <div class="famline"><span class="a">PRIVATE</span><span class="b">PORTFOLIO</span></div>
           <div class="dest">
             <div class="d pri"><div class="dot"></div><div class="n">Personal</div></div>
-            <div class="d pub"><div class="dot"></div><div class="n">Made</div></div>
-            <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
             <div class="d pub"><div class="dot"></div><div class="n">Inspiration</div></div>
+            <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
+            <div class="d pub"><div class="dot"></div><div class="n">Project</div></div>
           </div>
           <div class="destfoot">
             <span>→</span><span class="path pub">portfolio/_ideas/2026-08/</span>
@@ -316,7 +318,7 @@
     <p class="cap">
       <b>Your question, answered as UI.</b> Type one of the four reserved words in the free field and it
       refuses to become a tag — it points at the control that actually does that thing. Same for
-      <code>idea</code>, <code>personal</code>, <code>made</code>. This state is identical in all three versions.
+      <code>idea</code>, <code>personal</code>, <code>project</code>. This state is identical in all three versions.
     </p>
   </div>
 
@@ -337,12 +339,12 @@
           <span class="lab">IMPORTANCE</span>
         </div>
 
-        <div class="famline" style="margin:16px 0 7px;"><span class="a">PRIVATE</span><span class="b">ARCHIVE</span></div>
+        <div class="famline" style="margin:16px 0 7px;"><span class="a">PRIVATE</span><span class="b">PORTFOLIO</span></div>
         <div class="dest">
           <div class="d pri"><div class="dot"></div><div class="n">Personal</div></div>
-          <div class="d pub"><div class="dot"></div><div class="n">Made</div></div>
-          <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
           <div class="d pub"><div class="dot"></div><div class="n">Inspiration</div></div>
+          <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
+          <div class="d pub"><div class="dot"></div><div class="n">Project</div></div>
         </div>
         <div class="destfoot">
           <span>→</span><span class="path pub">portfolio/_ideas/</span>
@@ -422,9 +424,9 @@
           <div class="field focus">Search or add…<span class="caret"></span></div>
           <div style="margin-top:14px;">
             <div class="row"><i class="dot" style="background:#7c6bf5;"></i><span class="n">Personal</span><span class="kind dest">DESTINATION</span></div>
-            <div class="row"><i class="dot" style="background:#f0b35e;"></i><span class="n">Made</span><span class="kind dest">DESTINATION</span></div>
-            <div class="row sel"><i class="dot" style="background:#f0b35e;"></i><span class="n">Idea</span><span class="kind dest">CURRENT</span></div>
             <div class="row"><i class="dot" style="background:#f0b35e;"></i><span class="n">Inspiration</span><span class="kind dest">DESTINATION</span></div>
+            <div class="row sel"><i class="dot" style="background:#f0b35e;"></i><span class="n">Idea</span><span class="kind dest">CURRENT</span></div>
+            <div class="row"><i class="dot" style="background:#f0b35e;"></i><span class="n">Project</span><span class="kind dest">DESTINATION</span></div>
             <div class="row"><i class="dot" style="background:#3a3b48;"></i><span class="n">#lisbon</span><span class="kind">ON NOTE</span></div>
           </div>
         </div>
@@ -545,7 +547,7 @@
       </div>
     </div>
     <p class="cap">
-      <b>The two resting states are deliberately unequal.</b> Personal shows a chip; an archive destination
+      <b>The two resting states are deliberately unequal.</b> Personal shows a chip; a portfolio destination
       also shows the folder and says it will be read. An always-on warning is no warning —
       it should only speak when something actually leaves.
     </p>
@@ -562,12 +564,12 @@
           <i class="c"></i><i class="c"></i><i class="c"></i><i class="c"></i><i class="c"></i>
           <span class="lab">IMPORTANCE</span>
         </div>
-        <div class="famline" style="margin:16px 0 7px;"><span class="a">PRIVATE</span><span class="b">ARCHIVE</span></div>
+        <div class="famline" style="margin:16px 0 7px;"><span class="a">PRIVATE</span><span class="b">PORTFOLIO</span></div>
         <div class="dest">
           <div class="d pri"><div class="dot"></div><div class="n">Personal</div></div>
-          <div class="d pub"><div class="dot"></div><div class="n">Made</div></div>
-          <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
           <div class="d pub"><div class="dot"></div><div class="n">Inspiration</div></div>
+          <div class="d pub on"><div class="dot"></div><div class="n">Idea</div></div>
+          <div class="d pub"><div class="dot"></div><div class="n">Project</div></div>
         </div>
         <div class="destfoot">
           <span>→</span><span class="path pub">portfolio/_ideas/</span>
@@ -629,7 +631,7 @@
   shouldn't be a fuzzy-match away.
   <br><br>
   <b>Collapsed is the version to build</b> — B1/B2/B3 above. Resting shows one chip, tapping opens all four
-  in place. Personal stays quiet; an archive destination names its folder and says it will be read, because
+  in place. Personal stays quiet; a portfolio destination names its folder and says it will be read, because
   that is the only moment the warning means anything. B4 (inline with the tags) saves one line and blurs the
   one distinction the feature exists to draw — take it only if B1's extra line annoys you in use.
 </p>

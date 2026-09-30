@@ -20,7 +20,7 @@ Skrift is Tuur's capture tool for his second brain. He records a voice note on h
 transcribed on the device with nothing sent anywhere. At the note he sorts it into one of
 two pipelines. **Personal** thoughts go, once rated and cleaned up by his Mac or iPad with a
 local model, as one Markdown file into his private Obsidian vault, which no AI ever reads.
-**Ideas, things he made and things that inspired him** go to his public archive repo, the
+**Ideas, things he made and things that inspired him** go to his public portfolio repo, the
 space he deliberately lets AI read so he can explore them further with it. The sort is a
 privacy boundary, decided by him in one tap, never guessed. Obsidian is home; Skrift is the
 front door. One user, fully offline, sold flat, no cloud AI. The long game is decades of
@@ -266,7 +266,7 @@ suite is retired; the unit suite IS the gate (D85).
 - C53 [auto] The picked folder IS the destination, resolved by `VaultLayout.home` (C192, D11):
   a pick named Skrift, a pick holding a stamped `.md`, or a pick containing a `Skrift/` is used
   as-is; otherwise `<pick>/Skrift` is created on first write; the media subfolders
-  `Recordings/ Images/ Documents/` are fixed and NOTHING DEEPER is forced; the archive root is
+  `Recordings/ Images/ Documents/` are fixed and NOTHING DEEPER is forced; the portfolio root is
   returned unchanged. Identity lives in the file stamp (`skriftID`, `skriftHash`,
   `lastTouched`), never in a remembered path; a stale folder bookmark re-prompts and never
   mints a second `Skrift/` (R53). || check:
@@ -282,14 +282,14 @@ suite is retired; the unit suite IS the gate (D85).
   summary · tags · people · significance · location · weather · pressure · pressureTrend ·
   dayPeriod · daylight · steps · stamp trio — the code's grouped order
   (`Compiler.swift:60-175`); `created` and `duration` are added, coordinates and the reminder
-  are not (D12). ARCHIVE profile = the C130 key list only, `date:` = the recording date on BOTH
-  profiles (the archive's `added:` is its own seeding date and is never written, D94). Title always quoted, and a tag containing `: ` is quoted the same way (R50);
+  are not (D12). PORTFOLIO profile = the C130 key list only, `date:` = the recording date on BOTH
+  profiles (the portfolio's `added:` is its own seeding date and is never written, D94). Title always quoted, and a tag containing `: ` is quoted the same way (R50);
   `people:` = the distinct linked canonicals of the body, reading order, written as a block
-  list of plain names on the archive profile (R51); OCR text and shared documents export
+  list of plain names on the portfolio profile (R51); OCR text and shared documents export
   (R38). || check: `CompilerTests`; corpus
   `voice-en-full-context`; every `dest-*` parses with `vault_index.py`. — ledgers:134-137, D12
 - C57 [auto] Images: `[[img_NNN]]` → `![[<note stem>_NNN.ext]]` (vault) or `![](file)`
-  (archive); names keyed by the unique note stem, never the title. || check: corpus
+  (portfolio); names keyed by the unique note stem, never the title. || check: corpus
   `typed-same-title-a/b` produce distinct files. ⚠ required difference — BUGS §2
 - C58 [auto] Attachments go through the same ownership rule as the note; no attachment lane
   removes a file it doesn't own. || check: D3 test. ⚠ required difference — BUGS D3
@@ -305,20 +305,20 @@ suite is retired; the unit suite IS the gate (D85).
   iOS auto-publishes; bookmarks never export. || check: `PublishCoordinatorTests`; corpus
   `typed-locked` and `applenote-dutch` (both locked) never appear in the vault. — ledgers:128-131,
   L C13, L:367
-- C62 [auto] Four destinations, one per note: Personal → vault; Made → `_inbox/`; Idea →
-  `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; Made lands in `_inbox/Skrift/`
-  (Tuur 2026-09-22; v1 writes flat `_inbox/` — ⚠ required difference, D41); the archive keeps
+- C62 [auto] Four destinations, one per note: Personal → vault; Project → `_projects/`; Idea →
+  `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; Project lands in `_projects/Skrift/`
+  (Tuur 2026-09-22; v1 writes flat `_projects/` — ⚠ required difference, D41); the portfolio keeps
   `[[names]]` and `people:`, plainifies place LINKS, drops weather, significance, SUMMARY,
   `author`, `type`, `source` (C130); writes `capture:` and `voice:` (set by each app, never
   derived) and `date:` = the recording date (never `added:`, D94); `location:` stays (C137); flat,
   named, media beside the note; the whole feature sits behind ONE Settings switch, off by
-  default; a destination is a per-device folder bookmark, one archive root. || check:
-  `ArchiveExportTests`; corpus `dest-*`. — ledgers:144-155
+  default; a destination is a per-device folder bookmark, one portfolio root. || check:
+  `PortfolioExportTests`; corpus `dest-*`. — ledgers:144-155
 - C63 [auto] No video goes to the Obsidian vault: a video note exports markdown + audio + the
-  frame there. A video filed Made / Idea / Inspiration keeps its source movie as a SYNCED asset
-  (cap ~200 MB, D44, C148), so the archive export copies it from whichever device exports
+  frame there. A video filed Inspiration / Idea / Project keeps its source movie as a SYNCED asset
+  (cap ~200 MB, D44, C148), so the portfolio export copies it from whichever device exports
   (Tuur 2026-08-28, "that is gold"); a Personal video discards the movie. || check: corpus
-  `video-*`; `video-made-archive` (owed). — ledgers:153, code-core K:248, D44
+  `video-*`; `video-project-portfolio` (owed). — ledgers:153, code-core K:248, D44
 - C64 [auto] `date:` = the RECORDING'S LOCAL DAY on every device — one timezone rule, no
   per-device reinterpretation (D13).
   || check: phone and Mac export of one corpus note recorded at 23:30 agree (R15).
@@ -351,7 +351,7 @@ suite is retired; the unit suite IS the gate (D85).
   filename today) — ingress P1, ledgers:205-206
 - C71 [auto] Video: audio stripped to m4a, one frame as a picture paragraph at the video's own
   place in the note (C12, C68 — the top for a lone video); the original movie is kept as a
-  SYNCED `source.<ext>` asset when the destination is Made / Idea / Inspiration (cap ~200 MB,
+  SYNCED `source.<ext>` asset when the destination is Inspiration / Idea / Project (cap ~200 MB,
   D44, C63, C148) and discarded for Personal; `recordedAt` =
   filming date, `sourceType = "video"` read by the list glyph. || check: corpus `video-*`;
   ingress P8. ⚠ required difference (glyph key drift `sourceType` vs `mediaSource`) — ingress P8
@@ -555,8 +555,8 @@ suite is retired; the unit suite IS the gate (D85).
   the network log of a corpus run; the two calls named on a Settings screen. — decisions:539, D29
 - C121 [auto] Personal notes never land in a folder a CLOUD AI reads; the destination is a stored
   field, one of four. The privacy boundary is cloud vs local: a local assistant in Skrift may
-  read everything, Claude only the archive (Tuur 2026-09-22). || check: corpus `dest-personal`
-  never under the archive root.
+  read everything, Claude only the portfolio (Tuur 2026-09-22). || check: corpus `dest-personal`
+  never under the portfolio root.
 - C122 [auto] The corpus is synthetic; agents never read his vault and never screenshot the live
   app at a real note; Dev and prod are separate containers and the Dev vault is the test vault;
   tests run on temp dirs, never the Dev container. The privacy rule targets cloud AI: Skrift's
@@ -586,66 +586,66 @@ suite is retired; the unit suite IS the gate (D85).
   it is the only carrier of sender names and exact order). || check: `.zip` shares refuse
   honestly. D37 decided 2026-09-24: never; sender name via the share sheet, with roster autocomplete
 
-### The archive contract — Skrift ↔ the portfolio repo (`~/Hackerman/Tiurihartog.com`)
+### The portfolio contract — Skrift ↔ the portfolio repo (`~/Hackerman/Tiurihartog.com`)
 
-The archive's own rules (its `portfolio/README.md`, `.claude/rules/portfolio.md`, `_ideas/`
-and `_inbox/` READMEs, `docs/SKRIFT-REQUEST.md`, roadmap ideas i14/i16/i29/i43/i50) read
-2026-09-21. Skrift is the CAPTURE pipeline; the archive is where captured ideas LIVE
+The portfolio's own rules (its `portfolio/README.md`, `.claude/rules/portfolio.md`, `_ideas/`
+and `_projects/` READMEs, `docs/SKRIFT-REQUEST.md`, roadmap ideas i14/i16/i29/i43/i50) read
+2026-09-21. Skrift is the CAPTURE pipeline; the portfolio is where captured ideas LIVE
 ("I need a place to capture them and a place to put the ones I have captured", 2026-08-26).
-The interview loop, sorting into item folders, links and layers happen on the archive side,
+The interview loop, sorting into item folders, links and layers happen on the portfolio side,
 never in Skrift ("then you can't have immediate AI back and forth" — rejected).
 
-- C129 [auto] What Skrift writes for Made / Idea / Inspiration is exactly what the archive
+- C129 [auto] What Skrift writes for Inspiration / Idea / Project is exactly what the portfolio
   stores: one flat markdown file, media beside it sharing its basename, no folder per entry;
-  `![](file)` relative embeds only, never `![[…]]`. || check: `ArchiveExportTests`; corpus
+  `![](file)` relative embeds only, never `![[…]]`. || check: `PortfolioExportTests`; corpus
   `dest-*`. — portfolio/README, _ideas/README
-- C130 [auto] Archive frontmatter is flat YAML: one line per value, no `: ` inside a plain
+- C130 [auto] Portfolio frontmatter is flat YAML: one line per value, no `: ` inside a plain
   value (reword, never quote), block lists never `[a, b]`; keys Skrift may write: `title`
   (only when HE gave one), `date` (the recording date), `capture`, `voice`, `tags`, `people`, `location`,
   `credit` (shape `- <who> — <what they did>[, <url>]`), `needs`, the stamp trio. Skrift never
   writes `type`, `source`, `author`, `summary`, `confidence`, `status`, `layer`, `shortlist`,
-  `added` (the archive's own seeding date) or `destination` (the folder is the only signal).
-  || check: every corpus `dest-*` export parses with the archive's own parser
+  `added` (the portfolio's own seeding date) or `destination` (the folder is the only signal).
+  || check: every corpus `dest-*` export parses with the portfolio's own parser
   (`capture/tools/vault_index.py`). ⚠ required difference (v1 writes `summary:` into every
-  profile — `Shared/Export/Compiler.swift:128`; the archive dropped the key 2026-08-26)
+  profile — `Shared/Export/Compiler.swift:128`; the portfolio dropped the key 2026-08-26)
   — portfolio/README, rules:496-498
 - C131 [auto] THE AUTHORSHIP LINE: everything above the closing `---` is the machine's,
-  everything below is HIS. An archive-bound body is never a generated text: no LLM title in
+  everything below is HIS. A portfolio-bound body is never a generated text: no LLM title in
   the body, no summary, no invented words; `voice: raw` = the transcript verbatim,
   `voice: cleaned` = grammar and punctuation only, his words in his order, diffable against
   the raw — DECIDED 2026-09-22: Skrift's copy-edit (fillers and repeats removed, nothing
-  rephrased, nothing added) IS `cleaned`; the archive's grammar-only wording is to be loosened
-  to match; `voice: written` = typed, untouchable. NO GLUE. || check: for every archive-bound
+  rephrased, nothing added) IS `cleaned`; the portfolio's grammar-only wording is to be loosened
+  to match; `voice: written` = typed, untouchable. NO GLUE. || check: for every portfolio-bound
   corpus note, no word of the cleaned body is absent from the raw body (removals only).
   — rules:192-223, D38
-- C132 [auto] An archive entry is named by the note's title, typed or generated; the timestamp
+- C132 [auto] A portfolio entry is named by the note's title, typed or generated; the timestamp
   (`2026-08-26-142312.md`) only when there is no title at all. Tuur 2026-09-22: a generated
-  title is as good a name as a typed one. = v1 (`VaultWrite.swift:112-115`); the archive's
+  title is as good a name as a typed one. = v1 (`VaultWrite.swift:112-115`); the portfolio's
   own docs are to be relaxed to match. || check: `dest-idea` → slug of its title. — D39
 - C133 [auto] Destination is one of four, single-select; "Personal" never reaches the
-  archive; Made → `_inbox/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
+  portfolio; Project → `_projects/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
   that is also true rides as an ordinary tag. The line between Idea and Inspiration is
   INTENT: a want of his in the entry makes it an idea even when the object is someone
   else's. || check: corpus `dest-*`. — _inbox/README, rules:537-547
 - C134 [auto] Credit is captured as a PHOTOGRAPH, not typed: an extra picture of the label
   travels with the entry; an Inspiration, or an Idea tagged `inspiration`, carries
-  `needs: - credit` so a later archive pass fills `credit:` or keeps the need. Skrift never
+  `needs: - credit` so a later portfolio pass fills `credit:` or keeps the need. Skrift never
   guesses a maker. || check: `dest-inspiration-credit`, `typed-reserved-word-tags`.
   — rules:549-569
-- C135 [auto] Empty body is a valid, common archive state (a bare picture); Skrift exports
+- C135 [auto] Empty body is a valid, common portfolio state (a bare picture); Skrift exports
   it without inventing a sentence. || check: `cap-image-no-words` with destination idea.
-- C136 [auto] The archive-bound export carries the ORIGINAL audio beside the note (he
-  reuses audio in videos), and the source movie too when the note is a video filed Made /
-  Idea / Inspiration (D44, C63); a video never reaches the Obsidian vault. || check:
-  `dest-made` export folder. — D44
-- C137 [auto] `people:`, `[[names]]` and `location:` stay in archive exports (public site, credit
+- C136 [auto] The portfolio-bound export carries the ORIGINAL audio beside the note (he
+  reuses audio in videos), and the source movie too when the note is a video filed Inspiration /
+  Idea / Project (D44, C63); a video never reaches the Obsidian vault. || check:
+  `dest-project` export folder. — D44
+- C137 [auto] `people:`, `[[names]]` and `location:` stay in portfolio exports (public site, credit
   his friends; C62, C130 agree). || check: corpus `dest-idea` frontmatter carries all three. — Tuur
-  2026-08-27 + 2026-09-23 "the archive export will keep location"
-- C138 [tuur] Ideas do NOT come back into Skrift in v2: the archive reads Skrift's files,
-  never the reverse, and Skrift does not attach a capture to an existing archive item
+  2026-08-27 + 2026-09-23 "the portfolio export will keep location"
+- C138 [tuur] Ideas do NOT come back into Skrift in v2: the portfolio reads Skrift's files,
+  never the reverse, and Skrift does not attach a capture to an existing portfolio item
   (D40, i43, i14).
-- C139 [tuur] "AI reads this" is a statement about the archive repo only; what reads it
-  (the teleprompter sessions, Claude in that repo) is the archive's contract, not Skrift's.
+- C139 [tuur] "AI reads this" is a statement about the portfolio repo only; what reads it
+  (the teleprompter sessions, Claude in that repo) is the portfolio's contract, not Skrift's.
 
 ### From the 50-scenario probe (plan/extraction/scenarios.md, 2026-09-21) — proposed, unconfirmed
 
@@ -672,8 +672,8 @@ Ingress:
 - C147 [auto] A share entry is deleted only after its memo is saved, for every type; a re-drain
   is idempotent (memo id from the entry). || check: drainer test that throws after the delete.
   ⚠ required difference (a kill in that window loses the clips today) — scenarios #19
-- C148 [tuur] A video filed Made / Idea / Inspiration keeps the source movie as a synced asset so
-  the archive gets it (cap ~200 MB); Personal videos keep discarding it. — scenarios #18, D44
+- C148 [tuur] A video filed Inspiration / Idea / Project keeps the source movie as a synced asset so
+  the portfolio gets it (cap ~200 MB); Personal videos keep discarding it. — scenarios #18, D44
 
 Recording and copy-edit:
 - C149 [auto] An interruption (call, Siri, alarm) is a pause: the recording clock stops and photo
@@ -731,7 +731,7 @@ Audiobooks, locks, reminders, export:
   acknowledgement clears the others. — scenarios #47, D51
 - C163 [auto] Changing an exported note's destination removes the old file when ours and
   untouched, then writes the new one; if the old file was edited or moved, the change is refused
-  with the file named. A Personal note never remains in the archive. DECIDED 2026-09-22.
+  with the file named. A Personal note never remains in the portfolio. DECIDED 2026-09-22.
   || check: corpus `dest-idea` re-filed Personal. ⚠ required difference (per-folder ledgers
   leave the old file today, `VaultWrite.swift:27-100`) — scenarios #48
 - C164 [auto] A retitle never renames the exported file ("rename just has to be done in
@@ -829,8 +829,8 @@ Audiobooks, locks, reminders, export:
 - C252 [auto] Tests that PIN v1 behaviour the spec retires are listed and deleted WITH the swap,
   never before: `NoteBodyTests.swift:196,243` (render-time snap, C17), `ImageMarkerReinsertTests
   .swift:6` (6-word anchors, C30), `VaultExporterTests.swift:172` (export-time snap, C65),
-  `IngestServiceTests.swift:54` (the Mac silently drops a PDF, C77), `ArchiveExportTests.swift:104`
-  (`summary:` in the archive, C130) and `:105` (`date:` in the archive, R51). || check: the
+  `IngestServiceTests.swift:54` (the Mac silently drops a PDF, C77), `PortfolioExportTests.swift:104`
+  (`summary:` in the portfolio, C130) and `:105` (`date:` in the portfolio, R51). || check: the
   swap's commit removes them and the gate stays green.
 - C253 [auto] The 19 untested `[auto]` clauses inside the four rewrite targets
   (plan/test-coverage.md §3) are the first queue items of `/2-plan`; each becomes a test
@@ -1063,7 +1063,7 @@ Reconcile sweep:
 Export:
 - C192 [auto] `VaultLayout.home`: a pick named Skrift, or holding a stamped `.md`, or containing
   a `Skrift/` folder, is used as-is; otherwise `<pick>/Skrift` is created on first write; media
-  subfolders `Recordings/ Images/ Documents/` are fixed; the archive returns the pick
+  subfolders `Recordings/ Images/ Documents/` are fixed; the portfolio returns the pick
   unchanged; a stale folder bookmark re-prompts and never mints a second `Skrift/` (R53).
   || check: `VaultLayoutTests`. — A54, D11
 - C193 [auto] The stamp hash spans the frontmatter (an Obsidian tag edit is a user edit) and
@@ -1277,7 +1277,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R17 | un-rated note still polished by the Mac | queue drops it, exports stop | `voice-en-rated-then-unrated` | C88 |
 | R18 | purge leaves the polish row; Mac keeps an orphan row | row + assets gone; orphan row trashed | purge test | C157 |
 | R19 | photo offsets after a call pile at the end | offsets follow the recording clock | `pic-after-interruption` | C149 |
-| R20 | re-filing Idea → Personal leaves the file in the archive | old file removed when ours | `dest-idea` re-filed | C163 |
+| R20 | re-filing Idea → Personal leaves the file in the portfolio | old file removed when ours | `dest-idea` re-filed | C163 |
 | R21 | rename a person: Mac rows and vault files keep `[[Old]]` | rewritten everywhere we own | rename golden | C159 |
 | R22 | only the first text of a mixed share survives; caption dropped on photo+caption | all texts, in order | ingress P3, P9-caption | C125, C141 |
 | R23 | a kill during the share drain loses the clips | entry deleted only after save | drainer kill test | C147 |
@@ -1308,9 +1308,9 @@ rewrite targets, each with its corpus note and the expected output:
 | R48 | a reminder is stored and shown as set before notification permission is checked (`ReminderSheet.swift:107`) | denied permission → the sheet says so, nothing pretends | permission-denied test | C92 |
 | R49 | a hand-typed `[[word]]` that is not a link exports as broken Obsidian syntax | plain text stays plain (escaped) in the vault | `typed-user-wikilink` | C59 |
 | R50 | a tag containing `: ` exports unquoted and turns the YAML list item into a mapping (`Compiler.swift:139`) | tags quoted like `summary:` | `typed-tags-with-spaces` + a `: ` tag | C56 |
-| R51 | `people:` with a linked name is GARBLED by the archive's own parser (`vault_index.py parse_front` → `['[Alice]']`); a picture-only capture exports `![[…]]` on the archive profile (`Compiler.captureSharedBlock` takes no profile), and so does the Mac's whole image lane: `VaultExporter.convertImageMarkers` (`VaultExporter.swift:235`) and `convertNoteAttachments` (`:296`) write `![[name]]` whatever the profile, while `ExportProfile.imageMarkdown` exists and the phone's `ObsidianPublisher.swift:253` already uses it (portfolio chat, 2026-09-24, read from source); the `date:` key is CORRECT (D94, `ArchiveExportTests.swift:105` pins the right key) | archive output parses with the archive's parser: `people:` as a block list of plain names, `![](file)`, `added:` | corpus `dest-*` exports run through `vault_index.py` | C129, C130 |
+| R51 | `people:` with a linked name is GARBLED by the portfolio's own parser (`vault_index.py parse_front` → `['[Alice]']`); a picture-only capture exports `![[…]]` on the portfolio profile (`Compiler.captureSharedBlock` takes no profile), and so does the Mac's whole image lane: `VaultExporter.convertImageMarkers` (`VaultExporter.swift:235`) and `convertNoteAttachments` (`:296`) write `![[name]]` whatever the profile, while `ExportProfile.imageMarkdown` exists and the phone's `ObsidianPublisher.swift:253` already uses it (portfolio chat, 2026-09-24, read from source); the `date:` key is CORRECT (D94, `PortfolioExportTests.swift:105` pins the right key) | portfolio output parses with the portfolio's parser: `people:` as a block list of plain names, `![](file)`, `added:` | corpus `dest-*` exports run through `vault_index.py` | C129, C130 |
 | R52 | Redo (title / copy-edit / summary) silently overwrites a field the user hand-edited — the 2026-07-10 clobber shape in new code | a hand-edited part is never overwritten without a confirm | edited-then-redo test | C179 |
-| R53 | a renamed or moved vault/archive folder: the bookmark's `stale` flag is captured and never read; a rename can mint a second `Skrift/` folder | stale bookmark → re-prompt, never a second folder | renamed-folder test | C192 |
+| R53 | a renamed or moved vault/portfolio folder: the bookmark's `stale` flag is captured and never read; a rename can mint a second `Skrift/` folder | stale bookmark → re-prompt, never a second folder | renamed-folder test | C192 |
 | R54 | the iPad polish has no battery floor while its Settings copy claims one | one stated rule (the book transcriber's 20% floor) or no claim | settings copy test | C180 |
 | R55 | a failed live-caption finalize on the Mac drops the last sentence(s) of an EDITED take and marks it done (`LiveCaptionEngine.swift:281,319`) | a failed finalize keeps the wet tail and says so | finalize-failure test | C220, C99 |
 | R56 | the 60-day sweep can trash the unrated note currently open in the Mac pane while the pane keeps it editable (`UnratedNotePane.swift:81-113`) | the open note is never swept from under the user | sweep-while-open test | C89 |
@@ -1334,7 +1334,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R75 | a `.transcribing` memo orphaned when its owning device is gone can never self-heal — `MemoSaver.swift:860-862`'s `ownsForRecovery` gates recovery to `recordingDeviceID == nil \|\| == thisDevice`, and `Shared/Model/DeviceID.swift` is local-only, never synced | a time-based fallback lets any device adopt an orphan `.transcribing` memo older than N days, or a Mac-side backstop | `stuck-transcribing-orphaned-device-gone` | C264 (new) |
 | R76 | a widget/Siri "Record" tap on a never-opened install is silently dropped: `SkriftApp.swift` shows onboarding, not `RecordView`, and `RecordingIntentBridge`'s pending-start flag has no expiry (unlike `prestart()`'s 8s sweep) | the pending intent either fast-paths into recording once onboarding completes, or the drop is surfaced | `widget-tap-before-first-open` | C100 (existing — violated) |
 | R77 | `Shared/Export/VaultWrite.swift:391-407` `writeAsset` `.file` branch unconditionally `removeItem`s then `copyItem`s an existing vault attachment with no ownership/stamp check — inside the SHARED engine both apps and C54 treat as protected | attachments route through the same ownership check the markdown lane already uses | new fixture, same shape as D3 test but targeting `VaultWrite.swift` not `VaultExporter.swift` | C58 (existing — violated; new instance, distinct file from D3) |
-| R78 | corrupt on-disk JSON is silently adopted as empty and written back over the real file: `Audiobook.swift:500-504,556-601` (mobile `library.json` — loses the WHOLE audiobook library) and `SkriftDesktop/Models/AppSettings.swift:150-176` (Desktop `settings.json` — loses `customVocabulary`/`archiveRoot`/`noteFolder`/`prompts`, non-atomic write too) | a file present-but-undecodable is never treated as "fresh install empty"; the corrupt file is preserved and recovery surfaced, same doctrine as C50 for `names.json` | `corrupt-library-json`, `corrupt-settings-json` | C265 (new — generalizes C50's rule beyond names.json) |
+| R78 | corrupt on-disk JSON is silently adopted as empty and written back over the real file: `Audiobook.swift:500-504,556-601` (mobile `library.json` — loses the WHOLE audiobook library) and `SkriftDesktop/Models/AppSettings.swift:150-176` (Desktop `settings.json` — loses `customVocabulary`/`portfolioRoot`/`noteFolder`/`prompts`, non-atomic write too) | a file present-but-undecodable is never treated as "fresh install empty"; the corrupt file is preserved and recovery surfaced, same doctrine as C50 for `names.json` | `corrupt-library-json`, `corrupt-settings-json` | C265 (new — generalizes C50's rule beyond names.json) |
 | R79 | delete-person fires with zero confirmation on all 4 entry points (`PersonEditorView.swift:218-223`, `PersonDetailView.swift:116-120` iOS; `PersonEditor.swift:102-109` → `SettingsView.swift:55-59` Mac) and the tombstone goes out over CloudKit at once | deleting a person confirms first, like every other destructive gesture | `delete-person-no-confirm` | C266 |
 | R80 | custom vocabulary additions made offline on two devices: `CustomWordsView.swift:39-43,63` saves a load-time snapshot as a full-array overwrite, and the underlying `Shared/Pipeline/VocabularySyncCore.swift:43-48` sync is whole-list LWW with no merge — only the empty-list edge case is guarded | a concurrent addition on two offline devices is never silently dropped; merge additively like `names.json` aliases, or surface a conflict | `vocab-concurrent-offline-add` | C267 (new) |
 | R81 | "Remove download" on a synced audiobook has no upload-in-progress check (`SyncedAudiobooksView.swift:66-67`, unlike `AudiobookSyncSheet` which does track `transfer`) and can delete the only copy of not-yet-uploaded audio | removing a synced audiobook's local download only frees storage once its upload to iCloud has completed | `remove-download-mid-upload` | C268 (new) |
@@ -1867,3 +1867,4 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      Archive → Portfolio, Made → Project in strings, code and stored values; no migration — the
      feature was never used ("nothing has been saved with it"). Portfolio folders match the words:
      `_projects/` (was `_inbox/`), `_ideas/`, `_inspiration/`. Supersedes D155's "stored value stays `made`" (Q84).
+     Clauses and R rows above use the new words; decisions D38-D94 keep the words they were dated in.
