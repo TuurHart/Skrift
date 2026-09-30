@@ -1865,5 +1865,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 156. **D156 Rename properly, no old words.** ✅ 2026-09-30: "I want proper renaming everywhere. I don't
      want old words creeping through again. That may mean we need to update the portfolio folders."
      Archive → Portfolio, Made → Project in strings, code and stored values; no migration — the
-     feature was never used ("nothing has been saved with it"). Project's portfolio folder: open
-     (keep the `_inbox/` sorting tray or `_projects/`). Supersedes D155's "stored value stays `made`" (Q84).
+     feature was never used ("nothing has been saved with it"). Portfolio folders match the words:
+     `_projects/` (was `_inbox/`), `_ideas/`, `_inspiration/`. Supersedes D155's "stored value stays `made`" (Q84).
