@@ -191,8 +191,7 @@ struct MemoCard: View {
         // Show the (2-line) transcript, but strip `[[img_NNN]]` markers so the raw
         // marker never reads as the row text — a VIDEO import always opens with
         // `[[img_001]]` (the frame), which otherwise filled the whole snippet.
-        let cleaned = transcript
-            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+        let cleaned = NoteSnippet.plain(transcript)
             .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned.isEmpty ? line : cleaned

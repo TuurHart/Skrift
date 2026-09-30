@@ -379,7 +379,7 @@ struct JournalMemoRow: View {
     }
 
     private var snippet: String? {
-        memo.transcript?.trimmingCharacters(in: .whitespacesAndNewlines)
+        memo.transcript.map { NoteSnippet.plain($0).trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     private var meta: some View {
