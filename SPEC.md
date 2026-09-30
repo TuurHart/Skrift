@@ -1850,3 +1850,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      Apple Notes import reads the Mac's Notes database (route 1, Full Disk Access is fine); locked
      notes stay behind; moving imported notes into an Apple Notes folder → research Q76. Drawings
      in Skrift (PencilKit, iPad) — parked idea, "maybe feature creep".
+154. **D154 The 116 tested-but-unused functions.** ✅ 2026-09-30: all 15 groups as the explainer
+     recommends (66 still used stay; 43 dead go with their tests — protected-test deletions
+     approved, hand-merged like D146; 7 unfinished get wired in: the old-note tidy-up Undo and the
+     tag editor's "already on this note" line); sharing as PDF / quote card / plain text and
+     publishAll are DELETED ("delete it and if I want it we'll rebuild it later", reverses D62's
+     keep); phone and Mac unify groups 6, 8, 9, 11, 12, 13 on one shared implementation (Q80–Q83).
