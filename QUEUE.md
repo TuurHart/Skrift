@@ -574,7 +574,7 @@ needs: -
 do: Q69 made one shared `Shared/Pipeline/NoteSnippet.plain` (no `**…**`, no `[[…]]`) and used it in the Mac sidebar and Mac Journal; the phone's `JournalHomeView.snippet` (SkriftMobile/Features/Journal/JournalHomeView.swift:381) still builds its own and shows raw markup. Route it (and any other phone snippet builder that shows raw `**Speaker n:**` / `[[Name]]`) through NoteSnippet.plain. Phone proof via `plan/mtest.sh` on an existing class.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q79 [auto] (doing) quick note: typing fast never loses a character or Return while the first keystroke creates the note
+### Q79 [auto] (done) quick note: typing fast never loses a character or Return while the first keystroke creates the note
 spec: C112 C113
 needs: -
 gate+: yes
@@ -588,7 +588,7 @@ gate+: yes
 do: Tuur approved per group on 2026-09-30 (D154) from the explainer https://claude.ai/artifact/TQKfanHMQasHHxFDmLQeyc (source list plan/reads/q62-unused-tested.md — its line anchors are wrong in places; the explainer re-derived them from tree 0d2779a6, re-grep every symbol by NAME on both apps before deleting). DELETE exactly the explainer's DELETE rows: 1 (edit-conflict record ids, PillRule — 3), 2 (old parseTagInput), 3 (touchedAt, attachmentsWritten), 4 (silenced set, plainOccurrences), 5 (15: old IN/OUT quote-capture math ×12, textSummary(bookID:), headings(in:), audioURL(of:)), 6 (normalize), 7 (the unused `now` parameter only), 9 (touch, MemoSpine.name(for:), ProcessPile.done), 10 (the three old paragraph splitters + the Mac DEBUG command that calls one), 11 (bodyRange), 12 (removedCount), 13 (createdAt), 14 (importance warm colour), 15 (PDF, quote card, plain-text share, publishAll ×2, the 3 convenience overloads — "delete it and if I want it we'll rebuild it later"). Delete each one's own tests with it: protected-test deletions are APPROVED (D154) and will be hand-merged like Q15 (D146). Never delete a KEEP row. One commit per group. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q81 [auto] (todo) wire in the 7 unfinished pieces: Undo for the old-note tidy-up, and the tag editor's 'already on this note' line
+### Q81 [auto] (doing) wire in the 7 unfinished pieces: Undo for the old-note tidy-up, and the tag editor's 'already on this note' line
 spec: C240 C93
 needs: -
 gate+: yes
@@ -616,7 +616,7 @@ gate+: yes
 do: Tuur 2026-09-30: a PROPER rename everywhere, "I don't want old words creeping through again", even if the portfolio folders must change (D156, supersedes D155's keep-the-raw-value). (1) Words: Archive → Portfolio and Made → Project in every user-visible string, SPEC/FEATURES wording, code identifiers (`isArchive` → `isPortfolio`, `.made` → `.project`, types/functions/comments with archive/made in their names — 22 Swift files mention them) on phone, iPad and Mac; order Personal · Inspiration · Idea · Project; PRIVATE ¦ PORTFOLIO labels with a dashed divider between the two sides (Shared/UI/DestinationRowView.swift:155-164). (2) No migration: the destinations feature was never used on any device (Tuur 2026-09-30: "nothing has been saved with it"), so rename the raw value to "project" outright — no "made" decoding, no folder move. (3) Portfolio folders match the words (Tuur 2026-09-30: "projects to projects, ideas to ideas, inspiration to inspiration"): Project → `_projects/` (was `_inbox/`), Idea → `_ideas/`, Inspiration → `_inspiration/`; nothing to move, the feature was never used. (4) After the change `grep -rniE "\\bmade\\b|archive" ` over Swift sources, mocks for the destination row, SPEC.md and FEATURES.md shows only unrelated uses (list each one left in the commit message). Screenshots phone + Mac (headless), LOOK, commit under `plan/reads/dest-q84/`. Never run SkriftDesktopUITests; never read the real vault or portfolio folder.
 check: `test $(ls plan/reads/dest-q84/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q85 [auto] (todo) build the note header pill (tap steps Not rated → Passing → Useful → Important) on phone, iPad and Mac
+### Q85 [auto] (doing) build the note header pill (tap steps Not rated → Passing → Useful → Important) on phone, iPad and Mac
 spec: C117 C94 C88
 needs: Q84
 gate+: yes
@@ -916,3 +916,6 @@ check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 90
 - 2026-09-30 11:03 Q78 -> done — gate pass @8a2be1e6
 - 2026-09-30 11:27 Q83 -> done — gate pass @4e3e1acf
 - 2026-09-30 11:32 Q84 -> done — hand-merged (D156 rename: approved test/corpus renames)
+- 2026-09-30 11:32 Q85 -> doing — worker out
+- 2026-09-30 11:32 Q81 -> doing — worker out
+- 2026-09-30 12:01 Q79 -> done — gate pass @3f97467c
