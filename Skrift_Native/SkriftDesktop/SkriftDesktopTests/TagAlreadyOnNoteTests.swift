@@ -1,5 +1,4 @@
 import XCTest
-@testable import SkriftDesktop
 
 /// Q81 / mock `tag-ui-revamp.html`: the "already on this note as #x" line, driven by
 /// the same fold rules (`TagRules.resolveSpelling`, `TagRules.fold`).

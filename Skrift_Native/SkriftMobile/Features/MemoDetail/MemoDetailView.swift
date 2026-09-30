@@ -112,6 +112,9 @@ struct MemoDetailView: View {
                 Button(NoteRedoItem.summary.label) { PolishCenter.shared.redo(.summary, for: memo) }
             } label: { menuLabel(.redo) }
         }
+        if memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
+            Button { undoTidyUp(memo) } label: { menuLabel(.undoTidyUp) }
+        }
         Button { reminderMemo = memo } label: { menuLabel(.remind) }
         if WallPrinter.shared.hasPrinter {
             Button { WallPrinter.shared.printCard(memo, repository: repository) } label: { menuLabel(.printCard) }
@@ -404,6 +407,10 @@ struct MemoDetailView: View {
                 Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
             }
             Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
+            if let memo = currentMemo,
+               memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
+                Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
+            }
             Button(NoteMenuItem.remind.label, action: { reminderMemo = currentMemo })
             if WallPrinter.shared.hasPrinter, let memo = currentMemo {
                 Button(NoteMenuItem.printCard.label, action: {
@@ -649,6 +656,12 @@ struct MemoDetailView: View {
     func normaliseCurrentOnce() {
         guard let memo = currentMemo else { return }
         memo.normaliseBodyOnce(enhancement: repository.enhancement(forMemo: memo.id))
+    }
+
+    /// "Undo tidy-up" (Q14/Q40 one-time body normalisation): puts back the pre-tidy body (and
+    /// polished copy-edit) from the local ledger, each only if not edited since.
+    func undoTidyUp(_ memo: Memo) {
+        memo.undoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id))
     }
 
     /// Load the CURRENT memo's audio — unless its content is lock-gated

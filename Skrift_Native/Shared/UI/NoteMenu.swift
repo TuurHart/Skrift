@@ -22,6 +22,7 @@ enum NoteMenuItem: CaseIterable {
     case flattenToMonologue
     case retranscribe
     case redo
+    case undoTidyUp
     // ── with the note ──
     // No `viewThread`: retired from BOTH apps 2026-07-25 — Connections' Date mode
     // is the arc on every platform (Tuur: "keep the apps looking the same").
@@ -44,6 +45,7 @@ enum NoteMenuItem: CaseIterable {
         case .flattenToMonologue: return "Flatten to monologue"
         case .retranscribe:       return "Re-transcribe"
         case .redo:               return "Redo"
+        case .undoTidyUp:         return "Undo tidy-up"
         case .remind:             return "Remind me…"
         case .printCard:          return "Print card"
         case .lock:               return "Lock note"
@@ -67,6 +69,7 @@ enum NoteMenuItem: CaseIterable {
         case .flattenToMonologue: return "text.alignleft"
         case .retranscribe:       return "waveform"
         case .redo:               return "arrow.clockwise"
+        case .undoTidyUp:         return "arrow.uturn.backward"
         case .remind:             return "bell"
         case .printCard:          return "printer"
         case .lock:               return "lock"

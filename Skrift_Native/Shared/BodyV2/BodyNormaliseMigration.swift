@@ -302,6 +302,17 @@ enum BodyNormaliseMigration {
         undo(id: polishedKey(id), bodies: bodies, ledger: ledger, now: now, didRestore: didRestore)
     }
 
+    /// True while `undo` would put something back: the note's record says `rewritten` and at
+    /// least one of those bodies is still exactly the migrated text (a later edit wins, so an
+    /// edited body stops offering the undo). This is what the note's "Undo tidy-up" item asks.
+    static func canUndo(id: String, bodies: [Body], ledger: Ledger = .standard) -> Bool {
+        guard let record = ledger.record(for: id), record.outcome == .rewritten else { return false }
+        return bodies.contains { body in
+            guard let f = record.fields[body.name] else { return false }
+            return body.get() == f.migrated
+        }
+    }
+
     /// Puts back every original whose body is still exactly the migrated text (a later edit
     /// wins and is left alone) and marks the note `undone`, so it is never migrated again.
     /// Returns the names of the bodies restored.
