@@ -6,7 +6,7 @@ import XCTest
 /// `mocks/note-destination-tags.html` version B:
 ///
 ///   B1  resting, Personal      — a quiet chip, no folder, no notice
-///   B3  expanded               — PRIVATE | ARCHIVE over four segments
+///   B3  expanded               — PRIVATE | PORTFOLIO over four segments
 ///   B2  resting, Idea          — the amber chip PLUS the folder it writes into
 ///
 /// PNGs land in `SKRIFT_SHOT_DIR` when the runner passes one, so the orchestrator can
@@ -47,7 +47,7 @@ final class DestinationRowUITests: XCTestCase {
         let idea = app.buttons["destination-idea"]
         XCTAssertTrue(idea.waitForExistence(timeout: 5), "tapping the chip expands to all four")
         XCTAssertTrue(app.buttons["destination-personal"].exists)
-        XCTAssertTrue(app.buttons["destination-made"].exists)
+        XCTAssertTrue(app.buttons["destination-project"].exists)
         XCTAssertTrue(app.buttons["destination-inspiration"].exists)
         capture(app, "B3-expanded")
 

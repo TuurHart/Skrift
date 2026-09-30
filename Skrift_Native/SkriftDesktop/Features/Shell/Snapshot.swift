@@ -656,7 +656,7 @@ enum Snapshot {
         f.enhancedSummary = "A quick flat white at the new place, then a walk back along the water."
         // The marker lands MID-SENTENCE (the injector places it at the nearest word);
         // the reflow must show the sentence whole, then the photo block beneath it.
-        f.sanitised = "# Morning coffee\n\nI grabbed a coffee at the new place on the corner\n\n[[img_001]]\n\n and it was honestly the best flat white I have had in months.\n\n## The walk back\n\nThen I walked back along the river and the light was perfect. Filing this under #coffee for the archive."
+        f.sanitised = "# Morning coffee\n\nI grabbed a coffee at the new place on the corner\n\n[[img_001]]\n\n and it was honestly the best flat white I have had in months.\n\n## The walk back\n\nThen I walked back along the river and the light was perfect. Filing this under #coffee for the portfolio."
         f.enhancedCopyedit = f.sanitised
         f.significance = 0.5
         f.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: ["duration": "00:01:40"])
@@ -1054,14 +1054,14 @@ enum Snapshot {
         let view = VStack(alignment: .leading, spacing: 26) {
             ForEach(NoteDestination.allCases, id: \.self) { d in
                 DestinationRowView(destination: .constant(d),
-                                   folderLabel: { $0.archiveFolder.map { "\($0)/" } },
+                                   folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                                    onPick: { _ in },
                                    style: .mac)
             }
             Divider().opacity(0.2)
             Text("EXPANDED").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.textMuted)
             DestinationRowView(destination: .constant(.idea),
-                               folderLabel: { $0.archiveFolder.map { "\($0)/" } },
+                               folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                                onPick: { _ in },
                                style: .mac,
                                startExpanded: true)

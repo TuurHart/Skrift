@@ -7,8 +7,8 @@ struct AppSettings: Codable, Equatable, Sendable {
     var noteFolder: String = ""          // vault root
     var audioFolder: String = ""         // vault subfolder for voice memos
     var attachmentsFolder: String = ""   // vault subfolder for images (falls back to root)
-    /// The ARCHIVE root — the folder `_inbox` / `_ideas` / `_inspiration` live inside
-    /// (`NoteDestination.archiveFolder`). One pick, not three: they are siblings, so asking
+    /// The PORTFOLIO root — the folder `_projects` / `_ideas` / `_inspiration` live inside
+    /// (`NoteDestination.portfolioFolder`). One pick, not three: they are siblings, so asking
     /// three times would just be three chances to answer the same question wrong. Stored as
     /// a path like `noteFolder`; iOS keeps the same thing as a security-scoped bookmark.
     ///
@@ -17,12 +17,12 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// would fail to decode every settings.json written before today and silently reset the
     /// vault path, the author and the prompts along with it. `CustomVocabularyTests` caught
     /// exactly that.
-    var archiveFolder: String? = nil
+    var portfolioFolder: String? = nil
 
     /// Non-optional accessor for the UI and the exporter — empty means "not set".
-    var archiveRoot: String {
-        get { archiveFolder ?? "" }
-        set { archiveFolder = newValue.isEmpty ? nil : newValue }
+    var portfolioRoot: String {
+        get { portfolioFolder ?? "" }
+        set { portfolioFolder = newValue.isEmpty ? nil : newValue }
     }
 
     var authorName: String = ""

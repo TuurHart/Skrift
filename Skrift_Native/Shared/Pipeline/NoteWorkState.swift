@@ -41,7 +41,7 @@ enum NoteWorkState: Equatable {
     func label(for destination: NoteDestination = .personal) -> String {
         switch self {
         case .needsProcessing: SharedCopy.processVerb
-        case .readyToExport: destination.isArchive ? "Export to archive" : "Export to Obsidian"
+        case .readyToExport: destination.isPortfolio ? "Export to portfolio" : "Export to Obsidian"
         case .exported: "Re-export"
         }
     }

@@ -186,7 +186,7 @@ struct IngestService: Sendable {
         // `MemoAsset`, so it never enters SwiftData or CloudKit and never syncs. That is the
         // line Tuur drew when he cut video storage ("no dont store videos, just skip them"):
         // the objection was hundreds of MB per clip in his iCloud account, not a file on the
-        // machine that already has it. Only the ARCHIVE export copies it out; the vault
+        // machine that already has it. Only the PORTFOLIO export copies it out; the vault
         // never sees it.
         let sourceExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
         let kept = folder.appendingPathComponent("source." + sourceExt)

@@ -19,7 +19,7 @@ struct SkriftApp: App {
         DemoDataSeeder.seedIfRequested(repo)
         NamesSeeder.seedIfRequested()
         DestinationSettings.resetIfRequested()
-        ArchiveVault.seedIfRequested()
+        PortfolioVault.seedIfRequested()
         repository = repo
         #if DEBUG
         // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into THIS

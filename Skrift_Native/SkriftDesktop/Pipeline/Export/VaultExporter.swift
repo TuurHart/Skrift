@@ -16,7 +16,7 @@ enum VaultExporter {
         let imageCount: Int
     }
 
-    /// When this note was CAPTURED — what the archive names an entry by. The phone's
+    /// When this note was CAPTURED — what the portfolio names an entry by. The phone's
     /// `recordedAt` rides the metadata blob; `uploadedAt` is the fallback for a row that
     /// never carried one (a local import). Never "now": re-exporting must not rename a file.
     static func captureDate(for pf: PipelineFile) -> Date {
@@ -35,15 +35,15 @@ enum VaultExporter {
             .map { workingFolder.appendingPathComponent($0) }
     }
 
-    /// The archive folder for a destination, from the Mac's settings — `<archiveRoot>/_ideas`
-    /// etc. Empty when no archive root is picked here, which `export` turns into `noVault`.
-    static func archiveFolder(for destination: NoteDestination, settings: AppSettings) -> String {
-        let root = settings.archiveRoot.trimmingCharacters(in: .whitespaces)
-        guard !root.isEmpty, let sub = destination.archiveFolder else { return "" }
+    /// The portfolio folder for a destination, from the Mac's settings — `<portfolioRoot>/_ideas`
+    /// etc. Empty when no portfolio root is picked here, which `export` turns into `noVault`.
+    static func portfolioFolder(for destination: NoteDestination, settings: AppSettings) -> String {
+        let root = settings.portfolioRoot.trimmingCharacters(in: .whitespaces)
+        guard !root.isEmpty, let sub = destination.portfolioFolder else { return "" }
         return (root as NSString).appendingPathComponent(sub)
     }
 
-    /// Where a note's images go: the vault's `Images/` folder, or — for the archive —
+    /// Where a note's images go: the vault's `Images/` folder, or — for the portfolio —
     /// the note's OWN folder, so the pair travels together.
     static func imageDestination(vaultURL: URL, relativePath: String,
                                  profile: ExportProfile) -> URL {
@@ -81,11 +81,11 @@ enum VaultExporter {
         // D139: a note with two versions waits until he picks one.
         guard !EditConflictHold.isHeld(pf.id) else { throw ExportError.twoVersions }
         // WHERE and HOW both follow the note's destination — `.personal` is the Obsidian
-        // vault and today's layout, unchanged; an archive destination is its folder inside
-        // the archive root, written flat (`ExportProfile`).
+        // vault and today's layout, unchanged; a portfolio destination is its folder inside
+        // the portfolio root, written flat (`ExportProfile`).
         let profile = ExportProfile.of(pf.destination)
-        let picked: String = pf.destination.isArchive
-            ? archiveFolder(for: pf.destination, settings: settings)
+        let picked: String = pf.destination.isPortfolio
+            ? portfolioFolder(for: pf.destination, settings: settings)
             : settings.noteFolder.trimmingCharacters(in: .whitespaces)
         let vault = picked
         guard !vault.isEmpty else { throw ExportError.noVault }
@@ -171,13 +171,13 @@ enum VaultExporter {
                                source: .file(URL(fileURLWithPath: pf.path)))
         }
 
-        // The source MOVIE, archive only. It is bound to its note the same way the picture is
+        // The source MOVIE, portfolio only. It is bound to its note the same way the picture is
         // — by filename, not by a markdown reference, because no markdown embed plays a video
-        // and the archive's rule is that the pair travels together. The vault never gets it:
+        // and the portfolio's rule is that the pair travels together. The vault never gets it:
         // a 500 MB clip has no business in a notes folder, and `capture: Video` already tells
         // a reader where the words came from.
         var documents: [VaultAsset] = []
-        if profile == .archive, let working = pf.workingFolder,
+        if profile == .portfolio, let working = pf.workingFolder,
            let movie = Self.keptSourceVideo(in: working) {
             documents.append(VaultAsset(name: safe + "." + movie.pathExtension,
                                         source: .file(movie)))

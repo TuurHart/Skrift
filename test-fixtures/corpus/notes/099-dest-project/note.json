@@ -1,12 +1,12 @@
 {
-  "id": "DC3FD4FE-57CA-57E7-8D67-FA229ECB5045",
-  "slug": "dest-made",
+  "id": "FCC313B3-F5BF-5922-9A07-411451726DDE",
+  "slug": "dest-project",
   "kind": "voice",
   "lang": "en",
   "shape": [
     "voice",
     "pictures",
-    "destination-made"
+    "destination-project"
   ],
   "title": null,
   "recordedAt": "2026-07-12T12:00:00+01:00",
@@ -22,9 +22,9 @@
   "significance": 0.9,
   "tags": [
     "glaze",
-    "made"
+    "project"
   ],
-  "destination": "made",
+  "destination": "project",
   "locked": false,
   "deletedAt": null,
   "trashSeenAt": null,
@@ -36,11 +36,11 @@
     "capturedAt": "2026-07-12T12:00:00+01:00",
     "tags": [
       "glaze",
-      "made"
+      "project"
     ],
     "imageManifest": [
       {
-        "filename": "photo_DC3FD4FE-57CA-57E7-8D67-FA229ECB5045_001.jpg",
+        "filename": "photo_FCC313B3-F5BF-5922-9A07-411451726DDE_001.jpg",
         "offsetSeconds": 4.19
       }
     ]
@@ -48,7 +48,7 @@
   "sharedContent": null,
   "photos": [
     {
-      "filename": "photo_DC3FD4FE-57CA-57E7-8D67-FA229ECB5045_001.jpg",
+      "filename": "photo_FCC313B3-F5BF-5922-9A07-411451726DDE_001.jpg",
       "file": "photo_001.jpg"
     }
   ],
@@ -57,6 +57,6 @@
   "diarization": null,
   "enhancement": null,
   "expect": {
-    "note": "Made → archive `_inbox/`; the archive KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."
+    "note": "Project → portfolio `_projects/`; the portfolio KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."
   }
 }

@@ -272,7 +272,7 @@ final class VaultExporterTests: XCTestCase {
     // ── the source movie (2026-08-28) ──
 
     /// A video's words are gold and its FILE is what a snippet gets cut from — Tuur wants both
-    /// in the archive. `keptSourceVideo` finds what `IngestService` now leaves beside the
+    /// in the portfolio. `keptSourceVideo` finds what `IngestService` now leaves beside the
     /// extracted audio, and only that: `original.m4a` is the audio, not the movie.
     func testKeptSourceVideoFindsOnlyTheMovie() throws {
         let dir = FileManager.default.temporaryDirectory

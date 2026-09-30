@@ -107,7 +107,7 @@ enum VaultName {
     /// # ^ [ ] break its link syntax; path separators become "-" (keeps word
     /// boundaries). Capped well past the 80-char derived-title clip so a cap never
     /// bites a real title, but a pasted-in monster can't become a 500-char filename.
-    /// Profile-aware stem. The archive names an entry by WHEN it was captured
+    /// Profile-aware stem. The portfolio names an entry by WHEN it was captured
     /// (`2026-08-26-142312`); a vault names it by what it is called.
     static func stem(title: String?, filename: String,
                      profile: ExportProfile, recordedAt: Date?) -> String {
@@ -133,7 +133,7 @@ enum VaultName {
     /// suffix the memo's first 8 UUID chars. Same memo → same suffix, every device,
     /// every run — so a collision never fans out into `(1) (2) (3)` copies.
     ///
-    /// The archive gets a slug-shaped suffix (`a-bench-9e24a49f`) rather than the vault's
+    /// The portfolio gets a slug-shaped suffix (`a-bench-9e24a49f`) rather than the vault's
     /// `A bench 9E24A49F` — its filenames ARE slugs now that the date has left them, and two
     /// notes called the same thing in one folder is no longer a rare case.
     static func disambiguated(_ stem: String, id: UUID, profile: ExportProfile = .obsidian) -> String {
@@ -324,7 +324,7 @@ struct VaultWriter {
 
         // WHERE the media goes. The vault keeps its subfolders (`Images/`, `Recordings/`,
         // `Documents/`) so a note's attachments stay out of the way of a folder you file out
-        // of. The archive puts them BESIDE the note, sharing its basename — that pair is what
+        // of. The portfolio puts them BESIDE the note, sharing its basename — that pair is what
         // makes an entry able to walk out whole. Needed BEFORE the stamp now (below), not just
         // at write time, so a name collision can be resolved before the embed is frozen.
         let beside = dest.deletingLastPathComponent()

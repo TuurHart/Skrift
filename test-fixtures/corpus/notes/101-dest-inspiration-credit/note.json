@@ -50,6 +50,6 @@
   "diarization": null,
   "enhancement": null,
   "expect": {
-    "note": "Inspiration → archive `_inspiration/` with `needs: - credit` in the frontmatter."
+    "note": "Inspiration → portfolio `_inspiration/` with `needs: - credit` in the frontmatter."
   }
 }

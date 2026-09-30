@@ -72,7 +72,7 @@ struct NoteProperties: View {
                 DestinationRowView(
                     destination: Binding(get: { file.destination },
                                          set: { file.destination = $0 }),
-                    folderLabel: { $0.archiveFolder.map { "\($0)/" } },
+                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                     onPick: { MacCloudMetaSync.setDestination($0, for: file) },
                     style: .mac)
             }

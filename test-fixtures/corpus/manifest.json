@@ -1267,16 +1267,16 @@
     },
     {
       "index": 99,
-      "slug": "dest-made",
-      "id": "DC3FD4FE-57CA-57E7-8D67-FA229ECB5045",
+      "slug": "dest-project",
+      "id": "FCC313B3-F5BF-5922-9A07-411451726DDE",
       "kind": "voice",
       "lang": "en",
       "shape": [
         "voice",
         "pictures",
-        "destination-made"
+        "destination-project"
       ],
-      "folder": "099-dest-made"
+      "folder": "099-dest-project"
     },
     {
       "index": 100,

@@ -8,50 +8,50 @@ import Foundation
 ///   `Images/` and `Documents/`, and images are `![[wiki embeds]]`. That layout was signed
 ///   off (`mocks/vault-folder-model.html`, 2026-08-14) and it is right for a vault.
 ///
-/// - **`.archive`** — flat. One markdown file per entry with its media BESIDE it sharing the
+/// - **`.portfolio`** — flat. One markdown file per entry with its media BESIDE it sharing the
 ///   same basename, named by timestamp, inside a month folder, and images written as plain
 ///   `![](file.jpg)`. A vault-relative `![[image.png]]` is exactly what makes a note
 ///   un-shareable outside the vault that defines it; a relative markdown link renders in
-///   Obsidian too AND survives being read by anything else. The archive's rule is that the
+///   Obsidian too AND survives being read by anything else. The portfolio's rule is that the
 ///   data has to be able to walk out whole.
 ///
 /// The profile follows the note's destination, so nothing about the Obsidian path changes
 /// when destinations are switched on.
 enum ExportProfile: Sendable {
     case obsidian
-    case archive
+    case portfolio
 
     static func of(_ destination: NoteDestination) -> ExportProfile {
-        destination.isArchive ? .archive : .obsidian
+        destination.isPortfolio ? .portfolio : .obsidian
     }
 
     /// Does Skrift create and own a `Skrift/` folder inside the folder you picked? The
-    /// archive already has a home — the destination folder IS the destination.
+    /// portfolio already has a home — the destination folder IS the destination.
     var ownsHomeFolder: Bool { self == .obsidian }
 
-    /// Name the file by timestamp rather than by the note's title. An archive entry is
+    /// Name the file by timestamp rather than by the note's title. A portfolio entry is
     /// identified by when it was captured; a vault note is found by its name.
-    var usesTimestampNames: Bool { self == .archive }
+    var usesTimestampNames: Bool { self == .portfolio }
 
     /// Media beside the note sharing its basename, rather than in `Recordings/` / `Images/`.
     /// This is the other half of "shareable": the pair travels together.
-    var assetsBesideNote: Bool { self == .archive }
+    var assetsBesideNote: Bool { self == .portfolio }
 
     /// `![[name]]` (Obsidian) vs `![](name)` (portable, and still rendered by Obsidian).
     var usesWikiEmbeds: Bool { self == .obsidian }
 
     /// Weather, pressure, day period, daylight, steps, and the importance rating —
-    /// personal-notes furniture with nothing to say in an archive entry.
+    /// personal-notes furniture with nothing to say in a portfolio entry.
     var keepsSensorFrontmatter: Bool { self == .obsidian }
 
     /// PLACE wiki-links in the body (`[[Hotel Du Vin]]`). People links are kept in BOTH
     /// profiles — Tuur's call, 2026-08-26, and a deliberate reversal of my privacy advice:
-    /// the archive becomes a public website and he wants to credit his friends by name.
+    /// the portfolio becomes a public website and he wants to credit his friends by name.
     /// Places carry no such intent, and a dangling place link on a website is just a
     /// broken link, so they degrade to plain text.
     var keepsPlaceLinks: Bool { self == .obsidian }
 
-    /// The archive's filename stem: `the-bench-outside-cafe-garrett`. Flat — no date folder
+    /// The portfolio's filename stem: `the-bench-outside-cafe-garrett`. Flat — no date folder
     /// either (Tuur, 2026-08-28: *"yes we dont need the month either"*), so an entry is
     /// `_ideas/<name>.md` exactly the way his 148 items are `Lamps/<name>/item.md`.
     ///
@@ -98,7 +98,7 @@ enum ExportProfile: Sendable {
     }
 
     /// Just the time part: `2026-08-26-142312`. Local time on purpose — it is the
-    /// moment HE captured it, and an archive browsed by a human should read in his day.
+    /// moment HE captured it, and a portfolio browsed by a human should read in his day.
     static func timestampStem(for date: Date) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
