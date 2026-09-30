@@ -250,8 +250,11 @@ suite is retired; the unit suite IS the gate (D85).
 - C48 [auto] Duplicates: same-id clones resolve to one keeper (alive > most content > latest
   edit); differing content is left alone. || check: corpus `voice-en-duplicate-*` are two
   memos, untouched. — ledgers:105
-- C49 [auto] A Mac import floors to 0.1; a Mac recording stays unrated; the row's
-  `isLocalRecording` is stamped at construction. || check: `MacMemoAuthor` tests. — ledgers:97
+- C49 [auto] A Mac import arrives UNRATED, exactly like a Mac recording (D159 — it used to floor to
+  0.1): it keeps its row, is transcribed on arrival, and enters the Process queue, polish and
+  export only once rated. `MacMemoAuthor` never floors; the row's `isLocalRecording` /
+  `isLocalImport` are stamped at construction. || check: `MacMemoAuthor` tests,
+  `MacImportUnratedTests`. — ledgers:97
 - C50 [auto] `names.json`: atomic write, actor-guarded, decode failure never yields an empty
   roster, merge never shrinks it (LWW per person, voiceprints union). || check: D1 test
   (torn file → previous roster). ⚠ required difference — BUGS D1
