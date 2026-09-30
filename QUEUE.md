@@ -535,7 +535,7 @@ needs: -
 do: Research only (researcher agent, open web, no project code or data): Tuur needs to know, before the Apple Notes import is built: (1) which export routes exist from Apple Notes on macOS/iOS 26 (File → Export as PDF/Markdown/Pages, Share, third-party exporters, the NoteStore.sqlite route) and what each produces; (2) per media type inside a note — drawings/sketches, scanned documents, tables, checklists, attachments (images, PDF, audio, video), links, tags (#hashtags), mentions, locked notes, folders/smart folders — whether it survives each route and in what form; (3) what stable identity a note carries in each route (creation date, modified date, an ID) so a declined note can be recognised on a later export even after its title changes. Report in `plan/research/apple-notes-export.md` with URLs and one recommendation per question.
 check: `test -s plan/research/apple-notes-export.md`
 
-### Q73 [auto] (doing) a typed note records place and weather when created, like a voice recording
+### Q73 [auto] (done) a typed note records place and weather when created, like a voice recording
 spec: C112 C43
 needs: -
 gate+: yes
@@ -818,3 +818,4 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-30 08:49 Q73 -> doing — worker out
 - 2026-09-30 08:57 Q69 -> doing — worker out
 - 2026-09-30 08:57 Q76 -> done — report plan/research/apple-notes-folders.md
+- 2026-09-30 09:01 Q73 -> done — gate pass @28c698be
