@@ -1,26 +1,10 @@
 import SwiftUI
 import AppKit
 
-// The importance control itself is the SHARED `ThreeBallImportanceView`
-// (Shared/UI/ThreeBallImportanceView.swift) and the value↔ball mapping is the
-// SHARED `ThreeBallScale` — one copy each for both apps, since the scale gates
-// phone→Mac sync and the control has already drifted twice (Q8, replacing the
-// old 10-circle scale/view pairing here, fully retired by Q24). What is
-// left here is the Mac's half: which colours out of `Theme`, and the
-// measurements a pointer-driven desktop card was tuned to.
-
-/// The Mac's importance card. Keeps the call sites (`NoteProperties`,
-/// `UnpipelinedMemoSheet`) unchanged; everything it draws comes from the shared view.
-struct SignificanceCircles: View {
-    /// nil = the user hasn't rated this note yet. Set values are exact 0.1 snaps.
-    @Binding var value: Double?
-    /// Disabled until the note is processed (#18 — can't rate an unprocessed note).
-    var enabled: Bool = true
-
-    var body: some View {
-        ThreeBallImportanceView(value: $value, style: .mac, enabled: enabled)
-    }
-}
+// The Mac's half of the note rating pill (`NoteRatingPill` / `NoteRatingRow`, shared): which
+// colours out of `Theme`, and the measurements a pointer-driven desktop was tuned to. The 3-stop
+// scale is the SHARED `ThreeBallScale`. The old 3-ball card (`SignificanceCircles`,
+// `ThreeBallImportanceView`) was deleted in Q89 (D158).
 
 /// Q88: the note header's rating pill (`NoteRatingRow`, C115) for `UnpipelinedMemoSheet`,
 /// the one Mac host outside `NoteProperties`. The step toast is drawn here, just above the
@@ -48,33 +32,6 @@ struct MacRatingRow: View {
                         }
                 }
             }
-    }
-}
-
-extension ThreeBallStyle {
-    /// Desktop card: 10pt balls at 8pt gaps in a 20pt pointer target (D107 —
-    /// one size down from the old 13pt/7pt control), hover + tooltips, an
-    /// outlined card.
-    static var mac: ThreeBallStyle {
-        ThreeBallStyle(
-            accent: Theme.accent,
-            surface: Theme.surface,
-            divider: Theme.hairline.opacity(0.07),
-            ring: Theme.hairline.opacity(0.2),
-            cardStroke: Theme.hairline.opacity(0.07),
-            textMuted: Theme.textMuted,
-            textSecondary: Theme.textSecondary,
-            green: Theme.green,
-            ballSize: 10,
-            gap: 8,
-            targetSize: 20,
-            cardRadius: 12,
-            syncDotSize: 5,
-            syncFontSize: 11,
-            hoverPreview: true,
-            tooltips: true,
-            scalesToFit: false,
-            animation: .easeOut(duration: 0.12))
     }
 }
 
