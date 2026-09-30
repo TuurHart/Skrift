@@ -9,16 +9,34 @@ import AppKit
 // left here is the Mac's half: which colours out of `Theme`, and the
 // measurements a pointer-driven desktop card was tuned to.
 
-/// The Mac's importance card. Keeps the call sites (`NoteProperties`,
-/// `UnpipelinedMemoSheet`) unchanged; everything it draws comes from the shared view.
+/// The Mac's importance control outside the note page. Since Q88 it is the SAME header
+/// pill as `NoteProperties` (`NoteRatingRow`, C115), used by `UnpipelinedMemoSheet`.
+/// The step toast is drawn here, just above the pill, because a sheet has no
+/// screen-level toast layer.
 struct SignificanceCircles: View {
     /// nil = the user hasn't rated this note yet. Set values are exact 0.1 snaps.
     @Binding var value: Double?
     /// Disabled until the note is processed (#18 — can't rate an unprocessed note).
     var enabled: Bool = true
+    var fadingLine: String? = nil
+    @State private var toast: RatingToast?
 
     var body: some View {
-        ThreeBallImportanceView(value: $value, style: .mac, enabled: enabled)
+        NoteRatingRow(value: $value, style: .mac, enabled: enabled,
+                      fadingLine: fadingLine, lineColor: Theme.amber.opacity(0.9),
+                      onToast: { toast = $0 })
+            .overlay(alignment: .top) {
+                if let toast {
+                    RatingToastView(toast: toast)
+                        .offset(y: -34)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .task(id: toast.id) {
+                            try? await Task.sleep(for: .seconds(1.6))
+                            if self.toast?.id == toast.id { withAnimation(.easeOut(duration: 0.12)) { self.toast = nil } }
+                        }
+                }
+            }
     }
 }
 

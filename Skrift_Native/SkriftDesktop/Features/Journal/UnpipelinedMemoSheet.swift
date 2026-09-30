@@ -170,7 +170,7 @@ struct UnpipelinedMemoSheet: View {
     private var circlesBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
             SignificanceCircles(value: $rating)
-            Text("tap a circle — any rating queues it · the rating IS the flag, no hidden 0.1")
+            Text("tap the pill — any rating queues it · the rating IS the flag, no hidden 0.1")
                 .font(.system(size: 10)).foregroundStyle(Theme.textMuted)
                 .padding(.top, 8)
         }
