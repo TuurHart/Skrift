@@ -35,6 +35,7 @@ struct NoteBody: View {
     var searchJumpToken: String? = nil
 
     private static let bodyFont = Font.system(size: 16)
+    @State private var trackCache = KaraokeTrackCache()
     private static let bodyLineSpacing: CGFloat = 6
 
     /// The real loaded duration when available (locally-ingested audio has no phone
@@ -156,23 +157,19 @@ struct NoteBody: View {
         if !file.tags.contains(t) { file.tags.append(t) }
     }
 
-    /// Karaoke state for the editor: how far through the words to brighten, and a
-    /// click-a-word → seek callback. The SHOWN words are aligned to the raw word-timings
-    /// ONCE (C3), so the highlight sits on the spoken word AND clicking word N seeks to
-    /// that same word's real time — even when copy-edit / name-linking / conversation
-    /// headers made the displayed word count differ from the timings. Falls back to a
-    /// time proportion only when timings are absent (e.g. demo notes).
+    /// Karaoke state for the editor: WHICH word is playing, and a click-a-word → seek
+    /// callback. Both come from the shared `KaraokeTrack` — the exact rule the phone runs —
+    /// so the highlight sits on the spoken word and clicking word N seeks to that same
+    /// word's time, even when copy-edit / name-linking / conversation headers made the shown
+    /// word count differ from the timings. The track is cached per body: it is re-aligned
+    /// only when the words change, never on the 20 Hz playback tick.
     private var karaokePlayback: BodyTextView.KaraokePlayback {
-        let timings = file.wordTimings
-        let duration = effectiveDuration
         let displayedWords = file.bestBodyText.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        let times = timings.isEmpty ? [] : Karaoke.wordTimes(displayedWords: displayedWords, timings: timings)
-        let frac: Double = times.isEmpty
-            ? BodyText.karaokeFraction(currentTime: audio.currentTime, duration: duration, timings: timings)
-            : min(1, Double(Karaoke.activeCount(times: times, currentTime: audio.currentTime)) / Double(max(1, displayedWords.count)))
-        return .init(fraction: frac) { wordIndex in
-            audio.seek(to: Karaoke.seekTarget(wordIndex: wordIndex, times: times,
-                                              timings: timings, duration: duration))
+        let track = trackCache.track(displayedWords: displayedWords, timings: file.wordTimings,
+                                     duration: effectiveDuration)
+        return .init(active: track.activeIndex(at: audio.currentTime)) { wordIndex in
+            guard let t = track.seekTime(forWord: wordIndex) else { return }
+            audio.seek(to: t)
         }
     }
 
@@ -223,55 +220,34 @@ enum BodyText {
         return out
     }
 
-    /// Karaoke: brighten words up to the play position, dim the rest. When real
-    /// word `timings` are present, the highlight tracks actual speech cadence
-    /// (counting how many spoken words have started by `currentTime`) and maps that
-    /// proportionally onto the body words — exact when the body equals the
-    /// transcript, graceful when the copy-edit shifted words. Falls back to a pure
-    /// time/duration proportion when timings are absent (demo/pre-A2 notes).
-    /// Fraction 0…1 of the body's words to brighten at `currentTime`. With real word
-    /// `timings` it counts how many spoken words have started (tracks speech cadence);
-    /// otherwise it's a pure time/duration proportion. Shared by the SwiftUI read path
-    /// and the NSTextView in-place karaoke, so they highlight identically.
-    static func karaokeFraction(currentTime: Double, duration: Double, timings: [WordTiming],
-                                displayedWords: [String]? = nil) -> Double {
-        if timings.isEmpty {
-            return duration > 0 ? min(1, max(0, currentTime / duration)) : 0
-        }
-        // C3: when the SHOWN words are known, align them to the raw timings so the
-        // highlight tracks the actual spoken word (not a count the copy-edit shifted).
-        if let dw = displayedWords, !dw.isEmpty {
-            let times = Karaoke.wordTimes(displayedWords: dw, timings: timings)
-            if !times.isEmpty {
-                return min(1, Double(Karaoke.activeCount(times: times, currentTime: currentTime)) / Double(dw.count))
-            }
-        }
-        // Fallback (no displayed-word list, e.g. a caller that only has the timings):
-        // raw-progress proportion — how many spoken words have started.
-        var started = 0
-        for t in timings { if t.start <= currentTime { started += 1 } else { break } }
-        return min(1, Double(started) / Double(max(1, timings.count)))
-    }
-
+    /// Karaoke for the read-only path (snapshots, where an ImageRenderer can't host the
+    /// NSTextView): the same shared track and the same paint as the phone and the editor —
+    /// read words step back, the playing word takes the accent, the rest stay full.
     static func karaoke(_ text: String, currentTime: Double, duration: Double, timings: [WordTiming] = []) -> Text {
         let tokens = tokenize(text)
         let words = tokens.compactMap { $0.isWord ? $0.text : nil }
-        let wordCount = words.count
-        let frac = karaokeFraction(currentTime: currentTime, duration: duration, timings: timings,
-                                   displayedWords: words)
-        let active = Int(frac * Double(max(1, wordCount)))
+        let active = KaraokeTrack(displayedWords: words, timings: timings, duration: duration)
+            .activeIndex(at: currentTime)
         var out = Text("")
         var wc = -1
         for t in tokens {
             if t.isWord {
                 wc += 1
-                let bright = wc <= active
-                out = out + Text(t.text).foregroundColor(bright ? Theme.textPrimary : Theme.textPrimary.opacity(0.4))
+                out = out + Text(t.text).foregroundColor(karaokeColor(KaraokeRole.of(word: wc, active: active)))
             } else {
-                out = out + Text(t.text).foregroundColor(Theme.textPrimary.opacity(0.4))
+                out = out + Text(t.text)
             }
         }
         return out
+    }
+
+    /// The phone's karaoke colours (`skTextDim` / `skAccent` / `skText`) on the Mac's theme.
+    static func karaokeColor(_ role: KaraokeRole) -> Color {
+        switch role {
+        case .read:     return Theme.textSecondary
+        case .playing:  return Theme.accent
+        case .upcoming: return Theme.textPrimary
+        }
     }
 
     // MARK: helpers
