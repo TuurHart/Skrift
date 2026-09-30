@@ -150,23 +150,32 @@ final class ConnectionsIndexService {
         }
     }
 
+    /// Scores of every indexed memo against a typed query — the sidebar's Related section
+    /// (the phone's `JournalIndexService.searchScores`). The caller applies the shared floor.
+    func searchScores(_ query: String) async -> [(memoID: UUID, score: Float)] {
+        guard isActive else { return [] }
+        do {
+            return try await resolvedIndex().search(query)
+        } catch {
+            logger.error("Connections search failed: \(error, privacy: .public)")
+            lastError = "Search by meaning failed: \(error.localizedDescription)"
+            return []
+        }
+    }
+
     // ── snapshots ──
 
     /// Index-relevant content of one PipelineFile — nil when it can't join the
     /// index (non-UUID id = pre-CloudKit demo rows; empty body = nothing to embed).
     static func snapshot(_ file: PipelineFile) -> MemoSnapshot? {
         guard let uuid = UUID(uuidString: file.id) else { return nil }
-        let body = file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? ""
-        guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
-        let title = file.enhancedTitle?.trimmingCharacters(in: .whitespaces)
-        return MemoSnapshot(
-            id: uuid,
-            title: (title?.isEmpty == false) ? title : nil,
-            summary: file.enhancedSummary,
-            body: body,
-            place: meta?.location?.placeName,
-            tags: file.tags)
+        // The body the note SHOWS (`sanitised` carries the Mac's own edits), then the shared
+        // precedence: polished else transcript, user title else the polish's.
+        return SemanticSearch.snapshot(
+            id: uuid, userTitle: nil, enhancedTitle: file.enhancedTitle, summary: file.enhancedSummary,
+            polished: file.sanitised ?? file.enhancedCopyedit, transcript: file.transcript, annotation: nil,
+            place: meta?.location?.placeName, tags: file.tags)
     }
 
     /// The journal/thread axis (panel dates + thread order): the phone's recorded
