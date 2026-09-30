@@ -173,7 +173,7 @@ struct FileAlignment: Codable, Equatable, Sendable {
 }
 
 /// The "Book text" sheet's data (schema 3, pinned — `LANES-2026-07-22D/BASE.md`) — produced by
-/// `BookAlignmentRunner.textSummary(bookID:)`, a pure read over the on-disk sidecars.
+/// `BookAlignmentRunner.textSummary(book:directory:)`, a pure read over the on-disk sidecars.
 struct BookTextSummary: Equatable, Sendable {
     struct PerText: Equatable, Sendable {
         var filename: String
@@ -630,22 +630,13 @@ enum BookAlignmentRunner {
 
     // MARK: - Text summary + removal (📖 multi-text, schema 3 — LANES-2026-07-22D/BASE.md)
 
-    /// The "Book text" sheet's data — one call, pure assembly from the on-disk sidecars + the
-    /// book record. `library` defaults to the live singleton; overridable for test isolation
-    /// (mirrors `AudiobookCloudSync`'s DI pattern) — callers just write `textSummary(bookID:)`.
-    /// nil when the book doesn't exist or has no attached text at all (the sheet's empty state).
-    @MainActor
-    static func textSummary(bookID: UUID, library: AudiobookLibraryStore = .shared) -> BookTextSummary? {
-        guard let book = library.book(id: bookID) else { return nil }
-        return textSummary(book: book, directory: library.directory)
-    }
-
-    /// The same assembly with the record + directory handed in — `nonisolated` so callers
-    /// can run it OFF the main actor. This decodes every attached file's whole alignment
-    /// sidecar (9 MB / 7.5k sentences on the real Odyssey), which is far too heavy for a
-    /// SwiftUI `body` (2026-07-23: the sheet called the MainActor entry point on every
-    /// render — a guaranteed main-thread stall on the iPhone 13). The sheet now caches
-    /// this off-main; the MainActor wrapper above stays for cheap/one-shot callers.
+    /// The "Book text" sheet's data — pure assembly from the on-disk sidecars + the book
+    /// record. nil when the book has no attached text at all (the sheet's empty state).
+    ///
+    /// `nonisolated` so callers can run it OFF the main actor. This decodes every attached
+    /// file's whole alignment sidecar (9 MB / 7.5k sentences on the real Odyssey), which is
+    /// far too heavy for a SwiftUI `body` (2026-07-23: a main-actor entry point ran on every
+    /// render — a guaranteed main-thread stall on the iPhone 13). The sheet caches this off-main.
     nonisolated static func textSummary(book: Audiobook, directory: URL) -> BookTextSummary? {
         let bookID = book.id
         let names = book.attachedTextFilenames

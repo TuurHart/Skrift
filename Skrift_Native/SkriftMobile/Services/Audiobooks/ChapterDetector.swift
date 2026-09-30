@@ -336,11 +336,6 @@ enum ChapterDetector {
         return Harvest(headings: found, unmatchedGaps: unmatched)
     }
 
-    /// Diagnostic/back-compat view of `harvest` (probe + tests).
-    static func headings(in words: [WordTiming], globalOrigin: TimeInterval) -> [Heading] {
-        harvest(in: words, globalOrigin: globalOrigin).headings
-    }
-
     // MARK: - Heading grammar
 
     /// Try to read a heading starting at `words[i]`. Returns the heading and
