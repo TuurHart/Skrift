@@ -201,4 +201,30 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         let untitled = app.staticTexts.matching(NSPredicate(format: "label == '' OR label == 'Untitled'")).count
         print("Q64sim empty-note: rows before=\(before) after=\(after) untitled/blank labels=\(untitled)")
     }
+
+    // MARK: - 5. probe: does the first Return survive when typed slowly?
+
+    /// Test 2 lost the "\n" that ended line 1 (rendered "ideaBuy"). This probe types the
+    /// same text with pauses, to tell an XCUITest typing race from a real drop in the
+    /// first-keystroke draft creation. Result is printed, not asserted.
+    func test5_probeFirstReturnSlowTyping() {
+        let app = launch()
+        let newNote = app.buttons["ipad-new-note-button"]
+        XCTAssertTrue(newNote.waitForExistence(timeout: 20))
+        newNote.tap()
+        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        dismissKeyboardTip(app)
+        let body = any(app, "quick-note-body")
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.typeText("Tram 28 idea")
+        Thread.sleep(forTimeInterval: 1.5)
+        print("Q64sim probe A value after line1 = \(String(describing: body.value))")
+        body.typeText("\n")
+        Thread.sleep(forTimeInterval: 0.5)
+        print("Q64sim probe B value after slow Return = \(String(describing: body.value))")
+        body.typeText("Buy pastel de nata\n")
+        Thread.sleep(forTimeInterval: 0.5)
+        print("Q64sim probe C value after line2 = \(String(describing: body.value))")
+        capture(app, "5-probe-slow-typing")
+    }
 }
