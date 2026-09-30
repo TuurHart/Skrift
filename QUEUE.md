@@ -549,7 +549,7 @@ gate+: yes
 do: Tuur 2026-09-30: "when I upload three audio messages into Skrift desktop it should ask if I want it 1 note or three separate". The phone already has this chooser (C68 share sheet, C145 Files importer); C238 says a Mac drop of the same files must yield the same notes. Give every Mac entry point (Import button, sidebar drop incl. the Photos file-promise path, Finder open) the same One note / N notes chooser when 2+ audio files arrive together, reusing the phone's shared merge logic (clips merged in order, one transcription pass; default One note). Mock the Mac sheet first if the phone's has no Mac form. Desktop test (new file) that 3 audio files → 1 merged note or 3 notes per the choice. NEVER run SkriftDesktopUITests; Mac proof = unit tests + full build + headless snapshot.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q75 [tuur] (tuur) mockup: note header final — the pill cycles all four states on tap, destination row included
+### Q75 [tuur] (done) mockup: note header final — the pill cycles all four states on tap, destination row included
 spec: C117 C94 C62
 needs: -
 do: Tuur 2026-09-30 on `mocks/Q70-note-header-two-versions.html`: version 1, the pill ("the card becomes one pill, I think that's good"). Change: tapping cycles Not rated → Passing → Useful → Important → Not rated ("just tapping through it"; un-rating is allowed, C88) — no second tap to open a picker; also show a left-right drag across the pill as an alternative to compare. Missing today: the mocks left out the note's destination (Personal / Made / Idea / Inspiration, C62) — draw the destination row from source (`Shared/UI/DestinationRowView.swift`, NoteDestination) in its real place. Phone + iPad + Mac, voice and typed note (typed with place + weather, D151), heights in pt. Every control responds on tap; node --check the script; no copy inside JS strings. Publish; one numbered question.
@@ -608,6 +608,26 @@ needs: -
 gate+: yes
 do: Tuur 2026-09-30: "when a word is being highlighted you can click anywhere and the audio jumps to that. Apparently that doesn't work with audiobook quotes — I can't click those. Maybe there's no timestamps generated when the book is transcribed." Find why a quote-capture note's words are not tappable (no word timings stored for the quote, timings relative to the book not the clip, or the view never wires tap-to-seek for quotes), and make tapping a word in the quote seek the quote's audio, on phone and Mac. Test with a synthetic quote capture. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q84 [auto] (todo) destinations read Personal · Inspiration · Idea · Project under PRIVATE ¦ PORTFOLIO, with a dashed line between the two sides
+spec: C62
+needs: -
+gate+: yes
+do: Tuur 2026-09-30 on the Q75 mock: the group label says "it should say portfolio, not archive"; the four destinations in this order, "it's the progression": Personal · Inspiration · Idea · Project; "Made is the wrong word, as it is also about things I'm still making, so it should be Project"; "add a dashed line between the private and portfolio box to show that they go through two different pipelines". In `Shared/UI/DestinationRowView.swift` (PRIVATE | ARCHIVE labels at :163-164) and `Shared/Model/NoteDestination.swift`: label ARCHIVE → PORTFOLIO everywhere the user reads it (row, settings, sheets, both apps); `.made` shows as "Project"; display order Personal, Inspiration, Idea, Project; a dashed divider between the Private cell and the Portfolio cells. KEEP the stored raw value `made` and the vault folder (`_inbox/`) unchanged — synced notes, CloudKit records and already-exported files must not change; if any user-visible string or export text still says Made/Archive, list it in the commit instead of renaming data. Test: labels + order + raw values unchanged. Screenshots phone + Mac (headless), LOOK, commit under `plan/reads/dest-q84/`. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/dest-q84/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q85 [auto] (todo) build the note header pill (tap steps Not rated → Passing → Useful → Important) on phone, iPad and Mac
+spec: C117 C94 C88
+needs: Q84
+gate+: yes
+do: Build the signed header (mock `Skrift_Native/SkriftDesktop/mocks/Q75-note-header-final.html`, behaviour A — Tuur 2026-09-30: "tap is good, not drag"): the importance card becomes one pill; each tap steps Not rated → Passing → Useful → Important → Not rated (un-rating allowed, C88; a toast names each step); the orange "starts fading … — rate it to keep it" line beside it when unrated; the destination row (as renamed by Q84) 12 pt under it, shown only when destinations are on. Phone, iPad and Mac through the shared ThreeBallScale/NoteConsent model (C115). Phone header ≈173 pt at rest per the mock. Screenshots, LOOK, commit under `plan/reads/header-q85/`. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/header-q85/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q86 [tuur] (todo) mockup: Split speakers on the Mac as a per-note toggle, matching the phone, with the user flow walked end to end
+spec: C102 C117
+needs: -
+do: Tuur 2026-09-30: "yes split speaker should be a button or toggle or something. Have an agent verify the user flow and make sure it makes sense." Q69 made diarization a per-note opt-in (`PipelineFile.diarizeRequested`) with NO Mac control yet; the phone has a conversations toggle (draw it from source). Mock the Mac control (and the phone's, drawn as-is) in the note header/menu: turn it on for a note → the note re-transcribes with speakers → turns in the gutter (full name on a speaker's first turn, short name after — confirmed 2026-09-30, C84); turn it off → "Flatten to monologue". Then a SECOND agent walks the flow cold, step by step, and writes where a user would get stuck; fix those in the mock. Publish; one numbered question.
+check: Tuur clicked through it and said go.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -872,3 +892,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-09-30 09:39 Q81 added
 - 2026-09-30 09:39 Q82 added
 - 2026-09-30 09:39 Q83 added
+- 2026-09-30 10:06 Q75 -> done — Tuur 2026-09-30: tap to step (not drag); destination row as drawn, but renamed/reordered → Q84, Q85
+- 2026-09-30 10:06 Q84 added
+- 2026-09-30 10:06 Q85 added
+- 2026-09-30 10:06 Q86 added

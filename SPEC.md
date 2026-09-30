@@ -1856,3 +1856,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      tag editor's "already on this note" line); sharing as PDF / quote card / plain text and
      publishAll are DELETED ("delete it and if I want it we'll rebuild it later", reverses D62's
      keep); phone and Mac unify groups 6, 8, 9, 11, 12, 13 on one shared implementation (Q80–Q83).
+155. **D155 Round-6 verdicts.** ✅ 2026-09-30: header pill = TAP to step, not drag (Q85). Destinations
+     read Personal · Inspiration · Idea · Project ("it's the progression"; Made → Project, "also about
+     things I'm still making"), grouped PRIVATE ¦ PORTFOLIO (not Archive) with a dashed line between
+     the two pipelines; stored value `made` and `_inbox/` unchanged (Q84). The Mac app stays off the
+     Mac App Store (it is already unsandboxed). Split speakers gets a per-note control on the Mac,
+     mock + a cold user-flow walk first (Q86). Speaker labels stay full name first, short after (C84).

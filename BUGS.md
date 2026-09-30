@@ -296,9 +296,8 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that
       right-click Process "worked flaky". Diagnose on the current branch first; prod is older.
 - [ ] **A video dragged in from Photos on the Mac got diarized automatically** (Tuur 2026-09-27, prod
-      Mac build, "no good"). C102 says diarization is opt-in per note. Same screen: one person shows
-      under two labels ("Tiuri Hartog" and "Tiuri"), and list snippets show raw `**Speaker 1:**` and
-      `[[Tiuri Hartog]]` markup. Diagnose on the current branch first; the prod Mac is an older build.
+      Mac build, "no good"). C102 says diarization is opt-in per note. Same screen: one person under two labels
+      (by design, C84 — confirmed 2026-09-30) and raw markup in list snippets (fixed Q69; phone Journal → Q78). Diagnose on the current branch first; the prod Mac is an older build.
       Q69 (2026-09-30): (1) FIXED — old prod persisted `conversationMode=true` in settings.json and
       `BatchRunner` still honoured it; now `SettingsStore.load` drops it and diarization needs the
       per-note `PipelineFile.diarizeRequested` (no Mac UI sets it yet — "Split speakers" on the Mac is
