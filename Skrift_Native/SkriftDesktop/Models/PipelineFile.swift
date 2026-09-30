@@ -180,6 +180,11 @@ final class PipelineFile {
     /// matter who arrives first. Additive + defaulted → existing stores migrate lightweight.
     var isLocalRecording: Bool = false
 
+    /// C102: diarization is opt-in PER NOTE. Only a note the user asked to split ("Split
+    /// speakers") carries this; a Mac import never diarizes without it, whatever
+    /// `settings.json` says. Additive + defaulted → existing stores migrate lightweight.
+    var diarizeRequested: Bool = false
+
     /// Soft-delete — "Recently Deleted", mirroring the phone + Apple Voice Memos.
     /// A trashed file (`deletedAt != nil`) is hidden from the sidebar/queue,
     /// excluded from the phone's `GET /api/files/` list, and never processed; its

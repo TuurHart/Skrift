@@ -299,6 +299,14 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       Mac build, "no good"). C102 says diarization is opt-in per note. Same screen: one person shows
       under two labels ("Tiuri Hartog" and "Tiuri"), and list snippets show raw `**Speaker 1:**` and
       `[[Tiuri Hartog]]` markup. Diagnose on the current branch first; the prod Mac is an older build.
+      Q69 (2026-09-30): (1) FIXED — old prod persisted `conversationMode=true` in settings.json and
+      `BatchRunner` still honoured it; now `SettingsStore.load` drops it and diarization needs the
+      per-note `PipelineFile.diarizeRequested` (no Mac UI sets it yet — "Split speakers" on the Mac is
+      unbuilt). (3) Snippets FIXED via shared `NoteSnippet.plain` (Mac rows + Journal; the phone's
+      `JournalHomeView.snippet` still shows raw markup). (2) Two labels REPRODUCES BY DESIGN, not
+      changed: C84 + the signed mock `conversation-turns-D-hifi.html` + `SpeakerTurnStyleTests`
+      line 35 all specify gutter "Tiuri Hartog" (first turn) then "Tiuri" (later). Needs Tuur's call:
+      show the short name on every gutter turn?
 - [ ] **Typing is very laggy in a note on the phone** (Dev build 172, iPhone 13, 2026-09-25, quick note
       and a normal note): "super laggy… not nice to use at all… I think it was always laggy". Not
       measured yet → Q20 baseline first, then a perf item.
