@@ -25,12 +25,8 @@ struct SplitSpeakersRow: View {
     @State private var editedAt: Date?
 
     #if DEBUG
-    /// `-splitPreview on|off`: open a confirm at launch, for the headless snapshots.
-    static var debugInitial: Confirm? {
-        let a = ProcessInfo.processInfo.arguments
-        guard let i = a.firstIndex(of: "-splitPreview"), i + 1 < a.count else { return nil }
-        return a[i + 1] == "on" ? .on : (a[i + 1] == "off" ? .off : nil)
-    }
+    /// Headless snapshots (`-snapshot-split`) open a confirm by setting this before hosting the view.
+    static var debugInitial: Confirm? = nil
     #else
     static var debugInitial: Confirm? { nil }
     #endif
@@ -53,12 +49,12 @@ struct SplitSpeakersRow: View {
                 }
                 Spacer(minLength: 0)
             }
+            // Inline under the switch (not a floating card): the note body is an AppKit view,
+            // which paints OVER any SwiftUI overlay that reaches down onto it.
+            if let confirm { card(confirm) }
         }
-        .overlay(alignment: .topLeading) {
-            if let confirm { card(confirm).offset(y: 34) }
-        }
-        .zIndex(2)
         .animation(.easeOut(duration: 0.12), value: confirm == nil)
+        .onChange(of: confirm, initial: true) { _, c in if c == .on { editedAt = lastEditDate() } }
     }
 
     // MARK: the switch
@@ -121,7 +117,7 @@ struct SplitSpeakersRow: View {
         return String(format: "%d:%02d", t / 60, t % 60)
     }
 
-    // MARK: confirm cards (drawn inline, not a system popover, so the headless snapshot can see them)
+    // MARK: confirm cards (drawn inline, so the headless snapshot can see them)
 
     @ViewBuilder private func card(_ kind: Confirm) -> some View {
         VStack(alignment: .leading, spacing: 8) {

@@ -35,7 +35,7 @@ struct SpeakerAssignSheet: View {
                         }
                         if !otherSpeakers.isEmpty {
                             section("MERGE INTO") {
-                                Text("Wrong split? Send \(speaker)'s words to another speaker.")
+                                Text(SplitSpeakersCopy.mergeHint)
                                     .font(.system(size: 12)).foregroundStyle(Color.skTextFaint)
                                 ForEach(otherSpeakers, id: \.self) { other in
                                     Button { choose { onMergeInto(other) } } label: { mergeRow(other) }

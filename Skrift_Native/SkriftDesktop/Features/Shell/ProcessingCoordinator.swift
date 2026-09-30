@@ -399,6 +399,14 @@ final class ProcessingCoordinator {
     private(set) var splitNotices: [String: String] = [:]
     private var splitFlags: [String: SplitCancelFlag] = [:]
 
+    #if DEBUG
+    /// Snapshot helper: force the split progress / notice states for the headless renders.
+    func debugSetSplit(id: String, phase: SplitPhase?, notice: String? = nil) {
+        splitPhases[id] = phase
+        splitNotices[id] = notice
+    }
+    #endif
+
     /// Turn Split speakers ON for a note (the confirm was already answered).
     func splitSpeakers(_ pf: PipelineFile, context: ModelContext) async {
         guard splitPhases[pf.id] == nil, pf.sourceType == .audio, NoteConsent.isRated(pf) else { return }

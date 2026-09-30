@@ -48,7 +48,13 @@ enum AppPaths {
         return dir
     }
 
-    static var namesFile: URL { appSupportDirectory.appendingPathComponent(namesFileName) }
+    static var namesFile: URL {
+        #if DEBUG
+        // Headless snapshots use a synthetic roster (`-snapshot-split`), never the dev data.
+        if let o = ProcessInfo.processInfo.environment["SKRIFT_NAMES_FILE"], !o.isEmpty { return URL(fileURLWithPath: o) }
+        #endif
+        return appSupportDirectory.appendingPathComponent(namesFileName)
+    }
     static var settingsFile: URL { appSupportDirectory.appendingPathComponent("user_settings.json") }
 
     /// SwiftData store — explicit path inside appSupportDirectory so it's isolated

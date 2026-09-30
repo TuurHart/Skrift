@@ -32,6 +32,7 @@ enum Snapshot {
             let w = CGFloat(path("-noteWidth").flatMap { Double($0) } ?? 900)
             MainActor.assumeIsolated { renderDestinations(to: p, width: w); exit(0) }
         }
+        if let p = path("-snapshot-split") { MainActor.assumeIsolated { renderSplit(to: p); exit(0) } }
         if let p = path("-snapshot-settings-light") { MainActor.assumeIsolated { renderSettings(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-settings-hosted") {
             let w = CGFloat(path("-settingsWidth").flatMap { Double($0) } ?? 620)
@@ -1076,6 +1077,92 @@ enum Snapshot {
         .frame(width: width, alignment: .leading)
         .background(Theme.bg)
         writePNG(view, to: path, scheme: .dark)
+    }
+
+    /// Q87: the Split speakers states of the mock (`mocks/Q86-split-speakers.html`), through the
+    /// REAL note view, hosted in AppKit, into `<dir>/`: off · confirm · progress · one voice ·
+    /// unrated · turns · named · flatten confirm. Names come from a synthetic roster (the
+    /// `SKRIFT_NAMES_FILE` override), never the dev data. `-light` renders the light variant.
+    @MainActor private static func renderSplit(to dir: String) {
+        let light = ProcessInfo.processInfo.arguments.contains("-light")
+        let scheme: ColorScheme = light ? .light : .dark
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        // Synthetic roster, written BEFORE anything touches NamesStore.shared.
+        let namesURL = FileManager.default.temporaryDirectory.appendingPathComponent("split-names-\(UUID().uuidString).json")
+        setenv("SKRIFT_NAMES_FILE", namesURL.path, 1)
+        let seedStore = NamesStore(fileURL: namesURL)
+        seedStore.upsert(canonical: "Lotte Vos", aliases: ["Lotte Vos", "Lotte"], short: "Lotte")
+        seedStore.upsert(canonical: "Hendrik Vos", aliases: ["Hendrik Vos", "Hendrik"], short: "Hendrik")
+        seedStore.upsert(canonical: "Ana Ribeiro", aliases: ["Ana Ribeiro", "Ana"], short: "Ana")
+
+        guard let container = try? ModelContainer(
+            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)) else { return }
+        let ctx = container.mainContext
+        let coordinator = ProcessingCoordinator()
+
+        let plainText = "So the stall is Saturday, and I think we open at nine. Nine is early. Most people come after ten, after coffee. Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.\n\nThe blue ones and the small ones. People want something that fits in a suitcase. So more small ones, fewer of the big panels. And we need change. Lots of coins."
+        let turns = """
+        **Lotte Vos:** So the stall is Saturday, and I think we open at nine.
+
+        **Speaker 2:** Nine is early. Most people come after ten, after coffee.
+
+        **Lotte Vos:** Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.
+
+        **Speaker 2:** The blue ones and the small ones. People want something that fits in a suitcase.
+
+        **Lotte Vos:** So more small ones, fewer of the big panels.
+
+        **Speaker 2:** And we need change. Lots of coins.
+        """
+        func demo(_ id: String, text: String, rated: Bool = true, edited: Bool = false) -> PipelineFile {
+            let f = PipelineFile(id: id, filename: "Saturday stall.m4a", path: "/tmp/\(id)/original.m4a",
+                                 size: 0, sourceType: .audio,
+                                 uploadedAt: Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 28, hour: 10)) ?? Date())
+            f.transcript = text
+            f.sanitised = text
+            f.enhancedTitle = "Saturday stall at the tile market"
+            f.titleSuggested = f.enhancedTitle
+            f.tags = ["market", "tiles"]
+            f.transcribeStatus = .done; f.sanitiseStatus = .done; f.enhanceStatus = .done
+            f.significance = rated ? 0.7 : nil
+            f.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: ["duration": "00:03:12"])
+            if edited {
+                f.transcriptUserEdited = true
+                f.syncedSourceEditedAt = Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 28, hour: 18))
+            }
+            ctx.insert(f)
+            return f
+        }
+        func shot(_ name: String, _ f: PipelineFile, confirm: SplitSpeakersRow.Confirm? = nil) {
+            SplitSpeakersRow.debugInitial = confirm
+            let view = NoteDisplayView(file: f, coordinator: coordinator, onOpenMemo: { _ in })
+                .frame(width: 980, height: 820)
+                .background(Theme.bg)
+                .preferredColorScheme(scheme)
+                .modelContainer(container)
+            hostPNG(view, size: NSSize(width: 980, height: 820), to: (dir as NSString).appendingPathComponent("\(name).png"))
+            SplitSpeakersRow.debugInitial = nil
+        }
+
+        let plain = demo("split-plain", text: plainText)
+        shot("1-off", plain)
+        let edited = demo("split-edited", text: plainText, edited: true)
+        shot("2-confirm-on", edited, confirm: .on)
+        let busy = demo("split-busy", text: plainText)
+        coordinator.debugSetSplit(id: busy.id, phase: .running(since: Date().addingTimeInterval(-42)))
+        shot("3-progress", busy)
+        let one = demo("split-one", text: plainText)
+        coordinator.debugSetSplit(id: one.id, phase: nil, notice: SplitSpeakersCopy.oneVoice)
+        shot("3b-one-voice", one)
+        let unrated = demo("split-unrated", text: plainText, rated: false)
+        shot("1b-unrated", unrated)
+        let split = demo("split-turns", text: turns)
+        coordinator.resanitiseForNames(split)
+        shot("4-turns", split)
+        coordinator.nameSpeaker(split, displayed: "Speaker 2", as: "Hendrik Vos", context: ctx)
+        shot("6-named", split)
+        shot("7-flatten-confirm", split, confirm: .off)
     }
 
     @MainActor private static func renderSettings(to path: String, scheme: ColorScheme = .dark) {

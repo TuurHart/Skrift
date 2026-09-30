@@ -859,18 +859,47 @@ struct MemoSaver {
     /// load its audio + word-timings and re-emit the transcript as speaker turns.
     /// `targetSpeakers` forces exactly N voices (nil = Auto). ≥2 speakers → turns;
     /// otherwise the transcript is left as plain prose.
-    func diarizeExisting(id: UUID, targetSpeakers: Int? = nil) async {
+    /// Returns whether the note ended up as speaker turns, so the caller can say "Only one voice
+    /// found. Nothing was split." instead of leaving the user looking at unchanged text (Q87).
+    @discardableResult
+    func diarizeExisting(id: UUID, targetSpeakers: Int? = nil) async -> SplitOutcome {
         guard let memo = repository.memo(id: id), let url = memo.audioURL,
-              let words = wordTimings.load(for: id), !words.isEmpty else { return }
+              let words = wordTimings.load(for: id), !words.isEmpty else { return .unavailable }
         // Mark in-flight so a diarization orphaned by app suspension is re-run at the
         // next launch (recoverStuckDiarizations). 0 = Auto, N>0 = forced N speakers.
         memo.pendingDiarizationTarget = targetSpeakers ?? 0
         repository.save()
-        await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
+        let split = await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
         // Attempt complete (a real split OR a <2-speaker no-op) — clear the marker.
         // A kill MID-diarize never reaches here, so the marker survives for recovery.
         repository.memo(id: id)?.pendingDiarizationTarget = nil
         repository.save()
+        return split ? .split : .oneVoice
+    }
+
+    enum SplitOutcome: Equatable { case split, oneVoice, unavailable }
+
+    /// "Flatten to monologue" (Q87): undo a split WITHOUT transcribing again. The turn headers
+    /// drop into plain prose (the words and the user's fixes stay), the diarization sidecar goes,
+    /// and a synced Mac polish that is itself turns is flattened too — otherwise the note would
+    /// keep drawing the Mac's `**Name:**` copy over the flat transcript. People stay in Names.
+    /// The change is stamped as a deliberate phone edit, so the Mac re-links it as one voice.
+    @discardableResult
+    func flattenToMonologue(id: UUID) -> Bool {
+        guard let memo = repository.memo(id: id), SpeakerTranscript.isAttributed(memo.transcript),
+              let flat = SpeakerTranscript.flattened(memo.transcript) else { return false }
+        memo.transcript = flat
+        memo.transcriptUserEdited = true
+        memo.pendingDiarizationTarget = nil
+        memo.markEdited()
+        if let e = repository.enhancement(forMemo: id), SpeakerTranscript.isAttributed(e.copyedit) {
+            e.copyedit = SpeakerTranscript.flattened(e.copyedit) ?? e.copyedit
+            e.enhancedByDeviceID = DeviceID.current()
+            e.enhancedAt = Date()
+        }
+        DiarizationStore().delete(for: id)
+        repository.save()
+        return true
     }
 
     /// Re-run any diarization orphaned by a process kill. "Split speakers" runs in a
@@ -903,16 +932,16 @@ struct MemoSaver {
     /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as
     /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
     /// left as the plain transcript.
-    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming], targetSpeakers: Int?) async {
+    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming], targetSpeakers: Int?) async -> Bool {
         DiarizationStatus.shared.begin(id)
         defer { DiarizationStatus.shared.finish() }
         guard let out = try? await diarizer.diarize(audioURL: audioURL, targetSpeakers: targetSpeakers),
-              Set(out.segments.map(\.speaker)).count >= 2 else { return }
+              Set(out.segments.map(\.speaker)).count >= 2 else { return false }
         // Auto-matched (enrolled) speakers come back named; the rest are "Speaker N".
         var attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
             out.slotNames[$0] ?? "Speaker \($0 + 1)"
         }
-        guard let memo = repository.memo(id: id) else { return }
+        guard let memo = repository.memo(id: id) else { return false }
         // Fusion rebuilds from the words, which drops the `[[img_NNN]]` photo markers — so
         // body v2 places them again from their moments, each after the sentence within the
         // turn being spoken when it was taken (C169; photos + manifest are untouched).
@@ -938,5 +967,6 @@ struct MemoSaver {
         for seg in out.segments { names[String(seg.speaker)] = out.slotNames[seg.speaker] ?? "Speaker \(seg.speaker + 1)" }
         let turnSlots = SpeakerFusion.turns(words: words, segments: out.segments).map(\.speaker)
         DiarizationStore().write(DiarizationData(segments: out.segments, slotNames: names, turnSlots: turnSlots), for: id)
+        return true
     }
 }

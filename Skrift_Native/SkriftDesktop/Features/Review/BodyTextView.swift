@@ -1483,14 +1483,14 @@ final class SpeakerGutterAttachment: NSTextAttachment {
                 let tagAttrs: [NSAttributedString.Key: Any] = [.font: tagFont, .foregroundColor: hue]
                 let nameWidth = (name as NSString).size(withAttributes: [.font: font]).width
                 let tw = tag.size(withAttributes: tagAttrs).width
-                let pillW = ceil(tw) + 14, pillH: CGFloat = 16
-                let x = BodyTextView.gutterWidth - nameWidth - 6 - pillW
+                let pillW = ceil(tw) + 10, pillH: CGFloat = 16
+                let x = BodyTextView.gutterWidth - nameWidth - 5 - pillW
                 if x >= 0 {
                     let pill = NSRect(x: x, y: baseline + font.descender + (font.ascender - font.descender - pillH) / 2,
                                       width: pillW, height: pillH)
                     let path = NSBezierPath(roundedRect: pill, xRadius: pillH / 2, yRadius: pillH / 2)
                     hue.withAlphaComponent(0.16).setFill(); path.fill()
-                    tag.draw(at: NSPoint(x: pill.minX + 7, y: pill.minY + (pillH - tagFont.ascender + tagFont.descender) / 2 + 0.5),
+                    tag.draw(at: NSPoint(x: pill.minX + 5, y: pill.minY + (pillH - tagFont.ascender + tagFont.descender) / 2 + 0.5),
                              withAttributes: tagAttrs)
                 }
             }
