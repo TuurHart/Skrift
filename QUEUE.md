@@ -637,6 +637,13 @@ gate+: yes
 do: Build the signed mock `Skrift_Native/SkriftDesktop/mocks/Q86-split-speakers.html` (Tuur 2026-09-30: "looks great, on both phone and Mac… I like it all. Do the switch in header"). Mac: a Split speakers SWITCH in the note header under "Include audio in export", separated by a hairline, off by default; turning it on asks first (re-transcribes from the audio, replaces hand edits — the popover names the last-edit date and an estimate from the recording length), sets `PipelineFile.diarizeRequested` (Q69) and queues through RunQueue (Q77); progress with a ticking time and Cancel; "Only one voice found. Nothing was split."; speakers named from the gutter ("+ name", a person names all of that speaker's turns); switching off runs the existing Flatten to monologue after a confirm that says words, fixes and names stay; greyed "Rate the note first" on unrated notes (C187). Phone: keep the two-people icon + "How many speakers?" (Auto explained, edits warning), add "Split speakers…" and "Flatten to monologue" (with confirm) to the ⋯ sheet, "Move just this line to another speaker" wording, the one-voice toast. Full name on a speaker's first turn, short after, hover/long-press shows the full name (C84). Tests: desktop (opt-in flag, one-voice outcome, flatten keeps names) + phone (flatten). Headless Mac snapshots + phone sim screenshots under `plan/reads/split-q87/`, LOOK. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q88 [auto] (todo) quick note, share sheet and capture sheets use the new rating pill too (one header everywhere)
+spec: C115 C112 C94
+needs: Q85
+gate+: yes
+do: Q85 built the signed pill header (`Shared/UI/NoteRatingPill.swift`: NoteRatingPill, NoteRatingRow, RatingToastView) into the note screen on phone, iPad and Mac, but left the OLD importance card in the quick note (QuickNoteView — D145 says the quick note IS the full note screen), MergedCapture, the share sheet and UnpipelinedMemoSheet. Move all of them to the same pill + fading line + destination row, so there is one header everywhere (C115). Update the phone UI tests that look up `importance-balls` (QuickNoteQ64SimUITests, QuickNoteFastTypingUITests…) to the pill's identifier — those are UITests, not the protected unit targets. Phone sim screenshots of each sheet → `plan/reads/pill-q88/`, LOOK. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -920,3 +927,4 @@ check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 90
 - 2026-09-30 11:32 Q85 -> doing — worker out
 - 2026-09-30 11:32 Q81 -> doing — worker out
 - 2026-09-30 12:01 Q79 -> done — gate pass @3f97467c
+- 2026-09-30 12:30 Q88 added
