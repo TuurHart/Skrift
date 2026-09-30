@@ -620,6 +620,7 @@ check: `test $(ls plan/reads/dest-q84/*.png | wc -l) -ge 1 && perl -e 'alarm 900
 spec: C117 C94 C88
 needs: Q84
 gate+: yes
+gate+: yes
 do: Build the signed header (mock `Skrift_Native/SkriftDesktop/mocks/Q75-note-header-final.html`, behaviour A — Tuur 2026-09-30: "tap is good, not drag"): the importance card becomes one pill; each tap steps Not rated → Passing → Useful → Important → Not rated (un-rating allowed, C88; a toast names each step); the orange "starts fading … — rate it to keep it" line beside it when unrated; the destination row (as renamed by Q84) 12 pt under it, shown only when destinations are on. Phone, iPad and Mac through the shared ThreeBallScale/NoteConsent model (C115). Phone header ≈173 pt at rest per the mock. Screenshots, LOOK, commit under `plan/reads/header-q85/`. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/header-q85/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
