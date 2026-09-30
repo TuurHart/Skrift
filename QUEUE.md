@@ -581,7 +581,7 @@ gate+: yes
 do: The Q64 simulator run (2026-09-30) typed "Tram 28 idea\nBuy pastel de nata\n…" at full speed into a fresh quick note and the FIRST Return was lost ("Tram 28 ideaBuy pastel de nata"); with 1.5 s pauses every Return survived. Suspect: `QuickNoteBodyTextView.updateUIView` (`if tv.text != text { tv.text = text }`) writing back a stale binding while the first keystroke creates the draft Memo (Q47/Q53/Q73 all touch that moment). Reproduce with a phone UI test typing fast (the Q64sim test in SkriftMobileUITests/QuickNoteQ64SimUITests.swift is the pattern; take the sim lock), fix so the text view is the source of truth while editing, and prove every character and Return survives at full speed, including a paste. Phone UI tests stay in the simulator; never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.sh`
 
-### Q80 [auto] (doing) delete the 43 dead functions and the unused sharing/batch export (Q62, D154), with their tests
+### Q80 [auto] (done) delete the 43 dead functions and the unused sharing/batch export (Q62, D154), with their tests
 spec: C240
 needs: -
 gate+: yes
@@ -637,7 +637,7 @@ gate+: yes
 do: Build the signed mock `Skrift_Native/SkriftDesktop/mocks/Q86-split-speakers.html` (Tuur 2026-09-30: "looks great, on both phone and Mac… I like it all. Do the switch in header"). Mac: a Split speakers SWITCH in the note header under "Include audio in export", separated by a hairline, off by default; turning it on asks first (re-transcribes from the audio, replaces hand edits — the popover names the last-edit date and an estimate from the recording length), sets `PipelineFile.diarizeRequested` (Q69) and queues through RunQueue (Q77); progress with a ticking time and Cancel; "Only one voice found. Nothing was split."; speakers named from the gutter ("+ name", a person names all of that speaker's turns); switching off runs the existing Flatten to monologue after a confirm that says words, fixes and names stay; greyed "Rate the note first" on unrated notes (C187). Phone: keep the two-people icon + "How many speakers?" (Auto explained, edits warning), add "Split speakers…" and "Flatten to monologue" (with confirm) to the ⋯ sheet, "Move just this line to another speaker" wording, the one-voice toast. Full name on a speaker's first turn, short after, hover/long-press shows the full name (C84). Tests: desktop (opt-in flag, one-voice outcome, flatten keeps names) + phone (flatten). Headless Mac snapshots + phone sim screenshots under `plan/reads/split-q87/`, LOOK. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/split-q87/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q88 [auto] (todo) quick note, share sheet and capture sheets use the new rating pill too (one header everywhere)
+### Q88 [auto] (doing) quick note, share sheet and capture sheets use the new rating pill too (one header everywhere)
 spec: C115 C112 C94
 needs: Q85
 gate+: yes
@@ -933,3 +933,5 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 12:35 Q80 -> doing — worker out
 - 2026-09-30 12:35 Q87 -> doing — worker out
 - 2026-09-30 13:10 Q87 -> done — gate pass @8a4b29d2
+- 2026-09-30 13:11 Q88 -> doing — worker out
+- 2026-09-30 13:40 Q80 -> done — hand-merged (D154 approved deletions incl. their own tests)
