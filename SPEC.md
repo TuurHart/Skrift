@@ -1864,6 +1864,6 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      mock + a cold user-flow walk first (Q86). Speaker labels stay full name first, short after (C84).
 156. **D156 Rename properly, no old words.** ✅ 2026-09-30: "I want proper renaming everywhere. I don't
      want old words creeping through again. That may mean we need to update the portfolio folders."
-     Archive → Portfolio, Made → Project in strings, code, stored values ("made" still decodes) and
-     the portfolio folder (`_inbox/` → `_projects/`, moved once by the app, never deleted).
-     Supersedes D155's "stored value stays `made`" (Q84).
+     Archive → Portfolio, Made → Project in strings, code and stored values; no migration — the
+     feature was never used ("nothing has been saved with it"). Project's portfolio folder: open
+     (keep the `_inbox/` sorting tray or `_projects/`). Supersedes D155's "stored value stays `made`" (Q84).
