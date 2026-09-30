@@ -366,6 +366,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <div class="what" data-dev="mac" data-in="8">Plain again. The title and summary are written again for one voice; the switch is off and can be turned on again.</div>
 
     <div class="what" data-dev="phone" data-in="1"><span class="asis">AS BUILT</span>The phone&rsquo;s note. Split speakers is the <b>two-people icon</b> in the nav bar, between + and &hellip; (<code>MemoDetailView.swift:355</code>). Tap it.</div>
+    <div class="what" data-dev="phone" data-in="1m"><span class="new">FIX</span>The &hellip; sheet on an unsplit note, with Split speakers in words in its shared slot, so you do not have to guess the icon.</div>
     <div class="what" data-dev="phone" data-in="2"><span class="asis">AS BUILT</span>&ldquo;How many speakers?&rdquo; with Auto and 2 to 5. <span class="only-fix-inline"><span class="new">FIX</span>With fixes on, the sheet says what Auto means and warns about edits.</span></div>
     <div class="what" data-dev="phone" data-in="3"><span class="asis">AS BUILT</span>The line from <code>DiarizationStatus</code>, with its ticking time and the &ldquo;keeps going if you leave&rdquo; hint.</div>
     <div class="what" data-dev="phone" data-in="o"><span class="asis">AS BUILT</span>One voice found: the line disappears and nothing else happens. <span class="new">FIX</span>With fixes on, a toast says so.</div>
@@ -418,14 +419,14 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
         <button type="button" class="pill none only-unrated" data-act="rate"><span class="pbs"><span class="pb"></span><span class="pb"></span><span class="pb"></span></span>Not rated</button>
       </div>
       <div><span class="dchip"><span class="dd"></span>Personal<span class="dv">&#8964;</span></span></div>
-      <div class="audiorow"><span class="sw on"></span>Include audio in export</div>
+      <div class="audiorow" style="padding-bottom:6px;border-bottom:1px solid var(--a-border)"><span class="sw on"></span>Include audio in export</div>
 
       <!-- THE NEW ROW (option A) -->
       <div class="only-a newmark" style="padding:2px 4px;margin-inline:-4px">
         <!-- off -->
         <div class="sprow only-rated" data-in="1 8">
           <button type="button" class="swbtn" data-go="2" aria-label="Split speakers, off"><span class="sw"></span><span class="lbl">Split speakers</span></button>
-          <span class="state">One voice. Turn on if more people talk in this recording.</span>
+          <span class="state">Off. Turn on to see who said what, when more than one person talks.</span>
         </div>
         <div class="sprow only-unrated" data-in="1">
           <button type="button" class="swbtn" disabled aria-label="Split speakers, unavailable"><span class="sw"></span><span class="lbl">Split speakers</span></button>
@@ -433,7 +434,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
         </div>
         <!-- asking -->
         <div class="sprow" data-in="2">
-          <button type="button" class="swbtn" data-go="1" aria-label="Split speakers, asking"><span class="sw busy"></span><span class="lbl">Split speakers</span></button>
+          <button type="button" class="swbtn" data-go="1" aria-label="Split speakers, asking"><span class="sw"></span><span class="lbl">Split speakers</span></button>
         </div>
         <!-- one voice -->
         <div class="sprow" data-in="o">
@@ -464,7 +465,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <!-- confirm: turn on -->
       <div class="pop newmark" data-in="2" role="dialog" aria-label="Split into speakers">
         <h4>Split this note into speakers?</h4>
-        <p>The Mac listens to the recording again and writes the transcript as turns, one per voice. Voices it knows get their names. It takes about as long as the recording.</p>
+        <p>The Mac listens to the recording again and writes the transcript as turns, one per voice. Voices it knows get their names. About 3 minutes for this 3:12 recording.</p>
         <p class="warnline">You edited this transcript on 28 Sep. Those edits are replaced.</p>
         <div class="btns">
           <button type="button" class="mbtn" data-go="1">Cancel</button>
@@ -487,7 +488,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <!-- splitting band -->
     <div class="band newmark" data-in="3">
       <div class="l1"><span class="spin" aria-hidden="true"></span>Listening again for who speaks when &middot; <span class="tick">0:42</span></div>
-      <div class="l2">Keeps going if you open another note. The text is read-only until it finishes.</div>
+      <div class="l2">Keeps going if you open another note; if you quit Skrift it starts again at the next launch. The text is read-only until it finishes.</div>
       <button type="button" class="mock-only" data-go="4">mock: finish with 2 voices</button>
       <button type="button" class="mock-only" data-go="o">mock: finish with 1 voice</button>
     </div>
@@ -509,14 +510,14 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       </div><p class="said">Nine is early. Most people come after ten, after coffee.</p></div>
 
       <div class="pop rpop newmark" data-in="5" role="dialog" aria-label="Who is Speaker 2">
-        <h4>Who is Speaker 2?</h4>
+        <h4>Who is Speaker 2?</h4><p class="keep" style="margin:-4px 0 0">A person names all 3 of Speaker 2&rsquo;s turns.</p>
         <div class="sec"><div class="st">PEOPLE</div>
           <button type="button" class="prow" data-go="6" data-toast="t-named"><span class="av">MS</span><span class="pn">Maria Santos</span></button>
           <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">JV</span><span class="pn">Joost de Vries</span></button>
           <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">AR</span><span class="pn">Ana Ribeiro</span><span class="vbars" aria-label="voice enrolled"><i style="height:5px"></i><i style="height:10px"></i><i style="height:7px"></i></span></button>
         </div>
         <div class="sec"><div class="st">MERGE INTO</div>
-          <div class="hint">Wrong split? Send Speaker 2&rsquo;s words to another speaker.</div>
+          <div class="hint">Wrong split? Move just this line to another speaker.</div>
           <button type="button" class="mrow" data-toast="t-merge"><span class="mg">&#8669;</span>Tiuri Hartog</button>
         </div>
         <div class="sec"><div class="st">NEW PERSON</div>
@@ -525,15 +526,15 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
         <div class="btns"><button type="button" class="mbtn" data-go="4">Cancel</button></div>
       </div>
 
-      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri"><span class="nm">Tiuri</span></button></div><p class="said">Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p></div>
+      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri" title="Tiuri Hartog"><span class="nm">Tiuri</span></button></div><p class="said">Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p></div>
       <div class="turn s2"><div class="who">
         <button type="button" data-in="4 5" data-go="5"><span class="nm un">Speaker 2</span></button>
-        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria"><span class="nm">Maria</span></button>
+        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria" title="Maria Santos"><span class="nm">Maria</span></button>
       </div><p class="said">The blue ones and the small ones. People want something that fits in a suitcase.</p></div>
-      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri"><span class="nm">Tiuri</span></button></div><p class="said">So more small ones, fewer of the big panels.</p></div>
+      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri" title="Tiuri Hartog"><span class="nm">Tiuri</span></button></div><p class="said">So more small ones, fewer of the big panels.</p></div>
       <div class="turn s2"><div class="who">
         <button type="button" data-in="4 5" data-go="5"><span class="nm un">Speaker 2</span></button>
-        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria"><span class="nm">Maria</span></button>
+        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria" title="Maria Santos"><span class="nm">Maria</span></button>
       </div><p class="said">And we need change. Lots of coins.</p></div>
     </div>
     <div class="toast" role="status"></div>
@@ -586,7 +587,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     </div>
 
     <!-- How many speakers? (confirmationDialog) -->
-    <div class="scrim" data-in="2 5 7 7c" data-act="scrim"></div>
+    <div class="scrim" data-in="1m 2 5 7 7c" data-act="scrim"></div>
     <div class="asheet" data-in="2" role="dialog" aria-label="How many speakers?">
       <div class="grp">
         <div class="ttl">How many speakers?</div>
@@ -635,6 +636,21 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <div class="grp"><button type="button" class="cancel" data-go="6">Cancel</button></div>
     </div>
 
+    <!-- ⋯ sheet on an unsplit note, with fixes: a labelled Split speakers in its shared slot -->
+    <div class="asheet only-fix" data-in="1m" role="dialog" aria-label="More">
+      <div class="grp">
+        <div class="ttl">3:12 · 58 words</div>
+        <button type="button" data-toast="t-addrec">Add recording</button>
+        <button type="button" class="hl newmark" data-go="2">Split speakers&hellip;</button>
+        <button type="button" data-toast="t-remind">Remind me&hellip;</button>
+        <button type="button" data-toast="t-lock">Lock Note</button>
+        <button type="button" data-toast="t-share">Share note&hellip;</button>
+        <button type="button" data-toast="t-copied">Copy transcript</button>
+        <button type="button" class="red" data-toast="t-delete">Delete</button>
+      </div>
+      <div class="grp"><button type="button" class="cancel" data-go="1">Cancel</button></div>
+    </div>
+
     <!-- Flatten confirm (proposed) -->
     <div class="alert newmark" data-in="7c" role="dialog" aria-label="Flatten to monologue">
       <div class="at">Flatten to monologue?</div>
@@ -655,7 +671,21 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <h2>Cold walk: where a first-time user hesitates</h2>
     <p class="lede">Walked step by step without the design notes. Each moment, and what the mock now does about it.</p>
     <ol id="walk-list">
-      <li><span class="hes">Placeholder, filled in by the walk.</span><span class="fix"></span></li>
+      <li><span class="hes"><b>Mac, step 1.</b> The switch sits right under &ldquo;Include audio in export&rdquo;, so I read it as an export setting. And &ldquo;One voice&rdquo; sounded like the app had already checked.</span><span class="fix"><b>Fix:</b> a hairline now separates it from the export row, and the line says what it does to the note: &ldquo;Off. Turn on to see who said what, when more than one person talks.&rdquo; <span class="where">step 1</span></span></li>
+      <li><span class="hes"><b>Mac, step 2.</b> The switch flipped on while the question was still open, so I thought it had already started.</span><span class="fix"><b>Fix:</b> the switch stays off until you press Split speakers in the popover. <span class="where">step 2</span></span></li>
+      <li><span class="hes"><b>Mac, step 2.</b> Nothing told me it would redo the transcript or throw away the typo fixes I made last week.</span><span class="fix"><b>Fix:</b> the popover says the Mac listens again, and an amber line names the edit date when there are hand edits. <span class="where">step 2</span></span></li>
+      <li><span class="hes"><b>Mac, step 2.</b> &ldquo;About as long as the recording&rdquo; made me do sums.</span><span class="fix"><b>Fix:</b> it says the number: about 3 minutes for this 3:12 recording. <span class="where">step 2</span></span></li>
+      <li><span class="hes"><b>Mac, step 3.</b> Can I leave this note, or quit? Is it frozen? There is no percentage.</span><span class="fix"><b>Fix:</b> a ticking time (as the phone does), a Cancel, and one line: keeps going if you open another note, starts again at next launch if you quit (C182). <span class="where">step 3</span></span></li>
+      <li><span class="hes"><b>Both, one voice found.</b> Today nothing happens: the spinner goes away and the text is unchanged. I would think it broke.</span><span class="fix"><b>Fix:</b> Mac row says &ldquo;Only one voice found. Nothing was split.&rdquo; and the switch falls back off; the phone shows the same words as a toast. <span class="where">step 3, mock: 1 voice</span></span></li>
+      <li><span class="hes"><b>Mac, step 4.</b> &ldquo;Speaker 2&rdquo; in grey did not look clickable, and I had no idea I could name it.</span><span class="fix"><b>Fix:</b> a &ldquo;+ name&rdquo; tag under it, like the phone, and the row says &ldquo;Click a name to say who it is.&rdquo; <span class="where">step 4</span></span></li>
+      <li><span class="hes"><b>Mac, step 4 and 6.</b> &ldquo;Tiuri Hartog&rdquo; then &ldquo;Tiuri&rdquo;: are those two people?</span><span class="fix"><b>Fix:</b> same colour and spine for both (as signed), and hovering a short name shows the full name. <span class="where">step 4</span></span></li>
+      <li><span class="hes"><b>Mac, step 5.</b> Does picking Maria rename only this line or all of Speaker 2?</span><span class="fix"><b>Fix:</b> one line under the title: &ldquo;A person names all 3 of Speaker 2&rsquo;s turns.&rdquo; <span class="where">step 5</span></span></li>
+      <li><span class="hes"><b>Both, step 5.</b> &ldquo;Send Speaker 2&rsquo;s words to another speaker&rdquo; sounds like all of them, but the code moves only the tapped line.</span><span class="fix"><b>Fix (Mac):</b> &ldquo;Wrong split? Move just this line to another speaker.&rdquo; The phone keeps its as-built wording here; the same fix belongs there. <span class="where">step 5</span></span></li>
+      <li><span class="hes"><b>Mac, step 7.</b> If I switch it off, do I lose the words, my fixes, or Maria?</span><span class="fix"><b>Fix:</b> the Flatten popover says the words and fixes stay, nothing is transcribed again, and Maria stays in Names. <span class="where">step 7</span></span></li>
+      <li><span class="hes"><b>Mac, unrated note.</b> The switch would do nothing, because the Mac has no row for an unrated note.</span><span class="fix"><b>Fix:</b> greyed switch with &ldquo;Rate the note first.&rdquo; Tapping the pill wakes it up. <span class="where">tick Unrated note</span></span></li>
+      <li><span class="hes"><b>Phone, step 1.</b> The two-people icon has no label. First time, I would not guess it splits speakers.</span><span class="fix"><b>Fix (With fixes):</b> the &hellip; sheet also lists &ldquo;Split speakers&hellip;&rdquo; in words, in its shared slot. The icon stays. <span class="where">phone, With fixes, &hellip;</span></span></li>
+      <li><span class="hes"><b>Phone, step 2.</b> What is &ldquo;Auto&rdquo;? And again no warning that my edits go.</span><span class="fix"><b>Fix (With fixes):</b> the dialog message says Auto finds the number itself and that transcript edits are replaced. <span class="where">phone step 2</span></span></li>
+      <li><span class="hes"><b>Phone, step 7.</b> There is no way to undo a split on the phone. The icon only splits again.</span><span class="fix"><b>Fix (With fixes):</b> Flatten to monologue in the &hellip; sheet, with the same promise as the Mac. <span class="where">phone step 7</span></span></li>
     </ol>
   </section>
 
@@ -674,7 +704,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   <span id="t-maria">Maria Santos. Click to change who this is.</span>
   <span id="t-named">Speaker 2 is Maria Santos now. Skrift learns her voice from this note.</span>
   <span id="t-named-other">In this mock every pick lands as Maria Santos.</span>
-  <span id="t-merge">Speaker 2&rsquo;s words would join Tiuri. Not drawn further.</span>
+  <span id="t-merge">This line would move to Tiuri. Not drawn further.</span>
   <span id="t-addname">Added to Names. In this mock the name shows as Maria Santos.</span>
   <span id="t-flat">Flattened to monologue.</span>
   <span id="t-back">Back to the notes list (not part of this flow).</span>
@@ -701,7 +731,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     macB: ["1","2m","2","3","4","5","6","7m","7","8"],
     phone:["1","2","3","4","5","6","7","7c","8"]
   };
-  var STRIP = {"1":"1","1u":"1","2m":"2","2":"2","3":"3","o":"3","4":"4","5":"5","6":"6","7m":"7","7":"7","7c":"7","8":"8"};
+  var STRIP = {"1":"1","1u":"1","1m":"1","2m":"2","2":"2","3":"3","o":"3","4":"4","5":"5","6":"6","7m":"7","7":"7","7c":"7","8":"8"};
   var timer = null, secs = 0;
 
   function $(s, r){ return (r || document).querySelector(s); }
@@ -826,11 +856,12 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       go("2"); return;
     }
     if (act === "phdots") {
+      if (S.fix === "fix" && ["1","o","8"].indexOf(st) >= 0) { go("1m"); return; }
       if (["4","6","8"].indexOf(st) >= 0 && !(st === "8" && S.fix === "fix")) { go("7"); return; }
       toast("t-phdots"); return;
     }
     if (act === "phback" || act === "scrim") {
-      var back = {"2":"1","5":"4","7":"6","7c":"6"}[st] || S.step;
+      var back = {"1m":"1","2":"1","5":"4","7":"6","7c":"6"}[st] || S.step;
       go(back); return;
     }
     if (act === "addname") { go("6"); toast("t-addname"); return; }
