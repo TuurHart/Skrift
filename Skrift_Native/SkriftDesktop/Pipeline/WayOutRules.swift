@@ -129,8 +129,7 @@ enum WayOutRules {
     /// ever consulted, so a caller that already knows that can pass the
     /// default empty set.
     static func oneLiner(for memo: Memo, backlinked: Set<UUID> = [], now: Date = Date()) -> String {
-        let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
-        return MemoSpine.oneLiner(for: station, now: now)
+        WayOut.oneLiner(for: memo, backlinked: backlinked, now: now)
     }
 
     // MARK: - ③ one Recently Deleted (memo trash + the Mac-local tail)
@@ -170,15 +169,13 @@ enum WayOutRules {
     /// re-fade the next second) and clears `deletedAt` when it was set. Caller
     /// saves the cloud context.
     static func bringBack(_ memo: Memo, now: Date = Date()) {
-        memo.keptAt = now
-        memo.deletedAt = nil
-        memo.trashSeenAt = nil   // purge-clock hygiene (v3); the validity guard ignores stale stamps anyway
+        WayOut.bringBack(memo, now: now)
     }
 
     /// Fading rows, soonest-to-move-to-Recently-Deleted first (imminence
     /// ordering — mirrors `FadingShelfColumn`'s prior comparator, unchanged).
     static func fadingOrdered(_ memos: [Memo]) -> [Memo] {
-        memos.sorted { MemoLifecycle.fadesAt($0) < MemoLifecycle.fadesAt($1) }
+        WayOut.fadingOrdered(memos)
     }
 
     /// Deleted rows, soonest-to-purge-for-good first (imminence ordering —
@@ -187,6 +184,6 @@ enum WayOutRules {
     /// 7 Jul · ~1d" listed above "deleted 14 Jul · ~8d") shows the conveyor
     /// orders by what happens next, not by what you did most recently.
     static func deletedOrdered(_ memos: [Memo]) -> [Memo] {
-        memos.sorted { ($0.deletedAt ?? .distantPast) < ($1.deletedAt ?? .distantPast) }
+        WayOut.deletedOrdered(memos)
     }
 }
