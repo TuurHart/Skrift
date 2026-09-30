@@ -122,17 +122,22 @@ final class ProcessingCoordinator {
                 await runProcess(fileIDs: ids, context: context, retranscribeIDs: retranscribe)
             case .transcribe(let ids):
                 await runTranscribe(fileIDs: ids, context: context)
+            case .split(let id):
+                await runSplit(id: id, context: context)
             }
             current = waiting.next()
         }
     }
 
-    private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = []) async {
+    private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = [],
+                            splitIDs: Set<String> = []) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
 
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all
-            .filter { fileIDs.contains($0.id) && needsProcessing($0) }
+            // A split re-runs a note that is already Ready, so it bypasses the "still needs
+            // processing" gate (only a trashed note is refused).
+            .filter { fileIDs.contains($0.id) && (needsProcessing($0) || (splitIDs.contains($0.id) && $0.deletedAt == nil)) }
             .sorted { $0.uploadedAt < $1.uploadedAt }   // oldest first, like the backend
         guard !targets.isEmpty else { return }
 
@@ -212,14 +217,27 @@ final class ProcessingCoordinator {
             let hasAudio = pf.sourceType == .audio && !pf.path.isEmpty
                 && FileManager.default.fileExists(atPath: pf.path)
             let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
+            let isSplit = splitIDs.contains(pf.id)
+            let flag = splitFlags[pf.id]
             do {
                 try await runner.run(pf, audioURL: audioURL,
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
-                                     retranscribe: retranscribeIDs.contains(pf.id))
+                                     retranscribe: retranscribeIDs.contains(pf.id),
+                                     requireSplit: isSplit,
+                                     cancelCheck: isSplit ? { flag?.isCancelled ?? false } : nil)
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
                 pf.error = nil
                 pf.lastActivityAt = Date()
+                if isSplit { finishSplit(pf, error: nil, context: context) }
             } catch {
+                if isSplit, let e = error as? BatchRunnerError, e == .oneVoice || e == .cancelled {
+                    // Not a failure: the note is untouched (BatchRunner decided before writing).
+                    finishSplit(pf, error: e, context: context)
+                    try? context.save()
+                    runState?.done += 1
+                    continue
+                }
+                if isSplit { finishSplit(pf, error: error, context: context) }
                 pf.error = String(describing: error)
                 // A missing audio file is always a TRANSCRIBE error (C51/R9), even when an
                 // older transcript is still sitting on the row (a re-transcribe whose audio
@@ -364,6 +382,136 @@ final class ProcessingCoordinator {
         }
     }
 
+    // ── Split speakers (Q87, mock Q86-split-speakers.html) ──
+    // A per-note switch: ON = the Mac listens again (fresh ASR + diarization) and writes the
+    // note as turns. Rides the same one-run-at-a-time queue as Process (`RunQueue`, Q77), shows a
+    // ticking time instead of a fake percentage, and can be cancelled. A run that finds one voice
+    // writes NOTHING (`BatchRunnerError.oneVoice`).
+
+    enum SplitPhase: Equatable {
+        case waiting                    // queued behind another run
+        case running(since: Date)       // drives the ticking m:ss
+    }
+    /// Notes with a split in flight. Observed by the header switch + the body.
+    private(set) var splitPhases: [String: SplitPhase] = [:]
+    /// The one-line result under the switch ("Only one voice found…", "Cancelled…"); self-clearing.
+    private(set) var splitNotices: [String: String] = [:]
+    private var splitFlags: [String: SplitCancelFlag] = [:]
+
+    /// Turn Split speakers ON for a note (the confirm was already answered).
+    func splitSpeakers(_ pf: PipelineFile, context: ModelContext) async {
+        guard splitPhases[pf.id] == nil, pf.sourceType == .audio, NoteConsent.isRated(pf) else { return }
+        splitNotices[pf.id] = nil
+        SplitSpeakers.request(pf)                 // C102: the per-note opt-in
+        try? context.save()
+        splitPhases[pf.id] = .waiting
+        splitFlags[pf.id] = SplitCancelFlag()
+        await submit(.split(id: pf.id), context: context, announce: false)
+    }
+
+    private func runSplit(id: String, context: ModelContext) async {
+        // Cancelled while it waited in the queue.
+        guard splitPhases[id] != nil, splitFlags[id]?.isCancelled != true else {
+            splitPhases[id] = nil; splitFlags[id] = nil; return
+        }
+        splitPhases[id] = .running(since: Date())
+        await runProcess(fileIDs: [id], context: context, retranscribeIDs: [id], splitIDs: [id])
+        splitPhases[id] = nil          // whatever happened, the spinner is over
+        splitFlags[id] = nil
+    }
+
+    /// Cancel: a waiting split leaves the queue; a running one is abandoned at its next
+    /// checkpoint, and the note is exactly as it was because nothing is written until then.
+    func cancelSplit(_ pf: PipelineFile, context: ModelContext) {
+        guard splitPhases[pf.id] != nil else { return }
+        splitFlags[pf.id]?.cancel()
+        waiting.removeSplit(id: pf.id)
+        splitPhases[pf.id] = nil
+        SplitSpeakers.withdraw(pf)
+        try? context.save()
+        setSplitNotice(pf.id, SplitSpeakersCopy.cancelled)
+    }
+
+    private func finishSplit(_ pf: PipelineFile, error: Error?, context: ModelContext) {
+        let userCancelled = splitFlags[pf.id]?.isCancelled == true
+        let outcome = SplitSpeakers.settle(pf, error: error)
+        switch outcome {
+        case .split:
+            reflectSplitToMemo(pf)
+        case .oneVoice:
+            if !userCancelled { setSplitNotice(pf.id, SplitSpeakersCopy.oneVoice) }
+        case .cancelled, .failed:
+            break
+        }
+        try? context.save()
+    }
+
+    private func setSplitNotice(_ id: String, _ text: String) {
+        splitNotices[id] = text
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(6))
+            if self?.splitNotices[id] == text { self?.splitNotices[id] = nil }
+        }
+    }
+
+    /// The split/flatten is a deliberate change of the note's words: put it on the synced Memo,
+    /// or the next reflect sweep puts the old flat transcript back (`SplitSpeakers.reflectTranscript`).
+    private func reflectSplitToMemo(_ pf: PipelineFile) {
+        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
+              let cloud = MemoCloudStore.container?.mainContext else { return }
+        SplitSpeakers.reflectTranscript(of: pf, into: cloud)
+    }
+
+    /// Name a speaker from the gutter: ALL of their turns take `name`, the person is created in
+    /// Names when new, the body is re-linked (full name on the first turn, short after), and — for
+    /// a "Speaker N" whose audio we still have — the voice is learned from this note.
+    func nameSpeaker(_ pf: PipelineFile, displayed: String, as name: String, context: ModelContext) {
+        let before = NamesStore.shared.livePeople()
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let known = before.first { NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(trimmed) == .orderedSame }
+        if known == nil {
+            let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
+            NamesStore.shared.upsert(canonical: trimmed, aliases: [trimmed, first], short: first)
+        }
+        let canonical = known.map { NamesMerge.keyName($0.canonical) } ?? trimmed
+        let slot = Self.diarizationSlot(of: displayed, in: pf)
+        guard SplitSpeakers.nameSpeaker(pf, displayed: displayed, as: canonical,
+                                        people: NamesStore.shared.livePeople()) else { return }
+        resanitiseForNames(pf, context: context)
+        MacCloudEditSync.shared.note(pf)
+        reflectSplitToMemo(pf)
+        flash("\(displayed) is \(canonical) now")
+        if let slot, !stubbedEngines, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
+            let audio = URL(fileURLWithPath: pf.path), segments = pf.diarizationSegments
+            Task.detached(priority: .utility) {
+                guard let vec = try? await DiarizationService.shared.embedSpeaker(audioURL: audio, segments: segments, slot: slot),
+                      !vec.isEmpty else { return }
+                NamesStore.shared.addVoiceEmbedding(
+                    canonical: canonical,
+                    embedding: VoiceEmbedding(vector: vec.map(Double.init), condition: "conversation",
+                                              addedAt: ISO8601.now()))
+            }
+        }
+    }
+
+    /// "Move just this line to another speaker" — only the tapped turn changes hands.
+    func moveLine(_ pf: PipelineFile, turnIndex: Int, to other: String, context: ModelContext) {
+        guard SplitSpeakers.moveLine(pf, turnIndex: turnIndex, to: other,
+                                     people: NamesStore.shared.livePeople()) else { return }
+        resanitiseForNames(pf, context: context)
+        MacCloudEditSync.shared.note(pf)
+        reflectSplitToMemo(pf)
+    }
+
+    /// The diarization slot behind a displayed speaker: "Speaker N" is slot N-1 (the label
+    /// BatchRunner writes); nil for a voice the Mac already matched (nothing new to learn).
+    private static func diarizationSlot(of displayed: String, in pf: PipelineFile) -> Int? {
+        guard SpeakerTranscript.isUnnamed(displayed),
+              let n = Int(displayed.dropFirst("Speaker ".count)), n >= 1 else { return nil }
+        return n - 1
+    }
+
     // ── Export to the Obsidian vault (markdown + audio + images) ──
     /// Q56/R90: `VaultExporter.export` does synchronous file copies + compile + vault
     /// write — the same class of work `IngestService` already runs off-main via
@@ -448,21 +596,11 @@ final class ProcessingCoordinator {
     /// re-ASR. (Conversation mode is off by default now, so `process` won't re-diarize.)
     func flattenToMonologue(_ pf: PipelineFile, context: ModelContext) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
-        guard SpeakerTranscript.isAttributed(pf.transcript),
-              let flat = SpeakerTranscript.flattened(pf.transcript) else { return }
-        pf.transcript = flat
-        pf.diarizationSegments = []
-        if !pf.path.isEmpty {
-            DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
-        }
-        pf.sanitised = nil
-        pf.ambiguousNames = nil
-        pf.enhancedCopyedit = nil
-        pf.enhancedSummary = nil
-        pf.compiledText = nil
-        pf.sanitiseStatus = .pending
-        pf.enhanceStatus = .pending
+        // The state change is `SplitSpeakers.flatten` (pure, unit-tested): words + fixes +
+        // name choices stay, Names is never touched. What is left is re-enhancing as one voice.
+        guard SplitSpeakers.flatten(pf) else { return }
         try? context.save()
+        reflectSplitToMemo(pf)
         await process(fileIDs: [pf.id], context: context)   // re-enhance the flat prose as a monologue
     }
 
@@ -572,4 +710,12 @@ final class ProcessingCoordinator {
         try? context.save()
         flash("\(affected.count) note\(affected.count == 1 ? "" : "s") now share a name — re-check the dotted names")
     }
+}
+
+/// Cross-thread "the user pressed Cancel" for one split run (`BatchRunner` reads it off the main actor).
+final class SplitCancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
+    func cancel() { lock.lock(); cancelled = true; lock.unlock() }
 }

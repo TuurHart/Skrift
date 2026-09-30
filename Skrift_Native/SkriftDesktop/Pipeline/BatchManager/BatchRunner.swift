@@ -5,9 +5,16 @@ import os
 /// should surface as an error rather than silently mark done (C51/R9).
 enum BatchRunnerError: LocalizedError {
     case missingAudioFile
+    /// Q87: a Split-speakers run found fewer than two voices. NOTHING was written to the note
+    /// (the fresh transcript is discarded), so "nothing was split" is literally true.
+    case oneVoice
+    /// Q87: the user cancelled a Split-speakers run; the note is exactly as it was.
+    case cancelled
     var errorDescription: String? {
         switch self {
         case .missingAudioFile: return "Audio file not found."
+        case .oneVoice: return SplitSpeakersCopy.oneVoice
+        case .cancelled: return SplitSpeakersCopy.cancelled
         }
     }
 }
@@ -43,8 +50,12 @@ struct BatchRunner {
     /// (the ⋯ menu's "Re-transcribe"). C51/R9: nothing of the OLD transcript is cleared
     /// until the NEW one actually exists — a run that fails (or finds the audio file
     /// gone) must leave the note exactly as it was, with an error on the row instead.
+    /// `requireSplit` (Q87 "Split speakers"): transcribe AND diarize BEFORE touching the note, and
+    /// commit only when at least two voices come back. One voice → `BatchRunnerError.oneVoice`
+    /// with the note untouched (its hand edits survive); `cancelCheck` true → `.cancelled`, same.
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = [],
-             stopAfterTranscribe: Bool = false, retranscribe: Bool = false) async throws {
+             stopAfterTranscribe: Bool = false, retranscribe: Bool = false,
+             requireSplit: Bool = false, cancelCheck: (@Sendable () -> Bool)? = nil) async throws {
         // Captures (C3) never transcribe or diarize — their annotation is already text.
         // Enhancement-lite runs on the annotation: title + tags + summary, NO copy-edit
         // (the annotation is intentional prose, not speech artifacts). Sanitise runs as normal.
@@ -60,7 +71,9 @@ struct BatchRunner {
         // phone now uploads them for karaoke), which is exactly what gates the re-diarize
         // below off a phone transcript.
         var didTranscribe = false
+        var splitOutput: DiarizationOutput?   // requireSplit: the diarization computed BEFORE the commit
         if retranscribe || pf.transcribeStatus != .done {
+            let priorTranscribeStatus = pf.transcribeStatus
             pf.transcribeStatus = .processing
             guard let audioURL else {
                 // The audio file is gone — an ERROR on the row, not a silent "done" with
@@ -87,6 +100,19 @@ struct BatchRunner {
             let newTranscript = BodyV2.committed(BodyV2.Input(
                 text: result.text, words: result.wordTimings, manifest: imageManifest,
                 source: result.wordTimings.isEmpty ? .typed : .speech))
+            // Q87: a split is decided BEFORE anything of the old note is dropped.
+            if requireSplit {
+                func abandon(_ e: BatchRunnerError) -> BatchRunnerError {
+                    pf.transcribeStatus = priorTranscribeStatus
+                    return e
+                }
+                if cancelCheck?() == true { throw abandon(.cancelled) }
+                guard let diarizer, !result.wordTimings.isEmpty,
+                      let out = try? await diarizer.diarize(audioURL: audioURL) else { throw abandon(.oneVoice) }
+                if cancelCheck?() == true { throw abandon(.cancelled) }
+                guard Set(out.segments.map(\.speaker)).count >= 2 else { throw abandon(.oneVoice) }
+                splitOutput = out
+            }
             // The ASR succeeded — the new transcript EXISTS now. Only at this point does a
             // re-transcribe drop every derivative of the OLD one (C51): word timings,
             // diarization (+ its sidecar), sanitised body, ambiguous names, copy-edit,
@@ -115,11 +141,15 @@ struct BatchRunner {
         // `**[[Person]]:**` (matched) / `**Speaker N:**` turns. A monologue (<2 speakers)
         // is left as plain prose. The Sanitiser then links any remaining plain aliases;
         // matched speakers already carry the canonical `[[ ]]` so they're skipped.
-        if let diarizer, pf.diarizeRequested || settings.conversationModeEnabled, let audioURL, didTranscribe,
+        var diarOut = splitOutput
+        if diarOut == nil, let diarizer, pf.diarizeRequested || settings.conversationModeEnabled, let audioURL, didTranscribe,
            !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
+           !SpeakerTranscript.isAttributed(pf.transcript) {
+            diarOut = try? await diarizer.diarize(audioURL: audioURL)
+        }
+        if didTranscribe, !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
            !SpeakerTranscript.isAttributed(pf.transcript),
-           let out = try? await diarizer.diarize(audioURL: audioURL),
-           Set(out.segments.map(\.speaker)).count >= 2 {
+           let out = diarOut, Set(out.segments.map(\.speaker)).count >= 2 {
             // Emit PLAIN speaker labels (matched person's name or "Speaker N"), like the
             // phone — `processConversation` (below) owns all `[[ ]]` linking + the
             // first-mention-canonical/rest-short header policy, so both the phone-synced

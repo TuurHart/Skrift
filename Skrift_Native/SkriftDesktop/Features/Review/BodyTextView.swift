@@ -16,6 +16,18 @@ import ImageIO
 /// mentions in this note" (persisted so re-processing won't re-link), or "change to →
 /// <person>". (The in-prose three-tier suggested rendering + which-person popover land
 /// in chunk 4 — see archive/state-2026-09/NAMING_MODEL.md / mocks/naming-review.html.)
+/// What the gutter's naming popover needs from its host (Q87, mock Q86-split-speakers.html).
+struct SpeakerAssign {
+    /// The other speakers in the note (labels as shown), for "Move just this line to…".
+    var others: (_ displayed: String) -> [String]
+    /// How many turns this speaker has — "A person names all 3 of Speaker 2's turns."
+    var turnCount: (_ displayed: String) -> Int
+    /// A person (existing or new, by full name) names ALL of `displayed`'s turns.
+    var onName: (_ displayed: String, _ name: String) -> Void
+    /// Move ONLY turn `index` to the speaker shown as `other`.
+    var onMoveLine: (_ index: Int, _ other: String) -> Void
+}
+
 struct BodyTextView: NSViewRepresentable {
     @Binding var text: String
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
@@ -40,6 +52,8 @@ struct BodyTextView: NSViewRepresentable {
     var onLinkedUnlink: ((_ canonical: String) -> Void)? = nil
     var onLinkedChange: ((_ alias: String, _ newCanonical: String) -> Void)? = nil
     var onOpenNote: ((_ canonical: String) -> Void)? = nil
+    /// Q87: click a speaker's name in the gutter → "Who is Speaker 2?" (nil = the gutter is inert).
+    var speakerAssign: SpeakerAssign? = nil
     /// Memo↔memo link chip clicked (phone chunk-5 parity) — open that memo in the
     /// detail pane. nil on read-only hosts → the chip still renders, just inert.
     var onOpenMemoLink: ((_ id: UUID) -> Void)? = nil
@@ -736,7 +750,7 @@ struct BodyTextView: NSViewRepresentable {
             storage.enumerateAttribute(.attachment, in: full) { value, range, _ in
                 if let gutter = value as? SpeakerGutterAttachment {
                     gutters.append((range.location, gutter.slot))
-                    storage.addAttribute(.toolTip, value: gutter.display, range: range)
+                    storage.addAttribute(.toolTip, value: speakerTooltip(gutter.display), range: range)
                 } else if let chip = value as? MemoLinkChipAttachment {
                     storage.addAttribute(.toolTip, value: "Opens “\(chip.title)”", range: range)
                 } else if let box = value as? TaskBoxAttachment {
@@ -977,6 +991,19 @@ struct BodyTextView: NSViewRepresentable {
                 open(chip.linkID)
                 return true
             }
+            // Speaker name in the gutter → who is this? (Q87). Its turn index = how many gutter
+            // glyphs sit before it, which is the index the model's turns use.
+            if parent.speakerAssign != nil, idx < storage.length,
+               let gutter = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? SpeakerGutterAttachment {
+                var index = 0
+                storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: idx)) { v, _, _ in
+                    if v is SpeakerGutterAttachment { index += 1 }
+                }
+                peopleCache = NamesStore.shared.livePeople()
+                showSpeakerPopover(index: index, display: gutter.display,
+                                   range: NSRange(location: idx, length: 1), tv: tv)
+                return true
+            }
             // Checklist box → toggle: flip the attachment, write the flipped syntax
             // back through the model (persists + Part-B edit sync), restyle the line.
             if idx < storage.length,
@@ -1066,6 +1093,32 @@ struct BodyTextView: NSViewRepresentable {
         }
 
         private func closePopover() { activePopover?.performClose(nil); activePopover = nil }
+
+        /// C84: a short name after the first turn still names the FULL person on hover.
+        private func speakerTooltip(_ display: String) -> String {
+            if SpeakerTranscript.isUnnamed(display) {
+                return parent.speakerAssign == nil ? display : "\(display). Click to say who this is."
+            }
+            let people = parent.people.isEmpty ? peopleCache : parent.people
+            let full = SpeakerTurnStyle.HeaderResolver(people: people).person(for: display)
+                .map { NamesMerge.keyName($0.canonical) } ?? display
+            return parent.speakerAssign == nil ? full : "\(full). Click to change who this is."
+        }
+
+        /// Q87: the gutter name was clicked — ask "Who is Speaker 2?".
+        private func showSpeakerPopover(index: Int, display: String, range: NSRange, tv: SelfSizingTextView) {
+            guard let assign = parent.speakerAssign else { return }
+            let people = NamesStore.shared.livePeople()
+            presentPopover(SpeakerAssignPopover(
+                speaker: display,
+                turnCount: assign.turnCount(display),
+                others: assign.others(display),
+                people: people.map { NamesMerge.keyName($0.canonical) }.sorted(),
+                onName: { [weak self] name in self?.closePopover(); assign.onName(display, name) },
+                onMoveLine: { [weak self] other in self?.closePopover(); assign.onMoveLine(index, other) },
+                onCancel: { [weak self] in self?.closePopover() }),
+                at: range, in: tv)
+        }
 
         private func boundingRect(_ range: NSRange, in tv: SelfSizingTextView) -> NSRect {
             guard let lm = tv.layoutManager, let tc = tv.textContainer else { return .zero }
@@ -1391,7 +1444,8 @@ final class SpeakerGutterAttachment: NSTextAttachment {
         super.init(data: nil, ofType: nil)
         let body = BodyTextView.bodyFont
         let height = body.ascender - body.descender
-        image = Self.nameImage(display, slot: slot, linked: linked, height: height, baseline: -body.descender)
+        image = Self.nameImage(display, slot: slot, linked: linked, height: height, baseline: -body.descender,
+                               unnamed: SpeakerTranscript.isUnnamed(display))
         // Occupy the body font's own line box, so a gutter never changes line height.
         bounds = CGRect(x: 0, y: body.descender, width: BodyTextView.spineX, height: height)
     }
@@ -1404,7 +1458,7 @@ final class SpeakerGutterAttachment: NSTextAttachment {
     /// The name, right-aligned to the gutter edge and sitting on the body's baseline.
     /// Colour resolves inside the draw block, so it follows a light/dark switch.
     private static func nameImage(_ name: String, slot: Int, linked: Bool,
-                                  height: CGFloat, baseline: CGFloat) -> NSImage {
+                                  height: CGFloat, baseline: CGFloat, unnamed: Bool) -> NSImage {
         let font = linked ? BodyTextView.speakerFontLinked : BodyTextView.speakerFont
         return NSImage(size: NSSize(width: BodyTextView.spineX, height: height), flipped: false) { _ in
             let para = NSMutableParagraphStyle()
@@ -1420,6 +1474,26 @@ final class SpeakerGutterAttachment: NSTextAttachment {
                              width: BodyTextView.gutterWidth,
                              height: font.ascender - font.descender)
             (name as NSString).draw(in: box, withAttributes: attrs)
+            // "+ name" (mock Q86): an unnamed speaker says it can be named. Same line as the
+            // name, to its left, so a one-line turn never collides with the next gutter.
+            if unnamed {
+                let hue = NSColor(Theme.speakerHue(slot: slot))
+                let tagFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
+                let tag = "+ name" as NSString
+                let tagAttrs: [NSAttributedString.Key: Any] = [.font: tagFont, .foregroundColor: hue]
+                let nameWidth = (name as NSString).size(withAttributes: [.font: font]).width
+                let tw = tag.size(withAttributes: tagAttrs).width
+                let pillW = ceil(tw) + 14, pillH: CGFloat = 16
+                let x = BodyTextView.gutterWidth - nameWidth - 6 - pillW
+                if x >= 0 {
+                    let pill = NSRect(x: x, y: baseline + font.descender + (font.ascender - font.descender - pillH) / 2,
+                                      width: pillW, height: pillH)
+                    let path = NSBezierPath(roundedRect: pill, xRadius: pillH / 2, yRadius: pillH / 2)
+                    hue.withAlphaComponent(0.16).setFill(); path.fill()
+                    tag.draw(at: NSPoint(x: pill.minX + 7, y: pill.minY + (pillH - tagFont.ascender + tagFont.descender) / 2 + 0.5),
+                             withAttributes: tagAttrs)
+                }
+            }
             return true
         }
     }
