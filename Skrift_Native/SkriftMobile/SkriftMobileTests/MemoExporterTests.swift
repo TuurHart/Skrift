@@ -43,15 +43,7 @@ final class MemoExporterTests: XCTestCase {
         XCTAssertTrue(md.contains("Worth reading."))
     }
 
-    // MARK: Plain text + link flattening
-
-    func testPlainTextFlattensLinksAndStripsImageMarkers() {
-        let memo = Memo(title: "Note", transcript: "[[img_001]] Met Hendri there.")
-        let txt = MemoExporter.plainText(for: memo, people: [hendri])
-        XCTAssertFalse(txt.contains("[["), "no wiki syntax in plain text — got: \(txt)")
-        XCTAssertTrue(txt.contains("Hendri"))
-        XCTAssertTrue(txt.hasPrefix("Note\n\n"))
-    }
+    // MARK: Link flattening
 
     func testFlattenLinks() {
         XCTAssertEqual(MemoExporter.flattenLinks("[[Nick]] and [[Tiuri Hartog|Tuur]]"), "Nick and Tuur")
@@ -65,15 +57,6 @@ final class MemoExporterTests: XCTestCase {
         XCTAssertEqual(MemoExporter.exportTitle(for: Memo(title: "My Title", transcript: "body"), people: []), "My Title")
         XCTAssertEqual(MemoExporter.exportTitle(for: Memo(transcript: "First line here.\nSecond."), people: []), "First line here.")
         XCTAssertEqual(MemoExporter.exportTitle(for: Memo(), people: []), "Untitled Memo")
-    }
-
-    // MARK: Binary smoke
-
-    @MainActor
-    func testPdfAndQuoteCardProduceOutput() {
-        let memo = Memo(title: "Title", transcript: "Some body text for the card and pdf.")
-        XCTAssertGreaterThan(MemoExporter.pdf(for: memo, people: []).count, 500, "PDF should have content")
-        XCTAssertNotNil(MemoExporter.quoteCardImage(for: memo, people: []), "quote card should render")
     }
 
     // MARK: Mac enhancement (CloudKit write-back) preference

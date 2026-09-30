@@ -614,7 +614,7 @@ enum Snapshot {
                               title: "Tiles for the bathroom floor",
                               body: "The hexagon ones from the shop, in the corner by the window. Adding the hexagon ones from the shop.",
                               tags: ["house"], editedAt: now.addingTimeInterval(-1_620))
-        let conflict = EditConflict(memoID: UUID(), local: local, other: other)
+        let conflict = EditConflict(local: local, other: other)
         let view = EditConflictPrompt(conflict: conflict, look: .mac, style: .mac,
                                       onPick: { _ in }, onLater: {})
             .padding(20)

@@ -57,7 +57,6 @@ struct NoteWords: Equatable {
 /// the other make. `local` is this device's (or, on a device that edited neither, the
 /// newer one); `other` is the version it would lose to a silent overwrite.
 struct EditConflict: Equatable {
-    var memoID: UUID
     var local: NoteWords
     var other: NoteWords
 }
@@ -253,7 +252,7 @@ enum EditConflicts {
                 // A pair the note's own vector already dominates was settled by a pick.
                 let settled = EditVectors.compare(EditVectors.merged([a.vector, b.vector]), memo.editVector)
                 if settled == .before { continue }
-                return EditConflict(memoID: memo.id, local: words(a), other: words(b))
+                return EditConflict(local: words(a), other: words(b))
             }
         }
         return nil

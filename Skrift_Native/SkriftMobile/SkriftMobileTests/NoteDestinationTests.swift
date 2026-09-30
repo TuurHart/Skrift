@@ -114,12 +114,6 @@ final class NoteDestinationTests: XCTestCase {
         XCTAssertTrue(split.reserved.isEmpty)
     }
 
-    func testOrdinaryTagInputIsUntouched() {
-        XCTAssertEqual(Memo.parseTagInput("#lisbon, furniture\nwood"),
-                       ["lisbon", "furniture", "wood"], "the existing contract, unchanged")
-        XCTAssertEqual(Memo.parseTagInput("  ,  , #  "), [], "punctuation-only pieces still drop")
-    }
-
     func testRepeatedReservedWordIsReportedOnce() {
         let split = Memo.splitTagInput("idea, #idea, IDEA")
         XCTAssertEqual(split.accepted, ["idea", "idea", "IDEA"], "all kept as typed")

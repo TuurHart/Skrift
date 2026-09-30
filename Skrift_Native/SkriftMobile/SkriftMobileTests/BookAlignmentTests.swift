@@ -654,7 +654,7 @@ final class ChapterDerivationTests: XCTestCase {
                                          confidence: 0.6, words: [], sourceFile: "c9", textFile: "steal.epub")]
         try store.save(fa1, bookID: book.id)
 
-        let summary = BookAlignmentRunner.textSummary(bookID: book.id, library: library)
+        let summary = BookAlignmentRunner.textSummary(book: book, directory: library.directory)
         let per = try XCTUnwrap(summary?.perText.first)
         XCTAssertEqual(per.fileNumbers, [1])
         XCTAssertEqual(per.coveredSeconds, 50, accuracy: 0.01, "rejected file's junk must not count")
@@ -850,7 +850,7 @@ final class BookTextSummaryTests: XCTestCase {
         fa1.sentences = [sentence("b.epub", start: 0, end: 30)]
         try store.save(fa1, bookID: book.id)
 
-        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(book: book, directory: library.directory))
         XCTAssertEqual(summary.bookDuration, 200)
         XCTAssertEqual(summary.perText.count, 2)
 
@@ -883,7 +883,7 @@ final class BookTextSummaryTests: XCTestCase {
         fa0.sentences = [sentence("a.epub", start: 0, end: 10), sentence("a.epub", start: 90, end: 100)]   // 80s gap
         try store.save(fa0, bookID: book.id)
 
-        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(book: book, directory: library.directory))
         XCTAssertEqual(summary.perText.first?.spans, [0...10, 90...100])
         XCTAssertNil(summary.perText.first?.title, "no dc:title stored → caller falls back to the filename")
     }
@@ -904,7 +904,7 @@ final class BookTextSummaryTests: XCTestCase {
         fa1.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "rejected", coverage: 0.01)]
         try store.save(fa1, bookID: book.id)
 
-        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(book: book, directory: library.directory))
         XCTAssertEqual(summary.perText.first?.fileNumbers, [1], "file 2's rejected source doesn't count")
     }
 
@@ -913,12 +913,7 @@ final class BookTextSummaryTests: XCTestCase {
         let library = makeLibrary()
         let book = Audiobook(files: ["f0.mp3"], fileDurations: [10], title: "T", author: "A", duration: 10)
         library.add(book)
-        XCTAssertNil(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
-    }
-
-    @MainActor
-    func testMissingBookReturnsNil() {
-        XCTAssertNil(BookAlignmentRunner.textSummary(bookID: UUID(), library: makeLibrary()))
+        XCTAssertNil(BookAlignmentRunner.textSummary(book: book, directory: library.directory))
     }
 }
 

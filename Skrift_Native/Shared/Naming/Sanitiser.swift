@@ -50,7 +50,6 @@ enum Sanitiser {
         let live: [Person]
         let prunedKeys: Set<String>
         let forced: [String: Person]        // alias(lower) → force-link person
-        let silenced: Set<String>           // alias(lower) → plain (no link, no suggest)
         let aliasMap: [String: [Person]]    // linkable alias map (link + ambiguity)
         let ambiguousAliases: Set<String>
         let prunedAliasMap: [String: [Person]]
@@ -75,7 +74,6 @@ enum Sanitiser {
                 if let p = liveAll.first(where: { Overrides.key($0) == canonKey }) { f[a] = p }
             }
             forced = f
-            silenced = s
 
             var map: [String: [Person]] = [:]
             for p in liveAll where !pruned.contains(Overrides.key(p)) {

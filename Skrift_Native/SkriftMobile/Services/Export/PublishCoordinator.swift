@@ -34,19 +34,6 @@ struct PublishCoordinator {
     /// (see `shouldPublish`), so this is what decides whether there's anything to send.
     var enhancementProvider: (UUID) -> MemoEnhancement? = { _ in nil }
 
-    struct Summary: Equatable {
-        var written = 0
-        var skipped = 0
-        var failed = 0
-        var ineligible = 0
-        /// Files the user edited in their vault → Skrift backed off, did not overwrite.
-        var protected = 0
-        /// Notes filed OUT of the picked folder → left where the user put them.
-        var filedAway = 0
-        /// Refused targets (legacy pre-stamp export / foreign file) → untouched.
-        var blocked = 0
-    }
-
     /// Production coordinator over the live store, settings, and pairing state.
     static func live(author: String) -> PublishCoordinator {
         PublishCoordinator(
@@ -148,27 +135,5 @@ struct PublishCoordinator {
         defer { if needsStop { scopeRoot.stopAccessingSecurityScopedResource() } }
         return ExportLedger.default(for: VaultLayout.home(forPicked: root, profile: profile))
             .entry(for: memo.id) != nil
-    }
-
-    /// Publish every eligible memo, tallying the outcomes.
-    @discardableResult
-    func publishAll() -> Summary {
-        var s = Summary()
-        for memo in memosProvider() {
-            guard shouldPublish(memo) else { s.ineligible += 1; continue }
-            do {
-                switch try publisher.publish(memo) {
-                case .written:          s.written += 1
-                case .skippedUnchanged: s.skipped += 1
-                case .userEdited:       s.protected += 1   // user edited it in the vault → left alone
-                case .movedAway:        s.filedAway += 1   // filed out of the inbox → left there
-                case .blocked:          s.blocked += 1     // legacy/foreign at the target → untouched
-                case .noVault:          s.failed += 1      // enabled but the bookmark didn't resolve
-                }
-            } catch {
-                s.failed += 1
-            }
-        }
-        return s
     }
 }

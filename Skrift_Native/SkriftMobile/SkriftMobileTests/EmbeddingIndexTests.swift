@@ -7,9 +7,9 @@ import XCTest
 final class EmbeddingIndexTests: XCTestCase {
 
     private func snap(_ id: UUID, title: String? = nil, body: String,
-                      tags: [String] = [], date: Date = .init()) -> MemoSnapshot {
+                      tags: [String] = []) -> MemoSnapshot {
         MemoSnapshot(id: id, title: title, summary: nil, body: body,
-                     place: nil, tags: tags, createdAt: date)
+                     place: nil, tags: tags)
     }
 
     private func makeIndex(_ engine: MockEmbedder) -> EmbeddingIndex {

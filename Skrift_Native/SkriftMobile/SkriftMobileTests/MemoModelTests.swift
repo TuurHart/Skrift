@@ -27,27 +27,6 @@ final class MemoModelTests: XCTestCase {
         XCTAssertEqual(sc, decoded)
     }
 
-    func testParseTagInputSplitsCommasTrimsAndDropsBlanks() {
-        // Several tags in one entry; commas separate, spaces inside a tag survive.
-        XCTAssertEqual(Memo.parseTagInput("work, big idea ,  #todo ,, "), ["work", "big idea", "todo"])
-        // A single tag still works (back-compat with the old one-at-a-time alert).
-        XCTAssertEqual(Memo.parseTagInput("  #solo "), ["solo"])
-        // Empty / whitespace-only input yields nothing.
-        XCTAssertEqual(Memo.parseTagInput("   "), [])
-        XCTAssertEqual(Memo.parseTagInput(""), [])
-    }
-
-    /// REGRESSION: two live memos were found carrying a tag that was literally `[]`
-    /// (2026-07-27) — non-empty and `#`-free, so every earlier filter passed it through.
-    /// A tag must carry at least one letter or digit; punctuation alone never is one.
-    func testParseTagInputRejectsPunctuationOnlyTokens() {
-        XCTAssertEqual(Memo.parseTagInput("[]"), [], "the exact shape found in the store")
-        XCTAssertEqual(Memo.parseTagInput("work, [], ---, #real"), ["work", "real"])
-        XCTAssertEqual(Memo.parseTagInput("()  , {} , ..."), [])
-        // Real tags with punctuation IN them still survive.
-        XCTAssertEqual(Memo.parseTagInput("sci-fi, c++, 2026"), ["sci-fi", "c++", "2026"])
-    }
-
     func testWordTimingsSidecarRoundTrip() {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)

@@ -13,7 +13,6 @@ struct MemoSnapshot: Sendable {
     let body: String
     let place: String?
     let tags: [String]
-    let createdAt: Date
 }
 
 /// Similarity floors — CALIBRATED 2026-07-07 from the on-device histogram

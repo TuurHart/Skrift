@@ -1,17 +1,9 @@
 import Foundation
-import CoreText
-#if canImport(UIKit)
-import UIKit
-#endif
-import SwiftUI
 
-/// Exports a `Memo` to shareable artifacts so a phone-only note can leave the device as more
-/// than copy-paste (standalone Phase 2). Reuses the shared `Compiler` (via the neutral
-/// `CompilerInput`) + on-device `MemoLinking`, so the phone's Obsidian markdown matches what
-/// the Mac would produce for the same memo (no drift).
-///
-/// Formats: Obsidian **Markdown**, **plain text**, **PDF**, and a shareable **quote-card**
-/// image (the App-Store marketing asset, pulled from Phase 6 per the user's pick).
+/// Exports a `Memo` to Obsidian markdown so a phone-only note can leave the device (standalone
+/// Phase 2). Reuses the shared `Compiler` (via the neutral `CompilerInput`) + on-device
+/// `MemoLinking`, so the phone's markdown matches what the Mac would produce for the same
+/// memo (no drift). Plain text, PDF and quote-card export were removed 2026-09-30 (Q80, D154).
 ///
 /// `author` is the note's author (the user). The phone has no "your name" setting yet — that's
 /// a Phase-3 Settings field; until then callers pass "" and the frontmatter `author:` is blank.
@@ -32,26 +24,6 @@ enum MemoExporter {
         }
         return Compiler.compile(input, author: author, date: dateString(memo.recordedAt),
                                 knownPeople: people, profile: profile)
-    }
-
-    /// Convenience over the live on-device names DB.
-    static func markdown(for memo: Memo, author: String = "", enhancement: MemoEnhancement? = nil) -> String {
-        markdown(for: memo, people: NamesStore.shared.load().people, author: author, enhancement: enhancement)
-    }
-
-    // MARK: - Plain text
-
-    /// Human-readable text — title + body with `[[Name|x]]` flattened to the spoken word and
-    /// `[[img_NNN]]` markers stripped. No frontmatter. For "copy as text" / `.txt` export.
-    static func plainText(for memo: Memo, people: [Person]) -> String {
-        let title = exportTitle(for: memo, people: people)
-        let body = flattenLinks(linkedBody(for: memo, people: people))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return body.isEmpty ? title : "\(title)\n\n\(body)"
-    }
-
-    static func plainText(for memo: Memo) -> String {
-        plainText(for: memo, people: NamesStore.shared.load().people)
     }
 
     // MARK: - Memo → CompilerInput
@@ -171,116 +143,3 @@ enum MemoExporter {
 
     static func dateString(_ date: Date) -> String { dateFormatter.string(from: date) }
 }
-
-#if canImport(UIKit)
-extension MemoExporter {
-
-    // MARK: - PDF
-
-    /// Render the memo (title + flattened body) to a paged US-Letter PDF via CoreText.
-    @MainActor
-    static func pdf(for memo: Memo, people: [Person]) -> Data {
-        let pageW: CGFloat = 612, pageH: CGFloat = 792, margin: CGFloat = 56
-        let title = exportTitle(for: memo, people: people)
-        let body = flattenLinks(linkedBody(for: memo, people: people))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let para = NSMutableParagraphStyle(); para.lineSpacing = 4; para.paragraphSpacing = 8
-        let attr = NSMutableAttributedString()
-        attr.append(NSAttributedString(string: title + "\n\n", attributes: [
-            .font: UIFont.boldSystemFont(ofSize: 22),
-            .foregroundColor: UIColor.label, .paragraphStyle: para
-        ]))
-        if !body.isEmpty {
-            attr.append(NSAttributedString(string: body, attributes: [
-                .font: UIFont.systemFont(ofSize: 12),
-                .foregroundColor: UIColor.label, .paragraphStyle: para
-            ]))
-        }
-
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageW, height: pageH))
-        return renderer.pdfData { ctx in
-            let framesetter = CTFramesetterCreateWithAttributedString(attr)
-            let total = attr.length
-            var pos = 0
-            let textRect = CGRect(x: margin, y: margin, width: pageW - 2 * margin, height: pageH - 2 * margin)
-            while pos < total {
-                ctx.beginPage()
-                let cg = ctx.cgContext
-                cg.textMatrix = .identity
-                cg.translateBy(x: 0, y: pageH)
-                cg.scaleBy(x: 1, y: -1)
-                let path = CGMutablePath(); path.addRect(textRect)
-                let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: pos, length: 0), path, nil)
-                CTFrameDraw(frame, cg)
-                let visible = CTFrameGetVisibleStringRange(frame)
-                if visible.length == 0 { break }               // guard against a non-advancing page
-                pos += visible.length
-            }
-        }
-    }
-
-    // MARK: - Quote card (shareable image)
-
-    /// A shareable square-ish quote card (quote + attribution on a branded gradient). For a
-    /// book capture the attribution is "Author, Book"; otherwise the memo's title.
-    @MainActor
-    static func quoteCardImage(for memo: Memo, people: [Person]) -> UIImage? {
-        let quote = flattenLinks(linkedBody(for: memo, people: people))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let attribution: String
-        if let bt = nonEmpty(memo.metadata?.bookTitle) {
-            attribution = [nonEmpty(memo.metadata?.bookAuthor), bt].compactMap { $0 }.joined(separator: ", ")
-        } else {
-            attribution = exportTitle(for: memo, people: people)
-        }
-        let renderer = ImageRenderer(content: QuoteCard(quote: quote, attribution: attribution))
-        renderer.scale = 2
-        return renderer.uiImage
-    }
-}
-
-/// The shareable quote-card layout (rendered to an image via `ImageRenderer`).
-private struct QuoteCard: View {
-    let quote: String
-    let attribution: String
-
-    private var trimmedQuote: String {
-        quote.count > 320 ? String(quote.prefix(317)) + "…" : quote
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            Text("\u{201C}")                                   // opening quote glyph
-                .font(.system(size: 120, weight: .bold, design: .serif))
-                .foregroundStyle(.white.opacity(0.85))
-                .frame(height: 70, alignment: .top)
-            Text(trimmedQuote.isEmpty ? attribution : trimmedQuote)
-                .font(.system(size: 40, weight: .medium, design: .serif))
-                .foregroundStyle(.white)
-                .lineSpacing(8)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            HStack {
-                if !trimmedQuote.isEmpty {
-                    Text(attribution)
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 0)
-                Text("Skrift")
-                    .font(.system(size: 24, weight: .heavy))
-                    .foregroundStyle(.white.opacity(0.55))
-            }
-        }
-        .padding(72)
-        .frame(width: 1080, height: 1080, alignment: .topLeading)
-        .background(
-            LinearGradient(colors: [Color(red: 0.10, green: 0.09, blue: 0.20),
-                                    Color(red: 0.28, green: 0.22, blue: 0.45)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
-    }
-}
-#endif

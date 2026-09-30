@@ -47,7 +47,6 @@ final class AudiobookMultiFileTests: XCTestCase {
         let store = AudiobookLibraryStore(directory: dir)
         let book = try XCTUnwrap(store.books.first)
         XCTAssertEqual(book.files, ["book.m4b"])
-        XCTAssertEqual(store.audioURL(of: book).lastPathComponent, "book.m4b")
         XCTAssertEqual(store.audioURL(of: book, fileIndex: 0).lastPathComponent, "book.m4b")
     }
 
@@ -210,7 +209,6 @@ final class AudiobookMultiFileTests: XCTestCase {
         XCTAssertEqual(store.audioURL(of: book, fileIndex: 1).lastPathComponent, "002_b.mp3")
         XCTAssertEqual(store.audioURL(of: book, fileIndex: 99).lastPathComponent, "001_a.mp3",
                        "out-of-range clamps to the first file")
-        XCTAssertEqual(store.audioURL(of: book).lastPathComponent, "001_a.mp3")
     }
 
     // MARK: - Importer ordering + fallback helpers (pure)

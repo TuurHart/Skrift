@@ -65,8 +65,6 @@ enum SpeakerTurnStyle {
         /// The whole `**Name:**` literal INCLUDING its trailing spaces — what a renderer
         /// stands the gutter in for. The model keeps the markdown verbatim either way.
         let headerRange: NSRange
-        /// The turn's words: header end → the next header (or the end of the text).
-        let bodyRange: NSRange
         /// The label to SHOW — brackets dropped, an Obsidian `Canonical|spoken` header
         /// showing its spoken part, no trailing colon.
         let display: String
@@ -94,16 +92,13 @@ enum SpeakerTurnStyle {
         let resolver = HeaderResolver(people: people)
         var slots: [String: Int] = [:]
         var out: [Turn] = []
-        for (i, m) in matches.enumerated() {
+        for m in matches {
             let raw = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
             let parsed = raw.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
             let id = resolver.identity(for: parsed)
             let slot: Int
             if let known = slots[id] { slot = known } else { slot = slots.count; slots[id] = slot }
-            let start = NSMaxRange(m.range)
-            let end = (i + 1 < matches.count) ? matches[i + 1].range.location : ns.length
             out.append(Turn(headerRange: m.range,
-                            bodyRange: NSRange(location: start, length: max(0, end - start)),
                             display: label(for: parsed),
                             isLinked: raw.contains("[["),
                             slot: slot))

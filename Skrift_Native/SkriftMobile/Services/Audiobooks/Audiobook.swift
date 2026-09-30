@@ -515,11 +515,6 @@ final class AudiobookLibraryStore: ObservableObject {
         directory.appendingPathComponent(id.uuidString, isDirectory: true)
     }
 
-    /// The book's first (for single-file books, only) audio file.
-    func audioURL(of book: Audiobook) -> URL {
-        audioURL(of: book, fileIndex: 0)
-    }
-
     /// One part of a multi-file book (out-of-range indices clamp to the first
     /// file so a degenerate record still points somewhere sensible).
     func audioURL(of book: Audiobook, fileIndex: Int) -> URL {

@@ -50,7 +50,6 @@ enum VaultStamp {
     struct Marks: Equatable {
         var id: UUID
         var hash: String
-        var touchedAt: Date?
     }
 
     /// Verdict on a file already at the destination — the only three states export
@@ -89,8 +88,7 @@ enum VaultStamp {
         guard let fm = frontmatter(markdown),
               let idRaw = value(of: idKey, in: fm), let id = UUID(uuidString: idRaw),
               let hash = value(of: hashKey, in: fm), !hash.isEmpty else { return nil }
-        return Marks(id: id, hash: hash,
-                     touchedAt: value(of: touchedKey, in: fm).flatMap { iso.date(from: $0) })
+        return Marks(id: id, hash: hash)
     }
 
     /// Classify what is already on disk. `existing` is nil when nothing is there.

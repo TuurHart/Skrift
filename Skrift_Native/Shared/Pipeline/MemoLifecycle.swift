@@ -11,7 +11,7 @@ import SwiftData
 ///
 /// The clock runs from `clockStart` = max(recordedAt, keptAt): any investment
 /// (edit / title / tag / annotate / keep / bring back) writes `keptAt = now`
-/// via `touch(_:)` — 30 fresh days, not immortality. A clock-run note leaves
+/// — 30 fresh days, not immortality. A clock-run note leaves
 /// the main surfaces at `fadeAfterDays` (Fading), auto-moves to Recently
 /// Deleted at `trashAfterDays` (the sweep sets `deletedAt` — the existing
 /// soft-delete: visible, restorable, purged after `TrashPolicy.retentionDays`).
@@ -33,12 +33,6 @@ enum MemoLifecycle {
     /// The one clock: recording started it; the freshest touch restarted it.
     static func clockStart(of memo: Memo) -> Date {
         max(memo.recordedAt, memo.keptAt ?? .distantPast)
-    }
-
-    /// The bump — call at every investment site (transcript-edit / title / tag /
-    /// annotation commits, Keep, Bring back). 30 fresh days from `now`.
-    static func touch(_ memo: Memo, now: Date = Date()) {
-        memo.keptAt = now
     }
 
     /// Held OFF the clock entirely: rated (the active track), locked, pending

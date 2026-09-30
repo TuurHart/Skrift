@@ -288,19 +288,6 @@ final class Memo {
         }
     }
 
-    /// Parse a tag-entry string into individual tags: COMMA / newline separated (a
-    /// tag may contain spaces, so we don't split on whitespace), each trimmed and
-    /// de-`#`-ed, blanks dropped. Lets the user add several tags at once instead of
-    /// one alert per tag (2026-06-21 "select a lot of tags" device feedback).
-    /// A tag must carry at least one letter or digit. Two of Tuur's memos were found
-    /// carrying a tag that was literally the two characters `[]` (2026-07-27) — non-empty,
-    /// no `#`, so every filter above passed it through and it archived as a real tag.
-    /// The writer was never identified; this makes the shape unrepresentable rather than
-    /// chasing it. Punctuation-only input is never a tag anyone meant.
-    static func parseTagInput(_ raw: String) -> [String] {
-        splitTagInput(raw).accepted
-    }
-
     /// Tag input, split into tags and the DESTINATION words among them.
     ///
     /// **The words are ACCEPTED (reversed 2026-08-27.)** They were refused for a day, on Tuur's
