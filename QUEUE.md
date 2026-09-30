@@ -510,7 +510,7 @@ gate+: yes
 do: Q65 (2026-09-26) found the Mac row carries fewer chips than the same note's phone row: `QueueRowView.cardModel` fills only duration/source chips, never the note's tags (#studio etc.) — possibly because `PipelineFile` does not carry tags the way `Memo` does. Feed the Mac row the same tag chips the phone row gets, from the same shared source (one card model, C115). Test that one note yields the same chip list on both apps' card models (desktop test target); screenshot the Mac sidebar from the synthetic corpus, LOOK, commit under `plan/reads/list-q68/`.
 check: `test $(ls plan/reads/list-q68/*.png | wc -l) -ge 1 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q69 [auto] (doing) a Mac import never diarizes on its own (C102 opt-in); one label per person; no raw markup in list snippets
+### Q69 [auto] (done) a Mac import never diarizes on its own (C102 opt-in); one label per person; no raw markup in list snippets
 spec: C102
 needs: -
 gate+: yes
@@ -820,3 +820,4 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-09-30 08:57 Q76 -> done — report plan/research/apple-notes-folders.md
 - 2026-09-30 09:01 Q73 -> done — gate pass @28c698be
 - 2026-09-30 09:01 Q75 -> tuur — built @d8ca5308 — awaiting sitting
+- 2026-09-30 09:09 Q69 -> done — gate pass @f74a3381
