@@ -808,6 +808,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   }
 
   function go(step){
+    // Tapping the control that opened a popover or sheet closes it again.
+    var CLOSE = {"2":"1","5":"4"};
+    if (step === S.step && CLOSE[step]) step = CLOSE[step];
     if (step === "o" && S.dev === "phone" && S.fix === "fix") { S.step = "o"; render(); toast("t-onevoice-fix"); return; }
     S.step = step; render();
   }
@@ -831,7 +834,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     if (el.hasAttribute("data-strip")) {
       var n = el.getAttribute("data-strip");
       if (S.dev === "mac" && S.alt === "b" && (n === "2" || n === "7")) n = n + "m";
-      go(n); return;
+      S.step = n; render(); return;
     }
     var act = el.getAttribute("data-act");
     var st = effStep();
