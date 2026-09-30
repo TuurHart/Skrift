@@ -72,11 +72,4 @@ final class KaraokeAlignmentTests: XCTestCase {
         XCTAssertTrue(Karaoke.wordTimes(displayedWords: ["a", "b"], timings: []).isEmpty)
         XCTAssertTrue(Karaoke.wordTimes(displayedWords: [], timings: timings([("x", 0)])).isEmpty)
     }
-
-    /// Normalization: alias-display links show their SPOKEN half, headers drop markdown.
-    func testNormalizeStripsMarkup() {
-        XCTAssertEqual(Karaoke.normalize("[[Tiuri Hartog|Tuur]]"), "tuur")
-        XCTAssertEqual(Karaoke.normalize("**Roksana:**"), "roksana")
-        XCTAssertEqual(Karaoke.normalize("world,"), "world")
-    }
 }

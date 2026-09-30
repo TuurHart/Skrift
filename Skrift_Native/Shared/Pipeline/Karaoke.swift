@@ -140,16 +140,4 @@ enum Karaoke {
     static func activeCount(times: [Double], currentTime: Double) -> Int {
         times.reduce(0) { $0 + ($1 <= currentTime ? 1 : 0) }
     }
-
-    /// Normalize a token for matching: lowercase, drop `[[ ]]` wiki brackets + the
-    /// alias-display `|display` (keep the SHOWN half — that's what was rendered),
-    /// markdown `**`, and punctuation edges. So `[[Tiuri Hartog|Tuur]]` → `tuur` and
-    /// `**Roksana:**` → `roksana`.
-    static func normalize(_ w: String) -> String {
-        var s = w.lowercased()
-        s = s.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
-        if let pipe = s.lastIndex(of: "|") { s = String(s[s.index(after: pipe)...]) }
-        s = s.replacingOccurrences(of: "**", with: "")
-        return s.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-    }
 }
