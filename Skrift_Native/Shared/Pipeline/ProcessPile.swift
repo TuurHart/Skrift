@@ -32,13 +32,6 @@ enum ProcessPile {
         memos.filter { !NoteConsent.isRated($0) && $0.deletedAt == nil && !$0.locked }
     }
 
-    /// Rated notes that HAVE been processed — the iPad's "Done" / "ready to
-    /// review" set (a `MemoEnhancement` a pass has run for). On the iPad there
-    /// is no export step, so processed IS done.
-    static func done(memos: [Memo], enhancedIDs: Set<UUID>) -> [Memo] {
-        memos.filter { isDone($0, enhancedIDs: enhancedIDs) }
-    }
-
     static func isDone(_ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
         NoteConsent.isRated(memo) && memo.deletedAt == nil && !memo.locked
             && enhancedIDs.contains(memo.id)

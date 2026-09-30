@@ -164,22 +164,6 @@ enum MemoSpine {
         }
     }
 
-    /// Station display names (chips, shelf headers). "Recently Deleted" and
-    /// "In Obsidian" match the surfaces that count them.
-    static func name(for station: Station) -> String {
-        switch station {
-        case .new: return "New"
-        case .fading: return "Fading"
-        case .deleted: return "Recently Deleted"
-        case .held: return "Held"
-        case .toProcess: return "To process"
-        case .processing: return "Processing"
-        case .stuck: return "Stuck"
-        case .ready: return "Ready"
-        case .exported: return "In Obsidian"
-        }
-    }
-
     /// The peek header's compact clock chip (m6): the one-liner, minus the
     /// "starts fading" verbiage on the quiet leg — a chip reads as state, not
     /// prose. Every other station reuses its one-liner verbatim.

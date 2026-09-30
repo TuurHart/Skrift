@@ -130,6 +130,5 @@ final class ProcessPileTests: XCTestCase {
         let pool = [memo(significance: 0.5), memo(significance: 0.5), done, memo(significance: 0)]
         let enhanced: Set<UUID> = [done.id]
         XCTAssertEqual(ProcessPile.waiting(memos: pool, enhancedIDs: enhanced).count, 2)
-        XCTAssertEqual(ProcessPile.done(memos: pool, enhancedIDs: enhanced).count, 1)
     }
 }

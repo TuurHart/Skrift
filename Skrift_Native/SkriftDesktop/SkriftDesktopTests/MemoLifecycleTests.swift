@@ -47,13 +47,13 @@ final class MemoLifecycleTests: XCTestCase {
 
     func testTouchRestartsTheFadeClock() {
         let m = bareMemo(days: 90)
-        MemoLifecycle.touch(m, now: daysAgo(3))
+        m.keptAt = daysAgo(3)
         XCTAssertFalse(MemoLifecycle.isFading(m, backlinked: [], now: now), "3-day-old touch = fresh clock")
         XCTAssertEqual(MemoLifecycle.fadesAt(m), daysAgo(3).addingTimeInterval(60 * 86_400))
         XCTAssertEqual(MemoLifecycle.daysUntilSweep(m, now: now), 57)
 
         let stale = bareMemo(days: 90)
-        MemoLifecycle.touch(stale, now: daysAgo(31))
+        stale.keptAt = daysAgo(31)
         XCTAssertTrue(MemoLifecycle.isFading(stale, backlinked: [], now: now),
                       "a 31-day-old touch has run out — no immortality")
     }

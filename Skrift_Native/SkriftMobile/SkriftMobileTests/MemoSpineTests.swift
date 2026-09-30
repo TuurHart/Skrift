@@ -117,12 +117,6 @@ final class MemoSpineTests: XCTestCase {
         XCTAssertEqual(MemoSpine.oneLiner(for: .deleted(goneAt: now), now: now), "gone for good soon")
     }
 
-    func testStationNames() {
-        XCTAssertEqual(MemoSpine.name(for: .deleted(goneAt: now)), "Recently Deleted")
-        XCTAssertEqual(MemoSpine.name(for: .exported), "In Obsidian")
-        XCTAssertEqual(MemoSpine.name(for: .held(reason: .locked)), "Held")
-    }
-
     // MARK: the peek chip + sentence (m6)
 
     func testChipTextCompactsOnlyTheQuietLeg() {
