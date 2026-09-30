@@ -45,6 +45,8 @@ struct NoteDisplayView: View {
     /// `GeometryReader`'s own `.overlay`, below `unlockedContent`), not
     /// `TagEditorRow`'s own bounds, which run narrower than the column.
     @State private var tagToast: TagEditorRow.TagToast?
+    /// Q85: the header pill's step toast, same column-level overlay as the tag toast.
+    @State private var ratingToast: RatingToast?
     /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
     /// body's right-click "A new person…" / the suggestion popover's "New person…".
     @State private var editorRequest: PersonEditorRequest?
@@ -245,6 +247,7 @@ struct NoteDisplayView: View {
             // (a sibling below, not inside this frame) — no player-height padding
             // to keep in sync, unlike the phone/iPad's floating capsule.
             .overlay(alignment: .bottom) { tagToastView }
+            .overlay(alignment: .bottom) { ratingToastView }
             // The player DOCKS at the note's bottom edge — iPad parity (Tuur
             // 2026-07-25: "keep the apps looking the same"). Because the inspector
             // overlays only the scroll area above, the dock is never covered and
@@ -272,7 +275,8 @@ struct NoteDisplayView: View {
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             NoteProperties(file: file, interactive: scrollable, canExport: capabilities.pipeline,
-                           onTagToast: { tagToast = $0 })
+                           onTagToast: { tagToast = $0 },
+                           onRatingToast: { ratingToast = $0 })
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
                 // The shared thing itself, pinned above the annotation body —
@@ -434,6 +438,19 @@ struct NoteDisplayView: View {
     /// `namingUndoToast` above (an inline row that stays in the flow), this one
     /// floats and self-dismisses after 4 s, matching the mock's "every removal
     /// offers Undo for 4 s".
+    /// Q85: the rating pill's step toast; gone after 1.6 s (signed mock).
+    @ViewBuilder private var ratingToastView: some View {
+        if let toast = ratingToast {
+            RatingToastView(toast: toast)
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .task(id: toast.id) {
+                    try? await Task.sleep(for: .seconds(1.6))
+                    if ratingToast?.id == toast.id { ratingToast = nil }
+                }
+        }
+    }
+
     @ViewBuilder private var tagToastView: some View {
         if let toast = tagToast {
             TagUndoToastView(tag: toast.tag, style: .mac, onUndo: {

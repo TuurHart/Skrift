@@ -21,6 +21,8 @@ struct NoteProperties: View {
     /// Reports a tag removal so the CALLER can show the Undo pill at the note-column
     /// level (Q41) — `TagEditorRow`'s own bounds run narrower than the column.
     var onTagToast: (TagEditorRow.TagToast?) -> Void = { _ in }
+    /// Q85: the header pill's step toast, hoisted to the note column like the tag Undo pill.
+    var onRatingToast: (RatingToast) -> Void = { _ in }
 
     /// Which title card is selected — EXPLICIT state, not derived from comparing
     /// `enhancedTitle` to a candidate (that flipped the active card the instant you
@@ -44,6 +46,24 @@ struct NoteProperties: View {
     }
     private func refreshTagCounts() { tagCounts = TagLibrary.counts(file.modelContext) }
 
+    /// Q85: the orange "starts fading … — rate it to keep it" line beside the pill. Only
+    /// an unrated note has one; the spine one-liner needs the backing `Memo` (the fade
+    /// clock lives there), so it is looked up once per note switch / rating change, never
+    /// in `body`. nil when there is no backing memo (a Mac-local upload) or it never fades.
+    @State private var fadingLine: String?
+    private func refreshFadingLine() {
+        fadingLine = nil
+        guard interactive, !NoteConsent.isRated(file.significance),
+              let id = UUID(uuidString: file.id),
+              let cloud = MemoCloudStore.container,
+              let memos = try? ModelContext(cloud).fetch(FetchDescriptor<Memo>()),
+              let memo = memos.first(where: { $0.id == id }),
+              memo.deletedAt == nil, memo.transcriptStatus == .done else { return }
+        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+        guard !MemoLifecycle.neverFades(memo, backlinked: backlinked) else { return }
+        fadingLine = "\(WayOutRules.oneLiner(for: memo, backlinked: backlinked)) — rate it to keep it"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             titleSection
@@ -64,7 +84,13 @@ struct NoteProperties: View {
             TagEditorRow(tags: $file.tags, library: tagLibrary,
                          style: .mac, libraryCounts: tagCounts,
                          onToast: onTagToast)
-            SignificanceCircles(value: $file.significance)
+            // Q85 (signed mock Q75-note-header-final, behaviour A): importance is ONE pill,
+            // each tap steps Not rated → Passing → Useful → Important → Not rated (C88), a
+            // toast names the step; the orange fading line sits beside it when unrated.
+            NoteRatingRow(value: $file.significance, style: .mac,
+                          fadingLine: fadingLine, lineFont: 11.5,
+                          lineColor: Theme.amber.opacity(0.9),
+                          onToast: onRatingToast)
             // WHERE this note goes when it leaves — the SHARED `DestinationRowView`, in
             // the same place as the phone's (signed mock note-destination-tags.html,
             // version B collapsed). Hidden until destinations are switched on.
@@ -81,6 +107,7 @@ struct NoteProperties: View {
         .onChange(of: file.id, initial: true) { _, _ in
             selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
             refreshTagCounts()
+            refreshFadingLine()
         }
         // Push a Mac tag / importance edit to the phone (widen the Mac→phone channel).
         .onChange(of: file.tags) { refreshTagCounts(); MacCloudMetaSync.mirror([file]) }
@@ -88,6 +115,7 @@ struct NoteProperties: View {
         // know a nil means "the user cleared it" rather than "never rated" — and the
         // mirror can't tell those apart, so it declines to guess.
         .onChange(of: file.significance) { _, new in MacCloudMetaSync.setRating(new, for: file) }
+        .onChange(of: file.significance) { refreshFadingLine() }
     }
 
     /// Everything the old properties table listed, as chips: the note's date, the
@@ -99,7 +127,10 @@ struct NoteProperties: View {
     private var metaChips: [MacChip] {
         var chips: [MacChip] = [MacChip(text: SkriftFormat.breadcrumbDate(file.uploadedAt),
                                         symbol: "calendar")]
-        chips += file.contextChips.map { MacChip(text: $0.text, symbol: $0.symbol) }
+        // Q85: the signed header drops the daypart chip (date · place · weather only).
+        let dayPeriodSymbols: Set<String> = ["sunrise.fill", "sun.max.fill", "sunset.fill", "moon.stars.fill"]
+        chips += file.contextChips.filter { !dayPeriodSymbols.contains($0.symbol) }
+            .map { MacChip(text: $0.text, symbol: $0.symbol) }
         // `sourceSymbol` is the SAME descriptor the sidebar row draws, so the chip's
         // glyph and the list glyph can never disagree.
         chips.append(MacChip(text: sourceLabel, symbol: file.sourceSymbol))
