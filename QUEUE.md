@@ -650,6 +650,13 @@ needs: -
 do: Tuur 2026-09-30: "the two deletions, if we don't use them, we can get rid of them" (D158). Delete (1) `QuoteCaptureProcessor.process(bookAudio:span:bookDuration:)` and the four helpers only it calls — `CaptureSpan.transcriptionBuffer`, `SentenceSnap.snap`, `isSentenceEnd`, `inForwardSnapThreshold` (Q80 kept them because this function still called them; it has no production caller, only tests); (2) the old importance circles now used only by `SignificanceCirclesRenderTests` after Q88: `SignificanceCircles` (phone + Mac), `ThreeBallImportanceView`, `ThreeBallStyle` — keep `ThreeBallScale` and the new rating pill and its PhoneRatingRow/MacRatingRow. Re-grep every symbol by NAME across both apps, Shared, tests and project.yml files before deleting; a hit outside its own definition and own tests means keep and report. Delete their own tests with them (approved, hand-merge). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q90 [auto] (todo) a Mac import arrives unrated: transcribed, but not queued for polish until rated (C49 reversed, D159)
+spec: C49 C87 C40
+needs: -
+gate+: yes
+do: Tuur 2026-09-30: a Mac import should arrive UNRATED ("yes it should") — reverses the 2026-07-26/28 rule "an import is consent, floors to 0.1" (plan/extraction/ledgers.md:263, decisions.md:145; memory project_note_consent). Make a Mac import author an unrated memo exactly like a Mac recording: it keeps its row, is transcribed on arrival (Q77's transcribeImport stays — words are not polish), shows Not rated in the pill with the fading line, and enters the Process queue / polish / export only once rated. Pressing Polish or Process on an unrated note still floors it to 0.1 (C40 — that door stays). Update NoteConsent's nil table and the MacMemoAuthor/ArrivalPath paths; protected tests that pin the old import floor (MacMemoAuthorSignificanceTests, ArrivalPathTests, any other) change to the new rule — approved (D159), will be hand-merged; add a test that an import is unrated, transcribed, and absent from the process queue. Update SPEC C49 wording and FEATURES.md. Never run SkriftDesktopUITests.
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -947,3 +954,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-09-30 15:38 Q89 added
 - 2026-09-30 15:38 Q66 -> doing — redispatch (D158): fresh worker from the current head, WIP on wt/Q66 f4981cf0 as reference
 - 2026-09-30 15:38 Q89 -> doing — worker out
+- 2026-09-30 15:52 Q90 added

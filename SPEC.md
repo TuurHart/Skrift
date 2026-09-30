@@ -1874,3 +1874,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 158. **D158 Finish what was stopped, delete what is unused.** ✅ 2026-09-30: the filter bar (Q66, stopped
      in the mouse incident) "needs to be continued for sure"; the test-only quote-capture function and
      the old importance circles go with their tests (Q89).
+159. **D159 A Mac import arrives unrated.** ✅ 2026-09-30: "yes it should" — reverses the July rule "an
+     import is consent, floors to 0.1" (ledgers:263). An import is transcribed on arrival but enters the
+     Process queue, polish and export only once rated; pressing Polish/Process still floors to 0.1 (C40)
+     (Q90).
