@@ -595,7 +595,7 @@ gate+: yes
 do: From the Q62 explainer (D154): wire in the 7 built-and-tested-but-unused pieces. (1a, 5 pieces) the Undo for the one-time old-note tidy-up (body normalisation, Q14/Q40) — find where the tidy-up runs and give the user a way back; (2b, 2 pieces) the signed tag mock's (`mocks/tag-ui-revamp.html`) "already on this note as #x" line that the build dropped (Q28/Q36). Phone, iPad and Mac. Screenshots, LOOK, commit under `plan/reads/wirein-q81/`. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/wirein-q81/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q82 [auto] (doing) phone and Mac run one shared implementation for word highlight, Looking back, list core, conversation turns, recording helpers and search by meaning
+### Q82 [auto] (done) phone and Mac run one shared implementation for word highlight, Looking back, list core, conversation turns, recording helpers and search by meaning
 spec: C115 C240
 needs: Q80
 gate+: yes
@@ -937,3 +937,4 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 13:40 Q80 -> done — hand-merged (D154 approved deletions incl. their own tests)
 - 2026-09-30 13:41 Q82 -> doing — worker out
 - 2026-09-30 13:42 Q88 -> done — gate pass @1b7bc368
+- 2026-09-30 14:17 Q82 -> done — gate pass @b17fe1e0
