@@ -14,17 +14,27 @@ final class NoteDestinationTests: XCTestCase {
     func testPersonalIsTheDefaultAndTheOnlyPrivateOne() {
         XCTAssertEqual(Memo(title: "T").destination, .personal,
                        "an existing memo, and every new one, means today's behaviour")
-        XCTAssertFalse(NoteDestination.personal.isArchive)
-        for d in [NoteDestination.made, .idea, .inspiration] {
-            XCTAssertTrue(d.isArchive, "\(d.label) leaves for a repo an AI reads")
+        XCTAssertFalse(NoteDestination.personal.isPortfolio)
+        for d in [NoteDestination.project, .idea, .inspiration] {
+            XCTAssertTrue(d.isPortfolio, "\(d.label) leaves for a repo an AI reads")
         }
     }
 
-    func testArchiveFoldersMatchTheSpec() {
-        XCTAssertNil(NoteDestination.personal.archiveFolder, "personal uses the vault bookmark")
-        XCTAssertEqual(NoteDestination.made.archiveFolder, "_inbox")
-        XCTAssertEqual(NoteDestination.idea.archiveFolder, "_ideas")
-        XCTAssertEqual(NoteDestination.inspiration.archiveFolder, "_inspiration")
+    /// D156: the words are Personal · Inspiration · Idea · Project, in that display order, and
+    /// the stored raw values are the same words lower-cased. No old word survives anywhere.
+    func testLabelsOrderAndRawValues() {
+        XCTAssertEqual(NoteDestination.allCases.map(\.label),
+                       ["Personal", "Inspiration", "Idea", "Project"])
+        XCTAssertEqual(NoteDestination.allCases.map(\.rawValue),
+                       ["personal", "inspiration", "idea", "project"])
+        XCTAssertNil(NoteDestination(rawValue: "made"), "no migration: the old raw value is gone")
+    }
+
+    func testPortfolioFoldersMatchTheSpec() {
+        XCTAssertNil(NoteDestination.personal.portfolioFolder, "personal uses the vault bookmark")
+        XCTAssertEqual(NoteDestination.project.portfolioFolder, "_projects")
+        XCTAssertEqual(NoteDestination.idea.portfolioFolder, "_ideas")
+        XCTAssertEqual(NoteDestination.inspiration.portfolioFolder, "_inspiration")
     }
 
     // MARK: - One-of-four
@@ -63,8 +73,8 @@ final class NoteDestinationTests: XCTestCase {
     /// as one that promises what it cannot do.
     func testExportVerbNamesWhereTheNoteIsActuallyGoing() {
         XCTAssertEqual(NoteWorkState.readyToExport.label(for: .personal), "Export to Obsidian")
-        for d in [NoteDestination.made, .idea, .inspiration] {
-            XCTAssertEqual(NoteWorkState.readyToExport.label(for: d), "Export to archive",
+        for d in [NoteDestination.project, .idea, .inspiration] {
+            XCTAssertEqual(NoteWorkState.readyToExport.label(for: d), "Export to portfolio",
                            "\(d.label) does not go to Obsidian")
         }
         // The other two states are destination-agnostic on purpose: processing happens before
@@ -80,7 +90,7 @@ final class NoteDestinationTests: XCTestCase {
         XCTAssertEqual(NoteDestination.reserved("#Idea"), .idea)
         XCTAssertEqual(NoteDestination.reserved("  INSPIRATION "), .inspiration)
         XCTAssertEqual(NoteDestination.reserved("personal"), .personal)
-        XCTAssertEqual(NoteDestination.reserved("made"), .made)
+        XCTAssertEqual(NoteDestination.reserved("project"), .project)
         XCTAssertNil(NoteDestination.reserved("ideas"), "only the exact word is reserved")
         XCTAssertNil(NoteDestination.reserved("lisbon"))
     }

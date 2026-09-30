@@ -15,9 +15,9 @@ import SwiftUI
 /// collapses it again. And the two resting states are DELIBERATELY UNEQUAL:
 ///
 /// - `.personal` — a quiet accent chip and nothing else. Nothing is leaving, so nothing is said.
-/// - an archive destination — the chip in the archive colour, plus the folder it writes to.
+/// - a portfolio destination — the chip in the portfolio colour, plus the folder it writes to.
 ///   (An "AI READS THIS" line sat here for a day; Tuur cut it 2026-08-27 — the amber chip and
-///   the named folder already carry it, and a label that shouts on every archive note is the
+///   the named folder already carry it, and a label that shouts on every portfolio note is the
 ///   always-on badge this project keeps deciding against.)
 ///
 /// That asymmetry is the point, and it is the same doctrine as the notes list's status pill: an
@@ -31,9 +31,9 @@ struct DestinationRowStyle {
     var accent: Color
     var accentSoft: Color
     var accentText: Color
-    /// The archive family (`.made` / `.idea` / `.inspiration`) — the amber token.
-    var archive: Color
-    var archiveSoft: Color
+    /// The portfolio family (`.project` / `.idea` / `.inspiration`) — the amber token.
+    var portfolio: Color
+    var portfolioSoft: Color
     var text: Color
     var textDim: Color
     var textFaint: Color
@@ -72,8 +72,11 @@ struct DestinationRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             if expanded {
-                familyLabels
-                segments
+                VStack(spacing: 7) {
+                    familyLabels
+                    segments
+                }
+                .overlay { familyDivider }
             }
             footer
         }
@@ -90,9 +93,9 @@ struct DestinationRowView: View {
     // MARK: - Resting
 
     /// True when there is anything to say about where this note goes — a folder, or the
-    /// archive notice. `.personal` with no folder has neither, which is the whole point of it.
+    /// portfolio notice. `.personal` with no folder has neither, which is the whole point of it.
     private var hasDetail: Bool {
-        folderLabel(destination) != nil || destination.isArchive
+        folderLabel(destination) != nil || destination.isPortfolio
     }
 
     /// The collapsed chip, and — expanded — the same line restated under the segments, so the
@@ -119,7 +122,7 @@ struct DestinationRowView: View {
             if let folder = folderLabel(destination) {
                 Text(folder)
                     .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundStyle(destination.isArchive ? style.archive : style.textDim)
+                    .foregroundStyle(destination.isPortfolio ? style.portfolio : style.textDim)
                     .lineLimit(1).truncationMode(.head)
             }
         }
@@ -131,7 +134,7 @@ struct DestinationRowView: View {
         } label: {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(destination.isArchive ? style.archive : style.accent)
+                    .fill(destination.isPortfolio ? style.portfolio : style.accent)
                     .frame(width: 6, height: 6)
                 Text(destination.label)
                     .font(.system(size: 11.5, weight: .semibold))
@@ -139,11 +142,11 @@ struct DestinationRowView: View {
                     .font(.system(size: 8, weight: .bold))
                     .opacity(0.55)
             }
-            .foregroundStyle(destination.isArchive ? style.archive : style.accentText)
+            .foregroundStyle(destination.isPortfolio ? style.portfolio : style.accentText)
             .padding(.horizontal, 9).padding(.vertical, 5)
-            .background(destination.isArchive ? style.archiveSoft : style.accentSoft, in: .capsule)
+            .background(destination.isPortfolio ? style.portfolioSoft : style.accentSoft, in: .capsule)
             .overlay(Capsule().strokeBorder(
-                (destination.isArchive ? style.archive : style.accent).opacity(0.35), lineWidth: 1))
+                (destination.isPortfolio ? style.portfolio : style.accent).opacity(0.35), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("destination-chip")
@@ -152,22 +155,40 @@ struct DestinationRowView: View {
 
     // MARK: - Expanded
 
-    /// PRIVATE | ARCHIVE over the segments — the boundary named, once, where the choice is made.
+    /// PRIVATE | PORTFOLIO over the segments — the boundary named, once, where the choice is made.
     /// Measured rather than `maxWidth: .infinity`d, because the split is 1 segment to 3: an even
-    /// two-up would centre "ARCHIVE" over the Made/Idea boundary and label the wrong columns.
+    /// two-up would centre "PORTFOLIO" over the Inspiration/Idea boundary and label the wrong columns.
     private var familyLabels: some View {
         GeometryReader { geo in
             let gap: CGFloat = 6
             let cell = max(0, (geo.size.width - gap * 3) / 4)
             HStack(spacing: gap) {
                 Text("PRIVATE").frame(width: cell)
-                Text("ARCHIVE").frame(width: cell * 3 + gap * 2)
+                Text("PORTFOLIO").frame(width: cell * 3 + gap * 2)
             }
             .font(.system(size: 9, weight: .bold))
             .tracking(0.8)
             .foregroundStyle(style.textFaint)
         }
         .frame(height: 11)
+        .accessibilityHidden(true)
+    }
+
+    /// The dashed line between the Private cell and the three Portfolio cells, running the full
+    /// height of labels + cells. Drawn as an overlay at the cell boundary (the same measure
+    /// `familyLabels` uses) so it adds no layout width and the columns stay where they were.
+    private var familyDivider: some View {
+        GeometryReader { geo in
+            let gap: CGFloat = 6
+            let cell = max(0, (geo.size.width - gap * 3) / 4)
+            Path { p in
+                p.move(to: CGPoint(x: cell + gap / 2, y: 0))
+                p.addLine(to: CGPoint(x: cell + gap / 2, y: geo.size.height))
+            }
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            .foregroundStyle(style.textFaint)
+        }
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 
@@ -181,7 +202,7 @@ struct DestinationRowView: View {
 
     private func segment(_ d: NoteDestination) -> some View {
         let on = d == destination
-        let hue = d.isArchive ? style.archive : style.accent
+        let hue = d.isPortfolio ? style.portfolio : style.accent
         return Button {
             if d != destination {
                 destination = d

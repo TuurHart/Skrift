@@ -34,8 +34,8 @@ struct ObsidianSettingsSection: View {
     /// folder, and the whole thing is Tuur's own way of separating his thoughts from his
     /// work (2026-08-26: *"somebody might not care. This is very specific for me"*).
     @State private var destinationsOn = DestinationSettings.isEnabled
-    @State private var pickingArchive = false
-    @State private var archiveName = ArchiveVault.displayName
+    @State private var pickingPortfolio = false
+    @State private var portfolioName = PortfolioVault.displayName
 
     /// Can THIS device turn a memo into a polished note? If not, it has nothing to
     /// export, so the export controls don't appear at all.
@@ -95,10 +95,10 @@ struct ObsidianSettingsSection: View {
         destinationsSection
     }
 
-    /// Settings → Destinations. One switch, then ONE archive-folder pick.
+    /// Settings → Destinations. One switch, then ONE portfolio-folder pick.
     ///
-    /// Not three pickers: the three archive destinations are siblings inside the archive
-    /// (`_inbox` / `_ideas` / `_inspiration`), so three questions would be the same question
+    /// Not three pickers: the three portfolio destinations are siblings inside the portfolio
+    /// (`_projects` / `_ideas` / `_inspiration`), so three questions would be the same question
     /// three times with two chances to answer it wrong. The subfolders are shown read-only
     /// underneath, so what Skrift will do with the folder is visible before it does it.
     @ViewBuilder
@@ -114,28 +114,28 @@ struct ObsidianSettingsSection: View {
 
             if destinationsOn {
                 Button {
-                    pickingArchive = true
+                    pickingPortfolio = true
                 } label: {
                     HStack {
-                        Label("Archive folder", systemImage: "folder.badge.gearshape")
+                        Label("Portfolio folder", systemImage: "folder.badge.gearshape")
                             .foregroundStyle(Color.skText)
                         Spacer()
-                        Text(archiveName ?? "Choose…")
-                            .foregroundStyle(archiveName == nil ? Color.skAccent : Color.skTextDim)
+                        Text(portfolioName ?? "Choose…")
+                            .foregroundStyle(portfolioName == nil ? Color.skAccent : Color.skTextDim)
                     }
                 }
-                .accessibilityIdentifier("archive-folder")
+                .accessibilityIdentifier("portfolio-folder")
 
-                if let archiveName {
-                    ForEach(NoteDestination.allCases.filter(\.isArchive), id: \.self) { d in
+                if let portfolioName {
+                    ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
                         LabeledContent(d.label) {
-                            Text("\(archiveName)/\(d.archiveFolder ?? "")")
+                            Text("\(portfolioName)/\(d.portfolioFolder ?? "")")
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundStyle(Color.skTextFaint)
                                 // Identified explicitly: `LabeledContent` folds its label and
                                 // value into ONE accessibility element, so the resolved path
                                 // is not findable by its own text.
-                                .accessibilityIdentifier("archive-path-\(d.rawValue)")
+                                .accessibilityIdentifier("portfolio-path-\(d.rawValue)")
                         }
                     }
                 }
@@ -145,14 +145,14 @@ struct ObsidianSettingsSection: View {
         } footer: {
             Text(destinationsFooter)
         }
-        .fileImporter(isPresented: $pickingArchive,
+        .fileImporter(isPresented: $pickingPortfolio,
                       allowedContentTypes: [.folder]) { result in
             guard case .success(let url) = result else { return }
             do {
-                try ArchiveVault.setRoot(url)
-                archiveName = ArchiveVault.displayName
+                try PortfolioVault.setRoot(url)
+                portfolioName = PortfolioVault.displayName
             } catch {
-                pickError = "Couldn't save the archive folder — pick it again."
+                pickError = "Couldn't save the portfolio folder — pick it again."
             }
         }
     }
@@ -164,13 +164,13 @@ struct ObsidianSettingsSection: View {
             return "Off, every note goes to your Obsidian vault. On, each note carries one of "
                  + "four destinations you pick on the note itself."
         }
-        guard archiveName != nil else {
-            return "Pick the folder your archive lives in — Skrift writes Made, Idea and "
+        guard portfolioName != nil else {
+            return "Pick the folder your portfolio lives in — Skrift writes Project, Idea and "
                  + "Inspiration notes into folders inside it. Personal notes still go to your "
                  + "Obsidian vault and never here."
         }
-        return "Personal notes go to your Obsidian vault. Made, Idea and Inspiration go to the "
-             + "archive — a folder you have chosen to let an AI read, so nothing personal is "
+        return "Personal notes go to your Obsidian vault. Project, Idea and Inspiration go to the "
+             + "portfolio — a folder you have chosen to let an AI read, so nothing personal is "
              + "ever written there."
     }
 

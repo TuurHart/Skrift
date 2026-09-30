@@ -175,15 +175,15 @@ NOTES = [
         "expect": {"note": "Personal → the Obsidian vault only. NEVER a folder an AI reads."},
     },
     {
-        "slug": "dest-made",
+        "slug": "dest-project",
         "kind": "voice", "lang": "en",
-        "shape": ["voice", "pictures", "destination-made"],
+        "shape": ["voice", "pictures", "destination-project"],
         "transcript": "Finished the wide blue bowl, the first one that came out right. [[img_001]] Cone five, grey body, blue number three.",
-        "destination": "made",
+        "destination": "project",
         "photos": [{"atWord": 12}],
-        "tags": ["glaze", "made"],
+        "tags": ["glaze", "project"],
         "significance": 0.9,
-        "expect": {"note": "Made → archive `_inbox/`; the archive KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."},
+        "expect": {"note": "Project → portfolio `_projects/`; the portfolio KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."},
     },
     {
         "slug": "dest-idea",
@@ -193,7 +193,7 @@ NOTES = [
         "destination": "idea",
         "tags": ["idea", "studio"],
         "significance": 0.7,
-        "expect": {"note": "Idea → archive `_ideas/`."},
+        "expect": {"note": "Idea → portfolio `_ideas/`."},
     },
     {
         "slug": "dest-inspiration-credit",
@@ -205,7 +205,7 @@ NOTES = [
         "destination": "inspiration",
         "tags": ["inspiration", "workshop"],
         "significance": 0.6,
-        "expect": {"note": "Inspiration → archive `_inspiration/` with `needs: - credit` in the frontmatter."},
+        "expect": {"note": "Inspiration → portfolio `_inspiration/` with `needs: - credit` in the frontmatter."},
     },
     # ---- edges --------------------------------------------------------------------------
     {

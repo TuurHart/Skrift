@@ -32,9 +32,9 @@ enum LaunchFlags {
     /// Force the four-destination row on for a screenshot/UI run, without waiting for
     /// the Settings switch (chunk 3) or writing the real per-device default.
     static var destinationsOn: Bool { args.boolFlag("-destinationsOn") }
-    /// Seed a REAL archive root inside the app's own container, so a UI run can show the
+    /// Seed a REAL portfolio root inside the app's own container, so a UI run can show the
     /// configured Destinations settings without driving the system document picker.
-    static var seedArchiveFolder: Bool { args.boolFlag("-seedArchiveFolder") }
+    static var seedPortfolioFolder: Bool { args.boolFlag("-seedPortfolioFolder") }
     /// iPad screenshot rig: at regular width, select the first Notes row at
     /// launch so the split view's detail pane renders deterministically.
     static var selectFirstMemo: Bool { args.boolFlag("-selectFirstMemo") }

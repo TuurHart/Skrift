@@ -22,10 +22,10 @@ enum Compiler {
         var body = MemoLinkSyntax.exportRewrite(
             firstNonEmpty(input.sanitised, input.enhancedCopyedit, input.transcript) ?? "",
             resolveStem: input.memoLinkResolver)
-        // ARCHIVE: keep the PEOPLE links, drop every other one. Tuur's call (2026-08-26), and
-        // a deliberate reversal of my privacy advice — the archive becomes a public site and
+        // PORTFOLIO: keep the PEOPLE links, drop every other one. Tuur's call (2026-08-26), and
+        // a deliberate reversal of my privacy advice — the portfolio becomes a public site and
         // he wants his friends credited by name. A place (`[[Hotel Du Vin]]`) carries no such
-        // intent, and a link to a note that isn't in the archive is just a broken link, so
+        // intent, and a link to a note that isn't in the portfolio is just a broken link, so
         // both degrade to the plain word. Nothing is deleted; only the brackets go.
         if !profile.keepsPlaceLinks { body = plainifyNonPeopleLinks(in: body, knownPeople: knownPeople) }
         let summary = (input.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -82,16 +82,16 @@ enum Compiler {
             // plain YAML scalar — Obsidian then rejects the whole frontmatter.
             "title: \(yamlQuoted(title))",
             "date: \(date)",
-            // `author:` is the note's author. DROPPED on the archive (Tuur's brief, confirmed
+            // `author:` is the note's author. DROPPED on the portfolio (Tuur's brief, confirmed
             // 2026-08-27 against the real item frontmatter, which has no such key): everything
-            // in the archive is his by that archive's hard rule, so the field could only ever
+            // in the portfolio is his by that portfolio's hard rule, so the field could only ever
             // hold one value. `voice:` below carries what actually varies.
-            profile == .archive ? nil : "author: \(author)",
-            // `source:` in the VAULT only. The archive already owns that key for an item's
+            profile == .portfolio ? nil : "author: \(author)",
+            // `source:` in the VAULT only. The portfolio already owns that key for an item's
             // provenance (`source: Portfolio - OG/8 Lamps/…`), so writing "Voice-memo" into it
-            // would be clobbered the moment an entry is sorted into an item. The archive gets
+            // would be clobbered the moment an entry is sorted into an item. The portfolio gets
             // `capture:` instead — how the words arrived, which is what Skrift actually knows.
-            profile == .archive ? "capture: \(source)" : "source: \(source)",
+            profile == .portfolio ? "capture: \(source)" : "source: \(source)",
         ].compactMap { $0 }
         // Book frontmatter (C2 → spec 7). `bookAuthor:` not `author:` — that key is
         // the note's author (the user) above. Values quoted: titles carry colons.
@@ -103,20 +103,20 @@ enum Compiler {
         if input.sourceType == .capture, let url = sc?.url, !url.isEmpty {
             y.append("url: \(url)")
         }
-        // `type:` is NOT ours. I shipped `type: idea` for a day; reading the archive on
+        // `type:` is NOT ours. I shipped `type: idea` for a day; reading the portfolio on
         // 2026-08-27 killed it — `type:` is that repo's CATEGORY key, already on 100+ items
         // (`type: lamps`, `type: furniture`, `type: things that do something`), taken verbatim
         // from his own folder names. An entry sorted out of `_ideas/` into `Lamps/` would have
         // had one key meaning two things. The folder says which bucket a capture arrived in,
         // and once it is sorted that fact is spent.
-        if profile == .archive {
-            // `voice:` — the archive's own key, its own three values, and its own rule:
+        if profile == .portfolio {
+            // `voice:` — the portfolio's own key, its own three values, and its own rule:
             // "cleaned means grammar and punctuation ONLY — his words, his order, diffable
             // against the raw capture", which is exactly what the copy-edit is.
             y.append("voice: \(input.voice.rawValue)")
-            // `needs:` — also the archive's own key (an empty `Renders/` becomes a need). An
+            // `needs:` — also the portfolio's own key (an empty `Renders/` becomes a need). An
             // INSPIRATION is someone else's work by definition, so one without a maker is
-            // always incomplete and always worth the punch-list line. Made and Idea are HIS,
+            // always incomplete and always worth the punch-list line. Project and Idea are HIS,
             // so raising credit on them would be a false need — and a punch list of false
             // needs stops being a punch list.
             //
@@ -154,7 +154,7 @@ enum Compiler {
             y.append("location:")
         }
         // The sensor block is personal-notes furniture — weather and step counts have nothing
-        // to say in an archive entry. `location:` above deliberately stays in BOTH: "do I care
+        // to say in a portfolio entry. `location:` above deliberately stays in BOTH: "do I care
         // where I took a thing? Sure" (Tuur, 2026-08-26).
         if profile.keepsSensorFrontmatter {
             if let w = meta?.weather, let c = w.conditions, let t = w.temperature {

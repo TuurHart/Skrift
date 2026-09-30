@@ -131,15 +131,15 @@ struct SettingsView: View {
                     }
                 }
                 if destinationsOn {
-                    folderRow("Archive folder", \.archiveRoot)
-                    if !settings.archiveRoot.isEmpty {
-                        let root = (settings.archiveRoot as NSString).lastPathComponent
-                        ForEach(NoteDestination.allCases.filter(\.isArchive), id: \.self) { d in
+                    folderRow("Portfolio folder", \.portfolioRoot)
+                    if !settings.portfolioRoot.isEmpty {
+                        let root = (settings.portfolioRoot as NSString).lastPathComponent
+                        ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
                             HStack {
                                 Text(d.label).font(.system(size: 11))
                                     .foregroundStyle(Theme.textSecondary)
                                 Spacer()
-                                Text("\(root)/\(d.archiveFolder ?? "")")
+                                Text("\(root)/\(d.portfolioFolder ?? "")")
                                     .font(.system(size: 11, design: .monospaced))
                                     .foregroundStyle(Theme.textMuted)
                             }
@@ -147,8 +147,8 @@ struct SettingsView: View {
                     }
                 }
                 Text(destinationsOn
-                     ? "Personal notes go to your Obsidian vault. Made, Idea and Inspiration go "
-                       + "to the archive — a folder you have chosen to let an AI read, so nothing "
+                     ? "Personal notes go to your Obsidian vault. Project, Idea and Inspiration go "
+                       + "to the portfolio — a folder you have chosen to let an AI read, so nothing "
                        + "personal is ever written there."
                      : "Off, every note goes to your Obsidian vault. On, each note carries one of "
                        + "four destinations you pick on the note itself.")

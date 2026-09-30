@@ -137,6 +137,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .dfam{display:grid;grid-template-columns:1fr 3fr;column-gap:6px;height:11px;font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--a-faint);text-align:center;line-height:11px}
 .dsegs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .app .dseg{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0;border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);font-size:11px;font-weight:600;color:var(--a-dim)}
+.dsegs .dseg:first-child{position:relative}
+.dsegs .dseg:first-child::after{content:"";position:absolute;right:-4px;top:-18px;bottom:0;border-right:1px dashed var(--a-faint);pointer-events:none}
 .dseg .dd{width:7px;height:7px;border-radius:50%;background:var(--a-faint)}
 .app .dseg.on{color:var(--a-accent);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
 .dseg.on .dd{background:var(--a-accent)}
@@ -213,7 +215,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <div class="fit"><div class="fitin"><div class="frame" data-frame="typed"></div></div></div>
   </section>
 
-  <footer>The two notes are separate notes with their own rating and destination; each is shared across Phone, iPad and Mac the way sync would. The voice note starts Not rated and Personal; the typed note starts Useful and Idea. Heights are measured live from the rendered frame, top of the title row to the first line of the body; Q50 measured today&rsquo;s phone voice header at 243 pt and Q70&rsquo;s pill version at 136 pt without a destination row. The destination row is drawn from <code>Shared/UI/DestinationRowView.swift</code> (one chip at rest; tap for PRIVATE | ARCHIVE and four segments; an archive pick shows its folder in amber) and <code>NoteDestination</code>; in the app it is hidden until the Destinations switch in Settings is on, which the checkbox above mimics. The typed note carries place and weather because typed notes will record them (D151). Other sizes and copy come from <code>MemoPageView.noteHeaderCore</code>, <code>NoteProperties</code>, <code>ThreeBallScale</code>, <code>TagEditorRow</code>, <code>MemoSpine.oneLiner</code> and <code>Palette.swift</code>. The phone nav bar, iPad side panels and Mac window chrome are placeholders.</footer>
+  <footer>The two notes are separate notes with their own rating and destination; each is shared across Phone, iPad and Mac the way sync would. The voice note starts Not rated and Personal; the typed note starts Useful and Idea. Heights are measured live from the rendered frame, top of the title row to the first line of the body; Q50 measured today&rsquo;s phone voice header at 243 pt and Q70&rsquo;s pill version at 136 pt without a destination row. The destination row is drawn from <code>Shared/UI/DestinationRowView.swift</code> (one chip at rest; tap for PRIVATE | PORTFOLIO and four segments; a portfolio pick shows its folder in amber) and <code>NoteDestination</code>; in the app it is hidden until the Destinations switch in Settings is on, which the checkbox above mimics. The typed note carries place and weather because typed notes will record them (D151). Other sizes and copy come from <code>MemoPageView.noteHeaderCore</code>, <code>NoteProperties</code>, <code>ThreeBallScale</code>, <code>TagEditorRow</code>, <code>MemoSpine.oneLiner</code> and <code>Palette.swift</code>. The phone nav bar, iPad side panels and Mac window chrome are placeholders.</footer>
 </div>
 
 <!-- All user-facing copy used by the script lives here, so no text sits inside a JS string. -->
@@ -237,9 +239,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   <span data-c="temp-voice">22°</span><span data-c="temp-typed">24°</span>
   <span data-c="src-voice">Voice memo</span><span data-c="dur-voice">2:14</span><span data-c="src-typed">Note</span>
   <span data-c="audio">Include audio in export</span>
-  <span data-c="personal">Personal</span><span data-c="made">Made</span><span data-c="idea">Idea</span><span data-c="inspiration">Inspiration</span>
-  <span data-c="f-made">_inbox/</span><span data-c="f-idea">_ideas/</span><span data-c="f-inspiration">_inspiration/</span>
-  <span data-c="private">PRIVATE</span><span data-c="archive">ARCHIVE</span><span data-c="arrow">→</span><span data-c="chev">⌄</span>
+  <span data-c="personal">Personal</span><span data-c="inspiration">Inspiration</span><span data-c="idea">Idea</span><span data-c="project">Project</span>
+  <span data-c="f-project">_projects/</span><span data-c="f-idea">_ideas/</span><span data-c="f-inspiration">_inspiration/</span>
+  <span data-c="private">PRIVATE</span><span data-c="portfolio">PORTFOLIO</span><span data-c="arrow">→</span><span data-c="chev">⌄</span>
   <span data-c="to">Goes to</span><span data-c="vault">the vault</span>
   <span data-c="cap-phone">iPhone 13 · 390 pt wide</span>
   <span data-c="cap-ipad">iPad · 834 pt wide · note column capped at 640 pt</span>
@@ -255,7 +257,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   var C = {};
   document.querySelectorAll("#copy [data-c]").forEach(function(e){ C[e.getAttribute("data-c")] = e.textContent; });
   var TIERS = [C.t0, C.t1, C.t2, C.t3];
-  var DESTS = ["personal","made","idea","inspiration"];
+  var DESTS = ["personal","inspiration","idea","project"];
   var W = {phone:390, ipad:834, mac:760};
   var S = {beh:"a", dev:"phone", destOn:true, marks:true,
     notes:{ voice:{rate:0, dest:"personal", open:false}, typed:{rate:2, dest:"idea", open:false} }};
@@ -302,12 +304,12 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     return h("div","pillrow",[pill(kind), n.rate ? null : h("span","life",[C.life])]);
   }
 
-  // DestinationRowView: resting = one chip (+ folder when archive); open = family labels, four segments, then the arrow line.
+  // DestinationRowView: resting = one chip (+ folder when portfolio); open = family labels, four segments, then the arrow line.
   function destRow(kind, gap){
     var n = S.notes[kind], arc = n.dest !== "personal";
     var kids = [];
     if (n.open){
-      kids.push(h("div","dfam",[h("span",null,[C.private]), h("span",null,[C.archive])],{"aria-hidden":"true"}));
+      kids.push(h("div","dfam",[h("span",null,[C.private]), h("span",null,[C.portfolio])],{"aria-hidden":"true"}));
       kids.push(h("div","dsegs", DESTS.map(function(d){
         var on = d === n.dest, a = d !== "personal";
         return h("button","dseg"+(on?" on":"")+(a?" arc":""),[h("span","dd"), C[d]],

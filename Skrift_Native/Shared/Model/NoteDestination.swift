@@ -25,38 +25,39 @@ import Foundation
 /// Obsidian vault picked in Settings, nothing else changes. The other three are inert until
 /// the user turns destinations on and picks their folders.
 enum NoteDestination: String, CaseIterable, Codable, Sendable {
-    /// His own thoughts → the Obsidian vault. The default, and off-limits to the archive.
+    /// His own thoughts → the Obsidian vault. The default, and off-limits to the portfolio.
     case personal
-    /// Something he MADE → the archive's `_inbox/`, to be sorted into an item folder.
-    case made
-    /// Something he wants to make — HIS intent → the archive's `_ideas/`.
-    case idea
-    /// Someone ELSE's work that he liked → the archive's `_inspiration/`.
+    /// Someone ELSE's work that he liked → the portfolio's `_inspiration/`.
     case inspiration
+    /// Something he wants to make — HIS intent → the portfolio's `_ideas/`.
+    case idea
+    /// A thing he is building or has finished — a project → the portfolio's `_projects/`, to be sorted
+    /// into its item folder. Declared last: the order here IS the order the row shows.
+    case project
 
     /// The chip's word.
     var label: String {
         switch self {
         case .personal:    "Personal"
-        case .made:        "Made"
-        case .idea:        "Idea"
         case .inspiration: "Inspiration"
+        case .idea:        "Idea"
+        case .project:     "Project"
         }
     }
 
     /// Does this destination leave Skrift's private side? Drives the chip's colour (one
     /// family is private, three are public) and the "AI reads this" line — the user should be
     /// able to see which side of the boundary a note is on without reading a word.
-    var isArchive: Bool { self != .personal }
+    var isPortfolio: Bool { self != .personal }
 
-    /// The folder each archive destination writes into, relative to the picked archive root.
+    /// The folder each portfolio destination writes into, relative to the picked portfolio root.
     /// `nil` for `.personal`, which uses the existing Obsidian vault bookmark instead.
-    var archiveFolder: String? {
+    var portfolioFolder: String? {
         switch self {
         case .personal:    nil
-        case .made:        "_inbox"
-        case .idea:        "_ideas"
         case .inspiration: "_inspiration"
+        case .idea:        "_ideas"
+        case .project:     "_projects"
         }
     }
 
@@ -82,15 +83,15 @@ enum NoteDestination: String, CaseIterable, Codable, Sendable {
 enum DestinationSettings {
     private static let key = "skrift.destinations.enabled"
 
-    /// ONE archive root, not three pickers. The three archive destinations are SIBLINGS
-    /// inside it (`_inbox` / `_ideas` / `_inspiration` — `NoteDestination.archiveFolder`),
-    /// which is how the archive is laid out, so asking for three folders would be asking
+    /// ONE portfolio root, not three pickers. The three portfolio destinations are SIBLINGS
+    /// inside it (`_projects` / `_ideas` / `_inspiration` — `NoteDestination.portfolioFolder`),
+    /// which is how the portfolio is laid out, so asking for three folders would be asking
     /// the same question three times and letting two of the answers be wrong.
     ///
     /// `.personal` is NOT here: it keeps the existing Obsidian vault setting on each app
     /// (the phone's security-scoped bookmark, the Mac's `AppSettings.noteFolder`), so
     /// turning destinations on moves nothing that already works.
-    static let archiveRootKey = "skrift.destinations.archiveRoot"
+    static let portfolioRootKey = "skrift.destinations.portfolioRoot"
 
     static var isEnabled: Bool {
         get { forcedOn || UserDefaults.standard.bool(forKey: key) }
@@ -110,6 +111,6 @@ enum DestinationSettings {
     static func resetIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-resetDestinations") else { return }
         UserDefaults.standard.removeObject(forKey: key)
-        UserDefaults.standard.removeObject(forKey: archiveRootKey)
+        UserDefaults.standard.removeObject(forKey: portfolioRootKey)
     }
 }

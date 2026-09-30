@@ -80,13 +80,13 @@ struct ObsidianPublisher {
     /// Returns the vault root, or nil if unconfigured. `manageScope` wraps the write in
     /// `start/stopAccessingSecurityScopedResource` (true in prod; false for temp-dir tests).
     var vaultProvider: () -> URL?
-    /// The folder an ARCHIVE destination writes into (archive root + `_ideas` etc). Injected
-    /// like `vaultProvider` rather than read from `ArchiveVault` inside, so a test can point
-    /// the whole thing at a temp directory — the archive layout is derived data and derived
+    /// The folder a PORTFOLIO destination writes into (portfolio root + `_ideas` etc). Injected
+    /// like `vaultProvider` rather than read from `PortfolioVault` inside, so a test can point
+    /// the whole thing at a temp directory — the portfolio layout is derived data and derived
     /// data has to be proven end-to-end on real files.
-    var archiveFolderProvider: (NoteDestination) -> URL? = { ArchiveVault.folder(for: $0) }
+    var portfolioFolderProvider: (NoteDestination) -> URL? = { PortfolioVault.folder(for: $0) }
     /// The root the security scope belongs to (the bookmarked folder, not the subfolder).
-    var archiveScopeRoot: () -> URL? = { ArchiveVault.resolveRoot() }
+    var portfolioScopeRoot: () -> URL? = { PortfolioVault.resolveRoot() }
     var manageScope: Bool
     var author: String
     var peopleProvider: () -> [Person]
@@ -130,16 +130,16 @@ struct ObsidianPublisher {
     /// re-created, and nothing that isn't provably Skrift's is ever overwritten.
     func publish(_ memo: Memo) throws -> PublishOutcome {
         // WHERE and HOW both follow the note's destination. `.personal` is the Obsidian vault
-        // and today's layout, unchanged; an archive destination is its folder inside the
-        // archive root, written flat (see `ExportProfile`).
+        // and today's layout, unchanged; a portfolio destination is its folder inside the
+        // portfolio root, written flat (see `ExportProfile`).
         let profile = ExportProfile.of(memo.destination)
-        let pickedRoot: URL? = memo.destination.isArchive
-            ? archiveFolderProvider(memo.destination)
+        let pickedRoot: URL? = memo.destination.isPortfolio
+            ? portfolioFolderProvider(memo.destination)
             : vaultProvider()
         guard let vaultRoot = pickedRoot else { return .noVault }
-        // Scope the ROOT the bookmark was made against — for the archive that is the archive
+        // Scope the ROOT the bookmark was made against — for the portfolio that is the portfolio
         // root, not the per-destination subfolder we write into.
-        let scopeRoot = memo.destination.isArchive ? (archiveScopeRoot() ?? vaultRoot) : vaultRoot
+        let scopeRoot = memo.destination.isPortfolio ? (portfolioScopeRoot() ?? vaultRoot) : vaultRoot
         let scoped = manageScope && scopeRoot.startAccessingSecurityScopedResource()
         defer { if scoped { scopeRoot.stopAccessingSecurityScopedResource() } }
 
@@ -247,8 +247,8 @@ struct ObsidianPublisher {
             let ext = (source as NSString).pathExtension
             let embedName = "\(stem)_\(nnn).\(ext.isEmpty ? "jpg" : ext)"
             resolved.append((source, embedName))
-            // `![[x]]` in a vault, `![](x)` in the archive — a vault-relative embed is exactly
-            // what makes a note unreadable anywhere else, and the archive's rule is that an
+            // `![[x]]` in a vault, `![](x)` in the portfolio — a vault-relative embed is exactly
+            // what makes a note unreadable anywhere else, and the portfolio's rule is that an
             // entry has to be able to walk out whole. Obsidian renders both.
             replacements.append((m.range, profile.imageMarkdown(embedName)))
         }

@@ -10,13 +10,13 @@ import SwiftUI
 // build while the app target compiled fine. A share sheet has no destination control;
 // keeping the table here is what stops it needing one.
 extension DestinationRowStyle {
-    /// The phone/iPad's destination row. The archive family is the AMBER token — the same
+    /// The phone/iPad's destination row. The portfolio family is the AMBER token — the same
     /// hue the notes list already uses for "this needs your attention", which is exactly what
     /// a note about to leave for an AI-readable repo is.
     static var phone: DestinationRowStyle {
         DestinationRowStyle(
             accent: .skAccent, accentSoft: .skAccentSoft, accentText: .skAccentText,
-            archive: .skAmber, archiveSoft: .skAmber.opacity(0.13),
+            portfolio: .skAmber, portfolioSoft: .skAmber.opacity(0.13),
             text: .skText, textDim: .skTextDim, textFaint: .skTextFaint,
             border: .skBorder, chipFill: .skElev)
     }

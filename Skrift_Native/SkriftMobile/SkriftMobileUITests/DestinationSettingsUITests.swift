@@ -1,6 +1,6 @@
 import XCTest
 
-/// Settings → Destinations: the one switch and the one archive-folder pick.
+/// Settings → Destinations: the one switch and the one portfolio-folder pick.
 ///
 /// Off is the shipped default and must look like nothing changed; on reveals the folder
 /// row; configured shows what Skrift will actually do with that folder BEFORE it does it.
@@ -45,7 +45,7 @@ final class DestinationSettingsUITests: XCTestCase {
         let toggle = app.switches["destinations-toggle"]
         reveal(app, toggle)
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "the Destinations switch is missing")
-        XCTAssertFalse(app.buttons["archive-folder"].exists,
+        XCTAssertFalse(app.buttons["portfolio-folder"].exists,
                        "off means off — no folder row until the switch is on")
         capture(app, "settings-off")
 
@@ -54,28 +54,28 @@ final class DestinationSettingsUITests: XCTestCase {
         // stayed "0" and the failure read like a broken binding.
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertEqual(toggle.value as? String, "1", "the switch should now read on")
-        let folder = app.buttons["archive-folder"]
+        let folder = app.buttons["portfolio-folder"]
         reveal(app, folder)   // the new row can land below the fold on a small screen
         XCTAssertTrue(folder.waitForExistence(timeout: 5),
-                      "on reveals the archive folder pick")
+                      "on reveals the portfolio folder pick")
         capture(app, "settings-on-unconfigured")
     }
 
-    /// Configured: the three archive subfolders are shown read-only, so what the folder is
+    /// Configured: the three portfolio subfolders are shown read-only, so what the folder is
     /// about to be used for is visible before anything is written to it.
     func testConfiguredShowsTheThreeFolders() {
-        let app = launch(["-destinationsOn", "-seedArchiveFolder"])
-        let folderRow = app.buttons["archive-folder"]
+        let app = launch(["-destinationsOn", "-seedPortfolioFolder"])
+        let folderRow = app.buttons["portfolio-folder"]
         reveal(app, folderRow)
         XCTAssertTrue(folderRow.waitForExistence(timeout: 5))
-        let idea = app.staticTexts["archive-path-idea"]
+        let idea = app.staticTexts["portfolio-path-idea"]
         XCTAssertTrue(idea.waitForExistence(timeout: 5),
                       "the resolved subfolder must be shown, not just promised")
         // `LabeledContent` reads its label and value as ONE element ("Idea, portfolio/_ideas"),
         // which is the right thing for VoiceOver — so match the path inside it.
         XCTAssertTrue(idea.label.hasSuffix("portfolio/_ideas"), idea.label)
-        XCTAssertTrue(app.staticTexts["archive-path-made"].label.hasSuffix("portfolio/_inbox"))
-        XCTAssertTrue(app.staticTexts["archive-path-inspiration"].label
+        XCTAssertTrue(app.staticTexts["portfolio-path-project"].label.hasSuffix("portfolio/_projects"))
+        XCTAssertTrue(app.staticTexts["portfolio-path-inspiration"].label
                         .hasSuffix("portfolio/_inspiration"))
         capture(app, "settings-configured")
     }

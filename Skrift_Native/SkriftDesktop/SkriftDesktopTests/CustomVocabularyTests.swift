@@ -30,21 +30,21 @@ final class CustomVocabularyTests: XCTestCase {
         // rather than using the property's default, so every field added after a settings.json
         // was written has to be optional or the whole file fails to decode — taking the vault
         // path, the author and the prompts with it.
-        XCTAssertNil(s.archiveFolder)
-        XCTAssertEqual(s.archiveRoot, "", "reads as not-set, not as a decode failure")
+        XCTAssertNil(s.portfolioFolder)
+        XCTAssertEqual(s.portfolioRoot, "", "reads as not-set, not as a decode failure")
     }
 
-    func testArchiveRootRoundTripsThroughTheOptional() throws {
+    func testPortfolioRootRoundTripsThroughTheOptional() throws {
         var s = AppSettings.default
-        s.archiveRoot = "/Users/t/portfolio"
-        XCTAssertEqual(s.archiveFolder, "/Users/t/portfolio")
+        s.portfolioRoot = "/Users/t/portfolio"
+        XCTAssertEqual(s.portfolioFolder, "/Users/t/portfolio")
 
         let decoded = try JSONDecoder().decode(
             AppSettings.self, from: try JSONEncoder().encode(s))
-        XCTAssertEqual(decoded.archiveRoot, "/Users/t/portfolio")
+        XCTAssertEqual(decoded.portfolioRoot, "/Users/t/portfolio")
 
-        s.archiveRoot = ""
-        XCTAssertNil(s.archiveFolder, "clearing it stores nil, not an empty string")
+        s.portfolioRoot = ""
+        XCTAssertNil(s.portfolioFolder, "clearing it stores nil, not an empty string")
     }
 
     func testCustomWordsRoundTrip() throws {

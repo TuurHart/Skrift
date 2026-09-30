@@ -1,11 +1,11 @@
 import XCTest
 @testable import SkriftMobile
 
-/// The ARCHIVE export profile, proven END TO END on real files in a temp folder — the shape
+/// The PORTFOLIO export profile, proven END TO END on real files in a temp folder — the shape
 /// of an entry is derived data, and derived data that is only reasoned about is derived data
 /// nobody has checked (the ePub-alignment lesson, 2026-07-23).
 ///
-/// What an archive entry must be, from the portfolio brief:
+/// What a portfolio entry must be, from the portfolio brief:
 ///
 ///     _ideas/2026-08/
 ///       2026-08-26-142312.md      frontmatter + body
@@ -15,16 +15,16 @@ import XCTest
 /// Flat, timestamp-named, media beside the note, and no `![[wiki embed]]` anywhere — a
 /// vault-relative embed is precisely what stops a note being readable outside its vault.
 @MainActor
-final class ArchiveExportTests: XCTestCase {
+final class PortfolioExportTests: XCTestCase {
 
     private var sandbox: URL!
-    private var archiveRoot: URL!
+    private var portfolioRoot: URL!
 
     override func setUpWithError() throws {
         sandbox = FileManager.default.temporaryDirectory
-            .appendingPathComponent("skrift-archive-\(UUID().uuidString)")
-        archiveRoot = sandbox.appendingPathComponent("portfolio")
-        try FileManager.default.createDirectory(at: archiveRoot, withIntermediateDirectories: true)
+            .appendingPathComponent("skrift-portfolio-\(UUID().uuidString)")
+        portfolioRoot = sandbox.appendingPathComponent("portfolio")
+        try FileManager.default.createDirectory(at: portfolioRoot, withIntermediateDirectories: true)
     }
 
     override func tearDownWithError() throws { try? FileManager.default.removeItem(at: sandbox) }
@@ -41,10 +41,10 @@ final class ArchiveExportTests: XCTestCase {
     private func publisher(ledger: ExportLedger) -> ObsidianPublisher {
         ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            archiveFolderProvider: { d in
-                d.archiveFolder.map { self.archiveRoot.appendingPathComponent($0, isDirectory: true) }
+            portfolioFolderProvider: { d in
+                d.portfolioFolder.map { self.portfolioRoot.appendingPathComponent($0, isDirectory: true) }
             },
-            archiveScopeRoot: { self.archiveRoot },
+            portfolioScopeRoot: { self.portfolioRoot },
             manageScope: false,
             author: "Tiuri Hartog",
             peopleProvider: { [] },
@@ -65,7 +65,7 @@ final class ArchiveExportTests: XCTestCase {
 
     // MARK: - The shape of an entry
 
-    func testArchiveEntryIsFlatAndTimestampNamed() throws {
+    func testPortfolioEntryIsFlatAndTimestampNamed() throws {
         let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("l.json"))
         let memo = ideaMemo()
 
@@ -76,59 +76,59 @@ final class ArchiveExportTests: XCTestCase {
 
         XCTAssertEqual(rel, "a-bench-made-of-an-oak-slab.md",
                        "named, not dated, and FLAT — his 148 items are `Lamps/<name>/item.md`")
-        let file = archiveRoot.appendingPathComponent("_ideas").appendingPathComponent(rel)
+        let file = portfolioRoot.appendingPathComponent("_ideas").appendingPathComponent(rel)
         XCTAssertTrue(FileManager.default.fileExists(atPath: file.path), file.path)
 
-        // The Obsidian house — Skrift/, Images/, Recordings/ — must NOT appear in the archive.
+        // The Obsidian house — Skrift/, Images/, Recordings/ — must NOT appear in the portfolio.
         for unwanted in ["Skrift", "_ideas/Skrift", "_ideas/Images", "_ideas/Recordings"] {
             XCTAssertFalse(
                 FileManager.default.fileExists(
-                    atPath: archiveRoot.appendingPathComponent(unwanted).path),
-                "the archive is not a vault — found \(unwanted)")
+                    atPath: portfolioRoot.appendingPathComponent(unwanted).path),
+                "the portfolio is not a vault — found \(unwanted)")
         }
     }
 
-    func testArchiveNoteCarriesNoWikiEmbedAndNoSensorFrontmatter() throws {
+    func testPortfolioNoteCarriesNoWikiEmbedAndNoSensorFrontmatter() throws {
         let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("l.json"))
         let memo = ideaMemo()
         _ = try publisher(ledger: ledger).publish(memo)
 
-        let file = archiveRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md")
+        let file = portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md")
         let text = try String(contentsOf: file, encoding: .utf8)
 
         XCTAssertFalse(text.contains("![["), "a vault-relative embed does not travel")
         for key in ["weather:", "pressure:", "dayPeriod:", "daylight:", "steps:", "significance:"] {
             XCTAssertFalse(text.contains(key), "\(key) is personal-notes furniture")
         }
-        // …and the keys an archive entry DOES need, including the stamp that stops a filed
+        // …and the keys a portfolio entry DOES need, including the stamp that stops a filed
         // note from being written again.
         for key in ["title:", "date:", "summary:", "tags:", VaultStamp.idKey] {
             XCTAssertTrue(text.contains(key), "missing \(key)")
         }
 
-        // The archive OWNS these two keys with other meanings — Skrift must not squat on them.
+        // The portfolio OWNS these two keys with other meanings — Skrift must not squat on them.
         // `type:` is that repo's category (`type: lamps`, on 100+ items, from his own folder
         // names) and `source:` is an item's provenance path. Verified against the real repo
         // 2026-08-27; `type: idea` shipped for a day and was pulled.
-        XCTAssertFalse(text.contains("type:"), "type: belongs to the archive's categories")
-        XCTAssertFalse(text.contains("source:"), "source: belongs to the archive's provenance")
+        XCTAssertFalse(text.contains("type:"), "type: belongs to the portfolio's categories")
+        XCTAssertFalse(text.contains("source:"), "source: belongs to the portfolio's provenance")
         XCTAssertTrue(text.contains("capture: Voice-memo"), "…Skrift says capture: instead")
 
-        // `author:` is dropped: everything in the archive is his by that archive's rule, so the
+        // `author:` is dropped: everything in the portfolio is his by that portfolio's rule, so the
         // key could only ever hold one value. `voice:` carries what varies — and it is the
-        // archive's own key with the archive's own three values.
+        // portfolio's own key with the portfolio's own three values.
         XCTAssertFalse(text.contains("author:"))
         XCTAssertTrue(text.contains("voice: cleaned"), "the copy-edit is what was exported")
     }
 
-    /// `needs:` is the archive's punch list. An INSPIRATION is someone else's work by
-    /// definition, so one with no maker is always incomplete. Made and Idea are HIS — raising
+    /// `needs:` is the portfolio's punch list. An INSPIRATION is someone else's work by
+    /// definition, so one with no maker is always incomplete. Project and Idea are HIS — raising
     /// credit on them would be a false need, and a punch list of false needs is not one.
     func testOnlyInspirationAsksForCredit() throws {
         for (destination, folder, wantsCredit) in [
             (NoteDestination.inspiration, "_inspiration", true),
             (NoteDestination.idea, "_ideas", false),
-            (NoteDestination.made, "_inbox", false),
+            (NoteDestination.project, "_projects", false),
         ] {
             let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("\(folder).json"))
             let memo = ideaMemo()
@@ -136,7 +136,7 @@ final class ArchiveExportTests: XCTestCase {
             _ = try publisher(ledger: ledger).publish(memo)
 
             let text = try String(
-                contentsOf: archiveRoot.appendingPathComponent(
+                contentsOf: portfolioRoot.appendingPathComponent(
                     "\(folder)/a-bench-made-of-an-oak-slab.md"), encoding: .utf8)
             XCTAssertEqual(text.contains("- credit"), wantsCredit,
                            "\(destination.label) credit need should be \(wantsCredit)")
@@ -153,7 +153,7 @@ final class ArchiveExportTests: XCTestCase {
         _ = try publisher(ledger: ledger).publish(memo)
 
         let text = try String(
-            contentsOf: archiveRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
+            contentsOf: portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
             encoding: .utf8)
         XCTAssertTrue(text.contains("- credit"),
                       "the object is someone else's even though the idea is his")
@@ -168,7 +168,7 @@ final class ArchiveExportTests: XCTestCase {
         _ = try publisher(ledger: ledger).publish(memo)
 
         let text = try String(
-            contentsOf: archiveRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
+            contentsOf: portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
             encoding: .utf8)
         XCTAssertTrue(text.contains("voice: written"), text)
     }
@@ -187,7 +187,7 @@ final class ArchiveExportTests: XCTestCase {
         let text = try String(contentsOf: vault.appendingPathComponent("Skrift/A vault note.md"),
                               encoding: .utf8)
         XCTAssertFalse(text.contains("type:"))
-        XCTAssertFalse(text.contains("voice:"), "voice: is the archive's key, not the vault's")
+        XCTAssertFalse(text.contains("voice:"), "voice: is the portfolio's key, not the vault's")
         XCTAssertTrue(text.contains("author:"), "the vault keeps its author")
         XCTAssertTrue(text.contains("source: Voice-memo"), "…and its source:")
         XCTAssertTrue(text.contains("location:"), "location stays in BOTH profiles")
@@ -244,7 +244,7 @@ final class ArchiveExportTests: XCTestCase {
     /// and slug-shaped, because these filenames ARE slugs now.
     func testASecondEntryWithTheSameNameGetsASlugSuffix() {
         let id = UUID(uuidString: "9E24A49F-2460-4E14-9D5A-40E6384B4EDE")!
-        XCTAssertEqual(VaultName.disambiguated("a-bench", id: id, profile: .archive),
+        XCTAssertEqual(VaultName.disambiguated("a-bench", id: id, profile: .portfolio),
                        "a-bench-9e24a49f")
         XCTAssertEqual(VaultName.disambiguated("A bench", id: id, profile: .obsidian),
                        "A bench 9E24A49F", "the vault's own shape is unchanged")
@@ -275,14 +275,14 @@ final class ArchiveExportTests: XCTestCase {
     func testEntriesAreFlatInTheirDestinationFolder() throws {
         let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("flat.json"))
         _ = try publisher(ledger: ledger).publish(ideaMemo())
-        let byMonth = archiveRoot.appendingPathComponent("_ideas/2026-08")
+        let byMonth = portfolioRoot.appendingPathComponent("_ideas/2026-08")
         XCTAssertFalse(FileManager.default.fileExists(atPath: byMonth.path),
                        "no date folders — Tuur, 2026-08-28: we dont need the month either")
     }
 
     // MARK: - Body links
 
-    func testArchiveKeepsPeopleLinksAndPlainifiesEverythingElse() {
+    func testPortfolioKeepsPeopleLinksAndPlainifiesEverythingElse() {
         let jack = Person(canonical: "[[Jack]]", aliases: [], short: nil,
                           lastModifiedAt: "2026-01-01T00:00:00Z")
         let body = "Saw [[Jack]] at [[Hotel Du Vin]] and it gave me an idea."

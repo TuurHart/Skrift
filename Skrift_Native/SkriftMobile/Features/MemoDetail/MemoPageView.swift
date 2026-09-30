@@ -518,7 +518,7 @@ struct MemoPageView: View {
                 DestinationRowView(
                     destination: Binding(get: { memo.destination },
                                          set: { memo.destination = $0 }),
-                    folderLabel: { $0.archiveFolder.map { "\($0)/" } },
+                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                     onPick: { _ in
                         memo.markEdited(stampWords: false)   // destination isn't title/body/tags (C98)
                         repository.save()
