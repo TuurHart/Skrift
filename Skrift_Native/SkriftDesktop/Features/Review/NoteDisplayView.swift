@@ -297,12 +297,12 @@ struct NoteDisplayView: View {
                 SplitSpeakersBand(since: { if case .running(let s) = phase { return s } else { return nil } }())
             }
             NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
-                     speakerAssign: scrollable && SplitSpeakers.isSplit(file) ? speakerAssign(for: file) : nil,
                      onSuggestionPick: scrollable ? { a, c in pickName(file, alias: a, canonical: c) } : nil,
                      onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
                      onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
                      onOpenNote: scrollable ? { c in openNote(c) } : nil,
+                     speakerAssign: scrollable && SplitSpeakers.isSplit(file) ? speakerAssign(for: file) : nil,
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
                      linkTitle: { id in liveTitle(of: id) },

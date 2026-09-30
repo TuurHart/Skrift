@@ -218,13 +218,14 @@ final class ProcessingCoordinator {
                 && FileManager.default.fileExists(atPath: pf.path)
             let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
             let isSplit = splitIDs.contains(pf.id)
-            let flag = splitFlags[pf.id]
+            var cancelCheck: (@Sendable () -> Bool)? = nil
+            if isSplit, let flag = splitFlags[pf.id] { cancelCheck = { flag.isCancelled } }
             do {
                 try await runner.run(pf, audioURL: audioURL,
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
                                      retranscribe: retranscribeIDs.contains(pf.id),
                                      requireSplit: isSplit,
-                                     cancelCheck: isSplit ? { flag?.isCancelled ?? false } : nil)
+                                     cancelCheck: cancelCheck)
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
                 pf.error = nil
                 pf.lastActivityAt = Date()
