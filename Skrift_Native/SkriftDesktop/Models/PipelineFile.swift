@@ -168,8 +168,9 @@ final class PipelineFile {
     var transcriptUserEdited: Bool = false
 
     /// This file was RECORDED here, not imported. The rating is consent, and capturing a
-    /// thought isn't judging it, so a capture must stay unrated while an import gets the 0.1
-    /// floor that puts it in the Process queue.
+    /// thought isn't judging it, so a capture stays unrated. (An import arrives unrated too
+    /// since D159 — see `isLocalImport`; the two flags differ in what else they drive: names,
+    /// location, the edited-take signal.)
     ///
     /// It has to be a stored fact rather than a call-site argument, because the two things
     /// that act on it run on different clocks: the arrival path authors the Memo immediately,
@@ -179,6 +180,18 @@ final class PipelineFile {
     /// judged into the queue on both devices. Written on the row, both callers agree no
     /// matter who arrives first. Additive + defaulted → existing stores migrate lightweight.
     var isLocalRecording: Bool = false
+
+    /// This file was IMPORTED on this Mac (the Import panel / drag-drop / Photos promise), as
+    /// opposed to recorded or synced from the phone. Stamped at construction by
+    /// `IngestService`, for the same race reason as `isLocalRecording`. D159 (2026-09-30): an
+    /// import arrives UNRATED like a recording — it is transcribed, but enters the Process
+    /// queue only once rated. Rows imported before this flag existed read `false` and keep
+    /// their old nil-means-rated reading (their Memo was authored at the 0.1 floor).
+    /// Additive + defaulted → existing stores migrate lightweight.
+    var isLocalImport: Bool = false
+
+    /// A row born on THIS Mac (recorded or imported) rather than synced from the phone.
+    var isLocalCapture: Bool { isLocalRecording || isLocalImport }
 
     /// C102: diarization is opt-in PER NOTE. Only a note the user asked to split ("Split
     /// speakers") carries this; a Mac import never diarizes without it, whatever

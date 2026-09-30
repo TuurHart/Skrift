@@ -18,7 +18,7 @@ struct IngestService: Sendable {
     ///
     /// It has to be set HERE, at construction, and not by the caller afterwards. The reconcile
     /// sweep fetches local rows on its own schedule and authors a Memo for any that lack one,
-    /// applying the import rating floor; inserted-but-unsaved rows are already visible to that
+    /// authoring it unrated (D159); inserted-but-unsaved rows are already visible to that
     /// fetch, and this function awaits detached file work, so the sweep genuinely does reach a
     /// new row mid-ingest. Stamping after `ingest` returns loses that race — measured, twice,
     /// on real takes (2026-07-28).
@@ -112,6 +112,7 @@ struct IngestService: Sendable {
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
     }
@@ -158,6 +159,7 @@ struct IngestService: Sendable {
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
     }
@@ -223,6 +225,7 @@ struct IngestService: Sendable {
                               sourceType: .audio, uploadedAt: recorded)
         pf.mediaSource = "video"   // unified source taxonomy → video glyph + label
         pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
     }

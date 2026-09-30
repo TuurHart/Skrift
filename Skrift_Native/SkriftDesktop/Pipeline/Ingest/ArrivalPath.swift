@@ -12,11 +12,12 @@ import SwiftData
 /// test and driven headlessly (`-recordingest`), so the next mic problem can't also hide a
 /// pipeline problem behind it.
 ///
-/// The two things a CAPTURE does that an IMPORT does not:
-/// 1. **Authors its Memo unrated.** The rating is consent, and recording a thought isn't
-///    judging it. Import gets the 0.1 floor instead — putting a file on the Mac *is* a
-///    request to process it.
-/// 2. **Transcribes at once.** Transcription is capture (raw audio becoming text); polish,
+/// Both doors arrive UNRATED (D159, 2026-09-30 — an import used to floor to 0.1). The rating is
+/// consent: recording a thought or adding a file isn't judging it. What a CAPTURE does that an
+/// IMPORT does not:
+/// 1. **Authors its Memo immediately**, before the sweep can (an import's Memo is the
+///    sweep's job — same unrated result either way).
+/// 2. **Transcribes at once** through its own hook. Transcription is capture (raw audio becoming text); polish,
 ///    name-linking and export are processing, and only those are what a rating gates. Which
 ///    is also why this can't wait for Process: `process()` skips unrated notes, so without
 ///    this step a Mac take would stay wordless forever.
@@ -33,10 +34,11 @@ enum ArrivalPath {
         var reconcileSoon: () -> Void
         /// Give these files their words. Called for captures only.
         var transcribe: ([String]) async -> Void
-        /// Give an IMPORT's audio rows their words (Q77 / C49). A Mac import floors to 0.1, which
-        /// is a request to process; Tuur's 2026-09-30 report was that imported voice memos just
-        /// sat there until a manual Process. Separate from `transcribe` so a capture's contract
-        /// (unrated, words on stop) and an import's stay independently pinned.
+        /// Give an IMPORT's audio rows their words (Q77 / C49). Words are not polish, so an
+        /// unrated import (D159) still gets them on arrival; Tuur's 2026-09-30 report was that
+        /// imported voice memos just sat there until a manual Process. Separate from
+        /// `transcribe` so a capture's contract (words on stop) and an import's stay
+        /// independently pinned.
         var transcribeImport: ([String]) async -> Void
 
         /// Wires nothing — for tests that only care about the store, and for callers with no
@@ -91,13 +93,13 @@ enum ArrivalPath {
         }
         if !audio.isEmpty { try? context.save() }
 
-        // A capture authors its own Memo, UNRATED, BEFORE the sweep can floor it to 0.1.
+        // A capture authors its own Memo, UNRATED, BEFORE the sweep can.
         // `author` is idempotent, so the sweep's backfill then finds it and leaves it alone —
         // that ordering is the whole mechanism, not an optimisation.
         if asRecording, let cloudContext {
             for pf in created {
                 let memo = try? MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path),
-                                                     into: cloudContext, floorSignificance: false)
+                                                     into: cloudContext)
                 // A note this Mac RECORDED gets a place, like a phone one (2026-08-27). Only a
                 // recording: where the Mac is standing says nothing true about an imported file.
                 // Fire-and-forget — no recording waits on a location fix.
@@ -109,10 +111,10 @@ enum ArrivalPath {
         if asRecording {
             await hooks.transcribe(created.map(\.id))
         } else {
-            // C49 / Q77: an import is rated (0.1 floor), so it is a request to process — it
-            // must not sit wordless until someone right-clicks Process. Audio only: a note
-            // arrives with its text, and `created` also holds video-derived audio rows.
-            // Words only; polish stays with Process (the enhancement model is 9 GB).
+            // C49 / Q77: an import is unrated (D159) but must not sit wordless until someone
+            // rates it — transcription is capture, not processing. Audio only: a note arrives
+            // with its text, and `created` also holds video-derived audio rows.
+            // Words only; polish waits for the rating (the enhancement model is 9 GB).
             let audioIDs = audio.map(\.id)
             if !audioIDs.isEmpty { await hooks.transcribeImport(audioIDs) }
         }

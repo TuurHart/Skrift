@@ -73,12 +73,13 @@ enum WayOutRules {
 
     // MARK: - Unrated Mac takes (the unrated-take doctrine, 2026-07-28)
 
-    /// A Mac-recorded take nobody has rated yet. "The RATING is what pipelines a
+    /// A Mac-recorded take OR import nobody has rated yet (D159: an import arrives unrated
+    /// like a recording; the name predates that and the tests pin it). "The RATING is what pipelines a
     /// memo" (`SidebarView.openInPane`) — a capture must not look or act pipelined
     /// just because it happens to have words. Doesn't care about errors; see
     /// `isQuietLocalTake` for the row-visibility carve-out.
     static func isUnratedLocalRecording(_ pf: PipelineFile) -> Bool {
-        pf.isLocalRecording && !NoteConsent.isRated(pf)
+        pf.isLocalCapture && !NoteConsent.isRated(pf)
     }
 
     /// An unrated local take that ALSO leaves the queue-row channel entirely — its
@@ -97,8 +98,8 @@ enum WayOutRules {
     /// isn't a source of the MLX-free `SkriftDesktopTests` target — same
     /// dependency-free reasoning as the rest of this file's header comment.
     /// Not soft-deleted, not already enhanced, and — the unrated-take doctrine —
-    /// not an unrated Mac recording. A RATED local recording, and any ordinary
-    /// import (never `isLocalRecording`), are unaffected.
+    /// not an unrated Mac recording or import (D159). A RATED one, and any
+    /// legacy or synced row, are unaffected.
     static func needsProcessing(_ pf: PipelineFile) -> Bool {
         pf.deletedAt == nil && pf.enhanceStatus != .done && !isUnratedLocalRecording(pf)
     }

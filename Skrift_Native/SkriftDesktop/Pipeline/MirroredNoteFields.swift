@@ -81,7 +81,7 @@ enum MirroredNoteFields {
               },
               // A nil is SKIPPED here on purpose. This is a passive "mirror current values"
               // pass that also runs on tag edits, and `nil` is ambiguous on a `PipelineFile`:
-              // it means "cleared" OR "never rated". A Mac-local import legitimately sits at
+              // it means "cleared" OR "never rated". A legacy Mac import (pre-D159) legitimately sits at
               // nil while its authored `Memo` carries `MacMemoAuthor`'s 0.1 floor, so treating
               // nil as 0 here would silently un-rate it on the next tag edit. Clearing is an
               // EVENT — `MacCloudMetaSync.setRating`.

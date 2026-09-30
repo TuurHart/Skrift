@@ -59,7 +59,7 @@ final class MacMemoAuthorTests: XCTestCase {
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Memo>()), 1)
     }
 
-    func testAuthorFloorsUnratedSignificanceToPointOne() throws {
+    func testAuthorLeavesUnratedSignificanceUnrated() throws {
         let unrated = PipelineFile(id: UUID().uuidString, filename: "n.m4a", sourceType: .audio)
         let zero = PipelineFile(id: UUID().uuidString, filename: "n2.m4a", sourceType: .audio)
         zero.significance = 0
@@ -68,9 +68,8 @@ final class MacMemoAuthorTests: XCTestCase {
         let memo1 = try XCTUnwrap(try MacMemoAuthor.author(for: unrated, audioURL: nil, into: ctx))
         let memo2 = try XCTUnwrap(try MacMemoAuthor.author(for: zero, audioURL: nil, into: ctx))
 
-        XCTAssertEqual(memo1.significance, 0.1, "nil significance floors to 0.1")
-        XCTAssertEqual(memo2.significance, 0.1, "explicit 0 significance also floors to 0.1 — an unrated " +
-                       "Mac capture the Mac silently processed must not lie on the phone's flag-to-process UI")
+        XCTAssertEqual(memo1.significance, 0, "nil significance authors unrated (D159: no import floor)")
+        XCTAssertEqual(memo2.significance, 0, "explicit 0 stays 0 — the rating is consent, never floored")
     }
 
     func testAuthorPreservesARealSignificanceAboveTheFloor() throws {
