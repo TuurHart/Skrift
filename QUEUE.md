@@ -581,7 +581,7 @@ gate+: yes
 do: The Q64 simulator run (2026-09-30) typed "Tram 28 idea\nBuy pastel de nata\n…" at full speed into a fresh quick note and the FIRST Return was lost ("Tram 28 ideaBuy pastel de nata"); with 1.5 s pauses every Return survived. Suspect: `QuickNoteBodyTextView.updateUIView` (`if tv.text != text { tv.text = text }`) writing back a stale binding while the first keystroke creates the draft Memo (Q47/Q53/Q73 all touch that moment). Reproduce with a phone UI test typing fast (the Q64sim test in SkriftMobileUITests/QuickNoteQ64SimUITests.swift is the pattern; take the sim lock), fix so the text view is the source of truth while editing, and prove every character and Return survives at full speed, including a paste. Phone UI tests stay in the simulator; never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteTests && ./gate.sh`
 
-### Q80 [auto] (todo) delete the 43 dead functions and the unused sharing/batch export (Q62, D154), with their tests
+### Q80 [auto] (doing) delete the 43 dead functions and the unused sharing/batch export (Q62, D154), with their tests
 spec: C240
 needs: -
 gate+: yes
@@ -630,7 +630,7 @@ needs: -
 do: Tuur 2026-09-30: "yes split speaker should be a button or toggle or something. Have an agent verify the user flow and make sure it makes sense." Q69 made diarization a per-note opt-in (`PipelineFile.diarizeRequested`) with NO Mac control yet; the phone has a conversations toggle (draw it from source). Mock the Mac control (and the phone's, drawn as-is) in the note header/menu: turn it on for a note → the note re-transcribes with speakers → turns in the gutter (full name on a speaker's first turn, short name after — confirmed 2026-09-30, C84); turn it off → "Flatten to monologue". Then a SECOND agent walks the flow cold, step by step, and writes where a user would get stuck; fix those in the mock. Publish; one numbered question.
 check: Tuur clicked through it and said go.
 
-### Q87 [auto] (todo) build Split speakers per the Q86 mock: a header switch on the Mac, the phone flow with Flatten, all 15 walk fixes
+### Q87 [auto] (done) build Split speakers per the Q86 mock: a header switch on the Mac, the phone flow with Flatten, all 15 walk fixes
 spec: C102 C84 C117
 needs: Q85
 gate+: yes
@@ -930,3 +930,6 @@ check: `test $(ls plan/reads/pill-q88/*.png | wc -l) -ge 2 && perl -e 'alarm 900
 - 2026-09-30 12:30 Q88 added
 - 2026-09-30 12:34 Q85 -> done — gate pass @f7d923be
 - 2026-09-30 12:35 Q81 -> done — gate pass @5c895bd3
+- 2026-09-30 12:35 Q80 -> doing — worker out
+- 2026-09-30 12:35 Q87 -> doing — worker out
+- 2026-09-30 13:10 Q87 -> done — gate pass @8a4b29d2
