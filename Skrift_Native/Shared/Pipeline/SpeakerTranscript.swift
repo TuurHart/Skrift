@@ -170,6 +170,18 @@ enum SpeakerTranscript {
         return withPreamble(of: transcript, body)
     }
 
+    /// Rename EVERY turn whose parsed label satisfies `matches` (a speaker's whole voice, however
+    /// its header is spelled — `[[Tiuri Hartog]]` first, `Tiuri` after), then merge adjacent
+    /// same-speaker turns. nil when not attributed. The Mac's "name from the gutter" (Q87), where
+    /// the per-turn slot map of `relabelSlot` does not exist.
+    static func relabel(_ transcript: String?, where matches: (String) -> Bool, to newName: String) -> String? {
+        guard let turns = parse(transcript) else { return nil }
+        let rebuilt = turns
+            .map { "**\(matches($0.name) ? newName : $0.name):** \($0.text)" }
+            .joined(separator: "\n\n")
+        return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
+    }
+
     /// Rename every turn belonging to diarization SLOT `slot` (NOT every turn that happens
     /// to share the old display name), then merge adjacent same-speaker turns. `turnSlots`
     /// is the per-turn slot map persisted at diarize time. Returns nil when the map doesn't

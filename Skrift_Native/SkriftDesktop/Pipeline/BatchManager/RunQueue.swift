@@ -15,6 +15,9 @@ struct RunQueue {
         case process(ids: [String], retranscribe: Set<String>)
         /// Capture-only: words and nothing else.
         case transcribe(ids: [String])
+        /// Q87 "Split speakers": ONE note's fresh transcription + diarization (then the normal
+        /// pipeline over the turns). Its own case so a queued split can be cancelled by id.
+        case split(id: String)
     }
 
     private(set) var jobs: [Job] = []
@@ -49,8 +52,21 @@ struct RunQueue {
             let covered = processIDs().union(transcribeIDs())
             let fresh = ids.filter { !covered.contains($0) }
             if !fresh.isEmpty { jobs.append(.transcribe(ids: fresh)) }
+        case .split(let id):
+            if !jobs.contains(job) { jobs.append(.split(id: id)) }
         }
     }
+
+    /// Drop a waiting split for `id` (the user pressed Cancel while it was still queued).
+    /// Returns whether one was waiting.
+    @discardableResult
+    mutating func removeSplit(id: String) -> Bool {
+        let before = jobs.count
+        jobs.removeAll { $0 == .split(id: id) }
+        return jobs.count != before
+    }
+
+    func isWaitingSplit(id: String) -> Bool { jobs.contains(.split(id: id)) }
 
     /// The next job to run, oldest first.
     mutating func next() -> Job? {

@@ -22,6 +22,8 @@ struct NoteBody: View {
     var onLinkedUnlink: ((String) -> Void)? = nil
     var onLinkedChange: ((String, String) -> Void)? = nil
     var onOpenNote: ((String) -> Void)? = nil
+    /// Q87: a click on a speaker's gutter name → who is this (nil = inert).
+    var speakerAssign: SpeakerAssign? = nil
     /// Memo↔memo link chip clicked → open that memo (nil = inert chips).
     var onOpenMemoLink: ((UUID) -> Void)? = nil
     /// The `[[` picker's link targets (lazily evaluated; empty = picker disabled).
@@ -126,6 +128,7 @@ struct NoteBody: View {
             onLinkedUnlink: karaokeActive ? nil : onLinkedUnlink,
             onLinkedChange: karaokeActive ? nil : onLinkedChange,
             onOpenNote: karaokeActive ? nil : onOpenNote,
+            speakerAssign: karaokeActive ? nil : speakerAssign,
             onOpenMemoLink: karaokeActive ? nil : onOpenMemoLink,
             linkCandidates: karaokeActive ? { [] } : linkCandidates,
             linkTitle: linkTitle,

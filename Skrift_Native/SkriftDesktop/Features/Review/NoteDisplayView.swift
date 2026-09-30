@@ -275,6 +275,7 @@ struct NoteDisplayView: View {
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             NoteProperties(file: file, interactive: scrollable, canExport: capabilities.pipeline,
+                           coordinator: coordinator,
                            onTagToast: { tagToast = $0 },
                            onRatingToast: { ratingToast = $0 })
             if file.sourceType == .capture {
@@ -291,19 +292,35 @@ struct NoteDisplayView: View {
             if let undo = namingUndo, scrollable {
                 namingUndoToast(undo, file)
             }
+            // Q87: while a split runs the words are being rewritten — say so, and hold the body still.
+            if let phase = coordinator.splitPhases[file.id] {
+                SplitSpeakersBand(since: { if case .running(let s) = phase { return s } else { return nil } }())
+            }
             NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
                      onSuggestionPick: scrollable ? { a, c in pickName(file, alias: a, canonical: c) } : nil,
                      onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
                      onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
                      onOpenNote: scrollable ? { c in openNote(c) } : nil,
+                     speakerAssign: scrollable && SplitSpeakers.isSplit(file) ? speakerAssign(for: file) : nil,
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
                      linkTitle: { id in liveTitle(of: id) },
                      searchJumpToken: searchQuery.isEmpty ? nil : "\(file.id)\u{1}\(searchQuery)")
+                .opacity(coordinator.splitPhases[file.id] == nil ? 1 : 0.45)
+                .allowsHitTesting(coordinator.splitPhases[file.id] == nil)
             // The bottom LINKED FROM strip is GONE — backlinks live in the
             // Connections panel now (mock decision, 2026-07-16).
         }
+    }
+
+    /// Q87: what the gutter's "Who is Speaker 2?" popover reads and does.
+    private func speakerAssign(for file: PipelineFile) -> SpeakerAssign {
+        SpeakerAssign(
+            others: { SplitSpeakers.otherSpeakers(than: $0, in: file, people: NamesStore.shared.livePeople()) },
+            turnCount: { SplitSpeakers.turnCount(of: $0, in: file, people: NamesStore.shared.livePeople()) },
+            onName: { displayed, name in coordinator.nameSpeaker(file, displayed: displayed, as: name, context: ctx) },
+            onMoveLine: { index, other in coordinator.moveLine(file, turnIndex: index, to: other, context: ctx) })
     }
 
     // ── In-prose naming decisions (mocks/naming-review.html) ─────────────────────

@@ -18,6 +18,9 @@ struct NoteProperties: View {
     /// `includeAudioInExport` is Mac-local and unsynced, so flipping it on a
     /// projection would silently go nowhere.
     var canExport = true
+    /// Q87: the coordinator behind the Split speakers switch (queue, progress, flatten). nil on
+    /// hosts with no pipeline (the switch then only reads the note).
+    var coordinator: ProcessingCoordinator? = nil
     /// Reports a tag removal so the CALLER can show the Undo pill at the note-column
     /// level (Q41) — `TagEditorRow`'s own bounds run narrower than the column.
     var onTagToast: (TagEditorRow.TagToast?) -> Void = { _ in }
@@ -103,6 +106,11 @@ struct NoteProperties: View {
                     style: .mac)
             }
             if canExport, file.sourceType == .audio { audioExportRow }
+            // Q87: Split speakers, the header's last row (greyed "Rate the note first" when unrated).
+            if file.sourceType == .audio {
+                SplitSpeakersRow(file: file, coordinator: coordinator, canSplit: canExport,
+                                 interactive: interactive)
+            }
         }
         .onChange(of: file.id, initial: true) { _, _ in
             selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested

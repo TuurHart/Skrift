@@ -27,6 +27,9 @@ struct MemoDetailView: View {
     @State var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State var showActions = false
     @State var showSplitOptions = false
+    /// Q87: the Flatten to monologue confirm, and the one-voice toast after a split that found nobody else.
+    @State var showFlattenConfirm = false
+    @State var splitToast: String?
     @State var showAppendRecorder = false
     @State var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
@@ -93,6 +96,9 @@ struct MemoDetailView: View {
         }
         if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil, !memo.isShareCapture {
             Button { showSplitOptions = true } label: { menuLabel(.splitSpeakers) }
+        }
+        if !memo.isShareCapture, SpeakerTranscript.isAttributed(memo.transcript) {
+            Button { showFlattenConfirm = true } label: { menuLabel(.flattenToMonologue) }
         }
         // Redo ▸ Title / Copy-edit / Summary — the Mac's submenu, same shared
         // vocabulary (`NoteRedoItem`), same gates (Tuur 2026-08-18: the iPad ⋯
@@ -386,6 +392,31 @@ struct MemoDetailView: View {
                 Button("\(n) speakers") { splitSpeakers(n) }
             }
             Button("Cancel", role: .cancel) {}
+        } message: {
+            // Q87: what Auto means, and that a re-split replaces hand edits.
+            Text(SplitSpeakersCopy.howManyMessage)
+        }
+        // Q87: the way back from a split. Same promise as the Mac: the words stay, nothing is
+        // transcribed again.
+        .alert(SplitSpeakersCopy.flattenTitle, isPresented: $showFlattenConfirm) {
+            Button(SplitSpeakersCopy.flattenKeep, role: .cancel) {}
+            Button(SplitSpeakersCopy.flattenConfirm) {
+                if let id = currentMemo?.id { MemoSaver().flattenToMonologue(id: id) }
+            }
+        } message: {
+            Text(SplitSpeakersCopy.flattenBodyPhone)
+        }
+        .overlay(alignment: .bottom) {
+            if let t = splitToast {
+                Text(t)
+                    .font(.system(size: 13, weight: .medium)).foregroundStyle(Color.skText)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(Color.skElev, in: Capsule())
+                    .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+                    .padding(.bottom, 96)
+                    .transition(.opacity)
+                    .accessibilityIdentifier("split-toast")
+            }
         }
         // A confirmationDialog is presented by the view controller (not anchored
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
@@ -407,6 +438,16 @@ struct MemoDetailView: View {
                 Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
             }
             Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
+            // Q87: the icon in the bar has no label, so the sheet says it in words, in its
+            // shared slot (`NoteMenuItem` order: Add recording, Split, Flatten). A split note
+            // offers the way back; the bar icon still re-splits.
+            if let memo = currentMemo, !memo.isShareCapture {
+                if SpeakerTranscript.isAttributed(memo.transcript) {
+                    Button(NoteMenuItem.flattenToMonologue.label, action: { showFlattenConfirm = true })
+                } else if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
+                    Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })
+                }
+            }
             if let memo = currentMemo,
                memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
                 Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
@@ -782,9 +823,20 @@ struct MemoDetailView: View {
         // launch sweep recoverStuckDiarizations re-runs it (2026-06-21 "I switched out
         // of the app and then I think it stopped").
         Task {
+            var outcome = MemoSaver.SplitOutcome.unavailable
             await BackgroundTask.run(name: "diarize") {
-                await MemoSaver().diarizeExisting(id: id, targetSpeakers: count)
+                outcome = await MemoSaver().diarizeExisting(id: id, targetSpeakers: count)
             }
+            // Q87: the spinner used to just vanish. Say it (only on the note still open).
+            if outcome == .oneVoice { showSplitToast(SplitSpeakersCopy.oneVoice) }
+        }
+    }
+
+    func showSplitToast(_ text: String) {
+        withAnimation(.easeOut(duration: 0.2)) { splitToast = text }
+        Task {
+            try? await Task.sleep(for: .seconds(3.2))
+            withAnimation(.easeOut(duration: 0.3)) { if splitToast == text { splitToast = nil } }
         }
     }
 
