@@ -581,6 +581,12 @@ enum Snapshot {
             TagEditorRow(tags: Binding(get: { subject.tags }, set: { subject.tags = $0 }),
                          library: TagLibrary.mostUsedFirst(ctx), style: .mac,
                          seedAdding: true, seedDraft: "te")
+            // Q81: a typed case-variant of a tag already on the note (mock `hit`).
+            Text("Tags — typing “TESTY” (already on this note)").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
+                .padding(.top, 10)
+            TagEditorRow(tags: Binding(get: { subject.tags }, set: { subject.tags = $0 }),
+                         library: TagLibrary.mostUsedFirst(ctx), style: .mac,
+                         seedAdding: true, seedDraft: "TESTY")
             Text("Body — inline “#te” menu").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
                 .padding(.top, 10)
             TagSuggestList(matches: ["testing", "testflight", "testy"], selected: 0, onPick: { _ in })
@@ -590,7 +596,7 @@ enum Snapshot {
         .background(Theme.bg)
         .preferredColorScheme(.dark)
         .modelContainer(container)
-        hostPNG(view, size: NSSize(width: 436, height: 470), to: path)
+        hostPNG(view, size: NSSize(width: 436, height: 640), to: path)
     }
 
     /// Q39: the Mac edit-conflict prompt (C242/D139) against `mocks/Q4-edit-conflict.html`.

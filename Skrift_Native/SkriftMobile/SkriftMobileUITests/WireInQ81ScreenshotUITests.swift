@@ -36,7 +36,8 @@ final class WireInQ81ScreenshotUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("harbor\n")
-        if !field.exists { return XCTFail("field closed") }
+        XCTAssertTrue(field.exists, "field closed")
+        field.tap()
         field.typeText("HARBOR")
         XCTAssertTrue(app.staticTexts["tag-already-on-note"].waitForExistence(timeout: 5),
                       "typing a case-variant of an on-note tag must show the live line")
@@ -49,8 +50,11 @@ final class WireInQ81ScreenshotUITests: XCTestCase {
 
     func testUndoTidyUpInMenu() {
         let app = launch()
-        let pic = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS 'The crack runs from the rim'")).firstMatch
+        let search = app.textFields["memo-search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 20))
+        search.tap()
+        search.typeText("crack runs from the rim")
+        let pic = app.buttons["memo-row-0"]
         XCTAssertTrue(pic.waitForExistence(timeout: 20), "the pic-mid-sentence corpus note row never appeared")
         pic.tap()
         let menu = app.buttons["detail-menu"]
@@ -65,5 +69,27 @@ final class WireInQ81ScreenshotUITests: XCTestCase {
         menu.tap()
         XCTAssertFalse(app.buttons["Undo tidy-up"].waitForExistence(timeout: 2), "gone after the undo")
         capture(app, "phone-menu-after-undo")
+    }
+
+    /// iPad (regular width): the ⋯ lives in the workbench chrome, and the tag line in the header.
+    func testIPadUndoTidyUpAndTag() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "iPad only")
+        let app = launch()
+        let search = app.textFields["memo-search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 20))
+        search.tap()
+        search.typeText("crack runs from the rim")
+        let pic = app.buttons["memo-row-0"]
+        XCTAssertTrue(pic.waitForExistence(timeout: 20))
+        pic.tap()
+        let menu = app.buttons["More"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 1.5)
+        menu.tap()
+        if !app.buttons["Undo tidy-up"].waitForExistence(timeout: 3) {   // first tap only dismissed the keyboard
+            menu.tap()
+        }
+        XCTAssertTrue(app.buttons["Undo tidy-up"].waitForExistence(timeout: 5))
+        capture(app, "ipad-menu-undo-tidy-up")
     }
 }
