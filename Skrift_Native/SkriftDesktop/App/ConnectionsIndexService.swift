@@ -166,8 +166,7 @@ final class ConnectionsIndexService {
             summary: file.enhancedSummary,
             body: body,
             place: meta?.location?.placeName,
-            tags: file.tags,
-            createdAt: journalDate(file))
+            tags: file.tags)
     }
 
     /// The journal/thread axis (panel dates + thread order): the phone's recorded
