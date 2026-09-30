@@ -1,0 +1,848 @@
+<title>Split Speakers Per Note</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one question, the picks to overrule, a sticky device bar, a step strip, ONE live frame you click through, then the cold walk. */
+:root{
+  /* Page chrome (violet-biased neutrals, Skrift accent) — same page tokens as Q75 */
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  /* In-app tokens: Shared/UI/Palette.swift + SkriftMobile Theme.swift (light) */
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-ring:rgba(0,0,0,.18); --a-amber:#b45309; --a-amber-soft:#d9770621; --a-accent-line:#6c5ce059;
+  --a-mac-chip:rgba(0,0,0,.06); --a-mac-stroke:rgba(0,0,0,.07); --a-sheet:#f2f2f7; --a-scrim:rgba(0,0,0,.28);
+  --a-menu:#fbfbfd; --a-sel:#6c5ce0; --a-red:#d92d20;
+  /* Palette.speakerHues slot 0 teal, slot 1 rose (light) */
+  --sp1:#0f7d74; --sp2:#a8446a;
+  --toast-bg:rgba(0,0,0,.85); --toast-fg:#ffffff; --on-accent:#ffffff;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+    --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-accent-line:#7c6bf559;
+    --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07); --a-sheet:#1c1c24; --a-scrim:rgba(0,0,0,.5);
+    --a-menu:#23232d; --a-sel:#7c6bf5; --a-red:#ff6b61;
+    --sp1:#5fd4c4; --sp2:#f08cae;
+    --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111; --on-accent:#ffffff;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+  --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-accent-line:#7c6bf559;
+  --a-mac-chip:rgba(255,255,255,.06); --a-mac-stroke:rgba(255,255,255,.07); --a-sheet:#1c1c24; --a-scrim:rgba(0,0,0,.5);
+  --a-menu:#23232d; --a-sel:#7c6bf5; --a-red:#ff6b61;
+  --sp1:#5fd4c4; --sp2:#f08cae;
+  --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111; --on-accent:#ffffff;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;margin:0}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 6px;text-wrap:balance}
+h2{font-size:17px;margin:0;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lede{color:var(--pg-dim);font-size:14px}
+code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+button{font-family:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+
+/* The one question */
+.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.q .n{font-family:var(--mono);font-weight:600;color:var(--pg-accent)}
+.q .qt{font-size:18px;font-weight:600;line-height:1.3}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.picks button{font:600 15px var(--sys);min-height:48px;flex:1 1 140px;padding:0 14px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-ink);cursor:pointer}
+.picks button[aria-pressed="true"]{background:var(--pg-accent);border-color:var(--pg-accent);color:var(--on-accent)}
+.picknote{font-size:13px;color:var(--pg-dim);min-height:1.3em}
+
+/* Picked for you */
+.mine{border:1.5px dashed var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mine h2{color:var(--pg-warn);font-size:15px}
+.mine ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.mine li{display:flex;gap:9px;align-items:flex-start}
+.k{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:5px;padding:0 5px;line-height:18px;margin-top:1px}
+.mine b{font-weight:600}
+
+/* Sticky control bar + step strip */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--pg-bg);padding-block:8px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--pg-line)}
+.barrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.seg{display:inline-flex;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px}
+.seg button{font:500 14px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:40px;padding:0 11px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:var(--on-accent)}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim);min-height:40px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
+.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.steps button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 11px;border-radius:99px;border:1px solid var(--pg-line);background:var(--pg-card);color:var(--pg-dim);font:500 13px var(--sys);cursor:pointer;white-space:nowrap}
+.steps button .sn{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-faint)}
+.steps button[aria-current="step"]{border-color:var(--pg-accent);background:var(--pg-accent-soft);color:var(--pg-ink)}
+.steps button[aria-current="step"] .sn{color:var(--pg-accent)}
+.steps button:disabled{opacity:.4;cursor:not-allowed}
+
+/* Caption above the frame */
+.cap{display:flex;flex-direction:column;gap:4px}
+.devcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint)}
+.what{font-size:14px;color:var(--pg-ink)}
+.what .src{color:var(--pg-dim)}
+.what .new{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:4px;padding:0 4px;margin-right:4px;white-space:nowrap}
+.what .asis{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--pg-dim);border:1px solid var(--pg-line);border-radius:4px;padding:0 4px;margin-right:4px;white-space:nowrap}
+.nav2{display:flex;justify-content:space-between;gap:10px}
+.nav2 button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-card);color:var(--pg-ink);font:600 14px var(--sys);cursor:pointer}
+.nav2 button:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Frames ───────────────────────────────────────────── */
+.frame{border:1px solid var(--pg-line);overflow:hidden;background:var(--a-bg);position:relative;color:var(--a-text);font-family:var(--sys)}
+.frame.mac{border-radius:10px;max-width:760px}
+.frame.phone{border-radius:28px;max-width:390px;min-height:720px}
+.frame button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+.newmark{outline:1.5px dashed var(--pg-warn);outline-offset:3px;border-radius:6px}
+
+.cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:13px;color:var(--a-dim);background:var(--a-chip);padding:2px 7px;border-radius:7px;white-space:nowrap}
+.mac .cchip{background:var(--a-mac-chip)}
+.tchip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-accent);font-size:12px;font-weight:500}
+.phone .tchip{height:26px;padding:0 10px;font-size:13px;color:var(--a-accent-text)}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:11.5px;font-weight:600;color:var(--a-accent-text);white-space:nowrap}
+.phone .pill{height:26px;font-size:12px}
+.pill.none{background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-weight:500}
+.pbs{display:inline-flex;gap:3px}
+.pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
+.pb.lit{background:var(--a-accent);box-shadow:none}
+.dchip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:99px;font-size:11.5px;font-weight:600;line-height:14px;color:var(--a-accent-text);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
+.dchip .dd{width:6px;height:6px;border-radius:50%;background:var(--a-accent)}
+.dchip .dv{font-size:8px;opacity:.55;font-weight:700}
+
+/* Mac window */
+.mbar{height:40px;border-bottom:1px solid var(--a-mac-stroke);display:flex;align-items:center;padding:0 12px;gap:6px}
+.tl{width:11px;height:11px;border-radius:50%;background:var(--a-chip)}
+.mbar .sp{flex:1}
+.prim{font-size:12.5px;font-weight:600;color:var(--on-accent)!important;background:var(--a-accent)!important;padding:6px 12px!important;border-radius:8px;min-height:30px}
+.dots{width:30px;height:30px;border-radius:8px;font-size:15px;color:var(--a-dim)!important;display:grid;place-items:center}
+.dots:hover,.dots[aria-expanded="true"]{background:var(--a-chip)!important}
+.mcol{padding:18px 22px 0;display:flex;flex-direction:column;gap:8px}
+.mtitle{font-size:19px;font-weight:700;line-height:1.25;text-wrap:balance}
+.audiorow,.sprow{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--a-dim)}
+.sprow{min-height:30px;flex-wrap:wrap}
+.sprow .lbl{font-weight:600;color:var(--a-text)}
+.sprow .state{color:var(--a-dim)}
+.sprow .state.warn{color:var(--a-amber)}
+.linkish{color:var(--a-accent)!important;font-weight:600;font-size:11.5px;min-height:28px;padding:0 4px!important}
+.sw{width:26px;height:15px;border-radius:99px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);position:relative;flex:none}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:11px;height:11px;border-radius:50%;background:var(--a-surface);box-shadow:0 0 0 .5px var(--a-ring);transition:left .15s}
+.sw.on{background:var(--a-accent);box-shadow:none}
+.sw.on::after{left:13px;background:var(--on-accent);box-shadow:none}
+.sw.busy{background:var(--a-accent);opacity:.55}
+.sw.busy::after{left:13px}
+.swbtn{display:inline-flex;align-items:center;gap:8px;min-height:30px;position:relative}
+.swbtn::before{content:"";position:absolute;inset:-7px -6px}
+.swbtn:disabled{cursor:not-allowed;opacity:.5}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--a-chip);border-top-color:var(--a-accent);animation:sp 0.9s linear infinite;flex:none;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.pop{position:relative;background:var(--a-menu);border:1px solid var(--a-border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.1);padding:14px;display:flex;flex-direction:column;gap:9px;max-width:340px;font-size:13px;line-height:1.4;margin-top:6px}
+.pop::before{content:"";position:absolute;top:-6px;left:22px;width:10px;height:10px;background:var(--a-menu);border-left:1px solid var(--a-border);border-top:1px solid var(--a-border);transform:rotate(45deg)}
+.pop.nocaret::before{display:none}
+.pop h4{margin:0;font-size:13.5px;font-weight:700}
+.pop .warnline{color:var(--a-amber);font-weight:600}
+.pop .keep{color:var(--a-dim)}
+.btns{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.mbtn{min-height:30px;padding:0 12px!important;border-radius:7px;font-size:12.5px;font-weight:600;background:var(--a-chip)!important}
+.mbtn.go{background:var(--a-accent)!important;color:var(--on-accent)!important}
+
+.menu{position:absolute;right:10px;top:38px;z-index:6;min-width:210px;background:var(--a-menu);border:1px solid var(--a-border);border-radius:9px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:5px;display:flex;flex-direction:column;font-size:13px}
+.menu button{text-align:left;padding:5px 10px!important;border-radius:5px;min-height:28px}
+.menu button:hover{background:var(--a-sel)!important;color:var(--on-accent)!important}
+.menu .hl{background:var(--a-sel)!important;color:var(--on-accent)!important}
+.menu .off{color:var(--a-faint)!important}
+.menu hr{border:0;border-top:1px solid var(--a-border);margin:4px 6px}
+
+.mbody{padding:18px 22px 22px;font-size:15px;line-height:1.55}
+.mbody p{margin:0 0 .75em}
+.dim{opacity:.4}
+.band{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:9px;background:var(--a-accent-soft);margin:14px 22px 0;font-size:12.5px}
+.band .l1{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--a-text);flex-wrap:wrap}
+.band .l2{color:var(--a-dim);font-size:11.5px}
+.mock-only{font-family:var(--mono);font-size:10.5px!important;color:var(--pg-warn)!important;border:1px dashed var(--pg-warn)!important;border-radius:5px;padding:2px 6px!important;margin-top:4px;align-self:flex-start;min-height:26px}
+
+/* Mac turns — E1 gutter (signed conversation-turns-D-hifi.html) */
+.turn{display:grid;grid-template-columns:5.6rem 1fr;gap:.8rem;margin-bottom:.8rem}
+@media (min-width:560px){.turn{grid-template-columns:7.4rem 1fr;gap:1.05rem}}
+.who{text-align:right;font-weight:650;font-size:13px;padding-top:.15rem;letter-spacing:-.01em;line-height:1.25;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.who button{font-weight:650;text-align:right;min-height:24px}
+.s1 .who,.s1 .who button{color:var(--sp1)}
+.s2 .who,.s2 .who button{color:var(--sp2)}
+.who .un{color:var(--a-dim)!important}
+.who .lnk{font-weight:700}
+.plus{font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--sp2) 16%,transparent);color:var(--sp2)}
+.said{margin:0!important;padding-left:.8rem}
+.s1 .said{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--sp1) 38%,transparent)}
+.s2 .said{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--sp2) 38%,transparent)}
+.who button:hover .nm{text-decoration:underline;text-decoration-style:dotted}
+
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:8px 14px;border-radius:14px;width:max-content;max-width:calc(100% - 32px);text-align:center;pointer-events:none;opacity:0;transition:opacity .15s;z-index:30}
+.toast.show{opacity:1}
+
+/* Phone */
+.pnav{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px;color:var(--a-accent);font-size:16px;margin-top:8px}
+.pnav .back{color:var(--a-accent)!important;min-height:44px;padding:0 6px!important;font-size:16px}
+.pnav .rt{display:flex;gap:2px}
+.ib{width:40px;height:40px;display:grid;place-items:center;color:var(--a-dim)!important;border-radius:10px}
+.ib svg{width:19px;height:19px}
+.ib.pressed{background:var(--a-chip)!important}
+.ptitle{padding:4px 20px 9px;border-bottom:.5px solid var(--a-border);font-size:17px;font-weight:700}
+.pcore{padding:6px 20px 0;display:flex;flex-direction:column;gap:8px}
+.pbody{padding:14px 20px 90px;font-size:16px;line-height:1.5}
+.pbody p{margin:0 0 .7em}
+.pstat{display:flex;flex-direction:column;gap:4px;padding:14px 20px 0}
+.pstat .l1{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--a-dim)}
+.pstat .l2{font-size:11px;color:var(--a-faint)}
+.pturns{display:flex;flex-direction:column;gap:12px;padding:14px 16px 90px}
+.pturn{display:flex;gap:10px;padding:9px 8px 9px 5px;border-radius:11px}
+.pturn.s1{background:color-mix(in srgb,var(--sp1) 6%,transparent)}
+.pturn.s2{background:color-mix(in srgb,var(--sp2) 6%,transparent)}
+.pturn .rail{width:3px;border-radius:2px;flex:none}
+.pturn.s1 .rail{background:var(--sp1)} .pturn.s2 .rail{background:var(--sp2)}
+.pturn .in{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ptag{display:inline-flex;align-items:center;gap:6px;min-height:28px;align-self:flex-start}
+.ptag .d{width:7px;height:7px;border-radius:50%}
+.s1 .ptag .d{background:var(--sp1)} .s2 .ptag .d{background:var(--sp2)}
+.ptag .nm{font-size:13px;font-weight:700}
+.s1 .ptag .nm{color:var(--sp1)} .s2 .ptag .nm{color:var(--sp2)}
+.ptag .nm.un{color:var(--a-dim)}
+.ptag .cap2{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px}
+.s1 .ptag .cap2{color:var(--sp1);background:color-mix(in srgb,var(--sp1) 16%,transparent)}
+.s2 .ptag .cap2{color:var(--sp2);background:color-mix(in srgb,var(--sp2) 16%,transparent)}
+.pturn p{margin:0;font-size:15.5px;line-height:1.45}
+
+.scrim{position:absolute;inset:0;background:var(--a-scrim);z-index:10}
+.asheet{position:absolute;left:8px;right:8px;bottom:10px;z-index:11;display:flex;flex-direction:column;gap:8px}
+.asheet .grp{background:var(--a-menu);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.asheet .ttl{font-size:13px;font-weight:600;color:var(--a-dim);text-align:center;padding:13px 16px 4px}
+.asheet .msg{font-size:12.5px;color:var(--a-dim);text-align:center;padding:0 16px 12px;border-bottom:.5px solid var(--a-border)}
+.asheet .grp button{min-height:54px;font-size:18px;color:var(--a-accent)!important;border-top:.5px solid var(--a-border)!important}
+.asheet .grp .ttl + button{border-top:0!important}
+.asheet .grp button.red{color:var(--a-red)!important}
+.asheet .grp button.hl{background:var(--a-accent-soft)!important;font-weight:600}
+.asheet .cancel{font-weight:600}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:170px;z-index:11;background:var(--a-bg);border-radius:14px 14px 0 0;display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(0,0,0,.2)}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--a-ring);margin:6px auto 0}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 10px}
+.sheet .sh b{font-size:16px}
+.sheet .sh button{color:var(--a-accent)!important;font-size:16px;min-height:44px;padding:0 6px!important}
+.sheet .sh .ghost{visibility:hidden}
+.sheet .sb{padding:4px 20px 20px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.sec{display:flex;flex-direction:column;gap:6px}
+.sec .st{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--a-faint)}
+.sec .hint{font-size:12px;color:var(--a-faint)}
+.prow{display:flex;align-items:center;gap:12px;padding:9px 6px!important;border-bottom:1px solid var(--a-border)!important;text-align:left;min-height:52px}
+.av{width:38px;height:38px;border-radius:50%;background:var(--a-accent-soft);color:var(--a-accent-text);display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.prow .pn{font-size:16px;font-weight:600;flex:1}
+.vbars{display:inline-flex;gap:2px;align-items:flex-end;height:12px}
+.vbars i{width:2px;background:var(--a-accent);border-radius:1px;display:block}
+.mrow{display:flex;align-items:center;gap:10px;padding:9px 6px!important;border-bottom:1px solid var(--a-border)!important;font-size:15px;font-weight:500;min-height:44px;text-align:left}
+.mrow .mg{color:var(--a-accent);font-size:14px}
+.newp{display:flex;gap:8px}
+.newp input{flex:1;min-width:0;font:15px var(--sys);padding:11px 12px;border-radius:10px;border:1px solid var(--a-border);background:var(--a-surface);color:var(--a-text)}
+.newp button{padding:0 14px!important;border-radius:10px;background:var(--a-accent)!important;color:var(--on-accent)!important;font-weight:600;font-size:15px;min-height:44px}
+.alert{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:270px;z-index:11;background:var(--a-menu);border-radius:14px;overflow:hidden;text-align:center}
+.alert .at{font-size:17px;font-weight:600;padding:18px 16px 4px}
+.alert .am{font-size:13px;padding:0 16px 16px;color:var(--a-text)}
+.alert .ab{display:flex;border-top:.5px solid var(--a-border)}
+.alert .ab button{flex:1;min-height:46px;font-size:17px;color:var(--a-accent)!important}
+.alert .ab button + button{border-left:.5px solid var(--a-border)!important;font-weight:600}
+
+/* Mac popover version of the rename sheet */
+.rpop{max-width:320px;gap:12px}
+.rpop .prow{min-height:40px;padding:6px 4px!important}
+.rpop .av{width:26px;height:26px;font-size:11px}
+.rpop .prow .pn{font-size:13.5px}
+.rpop .mrow{font-size:13px;min-height:34px;padding:6px 4px!important}
+.rpop .newp input{font-size:13px;padding:7px 9px;border-radius:7px}
+.rpop .newp button{min-height:32px;font-size:13px;border-radius:7px}
+
+/* per-frame conditional bits */
+.frame[data-alt="a"] .only-b,.frame[data-alt="b"] .only-a{display:none!important}
+.frame[data-fix="asis"] .only-fix,.frame[data-fix="fix"] .only-asis{display:none!important}
+.frame[data-unrated="1"] .only-rated,.frame[data-unrated="0"] .only-unrated{display:none!important}
+
+/* Cold walk */
+.walk{display:flex;flex-direction:column;gap:10px}
+.walk ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:w}
+.walk li{background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px}
+.walk li::before{counter-increment:w;content:counter(w);font-family:var(--mono);font-weight:600;font-size:12px;color:var(--pg-accent);grid-row:span 2;padding-top:1px}
+.walk .hes{color:var(--pg-ink)}
+.walk .fix{color:var(--pg-dim)}
+.walk .fix b{color:var(--pg-ink);font-weight:600}
+.walk .where{font-family:var(--mono);font-size:11px;color:var(--pg-accent);white-space:nowrap}
+footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);padding-top:12px}
+.copy{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q86 · mock · Mac + iPhone · C102 · C84</div>
+    <h1>Split speakers, one note at a time</h1>
+    <p class="lede">Click through it like a first-time user: every switch, name and button in the frame below moves the flow. The phone is drawn from source as it is today; everything new is marked with a dashed orange edge.</p>
+  </header>
+
+  <section class="q" aria-labelledby="qt">
+    <div class="n">1</div>
+    <div class="qt" id="qt">On the Mac, should Split speakers be a switch in the note header (drawn), or an item in the &hellip; menu like the phone and iPad have it?</div>
+    <div class="picks" role="group" aria-label="Pick where the Mac control lives">
+      <button type="button" id="pick-a" data-pick="a" aria-pressed="true">Switch in the header</button>
+      <button type="button" id="pick-b" data-pick="b" aria-pressed="false">Item in the &hellip; menu</button>
+    </div>
+    <div class="picknote" id="picknote">Your tap flips the Mac frame below so you can try both. It stays on this page; say it in the sitting.</div>
+  </section>
+
+  <section class="mine">
+    <h2>Picked for you. Overrule any of these.</h2>
+    <ol>
+      <li><span class="k">1</span><span><b>A switch in the header, under &ldquo;Include audio in export&rdquo;.</b> It shows the state at a glance (split or not) and the same switch turns it off. The &hellip; menu version is one tap away in the bar and in the question above.</span></li>
+      <li><span class="k">2</span><span><b>The Mac does not ask &ldquo;How many speakers?&rdquo;</b> The phone does (Auto, 2 to 5). The Mac&rsquo;s diarizer takes no count today (<code>diarizer.diarize(audioURL:)</code>), so it always runs Auto. Adding the count is a second change.</span></li>
+      <li><span class="k">3</span><span><b>Turning it on asks first, because it re-listens and replaces your transcript edits.</b> The Mac needs its own word timings, which the phone never uploads, so a split is a full re-transcribe. Turning it off is Flatten to monologue, which also asks, and which the phone gains (it has no way back today).</span></li>
+    </ol>
+  </section>
+
+  <div class="bar" id="bar">
+    <div class="barrow">
+      <div class="seg" role="group" aria-label="Device">
+        <button type="button" id="dev-mac" data-dev-btn="mac" aria-pressed="true">Mac</button>
+        <button type="button" id="dev-phone" data-dev-btn="phone" aria-pressed="false">iPhone</button>
+      </div>
+      <div class="seg" role="group" aria-label="Mac control" id="seg-alt">
+        <button type="button" id="alt-a" data-alt-btn="a" aria-pressed="true">Switch</button>
+        <button type="button" id="alt-b" data-alt-btn="b" aria-pressed="false">&hellip; menu</button>
+      </div>
+      <div class="seg" role="group" aria-label="Phone version" id="seg-fix" hidden>
+        <button type="button" id="fix-asis" data-fix-btn="asis" aria-pressed="true">As built</button>
+        <button type="button" id="fix-fix" data-fix-btn="fix" aria-pressed="false">With fixes</button>
+      </div>
+      <label class="chk" id="chk-unrated-wrap"><input type="checkbox" id="chk-unrated"> Unrated note</label>
+    </div>
+    <div class="steps" id="steps" role="group" aria-label="Steps">
+      <button type="button" data-strip="1"><span class="sn">1</span>Off</button>
+      <button type="button" data-strip="2"><span class="sn">2</span>Turn on</button>
+      <button type="button" data-strip="3"><span class="sn">3</span>Splitting</button>
+      <button type="button" data-strip="4"><span class="sn">4</span>Turns</button>
+      <button type="button" data-strip="5"><span class="sn">5</span>Rename</button>
+      <button type="button" data-strip="6"><span class="sn">6</span>Named</button>
+      <button type="button" data-strip="7"><span class="sn">7</span>Turn off</button>
+      <button type="button" data-strip="8"><span class="sn">8</span>Plain again</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ Captions: what this step is ═══════════ -->
+  <div class="cap" aria-live="polite">
+    <div class="devcap" data-dev="mac">Mac · note pane · drawn at your screen width (the real column is up to 820 pt)</div>
+    <div class="devcap" data-dev="phone">iPhone 13 · 390 pt · Skrift Dev</div>
+
+    <div class="what" data-dev="mac" data-in="1"><span class="new">NEW</span>A plain voice note. The last header row is the new <b>Split speakers</b> switch, off, with one line saying when you would want it. <span class="src">Everything above it is the Q75 header as signed.</span> <span class="only-alt-b-hint">In the &hellip; menu option there is no row; open &hellip; instead.</span></div>
+    <div class="what" data-dev="mac" data-in="1u"><span class="new">NEW</span>Unrated note: the Mac has no pipeline row for it (C187), so the switch is greyed and says why. Rate the note with the pill and the switch wakes up.</div>
+    <div class="what" data-dev="mac" data-in="2m"><span class="asis">AS BUILT</span>The Mac&rsquo;s &hellip; menu from <code>NoteActions.swift</code>, in the shared <code>NoteMenuItem</code> order. <span class="new">NEW</span>Split speakers&hellip; is added in its shared slot, second.</div>
+    <div class="what" data-dev="mac" data-in="2"><span class="new">NEW</span>It asks before it starts, because the Mac re-transcribes from the audio. The amber line only appears when you hand-edited this transcript.</div>
+    <div class="what" data-dev="mac" data-in="3"><span class="new">NEW</span>Splitting. The body goes read-only and dim, a line counts up (no fake %, same as the phone), and Cancel puts the note back as it was.</div>
+    <div class="what" data-dev="mac" data-in="o"><span class="new">NEW</span>The split found one voice. Today both apps say nothing and leave the text as it was; here the row says so and the switch falls back off.</div>
+    <div class="what" data-dev="mac" data-in="4"><span class="asis">SIGNED</span>Turns in the E1 gutter with a spine per speaker. Your enrolled voice is matched: <b>Tiuri Hartog</b> on the first turn, <b>Tiuri</b> after (C84). <span class="new">NEW</span>An unknown voice reads Speaker 2 with a <b>+ name</b> tag, like the phone. Click it.</div>
+    <div class="what" data-dev="mac" data-in="5"><span class="new">NEW</span>The phone&rsquo;s &ldquo;Who is Speaker 2?&rdquo; sheet, as a Mac popover off the name. Same three sections, same wording (<code>SpeakerAssignSheet.swift</code>).</div>
+    <div class="what" data-dev="mac" data-in="6">Named. Every Speaker 2 turn is now Maria: <b>Maria Santos</b> on her first turn, <b>Maria</b> after, same colour throughout. Skrift learns her voice from this note.</div>
+    <div class="what" data-dev="mac" data-in="7m"><span class="asis">AS BUILT</span>On a split note the &hellip; menu already offers <b>Flatten to monologue</b> and hides Re-transcribe (<code>NoteActions.swift:77</code>).</div>
+    <div class="what" data-dev="mac" data-in="7"><span class="new">NEW</span>Switching off is Flatten to monologue. It asks, and says what stays: the words, your fixes, Maria in Names. No re-transcribe (C182).</div>
+    <div class="what" data-dev="mac" data-in="8">Plain again. The title and summary are written again for one voice; the switch is off and can be turned on again.</div>
+
+    <div class="what" data-dev="phone" data-in="1"><span class="asis">AS BUILT</span>The phone&rsquo;s note. Split speakers is the <b>two-people icon</b> in the nav bar, between + and &hellip; (<code>MemoDetailView.swift:355</code>). Tap it.</div>
+    <div class="what" data-dev="phone" data-in="2"><span class="asis">AS BUILT</span>&ldquo;How many speakers?&rdquo; with Auto and 2 to 5. <span class="only-fix-inline"><span class="new">FIX</span>With fixes on, the sheet says what Auto means and warns about edits.</span></div>
+    <div class="what" data-dev="phone" data-in="3"><span class="asis">AS BUILT</span>The line from <code>DiarizationStatus</code>, with its ticking time and the &ldquo;keeps going if you leave&rdquo; hint.</div>
+    <div class="what" data-dev="phone" data-in="o"><span class="asis">AS BUILT</span>One voice found: the line disappears and nothing else happens. <span class="new">FIX</span>With fixes on, a toast says so.</div>
+    <div class="what" data-dev="phone" data-in="4"><span class="asis">AS BUILT</span>Turn cards: colour rail, dot, name, and an <b>edit</b> or <b>+ name</b> tag (<code>SpeakerTurnsView.swift</code>). Tap Speaker 2.</div>
+    <div class="what" data-dev="phone" data-in="5"><span class="asis">AS BUILT</span>&ldquo;Who is Speaker 2?&rdquo; with People, Merge into and New person.</div>
+    <div class="what" data-dev="phone" data-in="6"><span class="asis">AS BUILT</span>Named: full name on the first turn, short after (C84). Now try to undo the split: open &hellip;.</div>
+    <div class="what" data-dev="phone" data-in="7"><span class="asis">AS BUILT</span>The phone&rsquo;s &hellip; sheet has <b>no Flatten to monologue</b>, and the two-people icon only splits again. <span class="new">FIX</span>With fixes on, Flatten sits in its shared slot, after Add recording.</div>
+    <div class="what" data-dev="phone" data-in="7c"><span class="new">FIX</span>Same promise as the Mac: the words stay, no re-transcribe.</div>
+    <div class="what" data-dev="phone" data-in="8"><span class="only-asis-inline"><span class="asis">AS BUILT</span>Not reachable on the phone today: the note stays split. Switch to <b>With fixes</b> to see the way back.</span><span class="only-fix-inline"><span class="new">FIX</span>Plain again, synced from the same Flatten the Mac runs.</span></div>
+  </div>
+
+  <!-- ═══════════ MAC FRAME ═══════════ -->
+  <div class="frame mac" id="f-mac" data-dev="mac" data-alt="a" data-unrated="0">
+    <div class="mbar">
+      <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+      <span class="sp"></span>
+      <button type="button" class="prim only-rated" data-toast="t-export">Export to Obsidian</button>
+      <button type="button" class="dots" id="mac-dots" aria-label="More" aria-expanded="false" data-act="macdots">&middot;&middot;&middot;</button>
+    </div>
+
+    <!-- ⋯ menu: before a split (option B adds Split speakers…) -->
+    <div class="menu" data-in="2m" role="menu">
+      <button type="button" class="hl newmark" data-go="2" role="menuitem">Split speakers&hellip;</button>
+      <button type="button" data-toast="t-retx" role="menuitem">Re-transcribe</button>
+      <button type="button" data-toast="t-redo" role="menuitem">Redo &#9656;</button>
+      <hr>
+      <button type="button" data-toast="t-copied" role="menuitem">Copy transcript</button>
+      <button type="button" data-toast="t-copied" role="menuitem">Copy as Markdown</button>
+      <button type="button" data-toast="t-finder" role="menuitem">Reveal in Finder</button>
+    </div>
+    <!-- ⋯ menu: on a split note (as built) -->
+    <div class="menu" data-in="7m" role="menu">
+      <button type="button" class="hl" data-go="7" role="menuitem">Flatten to monologue</button>
+      <button type="button" data-toast="t-redo" role="menuitem">Redo &#9656;</button>
+      <hr>
+      <button type="button" data-toast="t-copied" role="menuitem">Copy transcript</button>
+      <button type="button" data-toast="t-copied" role="menuitem">Copy as Markdown</button>
+      <button type="button" data-toast="t-finder" role="menuitem">Reveal in Finder</button>
+    </div>
+
+    <div class="mcol">
+      <div class="mtitle">Saturday stall at the tile market</div>
+      <div class="flow">
+        <span class="cchip">Sun 28 Sep · Alfama</span><span class="cchip">19°</span><span class="cchip">Voice</span><span class="cchip">3:12</span>
+        <span class="cchip newmark only-b" data-in="4 5 6 7 7m">Conversation · 2 speakers</span>
+        <span class="tchip">#market</span><span class="tchip">#tiles</span>
+      </div>
+      <div class="flow">
+        <span class="pill only-rated"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span>
+        <button type="button" class="pill none only-unrated" data-act="rate"><span class="pbs"><span class="pb"></span><span class="pb"></span><span class="pb"></span></span>Not rated</button>
+      </div>
+      <div><span class="dchip"><span class="dd"></span>Personal<span class="dv">&#8964;</span></span></div>
+      <div class="audiorow"><span class="sw on"></span>Include audio in export</div>
+
+      <!-- THE NEW ROW (option A) -->
+      <div class="only-a newmark" style="padding:2px 4px;margin-inline:-4px">
+        <!-- off -->
+        <div class="sprow only-rated" data-in="1 8">
+          <button type="button" class="swbtn" data-go="2" aria-label="Split speakers, off"><span class="sw"></span><span class="lbl">Split speakers</span></button>
+          <span class="state">One voice. Turn on if more people talk in this recording.</span>
+        </div>
+        <div class="sprow only-unrated" data-in="1">
+          <button type="button" class="swbtn" disabled aria-label="Split speakers, unavailable"><span class="sw"></span><span class="lbl">Split speakers</span></button>
+          <span class="state warn">Rate the note first. The Mac only works on rated notes.</span>
+        </div>
+        <!-- asking -->
+        <div class="sprow" data-in="2">
+          <button type="button" class="swbtn" data-go="1" aria-label="Split speakers, asking"><span class="sw busy"></span><span class="lbl">Split speakers</span></button>
+        </div>
+        <!-- one voice -->
+        <div class="sprow" data-in="o">
+          <button type="button" class="swbtn" data-go="2" aria-label="Split speakers, off"><span class="sw"></span><span class="lbl">Split speakers</span></button>
+          <span class="state warn">Only one voice found. Nothing was split.</span>
+        </div>
+        <!-- splitting -->
+        <div class="sprow" data-in="3">
+          <button type="button" class="swbtn" data-go="1" aria-label="Split speakers, working, cancel"><span class="sw busy"></span><span class="lbl">Split speakers</span></button>
+          <span class="spin" aria-hidden="true"></span><span class="state">Splitting&hellip; <span class="tick">0:42</span></span>
+          <button type="button" class="linkish" data-go="1" data-toast="t-cancel">Cancel</button>
+        </div>
+        <!-- on -->
+        <div class="sprow" data-in="4 5">
+          <button type="button" class="swbtn" data-go="7" aria-label="Split speakers, on"><span class="sw on"></span><span class="lbl">Split speakers</span></button>
+          <span class="state">2 speakers. Click a name to say who it is.</span>
+        </div>
+        <div class="sprow" data-in="6">
+          <button type="button" class="swbtn" data-go="7" aria-label="Split speakers, on"><span class="sw on"></span><span class="lbl">Split speakers</span></button>
+          <span class="state">2 speakers</span>
+        </div>
+        <div class="sprow" data-in="7">
+          <button type="button" class="swbtn" data-go="6" aria-label="Split speakers, asking to turn off"><span class="sw on"></span><span class="lbl">Split speakers</span></button>
+          <span class="state">2 speakers</span>
+        </div>
+      </div>
+
+      <!-- confirm: turn on -->
+      <div class="pop newmark" data-in="2" role="dialog" aria-label="Split into speakers">
+        <h4>Split this note into speakers?</h4>
+        <p>The Mac listens to the recording again and writes the transcript as turns, one per voice. Voices it knows get their names. It takes about as long as the recording.</p>
+        <p class="warnline">You edited this transcript on 28 Sep. Those edits are replaced.</p>
+        <div class="btns">
+          <button type="button" class="mbtn" data-go="1">Cancel</button>
+          <button type="button" class="mbtn go" data-go="3">Split speakers</button>
+        </div>
+      </div>
+
+      <!-- confirm: turn off -->
+      <div class="pop newmark" data-in="7" role="dialog" aria-label="Flatten to monologue">
+        <h4>Flatten to monologue?</h4>
+        <p>Speaker names come off and the turns join into plain text. The title and summary are written again for one voice.</p>
+        <p class="keep">The words stay as they are, with your fixes. The recording is not transcribed again. Maria stays in Names.</p>
+        <div class="btns">
+          <button type="button" class="mbtn" data-go="6">Keep speakers</button>
+          <button type="button" class="mbtn go" data-go="8">Flatten</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- splitting band -->
+    <div class="band newmark" data-in="3">
+      <div class="l1"><span class="spin" aria-hidden="true"></span>Listening again for who speaks when &middot; <span class="tick">0:42</span></div>
+      <div class="l2">Keeps going if you open another note. The text is read-only until it finishes.</div>
+      <button type="button" class="mock-only" data-go="4">mock: finish with 2 voices</button>
+      <button type="button" class="mock-only" data-go="o">mock: finish with 1 voice</button>
+    </div>
+
+    <!-- body: plain -->
+    <div class="mbody" data-in="1 1u 2 2m 3 o 8" id="mac-plain">
+      <p>So the stall is Saturday, and I think we open at nine. Nine is early. Most people come after ten, after coffee. Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p>
+      <p>The blue ones and the small ones. People want something that fits in a suitcase. So more small ones, fewer of the big panels. And we need change. Lots of coins.</p>
+    </div>
+
+    <!-- body: turns -->
+    <div class="mbody" data-in="4 5 6 7 7m">
+      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri"><span class="nm lnk">Tiuri Hartog</span></button></div><p class="said">So the stall is Saturday, and I think we open at nine.</p></div>
+
+      <div class="turn s2"><div class="who">
+        <button type="button" data-in="4 5" data-go="5" aria-label="Name Speaker 2"><span class="nm un">Speaker 2</span></button>
+        <button type="button" data-in="4 5" data-go="5" class="plus newmark" aria-label="Name Speaker 2">+ name</button>
+        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria"><span class="nm lnk">Maria Santos</span></button>
+      </div><p class="said">Nine is early. Most people come after ten, after coffee.</p></div>
+
+      <div class="pop rpop newmark" data-in="5" role="dialog" aria-label="Who is Speaker 2">
+        <h4>Who is Speaker 2?</h4>
+        <div class="sec"><div class="st">PEOPLE</div>
+          <button type="button" class="prow" data-go="6" data-toast="t-named"><span class="av">MS</span><span class="pn">Maria Santos</span></button>
+          <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">JV</span><span class="pn">Joost de Vries</span></button>
+          <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">AR</span><span class="pn">Ana Ribeiro</span><span class="vbars" aria-label="voice enrolled"><i style="height:5px"></i><i style="height:10px"></i><i style="height:7px"></i></span></button>
+        </div>
+        <div class="sec"><div class="st">MERGE INTO</div>
+          <div class="hint">Wrong split? Send Speaker 2&rsquo;s words to another speaker.</div>
+          <button type="button" class="mrow" data-toast="t-merge"><span class="mg">&#8669;</span>Tiuri Hartog</button>
+        </div>
+        <div class="sec"><div class="st">NEW PERSON</div>
+          <div class="newp"><input id="mac-newname" type="text" placeholder="Full name" aria-label="Full name"><button type="button" data-act="addname">Add</button></div>
+        </div>
+        <div class="btns"><button type="button" class="mbtn" data-go="4">Cancel</button></div>
+      </div>
+
+      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri"><span class="nm">Tiuri</span></button></div><p class="said">Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p></div>
+      <div class="turn s2"><div class="who">
+        <button type="button" data-in="4 5" data-go="5"><span class="nm un">Speaker 2</span></button>
+        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria"><span class="nm">Maria</span></button>
+      </div><p class="said">The blue ones and the small ones. People want something that fits in a suitcase.</p></div>
+      <div class="turn s1"><div class="who"><button type="button" data-toast="t-tiuri"><span class="nm">Tiuri</span></button></div><p class="said">So more small ones, fewer of the big panels.</p></div>
+      <div class="turn s2"><div class="who">
+        <button type="button" data-in="4 5" data-go="5"><span class="nm un">Speaker 2</span></button>
+        <button type="button" data-in="6 7 7m" data-go="5" data-toast="t-maria"><span class="nm">Maria</span></button>
+      </div><p class="said">And we need change. Lots of coins.</p></div>
+    </div>
+    <div class="toast" role="status"></div>
+  </div>
+
+  <!-- ═══════════ PHONE FRAME ═══════════ -->
+  <div class="frame phone" id="f-phone" data-dev="phone" data-fix="asis" hidden>
+    <div class="pnav">
+      <button type="button" class="back" data-toast="t-back">&#8249; Notes</button>
+      <div class="rt">
+        <button type="button" class="ib" aria-label="Add recording" data-toast="t-addrec"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <button type="button" class="ib" id="ph-split" aria-label="Split speakers" data-act="phsplit"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="6.5" r="3" fill="currentColor"/><circle cx="14" cy="7.5" r="2.4" fill="currentColor"/><path d="M1.5 16.5c0-3.2 2.5-5.3 5.5-5.3s5.5 2.1 5.5 5.3z" fill="currentColor"/><path d="M13.3 16.5c0-1.7-.5-3.2-1.5-4.3.6-.3 1.4-.5 2.2-.5 2.6 0 4.5 1.9 4.5 4.8z" fill="currentColor"/></svg></button>
+        <button type="button" class="ib" aria-label="More" data-act="phdots"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="1.7" fill="currentColor"/><circle cx="10" cy="10" r="1.7" fill="currentColor"/><circle cx="16" cy="10" r="1.7" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+    <div class="ptitle">Saturday stall at the tile market</div>
+    <div class="pcore">
+      <div class="flow"><span class="cchip">Sun 28 Sep · Alfama</span><span class="cchip">19°</span><span class="tchip">#market</span><span class="tchip">#tiles</span></div>
+      <div class="flow"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span></div>
+      <div><span class="dchip"><span class="dd"></span>Personal<span class="dv">&#8964;</span></span></div>
+    </div>
+
+    <div class="pstat" data-in="3">
+      <div class="l1"><span class="spin" aria-hidden="true"></span>Identifying speakers&hellip; &middot; <span class="tick">0:14</span></div>
+      <div class="l2">This can take a while — it keeps going if you leave.</div>
+      <button type="button" class="mock-only" data-go="4">mock: finish with 2 voices</button>
+      <button type="button" class="mock-only" data-go="o">mock: finish with 1 voice</button>
+    </div>
+
+    <div class="pbody" data-in="1 2 3 o 8F" id="ph-plain">
+      <p>So the stall is Saturday, and I think we open at nine. Nine is early. Most people come after ten, after coffee. Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p>
+      <p>The blue ones and the small ones. People want something that fits in a suitcase. So more small ones, fewer of the big panels. And we need change. Lots of coins.</p>
+    </div>
+
+    <div class="pturns" data-in="4 5 6 7 7c 8A" id="ph-turns">
+      <div class="pturn s1"><span class="rail"></span><div class="in">
+        <button type="button" class="ptag" data-toast="t-tiuri"><span class="d"></span><span class="nm">Tiuri Hartog</span><span class="cap2">edit</span></button>
+        <p>So the stall is Saturday, and I think we open at nine.</p></div></div>
+      <div class="pturn s2"><span class="rail"></span><div class="in">
+        <button type="button" class="ptag" data-in="4 5" data-go="5"><span class="d"></span><span class="nm un">Speaker 2</span><span class="cap2">+ name</span></button>
+        <button type="button" class="ptag" data-in="6 7 7c 8" data-go="5" data-toast="t-maria"><span class="d"></span><span class="nm">Maria Santos</span><span class="cap2">edit</span></button>
+        <p>Nine is early. Most people come after ten, after coffee.</p></div></div>
+      <div class="pturn s1"><span class="rail"></span><div class="in">
+        <button type="button" class="ptag" data-toast="t-tiuri"><span class="d"></span><span class="nm">Tiuri</span><span class="cap2">edit</span></button>
+        <p>Then we open at ten and use the first hour to set up the tiles properly. Last time the blue ones sold first.</p></div></div>
+      <div class="pturn s2"><span class="rail"></span><div class="in">
+        <button type="button" class="ptag" data-in="4 5" data-go="5"><span class="d"></span><span class="nm un">Speaker 2</span><span class="cap2">+ name</span></button>
+        <button type="button" class="ptag" data-in="6 7 7c 8" data-go="5" data-toast="t-maria"><span class="d"></span><span class="nm">Maria</span><span class="cap2">edit</span></button>
+        <p>The blue ones and the small ones. People want something that fits in a suitcase.</p></div></div>
+    </div>
+
+    <!-- How many speakers? (confirmationDialog) -->
+    <div class="scrim" data-in="2 5 7 7c" data-act="scrim"></div>
+    <div class="asheet" data-in="2" role="dialog" aria-label="How many speakers?">
+      <div class="grp">
+        <div class="ttl">How many speakers?</div>
+        <div class="msg only-fix newmark">Auto finds the number itself. Pick one if you know it. Edits you made to this transcript are replaced.</div>
+        <button type="button" data-go="3">Auto</button>
+        <button type="button" data-go="3">2 speakers</button>
+        <button type="button" data-go="3">3 speakers</button>
+        <button type="button" data-go="3">4 speakers</button>
+        <button type="button" data-go="3">5 speakers</button>
+      </div>
+      <div class="grp"><button type="button" class="cancel" data-act="phback">Cancel</button></div>
+    </div>
+
+    <!-- Who is Speaker 2? (SpeakerAssignSheet) -->
+    <div class="sheet" data-in="5" role="dialog" aria-label="Who is Speaker 2?">
+      <div class="grab"></div>
+      <div class="sh"><button type="button" data-go="4">Cancel</button><b>Who is Speaker 2?</b><button type="button" class="ghost" tabindex="-1" aria-hidden="true">Cancel</button></div>
+      <div class="sb">
+        <div class="sec"><div class="st">PEOPLE</div>
+          <button type="button" class="prow" data-go="6" data-toast="t-named"><span class="av">MS</span><span class="pn">Maria Santos</span></button>
+          <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">JV</span><span class="pn">Joost de Vries</span></button>
+          <button type="button" class="prow" data-go="6" data-toast="t-named-other"><span class="av">AR</span><span class="pn">Ana Ribeiro</span><span class="vbars" aria-label="voice enrolled"><i style="height:5px"></i><i style="height:10px"></i><i style="height:7px"></i></span></button>
+        </div>
+        <div class="sec"><div class="st">MERGE INTO</div>
+          <div class="hint">Wrong split? Send Speaker 2&rsquo;s words to another speaker.</div>
+          <button type="button" class="mrow" data-toast="t-merge"><span class="mg">&#8669;</span>Tiuri Hartog</button>
+        </div>
+        <div class="sec"><div class="st">NEW PERSON</div>
+          <div class="newp"><input id="ph-newname" type="text" placeholder="Full name" aria-label="Full name"><button type="button" data-act="addname">Add</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⋯ sheet (confirmationDialog, iPhone: no Process/Export — the iPhone never polishes) -->
+    <div class="asheet" data-in="7" role="dialog" aria-label="More">
+      <div class="grp">
+        <div class="ttl">3:12 · 58 words</div>
+        <button type="button" data-toast="t-addrec">Add recording</button>
+        <button type="button" class="only-fix hl newmark" data-go="7c">Flatten to monologue</button>
+        <button type="button" data-toast="t-remind">Remind me&hellip;</button>
+        <button type="button" data-toast="t-lock">Lock Note</button>
+        <button type="button" data-toast="t-share">Share note&hellip;</button>
+        <button type="button" data-toast="t-copied">Copy transcript</button>
+        <button type="button" class="red" data-toast="t-delete">Delete</button>
+      </div>
+      <div class="grp"><button type="button" class="cancel" data-go="6">Cancel</button></div>
+    </div>
+
+    <!-- Flatten confirm (proposed) -->
+    <div class="alert newmark" data-in="7c" role="dialog" aria-label="Flatten to monologue">
+      <div class="at">Flatten to monologue?</div>
+      <div class="am">Speaker names come off. The words stay as they are, with your fixes. Nothing is transcribed again.</div>
+      <div class="ab"><button type="button" data-go="6">Keep</button><button type="button" data-go="8" data-toast="t-flat">Flatten</button></div>
+    </div>
+
+    <div class="toast" role="status"></div>
+  </div>
+
+  <div class="nav2">
+    <button type="button" id="prev" data-act="prev">&#8249; Back</button>
+    <button type="button" id="next" data-act="next">Next &#8250;</button>
+  </div>
+
+  <!-- ═══════════ COLD WALK ═══════════ -->
+  <section class="walk" id="walk">
+    <h2>Cold walk: where a first-time user hesitates</h2>
+    <p class="lede">Walked step by step without the design notes. Each moment, and what the mock now does about it.</p>
+    <ol id="walk-list">
+      <li><span class="hes">Placeholder, filled in by the walk.</span><span class="fix"></span></li>
+    </ol>
+  </section>
+
+  <footer>Drawn from source: the phone nav bar and its two-people button, the &ldquo;How many speakers?&rdquo; dialog and the &hellip; sheet (<code>MemoDetailView.swift</code>), the status line (<code>DiarizationStatus.swift</code>, <code>MemoPageView.swift:554</code>), turn cards (<code>SpeakerTurnsView.swift</code>), the naming sheet (<code>SpeakerAssignSheet.swift</code>), menu labels and order (<code>Shared/UI/NoteMenu.swift</code>), the Mac &hellip; menu (<code>NoteActions.swift</code>), the Mac gutter (<code>conversation-turns-D-hifi.html</code>, E1), the header (<code>Q75-note-header-final.html</code>) and speaker hues (<code>Palette.speakerHues</code>, teal then rose). Behaviour: the Mac splits only with <code>pf.diarizeRequested</code> and its own fresh transcription (<code>BatchRunner.swift:118</code>); Flatten runs no ASR (<code>ProcessingCoordinator.swift:412</code>); the phone rebuilds turns from its original word timings (<code>MemoSaver.swift:862</code>). Names and the conversation are made up.</footer>
+</div>
+
+<!-- Toast copy lives here, never in script strings -->
+<div class="copy" aria-hidden="true">
+  <span id="t-export">Exports the note to Obsidian (not part of this flow).</span>
+  <span id="t-retx">Re-transcribe (not part of this flow).</span>
+  <span id="t-redo">Redo &#9656; Title, Copy-edit, Summary.</span>
+  <span id="t-copied">Copied.</span>
+  <span id="t-finder">Opens the note folder in Finder.</span>
+  <span id="t-cancel">Cancelled. The note is as it was.</span>
+  <span id="t-tiuri">Tiuri Hartog, matched by voice. Click to change who this is.</span>
+  <span id="t-maria">Maria Santos. Click to change who this is.</span>
+  <span id="t-named">Speaker 2 is Maria Santos now. Skrift learns her voice from this note.</span>
+  <span id="t-named-other">In this mock every pick lands as Maria Santos.</span>
+  <span id="t-merge">Speaker 2&rsquo;s words would join Tiuri. Not drawn further.</span>
+  <span id="t-addname">Added to Names. In this mock the name shows as Maria Santos.</span>
+  <span id="t-flat">Flattened to monologue.</span>
+  <span id="t-back">Back to the notes list (not part of this flow).</span>
+  <span id="t-addrec">Add recording (not part of this flow).</span>
+  <span id="t-remind">Remind me (not part of this flow).</span>
+  <span id="t-lock">Lock Note (not part of this flow).</span>
+  <span id="t-share">Share note (not part of this flow).</span>
+  <span id="t-delete">Delete (not part of this flow).</span>
+  <span id="t-alt-a">The &hellip; menu is unchanged in the switch option. The switch is in the header.</span>
+  <span id="t-phdots">Nothing about speakers in this menu today.</span>
+  <span id="t-resplit">As built, this icon only splits again. It never turns the split off.</span>
+  <span id="t-rated">Rated Useful. The switch is available now.</span>
+  <span id="t-onevoice-fix">Only one voice found. Nothing was split.</span>
+  <span id="t-busy">Wait for the split to finish, or Cancel it.</span>
+  <span id="pn-a">Switch in the header. Say it in the sitting; this page sends nothing.</span>
+  <span id="pn-b">Item in the &hellip; menu. Say it in the sitting; this page sends nothing.</span>
+</div>
+
+<script>
+(function(){
+  var S = {dev:"mac", alt:"a", fix:"asis", unrated:false, step:"1"};
+  var ORDER = {
+    macA: ["1","2","3","4","5","6","7","8"],
+    macB: ["1","2m","2","3","4","5","6","7m","7","8"],
+    phone:["1","2","3","4","5","6","7","7c","8"]
+  };
+  var STRIP = {"1":"1","1u":"1","2m":"2","2":"2","3":"3","o":"3","4":"4","5":"5","6":"6","7m":"7","7":"7","7c":"7","8":"8"};
+  var timer = null, secs = 0;
+
+  function $(s, r){ return (r || document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function txt(id){ var e = document.getElementById(id); return e ? e.textContent : ""; }
+  function store(k, v){ try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  function order(){ return S.dev === "phone" ? ORDER.phone : (S.alt === "b" ? ORDER.macB : ORDER.macA); }
+  function effStep(){ return (S.dev === "mac" && S.unrated) ? "1u" : S.step; }
+
+  function frame(){ return S.dev === "mac" ? $("#f-mac") : $("#f-phone"); }
+
+  function toast(id){
+    var t = $(".toast", frame()); if (!t) return;
+    t.textContent = txt(id); t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+  }
+
+  function render(){
+    var st = effStep();
+    // device visibility
+    $$("[data-dev]").forEach(function(el){ el.hidden = el.getAttribute("data-dev") !== S.dev; });
+    // step visibility (captions + frame parts)
+    $$("[data-in]").forEach(function(el){
+      var devOk = !el.hasAttribute("data-dev") || el.getAttribute("data-dev") === S.dev;
+      var list = el.getAttribute("data-in").split(" ");
+      var on = list.indexOf(st) >= 0
+        || (st === "8" && S.dev === "phone" && list.indexOf(S.fix === "fix" ? "8F" : "8A") >= 0);
+      // 1u shows everything 1 shows in the frame
+      if (!on && st === "1u" && list.indexOf("1") >= 0 && !el.classList.contains("what")) on = true;
+      if (el.classList.contains("what")) el.hidden = !(devOk && on);
+      else el.hidden = !on;
+    });
+    // inline caption fragments that depend on phone fix mode
+    $$(".only-fix-inline").forEach(function(e){ e.hidden = S.fix !== "fix"; });
+    $$(".only-asis-inline").forEach(function(e){ e.hidden = S.fix !== "asis"; });
+    $$(".only-alt-b-hint").forEach(function(e){ e.hidden = S.alt !== "b"; });
+    // frame attributes
+    var fm = $("#f-mac"); fm.setAttribute("data-alt", S.alt); fm.setAttribute("data-unrated", S.unrated ? "1" : "0");
+    $("#f-phone").setAttribute("data-fix", S.fix);
+    $("#mac-dots").setAttribute("aria-expanded", String(st === "2m" || st === "7m"));
+    // bar
+    $$("[data-dev-btn]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-dev-btn") === S.dev)); });
+    $$("[data-alt-btn]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-alt-btn") === S.alt)); });
+    $$("[data-fix-btn]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-fix-btn") === S.fix)); });
+    $$("[data-pick]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-pick") === S.alt)); });
+    $("#seg-alt").hidden = S.dev !== "mac";
+    $("#seg-fix").hidden = S.dev !== "phone";
+    $("#chk-unrated-wrap").hidden = S.dev !== "mac";
+    $("#chk-unrated").checked = S.unrated;
+    var cur = STRIP[st] || "1";
+    $$("[data-strip]").forEach(function(b){
+      var n = b.getAttribute("data-strip");
+      if (n === cur) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.disabled = S.dev === "mac" && S.unrated && n !== "1";
+    });
+    var o = order(), i = o.indexOf(S.step);
+    $("#prev").disabled = (S.dev === "mac" && S.unrated) || i <= 0;
+    $("#next").disabled = (S.dev === "mac" && S.unrated) || i < 0 || i >= o.length - 1;
+    // ticking timer while splitting
+    clearInterval(timer);
+    if (st === "3"){
+      secs = S.dev === "mac" ? 42 : 14;
+      paintTick();
+      timer = setInterval(function(){ secs++; paintTick(); }, 1000);
+    }
+    var sc = $("#steps [aria-current]");
+    if (sc && sc.scrollIntoView) { try { sc.scrollIntoView({block:"nearest", inline:"nearest"}); } catch (e) {} }
+  }
+  function paintTick(){
+    var m = Math.floor(secs / 60), s = secs % 60;
+    var v = m + ":" + (s < 10 ? "0" : "") + s;
+    $$(".tick").forEach(function(e){ e.textContent = v; });
+  }
+
+  function go(step){
+    if (step === "o" && S.dev === "phone" && S.fix === "fix") { S.step = "o"; render(); toast("t-onevoice-fix"); return; }
+    S.step = step; render();
+  }
+
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("button, [data-act]");
+    if (!el) return;
+    if (el.hasAttribute("data-dev-btn")) { S.dev = el.getAttribute("data-dev-btn"); S.step = "1"; render(); return; }
+    if (el.hasAttribute("data-alt-btn") || el.hasAttribute("data-pick")) {
+      S.alt = el.getAttribute("data-alt-btn") || el.getAttribute("data-pick");
+      if (el.hasAttribute("data-pick")) {
+        store("q86-pick", S.alt);
+        $("#picknote").textContent = txt(S.alt === "a" ? "pn-a" : "pn-b");
+        S.dev = "mac";
+      }
+      if (ORDER[S.alt === "b" ? "macB" : "macA"].indexOf(S.step) < 0) S.step = STRIP[S.step] || "1";
+      if (S.alt === "a" && (S.step === "2m" || S.step === "7m")) S.step = S.step === "2m" ? "2" : "7";
+      render(); return;
+    }
+    if (el.hasAttribute("data-fix-btn")) { S.fix = el.getAttribute("data-fix-btn"); render(); return; }
+    if (el.hasAttribute("data-strip")) {
+      var n = el.getAttribute("data-strip");
+      if (S.dev === "mac" && S.alt === "b" && (n === "2" || n === "7")) n = n + "m";
+      go(n); return;
+    }
+    var act = el.getAttribute("data-act");
+    var st = effStep();
+    if (act === "prev" || act === "next") {
+      var o = order(), i = o.indexOf(S.step);
+      if (i < 0) i = o.indexOf(STRIP[S.step] || "1");
+      i = act === "next" ? Math.min(o.length - 1, i + 1) : Math.max(0, i - 1);
+      go(o[i]); return;
+    }
+    if (act === "macdots") {
+      if (S.alt === "a") { toast("t-alt-a"); return; }
+      if (st === "2m" || st === "7m") { go(STRIP[st] === "2" ? "1" : "6"); return; }
+      if (st === "1u") { toast("t-alt-a"); return; }
+      if (st === "3") { toast("t-busy"); return; }
+      if (["4","5","6","7"].indexOf(st) >= 0) { go("7m"); return; }
+      go("2m"); return;
+    }
+    if (act === "rate") { S.unrated = false; S.step = "1"; render(); toast("t-rated"); return; }
+    if (act === "phsplit") {
+      if (st === "3") { toast("t-busy"); return; }
+      if (["4","6"].indexOf(st) >= 0) toast("t-resplit");
+      go("2"); return;
+    }
+    if (act === "phdots") {
+      if (["4","6","8"].indexOf(st) >= 0 && !(st === "8" && S.fix === "fix")) { go("7"); return; }
+      toast("t-phdots"); return;
+    }
+    if (act === "phback" || act === "scrim") {
+      var back = {"2":"1","5":"4","7":"6","7c":"6"}[st] || S.step;
+      go(back); return;
+    }
+    if (act === "addname") { go("6"); toast("t-addname"); return; }
+    var target = el.getAttribute("data-go");
+    if (target) go(target);
+    var t = el.getAttribute("data-toast");
+    if (t) toast(t);
+  });
+
+  $("#chk-unrated").addEventListener("change", function(e){ S.unrated = e.target.checked; S.step = "1"; render(); });
+
+  var saved = store("q86-pick");
+  if (saved === "a" || saved === "b") { S.alt = saved; $("#picknote").textContent = txt(saved === "a" ? "pn-a" : "pn-b"); }
+  render();
+})();
+</script>
