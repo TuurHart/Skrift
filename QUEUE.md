@@ -561,7 +561,7 @@ needs: -
 do: Research only (researcher agent, open web): Tuur picked reading Apple Notes' own database on the Mac (D153) and asks: after a note is imported, can the app MOVE it into a folder in Apple Notes (e.g. "Imported to Skrift" / "Not imported yet") without deleting anything? Answer with URLs: (1) can the Notes AppleScript/JXA dictionary move a note between folders (`move note … to folder …`), does that survive iCloud sync, and what permission prompt it needs (Automation); (2) is writing NoteStore.sqlite directly ever safe (expected: no); (3) can a sandboxed Mac App Store app read ~/Library/Group Containers/group.com.apple.notes with Full Disk Access, or does it need to be outside the App Store; (4) whether AppleScript can read locked notes' titles. Report `plan/research/apple-notes-folders.md`, one recommendation per question.
 check: `test -s plan/research/apple-notes-folders.md`
 
-### Q77 [auto] (todo) Mac sidebar: shift-click selects a range; imports transcribe on their own; right-click Process works every time
+### Q77 [auto] (doing) Mac sidebar: shift-click selects a range; imports transcribe on their own; right-click Process works every time
 spec: C49 C115
 needs: -
 gate+: yes
@@ -574,7 +574,7 @@ needs: -
 do: Q69 made one shared `Shared/Pipeline/NoteSnippet.plain` (no `**…**`, no `[[…]]`) and used it in the Mac sidebar and Mac Journal; the phone's `JournalHomeView.snippet` (SkriftMobile/Features/Journal/JournalHomeView.swift:381) still builds its own and shows raw markup. Route it (and any other phone snippet builder that shows raw `**Speaker n:**` / `[[Name]]`) through NoteSnippet.plain. Phone proof via `plan/mtest.sh` on an existing class.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q79 [auto] (todo) quick note: typing fast never loses a character or Return while the first keystroke creates the note
+### Q79 [auto] (doing) quick note: typing fast never loses a character or Return while the first keystroke creates the note
 spec: C112 C113
 needs: -
 gate+: yes
@@ -623,7 +623,7 @@ gate+: yes
 do: Build the signed header (mock `Skrift_Native/SkriftDesktop/mocks/Q75-note-header-final.html`, behaviour A — Tuur 2026-09-30: "tap is good, not drag"): the importance card becomes one pill; each tap steps Not rated → Passing → Useful → Important → Not rated (un-rating allowed, C88; a toast names each step); the orange "starts fading … — rate it to keep it" line beside it when unrated; the destination row (as renamed by Q84) 12 pt under it, shown only when destinations are on. Phone, iPad and Mac through the shared ThreeBallScale/NoteConsent model (C115). Phone header ≈173 pt at rest per the mock. Screenshots, LOOK, commit under `plan/reads/header-q85/`. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/header-q85/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q86 [tuur] (todo) mockup: Split speakers on the Mac as a per-note toggle, matching the phone, with the user flow walked end to end
+### Q86 [tuur] (doing) mockup: Split speakers on the Mac as a per-note toggle, matching the phone, with the user flow walked end to end
 spec: C102 C117
 needs: -
 do: Tuur 2026-09-30: "yes split speaker should be a button or toggle or something. Have an agent verify the user flow and make sure it makes sense." Q69 made diarization a per-note opt-in (`PipelineFile.diarizeRequested`) with NO Mac control yet; the phone has a conversations toggle (draw it from source). Mock the Mac control (and the phone's, drawn as-is) in the note header/menu: turn it on for a note → the note re-transcribes with speakers → turns in the gutter (full name on a speaker's first turn, short name after — confirmed 2026-09-30, C84); turn it off → "Flatten to monologue". Then a SECOND agent walks the flow cold, step by step, and writes where a user would get stuck; fix those in the mock. Publish; one numbered question.
@@ -896,3 +896,6 @@ check: Tuur clicked through it and said go.
 - 2026-09-30 10:06 Q84 added
 - 2026-09-30 10:06 Q85 added
 - 2026-09-30 10:06 Q86 added
+- 2026-09-30 10:23 Q86 -> doing — worker out
+- 2026-09-30 10:23 Q79 -> doing — worker out
+- 2026-09-30 10:23 Q77 -> doing — worker out
