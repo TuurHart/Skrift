@@ -611,8 +611,8 @@ struct NoteBodyView: UIViewRepresentable {
                                            player.duration)))
             } else {
                 let global = local + sidecarOffset
-                guard global >= 0, global < timings.count else { return }
-                player.seek(to: timings[global].start)
+                guard let t = Karaoke.seekTime(forWord: global, in: timings) else { return }
+                player.seek(to: t)
             }
         }
 

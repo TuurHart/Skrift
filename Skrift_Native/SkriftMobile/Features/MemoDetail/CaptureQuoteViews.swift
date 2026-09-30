@@ -55,10 +55,24 @@ struct CaptureQuoteBlock: View {
     }
 }
 
+/// Tap-a-word → seek target for the quote block. The quote text carries no markers, so
+/// tapped word N IS sidecar word N (the quote's spoken words run from index 0, and the
+/// timings are clip-relative — `QuoteCaptureProcessor` rebases the book's times by the span
+/// start). Same shared seek lookup a voice-note tap uses (`Karaoke.seekTime`); a tap on
+/// whitespace seeks to the word just read. nil = no timed word there.
+enum QuoteWordSeek {
+    static func seekTime(atChar charIndex: Int, text: String, timings: [WordTiming]) -> TimeInterval? {
+        let ranges = KaraokeMap.wordRanges(in: text as NSString)
+        guard let word = KaraokeMap.wordIndex(at: charIndex, in: ranges) else { return nil }
+        return Karaoke.seekTime(forWord: word, in: timings)
+    }
+}
+
 /// The quote text with the LIVE karaoke highlight during playback — the quote's
 /// spoken words run from sidecar index 0 (the ramble's continue after, painted by
-/// the editor itself). A small view on purpose: it observes the player clock, so
-/// only THIS text re-evaluates per highlight step, not the page.
+/// the editor itself). Tapping a word seeks the quote clip there (Q83), like a voice
+/// note. A small view on purpose: it observes the player clock, so only THIS text
+/// re-evaluates per highlight step, not the page.
 struct QuoteKaraokeText: View {
     let text: String
     let timings: [WordTiming]
@@ -66,35 +80,85 @@ struct QuoteKaraokeText: View {
     @ObservedObject var clock: PlayerClock
 
     var body: some View {
-        Text(karaoke(at: clock.time))
-            .font(.system(size: 15.5))
-            .italic()
-            .lineSpacing(4)
-            .foregroundStyle(Color.skText.opacity(0.78))
-            .frame(maxWidth: .infinity, alignment: .leading)
+        let active = player.isPlaying && !timings.isEmpty ? Karaoke.activeWordIndex(timings, at: clock.time) : nil
+        QuoteKaraokeTextView(text: text, active: active) { charIndex in
+            guard let t = QuoteWordSeek.seekTime(atChar: charIndex, text: text, timings: timings) else { return }
+            player.seek(to: t)
+        }
+        .accessibilityIdentifier("quote-karaoke-text")
+    }
+}
+
+/// UIKit text for the quote: SwiftUI `Text` can't say which word was tapped. A
+/// non-scrolling, non-selectable UITextView with one tap recognizer, sized to its width.
+private struct QuoteKaraokeTextView: UIViewRepresentable {
+    let text: String
+    let active: Int?
+    let onTap: (Int) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isEditable = false
+        tv.isSelectable = false
+        tv.isScrollEnabled = false
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
+        tv.addGestureRecognizer(tap)
+        return tv
     }
 
-    private func karaoke(at t: TimeInterval) -> AttributedString {
-        guard player.isPlaying, !timings.isEmpty,
-              let active = Karaoke.activeWordIndex(timings, at: t) else { return AttributedString(text) }
-        var attr = AttributedString()
-        var wordIndex = 0
-        var buffer = ""
-        func flush() {
-            guard !buffer.isEmpty else { return }
-            var piece = AttributedString(buffer)
-            if wordIndex < active { piece.foregroundColor = .skTextDim }
-            else if wordIndex == active { piece.foregroundColor = .skAccent }
-            attr += piece
-            wordIndex += 1
-            buffer = ""
+    func updateUIView(_ tv: UITextView, context: Context) {
+        context.coordinator.onTap = onTap
+        guard context.coordinator.rendered?.text != text || context.coordinator.rendered?.active != active else { return }
+        context.coordinator.rendered = (text, active)
+        tv.attributedText = Self.attributed(text, active: active)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let w = proposal.width ?? UIScreen.main.bounds.width
+        let h = uiView.sizeThatFits(CGSize(width: w, height: .greatestFiniteMagnitude)).height
+        return CGSize(width: w, height: ceil(h))
+    }
+
+    /// Same look as the old SwiftUI text: italic 15.5, line spacing 4, 78% text; words before
+    /// the active one dim, the active one accent.
+    static func attributed(_ text: String, active: Int?) -> NSAttributedString {
+        let para = NSMutableParagraphStyle()
+        para.lineSpacing = 4
+        let base = UIFont.systemFont(ofSize: 15.5)
+        let font = base.fontDescriptor.withSymbolicTraits(.traitItalic).map { UIFont(descriptor: $0, size: 15.5) } ?? base
+        let out = NSMutableAttributedString(string: text, attributes: [
+            .font: font, .paragraphStyle: para,
+            .foregroundColor: UIColor(Color.skText.opacity(0.78)),
+        ])
+        guard let active else { return out }
+        for (i, r) in KaraokeMap.wordRanges(in: text as NSString).enumerated() {
+            if i < active { out.addAttribute(.foregroundColor, value: UIColor(Color.skTextDim), range: r) }
+            else if i == active { out.addAttribute(.foregroundColor, value: UIColor(Color.skAccent), range: r) }
+            else { break }
         }
-        for ch in text {
-            if ch.isWhitespace { flush(); attr += AttributedString(String(ch)) }
-            else { buffer.append(ch) }
+        return out
+    }
+
+    final class Coordinator: NSObject {
+        var onTap: (Int) -> Void = { _ in }
+        var rendered: (text: String, active: Int?)?
+
+        @objc func tapped(_ gr: UITapGestureRecognizer) {
+            guard gr.state == .ended, let tv = gr.view as? UITextView else { return }
+            let p = gr.location(in: tv)
+            let lm = tv.layoutManager
+            let inset = tv.textContainerInset
+            let point = CGPoint(x: p.x - inset.left, y: p.y - inset.top)
+            let idx = lm.characterIndex(for: point, in: tv.textContainer,
+                                        fractionOfDistanceBetweenInsertionPoints: nil)
+            onTap(idx)
         }
-        flush()
-        return attr
     }
 }
 

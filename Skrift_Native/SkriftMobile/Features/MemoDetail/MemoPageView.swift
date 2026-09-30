@@ -877,8 +877,8 @@ struct MemoPageView: View {
 
     /// Karaoke tap-to-seek: jump playback to the tapped word.
     func seekToWord(_ i: Int) {
-        guard i >= 0, i < timings.count else { return }
-        player.seek(to: timings[i].start)
+        guard let t = Karaoke.seekTime(forWord: i, in: timings) else { return }
+        player.seek(to: t)
         if !player.isPlaying { player.play() }
     }
 

@@ -105,6 +105,36 @@ enum Karaoke {
         return out.map { $0 ?? firstKnown }
     }
 
+    // MARK: - Tap-a-word → seek (voice notes, audiobook quote captures; both apps)
+
+    /// The playback time a tap on sidecar word `index` seeks to: that word's real start.
+    /// nil when there is no such timed word (empty/partial sidecar) — the caller does nothing.
+    /// The phone's voice-note tap, its quote-block tap and its speaker-turn tap all land here.
+    static func seekTime(forWord index: Int, in timings: [WordTiming]) -> TimeInterval? {
+        guard index >= 0, index < timings.count else { return nil }
+        return timings[index].start
+    }
+
+    /// The Mac's click-a-word target. `wordIndex` is the clicked word's MODEL index in the
+    /// displayed body; `times` is `wordTimes` over that same body (the aligned time of the
+    /// SHOWN word, so copy-edit / name-linking / `> ` markers don't skew it). Falls back to
+    /// the raw index, then to a proportion of `duration` when there are no timings at all.
+    /// Clamped into `0...duration`.
+    static func seekTarget(wordIndex: Int, times: [Double], timings: [WordTiming],
+                           duration: Double) -> Double {
+        let target: Double
+        if wordIndex >= 0, wordIndex < times.count {
+            target = times[wordIndex]
+        } else if wordIndex >= 0, wordIndex < timings.count {
+            target = timings[wordIndex].start
+        } else if timings.count > 1 {
+            target = duration * Double(wordIndex) / Double(timings.count - 1)
+        } else {
+            target = 0
+        }
+        return max(0, min(target, duration))
+    }
+
     /// How many displayed words have STARTED by `currentTime` — the karaoke highlight
     /// count. `times` from `wordTimes`.
     static func activeCount(times: [Double], currentTime: Double) -> Int {
