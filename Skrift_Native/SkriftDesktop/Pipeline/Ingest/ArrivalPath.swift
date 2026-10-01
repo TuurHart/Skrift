@@ -72,7 +72,8 @@ enum ArrivalPath {
                     hooks: Hooks,
                     service: IngestService = IngestService(),
                     combineAudio: Bool = false,
-                    onCreated: ([PipelineFile]) -> Void = { _ in }) async throws -> [PipelineFile] {
+                    onCreated: ([PipelineFile]) -> Void = { _ in },
+                    onSkipped: ([URL]) -> Void = { _ in }) async throws -> [PipelineFile] {
         guard !urls.isEmpty else { return [] }
         // The row is BORN knowing it's a capture. Not stamped afterwards: the reconcile sweep
         // sees inserted-but-unsaved rows and runs while this function is awaiting file work,
@@ -80,8 +81,11 @@ enum ArrivalPath {
         // real takes before this moved (2026-07-28). Everything below can then take its time.
         var service = service
         service.isLocalRecording = asRecording
-        let created = try await service.ingest(localURLs: urls, combineAudio: combineAudio, into: context)
+        let report = try await service.ingestReport(localURLs: urls, combineAudio: combineAudio, into: context)
+        let created = report.created
         onCreated(created)
+        // Q92: a file that did not become a note is SAID, never silently dropped.
+        if !report.skipped.isEmpty { onSkipped(report.skipped) }
 
         // Backfill the real recording date (async; survives copies because the date lives
         // inside the m4a).

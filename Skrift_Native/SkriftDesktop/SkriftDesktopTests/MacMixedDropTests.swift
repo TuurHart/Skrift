@@ -126,7 +126,7 @@ final class MacMixedDropTests: XCTestCase {
 
         // What the transcript pass then writes: one sentence per clip → the picture is its
         // own paragraph between sentence 3 and sentence 4 (C12), nowhere else.
-        let sentences = ["alpha one", "bravo two", "charlie three", "delta four", "echo five"]
+        let sentences = ["Alpha one.", "Bravo two.", "Charlie three.", "Delta four.", "Echo five."]
         var words: [WordTiming] = []
         for (i, s) in sentences.enumerated() {
             let t = Double(i) * 2 + 0.3
@@ -138,8 +138,8 @@ final class MacMixedDropTests: XCTestCase {
         let body = BodyV2.committed(BodyV2.Input(text: sentences.joined(separator: " "), words: words,
                                                  manifest: entries, source: .speech))
         let marker = try XCTUnwrap(body.range(of: "[[img_001]]"), "picture marker missing: \(body)")
-        let three = try XCTUnwrap(body.range(of: "charlie"))
-        let four = try XCTUnwrap(body.range(of: "delta"))
+        let three = try XCTUnwrap(body.range(of: "Charlie"))
+        let four = try XCTUnwrap(body.range(of: "Delta"))
         XCTAssertLessThan(three.lowerBound, marker.lowerBound, body)
         XCTAssertLessThan(marker.lowerBound, four.lowerBound, body)
     }
@@ -185,6 +185,76 @@ final class MacMixedDropTests: XCTestCase {
         let pf = try XCTUnwrap(created.first)
         XCTAssertEqual(try manifest(of: pf).count, 2)
         XCTAssertEqual(pf.transcript, "[[img_001]]\n\n[[img_002]]")
+    }
+
+    // MARK: - (c) nothing is silently skipped
+
+    /// Every file in a drop ends up in a note OR in the report's `skipped` list - the sidebar
+    /// turns that list into a message. Four shapes: One note, N notes, pictures alone, and a
+    /// drop with a type nobody imports plus a file that vanished before the copy.
+    func testNoDroppedFileIsEverSilentlySkipped() async throws {
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let drop = try signalDrop(in: work)
+        let pdf = work.appendingPathComponent("contract.pdf")
+        try Data("%PDF-1.4".utf8).write(to: pdf)
+        let gone = work.appendingPathComponent("vanished.m4a")
+        let all = drop.clips + [drop.picture, pdf, gone]
+
+        for combine in [true, false] {
+            let ctx = try makeContext()
+            let out = work.appendingPathComponent("out-\(combine)")
+            let report = try await IngestService(outputDir: out)
+                .ingestReport(localURLs: all, combineAudio: combine, into: ctx)
+
+            XCTAssertEqual(Set(report.skipped.map(\.lastPathComponent)), ["contract.pdf", "vanished.m4a"],
+                           "an unsupported file and a vanished one are REPORTED (combine=\(combine))")
+            // The six importable files are all inside rows: the picture in a manifest, the clips
+            // as merged/separate audio.
+            let rows = report.created
+            let pictureInRow = rows.contains { (try? manifest(of: $0))?.count == 1 }
+            XCTAssertTrue(pictureInRow, "the picture landed in a note (combine=\(combine))")
+            XCTAssertEqual(rows.filter { $0.sourceType == .audio }.count, combine ? 1 : 5)
+        }
+
+        // Pictures alone: all of them in the one note, none reported.
+        let ctx = try makeContext()
+        let b = try writeJPEG(in: work, name: "second.jpeg")
+        let report = try await IngestService(outputDir: work.appendingPathComponent("out-pics"))
+            .ingestReport(localURLs: [drop.picture, b], combineAudio: false, into: ctx)
+        XCTAssertTrue(report.skipped.isEmpty)
+        XCTAssertEqual(report.created.count, 1)
+        XCTAssertEqual(try manifest(of: try XCTUnwrap(report.created.first)).count, 2)
+
+        // A picture that cannot be read is reported, and the note body never promises it.
+        let broken = work.appendingPathComponent("broken.heic")
+        try Data([1, 2, 3]).write(to: broken)
+        let r2 = try await IngestService(outputDir: work.appendingPathComponent("out-broken"))
+            .ingestReport(localURLs: [drop.picture, broken], combineAudio: false, into: try makeContext())
+        XCTAssertEqual(r2.skipped.map(\.lastPathComponent), ["broken.heic"])
+        XCTAssertEqual(r2.created.first?.transcript, "[[img_001]]", "the marker count matches the files written")
+    }
+
+    func testSignalPictureNameReadsAsItsCompactTime() throws {
+        let d = try XCTUnwrap(IngestService.dateFromFilename("signal-2026-10-01-080349.jpeg"))
+        let c = Calendar.current.dateComponents([.hour, .minute, .second], from: d)
+        XCTAssertEqual([c.hour, c.minute, c.second], [8, 3, 49], "compact HHMMSS, not the noon default")
+    }
+
+    func testBundleOrderIsByTimeWhenEveryNameHasOneElseTheDropOrder() {
+        func item(_ n: String, _ k: MixedBundle.Kind, _ h: Int?) -> MixedBundle.Item {
+            var c = DateComponents(); c.year = 2026; c.month = 10; c.day = 1; c.hour = h
+            return .init(url: URL(fileURLWithPath: "/x/\(n)"), kind: k, date: h == nil ? nil : Calendar.current.date(from: c))
+        }
+        let timed = [item("p", .picture, 8), item("a", .clip, 7), item("b", .clip, 9)]
+        XCTAssertEqual(MixedBundle.ordered(timed).map { $0.url.lastPathComponent }, ["a", "p", "b"])
+        let oneUndated = [item("p", .picture, nil), item("a", .clip, 7), item("b", .clip, 9)]
+        XCTAssertEqual(MixedBundle.ordered(oneUndated).map { $0.url.lastPathComponent }, ["p", "a", "b"],
+                       "an undated name keeps the drop order for the whole bundle")
+        let c = MixedBundle.compose(timed) { _ in 5 }
+        XCTAssertEqual(c.clips.map(\.lastPathComponent), ["a", "b"])
+        XCTAssertEqual(c.pictures.map(\.offsetSeconds), [5], "after one 5 s clip")
+        XCTAssertEqual(MixedBundle.compose([item("p", .picture, nil)]) { _ in 5 }.pictures.map(\.offsetSeconds), [0],
+                       "a picture with no clip goes to the top")
     }
 
     func testOneClipAndOnePictureIsOneNoteWithoutAChooser() async throws {
