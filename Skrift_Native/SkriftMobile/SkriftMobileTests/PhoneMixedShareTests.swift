@@ -40,6 +40,7 @@ final class PhoneMixedShareTests: XCTestCase {
         }
     }
 
+    @MainActor
     private func cleanUp(_ memo: Memo?, clips: [URL]) {
         for m in memo?.metadata?.imageManifest ?? [] {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(m.filename))
