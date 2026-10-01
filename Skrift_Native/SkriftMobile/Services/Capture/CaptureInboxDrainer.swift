@@ -1,3 +1,4 @@
+import AVFoundation
 import Combine
 import Foundation
 import SwiftData
@@ -178,45 +179,93 @@ enum CaptureInboxDrainer {
         // Same delete-first pattern as video: importAudioClips mints its own
         // memo UUID, so the id-dup guard below wouldn't catch a re-drain.
         if entry.type == "audio" {
-            let srcs = CaptureInbox.audioURLs(for: entry, entryDir: entryDir)
-                .filter { FileManager.default.fileExists(atPath: $0.path) }
+            // Original entry index kept beside each URL: the dates ride the entry
+            // index-aligned, and a missing file must not shift them (Q93).
+            let clipSrcs = CaptureInbox.audioURLs(for: entry, entryDir: entryDir).enumerated()
+                .filter { FileManager.default.fileExists(atPath: $0.element.path) }
+                .map { (index: $0.offset, url: $0.element) }
+            let srcs = clipSrcs.map(\.url)
             DevLog.log("drain: audio entry \(entry.id); clips present=\(srcs.count)/\(entry.audioFileNames?.count ?? 0)")
             if !srcs.isEmpty {
                 // Copy every clip to an app-owned temp BEFORE deleting the entry.
                 let entryID = entry.id.uuidString
-                let temps = await offMain { () -> [URL] in
-                    var out: [URL] = []
-                    for (i, src) in srcs.enumerated() {
-                        let ext = src.pathExtension.isEmpty ? "m4a" : src.pathExtension
+                let tempPairs = await offMain { () -> [(index: Int, url: URL)] in
+                    var out: [(index: Int, url: URL)] = []
+                    for (i, src) in clipSrcs.enumerated() {
+                        let ext = src.url.pathExtension.isEmpty ? "m4a" : src.url.pathExtension
                         let temp = FileManager.default.temporaryDirectory
                             .appendingPathComponent("shared_import_\(entryID)_\(i).\(ext)")
                         try? FileManager.default.removeItem(at: temp)
-                        if (try? FileManager.default.copyItem(at: src, to: temp)) != nil {
-                            out.append(temp)
+                        if (try? FileManager.default.copyItem(at: src.url, to: temp)) != nil {
+                            out.append((src.index, temp))
                         }
                     }
                     return out
                 }
+                var temps = tempPairs.map(\.url)
                 // B3: bundled photos copy out WITH the clips (the entry dir is
                 // deleted next; same crash-safe ordering as the clips).
-                let imageSrcs = CaptureInbox.imageURLs(for: entry, entryDir: entryDir)
-                    .filter { FileManager.default.fileExists(atPath: $0.path) }
-                let imageTemps = imageSrcs.isEmpty ? [] : await offMain { () -> [URL] in
-                    var out: [URL] = []
+                let imageSrcs = CaptureInbox.imageURLs(for: entry, entryDir: entryDir).enumerated()
+                    .filter { FileManager.default.fileExists(atPath: $0.element.path) }
+                    .map { (index: $0.offset, url: $0.element) }
+                let imagePairs = imageSrcs.isEmpty ? [] : await offMain { () -> [(index: Int, url: URL)] in
+                    var out: [(index: Int, url: URL)] = []
                     for (i, src) in imageSrcs.enumerated() {
                         let temp = FileManager.default.temporaryDirectory
                             .appendingPathComponent("shared_import_img_\(entryID)_\(i).jpg")
                         try? FileManager.default.removeItem(at: temp)
-                        if (try? FileManager.default.copyItem(at: src, to: temp)) != nil {
-                            out.append(temp)
+                        if (try? FileManager.default.copyItem(at: src.url, to: temp)) != nil {
+                            out.append((src.index, temp))
                         }
                     }
                     return out
                 }
+                var imageTemps = imagePairs.map(\.url)
+                // Q93 / C68 / C12 / C238: a bundle of clips + pictures is composed by the SAME
+                // MixedBundle the Mac drop uses — clips and pictures in time order when every
+                // file carries a date, the picture's offset = merged clip seconds before it.
+                // Pictures come first in the item list so an undated bundle keeps the old
+                // behaviour (pictures at the top) rather than sinking to the bottom.
+                var imageOffsets = [Double](repeating: 0, count: imageTemps.count)
+                var clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
+                if !imageTemps.isEmpty, !temps.isEmpty {
+                    func date(_ all: [String]?, _ i: Int) -> Date? {
+                        guard let all, all.indices.contains(i), !all[i].isEmpty else { return nil }
+                        return ISO8601.date(from: all[i])
+                    }
+                    var clipDates: [URL: Date] = [:]
+                    var items: [MixedBundle.Item] = imagePairs.map {
+                        .init(url: $0.url, kind: .picture, date: date(entry.imageRecordedAts, $0.index))
+                    }
+                    // The extension already put the clips in their play order; a running max keeps
+                    // that order (near-equal file dates can disagree with it) while the pictures
+                    // still slot in by time.
+                    var running: Date?
+                    for pair in tempPairs {
+                        var d = date(entry.audioRecordedAts, pair.index)
+                        if let own = d { d = running.map { max($0, own) } ?? own; running = d }
+                        if let own = date(entry.audioRecordedAts, pair.index) { clipDates[pair.url] = own }
+                        items.append(.init(url: pair.url, kind: .clip, date: d))
+                    }
+                    let durations: [URL: Double] = await offMain {
+                        var out: [URL: Double] = [:]
+                        for u in tempPairs.map(\.url) {
+                            if let f = try? AVAudioFile(forReading: u), f.fileFormat.sampleRate > 0 {
+                                out[u] = Double(f.length) / f.fileFormat.sampleRate
+                            }
+                        }
+                        return out
+                    }
+                    let composition = MixedBundle.compose(items) { durations[$0] ?? 0 }
+                    temps = composition.clips
+                    imageTemps = composition.pictures.map(\.url)
+                    imageOffsets = composition.pictures.map(\.offsetSeconds)
+                    if let first = composition.clips.first, let d = clipDates[first] { clipDate = d }
+                    DevLog.log("drain: mixed bundle composed — picture offsets \(imageOffsets)")
+                }
                 // Oldest clip's original date (index-aligned array) → the memo's
                 // recordedAt seed; the import upgrades to the embedded asset
                 // date when one exists (round-1: memos dated to upload time).
-                let clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
                 DevLog.log("drain: audio copied=\(temps.count) clip(s) + \(imageTemps.count) photo(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
                 CaptureInbox.delete(entryDir: entryDir)
                 // E2: the sheet routed this ≥1h share to the Books tab — import as
@@ -258,7 +307,10 @@ enum CaptureInboxDrainer {
                     if let memo = repository.memo(id: mid) {
                         if !savedNames.isEmpty {
                             var meta = memo.metadata ?? MemoMetadata()
-                            meta.imageManifest = savedNames.map { ImageManifestEntry(filename: $0, offsetSeconds: 0) }
+                            meta.imageManifest = savedNames.enumerated().map {
+                                ImageManifestEntry(filename: $0.element,
+                                                   offsetSeconds: imageOffsets.indices.contains($0.offset) ? imageOffsets[$0.offset] : 0)
+                            }
                             memo.metadata = meta
                         }
                         // B3: the bundle's chat text leads the note as the annotation.
