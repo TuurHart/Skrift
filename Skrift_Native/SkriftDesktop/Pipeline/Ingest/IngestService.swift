@@ -40,37 +40,191 @@ struct IngestService: Sendable {
     /// (main) actor. The old fully-synchronous form froze the UI for the whole
     /// video export when invoked from drag-drop / open-panel handlers.
     ///
+    /// What an ingest did with a drop: the rows it made, and every file it could NOT turn into a
+    /// note (unsupported type, vanished before the copy, a picture that would not copy). A file
+    /// is in exactly one of the two, or is the inside of a folder / bundle that was consumed -
+    /// never in neither (Q92: a picture dropped with five clips used to disappear without a
+    /// row or a message).
+    struct IngestReport {
+        var created: [PipelineFile] = []
+        var skipped: [URL] = []
+    }
+
     /// `combineAudio` is the answer to the C68 chooser ("One note"): when true and TWO OR
-    /// MORE plain-audio clips arrive together, they are stitched in the given order into ONE
-    /// `original.m4a` by the phone's own `AudioClipMerge`, so the pipeline sees one row and
-    /// runs ONE transcription pass. The merged note takes the slot of the first clip; anything
-    /// else in the same drop (a markdown note, a video, a folder) is ingested as before. The
-    /// default is `false`, so callers that never ask (the `-runfile` harness) keep today's
-    /// one-row-per-file behaviour.
+    /// MORE plain-audio clips arrive together, they are stitched in FILENAME-TIME order (C70,
+    /// chat order; the given order when a name carries no date) into ONE `original.m4a` by the
+    /// phone's own `AudioClipMerge`, so the pipeline sees one row and runs ONE transcription
+    /// pass. The merged note takes the slot of the first clip; anything else in the same drop (a
+    /// markdown note, a video, a folder) is ingested as before. The default is `false`, so
+    /// callers that never ask (the `-runfile` harness) keep today's one-row-per-file behaviour.
+    ///
+    /// PICTURES (C68, C12): a mixed bundle is ONE note. With the clips merged, or with exactly
+    /// one clip (nothing to ask), every picture rides along as an `images/img_NNN` + manifest
+    /// entry at the moment its filename time sits in the clip sequence, so the transcript pass
+    /// writes it as its own paragraph there. With "N notes" (several clips, not combined) or no
+    /// clip at all, the pictures become ONE note of their own (C68: N photos, one note). The
+    /// ordering and placement are `MixedBundle`'s, shared with the phone.
     @discardableResult
     func ingest(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> [PipelineFile] {
-        var created: [PipelineFile] = []
-        let clips = combineAudio ? Self.audioClips(in: localURLs) : []
-        let merging = clips.count >= 2
+        let report = try await ingestReport(localURLs: localURLs, combineAudio: combineAudio, into: context)
+        for url in report.skipped {
+            Self.log.error("not imported: \(url.lastPathComponent, privacy: .public)")
+        }
+        return report.created
+    }
+
+    /// `ingest`, plus the files that did not become a note (see `IngestReport`).
+    func ingestReport(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> IngestReport {
+        var report = IngestReport()
+        let clips = Self.audioClips(in: localURLs)
+        let pictures = localURLs.filter { Self.isPicture($0) }
         let clipSet = Set(clips.map(\.standardizedFileURL))
-        var mergedDone = false
+        let pictureSet = Set(pictures.map(\.standardizedFileURL))
+        let merging = combineAudio && clips.count >= 2
+        let bundling = !pictures.isEmpty && !clips.isEmpty && (merging || clips.count == 1)
+
+        // Order + place BEFORE any row exists, from the drop's own order and filename times.
+        var composition: MixedBundle.Composition?
+        if merging || bundling {
+            let items: [MixedBundle.Item] = localURLs.compactMap { url in
+                let key = url.standardizedFileURL
+                if clipSet.contains(key) {
+                    return .init(url: url, kind: .clip, date: Self.dateFromFilename(url.lastPathComponent))
+                }
+                if bundling, pictureSet.contains(key) {
+                    return .init(url: url, kind: .picture, date: Self.dateFromFilename(url.lastPathComponent))
+                }
+                return nil
+            }
+            var durations: [URL: Double] = [:]
+            if bundling {
+                durations = try await Self.offMain {
+                    Dictionary(clips.map { ($0, Self.audioSeconds(of: $0)) }, uniquingKeysWith: { a, _ in a })
+                }
+            }
+            composition = MixedBundle.compose(items) { durations[$0] ?? 0 }
+        }
+
+        var bundleDone = false, pictureNoteDone = false
         for url in localURLs {
-            if merging, clipSet.contains(url.standardizedFileURL) {
-                guard !mergedDone else { continue }
-                mergedDone = true
-                created.append(try await ingestMergedAudio(clips, into: context))
+            let key = url.standardizedFileURL
+            if let composition, clipSet.contains(key) {
+                guard !bundleDone else { continue }
+                bundleDone = true
+                let pf = try await ingestClips(composition.clips, into: context)
+                report.skipped += try await attachPictures(composition.pictures, to: pf)
+                report.created.append(pf)
+                continue
+            }
+            if pictureSet.contains(key) {
+                if bundling { continue }          // consumed by the bundle above
+                guard !pictureNoteDone else { continue }
+                pictureNoteDone = true
+                let (pf, failed) = try await ingestPictureNote(pictures, into: context)
+                report.skipped += failed
+                if let pf { report.created.append(pf) }
                 continue
             }
             var isDir: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else {
+                report.skipped.append(url); continue
+            }
             if isDir.boolValue {
-                created.append(contentsOf: try await ingestFolder(url, into: context))
+                report.created.append(contentsOf: try await ingestFolder(url, into: context))
             } else if let pf = try await ingestFile(url, into: context) {
-                created.append(pf)
+                report.created.append(pf)
+            } else {
+                report.skipped.append(url)
             }
         }
         try context.save()
-        return created
+        return report
+    }
+
+    /// The clips as ONE note: a lone clip is copied as it is; several are stitched in order.
+    private func ingestClips(_ clips: [URL], into context: ModelContext) async throws -> PipelineFile {
+        clips.count == 1 ? try await ingestAudio(clips[0], into: context)
+                         : try await ingestMergedAudio(clips, into: context)
+    }
+
+    static func audioSeconds(of url: URL) -> Double {
+        guard let f = try? AVAudioFile(forReading: url), f.fileFormat.sampleRate > 0 else { return 0 }
+        return Double(f.length) / f.fileFormat.sampleRate
+    }
+
+    static func isPicture(_ url: URL) -> Bool {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
+        return MixedBundle.isPictureName(url)
+    }
+
+    /// Write `placements` into `folder/images/img_NNN.<ext>` + `image_manifest.json` (the shape
+    /// phone uploads and video ingest write, so `[[img_NNN]]` markers land at the transcript pass
+    /// and the exporter embeds the files). Returns the pictures that could not be copied;
+    /// numbering counts only the ones that were, so a marker always has its file.
+    private func writePictures(_ placements: [MixedBundle.Placement], into folder: URL) async throws -> [URL] {
+        guard !placements.isEmpty else { return [] }
+        return try await Self.offMain { () -> [URL] in
+            let fm = FileManager.default
+            let dir = folder.appendingPathComponent("images", isDirectory: true)
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            var entries: [ImageManifestEntry] = []
+            var failed: [URL] = []
+            for p in placements {
+                let n = entries.count + 1
+                let ext = p.url.pathExtension.lowercased()
+                let converts = MixedBundle.convertToJPEGExtensions.contains(ext)
+                let outExt = (converts || ext == "jpeg") ? "jpg" : ext
+                let name = String(format: "img_%03d.", n) + outExt
+                let dest = dir.appendingPathComponent(name)
+                let ok = converts ? Self.convertToJPEG(src: p.url, dst: dest)
+                                  : (try? fm.copyItem(at: p.url, to: dest)) != nil
+                if ok { entries.append(ImageManifestEntry(filename: name, offsetSeconds: p.offsetSeconds)) }
+                else { failed.append(p.url) }
+            }
+            if !entries.isEmpty {
+                let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted]
+                try enc.encode(entries).write(to: folder.appendingPathComponent("image_manifest.json"))
+            }
+            return failed
+        }
+    }
+
+    /// A bundle's pictures go in the audio note's own working folder (next to `original.m4a`).
+    private func attachPictures(_ placements: [MixedBundle.Placement], to pf: PipelineFile) async throws -> [URL] {
+        guard !placements.isEmpty else { return [] }
+        return try await writePictures(placements, into: URL(fileURLWithPath: pf.path).deletingLastPathComponent())
+    }
+
+    /// Pictures with no clip to ride on become ONE note whose body is one picture paragraph each
+    /// (C68, C12/C13). A capture-shaped working folder, like a phone image share; the body is
+    /// already text, so there is nothing to transcribe.
+    private func ingestPictureNote(_ pictures: [URL], into context: ModelContext) async throws -> (PipelineFile?, [URL]) {
+        let ordered = MixedBundle.ordered(pictures.map {
+            MixedBundle.Item(url: $0, kind: .picture, date: Self.dateFromFilename($0.lastPathComponent))
+        })
+        let id = UUID().uuidString
+        let folderName = "capture_\(id)"
+        let folder = outputDir.appendingPathComponent(folderName, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let failed = try await writePictures(ordered.map { MixedBundle.Placement(url: $0.url, offsetSeconds: 0) },
+                                             into: folder)
+        let written = ordered.count - failed.count
+        guard written > 0 else {
+            try? FileManager.default.removeItem(at: folder)
+            return (nil, failed)
+        }
+        let recorded = ordered.compactMap(\.date).min()
+            ?? (try? ordered[0].url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+            ?? Date()
+        let pf = PipelineFile(id: id, filename: folderName, path: folder.path, size: 0, sourceType: .capture,
+                              uploadedAt: recorded)
+        pf.transcript = MixedBundle.pictureOnlyBody(count: written)
+        pf.transcribeStatus = .done
+        pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
+        context.insert(pf)
+        return (pf, failed)
     }
 
     /// The plain-audio clips among `urls`, in the given order: real files with an audio
@@ -272,14 +426,15 @@ struct IngestService: Sendable {
     /// when no `YYYY-MM-DD` is present (so a plain "New Recording 22" falls through).
     static func dateFromFilename(_ name: String) -> Date? {
         guard let rx = try? NSRegularExpression(
-            pattern: #"(\d{4})-(\d{2})-(\d{2})(?:[ _\-]?(?:at )?(\d{2})[.\-:](\d{2})[.\-:](\d{2}))?"#) else { return nil }
+            pattern: #"(\d{4})-(\d{2})-(\d{2})(?:[ _\-]?(?:at )?(?:(\d{2})[.\-:](\d{2})[.\-:](\d{2})|(\d{2})(\d{2})(\d{2})(?!\d)))?"#) else { return nil }
         let ns = name as NSString
         guard let m = rx.firstMatch(in: name, range: NSRange(location: 0, length: ns.length)) else { return nil }
         func g(_ i: Int) -> Int? { let r = m.range(at: i); return r.location == NSNotFound ? nil : Int(ns.substring(with: r)) }
         guard let y = g(1), let mo = g(2), let d = g(3), (1...12).contains(mo), (1...31).contains(d) else { return nil }
         var c = DateComponents()
         c.year = y; c.month = mo; c.day = d
-        c.hour = g(4) ?? 12; c.minute = g(5) ?? 0; c.second = g(6) ?? 0
+        // Separated (18.30.44) or compact (Signal pictures: `signal-2026-10-01-080349`).
+        c.hour = g(4) ?? g(7) ?? 12; c.minute = g(5) ?? g(8) ?? 0; c.second = g(6) ?? g(9) ?? 0
         return Calendar.current.date(from: c)
     }
 

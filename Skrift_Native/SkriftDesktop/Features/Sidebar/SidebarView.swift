@@ -233,6 +233,11 @@ struct SidebarView: View {
                         if let first = created.first {
                             model.select(first.id)
                         }
+                    },
+                    onSkipped: { skipped in
+                        let names = skipped.prefix(3).map(\.lastPathComponent).joined(separator: ", ")
+                        let more = skipped.count > 3 ? " and \(skipped.count - 3) more" : ""
+                        coordinator.lastError = "Couldn't import: \(names)\(more) (unsupported or unreadable)"
                     })
             } catch {
                 coordinator.lastError = "Import failed: \(error.localizedDescription)"
