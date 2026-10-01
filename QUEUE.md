@@ -677,6 +677,13 @@ gate+: yes
 do: Q92 found the phone's share drain (CaptureInboxDrainer ~l.238-260) pins every bundled photo at offsetSeconds 0, so a phone share of clips + pictures puts all pictures at the top — C12 is not implemented on the phone either. Q92 wrote the shared composer `Shared/Pipeline/MixedBundle.swift` (order by filename time when every name is dated, else selection order; a picture's offset = merged-clip seconds before it). Route the phone share drain through MixedBundle so the same bundle gives the same note on both apps (C238); phone test over the ingress P3 shape (5 clips + 1 picture between clip 3 and 4). Phone only; never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
+### Q94 [auto] (doing) the phone reads dates from filenames like the Mac (C70 required difference): one shared filename-date ladder, the share extension carries each file's name
+spec: C70 C124 C12 C238
+needs: Q93
+gate+: yes
+do: C70 is a required difference: recordedAt = embedded date → date in the filename (WhatsApp / Signal / Telegram / recorder patterns, Mac parity) → file date → now; the phone never parses the filename today. Q92 extended the Mac's `IngestService.dateFromFilename` (incl. compact HHMMSS like `signal-2026-10-01-080349`); Q93 found the share extension hands the drain no filenames — clips carry file mod dates, pictures only EXIF (empty for Signal JPEGs) — so a real Signal share of clips + a picture falls back to pictures-first. Move the filename-date ladder into `Shared/` (one copy, the Mac calls it too), make the share extension carry each item's original filename / suggestedName and its selection position, and let the drain date clips and pictures from it so MixedBundle places a Signal picture between the clips at its time and the note is dated to the first message (C124). Tests: the ladder's patterns (shared, desktop + phone), a Signal-named share bundle → picture between clip 3 and 4. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -988,3 +995,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-01 15:46 Q92 -> done — gate pass @1b58587d
 - 2026-10-01 15:47 Q93 -> doing — worker out
 - 2026-10-01 15:58 Q93 -> done — gate pass @752a8467
+- 2026-10-01 15:58 Q94 added
+- 2026-10-01 15:58 Q94 -> doing — worker out
