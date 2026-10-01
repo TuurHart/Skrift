@@ -670,7 +670,7 @@ gate+: yes
 do: Tuur 2026-10-01 on Skrift Dev (Mac, 1ad5737a): dragging five Signal voice clips in at once worked ("fucking perfect, very nice"), but the picture dragged with them (signal-2026-10-01-080349.jpeg, between clips 07:56 and 08:04 by its filename time) "didn't come in" at all. Q74 merged only the audio clips and sent other files down their own path; here the image was lost entirely. C68: a mixed bundle → ONE note in order — pictures per C12 as their own paragraph at their place — exactly the corpus fixture `ingress-p3-five-clips-one-picture` (5 clips + 1 picture between clip 3 and 4). Find why the image vanished (dropped by audioClips(in:)? the file-promise path? the chooser?), then make a Mac mixed drop produce the one-note result: clips merged in time order (filename-date ladder C70), the picture placed between the clips at its time. When the user picks "N notes", the picture becomes its own note (never lost). Desktop test over the P3 fixture + a test that no dropped file is ever silently skipped. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q93 [auto] (todo) phone share of clips + pictures places each picture between the clips by its time (shared MixedBundle, C12)
+### Q93 [auto] (done) phone share of clips + pictures places each picture between the clips by its time (shared MixedBundle, C12)
 spec: C68 C12 C238
 needs: Q92
 gate+: yes
@@ -986,3 +986,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-01 15:43 Q91 -> done — hand-merged (D148: UI tests follow the new filter chips)
 - 2026-10-01 15:44 Q93 added
 - 2026-10-01 15:46 Q92 -> done — gate pass @1b58587d
+- 2026-10-01 15:47 Q93 -> doing — worker out
+- 2026-10-01 15:58 Q93 -> done — gate pass @752a8467
