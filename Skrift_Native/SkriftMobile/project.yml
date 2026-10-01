@@ -405,6 +405,9 @@ targets:
       # EXIF taken-date reader (A4) — the extension reads it BEFORE the
       # downsample re-encode strips metadata; the app's drainer parses it back.
       - path: Services/Capture/ImageDates.swift
+      # Q94 / C70: the shared filename-date ladder — the loader reads each shared file's
+      # original name and orders/dates by it (one copy, the Mac + the drain call it too).
+      - path: ../Shared/Pipeline/FilenameDate.swift
       # The rating pill + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the pill without importing the app target. Both halves

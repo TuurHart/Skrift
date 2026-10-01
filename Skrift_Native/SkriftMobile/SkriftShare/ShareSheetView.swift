@@ -727,7 +727,7 @@ struct ShareSheetView: View {
             func iso(_ item: SharedAudioItem) -> String {
                 item.recordedAt.map { ISO8601.string(from: $0) } ?? ""
             }
-            func entry(id: UUID, names: [String], dates: [String]) -> CaptureInboxEntry {
+            func entry(id: UUID, names: [String], dates: [String], clips: [SharedAudioItem]) -> CaptureInboxEntry {
                 CaptureInboxEntry(
                     id: id, type: "audio", url: nil, urlTitle: nil,
                     // B3: the bundle's chat text rides the entry → the memo's
@@ -741,7 +741,14 @@ struct ShareSheetView: View {
                     // B3: bundled photos ride the same entry, index-aligned datas.
                     imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
                     imageRecordedAts: imageItems.isEmpty ? nil
-                        : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" }
+                        : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" },
+                    // Q94 / C70: each file's original name + selection position ride along so
+                    // the drain dates by the shared filename ladder and orders by selection.
+                    audioOriginalNames: clips.map { $0.originalName ?? "" },
+                    audioSelectionPositions: clips.enumerated().map { $0.element.selectionIndex ?? $0.offset },
+                    imageOriginalNames: imageItems.isEmpty ? nil : imageItems.map { $0.originalName ?? "" },
+                    imageSelectionPositions: imageItems.isEmpty ? nil
+                        : imageItems.enumerated().map { $0.element.selectionIndex ?? $0.offset }
                 )
             }
             func ext(_ item: SharedAudioItem) -> String {
@@ -753,13 +760,13 @@ struct ShareSheetView: View {
             if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) || isMixedBundle {
                 let id = UUID()
                 let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
-                onSave([entry(id: id, names: names, dates: items.map(iso))],
+                onSave([entry(id: id, names: names, dates: items.map(iso), clips: items)],
                        imageItems.map(\.data), nil)
             } else {
                 let entries = items.map { item -> CaptureInboxEntry in
                     let id = UUID()
                     return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"],
-                                 dates: [iso(item)])
+                                 dates: [iso(item)], clips: [item])
                 }
                 onSave(entries, [], nil)
             }
@@ -825,7 +832,11 @@ struct ShareSheetView: View {
             // EXIF taken-dates, aligned to the names ("" = none) — the drainer
             // dates the capture to the earliest photo, not the share moment (A4).
             imageRecordedAts: imageItems.isEmpty ? nil
-                : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" }
+                : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" },
+            // Q94 / C70: the original names date a picture-only note too (Signal JPEGs).
+            imageOriginalNames: imageItems.isEmpty ? nil : imageItems.map { $0.originalName ?? "" },
+            imageSelectionPositions: imageItems.isEmpty ? nil
+                : imageItems.enumerated().map { $0.element.selectionIndex ?? $0.offset }
         )
         onSave([entry], imageItems.map(\.data), dictationData)
     }

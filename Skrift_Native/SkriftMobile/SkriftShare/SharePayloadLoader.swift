@@ -13,6 +13,11 @@ struct SharedAudioItem {
     /// Best-effort original recording moment (file date) — drives the
     /// oldest→newest combine order. nil when the provider strips dates.
     var recordedAt: Date?
+    /// Q94 / C70: the file's ORIGINAL name (provider file name or suggestedName) - the
+    /// shared `FilenameDate` ladder dates the clip from it. nil when unknown.
+    var originalName: String? = nil
+    /// Q94: position in the user's selection (the provider order = chat order).
+    var selectionIndex: Int? = nil
 }
 
 /// One shared image (of possibly several), already downsampled + JPEG-normalised.
@@ -23,6 +28,10 @@ struct SharedImageItem {
     /// EXIF taken-date, read from the ORIGINAL bytes before the downsample
     /// re-encode stripped it (A4). nil = no metadata (screenshots, chat images).
     var recordedAt: Date?
+    /// Q94 / C70: original filename / suggestedName - a Signal JPEG has no EXIF but a dated name.
+    var originalName: String? = nil
+    /// Q94: position in the user's selection.
+    var selectionIndex: Int? = nil
 }
 
 /// The resolved content of the share action, ready to display in the sheet.
@@ -86,15 +95,18 @@ enum SharePayloadLoader {
         //    attachments are collected (A11 multi-select — activation allows 10).
         let audioProviders = attachments.filter { $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
         if !audioProviders.isEmpty {
-            var payload = await loadAudio(from: audioProviders)
+            let audioPositions = attachments.enumerated()
+                .filter { $0.element.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }.map(\.offset)
+            var payload = await loadAudio(from: audioProviders, positions: audioPositions)
             // B3: a mixed chat selection (voice notes + photos + text) becomes ONE
             // note — collect the other kinds alongside instead of dropping them.
-            let imageProviders = attachments.filter {
-                $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) &&
-                !$0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+            let imagePairs = attachments.enumerated().filter {
+                $0.element.hasItemConformingToTypeIdentifier(UTType.image.identifier) &&
+                !$0.element.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
             }
+            let imageProviders = imagePairs.map(\.element)
             if !imageProviders.isEmpty {
-                payload.imageItems = (await loadImages(from: imageProviders)).imageItems
+                payload.imageItems = (await loadImages(from: imageProviders, positions: imagePairs.map(\.offset))).imageItems
             }
             if let textProvider = attachments.first(where: {
                 $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) &&
@@ -203,7 +215,8 @@ enum SharePayloadLoader {
             }
             let date = (try? FileManager.default.attributesOfItem(atPath: result.url.path))?[.modificationDate] as? Date
             return SharePayload(type: .file, isAudio: true,
-                                audioItems: [SharedAudioItem(url: result.url, duration: duration, recordedAt: date)])
+                                audioItems: [SharedAudioItem(url: result.url, duration: duration, recordedAt: date,
+                                                         originalName: result.name, selectionIndex: 0)])
         }
         let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         // E1 preview-card metadata (mock m2): page count for PDFs, size for all.
@@ -230,7 +243,7 @@ enum SharePayloadLoader {
     /// disk I/O, independent across clips. Results land in a slot array keyed
     /// by original index so provider order survives regardless of which task
     /// finishes first (`stableClipOrder` below still needs that order intact).
-    static func loadAudio(from providers: [NSItemProvider]) async -> SharePayload {
+    static func loadAudio(from providers: [NSItemProvider], positions: [Int]? = nil) async -> SharePayload {
         var slots: [SharedAudioItem?] = Array(repeating: nil, count: providers.count)
         await withTaskGroup(of: (Int, SharedAudioItem?).self) { group in
             for (i, provider) in providers.enumerated() {
@@ -238,9 +251,11 @@ enum SharePayloadLoader {
                     let typeID = provider.registeredTypeIdentifiers.first {
                         UTType($0)?.conforms(to: .audio) == true
                     } ?? UTType.audio.identifier
-                    let copied: (url: URL, date: Date?)? = await withCheckedContinuation { cont in
+                    let copied: (url: URL, date: Date?, name: String?)? = await withCheckedContinuation { cont in
                         provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
                             guard let url else { cont.resume(returning: nil); return }
+                            // Q94: the ORIGINAL name, read BEFORE the copy renames it `shared_<uuid>`.
+                            let name = FilenameDate.bestName([url.lastPathComponent, provider.suggestedName])
                             // Original file date, read BEFORE the copy (best-effort order key).
                             let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
                             let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
@@ -249,7 +264,7 @@ enum SharePayloadLoader {
                             do {
                                 try? FileManager.default.removeItem(at: dest)
                                 try FileManager.default.copyItem(at: url, to: dest)
-                                cont.resume(returning: (dest, date))
+                                cont.resume(returning: (dest, date, name))
                             } catch {
                                 cont.resume(returning: nil)
                             }
@@ -260,7 +275,9 @@ enum SharePayloadLoader {
                     if let f = try? AVAudioFile(forReading: copied.url) {
                         duration = Double(f.length) / f.fileFormat.sampleRate
                     }
-                    return (i, SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date))
+                    return (i, SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date,
+                                               originalName: copied.name,
+                                               selectionIndex: positions?[i] ?? i))
                 }
             }
             for await (i, item) in group { slots[i] = item }
@@ -270,7 +287,10 @@ enum SharePayloadLoader {
         // WhatsApp materializes every temp copy at share time → near-identical
         // dates, and Swift's sort is NOT stable — equal dates scrambled the
         // provider order (which IS the chat order, the better signal there).
-        let order = CaptureInbox.stableClipOrder(dates: items.map(\.recordedAt))
+        // Q94 / C70: a filename date (Signal / WhatsApp / recorder names) outranks the file
+        // date, which is the share moment for most providers.
+        let order = CaptureInbox.stableClipOrder(
+            dates: items.map { FilenameDate.ladder(embedded: nil, filename: $0.originalName, fileDate: $0.recordedAt) })
         items = order.map { items[$0] }
         return SharePayload(type: .file, isAudio: true, audioItems: items)
     }
@@ -359,7 +379,7 @@ enum SharePayloadLoader {
     /// `TaskGroup`, was a sequential `for` loop), results landing in a slot
     /// array keyed by original index — provider order survives regardless of
     /// completion order.
-    static func loadImages(from providers: [NSItemProvider]) async -> SharePayload {
+    static func loadImages(from providers: [NSItemProvider], positions: [Int]? = nil) async -> SharePayload {
         var slots: [SharedImageItem?] = Array(repeating: nil, count: providers.count)
         await withTaskGroup(of: (Int, SharedImageItem?).self) { group in
             for (i, provider) in providers.enumerated() {
@@ -382,7 +402,9 @@ enum SharePayloadLoader {
                         data: jpeg,
                         fileName: "capture_\(UUID().uuidString).jpg",
                         mimeType: "image/jpeg",
-                        recordedAt: ImageDates.exifDate(from: rawData)   // BEFORE the re-encode (A4)
+                        recordedAt: ImageDates.exifDate(from: rawData),   // BEFORE the re-encode (A4)
+                        originalName: FilenameDate.bestName([provider.suggestedName]),   // Q94 / C70
+                        selectionIndex: positions?[i] ?? i
                     ))
                 }
             }
