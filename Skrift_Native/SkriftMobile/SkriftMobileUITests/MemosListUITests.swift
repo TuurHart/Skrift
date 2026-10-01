@@ -76,15 +76,12 @@ final class MemosListUITests: XCTestCase {
         // demo2 (plumber) is seeded Synced; the others are Waiting.
         XCTAssertTrue(app.staticTexts[plumber].waitForExistence(timeout: 10))
 
-        app.buttons["sort-filter-button"].tap()
-        let unsynced = app.switches["filter-unsynced"]
-        XCTAssertTrue(unsynced.waitForExistence(timeout: 5))
-        // Tap the switch control (trailing edge), not the wide row center.
-        unsynced.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        XCTAssertEqual(unsynced.value as? String, "1", "unsynced toggle didn't flip on")
-        app.buttons["sortfilter-done"].tap()
+        // Q66/D148: the Unsynced chip lives in the chip row (the Filter button/sheet is gone).
+        let unsynced = app.descendants(matching: .any).matching(identifier: "chip-unsynced").firstMatch
+        XCTAssertTrue(unsynced.waitForExistence(timeout: 5), "Unsynced chip missing")
+        unsynced.tap()
 
-        // Wait for the list to re-filter after the sheet dismisses.
+        // Wait for the list to re-filter after the chip tap.
         XCTAssertTrue(app.staticTexts[plumber].waitForNonExistence(timeout: 4),
                       "synced memo should be hidden by 'unsynced only'")
         XCTAssertTrue(app.staticTexts[harbor].exists, "waiting memo should remain")

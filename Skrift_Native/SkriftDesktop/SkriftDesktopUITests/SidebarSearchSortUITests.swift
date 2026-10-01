@@ -23,7 +23,8 @@ final class SidebarSearchSortUITests: XCTestCase {
 
         let search = app.textFields["sidebar.search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5), "search field missing")
-        XCTAssertTrue(app.buttons["sidebar.filter"].waitForExistence(timeout: 5), "filter control missing")
+        XCTAssertTrue(app.descendants(matching: .any)["sidebar.chip.Date"].waitForExistence(timeout: 5), "Date chip missing")
+        XCTAssertTrue(app.descendants(matching: .any)["sidebar.sort-word"].exists, "sort word missing")
 
         search.click()
         search.typeText("zzzznomatchqqq")
@@ -35,16 +36,15 @@ final class SidebarSearchSortUITests: XCTestCase {
                        "clearing the search should restore the queue")
     }
 
-    /// The Filter control opens a popover of sort options, and picking one
-    /// dismisses it — the single Filter button replaced the old cycle (2026-07-23).
-    func testFilterControlOpensSortOptions() {
+    /// The sort word at the end of the chip row cycles to the next sort on one tap
+    /// (Q66/D148 option A replaced the Filter button + Sort & Date popover).
+    func testSortWordCyclesSort() {
         let app = launch()
-        let filter = app.buttons["sidebar.filter"]
-        XCTAssertTrue(filter.waitForExistence(timeout: 5), "filter control missing")
-        filter.click()
-        let oldest = app.buttons["Oldest first"]
-        XCTAssertTrue(oldest.waitForExistence(timeout: 5), "sort options should appear in the filter popover")
-        oldest.click()
-        XCTAssertTrue(filter.exists, "filter control should remain after picking a sort")
+        let word = app.descendants(matching: .any)["sidebar.sort-word"]
+        XCTAssertTrue(word.waitForExistence(timeout: 5), "sort word missing")
+        let before = word.label
+        word.click()
+        XCTAssertNotEqual(word.label, before, "one tap should move to the next sort")
+        XCTAssertTrue(word.exists, "sort word should remain after cycling")
     }
 }
