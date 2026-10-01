@@ -663,7 +663,7 @@ needs: -
 do: Q66 (D148, option A) deleted the Filter button/sheet; two protected UI tests still drive it: `SkriftMobile/SkriftMobileUITests/MemosListUITests.swift:79` (`testFilterUnsyncedHidesSynced`: sort-filter-button → filter-unsynced → sortfilter-done) and `SkriftDesktop/SkriftDesktopUITests/SidebarSearchSortUITests.swift:26,42` (`sidebar.filter`). Point them at the new ids (`chip-unsynced`, `chip-date`, `sort-cycle-word`, `sidebar.chip.Date`, `sidebar.sort-word`) with the same assertions — the change follows Tuur's D148, hand-merge. Run the PHONE test in the simulator (sim lock). NEVER run the Mac UI test (it takes the real mouse) — compile-check it only with `xcodebuild build-for-testing` of the Mac UI-test target.
 check: `./gate.sh`
 
-### Q92 [auto] (doing) Mac drop of voice clips + a picture: one note, the picture placed between the clips by its time (C68, ingress P3)
+### Q92 [auto] (done) Mac drop of voice clips + a picture: one note, the picture placed between the clips by its time (C68, ingress P3)
 spec: C68 C12 C238 C70
 needs: -
 gate+: yes
@@ -985,3 +985,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-01 15:33 Q91 -> doing — worker out
 - 2026-10-01 15:43 Q91 -> done — hand-merged (D148: UI tests follow the new filter chips)
 - 2026-10-01 15:44 Q93 added
+- 2026-10-01 15:46 Q92 -> done — gate pass @1b58587d
