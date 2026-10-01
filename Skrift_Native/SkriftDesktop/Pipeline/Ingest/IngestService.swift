@@ -420,23 +420,8 @@ struct IngestService: Sendable {
         return pf
     }
 
-    /// Best-effort recording date parsed from common messaging/recorder filenames,
-    /// e.g. "WhatsApp Audio 2025-12-18 at 18.30.44", "signal-2026-04-13-18-15-24-552",
-    /// "AUDIO-2026-03-07-19-30-08". Local time; time defaults to noon if absent. nil
-    /// when no `YYYY-MM-DD` is present (so a plain "New Recording 22" falls through).
-    static func dateFromFilename(_ name: String) -> Date? {
-        guard let rx = try? NSRegularExpression(
-            pattern: #"(\d{4})-(\d{2})-(\d{2})(?:[ _\-]?(?:at )?(?:(\d{2})[.\-:](\d{2})[.\-:](\d{2})|(\d{2})(\d{2})(\d{2})(?!\d)))?"#) else { return nil }
-        let ns = name as NSString
-        guard let m = rx.firstMatch(in: name, range: NSRange(location: 0, length: ns.length)) else { return nil }
-        func g(_ i: Int) -> Int? { let r = m.range(at: i); return r.location == NSNotFound ? nil : Int(ns.substring(with: r)) }
-        guard let y = g(1), let mo = g(2), let d = g(3), (1...12).contains(mo), (1...31).contains(d) else { return nil }
-        var c = DateComponents()
-        c.year = y; c.month = mo; c.day = d
-        // Separated (18.30.44) or compact (Signal pictures: `signal-2026-10-01-080349`).
-        c.hour = g(4) ?? g(7) ?? 12; c.minute = g(5) ?? g(8) ?? 0; c.second = g(6) ?? g(9) ?? 0
-        return Calendar.current.date(from: c)
-    }
+    /// Filename date (C70) — the ONE ladder lives in `Shared/Pipeline/FilenameDate.swift`.
+    static func dateFromFilename(_ name: String) -> Date? { FilenameDate.date(from: name) }
 
     // MARK: - Video helpers (synchronous AVFoundation — host-less testable)
 

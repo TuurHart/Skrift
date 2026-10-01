@@ -70,6 +70,19 @@ struct CaptureInboxEntry: Codable {
     /// the extension from the ORIGINAL bytes (the downsample strips EXIF).
     /// Flat [String]; optional so older entries decode.
     var imageRecordedAts: [String]? = nil
+    /// Q94 / C70: each clip's ORIGINAL filename (provider file name / suggestedName),
+    /// index-aligned to `audioFileNames` ("" = unknown). The drain runs the shared
+    /// `FilenameDate` ladder over it (embedded → filename → file date). Optional so
+    /// older entries decode.
+    var audioOriginalNames: [String]? = nil
+    /// Q94: each clip's position in the user's selection (the provider order — the chat
+    /// order), index-aligned to `audioFileNames`. Optional so older entries decode.
+    var audioSelectionPositions: [Int]? = nil
+    /// Q94: each picture's original filename / suggestedName, index-aligned to
+    /// `imageFileNames` ("" = unknown) — a Signal JPEG has no EXIF but a dated name.
+    var imageOriginalNames: [String]? = nil
+    /// Q94: each picture's position in the user's selection, index-aligned to `imageFileNames`.
+    var imageSelectionPositions: [Int]? = nil
     /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
     /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
     /// drain → a `.file` capture. Optional so older entries decode.

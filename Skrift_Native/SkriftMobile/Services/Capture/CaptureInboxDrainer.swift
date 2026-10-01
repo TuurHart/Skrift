@@ -35,6 +35,78 @@ enum CaptureInboxDrainer {
     /// interleaving with the first would double-import the delete-first media types.
     private static var isDraining = false
 
+    // MARK: - Q94 / C70 — dating a shared bundle by the shared filename ladder
+
+    /// ISO8601 entry array element at `i`, nil when absent / blank / malformed.
+    static func isoDate(_ all: [String]?, _ i: Int) -> Date? {
+        guard let all, all.indices.contains(i), !all[i].isEmpty else { return nil }
+        return ISO8601.date(from: all[i])
+    }
+
+    /// Original-name array element at `i`, nil when absent / blank.
+    static func name(_ all: [String]?, _ i: Int) -> String? {
+        guard let all, all.indices.contains(i), !all[i].isEmpty else { return nil }
+        return all[i]
+    }
+
+    /// The bundle's items, dated by the C70 ladder, in the order MixedBundle starts from.
+    struct SharePlan {
+        /// Clips + pictures for `MixedBundle.compose`.
+        var items: [MixedBundle.Item]
+        /// Each clip's OWN ladder date (the note is dated to the first composed clip's, C124).
+        var clipDates: [URL: Date]
+    }
+
+    /// Dates every clip (filename -> file date) and picture (EXIF -> filename) and lays the
+    /// items out for MixedBundle. When every item is dated MixedBundle sorts by time. Otherwise
+    /// the order is the user's SELECTION order (each picture goes before the first clip chosen
+    /// after it); an entry from an older build, with no positions, keeps pictures first.
+    /// `clips` / `pictures` carry each file's ORIGINAL entry index (a missing file must not
+    /// shift the aligned arrays, Q93).
+    static func sharePlan(entry: CaptureInboxEntry,
+                          clips: [(index: Int, url: URL)],
+                          pictures: [(index: Int, url: URL)]) -> SharePlan {
+        var clipDates: [URL: Date] = [:]
+        var clipItems: [MixedBundle.Item] = []
+        // The extension already put the clips in play order; a running max keeps that order
+        // (near-equal file dates can disagree with it) while pictures still slot in by time.
+        var running: Date?
+        for pair in clips {
+            let own = FilenameDate.ladder(embedded: nil,
+                                          filename: name(entry.audioOriginalNames, pair.index),
+                                          fileDate: isoDate(entry.audioRecordedAts, pair.index))
+            var d = own
+            if let own { d = running.map { max($0, own) } ?? own; running = d; clipDates[pair.url] = own }
+            clipItems.append(.init(url: pair.url, kind: .clip, date: d))
+        }
+        let pictureItems = pictures.map {
+            MixedBundle.Item(url: $0.url, kind: .picture,
+                             date: FilenameDate.ladder(embedded: isoDate(entry.imageRecordedAts, $0.index),
+                                                       filename: name(entry.imageOriginalNames, $0.index),
+                                                       fileDate: nil))
+        }
+        func position(_ all: [Int]?, _ i: Int) -> Int? {
+            guard let all, all.indices.contains(i) else { return nil }
+            return all[i]
+        }
+        let clipPos = clips.map { position(entry.audioSelectionPositions, $0.index) }
+        let picPos = pictures.map { position(entry.imageSelectionPositions, $0.index) }
+        let allDated = !(clipItems + pictureItems).contains { $0.date == nil }
+        guard !allDated, !clipPos.contains(where: { $0 == nil }), !picPos.contains(where: { $0 == nil }) else {
+            return SharePlan(items: pictureItems + clipItems, clipDates: clipDates)
+        }
+        var posOf: [URL: Int] = [:]
+        for (pair, p) in zip(clips, clipPos) { posOf[pair.url] = p! }
+        var items = clipItems
+        let ranked = zip(pictureItems, picPos.map { $0! }).enumerated()
+            .sorted { $0.element.1 != $1.element.1 ? $0.element.1 < $1.element.1 : $0.offset < $1.offset }
+        for (_, pair) in ranked {
+            let at = items.firstIndex { $0.kind == .clip && posOf[$0.url]! > pair.1 } ?? items.endIndex
+            items.insert(pair.0, at: at)
+        }
+        return SharePlan(items: items, clipDates: clipDates)
+    }
+
     /// Run file copies on a background executor — the main actor only orchestrates.
     private static func offMain<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
         await Task.detached(priority: .userInitiated) { work() }.value
@@ -227,26 +299,12 @@ enum CaptureInboxDrainer {
                 // Pictures come first in the item list so an undated bundle keeps the old
                 // behaviour (pictures at the top) rather than sinking to the bottom.
                 var imageOffsets = [Double](repeating: 0, count: imageTemps.count)
-                var clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
+                // Q94 / C70: every item is dated by the shared ladder (embedded -> filename ->
+                // file date) — the extension now carries each file's original name.
+                let plan = Self.sharePlan(entry: entry, clips: tempPairs, pictures: imagePairs)
+                var clipDate = tempPairs.first.flatMap { plan.clipDates[$0.url] }
                 if !imageTemps.isEmpty, !temps.isEmpty {
-                    func date(_ all: [String]?, _ i: Int) -> Date? {
-                        guard let all, all.indices.contains(i), !all[i].isEmpty else { return nil }
-                        return ISO8601.date(from: all[i])
-                    }
-                    var clipDates: [URL: Date] = [:]
-                    var items: [MixedBundle.Item] = imagePairs.map {
-                        .init(url: $0.url, kind: .picture, date: date(entry.imageRecordedAts, $0.index))
-                    }
-                    // The extension already put the clips in their play order; a running max keeps
-                    // that order (near-equal file dates can disagree with it) while the pictures
-                    // still slot in by time.
-                    var running: Date?
-                    for pair in tempPairs {
-                        var d = date(entry.audioRecordedAts, pair.index)
-                        if let own = d { d = running.map { max($0, own) } ?? own; running = d }
-                        if let own = date(entry.audioRecordedAts, pair.index) { clipDates[pair.url] = own }
-                        items.append(.init(url: pair.url, kind: .clip, date: d))
-                    }
+                    let items = plan.items
                     let durations: [URL: Double] = await offMain {
                         var out: [URL: Double] = [:]
                         for u in tempPairs.map(\.url) {
@@ -260,7 +318,7 @@ enum CaptureInboxDrainer {
                     temps = composition.clips
                     imageTemps = composition.pictures.map(\.url)
                     imageOffsets = composition.pictures.map(\.offsetSeconds)
-                    if let first = composition.clips.first, let d = clipDates[first] { clipDate = d }
+                    if let first = composition.clips.first, let d = plan.clipDates[first] { clipDate = d }
                     DevLog.log("drain: mixed bundle composed — picture offsets \(imageOffsets)")
                 }
                 // Oldest clip's original date (index-aligned array) → the memo's
@@ -532,7 +590,11 @@ enum CaptureInboxDrainer {
         // Mac contract). Fall back to now() if the string is malformed.
         // A4: image captures date to the photos' earliest EXIF taken-date when one
         // exists — mirrors video (filming date) and audio (clip date).
-        let exifSeed = entry.imageRecordedAts?.compactMap { ISO8601.date(from: $0) }.min()
+        // Q94 / C70: EXIF -> the date in the picture's filename (a Signal JPEG has no EXIF).
+        let exifSeed = (entry.imageFileNames ?? []).indices.compactMap {
+            FilenameDate.ladder(embedded: Self.isoDate(entry.imageRecordedAts, $0),
+                                filename: Self.name(entry.imageOriginalNames, $0), fileDate: nil)
+        }.min()
         let recordedAt = exifSeed ?? ISO8601.date(from: entry.sharedAt) ?? Date()
 
         // Build MemoMetadata when the capture carries any: an image manifest
