@@ -1881,3 +1881,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      import is consent, floors to 0.1" (ledgers:263). An import is transcribed on arrival but enters the
      Process queue, polish and export only once rated; pressing Polish/Process still floors to 0.1 (C40)
      (Q90).
+160. **D160 Mac multi-clip import device-confirmed.** ✅ 2026-10-01 (Skrift Dev, 1ad5737a): five Signal clips
+     dragged in together → "fucking perfect, very nice" (Q74). A picture in the same drop was lost (Q92).

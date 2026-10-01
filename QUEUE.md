@@ -657,11 +657,18 @@ gate+: yes
 do: Tuur 2026-09-30: a Mac import should arrive UNRATED ("yes it should") — reverses the 2026-07-26/28 rule "an import is consent, floors to 0.1" (plan/extraction/ledgers.md:263, decisions.md:145; memory project_note_consent). Make a Mac import author an unrated memo exactly like a Mac recording: it keeps its row, is transcribed on arrival (Q77's transcribeImport stays — words are not polish), shows Not rated in the pill with the fading line, and enters the Process queue / polish / export only once rated. Pressing Polish or Process on an unrated note still floors it to 0.1 (C40 — that door stays). Update NoteConsent's nil table and the MacMemoAuthor/ArrivalPath paths; protected tests that pin the old import floor (MacMemoAuthorSignificanceTests, ArrivalPathTests, any other) change to the new rule — approved (D159), will be hand-merged; add a test that an import is unrated, transcribed, and absent from the process queue. Update SPEC C49 wording and FEATURES.md. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q91 [auto] (todo) update the two UI tests that still drive the old Filter button to the new chip ids (never run the Mac one)
+### Q91 [auto] (doing) update the two UI tests that still drive the old Filter button to the new chip ids (never run the Mac one)
 spec: C117
 needs: -
 do: Q66 (D148, option A) deleted the Filter button/sheet; two protected UI tests still drive it: `SkriftMobile/SkriftMobileUITests/MemosListUITests.swift:79` (`testFilterUnsyncedHidesSynced`: sort-filter-button → filter-unsynced → sortfilter-done) and `SkriftDesktop/SkriftDesktopUITests/SidebarSearchSortUITests.swift:26,42` (`sidebar.filter`). Point them at the new ids (`chip-unsynced`, `chip-date`, `sort-cycle-word`, `sidebar.chip.Date`, `sidebar.sort-word`) with the same assertions — the change follows Tuur's D148, hand-merge. Run the PHONE test in the simulator (sim lock). NEVER run the Mac UI test (it takes the real mouse) — compile-check it only with `xcodebuild build-for-testing` of the Mac UI-test target.
 check: `./gate.sh`
+
+### Q92 [auto] (doing) Mac drop of voice clips + a picture: one note, the picture placed between the clips by its time (C68, ingress P3)
+spec: C68 C12 C238 C70
+needs: -
+gate+: yes
+do: Tuur 2026-10-01 on Skrift Dev (Mac, 1ad5737a): dragging five Signal voice clips in at once worked ("fucking perfect, very nice"), but the picture dragged with them (signal-2026-10-01-080349.jpeg, between clips 07:56 and 08:04 by its filename time) "didn't come in" at all. Q74 merged only the audio clips and sent other files down their own path; here the image was lost entirely. C68: a mixed bundle → ONE note in order — pictures per C12 as their own paragraph at their place — exactly the corpus fixture `ingress-p3-five-clips-one-picture` (5 clips + 1 picture between clip 3 and 4). Find why the image vanished (dropped by audioClips(in:)? the file-promise path? the chooser?), then make a Mac mixed drop produce the one-note result: clips merged in time order (filename-date ladder C70), the picture placed between the clips at its time. When the user picks "N notes", the picture becomes its own note (never lost). Desktop test over the P3 fixture + a test that no dropped file is ever silently skipped. Never run SkriftDesktopUITests.
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -966,3 +973,6 @@ check: `./gate.sh`
 - 2026-09-30 16:11 Q90 -> done — hand-merged (D159 approved: import-floor tests changed to the unrated rule)
 - 2026-09-30 16:17 Q66 -> done — gate pass @c0e6c5b4
 - 2026-09-30 16:18 Q91 added
+- 2026-10-01 15:33 Q92 added
+- 2026-10-01 15:33 Q92 -> doing — worker out
+- 2026-10-01 15:33 Q91 -> doing — worker out
