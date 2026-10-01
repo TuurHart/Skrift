@@ -677,7 +677,7 @@ gate+: yes
 do: Q92 found the phone's share drain (CaptureInboxDrainer ~l.238-260) pins every bundled photo at offsetSeconds 0, so a phone share of clips + pictures puts all pictures at the top — C12 is not implemented on the phone either. Q92 wrote the shared composer `Shared/Pipeline/MixedBundle.swift` (order by filename time when every name is dated, else selection order; a picture's offset = merged-clip seconds before it). Route the phone share drain through MixedBundle so the same bundle gives the same note on both apps (C238); phone test over the ingress P3 shape (5 clips + 1 picture between clip 3 and 4). Phone only; never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh`
 
-### Q94 [auto] (doing) the phone reads dates from filenames like the Mac (C70 required difference): one shared filename-date ladder, the share extension carries each file's name
+### Q94 [auto] (done) the phone reads dates from filenames like the Mac (C70 required difference): one shared filename-date ladder, the share extension carries each file's name
 spec: C70 C124 C12 C238
 needs: Q93
 gate+: yes
@@ -997,3 +997,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-01 15:58 Q93 -> done — gate pass @752a8467
 - 2026-10-01 15:58 Q94 added
 - 2026-10-01 15:58 Q94 -> doing — worker out
+- 2026-10-01 16:20 Q94 -> done — gate pass @8b712145
