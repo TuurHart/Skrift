@@ -40,7 +40,7 @@ extension Sanitiser {
         let resolver = SpeakerTurnStyle.HeaderResolver(people: live)
         func resolveHeader(_ rawName: String) -> Person? { resolver.person(for: rawName) }
         func identity(person: Person?, rawName: String) -> String {
-            person.map { NamesMerge.keyName($0.canonical).lowercased() } ?? "raw:" + rawName.lowercased()
+            person.map { NamesMerge.matchKey($0.canonical) } ?? "raw:" + rawName.lowercased()
         }
 
         // Merge consecutive turns by the same resolved speaker (#3).
@@ -65,7 +65,7 @@ extension Sanitiser {
         var headers: [String] = []
         for m in merged {
             if let p = m.person {
-                let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+                let canonKey = NamesMerge.bareName(p.canonical)
                 if seen.insert(canonKey.lowercased()).inserted {
                     headers.append("[[\(canonKey)]]")               // first mention → full link
                 } else {
@@ -116,9 +116,9 @@ extension Sanitiser {
                                    seen: inout Set<String>) -> String {
         var text = inputText
         for p in ov.linkPeople {
-            let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let canonKey = NamesMerge.bareName(p.canonical)
             let keyLower = canonKey.lowercased()
-            let unambiguous = ov.ownedAliases(of: p).filter { !ov.ambiguousAliases.contains($0.lowercased()) }
+            let (unambiguous, linkAliases) = ov.linkable(p)
             guard !unambiguous.isEmpty else { continue }
             // The display is the person's short name — fixed per person, independent of
             // what was transcribed — so every matched form normalises to it.
@@ -131,22 +131,8 @@ extension Sanitiser {
                 // Not linked yet. Only a distinctive (non-FP-prone) alias — or a force-picked
                 // one — may auto-commit a NEW inline link; a common-word/too-short-only,
                 // unpicked person stays plain (suggested).
-                let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) || ov.forced[$0.lowercased()] != nil }
-                guard !linkAliases.isEmpty else { continue }
-                let prot = nonProseRanges(in: text)
-                var earliest: (range: NSRange, poss: String)?
-                for rx in linkAliases.compactMap({ wordRegex($0) }) {
-                    // First ELIGIBLE match of this alias (skipping any inside a link / non-prose
-                    // span — e.g. a leading audiobook quote), then take the earliest across aliases.
-                    for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
-                        if earliest == nil || m.range.location < earliest!.range.location {
-                            earliest = (m.range, possText(m, in: text))
-                        }
-                        break
-                    }
-                }
-                guard let first = earliest else { continue }    // no SAFE mention in this block
-                text = nsReplace(text, first.range, with: display + first.poss)
+                guard let first = firstSafeMatch(of: linkAliases, in: text) else { continue }  // no SAFE mention in this block
+                text = nsReplace(text, first.range, with: display + possText(first, in: text))
                 seen.insert(keyLower)
             }
             // Remaining mentions (and EVERY mention of an already-linked person) → the short
@@ -154,13 +140,7 @@ extension Sanitiser {
             // "every later mention demotes" holds even for a single-token name).
             let demotion = short.isEmpty ? canonKey : short
             guard !demotion.isEmpty else { continue }
-            let prot = nonProseRanges(in: text)
-            for rx in unambiguous.compactMap({ wordRegex($0) }) {
-                for m in rx.matches(in: text, range: fullRange(text)).reversed() {
-                    if !eligible(text, m.range.location, prot) { continue }
-                    text = nsReplace(text, m.range, with: demotion + possText(m, in: text))
-                }
-            }
+            text = demoteMentions(of: unambiguous, to: demotion, in: text)
         }
         return text
     }

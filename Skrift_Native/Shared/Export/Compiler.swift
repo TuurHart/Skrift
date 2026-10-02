@@ -273,7 +273,7 @@ enum Compiler {
     static func peopleLinks(in body: String, knownPeople: [Person]? = nil) -> [String] {
         let ns = body as NSString
         let allow: Set<String>? = knownPeople.map {
-            Set($0.filter { !$0.isDeleted }.map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() })
+            Set($0.filter { !$0.isDeleted }.map { NamesMerge.matchKey($0.canonical) })
         }
         var seen = Set<String>()
         var out: [String] = []
@@ -295,7 +295,7 @@ enum Compiler {
         let ns = body as NSString
         let allow: Set<String>? = knownPeople.map {
             Set($0.filter { !$0.isDeleted }
-                .map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() })
+                .map { NamesMerge.matchKey($0.canonical) })
         }
         var edits: [(NSRange, String)] = []
         for link in Sanitiser.linkOccurrences(in: body) {
@@ -305,7 +305,7 @@ enum Compiler {
             guard !target.isEmpty else { continue }
             if allow?.contains(target.lowercased()) == true { continue }   // a person — keep the link
             // `[[Target|spoken]]` renders as the spoken form, so that is the text to keep.
-            let shown = link.core.contains("|") ? String(link.core.split(separator: "|").last ?? "") : target
+            let shown = Sanitiser.linkDisplay(link.core) ?? target
             edits.append((link.range, shown))
         }
         var out = body

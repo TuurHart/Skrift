@@ -30,10 +30,10 @@ extension Sanitiser {
         // Every live person who declares `alias` (case-insensitive) — drives the
         // ambiguity of a LINKED span (≥2 ⇒ offer "Change person…").
         func sharers(of alias: String) -> [Person] {
-            let a = alias.trimmingCharacters(in: .whitespaces).lowercased()
+            let a = NamesMerge.aliasKey(alias)
             guard !a.isEmpty else { return [] }
             return ov.live.filter { p in
-                p.aliases.contains { $0.trimmingCharacters(in: .whitespaces).lowercased() == a }
+                p.aliases.contains { NamesMerge.aliasKey($0) == a }
             }
         }
         // The match range minus any trailing possessive (`Jack's` → `Jack`), so the
@@ -59,29 +59,20 @@ extension Sanitiser {
         // canonical) — the SAME person `process` would link first, recorded at its RAW
         // offset (no bracket written).
         for p in ov.linkPeople {
-            let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
-            let unambiguous = ov.ownedAliases(of: p).filter { !ov.ambiguousAliases.contains($0.lowercased()) }
-            let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) || ov.forced[$0.lowercased()] != nil }
+            let canonKey = NamesMerge.bareName(p.canonical)
+            let linkAliases = ov.linkable(p).linkAliases
 
             // A raw transcript may already carry this person's canonical link (a diarized
             // fragment passing through) — that earliest link is the first mention.
             if let first = linkOccurrences(of: canonKey, in: raw).first {
-                let shown = first.core.contains("|") ? (first.core.split(separator: "|").last.map(String.init) ?? canonKey) : canonKey
+                let shown = linkDisplay(first.core) ?? canonKey
                 spans.append(NameSpan(offset: first.range.location, length: first.range.length,
                                       alias: shown, tier: .linked, canonical: p.canonical,
                                       candidates: { let s = sharers(of: shown); return s.isEmpty ? [candidate(p)] : s.map(candidate) }()))
                 linkedKeys.insert(canonKey.lowercased())
                 continue
             }
-            guard !linkAliases.isEmpty else { continue }
-            var earliest: NSTextCheckingResult?
-            for rx in linkAliases.compactMap({ wordRegex($0) }) {
-                for m in rx.matches(in: raw, range: fullRange(raw)) where eligible(raw, m.range.location, prot) {
-                    if earliest == nil || m.range.location < earliest!.range.location { earliest = m }
-                    break
-                }
-            }
-            guard let m = earliest else { continue }
+            guard let m = firstSafeMatch(of: linkAliases, in: raw, prot: prot) else { continue }
             let r = nameOnly(m)
             let shownAlias = nsSub(raw, r.location, r.location + r.length)
             let cands = sharers(of: shownAlias)

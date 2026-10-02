@@ -204,12 +204,11 @@ final class NamesStore {
     func upsert(_ person: Person, replacing originalCanonical: String?) {
         lock.lock(); defer { lock.unlock() }
         var people = unlockedLivePeople()
-        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
-        let newKey = key(person.canonical)
-        if let orig = originalCanonical, let i = people.firstIndex(where: { key($0.canonical) == key(orig) }) {
+        let newKey = NamesMerge.matchKey(person.canonical)
+        if let orig = originalCanonical, let i = people.firstIndex(where: { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(orig) }) {
             // An EDIT (incl. rename): full replace, so removing an alias actually takes effect.
             people[i] = person
-        } else if let i = people.firstIndex(where: { key($0.canonical) == newKey }) {
+        } else if let i = people.firstIndex(where: { NamesMerge.matchKey($0.canonical) == newKey }) {
             // ADD whose name collides with an existing person → MERGE rather than clobber:
             // union the new aliases in, keep the existing short/voice when the add didn't set
             // them. (A deliberate edit goes through the `replacing` branch above and replaces.)
@@ -240,8 +239,7 @@ final class NamesStore {
     func seedRoster(titles: [String]) -> Int {
         lock.lock(); defer { lock.unlock() }
         let existing = unlockedLivePeople()
-        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
-        var have = Set(existing.map { key($0.canonical) })
+        var have = Set(existing.map { NamesMerge.matchKey($0.canonical) })
         var added: [Person] = []
         let now = ISO8601.now()
         for raw in titles {
@@ -267,9 +265,9 @@ final class NamesStore {
     /// removed canonical (kept for LWW sync) and preserves everyone else.
     func delete(canonical: String) {
         lock.lock(); defer { lock.unlock() }
-        let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces).lowercased()
+        let key = NamesMerge.matchKey(canonical)
         let remaining = unlockedLivePeople().filter {
-            NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() != key
+            NamesMerge.matchKey($0.canonical) != key
         }
         _ = unlockedWriteWithSmartBumps(remaining)
     }

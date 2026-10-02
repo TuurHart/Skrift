@@ -978,7 +978,7 @@ struct BodyTextView: NSViewRepresentable {
             let key = Sanitiser.linkTarget(core)
             guard !key.isEmpty else { return nil }
             return peopleCache.first {
-                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces)
+                NamesMerge.bareName($0.canonical)
                     .caseInsensitiveCompare(key) == .orderedSame
             }
         }
@@ -1120,7 +1120,7 @@ struct BodyTextView: NSViewRepresentable {
         /// State 3 — the prune/fix popover at a clicked linked `[[Name]]`: unlink (→ a dotted,
         /// re-promotable suggestion), change person…, open their note.
         private func showLinkedPopover(link: Sanitiser.BodyLink, person p: Person, tv: SelfSizingTextView) {
-            let canonical = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let canonical = NamesMerge.bareName(p.canonical)
             // The alias a "change person" override keys on — the spoken word of a
             // `[[Canonical|spoken]]` link, else the person's spoken short.
             let parts = link.core.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)

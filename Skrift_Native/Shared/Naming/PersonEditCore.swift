@@ -46,7 +46,7 @@ enum PersonEditCore {
     static func materialise(fullName: String, aliases: [String], short: String,
                             original: Person?) -> (person: Person, renamedFrom: String?)? {
         let canonical = NamesMerge.normaliseCanonical(fullName.trimmingCharacters(in: .whitespaces))
-        let plainName = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces)
+        let plainName = NamesMerge.bareName(canonical)
         guard !plainName.isEmpty else { return nil }
 
         var clean: [String] = []
@@ -75,8 +75,7 @@ enum PersonEditCore {
     @discardableResult
     static func createIfNeeded(fullName: String, short: String = "", in store: NamesStore) -> Person? {
         let trimmed = fullName.trimmingCharacters(in: .whitespaces)
-        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
-        let existing = store.livePeople().first { key($0.canonical) == key(trimmed) }
+        let existing = store.livePeople().first { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(trimmed) }
         let typedShort = short.trimmingCharacters(in: .whitespaces)
         if let existing, typedShort.isEmpty { return existing }
         let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
@@ -84,6 +83,6 @@ enum PersonEditCore {
                                   short: typedShort.isEmpty ? first : typedShort,
                                   original: nil) else { return nil }
         store.upsert(r.person, replacing: nil)
-        return store.livePeople().first { key($0.canonical) == key(r.person.canonical) }
+        return store.livePeople().first { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(r.person.canonical) }
     }
 }

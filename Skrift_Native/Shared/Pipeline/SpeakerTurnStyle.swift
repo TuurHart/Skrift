@@ -30,7 +30,7 @@ enum SpeakerTurnStyle {
             var map: [String: [Person]] = [:]
             for p in people {
                 for a in p.aliases {
-                    let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                    let al = NamesMerge.aliasKey(a)
                     if !al.isEmpty { map[al, default: []].append(p) }
                 }
             }
@@ -43,10 +43,10 @@ enum SpeakerTurnStyle {
         /// nil = "Speaker N" / unknown / ambiguous → the header stays plain.
         /// `name` is a PARSED label (`SpeakerTranscript.parse` form: `[[ ]]` already stripped).
         func person(for name: String) -> Person? {
-            let key = name.trimmingCharacters(in: .whitespaces).lowercased()
+            let key = NamesMerge.aliasKey(name)
             guard !key.isEmpty else { return nil }
             if let p = live.first(where: {
-                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == key
+                NamesMerge.matchKey($0.canonical) == key
             }) { return p }
             if !ambiguous.contains(key), let cands = aliases[key], cands.count == 1 { return cands[0] }
             return nil
@@ -55,7 +55,7 @@ enum SpeakerTurnStyle {
         /// The key two headers share iff they are the same speaker — a resolved person's
         /// canonical, else the raw label. Unknown speakers stay distinct from each other.
         func identity(for name: String) -> String {
-            person(for: name).map { NamesMerge.keyName($0.canonical).lowercased() }
+            person(for: name).map { NamesMerge.matchKey($0.canonical) }
                 ?? "raw:" + name.lowercased()
         }
     }
