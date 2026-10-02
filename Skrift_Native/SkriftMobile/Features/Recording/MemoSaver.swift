@@ -91,14 +91,16 @@ struct MemoSaver {
             duration = Double(f.length) / f.fileFormat.sampleRate
         }
 
-        // Date ladder mirrors video: embedded asset date > supplied date (the
-        // share's clip file date) > now. Device round 1: a WhatsApp voice note
-        // landed dated to the UPLOAD moment, not the voice note's creation.
+        // C70 ladder (Q134): embedded asset date (below, async) > the supplied date (a share's
+        // ladder answer) > the date in the file's NAME > its file date > now. Files / AirDrop /
+        // Open-in pass no date, so a Signal / WhatsApp file dates from its name, as on the Mac.
+        // Device round 1: a WhatsApp voice note landed dated to the UPLOAD moment.
+        let seed = recordedAt ?? FilenameDate.ladder(embedded: nil, fileAt: source) ?? Date()
         repository.insert(Memo(
             id: id,
             audioFilename: filename,
             duration: duration,
-            recordedAt: recordedAt ?? Date(),
+            recordedAt: seed,
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
@@ -139,8 +141,8 @@ struct MemoSaver {
             audioFilename: filename,
             duration: 0,
             // The FIRST (oldest) clip's date — upgraded to its embedded asset
-            // date in the async core when one exists.
-            recordedAt: recordedAt ?? Date(),
+            // date in the async core when one exists (C70, the Mac's ingestMergedAudio too).
+            recordedAt: recordedAt ?? FilenameDate.ladder(embedded: nil, fileAt: sources[0]) ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
@@ -257,7 +259,7 @@ struct MemoSaver {
             id: id,
             audioFilename: filename,
             duration: 0,
-            recordedAt: creationDate ?? Date(),
+            recordedAt: creationDate ?? Self.scopedLadder(source) ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
@@ -290,8 +292,10 @@ struct MemoSaver {
 
         let asset = AVURLAsset(url: source)
 
-        // Embedded recording date (survives copies) > supplied PHAsset date > now.
-        let recorded = (await Self.embeddedCreationDate(of: asset)) ?? fallbackDate ?? Date()
+        // C70 (Q134): embedded recording date (survives copies) > supplied PHAsset date > the date
+        // in the file's NAME > its file date > now — the Mac's ingestVideo ladder.
+        let embedded = (await Self.embeddedCreationDate(of: asset)) ?? fallbackDate
+        let recorded = FilenameDate.ladder(embedded: embedded, fileAt: source) ?? Date()
 
         // Extract the audio track to .m4a. If the asset has no audio (a silent clip)
         // there's nothing to transcribe — fail gracefully, and SAY WHY: a bare
@@ -395,6 +399,13 @@ struct MemoSaver {
         if let d = iso.date(from: s) { return d }
         iso.formatOptions = [.withInternetDateTime]
         return iso.date(from: s)
+    }
+
+    /// The C70 filename -> file-date rungs of a possibly security-scoped file (Files / AirDrop).
+    nonisolated static func scopedLadder(_ url: URL) -> Date? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return FilenameDate.ladder(embedded: nil, fileAt: url)
     }
 
     enum VideoImportError: Error { case unreadableContainer, noAudioTrack, exportFailed }

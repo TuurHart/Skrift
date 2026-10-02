@@ -36,4 +36,40 @@ enum FilenameDate {
     static func ladder(embedded: Date?, filename: String?, fileDate: Date?) -> Date? {
         embedded ?? filename.flatMap { date(from: $0) } ?? fileDate
     }
+
+    /// The file-date rung (C70): the EARLIER of the file's creation and modification dates. A
+    /// copy restamps one of the two (creation on APFS/Finder copies, modification on some
+    /// providers' temp copies), so the earlier one is the closer guess.
+    static func fileDate(of url: URL) -> Date? {
+        let v = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+        return [v?.creationDate, v?.contentModificationDate].compactMap { $0 }.min()
+    }
+
+    /// The ladder for a LOCAL file, every door's one call (Q134): `embedded` is the caller's read
+    /// of the content's own date (AVAsset creation date, EXIF); `name` overrides the file's own
+    /// name when the file is a renamed copy (a share's temp). nil = the caller's `now` rung.
+    static func ladder(embedded: Date?, fileAt url: URL, name: String? = nil) -> Date? {
+        ladder(embedded: embedded, filename: name ?? url.lastPathComponent, fileDate: fileDate(of: url))
+    }
+
+    /// Dates closer together than this are ONE moment (capture-share-14): WhatsApp stamps every
+    /// shared temp copy at the share instant, so their order says nothing and the arrival order
+    /// (the chat order) wins.
+    static let sameMoment: TimeInterval = 2
+
+    /// The indices of `dates` oldest → newest, STABLE. Keeps the arrival order when any date is
+    /// missing or every date sits within `sameMoment` of the others; otherwise sorts by
+    /// (date, index). The ONE ordering rule of a bundle on both apps (`MixedBundle.ordered`,
+    /// the share extension's clip order).
+    static func chronologicalOrder(_ dates: [Date?]) -> [Int] {
+        let identity = Array(dates.indices)
+        guard dates.count > 1 else { return identity }
+        let known = dates.compactMap { $0 }
+        guard known.count == dates.count, let lo = known.min(), let hi = known.max(),
+              hi.timeIntervalSince(lo) >= sameMoment else { return identity }
+        return identity.sorted {
+            let a = dates[$0]!, b = dates[$1]!
+            return a == b ? $0 < $1 : a < b
+        }
+    }
 }

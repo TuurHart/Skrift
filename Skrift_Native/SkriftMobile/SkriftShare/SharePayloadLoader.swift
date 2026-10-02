@@ -257,7 +257,8 @@ enum SharePayloadLoader {
                             // Q94: the ORIGINAL name, read BEFORE the copy renames it `shared_<uuid>`.
                             let name = FilenameDate.bestName([url.lastPathComponent, provider.suggestedName])
                             // Original file date, read BEFORE the copy (best-effort order key).
-                            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+                            // Q134: the shared file-date rung (earlier of creation / modification).
+                            let date = FilenameDate.fileDate(of: url)
                             let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
                             let dest = FileManager.default.temporaryDirectory
                                 .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
