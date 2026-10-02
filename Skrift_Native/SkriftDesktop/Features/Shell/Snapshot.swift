@@ -92,6 +92,10 @@ enum Snapshot {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderCardKinds(to: p, scheme: light ? .light : .dark); exit(0) }
         }
+        if let p = path("-snapshot-card-chips") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderCardChips(to: p, scheme: light ? .light : .dark); exit(0) }
+        }
         if let p = path("-snapshot-sidebar-selection") {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderSidebarSelection(to: p, scheme: light ? .light : .dark); exit(0) }
@@ -380,6 +384,36 @@ enum Snapshot {
             .background(Theme.bg)
             .preferredColorScheme(scheme)
         hostPNG(view, size: NSSize(width: 292 + 32, height: 932), to: path)
+    }
+
+    /// Q265: the shared `NoteCardView` chip row at the Mac sidebar's width (292) with 1, 3, 5, 8
+    /// and 11 chips (duration + place + weather + tags): 5 wraps to 2 lines, 8 and 11 keep two
+    /// lines and end on a "+N" chip, a long tag truncates inside the card instead of clipping.
+    /// Pure NoteCardView fixtures (no engine, no store). `-snapshot-card-chips <path>` · `-light`.
+    @MainActor private static func renderCardChips(to path: String, scheme: ColorScheme) {
+        func chips(_ tags: [String]) -> [NoteCardModel.Chip] {
+            [.init(text: "1:23", systemImage: "waveform"),
+             .init(text: "Lisbon", systemImage: "mappin.circle.fill"),
+             .init(text: "18°", systemImage: "cloud.sun.fill")] + NoteCardModel.tagChips(for: tags)
+        }
+        func card(_ title: String, _ list: [NoteCardModel.Chip]) -> some View {
+            NoteCardView(model: NoteCardModel(stamp: "Sun · 19:49", title: title, snippet: "Walked past the bakery.",
+                                              chips: list),
+                         style: .mac)
+        }
+        let view = VStack(spacing: 10) {
+            card("1 chip", [.init(text: "1:23", systemImage: "waveform")])
+            card("3 chips", chips([]))
+            card("5 chips (duration + place + weather + 2 tags)", chips(["daily", "garden"]))
+            card("8 chips", chips(["daily", "garden", "planters", "water", "notary"]))
+            card("11 chips", chips(["daily", "garden", "planters", "water", "notary", "ideas", "greywater", "pump"]))
+            card("One very long tag", chips(["an-extraordinarily-long-tag-name-that-cannot-possibly-fit-in-one-row-at-all"]))
+        }
+        .padding(16)
+        .frame(width: 292 + 32)
+        .background(Theme.bg)
+        .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 292 + 32, height: 620), to: path)
     }
 
     /// Q106: one synthetic note of each kind (voice, video, audiobook quote, link, text, image,
