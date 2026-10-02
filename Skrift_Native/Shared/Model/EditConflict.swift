@@ -362,6 +362,7 @@ enum EditConflicts {
                         editedAt: now,
                         metadataData: marker)
         copy.destinationRaw = memo.destinationRaw
+        copy.includeAudioInExport = memo.includeAudioInExport
         copy.keptAt = now
         return copy
     }

@@ -374,7 +374,10 @@ enum CaptureInboxDrainer {
                             memo.metadata = meta
                         }
                         // B3: the bundle's chat text leads the note as the annotation.
-                        if let chat = entry.text, !chat.isEmpty { memo.annotationText = chat }
+                        // Q186: the SAME rule the Mac drop applies to a bundle's .txt/.md.
+                        if let chat = MixedBundle.annotation(fromTexts: [entry.text ?? ""]) {
+                            memo.annotationText = chat
+                        }
                         // The sheet's significance circles apply to the imported memo.
                         if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()

@@ -70,6 +70,12 @@ final class Memo {
     /// direction (the private side).
     var destinationRaw: String = NoteDestination.personal.rawValue
 
+    /// Copy the original audio into the vault's recordings folder on export (ST8, setexp-92).
+    /// Per note, synced the way `destinationRaw` is, so the Mac's switch and the phone's
+    /// publisher read ONE value (Q186). Non-optional with a `true` default: an additive field,
+    /// and every existing memo keeps today's behaviour (audio copied).
+    var includeAudioInExport: Bool = true
+
     var syncStatus: SyncStatus = SyncStatus.waiting
 
     /// Optional phone-set title (Memo detail). Sent in the upload metadata; the

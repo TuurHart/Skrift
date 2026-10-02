@@ -14,9 +14,9 @@ struct NoteProperties: View {
     var interactive = true
     /// False for an unrated note (`MemoNoteProjection`), which hides the
     /// include-audio-in-export switch: the note can't be exported at all yet, so a
-    /// switch governing what export copies would be a control over nothing — and
-    /// `includeAudioInExport` is Mac-local and unsynced, so flipping it on a
-    /// projection would silently go nowhere.
+    /// switch governing what export copies would be a control over nothing (a projection
+    /// has no `PipelineFile` to hold it; the synced `Memo.includeAudioInExport` reaches the
+    /// row once the note is rated).
     var canExport = true
     /// Q87: the coordinator behind the Split speakers switch (queue, progress, flatten). nil on
     /// hosts with no pipeline (the switch then only reads the note).
@@ -256,7 +256,11 @@ struct NoteProperties: View {
     @ViewBuilder private var audioExportRow: some View {
         HStack(spacing: 8) {
             if interactive {
-                Toggle("", isOn: $file.includeAudioInExport)
+                // Q186: the choice is synced (`Memo.includeAudioInExport`), so the phone's
+                // publisher honours it too — written out the moment it is flipped.
+                Toggle("", isOn: Binding(get: { file.includeAudioInExport },
+                                         set: { file.includeAudioInExport = $0
+                                                MacCloudMetaSync.setIncludeAudio(for: file) }))
                     .labelsHidden().toggleStyle(.switch).controlSize(.mini).tint(Theme.accent)
             } else {
                 // ImageRenderer can't draw a switch — the snapshot path states it.

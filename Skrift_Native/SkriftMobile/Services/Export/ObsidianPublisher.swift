@@ -93,8 +93,8 @@ struct PublishReport: Equatable {
 /// - PHOTOS EXPORT: `[[img_NNN]]` markers become real `![[<stem>_NNN.ext]]` embeds
 ///   with the images copied into `Attachments/` — the phone-side gap that made
 ///   Mac-only export the rule is closed.
-/// - AUDIO EXPORTS into `Voice Memos/` like the Mac (the per-note include-audio
-///   toggle stays Mac-only until the field syncs — that chunk is parked in backlog).
+/// - AUDIO EXPORTS into `Voice Memos/` like the Mac, honouring the note's synced
+///   include-audio switch (`Memo.includeAudioInExport`, Q186 — set on the Mac).
 /// - The Mac's polish is PREFERRED when it has synced back (`MemoEnhancement`), so
 ///   the published note upgrades itself once the Mac has done its pass.
 ///
@@ -241,7 +241,7 @@ struct ObsidianPublisher {
             photoBlobs[source].map { VaultAsset(name: embedName, source: .data($0)) }
         }
         var audio: VaultAsset?
-        if !memo.audioFilename.isEmpty, let blob = audioProvider(memo.id) {
+        if memo.includeAudioInExport, !memo.audioFilename.isEmpty, let blob = audioProvider(memo.id) {
             let ext = (memo.audioFilename as NSString).pathExtension
             audio = VaultAsset(name: stem + "." + (ext.isEmpty ? "m4a" : ext), source: .data(blob))
         }
