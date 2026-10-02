@@ -735,7 +735,7 @@ do: Mac `WayOutColumn.memoRow` and `UnpipelinedMemoSheet` show title, date, plac
 check: `grep -rqE "class MacLockedSurfacesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LockedSurfacesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P2
 
-### Q102 [auto] (todo) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
+### Q102 [auto] (doing) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
 spec: C182 C215 D10
 needs: -
 gate+: yes
@@ -965,7 +965,7 @@ check: Tuur picked and the rule went into SPEC.
 brief: Phone shared-text capture is a borderless italic quote (Tuur 2026-07-12, memory feedback_no_bubbles_on_shared_input, not in SPEC); the Mac draws a bordered, tinted 'SHARED CONTENT' card for all four capture types; the phone's own link and file cards are bordered boxes, so the rule is not uniform on the phone either (note-capture-02, capture-drain-07). Recommended: write the rule into SPEC with the exact scope (text quote only), then the Mac text capture draws the accent-bar quote and the other three keep their cards.
 source: plan/reads/parity-audit.md P31
 
-### Q131 [auto] (todo) Mac new typed note: the Memo is created on the first keystroke, an empty one is discarded, the body has focus, place is stamped
+### Q131 [auto] (doing) Mac new typed note: the Memo is created on the first keystroke, an empty one is discarded, the body has focus, place is stamped
 spec: C43 D91 C112 D151
 needs: -
 gate+: yes
@@ -1218,7 +1218,7 @@ do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-lis
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P63
 
-### Q163 [auto] (doing) Mac recorder survives a kill: segments + launch sweep, and a disk-full stop saves what landed
+### Q163 [auto] (done) Mac recorder survives a kill: segments + launch sweep, and a disk-full stop saves what landed
 spec: C99 D131 R46 C224
 needs: -
 gate+: yes
@@ -2410,3 +2410,6 @@ check: `./gate.sh`
 - 2026-10-02 12:56 Q138 -> done — gate pass @0985a481
 - 2026-10-02 12:57 Q237 -> done — gate pass @12953ca6
 - 2026-10-02 12:58 Q250 added
+- 2026-10-02 12:58 Q131 -> doing — worker out
+- 2026-10-02 13:01 Q102 -> doing — worker out
+- 2026-10-02 13:01 Q163 -> done — gate pass @12420ad6
