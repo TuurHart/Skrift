@@ -89,6 +89,8 @@ backend/config/names.json
 # detector — it is versioned. `*` not `/` so the negation below can re-include a subfolder.
 test-fixtures/*
 !test-fixtures/corpus/
+# Q139: the Mac-authored memo shape the phone reads (synthetic, ~3 KB, pinned by a Mac test).
+!test-fixtures/mac-authored-memos/
 
 # Archived old apps (post-convergence move 2026-06) — re-ignore the build
 # artifacts + personal config that the anchored root patterns above no longer

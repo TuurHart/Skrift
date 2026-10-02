@@ -55,14 +55,19 @@ enum MacMemoAuthor {
         guard already == 0 else { return nil }
 
         let sig = pf.significance ?? 0
-        let memo = Memo(id: id, audioFilename: pf.filename,
-                        duration: audioDuration(at: audioURL) ?? 0,
+        // Q139 (R36, C71, C124): the memo carries what a phone memo of the same kind would:
+        // the metadata blob (media marker, place, clip manifest, picture manifest), one
+        // `photo` asset per picture, and an `audioFilename` only when there IS audio.
+        let shape = authoredShape(for: pf, memoID: id)
+        let memo = Memo(id: id, audioFilename: shape.audioFilename,
+                        duration: shape.hasAudio ? (audioDuration(at: audioURL) ?? 0) : 0,
                         // The closest PipelineFile analogue to "recordedAt" — IngestService's own
                         // doc calls this the CONTENT date (filename-embedded / file creation date),
                         // not the upload time. PipelineFile carries no separate duration field.
                         recordedAt: pf.uploadedAt,
                         // D159: no floor — an unrated file authors an unrated Memo.
                         significance: sig,
+                        metadataData: shape.metadataData,
                         recordingDeviceID: DeviceID.current())
         if let t = pf.transcript, !t.isEmpty {
             // A live-recording finalize (`LiveRecordingSession.stop()`) seeds `pf.transcript`
@@ -76,9 +81,14 @@ enum MacMemoAuthor {
         }
         ctx.insert(memo)
 
-        if let audioURL, FileManager.default.fileExists(atPath: audioURL.path),
+        // Audio only for an audio row: a note's `path` is its markdown, a capture's a folder.
+        if shape.hasAudio, let audioURL, FileManager.default.fileExists(atPath: audioURL.path),
            let blob = try? Data(contentsOf: audioURL) {
-            ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.audio, filename: pf.filename, blob: blob))
+            ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.audio, filename: shape.audioFilename, blob: blob))
+        }
+        for photo in shape.photos {
+            guard let blob = try? Data(contentsOf: photo.source) else { continue }
+            ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.photo, filename: photo.filename, blob: blob))
         }
 
         try ctx.save()
@@ -154,6 +164,88 @@ enum MacMemoAuthor {
     /// and edits it.
     static func typedNote(into ctx: ModelContext, now: Date = Date()) throws -> Memo {
         try Memo.newTyped(into: ctx, now: now)
+    }
+
+    // MARK: - Authored shape (Q139)
+
+    /// What `author` writes besides the row fields: the audio name, whether the row has audio
+    /// at all, the metadata blob, and the pictures to attach as `photo` assets.
+    struct AuthoredShape {
+        var audioFilename: String
+        var hasAudio: Bool
+        var metadataData: Data?
+        var photos: [(source: URL, filename: String)]
+    }
+
+    /// The phone-shaped memo for a Mac row.
+    /// - `audioFilename`: empty for a `.note` / `.capture` row (no audio, so `SourceKind.of`
+    ///   reads it as a note, not a 0:00 voice memo); the row's own filename when its extension
+    ///   is the audio file's; otherwise `memo_<uuid>.<audio ext>`, the phone's own naming (a
+    ///   video row keeps the MOVIE's name and a merged row its first clip's, but the blob is
+    ///   the extracted or stitched m4a).
+    /// - metadata: `mediaSource` (plus the phone's `sourceType` for a video, C71), a place the
+    ///   row already carries, the clip manifest of a merged note (C124), and the picture
+    ///   manifest renamed to the phone's unique `photo_<uuid>_NNN.<ext>` (the phone keeps every
+    ///   asset in ONE flat folder, so `img_001.jpg` would collide across notes). Entries stay
+    ///   positional: `[[img_N]]` is the Nth entry, so a missing file never shifts the others.
+    static func authoredShape(for pf: PipelineFile, memoID: UUID) -> AuthoredShape {
+        let hasAudio = pf.sourceType == .audio
+        let isVideo = pf.mediaSource == MemoMetadata.Source.video
+        let audioFilename: String
+        let audioExt = (pf.path as NSString).pathExtension
+        if !hasAudio {
+            audioFilename = ""
+        } else if audioExt.isEmpty
+                    || (pf.filename as NSString).pathExtension.caseInsensitiveCompare(audioExt) == .orderedSame {
+            audioFilename = pf.filename
+        } else {
+            // A video (`IMG_0001.MOV` → `original.m4a`) or a merged note (named after its first
+            // `.opus` clip, stitched to `original.m4a`): the name would lie about the blob.
+            audioFilename = "memo_\(memoID.uuidString).\(audioExt)"
+        }
+
+        var meta = MemoMetadata()
+        var photos: [(source: URL, filename: String)] = []
+        if let folder = pf.workingFolder {
+            if let data = try? Data(contentsOf: folder.appendingPathComponent("image_manifest.json")),
+               let entries = try? JSONDecoder().decode([ImageManifestEntry].self, from: data), !entries.isEmpty {
+                let images = folder.appendingPathComponent("images", isDirectory: true)
+                meta.imageManifest = entries.enumerated().map { i, entry in
+                    let ext = (entry.filename as NSString).pathExtension.lowercased()
+                    let name = "photo_\(memoID.uuidString)_\(String(format: "%03d", i + 1)).\(ext.isEmpty ? "jpg" : ext)"
+                    let source = images.appendingPathComponent(entry.filename)
+                    if FileManager.default.fileExists(atPath: source.path) { photos.append((source, name)) }
+                    var renamed = entry
+                    renamed.filename = name
+                    return renamed
+                }
+            }
+            if hasAudio,
+               let data = try? Data(contentsOf: folder.appendingPathComponent(IngestService.clipManifestName)),
+               let clips = try? JSONDecoder().decode([ClipManifestEntry].self, from: data), !clips.isEmpty {
+                meta.clipManifest = clips
+            }
+        }
+        if isVideo { meta.sourceType = MemoMetadata.Source.video }
+        meta.location = storedLocation(in: pf.audioMetadataJSON)
+
+        let media = pf.mediaSource?.trimmingCharacters(in: .whitespaces) ?? ""
+        guard meta != MemoMetadata() || !media.isEmpty,
+              let encoded = try? JSONEncoder().encode(meta),
+              var obj = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any] else {
+            return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: nil, photos: photos)
+        }
+        if !media.isEmpty { obj["mediaSource"] = media }
+        let data = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])
+        return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: data, photos: photos)
+    }
+
+    /// A place the row's own metadata blob already holds. Never a fresh fix: an import's place
+    /// is wherever it was captured (`MacLocationStamp`).
+    private static func storedLocation(in json: Data?) -> LocationInfo? {
+        struct Carrier: Decodable { var location: LocationInfo? }
+        guard let json else { return nil }
+        return (try? JSONDecoder().decode(Carrier.self, from: json))?.location
     }
 
     // MARK: - Privates
