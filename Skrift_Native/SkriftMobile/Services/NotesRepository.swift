@@ -10,7 +10,11 @@ final class NotesRepository {
     let container: ModelContainer
     var context: ModelContext { container.mainContext }
 
-    init(inMemory: Bool) {
+    /// `containerFactory` is a test seam (a factory that throws simulates a store that won't open).
+    init(inMemory: Bool,
+         containerFactory: (Schema, ModelConfiguration) throws -> ModelContainer = { schema, config in
+             try ModelContainer(for: schema, configurations: config)
+         }) {
         let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self,
                              AudiobookSyncRecord.self, AudiobookBookmarksRecord.self,
                              AudiobookAsset.self, MemoEnhancement.self,
@@ -36,11 +40,28 @@ final class NotesRepository {
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,
                                         cloudKitDatabase: cloudKit)
         do {
-            container = try ModelContainer(for: schema, configurations: config)
+            container = try containerFactory(schema, config)
+            startFailure = nil
         } catch {
-            fatalError("Unable to create ModelContainer for Memo: \(error)")
+            // Never crash, never delete or recreate the store (data safety): keep the error,
+            // log it, and let the app show the "couldn't open your notes" screen. `container`
+            // is a throwaway in-memory placeholder so non-optional callers still compile; the
+            // app never attaches it to the UI and the capture drainer refuses to write to it.
+            startFailure = StoreStartPolicy.decide(error)
+            DevLog.log("STORE START FAILED: \(error)")
+            let fallback = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true,
+                                              cloudKitDatabase: .none)
+            // An empty in-memory store cannot realistically fail; if it does there is nothing left to build.
+            container = try! ModelContainer(for: schema, configurations: fallback)
         }
     }
+
+    /// nil = the real store opened. Non-nil = it did not; the UI shows this instead of the app
+    /// and nothing may write through `container` (an empty in-memory placeholder).
+    let startFailure: StoreStartFailure?
+    /// False when the real store failed to open: writers (inbox drain) must not consume
+    /// anything into the placeholder.
+    var isUsable: Bool { startFailure == nil }
 
     func insert(_ memo: Memo) {
         context.insert(memo)
