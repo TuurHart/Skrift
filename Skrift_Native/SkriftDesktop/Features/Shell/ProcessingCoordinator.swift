@@ -513,7 +513,6 @@ final class ProcessingCoordinator {
             let result = try await Task.detached(priority: .userInitiated) {
                 try VaultExporter.export(pf, settings: settings)
             }.value
-            let name = result.markdownURL.deletingPathExtension().lastPathComponent
             // The engine tells the truth per outcome; the WORDS are shared with the phone
             // (`ExportOutcomeCopy`) so one verb can't mean two things on two devices.
             if result.outcome.isWrittenOrCurrent {
@@ -522,8 +521,7 @@ final class ProcessingCoordinator {
                 pf.lastActivityAt = Date()
                 try? context.save()
             }
-            let msg = ExportOutcomeCopy.message(for: result.outcome, noteName: name,
-                                                assetCount: result.imageCount)
+            let msg = ExportOutcomeCopy.message(for: result.outcome, assetCount: result.imageCount)
             // A REFUSAL means the export did not happen, so it must not fade on its own —
             // three seconds for a permanent blocker is how "filed out of your Skrift folder"
             // went unnoticed until Tuur hit it head-on (2026-08-28).

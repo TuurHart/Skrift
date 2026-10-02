@@ -119,21 +119,38 @@ struct PublishCoordinator {
         return try publisher.publish(memo)
     }
 
+    /// `publishIfEligible`, with the file and photo count the outcome line quotes.
+    func publishReportIfEligible(_ memo: Memo) throws -> PublishReport? {
+        guard shouldPublish(memo) else { return nil }
+        return try publisher.publishReport(memo)
+    }
+
+    /// The Process / Export / Re-export inputs for one note — the SAME derivation the Mac
+    /// runs (`NoteWorkState.Inputs`): the synced enhancement's `isProcessed` and the export
+    /// ledger of the folder this note's destination writes to.
+    static func workInputs(for memo: Memo, enhancement: MemoEnhancement?) -> NoteWorkState.Inputs {
+        .from(memo: memo, enhancement: enhancement, ledger: ledger(for: memo))
+    }
+
     /// Has this note ever been written to the vault? Read from the export LEDGER, which is
     /// keyed on the picked folder — the same record the writer consults, so the button can
     /// never claim something the engine would contradict. False when no vault is configured
     /// (nothing can have been exported yet).
     static func hasPublished(_ memo: Memo) -> Bool {
-        // Per DESTINATION: the ledger is keyed on the folder written to, so "has this been
-        // exported" is asked of the folder this note would actually go to.
+        ledger(for: memo)?.entry(for: memo.id) != nil
+    }
+
+    /// The export ledger of the folder this note would be written to; nil when no vault /
+    /// portfolio folder is configured. Per DESTINATION: the ledger is keyed on the folder
+    /// written to, so "has this been exported" is asked of the folder the note would go to.
+    static func ledger(for memo: Memo) -> ExportLedger? {
         let profile = ExportProfile.of(memo.destination)
         guard let root = memo.destination.isPortfolio
                 ? PortfolioVault.folder(for: memo.destination)
-                : ObsidianVault.resolveVault() else { return false }
+                : ObsidianVault.resolveVault() else { return nil }
         let scopeRoot = memo.destination.isPortfolio ? (PortfolioVault.resolveRoot() ?? root) : root
         let needsStop = scopeRoot.startAccessingSecurityScopedResource()
         defer { if needsStop { scopeRoot.stopAccessingSecurityScopedResource() } }
         return ExportLedger.default(for: VaultLayout.home(forPicked: root, profile: profile))
-            .entry(for: memo.id) != nil
     }
 }

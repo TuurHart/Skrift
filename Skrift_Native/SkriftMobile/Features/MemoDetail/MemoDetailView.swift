@@ -752,8 +752,7 @@ struct MemoDetailView: View {
     /// read it too — and it now also answers YES for a pass that produced nothing, which is
     /// what stopped a wordless note offering "Process" forever (2026-08-26).
     func workState(for memo: Memo) -> NoteWorkState {
-        let hasPolish = repository.enhancement(forMemo: memo.id)?.isProcessed == true
-        return .of(hasPolish: hasPolish, isExported: PublishCoordinator.hasPublished(memo))
+        PublishCoordinator.workInputs(for: memo, enhancement: repository.enhancement(forMemo: memo.id)).state
     }
 
     /// Export ONE note — the verb iOS never had. Settings' "Export now" published the whole
@@ -778,21 +777,17 @@ struct MemoDetailView: View {
             // The words are SHARED with the Mac (`ExportOutcomeCopy`) — one verb, one answer,
             // whichever device you pressed it on. `noVault`/nil have no engine outcome behind
             // them (the gate refused before the writer ran), so they stay here.
-            switch try coordinator.publishIfEligible(memo) {
-            case .written(let rel):
-                say(.created(relativePath: rel))
-            case .skippedUnchanged:
-                say(.unchanged(relativePath: ""))
-            case .userEdited(let rel):
-                say(.backedOffUserEdited(relativePath: rel))
-            case .movedAway(let rel):
-                say(.movedAway(relativePath: rel))
-            case .blocked(let rel):
-                say(.blockedForeign(relativePath: rel))
-            case .noVault:
-                exportNotice = "The vault folder couldn't be opened — pick it again in Settings → Obsidian."
-            case nil:
+            guard let report = try coordinator.publishReportIfEligible(memo) else {
                 exportNotice = "This note isn't eligible to export right now."
+                return
+            }
+            // The engine's own outcome (written / unchanged / backed off / moved / legacy vs
+            // foreign), the written file's stem and the photo count — the same inputs the Mac
+            // gives the same table (`ExportOutcomeCopy`, Q117).
+            if let outcome = report.vaultOutcome {
+                say(outcome, assetCount: report.assetCount)
+            } else {
+                exportNotice = "The vault folder couldn't be opened — pick it again in Settings → Obsidian."
             }
         } catch {
             exportNotice = "Export failed: \(error.localizedDescription)"
@@ -801,9 +796,8 @@ struct MemoDetailView: View {
 
     /// Say what the engine decided, in the SHARED words, with the shared rule about whether
     /// it may fade: a refusal stays until dismissed, anything else flashes.
-    func say(_ outcome: VaultWriteOutcome) {
-        let name = (currentMemo.map { MemoExporter.exportTitle(for: $0, people: []) } ?? "")
-        let msg = ExportOutcomeCopy.message(for: outcome, noteName: name)
+    func say(_ outcome: VaultWriteOutcome, assetCount: Int? = nil) {
+        let msg = ExportOutcomeCopy.message(for: outcome, assetCount: assetCount)
         if msg.isRefusal { exportNotice = msg.text } else { flashExport(msg.text) }
     }
 

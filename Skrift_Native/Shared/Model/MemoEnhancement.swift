@@ -74,6 +74,12 @@ final class MemoEnhancement {
     /// retitled note processed. (That rule was hand-rolled inside the phone's
     /// `MemoDetailView`; it lives here now, where all three apps read it.)
     var isProcessed: Bool {
+        Self.isProcessed(processedAt: processedAt, copyedit: copyedit, title: title, summary: summary)
+    }
+
+    /// The rule on bare values, for a caller holding a row's fields rather than a
+    /// `MemoEnhancement` (`NoteWorkState.Inputs.LocalPolish`, the Mac's `PipelineFile`).
+    static func isProcessed(processedAt: Date?, copyedit: String, title: String, summary: String) -> Bool {
         if processedAt != nil { return true }
         func filled(_ s: String) -> Bool {
             !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

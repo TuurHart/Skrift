@@ -1,5 +1,6 @@
 import Foundation
 import os
+import SwiftData
 
 /// Writes a compiled note to the Obsidian vault: the `.md` (frontmatter + body) at
 /// the vault root, the original audio into the audio subfolder, and any captured
@@ -52,6 +53,45 @@ enum VaultExporter {
             : vaultURL.appendingPathComponent(VaultLayout.images, isDirectory: true)
     }
 
+    /// The folder Skrift owns for this note's destination, nil when none is picked. Resolves
+    /// the PICK the way `export` always has: point at `0 Inbox` and Skrift makes
+    /// `0 Inbox/Skrift`; point at `0 Inbox/Skrift` and it uses that, unchanged — both of
+    /// Tuur's habits land in the same place and nothing in the vault moves.
+    static func exportHome(for pf: PipelineFile, settings: AppSettings) -> URL? {
+        let picked: String = pf.destination.isPortfolio
+            ? portfolioFolder(for: pf.destination, settings: settings)
+            : settings.noteFolder.trimmingCharacters(in: .whitespaces)
+        guard !picked.isEmpty else { return nil }
+        return VaultLayout.home(forPicked: URL(fileURLWithPath: picked),
+                                profile: ExportProfile.of(pf.destination))
+    }
+
+    /// The id the stamp and the export ledger key this row on. A synced memo's row id IS the
+    /// memo UUID; demo/synthetic rows get a stable derived one so the stamp works for every
+    /// row, forever.
+    static func ledgerID(for pf: PipelineFile) -> UUID {
+        UUID(uuidString: pf.id) ?? VaultIdentity.uuid(for: pf.id)
+    }
+
+    /// The Process / Export / Re-export inputs for a row, through the ONE shared rule
+    /// (`NoteWorkState.Inputs`) the iPad uses: the synced `MemoEnhancement` (when `cloud` can
+    /// see one) plus this row's own polish, and the export ledger of the note's destination
+    /// folder rather than the local `steps.export` flag.
+    static func workInputs(for pf: PipelineFile, cloud: ModelContext?,
+                           settings: AppSettings) -> NoteWorkState.Inputs {
+        var enhancement: MemoEnhancement?
+        if let cloud, let memo = MacCloudWriteBack.resolve(for: pf, in: cloud) {
+            let memoID = memo.id
+            enhancement = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(
+                predicate: #Predicate { $0.memoID == memoID })))?.first
+        }
+        let ledger = exportHome(for: pf, settings: settings).map { ExportLedger.default(for: $0) }
+        return .from(ledgerID: ledgerID(for: pf), enhancement: enhancement, ledger: ledger,
+                     local: .init(passRan: pf.steps.enhance == .done,
+                                  copyedit: pf.enhancedCopyedit, title: pf.enhancedTitle,
+                                  summary: pf.enhancedSummary))
+    }
+
     enum ExportError: LocalizedError {
         case noVault
         case lockedNote
@@ -84,20 +124,10 @@ enum VaultExporter {
         // vault and today's layout, unchanged; a portfolio destination is its folder inside
         // the portfolio root, written flat (`ExportProfile`).
         let profile = ExportProfile.of(pf.destination)
-        let picked: String = pf.destination.isPortfolio
-            ? portfolioFolder(for: pf.destination, settings: settings)
-            : settings.noteFolder.trimmingCharacters(in: .whitespaces)
-        let vault = picked
-        guard !vault.isEmpty else { throw ExportError.noVault }
-        // Resolve the PICK into the folder we own. Point at `0 Inbox` and Skrift makes
-        // `0 Inbox/Skrift`; point at `0 Inbox/Skrift` and it uses that, unchanged — both of
-        // Tuur's habits land in the same place and nothing in the vault moves.
-        let vaultURL = VaultLayout.home(forPicked: URL(fileURLWithPath: vault), profile: profile)
+        guard let vaultURL = exportHome(for: pf, settings: settings) else { throw ExportError.noVault }
         try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
 
-        // A synced memo's row id IS the memo UUID; demo/synthetic rows get a stable
-        // derived one so the stamp works for every row, forever.
-        let id = UUID(uuidString: pf.id) ?? VaultIdentity.uuid(for: pf.id)
+        let id = ledgerID(for: pf)
         // Folder names are the engine's now, not settings — see VaultWriter.
         let writer = VaultWriter(root: vaultURL, ledger: .default(for: vaultURL), profile: profile)
 
