@@ -91,11 +91,20 @@ final class QuickNoteDraft {
         self.memo = nil
     }
 
-    /// Explicit delete (the note screen's own ⋯ → Delete) — unlike `leave`,
-    /// this discards a NON-empty note too, and only on the user's own request.
-    func discard(context: ModelContext) {
+    /// Explicit delete (the note screen's own ⋯ → Delete, after its confirm). Soft, like every
+    /// other delete (C212/C90, Q140): a NON-empty note goes to Recently Deleted (`deletedAt` +
+    /// `trashSeenAt`, the same stamps as `NotesRepository.softDelete`) and can be brought back.
+    /// A blank draft was never a note (D91) and still vanishes silently.
+    func discard(context: ModelContext, at date: Date = Date()) {
         captureTask?.cancel()
-        if let memo { context.delete(memo) }
+        if let memo {
+            if isBlank(memo.title) && isBlank(memo.transcript) {
+                context.delete(memo)
+            } else {
+                memo.deletedAt = date
+                memo.trashSeenAt = date
+            }
+        }
         try? context.save()
         memo = nil
     }
