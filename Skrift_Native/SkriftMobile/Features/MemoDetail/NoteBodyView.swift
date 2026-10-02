@@ -1161,13 +1161,14 @@ struct NoteBodyView: UIViewRepresentable {
             onCommit(wordsChanged)
         }
 
-        /// C10 at the editor commit: a body carrying pictures is written through body v2
-        /// (an edit: every marker keeps its place in the sequence, one inside a sentence
-        /// moves to that sentence's end). A body with no picture is stored as typed, so
-        /// the whitespace the user is still typing is left alone.
-        private func committedBody(_ text: String) -> String {
+        /// C10 + C19 at the editor commit, ONE rule for every note (Q123): the body is written
+        /// through body v2 whether or not it carries pictures (an edit: every marker keeps its
+        /// place in the sequence, one inside a sentence moves to that sentence's end; the
+        /// whitespace is normalised once). The Mac's end-of-editing commit calls the same entry,
+        /// so the same keystrokes store the same string on both devices. The in-session text view
+        /// is never rewritten (`load` skips a first-responder / dirty editor).
+        func committedBody(_ text: String) -> String {
             let manifest = memo.metadata?.imageManifest ?? []
-            guard !BodyV2Marker.runs(in: text, manifestCount: manifest.count).isEmpty else { return text }
             return BodyV2.committed(BodyV2.Input(text: text, manifest: manifest,
                                                  source: memo.bodyV2Source, userEdited: true))
         }
