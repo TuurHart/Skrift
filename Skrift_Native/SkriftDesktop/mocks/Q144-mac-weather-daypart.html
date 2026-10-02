@@ -1,0 +1,374 @@
+<meta charset="utf-8">
+<title>Q144 Mac Weather</title>
+<style>
+/* Layout: one column, three tabs (Settings, Note header, Who gets what); each tab = a Mac surface drawn at its real size, then the pick callouts under it. */
+:root {
+  --bg:#f7f7fa; --surface:#ffffff; --chip:#ebebf0; --line:rgba(0,0,0,.08); --line2:rgba(0,0,0,.14);
+  --tx:#1c1c20; --tx2:#6c6c76; --tx3:#9696a2;
+  --accent:#6c5ce0; --accentText:#6051c8; --accentSoft:rgba(108,92,224,.13);
+  --amber:#d97706; --green:#0f9d72;
+  --pick:#c2185b; --pickSoft:rgba(194,24,91,.08);
+  --page:#e9e9ef; --code:#f1f1f5;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0f1117; --surface:#181a23; --chip:#1e2130; --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
+  --tx:#e4e4e7; --tx2:#8b8b97; --tx3:#55556a;
+  --accent:#7c6bf5; --accentText:#b9acff; --accentSoft:rgba(124,107,245,.16);
+  --amber:#f59e0b; --green:#34d399; --pick:#ff6b9d; --pickSoft:rgba(255,107,157,.09);
+  --page:#08090d; --code:#12141b; color-scheme:dark } }
+:root[data-theme="dark"] {
+  --bg:#0f1117; --surface:#181a23; --chip:#1e2130; --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
+  --tx:#e4e4e7; --tx2:#8b8b97; --tx3:#55556a;
+  --accent:#7c6bf5; --accentText:#b9acff; --accentSoft:rgba(124,107,245,.16);
+  --amber:#f59e0b; --green:#34d399; --pick:#ff6b9d; --pickSoft:rgba(255,107,157,.09);
+  --page:#08090d; --code:#12141b; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--page);color:var(--tx);font:14px/1.45 var(--ui);margin:0;padding-inline:16px;padding-block:14px 40px}
+.wrap{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:19px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--tx2);font-size:13px;margin:2px 0 0}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:9px;padding:2px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.tabs button{font:600 13px var(--ui);color:var(--tx2);background:none;border:0;border-radius:7px;padding:9px 4px;min-height:40px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Mac window frame (placeholder chrome) */
+.win{background:var(--bg);border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+.winbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:.5px solid var(--line);background:var(--surface)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--chip)}
+.winbar span{font-size:11px;color:var(--tx3);margin-left:6px}
+
+/* Settings sheet, drawn from SettingsView.swift */
+.sheethead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:.5px solid var(--line)}
+.sheethead b{font-size:15px}
+.done{font:600 12.5px var(--ui);color:#fff;background:var(--accent);border:0;border-radius:7px;padding:6px 14px;min-height:30px}
+.sections{padding:16px;display:flex;flex-direction:column;gap:18px}
+.sec{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb,var(--surface) 35%,transparent)}
+.sec.stub{padding:11px 14px}
+.sec h3{margin:0;font:400 10px var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--tx3)}
+.stubline{font-size:11px;color:var(--tx3)}
+.sec.new{border:1.5px dashed var(--pick);background:var(--pickSoft)}
+.lbl{font-size:11px;color:var(--tx2)}
+.field{width:100%;font:12px var(--ui);color:var(--tx);background:var(--surface);border:1px solid var(--line2);border-radius:7px;padding:8px 9px;min-height:34px}
+.field::placeholder{color:var(--tx3)}
+.masked{font:12px var(--mono);letter-spacing:.06em}
+.help{font-size:10.5px;color:var(--tx3);margin:0}
+.status{font-size:11px;display:flex;gap:6px;align-items:baseline}
+.status i{font-style:normal;width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;transform:translateY(-1px)}
+.status.off{color:var(--tx2)} .status.off i{background:var(--tx3)}
+.status.on{color:var(--green)} .status.on i{background:var(--green)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}
+.row .v{color:var(--tx2)}
+.navrow{background:none;border:0;padding:6px 0;width:100%;font:12px var(--ui);color:var(--tx);cursor:pointer;min-height:36px}
+.btnq{font:12px var(--ui);color:var(--accent);background:var(--chip);border:0;border-radius:7px;padding:6px 10px;min-height:30px;cursor:pointer}
+.sw{width:30px;height:18px;border-radius:9px;background:var(--green);position:relative;flex:none}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+.sw.offsw{background:var(--chip)} .sw.offsw::after{left:2px;right:auto}
+
+/* phone-style sheet (alt placement) */
+.sheet{margin:0 16px 16px;border:1px solid var(--line2);border-radius:12px;background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:10px}
+.sheet .t{font-weight:600;font-size:13px;display:flex;justify-content:space-between}
+
+/* Note header, drawn from NoteProperties.swift */
+.note{padding:18px 18px 20px;display:flex;flex-direction:column;gap:13px;background:var(--bg)}
+.ntitle{font:700 19px/1.25 var(--ui);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--tx2);background:var(--chip);border-radius:7px;padding:2px 7px;white-space:nowrap}
+.chip svg{width:10px;height:10px;flex:none}
+.chip.new{outline:1.5px solid var(--pick);outline-offset:1px;color:var(--tx)}
+.chip.ghost{background:none;outline:1.5px dashed var(--line2);color:var(--tx3)}
+.chip.arrive{animation:arrive .5s ease-out both}
+@keyframes arrive{from{opacity:.15;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.chip.arrive{animation:none}}
+.tagrow{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;color:var(--accentText);background:var(--accentSoft);border-radius:6px;padding:2px 7px}
+.tagadd{font-size:11px;color:var(--tx3)}
+.ratingrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font:600 11.5px var(--ui);color:var(--tx2);border:1px solid var(--line2);border-radius:999px;padding:3px 10px}
+.fade{font-size:11.5px;color:var(--amber);opacity:.9}
+.audio{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--tx2)}
+.notebody{font-size:13px;color:var(--tx);border-top:.5px solid var(--line);padding-top:12px;margin:0}
+
+/* controls under the surface */
+.ctl{display:flex;flex-direction:column;gap:8px}
+.ctl .cap{font:600 11px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--tx3)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:500 12.5px var(--ui);color:var(--tx);background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:8px 11px;min-height:38px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accentSoft);border-color:var(--accent);color:var(--accentText);font-weight:600}
+
+.pickbox{border-left:4px solid var(--pick);background:var(--surface);border-radius:4px 10px 10px 4px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.pickbox .k{font:800 11px var(--ui);letter-spacing:.09em;text-transform:uppercase;color:var(--pick)}
+.pickbox p{margin:0;font-size:13.5px}
+.pickbox .why{color:var(--tx2);font-size:12.5px}
+.pickbox .seg button[aria-pressed="true"]{background:var(--pickSoft);border-color:var(--pick);color:var(--pick)}
+
+pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.55 var(--mono);overflow-x:auto;color:var(--tx2)}
+pre .add{color:var(--green)} pre .k2{color:var(--tx)}
+
+.tblwrap{overflow-x:auto;border:1px solid var(--line2);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:12.5px}
+th,td{padding:9px 8px;text-align:center;border-bottom:1px solid var(--line)}
+th{font:600 11px var(--ui);color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:var(--surface);min-width:120px}
+tr:last-child td{border-bottom:0}
+.y{color:var(--green);font-weight:700} .n{color:var(--tx3)} .nw{color:var(--pick);font-weight:800}
+.foot{font-size:12px;color:var(--tx2);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);font-size:13px;padding:9px 14px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Q144 · The Mac records weather and daypart</h1>
+    <p class="sub">A Mac recording or typed note gets the context a phone take gets, minus steps (D92, R36). Pink = a choice I made that you can overrule.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-set" aria-selected="true" data-tab="set">Settings</button>
+    <button role="tab" id="t-head" aria-selected="false" data-tab="head">Note header</button>
+    <button role="tab" id="t-who" aria-selected="false" data-tab="who">Who gets what</button>
+  </nav>
+
+  <!-- ───────── Settings ───────── -->
+  <section id="p-set" class="ctl" style="gap:14px">
+    <div class="win">
+      <div class="winbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>Skrift · Settings (window chrome is a placeholder)</span></div>
+      <div class="sheethead"><b>Settings</b><button class="done" data-toast="Settings closed (mock)">Done</button></div>
+      <div class="sections">
+        <div class="sec stub"><h3>Appearance · Vault &amp; author · Destinations · Enhancement</h3><span class="stubline">unchanged, collapsed in this mock</span></div>
+        <div class="sec stub"><h3>Transcription</h3><span class="stubline">Language, High-pass filter, Custom words (unchanged)</span></div>
+
+        <!-- placement A: own section (the pick) -->
+        <div class="sec new" id="weatherSec">
+          <h3>Weather</h3>
+          <div id="keyTyped" class="ctl" style="gap:6px">
+            <label class="lbl" for="owmKey">OpenWeatherMap key</label>
+            <input class="field" id="owmKey" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+            <div class="status off" id="keyStatus"><i></i><span>Not set. Notes made on this Mac get place and daypart, no weather.</span></div>
+          </div>
+          <div id="keySynced" hidden class="ctl" style="gap:6px">
+            <div class="row"><span>OpenWeatherMap key</span><span class="v masked">••••••a7</span></div>
+            <div class="status on"><i></i><span>Synced from your iPhone. Changing it here changes it on every device.</span></div>
+            <div><button class="btnq" data-toast="Would open the key field (mock)">Change…</button></div>
+          </div>
+          <p class="help">Used to tag notes with weather + pressure. Get a free key at openweathermap.org.</p>
+        </div>
+
+        <div class="sec" id="syncSec">
+          <h3>Sync</h3>
+          <div class="row"><span>CloudKit sync with the Mac</span><i class="sw"></i></div>
+          <p class="help">Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. This is the only phone↔Mac transport: with it off, the Mac neither picks up your phone's memos nor sends its polish back.</p>
+          <!-- placement B: phone-style row -->
+          <button class="navrow row" id="altRow" hidden><span>Weather API key</span><span class="v"><span id="altMasked">Not set</span> ›</span></button>
+        </div>
+        <div class="sheet" id="altSheet" hidden>
+          <div class="t"><span>Weather API key</span><button class="btnq" id="altClose">Done</button></div>
+          <input class="field" id="owmKeyAlt" autocomplete="off" spellcheck="false" placeholder="OpenWeatherMap key">
+          <p class="help">Used to tag notes with weather + pressure. Get a free key at openweathermap.org.</p>
+        </div>
+        <div class="sec stub"><h3>Names · 14</h3><span class="stubline">unchanged</span></div>
+      </div>
+    </div>
+    <p class="foot">Type anything into the field to see the saved state. Do not paste your real key into this page; the real one goes into the built app.</p>
+
+    <div class="pickbox">
+      <span class="k">Pick 1 · Where the key lives in Settings</span>
+      <p>Its own <b>Weather</b> section between Transcription and Sync, with the field right there.</p>
+      <p class="why">The Mac sheet has no Library section and no push rows; every other Mac setting is an inline field. The phone keeps its row under Library → Weather API key.</p>
+      <div class="seg" data-group="place">
+        <button aria-pressed="true" data-v="own">Own section, inline field</button>
+        <button aria-pressed="false" data-v="row">Phone-style row under Sync</button>
+      </div>
+    </div>
+    <div class="pickbox">
+      <span class="k">Pick 2 · Typed on the Mac, not synced</span>
+      <p>You type the key on the Mac once. It stays on this Mac, like the phone's key stays on the phone today.</p>
+      <p class="why">The phone stores it in its own UserDefaults (<code>weatherAPIKey</code>), unsynced. Syncing it means a new field on the vocabulary carrier and a key travelling through iCloud.</p>
+      <div class="seg" data-group="source">
+        <button aria-pressed="true" data-v="typed">Type it on the Mac</button>
+        <button aria-pressed="false" data-v="synced">Sync it from the phone</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── Note header ───────── -->
+  <section id="p-head" class="ctl" style="gap:14px" hidden>
+    <div class="ctl">
+      <span class="cap">Note</span>
+      <div class="seg" data-group="kind">
+        <button aria-pressed="true" data-v="rec">Mac recording</button>
+        <button aria-pressed="false" data-v="typed">Mac typed note</button>
+        <button aria-pressed="false" data-v="import">Mac import</button>
+      </div>
+      <span class="cap">State</span>
+      <div class="seg" data-group="when">
+        <button aria-pressed="false" data-v="today">Today</button>
+        <button aria-pressed="true" data-v="after">After Q144</button>
+        <button aria-pressed="false" data-v="nokey">After, no key set</button>
+      </div>
+    </div>
+
+    <div class="win">
+      <div class="winbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>Skrift · note column (sidebar and player left out)</span></div>
+      <div class="note">
+        <p class="ntitle" id="nTitle">Moving the studio to Marvila</p>
+        <div class="chips" id="chips"></div>
+        <div class="tagrow"><span class="tag">#studio</span><span class="tag">#lisbon</span><span class="tagadd">+ tag</span></div>
+        <div class="ratingrow"><span class="pill">Not rated</span><span class="fade">Starts fading in 30 days — rate it to keep it</span></div>
+        <div class="audio" id="audioRow"><i class="sw" style="background:var(--accent)"></i>Include audio in export</div>
+        <p class="notebody" id="nBody">The Marvila space has north light all afternoon, which matters more than the extra square metres…</p>
+      </div>
+    </div>
+    <p class="foot" id="headFoot"></p>
+
+    <div class="pickbox">
+      <span class="k">Pick 3 · Weather shows on the header, daypart does not</span>
+      <p>The header gains one chip, <b>19°</b>, exactly as the phone draws it. Daypart and daylight go into the exported note only.</p>
+      <p class="why">Your signed header (Q75, built in Q85) dropped the daypart chip on purpose: date · place · weather. Turning it back on would put it on every note, phone notes included.</p>
+      <div class="seg" data-group="daypart">
+        <button aria-pressed="true" data-v="off">Daypart in export only</button>
+        <button aria-pressed="false" data-v="on">Daypart chip on the header too</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <span class="cap">What the exported note's frontmatter carries</span>
+      <pre id="fm"></pre>
+    </div>
+  </section>
+
+  <!-- ───────── Who gets what ───────── -->
+  <section id="p-who" class="ctl" style="gap:14px" hidden>
+    <div class="seg" data-group="whowhen">
+      <button aria-pressed="false" data-v="today">Today</button>
+      <button aria-pressed="true" data-v="after">After Q144</button>
+    </div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Note</th><th>Place</th><th>Weather</th><th>Pressure</th><th>Daypart</th><th>Daylight</th><th>Steps</th></tr></thead>
+      <tbody id="who"></tbody>
+    </table></div>
+    <p class="foot">Pink ● = new with this item. Steps stay phone-only (no pedometer on a Mac, D92). A phone note that syncs to the Mac keeps the phone's context; the Mac never overwrites it.</p>
+    <div class="pickbox">
+      <span class="k">Kept as is · Imports get nothing</span>
+      <p>A file dragged into the Mac gets no place and no weather.</p>
+      <p class="why">Same rule the place stamp already follows (<code>MacLocationStamp</code>, recordings only): today's Lisbon weather says nothing about an audio file recorded somewhere else last year.</p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const IC = {
+  calendar:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9M4 1v2.5M8 1v2.5"/></svg>',
+  pin:'<svg viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5.5"/><circle cx="6" cy="5" r="1.6" fill="var(--chip)"/></svg>',
+  cloudsun:'<svg viewBox="0 0 12 12" fill="currentColor"><circle cx="4.2" cy="4.2" r="2.2"/><path d="M4 10.5h5.2a2 2 0 0 0 .1-4 2.7 2.7 0 0 0-5.1.4A1.8 1.8 0 0 0 4 10.5z"/></svg>',
+  sun:'<svg viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="2.4"/><path d="M6 .6v1.6M6 9.8v1.6M.6 6h1.6M9.8 6h1.6M2.2 2.2l1.1 1.1M8.7 8.7l1.1 1.1M2.2 9.8l1.1-1.1M8.7 3.3l1.1-1.1" stroke="currentColor" stroke-width="1.1"/></svg>',
+  mic:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="4" height="6.5" rx="2" fill="currentColor"/><path d="M2.5 6a3.5 3.5 0 0 0 7 0M6 9.5V11"/></svg>',
+  text:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 3h8M2 6h8M2 9h5"/></svg>',
+  wave:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1.5 5v2M4 3v6M6.5 1.5v9M9 3.5v5M11 5v2"/></svg>'
+};
+const S = { tab:'set', place:'own', source:'typed', kind:'rec', when:'after', daypart:'off', whowhen:'after', key:'' };
+try { const t = localStorage.getItem('q144tab'); if (t) S.tab = t; } catch(e){}
+const $ = id => document.getElementById(id);
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove('show'),1700); }
+function mask(k){ k=k.trim(); return k ? '••••••'+k.slice(-2) : 'Not set'; }
+
+function renderTabs(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===S.tab));
+  ['set','head','who'].forEach(t=>$('p-'+t).hidden = t!==S.tab);
+}
+function renderSettings(){
+  const own = S.place==='own';
+  $('weatherSec').hidden = !own;
+  $('altRow').hidden = own;
+  if (own) $('altSheet').hidden = true;
+  $('keyTyped').hidden = S.source!=='typed';
+  $('keySynced').hidden = S.source==='typed';
+  const st=$('keyStatus'), has=S.key.trim().length>0;
+  st.className='status '+(has?'on':'off');
+  st.querySelector('span').textContent = has
+    ? 'Saved on this Mac. The next note you record or type here gets weather.'
+    : 'Not set. Notes made on this Mac get place and daypart, no weather.';
+  $('altMasked').textContent = S.source==='synced' ? '••••••a7 · from iPhone' : mask(S.key);
+}
+
+function ctx(kind, when){
+  // which context fields land on this note
+  if (kind==='import') return {place:false,weather:false,pressure:false,daypart:false,daylight:false};
+  if (when==='today') return kind==='rec'
+    ? {place:true,weather:false,pressure:false,daypart:false,daylight:false}
+    : {place:true,weather:false,pressure:false,daypart:true,daylight:true};
+  const w = when==='after';
+  return {place:true,weather:w,pressure:w,daypart:true,daylight:true};
+}
+function renderHeader(){
+  const c = ctx(S.kind, S.when);
+  const isNew = k => S.when!=='today' && !ctx(S.kind,'today')[k] && c[k];
+  const typed = S.kind==='typed', imp = S.kind==='import';
+  $('nTitle').textContent = typed ? 'Questions for the landlord' : imp ? 'Voice memo from the Porto trip' : 'Moving the studio to Marvila';
+  $('nBody').textContent = typed ? 'Ask whether the courtyard door can stay unlocked on Saturdays, and who pays for the skylight repair.'
+    : imp ? 'Recorded on the train back, dragged into the Mac today…'
+    : 'The Marvila space has north light all afternoon, which matters more than the extra square metres…';
+  $('audioRow').hidden = typed;
+  const chips = [];
+  chips.push(['calendar', imp ? 'Tue, 12 Mar 2024' : 'Thu, 2 Oct 2026', false]);
+  if (c.place) chips.push(['pin','Marvila, Lisbon', isNew('place')]);
+  if (c.weather) chips.push(['cloudsun','19°', isNew('weather')]);
+  else if (S.when==='nokey' && !imp) chips.push(['cloudsun','no key, no weather', 'ghost']);
+  if (S.daypart==='on' && c.daypart) chips.push(['sun','Afternoon', 'daypart']);
+  chips.push([typed?'text':'mic', typed?'Text':'Voice memo', false]);
+  if (!typed) chips.push(['wave', imp?'6:41':'2:14', false]);
+  $('chips').innerHTML = chips.map(([i,t,n],ix)=>{
+    const cls = n==='ghost' ? 'chip ghost' : (n===true||n==='daypart') ? 'chip new arrive' : 'chip';
+    return `<span class="${cls}" style="animation-delay:${ix*60}ms">${IC[i]}${t}</span>`;
+  }).join('');
+  $('headFoot').textContent =
+    imp ? 'An import carries only what the file itself says. No place, no weather, no daypart, before or after.'
+    : S.when==='today' ? (typed ? 'Today a typed note already gets place, daypart and daylight (MacMetadataService), but no weather. Daypart is in the export, not on the header.' : 'Today a Mac recording gets a place and nothing else (MacLocationStamp). No weather chip, nothing in the export but location.')
+    : S.when==='nokey' ? 'With no key, nothing fails out loud: the weather chip and the weather lines are simply absent, as on the phone. The dashed chip is only here to show where it would be.'
+    : 'The place and weather chips land a moment after the note appears; the location fix and the weather call run after the note is saved, as the place does today.';
+
+  const L=[];
+  L.push(['k2','---']);
+  L.push(['k2','title: "'+$('nTitle').textContent+'"']);
+  L.push(['','…']);
+  L.push([c.place&&isNew('place')?'add':'k2', c.place?'location: "Marvila, Lisbon"':'location:']);
+  if (c.weather) L.push(['add','weather: "Clouds, 19C"']);
+  if (c.pressure){ L.push(['add','pressure: 1016']); L.push(['add','pressureTrend: steady']); }
+  if (c.daypart) L.push([isNew('daypart')?'add':'k2','dayPeriod: afternoon']);
+  if (c.daylight){ const a=isNew('daylight')?'add':'k2'; L.push([a,'daylight:']); L.push([a,'  sunrise: "07:28"']); L.push([a,'  sunset: "19:12"']); L.push([a,'  hoursOfLight: 11.73']); }
+  L.push(['k2','lastTouched:']);
+  L.push(['k2','---']);
+  $('fm').innerHTML = L.map(([c,t])=>`<span class="${c}">${t.replace(/</g,'&lt;')}${c==='add'?'   ← new':''}</span>`).join('\n');
+}
+function renderWho(){
+  const rows=[['Mac recording','rec'],['Mac typed note','typed'],['Mac import','import']];
+  const cols=['place','weather','pressure','daypart','daylight'];
+  let h = rows.map(([label,k])=>{
+    const c=ctx(k,S.whowhen), t=ctx(k,'today');
+    return `<tr><td>${label}</td>${cols.map(col=> c[col] ? (S.whowhen==='after'&&!t[col] ? '<td class="nw">●</td>' : '<td class="y">●</td>') : '<td class="n">—</td>').join('')}<td class="n">—</td></tr>`;
+  }).join('');
+  h += `<tr><td>Phone recording</td>${cols.map(()=>'<td class="y">●</td>').join('')}<td class="y">●</td></tr>`;
+  $('who').innerHTML = h;
+}
+function render(){ renderTabs(); renderSettings(); renderHeader(); renderWho(); }
+
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{ S.tab=b.dataset.tab; try{localStorage.setItem('q144tab',S.tab)}catch(e){} render(); }));
+document.querySelectorAll('.seg[data-group]').forEach(g=>g.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+  S[g.dataset.group]=b.dataset.v; render();
+}));
+$('owmKey').addEventListener('input',e=>{ S.key=e.target.value; $('owmKeyAlt').value=S.key; renderSettings(); });
+$('owmKey').addEventListener('blur',()=>{ if(S.key.trim()) toast('Saved on this Mac (mock, nothing stored)'); });
+$('owmKeyAlt').addEventListener('input',e=>{ S.key=e.target.value; $('owmKey').value=S.key; renderSettings(); });
+$('altRow').addEventListener('click',()=>{ if(S.source==='synced'){toast('Would open the key field (mock)');return;} $('altSheet').hidden=false; $('owmKeyAlt').focus(); });
+$('altClose').addEventListener('click',()=>{ $('altSheet').hidden=true; });
+document.querySelectorAll('[data-toast]').forEach(b=>b.addEventListener('click',()=>toast(b.dataset.toast)));
+render();
+</script>

@@ -1,0 +1,659 @@
+<meta charset="utf-8">
+<title>Mac Note Photos</title>
+<style>
+/* Layout: one column of three tabs; each tab = a Mac note window drawn at phone width, a view switch (Proposed / Mac today / Phone today) above it, and orange PICK cards below that name the choice and its alternative. App colours come from Shared/UI/Palette.swift; orange is mock commentary only. */
+:root{
+  --desk:#e3e4ea; --bg:#f7f7fa; --surface:#ffffff; --chip:#ebebf0;
+  --text:#1c1c20; --text2:#6c6c76; --text3:#9696a2;
+  --accent:#6c5ce0; --accentText:#6051c8; --accentSoft:rgba(108,92,224,.13); --link:#6c5ce0;
+  --hair:rgba(0,0,0,.10); --hair2:rgba(0,0,0,.05); --shadow:0 10px 30px rgba(20,20,40,.16);
+  --phonebg:#f5f5f7; --phoneElev:#ebebf0;
+  --pick:#b4470f; --pickSoft:#fff1e6; --pickLine:#f3c7a3;
+  --dl1:#2b3350; --dl2:#161a29; --dlText:#a3a3aa;
+  --ql:#2a2a2e; --qlBar:#3a3a3f; --qlText:#e8e8ec;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --desk:#060709; --bg:#0f1117; --surface:#181a23; --chip:#1e2130;
+  --text:#e4e4e7; --text2:#8b8b97; --text3:#55556a;
+  --accent:#7c6bf5; --accentText:#b9acff; --accentSoft:rgba(124,107,245,.16); --link:#9d8ff7;
+  --hair:rgba(255,255,255,.10); --hair2:rgba(255,255,255,.05); --shadow:0 10px 30px rgba(0,0,0,.5);
+  --phonebg:#0f1117; --phoneElev:#1e2130;
+  --pick:#f59e5b; --pickSoft:#2a1a0f; --pickLine:#5a3417;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#060709; --bg:#0f1117; --surface:#181a23; --chip:#1e2130;
+  --text:#e4e4e7; --text2:#8b8b97; --text3:#55556a;
+  --accent:#7c6bf5; --accentText:#b9acff; --accentSoft:rgba(124,107,245,.16); --link:#9d8ff7;
+  --hair:rgba(255,255,255,.10); --hair2:rgba(255,255,255,.05); --shadow:0 10px 30px rgba(0,0,0,.5);
+  --phonebg:#0f1117; --phoneElev:#1e2130;
+  --pick:#f59e5b; --pickSoft:#2a1a0f; --pickLine:#5a3417;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--desk);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:18px 96px}
+button{font:inherit;color:inherit;touch-action:manipulation}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* page header */
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+h1{font-size:24px;line-height:1.15;margin:6px 0 6px;text-wrap:balance;letter-spacing:-.01em}
+.lede{margin:0 0 10px;color:var(--text2);max-width:62ch}
+.refs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.ref{font:500 11px/1 var(--mono);padding:5px 7px;border-radius:6px;background:var(--surface);border:1px solid var(--hair);color:var(--text2)}
+
+/* tabs */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:var(--chip);margin-bottom:14px;box-shadow:0 1px 0 var(--hair)}
+.tab{border:0;background:transparent;padding:9px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;line-height:1.15}
+.tab small{display:block;font-weight:500;font-size:11px;color:var(--text3);margin-top:2px}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tab[aria-selected="true"] small{color:var(--text2)}
+
+/* view switch */
+.views{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.view{border:1px solid var(--hair);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--text2);cursor:pointer}
+.view[aria-pressed="true"]{background:var(--text);color:var(--surface);border-color:var(--text)}
+.view.prop[aria-pressed="true"]{background:var(--pick);border-color:var(--pick);color:#fff}
+
+.stage{position:relative;border-radius:14px;min-width:0}
+.caption{font-size:12px;color:var(--text3);margin:8px 2px 0}
+
+/* mac window */
+.win{background:var(--bg);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--hair);overflow:hidden;position:relative}
+.titlebar{height:28px;display:flex;align-items:center;gap:7px;padding:0 11px;background:var(--bg)}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.wtitle{flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--text2);margin-right:40px}
+.tbar{height:46px;display:flex;align-items:center;gap:7px;padding:0 10px;border-bottom:.5px solid var(--hair)}
+.tbar .sp{flex:1}
+.gchip{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--chip);border:0;color:var(--text2);cursor:pointer;flex:none}
+.gchip.on{background:var(--accentSoft);color:var(--accentText)}
+.gchip svg{width:16px;height:16px}
+.newbtn{position:relative;outline:2px dashed var(--pick);outline-offset:2px}
+.newtag{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font:700 8.5px/1 var(--mono);letter-spacing:.06em;color:var(--pick);white-space:nowrap}
+.primary{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;flex:none}
+.capsule{height:30px;border-radius:999px;padding:0 11px;background:var(--chip);border:0;font-size:12px;font-weight:600;color:var(--text2);flex:none;cursor:pointer}
+
+.col{padding:22px 18px 30px;min-width:0}
+.ntitle{font-size:19px;font-weight:700;line-height:1.25;margin:0 0 9px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);background:var(--chip);border-radius:6px;padding:3px 7px}
+.chip svg{width:10px;height:10px}
+.body{font-size:16px;line-height:1.5;color:var(--text);display:flex;flex-direction:column;gap:12px}
+.body p{margin:0}
+.w{cursor:text}
+.lnk{color:var(--link)}
+.raw{color:var(--accent)}
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--accent);vertical-align:-3px;margin:0 1px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* inline photo (Mac thumbnail = 720px / 2 = 360pt wide, 4% rounded corners) */
+.photo{position:relative;width:min(100%,360px);cursor:default;border-radius:10px;line-height:0}
+.photo svg,.photo img{width:100%;height:auto;display:block;border-radius:10px}
+.photo.sel{outline:3px solid var(--accent);outline-offset:3px}
+.photo.fresh{animation:fresh 1.6s ease-out}
+@keyframes fresh{0%{box-shadow:0 0 0 0 var(--pick)}30%{box-shadow:0 0 0 6px var(--pick)}100%{box-shadow:0 0 0 0 transparent}}
+.hint{position:absolute;left:8px;bottom:8px;line-height:1.2;font-size:11.5px;font-weight:600;background:rgba(20,20,30,.78);color:#fff;border-radius:7px;padding:5px 8px}
+.hint kbd{font:600 10.5px var(--mono);border:1px solid rgba(255,255,255,.4);border-radius:4px;padding:0 4px}
+.card{width:min(100%,360px);height:160px;border-radius:14px;border:1px solid var(--hair);display:grid;place-items:center;line-height:1.3;cursor:default}
+.card.dl{background:linear-gradient(135deg,var(--dl1),var(--dl2));color:var(--dlText)}
+.card .in{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px}
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(163,163,170,.3);border-top-color:var(--dlText);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card.flat{background:var(--phoneElev);border:0;color:var(--text3)}
+.card svg{width:34px;height:34px}
+.arrive{animation:arrive .5s ease-out}
+@keyframes arrive{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
+
+/* controls under the window */
+.ctl{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.act{border:1px solid var(--hair);background:var(--surface);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.act kbd{font:500 11px var(--mono);color:var(--text3)}
+.act.ghost{background:transparent;color:var(--text2)}
+
+/* sheet (NSOpenPanel stand-in) */
+.sheetwrap{position:absolute;inset:74px 0 0 0;background:rgba(0,0,0,.18);display:flex;justify-content:center;align-items:flex-start;z-index:5}
+.sheet{width:calc(100% - 24px);max-width:420px;background:var(--surface);border-radius:0 0 12px 12px;box-shadow:var(--shadow);border:1px solid var(--hair);border-top:0;animation:drop .22s ease-out}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{margin:0;padding:12px 14px 8px;font-size:13px}
+.files{list-style:none;margin:0;padding:0 8px}
+.file{display:flex;gap:10px;align-items:center;padding:7px 6px;border-radius:8px;cursor:pointer}
+.file[aria-selected="true"]{background:var(--accent);color:#fff}
+.file[aria-selected="true"] .fmeta{color:rgba(255,255,255,.8)}
+.fthumb{width:44px;flex:none;line-height:0}
+.fthumb svg{width:44px;height:33px;border-radius:4px}
+.fname{font-size:12.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fmeta{font-size:11px;color:var(--text3)}
+.sheetfoot{display:flex;justify-content:flex-end;gap:8px;padding:12px 14px}
+.sbtn{border:1px solid var(--hair);background:var(--chip);border-radius:7px;padding:5px 12px;font-size:12.5px;cursor:pointer}
+.sbtn.go{background:var(--accent);border-color:var(--accent);color:#fff}
+.sbtn:disabled{opacity:.45;cursor:default}
+.dropzone{position:absolute;inset:74px 8px 8px;border:2.5px dashed var(--accent);border-radius:10px;background:var(--accentSoft);display:grid;place-items:center;font-weight:700;color:var(--accentText);z-index:6;text-align:center;padding:10px}
+
+/* model box */
+.model{margin-top:12px;background:var(--surface);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;font:12px/1.55 var(--mono);color:var(--text2);white-space:pre-wrap;overflow-wrap:anywhere}
+.model b{color:var(--text);font-weight:600}
+.model .mk{color:var(--pick);font-weight:700}
+.mlabel{font:600 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:6px}
+
+/* PICK cards */
+.picks{display:grid;gap:10px;margin-top:16px}
+.pickc{background:var(--pickSoft);border:1px solid var(--pickLine);border-radius:12px;padding:11px 13px}
+.pickc .lab{font:700 10.5px/1 var(--mono);letter-spacing:.1em;color:var(--pick)}
+.pickc p{margin:5px 0 0}
+.pickc .alt{color:var(--text2);font-size:13.5px}
+.pickc .alt b{color:var(--text)}
+.today{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:11px 13px;margin-top:12px;font-size:13.5px;color:var(--text2)}
+.today b{color:var(--text)}
+.today code,.pickc code{font:12px var(--mono)}
+
+/* Quick Look (Mac) */
+.qlwrap{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:8;display:flex;align-items:center;justify-content:center;padding:10px;border-radius:12px}
+.ql{width:100%;max-width:520px;background:var(--ql);border-radius:11px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.5);color:var(--qlText);animation:zoomin .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes zoomin{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
+.qlbar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--qlBar)}
+.qlname{flex:1;min-width:0;font-size:11.5px;font-weight:600;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbtn{background:transparent;border:0;color:var(--qlText);border-radius:6px;height:26px;min-width:26px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;cursor:pointer}
+.qbtn svg{width:16px;height:16px}
+.qbtn.on{background:rgba(255,255,255,.18)}
+.qbtn.text{border:1px solid rgba(255,255,255,.25)}
+.mtools{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:5px 8px;background:#323236;border-top:1px solid rgba(255,255,255,.06)}
+.mtools .grow{flex:1}
+.swatch{width:14px;height:14px;border-radius:50%;background:#ff3b30;border:2px solid #fff}
+.qlimg{overflow:hidden;background:#1c1c1f;line-height:0;position:relative;cursor:zoom-in}
+.qlimg.z2{cursor:zoom-out}
+.qlimg.mk{cursor:crosshair}
+.qlimg .inner{transition:transform .25s ease}
+.qlimg svg{width:100%;height:auto;display:block}
+.qlfoot{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;font-size:11px;color:#a8a8b0}
+
+/* phone frame */
+.phone{width:min(100%,320px);margin:0 auto;background:var(--phonebg);border-radius:38px;border:8px solid #1b1b1f;box-shadow:var(--shadow);overflow:hidden;position:relative}
+.pstatus{display:flex;justify-content:space-between;padding:10px 22px 4px;font-size:13px;font-weight:600}
+.pnav{display:flex;justify-content:space-between;align-items:center;padding:6px 14px;color:var(--accent);font-size:15px}
+.pcol{padding:6px 16px 26px}
+.pcol .ntitle{font-size:22px}
+.pcol .body{font-size:16px}
+.pcol .photo{width:100%}
+.plabel{font:600 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:4px 0 -4px}
+.pql{position:absolute;inset:0;background:#000;z-index:9;display:flex;flex-direction:column;color:#fff;animation:zoomin .28s cubic-bezier(.2,.8,.2,1)}
+.pqlnav{display:flex;align-items:center;justify-content:space-between;padding:34px 12px 8px;background:rgba(30,30,32,.95);font-size:14px}
+.pqlnav .t{font-weight:600;font-size:12.5px;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pqlnav button{background:transparent;border:0;color:#0a84ff;font-size:15px;cursor:pointer;padding:4px}
+.pqlnav button svg{width:20px;height:20px}
+.pqlnav button.on{color:#fff;background:#0a84ff;border-radius:50%}
+.pqlimg{flex:1;display:flex;align-items:center;line-height:0;position:relative}
+.pqlimg svg{width:100%;height:auto}
+.pqltools{display:flex;justify-content:center;gap:14px;padding:10px 0 18px;background:rgba(30,30,32,.95);font-size:11px;color:#ccc}
+.pqltools span{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pen{width:8px;height:26px;border-radius:3px 3px 1px 1px;background:linear-gradient(#ff3b30 0 35%,#eee 35%)}
+.pen.b{background:linear-gradient(#111 0 35%,#eee 35%)}
+.pen.y{background:linear-gradient(#ffd60a 0 35%,#eee 35%)}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(calc(100% - 32px),520px);background:var(--text);color:var(--surface);border-radius:12px;padding:11px 14px;font-size:13.5px;line-height:1.35;z-index:50;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
+.toast span{flex:1}
+.toast button{background:transparent;border:0;color:var(--link);font-weight:700;cursor:pointer;padding:2px 0;flex:none}
+.toast.today{background:#3a3a40;color:#f2f2f5}
+
+.src{margin-top:26px;font-size:12px;color:var(--text3)}
+.src code{font:11.5px var(--mono)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Q128 · mockup · Skrift for Mac</div>
+  <h1>Photos in a Mac note</h1>
+  <p class="lede">Three moments: adding a photo where the caret is, opening one to zoom and mark it up, and a photo whose file has not reached this Mac yet. Orange marks every choice you can overrule.</p>
+  <div class="refs"><span class="ref">C119</span><span class="ref">D126</span><span class="ref">C113</span><span class="ref">note-body-16/17/18</span><span class="ref">capture-import-41</span></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-add" aria-selected="true" data-tab="add">Add<small>at the caret</small></button>
+    <button class="tab" role="tab" id="t-open" aria-selected="false" data-tab="open">Open<small>zoom + mark up</small></button>
+    <button class="tab" role="tab" id="t-wait" aria-selected="false" data-tab="wait">Not here yet<small>file still coming</small></button>
+  </div>
+
+  <!-- ADD -->
+  <section id="p-add" role="tabpanel">
+    <div class="views" id="v-add"></div>
+    <div class="stage" id="s-add"></div>
+    <div class="ctl" id="c-add"></div>
+    <div id="x-add"></div>
+  </section>
+
+  <!-- OPEN -->
+  <section id="p-open" role="tabpanel" hidden>
+    <div class="views" id="v-open"></div>
+    <div class="stage" id="s-open"></div>
+    <div id="x-open"></div>
+  </section>
+
+  <!-- WAIT -->
+  <section id="p-wait" role="tabpanel" hidden>
+    <div class="views" id="v-wait"></div>
+    <div class="stage" id="s-wait"></div>
+    <div class="ctl" id="c-wait"></div>
+    <div id="x-wait"></div>
+  </section>
+
+  <p class="src">Today's Mac drawn from <code>BodyTextView.swift</code> (thumbnails 720px decoded, shown 360pt, 4% corners; unresolved <code>[[img_NNN]]</code> stays as accent text; <code>isRichText = false</code>, no image paste or drop; a click only moves the caret), <code>NoteDisplayView.swift</code> (toolbar: ◧ · Process · ⋯ · Connections) and <code>NoteProperties.swift</code> (19pt title, chips). Phone drawn from <code>NoteBodyView.swift</code> (<code>insertPhoto</code>, grey placeholder), <code>MarkupQuickLook.swift</code> (Quick Look, zoom from the photo, Markup saves into the file) and <code>CaptureQuoteViews.swift</code> (<code>ImageEmbed</code>, "Downloading from iCloud…"). The window is drawn at phone width with the notes list hidden; on the Mac the column runs up to 820pt. Fake note, fake photos.</p>
+</div>
+
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastBtn" hidden>Undo</button></div>
+
+<script>
+(function(){
+/* ---------- icons ---------- */
+const I = {
+  sidebar:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/></svg>',
+  photo:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="3" width="13" height="10" rx="2"/><circle cx="5.5" cy="6.5" r="1.3"/><path d="M2 12l4-4 3 3 2-2 3.5 3.5"/></svg>',
+  dots:'<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>',
+  cal:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1.5" y="2.5" width="9" height="8" rx="1.5"/><path d="M1.5 5h9M4 1.5v2M8 1.5v2"/></svg>',
+  pin:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6 11s3.5-3.3 3.5-6A3.5 3.5 0 0 0 2.5 5c0 2.7 3.5 6 3.5 6z"/><circle cx="6" cy="5" r="1.2"/></svg>',
+  mic:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="4" y="1" width="4" height="6.5" rx="2"/><path d="M2.5 6a3.5 3.5 0 0 0 7 0M6 9.5V11"/></svg>',
+  wave:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 5v2M3.5 3.5v5M5.5 2v8M7.5 4v4M9.5 3v6"/></svg>',
+  markup:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6.5"/><path d="M5.5 10.5l.6-2.2 3.8-3.8 1.6 1.6-3.8 3.8z"/></svg>',
+  rotate:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8a5 5 0 1 0 1.6-3.7"/><path d="M3 2.5v3h3"/></svg>',
+  share:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 1.5v8M5 4.5l3-3 3 3"/><path d="M4 7H3v7.5h10V7h-1"/></svg>',
+  close:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3 18l6-6 4.5 4.5 3-3L21 18"/></svg>'
+};
+
+/* ---------- fake photos (inline SVG, same in both themes: they are photos) ---------- */
+function scene(kind, marks){
+  marks = marks || [];
+  let b = '';
+  if(kind==='whiteboard'){
+    b = `<rect width="400" height="300" fill="#d9d6cf"/><rect x="18" y="16" width="364" height="246" rx="4" fill="#f7f7f2" stroke="#9a9a96" stroke-width="5"/>
+    <rect x="18" y="262" width="364" height="10" fill="#8f8f8a"/><rect x="250" y="255" width="40" height="8" rx="3" fill="#1d4ed8"/><rect x="296" y="255" width="40" height="8" rx="3" fill="#dc2626"/>
+    <g fill="none" stroke="#1d4ed8" stroke-width="3" stroke-linecap="round"><rect x="50" y="70" width="290" height="120" rx="6"/>
+    <circle cx="110" cy="130" r="26"/><circle cx="210" cy="130" r="26" stroke-dasharray="6 6"/><rect x="260" y="112" width="40" height="36"/>
+    <path d="M210 196 v30 M200 216 l10 10 10-10"/></g>
+    <g font-family="Marker Felt, Chalkboard, Comic Sans MS, cursive" font-size="17" fill="#1d4ed8"><text x="86" y="135">ARM 1</text><text x="186" y="135">ARM 2</text><text x="262" y="168">vise</text><text x="60" y="58">BENCH  ~180 cm</text><text x="176" y="248">tray back 20cm</text></g>
+    <path d="M300 60 q30 10 40 40" fill="none" stroke="#dc2626" stroke-width="3"/><text x="300" y="52" font-family="Marker Felt, Chalkboard, cursive" font-size="15" fill="#dc2626">camera</text>`;
+  } else if(kind==='bench'){
+    b = `<defs><linearGradient id="gw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfd6dc"/><stop offset="1" stop-color="#aeb7bf"/></linearGradient></defs>
+    <rect width="400" height="300" fill="url(#gw)"/><rect x="0" y="190" width="400" height="22" fill="#8a5a33"/><rect x="0" y="212" width="400" height="88" fill="#5b3b22"/>
+    <rect x="70" y="170" width="60" height="20" rx="3" fill="#333"/><g stroke="#e8772e" stroke-width="16" stroke-linecap="round" fill="none"><path d="M100 172 L120 110 L190 80"/></g>
+    <circle cx="120" cy="110" r="11" fill="#3d3d3d"/><circle cx="190" cy="80" r="9" fill="#3d3d3d"/><path d="M190 80 l26 10 M190 80 l20 22" stroke="#555" stroke-width="5"/>
+    <rect x="270" y="160" width="70" height="30" fill="#4a4f55"/><rect x="282" y="140" width="46" height="22" fill="#6b7178"/>
+    <rect x="20" y="30" width="80" height="50" fill="#e9eef2" stroke="#9aa4ad" stroke-width="2"/>`;
+  } else if(kind==='tray'){
+    b = `<rect width="400" height="300" fill="#2e3136"/><rect x="20" y="110" width="360" height="80" fill="#55595f"/><rect x="20" y="104" width="360" height="10" fill="#787d84"/>
+    <g fill="none" stroke-width="7" stroke-linecap="round"><path d="M20 140 C120 120 220 170 380 136" stroke="#dc2626"/><path d="M20 152 C140 160 240 130 380 160" stroke="#facc15"/><path d="M20 166 C110 176 260 150 380 172" stroke="#2563eb"/><path d="M20 128 C150 150 250 118 380 124" stroke="#111"/></g>
+    <rect x="300" y="210" width="70" height="40" rx="5" fill="#d4d4d4"/><g fill="#555"><circle cx="318" cy="230" r="4"/><circle cx="335" cy="230" r="4"/><circle cx="352" cy="230" r="4"/></g>`;
+  } else if(kind==='screenshot'){
+    b = `<rect width="400" height="300" fill="#ececf0"/><rect x="0" y="0" width="400" height="24" fill="#d6d6dc"/><circle cx="12" cy="12" r="4" fill="#ff5f57"/><circle cx="24" cy="12" r="4" fill="#febc2e"/><circle cx="36" cy="12" r="4" fill="#28c840"/>
+    <rect x="0" y="24" width="70" height="276" fill="#e0e0e6"/><g fill="#b8b8c2"><rect x="10" y="40" width="50" height="6"/><rect x="10" y="56" width="40" height="6"/><rect x="10" y="72" width="46" height="6"/></g>
+    <g fill="none" stroke="#2563eb" stroke-width="2"><rect x="110" y="70" width="240" height="140"/><circle cx="170" cy="140" r="30"/><circle cx="260" cy="140" r="30"/><path d="M110 230 h240" stroke-dasharray="4 4"/></g>
+    <text x="200" y="252" font-family="Helvetica, Arial" font-size="11" fill="#555" text-anchor="middle">mount_plate_v3.step · 180 × 60 cm</text>`;
+  } else if(kind==='arm'){
+    b = `<defs><linearGradient id="ga" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1e7d8"/><stop offset="1" stop-color="#d9c8ae"/></linearGradient></defs>
+    <rect width="400" height="300" fill="url(#ga)"/><rect x="0" y="220" width="400" height="80" fill="#6f4a2c"/>
+    <rect x="160" y="200" width="80" height="22" rx="3" fill="#2b2b2b"/><g stroke="#4b6bd6" stroke-width="18" stroke-linecap="round" fill="none"><path d="M200 202 L200 130 L280 95"/></g>
+    <circle cx="200" cy="130" r="13" fill="#2b2b2b"/><circle cx="280" cy="95" r="10" fill="#2b2b2b"/><path d="M280 95 l30 -4 M280 95 l26 16" stroke="#444" stroke-width="6"/>
+    <rect x="40" y="186" width="70" height="36" fill="#9a9fa6"/><text x="75" y="210" font-family="Helvetica, Arial" font-size="12" fill="#222" text-anchor="middle">PLATE 2</text>`;
+  }
+  const m = marks.map(p=>`<ellipse cx="${p.x}" cy="${p.y}" rx="38" ry="26" fill="none" stroke="#ff3b30" stroke-width="5" transform="rotate(-8 ${p.x} ${p.y})"/>`).join('');
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="photo">${b}${m}</svg>`;
+}
+
+/* ---------- shared note ---------- */
+const TITLE = 'Bench layout for the second arm';
+const P1 = ['Walked the bench with [[Marta]] after lunch.','The second arm goes on the left side, next to the vise.','That leaves the right side free for the camera rig.'];
+const P2 = ['Cable tray has to move about twenty centimetres back.','Marta thinks the power strip should sit under the bench, not on it.','I agree, it keeps the cables out of the arm\'s reach.'];
+const P3 = ['Next step is ordering the second mount plate.','Check whether the old one still fits the new base.'];
+const MEMO = '8F3C2A1E';
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function chipsHTML(){
+  return `<div class="chips"><span class="chip">${I.cal}Tue 30 Sep · 18:42</span><span class="chip">${I.pin}Lisbon</span><span class="chip">${I.mic}Voice memo</span><span class="chip">${I.wave}4:12</span></div>`;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function wordHTML(w){
+  return /\[\[.+\]\]/.test(w) ? `<span class="lnk">${esc(w)}</span>` : esc(w);
+}
+function paraHTML(blk, bi, caret, interactive){
+  let out = '';
+  if(caret && caret.b===bi && caret.s===0 && caret.w===-1) out += '<span class="caret"></span>';
+  blk.sentences.forEach((s,si)=>{
+    s.split(' ').forEach((w,wi)=>{
+      out += interactive ? `<span class="w" data-b="${bi}" data-s="${si}" data-w="${wi}">${wordHTML(w)}</span>` : wordHTML(w);
+      if(caret && caret.b===bi && caret.s===si && caret.w===wi) out += '<span class="caret"></span>';
+      out += ' ';
+    });
+  });
+  return `<p>${out}</p>`;
+}
+function photoHTML(blk, bi, extra){
+  extra = extra || {};
+  const cls = ['photo'];
+  if(extra.sel) cls.push('sel');
+  if(blk.fresh) cls.push('fresh');
+  if(blk.arrived) cls.push('arrive');
+  const inner = blk.dataURL ? `<img src="${blk.dataURL}" alt="added photo">` : scene(blk.scene, blk.marks);
+  const hint = extra.sel ? `<span class="hint">Double-click or <kbd>Space</kbd> to open</span>` : '';
+  return `<div class="${cls.join(' ')}" data-img="${bi}" tabindex="0" aria-label="Photo img_${pad(blk.n)}">${inner}${hint}</div>`;
+}
+function pad(n){return String(n).padStart(3,'0')}
+function winHTML(o){
+  const photoBtn = o.photoBtn ? `<button class="gchip newbtn" id="${o.id}-photobtn" title="Add Photo… (⇧⌘I)" aria-label="Add photo">${I.photo}<span class="newtag">NEW</span></button>` : '';
+  return `<div class="win" id="${o.id}-win">
+    <div class="titlebar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="wtitle">Skrift</span></div>
+    <div class="tbar"><button class="gchip" aria-label="Show the notes list">${I.sidebar}</button><span class="sp"></span>${photoBtn}<button class="primary" data-noop="Process runs transcribe → enhance on this note. Not part of this mock.">Process</button><button class="gchip" aria-label="More" data-noop="The ⋯ menu is unchanged here, apart from Edit ▸ Insert Photo… (⇧⌘I) in the menu bar.">${I.dots}</button><button class="capsule" data-noop="Connections panel is unchanged in this mock.">Connections</button></div>
+    <div class="col"><h2 class="ntitle">${TITLE}</h2>${chipsHTML()}<div class="body" id="${o.id}-body">${o.body}</div></div>
+    ${o.overlay||''}
+  </div>`;
+}
+function phoneHTML(o){
+  return `<div class="phone" id="${o.id}-phone"><div class="pstatus"><span>18:44</span><span>●●● 5G</span></div>
+    <div class="pnav"><span>‹ Notes</span><span>⋯</span></div>
+    <div class="pcol"><h2 class="ntitle">${TITLE}</h2><div class="body">${o.body}</div></div>${o.overlay||''}</div>`;
+}
+function viewsHTML(list, cur){
+  return list.map(([k,label])=>`<button class="view ${k==='prop'?'prop':''}" data-view="${k}" aria-pressed="${k===cur}">${label}</button>`).join('');
+}
+function pickHTML(n, text, alt){
+  return `<div class="pickc"><span class="lab">PICK ${n}</span><p>${text}</p><p class="alt"><b>Instead:</b> ${alt}</p></div>`;
+}
+
+/* ---------- toast ---------- */
+const toastEl = document.getElementById('toast'), toastMsg = document.getElementById('toastMsg'), toastBtn = document.getElementById('toastBtn');
+let toastT = null, toastUndo = null;
+function toast(msg, opts){
+  opts = opts || {};
+  toastMsg.textContent = msg;
+  toastEl.classList.toggle('today', !!opts.today);
+  toastUndo = opts.undo || null;
+  toastBtn.hidden = !toastUndo;
+  toastEl.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>{toastEl.hidden = true}, opts.ms || 4200);
+}
+toastBtn.addEventListener('click', ()=>{ if(toastUndo){ toastUndo(); toastUndo=null; } toastEl.hidden = true; });
+document.addEventListener('click', e=>{
+  const n = e.target.closest('[data-noop]');
+  if(n) toast(n.getAttribute('data-noop'));
+});
+
+/* =========================================================
+   TAB 1 — ADD
+   ========================================================= */
+const ADD = {
+  view:'prop',
+  blocks:null, caret:null, nextN:2, sheet:false, sheetPick:null, dropping:false, lastN:null, history:[]
+};
+function addReset(){
+  ADD.blocks = [{type:'p',sentences:P1.slice()},{type:'img',n:1,scene:'whiteboard',marks:[]},{type:'p',sentences:P2.slice()},{type:'p',sentences:P3.slice()}];
+  ADD.caret = {b:2,s:0,w:3};   // "Cable tray has to move| about twenty…"
+  ADD.nextN = 2; ADD.lastN = null; ADD.history = [];
+}
+addReset();
+const FILES = [
+  {scene:'bench', name:'IMG_4471.HEIC', meta:'2.1 MB · Today 18:31'},
+  {scene:'tray', name:'cable-tray.jpg', meta:'840 KB · Today 18:33'},
+  {scene:'screenshot', name:'Screenshot 2026-09-30 at 18.40.png', meta:'412 KB · Today 18:40'}
+];
+function modelString(blocks){
+  return blocks.map(b=> b.type==='p' ? b.sentences.join(' ') : `[[img_${pad(b.n)}]]`).join('\n');
+}
+function renderAdd(){
+  const today = ADD.view==='today';
+  document.getElementById('v-add').innerHTML = viewsHTML([['prop','Proposed'],['today','Mac today']], ADD.view);
+  const body = ADD.blocks.map((b,i)=> b.type==='p' ? paraHTML(b,i,ADD.caret,true) : photoHTML(b,i)).join('');
+  let overlay = '';
+  if(ADD.sheet){
+    overlay = `<div class="sheetwrap"><div class="sheet" role="dialog" aria-label="Choose a photo"><h3>Add a photo to this note</h3><ul class="files">${
+      FILES.map((f,i)=>`<li class="file" data-file="${i}" aria-selected="${ADD.sheetPick===i}"><span class="fthumb">${scene(f.scene)}</span><span style="min-width:0"><div class="fname">${f.name}</div><div class="fmeta">${f.meta}</div></span></li>`).join('')
+    }</ul><div class="sheetfoot"><button class="sbtn" id="sheetCancel">Cancel</button><button class="sbtn go" id="sheetGo" ${ADD.sheetPick===null?'disabled':''}>Add</button></div></div></div>`;
+  }
+  if(ADD.dropping) overlay += `<div class="dropzone">Drop to add the photo<br>after the sentence you point at</div>`;
+  document.getElementById('s-add').innerHTML = winHTML({id:'add', body, photoBtn:!today, overlay});
+  document.getElementById('c-add').innerHTML = today
+    ? `<button class="act" id="addChoose">Look for Add Photo…</button><button class="act" id="addPaste">Paste an image <kbd>⌘V</kbd></button><button class="act" id="addDrop">Drop an image</button>`
+    : `<button class="act" id="addChoose">${I.photo.replace('<svg','<svg width="15" height="15"')} Add Photo… <kbd>⇧⌘I</kbd></button><button class="act" id="addPaste">Paste an image <kbd>⌘V</kbd></button><button class="act" id="addDrop">Drop an image</button>${ADD.history.length?'<button class="act ghost" id="addReset">Reset note</button>':''}`;
+  const model = modelString(ADD.blocks).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(new RegExp(`\\[\\[img_${pad(ADD.lastN||0)}\\]\\]`), m=>`<span class="mk">${m}</span>`);
+  const manifest = ADD.blocks.filter(b=>b.type==='img').sort((a,b)=>a.n-b.n).map(b=>`  ${b.n}. images/photo_${MEMO}…_${pad(b.n)}.jpg${b.n===ADD.lastN?'   ← new':''}`).join('\n');
+  document.getElementById('x-add').innerHTML = today
+    ? `<div class="today"><b>Mac today:</b> there is no way to add a photo. The note body is a plain-text view (<code>BodyTextView.swift:153</code>, <code>isRichText = false</code>), so a pasted image is ignored, and Skrift has no drop handling for image files. Photos only arrive from the phone.</div>`
+    : `<div class="model"><span class="mlabel">What the note stores (synced to the phone as-is)</span>${model}\n\n<span class="mlabel" style="margin-top:8px">Photo files (image manifest)</span>${manifest}</div>
+      <div class="picks">
+      ${pickHTML(1,'Three ways in: a <b>photo button in the note toolbar</b> (also Edit ▸ Insert Photo… ⇧⌘I), paste, and drop. The button opens the Mac file picker.','no toolbar button. Menu, paste and drop only, and the toolbar stays exactly as today.')}
+      ${pickHTML(2,'The photo lands <b>after the sentence the caret is in</b>, on its own line. Tap a word to move the caret, then add: it never splits a sentence. The phone ends up in the same place, because its save step moves a mid-sentence photo to the sentence end (C10).','split the paragraph exactly at the caret, mid-sentence if that is where you were.')}
+      </div>`;
+  bindAdd();
+}
+function insertPhoto(src, how){
+  if(ADD.view==='today') return;
+  const c = ADD.caret || {b:ADD.blocks.length-1, s:0, w:0};
+  const blk = ADD.blocks[c.b];
+  if(!blk || blk.type!=='p'){ return; }
+  ADD.history.push({blocks:clone(ADD.blocks), caret:clone(ADD.caret), nextN:ADD.nextN, lastN:ADD.lastN});
+  ADD.blocks.forEach(b=>{delete b.fresh});
+  const sEnd = c.w===-1 ? -1 : c.s;
+  const before = blk.sentences.slice(0, sEnd+1), after = blk.sentences.slice(sEnd+1);
+  const words = blk.sentences[Math.max(0,c.s)].split(' ');
+  const midSentence = c.w!==-1 && c.w < words.length-1;
+  const img = Object.assign({type:'img', n:ADD.nextN++, marks:[], fresh:true}, src);
+  const repl = [];
+  if(before.length) repl.push({type:'p',sentences:before});
+  repl.push(img);
+  if(after.length) repl.push({type:'p',sentences:after});
+  ADD.blocks.splice(c.b,1,...repl);
+  ADD.lastN = img.n;
+  const imgIdx = c.b + (before.length?1:0);
+  ADD.caret = after.length ? {b:imgIdx+1, s:0, w:-1} : null;
+  renderAdd();
+  const lastS = before.length ? before[before.length-1] : '';
+  const where = midSentence ? `after “…${lastS.split(' ').slice(-2).join(' ')}”, not mid-sentence` : 'at the caret';
+  toast(`${how} · photo img_${pad(img.n)} added ${where}. It syncs to your phone.`, {undo:()=>{
+    const h = ADD.history.pop(); if(!h) return;
+    ADD.blocks=h.blocks; ADD.caret=h.caret; ADD.nextN=h.nextN; ADD.lastN=h.lastN; renderAdd();
+  }});
+  const el = document.querySelector(`#add-body [data-img="${imgIdx}"]`);
+  if(el && el.scrollIntoView) el.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function bindAdd(){
+  const today = ADD.view==='today';
+  document.querySelectorAll('#v-add .view').forEach(b=>b.onclick=()=>{ADD.view=b.dataset.view; ADD.sheet=false; renderAdd();});
+  document.querySelectorAll('#add-body .w').forEach(w=>w.onclick=()=>{
+    ADD.caret = {b:+w.dataset.b, s:+w.dataset.s, w:+w.dataset.w}; renderAdd();
+  });
+  const pb = document.getElementById('add-photobtn');
+  if(pb) pb.onclick = ()=>{ADD.sheet=true; ADD.sheetPick=null; renderAdd();};
+  document.getElementById('addChoose').onclick = ()=>{
+    if(today){ toast('Mac today: there is no Add Photo anywhere: not in the toolbar, the ⋯ menu or the menu bar.', {today:true}); return; }
+    ADD.sheet=true; ADD.sheetPick=null; renderAdd();
+  };
+  document.getElementById('addPaste').onclick = ()=>{
+    if(today){ toast('Mac today: nothing happens. The body is plain text, so the image is dropped.', {today:true}); return; }
+    insertPhoto({scene:'screenshot'}, 'Pasted');
+  };
+  document.getElementById('addDrop').onclick = ()=>{
+    if(today){ toast('Mac today: Skrift has no drop handling for images in the note body.', {today:true}); return; }
+    ADD.dropping = true; renderAdd();
+    setTimeout(()=>{ ADD.dropping=false; insertPhoto({scene:'tray'}, 'Dropped'); }, 900);
+  };
+  const r = document.getElementById('addReset'); if(r) r.onclick = ()=>{addReset(); renderAdd(); toast('Note reset.');};
+  document.querySelectorAll('#s-add .file').forEach(f=>f.onclick=()=>{ADD.sheetPick=+f.dataset.file; renderAdd();});
+  const sc = document.getElementById('sheetCancel'); if(sc) sc.onclick=()=>{ADD.sheet=false; renderAdd();};
+  const sg = document.getElementById('sheetGo'); if(sg) sg.onclick=()=>{
+    const f = FILES[ADD.sheetPick]; ADD.sheet=false; insertPhoto({scene:f.scene}, f.name);
+  };
+}
+/* real paste / drop of an image file, for when this is opened on a computer */
+function readImage(file, how){
+  if(!file || !/^image\//.test(file.type)) return;
+  const fr = new FileReader();
+  fr.onload = ()=> insertPhoto({dataURL:fr.result, scene:'bench'}, how);
+  fr.readAsDataURL(file);
+}
+document.addEventListener('paste', e=>{
+  if(document.getElementById('p-add').hidden || ADD.view==='today') return;
+  const items = (e.clipboardData && e.clipboardData.files) || [];
+  if(items.length){ e.preventDefault(); readImage(items[0], 'Pasted'); }
+});
+const sAdd = document.getElementById('s-add');
+sAdd.addEventListener('dragover', e=>{ if(ADD.view!=='today'){ e.preventDefault(); if(!ADD.dropping){ADD.dropping=true; renderAdd();} } });
+sAdd.addEventListener('dragleave', e=>{ if(e.target.classList && e.target.classList.contains('dropzone')){ADD.dropping=false; renderAdd();} });
+sAdd.addEventListener('drop', e=>{ e.preventDefault(); ADD.dropping=false; const f = e.dataTransfer && e.dataTransfer.files[0]; if(f) readImage(f,'Dropped'); else renderAdd(); });
+
+/* =========================================================
+   TAB 2 — OPEN, ZOOM, MARK UP
+   ========================================================= */
+const OPEN = {view:'prop', sel:false, ql:false, markup:false, zoom:1, origin:'50% 50%', marks:[], sessionStart:0, edited:false};
+function renderOpen(){
+  document.getElementById('v-open').innerHTML = viewsHTML([['prop','Proposed'],['today','Mac today'],['phone','Phone today']], OPEN.view);
+  const img = {type:'img', n:1, scene:'whiteboard', marks:OPEN.marks};
+  const stage = document.getElementById('s-open');
+  if(OPEN.view==='phone'){
+    const overlay = OPEN.ql ? `<div class="pql" role="dialog" aria-label="Photo viewer">
+      <div class="pqlnav"><button id="pqlDone">Done</button><span class="t">photo_${MEMO}…_001.jpg</span><button id="pqlMk" class="${OPEN.markup?'on':''}" aria-label="Markup">${I.markup}</button></div>
+      <div class="pqlimg" id="qlImg">${scene('whiteboard', OPEN.marks)}</div>
+      ${OPEN.markup ? `<div class="pqltools"><span><i class="pen"></i>Pen</span><span><i class="pen b"></i>Marker</span><span><i class="pen y"></i>Highlight</span><span><i class="swatch"></i>Colour</span></div>` : `<div class="pqltools"><span style="color:#0a84ff">${I.share.replace('<svg','<svg width="20" height="20"')}</span></div>`}
+    </div>` : '';
+    stage.innerHTML = phoneHTML({id:'open', body: paraHTML({sentences:P1},0) + `<div class="photo" data-img="1" tabindex="0">${scene('whiteboard', OPEN.marks)}</div>` + paraHTML({sentences:P2.slice(0,1)},2), overlay});
+  } else {
+    const body = paraHTML({sentences:P1},0) + photoHTML(img,1,{sel:OPEN.view==='prop' && OPEN.sel}) + paraHTML({sentences:P2},2) + paraHTML({sentences:P3},3);
+    let overlay = '';
+    if(OPEN.ql){
+      overlay = `<div class="qlwrap" id="qlBack"><div class="ql" role="dialog" aria-label="Quick Look">
+        <div class="qlbar"><button class="qbtn" id="qlClose" aria-label="Close">${I.close}</button><span class="qlname">photo_${MEMO}…_001.jpg</span>
+          <button class="qbtn ${OPEN.markup?'on':''}" id="qlMk" aria-label="Markup">${I.markup}</button><button class="qbtn" aria-label="Rotate" data-noop="Rotate left: Quick Look's own button, saves into the file like Markup.">${I.rotate}</button><button class="qbtn text" data-noop="Opens the photo in Preview. Quick Look's own button.">Open with Preview</button></div>
+        ${OPEN.markup ? `<div class="mtools"><button class="qbtn on">Sketch</button><button class="qbtn">Draw</button><button class="qbtn">Shapes</button><button class="qbtn">Text</button><span class="swatch"></span><span class="grow"></span><button class="qbtn text" id="qlRevert">Revert</button><button class="qbtn text" id="qlMkDone">Done</button></div>` : ''}
+        <div class="qlimg ${OPEN.markup?'mk':(OPEN.zoom>1?'z2':'')}" id="qlImg"><div class="inner" style="transform:scale(${OPEN.markup?1:OPEN.zoom});transform-origin:${OPEN.origin}">${scene('whiteboard', OPEN.marks)}</div></div>
+        <div class="qlfoot"><span>${OPEN.markup?'Tap the photo to draw a circle':'Click to zoom · pinch on a trackpad'}</span><span>${OPEN.markup?'Saves into the photo':(OPEN.zoom>1?'200%':'Fit')}</span></div>
+      </div></div>`;
+    }
+    stage.innerHTML = winHTML({id:'open', body, photoBtn:OPEN.view==='prop', overlay});
+  }
+  const x = document.getElementById('x-open');
+  if(OPEN.view==='prop'){
+    x.innerHTML = `<p class="caption">Click the photo once to select it, again (or press Space) to open it.</p><div class="picks">
+      ${pickHTML(3,'<b>Click selects the photo; double-click or Space opens it.</b> A selected photo is a block you can delete, copy, or drag to a new place (C113). This is the Finder and Apple Notes habit on the Mac.','a single click opens the viewer straight away, exactly like a tap on the phone. Moving a photo would then need a drag handle or a menu.')}
+      ${pickHTML(4,'The viewer is <b>macOS Quick Look with its built-in Markup</b>, the Mac twin of the phone\'s viewer. Markup saves into the photo file; when you close it the phone gets the marked-up photo and its photo text is read again, as the phone does today.','a viewer Skrift draws itself, with its own pen tools inside the note window.')}
+    </div>`;
+  } else if(OPEN.view==='today'){
+    x.innerHTML = `<div class="today"><b>Mac today:</b> clicking a photo only moves the caret next to it (the text view's default; the only click handler is the name resolver in <code>BodyTextView.swift:1728</code>). No viewer, no zoom, no markup.</div>`;
+  } else {
+    x.innerHTML = `<div class="today"><b>Phone today</b> (<code>MarkupQuickLook.swift</code>): a tap opens Quick Look, which zooms the photo up off the page. Markup edits the file in place (<code>.updateContents</code>). On close, the photo's stored text is cleared and read again and the file re-syncs (<code>MemoPageView.photoWasEdited</code>). Tap the photo to try it. Toolbar details are approximate.</div>`;
+  }
+  bindOpen();
+}
+function openQL(){ OPEN.ql=true; OPEN.markup=false; OPEN.zoom=1; OPEN.sessionStart=OPEN.marks.length; OPEN.edited=false; renderOpen(); }
+function closeQL(){
+  const edited = OPEN.marks.length !== OPEN.sessionStart;
+  OPEN.ql=false; OPEN.markup=false; OPEN.sel = OPEN.view==='prop'; renderOpen();
+  if(edited){
+    toast(OPEN.view==='phone' ? 'Phone today: markup saved into the photo; its text is read again and it re-syncs.' : 'Markup saved into the photo. Your phone gets this version; its photo text is read again.', {today:OPEN.view==='phone'});
+  }
+}
+function bindOpen(){
+  document.querySelectorAll('#v-open .view').forEach(b=>b.onclick=()=>{OPEN.view=b.dataset.view; OPEN.ql=false; OPEN.sel=false; renderOpen();});
+  const ph = document.querySelector('#s-open [data-img]');
+  if(ph){
+    ph.onclick = e=>{
+      e.stopPropagation();
+      if(OPEN.view==='today'){ toast('Mac today: the caret lands beside the photo. Nothing opens.', {today:true}); return; }
+      if(OPEN.view==='phone'){ openQL(); return; }
+      if(OPEN.sel){ openQL(); } else { OPEN.sel=true; renderOpen(); const p=document.querySelector('#s-open [data-img]'); if(p) p.focus({preventScroll:true}); }
+    };
+    ph.ondblclick = e=>{ if(OPEN.view==='prop'){ e.preventDefault(); openQL(); } };
+    ph.onkeydown = e=>{ if(OPEN.view==='prop' && (e.key===' '||e.key==='Enter')){ e.preventDefault(); e.stopPropagation(); openQL(); } };
+  }
+  const bodyEl = document.getElementById('open-body');
+  if(bodyEl) bodyEl.addEventListener('click', ()=>{ if(OPEN.sel){ OPEN.sel=false; renderOpen(); } });
+  const back = document.getElementById('qlBack');
+  if(back) back.onclick = e=>{ if(e.target===back) closeQL(); };
+  const c = document.getElementById('qlClose'); if(c) c.onclick = closeQL;
+  const pd = document.getElementById('pqlDone'); if(pd) pd.onclick = closeQL;
+  const mk = document.getElementById('qlMk') || document.getElementById('pqlMk');
+  if(mk) mk.onclick = ()=>{ OPEN.markup=!OPEN.markup; OPEN.zoom=1; renderOpen(); };
+  const md = document.getElementById('qlMkDone'); if(md) md.onclick = ()=>{ OPEN.markup=false; renderOpen(); };
+  const rv = document.getElementById('qlRevert'); if(rv) rv.onclick = ()=>{ OPEN.marks.length = OPEN.sessionStart; renderOpen(); toast('Reverted to the photo as it was when you opened it.'); };
+  const qi = document.getElementById('qlImg');
+  if(qi) qi.onclick = e=>{
+    const svg = qi.querySelector('svg'); const r = svg.getBoundingClientRect();
+    const fx = (e.clientX - r.left)/r.width, fy = (e.clientY - r.top)/r.height;
+    if(OPEN.markup){
+      OPEN.marks.push({x:Math.round(fx*400), y:Math.round(fy*300)}); renderOpen();
+    } else if(OPEN.view!=='phone'){
+      if(OPEN.zoom>1){ OPEN.zoom=1; } else { OPEN.zoom=2; OPEN.origin = `${Math.round(fx*100)}% ${Math.round(fy*100)}%`; }
+      renderOpen();
+    }
+  };
+}
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('p-open').hidden) return;
+  if(e.key==='Escape' && OPEN.ql){ closeQL(); }
+  else if(e.key===' ' && OPEN.view==='prop' && OPEN.ql && !OPEN.markup){ e.preventDefault(); closeQL(); }
+});
+
+/* =========================================================
+   TAB 3 — NOT HERE YET
+   ========================================================= */
+const WAIT = {view:'prop', status:'downloading', arrived:false};
+function renderWait(){
+  document.getElementById('v-wait').innerHTML = viewsHTML([['prop','Proposed'],['today','Mac today'],['phone','Phone today']], WAIT.view);
+  const stage = document.getElementById('s-wait');
+  const p1 = paraHTML({sentences:P2},0), p2 = paraHTML({sentences:P3},2);
+  if(WAIT.view==='phone'){
+    const flat = `<div class="card flat">${I.glyph}</div>`;
+    const dl = `<div class="card dl"><span class="in"><span class="spin"></span>Downloading from iCloud…</span></div>`;
+    stage.innerHTML = phoneHTML({id:'wait', body: p1 + `<div class="plabel">In a note body</div>` + flat + `<div class="plabel">In a conversation turn</div>` + dl + p2});
+  } else {
+    let mid;
+    if(WAIT.view==='today'){
+      mid = `<p><span class="raw">[[img_002]]</span></p>`;
+    } else if(WAIT.status==='downloading'){
+      mid = `<div class="card dl" data-wait tabindex="0"><span class="in"><span class="spin"></span>Downloading from iCloud…</span></div>`;
+    } else if(WAIT.status==='missing'){
+      mid = `<div class="card dl" data-wait tabindex="0" style="color:var(--dlText)">${I.glyph}</div>`;
+    } else {
+      mid = photoHTML({n:2, scene:'arm', marks:[], arrived:WAIT.arrived}, 1);
+    }
+    stage.innerHTML = winHTML({id:'wait', body: p1 + mid + p2, photoBtn: WAIT.view==='prop'});
+  }
+  const ctl = document.getElementById('c-wait');
+  ctl.innerHTML = WAIT.view==='prop'
+    ? `<button class="act" id="wArrive">File arrives</button><button class="act" id="wMissing">File never comes</button><button class="act ghost" id="wReset">Back to downloading</button>`
+    : '';
+  const x = document.getElementById('x-wait');
+  if(WAIT.view==='prop'){
+    x.innerHTML = `<p class="caption">The marker <code>[[img_002]]</code> arrived with the text; the photo file comes over iCloud separately.</p><div class="picks">${pickHTML(5,'A photo whose file is not here yet shows <b>the phone\'s three states</b> (<code>ImageEmbed</code>): a dark card with a spinner and “Downloading from iCloud…”, then the photo; or a plain photo card if the file is gone. The card is a <b>fixed 160pt</b>, so the text below moves down when a tall photo lands.','keep the raw <code>[[img_002]]</code> text (today), or reserve the photo\'s real shape so nothing moves. That needs the photo\'s size stored next to the marker, which the manifest does not have.')}</div>`;
+  } else if(WAIT.view==='today'){
+    x.innerHTML = `<div class="today"><b>Mac today:</b> the marker stays as raw accent text until the file exists. <code>NoteBody.imageURL</code> returns nil when <code>images/&lt;file&gt;</code> is missing, and the text view only swaps markers that resolve to a file (<code>BodyTextView.swift:638</code>).</div>`;
+  } else {
+    x.innerHTML = `<div class="today"><b>Phone today is not consistent with itself.</b> The note body draws a flat grey card with a photo glyph and no words (<code>NoteBodyView.swift:1285</code>). Only conversation turns show the spinner and “Downloading from iCloud…” (<code>CaptureQuoteViews.swift:191</code>). Pick 5 would make the Mac match the turn version; the phone body should follow.</div>`;
+  }
+  bindWait();
+}
+function bindWait(){
+  document.querySelectorAll('#v-wait .view').forEach(b=>b.onclick=()=>{WAIT.view=b.dataset.view; renderWait();});
+  const a = document.getElementById('wArrive'); if(a) a.onclick=()=>{WAIT.status='here'; WAIT.arrived=true; renderWait(); toast('The file landed, so the card becomes the photo. Text below moved down about 110pt.');};
+  const m = document.getElementById('wMissing'); if(m) m.onclick=()=>{WAIT.status='missing'; renderWait(); toast('No file in iCloud for this photo: a plain photo card stays in its place.');};
+  const r = document.getElementById('wReset'); if(r) r.onclick=()=>{WAIT.status='downloading'; WAIT.arrived=false; renderWait();};
+  const c = document.querySelector('#s-wait [data-wait]');
+  if(c) c.onclick=()=> toast(WAIT.status==='downloading' ? 'Still downloading. It opens once the photo is here.' : 'This photo\'s file never reached this Mac.');
+  const p = document.querySelector('#s-wait [data-img]');
+  if(p) p.onclick=()=> toast('Arrived photos behave like any other: see the Open tab.');
+}
+
+/* ---------- tabs ---------- */
+const tabs = document.querySelectorAll('.tab');
+function showTab(k){
+  tabs.forEach(t=>t.setAttribute('aria-selected', String(t.dataset.tab===k)));
+  ['add','open','wait'].forEach(id=>{ document.getElementById('p-'+id).hidden = id!==k; });
+  try{ localStorage.setItem('q128tab', k); }catch(e){}
+}
+tabs.forEach(t=>t.onclick=()=>showTab(t.dataset.tab));
+renderAdd(); renderOpen(); renderWait();
+let start = 'add';
+const h = (location.hash||'').slice(1);
+if(['add','open','wait'].includes(h)) start = h;
+else { try{ const s = localStorage.getItem('q128tab'); if(s && ['add','open','wait'].includes(s)) start = s; }catch(e){} }
+showTab(start);
+})();
+</script>

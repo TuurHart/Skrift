@@ -1956,6 +1956,12 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
+### Q257 [tuur] (tuur) review Q177's picks: empty pane 'Select a note' + doc.text on both (Mac sparkles gone); day/RELATED headers use the phone's 11.5/0.5/secondary; accentSoft 0.13; 'New note (⌘N)' tooltip on both; 'Add a title' prompt on both; locked screen shared body with 'hidden, not encrypted', Mac verb 'Unlock' (was 'Unlock…')
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2602,3 +2608,5 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:41 Q162 -> doing — mockup agent out
 - 2026-10-02 21:41 Q177 -> done — gate pass @ae6d8b32
 - 2026-10-02 21:43 Q168 -> done — gate pass @4f272318
+- 2026-10-02 21:43 Q257 added
+- 2026-10-02 21:43 Q257 -> tuur — awaiting sitting
