@@ -188,9 +188,13 @@ struct IngestService: Sendable {
                     name = String(format: "img_%03d.", n) + norm.ext
                     ok = (try? norm.data.write(to: dir.appendingPathComponent(name))) != nil
                 } else {
+                    // Undecodable: a format we convert (HEIC/TIFF/BMP) is a failure, as before;
+                    // any other extension is copied as-is.
                     let ext = p.url.pathExtension.lowercased()
                     name = String(format: "img_%03d.", n) + (ext == "jpeg" ? "jpg" : ext)
-                    ok = (try? fm.copyItem(at: p.url, to: dir.appendingPathComponent(name))) != nil
+                    if !MixedBundle.convertToJPEGExtensions.contains(ext) {
+                        ok = (try? fm.copyItem(at: p.url, to: dir.appendingPathComponent(name))) != nil
+                    }
                 }
                 if ok { entries.append(ImageManifestEntry(filename: name, offsetSeconds: p.offsetSeconds)) }
                 else { failed.append(p.url) }
