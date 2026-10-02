@@ -1,4 +1,5 @@
 import AVFoundation
+import AppKit
 import AudioToolbox
 import CoreAudio
 import CoreMedia
@@ -136,8 +137,36 @@ final class MacRecorder {
     /// The sample delegate's own queue — never Main, never `configQueue`.
     private let callbackQueue = DispatchQueue(label: "com.skrift.desktop.record.samples")
 
+    /// The take's MAIN file — `rec_tmp_<take>.m4a` beside its segments + marker (C99, Q163).
     private var url: URL?
     private var startedAt: Date?
+    /// Id of the take in flight (or just stopped). Names the main file, the 60 s segments
+    /// and the marker, so the launch sweep (`RecordingSweep`) can find them after a kill.
+    private var takeID: String?
+    /// The take's segment + marker writer, handed over by the sink once its writer is closed.
+    private var checkpoint: RecordingCheckpoint?
+    private var checkpointSealed = false
+    /// The last stopped take, kept until the arrival path has stored it (`discardFinishedTake`)
+    /// — the files are deleted only AFTER the note exists, never before.
+    private var finishedTake: (id: String, directory: URL)?
+    private var terminateObserver: NSObjectProtocol?
+    private var sleepObserver: NSObjectProtocol?
+
+    /// Said in the draft pane when the input died mid-take but the words so far survive
+    /// (recsj-029: this used to tear the take down with no message at all).
+    private(set) var lossNotice: String?
+    /// Why the take ended on its own (a write failure). Titles the note (R46); nil for a
+    /// take the user stopped.
+    private(set) var endedReason: String?
+    /// Fired (main actor) when the recorder ends the take itself — a write failure — so
+    /// the owner can stop + save. Set BEFORE `start()`.
+    var onTakeEnded: ((String) -> Void)?
+
+    /// R46: the disk refused a write. Honest about what is NOT known (full disk vs another
+    /// I/O error) and about what is safe.
+    nonisolated static let writeFailureMessage =
+        "Recording stopped: the disk refused a write (it may be full). Everything recorded up to that point is saved."
+
     private var ticker: Timer?
     /// The input this take is actually listening to — for the stop-time verdict, so a dead
     /// take can NAME the device that produced it instead of shrugging.
@@ -194,7 +223,8 @@ final class MacRecorder {
         }
         Self.log.notice("start(): input ← \(chosen.name, privacy: .public) of \(inputs.count, privacy: .public)")
 
-        let dest = AppPaths.recordingsDirectory.appendingPathComponent(RecordingCore.filename())
+        let take = UUID().uuidString
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent(RecordingCheckpoint.mainFilename(take: take))
         do {
             try FileManager.default.createDirectory(at: AppPaths.recordingsDirectory,
                                                     withIntermediateDirectories: true)
@@ -249,8 +279,19 @@ final class MacRecorder {
         let generation = takeGeneration
         receivedFirstBuffer = false
         sawSignal = false
+        lossNotice = nil
+        endedReason = nil
+        checkpoint = nil
+        checkpointSealed = false
+        takeID = take
 
-        let sink = SampleSink(destination: dest,
+        let sink = SampleSink(destination: dest, takeID: take, queue: callbackQueue,
+            onWriteFailure: { [weak self] detail in
+                Task { @MainActor [weak self] in
+                    guard let self, self.takeGeneration == generation else { return }
+                    self.handleWriteFailure(detail, generation: generation)
+                }
+            },
             onFirstBuffer: { [weak self] format in
                 Task { @MainActor [weak self] in
                     guard let self, self.takeGeneration == generation else { return }
@@ -279,7 +320,9 @@ final class MacRecorder {
         self.state = .recording
         startTicker()
         installLossObservers(device: captureDevice, session: session, generation: generation)
+        installLifecycleObservers()
         scheduleFailFastCheck(generation: generation)
+        RecordingLifecycleLog.log("start", "take=\(take) input=\(chosen.name)")
 
         Self.log.notice("start(): session configured, dispatching startRunning() on \(self.activeInputName, privacy: .public) → \(dest.lastPathComponent, privacy: .public)")
         configQueue.async { session.startRunning() }
@@ -299,34 +342,94 @@ final class MacRecorder {
         guard state == .recording else { return nil }
         Self.log.notice("stop(): after \(RecordingCore.elapsedLabel(self.elapsed), privacy: .public), signal=\(self.sawSignal, privacy: .public)")
         ticker?.invalidate(); ticker = nil
-        teardownSession()               // drops the sink → its AVAudioFile deallocates → closes
-        let finished = url
+        // Drains the writer queue, closes the main file, closes the open segment and writes
+        // the marker (C224: "writer queue drained on stop") — BEFORE anything reads the file.
+        teardownSession()
+        let main = url
+        let take = takeID
         url = nil
         startedAt = nil
-        let size = finished.flatMap { try? FileManager.default.attributeOfItemSize(at: $0) } ?? 0
+        guard let main, let take else {
+            elapsed = 0
+            state = .failed(.nothingCaptured(activeInputName))
+            return nil
+        }
+        let directory = main.deletingLastPathComponent()
+
+        // Hand the arrival path a `memo_<id>.m4a` (the phone's naming; it becomes the Memo's
+        // audio filename). The main file stays as `rec_tmp_*` until the note is stored —
+        // a hard link, so a nearly-full disk costs nothing.
+        let staged = directory.appendingPathComponent(
+            RecordingCore.filename(id: UUID(uuidString: take) ?? UUID()))
+        try? FileManager.default.removeItem(at: staged)
+        let mainReadable = RecordingCheckpoint.isReadableAudio(main)
+        var rebuildFailed = false
+        if mainReadable {
+            if (try? FileManager.default.linkItem(at: main, to: staged)) == nil {
+                try? FileManager.default.copyItem(at: main, to: staged)
+            }
+        } else if let cp = checkpoint, !cp.segmentURLs.isEmpty {
+            // A write failure can leave the main file without its index (a dead m4a). The
+            // closed segments hold the same audio: rebuild from them.
+            let segments = cp.segmentURLs.filter(RecordingCheckpoint.isReadableAudio)
+            do {
+                try AudioClipMerge.merge(sources: segments, to: staged)
+                RecordingLifecycleLog.log("finalize", "take=\(take) rebuilt from \(segments.count) segment(s)")
+            } catch {
+                RecordingLifecycleLog.log("finalize", "take=\(take) rebuild FAILED (\(error)) — files kept for the launch sweep")
+                try? FileManager.default.removeItem(at: staged)
+                rebuildFailed = true
+            }
+        }
+        finishedTake = (take, directory)
+        let size = (try? FileManager.default.attributeOfItemSize(at: staged)) ?? 0
+        if rebuildFailed {
+            // Audio WAS captured but nothing could be handed over: keep every file — the
+            // launch sweep rebuilds the note from the segments.
+            state = .failed(.engineFailed("the recording could not be finalised. It is kept and will appear as a recovered note the next time Skrift opens."))
+            elapsed = 0
+            finishedTake = nil
+            releaseTake()
+            return nil
+        }
         // No signal = a broken take whatever its byte count: an encoder fed zeros (or
         // nothing) still writes headers and frames, so size alone can't tell a quiet room
         // from a dead input. Delete it and say which device let us down.
-        guard let finished, size > 1024, sawSignal else {
-            if let finished { try? FileManager.default.removeItem(at: finished) }
+        guard size > 1024, sawSignal else {
+            let reason: Refusal = size > 1024 ? .recordedSilence(activeInputName)
+                                              : .nothingCaptured(activeInputName)
+            discardFinishedTake()
+            releaseTake()
             elapsed = 0
-            state = .failed(size > 1024 ? .recordedSilence(activeInputName)
-                                        : .nothingCaptured(activeInputName))
+            state = .failed(reason)
             Self.log.error("stop(): DEAD TAKE — \(size, privacy: .public) bytes from \(self.activeInputName, privacy: .public)")
             return nil
         }
         state = .idle
-        return finished
+        releaseTake()
+        RecordingLifecycleLog.log("finalize", "reason=stop take=\(take)")
+        return staged
+    }
+
+    /// Delete the last stopped take's files — main, segments, marker and the staged
+    /// `memo_*` copy. Call ONLY once the note exists (the arrival path stored it): until
+    /// then these files are the only copy, and the next launch's sweep would rebuild them.
+    func discardFinishedTake() {
+        guard let (take, directory) = finishedTake else { return }
+        finishedTake = nil
+        RecordingCheckpoint.discardTakeFiles(take: take, in: directory)
+        RecordingCheckpoint.discardIfExists(
+            directory.appendingPathComponent(RecordingCore.filename(id: UUID(uuidString: take) ?? UUID())))
     }
 
     /// Abandon the take and delete the file — for a cancel, or a window closing mid-record.
     /// Clears any stop-time verdict too: the user threw this take away on purpose, so a
     /// "nothing was captured" complaint about it would be noise.
     func cancel() {
-        let dead = stop()
+        guard state == .recording else { clearFailure(); return }
+        _ = stop()
         clearFailure()
-        guard let dead else { return }
-        try? FileManager.default.removeItem(at: dead)
+        discardFinishedTake()
     }
 
     func clearFailure() { if case .failed = state { state = .idle } }
@@ -345,16 +448,78 @@ final class MacRecorder {
     /// Tear down everything session-side: observers, the delegate (so the output releases the
     /// sink), then the session itself. Dispatched off Main — brief's rule: the main thread
     /// must never wait on the session, only ever hand it work.
+    ///
+    /// Also CLOSES THE WRITER, synchronously: waits out any callback already on the writer
+    /// queue, closes the main file, closes the open segment, and writes the marker as
+    /// finalised when the main file reads back. Idempotent — `stop()` calls it again after a
+    /// loss already did.
     private func teardownSession() {
         if let observer = disconnectObserver { NotificationCenter.default.removeObserver(observer); disconnectObserver = nil }
         if let observer = runtimeErrorObserver { NotificationCenter.default.removeObserver(observer); runtimeErrorObserver = nil }
+        if let observer = terminateObserver { NotificationCenter.default.removeObserver(observer); terminateObserver = nil }
+        if let observer = sleepObserver { NSWorkspace.shared.notificationCenter.removeObserver(observer); sleepObserver = nil }
         audioOutput?.setSampleBufferDelegate(nil, queue: nil)
         let sessionToStop = session
         session = nil
         deviceInput = nil
         audioOutput = nil
-        sampleSink = nil                 // drops the last strong ref → AVAudioFile deallocates → closes/flushes
         configQueue.async { sessionToStop?.stopRunning() }
+        sealWriter()
+    }
+
+    /// Close the main file + the open segment and write the final marker. Runs once per take.
+    private func sealWriter() {
+        guard !checkpointSealed, let sink = sampleSink else { return }
+        checkpointSealed = true
+        let cp = sink.closeWriter()          // drains the writer queue first
+        checkpoint = cp
+        guard let cp, let main = url else { return }
+        if RecordingCheckpoint.isReadableAudio(main) {
+            cp.finalize()                    // the sweep prefers a cleanly closed main file
+        } else {
+            cp.rotate(reason: "close")       // main unreadable (write failure): segments carry the take
+        }
+    }
+
+    /// The take is over (stopped, or thrown away): drop the sink so its files are released.
+    /// The files on disk stay until `discardFinishedTake` — or the sweep — deals with them.
+    private func releaseTake() {
+        sampleSink = nil
+        checkpoint = nil
+        takeID = nil
+    }
+
+    private func installLifecycleObservers() {
+        // A kill leaves segments; a clean quit (⌘Q mid-take) should leave the finished file
+        // too. `willTerminate` closes the writer so the sweep next launch sees a finalised take.
+        terminateObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.state == .recording else { return }
+                RecordingLifecycleLog.log("finalize", "reason=terminate")
+                self.teardownSession()
+            }
+        }
+        // Closing a segment before the Mac sleeps — the lid shut with a take running is where
+        // a battery death happens.
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.sampleSink?.rotateNow(reason: "sleep") }
+        }
+    }
+
+    // MARK: - write failure (R46)
+
+    /// The disk refused a write. Stop capturing — nothing more can land — close what did,
+    /// and tell the owner so the take is stopped and SAVED, the note titled with the reason.
+    private func handleWriteFailure(_ detail: String, generation: Int) {
+        guard state == .recording, takeGeneration == generation, endedReason == nil else { return }
+        Self.log.error("handleWriteFailure(): \(detail, privacy: .public)")
+        RecordingLifecycleLog.log("write-failed", detail)
+        endedReason = Self.writeFailureMessage
+        ticker?.invalidate(); ticker = nil
+        teardownSession()
+        onTakeEnded?(Self.writeFailureMessage)
     }
 
     // MARK: - mid-take device loss (brief §7)
@@ -378,15 +543,28 @@ final class MacRecorder {
     private func handleLoss(reason: String, generation: Int) {
         guard state == .recording, takeGeneration == generation else { return }
         Self.log.error("handleLoss(): input lost mid-take (\(reason, privacy: .public)) — signal=\(self.sawSignal, privacy: .public)")
-        teardownSession()
+        RecordingLifecycleLog.log("input-lost", "take=\(takeID ?? "?") reason=\(reason) signal=\(sawSignal)")
+        teardownSession()                    // also closes the writer + finalises the marker
         ticker?.invalidate(); ticker = nil   // freeze the displayed time — a torn-down session must not keep counting
-        guard !sawSignal else { return }     // survives: left exactly as a normal in-progress take
+        guard !sawSignal else {
+            // Survives: left exactly as a normal in-progress take, but SAID (recsj-029).
+            lossNotice = "“\(activeInputName)” stopped delivering audio (\(reason)). What was recorded up to here is saved. Press Stop to keep it."
+            return
+        }
         let name = activeInputName
-        if let finished = url { try? FileManager.default.removeItem(at: finished) }
+        discardAllTakeFiles()
         url = nil
         startedAt = nil
         elapsed = 0
         state = .failed(.nothingCaptured(name))
+    }
+
+    /// A take that holds nothing: remove its files (main, segments, marker) and drop the sink.
+    private func discardAllTakeFiles() {
+        if let take = takeID, let dir = url?.deletingLastPathComponent() {
+            RecordingCheckpoint.discardTakeFiles(take: take, in: dir)
+        }
+        releaseTake()
     }
 
     // MARK: - fail-fast (brief §6)
@@ -406,7 +584,7 @@ final class MacRecorder {
             let name = self.activeInputName
             self.teardownSession()
             self.ticker?.invalidate(); self.ticker = nil
-            if let finished = self.url { try? FileManager.default.removeItem(at: finished) }
+            self.discardAllTakeFiles()
             self.url = nil
             self.startedAt = nil
             self.elapsed = 0
@@ -563,43 +741,94 @@ private final class SampleSink: NSObject, AVCaptureAudioDataOutputSampleBufferDe
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "record")
 
     private let destination: URL
+    private let takeID: String
+    /// The writer queue — the capture delegate's own queue. Everything that touches `file` /
+    /// `checkpoint` runs on it; the main actor reaches in only through `closeWriter` /
+    /// `rotateNow`, which `sync` onto it (no callback ever waits on Main, so that cannot deadlock).
+    private let queue: DispatchQueue
+    private let onWriteFailure: (String) -> Void
     private let onFirstBuffer: (AVAudioFormat) -> Void
     private let onLevel: (Float) -> Void
     private let onLiveBuffer: ((AVAudioPCMBuffer) -> Void)?
     private var file: AVAudioFile?
+    /// 60 s segments + the marker beside the main file (C99/D131, Q163). Created with the
+    /// first buffer — the rate and channel count are only known then.
+    private var checkpoint: RecordingCheckpoint?
+    private var failed = false
+    private var closed = false
 
     init(destination: URL,
+         takeID: String,
+         queue: DispatchQueue,
+         onWriteFailure: @escaping (String) -> Void,
          onFirstBuffer: @escaping (AVAudioFormat) -> Void,
          onLevel: @escaping (Float) -> Void,
          onLiveBuffer: ((AVAudioPCMBuffer) -> Void)? = nil) {
         self.destination = destination
+        self.takeID = takeID
+        self.queue = queue
+        self.onWriteFailure = onWriteFailure
         self.onFirstBuffer = onFirstBuffer
         self.onLevel = onLevel
         self.onLiveBuffer = onLiveBuffer
     }
 
+    /// Wait out any callback in flight, close the main file and the open segment, and hand
+    /// back the checkpoint (nil when no buffer ever arrived). After this no buffer is written.
+    func closeWriter() -> RecordingCheckpoint? {
+        queue.sync {
+            closed = true
+            file?.close()
+            file = nil
+            checkpoint?.rotate(reason: "close")
+            return checkpoint
+        }
+    }
+
+    /// Close the open segment and rewrite the marker now (the Mac is about to sleep).
+    func rotateNow(reason: String) {
+        queue.sync { checkpoint?.rotate(reason: reason) }
+    }
+
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
-        guard let pcm = Self.pcmBuffer(from: sampleBuffer) else { return }
+        guard !closed, !failed, let pcm = Self.pcmBuffer(from: sampleBuffer) else { return }
         if file == nil {
             // THE rule from RESEARCH_MIC §iii, made structural: settings — and the exact PCM
             // shape the file is opened to accept — come from the format THIS buffer actually
             // arrived in, never a value read before the session started running.
             do {
+                let settings = RecordingCore.encoderSettings(for: pcm.format)
                 file = try AVAudioFile(forWriting: destination,
-                                       settings: RecordingCore.encoderSettings(for: pcm.format),
+                                       settings: settings,
                                        commonFormat: pcm.format.commonFormat,
                                        interleaved: pcm.format.isInterleaved)
+                // Segments take Float32 non-interleaved buffers (the capture output is
+                // configured that way). Any other shape skips the checkpoint — logged, never
+                // a failed take: the main file is still the take.
+                if pcm.format.commonFormat == .pcmFormatFloat32, !pcm.format.isInterleaved {
+                    checkpoint = RecordingCheckpoint(directory: destination.deletingLastPathComponent(),
+                                                     takeID: takeID, settings: settings,
+                                                     sampleRate: pcm.format.sampleRate)
+                } else {
+                    RecordingLifecycleLog.log("checkpoint-skipped", "take=\(takeID) format=\(pcm.format)")
+                }
                 onFirstBuffer(pcm.format)
             } catch {
                 Self.log.error("first buffer: could not open the file — \(String(describing: error), privacy: .public)")
                 return
             }
         }
+        // R46: a failed write (disk full) used to be logged and ignored — the timer kept
+        // counting over a file that stopped growing. The first failure now ends the take.
         do {
             try file?.write(from: pcm)
+            try checkpoint?.write(pcm)
         } catch {
+            failed = true
             Self.log.error("write failed: \(String(describing: error), privacy: .public)")
+            onWriteFailure(String(describing: error))
+            return
         }
         onLevel(RecordingCore.level(pcm))
         // The live-caption fan-out: an OWNED copy, since the caller's feed may hold onto it
