@@ -911,7 +911,7 @@ do: The phone calls `BodyV2.committed` at the end of an edit only when the text 
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PhoneEndOfEditNormaliseTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P24
 
-### Q124 [auto] (doing) Mac note body is read-only while its transcription runs (C173)
+### Q124 [auto] (done) Mac note body is read-only while its transcription runs (C173)
 spec: C173 C182
 needs: -
 gate+: yes
@@ -1037,7 +1037,7 @@ do: `MacMemoAuthor.author` builds the Memo with no metadata and one audio `MemoA
 check: `grep -rqE "class MacAuthoredMemoShapeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MacAuthoredMemoReadTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P40
 
-### Q140 [auto] (todo) phone quick-note Delete is a soft delete like every other delete
+### Q140 [auto] (doing) phone quick-note Delete is a soft delete like every other delete
 spec: C212 C90
 needs: -
 gate+: yes
@@ -1226,7 +1226,7 @@ do: The phone writes `rec_seg_<take>_NNN.m4a` segments every 60 s plus a marker 
 check: `grep -rqE "class MacRecoverySweepTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P64
 
-### Q164 [auto] (todo) phone: a take with no signal is a dead take, like the Mac; denied or restricted mic shows an alert with Open Settings
+### Q164 [auto] (doing) phone: a take with no signal is a dead take, like the Mac; denied or restricted mic shows an alert with Open Settings
 spec: C222 C224
 needs: -
 gate+: yes
@@ -1649,7 +1649,7 @@ do: `syncTrace` and `eventTypeName` in `SkriftDesktop/App/MemoCloudReconciler+Wi
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-d14 DPE-d19 PER-d14 (cleanup-audit P29)
 
-### Q217 [auto] (doing) two display bugs: the 125:00 duration and a place name containing a plus
+### Q217 [auto] (done) two display bugs: the 125:00 duration and a place name containing a plus
 spec: C115 C240
 needs: Q182
 gate+: yes
@@ -2807,3 +2807,7 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:50 Q149 -> doing — batch worker out
 - 2026-10-03 00:50 Q151 -> doing — batch worker out
 - 2026-10-03 00:53 Q179 -> done — gate pass @2d870ea8
+- 2026-10-03 00:53 Q217 -> done — gate pass (batched with Q179)
+- 2026-10-03 00:53 Q140 -> doing — batch worker out
+- 2026-10-03 00:53 Q164 -> doing — batch worker out
+- 2026-10-03 00:55 Q124 -> done — gate pass @8c7fe9fa
