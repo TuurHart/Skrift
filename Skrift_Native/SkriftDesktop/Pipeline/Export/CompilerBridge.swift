@@ -46,9 +46,12 @@ extension PipelineFile {
             transcript: transcript,
             sanitised: sanitised,
             enhancedCopyedit: enhancedCopyedit,
-            // The C25 ladder the iPad uses too (`ExportNaming`), so the frontmatter title and
-            // the filename agree across devices.
-            enhancedTitle: exportTitle,
+            // The stored title (rungs 1+2 of the C25 ladder), NOT `exportTitle`: the Mac
+            // always sets it before export (BatchRunner), so it equals the filename's title
+            // in practice; feeding the ladder here put an un-titled capture's annotation line
+            // into `title:` above the shared block (CaptureCompilerTests). The FILE name
+            // uses `exportTitle` (VaultExporter).
+            enhancedTitle: enhancedTitle,
             enhancedSummary: enhancedSummary,
             tags: tags,
             significance: significance,
