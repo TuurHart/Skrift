@@ -887,7 +887,7 @@ do: LINKED FROM exists in four implementations: phone `recomputeBacklinks` (Memo
 check: `grep -rqE "class BacklinkScanTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BacklinkScanTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P21
 
-### Q121 [auto] (todo) iPad note player follows the Mac transport order; one speed list and one time format
+### Q121 [auto] (doing) iPad note player follows the Mac transport order; one speed list and one time format
 spec: C115 C240
 needs: -
 gate+: yes
@@ -1139,7 +1139,7 @@ do: D50/C160 decide the user can correct a misheard word in a captured quote; th
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P53
 
-### Q153 [auto] (doing) export: file name, title, link stems and date: phone and Mac produce the same file for one note
+### Q153 [auto] (done) export: file name, title, link stems and date: phone and Mac produce the same file for one note
 spec: C57 C64 C165 D65
 needs: Q114
 gate+: yes
@@ -1195,7 +1195,7 @@ do: Phone iCloud footer lists notes, names, custom words and per-book audiobooks
 check: `grep -rqE "class SettingsCopySharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SettingsCopySharedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P60
 
-### Q160 [auto] (todo) names: delete a person confirms first and pushes at once; the phone Names list refreshes on sync
+### Q160 [auto] (doing) names: delete a person confirms first and pushes at once; the phone Names list refreshes on sync
 spec: R79 C266 R67
 needs: -
 gate+: yes
@@ -2593,3 +2593,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:30 Q148 -> done — gate pass (batched with Q147)
 - 2026-10-02 21:33 Q186 -> doing — worker out (opus)
 - 2026-10-02 21:35 Q166 -> done — gate pass @ac2db3e9
+- 2026-10-02 21:38 Q160 -> doing — worker out
+- 2026-10-02 21:40 Q121 -> doing — worker out
+- 2026-10-02 21:41 Q153 -> done — gate pass @7041ea92
