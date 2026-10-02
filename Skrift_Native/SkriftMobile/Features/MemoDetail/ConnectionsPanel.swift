@@ -554,7 +554,7 @@ struct ConnectionsPanel: View {
     }
 
     /// A failed lookup/sweep: say so, with the error (C110: never a silent empty).
-    private func unavailableState(_ error: String) -> some View {
+    func unavailableState(_ error: String) -> some View {   // internal: render test
         VStack(spacing: 7) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 21)).foregroundStyle(Color.skRed.opacity(0.75))
@@ -572,7 +572,7 @@ struct ConnectionsPanel: View {
     }
 
     /// Downloading / preparing / indexing: title, a plain track+fill bar, sub.
-    private func progressHint(title: String, sub: String, fraction: Double, fill: Color) -> some View {
+    func progressHint(title: String, sub: String, fraction: Double, fill: Color) -> some View {   // internal: render test
         VStack(spacing: 10) {
             Image(systemName: "sparkles")
                 .font(.system(size: 22)).foregroundStyle(Color.skAccent.opacity(0.9))
