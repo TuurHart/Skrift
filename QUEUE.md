@@ -1092,7 +1092,7 @@ check: Tuur picked and SPEC C63/C148 follow.
 brief: C63/C148 want a video filed Inspiration / Idea / Project to keep its source movie as a SYNCED asset (≤ ~200 MB) exported from whichever device exports it. Today neither side does it: the Mac keeps every imported movie locally for any destination (`IngestService.swift:364-384`, stale comment at :355 still says 'NOT kept'), the phone keeps none and its share card says 'the video file itself isn't kept'; `MemoAsset.Kind` has no video kind, so it also needs a CloudKit schema deploy (capture-import-21, setexp-94). Choose: build the synced asset (schema deploy owed) or drop the plan and delete the Mac copy.
 source: plan/reads/parity-audit.md P47
 
-### Q147 [auto] (doing) book cover colour and name avatar colour are stable (no per-process hashValue)
+### Q147 [auto] (done) book cover colour and name avatar colour are stable (no per-process hashValue)
 spec: C229 C115
 needs: -
 gate+: yes
@@ -1258,7 +1258,7 @@ do: Phone `ImportanceDots` uses ≥0.8 / ≥0.4 thresholds (JournalHomeView.swif
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportanceStopsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P68
 
-### Q168 [auto] (todo) semantic index embeds the same text on every device; the Mac warms the embedder on the first search keystroke
+### Q168 [auto] (doing) semantic index embeds the same text on every device; the Mac warms the embedder on the first search keystroke
 spec: C87 C231 C110
 needs: -
 gate+: yes
@@ -1329,7 +1329,7 @@ do: Rows setexp-29 -30 -53 -54 -58 -59 -67 -99 -101 -103 -109 -112 -113 (plan/re
 check: `grep -rqE "class SharedSettingsCopyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q177 [auto] (todo) list + note chrome: one copy and token set (headers, empty pane, fallback word, search field, locked screen, new-note label, title placeholder)
+### Q177 [auto] (doing) list + note chrome: one copy and token set (headers, empty pane, fallback word, search field, locked screen, new-note label, title placeholder)
 spec: C239 C240 C161 C25
 needs: Q108
 gate+: yes
@@ -2587,3 +2587,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:19 Q153 -> stuck — gate failed — .queue/Q153.gate.log
 - 2026-10-02 21:19 Q153 -> doing — redispatch 2/3 (opus): first try interrupted by shutdown; accept GATE FAIL CaptureCompilerTests.testUrlCaptureSharedBlockAboveBody
 - 2026-10-02 21:25 Q157 -> done — gate pass @743bb9e4
+- 2026-10-02 21:26 Q177 -> doing — worker out
+- 2026-10-02 21:27 Q168 -> doing — worker out (opus)
+- 2026-10-02 21:30 Q147 -> done — gate pass @a01d5eb9
