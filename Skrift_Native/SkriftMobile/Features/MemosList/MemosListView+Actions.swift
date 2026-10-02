@@ -121,7 +121,7 @@ extension MemosListView {
         } else {
             guard LockGate.shared.policy.lock(memo) else { return }
             NotesRepository.shared.save()
-            if ObsidianVault.hasPublished(memo.id) { lockVaultNotice = true }
+            if PublishCoordinator.hasPublished(memo) { lockVaultNotice = true }
         }
     }
 

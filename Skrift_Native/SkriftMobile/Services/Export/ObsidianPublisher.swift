@@ -29,14 +29,6 @@ enum ObsidianVault {
     /// The picked folder's display name for Settings ("Skrift", not a whole path).
     static var displayName: String? { resolveVault()?.lastPathComponent }
 
-    /// Has THIS device ever published this memo into the current folder? (The
-    /// lock-flow notice: "it's still in your vault". One helper — the same check
-    /// sat twinned in MemosListView and MemoDetailView and drifted apart once.)
-    static func hasPublished(_ memoID: UUID) -> Bool {
-        guard let vault = resolveVault() else { return false }
-        return ExportLedger.default(for: vault).relativePath(for: memoID) != nil
-    }
-
     static func clear() { UserDefaults.standard.removeObject(forKey: bookmarkKey) }
 }
 
