@@ -17,7 +17,8 @@ struct RecordingDraftView: View {
             settledText: $session.settledText,
             wetText: session.wetText,
             elapsedLabel: session.elapsedLabel,
-            notice: session.notice
+            notice: session.notice,
+            modelState: session.modelState
         )
     }
 }
@@ -55,6 +56,10 @@ struct RecordingDraftBody: View {
     var elapsedLabel: String
     /// The input died mid-take but the words so far are saved (recsj-029). nil = nothing to say.
     var notice: String? = nil
+    /// The transcription model's state (Q165). `.ready` (the default) draws nothing extra, so
+    /// the signed m1/m2/m4 look is unchanged once the model is up; anything else adds the
+    /// phone's status line, and an empty draft shows the loading placeholder.
+    var modelState: RecordingModelState = .ready
 
     @State private var pulse = false
 
@@ -89,6 +94,7 @@ struct RecordingDraftBody: View {
             titleLine
             metaChipsRow
             notRatedLine
+            if modelState != .ready { modelStatusLine }
         }
         .padding(.bottom, 18)
     }
@@ -146,6 +152,19 @@ struct RecordingDraftBody: View {
         }
     }
 
+    /// The phone's model line (dot + "Downloading model · 12%" / "Preparing model…" /
+    /// "Couldn’t load model" / "Transcription model not downloaded"), same shared strings.
+    private var modelStatusLine: some View {
+        HStack(spacing: 8) {
+            Circle().fill(modelState == .failed ? Theme.destructive : Theme.accent)
+                .frame(width: 7, height: 7)
+            Text(modelState.statusText)
+                .font(.system(size: 11.5))
+                .foregroundStyle(modelState == .failed ? Theme.destructive : Theme.textMuted)
+        }
+        .accessibilityIdentifier("recording-draft.model-state")
+    }
+
     // ── Body: editable settled text, then the engine's non-editable wet tail ──
     @ViewBuilder private var draftBody: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -176,6 +195,15 @@ struct RecordingDraftBody: View {
                     .background(Color.clear)
                     .scrollDisabled(true)
                     .accessibilityIdentifier("recording-draft.settled-text")
+            }
+            if settledText.isEmpty && wetText.isEmpty && modelState.isLoading && !isSettling {
+                // Recording is already capturing audio; the words catch up once the model is
+                // ready (the phone's placeholder, same shared string).
+                Text(RecordingModelState.captionPlaceholder)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.horizontal, 5)
+                    .accessibilityIdentifier("recording-draft.model-loading")
             }
             if !wetText.isEmpty || !isSettling {
                 wetTail

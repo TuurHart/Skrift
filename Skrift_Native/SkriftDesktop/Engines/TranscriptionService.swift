@@ -54,10 +54,23 @@ actor TranscriptionService: Transcribing {
         }
         if let loadTask { try await loadTask.value; return }
         let task = Task<Void, Error> {
+            // The recording pane's model line (Q165): the phone's ModelLoadStatus, same states.
+            await MainActor.run {
+                ASRModelStatus.shared.set(ASRModelStatus.everDownloaded ? .preparing(nil) : .downloading(0))
+            }
             let cfg = MLModelConfiguration()
             cfg.computeUnits = .cpuAndNeuralEngine
             let loaded = try await AsrModels.downloadAndLoad(configuration: cfg, version: .v3,
-                                                             progressHandler: { onProgress($0.fractionCompleted) })
+                                                             progressHandler: { progress in
+                onProgress(progress.fractionCompleted)
+                Task { @MainActor in
+                    switch progress.phase {
+                    case .downloading: ASRModelStatus.shared.set(.downloading(progress.fractionCompleted))
+                    // .compiling / .listing: the slow cold CoreML compile shows progress.
+                    default: ASRModelStatus.shared.set(.preparing(progress.fractionCompleted))
+                    }
+                }
+            })
             // `melChunkContext` comes from the SHARED derivation — the Mac used to pass
             // `.default` (English-tuned) with no way to change it, which garbled Dutch.
             let manager = AsrManager(config: ASRConfig(melChunkContext: mode.melChunkContext))
@@ -69,10 +82,15 @@ actor TranscriptionService: Transcribing {
             // A caption stream that began before a slow load recovers the moment the model
             // lands — mirrors the phone's `ensureLoaded` (2026-07-28).
             if self.streaming { await self.live.setTranscriber(self.makeCaptionTranscriber()) }
+            await MainActor.run { ASRModelStatus.shared.set(.ready) }
         }
         loadTask = task
         do { try await task.value; loadTask = nil }
-        catch { loadTask = nil; throw error }
+        catch {
+            loadTask = nil
+            await MainActor.run { ASRModelStatus.shared.set(.failed) }
+            throw error
+        }
     }
 
     func unload() {
@@ -82,6 +100,7 @@ actor TranscriptionService: Transcribing {
         models = nil
         loadedMultilingual = nil
         ready.withLock { $0 = false }
+        Task { @MainActor in ASRModelStatus.shared.setUnloaded() }
         // The engine must stop asking a manager that's gone — the closure's own `guard let
         // asr` is the backstop for the brief in-flight window (mirrors the phone).
         Task { await live.setTranscriber(nil) }

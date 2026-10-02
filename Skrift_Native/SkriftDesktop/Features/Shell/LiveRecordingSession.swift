@@ -63,6 +63,9 @@ final class LiveRecordingSession {
     /// Said in the draft pane when the input died mid-take but the words so far are saved
     /// (recsj-029). nil in every other state.
     var notice: String? { recorder.lossNotice }
+    /// The transcription model's state, said in the pane while it loads (Q165): without it a
+    /// slow first load looks like the recorder hearing nothing.
+    var modelState: RecordingModelState { ASRModelStatus.shared.state }
 
     /// After a completed stop: the created `PipelineFile` id, so the UI can select it.
     private(set) var noteID: String?
