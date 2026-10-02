@@ -545,8 +545,12 @@ struct IngestService: Sendable {
             return (content, title)
         }
 
+        // C76 / D18: the note's OWN creation date when the export carries one, else date-unknown
+        // (`MemoDate.unknown`). Never the import moment, and never the export folder's file dates
+        // (all export-time).
+        let created = Self.appleNoteCreationDate(content) ?? MemoDate.unknown
         let pf = PipelineFile(id: id, filename: filename, path: dest.path,
-                              size: content.utf8.count, sourceType: .note)
+                              size: content.utf8.count, sourceType: .note, uploadedAt: created)
         // Apple notes arrive already "transcribed" — the markdown body is the text.
         // Body v2 (C10/C19): committed once, here, at the Mac text import.
         pf.transcript = BodyV2.committed(BodyV2.Input(text: content, source: .typed))
@@ -764,6 +768,53 @@ struct IngestService: Sendable {
         else { return false }
         CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
         return CGImageDestinationFinalize(dest)
+    }
+
+    /// C76 / D18: the creation date an Apple Notes export may carry INSIDE the file: a YAML front
+    /// matter key (`created`, `creation date`, `date created`, `created_at`, `date`) or one of the
+    /// first lines written as `Created: <date>`. nil when there is none (the built-in Markdown
+    /// export has none): the caller marks the note date-unknown.
+    static func appleNoteCreationDate(_ content: String) -> Date? {
+        let keys: Set<String> = ["created", "creation date", "creation_date", "date created", "created_at",
+                                 "created at", "date"]
+        func value(of line: Substring) -> String? {
+            guard let colon = line.firstIndex(of: ":") else { return nil }
+            let key = line[..<colon].trimmingCharacters(in: CharacterSet(charactersIn: " *_>-\t")).lowercased()
+            guard keys.contains(key) else { return nil }
+            let v = line[line.index(after: colon)...]
+                .trimmingCharacters(in: CharacterSet(charactersIn: " *_\"'\t"))
+            return v.isEmpty ? nil : v
+        }
+        let lines = content.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\r")) }
+        var candidates: [Substring] = []
+        if lines.first?.trimmingCharacters(in: .whitespaces) == "---",
+           let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) {
+            candidates = lines[1..<end].map { Substring($0) }
+        } else {
+            candidates = lines.prefix(8).map { Substring($0) }
+        }
+        for line in candidates {
+            if let v = value(of: line), let d = parseNoteDate(v) { return d }
+        }
+        return nil
+    }
+
+    /// ISO 8601 (with or without zone / fraction), `yyyy-MM-dd[ HH:mm[:ss]]`, or the AppleScript
+    /// long form ("Monday, 14 September 2026 at 10:00:00"). Local time when no zone is given.
+    static func parseNoteDate(_ s: String) -> Date? {
+        if let d = ISO8601.date(from: s) { return d }
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime]
+        if let d = iso.date(from: s) { return d }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm",
+                       "yyyy-MM-dd", "EEEE, d MMMM yyyy 'at' HH:mm:ss", "d MMMM yyyy 'at' HH:mm:ss"] {
+            f.dateFormat = format
+            if let d = f.date(from: s) { return d }
+        }
+        return nil
     }
 
     /// First `# ` heading (trailing dots trimmed), else the fallback. Mirrors

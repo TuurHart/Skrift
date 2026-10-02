@@ -137,7 +137,7 @@ enum VaultExporter {
         // The C25 ladder's title (`pf.exportTitle`), the same one the iPad names the file
         // from — one note, one file name, whichever device writes it first.
         switch writer.assess(id: id, title: pf.exportTitle, filenameFallback: pf.filename,
-                             recordedAt: captureDate(for: pf)) {
+                             recordedAt: MemoDate.isUnknown(captureDate(for: pf)) ? nil : captureDate(for: pf)) {
         case .refused(let outcome):
             return Result(outcome: outcome,
                           markdownURL: vaultURL.appendingPathComponent(outcome.relativePath),
