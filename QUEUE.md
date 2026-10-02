@@ -783,7 +783,7 @@ do: Quiet rows append only a duration chip (list-sidebar-69, -67 via Q68, which 
 check: `test $(ls plan/reads/list-p-quiet/*.png | wc -l) -ge 1 && grep -rqE "class MacQuietRowChipsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P8
 
-### Q108 [auto] (todo) strings written twice move to SharedCopy: empty library, no results, Way-out, peek, Review headings, lock/copy menu verbs
+### Q108 [auto] (doing) strings written twice move to SharedCopy: empty library, no results, Way-out, peek, Review headings, lock/copy menu verbs
 spec: C115 C240 D136
 needs: -
 gate+: yes
@@ -981,7 +981,7 @@ do: Q74 gave the Mac every door but said the phone 'already has' the chooser. It
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh FilesImportChooserTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P33
 
-### Q133 [auto] (doing) ONE accepted-types list in Shared, used by Open-in, the share extension, the Files picker and the Mac ingest
+### Q133 [auto] (done) ONE accepted-types list in Shared, used by Open-in, the share extension, the Files picker and the Mac ingest
 spec: C238 C199 D19
 needs: -
 gate+: yes
@@ -2518,3 +2518,5 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-02 18:41 Q252 added
 - 2026-10-02 18:41 Q253 added
 - 2026-10-02 18:41 Q254 added
+- 2026-10-02 18:42 Q108 -> doing — worker out
+- 2026-10-02 18:45 Q133 -> done — gate pass @0f289a69
