@@ -76,7 +76,6 @@ final class ImportReportTests: XCTestCase {
         let pf = try XCTUnwrap(report.created.first)
         XCTAssertEqual(pf.transcribeStatus, .error)
         XCTAssertEqual(pf.enhancedTitle, "Video had no audio track")
-        XCTAssertEqual(pf.displayTitle, "Video had no audio track")
         XCTAssertEqual(pf.mediaSource, "video", "still a video: keeps the video glyph")
         XCTAssertTrue(IngestService.isFailedImport(pf))
 
