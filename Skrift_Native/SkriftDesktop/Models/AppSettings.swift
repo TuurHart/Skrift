@@ -129,6 +129,18 @@ struct AppSettings: Codable, Equatable, Sendable {
         static let defaultCopyEdit = PolishPrompts.copyEdit
         static let defaultSummary = PolishPrompts.summary
         static let defaultTitle = PolishPrompts.title
+
+        // The blank rule (Q157): a blank prompt IS the shared default — what the
+        // polisher sends and what syncs. The raw field may sit blank while the user
+        // types a replacement; nothing downstream ever sees the blank.
+        var effectiveCopyEdit: String { PolishPrompts.effective(copyEdit, fallback: PolishPrompts.copyEdit) }
+        var effectiveSummary: String { PolishPrompts.effective(summary, fallback: PolishPrompts.summary) }
+        var effectiveTitle: String { PolishPrompts.effective(title, fallback: PolishPrompts.title) }
+
+        /// All three through the blank rule (blank → default text, others trimmed).
+        var effective: Prompts {
+            Prompts(copyEdit: effectiveCopyEdit, summary: effectiveSummary, title: effectiveTitle)
+        }
     }
 }
 

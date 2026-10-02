@@ -90,7 +90,7 @@ actor EnhancementService: Enhancing {
         // fixed 1024 cut every long note mid-generation and the escrow's link guard
         // then shipped the raw body, so copy-edit read as "does nothing".
         let cap = PolishPrompts.copyEditTokenBudget(forInput: input)
-        let edited = try await run(prompt: prompts.copyEdit, text: input, maxTokens: cap)
+        let edited = try await run(prompt: prompts.effectiveCopyEdit, text: input, maxTokens: cap)
         if PolishPrompts.looksTruncated(output: edited, cap: cap) {
             Self.log.warning("copy-edit output hit the \(cap)-token cap — keeping the unedited body (never ship a cut note)")
             return text
@@ -128,13 +128,13 @@ actor EnhancementService: Enhancing {
 
     func title(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await run(prompt: prompts.title,
+        return try await run(prompt: prompts.effectiveTitle,
                              text: MemoLinkSyntax.escrowForEditing(transcript).text, maxTokens: 64)
     }
 
     func summary(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await run(prompt: prompts.summary,
+        return try await run(prompt: prompts.effectiveSummary,
                              text: MemoLinkSyntax.escrowForEditing(transcript).text, maxTokens: 256)
     }
 
