@@ -287,6 +287,16 @@ struct NoteDisplayView: View {
                 // mirrors what the export pins above the body in markdown.
                 CaptureSharedContentBlock(file: file)
             }
+            // E1/B3 (Q143, note-capture-09): the typed thought (video sheet) or bundled chat
+            // text (mixed share) leads a non-capture note, above the transcript — the phone's
+            // `annotation-lead`. A capture's annotation IS its body, so it is never doubled here.
+            if let thought = file.annotationLead {
+                Text(thought)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.textSecondary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if scrollable, file.enhancedSummary != nil {
                 summaryEditor(file)
             } else if let summary = file.enhancedSummary, !summary.isEmpty {
