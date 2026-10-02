@@ -1,10 +1,9 @@
 import SwiftUI
 import SwiftData
 import AppKit
-import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS arm64.
 
-/// One shared SwiftData container for both the UI (`@Query`) and the sync server's
-/// background upload/list contexts.
+/// One shared SwiftData container for the UI (`@Query`) and the background ingest /
+/// reconcile contexts.
 enum SharedStore {
     static let container: ModelContainer = {
         #if DEBUG
@@ -80,9 +79,9 @@ struct SkriftDesktopApp: App {
         AppTheme.applyToApp()
 
         // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
-        // reconcile triggers + run the launch sweep. Inert (no-op) unless the user opted into
-        // `cloudKitMacSync`. CloudKit is now the ONLY phone↔Mac transport (the Bonjour/HTTP
-        // server was retired) — it carries memos, names, and vocabulary.
+        // reconcile triggers + run the launch sweep. A no-op when the user switched
+        // `cloudKitMacSync` off (it defaults ON). CloudKit is the ONLY phone↔Mac transport
+        // (the Bonjour/HTTP server is retired) — it carries memos, names, and vocabulary.
         MemoCloudReconciler.start()
 
         // Pre-warm the custom-vocabulary booster at launch when the user has

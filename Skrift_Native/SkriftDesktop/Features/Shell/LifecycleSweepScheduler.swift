@@ -46,7 +46,6 @@ enum MacFadingSweep {
 enum LifecycleSweepScheduler {
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "lifecycle")
     private static var started = false
-    private static var activationObserver: NSObjectProtocol?
 
     static func start() {
         guard !started else { return }
@@ -54,7 +53,7 @@ enum LifecycleSweepScheduler {
 
         runNow()   // launch is an open
 
-        activationObserver = NotificationCenter.default.addObserver(
+        NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { _ in Task { @MainActor in runNow() } }
 

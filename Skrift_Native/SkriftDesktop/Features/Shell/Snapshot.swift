@@ -493,11 +493,8 @@ enum Snapshot {
     }
 
     /// A disposable in-memory `LiveRecordingSession` for `SidebarView` fixtures that don't
-    /// exercise recording — every existing `-snapshot-*` render needs SOME session now that
-    /// the sidebar's Record/stop wiring moved off the `MacRecorder` it used to own directly
-    /// onto a session RootView hands it (LANES-2026-07-28/BRIEF_LIVEUI.md §7). Its `phase`
-    /// stays `.idle` (the frozen skeleton's `start()`/`stop()` are no-ops until LIVE-ENGINE
-    /// lands), so every one of these renders looks exactly as it did before this lane.
+    /// exercise recording — the sidebar needs SOME session. Its `phase` stays `.idle` (nothing
+    /// here calls `start()`), so these renders show no live take.
     @MainActor private static func fixtureSession(coordinator: ProcessingCoordinator) -> LiveRecordingSession {
         let container = try! ModelContainer(
             for: PipelineFile.self,
@@ -506,10 +503,9 @@ enum Snapshot {
     }
 
     /// The m1/m2/m4 recording draft surface (`RecordingDraftBody` — a pure value view, no
-    /// `LiveRecordingSession` needed) in its live and settling states: fixture-driven, since
-    /// the frozen `LiveRecordingSession`'s `start()`/`stop()` are no-ops until LIVE-ENGINE
-    /// fills them in — a real session can't be driven into `.live`/`.settling` yet. Same
-    /// story (and text) as the mock's m2/m4 panes. Triggered by: `-snapshot-livedraft <path>`.
+    /// `LiveRecordingSession` needed) in its live and settling states: fixture-driven, since a
+    /// real session needs the microphone and the caption engine to reach `.live`/`.settling`.
+    /// Same story (and text) as the mock's m2/m4 panes. Triggered by: `-snapshot-livedraft <path>`.
     @MainActor private static func renderLiveDraft(to path: String) {
         let settledSoFar = "Call with Jacques about the planter frames — he can weld the corners "
             + "next week if the steel arrives Tuesday. Budget stays under the two hundred we "
@@ -528,11 +524,11 @@ enum Snapshot {
             pane("LIVE — settled + wet tail (no pane transport — the sidebar is the transport)", RecordingDraftBody(
                 phase: .live, settledText: .constant(settledSoFar),
                 wetText: "nicer than what the shop quoted ",
-                everEdited: true, elapsedLabel: "1:04"))
+                elapsedLabel: "1:04"))
             pane("SETTLING — title real, softer wet band (m4, trimmed)", RecordingDraftBody(
                 phase: .settling, settledText: .constant(settledSoFar),
                 wetText: "nicer than what the shop quoted — worth keeping him close for the autumn list.",
-                everEdited: true, elapsedLabel: "1:12"))
+                elapsedLabel: "1:12"))
         }
         .frame(width: 920, height: 900)
         .background(Theme.hairline.opacity(0.25))
@@ -966,7 +962,7 @@ enum Snapshot {
         ]
         let model = AppModel()
         model.surface = .journal
-        let view = JournalView(model: model, coordinator: ProcessingCoordinator(),
+        let view = JournalView(model: model,
                                injectedMemos: memos)
             .frame(width: 1180, height: 940)
             .background(Theme.bg)
@@ -976,7 +972,7 @@ enum Snapshot {
         // Second state: map mode (Places clicked) → <path>-map.png.
         let mapModel = AppModel()
         mapModel.surface = .journal
-        let mapView = JournalView(model: mapModel, coordinator: ProcessingCoordinator(),
+        let mapView = JournalView(model: mapModel,
                                   injectedMemos: memos, debugStartInMap: true)
             .frame(width: 1180, height: 940)
             .background(Theme.bg)

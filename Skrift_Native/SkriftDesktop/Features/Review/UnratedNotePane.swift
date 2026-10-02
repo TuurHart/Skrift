@@ -12,13 +12,10 @@ import SwiftData
 ///
 /// Rating it here is the ordinary significance control doing the ordinary thing: the
 /// write flags the memo, the reconcile sweep ingests it into a real `PipelineFile`, and
-/// `onRated` hands the pane over to that row. "The rating IS the flag" is untouched.
+/// the shell's `@Query` hands the pane over to that row. "The rating IS the flag" is untouched.
 struct UnratedNotePane: View {
     let memoID: String
     var coordinator: ProcessingCoordinator
-    /// The memo just got a rating → it is becoming a pipeline row; the shell should
-    /// follow it there once the sweep lands.
-    var onRated: (String) -> Void = { _ in }
     /// A memo-link chip inside the body pointed at another note.
     var onOpenMemo: (String) -> Void = { _ in }
     /// The sidebar's live search text — an unrated note opened from a search result
@@ -52,8 +49,8 @@ struct UnratedNotePane: View {
                     .onChange(of: projection.tags) { commit() }
                     .onChange(of: projection.significance) { _, new in
                         commit()
-                        // A rating pipelines the memo: kick the sweep that ingests it,
-                        // then let the shell follow it to its new row.
+                        // A rating pipelines the memo: kick the sweep that ingests it; the
+                        // shell follows it to its new row when the `@Query` yields it.
                         if let value = new, value > 0 {
                             // It's pipelining: the real ingest folder takes over, so
                             // the materialised cache copy is dropped.
@@ -61,7 +58,6 @@ struct UnratedNotePane: View {
                                 MemoNoteProjection.discardMedia(for: uuid)
                             }
                             MemoCloudReconciler.reconcileSoon()
-                            onRated(memoID)
                         }
                     }
             } else if loaded {

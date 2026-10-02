@@ -94,7 +94,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     // ── CloudKit-Mac sync (MAC_CLOUDKIT_PLAN.md 8d) ──
     // When on, the Mac reconciles memos synced over CloudKit (from the phone's note store)
     // into the local pipeline queue (`MemoCloudReconciler`) and writes its polish back as a
-    // `MemoEnhancement` (8c). Optional for legacy-decode (same pattern as conversationMode);
+    // `MemoEnhancement` (8c). Optional for legacy-decode (same pattern as customVocabulary);
     // an explicit stored `false` still wins, so anyone who deliberately turned it off stays off.
     var cloudKitMacSync: Bool? = nil
     /// Effective flag. **Defaults ON since 2026-07-26.** It shipped opt-out-by-default back

@@ -16,7 +16,6 @@ struct RecordingDraftView: View {
             phase: session.phase,
             settledText: $session.settledText,
             wetText: session.wetText,
-            everEdited: session.everEdited,
             elapsedLabel: session.elapsedLabel,
             notice: session.notice
         )
@@ -40,9 +39,8 @@ enum LiveTakeTitle {
 
 /// Pure value view — every fact it draws is a parameter, nothing reached from the
 /// environment or a live session. This is what lets `-snapshot-livedraft` (`Snapshot.swift`)
-/// fixture-drive the live/settling states directly: the frozen `LiveRecordingSession`'s
-/// `start()`/`stop()` are no-ops until LIVE-ENGINE lands, so a real session can't be driven
-/// into `.live`/`.settling` for a snapshot today. Mirrors the existing `ConnectionsPanelBody`
+/// fixture-drive the live/settling states directly: a real `LiveRecordingSession` needs the
+/// microphone and the caption engine to reach `.live`/`.settling`. Mirrors the existing `ConnectionsPanelBody`
 /// idiom (a pure-view fixture injection — no engine, no `ModelContext`, mock-story values).
 ///
 /// Renders the m1/m2 chrome while live (transport docked top-left, italic placeholder title,
@@ -54,7 +52,6 @@ struct RecordingDraftBody: View {
     var phase: LiveRecordingSession.Phase
     @Binding var settledText: String
     var wetText: String
-    var everEdited: Bool
     var elapsedLabel: String
     /// The input died mid-take but the words so far are saved (recsj-029). nil = nothing to say.
     var notice: String? = nil
@@ -208,7 +205,6 @@ struct RecordingDraftBody: View {
         .accessibilityIdentifier("recording-draft.wet-tail")
     }
 
-    /// Shown after the first mid-take edit — the ownership contract, stated (signed mock).
 }
 
 /// The sidebar's synthetic "Recording…" row (m1/m2/m4) — NOT a `PipelineFile`, purely

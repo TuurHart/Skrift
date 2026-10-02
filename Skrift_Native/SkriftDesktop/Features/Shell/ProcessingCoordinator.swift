@@ -19,7 +19,9 @@ final class ProcessingCoordinator {
     }
 
     private(set) var runState: RunState?
-    private(set) var isRunning = false
+    /// A run is live exactly while `runState` is set (`beginRun`/`endRun` pair them).
+    var isRunning: Bool { runState != nil }
+    private static let busyMessage = "A run is already going — wait for it to finish."
     var lastError: String?
     /// Transient confirmation banner (auto-clears) — shown by RootView so an action
     /// like Export gives visible feedback (N5).
@@ -29,41 +31,15 @@ final class ProcessingCoordinator {
     /// engine dots (green = loaded, dim = idle/unloaded) so they reflect reality.
     private(set) var modelsLoaded = false
 
-    // Engine seam — the real FluidAudio/MLX services by default; swapped for canned
-    // stubs when launched with `-stubEnhancement` (UI piloting / XCUITest), so
-    // Process→Ready runs instantly without the 9 GB model.
-    private let transcriber: Transcribing
-    private let enhancer: Enhancing
-    private let diarizer: Diarizing?
-    private let stubbedEngines: Bool
+    // Engine seam — the real FluidAudio/MLX services.
+    private let transcriber: Transcribing = TranscriptionService.shared
+    private let enhancer: Enhancing = EnhancementService.shared
+    private let diarizer: Diarizing? = DiarizationService.shared
 
     /// Frees the ~9 GB of model weights after the queue goes idle (the Python app
     /// did this). Cancelled when a run starts, rescheduled when it ends.
     private var idleUnloadTask: Task<Void, Never>?
     private static let idleUnloadDelay: Duration = .seconds(60)
-
-    init() {
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("-stubEnhancement") {
-            let seed: String
-            if let i = args.firstIndex(of: "-seedTranscript"), i + 1 < args.count {
-                seed = args[i + 1]
-            } else {
-                seed = "This is a stubbed transcript for UI piloting. We talked through the desktop rewrite and what to test next week."
-            }
-            transcriber = StubTranscriber(text: seed)
-            enhancer = StubEnhancer()
-            diarizer = nil
-            stubbedEngines = true
-            return
-        }
-        #endif
-        transcriber = TranscriptionService.shared
-        enhancer = EnhancementService.shared
-        diarizer = DiarizationService.shared
-        stubbedEngines = false
-    }
 
     #if DEBUG
     /// Snapshot helper — a coordinator with a preset run state for verification.
@@ -103,36 +79,53 @@ final class ProcessingCoordinator {
     // A request that arrives mid-run used to be refused ("A run is already going") or, for an
     // import's own transcription, dropped without a word — so with several memos only the first
     // right-click Process took ("worked flaky", Tuur 2026-09-30). It now queues in `waiting`
-    // and the caller that owns the live run drains it, oldest first, before letting go.
-    private var waiting = RunQueue()
-    private var draining = false
+    // and the caller that owns the live run drains it, oldest first, before letting go. A Redo
+    // takes the same slot (`turn.acquire()`) and drains the same way (Q208).
+    private var turn = RunTurn()
 
     private func submit(_ job: RunQueue.Job, context: ModelContext, announce: Bool) async {
-        if isRunning || draining {
-            waiting.enqueue(job)
+        guard turn.request(job) else {
             if announce { flash("Queued — starts when the current run finishes") }
             return
         }
-        draining = true
-        defer { draining = false }
-        var current: RunQueue.Job? = job
-        while let j = current {
-            switch j {
-            case .process(let ids, let retranscribe):
-                await runProcess(fileIDs: ids, context: context, retranscribeIDs: retranscribe)
-            case .transcribe(let ids):
-                await runTranscribe(fileIDs: ids, context: context)
-            case .split(let id):
-                await runSplit(id: id, context: context)
-            }
-            current = waiting.next()
+        await run(job, context: context)
+        await drainWaiting(context: context)
+    }
+
+    /// Holder of the run slot only: run every waiting job, oldest first, then release the slot.
+    private func drainWaiting(context: ModelContext) async {
+        while let next = turn.advance() { await run(next, context: context) }
+    }
+
+    private func run(_ job: RunQueue.Job, context: ModelContext) async {
+        switch job {
+        case .process(let ids, let retranscribe):
+            await runProcess(fileIDs: ids, context: context, retranscribeIDs: retranscribe)
+        case .transcribe(let ids):
+            await runTranscribe(fileIDs: ids, context: context)
+        case .split(let id):
+            await runSplit(id: id, context: context)
         }
+    }
+
+    /// Start of every run: keep the models resident, publish the run bar, and tell the shared
+    /// embedder to yield the ANE/GPU (the phone's 2026-07-15 starvation lesson).
+    private func beginRun(total: Int, currentTitle: String? = nil) {
+        idleUnloadTask?.cancel(); idleUnloadTask = nil   // don't unload mid-run
+        runState = RunState(total: total, done: 0, currentTitle: currentTitle)
+        TranscriptionActivity.begin()
+    }
+
+    /// End of every run. `sweepContext` = the run produced fresh transcripts/polish, so index
+    /// them (a transcribe-only run does not).
+    private func endRun(sweepContext: ModelContext? = nil) {
+        runState = nil; scheduleIdleUnload()
+        TranscriptionActivity.end()
+        if let sweepContext { ConnectionsIndexService.shared.sweepSoon(sweepContext) }
     }
 
     private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = [],
                             splitIDs: Set<String> = []) async {
-        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
-
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all
             // A split re-runs a note that is already Ready, so it bypasses the "still needs
@@ -141,18 +134,8 @@ final class ProcessingCoordinator {
             .sorted { $0.uploadedAt < $1.uploadedAt }   // oldest first, like the backend
         guard !targets.isEmpty else { return }
 
-        isRunning = true
-        idleUnloadTask?.cancel(); idleUnloadTask = nil   // don't unload mid-run
-        runState = RunState(total: targets.count, done: 0, currentTitle: nil)
-        // The ANE/GPU belong to the pipeline while a run is live — the shared
-        // embedder yields its cold load (the phone's 2026-07-15 starvation lesson).
-        TranscriptionActivity.begin()
-        defer {
-            isRunning = false; runState = nil; scheduleIdleUnload()
-            TranscriptionActivity.end()
-            // Fresh transcripts/polish just landed — index them.
-            ConnectionsIndexService.shared.sweepSoon(context)
-        }
+        beginRun(total: targets.count)
+        defer { endRun(sweepContext: context) }   // fresh transcripts/polish just landed — index them
 
         let settings = SettingsStore.shared.load()
         // Scan the vault for existing tag names so TagMatcher suggests real vault
@@ -182,32 +165,29 @@ final class ProcessingCoordinator {
 
         // Pre-load the engines up front so the first run shows download/load
         // progress in the run bar (instant when the models are already cached).
-        // Skipped for stubbed engines (UI piloting) — nothing to load.
-        if !stubbedEngines {
-            let needsAudio = targets.contains {
-                $0.sourceType == .audio && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
-            }
-            // Show the load banner only when the models aren't already resident —
-            // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
-            // was misleading (#31).
-            let showLoad = !modelsLoaded
-            do {
-                if needsAudio {
-                    if showLoad { runState?.loadingLabel = "transcription model" }
-                    try await TranscriptionService.shared.ensureLoaded { f in
-                        Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
-                    }
-                }
-                if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
-                try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
+        let needsAudio = targets.contains {
+            $0.sourceType == .audio && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
+        }
+        // Show the load banner only when the models aren't already resident —
+        // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
+        // was misleading (#31).
+        let showLoad = !modelsLoaded
+        do {
+            if needsAudio {
+                if showLoad { runState?.loadingLabel = "transcription model" }
+                try await TranscriptionService.shared.ensureLoaded { f in
                     Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                 }
-            } catch {
-                lastError = "Model load failed: \(error.localizedDescription)"
-                return   // defer resets isRunning + runState
             }
-            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
+            if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
+            try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
+                Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
+            }
+        } catch {
+            lastError = "Model load failed: \(error.localizedDescription)"
+            return   // defer ends the run
         }
+        if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         modelsLoaded = true
 
         for pf in targets {
@@ -268,32 +248,23 @@ final class ProcessingCoordinator {
     }
 
     private func runTranscribe(fileIDs: [String], context: ModelContext) async {
-        guard !isRunning else { return }
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all.filter { fileIDs.contains($0.id) && $0.transcribeStatus != .done }
         guard !targets.isEmpty else { return }
 
-        isRunning = true
-        idleUnloadTask?.cancel(); idleUnloadTask = nil
-        runState = RunState(total: targets.count, done: 0, currentTitle: nil)
-        TranscriptionActivity.begin()
-        defer {
-            isRunning = false; runState = nil; scheduleIdleUnload()
-            TranscriptionActivity.end()
-        }
+        beginRun(total: targets.count)
+        defer { endRun() }
 
-        if !stubbedEngines {
-            runState?.loadingLabel = modelsLoaded ? nil : "transcription model"
-            do {
-                try await TranscriptionService.shared.ensureLoaded { f in
-                    Task { @MainActor in self.runState?.loadingFraction = f }
-                }
-            } catch {
-                lastError = "Transcription model failed to load: \(error.localizedDescription)"
-                return
+        runState?.loadingLabel = modelsLoaded ? nil : "transcription model"
+        do {
+            try await TranscriptionService.shared.ensureLoaded { f in
+                Task { @MainActor in self.runState?.loadingFraction = f }
             }
-            runState?.loadingLabel = nil; runState?.loadingFraction = nil
+        } catch {
+            lastError = "Transcription model failed to load: \(error.localizedDescription)"
+            return
         }
+        runState?.loadingLabel = nil; runState?.loadingFraction = nil
 
         let settings = SettingsStore.shared.load()
         let runner = BatchRunner(transcriber: transcriber, enhancer: enhancer, settings: settings,
@@ -371,9 +342,8 @@ final class ProcessingCoordinator {
 
     /// After the queue is idle for `idleUnloadDelay`, free the ASR + LLM weights so
     /// they don't sit pinned (~9 GB) for the rest of the session. Reloads lazily on
-    /// the next run. No-op when engines are stubbed (nothing loaded).
+    /// the next run.
     private func scheduleIdleUnload() {
-        guard !stubbedEngines else { return }
         idleUnloadTask?.cancel()
         idleUnloadTask = Task { [weak self] in
             try? await Task.sleep(for: Self.idleUnloadDelay)
@@ -399,6 +369,7 @@ final class ProcessingCoordinator {
     private(set) var splitPhases: [String: SplitPhase] = [:]
     /// The one-line result under the switch ("Only one voice found…", "Cancelled…"); self-clearing.
     private(set) var splitNotices: [String: String] = [:]
+    private var splitNoticeTokens: [String: Int] = [:]
     private var splitFlags: [String: SplitCancelFlag] = [:]
 
     #if DEBUG
@@ -436,7 +407,7 @@ final class ProcessingCoordinator {
     func cancelSplit(_ pf: PipelineFile, context: ModelContext) {
         guard splitPhases[pf.id] != nil else { return }
         splitFlags[pf.id]?.cancel()
-        waiting.removeSplit(id: pf.id)
+        turn.removeSplit(id: pf.id)
         splitPhases[pf.id] = nil
         SplitSpeakers.withdraw(pf)
         try? context.save()
@@ -459,9 +430,12 @@ final class ProcessingCoordinator {
 
     private func setSplitNotice(_ id: String, _ text: String) {
         splitNotices[id] = text
+        splitNoticeTokens[id, default: 0] += 1
+        let token = splitNoticeTokens[id]
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(6))
-            if self?.splitNotices[id] == text { self?.splitNotices[id] = nil }
+            // Only the latest notice for this note clears itself (same idea as `flash`).
+            if self?.splitNoticeTokens[id] == token { self?.splitNotices[id] = nil }
         }
     }
 
@@ -486,14 +460,14 @@ final class ProcessingCoordinator {
             NamesStore.shared.upsert(canonical: trimmed, aliases: [trimmed, first], short: first)
         }
         let canonical = known.map { NamesMerge.keyName($0.canonical) } ?? trimmed
-        let slot = Self.diarizationSlot(of: displayed, in: pf)
+        let slot = Self.diarizationSlot(of: displayed)
         guard SplitSpeakers.nameSpeaker(pf, displayed: displayed, as: canonical,
                                         people: NamesStore.shared.livePeople()) else { return }
         resanitiseForNames(pf, context: context)
         MacCloudEditSync.shared.note(pf)
         reflectSplitToMemo(pf)
         flash("\(displayed) is \(canonical) now")
-        if let slot, !stubbedEngines, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
+        if let slot, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
             let audio = URL(fileURLWithPath: pf.path), segments = pf.diarizationSegments
             Task.detached(priority: .utility) {
                 guard let vec = try? await DiarizationService.shared.embedSpeaker(audioURL: audio, segments: segments, slot: slot),
@@ -517,7 +491,7 @@ final class ProcessingCoordinator {
 
     /// The diarization slot behind a displayed speaker: "Speaker N" is slot N-1 (the label
     /// BatchRunner writes); nil for a voice the Mac already matched (nothing new to learn).
-    private static func diarizationSlot(of displayed: String, in pf: PipelineFile) -> Int? {
+    private static func diarizationSlot(of displayed: String) -> Int? {
         guard SpeakerTranscript.isUnnamed(displayed),
               let n = Int(displayed.dropFirst("Speaker ".count)), n >= 1 else { return nil }
         return n - 1
@@ -577,7 +551,7 @@ final class ProcessingCoordinator {
     /// voice-enrollment slices; a stale sanitised body kept showing the OLD text
     /// when a fresh run failed midway.)
     func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
-        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        guard !isRunning else { lastError = Self.busyMessage; return }
         // Missing audio file is an ERROR on the row, not a silent clear (C51/R9) — checked
         // before touching anything, so a re-transcribe over a deleted file leaves the note
         // (transcript + every derivative) exactly as it was.
@@ -606,7 +580,7 @@ final class ProcessingCoordinator {
     /// ordinary name-link + recompile). The WORDS are fine, so transcribe is NOT re-run — no
     /// re-ASR. (Conversation mode is off by default now, so `process` won't re-diarize.)
     func flattenToMonologue(_ pf: PipelineFile, context: ModelContext) async {
-        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        guard !isRunning else { lastError = Self.busyMessage; return }
         // The state change is `SplitSpeakers.flatten` (pure, unit-tested): words + fixes +
         // name choices stay, Names is never touched. What is left is re-enhancing as one voice.
         guard SplitSpeakers.flatten(pf) else { return }
@@ -618,34 +592,32 @@ final class ProcessingCoordinator {
     /// Re-run a single LLM step on the RAW transcript and recompile (the ⋯ menu's
     /// "Redo title / copy-edit / summary"). Loads the enhancement model first.
     func redo(_ step: RedoStep, for pf: PipelineFile, context: ModelContext) async {
-        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        guard turn.acquire() else { lastError = Self.busyMessage; return }
+        await runRedo(step, for: pf, context: context)
+        // Anything that was asked for during the Redo (a recording-stop transcribe, an import's
+        // auto-transcribe) waits in the queue: run it now (Q208).
+        await drainWaiting(context: context)
+    }
+
+    private func runRedo(_ step: RedoStep, for pf: PipelineFile, context: ModelContext) async {
         let transcript = pf.transcript ?? ""
         guard !transcript.isEmpty else { lastError = "Nothing to redo — transcribe first."; return }
 
-        isRunning = true
-        idleUnloadTask?.cancel(); idleUnloadTask = nil
-        runState = RunState(total: 1, done: 0, currentTitle: pf.queueTitle)
-        TranscriptionActivity.begin()
-        defer {
-            isRunning = false; runState = nil; scheduleIdleUnload()
-            TranscriptionActivity.end()
-            ConnectionsIndexService.shared.sweepSoon(context)
-        }
+        beginRun(total: 1, currentTitle: pf.queueTitle)
+        defer { endRun(sweepContext: context) }
 
         let settings = SettingsStore.shared.load()
         let repo = settings.enhancementModelRepo
-        if !stubbedEngines {
-            let showLoad = !modelsLoaded
-            if showLoad { runState?.loadingLabel = "enhancement model" }
-            do {
-                try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
-                    Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
-                }
-            } catch {
-                lastError = "Model load failed: \(error.localizedDescription)"; return
+        let showLoad = !modelsLoaded
+        if showLoad { runState?.loadingLabel = "enhancement model" }
+        do {
+            try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
+                Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
             }
-            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
+        } catch {
+            lastError = "Model load failed: \(error.localizedDescription)"; return
         }
+        if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         modelsLoaded = true
 
         do {

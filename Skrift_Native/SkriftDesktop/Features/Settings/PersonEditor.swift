@@ -16,7 +16,6 @@ struct PersonEditorRequest: Identifiable {
 /// Builds a `Person` and hands it back via `onSave(originalCanonical, person)`; the host
 /// persists (`NamesStore.upsert`) and runs any side effects (reload / re-scan the note).
 struct PersonEditor: View {
-    let request: PersonEditorRequest
     var onSave: (_ originalCanonical: String?, _ person: Person) -> Void
     var onDelete: ((_ canonical: String) -> Void)? = nil
     var onClose: () -> Void
@@ -36,7 +35,6 @@ struct PersonEditor: View {
          onDelete: ((String) -> Void)? = nil,
          onClose: @escaping () -> Void,
          interactive: Bool = true) {
-        self.request = request
         self.onSave = onSave
         self.onDelete = onDelete
         self.onClose = onClose

@@ -13,7 +13,6 @@ import MapKit
 /// so the journal sees the full corpus). The Mac never mutates memos from here.
 struct JournalView: View {
     var model: AppModel
-    var coordinator: ProcessingCoordinator
     /// Open a memo in the Queue surface (when its PipelineFile exists).
     var onOpenInQueue: (String) -> Void = { _ in }
     /// Snapshot/test injection — nil = fetch from the cloud store.
@@ -29,8 +28,7 @@ struct JournalView: View {
     @State private var clusters: [PlaceCluster] = []
     /// The lifecycle shelves (MemoLifecycle + mock fading-shelf.html): fading
     /// notes leave every main surface; trashed = the memo trash (cloud store).
-    /// Which one shows over the rail lives on `AppModel.reviewShelf` now (was a
-    /// local `Shelf` enum) — the sidebar footer needs to jump here directly.
+    /// Which column shows beside the rail is `showing` below.
     @State private var fadingMemos: [Memo] = []
     @State private var trashedMemos: [Memo] = []
     /// The Mac-local transitional tail (Q5) — trashed PipelineFiles with no
@@ -40,7 +38,11 @@ struct JournalView: View {
     @State private var macLocalTrash: [PipelineFile] = []
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
-    @State private var mapMode = false
+    /// The column beside the rail: the Looking-back river, the map, or the ONE trash /
+    /// conveyor (mocks/lifecycle-ia-explorations.html #m3 — Fading and Recently Deleted
+    /// stop being two places). View-local on purpose: it resets on a surface switch.
+    private enum JournalColumn { case lookback, map, wayOut }
+    @State private var showing: JournalColumn = .lookback
     /// Then vs Now (shared `ThenVsNow` rule; iPad wave v2) — nil = no card.
     @State private var thenNow: (then: Memo, now: Memo)?
     @State private var selectedPlace: PlaceCluster?
@@ -147,7 +149,7 @@ struct JournalView: View {
                 MiniMonthGrid(month: month,
                               counts: LookbackProvider.dayCounts(for: memos, month: month),
                               selectedDay: $selectedDay,
-                              onPick: { mapMode = false; model.reviewShelf = nil })
+                              onPick: { showing = .lookback })
                 Text("PLACES")
                     .font(.system(size: 10, weight: .semibold)).tracking(0.5)
                     .foregroundStyle(Theme.textMuted)
@@ -164,9 +166,8 @@ struct JournalView: View {
                     // always on screen; the river never moves. Click → full map,
                     // fitted to every pin, no place pre-selected.
                     RailMiniMap(clusters: clusters) {
-                        model.reviewShelf = nil
                         selectedPlace = nil
-                        mapMode = true
+                        showing = .map
                         if let region = PlaceCluster.fitRegion(for: clusters) {
                             withAnimation { camera = .region(region) }
                         }
@@ -177,35 +178,29 @@ struct JournalView: View {
                 // Fading + Recently Deleted + the Mac-local tail collapse into a
                 // single row — shown only when non-empty.
                 if !fadingMemos.isEmpty || !trashedMemos.isEmpty || !macLocalTrash.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        shelfRow("🍂", "Fading",
-                                fadingMemos.count + trashedMemos.count + macLocalTrash.count, .wayOut)
+                    let isOn = showing == .wayOut
+                    Button {
+                        showing = .wayOut
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("🍂").font(.system(size: 10))
+                            Text("Fading").font(.system(size: 12))
+                                .foregroundStyle(isOn ? Theme.textPrimary : Theme.textSecondary)
+                            Spacer()
+                            Text("\(fadingMemos.count + trashedMemos.count + macLocalTrash.count)")
+                                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 6)
+                        .background(isOn ? Theme.accent.opacity(0.13) : .clear,
+                                    in: RoundedRectangle(cornerRadius: 7))
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     .padding(.top, 14)
                 }
             }
             .padding(14)
         }
-    }
-
-    private func shelfRow(_ glyph: String, _ title: String, _ count: Int, _ target: AppModel.ReviewShelf) -> some View {
-        Button {
-            mapMode = false
-            model.reviewShelf = target
-        } label: {
-            HStack(spacing: 6) {
-                Text(glyph).font(.system(size: 10))
-                Text(title).font(.system(size: 12))
-                    .foregroundStyle(model.reviewShelf == target ? Theme.textPrimary : Theme.textSecondary)
-                Spacer()
-                Text("\(count)").font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-            }
-            .padding(.horizontal, 8).padding(.vertical, 6)
-            .background(model.reviewShelf == target ? Theme.accent.opacity(0.13) : .clear,
-                        in: RoundedRectangle(cornerRadius: 7))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     private var monthHeader: some View {
@@ -233,16 +228,15 @@ struct JournalView: View {
     /// also takes the Map out of `.automatic`, so pin re-clustering can never
     /// re-frame the user's view.
     private func focus(_ cluster: PlaceCluster) {
-        model.reviewShelf = nil
         selectedPlace = cluster
-        mapMode = true
+        showing = .map
         if let region = PlaceCluster.fitRegion(for: [cluster]) {
             withAnimation { camera = .region(region) }
         }
     }
 
     private func placeRow(_ cluster: PlaceCluster) -> some View {
-        let isOn = mapMode && selectedPlaceShownBy(cluster)
+        let isOn = showing == .map && selectedPlaceShownBy(cluster)
         return Button {
             focus(cluster)
         } label: {
@@ -272,42 +266,40 @@ struct JournalView: View {
     private var cloudContext: ModelContext? { injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil }
 
     @ViewBuilder private var column: some View {
-        if let shelf = model.reviewShelf {
-            switch shelf {
-            case .wayOut:
-                WayOutColumn(
-                    fading: fadingMemos,
-                    deleted: trashedMemos,
-                    macOnlyFiles: macLocalTrash,
-                    onBringBack: { memo in
-                        WayOutRules.bringBack(memo)
+        switch showing {
+        case .wayOut:
+            WayOutColumn(
+                fading: fadingMemos,
+                deleted: trashedMemos,
+                macOnlyFiles: macLocalTrash,
+                onBringBack: { memo in
+                    WayOutRules.bringBack(memo)
+                    try? cloudContext?.save()
+                    refresh()
+                },
+                onDeleteMemo: { memo in
+                    // Q101 (R88/C161): a locked, not-yet-unlocked note needs auth to trash.
+                    Task { @MainActor in
+                        guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
+                        memo.deletedAt = Date()
+                        memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
                         try? cloudContext?.save()
                         refresh()
-                    },
-                    onDeleteMemo: { memo in
-                        // Q101 (R88/C161): a locked, not-yet-unlocked note needs auth to trash.
-                        Task { @MainActor in
-                            guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
-                            memo.deletedAt = Date()
-                            memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
-                            try? cloudContext?.save()
-                            refresh()
-                        }
-                    },
-                    onRestoreMacLocal: { pf in
-                        DesktopTrash.restore([pf], in: localCtx)
-                        refresh()
-                    },
-                    onDeleteMacLocal: { pf in
-                        DesktopTrash.deleteForever([pf], in: localCtx)
-                        refresh()
-                    },
-                    onBack: { model.reviewShelf = nil },
-                    onChanged: { refresh() })
-            }
-        } else if mapMode {
+                    }
+                },
+                onRestoreMacLocal: { pf in
+                    DesktopTrash.restore([pf], in: localCtx)
+                    refresh()
+                },
+                onDeleteMacLocal: { pf in
+                    DesktopTrash.deleteForever([pf], in: localCtx)
+                    refresh()
+                },
+                onBack: { showing = .lookback },
+                onChanged: { refresh() })
+        case .map:
             mapColumn
-        } else {
+        case .lookback:
             lookbackColumn
         }
     }
@@ -384,7 +376,7 @@ struct JournalView: View {
             HStack {
                 Text("Places").font(.system(size: 17, weight: .bold))
                 Spacer()
-                backCapsule { mapMode = false }
+                backCapsule { showing = .lookback }
             }
             Map(position: $camera) {
                 ForEach(PlaceCluster.merged(clusters, span: span)) { cluster in

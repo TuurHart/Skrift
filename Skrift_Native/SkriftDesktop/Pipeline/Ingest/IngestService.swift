@@ -351,8 +351,9 @@ struct IngestService: Sendable {
     /// A video file → strip its audio track to `original.m4a` and produce a `.audio`
     /// PipelineFile so the rest of the pipeline (transcribe/enhance/export) is
     /// unchanged. The recording date comes from the VIDEO's embedded creation date
-    /// (survives the copy) or a date in the filename, NOT the import time. The
-    /// original video is NOT kept — audio is all the pipeline needs.
+    /// (survives the copy) or a date in the filename, NOT the import time. The movie
+    /// itself is kept in the working folder as `source.<ext>` (local disk only, never a
+    /// `MemoAsset`), for the portfolio export.
     private func ingestVideo(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
@@ -589,7 +590,7 @@ struct IngestService: Sendable {
     }
 
     /// Copy each file in `srcDir` into `destDir` renamed "<safeTitle> - <i>.<ext>"
-    /// (HEIC/HEIF → JPG via `sips`), then rewrite the markdown `(Attachments/<orig>)`
+    /// (HEIC/HEIF → JPG via ImageIO), then rewrite the markdown `(Attachments/<orig>)`
     /// refs (plain + URL-encoded) to the new names. Returns the rewritten content;
     /// a no-op (returns `content`) when there's no Attachments dir. Copies — never
     /// mutates the source export.
@@ -616,7 +617,7 @@ struct IngestService: Sendable {
             if isHEIC {
                 try? fm.removeItem(at: dest)
                 ok = convertToJPEG(src: src, dst: dest)
-                if !ok {   // sips unavailable/failed — keep the original file + ext
+                if !ok {   // conversion failed — keep the original file + ext
                     outExt = ext.isEmpty ? "bin" : ext
                     newName = "\(safeTitle) - \(i + 1).\(outExt)"
                     dest = destDir.appendingPathComponent(newName)

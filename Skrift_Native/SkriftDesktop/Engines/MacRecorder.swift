@@ -14,19 +14,16 @@ import os
 /// reads comes from the SHARED `RecordingCore`, so a Mac memo and a phone memo are the same
 /// artefact.
 ///
-/// **Built on `AVCaptureSession`, not `AVAudioEngine`** (rebuilt 2026-07-28 —
-/// `LANES-2026-07-28/RESEARCH_MIC.md`). The previous version pointed `AVAudioEngine.inputNode`
-/// at a specific device by poking `kAudioOutputUnitProperty_CurrentDevice` on
-/// `inputNode.audioUnit` — but `inputNode` and `outputNode` SHARE one `AUAudioUnit` on macOS,
-/// defaulting to the system output device, and reassigning it from outside the engine's own
-/// state machine is not a supported reconfiguration path. The observed symptoms (near-zero
-/// buffers, or buffers that decode as noise) match Apple's own guidance: the engine's cached
-/// node format and the real HAL device end up disagreeing. `AVCaptureSession` +
-/// `AVCaptureDeviceInput` takes a specific device BY CONSTRUCTION, so this class of bug is
-/// unrepresentable now.
+/// **Built on `AVCaptureSession`, not `AVAudioEngine`** (`LANES-2026-07-28/RESEARCH_MIC.md`).
+/// `AVAudioEngine.inputNode` and `outputNode` SHARE one `AUAudioUnit` on macOS, defaulting to
+/// the system output device, and pointing it at another device from outside the engine's own
+/// state machine is not a supported reconfiguration path (the symptom was near-zero or noise
+/// buffers). `AVCaptureSession` + `AVCaptureDeviceInput` takes a specific device BY
+/// CONSTRUCTION.
 ///
-/// macOS needs no session category and has no route-change war (no HFP flip, no
-/// interruptions): you pick an input in System Settings and it stays. What it DOES need,
+/// macOS needs no session category and has no iOS route-change war (no HFP flip, no phone-call
+/// interruptions): you pick an input in System Settings and it stays; a device pulled
+/// mid-take ends the capture (`.AVCaptureDeviceWasDisconnected`). What it DOES need,
 /// which iOS does not, is the sandbox's `com.apple.security.device.audio-input` entitlement
 /// plus a usage string — without both, capture yields silence rather than an error.
 @MainActor
