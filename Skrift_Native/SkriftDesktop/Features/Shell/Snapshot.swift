@@ -79,6 +79,10 @@ enum Snapshot {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderStrandedRow(to: p, scheme: light ? .light : .dark); exit(0) }
         }
+        if let p = path("-snapshot-card-kinds") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderCardKinds(to: p, scheme: light ? .light : .dark); exit(0) }
+        }
         if let p = path("-snapshot-sidebar-selection") {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderSidebarSelection(to: p, scheme: light ? .light : .dark); exit(0) }
@@ -98,8 +102,11 @@ enum Snapshot {
             let filterDone = args.contains("-filterDone")
             // Q77: `-selectRows <n>` multi-selects the first n rows (the ⇧-range look).
             let selectRows = path("-selectRows").flatMap { Int($0) } ?? 1
+            // Q106: `-shellHeight <n>` draws a taller frame so rows further down the corpus list
+            // (book quote, video, link) are in the picture. Additive; default stays 900.
+            let shellHeight = CGFloat(path("-shellHeight").flatMap { Double($0) } ?? 900)
             MainActor.assumeIsolated {
-                renderShell(to: p, width: w, sidebar: sb, corpusPath: path("-corpus"),
+                renderShell(to: p, width: w, height: shellHeight, sidebar: sb, corpusPath: path("-corpus"),
                             scheme: light ? .light : .dark, filterDone: filterDone, selectRows: selectRows)
                 exit(0)
             }
@@ -236,7 +243,7 @@ enum Snapshot {
     /// real notes. This render now ALWAYS passes `fixtureCloudMemos` (never nil), sourced from
     /// an in-memory `Memo`/`MemoAsset`/`MemoEnhancement` container seeded by `CorpusSeed` when
     /// `-corpus` is given, or an empty array otherwise — the real store is never touched.
-    @MainActor private static func renderShell(to path: String, width: CGFloat, sidebar: CGFloat,
+    @MainActor private static func renderShell(to path: String, width: CGFloat, height: CGFloat = 900, sidebar: CGFloat,
                                                 corpusPath: String? = nil, scheme: ColorScheme = .dark,
                                                 filterDone: Bool = false, selectRows: Int = 1) {
         guard let container = try? ModelContainer(
@@ -273,11 +280,11 @@ enum Snapshot {
             NoteDisplayView(file: files.first, coordinator: coordinator, onOpenMemo: { _ in })
                 .frame(maxWidth: .infinity)
         }
-        .frame(width: width, height: 900)
+        .frame(width: width, height: height)
         .background(Theme.bg)
         .preferredColorScheme(scheme)
         .modelContainer(container)
-        hostPNG(view, size: NSSize(width: width, height: 900), to: path)
+        hostPNG(view, size: NSSize(width: width, height: height), to: path)
     }
 
     /// The STRANDED row (2026-08-20): a RATED memo with no `PipelineFile` used to render in
@@ -324,6 +331,76 @@ enum Snapshot {
             .preferredColorScheme(scheme)
             .modelContainer(container)
         hostPNG(view, size: NSSize(width: 292, height: 800), to: path)
+    }
+
+    /// Q106: one synthetic note of each kind (voice, video, audiobook quote, link, text, image,
+    /// PDF, typed) drawn through the REAL sidebar twice, side by side: left as RATED pipeline rows
+    /// (`QueueRowView.cardModel`), right as UNRATED memos (the quiet-row builder). Both call the
+    /// one `NoteCardBuilder`, so the two columns must read the same title / quote / snippet / chips.
+    /// (The synthetic corpus carries no book metadata, so a book capture only shows up here.)
+    /// `-snapshot-card-kinds <path>` · add `-light` for the light theme.
+    @MainActor private static func renderCardKinds(to path: String, scheme: ColorScheme) {
+        guard let container = try? ModelContainer(
+            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
+        let ctx = container.mainContext
+        func enc<T: Encodable>(_ v: T) -> Data { (try? JSONEncoder().encode(v)) ?? Data() }
+        func memos(rated: Bool) -> [Memo] {
+            let sig = rated ? 0.7 : 0
+            let t0 = Date()
+            func at(_ i: Int) -> Date { t0.addingTimeInterval(-Double(i) * 3600) }
+            return [
+                Memo(audioFilename: "a.m4a", duration: 83, recordedAt: at(0), tags: ["daily"],
+                     transcript: "Walked past the bakery.\n\nThen home.", significance: sig,
+                     metadataData: enc(MemoMetadata(
+                        location: LocationInfo(latitude: 38.7, longitude: -9.1, placeName: "Lisbon"),
+                        weather: WeatherInfo(conditions: "Clear", temperature: 18, temperatureUnit: "C")))),
+                Memo(audioFilename: "v.m4a", duration: 125, recordedAt: at(1), title: "Standup",
+                     transcript: "[[img_001]] Planning the week\nsecond line", significance: sig,
+                     metadataData: enc(MemoMetadata(sourceType: MemoMetadata.Source.video))),
+                Memo(audioFilename: "b.m4a", duration: 40, recordedAt: at(2),
+                     transcript: "> Focus is a skill.\n> Train it.\n\nMy take: yes", significance: sig,
+                     metadataData: enc(MemoMetadata(bookTitle: "Deep Work", bookChapter: "4"))),
+                Memo(recordedAt: at(3), significance: sig,
+                     sharedContentData: enc(SharedContent(type: .url, url: "https://www.example.com/post", urlTitle: "A Post"))),
+                Memo(recordedAt: at(4), significance: sig,
+                     sharedContentData: enc(SharedContent(type: .text, text: "Remember to call the notary tomorrow morning")),
+                     annotationText: "Do it first thing"),
+                Memo(recordedAt: at(5), significance: sig,
+                     sharedContentData: enc(SharedContent(type: .image)), annotationText: "Whiteboard from the meeting"),
+                Memo(recordedAt: at(6), significance: sig,
+                     sharedContentData: enc(SharedContent(type: .file, fileName: "Report.pdf"))),
+                Memo(recordedAt: at(7), transcript: "Buy milk", significance: sig,
+                     metadataData: try? JSONSerialization.data(withJSONObject: ["mediaSource": "typed"])),
+            ]
+        }
+        let files: [PipelineFile] = memos(rated: true).map { m in
+            let pf = MemoNoteProjection.file(for: m)
+            if pf.sourceType == .capture { pf.transcript = m.annotationText }
+            pf.transcribeStatus = .done
+            ctx.insert(pf)
+            return pf
+        }
+        let quiet = memos(rated: false)
+        try? ctx.save()
+
+        func column(files: [PipelineFile], quiet: [Memo]) -> some View {
+            let coordinator = ProcessingCoordinator()
+            return SidebarView(model: AppModel(), files: files, coordinator: coordinator,
+                               session: fixtureSession(coordinator: coordinator),
+                               fixtureCloudMemos: quiet)
+                .frame(width: 292, height: 1100)
+        }
+        let view = HStack(spacing: 24) {
+            column(files: files, quiet: [])
+            column(files: [], quiet: quiet)
+        }
+        .padding(16)
+        .background(Theme.bg)
+        .preferredColorScheme(scheme)
+        .modelContainer(container)
+        hostPNG(view, size: NSSize(width: 292 * 2 + 24 + 32, height: 1132), to: path)
     }
 
     /// The 2026-07-28 selection-visibility fix ("no way to see what node I have
