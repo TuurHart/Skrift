@@ -1,6 +1,5 @@
 import XCTest
 import UniformTypeIdentifiers
-@testable import SkriftDesktop
 
 /// C238 / C199 / D19: the same file name resolves to the same kind on the Mac and the phone.
 /// The phone twin of this class (`SkriftMobileTests/ImportKindsTests.swift`) carries the SAME
