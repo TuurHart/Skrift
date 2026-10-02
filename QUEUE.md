@@ -1361,7 +1361,7 @@ do: Rows list-sidebar-83, note-menu-07 -13. Both list context menus build from `
 check: `grep -rqE "class NoteMenuParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q181 [auto] (doing) Connections panel: one width, header, why-chips and hide verb on iPad and Mac
+### Q181 [auto] (done) Connections panel: one width, header, why-chips and hide verb on iPad and Mac
 spec: C239 C240 R58
 needs: Q119
 gate+: yes
@@ -2803,3 +2803,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:40 Q185 -> doing — batch worker out
 - 2026-10-03 00:42 Q183 -> done — gate pass @7f249478
 - 2026-10-03 00:44 Q184 -> done — gate pass @f2f2f520
+- 2026-10-03 00:46 Q181 -> done — gate pass @d142fcc7
