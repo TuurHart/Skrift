@@ -581,6 +581,16 @@ final class ProcessingCoordinator {
     // ── ⋯ overflow actions: re-transcribe + per-step redo ──
     enum RedoStep { case title, copyEdit, summary }
 
+    /// Q180: a menu's shared `NoteRedoItem` → this coordinator's step, so both Mac menus
+    /// render the shared parts list and call one entry.
+    func redo(_ part: NoteRedoItem, for pf: PipelineFile, context: ModelContext) async {
+        switch part {
+        case .title:    await redo(RedoStep.title, for: pf, context: context)
+        case .copyEdit: await redo(RedoStep.copyEdit, for: pf, context: context)
+        case .summary:  await redo(RedoStep.summary, for: pf, context: context)
+        }
+    }
+
     /// Re-run the whole pipeline on one file (re-transcribe → re-enhance). Clears
     /// every derivative of the OLD transcript first — word timings, diarization
     /// segments (+ the `diar_<id>.json` sidecar), sanitised body, ambiguous names,
