@@ -6,7 +6,8 @@ import SwiftUI
 ///    that exact person; no typos, no duplicate people).
 ///  • **This conversation** — send the turn to another speaker in this memo (fixes a
 ///    mis-split like a phantom "Speaker 3: Oh" — the turn merges into the chosen speaker).
-///  • **New person** — free text, creates a new person + enrolls.
+///  • **New person** — free text, creates a new person (aliases `[full, first]`, via
+///    `PersonEditCore.createIfNeeded`) before enrolling the voice.
 struct SpeakerAssignSheet: View {
     let speaker: String                       // the tapped label, e.g. "Speaker 3"
     let otherSpeakers: [String]               // other distinct turn labels in this memo

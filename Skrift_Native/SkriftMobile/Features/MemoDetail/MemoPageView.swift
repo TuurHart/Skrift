@@ -917,6 +917,13 @@ struct MemoPageView: View {
         memo.markEdited()
         repository.save()
         if enroll {
+            // The person exists BEFORE enrolment is attempted (R12/C83): a clip too short to
+            // embed, or a missing diarization sidecar, must not leave a named speaker with no
+            // person. Born through the shared door, so aliases are `[full, first]`.
+            if PersonEditCore.createIfNeeded(fullName: new, in: NamesStore.shared) != nil {
+                NamesCloudSync.run(NotesRepository.shared)
+                people = NamesStore.shared.livePeople()
+            }
             Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new, slot: slot) }
         }
     }

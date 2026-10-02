@@ -171,9 +171,10 @@ final class NamesStore {
         _ = unlockedSave(data)
     }
 
-    /// Add or update a person by canonical (phone convenience — the quick-add
-    /// flow and tests). Partial update: replaces aliases/short, bumps
-    /// `lastModifiedAt`, resurrects a tombstone IN PLACE (keeping voiceprints).
+    /// Add a person by canonical (quick-add flow and tests). NEVER overwrites a live person's
+    /// aliases/short: an existing person is left exactly as it is (setexp-107: the Add Person
+    /// sheet used to wipe them). A tombstone is resurrected IN PLACE (keeping voiceprints) with
+    /// the given aliases/short. To edit a person deliberately use `upsert(_:replacing:)`.
     func upsert(canonical: String, aliases: [String], short: String?) {
         let c = NamesMerge.normaliseCanonical(canonical)
         guard !c.isEmpty else { return }
@@ -183,6 +184,7 @@ final class NamesStore {
         let cleanedShort = (short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
         if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
             var p = data.people[idx]
+            guard p.isDeleted else { return }   // live person: keep their aliases/short untouched
             p.aliases = cleanedAliases
             p.short = cleanedShort
             p.lastModifiedAt = ISO8601.now()
