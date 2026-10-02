@@ -759,7 +759,7 @@ do: Mac `AppModel.visible` applies `matchesDate` to PipelineFile rows only; `vis
 check: `grep -rqE "class NotesListFilterTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NotesListFilterParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P5
 
-### Q105 [auto] (todo) Mac sidebar: one row per note id, Recorded/Added date picker, Newest sorts on the note's added date
+### Q105 [auto] (doing) Mac sidebar: one row per note id, Recorded/Added date picker, Newest sorts on the note's added date
 spec: C70 C115
 needs: -
 gate+: yes
@@ -775,7 +775,7 @@ do: `QueueRowView.cardModel` and the quiet-row builder (SidebarView.swift:1277-1
 check: `test $(ls plan/reads/list-p-cardmodel/*.png | wc -l) -ge 1 && grep -rqE "class NoteCardModelParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteCardModelParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P7
 
-### Q107 [auto] (todo) Mac quiet (unrated) rows carry tags, place and weather chips, the D136 fading-line rule, balls when not locked, and the 2-versions pill
+### Q107 [auto] (doing) Mac quiet (unrated) rows carry tags, place and weather chips, the D136 fading-line rule, balls when not locked, and the 2-versions pill
 spec: C115 D136 D135 C98
 needs: Q106
 gate+: yes
@@ -927,7 +927,7 @@ do: D125 decided yes; the phone has a find bar (NoteBodyView.swift:100, 600-602)
 check: `grep -rqE "class MacFindBarTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P26
 
-### Q126 [auto] (doing) Mac: checklist button and Return continues a task line
+### Q126 [auto] (done) Mac: checklist button and Return continues a task line
 spec: C113 C234
 needs: -
 gate+: yes
@@ -997,7 +997,7 @@ do: Q94 fixed the share extension only. A Signal / WhatsApp file with no embedde
 check: `grep -rqE "class ImportDateLadderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportDateLadderTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P35
 
-### Q135 [auto] (doing) pictures on import follow C74 on both apps: PNG stays PNG, GIF kept, downsample to 2048, no re-encode
+### Q135 [auto] (done) pictures on import follow C74 on both apps: PNG stays PNG, GIF kept, downsample to 2048, no re-encode
 spec: C74 D17
 needs: -
 gate+: yes
@@ -1013,7 +1013,7 @@ do: A Mac drop of `notes.txt` reports 'Couldn't import'; a PDF is refused (`inge
 check: `grep -rqE "class MacImportDoorsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P37
 
-### Q137 [auto] (todo) import failures are shown on both apps: skipped files, a video with no audio, a folder of photos
+### Q137 [auto] (doing) import failures are shown on both apps: skipped files, a video with no audio, a folder of photos
 spec: C199 C202 C77
 needs: -
 gate+: yes
@@ -2681,3 +2681,8 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:07 Q122 -> doing — batch worker out
 - 2026-10-02 23:07 Q165 -> doing — batch worker out
 - 2026-10-02 23:10 Q125 -> done — gate pass @bd0ce8e9
+- 2026-10-02 23:10 Q126 -> done — gate pass (batched with Q125)
+- 2026-10-02 23:10 Q137 -> doing — worker out
+- 2026-10-02 23:18 Q105 -> doing — batch worker out
+- 2026-10-02 23:18 Q107 -> doing — batch worker out
+- 2026-10-02 23:21 Q135 -> done — gate pass @1f414d95
