@@ -1883,3 +1883,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      (Q90).
 160. **D160 Mac multi-clip import device-confirmed.** ✅ 2026-10-01 (Skrift Dev, 1ad5737a): five Signal clips
      dragged in together → "fucking perfect, very nice" (Q74). A picture in the same drop was lost (Q92).
+161. **D161 Device round 2 Oct.** ✅ (Skrift Dev Mac + iPhone 17 Pro, build 173): the clips + picture drop
+     now lands the picture between the clips ("quite cool", Q92); PRIVATE ¦ PORTFOLIO "very nice"; the
+     sidebar clips only when dragged narrow (Q95); a merged import is dated to the import, not the first
+     clip (Q96).

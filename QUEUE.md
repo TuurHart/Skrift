@@ -684,6 +684,20 @@ gate+: yes
 do: C70 is a required difference: recordedAt = embedded date → date in the filename (WhatsApp / Signal / Telegram / recorder patterns, Mac parity) → file date → now; the phone never parses the filename today. Q92 extended the Mac's `IngestService.dateFromFilename` (incl. compact HHMMSS like `signal-2026-10-01-080349`); Q93 found the share extension hands the drain no filenames — clips carry file mod dates, pictures only EXIF (empty for Signal JPEGs) — so a real Signal share of clips + a picture falls back to pictures-first. Move the filename-date ladder into `Shared/` (one copy, the Mac calls it too), make the share extension carry each item's original filename / suggestedName and its selection position, and let the drain date clips and pictures from it so MixedBundle places a Signal picture between the clips at its time and the note is dated to the first message (C124). Tests: the ladder's patterns (shared, desktop + phone), a Signal-named share bundle → picture between clip 3 and 4. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q95 [auto] (doing) Mac sidebar reflows when dragged narrow instead of clipping its left edge
+spec: C115 C240
+needs: -
+gate+: yes
+do: Tuur 2026-10-02 on Skrift Dev (real window — the Q35/Q37/Q65 'left-edge clip' question answered): at the normal sidebar width nothing clips, but "I can drag the sidebar in and then it just clips off weirdly": the logo, the Import · Record · ✎ row, the chip row, day headers ("RI 3 APR") and every card lose their left edge instead of shrinking. Make the sidebar content lay out to the sidebar's actual width (cards, chips and verb row shrink/wrap; the chip row keeps scrolling sideways), or set a minimum sidebar width at which nothing clips — pick the one that matches the phone's list. Prove with headless `-snapshot-shell` renders at 220, 260 and 292 pt (add a width flag if missing), LOOK, commit under `plan/reads/sidebar-q95/`. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/sidebar-q95/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q96 [auto] (doing) a merged import is dated to its first clip's filename time, not the import moment; each clip starts a paragraph (C124, C70)
+spec: C124 C70
+needs: -
+gate+: yes
+do: Tuur 2026-10-02: five Signal clips from 1 Oct (signal-2026-10-01-07-44-33-032.m4a … 08-06-25-049.m4a + a 080349.jpeg) dragged onto the Mac on 2 Oct merged into one note — but the note reads "Fri, 2 Oct 2026" on the Mac and "Today · 08:08" on the phone, the import moment. C124: a merged multi-clip note is dated to the FIRST message (filename date, C70) — here Thu 1 Oct 07:44 — and each clip's own time is kept in the manifest, not shown in the body. Also verify in the same note that each clip starts its own paragraph (C124): the merged body reads "…a pause between every word so the Um this is gonna be a hard one to fix…", which looks like a clip boundary inside one paragraph. Fix both in the Mac merge path (IngestService.ingest(combineAudio:) / AudioClipMerge / MixedBundle, Q74/Q92/Q94) and confirm the phone share path (CaptureInboxDrainer) dates and breaks the same way. Desktop test over the ingress P1/P3 shapes: recordedAt = first clip's filename time, one paragraph per clip. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -998,3 +1012,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-01 15:58 Q94 added
 - 2026-10-01 15:58 Q94 -> doing — worker out
 - 2026-10-01 16:20 Q94 -> done — gate pass @8b712145
+- 2026-10-02 08:12 Q95 added
+- 2026-10-02 08:12 Q96 added
+- 2026-10-02 08:12 Q95 -> doing — worker out
+- 2026-10-02 08:12 Q96 -> doing — worker out
