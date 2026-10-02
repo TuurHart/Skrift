@@ -46,7 +46,9 @@ extension PipelineFile {
             transcript: transcript,
             sanitised: sanitised,
             enhancedCopyedit: enhancedCopyedit,
-            enhancedTitle: enhancedTitle,
+            // The C25 ladder the iPad uses too (`ExportNaming`), so the frontmatter title and
+            // the filename agree across devices.
+            enhancedTitle: exportTitle,
             enhancedSummary: enhancedSummary,
             tags: tags,
             significance: significance,
@@ -73,6 +75,18 @@ extension PipelineFile {
                 : ((enhancedCopyedit ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                    ? .raw : .cleaned)
         )
+    }
+
+    /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).
+    /// `enhancedTitle` carries rungs 1+2 on the Mac: a title chosen on any device
+    /// (`MemoCloudUpdate` adopts `Memo.title`), else the Mac's own suggestion. The body is
+    /// the RAW text (`transcript` — a capture's annotation lives there too), the same text
+    /// the iPad reads its first line from.
+    var exportTitle: String {
+        let shared = sourceType == .capture ? SharedContent.decode(from: audioMetadataJSON) : nil
+        return ExportNaming.title(userTitle: nil, suggestedTitle: enhancedTitle, body: transcript,
+                                  shared: shared,
+                                  isVoice: sourceType == .audio && mediaSource != "typed")
     }
 
     /// Extract a top-level string from the raw metadata JSON without Codable (for keys

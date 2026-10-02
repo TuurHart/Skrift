@@ -134,7 +134,9 @@ enum VaultExporter {
         // Phase 1 — may we write, and where? A refusal costs nothing: no compile
         // output lands, no image is copied, the vault is untouched.
         let relPath: String
-        switch writer.assess(id: id, title: pf.enhancedTitle, filenameFallback: pf.filename,
+        // The C25 ladder's title (`pf.exportTitle`), the same one the iPad names the file
+        // from — one note, one file name, whichever device writes it first.
+        switch writer.assess(id: id, title: pf.exportTitle, filenameFallback: pf.filename,
                              recordedAt: captureDate(for: pf)) {
         case .refused(let outcome):
             return Result(outcome: outcome,
@@ -233,13 +235,13 @@ enum VaultExporter {
     /// word boundaries); the rest are stripped, then doubled spaces collapsed
     /// — Gemma loves "Title: Subtitle", which must not become "Title- Subtitle".
     static func noteStem(_ pf: PipelineFile) -> String {
-        noteStem(title: pf.enhancedTitle, filename: pf.filename)
+        noteStem(title: pf.exportTitle, filename: pf.filename)
     }
 
     static func noteStem(title: String?, filename: String) -> String {
         // The one derivation moved to the SHARED `VaultName` (both apps name files
         // identically now); this wrapper keeps the Mac's call sites + tests stable.
-        VaultName.stem(title: title, filename: filename)
+        ExportNaming.stem(title: title, filename: filename)
     }
 
     /// Replace `[[img_NNN]]` markers with this profile's embeds of `<safe>_NNN.ext`

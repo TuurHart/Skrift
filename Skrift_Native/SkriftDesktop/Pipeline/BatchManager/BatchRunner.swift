@@ -337,12 +337,7 @@ struct BatchRunner {
     static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
         // Honor a title the phone pre-set (unlikely for captures, but consistent).
         if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
-        if let title = sc?.urlTitle?.trimmingCharacters(in: .whitespaces), !title.isEmpty { return title }
-        if let text = sc?.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
-            let words = text.split(separator: " ").prefix(8).joined(separator: " ")
-            return words.isEmpty ? text : words + (text.split(separator: " ").count > 8 ? "…" : "")
-        }
-        if let fileName = sc?.fileName?.trimmingCharacters(in: .whitespaces), !fileName.isEmpty { return fileName }
-        return "Capture"
+        // The capture rung of the shared C25 ladder — the export names files with it too.
+        return ExportNaming.captureTitle(sc)
     }
 }
