@@ -34,6 +34,72 @@ enum NoteTitle {
         return head.trimmingCharacters(in: .whitespaces) + "…"
     }
 
+    // MARK: - The one display ladder (C25)
+
+    /// Longest derived title (first body line), in characters — one number for display and
+    /// the vault filename (C25, C165).
+    static let derivedLimit = 120
+
+    /// The C25 ladder, ONE rule for both apps and the exporters: user title → suggested
+    /// title → first body line (markers stripped, clipped at 120 on a word boundary) →
+    /// share title. nil when the note has none of them (the caller's fallback decides:
+    /// "Note" / "Voice note" for a row, the "Add a title" prompt for the header).
+    /// For a share capture `body` is its annotation (the user's words on the shared thing).
+    static func derived(userTitle: String?, suggestedTitle: String?, body: String?,
+                        shared: SharedContent?) -> String? {
+        if let t = trimmed(userTitle) { return t }
+        if let t = trimmed(suggestedTitle) { return t }
+        if let line = firstLine(body) { return line }
+        if shared != nil { return captureTitle(shared) }
+        return nil
+    }
+
+    /// `derived`, never empty: the last rung is `emptyFallback` ("Note" for a typed note,
+    /// "Voice note" otherwise — `SourceKind.emptyTitleFallback`).
+    static func display(userTitle: String?, suggestedTitle: String?, body: String?,
+                        shared: SharedContent?, emptyFallback: String) -> String {
+        derived(userTitle: userTitle, suggestedTitle: suggestedTitle, body: body, shared: shared)
+            ?? emptyFallback
+    }
+
+    /// The capture rung: urlTitle → first 8 words of the shared text → file name → "Capture".
+    static func captureTitle(_ sc: SharedContent?) -> String {
+        if let title = sc?.urlTitle?.trimmingCharacters(in: .whitespaces), !title.isEmpty { return title }
+        if let text = sc?.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
+            let words = text.split(separator: " ")
+            let head = words.prefix(8).joined(separator: " ")
+            return head.isEmpty ? text : head + (words.count > 8 ? "…" : "")
+        }
+        if let fileName = sc?.fileName?.trimmingCharacters(in: .whitespaces), !fileName.isEmpty { return fileName }
+        return "Capture"
+    }
+
+    /// The first non-empty line of `body` with markers stripped (`[[img_NNN]]`, name and
+    /// memo links, `**Name:**`), clipped at `derivedLimit` on a word boundary. No ellipsis:
+    /// the line also names the file, and a filename wants the plain cut.
+    static func firstLine(_ body: String?) -> String? {
+        guard let body, !body.isEmpty else { return nil }
+        let first = NoteSnippet.plain(body)
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first(where: { !$0.isEmpty })
+        // A leading `> ` is a book capture's quote marker, not part of the words.
+        guard let line = first?.replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces), !line.isEmpty else { return nil }
+        guard line.count > derivedLimit else { return line }
+        let head = line.prefix(derivedLimit)
+        if let space = head.lastIndex(where: { $0.isWhitespace }) {
+            let cut = head[..<space].trimmingCharacters(in: .whitespaces)
+            if !cut.isEmpty { return cut }
+        }
+        return String(head).trimmingCharacters(in: .whitespaces)
+    }
+
+    private static func trimmed(_ s: String?) -> String? {
+        guard let t = s?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+        return t
+    }
+
     /// Longest "From the recording" title option, in characters.
     static let recordingLimit = 60
 
@@ -50,5 +116,28 @@ enum NoteTitle {
         guard let line else { return nil }
         let cut = String(clip(line).prefix(recordingLimit)).trimmingCharacters(in: .whitespaces)
         return cut.isEmpty ? nil : cut
+    }
+}
+
+extension Memo {
+    /// A share capture: no audio, a shared thing. Its body for the ladder is the annotation.
+    private var ladderIsCapture: Bool { audioFilename.isEmpty && sharedContent != nil }
+
+    /// This memo's C25 title (list row, header prompt, link rows). `suggestedTitle` is the
+    /// Mac's `MemoEnhancement.title` when the caller has it. Display-only: never writes
+    /// `title` (choosing stays the user's).
+    func ladderTitle(suggestedTitle: String? = nil) -> String {
+        NoteTitle.display(userTitle: title, suggestedTitle: suggestedTitle,
+                          body: ladderIsCapture ? annotationText : transcript,
+                          shared: ladderIsCapture ? sharedContent : nil,
+                          emptyFallback: SourceKind.of(self).emptyTitleFallback)
+    }
+
+    /// What the header's empty title field ghosts: the ladder minus the user's own title.
+    /// nil when the note has nothing to derive from (the field then shows "Add a title").
+    func ladderGhost(suggestedTitle: String? = nil, withUserTitle: Bool = false) -> String? {
+        NoteTitle.derived(userTitle: withUserTitle ? title : nil, suggestedTitle: suggestedTitle,
+                          body: ladderIsCapture ? annotationText : transcript,
+                          shared: ladderIsCapture ? sharedContent : nil)
     }
 }
