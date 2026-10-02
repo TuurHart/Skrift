@@ -63,4 +63,27 @@ enum PersonEditCore {
         }
         return (person, renamedFrom)
     }
+
+    /// The ONE door for "a person who does not exist yet" on the phone: speaker naming
+    /// (`MemoPageView.assign`) and the Add Person sheet. Every new person is born the way the
+    /// Mac's `nameSpeaker` makes one: aliases `[full, first word]`, `short` = the typed short
+    /// or the first word (R12/C83: an alias-less person never links). Runs BEFORE any voice
+    /// enrolment, so a short clip or a missing sidecar still leaves the person behind.
+    /// An existing live person is never overwritten: with no typed short it is returned
+    /// untouched; with one, `upsert(_, replacing: nil)` merges (unions aliases, sets short).
+    /// Returns the stored person, or nil for an empty name.
+    @discardableResult
+    static func createIfNeeded(fullName: String, short: String = "", in store: NamesStore) -> Person? {
+        let trimmed = fullName.trimmingCharacters(in: .whitespaces)
+        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
+        let existing = store.livePeople().first { key($0.canonical) == key(trimmed) }
+        let typedShort = short.trimmingCharacters(in: .whitespaces)
+        if let existing, typedShort.isEmpty { return existing }
+        let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
+        guard let r = materialise(fullName: trimmed, aliases: [trimmed, first],
+                                  short: typedShort.isEmpty ? first : typedShort,
+                                  original: nil) else { return nil }
+        store.upsert(r.person, replacing: nil)
+        return store.livePeople().first { key($0.canonical) == key(r.person.canonical) }
+    }
 }

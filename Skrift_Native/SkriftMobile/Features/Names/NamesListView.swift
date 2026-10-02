@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Voice-first Names (mockup3): people + a voice-fingerprint status (enrolled vs
-/// "Add voice"). NO alias editing on the phone (the Mac owns aliases; the phone
-/// syncs them silently) and NO "synced on Mac" footer. The phone never links
-/// names into transcripts — it's just a peer editor + the place to enroll voices.
+/// "Add voice"). The phone is a full peer editor: `PersonEditorView` edits aliases and short
+/// names through `PersonEditCore`, new people are born through `PersonEditCore.createIfNeeded`
+/// (aliases `[full, first]`), and names sync over CloudKit. The phone links names into
+/// transcripts (C80) and is the place to enroll voices.
 struct NamesListView: View {
     @State private var people: [Person] = []
     @State private var search = ""
@@ -162,7 +163,7 @@ enum NamesDisplay {
     static func isEnrolled(_ person: Person) -> Bool { PersonEditCore.isEnrolled(person) }
 }
 
-// MARK: - Add person (name only; aliases are Mac-side)
+// MARK: - Add person (full name + optional short; aliases default to [full, first])
 
 struct AddPersonView: View {
     var onSave: () -> Void
@@ -180,7 +181,7 @@ struct AddPersonView: View {
                     TextField("Short name (optional)", text: $short)
                         .accessibilityIdentifier("person-short-field")
                 } footer: {
-                    Text("Aliases and name-linking are managed on your Mac — the phone keeps them in sync.")
+                    Text("The first name is added as an alias so the person links in your notes. Edit aliases from the person's page.")
                 }
             }
             .navigationTitle("Add Person")
@@ -199,7 +200,8 @@ struct AddPersonView: View {
     }
 
     private func save() {
-        store.upsert(canonical: name, aliases: [], short: short.isEmpty ? nil : short)
+        PersonEditCore.createIfNeeded(fullName: name, short: short, in: store)
+        NamesCloudSync.run(NotesRepository.shared)   // push to CloudKit so the Mac/iPad get it now
         onSave()
         dismiss()
     }
