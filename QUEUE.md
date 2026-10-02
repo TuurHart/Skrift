@@ -1005,7 +1005,7 @@ do: Phone `SharePayloadLoader.loadImages` always writes JPEG 0.85 at 2048 px, so
 check: `grep -rqE "class ImageNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImageNormaliseTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P36
 
-### Q136 [auto] (doing) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
+### Q136 [auto] (stuck) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
 spec: C77 D19 C72 C73
 needs: Q133
 gate+: yes
@@ -2021,6 +2021,12 @@ gate+: yes
 do: Left by Q136: (1) the Mac's link capture (IngestService+Captures.swift, LinkFetching seam) does not retry a failed fetch — C72 says up to 3 retries; add a bounded retry with backoff behind the seam (testable with a stub fetcher). (2) The phone still shows 'Capture' for a link with no page title, while the Mac uses the host per C72 — make the phone use the same shared rule (Shared/Pipeline/ImportDoors.swift / LinkCard). Desktop test `LinkFetchRetryTests`, phone test `LinkUntitledHostTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LinkUntitledHostTests && ./gate.sh`
 
+### Q267 [tuur] (tuur) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
+spec: -
+needs: -
+do: -
+check: Tuur approved; done via plan/hand-merge.sh.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2732,3 +2738,6 @@ check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-10-02 23:51 Q176 -> doing — batch worker out
 - 2026-10-02 23:51 Q159 -> doing — batch worker out
 - 2026-10-02 23:52 Q169 -> done — gate pass @a7313798
+- 2026-10-02 23:52 Q136 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-02 23:52 Q267 added
+- 2026-10-02 23:52 Q267 -> tuur — awaiting sitting
