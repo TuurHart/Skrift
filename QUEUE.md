@@ -1385,7 +1385,7 @@ do: Rows note-speaker-07, note-split-03, note-speaker-01. Phone conversation kar
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ConversationKaraokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q184 [auto] (doing) one new-person-from-a-name flow and one note-link picker on phone and Mac
+### Q184 [auto] (done) one new-person-from-a-name flow and one note-link picker on phone and Mac
 spec: C239 C240 C81
 needs: Q113
 gate+: yes
@@ -2802,3 +2802,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:40 Q187 -> doing — batch worker out
 - 2026-10-03 00:40 Q185 -> doing — batch worker out
 - 2026-10-03 00:42 Q183 -> done — gate pass @7f249478
+- 2026-10-03 00:44 Q184 -> done — gate pass @f2f2f520
