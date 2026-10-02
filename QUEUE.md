@@ -1005,7 +1005,7 @@ do: Phone `SharePayloadLoader.loadImages` always writes JPEG 0.85 at 2048 px, so
 check: `grep -rqE "class ImageNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImageNormaliseTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P36
 
-### Q136 [auto] (stuck) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
+### Q136 [auto] (done) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
 spec: C77 D19 C72 C73
 needs: Q133
 gate+: yes
@@ -2741,3 +2741,5 @@ check: Tuur approved; done via plan/hand-merge.sh.
 - 2026-10-02 23:52 Q136 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
 - 2026-10-02 23:52 Q267 added
 - 2026-10-02 23:52 Q267 -> tuur — awaiting sitting
+- 2026-10-02 23:52 Q136 -> doing — redispatch 2/3: rebase after CONFLICT
+- 2026-10-03 00:01 Q136 -> done — gate pass @a76b4a1c
