@@ -331,7 +331,7 @@ struct SidebarView: View {
         } label: {
             HStack(spacing: 6) {
                 Circle().fill(Theme.destructive).frame(width: 9, height: 9)
-                Text("Record")
+                Text("Record").lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .semibold))
             .foregroundStyle(Theme.destructive)
@@ -487,7 +487,7 @@ struct SidebarView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: system).font(.system(size: 11, weight: .semibold))
-                Text(title)
+                Text(title).lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .semibold))
             .foregroundStyle(Theme.textPrimary)
