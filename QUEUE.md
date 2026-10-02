@@ -1337,7 +1337,7 @@ do: Rows list-sidebar-04 -09 -11 -31 -35 -57 -63, note-empty-01, capture-quick-0
 check: `grep -rqE "class ListChromeCopyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q178 [auto] (todo) Way-out: one intro, row meta line and urgency colour rule on phone, iPad and Mac
+### Q178 [auto] (doing) Way-out: one intro, row meta line and urgency colour rule on phone, iPad and Mac
 spec: C239 C240 D136
 needs: Q108
 gate+: yes
@@ -1457,7 +1457,7 @@ do: In `SkriftMobile/Services/Audiobooks/BookAlignment.swift`: (1) `mergeSentenc
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MultiTextMergeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-c06 MAS-c09 (cleanup-audit P5)
 
-### Q193 [auto] (doing) audiobook screens: dead state, orphan comments, small shared pieces, a toast bug
+### Q193 [auto] (done) audiobook screens: dead state, orphan comments, small shared pieces, a toast bug
 spec: C240
 needs: Q173
 gate+: no
@@ -2541,3 +2541,5 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 18:53 Q224 -> done — gate pass @d5830340
 - 2026-10-02 18:55 Q108 -> done — gate pass @ad3bfb83
 - 2026-10-02 18:55 Q256 added
+- 2026-10-02 18:57 Q178 -> doing — worker out
+- 2026-10-02 19:05 Q193 -> done — gate pass @7c88717f
