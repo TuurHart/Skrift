@@ -759,7 +759,7 @@ do: Mac `AppModel.visible` applies `matchesDate` to PipelineFile rows only; `vis
 check: `grep -rqE "class NotesListFilterTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NotesListFilterParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P5
 
-### Q105 [auto] (doing) Mac sidebar: one row per note id, Recorded/Added date picker, Newest sorts on the note's added date
+### Q105 [auto] (done) Mac sidebar: one row per note id, Recorded/Added date picker, Newest sorts on the note's added date
 spec: C70 C115
 needs: -
 gate+: yes
@@ -1163,7 +1163,7 @@ do: Two builders: phone `MemoExporter.compilerMetadata` (voice from `enhancement
 check: `grep -rqE "class CompilerInputParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh CompilerInputParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P56
 
-### Q156 [auto] (todo) export gate and refusal sentences: one predicate and one set of strings
+### Q156 [auto] (doing) export gate and refusal sentences: one predicate and one set of strings
 spec: C61 C194
 needs: -
 gate+: yes
@@ -2007,6 +2007,13 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
+### Q265 [auto] (doing) note card chips wrap instead of clipping: NoteCardView.chipsRow overflows the card with 5+ chips on Mac and phone
+spec: C115 C240
+needs: -
+gate+: yes
+do: Found by Q107 and visible in plan/reads/list-p-quiet/mac-quiet-rows-light.png: the shared Skrift_Native/Shared/UI/NoteCardView.swift chipsRow lays chips out with fixedSize and no wrapping, so a row with duration + place + weather + 2 tags runs past the card edge and clips (Mac sidebar and phone list). Wrap the chips with the existing Shared/UI/FlowLayout.swift (max 2 lines, then a '+N' chip if more remain), keeping chip order and spacing. Prove it with a Mac headless -snapshot PNG of a 5-chip and an 8-chip row (look at it) plus a host-less layout test of the line-break decision if one is extractable. Never run SkriftDesktopUITests.
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2709,3 +2716,7 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:36 Q165 -> done — gate pass (batched with Q122)
 - 2026-10-02 23:36 Q264 added
 - 2026-10-02 23:36 Q264 -> tuur — awaiting sitting
+- 2026-10-02 23:43 Q265 added
+- 2026-10-02 23:44 Q265 -> doing — worker out
+- 2026-10-02 23:44 Q156 -> doing — worker out
+- 2026-10-02 23:46 Q105 -> done — gate pass @31ddc957
