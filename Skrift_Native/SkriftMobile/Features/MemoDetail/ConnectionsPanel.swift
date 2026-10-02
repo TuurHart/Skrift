@@ -44,13 +44,45 @@ enum ConnectionsPanelLogic {
         NoteConsent.isRated(memo) && !isLocked
     }
 
-    /// The owner-set importance as a one-decimal readout — "0.8" / "1.0", and
-    /// NOTHING when unrated (no fake 0.0). This reads the RAW stored grid value
-    /// (not the ball control's 3-stop `ThreeBallScale`, which only ever writes
-    /// 0.3/0.6/1.0 going forward) — a pre-Q24 note can still carry any 0.1–1.0
-    /// value, and the panel shows what's actually stored. Literal, no shared
-    /// enum: kept in lock-step with `IPadDetailConnectionsTests` (0.7/0.8
-    /// boundary), which Q24 does not touch.
+    // ── Q119: the panel's ONE set of rules, shared with the Mac (pure, tested by
+    //    `ConnectionsRulesTests`) ──
+
+    /// The AI zone's state: the Mac's `RetrievalGate.derive`, fed the phone
+    /// service's facts. `active` = enabled + model on disk (or the mock index),
+    /// so it stands in for both of derive's consent inputs.
+    static func panelState(active: Bool, downloadFraction: Double?,
+                           sweeping: Bool, sweepProgress: (done: Int, total: Int)?,
+                           hasRows: Bool, querying: Bool) -> RetrievalGate {
+        RetrievalGate.derive(enabled: active, modelDownloaded: active,
+                             downloadFraction: downloadFraction,
+                             sweeping: sweeping, sweepProgress: sweepProgress,
+                             hasRows: hasRows, querying: querying)
+    }
+
+    /// The rows the panel lists: the Mac's cap (`relatedKMac`, earliest kept)
+    /// until "Show all N" expands it.
+    static func visibleRows(_ rows: [ConnectionRowVM], showAll: Bool) -> [ConnectionRowVM] {
+        showAll ? rows : RetrievalTuning.cappedRelated(rows, date: \.date)
+    }
+
+    /// "Show all N" appears only past the Mac's cap.
+    static func showsShowAll(count: Int) -> Bool { count > RetrievalTuning.relatedKMac }
+
+    /// The row's importance readout + its amber tier: the BUCKETED stop
+    /// (`ThreeBallScale`, C210), the same text the Mac prints (legacy 0.7 → "1.0").
+    static func importanceReadout(_ significance: Double) -> String? {
+        ThreeBallScale.readout(for: significance)
+    }
+    static func importanceIsTop(_ significance: Double) -> Bool {
+        ThreeBallScale.isTopStop(significance)
+    }
+
+    // ── Superseded (Q119): the raw-value readout below no longer drives any view
+    //    (`importanceReadout` does). It stays only because the protected
+    //    `IPadDetailConnectionsTests` pins its old 0.7/0.8 literals; delete both
+    //    together at a hand-merge. ──
+
+    /// The owner-set importance as a one-decimal readout of the RAW stored value.
     /// Is this importance past the old 0.8 boundary? The COLOUR half of `importanceText`, which
     /// the iPad had been missing: the Mac painted 0.8+ amber (the same language the circles
     /// and the flame tag speak) while the iPad painted every value one colour, so a 1.0
@@ -93,8 +125,9 @@ struct ConnectionsPanel: View {
 
     private let repository = NotesRepository.shared
 
-    // Remembered app-wide. Closest is the default mode (Mac default).
-    @AppStorage("ipadConnectionsSortByDate") private var sortByDate = false
+    // Remembered app-wide. Date is the default mode, the Mac's default (signed
+    // related-panel mock: "remembered, default Date"); one constant for both.
+    @AppStorage("ipadConnectionsSortByDate") private var sortByDate = RetrievalTuning.connectionsDefaultSortByDate
 
     @State private var related: [ConnectionRowVM] = []   // score DESC
     @State private var backlinks: [BacklinkVM] = []
@@ -105,6 +138,16 @@ struct ConnectionsPanel: View {
 
     private var isActive: Bool { JournalIndexService.shared.isActive }
     private var count: Int { related.count + backlinks.count }
+
+    /// The AI zone's state, read live from the service (observable) so the panel
+    /// moves through downloading / preparing / indexing like the Mac's.
+    private var state: RetrievalGate {
+        let svc = JournalIndexService.shared
+        return ConnectionsPanelLogic.panelState(
+            active: svc.isActive, downloadFraction: svc.downloadFraction,
+            sweeping: svc.sweeping, sweepProgress: svc.sweepProgress,
+            hasRows: !related.isEmpty, querying: finding)
+    }
 
     private static let hiddenDefaultsKey = "connectionsHiddenPairs"   // same shape as the Mac's
 
@@ -121,6 +164,10 @@ struct ConnectionsPanel: View {
         // The enable sheet turned the index on → re-derive when it dismisses.
         .onChange(of: showEnableSheet) { _, showing in
             if !showing { Task { await load() } }
+        }
+        // A sweep just finished → this note may have neighbours now.
+        .onChange(of: JournalIndexService.shared.sweeping) { _, now in
+            if !now { Task { await load() } }
         }
         .sheet(isPresented: $showEnableSheet) { enableSheet }
     }
@@ -173,23 +220,40 @@ struct ConnectionsPanel: View {
         .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
     }
 
-    // ── the AI zone: gate / finding / empty / the one list, two orders ──
+    // ── the AI zone: the Mac's RetrievalGate states, then the one list ──
 
     @ViewBuilder private var aiZone: some View {
-        if !isActive {
-            gate
-        } else if finding && related.isEmpty {
-            findingState
-        } else if related.isEmpty {
-            emptyState
-        } else {
-            relatedSection
+        switch state {
+        case .gate: gate
+        case .downloading(let f):
+            progressHint(title: RetrievalGate.Copy.downloadingTitle,
+                         sub: RetrievalGate.Copy.downloadingSub(fraction: f),
+                         fraction: f, fill: Color.skAccent)
+        case .preparing:
+            progressHint(title: RetrievalGate.Copy.preparingTitle,
+                         sub: RetrievalGate.Copy.preparingSub,
+                         fraction: 1, fill: Color.skAccent)
+        case .indexing(let done, let total):
+            progressHint(title: RetrievalGate.Copy.indexingTitle,
+                         sub: RetrievalGate.Copy.indexingSub(done: done, total: total),
+                         fraction: total > 0 ? Double(done) / Double(total) : 0,
+                         fill: Color.skGreen)
+        case .finding: findingState
+        case .ready:
+            if let err = RetrievalGate.failure(state: state, hasRows: !related.isEmpty,
+                                               lastError: JournalIndexService.shared.lastError) {
+                unavailableState(err)
+            } else if related.isEmpty {
+                emptyState
+            } else {
+                relatedSection
+            }
         }
     }
 
     /// Both modes list the closest `relatedKMac` until expanded (the Mac's cap).
     private var visibleRelated: [ConnectionRowVM] {
-        showAll ? related : RetrievalTuning.cappedRelated(related, date: \.date)
+        ConnectionsPanelLogic.visibleRows(related, showAll: showAll)
     }
 
     private var relatedSection: some View {
@@ -203,7 +267,7 @@ struct ConnectionsPanel: View {
                 .font(.system(size: 10)).foregroundStyle(Color.skTextFaint)
                 .padding(.top, 6).padding(.bottom, 10)
             if sortByDate { rail } else { flatRows }
-            if related.count > RetrievalTuning.relatedKMac {
+            if ConnectionsPanelLogic.showsShowAll(count: related.count) {
                 Button { showAll.toggle() } label: {
                     Text(showAll ? "Show fewer" : "Show all \(related.count)")
                         .font(.system(size: 11, weight: .semibold))
@@ -254,10 +318,10 @@ struct ConnectionsPanel: View {
                                 .foregroundStyle(Color.skText)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
-                            if let imp = ConnectionsPanelLogic.importanceText(row.significance) {
+                            if let imp = ConnectionsPanelLogic.importanceReadout(row.significance) {
                                 Text(imp)
                                     .font(.system(size: 10.5, weight: .bold).monospacedDigit())
-                                    .foregroundStyle(ConnectionsPanelLogic.isRefineImportance(row.significance)
+                                    .foregroundStyle(ConnectionsPanelLogic.importanceIsTop(row.significance)
                                                      ? Color.skAmber : Color.skAccentText)
                             }
                             Text(Self.day(row.date))
@@ -378,10 +442,10 @@ struct ConnectionsPanel: View {
                     .foregroundStyle(Color.skAccentText)
             }
             Spacer(minLength: 4)
-            if let imp = ConnectionsPanelLogic.importanceText(importance) {
+            if let imp = ConnectionsPanelLogic.importanceReadout(importance) {
                 Text(imp)
                     .font(.system(size: 10, weight: .bold).monospacedDigit())
-                    .foregroundStyle(ConnectionsPanelLogic.isRefineImportance(importance)
+                    .foregroundStyle(ConnectionsPanelLogic.importanceIsTop(importance)
                                      ? Color.skAmber : Color.skAccentText)
             }
         }
@@ -489,6 +553,50 @@ struct ConnectionsPanel: View {
                   sub: RetrievalGate.Copy.emptySub)
     }
 
+    /// A failed lookup/sweep: say so, with the error (C110: never a silent empty).
+    private func unavailableState(_ error: String) -> some View {
+        VStack(spacing: 7) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 21)).foregroundStyle(Color.skRed.opacity(0.75))
+                .padding(.top, 30)
+            Text(RetrievalGate.Copy.unavailableTitle)
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Color.skTextDim)
+            Text(error)
+                .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 6)
+        .accessibilityIdentifier("ipad-connections-unavailable")
+    }
+
+    /// Downloading / preparing / indexing: title, a plain track+fill bar, sub.
+    private func progressHint(title: String, sub: String, fraction: Double, fill: Color) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 22)).foregroundStyle(Color.skAccent.opacity(0.9))
+                .padding(.top, 34)
+            Text(title)
+                .font(.system(size: 13, weight: .bold)).foregroundStyle(Color.skText)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.skElev)
+                    Capsule().fill(fill)
+                        .frame(width: max(0, min(1, fraction)) * geo.size.width)
+                }
+            }
+            .frame(height: 4)
+            .padding(.horizontal, 8)
+            Text(sub)
+                .font(.system(size: 10.5).monospacedDigit()).foregroundStyle(Color.skTextDim)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 8)
+        .accessibilityIdentifier("ipad-connections-progress")
+    }
+
     private func panelHint(icon: String, title: String, sub: String) -> some View {
         VStack(spacing: 7) {
             Image(systemName: icon)
@@ -564,7 +672,9 @@ struct ConnectionsPanel: View {
             .filter { $0.score >= RetrievalTuning.relatedFloor && $0.memoID != target
                       && !hidden.contains($0.memoID.uuidString) }
             .sorted { $0.score > $1.score }
-            .prefix(RetrievalTuning.relatedK)
+            // No prefix here: the view caps at the Mac's `relatedKMac` and offers
+            // "Show all N" past it (R58 — the old `.prefix(relatedK = 4)` made
+            // "Show all" unreachable).
             .compactMap { hit in
                 byID[hit.memoID].map { m in
                     ConnectionRowVM(

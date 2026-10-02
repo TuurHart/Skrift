@@ -18,11 +18,19 @@ final class JournalIndexService {
     static let enabledDefaultsKey = "journalIndexEnabled"
 
     private var index: EmbeddingIndex?
-    private var sweeping = false
+    private(set) var sweeping = false
     private var mockSeeded = false
     /// Live "N of M" while a sweep runs (the settings gate's indexing row —
     /// shared-gate parity with the Mac panel); nil when idle.
     private(set) var sweepProgress: (done: Int, total: Int)?
+    /// Model download progress while the Settings enable flow runs (nil = no
+    /// download). Lives here, not in the settings view, so the iPad Connections
+    /// panel derives the same downloading/preparing states (Q119, R58).
+    var downloadFraction: Double?
+    /// The last FAILED related lookup or sweep, cleared by the next good lookup.
+    /// A failed lookup returns [] — this is what keeps that from reading as
+    /// "No connections yet" (C110: never a silent empty).
+    private(set) var lastError: String?
 
     var isEnabled: Bool {
         UserDefaults.standard.bool(forKey: Self.enabledDefaultsKey)
@@ -64,6 +72,7 @@ final class JournalIndexService {
                                   Date().timeIntervalSince(t0), snapshots.count))
             } catch {
                 DevLog.log("JournalIndex sweep failed: \(error)")
+                await MainActor.run { self?.lastError = "Index sweep failed: \(error.localizedDescription)" }
             }
             await MainActor.run {
                 self?.sweeping = false
@@ -119,9 +128,12 @@ final class JournalIndexService {
         guard isActive else { return [] }
         await ensureMockSeeded(repository)
         do {
-            return try await resolvedIndex().related(to: memoID)
+            let scores = try await resolvedIndex().related(to: memoID)
+            lastError = nil
+            return scores
         } catch {
             DevLog.log("Related FAILED \(memoID.uuidString.prefix(8)): \(error)")
+            lastError = "Related lookup failed: \(error.localizedDescription)"
             return []
         }
     }
