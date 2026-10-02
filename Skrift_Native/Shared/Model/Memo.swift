@@ -357,7 +357,22 @@ final class Memo {
             Self.metadataCache.setObject(MetadataBox(value), forKey: data as NSData)
             return value
         }
-        set { metadataData = Self.encodeJSON(newValue) }
+        set {
+            var data = Self.encodeJSON(newValue)
+            // Q241 (2): `MemoMetadata` does not model the `mediaSource` marker ("typed" from
+            // `newTyped` / `EditConflicts.makeCopy`, "video" from the Mac author). A typed write
+            // (a photo added to a typed note) used to drop it and the note became an Apple Note.
+            // Carry the marker over unless the new value models its own source.
+            if data != nil, let old = metadataData,
+               let oldObj = try? JSONSerialization.jsonObject(with: old) as? [String: Any],
+               let marker = oldObj["mediaSource"],
+               var newObj = data.flatMap({ try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }),
+               newObj["mediaSource"] == nil, newObj["sourceType"] == nil {
+                newObj["mediaSource"] = marker
+                data = (try? JSONSerialization.data(withJSONObject: newObj, options: [.sortedKeys])) ?? data
+            }
+            metadataData = data
+        }
     }
 
     /// Typed shared-capture payload, decoded from / encoded to the raw `sharedContentData` blob

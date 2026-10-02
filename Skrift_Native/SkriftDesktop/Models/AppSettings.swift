@@ -180,4 +180,36 @@ final class SettingsStore {
         SafeJSONStore.write(settings, to: fileURL, encoder: encoder)
         return settings
     }
+
+    /// Q241 (6): persist ONLY what the user changed in an open editor. The Settings sheet holds
+    /// a copy of settings.json taken when it opened, while the CloudKit runners (vocab, language,
+    /// prompts) write newer values to disk behind it; saving the whole stale copy on the next
+    /// autosave wrote those older values back. This reloads the file, applies just the keys that
+    /// differ between `base` (what the editor last loaded or saved) and `edited`, and writes the
+    /// result — every field the editor did not touch keeps whatever is on disk now.
+    @discardableResult
+    func saveEdit(from base: AppSettings, to edited: AppSettings) -> AppSettings {
+        func dict(_ s: AppSettings) -> [String: Any] {
+            guard let d = try? encoder.encode(s),
+                  let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return [:] }
+            return o
+        }
+        let b = dict(base), e = dict(edited)
+        var merged = dict(load())
+        for key in Set(b.keys).union(e.keys) {
+            let bv = b[key], ev = e[key]
+            let same: Bool
+            switch (bv, ev) {
+            case (nil, nil): same = true
+            case let (x?, y?): same = (x as? NSObject)?.isEqual(y) ?? false
+            default: same = false
+            }
+            if !same { merged[key] = ev }   // nil removes the key (an optional the user cleared)
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: merged),
+              let result = try? decoder.decode(AppSettings.self, from: data) else {
+            return save(edited)   // cannot happen for a valid AppSettings; never lose the edit
+        }
+        return save(result)
+    }
 }

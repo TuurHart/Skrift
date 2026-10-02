@@ -138,13 +138,23 @@ final class CloudSyncMonitor: ObservableObject {
         }
     }
 
+    /// The memo-corpus part of the import pass (Q241 bug 3). A CloudKit import is exactly when
+    /// duplicate memo UUIDs land mid-session (the 2026-07-12 crash loop), and the foreground
+    /// gate (`SkriftApp`) only runs `MemoDeduper` on the next foreground, so the dedupe runs
+    /// here too. Kept apart from the names/vocab/audiobook steps so a test can run it on an
+    /// in-memory repository.
+    static func runMemoSweeps(_ repository: NotesRepository) {
+        MemoDeduper.run(repository)
+        AssetMaterializer.run(repository)
+        PhotoTextIndexer.run(repository)
+        ReminderScheduler.run(repository)
+    }
+
     /// The post-import convergence pass: blobs to disk, names/vocab merge,
     /// audiobook receive. Guarded + idempotent throughout, so one coalesced run
     /// after a burst does exactly what N per-event runs did.
     private func runImportSweeps() {
-        AssetMaterializer.run(.shared)
-        PhotoTextIndexer.run(.shared)
-        ReminderScheduler.run(.shared)
+        Self.runMemoSweeps(.shared)
         NamesCloudSync.run(.shared)
         VocabularyCloudSync.run(.shared)
         // A synced audiobook that just arrived materializes here too (hands-off
