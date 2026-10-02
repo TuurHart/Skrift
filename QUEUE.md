@@ -2584,3 +2584,5 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:17 Q129 -> tuur — mock https://claude.ai/artifact/9SVbKnUhn2Re1wyUWcjiD5 (mocks/Q129-mac-reminders.html). Question: closing the Mac banner with ✕ — does it also silence iPhone/iPad, or only clicking it open? (mock treats both as acknowledging)
 - 2026-10-02 21:17 Q144 -> doing — mockup agent out
 - 2026-10-02 21:17 Q106 -> done — gate pass @c00d0e3e
+- 2026-10-02 21:19 Q153 -> stuck — gate failed — .queue/Q153.gate.log
+- 2026-10-02 21:19 Q153 -> doing — redispatch 2/3 (opus): first try interrupted by shutdown; accept GATE FAIL CaptureCompilerTests.testUrlCaptureSharedBlockAboveBody
