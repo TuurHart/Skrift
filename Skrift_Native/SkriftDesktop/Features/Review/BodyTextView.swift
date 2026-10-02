@@ -85,6 +85,9 @@ struct BodyTextView: NSViewRepresentable {
     /// token is `"<fileID>\u{1}<query>"` so each (note, query) pair jumps ONCE;
     /// nil/empty = no jump. Case-insensitive.
     var searchJumpToken: String? = nil
+    /// A NEW note opens ready to type (C112): once per token, make this view the first
+    /// responder as soon as it has a window. nil = leave focus alone.
+    var focusToken: String? = nil
 
     /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
     /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
@@ -210,6 +213,10 @@ struct BodyTextView: NSViewRepresentable {
             // render() already restyled; otherwise we're leaving karaoke — restyle in place.
             if !textChanged { context.coordinator.restyle(tv) }
         }
+        if let token = focusToken, context.coordinator.lastFocusToken != token {
+            context.coordinator.lastFocusToken = token
+            Self.focus(tv, triesLeft: 10)
+        }
         // Search-jump (phone parity): once per (note, query) token, after the render
         // above laid the text out — scroll the first case-insensitive match into view
         // and flash it with the system find indicator.
@@ -243,8 +250,22 @@ struct BodyTextView: NSViewRepresentable {
         }
     }
 
+    /// The view may not be in a window yet on the first update, so retry briefly.
+    fileprivate static func focus(_ tv: SelfSizingTextView, triesLeft: Int) {
+        DispatchQueue.main.async { [weak tv] in
+            guard let tv else { return }
+            if let window = tv.window {
+                window.makeFirstResponder(tv)
+            } else if triesLeft > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { focus(tv, triesLeft: triesLeft - 1) }
+            }
+        }
+    }
+
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: BodyTextView
+        /// The new-note focus token already honoured: one focus per open.
+        var lastFocusToken: String?
         /// The (note, query) pair already jumped to — one flash per open, not per render.
         var lastSearchJumpToken: String?
         private var activePopover: NSPopover?

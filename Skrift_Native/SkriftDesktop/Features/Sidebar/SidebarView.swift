@@ -387,15 +387,11 @@ struct SidebarView: View {
         .accessibilityIdentifier("sidebar.new-note")
     }
 
-    /// Create the typed note and open it — a fresh unrated Memo in the CLOUD store
-    /// (`MacMemoAuthor.typedNote`), selected by id: no pipeline row exists, so RootView
-    /// resolves the id to the unrated pane, which is the editor. The quiet row appears
-    /// via the same refresh the sweeps use.
+    /// Open a new typed note — NO `Memo` yet. The pane is the draft (`AppModel.beginTypedNote`);
+    /// the first keystroke creates the unrated Memo in the CLOUD store and posts the refresh
+    /// that lists it, and leaving it empty creates nothing and discards nothing (C43/D91).
     private func newTypedNote() {
-        guard let cloud = MemoCloudStore.container,
-              let memo = try? MacMemoAuthor.typedNote(into: cloud.mainContext) else { return }
-        refreshCloudMemos()
-        model.select(memo.id.uuidString)
+        model.beginTypedNote()
     }
 
     /// Mid-take: elapsed · live meter · stop. Occupies the row the Record button was in, so

@@ -33,6 +33,8 @@ struct NoteBody: View {
     /// Note opened from an active sidebar search → scroll to + flash the first
     /// match (phone parity). nil/empty = no jump.
     var searchJumpToken: String? = nil
+    /// A new note: put the cursor in the body once for this token.
+    var focusToken: String? = nil
 
     private static let bodyFont = Font.system(size: 16)
     @State private var trackCache = KaraokeTrackCache()
@@ -137,7 +139,8 @@ struct NoteBody: View {
             onInlineTag: onInlineTag,
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution,
-            searchJumpToken: searchJumpToken
+            searchJumpToken: searchJumpToken,
+            focusToken: focusToken
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -391,10 +391,14 @@ final class Memo {
     /// it at "New" past its clock); the `mediaSource: "typed"` marker is what keeps
     /// `SourceKind` from calling a no-audio memo an Apple Note; `recordedAt = now` is the
     /// moment of creation (a typed note's content date IS its creation date).
-    static func newTyped(into ctx: ModelContext, now: Date = Date()) throws -> Memo {
+    ///
+    /// `id` lets the Mac mint the id when the user clicks New note and hand it to the draft,
+    /// so the pane keeps showing the same note when the first keystroke creates the row.
+    static func newTyped(into ctx: ModelContext, now: Date = Date(), id: UUID = UUID()) throws -> Memo {
         let marker = try? JSONSerialization.data(withJSONObject: ["mediaSource": "typed"],
                                                  options: [.sortedKeys])
-        let memo = Memo(recordedAt: now,
+        let memo = Memo(id: id,
+                        recordedAt: now,
                         transcriptStatus: .done,
                         significance: 0,
                         createdAt: now,
