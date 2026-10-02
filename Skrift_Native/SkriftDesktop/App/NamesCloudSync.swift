@@ -24,13 +24,12 @@ extension Notification.Name {
 enum NamesCloudSync {
 
     /// Merge the CloudKit `NamesRecord` carrier(s) with local `names.json`, write the union
-    /// back to both. Returns true when the local roster changed (so a caller can re-scan).
+    /// back to both.
     /// The reconcile (fold carriers → NamesMerge → collapse to one row) is SHARED with the
     /// phone — `NamesSyncCore`. This adapter owns the sync gate + the live-refresh notification.
-    @discardableResult
-    static func run(store: NamesStore = .shared) -> Bool {
+    static func run(store: NamesStore = .shared) {
         guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return false }
+              let container = MemoCloudStore.container else { return }
         // Fresh context: `mainContext` doesn't refresh registered rows after a CloudKit import,
         // so a phone names edit (a NamesRecord blob update) would read stale (same trap as the
         // memo sweep). A new context reads the latest import.
@@ -41,7 +40,7 @@ enum NamesCloudSync {
         guard let outcome = NamesSyncCore.reconcile(
             localPeople: local.people, records: records,
             insert: { context.insert($0) },
-            delete: { context.delete($0) }) else { return false }
+            delete: { context.delete($0) }) else { return }
 
         if outcome.localChanged { _ = store.save(outcome.merged) }
         // Once per launch/foreground/import reconcile (sweep E finding #3): drop
@@ -61,6 +60,5 @@ enum NamesCloudSync {
         // Live-refresh any open Settings names list (the reconcile runs in the background
         // off a CloudKit import, so the view has no other way to know the roster changed).
         if outcome.localChanged { NotificationCenter.default.post(name: .namesDidChangeFromSync, object: nil) }
-        return outcome.localChanged
     }
 }

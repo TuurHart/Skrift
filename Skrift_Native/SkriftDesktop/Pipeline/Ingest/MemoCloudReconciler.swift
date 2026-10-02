@@ -4,14 +4,14 @@ import os
 
 /// The reconcile loop for the Mac→CloudKit client (`MAC_CLOUDKIT_PLAN.md`, 8d): pull memos
 /// the phone synced over CloudKit into the local pipeline queue, so the Mac processes them
-/// exactly as it would a Bonjour upload. The launch / foreground / CloudKit-import TRIGGERS +
+/// like any other note. The launch / foreground / CloudKit-import TRIGGERS +
 /// the `reconcile()` entry point (which resolve the app's containers + settings) live in the
 /// app-only `MemoCloudReconciler+Wiring.swift` extension; this file holds the pure, testable
 /// `sweep` so it compiles into the host-less test bundle.
 ///
-/// **Coexists with Bonjour.** Gated behind the opt-in `cloudKitMacSync` setting (OFF by
-/// default), and `MemoCloudIngest` dedups by memo UUID / embedded filename, so a memo seen
-/// via BOTH transports collapses to one `PipelineFile`. The Bonjour/HTTP server is untouched.
+/// Gated by `cloudKitMacSyncEnabled` (defaults ON), and `MemoCloudIngest` dedups by memo
+/// UUID / embedded filename, so a memo collapses to one `PipelineFile`. Bonjour/HTTP sync is
+/// retired; CloudKit is the only transport.
 @MainActor
 enum MemoCloudReconciler {
     /// Set once by `start()` (the App wiring) so the launch/active/import observers register

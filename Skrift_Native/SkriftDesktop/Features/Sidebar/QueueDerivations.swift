@@ -17,21 +17,6 @@ enum QueueStatus {
         }
     }
 
-    /// Pill text color.
-    var color: Color {
-        switch self {
-        case .ready:                  return Theme.green
-        case .enhancing:              return Theme.amber
-        case .transcribing:           return Theme.blue
-        case .transcribed, .queued:   return Theme.textSecondary
-        case .exported:               return Theme.textMuted
-        case .error:                  return Theme.destructive
-        }
-    }
-
-    /// Pill background tint (Exported reads as a quiet, untinted label).
-    var tint: Color { color.opacity(self == .exported ? 0 : 0.16) }
-
     /// Whether the pill shows a pulsing activity dot (work in flight).
     var pulses: Bool { self == .enhancing || self == .transcribing }
 }
@@ -115,17 +100,5 @@ enum SkriftFormat {
         let (h, m, s) = (total / 3600, (total % 3600) / 60, total % 60)
         if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
         return String(format: "%d:%02d", m, s)
-    }
-
-    private static let shortDF: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "dd MMM"
-        f.locale = Locale(identifier: "en_GB")
-        return f
-    }()
-
-    static func shortDate(_ d: Date) -> String {
-        if Calendar.current.isDateInToday(d) { return "today" }
-        return shortDF.string(from: d)
     }
 }

@@ -20,11 +20,8 @@ import SwiftData
 /// **Deliberately faithful, not improved.** The projection maps the memo through
 /// `MemoCloudIngest.metadataJSON` — the exact blob a real ingest would have written —
 /// so the chips row, the capture blocks and the book-quote styling derive through the
-/// same accessors a pipelined note uses. Where that blob has a *bug* (it writes
-/// `duration` as a Double while `PipelineFile.durationSeconds` parses an HMS string,
-/// so no synced note shows a duration chip) the projection inherits the bug on
-/// purpose: matching what a normal note ACTUALLY does today is the whole point, and
-/// a projection that quietly did better would read as a difference.
+/// same accessors a pipelined note uses. Matching what a normal note ACTUALLY does is the
+/// whole point: a projection that quietly did better would read as a difference.
 enum MemoNoteProjection {
 
     /// Where an unrated note's media is materialised. **Caches** on purpose: it is

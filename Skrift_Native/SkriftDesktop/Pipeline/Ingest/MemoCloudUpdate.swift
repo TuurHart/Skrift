@@ -26,7 +26,7 @@ enum MemoCloudUpdate {
     /// Reflect a phone edit to an already-ingested memo into its local `PipelineFile`.
     /// Returns true when the row changed (so the caller can save + re-export). Pure over its
     /// inputs (no container / settings) so it unit-tests host-less.
-    @discardableResult
+    ///
     /// `isFreshRow` — this `pf` was created by THIS sweep, moments ago. It turns the
     /// self-echo guard below OFF, because a brand-new row has no local copy of anything to
     /// protect: when a Mac-written `MemoEnhancement` is the ONLY surviving copy of a polish
@@ -34,6 +34,7 @@ enum MemoCloudUpdate {
     /// skipping it as "my own echo" means the note surfaces RAW forever, with its paragraphs
     /// sitting in the cloud store (Tuur, 2026-08-19: the store held the copy-edit, the open
     /// note showed the blob). On an existing row the guard stays exactly as it was.
+    @discardableResult
     static func apply(memo: Memo, enhancement: MemoEnhancement?, to pf: PipelineFile,
                       people: [Person], author: String, thisDeviceID: String,
                       now: Date = Date(), isFreshRow: Bool = false) -> Bool {

@@ -24,9 +24,7 @@ struct RootView: View {
     /// Written by the note bar's ◧ toggle (NoteDisplayView.sidebarToggle).
     @AppStorage("macSidebarVisible") private var sidebarVisible = true
     // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
-    // sidebar, selection, and active note.
-    // Deleted list now — Review's memo-backed conveyor (mocks/lifecycle-ia-explorations.html
-    // #m3) absorbs the queue's old trash sheet, with these as its Mac-local tail.
+    // sidebar, selection, and active note; Review's conveyor lists them (its Mac-local tail).
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
            sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
 
@@ -43,7 +41,7 @@ struct RootView: View {
             if model.surface == .journal {
                 // Journal (signed mock journal-desktop.html): rail + reading column.
                 // A card click jumps to that memo's row in the Queue when it exists.
-                JournalView(model: model, coordinator: coordinator, onOpenInQueue: { id in
+                JournalView(model: model, onOpenInQueue: { id in
                     if files.contains(where: { $0.id == id }) {
                         model.surface = .queue
                         model.select(id)
@@ -206,8 +204,8 @@ struct RootView: View {
             // Purge trash older than the retention window (mirrors the phone's
             // launch purge) — permanently drops the record + trashes its folder.
             DesktopTrash.purgeExpired(in: ctx)
-            // The 60d fading→Recently-Deleted auto-move — a standing heartbeat now
-            // (launch + day-change + 24h), not tied to opening Review (Q4).
+            // The 60d fading→Recently-Deleted auto-move: runs on launch and on every app
+            // activation (Q4, v3 "no note dies unseen"), not tied to opening Review.
             LifecycleSweepScheduler.start()
         }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }

@@ -18,7 +18,7 @@ final class MacCloudEditSync {
     static let shared = MacCloudEditSync()
 
     /// Idle window before a burst of keystrokes flushes to CloudKit (avoids per-keystroke churn).
-    var debounce: Duration = .seconds(1.5)
+    let debounce: Duration = .seconds(1.5)
 
     private var pending: [String: Task<Void, Never>] = [:]   // keyed by pf.id, latest reschedule wins
     private let log = Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
@@ -48,7 +48,7 @@ final class MacCloudEditSync {
 
     /// Push the edited polish now. Reads `pf.bestBodyText` at fire time, so a burst of edits
     /// coalesces to the latest text.
-    func flush(_ pf: PipelineFile) {
+    private func flush(_ pf: PipelineFile) {
         guard let container = MemoCloudStore.container else { return }
         do {
             let people = NamesStore.shared.livePeople()

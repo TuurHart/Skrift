@@ -2,27 +2,25 @@ import Foundation
 import SwiftData
 
 /// The READ bridge for the Mac→CloudKit client (`MAC_CLOUDKIT_PLAN.md`, 8b): turn a
-/// CloudKit-synced `Memo` (+ its `MemoAsset` blob rows) into a local `PipelineFile`, the
-/// CloudKit analogue of the HTTP `POST /api/files/upload` handler.
+/// CloudKit-synced `Memo` (+ its `MemoAsset` blob rows) into a local `PipelineFile`.
 ///
 /// **Parity by construction.** Rather than re-implement the field mapping (and risk drift
-/// from the proven HTTP path), this synthesizes the SAME multipart `parts` the phone would
-/// have uploaded — a `files` audio part, a `metadata` JSON part, the `transcript`, the
+/// from the original upload path), this synthesizes the multipart `parts` the phone used to
+/// upload — a `files` audio part, a `metadata` JSON part, the `transcript`, the
 /// `wordTimings` / `diar` sidecars, and `images` parts — and hands them to the EXISTING
 /// `UploadService.ingest`. So the trust gate (`transcriptUserEdited || confidence ≥ 0.7`),
 /// the working-folder materialization, the significance/title/mediaSource reads, and the
 /// image manifest are all the identical code. The one deliberate divergence (per the plan):
 /// the PipelineFile `id` is forced to `memo.id.uuidString` (via `UploadService`'s `memoID`),
-/// so a memo dedups to one row regardless of transport — the contract spine.
+/// so a memo dedups to one row — the contract spine.
 ///
-/// **Coexistence.** Reads/writes nothing of the Bonjour path; both feed the same
-/// `PipelineFile` store and `ingest(memo:…)` dedups (by memo-UUID id OR the embedded
-/// `memo_<uuid>.m4a` filename) so a memo seen via CloudKit AND Bonjour collapses to one row.
+/// **Dedup.** `ingest(memo:…)` skips a memo that already has a row, by memo-UUID id OR the
+/// embedded `memo_<uuid>.m4a` filename (legacy Bonjour-era rows have a random id).
 enum MemoCloudIngest {
 
     /// Ingest one synced memo into the local pipeline `context`, applying the gate + dedup.
     /// Returns the new `PipelineFile`, or `nil` when skipped (trashed, gated out by
-    /// significance, or already ingested via either transport).
+    /// significance, or already ingested).
     ///
     /// `processEverything` is the 8d opt-in override for the "process every synced memo,
     /// not just significance > 0" Mac setting; the default preserves the phone's
@@ -94,19 +92,15 @@ enum MemoCloudIngest {
 
     /// The audio filename the phone would have uploaded — `memo.audioFilename`, or the
     /// `memo_<uuid>.m4a` fallback (matching `UploadPayload.build`). Also the dedup key
-    /// against a Bonjour-ingested row (whose id is random but whose filename embeds the UUID).
+    /// against a legacy Bonjour-era row (whose id is random but whose filename embeds the UUID).
     static func audioFilename(for memo: Memo) -> String {
         memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
     }
 
     /// True when this memo already has a PipelineFile — by memo-UUID id (a prior CloudKit
-    /// ingest) OR by its OWN embedded filename (a Bonjour AUDIO upload, which minted a
-    /// random id but whose filename is `memo_<this uuid>.m4a`).
-    ///
-    /// HISTORICAL (captures): Bonjour uploads are RETIRED (2026-07-06), so the old
-    /// "same capture arriving via both transports double-creates" hazard can no longer
-    /// occur for new data. The filename arm is NOT dead though — it still matches the
-    /// legacy Bonjour-era rows in the store, so a CloudKit re-ingest of one keeps deduping.
+    /// ingest) OR by its OWN embedded filename (a legacy Bonjour-era audio row, which minted
+    /// a random id but whose filename is `memo_<this uuid>.m4a`). Bonjour is retired, but the
+    /// filename arm still matches those rows, so a CloudKit re-ingest of one keeps deduping.
     static func alreadyIngested(id: String, filename: String, in context: ModelContext,
                                 allowFilenameMatch: Bool = true) -> Bool {
         let descriptor = FetchDescriptor<PipelineFile>(

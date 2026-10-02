@@ -13,7 +13,6 @@ import MapKit
 /// so the journal sees the full corpus). The Mac never mutates memos from here.
 struct JournalView: View {
     var model: AppModel
-    var coordinator: ProcessingCoordinator
     /// Open a memo in the Queue surface (when its PipelineFile exists).
     var onOpenInQueue: (String) -> Void = { _ in }
     /// Snapshot/test injection — nil = fetch from the cloud store.

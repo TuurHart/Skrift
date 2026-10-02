@@ -9,10 +9,8 @@ struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
     @Bindable var coordinator: ProcessingCoordinator
-    /// The Mac's ONE live take (RootView owns it — LANES-2026-07-28/BRIEF_LIVEUI.md §7).
-    /// The header's Record/stop buttons and the synthetic queue row read/drive it; the
-    /// direct `MacRecorder` this view used to own is gone — the session owns the
-    /// recorder now, and the pane (RootView) renders the same session's draft.
+    /// The Mac's ONE live take (RootView owns it). The header's Record/stop buttons and the
+    /// synthetic queue row read/drive it; the pane (RootView) renders the same session's draft.
     @Bindable var session: LiveRecordingSession
     var onOpenSettings: () -> Void = {}
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
@@ -47,7 +45,6 @@ struct SidebarView: View {
             }
         }
     }
-    private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
     /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over
     /// ALL live items (not the filtered view), like the old triage line's counts.
     ///
@@ -75,7 +72,7 @@ struct SidebarView: View {
     }
     private var pendingCount: Int { pendingFiles.count }
     @State private var dragOver = false
-    @State private var showDateStrip = ProcessInfo.processInfo.arguments.contains("-showDateStrip")  // snapshot rig
+    @State private var showDateStrip = false
 
     // ── the Queue band (mocks/lifecycle-ia-explorations.html #m2) ───────────
     /// Cloud memos, refreshed on appear / when `files` changes / after any band
@@ -151,7 +148,7 @@ struct SidebarView: View {
                 clipCount: pending.clipCount,
                 onConfirm: { choice in
                     pendingAudioImport = nil
-                    runIngest(pending.urls, asRecording: false, combineAudio: choice.combines,
+                    runIngest(pending.urls, combineAudio: choice.combines,
                               cleanup: pending.cleanup)
                 },
                 onCancel: {
@@ -207,28 +204,24 @@ struct SidebarView: View {
     /// so the Record button and the `-recordingest` harness cannot drift apart.
     /// `cleanup` (Photos promise drops) removes the temp folder the promised files were
     /// written to; it runs once the files are copied, or when the chooser is cancelled.
-    private func ingest(_ urls: [URL], asRecording: Bool = false, cleanup: (() -> Void)? = nil) {
+    private func ingest(_ urls: [URL], cleanup: (() -> Void)? = nil) {
         guard !urls.isEmpty else { cleanup?(); return }
         // The ONE decision point (Q74 / C68 / C145): the Import panel, the Finder drop and the
         // Photos file-promise drop all land here, so a bundle of 2+ voice notes is asked
-        // "One note or N notes?" exactly once, before anything is copied. A recording is one
-        // file by construction and never asks.
-        if !asRecording {
-            Task { @MainActor in
-                // Probing containers for a video track is file I/O — off the main actor.
-                let clipCount = await Task.detached { IngestService.audioClips(in: urls).count }.value
-                if AudioImportChoice.needsChoice(clipCount: clipCount) {
-                    pendingAudioImport = PendingAudioImport(urls: urls, clipCount: clipCount, cleanup: cleanup)
-                } else {
-                    runIngest(urls, asRecording: false, combineAudio: false, cleanup: cleanup)
-                }
+        // "One note or N notes?" exactly once, before anything is copied. (A recording never
+        // comes through here: `LiveRecordingSession` calls `ArrivalPath.run` itself.)
+        Task { @MainActor in
+            // Probing containers for a video track is file I/O — off the main actor.
+            let clipCount = await Task.detached { IngestService.audioClips(in: urls).count }.value
+            if AudioImportChoice.needsChoice(clipCount: clipCount) {
+                pendingAudioImport = PendingAudioImport(urls: urls, clipCount: clipCount, cleanup: cleanup)
+            } else {
+                runIngest(urls, combineAudio: false, cleanup: cleanup)
             }
-            return
         }
-        runIngest(urls, asRecording: asRecording, combineAudio: false, cleanup: cleanup)
     }
 
-    private func runIngest(_ urls: [URL], asRecording: Bool, combineAudio: Bool, cleanup: (() -> Void)?) {
+    private func runIngest(_ urls: [URL], combineAudio: Bool, cleanup: (() -> Void)?) {
         // Async: the heavy file work (copies, video-audio export) runs off-main
         // inside IngestService — dropping a video used to beachball the whole
         // UI for the duration of the export.
@@ -236,7 +229,7 @@ struct SidebarView: View {
             defer { cleanup?() }
             do {
                 try await ArrivalPath.run(
-                    urls: urls, asRecording: asRecording, into: ctx,
+                    urls: urls, asRecording: false, into: ctx,
                     cloudContext: MemoCloudStore.container?.mainContext,
                     hooks: .live(coordinator: coordinator, context: ctx),
                     combineAudio: combineAudio,
@@ -323,7 +316,7 @@ struct SidebarView: View {
                 recordingTransport
             } else {
                 HStack(spacing: 7) {
-                    actionButton(title: SharedCopy.importVerb, system: "plus", filled: false) { openUploadPanel() }
+                    actionButton(title: SharedCopy.importVerb, system: "plus") { openUploadPanel() }
                     recordButton
                     newNoteButton
                 }
@@ -503,7 +496,7 @@ struct SidebarView: View {
     /// invite the same class of problem onto the Mac.
     private var canProcess: Bool { pendingCount > 0 && !coordinator.isRunning && !sessionBusy }
 
-    private func actionButton(title: String, system: String, filled: Bool, action: @escaping () -> Void) -> some View {
+    private func actionButton(title: String, system: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: system).font(.system(size: 11, weight: .semibold))
@@ -626,11 +619,6 @@ struct SidebarView: View {
         default:               return ""
         }
     }
-
-    // D136/D137: the old two-count triage line and its bulk-rate-everything
-    // button are GONE — "rating a note should be an intentional choice". The
-    // chips now carry the counts (`chipCounts` below); Process is unaffected,
-    // it already showed its own pile size.
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {
@@ -961,7 +949,7 @@ struct SidebarView: View {
             Image(systemName: "tray.and.arrow.down")
                 .font(.system(size: 26)).foregroundStyle(Theme.textMuted.opacity(0.5))
             Text("No memos yet").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textSecondary)
-            Text("Drop a voice memo here, click + Upload above, or sync from your phone.")
+            Text("Drop a voice memo here, click + \(SharedCopy.importVerb) above, or sync from your phone.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.textMuted)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
         }
@@ -1027,10 +1015,7 @@ struct SidebarView: View {
 
     private var footer: some View {
         VStack(spacing: 0) {
-            // (The "Recently Deleted · in Review" footer row lived here 2026-07-21
-            // for a few hours — Tuur's eyeball round cut it: Recently Deleted has
-            // ONE home, the Review conveyor row, and a second entry point from the
-            // notes list read as a second place.)
+            // No Recently Deleted entry here: it has ONE home, the Review conveyor row.
             HStack(spacing: 14) {
                 engineDot("Parakeet")
                 engineDot("Gemma 4")
@@ -1391,53 +1376,6 @@ private struct QueueRowView: View {
         return m
     }
 }
-
-extension View {
-    /// ONE selected/hover chrome for every sidebar row kind — rated `QueueRowView`
-    /// and the quiet unrated rows — so "which note is open" reads identically down
-    /// the whole list (Tuur, 2026-07-28: "no way to see what node I have selected";
-    /// the old treatment was a 0.13 wash the quiet rows didn't even have). The
-    /// accent wash + accent edge is the app's active-state idiom (the filter chips'
-    /// tint family), turned up enough to be unmissable on `Theme.surface`.
-    func sidebarRowSelection(_ selected: Bool, hovering: Bool = false) -> some View {
-        background(selected ? Theme.accent.opacity(0.20)
-                   : hovering ? Theme.hairline.opacity(0.04) : .clear,
-                   in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8)
-            .stroke(selected ? Theme.accent.opacity(0.55) : .clear, lineWidth: 1))
-    }
-}
-
-private struct StatusPill: View {
-    let status: QueueStatus
-    var body: some View {
-        HStack(spacing: 4) {
-            if status.pulses { PulseDot(color: status.color) }
-            Text(status.label)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(status.color)
-        }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(status.tint, in: Capsule())
-        .fixedSize()
-    }
-}
-
-private struct PulseDot: View {
-    let color: Color
-    @State private var on = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    var body: some View {
-        Circle()
-            .fill(color)
-            .frame(width: 6, height: 6)
-            .opacity(reduceMotion ? 1 : (on ? 1 : 0.35))
-            .animation(reduceMotion ? nil : .easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: on)
-            .onAppear { if !reduceMotion { on = true } }
-    }
-}
-
 
 /// One list, two row kinds (rated pipeline rows + quiet unrated memos).
 enum SidebarEntry: Identifiable {

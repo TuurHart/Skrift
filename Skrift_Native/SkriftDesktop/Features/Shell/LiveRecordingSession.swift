@@ -9,10 +9,6 @@ import os
 /// watches and may edit, and the stop-time finalize + arrival. The m2 surface
 /// (`mocks/mac-live-transcription.html`) renders this and nothing else.
 ///
-/// **This file is the FROZEN API both build lanes compile against** (conductor-shipped
-/// skeleton, 2026-07-28): lane LIVE-ENGINE fills the implementation; lane LIVE-UI consumes
-/// exactly this surface. Extend by addition only.
-///
 /// The ownership contract the whole design hangs on:
 /// - `settledText` is the USER's. It starts as the engine's committed chunks (which never
 ///   re-transcribe — the phone's hard-won rotation boundary) and every keystroke edit lands
@@ -24,7 +20,7 @@ import os
 ///   (`LiveCaptionEngine.finishParts().finalTail`), landing with the Memo marked
 ///   user-edited (= trusted).
 ///
-/// `settledText`/`wetText`/`everEdited` are thin proxies over a private `LiveRecordingDraft`
+/// `settledText`/`wetText` are thin proxies over a private `LiveRecordingDraft`
 /// (`Pipeline/Recording/LiveRecordingDraft.swift`) — the pure, unit-tested absorb math. That
 /// separation is also what keeps the two mutation paths honest: a poll calls
 /// `draft.absorb(...)` directly (never sets `everEdited`), while a person's edit can ONLY
@@ -59,8 +55,6 @@ final class LiveRecordingSession {
     }
     /// The engine's volatile tail — rendered wet-ink, never editable.
     var wetText: String { draft.wetText }
-    /// The first mid-take edit flips finalize authority — see the class doc.
-    var everEdited: Bool { draft.everEdited }
 
     // ── transport passthrough (same meanings as MacRecorder's) ──
     var elapsed: TimeInterval { recorder.elapsed }

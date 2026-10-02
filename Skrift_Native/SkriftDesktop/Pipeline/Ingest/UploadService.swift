@@ -2,22 +2,20 @@ import Foundation
 import SwiftData
 
 /// Turns a parsed multipart upload into PipelineFile rows + on-disk working
-/// folders. Mirrors `backend/api/files.py:upload_files` trust logic. Does NOT run
-/// the pipeline (transcribe/enhance) — that's Phase 3+. Pure of FluidAudio/mlx so
-/// it unit-tests host-less with an in-memory ModelContext.
+/// folders (the old Python backend's `upload_files` trust logic). Does NOT run the
+/// pipeline (transcribe/enhance). Pure of FluidAudio/mlx so it unit-tests host-less with
+/// an in-memory ModelContext.
 ///
-/// TWO-PHASE by design (the phone's exact sync path): `prepare` does ALL the disk
-/// I/O (write the audio/images/sidecars, extract video) and returns Sendable
-/// descriptors; `commit` does only the SwiftData insert/save. The Bonjour server
-/// runs `prepare` on its background queue and marshals just `commit` onto the main
-/// actor — so a big upload's file writes never stall the UI, while SwiftData is
-/// still touched from ONE actor with the UI's own `mainContext` (live @Query).
+/// TWO-PHASE by design: `prepare` does ALL the disk I/O (write the audio/images/sidecars,
+/// extract video) and returns Sendable descriptors; `commit` does only the SwiftData
+/// insert/save — so a big upload's file writes can run off the main actor while SwiftData
+/// is still touched from ONE actor with the UI's own `mainContext` (live @Query).
 struct UploadService: Sendable {
     var outputDir: URL = AppPaths.audioOutputDirectory
 
     /// Everything `commit` needs to build one `PipelineFile` row — the on-disk paths
-    /// are already written by `prepare`. Sendable so it can cross from the server's
-    /// background queue to the main actor.
+    /// are already written by `prepare`. Sendable so it can cross from a background queue
+    /// to the main actor.
     struct PreparedUpload: Sendable {
         var id: String
         var filename: String
@@ -38,25 +36,12 @@ struct UploadService: Sendable {
     }
 
     /// One-shot ingest (disk I/O + DB) — used by tests and the CloudKit read bridge.
-    /// The app splits this into `prepare` (off-main) + `commit` (main actor); here
-    /// both run on the caller's thread. Behavior is byte-identical to the pre-split
-    /// version. `memoID` forces the row id (the CloudKit bridge keys on the memo UUID,
-    /// the contract spine, so it dedups across transports); HTTP uploads pass nil.
+    /// Both phases run on the caller's thread. `memoID` forces the row id (the CloudKit
+    /// bridge keys on the memo UUID, the contract spine); nil = a random id.
     ///
-    /// NOTE on Q5 (the Mac authors Memos, 2026-07-21): this file is intentionally NOT the
-    /// hook point. `UploadService` lives under `Pipeline/`, which `project.yml`'s
-    /// `SkriftDesktopTests` target compiles HOST-LESS (straight into the test bundle,
-    /// no `App/`/`Features/`) — every existing `Pipeline/Models/Shared` file is reachable
-    /// with zero dependency on `MemoCloudStore`/`SettingsStore`-as-a-gate (both of which are
-    /// only ever referenced from `App/`/`Features/`, see `MacCloudMetaSync`/
-    /// `MemoCloudReconciler+Wiring`). Calling into a container-resolving gate from here would
-    /// break that boundary — and there is no live caller of this `memoID == nil` branch today
-    /// to wire it to anyway (Bonjour, its historical caller, is retired; the current
-    /// +Upload-button/drag-drop path is `IngestService`, which never touches
-    /// `UploadService`). `MacMemoAuthor.backfill`, hooked into the reconcile sweep
-    /// (`MemoCloudReconciler+Wiring.reconcile`), is the actual live mechanism — it scans every
-    /// local `PipelineFile` with a UUID id and no `Memo` yet, so it picks up a row created by
-    /// ANY local path, this one included, without this file needing to know about it.
+    /// This file does not author Memos (Q5): `Pipeline/` compiles host-less into the test
+    /// bundle, so it must not reach a container-resolving gate. `MacMemoAuthor.backfill`,
+    /// hooked into the reconcile sweep, picks up a row from ANY local path.
     @discardableResult
     func ingest(parts: [MultipartPart], into context: ModelContext, memoID: String? = nil,
                 textOnly: Bool = false) throws -> [PipelineFile] {
@@ -66,7 +51,7 @@ struct UploadService: Sendable {
     // MARK: Phase 1 — disk I/O (no ModelContext; safe off the main actor)
 
     /// Write every upload part to disk and return the row descriptors. NO SwiftData
-    /// here, so the Bonjour server can run this off its background queue.
+    /// here, so this can run off the main actor.
     func prepare(parts: [MultipartPart], memoID: String? = nil,
                  textOnly: Bool = false) throws -> [PreparedUpload] {
         let metadataPart = parts.first { $0.name == "metadata" }

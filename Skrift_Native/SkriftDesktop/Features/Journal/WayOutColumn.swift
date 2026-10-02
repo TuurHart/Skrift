@@ -247,8 +247,7 @@ func backCapsule(action: @escaping () -> Void) -> some View {
 }
 
 /// hostPNG-safe capsule button (system button styles render wrong offscreen —
-/// memory `project_connections_panel`). Moved here from the retired
-/// FadingShelfColumn.swift; used by WayOutColumn's row actions and by
+/// memory `project_connections_panel`). Used by WayOutColumn's row actions and by
 /// SidebarView's band + UnpipelinedMemoSheet's Process capsule.
 @ViewBuilder
 func capsuleButton(_ title: String, prominent: Bool, action: @escaping () -> Void) -> some View {
