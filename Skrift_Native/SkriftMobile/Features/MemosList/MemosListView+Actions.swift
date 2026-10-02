@@ -35,6 +35,30 @@ extension MemosListView {
         }
     }
 
+    /// The long-press menu, built from `NoteMenuLayout.listItems(.phoneList, …)` (Q180): the
+    /// shared order and wording, every item the phone's list omits declared absent THERE with
+    /// its reason, not here.
+    @ViewBuilder func listContextItems(_ memo: Memo) -> some View {
+        let items = NoteMenuLayout.listItems(.phoneList, state: NoteMenuState(locked: memo.locked))
+        ForEach(items, id: \.self) { item in
+            switch item {
+            case .remind:
+                Button { reminderMemo = memo } label: { Label(item.label, systemImage: item.systemImage) }
+                    .accessibilityIdentifier("context-remind-button")
+            case .lock, .unlock:
+                Button { toggleLock(memo) } label: { Label(item.label, systemImage: item.systemImage) }
+                    .accessibilityIdentifier("context-lock-button")
+            case .copyTranscript:
+                Button { copyTranscript(memo) } label: { Label(item.label, systemImage: item.systemImage) }
+                    .accessibilityIdentifier("context-copy-button")
+            case .delete:
+                Button(role: .destructive) { deleteMemo(memo) } label: { Label(item.label, systemImage: item.systemImage) }
+            default:
+                EmptyView()
+            }
+        }
+    }
+
     /// Show the top banner briefly. The token keeps an earlier banner's expiry
     /// from clipping a newer one.
     func flashBanner(_ text: String) {
@@ -125,16 +149,22 @@ extension MemosListView {
         }
     }
 
-    /// R88: `copyableText` itself refuses a locked, unauthenticated memo — this
-    /// just supplies the right banner instead of the generic "nothing to copy".
+    /// R88: `copyableText` itself refuses a locked, unauthenticated memo, which is why
+    /// the gate authenticates BEFORE reading it.
     func copyTranscript(_ memo: Memo) {
-        guard let text = memo.copyableText else {
-            flashBanner(LockGate.shared.isLocked(memo) ? "Locked note" : "Nothing to copy yet")
-            return
+        // Q180: the ONE copy rule (`GatedCopy` / `CopyTranscriptRule`): a locked note
+        // authenticates and then copies (this used to answer "Locked note" and stop).
+        Task { @MainActor in
+            await GatedCopy.copyTranscript(
+                memo,
+                write: { text in
+                    UIPasteboard.general.string = text
+                    Haptics.tap(.light)
+                    flashBanner("Copied")
+                },
+                onEmpty: { flashBanner(CopyTranscriptRule.emptyMessage) },
+                text: { $0.copyableText })
         }
-        UIPasteboard.general.string = text
-        Haptics.tap(.light)
-        flashBanner("Copied")
     }
 
     /// Soft-delete: move the memo to Recently Deleted (audio + sidecars stay on

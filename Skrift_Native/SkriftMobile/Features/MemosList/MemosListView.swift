@@ -529,22 +529,7 @@ struct MemosListView: View {
                                     // Second path to the same actions; empty while
                                     // selecting so long-press can't fight multi-select.
                                     if !editMode.isEditing {
-                                        Button { reminderMemo = memo } label: {
-                                            Label("Remind me…", systemImage: "bell")
-                                        }
-                                        .accessibilityIdentifier("context-remind-button")
-                                        Button { toggleLock(memo) } label: {
-                                            let lockItem = NoteMenuItem.lockItem(isLocked: memo.locked)
-                                            Label(lockItem.label, systemImage: lockItem.systemImage)
-                                        }
-                                        .accessibilityIdentifier("context-lock-button")
-                                        Button { copyTranscript(memo) } label: {
-                                            Label(NoteMenuItem.copyTranscript.label, systemImage: NoteMenuItem.copyTranscript.systemImage)
-                                        }
-                                        .accessibilityIdentifier("context-copy-button")
-                                        Button(role: .destructive) { deleteMemo(memo) } label: {
-                                            Label(NoteMenuItem.delete.label, systemImage: NoteMenuItem.delete.systemImage)
-                                        }
+                                        listContextItems(memo)
                                     }
                                 }
                         }

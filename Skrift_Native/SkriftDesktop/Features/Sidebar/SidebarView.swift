@@ -814,10 +814,24 @@ struct SidebarView: View {
             .contentShape(Rectangle())
             .onTapGesture { openInPane(memo) }
             .contextMenu {
-                Button(NoteMenuItem.lockItem(isLocked: memo.locked).label) { toggleLock(memo) }
-                Button("Open") { openInPane(memo) }
-                Divider()
-                Button(NoteMenuItem.delete.label, role: .destructive) { deleteQuiet(memo) }
+                // Q180: built from `NoteMenuLayout.listItems(.macQuietList, …)` like the phone's list
+                // menu. Dropped: "Open" (a click does it, so it carried no information).
+                let items = NoteMenuLayout.listItems(.macQuietList, state: NoteMenuState(locked: memo.locked))
+                ForEach(items, id: \.self) { item in
+                    switch item {
+                    case .lock, .unlock:
+                        Button(item.label) { toggleLock(memo) }
+                    case .copyTranscript:
+                        Button(item.label) {
+                            MacGatedCopy.copy(memo, text: { memo.transcript }, flash: { coordinator.flash($0) })
+                        }
+                    case .delete:
+                        Divider()
+                        Button(item.label, role: .destructive) { deleteQuiet(memo) }
+                    default:
+                        EmptyView()
+                    }
+                }
             }
             .accessibilityIdentifier("quiet-memo-row")
     }
@@ -1082,48 +1096,52 @@ struct SidebarView: View {
             if coordinator.needsProcessing(f) {
                 Button(SharedCopy.processVerb) { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
             }
-            // Re-transcribe re-runs ASR from the audio, which would DESTROY a
-            // speaker-attributed transcript's turns (the phone never uploads the
-            // diarization segments/word-timings — the `**Name:**` text is the only
-            // copy). Hidden for diarized conversations (user decision); they re-enhance
-            // via Redo instead, which keeps the transcript verbatim.
-            if f.steps.transcribe == .done && f.sourceType != .note
-                && !SpeakerTranscript.isAttributed(f.transcript) {
-                Button("Re-transcribe") { Task { await coordinator.retranscribe(f, context: ctx) } }
-            }
-            // A wrongly-split monologue (Sortformer over-split) → flatten the `**Speaker N:**`
-            // turns back to prose and re-enhance as a monologue (no re-ASR). Only for an
-            // attributed AUDIO memo (a hand-formatted note with bold headings isn't one).
-            if f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript) {
-                Button("Flatten to monologue") { Task { await coordinator.flattenToMonologue(f, context: ctx) } }
-            }
+            // Export is a pipeline verb, not a `NoteMenuItem` (it has no phone twin: the phone's is Publish).
             if f.steps.enhance == .done {
-                let isConversation = f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript)
-                Menu(NoteMenuItem.redo.label) {
-                    Button(NoteRedoItem.title.label) { Task { await coordinator.redo(.title, for: f, context: ctx) } }
-                    // Copy-edit strips the `**Name:**` turn prefixes from a conversation
-                    // — hidden for diarized memos (they stay verbatim, like the phone).
-                    if !isConversation {
-                        Button(NoteRedoItem.copyEdit.label) { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
-                    }
-                    Button(NoteRedoItem.summary.label) { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
-                }
                 Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") {
                     Task { await coordinator.export(f, context: ctx) }
                 }
             }
             Divider()
-            Button(NoteMenuItem.revealInFinder.label) { revealInFinder(f) }
-            if f.steps.export == .done, let p = f.exported, !p.isEmpty {
-                Button(NoteMenuItem.openInObsidian.label) { openInObsidian(p) }
+            // Q180: everything else builds from `NoteMenuLayout.listItems(.macList, …)` — the shared
+            // order and wording, absences declared in `NoteMenuItem.absence(on:)` with their reasons.
+            let locked = LockGate.shared.isLocked(f)
+            let items = NoteMenuLayout.listItems(.macList, state: MacNoteMenu.state(for: f, locked: locked, canUndoTidyUp: false))
+            ForEach(items, id: \.self) { item in
+                switch item {
+                case .flattenToMonologue:
+                    // A wrongly-split monologue → flatten the turns back to prose and re-enhance (no re-ASR).
+                    Button(item.label) { Task { await coordinator.flattenToMonologue(f, context: ctx) } }
+                case .retranscribe:
+                    Button(item.label) { Task { await coordinator.retranscribe(f, context: ctx) } }
+                case .redo:
+                    Menu(item.label) {
+                        ForEach(NoteRedoItem.offered(isConversation: MacNoteMenu.isConversation(f)), id: \.self) { part in
+                            Button(part.label) { Task { await coordinator.redo(part, for: f, context: ctx) } }
+                        }
+                    }
+                case .copyTranscript:
+                    Button(item.label) {
+                        MacGatedCopy.copy(f, text: { f.transcript }, flash: { coordinator.flash($0) })
+                    }
+                case .copyMarkdown:
+                    Button(item.label) {
+                        MacGatedCopy.copy(f, text: {
+                            f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName,
+                                                               knownPeople: NamesStore.shared.livePeople())
+                        }, flash: { coordinator.flash($0) })
+                    }
+                case .revealInFinder:
+                    Button(item.label) { revealInFinder(f) }
+                case .openInObsidian:
+                    if let p = f.exported { Button(item.label) { openInObsidian(p) } }
+                case .delete:
+                    Divider()
+                    Button(item.label, role: .destructive) { deleteFiles([f]) }
+                default:
+                    EmptyView()
+                }
             }
-            // Locked note: copying leaks the gated content — unlock in the note view first.
-            Button(NoteMenuItem.copyTranscript.label) { copyText(f.transcript ?? "") }
-                .disabled(LockGate.shared.isLocked(f))
-            Button(NoteMenuItem.copyMarkdown.label) { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName, knownPeople: NamesStore.shared.livePeople())) }
-                .disabled(LockGate.shared.isLocked(f))
-            Divider()
-            Button(NoteMenuItem.delete.label, role: .destructive) { deleteFiles([f]) }
         }
     }
 

@@ -99,3 +99,145 @@ enum NoteRedoItem: CaseIterable {
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Q180 — the RULES behind the menus. Wording/glyph/order were already shared;
+// what drifted was WHICH items a surface shows, when Redo is offered, and what
+// Copy transcript does when the note is locked or empty. Foundation-only so both
+// apps and the desktop unit bundle compile it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The menus that list notes' verbs. The two ⋯ menus (open note) are not here: they
+/// already render from `NoteMenuItem` in order and gate each item at the call site.
+enum NoteMenuSurface: CaseIterable {
+    /// Phone / iPad notes-list long-press menu (`MemosListView`).
+    case phoneList
+    /// Mac sidebar right-click on a rated row (a `PipelineFile`).
+    case macList
+    /// Mac sidebar right-click on an unrated ("quiet") row (a bare `Memo`).
+    case macQuietList
+}
+
+extension NoteMenuItem {
+    /// Why this item is NOT on `surface`, or nil when it belongs there. An absence is a
+    /// declared fact with its reason, never a silent omission (Q180, list-sidebar-83).
+    func absence(on surface: NoteMenuSurface) -> String? {
+        switch surface {
+        case .phoneList:
+            switch self {
+            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .redo,
+                 .undoTidyUp, .printCard, .share:
+                return "the phone's list menu is quick actions; these act on the OPEN note and live in its ⋯"
+            case .copyMarkdown, .revealInFinder, .openInObsidian:
+                return "no Finder, no compiled-Markdown copy on the phone (its export is Publish)"
+            default: return nil
+            }
+        case .macList:
+            switch self {
+            case .addRecording, .splitSpeakers:
+                return "not built on the Mac (the recorder and the split live on the phone)"
+            case .undoTidyUp:
+                return "lives in the open note's ⋯ (NoteActions)"
+            case .remind:
+                return "no Mac set/clear verb or alarm yet (D122 decided, not built)"
+            case .printCard:
+                return "the wall printer is the phone's (FEATURES.md Desktop ➖)"
+            case .lock, .unlock:
+                return "a rated row has no cloud write-back for the lock yet (NoteActions.swift); its unrated twin has it"
+            case .share:
+                return "no share sheet on the Mac (FEATURES.md Desktop ➖)"
+            default: return nil
+            }
+        case .macQuietList:
+            switch self {
+            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .redo,
+                 .undoTidyUp, .remind, .printCard, .share:
+                return "an unrated note has no pipeline row to act on; open it for the rest"
+            case .copyMarkdown:
+                return "a bare unrated row cannot compile Markdown; the open note's ⋯ offers it"
+            case .revealInFinder, .openInObsidian:
+                return "an unrated note has no working folder and has never been exported"
+            default: return nil
+            }
+        }
+    }
+}
+
+/// What the apps know about one note when a list menu is built. Each app fills it
+/// from its own model (`PipelineFile` / `Memo`); `NoteMenuLayout` decides the rest.
+struct NoteMenuState: Equatable {
+    var locked = false
+    var isConversation = false
+    var canRetranscribe = false
+    var redoOffered = false
+    var canUndoTidyUp = false
+    var hasWorkingFolder = false
+    var hasExportedFile = false
+}
+
+enum NoteMenuLayout {
+    /// The items a list context menu shows, in `NoteMenuItem` order: not declared absent on
+    /// the surface, and whose per-note gate passes. Lock/Remove lock is one slot.
+    static func listItems(_ surface: NoteMenuSurface, state: NoteMenuState) -> [NoteMenuItem] {
+        NoteMenuItem.allCases.filter { item in
+            guard item.absence(on: surface) == nil else { return false }
+            switch item {
+            case .flattenToMonologue: return state.isConversation
+            case .retranscribe:       return state.canRetranscribe
+            case .redo:               return state.redoOffered
+            case .undoTidyUp:         return state.canUndoTidyUp
+            case .lock:               return !state.locked
+            case .unlock:             return state.locked
+            case .revealInFinder:     return state.hasWorkingFolder
+            case .openInObsidian:     return state.hasExportedFile
+            default:                  return true
+            }
+        }
+    }
+}
+
+extension NoteRedoItem {
+    /// The parts a Redo offers. Copy-edit strips a conversation's `**Name:**` turn
+    /// prefixes, so conversations keep verbatim (C179): hidden for them, both apps.
+    static func offered(isConversation: Bool) -> [NoteRedoItem] {
+        isConversation ? [.title, .summary] : [.title, .copyEdit, .summary]
+    }
+
+    /// The flat spelling for a menu that cannot nest a submenu (the phone's compact
+    /// action dialog): "Redo title", "Redo copy-edit", "Redo summary".
+    var flatLabel: String { "\(NoteMenuItem.redo.label) \(label.lowercased())" }
+
+    /// ONE availability rule (C179: offered only where polished + engine + unlocked).
+    /// "Polished" = ANY part exists, the phone's `MemoEnhancement.hasContent` — a note whose
+    /// model wrote only a summary can still redo its title. (The Mac used to demand all
+    /// three, hiding Redo on a note the iPad offered it for.)
+    static func isOffered(title: String?, copyEdit: String?, summary: String?,
+                          engineAvailable: Bool, locked: Bool) -> Bool {
+        guard engineAvailable, !locked else { return false }
+        return [title, copyEdit, summary].contains {
+            !($0 ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+}
+
+/// ONE Copy-transcript rule for both apps and every entry point (list menu, note ⋯,
+/// compact dialog): a locked note authenticates then copies; an empty one says so.
+enum CopyTranscriptRule {
+    static let emptyMessage = "Nothing to copy yet"
+
+    enum Step: Equatable {
+        /// Locked and not yet unlocked this session: ask for device-owner auth first.
+        case authenticate
+        case copy(String)
+        case nothingToCopy
+    }
+
+    /// - Parameters:
+    ///   - needsAuth: the note is locked and this session has not unlocked it.
+    ///   - text: the text the entry point would copy.
+    static func step(needsAuth: Bool, text: String?) -> Step {
+        if needsAuth { return .authenticate }
+        guard let text, !text.isEmpty else { return .nothingToCopy }
+        return .copy(text)
+    }
+}

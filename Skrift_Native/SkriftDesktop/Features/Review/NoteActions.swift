@@ -35,21 +35,22 @@ struct NoteActions: View {
     /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
     /// ONLY copy of the diarization (the phone never uploads segments/word-timings).
     /// Only an audio memo can be a conversation (a note with bold headings is not).
-    private var isConversation: Bool { file.sourceType == .audio && SpeakerTranscript.isAttributed(file.transcript) }
+    private var isConversation: Bool { MacNoteMenu.isConversation(file) }
 
     /// One shared rule, so the Mac and the iPad can never describe the same note
     /// differently (`NoteWorkState`).
     private var workState: NoteWorkState { workInputs.state }
     private var primaryLabel: String { workState.label(for: file.destination) }
 
-    private var hasParts: Bool {
-        !(file.enhancedTitle ?? "").isEmpty
-            && !(file.enhancedCopyedit ?? "").isEmpty
-            && !(file.enhancedSummary ?? "").isEmpty
+    /// Redo's availability is the ONE shared rule (`NoteRedoItem.isOffered`, Q180): ANY polished
+    /// part, engine, unlocked. It used to demand all three parts, so a note the iPad offered
+    /// Redo on had none here.
+    private var redoOffered: Bool {
+        MacNoteMenu.redoOffered(file, locked: LockGate.shared.isLocked(file))
     }
     // Re-transcribe re-runs ASR and would destroy a conversation's speaker turns
     // (only copy lives in the transcript text) — disabled for diarized memos.
-    private var canRetranscribe: Bool { transcribeDone && !isAppleNote && !isConversation }
+    private var canRetranscribe: Bool { MacNoteMenu.canRetranscribe(file) }
     // The ⋯ used to be conditional (`canRetranscribe || hasParts`) because it
     // only held pipeline verbs. It now always carries Copy/Reveal, so it's
     // always there — a control that vanishes is worse than one that's short.
@@ -67,14 +68,11 @@ struct NoteActions: View {
         }
     }
 
-    /// Copying a locked note leaks the gated content — the note view's own
-    /// unlock gate is the way in (same rule as the notes-list menu).
+    /// Copy goes through `MacGatedCopy` (Q180): a locked note authenticates then copies, an
+    /// empty one says "Nothing to copy yet" — the same rule as the phone and the notes-list menu.
     @ViewBuilder private var copyItems: some View {
-        let locked = LockGate.shared.isLocked(file)
-        Button(NoteMenuItem.copyTranscript.label) { copy(file.transcript ?? "") }
-            .disabled(locked)
-        Button(NoteMenuItem.copyMarkdown.label) { copy(compiledMarkdown()) }
-            .disabled(locked)
+        Button(NoteMenuItem.copyTranscript.label) { copyTranscript() }
+        Button(NoteMenuItem.copyMarkdown.label) { copyMarkdown() }
     }
 
     /// The note's ⋯ menu, in the shared order (`NoteMenuItem` — one vocabulary,
@@ -111,11 +109,9 @@ struct NoteActions: View {
             case .item(.lock), .item(.unlock):
                 Button(MacUnratedMenu.label(entry)) { toggleUnratedLock() }
             case .item(.copyTranscript):
-                Button(MacUnratedMenu.label(entry)) { copy(file.transcript ?? "") }
-                    .disabled(LockGate.shared.isLocked(file))
+                Button(MacUnratedMenu.label(entry)) { copyTranscript() }
             case .item(.copyMarkdown):
-                Button(MacUnratedMenu.label(entry)) { copy(compiledMarkdown()) }
-                    .disabled(LockGate.shared.isLocked(file))
+                Button(MacUnratedMenu.label(entry)) { copyMarkdown() }
             case .item(.delete):
                 Button(MacUnratedMenu.label(entry), role: .destructive) { deleteUnrated() }
             case .item:
@@ -180,15 +176,13 @@ struct NoteActions: View {
         if canRetranscribe {
             Button(NoteMenuItem.retranscribe.label) { Task { await coordinator.retranscribe(file, context: ctx) } }
         }
-        if hasParts {
+        if redoOffered {
             Menu(NoteMenuItem.redo.label) {
-                Button(NoteRedoItem.title.label) { Task { await coordinator.redo(.title, for: file, context: ctx) } }
-                // Copy-edit strips a conversation's `**Name:**` turn prefixes —
-                // hidden for diarized memos (they stay verbatim, like the phone).
-                if !isConversation {
-                    Button(NoteRedoItem.copyEdit.label) { Task { await coordinator.redo(.copyEdit, for: file, context: ctx) } }
+                // Copy-edit is hidden for diarized memos (they stay verbatim, like the phone):
+                // `NoteRedoItem.offered`.
+                ForEach(NoteRedoItem.offered(isConversation: isConversation), id: \.self) { part in
+                    Button(part.label) { Task { await coordinator.redo(part, for: file, context: ctx) } }
                 }
-                Button(NoteRedoItem.summary.label) { Task { await coordinator.redo(.summary, for: file, context: ctx) } }
             }
         }
         undoTidyUpItem
@@ -201,10 +195,12 @@ struct NoteActions: View {
         }
     }
 
-    private func copy(_ text: String) {
-        guard !text.isEmpty else { coordinator.flash("Nothing to copy yet"); return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+    private func copyTranscript() {
+        MacGatedCopy.copy(file, text: { file.transcript }, flash: { coordinator.flash($0) })
+    }
+
+    private func copyMarkdown() {
+        MacGatedCopy.copy(file, text: { compiledMarkdown() }, flash: { coordinator.flash($0) })
     }
 
     private func compiledMarkdown() -> String {

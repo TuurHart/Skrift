@@ -85,6 +85,18 @@ struct MemoDetailView: View {
         Label(item.label, systemImage: item.systemImage)
     }
 
+    /// Redo's ONE availability rule (`NoteRedoItem.isOffered`, Q180), shared by the ⋯ menu and
+    /// the compact dialog so neither width is missing it.
+    func redoOffered(_ memo: Memo) -> Bool {
+        let enh = repository.enhancement(forMemo: memo.id)
+        return NoteRedoItem.isOffered(title: enh?.title, copyEdit: enh?.copyedit, summary: enh?.summary,
+                                      engineAvailable: PolishCenter.shared.isAvailable, locked: memo.locked)
+    }
+
+    func redoIsConversation(_ memo: Memo) -> Bool {
+        !memo.audioFilename.isEmpty && SpeakerTranscript.isAttributed(memo.transcript)
+    }
+
     @ViewBuilder func noteOverflowItems(_ memo: Memo) -> some View {
         // Wording / glyph / ORDER come from the shared `NoteMenuItem` — the Mac's
         // ⋯ renders the same vocabulary (Tuur 2026-07-25). Which items exist is
@@ -106,16 +118,11 @@ struct MemoDetailView: View {
         // note, only where this device can run the model, and copy-edit is hidden
         // for conversations — the LLM strips their `**Name:**` turn prefixes and
         // the turn structure is the only copy of the diarization (Mac parity).
-        if PolishCenter.shared.isAvailable, !memo.locked,
-           repository.enhancement(forMemo: memo.id)?.hasContent == true {
-            let isConversation = !memo.audioFilename.isEmpty
-                && SpeakerTranscript.isAttributed(memo.transcript)
+        if redoOffered(memo) {
             Menu {
-                Button(NoteRedoItem.title.label) { PolishCenter.shared.redo(.title, for: memo) }
-                if !isConversation {
-                    Button(NoteRedoItem.copyEdit.label) { PolishCenter.shared.redo(.copyEdit, for: memo) }
+                ForEach(NoteRedoItem.offered(isConversation: redoIsConversation(memo)), id: \.self) { part in
+                    Button(part.label) { PolishCenter.shared.redo(part, for: memo) }
                 }
-                Button(NoteRedoItem.summary.label) { PolishCenter.shared.redo(.summary, for: memo) }
             } label: { menuLabel(.redo) }
         }
         if memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
@@ -457,6 +464,13 @@ struct MemoDetailView: View {
                     Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })
                 }
             }
+            // Q180 (note-menu-07): the dialog cannot nest a submenu, so Redo is one flat row per
+            // part (`NoteRedoItem.flatLabel`), under the SAME gate as the ⋯ menu's submenu.
+            if let memo = currentMemo, redoOffered(memo) {
+                ForEach(NoteRedoItem.offered(isConversation: redoIsConversation(memo)), id: \.self) { part in
+                    Button(part.flatLabel, action: { PolishCenter.shared.redo(part, for: memo) })
+                }
+            }
             if let memo = currentMemo,
                memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
                 Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
@@ -685,7 +699,8 @@ struct MemoDetailView: View {
     /// copying — it does NOT silently no-op.
     func copyTranscript() {
         guard let memo = currentMemo else { return }
-        Task { await GatedCopy.copyTranscript(memo, lockGate: lockGate) }
+        Task { await GatedCopy.copyTranscript(memo, lockGate: lockGate,
+                                              onEmpty: { flashExport(CopyTranscriptRule.emptyMessage) }) }
     }
 
     /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
