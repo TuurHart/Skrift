@@ -222,30 +222,26 @@ private struct WayOutRow: View {
         memo.title?.isEmpty == false ? memo.title! : "Locked note"
     }
 
-    @ViewBuilder private var meta: some View {
-        switch kind {
-        case .fading:
-            HStack(spacing: 8) {
-                Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
-                if let place = memo.metadata?.location?.placeName, !place.isEmpty {
-                    Text(place)
+    /// One builder for both apps: `WayOut.metaParts` (date / deleted / replaced, place, duration).
+    private var meta: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(WayOut.metaParts(for: memo).enumerated()), id: \.offset) { _, part in
+                if part.emphasized {
+                    Text(part.text).foregroundStyle(Color.skAmber).fontWeight(.semibold)
+                } else {
+                    Text(part.text)
                 }
-            }
-        case .deleted:
-            if let replacedAt = memo.replacedAt {
-                // D139: the version he did not keep when settling an edit conflict.
-                Text("replaced \(replacedAt.formatted(date: .abbreviated, time: .omitted))")
-                    .foregroundStyle(Color.skAmber).fontWeight(.semibold)
-            } else if let deletedAt = memo.deletedAt {
-                Text("deleted \(deletedAt.formatted(date: .abbreviated, time: .omitted))")
             }
         }
     }
 
-    /// Red inside the countdown's last 3 days, amber otherwise — the same threshold
-    /// FadingShelfView used, now shared by both sections (Don'ts: thresholds unchanged).
+    /// The colour rule lives in `WayOut.tone` (Shared); this only maps it to the phone palette.
     private var urgencyColor: Color {
-        WayOut.isUrgent(MemoSpine.station(for: .from(memo, backlinked: []))) ? Color.skRed : Color.skAmber
+        switch WayOut.tone(for: MemoSpine.station(for: .from(memo, backlinked: []))) {
+        case .urgent: return Color.skRed
+        case .warm:   return Color.skAmber
+        case .quiet:  return Color.skTextFaint
+        }
     }
 }
 
