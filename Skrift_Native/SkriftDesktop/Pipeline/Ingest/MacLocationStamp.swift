@@ -47,8 +47,11 @@ enum MacLocationStamp {
                 log.debug("no location fix — leaving the note without one")
                 return
             }
-            guard memo.metadata == nil else { return }
-            memo.metadata = MemoMetadata(location: place)
+            // Q139: `MacMemoAuthor` may already have written a blob (picture or clip
+            // manifest, media marker), so "never overwrites" means never overwrite a PLACE;
+            // the other keys survive the merge.
+            guard memo.metadata?.location == nil else { return }
+            memo.mergeCapturedMetadata(MemoMetadata(location: place))
             try? ctx.save()
             // The Mac's editing model, which is what its exporter actually reads.
             pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: memo)
