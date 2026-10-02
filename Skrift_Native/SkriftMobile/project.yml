@@ -346,6 +346,8 @@ targets:
       - path: App/Intents/StartRecordingIntent.swift
       - path: App/Intents/StopRecordingIntent.swift
       - path: App/Intents/NewNoteIntent.swift
+      # Foundation-only hex table: the widgets + Live Activity read their dark colours from it.
+      - path: ../Shared/UI/Palette.swift
     info:
       path: SkriftWidget/Info.plist
       properties:
@@ -416,21 +418,16 @@ targets:
       - path: Features/MemoDetail/SignificanceCircles.swift
       - path: ../Shared/UI/NoteRatingPill.swift
       - path: ../Shared/Model/ThreeBallScale.swift
-      # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
-      # so it builds cleanly in the extension process. Theme sources its cross-app
+      # DesignSystem (Theme colours, Haptics) — no UIKit/AppKit-only API here,
+      # so it builds cleanly in the extension process. Components.swift, FlowLayout,
+      # TagRules and TagEditorRow are app-only (Q231; TagRowStyle.phone lives in
+      # DesignSystem/TagRowStyle+Phone.swift). Theme sources its cross-app
       # hex values from the shared Palette table.
       - path: ../Shared/UI/Palette.swift
       # Theme.Motion delegates to the shared curves, so the extension needs them too.
       - path: ../Shared/UI/Motion.swift
       - path: DesignSystem/Theme.swift
-      - path: DesignSystem/Components.swift
       - path: DesignSystem/Haptics.swift
-      - path: ../Shared/UI/FlowLayout.swift
-      # Theme.swift's TagRowStyle.phone extension needs TagRowStyle/TagRules in
-      # scope (Q28) — the extension itself never presents a tag editor, but it
-      # compiles the same DesignSystem/Theme.swift the app does.
-      - path: ../Shared/UI/TagRules.swift
-      - path: ../Shared/UI/TagEditorRow.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox
       # (both are the shared C3/metadata schema — Shared/Model, one copy).
       - path: ../Shared/Model/MemoMetadata.swift
