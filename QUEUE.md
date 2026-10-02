@@ -831,7 +831,7 @@ do: Phone speaker naming relabels, then `VoiceEnroller.enroll` adds a person onl
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PersonCreationRulesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P14
 
-### Q114 [auto] (doing) one display-title ladder in Shared (C25): derived title, capture title, placeholder, link-picker rows
+### Q114 [auto] (done) one display-title ladder in Shared (C25): derived title, capture title, placeholder, link-picker rows
 spec: C25 C239 C115
 needs: -
 gate+: yes
@@ -863,7 +863,7 @@ do: The label table `NoteWorkState` is shared, the inputs are not: iPad `hasPoli
 check: `grep -rqE "class NoteWorkStateInputsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteWorkStateInputsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P18
 
-### Q118 [auto] (todo) Mac note shows per-note progress and a failure line with Retry; the iPad shows the failure reason without hover
+### Q118 [auto] (doing) Mac note shows per-note progress and a failure line with Retry; the iPad shows the failure reason without hover
 spec: C194 C182
 needs: -
 gate+: yes
@@ -935,7 +935,7 @@ do: Phone has a checklist button and Return-continuation (NoteBodyView.swift:640
 check: `grep -rqE "class MacTaskContinueTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P27
 
-### Q127 [auto] (todo) Mac: the ⋯ menu of an unrated note offers Process (which floors the rating), Lock and Delete
+### Q127 [auto] (doing) Mac: the ⋯ menu of an unrated note offers Process (which floors the rating), Lock and Delete
 spec: C40 D159 C187
 needs: Q100
 gate+: yes
@@ -1976,6 +1976,13 @@ gate+: yes
 do: Found by the Q162 mockup agent: Skrift_Native/SkriftMobile/Services/NotesRepository.swift:41 calls fatalError when the SwiftData/CloudKit store fails to build, so the phone crashes at launch instead of telling the user. Replace the crash with a recoverable path: keep the error, show a plain full-screen 'Skrift couldn't open your notes' state with the error text and a hint (reopen / check iCloud storage), and log it via DevLog. Never delete or recreate the store automatically (data safety). Put the decision in a pure, testable function. Phone test `StoreStartFailureTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && ./gate.sh`
 
+### Q260 [auto] (todo) sync a link capture's thumbnail to the Mac as a MemoAsset (phone writes it, Mac card shows it)
+spec: C78 C143
+needs: Q143
+gate+: yes
+do: Found by Q143: the phone's link thumbnail lives as a relative file in the phone's recordings dir (`urlThumbnailUrl`, CaptureInboxDrainer.swift:451) and AssetMaterializer syncs only audio, manifest photos, the document and sidecars, so the Mac card always falls back to the globe tile. Ship the thumbnail as a MemoAsset (reuse Kind.photo or add a kind — prefer reuse if it doesn't pollute the photo manifest), materialize it on the Mac into the capture folder where `PipelineFile.captureThumbnailURL` (PipelineFile+CaptureFacts.swift) already looks. Never break existing synced memos (additive only). Desktop test `LinkThumbnailSyncTests`; phone test for the writer side. Never run SkriftDesktopUITests.
+check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2647,3 +2654,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && 
 - 2026-10-02 22:54 Q126 -> doing — batch worker out
 - 2026-10-02 22:54 Q155 -> done — gate pass @ad5823fc
 - 2026-10-02 22:56 Q161 -> done — gate pass @c67f2462
+- 2026-10-02 22:58 Q260 added
+- 2026-10-02 22:59 Q127 -> doing — batch worker out
+- 2026-10-02 22:59 Q118 -> doing — batch worker out
+- 2026-10-02 22:59 Q114 -> done — gate pass @2b5564a4
