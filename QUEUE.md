@@ -791,7 +791,7 @@ do: One string per fact in `Skrift_Native/Shared/UI/SharedCopy.swift`, read by p
 check: `grep -rqE "class SharedCopyUsageTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P9
 
-### Q109 [tuur] (todo) decide: what 'Needs Work' and 'Done' mean on every device
+### Q109 [tuur] (tuur) decide: what 'Needs Work' and 'Done' mean on every device
 spec: C115 C61 D135
 needs: -
 do: -
@@ -799,7 +799,7 @@ check: Tuur picked one definition and it went into SPEC.
 brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`). Also: ProcessPile.unrated (ProcessPile.swift:32) and the .notRated chip (:52) drop locked notes, so a locked unrated note sits under no chip but All; C182 does not cover unrated notes. Should locked unrated notes count under Unrated? (from Q102) Also (Q104): a stranded note (rated, no pipeline row) shows under BOTH Needs Work and Done on the Mac but one of them on the phone; a locked unrated note shows under Not rated on the Mac (lockedQuiet) but not on the phone (ProcessPile.matches(.notRated) excludes locked).
 source: plan/reads/parity-audit.md P10
 
-### Q110 [tuur] (todo) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
+### Q110 [tuur] (tuur) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
 spec: D68 D148 D135
 needs: -
 do: -
@@ -807,7 +807,7 @@ check: Tuur picked and it went into SPEC.
 brief: (1) Unsynced chip: D148 signed it into the chip row, D68 says drop the filter as dead under CloudKit, and nothing sets `syncStatus = .synced` outside the seeders, so the chip is a no-op on the phone and absent on the Mac (list-sidebar-48). Phone `MemoFilter.hasPhotosOnly` and `.place` are dead too. Recommended: remove the chip and the dead filters, supersede D148's chip line. (2) Status pill: D135 says a pill only while working or broken on all three devices; the Mac shows Queued / Transcribed / Enhancing / Ready / Exported on every rated row (list-sidebar-76). Recommended: keep the Mac dashboard pills and write that into D135 as the one platform difference, or drop them. No code until he picks.
 source: plan/reads/parity-audit.md P11
 
-### Q111 [tuur] (todo) decide: keyboard shortcuts — ⌘N on iPad, a Record chord, ⌘F and ⌘1-4 on the Mac
+### Q111 [tuur] (tuur) decide: keyboard shortcuts — ⌘N on iPad, a Record chord, ⌘F and ⌘1-4 on the Mac
 spec: C112 C114
 needs: -
 do: -
@@ -943,21 +943,21 @@ do: Mac unrated note menu is copy-only: no Process, no Lock, no Delete. C40/D159
 check: `grep -rqE "class MacUnratedMenuTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P28
 
-### Q128 [tuur] (todo) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
+### Q128 [tuur] (doing) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
 spec: C119 D126 C113
 needs: -
 do: One clickable page: the Mac note with a photo added at the caret (open panel / paste / drop), a tapped photo opening the zoom + markup viewer, and a `[[img_NNN]]` whose file has not arrived yet (today it shows raw marker text; the phone shows a grey card and 'Downloading from iCloud…'). Draw today's Mac note and the phone's viewer from source (C117). Covers note-body-16, -17, -18, capture-import-41.
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P29
 
-### Q129 [tuur] (todo) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
+### Q129 [tuur] (doing) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
 spec: D122 C162
 needs: -
 do: One clickable page: the Mac note header chip becoming tappable (today a static chip with year), the picker (the phone's `ReminderSheet` drawn from source), 'Remind me…' in the list and note menus, and the notification the Mac shows when a synced reminder fires; first acknowledgement clears the other devices (C162). Covers note-header-06, note-menu-09, note-remind-01, list-sidebar-86.
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P30
 
-### Q130 [tuur] (todo) decide: boxed capture cards on the Mac against the no-bubbles rule
+### Q130 [tuur] (tuur) decide: boxed capture cards on the Mac against the no-bubbles rule
 spec: C240 D135
 needs: -
 do: -
@@ -1076,7 +1076,7 @@ do: A Mac recording or typed note carries place only: no weather, no daypart, no
 check: Tuur clicked through it, added his key, and said go.
 source: plan/reads/parity-audit.md P45
 
-### Q145 [tuur] (todo) decide: a plain .md file — Apple Note on the Mac, Text capture on the phone
+### Q145 [tuur] (tuur) decide: a plain .md file — Apple Note on the Mac, Text capture on the phone
 spec: C76 C77 D19
 needs: -
 do: -
@@ -1084,7 +1084,7 @@ check: Tuur picked one kind for a .md file and it went into SPEC.
 brief: The same `.md` file becomes a note of kind 'Apple Note' with the heading as title on the Mac (`IngestService.ingestNote`) and a shared 'Text' capture (UTF-8, ≤ 512,000 bytes) on the phone (`CaptureInboxDrainer`) (capture-import-34). Recommended: a `.md` is a typed note whose body is the file (kind note, no capture card), title from the first heading, on both. He picks; then it is one rule in `ImportKinds`.
 source: plan/reads/parity-audit.md P46
 
-### Q146 [tuur] (todo) decide: keep the source movie of an imported video (C63/C148) or drop the synced-asset plan
+### Q146 [tuur] (tuur) decide: keep the source movie of an imported video (C63/C148) or drop the synced-asset plan
 spec: C63 C148 C71 D153
 needs: -
 do: -
@@ -1274,7 +1274,7 @@ do: Phone `JournalMemoRow` hard-codes `Image(systemName: "mic")` for every note,
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewRowGlyphTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P70
 
-### Q170 [tuur] (todo) decide: Mac look-back anchors on the selected day; Mac gets pause / resume and a discard; Mac Add recording
+### Q170 [tuur] (tuur) decide: Mac look-back anchors on the selected day; Mac gets pause / resume and a discard; Mac Add recording
 spec: C231 C220 D122
 needs: -
 do: -
@@ -1313,7 +1313,7 @@ do: Stale rows found by the audit: FEATURES.md:119 (iPad list '320-420 draggable
 check: `./gate.sh`
 source: plan/reads/parity-audit.md P75
 
-### Q175 [tuur] (todo) approve the twin gate: add plan/twin-check.sh to gate.sh
+### Q175 [tuur] (tuur) approve the twin gate: add plan/twin-check.sh to gate.sh
 spec: C239 C240
 needs: -
 do: -
@@ -1369,7 +1369,7 @@ do: Rows recsj-066 -070 -072 -073, note-conn-03 -07 -10. One panel width and hea
 check: `grep -rqE "class ConnectionsPanelParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q182 [auto] (doing) Journal: one Then-vs-Now picker, one calendar grid builder, one first-day rule, one intro copy
+### Q182 [auto] (done) Journal: one Then-vs-Now picker, one calendar grid builder, one first-day rule, one intro copy
 spec: C239 C240 D136
 needs: -
 gate+: yes
@@ -1465,7 +1465,7 @@ do: In `SkriftMobile/Features/Audiobooks/` and the files named: delete the unuse
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d04 MAU-d05 MAU-d06 MAU-d07 MAU-d08 MAU-d10 MAU-d13 MAU-d16 MAU-d17 MAU-c14 MAU-c18 MAU-c21 MAU-c23 MAU-c29 (cleanup-audit P6)
 
-### Q194 [tuur] (todo) retire TranscribeBookView: the read-along nudge opens the Text sheet
+### Q194 [tuur] (tuur) retire TranscribeBookView: the read-along nudge opens the Text sheet
 spec: C240 C115
 needs: Q193
 gate+: no
@@ -1521,7 +1521,7 @@ do: `AlignmentCore.swift:286-340` and `SkriftMobile/Services/Audiobooks/ChapterD
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ChapterDetectorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c01 (cleanup-audit P13)
 
-### Q201 [tuur] (todo) delete the one-clock migration once every device has run it
+### Q201 [tuur] (tuur) delete the one-clock migration once every device has run it
 spec: C240
 needs: -
 gate+: no
@@ -1537,7 +1537,7 @@ do: In `SkriftDesktop/Features/Review/` (and `Features/Shell/RootView.swift:101-
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DRV-d01 DRV-d02 DRV-d03 DRV-d04 DRV-d05 DRV-d06 DRV-d09 DRV-d10 DRV-d11 DRV-d12 DRV-d16 DRV-d19 DRV-c16 DRV-c18 DRV-c19 DRV-c21 DRV-c27 (cleanup-audit P15)
 
-### Q203 [tuur] (todo) retire the second SwiftUI-Text note renderer: move three snapshots to the hosted render
+### Q203 [tuur] (tuur) retire the second SwiftUI-Text note renderer: move three snapshots to the hosted render
 spec: C240 C117
 needs: Q202
 gate+: yes
@@ -1561,7 +1561,7 @@ do: In `SkriftDesktop/`: delete `Features/Shell/StubEngines.swift` and the DEBUG
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d01 DSH-d02 DSH-d05 DSH-d06 DSH-d13 DSH-d14 DSH-d16 DSH-d17 DSH-d20 DSH-c08 DAU-c04 DPE-d20 PER-d12 (cleanup-audit P18)
 
-### Q206 [tuur] (todo) delete finished Mac headless probes
+### Q206 [tuur] (tuur) delete finished Mac headless probes
 spec: C240
 needs: -
 gate+: no
@@ -1617,7 +1617,7 @@ do: In `SkriftDesktop/`: delete the four pure forwarders in `Pipeline/WayOutRule
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d15 DPE-d17 DPE-d18 SMU-d08 DPE-c10 DPE-c30 DPE-c28 (cleanup-audit P25)
 
-### Q213 [tuur] (todo) drop the write-only Mac diarization sidecar
+### Q213 [tuur] (tuur) drop the write-only Mac diarization sidecar
 spec: C182 C240
 needs: -
 gate+: yes
@@ -1641,7 +1641,7 @@ do: In `SkriftDesktop/`: delete `StatusPill`, `PulseDot`, `QueueStatus.color` an
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-d01 DAU-d02 DAU-d03 DAU-d04 DAU-d05 DAU-d06 DAU-d07 DAU-d08 DAU-d09 DAU-d10 DAU-d16 DAU-d17 DAU-d18 DAU-d-m1 DAU-d-m2 DSH-d15 DPE-d16 DPE-c12 (cleanup-audit P28)
 
-### Q216 [tuur] (todo) delete the 2026-07-27 sync trace
+### Q216 [tuur] (tuur) delete the 2026-07-27 sync trace
 spec: C240
 needs: -
 gate+: no
@@ -1673,7 +1673,7 @@ do: (1) `Double(f.length) / f.fileFormat.sampleRate` is written 11 times (`MemoS
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d20 MRC-c02 MRC-c04 SRS-d09 (cleanup-audit P32)
 
-### Q220 [tuur] (todo) appending a recording: use AudioClipMerge, not the export session
+### Q220 [tuur] (tuur) appending a recording: use AudioClipMerge, not the export session
 spec: C240
 needs: Q219
 gate+: no
@@ -1681,7 +1681,7 @@ do: `MemoSaver.appendAudio` (`SkriftMobile/Features/Recording/MemoSaver.swift:65
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-c01 MRC-d17 (cleanup-audit P33)
 
-### Q221 [tuur] (todo) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
+### Q221 [tuur] (tuur) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
 spec: C115
 needs: -
 gate+: no
@@ -1721,7 +1721,7 @@ do: In `SkriftMobile/Services/` (re-grep each symbol by NAME in both apps and te
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-d01 MSV-d04 MSV-d05 MSV-d06 MSV-d07 MSV-d08 MSV-d09 MSV-d10 MSV-d11 MSV-d12 MSV-d13 MSV-d14 MSV-d15 MSV-d18 MSV-d20 MSV-d-m1 MSV-c29 SRS-d06 SRS-d08 (cleanup-audit P38)
 
-### Q226 [tuur] (todo) the phone export gate has one rule and no paired mode
+### Q226 [tuur] (tuur) the phone export gate has one rule and no paired mode
 spec: C240 C65
 needs: Q156
 gate+: no
@@ -1745,7 +1745,7 @@ do: Share-sheet dictation is gone (`SkriftMobile/project.yml:448-450`; iOS block
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d14 PER-d05 (cleanup-audit P41)
 
-### Q229 [tuur] (todo) delete the drain-side half of the retired share dictation
+### Q229 [tuur] (tuur) delete the drain-side half of the retired share dictation
 spec: C240
 needs: Q228
 gate+: no
@@ -1769,7 +1769,7 @@ do: `SkriftWidget/RecordWidget.swift` and `NewNoteWidget.swift` differ only in n
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SharedContentParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d17 MAM-d19 MAM-c10 (cleanup-audit P44)
 
-### Q232 [tuur] (todo) remove the SkriftShared framework target
+### Q232 [tuur] (tuur) remove the SkriftShared framework target
 spec: C240
 needs: Q231
 gate+: no
@@ -1905,7 +1905,7 @@ do: Test-only. `tempDir()` is defined 17 times in 15 desktop test files (some wi
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-c13 (cleanup-audit P61)
 
-### Q249 [tuur] (todo) accept.sh learns --approve-protected and hand-merge.sh goes
+### Q249 [tuur] (tuur) accept.sh learns --approve-protected and hand-merge.sh goes
 spec: C239
 needs: -
 gate+: no
@@ -1913,31 +1913,31 @@ do: `plan/hand-merge.sh` re-implements `plan/accept.sh` steps 2-5 with drift: it
 check: `./gate.sh`
 source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 
-### Q250 [tuur] (todo) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
+### Q250 [tuur] (tuur) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
 spec: C78 C239
 needs: Q138
 do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
-### Q251 [tuur] (todo) decide: Mac quote read-only applies to any note opening with '> ' (Q112, text-only per C172) — keep, or gate on a capture flag so a hand-typed blockquote stays editable
+### Q251 [tuur] (tuur) decide: Mac quote read-only applies to any note opening with '> ' (Q112, text-only per C172) — keep, or gate on a capture flag so a hand-typed blockquote stays editable
 spec: C172
 needs: -
 do: -
 check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 
-### Q252 [tuur] (todo) verify: Q116's SwiftData column rename (@Attribute(originalName:) legacyUnlinkedNames/legacyNamePicksJSON) opens a COPY of the prod Mac store and keeps existing name decisions, before the next prod promotion
+### Q252 [tuur] (tuur) verify: Q116's SwiftData column rename (@Attribute(originalName:) legacyUnlinkedNames/legacyNamePicksJSON) opens a COPY of the prod Mac store and keeps existing name decisions, before the next prod promotion
 spec: -
 needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q253 [tuur] (todo) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
+### Q253 [tuur] (tuur) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
 spec: -
 needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q254 [tuur] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
+### Q254 [tuur] (tuur) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
 spec: -
 needs: -
 do: -
@@ -1950,7 +1950,7 @@ gate+: yes
 do: Q133 made Shared/Pipeline/ImportKinds resolve .m4b and .epub to kind .book, but phone Open-in (AppURLHandler) still ignores them. Route a .book Open-in to the same Books library import the Library tab uses (the BookImportBridge / AudiobookLibrary import path; grep it), so opening an .m4b or .epub from Files or another app adds it to Books. Phone test `BookOpenInRoutingTests` on the pure routing decision. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q256 [tuur] (todo) review Q108's picked wording: empty library 'No notes yet / Tap Record to capture your first note, or Import audio you already have.'; Way-out footer drops the phone's 'clock only starts once you've opened the app' and the Mac's 'Your iPhone does the permanent deleting'; iPad 'back to calendar' -> 'Back'; Mac loading row 'Getting the model — N%'
+### Q256 [tuur] (tuur) review Q108's picked wording: empty library 'No notes yet / Tap Record to capture your first note, or Import audio you already have.'; Way-out footer drops the phone's 'clock only starts once you've opened the app' and the Mac's 'Your iPhone does the permanent deleting'; iPad 'back to calendar' -> 'Back'; Mac loading row 'Getting the model — N%'
 spec: -
 needs: -
 do: -
@@ -2551,3 +2551,32 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 20:58 Q157 -> doing — worker out
 - 2026-10-02 20:58 Q147 -> doing — worker out
 - 2026-10-02 20:58 Q148 -> doing — worker out
+- 2026-10-02 20:59 Q109 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q110 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q111 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q130 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q145 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q146 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q170 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q175 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q251 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q252 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q253 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q254 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q256 -> tuur — awaiting sitting
+- 2026-10-02 20:59 Q194 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q201 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q203 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q206 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q213 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q216 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q220 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q221 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q226 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q229 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q232 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q249 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q250 -> tuur — awaiting sitting (judgement or protected-test approval)
+- 2026-10-02 20:59 Q128 -> doing — mockup agent out
+- 2026-10-02 20:59 Q129 -> doing — mockup agent out
+- 2026-10-02 21:00 Q182 -> done — gate pass @51314e73
