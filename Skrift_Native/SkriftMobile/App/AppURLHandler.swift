@@ -34,7 +34,9 @@ enum AppURLHandler {
         if AudioImportChoice.needsChoice(clipCount: audioClips(in: urls).count) {
             AudioPickBridge.shared.offer(urls)
         } else {
-            for url in urls { handle(url) }
+            var report = ImportReport()
+            for url in urls { report.merge(route(url)) }
+            ImportReportBridge.shared.post(report)
         }
     }
 
@@ -68,17 +70,26 @@ enum AppURLHandler {
         let clips = audioClips(in: urls)
         let clipSet = Set(clips)
         var jump: UUID?
-        for url in urls where !clipSet.contains(url) { handle(url) }
+        var report = ImportReport()
+        defer { ImportReportBridge.shared.post(report) }
+        for url in urls where !clipSet.contains(url) { report.merge(route(url)) }
         if choice.combines, clips.count > 1 {
             let staged = await Task.detached(priority: .userInitiated) { stageForMerge(clips) }.value
             if let id = saver.importAudioClips(from: staged.urls, recordedAt: staged.dates.first.flatMap { $0 },
                                                clipDates: staged.dates) {
                 MemoOpenBridge.shared.open(id)
                 jump = id
+                report.created += 1
+            } else {
+                for url in clips { report.addFailed(url.lastPathComponent, ImportReport.unreadable) }
             }
         } else {
             for url in clips {
-                if let id = saver.importAudio(from: url) { MemoOpenBridge.shared.open(id); jump = id }
+                if let id = saver.importAudio(from: url) {
+                    MemoOpenBridge.shared.open(id); jump = id; report.created += 1
+                } else {
+                    report.addFailed(url.lastPathComponent, ImportReport.unreadable)
+                }
             }
         }
         return jump
@@ -105,7 +116,17 @@ enum AppURLHandler {
         return (urls, outDates)
     }
 
+    /// One incoming URL. What it did is posted to the list banner (`ImportReportBridge`).
     static func handle(_ url: URL) {
+        ImportReportBridge.shared.post(route(url))
+    }
+
+    /// Carry out one URL and say what happened (C199, Q137): a file Skrift does not take, or
+    /// one that could not be read, comes back as skipped / failed with the reason instead of
+    /// vanishing. Deep links and book bundles are not notes, so they report nothing.
+    private static func route(_ url: URL) -> ImportReport {
+        var report = ImportReport()
+        let name = url.lastPathComponent
         if url.isFileURL {
             // 📦 A book someone shared (AirDrop / Files / Messages). Checked FIRST:
             // a `.skriftbook` is a zip, and letting the audio branch below reason
@@ -113,7 +134,7 @@ enum AppURLHandler {
             // library here — the bridge shows the sheet and the user decides.
             if BookBundle.isBookBundle(url) {
                 BookImportBridge.shared.offer(url)
-                return
+                return report
             }
             // Land the user on the imported memo (A9): it relocates to the media's
             // embedded date, so without the jump it "vanishes" down the list — the
@@ -121,19 +142,31 @@ enum AppURLHandler {
             switch importKind(of: url) {
             case .video:
                 // A video container (.mov/.mp4/…): strip the audio + grab a frame.
+                // (A video the system cannot read, or one with no audio, still becomes a
+                // visible FAILED note - C202 - so it counts as made here.)
                 if let id = MemoSaver().importVideo(from: url) {
                     MemoOpenBridge.shared.open(id)
+                    report.created += 1
+                } else {
+                    report.addFailed(name, ImportReport.unreadable)
                 }
             case .audio:
                 if let id = MemoSaver().importAudio(from: url) {
                     MemoOpenBridge.shared.open(id)
+                    report.created += 1
+                } else {
+                    report.addFailed(name, ImportReport.unreadable)
                 }
             case .image, .text, .document:
-                importAsCapture(url)
-            case .book, .none:
-                break   // books have their own door (the Books library); anything else is not ours
+                if importAsCapture(url) { report.created += 1 }
+                else { report.addFailed(name, ImportReport.unreadable) }
+            case .book:
+                // Books have their own door (the Books library): said, not dropped.
+                report.addSkipped(name, ImportReport.book)
+            case .none:
+                report.addSkipped(name, ImportReport.skipReason(forName: name, onMac: false))
             }
-            return
+            return report
         }
         // skrift://record (Lock Screen widget / Siri / any deep link) → start a
         // recording via the same bridge the Record App Intent uses.
@@ -145,6 +178,7 @@ enum AppURLHandler {
         if url.scheme == "skrift", url.host == "newnote" {
             QuickNoteBridge.shared.requestNew()
         }
+        return report
     }
 
     // MARK: - Pictures, text and PDFs
