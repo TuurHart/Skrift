@@ -66,6 +66,9 @@ final class LiveRecordingSession {
     var elapsed: TimeInterval { recorder.elapsed }
     var elapsedLabel: String { RecordingCore.elapsedLabel(elapsed) }
     var meter: RecordingCore.Meter { recorder.meter }
+    /// Said in the draft pane when the input died mid-take but the words so far are saved
+    /// (recsj-029). nil in every other state.
+    var notice: String? { recorder.lossNotice }
 
     /// After a completed stop: the created `PipelineFile` id, so the UI can select it.
     private(set) var noteID: String?
@@ -98,6 +101,11 @@ final class LiveRecordingSession {
         phase = .starting
         draft = LiveRecordingDraft()
         noteID = nil
+        // R46: the recorder ends the take itself when the disk refuses a write — stop + SAVE
+        // what landed, the note titled with the reason.
+        recorder.onTakeEnded = { [weak self] reason in
+            Task { @MainActor [weak self] in await self?.stop(reason: reason) }
+        }
         var announcedLive = false
         // Read once, synchronously, while `recorder.start()` builds the capture session.
         recorder.onLiveBuffer = { [weak self] buffer in
@@ -120,10 +128,13 @@ final class LiveRecordingSession {
 
     /// Stop, finalize per the ownership contract, hand the take to `ArrivalPath.run`
     /// (asRecording: true, with hooks that respect `everEdited`), then `.idle`.
-    func stop() async {
+    func stop(reason: String? = nil) async {
+        guard phase != .settling else { return }   // the recorder's own stop (write failure) and a click can race
         phase = .settling
         captionTask?.cancel(); captionTask = nil
 
+        // Why the take ended on its own (a write failure), if it did — titles the note (R46).
+        let endedReason = reason ?? recorder.endedReason
         guard let url = recorder.stop() else {
             applyRecorderFailure()
             await TranscriptionService.shared.endStream()
@@ -165,6 +176,7 @@ final class LiveRecordingSession {
                         pf.transcriptUserEdited = true
                     })
                 noteID = created.first?.id
+                finishTake(created: created, titled: endedReason, cloudContext: cloudContext)
             } catch {
                 Self.log.error("stop(): edited-take ingest failed — \(String(describing: error), privacy: .public)")
             }
@@ -191,6 +203,7 @@ final class LiveRecordingSession {
                     hooks: hooks,
                     onCreated: { rows in createdRow = rows.first })
                 noteID = created.first?.id
+                finishTake(created: created, titled: endedReason, cloudContext: cloudContext)
             } catch {
                 Self.log.error("stop(): ingest failed — \(String(describing: error), privacy: .public)")
             }
@@ -208,6 +221,28 @@ final class LiveRecordingSession {
         draft = LiveRecordingDraft()
         noteID = nil
         phase = .idle
+    }
+
+    /// The take is stored as a note: title it with why it ended early (R46), then — and only
+    /// then — delete the take's segment files. Until here they are the only copy, and the
+    /// next launch's sweep would rebuild the note from them. An ingest that produced no row
+    /// leaves them in place.
+    private func finishTake(created: [PipelineFile], titled reason: String?, cloudContext: ModelContext?) {
+        guard let pf = created.first else { return }
+        if let reason { MacTakeTitle.apply(reason, to: pf, cloudContext: cloudContext) }
+        recorder.discardFinishedTake()
+    }
+
+    /// Launch sweep (C99): rebuild every take an earlier run never finished into a note.
+    /// Safe to call once at startup; a take recording right now is skipped by the shared core.
+    func recoverInterruptedTakes() async {
+        guard phase == .idle else { return }
+        let report = await MacRecoverySweep.run(
+            into: context, cloudContext: MemoCloudStore.container?.mainContext,
+            hooks: ArrivalPath.Hooks.live(coordinator: coordinator, context: context))
+        if !report.recovered.isEmpty || !report.kept.isEmpty || !report.cleaned.isEmpty {
+            Self.log.notice("sweep: recovered=\(report.recovered.count, privacy: .public) kept=\(report.kept.count, privacy: .public) quarantined=\(report.cleaned.count, privacy: .public)")
+        }
     }
 
     // MARK: - Privates

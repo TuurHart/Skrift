@@ -242,7 +242,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        # 15.0 like the app: the shared recording core uses AVAudioFile.close() (macOS 15).
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Manual

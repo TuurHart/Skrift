@@ -17,7 +17,8 @@ struct RecordingDraftView: View {
             settledText: $session.settledText,
             wetText: session.wetText,
             everEdited: session.everEdited,
-            elapsedLabel: session.elapsedLabel
+            elapsedLabel: session.elapsedLabel,
+            notice: session.notice
         )
     }
 }
@@ -55,6 +56,8 @@ struct RecordingDraftBody: View {
     var wetText: String
     var everEdited: Bool
     var elapsedLabel: String
+    /// The input died mid-take but the words so far are saved (recsj-029). nil = nothing to say.
+    var notice: String? = nil
 
     @State private var pulse = false
 
@@ -85,11 +88,30 @@ struct RecordingDraftBody: View {
     // The words streaming in are the pane's whole recording indicator.
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let notice { noticeBanner(notice) }
             titleLine
             metaChipsRow
             notRatedLine
         }
         .padding(.bottom, 18)
+    }
+
+    /// A device loss mid-take, said where the user is looking — the take is NOT silently
+    /// dead, and what was captured is safe.
+    private func noticeBanner(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.destructive)
+            Text(text)
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.destructive.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .accessibilityIdentifier("recording-draft.notice")
     }
 
     @ViewBuilder private var titleLine: some View {

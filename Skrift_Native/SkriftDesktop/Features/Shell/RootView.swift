@@ -163,6 +163,11 @@ struct RootView: View {
             if let cloudCtx = MemoCloudStore.container?.mainContext {
                 MemoLifecycle.runOneClockMigrationOnce(context: cloudCtx)
             }
+            // C99 / Q163: a take an earlier run never finished (kill, crash, dead battery)
+            // becomes a note now. Its own Task: the rebuilt take is transcribed, which can
+            // run for a while, and nothing else here should wait on it.
+            let sweepSession = liveSession
+            Task { await sweepSession.recoverInterruptedTakes() }
             // Real app starts empty; `-demo` populates with sample notes for dev/demo,
             // `-naming-demo` (DEBUG) seeds one self-consistent naming-review example.
             let args = ProcessInfo.processInfo.arguments

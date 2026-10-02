@@ -4,11 +4,18 @@ import os
 
 /// Release-safe recording-lifecycle log (C287). Every transition of a take —
 /// start, segment, interrupt, finalize, recover — goes to the unified log
-/// (`os_log`, subsystem `com.skrift.mobile`, category `recording`), which
-/// survives Release builds unlike the DEBUG-only `DevLog`. A small in-memory
-/// mirror of the last lines lets tests assert the order of events.
+/// (`os_log`, subsystem `com.skrift.mobile` / `com.skrift.desktop`, category
+/// `recording`), which survives Release builds unlike the DEBUG-only `DevLog`.
+/// A small in-memory mirror of the last lines lets tests assert the order of events.
+///
+/// SHARED by both apps (Q163): the segment + marker + sweep core is one copy, so the
+/// phone and the Mac cannot disagree on what a surviving take looks like on disk.
 enum RecordingLifecycleLog {
+    #if os(macOS)
+    static let subsystem = "com.skrift.desktop"
+    #else
     static let subsystem = "com.skrift.mobile"
+    #endif
     static let category = "recording"
     private static let logger = Logger(subsystem: subsystem, category: category)
     private static let lock = NSLock()
@@ -22,7 +29,9 @@ enum RecordingLifecycleLog {
         mirror.append(line)
         if mirror.count > 200 { mirror.removeFirst(mirror.count - 200) }
         lock.unlock()
-        DevLog.log(line)
+        #if os(iOS)
+        DevLog.log(line)   // the phone's pullable device trace (DEBUG-only, phone-only type)
+        #endif
     }
 
     /// The most recent lines, oldest first (tests).
