@@ -1248,8 +1248,15 @@ enum Snapshot {
     /// failed pass with Retry — five notes, each cropped to its chrome band + the top of its body.
     /// Triggered by: `-snapshot-noterun <path>`.
     @MainActor private static func renderNoteRun(to path: String) {
+        // In a store and RATED: an unsaved/unrated file gets the copy-only menu and no verb at all.
+        guard let container = try? ModelContainer(
+            for: PipelineFile.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
         func note(_ id: String, _ title: String) -> PipelineFile {
             let f = PipelineFile(id: id, filename: "Voice Memo \(id).m4a", sourceType: .audio, uploadedAt: Date())
+            container.mainContext.insert(f)
+            f.significance = 0.5
             f.transcribeStatus = .done
             f.transcript = "A short note about the week, the sidebar, and what to ship on Friday."
             f.enhancedTitle = title
@@ -1281,7 +1288,9 @@ enum Snapshot {
         .background(Theme.bg)
         polishing.transcribeStatus = .done
         polishing.enhanceStatus = .processing
-        writePNG(view, to: path)
+        // HOSTED, not ImageRenderer: it draws the ⋯ `Menu` (and the HStack holding it) as a
+        // "not allowed" placeholder, which hides the very verb this surface is about.
+        hostPNG(view.environment(\.colorScheme, .dark).modelContainer(container), size: NSSize(width: 760, height: 5 * 152), to: path)
     }
 
     /// Opt-out naming review (mocks/naming-review.html) — the SIGNED-OFF visual language:
