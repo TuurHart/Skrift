@@ -87,6 +87,7 @@ struct ObsidianSettingsSection: View {
             do {
                 try ObsidianVault.setVault(url)
                 folderName = ObsidianVault.displayName
+                pickError = nil
             } catch {
                 pickError = "Couldn't save the folder — pick it again."
             }
@@ -162,6 +163,7 @@ struct ObsidianSettingsSection: View {
             do {
                 try PortfolioVault.setRoot(url)
                 portfolioName = PortfolioVault.displayName
+                pickError = nil
             } catch {
                 pickError = "Couldn't save the portfolio folder — pick it again."
             }

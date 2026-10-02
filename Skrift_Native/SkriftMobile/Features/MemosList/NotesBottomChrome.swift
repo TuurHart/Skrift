@@ -2,16 +2,11 @@ import SwiftUI
 
 // MARK: - Bottom chrome (Option A — mocks/notes-bottom-chrome.html)
 
-/// The Notes bottom row: compact book pill LEFT (only while a book session is
-/// active) + the record button RIGHT — one 60pt row, explicitly side by side so
-/// the two can never stack or overlap (the build-40 regression). No session →
-/// just the record button in the right corner. Its own view so only IT
-/// re-renders on the session's 2 Hz playback ticks, never the memos list.
+/// The Notes bottom row: the compact book pill, only while a book session is
+/// active; otherwise nothing. Record lives in the header verb row on every width
+/// (D136 dropped the red mic corner button). Its own view so only IT re-renders
+/// on the session's 2 Hz playback ticks, never the memos list.
 struct NotesBottomChrome: View {
-    /// false at iPad-regular width, where Record moved into the header verb row
-    /// (2026-08-18) — the row then carries only the book pill (or nothing).
-    var showRecordButton = true
-    let onRecord: () -> Void
     var session = AudiobookSession.shared
     /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
     /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
@@ -19,7 +14,6 @@ struct NotesBottomChrome: View {
     @AppStorage("continueCardDismissedDay") var cardDismissedDay = ""
 
     var body: some View {
-        // 16pt pill↔record gap (V2a "real air" — Henry's separation note).
         HStack(spacing: 16) {
             if session.isActive {
                 AudiobookMiniPill()
@@ -28,7 +22,6 @@ struct NotesBottomChrome: View {
             } else {
                 Spacer(minLength: 0)
             }
-            if showRecordButton { recordButton }
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 8)
@@ -39,19 +32,6 @@ struct NotesBottomChrome: View {
                 cardDismissedDay = ""
             }
         }
-    }
-
-    var recordButton: some View {
-        Button(action: onRecord) {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 23))
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(Color.skRed, in: .circle)
-                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 4))
-                .shadow(color: .skRed.opacity(0.45), radius: 12, y: 8)
-        }
-        .accessibilityIdentifier("new-recording-button")
     }
 }
 

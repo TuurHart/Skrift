@@ -370,14 +370,6 @@ final class AudiobookSession {
         }
     }
 
-    /// "Sleep · off" / "Sleep · 12m" / "Sleep · ch. end" for the player chip.
-    var sleepLabel: String {
-        if sleepAtChapterEnd { return "Sleep · ch. end" }
-        guard let sleepUntil else { return "Sleep · off" }
-        let remaining = max(0, sleepUntil.timeIntervalSinceNow)
-        return "Sleep · \(max(1, Int((remaining / 60).rounded())))m"
-    }
-
     private func sleepFired() {
         DevLog.log("audiobook sleep timer fired — pausing")
         pause()

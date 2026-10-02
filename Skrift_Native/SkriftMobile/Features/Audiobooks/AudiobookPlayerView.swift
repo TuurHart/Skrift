@@ -11,9 +11,8 @@ import UIKit
 struct AudiobookPlayerView: View {
     private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
-    /// iPad wave: regular width uses the room (transport left, read-along at
-    /// a reading measure, chapters/bookmarks as a standing rail). Compact
-    /// (incl. a split-view/Stage-Manager iPad) keeps today's player untouched.
+    /// ONE player at every width (C229); regular width only caps the read-along
+    /// at a reading measure.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private var isRegular: Bool { horizontalSizeClass == .regular }
 
@@ -101,12 +100,10 @@ struct AudiobookPlayerView: View {
         }
         // Idle-recede countdown. Restarts whenever the key changes (an interaction
         // bumps idleToken; play/pause flips; chrome shown). Only counts down while
-        // chrome is up AND playing — so a paused reader keeps its controls. Never at
-        // regular width: the three-zone layout doesn't read `chromeUp` at all, so
-        // this would just be wasted work, not a visible bug — the guard is belt and
-        // braces, matching the compact-only intent everywhere else in this file.
+        // chrome is up AND playing — so a paused reader keeps its controls. ONE
+        // player at every width (C229), so no width guard.
         .task(id: IdleKey(token: idleToken, up: chromeUp, playing: session.isPlaying)) {
-            guard !isRegular, chromeUp, session.isPlaying else { return }
+            guard chromeUp, session.isPlaying else { return }
             try? await Task.sleep(nanoseconds: Self.idleRecede)
             guard !Task.isCancelled, session.isPlaying, chromeUp else { return }
             withAnimation(Self.chromeFade) { chromeUp = false }

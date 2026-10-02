@@ -29,7 +29,7 @@ struct SyncedAudiobooksView: View {
     var body: some View {
         List {
             if syncedBooks.isEmpty {
-                Text("No audiobooks synced yet. Long-press a book in your library → “Sync this book to my devices.”")
+                Text("No audiobooks synced yet. Long-press a book in your library → “Sync this book…”")
                     .font(.system(size: 12.5))
                     .foregroundStyle(Color.skTextFaint)
                     .listRowBackground(Color.clear)

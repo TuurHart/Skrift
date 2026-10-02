@@ -128,7 +128,7 @@ func chapterPlayableIndices(_ book: Audiobook) -> [Int?] {
 // MARK: - Reusable rows (bare — chrome/padding is the host's job, so the
 // sheet's List rendering above stays pixel-identical to before this refactor)
 
-/// One chapter row — shared by the sheet's List and the standing rail.
+/// One chapter row — used by the sheet's List.
 struct AudiobookChapterRow: View {
     let title: String
     let time: TimeInterval
@@ -168,7 +168,7 @@ struct AudiobookChapterSeparator: View {
     }
 }
 
-/// One bookmark row — shared by the sheet's List and the standing rail.
+/// One bookmark row — used by the sheet's List.
 struct AudiobookBookmarkRow: View {
     let bookmark: AudiobookBookmark
     let action: () -> Void
@@ -185,88 +185,6 @@ struct AudiobookBookmarkRow: View {
                     .font(.system(size: 12)).monospacedDigit()
                     .foregroundStyle(Color.skTextFaint)
             }
-        }
-    }
-}
-
-// MARK: - Standing rail (iPad wave, regular width — mock `ipad-app.html` m6)
-
-/// The RIGHT-column rail hosted inline by the wide player: the sheet's SAME
-/// row rendering + "current" semantics, but both sections STACKED in one
-/// scroll (mock's `.chaps` pane) instead of tabbed — chapters above,
-/// bookmarks below, exactly as m6 draws it. Parent-driven (no store reads of
-/// its own): `currentTime`/`bookmarks` come from the player's own state, so
-/// the rail can never show something the read-along margin glyphs disagree
-/// with. Selecting a row seeks; there's nothing to dismiss — it's a standing
-/// pane, not a sheet.
-struct ChaptersBookmarksRail: View {
-    let book: Audiobook
-    let currentTime: TimeInterval
-    let bookmarks: [AudiobookBookmark]
-    var onSelectChapter: (AudiobookChapter) -> Void
-    var onSelectBookmark: (AudiobookBookmark) -> Void
-    var onDeleteBookmark: (AudiobookBookmark) -> Void
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                SectionLabel("CHAPTERS")
-                    .padding(.horizontal, 14).padding(.top, 16).padding(.bottom, 6)
-                chaptersSection
-                if !bookmarks.isEmpty {
-                    SectionLabel("BOOKMARKS")
-                        .padding(.horizontal, 14).padding(.top, 18).padding(.bottom, 6)
-                    bookmarksSection
-                }
-            }
-            .padding(.bottom, 24)
-        }
-        .accessibilityIdentifier("ipad-chapters-rail")
-    }
-
-    @ViewBuilder
-    private var chaptersSection: some View {
-        // Honest partial-chapter states: no chapters from ANY source (embedded/
-        // detected/ePub) says so plainly rather than fabricating a "Chapter 1".
-        if book.effectiveChapters.isEmpty {
-            Text("No chapters yet.")
-                .font(.system(size: 12)).foregroundStyle(Color.skTextFaint)
-                .padding(.horizontal, 14)
-        } else {
-            let titles = book.displayChapterTitles
-            let current = book.chapterIndex(at: currentTime)
-            let playableIndex = chapterPlayableIndices(book)
-            ForEach(Array(book.effectiveChapters.enumerated()), id: \.offset) { i, ch in
-                if ch.isSeparator == true {
-                    AudiobookChapterSeparator(title: titles[i])
-                        .padding(.horizontal, 14)
-                } else {
-                    let isCurrent = playableIndex[i] == current
-                    AudiobookChapterRow(title: titles[i], time: ch.start, isCurrent: isCurrent) {
-                        onSelectChapter(ch)
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 7)
-                    .background(
-                        isCurrent ? Color.skAccentSoft : Color.clear,
-                        in: .rect(cornerRadius: 8, style: .continuous)
-                    )
-                    .padding(.horizontal, 6)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var bookmarksSection: some View {
-        ForEach(bookmarks) { bm in
-            AudiobookBookmarkRow(bookmark: bm) { onSelectBookmark(bm) }
-                .padding(.horizontal, 8).padding(.vertical, 7)
-                .padding(.horizontal, 6)
-                .contextMenu {
-                    Button(role: .destructive) { onDeleteBookmark(bm) } label: {
-                        Label("Remove bookmark", systemImage: "trash")
-                    }
-                }
         }
     }
 }
