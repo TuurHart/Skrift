@@ -81,6 +81,8 @@ enum SourceKind: Equatable {
         // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
         // Without the marker a no-audio memo reads as an Apple Note import below.
         if media == "typed" { return .typedNote }
+        // A Mac picture-only import carries no `sharedContent`; its marker says what it is.
+        if media == "image" { return .captureImage }
         switch sharedType {
         case "url":   return .captureURL
         case "image": return .captureImage

@@ -10,6 +10,28 @@ struct PlaceCluster: Identifiable {
     let name: String
     let coordinate: CLLocationCoordinate2D
     let memos: [Memo]
+    /// The ids of every base cluster merged into this pin (just `[id]` for an unmerged one).
+    /// Membership is asked of THIS, never recovered by splitting `id` on "+" (a place called
+    /// "C+ Cafe" broke that).
+    let memberIDs: [String]
+    /// How many base clusters this pin holds (1 = not merged).
+    let mergedCount: Int
+    /// The name without the "+N" suffix.
+    let baseName: String
+
+    init(id: String, name: String, coordinate: CLLocationCoordinate2D, memos: [Memo],
+         memberIDs: [String]? = nil, mergedCount: Int = 1, baseName: String? = nil) {
+        self.id = id
+        self.name = name
+        self.coordinate = coordinate
+        self.memos = memos
+        self.memberIDs = memberIDs ?? [id]
+        self.mergedCount = mergedCount
+        self.baseName = baseName ?? name
+    }
+
+    /// Whether the base cluster `id` is this pin or one of the pins merged into it.
+    func contains(memberID: String) -> Bool { memberIDs.contains(memberID) }
 
     /// Group by place name (fallback: coordinates rounded to ~1 km) and average
     /// each group's coordinates for the pin.
@@ -70,13 +92,16 @@ struct PlaceCluster: Identifiable {
                     + cluster.coordinate.latitude * Double(cluster.memos.count)) / total
                 let lon = (host.coordinate.longitude * Double(host.memos.count)
                     + cluster.coordinate.longitude * Double(cluster.memos.count)) / total
-                let mergedCount = host.id.split(separator: "+").count
+                let count = host.mergedCount + cluster.mergedCount
                 out[i] = PlaceCluster(
                     id: host.id + "+" + cluster.id,
-                    name: "\(host.name.split(separator: " +").first.map(String.init) ?? host.name) +\(mergedCount)",
+                    name: "\(host.baseName) +\(count - 1)",
                     coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
                     memos: (host.memos + cluster.memos)
-                        .sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) })
+                        .sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) },
+                    memberIDs: host.memberIDs + cluster.memberIDs,
+                    mergedCount: count,
+                    baseName: host.baseName)
             } else {
                 out.append(cluster)
             }
