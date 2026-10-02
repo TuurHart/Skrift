@@ -919,7 +919,7 @@ do: Phone `.reading` mode blocks edits while a note is transcribing so a draft c
 check: `grep -rqE "class MacBodyEditableStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P25
 
-### Q125 [auto] (todo) Mac: find in the note
+### Q125 [auto] (doing) Mac: find in the note
 spec: D125 C113
 needs: -
 gate+: yes
@@ -927,7 +927,7 @@ do: D125 decided yes; the phone has a find bar (NoteBodyView.swift:100, 600-602)
 check: `grep -rqE "class MacFindBarTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P26
 
-### Q126 [auto] (todo) Mac: checklist button and Return continues a task line
+### Q126 [auto] (doing) Mac: checklist button and Return continues a task line
 spec: C113 C234
 needs: -
 gate+: yes
@@ -1061,7 +1061,7 @@ do: The shared source map has no typed value: the same typed note exports `sourc
 check: `grep -rqE "class ExportSourceFieldTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportSourceFieldTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P43
 
-### Q143 [auto] (todo) Mac note shows captures like the phone: image pixels, link description + thumbnail, PDF first page, the typed thought, an honest banner
+### Q143 [auto] (doing) Mac note shows captures like the phone: image pixels, link description + thumbnail, PDF first page, the typed thought, an honest banner
 spec: C119 D126 C25
 needs: Q138
 gate+: yes
@@ -1132,7 +1132,7 @@ do: The Q6 mock signed a '❝ N' pill opening a book's notes and a jump-back to 
 check: `test $(ls plan/reads/books-p-notes/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookNotesJoinTests && ./gate.sh`
 source: plan/reads/parity-audit.md P52
 
-### Q152 [tuur] (doing) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
+### Q152 [tuur] (tuur) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
 spec: D50 C160 C172
 needs: -
 do: D50/C160 decide the user can correct a misheard word in a captured quote; the quote block is read-only on the phone and (after the Mac read-only item) on the Mac, and no 'Fix quote' verb exists anywhere (books-118). One page: the verb in the note menu, the edit state of the quote, and how the corrected text stays attached to the audio window.
@@ -1155,7 +1155,7 @@ do: Phone `convertPhotoMarkers` drops dangling markers and uses `profile.imageMa
 check: `grep -rqE "class ExportImageMarkerParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportImageMarkerParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P55
 
-### Q155 [auto] (doing) export: one CompilerInput builder (voice, body source, link stems) on both exporters
+### Q155 [auto] (done) export: one CompilerInput builder (voice, body source, link stems) on both exporters
 spec: C196 C57 R37
 needs: Q153 Q142
 gate+: yes
@@ -1211,7 +1211,7 @@ do: The Mac only ever sets `isEnabled = true` (ConnectionsIndexService.swift:61)
 check: `grep -rqE "class MacIndexConsentTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P62
 
-### Q162 [tuur] (doing) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
+### Q162 [tuur] (tuur) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
 spec: D119 C217
 needs: -
 do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-list 'Syncing with iCloud…' capsule; the Mac observes CloudKit events only to trigger sweeps and shows no state, and BUGS.md:184 notes the old pill reads dead Bonjour state; a failed Mac container (`MemoCloudContainer`) silently disables sync, and neither app tells the user note sync is off when signed out (setexp-12, -14, -16, -18, -130). One page: the Mac Settings sync row, the capsule above the sidebar list, and the signed-out / failed state on both apps; the Mac's 'CloudKit sync with the Mac' switch (default on) shown with what it gates.
@@ -1962,12 +1962,19 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q258 [auto] (doing) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
+### Q258 [auto] (tuur) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
 spec: C25 C59
 needs: -
 gate+: yes
 do: Reported by the Q155 worker on top of session head (after Q153 merged at 7041ea92): protected phone tests fail — MemoExporterTests.testExportTitleFallback ('Note' vs expected 'Untitled Memo'), MemoExporterTests.testMarkdownPrefersMacEnhancement ('uses the Mac title'), PortfolioExportTests x5 (file named 'the-bench-outside-cafe-garrett.md', expected 'a-bench-made-of-an-oak-slab.md'). The gate runs the Mac suite only, so this slipped. 1) Confirm on the session head: `plan/mtest.sh MemoExporterTests` and `plan/mtest.sh PortfolioExportTests`; then on 9a5f0868~ ancestors if needed to name the commit that broke them (Q153 7041ea92 suspected: ExportNaming / ExportProfile file-name + title ladder; also Q114's NoteTitle ladder and Q177's titlePlaceholder). 2) Fix the CODE so the protected tests pass again while keeping the Q153 parity intent (same file from phone and Mac); never edit those tests. 3) If an assertion genuinely contradicts SPEC C25/C59, stop and report it as 'needs hand-merge: <test, line, why>'. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoExporterTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PortfolioExportTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportNamingParityTests && ./gate.sh`
+
+### Q259 [auto] (doing) phone: a store that fails to start shows a 'couldn't start' state instead of crashing (NotesRepository.swift:41 fatalError)
+spec: C115
+needs: -
+gate+: yes
+do: Found by the Q162 mockup agent: Skrift_Native/SkriftMobile/Services/NotesRepository.swift:41 calls fatalError when the SwiftData/CloudKit store fails to build, so the phone crashes at launch instead of telling the user. Replace the crash with a recoverable path: keep the error, show a plain full-screen 'Skrift couldn't open your notes' state with the error text and a hint (reopen / check iCloud storage), and log it via DevLog. Never delete or recreate the store automatically (data safety). Put the decision in a pure, testable function. Phone test `StoreStartFailureTests`. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2628,3 +2635,14 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoExporterTests && perl 
 - 2026-10-02 22:26 Q258 added
 - 2026-10-02 22:26 Q258 -> doing — worker out (opus)
 - 2026-10-02 22:26 Q132 -> done — gate pass @2f9c8593
+- 2026-10-02 22:38 Q162 -> tuur — mock https://claude.ai/artifact/7wi8J65uDFC1oCu3d6H8AL (mocks/Q162-mac-icloud-state.html, not render-checked by the agent). Question: when sync is broken or off, should the list carry a capsule until it's fixed, or only Settings say so?
+- 2026-10-02 22:38 Q259 added
+- 2026-10-02 22:39 Q152 -> tuur — mock https://claude.ai/artifact/Xoe9ccY5K7yHysRUMyBxrP (mocks/Q152-fix-quote.html, not render-checked by the agent). Question: is one word at a time + 'Include next word' enough for real mishearings, or free-type over the whole quote?
+- 2026-10-02 22:41 Q259 -> doing — worker out
+- 2026-10-02 22:42 Q114 -> stuck — check failed — .queue/Q114.check.log
+- 2026-10-02 22:42 Q114 -> doing — re-accept: first check hit the 900 s mtest alarm (sim contention), not a code failure
+- 2026-10-02 22:43 Q258 -> tuur — hand-merge: code is correct per C25/C132; update protected expectations — MemoExporterTests.swift:59 ('Untitled Memo' -> C25 'Note'/'Voice note'), :70 (frontmatter title = user title first, not the Mac suggestion), PortfolioExportTests lines 77/96/140/156/171 (file from the generated title: the-bench-outside-cafe-garrett.md). Broken by Q153 d4e0c0ff. PHONE SUITE RED on these 7 until merged.
+- 2026-10-02 22:43 Q143 -> doing — worker out
+- 2026-10-02 22:54 Q125 -> doing — batch worker out
+- 2026-10-02 22:54 Q126 -> doing — batch worker out
+- 2026-10-02 22:54 Q155 -> done — gate pass @ad5823fc
