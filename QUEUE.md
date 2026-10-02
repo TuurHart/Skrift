@@ -1005,7 +1005,7 @@ do: Phone `SharePayloadLoader.loadImages` always writes JPEG 0.85 at 2048 px, so
 check: `grep -rqE "class ImageNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImageNormaliseTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P36
 
-### Q136 [auto] (todo) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
+### Q136 [auto] (doing) Mac accepts what the phone share accepts: .txt, PDF and URL, with link enrichment
 spec: C77 D19 C72 C73
 needs: Q133
 gate+: yes
@@ -1013,7 +1013,7 @@ do: A Mac drop of `notes.txt` reports 'Couldn't import'; a PDF is refused (`inge
 check: `grep -rqE "class MacImportDoorsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P37
 
-### Q137 [auto] (doing) import failures are shown on both apps: skipped files, a video with no audio, a folder of photos
+### Q137 [auto] (done) import failures are shown on both apps: skipped files, a video with no audio, a folder of photos
 spec: C199 C202 C77
 needs: -
 gate+: yes
@@ -1266,7 +1266,7 @@ do: Phone passes user title + annotation + enhancement title / summary / copy-ed
 check: `grep -rqE "class MacEmbeddingSnapshotTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P69
 
-### Q169 [auto] (todo) Review note row uses the source glyph; map and Way-out entry glyphs agree
+### Q169 [auto] (doing) Review note row uses the source glyph; map and Way-out entry glyphs agree
 spec: C78 C115
 needs: Q138
 gate+: yes
@@ -2696,3 +2696,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:26 Q118 -> done — gate pass (batched with Q127)
 - 2026-10-02 23:26 Q263 added
 - 2026-10-02 23:26 Q263 -> tuur — awaiting sitting
+- 2026-10-02 23:27 Q136 -> doing — worker out
+- 2026-10-02 23:31 Q169 -> doing — worker out
+- 2026-10-02 23:33 Q137 -> done — gate pass @c9aa9161
