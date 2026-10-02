@@ -815,7 +815,7 @@ check: Tuur picked the table and FEATURES.md follows it.
 brief: iPad binds ⌘N twice: the app menu 'New Recording' (SkriftApp.swift:243-248) and the list pencil 'New note' (MemosListView+Header.swift:116); which one wins is unverified; FEATURES.md:61 says new note, :126 says record (list-sidebar-22, capture-quick-02, recsj-037). The Mac has only ⌘N (new note) and ⌥⌘C; no menu command for Record, no ⌘F, no ⌘1-3 surfaces (list-sidebar-24, recsj-036, -052). Recommended: ⌘N = new note on every device; Record = ⇧⌘N; Mac gets ⌘F (search), ⌘1 / ⌘2 for Notes / Review, and a Record menu command. He picks; then it is one `.commands` block per app.
 source: plan/reads/parity-audit.md P12
 
-### Q112 [auto] (stuck) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
+### Q112 [auto] (done) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
 spec: C172 C31 C21
 needs: -
 gate+: yes
@@ -2430,3 +2430,5 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 13:13 Q115 -> doing — worker out
 - 2026-10-02 13:16 Q112 -> stuck — check failed — .queue/Q112.check.log
 - 2026-10-02 13:16 Q251 added
+- 2026-10-02 13:16 Q112 -> doing — re-accept: first check run was SIGTERM'd mid-build at load ~109 (env, not code)
+- 2026-10-02 13:19 Q112 -> done — gate pass @48b4e8ed
