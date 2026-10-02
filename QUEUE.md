@@ -767,7 +767,7 @@ do: Mac sidebar fetches raw `Memo` rows without `MemoDuplicates.canonicalRows`, 
 check: `grep -rqE "class MacSidebarOrderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P6
 
-### Q106 [auto] (doing) Mac rows get the same card model the phone feeds: quote + book chip, shared-item title + domain chip, source chip for video and audiobook
+### Q106 [auto] (done) Mac rows get the same card model the phone feeds: quote + book chip, shared-item title + domain chip, source chip for video and audiobook
 spec: C115 C240 C172 C78
 needs: Q138
 gate+: yes
@@ -950,7 +950,7 @@ do: One clickable page: the Mac note with a photo added at the caret (open panel
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P29
 
-### Q129 [tuur] (doing) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
+### Q129 [tuur] (tuur) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
 spec: D122 C162
 needs: -
 do: One clickable page: the Mac note header chip becoming tappable (today a static chip with year), the picker (the phone's `ReminderSheet` drawn from source), 'Remind me…' in the list and note menus, and the notification the Mac shows when a synced reminder fires; first acknowledgement clears the other devices (C162). Covers note-header-06, note-menu-09, note-remind-01, list-sidebar-86.
@@ -1069,7 +1069,7 @@ do: Mac review of an image capture draws a glyph and a file name, no pixels, tho
 check: `test $(ls plan/reads/capture-p-mac/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P44
 
-### Q144 [tuur] (todo) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
+### Q144 [tuur] (doing) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
 spec: C237 D92 R36
 needs: -
 do: A Mac recording or typed note carries place only: no weather, no daypart, no steps, no chips (recsj-024, setexp-37, capture-quick-14; R36 lists it as required). The Mac has no weather key row and no `weatherAPIKey`. One page: the Mac Settings row for the key (draw the phone's from source) and the chips on a Mac note header. Needs his key typed by him; nothing is entered by the agent.
@@ -1242,7 +1242,7 @@ do: The phone recorder shows Downloading / Preparing / ready / Couldn't load / n
 check: `grep -rqE "class MacRecordingModelStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P66
 
-### Q166 [auto] (todo) Review reads one note set: Calendar and Map exclude fading notes, Then vs Now uses the same input, map pins clear on a real gesture
+### Q166 [auto] (doing) Review reads one note set: Calendar and Map exclude fading notes, Then vs Now uses the same input, map pins clear on a real gesture
 spec: C212 C87 C233
 needs: -
 gate+: yes
@@ -2580,3 +2580,7 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 20:59 Q128 -> doing — mockup agent out
 - 2026-10-02 20:59 Q129 -> doing — mockup agent out
 - 2026-10-02 21:00 Q182 -> done — gate pass @51314e73
+- 2026-10-02 21:01 Q166 -> doing — worker out (opus)
+- 2026-10-02 21:17 Q129 -> tuur — mock https://claude.ai/artifact/9SVbKnUhn2Re1wyUWcjiD5 (mocks/Q129-mac-reminders.html). Question: closing the Mac banner with ✕ — does it also silence iPhone/iPad, or only clicking it open? (mock treats both as acknowledging)
+- 2026-10-02 21:17 Q144 -> doing — mockup agent out
+- 2026-10-02 21:17 Q106 -> done — gate pass @c00d0e3e
