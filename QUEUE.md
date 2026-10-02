@@ -1321,7 +1321,7 @@ check: Tuur approved the hook and ran `./plan/twin-check.sh --baseline` once.
 brief: Section 6 of plan/reads/parity-audit.md has the script. gate.sh and plan/ are protected, so the item is the hand-merge: add `plan/twin-check.sh`, generate `plan/twins.baseline`, and add one line to `gate.sh` before xcodegen. It also gives C239 its named `plan/twins.md` (generated from `--report`), which does not exist today.
 source: plan/reads/parity-audit.md P76
 
-### Q176 [auto] (doing) settings + names: one copy set and one names filter on phone, iPad and Mac
+### Q176 [auto] (done) settings + names: one copy set and one names filter on phone, iPad and Mac
 spec: C239 C240 R58
 needs: -
 gate+: yes
@@ -2750,3 +2750,4 @@ check: Tuur approved; done via plan/hand-merge.sh.
 - 2026-10-03 00:06 Q265 -> doing — redispatch 2/3: rebase after CONFLICT
 - 2026-10-03 00:11 Q180 -> doing — worker out
 - 2026-10-03 00:11 Q156 -> done — gate pass @b2b132c1
+- 2026-10-03 00:13 Q176 -> done — gate pass @4c1f0e10
