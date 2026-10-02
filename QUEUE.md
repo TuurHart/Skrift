@@ -887,7 +887,7 @@ do: LINKED FROM exists in four implementations: phone `recomputeBacklinks` (Memo
 check: `grep -rqE "class BacklinkScanTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BacklinkScanTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P21
 
-### Q121 [auto] (doing) iPad note player follows the Mac transport order; one speed list and one time format
+### Q121 [auto] (done) iPad note player follows the Mac transport order; one speed list and one time format
 spec: C115 C240
 needs: -
 gate+: yes
@@ -973,7 +973,7 @@ do: Mac `newTypedNote` (SidebarView.swift:370-375) calls `MacMemoAuthor.typedNot
 check: `grep -rqE "class MacTypedNoteDiscardTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P32
 
-### Q132 [auto] (todo) phone: the One note / N notes chooser at every door (Files importer, Open-in, AirDrop), through the shared AudioImportChoice
+### Q132 [auto] (doing) phone: the One note / N notes chooser at every door (Files importer, Open-in, AirDrop), through the shared AudioImportChoice
 spec: C145 C68 C238
 needs: -
 gate+: yes
@@ -2614,3 +2614,5 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:55 Q186 -> tuur — hand-merge: wt/Q186 @03747cdd (agent-a4b84bff486dfc6c2); protected MacMultiAudioImportTests.testMixedBundleMergesTheClipsAndKeepsTheRest (:155-171) must change to created.count == 1 + annotation 'Buy milk' (C68 reverses the old gap). NEW synced Memo.includeAudioInExport -> CloudKit prod schema deploy at promotion.
 - 2026-10-02 21:56 Q155 -> doing — worker out (opus)
 - 2026-10-02 21:56 Q160 -> done — gate pass @3780d440
+- 2026-10-02 21:59 Q132 -> doing — worker out
+- 2026-10-02 22:02 Q121 -> done — gate pass @9a5f0868
