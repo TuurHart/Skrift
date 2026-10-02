@@ -1356,11 +1356,11 @@ enum Snapshot {
             if !w.rated { pf.significance = 0 }
             let coordinator = ProcessingCoordinator()
             let view = NoteDisplayView(file: pf, coordinator: coordinator, scrollable: false)
-                .frame(width: 860, height: 880)
+                .frame(width: 860, height: 1100)
                 .background(Theme.bg)
                 .preferredColorScheme(scheme)
                 .modelContainer(container)
-            hostPNG(view, size: NSSize(width: 860, height: 880), to: "\(dir)/\(w.name).png")
+            hostPNG(view, size: NSSize(width: 860, height: 1100), to: "\(dir)/\(w.name).png")
             print("renderCaptureCorpus: wrote \(w.name).png")
         }
     }

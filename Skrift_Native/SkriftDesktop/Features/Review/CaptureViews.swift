@@ -198,20 +198,23 @@ struct CaptureSharedContentBlock: View {
         let doc = documentURL
         if let doc, let page = CapturePDFPreview.firstPage(at: doc) {
             VStack(alignment: .leading, spacing: 10) {
-                ZStack(alignment: .bottomTrailing) {
-                    Image(nsImage: page.image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 420, maxHeight: 520)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
-                    Text(CapturePDFPreview.pageCountLabel(page.pageCount))
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.black.opacity(0.62), in: Capsule())
-                        .padding(8)
-                }
+                // Explicit fitted size: `scaledToFit` inside a max-frame leaves the frame at the
+                // full max width and centres the page in it.
+                let fit = min(420 / page.image.size.width, 520 / page.image.size.height, 1)
+                Image(nsImage: page.image)
+                    .resizable()
+                    .frame(width: page.image.size.width * fit, height: page.image.size.height * fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+                    .overlay(alignment: .bottomTrailing) {
+                        Text(CapturePDFPreview.pageCountLabel(page.pageCount))
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.black.opacity(0.62), in: Capsule())
+                            .padding(8)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 .onTapGesture { NSWorkspace.shared.open(doc) }
                 .help("Open the PDF")
                 HStack(spacing: 8) {
