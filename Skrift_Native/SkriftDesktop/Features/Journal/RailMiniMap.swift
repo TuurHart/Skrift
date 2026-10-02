@@ -92,7 +92,7 @@ struct RailMiniMap: View {
         let merged = PlaceCluster.merged(clusters, span: region.span)
         pins = merged.map { c in
             MiniPin(id: c.id, count: c.memos.count,
-                    extra: max(0, c.id.split(separator: "+").count - 1),
+                    extra: c.mergedCount - 1,
                     point: snap.point(for: c.coordinate))
         }
         shot = snap.image

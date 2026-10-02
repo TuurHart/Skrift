@@ -442,7 +442,7 @@ struct JournalView: View {
     /// the selection highlight silently vanished across a merge).
     private func selectedPlaceShownBy(_ cluster: PlaceCluster) -> Bool {
         guard let sel = selectedPlace else { return false }
-        return cluster.id.split(separator: "+").contains(Substring(sel.id))
+        return cluster.contains(memberID: sel.id)
     }
 
     /// Notes whose place pin sits inside the current viewport — the no-selection
@@ -470,7 +470,7 @@ struct JournalView: View {
             return
         }
         selectedPlace = cluster
-        let members = Set(cluster.id.split(separator: "+").map(String.init))
+        let members = Set(cluster.memberIDs)
         let constituents = clusters.filter { members.contains($0.id) }
         if let region = PlaceCluster.fitRegion(for: constituents.isEmpty ? [cluster] : constituents) {
             // Dive means DOWN: if the target frame is WIDER than what's on
@@ -586,7 +586,7 @@ struct JournalView: View {
                             .background(Theme.hairline.opacity(0.05), in: Capsule())
                     }
                     if memo.duration > 0 {
-                        Text(Duration.seconds(memo.duration).formatted(.time(pattern: .minuteSecond)))
+                        Text(DurationFormat.label(seconds: memo.duration))
                             .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                     }
                     Spacer()

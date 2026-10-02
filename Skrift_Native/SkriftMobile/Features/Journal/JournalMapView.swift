@@ -101,7 +101,7 @@ struct JournalMapCanvas: View {
     /// silently vanishes across a merge (Mac device finding, 2026-07-16).
     private func selectedShownBy(_ cluster: PlaceCluster) -> Bool {
         guard let sel = selected else { return false }
-        return cluster.id.split(separator: "+").contains(Substring(sel.id))
+        return cluster.contains(memberID: sel.id)
     }
 
     /// Pin tap: DIVE — fly down far enough that a merged pin splits into its
@@ -112,7 +112,7 @@ struct JournalMapCanvas: View {
             return
         }
         selected = cluster
-        let members = Set(cluster.id.split(separator: "+").map(String.init))
+        let members = Set(cluster.memberIDs)
         let constituents = clusters.filter { members.contains($0.id) }
         if let region = PlaceCluster.fitRegion(for: constituents.isEmpty ? [cluster] : constituents) {
             // Dive means DOWN: if the target frame is WIDER than what's on

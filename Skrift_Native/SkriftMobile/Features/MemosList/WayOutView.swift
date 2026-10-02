@@ -377,7 +377,7 @@ private struct WayOutPeekSheet: View {
                         HStack(spacing: 10) {
                             Text(MemoDate.day(memo.recordedAt))
                             if let place = memo.metadata?.location?.placeName { Text(place) }
-                            if memo.duration > 0 { Text(Duration.seconds(memo.duration).formatted(.time(pattern: .minuteSecond))) }
+                            if memo.duration > 0 { Text(DurationFormat.label(seconds: memo.duration)) }
                         }
                         .font(.system(size: 12))
                         .foregroundStyle(Color.skTextFaint)
