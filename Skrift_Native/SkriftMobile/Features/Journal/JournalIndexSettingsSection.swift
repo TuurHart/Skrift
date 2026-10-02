@@ -103,21 +103,28 @@ struct JournalIndexSettingsSection: View {
             return
         }
         phase = .downloading(0)
+        // Mirrored into the service so the iPad Connections panel shows the same
+        // downloading/preparing states (one RetrievalGate derivation).
+        service.downloadFraction = 0
         GemmaEmbedder.downloadProgress = { received, total in
             Task { @MainActor in
                 // Bytes done → the ANE compile runs next; name it (frozen-bar lesson).
-                if case .failed = phase { return }
+                // A late callback after success/failure must not resurrect a bar.
+                guard phase.isBusy else { return }
                 let f = total > 0 ? Double(received) / Double(total) : 0
                 phase = f >= 0.999 ? .preparing : .downloading(f)
+                JournalIndexService.shared.downloadFraction = f
             }
         }
         Task {
             do {
                 try await GemmaEmbedder.shared.prepare()
                 phase = .idle
+                JournalIndexService.shared.downloadFraction = nil
                 JournalIndexService.shared.sweepSoon(NotesRepository.shared)
             } catch {
                 phase = .failed(error.localizedDescription)
+                JournalIndexService.shared.downloadFraction = nil
                 enabled = false
             }
             GemmaEmbedder.downloadProgress = nil

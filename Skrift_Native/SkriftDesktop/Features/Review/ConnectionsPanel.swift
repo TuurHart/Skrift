@@ -421,11 +421,10 @@ struct ConnectionsPanelBody: View {
     /// warm amber at the top tier, NOTHING when unrated (no fake 0.0). No refine
     /// wall (D52/C183) — the amber marks "Important" (ball 3), not a pass.
     @ViewBuilder private func importanceText(_ value: Double?) -> some View {
-        let step = ThreeBallScale.step(for: value)
-        if step > 0 {
-            Text(String(format: "%.1f", ThreeBallScale.value(forStep: step)))
+        if let readout = ThreeBallScale.readout(for: value) {
+            Text(readout)
                 .font(.system(size: 9, weight: .bold).monospacedDigit())
-                .foregroundStyle(step == ThreeBallScale.stepCount ? Theme.amber : Theme.accent)
+                .foregroundStyle(ThreeBallScale.isTopStop(value) ? Theme.amber : Theme.accent)
         }
     }
 
@@ -608,11 +607,12 @@ struct ConnectionsPanelBody: View {
             // A FAILED lookup must not masquerade as an honest empty result
             // (no-bad-info): when the service recorded a query error, say
             // "unavailable", not "no connections yet".
-            if let err = ConnectionsIndexService.shared.lastError {
+            if let err = RetrievalGate.failure(state: state, hasRows: !related.isEmpty,
+                                               lastError: ConnectionsIndexService.shared.lastError) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 22)).foregroundStyle(.red.opacity(0.7))
                     .padding(.top, 48)
-                Text("Connections unavailable")
+                Text(RetrievalGate.Copy.unavailableTitle)
                     .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
                 Text(err)
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
@@ -666,7 +666,7 @@ struct ConnectionsPanel: View {
     var onOpenMemo: (String) -> Void
     var onCollapse: () -> Void
     @Environment(\.modelContext) private var ctx
-    @AppStorage("connectionsSortByDate") private var sortByDate = true
+    @AppStorage("connectionsSortByDate") private var sortByDate = RetrievalTuning.connectionsDefaultSortByDate
 
     var body: some View {
         ConnectionsPanelBody(

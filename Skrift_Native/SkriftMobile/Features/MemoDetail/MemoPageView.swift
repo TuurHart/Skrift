@@ -138,6 +138,12 @@ struct MemoPageView: View {
             detailBacklinkedIDs = MemoLifecycle.backlinkedIDs(in: repository.allMemos())
             await loadRelated()
         }
+        // Rating or unlocking the open note opens its footer connections (and
+        // un-rating / locking closes them) without leaving the page.
+        .onChange(of: footerConnectionsAllowed) { _, _ in
+            recomputeBacklinks()
+            Task { await loadRelated() }
+        }
         // The arc of this idea (P8) — from the Related card's CTA.
         // A polish can arrive/change via CloudKit while the screen is open — the
         // @Query updates the body live; re-derive the name tiers over the new text.
@@ -639,7 +645,7 @@ struct MemoPageView: View {
                 peopleInNoteRow
                     .accessibilityIdentifier(isCurrent ? "people-in-note-row" : "people-in-note-row-offscreen")
             }
-            if includeConnections, !backlinks.isEmpty {
+            if includeConnections, footerConnectionsAllowed, !backlinks.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     SectionLabel("LINKED FROM")
                     ForEach(backlinks, id: \.id) { link in
@@ -665,7 +671,7 @@ struct MemoPageView: View {
                     }
                 }
             }
-            if includeConnections, !relatedMemos.isEmpty {
+            if includeConnections, footerConnectionsAllowed, !relatedMemos.isEmpty {
                 relatedSection(isCurrent: isCurrent)
             }
         }
@@ -704,9 +710,17 @@ struct MemoPageView: View {
         }
     }
 
+    /// The compact footer's Related + LINKED FROM obey the same consent rule as
+    /// the iPad/Mac panel (C215 `canSummon`): rated and not locked. An unrated
+    /// or locked note loads and shows neither (Q119).
+    var footerConnectionsAllowed: Bool {
+        ConnectionsPanelLogic.canSummon(memo, isLocked: lockGate.isLocked(memo))
+    }
+
     /// Semantic neighbours for the Related card — no-op unless the journal
     /// index is active (the card stays invisible for everyone else).
     func loadRelated() async {
+        guard footerConnectionsAllowed else { relatedMemos = []; return }
         guard JournalIndexService.shared.isActive else { return }
         let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
         let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -718,6 +732,7 @@ struct MemoPageView: View {
     /// Who links HERE: scan every live memo's transcript for this memo's id.
     /// Cheap contains() pre-filter, exact via MemoLinkSyntax; off-main.
     func recomputeBacklinks() {
+        guard footerConnectionsAllowed else { backlinks = []; return }
         let myID = memo.id
         // A memo-link can live in the raw transcript OR the Mac's polished copyedit — a Mac-made
         // link syncs into the enhancement, not the transcript (2026-07-15 device finding: the Mac

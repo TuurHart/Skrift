@@ -90,4 +90,19 @@ enum ThreeBallScale {
         if to > 0 { return "\(name(forStep: to)) · ready to process" }
         return from > 0 ? "Not rated · out of the queue, no export" : "Not rated · left alone"
     }
+
+    // ── The Connections row readout (Q119, C210: one rule on Mac, iPad, phone) ──
+
+    /// The importance decimal a Connections row prints: the BUCKETED stop, never
+    /// the raw stored value (legacy 0.7 reads "1.0", 0.4 reads "0.6"). nil when
+    /// unrated (no fake "0.0").
+    static func readout(for value: Double?) -> String? {
+        let s = step(for: value)
+        return s > 0 ? String(format: "%.1f", self.value(forStep: s)) : nil
+    }
+
+    /// The readout's amber tier: the top stop (Important) only.
+    static func isTopStop(_ value: Double?) -> Bool {
+        step(for: value) == stepCount
+    }
 }

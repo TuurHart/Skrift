@@ -30,6 +30,9 @@ enum RetrievalTuning {
     /// Mac Connections panel: rows shown before "Show all N" (the phone's
     /// related strip keeps `relatedK`).
     static let relatedKMac = 7
+    /// The Connections sort pill's default on EVERY panel (Mac and iPad): Date,
+    /// the arc (signed mock related-panel.html: "remembered, default Date").
+    static let connectionsDefaultSortByDate = true
 
     /// The visible subset of a score-DESC related list: the top `cap` matches,
     /// except the genuinely earliest row always makes the cut (swapped in for

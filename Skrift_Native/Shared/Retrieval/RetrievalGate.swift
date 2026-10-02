@@ -35,6 +35,14 @@ enum RetrievalGate: Equatable {
         return .ready
     }
 
+    /// The failure line (C110, R58): a READY surface with no rows whose last
+    /// lookup or sweep FAILED says "Connections unavailable" + the error, never
+    /// "No connections yet". nil = show the honest state (rows, or empty).
+    static func failure(state: RetrievalGate, hasRows: Bool, lastError: String?) -> String? {
+        guard state == .ready, !hasRows, let err = lastError, !err.isEmpty else { return nil }
+        return err
+    }
+
     /// The user-facing strings, one copy — the device word is the only variable.
     enum Copy {
         static let modelMB = 295
@@ -67,6 +75,9 @@ enum RetrievalGate: Equatable {
 
         static let findingTitle = "Finding connections…"
         static let findingSub = "Warming the on-device model —\nquick once it's loaded."
+
+        /// A failed lookup's title; the error string rides below it.
+        static let unavailableTitle = "Connections unavailable"
 
         static let emptyTitle = "No connections yet"
         static let emptySub = "As more notes touch this idea,\nits arc shows up here."
