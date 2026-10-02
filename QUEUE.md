@@ -727,7 +727,7 @@ do: Q21 gated the phone only. On the Mac: `QueueRowView.cardModel` never sets `l
 check: `grep -rqE "class MacLockGateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P1
 
-### Q101 [auto] (doing) a locked note stays locked on every other surface: Mac Way-out + peek, Review rows on phone and Mac, Share note, search
+### Q101 [auto] (done) a locked note stays locked on every other surface: Mac Way-out + peek, Review rows on phone and Mac, Share note, search
 spec: C161 C213 C91 R88
 needs: Q100
 gate+: yes
@@ -2418,3 +2418,4 @@ check: `./gate.sh`
 - 2026-10-02 13:07 Q102 -> tuur — hand-merge: worktree agent-acedeea7d0147ca0b @d2c3acf0 (desktop gate green); protected phone test ProcessPileTests.testLockedNoteIsNotWaiting (:41) must flip to 'a locked note IS waiting' in the same merge
 - 2026-10-02 13:07 Q112 -> doing — worker out
 - 2026-10-02 13:07 Q236 -> done — gate pass @8f3f5cb6
+- 2026-10-02 13:10 Q101 -> done — gate pass @0b3ebcc9
