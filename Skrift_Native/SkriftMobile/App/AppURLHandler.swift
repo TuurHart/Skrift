@@ -20,6 +20,91 @@ enum AppURLHandler {
     /// returns for the same name (`ImportKindsTests`, both targets).
     nonisolated static func importKind(of url: URL) -> ImportKinds.Kind? { ImportKinds.kind(of: url) }
 
+    // MARK: - Several files at once (C68 / C145)
+
+    /// The audio files of a pick that are voice notes (not a `.skriftbook`, not a video).
+    nonisolated static func audioClips(in urls: [URL]) -> [URL] {
+        urls.filter { $0.isFileURL && !BookBundle.isBookBundle($0) && importKind(of: $0) == .audio }
+    }
+
+    /// Files that arrive TOGETHER (the Files importer's pick, an AirDrop / Open-in burst) go
+    /// through here: 2+ voice notes raise the One-note / N-notes chooser (`AudioPickBridge`),
+    /// anything else is handled file by file exactly as before.
+    static func handle(batch urls: [URL]) {
+        if AudioImportChoice.needsChoice(clipCount: audioClips(in: urls).count) {
+            AudioPickBridge.shared.offer(urls)
+        } else {
+            for url in urls { handle(url) }
+        }
+    }
+
+    // Open-in / AirDrop deliver one `onOpenURL` per file, back to back. Voice notes are held for
+    // a beat so a burst of three arrives as ONE pick and meets the same chooser.
+    private static var burst: [URL] = []
+    private static var burstTask: Task<Void, Never>?
+    static let burstWindow: Duration = .milliseconds(700)
+
+    /// The `onOpenURL` door: collect voice notes into a burst; everything else goes straight in.
+    static func receive(_ url: URL) {
+        guard !audioClips(in: [url]).isEmpty else { handle(url); return }
+        burst.append(url)
+        burstTask?.cancel()
+        burstTask = Task { @MainActor in
+            try? await Task.sleep(for: burstWindow)
+            guard !Task.isCancelled else { return }
+            let urls = burst
+            burst = []
+            handle(batch: urls)
+        }
+    }
+
+    /// Carry out the user's answer. `.oneNote` stitches the voice notes (oldest first, by the
+    /// ONE bundle order `FilenameDate.chronologicalOrder`) through the shared `AudioClipMerge`
+    /// into one transcribed memo; `.separateNotes` imports each. Files that are not voice notes
+    /// in the pick are handled as ever. Returns the memo to jump to.
+    @discardableResult
+    static func resolve(_ urls: [URL], choice: AudioImportChoice, saver: MemoSaver? = nil) async -> UUID? {
+        let saver = saver ?? MemoSaver()
+        let clips = audioClips(in: urls)
+        let clipSet = Set(clips)
+        var jump: UUID?
+        for url in urls where !clipSet.contains(url) { handle(url) }
+        if choice.combines, clips.count > 1 {
+            let staged = await Task.detached(priority: .userInitiated) { stageForMerge(clips) }.value
+            if let id = saver.importAudioClips(from: staged.urls, recordedAt: staged.dates.first.flatMap { $0 },
+                                               clipDates: staged.dates) {
+                MemoOpenBridge.shared.open(id)
+                jump = id
+            }
+        } else {
+            for url in clips {
+                if let id = saver.importAudio(from: url) { MemoOpenBridge.shared.open(id); jump = id }
+            }
+        }
+        return jump
+    }
+
+    /// Copy the picks into app-owned temps (the merge deletes its sources, and a Files pick is
+    /// the user's own file) in `chronologicalOrder`. Dates are read from the originals through
+    /// the C70 ladder first.
+    nonisolated static func stageForMerge(_ clips: [URL]) -> (urls: [URL], dates: [Date?]) {
+        let scoped = clips.map { $0.startAccessingSecurityScopedResource() }
+        defer { for (u, s) in zip(clips, scoped) where s { u.stopAccessingSecurityScopedResource() } }
+        let dates = clips.map { FilenameDate.ladder(embedded: nil, fileAt: $0) }
+        let run = UUID().uuidString
+        var urls: [URL] = [], outDates: [Date?] = []
+        for i in FilenameDate.chronologicalOrder(dates) {
+            let src = clips[i]
+            let ext = src.pathExtension.isEmpty ? "m4a" : src.pathExtension
+            let temp = FileManager.default.temporaryDirectory.appendingPathComponent("files_import_\(run)_\(i).\(ext)")
+            try? FileManager.default.removeItem(at: temp)
+            if (try? FileManager.default.copyItem(at: src, to: temp)) != nil {
+                urls.append(temp); outDates.append(dates[i])
+            }
+        }
+        return (urls, outDates)
+    }
+
     static func handle(_ url: URL) {
         if url.isFileURL {
             // 📦 A book someone shared (AirDrop / Files / Messages). Checked FIRST:

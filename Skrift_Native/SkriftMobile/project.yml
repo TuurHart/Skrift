@@ -411,6 +411,9 @@ targets:
       - path: ../Shared/Pipeline/FilenameDate.swift
       # C238: the ONE accepted-types list (the loader's audio-by-extension reroute).
       - path: ../Shared/Pipeline/ImportKinds.swift
+      # C68 / C145: the ONE One-note / N-notes chooser wording (`AudioImportChoice`) - the share
+      # sheet reads it instead of hand-writing the strings (Q132).
+      - path: ../Shared/Pipeline/AudioClipMerge.swift
       # The rating pill + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the pill without importing the app target. Both halves

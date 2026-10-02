@@ -13,6 +13,8 @@ struct SkriftApp: App {
     /// 📦 Holds a `.skriftbook` that arrived over AirDrop / Files / Messages until
     /// the user says yes to it.
     @StateObject private var bookImport = BookImportBridge.shared
+    /// Holds 2+ voice notes (Files pick / AirDrop burst) until the user answers One note / N notes.
+    @StateObject private var audioPick = AudioPickBridge.shared
 
     init() {
         let repo = NotesRepository.shared
@@ -92,7 +94,18 @@ struct SkriftApp: App {
                 .modelContainer(repository.container)
                 .preferredColorScheme(colorScheme)
                 .tint(.skAccent)
-                .onOpenURL { AppURLHandler.handle($0) }
+                .onOpenURL { AppURLHandler.receive($0) }
+                // 2+ voice notes from Files / AirDrop / Open-in: the One-note / N-notes
+                // question (C68 / C145), hosted at the root like the book offer.
+                .sheet(item: $audioPick.pending) { pending in
+                    AudioPickChoiceSheet(
+                        pending: pending,
+                        onConfirm: { choice in
+                            audioPick.pending = nil
+                            Task { await AppURLHandler.resolve(pending.urls, choice: choice) }
+                        },
+                        onCancel: { audioPick.pending = nil })
+                }
                 // 📦 A book someone shared can arrive while ANY screen is up, so
                 // the offer is hosted at the root rather than in the library.
                 .sheet(item: $bookImport.pending) { BookImportSheet(pending: $0) }

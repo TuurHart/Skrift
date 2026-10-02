@@ -336,7 +336,9 @@ struct MemosListView: View {
                           allowedContentTypes: ImportKinds.allowedContentTypes(),
                           allowsMultipleSelection: true) { result in
                 if case .success(let urls) = result {
-                    for url in urls { AppURLHandler.handle(url) }
+                    // One pick = one batch: 2+ voice notes raise the One note / N notes
+                    // chooser (C68 / C145) instead of silently becoming N notes.
+                    AppURLHandler.handle(batch: urls)
                 }
             }
             .sheet(isPresented: $showVideoImporter) {
