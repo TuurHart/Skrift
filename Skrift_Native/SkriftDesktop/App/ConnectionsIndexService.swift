@@ -29,9 +29,15 @@ final class ConnectionsIndexService {
     private(set) var downloadFraction: Double?
     var lastError: String?
 
+    /// Bumped on every consent write so views that read `isEnabled` (UserDefaults is not
+    /// observable) re-render when the Settings switch or the panel gate moves it.
+    private(set) var consentRevision = 0
     var isEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: Self.enabledDefaultsKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Self.enabledDefaultsKey) }
+        get { _ = consentRevision; return UserDefaults.standard.bool(forKey: Self.enabledDefaultsKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Self.enabledDefaultsKey)
+            consentRevision += 1
+        }
     }
     var isModelDownloaded: Bool { GemmaEmbedder.isModelDownloaded }
     /// The panel's query surfaces (rows, thread, why-chips) exist only when true.
@@ -85,6 +91,17 @@ final class ConnectionsIndexService {
                 }
             }
             GemmaEmbedder.downloadProgress = nil
+        }
+    }
+
+    /// The Settings switch (Q161): on = the panel gate's enable flow; off = withdraw consent.
+    /// Withdrawing stops sweeps and hides every semantic surface; the model and the local
+    /// index stay on disk, so turning it back on is instant (the phone's rule).
+    func setConsent(_ on: Bool, _ context: ModelContext) {
+        switch RetrievalGate.consentAction(wasEnabled: isEnabled, nowEnabled: on) {
+        case .enable: enableAndDownload(context)
+        case .withdraw: isEnabled = false; lastError = nil
+        case .none: break
         }
     }
 

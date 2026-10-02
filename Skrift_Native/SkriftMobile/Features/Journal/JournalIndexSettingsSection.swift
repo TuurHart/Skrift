@@ -24,7 +24,7 @@ struct JournalIndexSettingsSection: View {
 
     var body: some View {
         Section {
-            Toggle("Semantic journal index", isOn: $enabled)
+            Toggle(RetrievalGate.Copy.settingTitle, isOn: $enabled)
                 .accessibilityIdentifier("setting-journal-index")
                 .disabled(phase != .idle && phase.isBusy)
                 .onChange(of: enabled) { _, on in
