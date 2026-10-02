@@ -651,7 +651,9 @@ enum RunFile {
             }
             let ctx = SharedStore.container.mainContext
             do {
-                let created = try await IngestService().ingest(localURLs: [URL(fileURLWithPath: path)], into: ctx)
+                var service = IngestService()
+                service.acceptsDocuments = true
+                let created = try await service.ingest(localURLs: [URL(fileURLWithPath: path)], into: ctx)
                 // Mirror SidebarView.ingest: the real RECORDING date lives inside the m4a;
                 // the filesystem date is just the import/copy date.
                 for pf in created where pf.sourceType == .audio {
