@@ -796,7 +796,7 @@ spec: C115 C61 D135
 needs: -
 do: -
 check: Tuur picked one definition and it went into SPEC.
-brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`). Also: ProcessPile.unrated (ProcessPile.swift:32) and the .notRated chip (:52) drop locked notes, so a locked unrated note sits under no chip but All; C182 does not cover unrated notes. Should locked unrated notes count under Unrated? (from Q102)
+brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`). Also: ProcessPile.unrated (ProcessPile.swift:32) and the .notRated chip (:52) drop locked notes, so a locked unrated note sits under no chip but All; C182 does not cover unrated notes. Should locked unrated notes count under Unrated? (from Q102) Also (Q104): a stranded note (rated, no pipeline row) shows under BOTH Needs Work and Done on the Mac but one of them on the phone; a locked unrated note shows under Not rated on the Mac (lockedQuiet) but not on the phone (ProcessPile.matches(.notRated) excludes locked).
 source: plan/reads/parity-audit.md P10
 
 ### Q110 [tuur] (todo) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
@@ -1029,7 +1029,7 @@ do: `SourceKind.of(memo)` decodes `SharedContent` from `memo.metadataData` expec
 check: `grep -rqE "class SourceKindRealShapeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SourceKindRealShapeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P39
 
-### Q139 [auto] (doing) MacMemoAuthor writes what a phone memo carries: mediaSource, clip manifest, photo assets
+### Q139 [auto] (done) MacMemoAuthor writes what a phone memo carries: mediaSource, clip manifest, photo assets
 spec: R36 R34 C71 C124
 needs: Q138
 gate+: yes
@@ -1298,7 +1298,7 @@ do: appTheme → ColorScheme (SkriftApp.swift:272-278 and Theme.swift:105-120, s
 check: `grep -rqE "class TwinLogicSharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TwinLogicSharedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P73
 
-### Q173 [auto] (todo) small phone bugs and dead code the audit turned up
+### Q173 [auto] (doing) small phone bugs and dead code the audit turned up
 spec: C115 C229
 needs: -
 gate+: yes
@@ -1529,7 +1529,7 @@ do: `migrateParkedToOneClock` and `runOneClockMigrationOnce` (`Shared/Pipeline/M
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoLifecycleTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d14 (cleanup-audit P14)
 
-### Q202 [auto] (todo) Mac review column: unused parameters, one title builder, comments in the right place
+### Q202 [auto] (doing) Mac review column: unused parameters, one title builder, comments in the right place
 spec: C240
 needs: Q116
 gate+: no
@@ -1793,7 +1793,7 @@ do: In `Shared/` (re-grep each symbol by NAME first, both apps and all tests): d
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PersonEditCoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-d01 SRS-d02 SRS-d03 SRS-d04 SRS-d06 SRS-d10 SRS-d12 SRS-d15 SRS-d16 SRS-d20 SRS-c02 SRS-c03 (cleanup-audit P47)
 
-### Q235 [auto] (todo) naming: one match key, one pipe split, one link finder
+### Q235 [auto] (doing) naming: one match key, one pipe split, one link finder
 spec: C239
 needs: Q116
 gate+: no
@@ -2473,3 +2473,7 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:04 Q211 -> tuur — hand-merge: SplitSpeakersTests.swift:107 (isWaitingSplit), PipelineFileTests.swift:17-18 (steps setter) — not started
 - 2026-10-02 18:04 Q225 -> tuur — hand-merge: PublishCoordinatorTests:24,33, MemoAssetTests, MemoModelTests:65, LiveCaptionCadenceTests:47-63, LiveCaptionSettleTests:54-56, testSetAPIKeyRoundTrip — not started; needs Q211
 - 2026-10-02 18:07 Q116 -> done — gate pass @d93a540d
+- 2026-10-02 18:10 Q202 -> doing — batch worker out
+- 2026-10-02 18:10 Q235 -> doing — batch worker out
+- 2026-10-02 18:11 Q173 -> doing — worker out
+- 2026-10-02 18:13 Q139 -> done — gate pass @870808e1
