@@ -72,6 +72,11 @@ enum SharedCopy {
     static let noMatchesTitle = "No matches"
     static func noMatchesBody(_ query: String) -> String { "Nothing matches “\(query)”." }
 
+    /// Review's one-sentence intro / empty state, in the phone's two lines (the Mac joins them).
+    static let reviewIntroLines = ["As your notes age, past thinking resurfaces here —",
+                                   "a month ago, a year ago, on this day."]
+    static var reviewIntro: String { reviewIntroLines.joined(separator: " ") }
+
     /// Review's selected day with nothing in it.
     static let reviewEmptyDay = "Nothing recorded this day."
 
