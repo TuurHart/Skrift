@@ -53,7 +53,7 @@ struct BookCoverView: View {
             [0x166534, 0x14532d],
             [0x9d174d, 0x581c87],
         ]
-        let index = abs(book.id.uuidString.hashValue) % palettes.count
+        let index = StableHash.index(book.id.uuidString, count: palettes.count)
         return palettes[index].map { Color(hex: $0) }
     }
 }

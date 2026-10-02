@@ -40,6 +40,7 @@ struct AppTabView: View {
     @State private var selection: Tab = AppTabView.initialTab()
     /// `-showTOCSheet` screenshot hook (see the `.sheet` below).
     @State private var showSeededTOC = false
+    @State private var showTileGallery = false
     /// Keyboard `.commands` (⌘1–⌘4 + the tab-switch half of ⌘N/⌘F) post here.
     @ObservedObject private var tabBridge = TabSelectionBridge.shared
     /// `-showTextSheet` / `-showTextPrompt` screenshot hooks (unified "Text" sheet + A0).
@@ -98,9 +99,15 @@ struct AppTabView: View {
                 _ = AudiobookSession.shared.open(recent, autoplay: false)
             }
             if LaunchFlags.showTOCSheet { showSeededTOC = true }
+            #if DEBUG
+            if LaunchFlags.showBookTileGallery { showTileGallery = true }
+            #endif
             if LaunchFlags.showTextSheet { showSeededText = true }
             if LaunchFlags.showTextPrompt { showSeededTextPrompt = true }
         }
+        #if DEBUG
+        .fullScreenCover(isPresented: $showTileGallery) { BookTileGallery() }
+        #endif
         // `-showTOCSheet`: render the Chapters/Bookmarks sheet over the seeded
         // book — a deterministic screenshot without UI-test taps.
         .sheet(isPresented: $showSeededTOC) {

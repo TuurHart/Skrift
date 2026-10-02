@@ -183,7 +183,7 @@ struct AudiobookLibraryView: View {
                 // your other devices (Apple Books model). Stays in the library as
                 // download-available, not deleted. End the session first if this is
                 // the playing book — its audio is about to vanish from disk.
-                Button("Remove from this iPhone only") {
+                Button(BookTileState.removeThisDeviceTitle) {
                     if session.book?.id == book.id { session.endSession() }
                     AudiobookCloudSync.removeDownload(bookID: book.id)
                     syncToggleTick += 1
@@ -193,11 +193,7 @@ struct AudiobookLibraryView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { book in
-            if AudiobookCloudSync.isSynced(bookID: book.id) {
-                Text("It's synced to your devices. Removing everywhere deletes the audio + read-along text from all of them. Your bookmarks and captured notes are kept.")
-            } else {
-                Text("This removes the book and its audio from this iPhone. Your bookmarks and captured notes are kept.")
-            }
+            Text(BookTileState.deleteMessage(synced: AudiobookCloudSync.isSynced(bookID: book.id)))
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-library")
@@ -384,7 +380,10 @@ struct AudiobookLibraryView: View {
                     ForEach(visibleBooks) { book in
                         let isCurrent = session.book?.id == book.id
                         let syncState = bookSyncState(book)
-                        BookShelfTile(book: book, isCurrent: isCurrent, syncState: syncState) {
+                        BookShelfTile(book: book, isCurrent: isCurrent, syncState: syncState,
+                                      transferFraction: cloudSync.bookTransfers[book.id]?.fraction,
+                                      realign: BookTileState.realignLine(active: textActivity.isActive(book.id),
+                                                                         stage: textActivity.stage)) {
                             openOrPlay(book, syncState: syncState)
                         }
                         .contextMenu { contextMenuItems(book) }
@@ -487,10 +486,8 @@ struct AudiobookLibraryView: View {
 
     /// The mock's row label: "Uploading audio · 38%" / "Downloading · 61%" (the % drops
     /// out in the brief pre-first-byte window so we never show a misleading "0%").
-    private func transferLabel(uploading: Bool, pct: Int?) -> String {
-        let verb = uploading ? "Uploading audio" : "Downloading"
-        guard let pct else { return uploading ? "Uploading audio…" : "Downloading…" }
-        return "\(verb) · \(pct)%"
+    private func transferLabel(uploading: Bool, fraction: Double?) -> String {
+        BookTileState.transferLabel(uploading: uploading, fraction: fraction)
     }
 
     private func row(_ book: Audiobook) -> some View {
@@ -542,7 +539,6 @@ struct AudiobookLibraryView: View {
                         // indeterminate only in the brief window before the first byte (a
                         // received phantom waiting on the source's audioUploadedAt push).
                         let transfer = cloudSync.bookTransfers[book.id]
-                        let pct = transfer.map { Int(($0.fraction * 100).rounded()) }
                         HStack(spacing: 7) {
                             Group {
                                 if let fraction = transfer?.fraction {
@@ -555,7 +551,7 @@ struct AudiobookLibraryView: View {
                             .tint(Color.skAccent)
                             .frame(maxWidth: 110)
                             .scaleEffect(x: 1, y: 0.7, anchor: .center)
-                            Text(transferLabel(uploading: syncState == .uploading, pct: pct))
+                            Text(transferLabel(uploading: syncState == .uploading, fraction: transfer?.fraction))
                                 .font(.system(size: 10.5))
                                 .monospacedDigit()
                                 .foregroundStyle(Color.skAccentText)
@@ -567,7 +563,7 @@ struct AudiobookLibraryView: View {
                         // the work is background, playback and taps keep working.
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.mini)
-                            Text(textActivity.stage ?? "Matching up your book text…")
+                            Text(textActivity.stage ?? BookTileState.realignFallback)
                                 .font(.system(size: 10.5))
                                 .foregroundStyle(Color.skAccentText)
                                 .lineLimit(1)
