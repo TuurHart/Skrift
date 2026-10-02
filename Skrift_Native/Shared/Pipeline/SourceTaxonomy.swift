@@ -41,6 +41,14 @@ enum SourceKind: Equatable {
         }
     }
 
+    /// The Mac capture strip's line: the kind label, plus the domain when a link has one
+    /// ("Link · swiftwithmajid.com"). The strip used to hardcode its own "Shared link", and the
+    /// phone chip another: three spellings of one fact. Both now read `label`.
+    func stripLabel(domain: String?) -> String {
+        guard let domain, !domain.isEmpty else { return label }
+        return "\(label) · \(domain)"
+    }
+
     /// Row-title fallback for a note with no title and no words yet. A typed
     /// note says "Note" — "Voice note" on something you wrote reads as a bug
     /// (mocks/mac-new-note.html m3); everything else keeps the historic copy.

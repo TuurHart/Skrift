@@ -48,6 +48,18 @@ final class ModelLoadStatus: ObservableObject {
         }
     }
 
+    /// The shared wording/state the record screen (phone and Mac) reads — `idle` splits on the
+    /// persisted cache latch so a cached model never reads "not downloaded".
+    var recordingState: RecordingModelState {
+        switch phase {
+        case .idle:               return .idle(everDownloaded: everDownloaded)
+        case .downloading(let p): return .downloading(p)
+        case .preparing(let p):   return .preparing(p)
+        case .ready:              return .ready
+        case .failed:             return .failed
+        }
+    }
+
     // Back-compat conveniences (read by RecordView + OnboardingView).
     var ready: Bool { phase == .ready }
     var loading: Bool {

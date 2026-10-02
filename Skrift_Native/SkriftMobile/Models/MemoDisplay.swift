@@ -210,7 +210,8 @@ extension Memo {
         return NoteCardBuilder.captureSnippet(shared: sc, annotation: annotationText)
     }
 
-    /// "Link", "Text", or "Image" chip label for the detail header chips.
+    /// LEGACY wording ("Shared link"), kept only because CaptureDisplayTests pins it. The header
+    /// chip and file card now read `SourceKind.of(memo).label` (Q122); delete this + its test.
     var shareCaptureTypeLabel: String {
         switch sharedContent?.type {
         case .url:   return "Shared link"

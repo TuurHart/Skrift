@@ -467,17 +467,9 @@ struct RecordView: View {
     // MARK: - Model status (live)
 
     private var statusText: String {
-        switch modelStatus.phase {
-        case .downloading(let p): return "Downloading model · \(Int(p * 100))%"
-        case .preparing(let p?):  return "Preparing model · \(Int(p * 100))%"
-        case .preparing(nil):     return "Preparing model…"
-        case .ready:              return "On-device transcription · ready"
-        case .failed:             return "Couldn’t load model"
-        case .idle:
-            // Once cached, never claim "not downloaded" — the preload is bringing
-            // it back from disk (a fast reload, not a re-download).
-            return modelStatus.everDownloaded ? "Preparing model…" : "Transcription model not downloaded"
-        }
+        // The wording is the shared `RecordingModelState` (the Mac's recording pane reads the
+        // same strings).
+        modelStatus.recordingState.statusText
     }
 
     private var statusColor: Color {
@@ -674,7 +666,7 @@ private struct LiveCaption: View {
         ScrollView(.vertical) {
             Group {
                 if words.isEmpty && modelLoading {
-                    Text("Model loading — your words appear once it’s ready")
+                    Text(RecordingModelState.captionPlaceholder)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.skTextFaint)
                         .frame(maxWidth: .infinity, alignment: .leading)
