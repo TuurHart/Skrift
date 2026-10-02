@@ -145,7 +145,7 @@ struct QuickNoteView: View {
     }
 
     private var titleField: some View {
-        TextField("", text: $title, prompt: Text("Add a title").foregroundStyle(Color.skTextFaint))
+        TextField("", text: $title, prompt: Text(SharedCopy.titlePlaceholder).foregroundStyle(Color.skTextFaint))
             .font(.system(size: 17, weight: .bold))
             .foregroundStyle(Color.skText)
             .tint(.skAccent)

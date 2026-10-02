@@ -152,21 +152,29 @@ struct SearchField: View {
     @Binding var text: String
     var prompt: String = "Search"
     var fieldID: String = "search-field"
+    /// Optional focus binding (⌘F on the Notes list moves focus into the field).
+    var focus: FocusState<Bool>.Binding? = nil
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
-            TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Color.skTextFaint))
-                .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier(fieldID)
+            field
             if !text.isEmpty {
                 Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.skTextFaint) }
+                    .accessibilityLabel(SharedCopy.clearSearchLabel)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
         .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
         .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+    }
+
+    @ViewBuilder private var field: some View {
+        let tf = TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Color.skTextFaint))
+            .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
+            .autocorrectionDisabled()
+            .accessibilityIdentifier(fieldID)
+        if let focus { tf.focused(focus) } else { tf }
     }
 }
 

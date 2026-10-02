@@ -142,9 +142,8 @@ struct MemosListView: View {
     /// column: it's MemoDetailView's own per-note visitor sheet (signed
     /// 2026-07-24), so `ipadConnectionsVisible` is retired.
     @AppStorage("ipadListVisible") var listVisible = true
-    /// ⌘F focuses the Notes search field. The shared `SearchField` component
-    /// can't carry a focus binding, so the field is inlined below (`searchField`)
-    /// with this state; `SearchFocusBridge` posts the request from `.commands`.
+    /// ⌘F focuses the Notes search field: `SearchField` takes this as its `focus`
+    /// binding; `SearchFocusBridge` posts the request from `.commands`.
     @FocusState var searchFocused: Bool
     @ObservedObject var searchFocusBridge = SearchFocusBridge.shared
 
@@ -372,9 +371,14 @@ struct MemosListView: View {
             } else {
                 ZStack {
                     Color.skBg.ignoresSafeArea()
-                    Text("Select a note")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color.skTextDim)
+                    VStack(spacing: 6) {
+                        Image(systemName: SharedCopy.emptyPaneGlyph)
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.skTextFaint.opacity(0.4))
+                        Text(SharedCopy.emptyPaneTitle)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.skTextDim)
+                    }
                 }
                 .toolbar(.hidden, for: .navigationBar)
                 .accessibilityIdentifier("ipad-detail-placeholder")
@@ -413,25 +417,11 @@ struct MemosListView: View {
 
     // MARK: - Content
 
-    /// The Notes search field. A faithful inline copy of the shared `SearchField`
-    /// (same tokens, same `memo-search` id) — reproduced here ONLY because that
-    /// component (DesignSystem/Components.swift, read-only this wave) exposes no
-    /// focus binding, and ⌘F needs `.focused($searchFocused)` on the TextField.
+    /// The Notes search field: the shared `SearchField` (Q177), with the ⌘F focus
+    /// binding and the `memo-search` id.
     var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
-            TextField("", text: $search, prompt: Text(SharedCopy.searchPlaceholder).foregroundStyle(Color.skTextFaint))
-                .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
-                .autocorrectionDisabled()
-                .focused($searchFocused)
-                .accessibilityIdentifier("memo-search")
-            if !search.isEmpty {
-                Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.skTextFaint) }
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 9)
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
-        .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+        SearchField(text: $search, prompt: SharedCopy.searchPlaceholder,
+                    fieldID: "memo-search", focus: $searchFocused)
     }
 
     var listContent: some View {
@@ -557,8 +547,8 @@ struct MemosListView: View {
                         }
                     } header: {
                         Text(group.title.uppercased())
-                            .font(.system(size: 11.5, weight: .bold))
-                            .kerning(0.5)
+                            .font(.system(size: ListChrome.headerSize, weight: .bold))
+                            .kerning(ListChrome.headerKerning)
                             .foregroundStyle(Color.skTextDim)
                     }
                 }
@@ -590,12 +580,12 @@ struct MemosListView: View {
                         }
                     } header: {
                         HStack(spacing: 6) {
-                            Text("RELATED")
-                                .font(.system(size: 11.5, weight: .bold))
-                                .kerning(0.5)
+                            Text(ListChrome.relatedHeader)
+                                .font(.system(size: ListChrome.headerSize, weight: .bold))
+                                .kerning(ListChrome.headerKerning)
                                 .foregroundStyle(Color.skTextDim)
-                            Text("similar in meaning")
-                                .font(.system(size: 11))
+                            Text(ListChrome.relatedSubtitle)
+                                .font(.system(size: ListChrome.subtitleSize))
                                 .foregroundStyle(Color.skTextFaint)
                         }
                         .accessibilityIdentifier("related-section-header")

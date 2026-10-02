@@ -99,4 +99,52 @@ enum SharedCopy {
 
     /// The run bar while a model loads: "Loading transcription model · 1 of 2".
     static func processingLoading(_ what: String) -> String { "Loading \(what)" }
+
+    // ── Q177: list + note chrome that was typed twice (parity audit §3) ──
+
+    /// Empty detail pane (no note selected): the phone/iPad's wording, ONE glyph on both
+    /// (the Mac's old "Select a note to get started" + sparkles carried no information).
+    static let emptyPaneTitle = "Select a note"
+    static let emptyPaneGlyph = "doc.text"
+
+    /// The compose button: VoiceOver name on both apps; the tooltip keeps the shortcut
+    /// because it carries information (the phone/iPad take the same ⌘N).
+    static let newNoteLabel = "New note"
+    static let newNoteTooltip = "New note (⌘N)"
+
+    /// The search field's clear (xmark) button: VoiceOver name on both apps.
+    static let clearSearchLabel = "Clear search"
+
+    /// Prompt in the title field of a note with no title yet (mock quick-note.html).
+    static let titlePlaceholder = "Add a title"
+    /// The prompt itself: a ghost of the title the note would show (the Mac keeps this
+    /// because it carries information) when there is one, else the placeholder. Never a
+    /// raw filename.
+    static func titlePrompt(ghosts: [String?]) -> String {
+        for g in ghosts {
+            let t = g?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !t.isEmpty { return t }
+        }
+        return titlePlaceholder
+    }
+
+    /// The note screen of a locked note. `authName` is the platform's prompt word
+    /// ("Face ID" on the phone, "Touch ID or your password" on the Mac). C161/C213.
+    static let lockedTitleFallback = "Locked note"
+    static func lockedBody(authName: String) -> String {
+        "Locked notes stay out of Obsidian publish and need \(authName) here. They're hidden, not encrypted."
+    }
+    static let unlockVerb = "Unlock"
+}
+
+/// One header look for the day groups and the RELATED section on every list (the
+/// phone's numbers; the Mac was 10.5 / 0.4 / tertiary). Colour is a role each app maps
+/// to its own token: header = secondary text (phone skTextDim, Mac textSecondary),
+/// subtitle = tertiary (skTextFaint / textMuted).
+enum ListChrome {
+    static let headerSize: Double = 11.5
+    static let headerKerning: Double = 0.5
+    static let subtitleSize: Double = 11
+    static let relatedHeader = "RELATED"
+    static let relatedSubtitle = "similar in meaning"
 }

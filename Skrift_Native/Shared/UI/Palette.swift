@@ -38,6 +38,10 @@ enum Palette {
     /// text, an active bar chip). Deepens on light so it stays legible on white.
     static let accentText = PalettePair(light: 0x6051c8, dark: 0xb9acff)
 
+    /// The accent-soft fill (selected row, active chip): `accent` at this alpha. ONE number
+    /// (iPad was 0.13, Mac 0.16; Q177 took the phone's) that both Themes apply.
+    static let accentSoftAlpha: Double = 0.13
+
     // Drifted cross-app tokens — reconcile pending an eyeball round.
     static let bg = DriftedPair(
         phone: PalettePair(light: 0xf5f5f7, dark: 0x0f1117),
