@@ -692,6 +692,9 @@ struct IngestService: Sendable {
         for item in items {
             let ext = item.pathExtension.lowercased()
             guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video].contains(kind) else { continue }
+            // A folder is an Apple Notes export: its `.md` files are notes, a stray `.txt` is
+            // clutter (IngestServiceTests pins this). A `.txt` DROPPED directly is a note.
+            if kind == .text, ext == "txt" { continue }
             if let pf = try await ingestFile(item, into: context) { created.append(pf) }
         }
         return created
