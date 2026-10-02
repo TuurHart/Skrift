@@ -261,15 +261,7 @@ struct MemosListView: View {
                     // the book pill only now — D136 drops the phone's red mic
                     // corner button too ("reaching up to record is not that bad"),
                     // Record lives ONLY in `verbRow` on every width now.
-                    NotesBottomChrome(showRecordButton: false) {
-                        intentBridge.clearPendingStart()
-                        // PRESTART (2026-07-26): capture begins HERE, at the
-                        // button, while the cover is still animating in —
-                        // RecordView claims the running service in onAppear.
-                        // Tapping record IS the consent to open the mic.
-                        LiveRecordingService.prestart()
-                        showRecord = true
-                    }
+                    NotesBottomChrome()
                 }
             }
             // Compact header (mock notes-compact-header.html, 2026-07-07): the

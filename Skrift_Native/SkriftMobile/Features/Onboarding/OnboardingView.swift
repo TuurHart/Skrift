@@ -10,11 +10,17 @@ import CoreLocation
 struct OnboardingView: View {
     let onDone: () -> Void
 
-    @State private var mediaGranted = false
-    @State private var locationRequested = false
+    /// What iOS answered, `nil` = not asked yet. The cards show a check only for a real grant.
+    @State private var micGranted: Bool?
+    @State private var cameraGranted: Bool?
+    @StateObject private var location = OnboardingLocationObserver()
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
     @State private var modelRequested = false
-    private let locationManager = CLLocationManager()
+
+    private var mediaState: OnboardingPermissionState {
+        .media(microphone: micGranted, camera: cameraGranted)
+    }
+    private var locationState: OnboardingPermissionState { .location(location.status) }
 
     var body: some View {
         ZStack {
@@ -30,10 +36,10 @@ struct OnboardingView: View {
 
                 VStack(spacing: 10) {
                     stepCard(icon: "mic.fill", title: "Microphone & Camera", desc: "To record and snap photos") {
-                        if mediaGranted { doneBadge } else { allowButton("allow-media", action: requestMedia) }
+                        permissionTrailing(mediaState, id: "allow-media", action: requestMedia)
                     }
                     stepCard(icon: "location.fill", title: "Location & Motion", desc: "Tags notes with place, weather, steps") {
-                        if locationRequested { doneBadge } else { allowButton("allow-location", action: requestLocation) }
+                        permissionTrailing(locationState, id: "allow-location", action: requestLocation)
                     }
                     stepCard(icon: "arrow.down.circle.fill", title: "Transcription model", desc: modelDesc) {
                         if modelStatus.ready {
@@ -68,6 +74,24 @@ struct OnboardingView: View {
             // iPad: keep the first-run column at a reading measure instead of
             // stretching edge-to-edge. A no-op at phone width.
             .readingMeasure()
+        }
+        .onAppear(perform: readExistingMediaStatus)
+    }
+
+    @ViewBuilder
+    private func permissionTrailing(_ state: OnboardingPermissionState, id: String,
+                                    action: @escaping () -> Void) -> some View {
+        switch state {
+        case .granted: doneBadge
+        case .notAsked: allowButton(id, action: action)
+        case .denied:
+            Button("Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .font(.system(size: 12.5, weight: .bold)).foregroundStyle(Color.skAmber)
+            .accessibilityIdentifier("\(id)-denied")
         }
     }
 
@@ -114,17 +138,28 @@ struct OnboardingView: View {
 
     // MARK: - Actions (best-effort; real grants are device-owed)
 
+    private func readExistingMediaStatus() {
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted: micGranted = true
+        case .denied: micGranted = false
+        default: break
+        }
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized: cameraGranted = true
+        case .denied, .restricted: cameraGranted = false
+        default: break
+        }
+    }
+
     private func requestMedia() {
         Task {
-            _ = await AVAudioApplication.requestRecordPermission()
-            _ = await AVCaptureDevice.requestAccess(for: .video)
-            mediaGranted = true
+            micGranted = await AVAudioApplication.requestRecordPermission()
+            cameraGranted = await AVCaptureDevice.requestAccess(for: .video)
         }
     }
 
     private func requestLocation() {
-        locationManager.requestWhenInUseAuthorization()
-        locationRequested = true
+        location.request()
     }
 
     private func downloadModel() {
