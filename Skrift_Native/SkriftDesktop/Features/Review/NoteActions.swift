@@ -218,7 +218,17 @@ struct NoteActions: View {
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
     }
 
+    /// THIS note's run state (Q118): the coordinator's live run mapped onto this note, plus the
+    /// note's own failure. The Mac's `PolishCenter.Phase`.
+    private var runState: MacNoteRunState {
+        MacNoteRunState.of(noteID: file.id, run: coordinator.runState?.snapshot,
+                           transcribe: file.transcribeStatus, enhance: file.enhanceStatus,
+                           error: file.error, needsProcessing: workState.wantsProcessing)
+    }
+
     private func primaryAction() {
+        // The verb is replaced while a run is on this note; this guards a stray key-equivalent.
+        guard !runState.isBusy else { return }
         if !enhanceDone {
             Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
         } else {
@@ -226,18 +236,64 @@ struct NoteActions: View {
         }
     }
 
+    /// The verb, or while a pass runs on this note a bar + step line in its place (the iPad's
+    /// `processControl`), or after a failed pass "Couldn't process — Retry".
+    @ViewBuilder private var primaryControl: some View {
+        switch runState {
+        case .idle:
+            Button(action: primaryAction) {
+                Text(primaryLabel)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+        case .queued:
+            runCapsule(line: MacNoteRunState.queuedLine, fraction: nil)
+        case .loading(let line, let fraction):
+            runCapsule(line: line, fraction: fraction)
+        case .running(let line, let fraction):
+            runCapsule(line: line, fraction: fraction)
+        case .failed(let reason):
+            Button(action: primaryAction) {
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10.5))
+                    Text("\(MacNoteRunState.failedLine) — Retry").font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Theme.destructive)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(Theme.destructive.opacity(0.12), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .help(reason.isEmpty ? MacNoteRunState.failedLine : reason)
+            .accessibilityIdentifier("note-process-retry")
+        }
+    }
+
+    private func runCapsule(line: String, fraction: Double?) -> some View {
+        HStack(spacing: 8) {
+            if let fraction {
+                ProgressView(value: fraction)
+                    .progressViewStyle(.linear)
+                    .frame(width: 74)
+                    .tint(Theme.accentText)
+            }
+            Text(line)
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(Theme.accentText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 11).padding(.vertical, 7)
+        .background(Theme.accent.opacity(0.14), in: Capsule())
+        .accessibilityIdentifier("note-process-progress")
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             if !copyOnly {
-                Button(action: primaryAction) {
-                    Text(primaryLabel)
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
+                primaryControl
             }
 
             // Native Menu: auto-dismisses on outside click (N3) and the items

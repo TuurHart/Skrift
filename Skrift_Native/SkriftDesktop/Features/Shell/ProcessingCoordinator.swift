@@ -16,6 +16,16 @@ final class ProcessingCoordinator {
         var loadingLabel: String?
         /// Download fraction 0…1; nil = indeterminate (loading from cache).
         var loadingFraction: Double?
+        /// Per-note facts for the note bar (Q118, `MacNoteRunState`): which note the run is on, how
+        /// many steps its pass has, and every note of the run that has not finished yet.
+        var currentID: String?
+        var currentSteps = 1
+        var pendingIDs: Set<String> = []
+
+        var snapshot: MacRunSnapshot {
+            MacRunSnapshot(currentID: currentID, currentSteps: currentSteps, pendingIDs: pendingIDs,
+                           loadingLabel: loadingLabel, loadingFraction: loadingFraction)
+        }
     }
 
     private(set) var runState: RunState?
@@ -110,9 +120,9 @@ final class ProcessingCoordinator {
 
     /// Start of every run: keep the models resident, publish the run bar, and tell the shared
     /// embedder to yield the ANE/GPU (the phone's 2026-07-15 starvation lesson).
-    private func beginRun(total: Int, currentTitle: String? = nil) {
+    private func beginRun(total: Int, currentTitle: String? = nil, ids: [String] = []) {
         idleUnloadTask?.cancel(); idleUnloadTask = nil   // don't unload mid-run
-        runState = RunState(total: total, done: 0, currentTitle: currentTitle)
+        runState = RunState(total: total, done: 0, currentTitle: currentTitle, pendingIDs: Set(ids))
         TranscriptionActivity.begin()
     }
 
@@ -134,7 +144,7 @@ final class ProcessingCoordinator {
             .sorted { $0.uploadedAt < $1.uploadedAt }   // oldest first, like the backend
         guard !targets.isEmpty else { return }
 
-        beginRun(total: targets.count)
+        beginRun(total: targets.count, ids: targets.map(\.id))
         defer { endRun(sweepContext: context) }   // fresh transcripts/polish just landed — index them
 
         let settings = SettingsStore.shared.load()
@@ -196,6 +206,9 @@ final class ProcessingCoordinator {
 
         for pf in targets {
             runState?.currentTitle = pf.queueTitle
+            // The note bar's step line: a pass that transcribes first has two steps (Q118).
+            runState?.currentID = pf.id
+            runState?.currentSteps = (pf.sourceType != .capture && (retranscribeIDs.contains(pf.id) || pf.transcribeStatus != .done)) ? 2 : 1
             // Captures: pf.path is the working folder, not an audio file — don't
             // pass it as an audioURL (BatchRunner ignores it, but nil is cleaner).
             let hasAudio = pf.sourceType == .audio && !pf.path.isEmpty
@@ -220,7 +233,7 @@ final class ProcessingCoordinator {
                     // Not a failure: the note is untouched (BatchRunner decided before writing).
                     finishSplit(pf, error: e, context: context)
                     try? context.save()
-                    runState?.done += 1
+                    finishCurrentNote(pf)
                     continue
                 }
                 if isSplit { finishSplit(pf, error: error, context: context) }
@@ -235,8 +248,15 @@ final class ProcessingCoordinator {
             }
             try? context.save()
             writeBackEnhancement(pf)
-            runState?.done += 1
+            finishCurrentNote(pf)
         }
+    }
+
+    /// One note of the run is over: count it and take it off the note bars' "in this run" list.
+    private func finishCurrentNote(_ pf: PipelineFile) {
+        runState?.done += 1
+        runState?.pendingIDs.remove(pf.id)
+        if runState?.currentID == pf.id { runState?.currentID = nil }
     }
 
     /// CAPTURE a just-recorded file: transcribe (+ diarize) and stop. The phone does exactly

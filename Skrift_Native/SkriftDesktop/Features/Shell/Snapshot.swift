@@ -12,6 +12,7 @@ import AVFoundation
 ///   -snapshot-settings-light p  → the Settings panel in LIGHT
 ///   -snapshot-wizard <path>     → the first-launch wizard
 ///   -snapshot-run <path>        → the review surface mid-run
+///   -snapshot-noterun <path>    → the note bar in its run states: idle, queued, transcribing, polishing, failed (Q118)
 ///   -snapshot-naming <path>     → the opt-out naming tiers + popovers (mocks/naming-review.html)
 ///   -snapshot-capture <path>    → review surface with the C3 url capture selected
 ///   -snapshot-inspector <path>  → the Connections inspector floating over the note (HOSTED)
@@ -41,6 +42,7 @@ enum Snapshot {
         if let p = path("-snapshot-settings")       { MainActor.assumeIsolated { renderSettings(to: p); exit(0) } }
         if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
+        if let p = path("-snapshot-noterun")        { MainActor.assumeIsolated { renderNoteRun(to: p); exit(0) } }
         if let p = path("-snapshot-naming")         { MainActor.assumeIsolated { renderNaming(to: p); exit(0) } }
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
@@ -1239,6 +1241,46 @@ enum Snapshot {
         }
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
+        writePNG(view, to: path)
+    }
+
+    /// The Mac note bar in each run state (Q118): the verb, queued, transcribing, polishing, and a
+    /// failed pass with Retry — five notes, each cropped to its chrome band + the top of its body.
+    /// Triggered by: `-snapshot-noterun <path>`.
+    @MainActor private static func renderNoteRun(to path: String) {
+        func note(_ id: String, _ title: String) -> PipelineFile {
+            let f = PipelineFile(id: id, filename: "Voice Memo \(id).m4a", sourceType: .audio, uploadedAt: Date())
+            f.transcribeStatus = .done
+            f.transcript = "A short note about the week, the sidebar, and what to ship on Friday."
+            f.enhancedTitle = title
+            return f
+        }
+        let idle = note("idle", "Idle — Process is pressable")
+        let queued = note("queued", "Queued behind another note")
+        let transcribing = note("transcribing", "Transcribing")
+        transcribing.transcribeStatus = .processing
+        let polishing = note("polishing", "Polishing (step 2 of 2)")
+        let failed = note("failed", "Failed pass — Retry")
+        failed.enhanceStatus = .error
+        failed.error = "missingAudioFile"
+
+        func row(_ f: PipelineFile, run: ProcessingCoordinator.RunState?) -> some View {
+            let c = run.map { ProcessingCoordinator.preview($0) } ?? ProcessingCoordinator()
+            return NoteDisplayView(file: f, coordinator: c, scrollable: false)
+                .frame(width: 760, height: 150, alignment: .top)
+                .clipped()
+        }
+        let pending: Set<String> = ["queued", "transcribing", "polishing"]
+        let view = VStack(spacing: 2) {
+            row(idle, run: nil)
+            row(queued, run: .init(total: 3, done: 0, currentID: "transcribing", currentSteps: 2, pendingIDs: pending))
+            row(transcribing, run: .init(total: 3, done: 0, currentID: "transcribing", currentSteps: 2, pendingIDs: pending))
+            row(polishing, run: .init(total: 3, done: 1, currentID: "polishing", currentSteps: 2, pendingIDs: ["polishing"]))
+            row(failed, run: nil)
+        }
+        .background(Theme.bg)
+        polishing.transcribeStatus = .done
+        polishing.enhanceStatus = .processing
         writePNG(view, to: path)
     }
 
