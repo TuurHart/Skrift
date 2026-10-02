@@ -903,7 +903,7 @@ do: The Mac date chip bypasses `MemoDate.label` and uses `SkriftFormat.breadcrum
 check: `grep -rqE "class MacHeaderChipLabelsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P23
 
-### Q123 [auto] (doing) end-of-edit body normalisation is one rule on phone and Mac
+### Q123 [auto] (done) end-of-edit body normalisation is one rule on phone and Mac
 spec: C10 C19
 needs: -
 gate+: yes
@@ -2811,3 +2811,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:53 Q140 -> doing — batch worker out
 - 2026-10-03 00:53 Q164 -> doing — batch worker out
 - 2026-10-03 00:55 Q124 -> done — gate pass @8c7fe9fa
+- 2026-10-03 00:55 Q123 -> done — gate pass (batched with Q124)
