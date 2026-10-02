@@ -75,14 +75,8 @@ struct BookShelfTile: View {
                 .tint(Color.skAccent)
                 .scaleEffect(x: 1, y: 0.7, anchor: .center)
         } else {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.skBorder).frame(height: 3)
-                    Capsule()
-                        .fill(book.isFinished ? Color.skGreen : Color.skAccent)
-                        .frame(width: max(2, geo.size.width * (book.isFinished ? 1 : book.progress)), height: 3)
-                }
-            }
+            ThinProgressBar(fraction: book.isFinished ? 1 : book.progress,
+                            fill: book.isFinished ? Color.skGreen : Color.skAccent, minFill: 2)
         }
     }
 

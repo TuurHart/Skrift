@@ -14,36 +14,28 @@ struct BookImportSheet: View {
     @State private var unpackedFraction: Double = 0
     @State private var failure: String?
     @State private var task: Task<Void, Never>?
+    /// The bundle's size on disk, stat'ed once when the sheet is built.
+    private let bundleBytes: Int64
 
-    private enum Phase: Equatable { case offering, unpacking, landed }
+    private enum Phase: Equatable { case offering, unpacking }
 
     private var book: Audiobook { pending.manifest.book }
 
+    init(pending: BookImportBridge.Pending) {
+        self.pending = pending
+        bundleBytes = (try? FileManager.default.attributesOfItem(atPath: pending.url.path)[.size] as? Int64) as? Int64 ?? 0
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 34, height: 4)
-                .padding(.top, 8).padding(.bottom, 14)
-
-            HStack(spacing: 12) {
-                BundleCover(manifest: pending.manifest, url: pending.url)
-                    .frame(width: 58, height: 58)
-                    .clipShape(RoundedRectangle.sk(8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(book.title)
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.skText)
-                        .lineLimit(2)
-                    if pending.alreadyHave {
-                        Text("Already in your books")
-                            .font(.system(size: 12)).foregroundStyle(Color.skTextDim)
-                    } else {
-                        Text(BookShareCopy.subtitle(author: book.author, duration: book.duration))
-                            .font(.system(size: 12)).foregroundStyle(Color.skTextDim)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-
+        BookTransferSheet(
+            id: "book-import-sheet", detent: pending.alreadyHave ? 210 : 290,
+            title: book.title,
+            subtitle: pending.alreadyHave
+                ? "Already in your books"
+                : BookShareCopy.subtitle(author: book.author, duration: book.duration),
+            failure: failure,
+            cover: { BundleCover(manifest: pending.manifest, url: pending.url) }
+        ) {
             if pending.alreadyHave {
                 // Nothing to decide: the id already exists, so importing again
                 // would only duplicate what's there.
@@ -51,7 +43,7 @@ struct BookImportSheet: View {
                     .padding(.top, 18)
             } else {
                 switch phase {
-                case .offering, .landed:
+                case .offering:
                     Text(BookShareCopy.contents(hasText: !pending.manifest.textFilenames.isEmpty,
                                                 bytes: bundleBytes))
                         .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
@@ -75,35 +67,12 @@ struct BookImportSheet: View {
                         .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 14)
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.skBorder)
-                            Capsule().fill(Color.skAccent)
-                                .frame(width: max(4, geo.size.width * unpackedFraction))
-                        }
-                    }
-                    .frame(height: 3)
-                    .padding(.top, 14)
+                    ThinProgressBar(fraction: unpackedFraction)
+                        .padding(.top, 14)
                 }
             }
-
-            if let failure {
-                Text(failure)
-                    .font(.system(size: 12)).foregroundStyle(Color.skAmber)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 10)
-            }
         }
-        .padding(16)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color.skSurface.ignoresSafeArea())
-        .presentationDetents([.height(pending.alreadyHave ? 210 : 290)])
-        .accessibilityIdentifier("book-import-sheet")
         .onDisappear { task?.cancel() }
-    }
-
-    private var bundleBytes: Int64 {
-        (try? FileManager.default.attributesOfItem(atPath: pending.url.path)[.size] as? Int64) as? Int64 ?? 0
     }
 
     private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {
@@ -133,7 +102,6 @@ struct BookImportSheet: View {
                 }.value
                 guard !Task.isCancelled else { return }
                 library.add(landed)
-                phase = .landed
                 dismiss()
             } catch {
                 phase = .offering

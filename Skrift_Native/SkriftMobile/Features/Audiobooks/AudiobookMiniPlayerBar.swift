@@ -86,26 +86,8 @@ struct AudiobookMiniPlayerBar: View {
             // 72pt: roomier than the original 54 (2026-06-11 "buttons too
             // small") but nothing like the grotesque 104 that shipped — and
             // sized by the width arithmetic above, not by feel (2026-06-12).
-            .frame(height: 72)
-            .background(.ultraThinMaterial, in: .capsule)
-            .overlay(
-                Capsule()
-                    .strokeBorder(Color.skBorder, lineWidth: 0.5)
-            )
-            .overlay(
-                // The mock's glass sheen.
-                Capsule()
-                    .fill(LinearGradient(colors: [.white.opacity(0.09), .clear],
-                                         startPoint: .top, endPoint: .center))
-                    .allowsHitTesting(false)
-            )
-            .shadow(color: .black.opacity(0.45), radius: 16, y: 8)
-            .fullScreenCover(isPresented: $showPlayer) {
-                AudiobookPlayerView()
-            }
-            .fullScreenCover(isPresented: $showCapture) {
-                QuoteCaptureFlowView()
-            }
+            .miniGlass(height: 72, shadow: 16)
+            .bookSessionCovers(showPlayer: $showPlayer, showCapture: $showCapture)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("audiobook-mini-player")
         }
@@ -206,24 +188,20 @@ struct AudiobookMiniPill: View {
             }
             .padding(.leading, 8)
             .padding(.trailing, 9)
-            .frame(height: 60)
-            .background(.ultraThinMaterial, in: .capsule)
-            .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))
-            .overlay(
-                Capsule()
-                    .fill(LinearGradient(colors: [.white.opacity(0.09), .clear],
-                                         startPoint: .top, endPoint: .center))
-                    .allowsHitTesting(false)
-            )
-            .shadow(color: .black.opacity(0.45), radius: 14, y: 7)
-            .fullScreenCover(isPresented: $showPlayer) {
-                AudiobookPlayerView()
-            }
-            .fullScreenCover(isPresented: $showCapture) {
-                QuoteCaptureFlowView()
-            }
+            .miniGlass(height: 60, shadow: 14)
+            .bookSessionCovers(showPlayer: $showPlayer, showCapture: $showCapture)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("audiobook-mini-pill")
         }
+    }
+}
+
+private extension View {
+    /// The two full-screen covers the bar and the pill both present: the player (cover tap)
+    /// and the quote-capture flow (Add note).
+    func bookSessionCovers(showPlayer: Binding<Bool>, showCapture: Binding<Bool>) -> some View {
+        self
+            .fullScreenCover(isPresented: showPlayer) { AudiobookPlayerView() }
+            .fullScreenCover(isPresented: showCapture) { QuoteCaptureFlowView() }
     }
 }

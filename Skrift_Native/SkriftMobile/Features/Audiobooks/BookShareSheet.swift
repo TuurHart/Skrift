@@ -12,43 +12,32 @@ struct BookShareSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var phase: Phase = .ready
     @State private var packagedURL: URL?
-    @State private var packagedBytes: Int64 = 0
     @State private var failure: String?
     @State private var task: Task<Void, Never>?
+    /// The estimated bundle size, stat'ed once when the sheet is built (not per progress callback).
+    private let totalBytes: Int64
 
     private enum Phase: Equatable {
         case ready
         case packaging(Double)
-        case done
     }
 
-    private var totalBytes: Int64 {
-        BookBundle.estimatedSize(book: book, folder: AudiobookLibraryStore.shared.folder(for: book.id))
+    init(book: Audiobook) {
+        self.book = book
+        totalBytes = BookBundle.estimatedSize(book: book, folder: AudiobookLibraryStore.shared.folder(for: book.id))
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 34, height: 4)
-                .padding(.top, 8).padding(.bottom, 14)
-
-            HStack(spacing: 12) {
-                BookCoverView(book: book)
-                    .frame(width: 58, height: 58)
-                    .clipShape(RoundedRectangle.sk(8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(book.title)
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.skText)
-                        .lineLimit(2)
-                    Text(BookShareCopy.subtitle(author: book.author, duration: book.duration))
-                        .font(.system(size: 12)).foregroundStyle(Color.skTextDim)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-            }
-
+        BookTransferSheet(
+            id: "book-share-sheet", detent: 280,
+            title: book.title,
+            subtitle: BookShareCopy.subtitle(author: book.author, duration: book.duration),
+            failure: failure,
+            cover: { BookCoverView(book: book) }
+        ) {
             switch phase {
-            case .ready, .done:
-                Text(BookShareCopy.contents(hasText: !attachedTexts.isEmpty, bytes: totalBytes))
+            case .ready:
+                Text(BookShareCopy.contents(hasText: !book.attachedTextFilenames.isEmpty, bytes: totalBytes))
                     .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 14)
@@ -67,21 +56,14 @@ struct BookShareSheet: View {
                 // Real byte progress, not a spinner — 797 MB takes long enough
                 // that an honest number is the difference between waiting and
                 // wondering whether it hung.
-                Text(BookShareCopy.packagingProgress(written: packagedBytes, total: totalBytes))
+                Text(BookShareCopy.packagingProgress(written: Int64(Double(totalBytes) * fraction), total: totalBytes))
                     .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 14)
                     .monospacedDigit()
 
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.skBorder)
-                        Capsule().fill(Color.skAccent)
-                            .frame(width: max(4, geo.size.width * fraction))
-                    }
-                }
-                .frame(height: 3)
-                .padding(.top, 14)
+                ThinProgressBar(fraction: fraction)
+                    .padding(.top, 14)
 
                 Button {
                     task?.cancel()
@@ -93,19 +75,7 @@ struct BookShareSheet: View {
                 }
                 .padding(.top, 2)
             }
-
-            if let failure {
-                Text(failure)
-                    .font(.system(size: 12)).foregroundStyle(Color.skAmber)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 10)
-            }
         }
-        .padding(16)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color.skSurface.ignoresSafeArea())
-        .presentationDetents([.height(280)])
-        .accessibilityIdentifier("book-share-sheet")
         // The system share sheet is the destination picker — AirDrop, Messages,
         // Save to Files all come free, so Skrift never grows one of its own.
         .sheet(item: Binding(get: { packagedURL.map(SharePayload.init) },
@@ -115,13 +85,8 @@ struct BookShareSheet: View {
         .onDisappear { task?.cancel() }
     }
 
-    private var attachedTexts: [String] {
-        book.attachedTextFilenames
-    }
-
     private func package() {
         failure = nil
-        packagedBytes = 0
         phase = .packaging(0)
         let book = self.book
         let folder = AudiobookLibraryStore.shared.folder(for: book.id)
@@ -132,8 +97,8 @@ struct BookShareSheet: View {
                 try await Task.detached(priority: .userInitiated) {
                     try BookBundle.write(book: book, folder: folder, to: destination) { fraction in
                         Task { @MainActor in
+                            // Blocks a late callback after Cancel put the phase back to .ready.
                             guard case .packaging = phase else { return }
-                            packagedBytes = Int64(Double(totalBytes) * fraction)
                             phase = .packaging(fraction)
                         }
                     }
@@ -142,7 +107,8 @@ struct BookShareSheet: View {
                     try? FileManager.default.removeItem(at: destination)
                     return
                 }
-                phase = .done
+                // The ready layout stays under the system share sheet.
+                phase = .ready
                 packagedURL = destination
             } catch is CancellationError {
                 try? FileManager.default.removeItem(at: destination)

@@ -69,8 +69,7 @@ struct BookTextSheet: View {
         ZStack {
             Color.skSurface.ignoresSafeArea()
             VStack(spacing: 0) {
-                Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 8).padding(.bottom, 14)
+                SheetGrabber()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -267,9 +266,7 @@ struct BookTextSheet: View {
                 transcribeButton("Transcribe")
             }
         }
-        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.skElev, in: RoundedRectangle.sk(14))
+        .textCard()
         .accessibilityIdentifier("text-sheet-transcript-card")
     }
 
@@ -299,15 +296,8 @@ struct BookTextSheet: View {
     }
 
     private var transcriptProgressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.skBorder)
-                Capsule().fill(Color.skAccent)
-                    .frame(width: max(6, geo.size.width * thisBookProgress))
-            }
-        }
-        .frame(height: 6)
-        .padding(.top, 5)
+        ThinProgressBar(fraction: thisBookProgress, height: 6, minFill: 6)
+            .padding(.top, 5)
     }
 
     private func transcribingMeta(paused: Bool) -> String {
@@ -355,9 +345,7 @@ struct BookTextSheet: View {
                 .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.skElev, in: RoundedRectangle.sk(14))
+        .textCard()
         .opacity(0.62)
     }
 
@@ -479,8 +467,7 @@ struct BookTextSheet: View {
                     .foregroundStyle(Color.skTextDim)
             }
         }
-        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .background(Color.skElev, in: RoundedRectangle.sk(14))
+        .textCard()
         .accessibilityIdentifier("book-text-row-\(text.filename)")
     }
 
@@ -564,6 +551,16 @@ struct BookTextSheet: View {
             }
             removingTranscript = false
         }
+    }
+}
+
+private extension View {
+    /// The Level-1 / Level-2 card chrome: padded, full width, elevated rounded fill.
+    func textCard() -> some View {
+        self
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.skElev, in: RoundedRectangle.sk(14))
     }
 }
 

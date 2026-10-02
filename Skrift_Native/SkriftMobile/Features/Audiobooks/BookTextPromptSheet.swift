@@ -23,8 +23,7 @@ struct BookTextPromptSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                .frame(maxWidth: .infinity).padding(.top, 8).padding(.bottom, 14)
+            SheetGrabber()
 
             Text("Give this book text")
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(Color.skText)

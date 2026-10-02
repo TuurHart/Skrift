@@ -29,8 +29,7 @@ struct AudiobookSyncSheet: View {
         ZStack {
             Color.skSurface.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 0) {
-                Capsule().fill(Color.skBorder).frame(width: 34, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 8).padding(.bottom, 16)
+                SheetGrabber(width: 34, bottom: 16)
 
                 bookRow.padding(.bottom, 4)
                 toggleRow

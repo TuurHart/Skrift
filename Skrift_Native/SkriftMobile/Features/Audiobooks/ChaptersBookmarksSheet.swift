@@ -16,8 +16,7 @@ struct ChaptersBookmarksSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                .padding(.top, 10).padding(.bottom, 14)
+            SheetGrabber(top: 10)
 
             Picker("", selection: $tab) {
                 Text("Chapters").tag(Tab.chapters)
