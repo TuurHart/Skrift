@@ -943,7 +943,7 @@ do: Mac unrated note menu is copy-only: no Process, no Lock, no Delete. C40/D159
 check: `grep -rqE "class MacUnratedMenuTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P28
 
-### Q128 [tuur] (doing) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
+### Q128 [tuur] (tuur) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
 spec: C119 D126 C113
 needs: -
 do: One clickable page: the Mac note with a photo added at the caret (open panel / paste / drop), a tapped photo opening the zoom + markup viewer, and a `[[img_NNN]]` whose file has not arrived yet (today it shows raw marker text; the phone shows a grey card and 'Downloading from iCloud…'). Draw today's Mac note and the phone's viewer from source (C117). Covers note-body-16, -17, -18, capture-import-41.
@@ -1069,7 +1069,7 @@ do: Mac review of an image capture draws a glyph and a file name, no pixels, tho
 check: `test $(ls plan/reads/capture-p-mac/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P44
 
-### Q144 [tuur] (doing) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
+### Q144 [tuur] (tuur) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
 spec: C237 D92 R36
 needs: -
 do: A Mac recording or typed note carries place only: no weather, no daypart, no steps, no chips (recsj-024, setexp-37, capture-quick-14; R36 lists it as required). The Mac has no weather key row and no `weatherAPIKey`. One page: the Mac Settings row for the key (draw the phone's from source) and the chips on a Mac note header. Needs his key typed by him; nothing is entered by the agent.
@@ -1132,7 +1132,7 @@ do: The Q6 mock signed a '❝ N' pill opening a book's notes and a jump-back to 
 check: `test $(ls plan/reads/books-p-notes/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookNotesJoinTests && ./gate.sh`
 source: plan/reads/parity-audit.md P52
 
-### Q152 [tuur] (todo) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
+### Q152 [tuur] (doing) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
 spec: D50 C160 C172
 needs: -
 do: D50/C160 decide the user can correct a misheard word in a captured quote; the quote block is read-only on the phone and (after the Mac read-only item) on the Mac, and no 'Fix quote' verb exists anywhere (books-118). One page: the verb in the note menu, the edit state of the quote, and how the corrected text stays attached to the audio window.
@@ -1211,7 +1211,7 @@ do: The Mac only ever sets `isEnabled = true` (ConnectionsIndexService.swift:61)
 check: `grep -rqE "class MacIndexConsentTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P62
 
-### Q162 [tuur] (todo) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
+### Q162 [tuur] (doing) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
 spec: D119 C217
 needs: -
 do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-list 'Syncing with iCloud…' capsule; the Mac observes CloudKit events only to trigger sweeps and shows no state, and BUGS.md:184 notes the old pill reads dead Bonjour state; a failed Mac container (`MemoCloudContainer`) silently disables sync, and neither app tells the user note sync is off when signed out (setexp-12, -14, -16, -18, -130). One page: the Mac Settings sync row, the capsule above the sidebar list, and the signed-out / failed state on both apps; the Mac's 'CloudKit sync with the Mac' switch (default on) shown with what it gates.
@@ -1329,7 +1329,7 @@ do: Rows setexp-29 -30 -53 -54 -58 -59 -67 -99 -101 -103 -109 -112 -113 (plan/re
 check: `grep -rqE "class SharedSettingsCopyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q177 [auto] (doing) list + note chrome: one copy and token set (headers, empty pane, fallback word, search field, locked screen, new-note label, title placeholder)
+### Q177 [auto] (done) list + note chrome: one copy and token set (headers, empty pane, fallback word, search field, locked screen, new-note label, title placeholder)
 spec: C239 C240 C161 C25
 needs: Q108
 gate+: yes
@@ -2596,3 +2596,8 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:38 Q160 -> doing — worker out
 - 2026-10-02 21:40 Q121 -> doing — worker out
 - 2026-10-02 21:41 Q153 -> done — gate pass @7041ea92
+- 2026-10-02 21:41 Q128 -> tuur — mock https://claude.ai/artifact/Li25ppmZmB5fVXHYCdHZxa (mocks/Q128-mac-note-photos.html). Question: on the Mac, one click on a photo selects it (double-click/Space opens, movable like an Apple Notes block) — or opens the viewer straight away like a phone tap?
+- 2026-10-02 21:41 Q152 -> doing — mockup agent out
+- 2026-10-02 21:41 Q144 -> tuur — mock https://claude.ai/artifact/43NTAjUbFrB6C8vHw1NL3m (mocks/Q144-mac-weather-daypart.html). Question: type the OpenWeatherMap key on the Mac separately, or should the Mac pick it up from the phone over iCloud? (D92 'same key' reads both ways)
+- 2026-10-02 21:41 Q162 -> doing — mockup agent out
+- 2026-10-02 21:41 Q177 -> done — gate pass @ae6d8b32
