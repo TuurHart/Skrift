@@ -751,7 +751,7 @@ do: Three hand-written matchers: phone `Memo.matches` (MemoDisplay.swift:81-97),
 check: `grep -rqE "class NoteSearchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteSearchParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P4
 
-### Q104 [auto] (todo) filters apply to every row kind: Mac date range on unrated, stranded and fading rows; Related rows obey chip + date; fading hits show under any chip
+### Q104 [auto] (doing) filters apply to every row kind: Mac date range on unrated, stranded and fading rows; Related rows obey chip + date; fading hits show under any chip
 spec: C115 D148 C212
 needs: -
 gate+: yes
@@ -989,7 +989,7 @@ do: Three audio lists: phone `AppURLHandler` (m4a mp3 wav aac caf aiff aif opus 
 check: `grep -rqE "class ImportKindsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportKindsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P34
 
-### Q134 [auto] (todo) one date ladder at every door: Files / AirDrop audio and video date from the filename, Mac images read EXIF, merged clips agree
+### Q134 [auto] (doing) one date ladder at every door: Files / AirDrop audio and video date from the filename, Mac images read EXIF, merged clips agree
 spec: C70 R24 C74
 needs: Q133
 gate+: yes
@@ -1425,7 +1425,7 @@ do: `applyTrim`, `TrimResult` and `isUnchangedTrim` in `SkriftMobile/Services/Au
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuoteCaptureSaveTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d01 MAS-d02 MAS-c05 MAU-d-m1 (cleanup-audit P1)
 
-### Q189 [auto] (doing) audiobook services: small dead code, one interruption rule, comment fixes
+### Q189 [auto] (done) audiobook services: small dead code, one interruption rule, comment fixes
 spec: C240
 needs: -
 gate+: no
@@ -2466,3 +2466,6 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:48 Q200 -> done — gate pass @b8a0b887
 - 2026-10-02 17:48 Q189 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
 - 2026-10-02 17:48 Q189 -> doing — redispatch 2/3: rebase after CONFLICT
+- 2026-10-02 17:52 Q134 -> doing — worker out (opus)
+- 2026-10-02 17:55 Q104 -> doing — worker out (opus)
+- 2026-10-02 17:56 Q189 -> done — gate pass @54e170e3
