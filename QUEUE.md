@@ -903,7 +903,7 @@ do: The Mac date chip bypasses `MemoDate.label` and uses `SkriftFormat.breadcrum
 check: `grep -rqE "class MacHeaderChipLabelsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P23
 
-### Q123 [auto] (todo) end-of-edit body normalisation is one rule on phone and Mac
+### Q123 [auto] (doing) end-of-edit body normalisation is one rule on phone and Mac
 spec: C10 C19
 needs: -
 gate+: yes
@@ -911,7 +911,7 @@ do: The phone calls `BodyV2.committed` at the end of an edit only when the text 
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PhoneEndOfEditNormaliseTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P24
 
-### Q124 [auto] (todo) Mac note body is read-only while its transcription runs (C173)
+### Q124 [auto] (doing) Mac note body is read-only while its transcription runs (C173)
 spec: C173 C182
 needs: -
 gate+: yes
@@ -1345,7 +1345,7 @@ do: Rows list-sidebar-109 -110 -111, recsj-107. Mac `WayOutColumn` hard-codes 30
 check: `grep -rqE "class WayOutDisplayTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q179 [auto] (todo) every source glyph and label comes from SourceKind: delete the phone's second glyph table, fix the Mac picture-only import label, journal rows use it
+### Q179 [auto] (doing) every source glyph and label comes from SourceKind: delete the phone's second glyph table, fix the Mac picture-only import label, journal rows use it
 spec: C78 C239 C240
 needs: Q106 Q138
 gate+: yes
@@ -1377,7 +1377,7 @@ do: Rows recsj-084 -088 -091 -092. Move the recents → related-scores → pick 
 check: `grep -rqE "class JournalParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q183 [auto] (doing) conversations: phone karaoke uses KaraokeTrack, split speakers has Cancel and a read-only body on the phone, speaker sheet shows the all-turns line
+### Q183 [auto] (done) conversations: phone karaoke uses KaraokeTrack, split speakers has Cancel and a read-only body on the phone, speaker sheet shows the all-turns line
 spec: C239 C240 C124
 needs: -
 gate+: yes
@@ -1393,7 +1393,7 @@ do: Rows note-name-06, note-body-21. New person from a name in the note: one sha
 check: `grep -rqE "class NewPersonFromNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q185 [auto] (todo) note look tokens in Shared: inline photo size, memo-link chip, top band, list toggle
+### Q185 [auto] (doing) note look tokens in Shared: inline photo size, memo-link chip, top band, list toggle
 spec: C239 C240
 needs: -
 gate+: no
@@ -1409,7 +1409,7 @@ do: Rows capture-import-13, setexp-92. One accept set in `Shared/.../MixedBundle
 check: `grep -rqE "class ImportBundleParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q187 [auto] (todo) small twins: polish prompt row order, transcribe-book copy, quote-note header chips, recording waveform heights
+### Q187 [auto] (doing) small twins: polish prompt row order, transcribe-book copy, quote-note header chips, recording waveform heights
 spec: C239 C240 C172
 needs: -
 gate+: no
@@ -1649,7 +1649,7 @@ do: `syncTrace` and `eventTypeName` in `SkriftDesktop/App/MemoCloudReconciler+Wi
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-d14 DPE-d19 PER-d14 (cleanup-audit P29)
 
-### Q217 [auto] (todo) two display bugs: the 125:00 duration and a place name containing a plus
+### Q217 [auto] (doing) two display bugs: the 125:00 duration and a place name containing a plus
 spec: C115 C240
 needs: Q182
 gate+: yes
@@ -2795,3 +2795,10 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:36 Q270 -> tuur — awaiting sitting
 - 2026-10-03 00:36 Q271 added
 - 2026-10-03 00:36 Q271 -> tuur — awaiting sitting
+- 2026-10-03 00:36 Q179 -> doing — batch worker out
+- 2026-10-03 00:36 Q217 -> doing — batch worker out
+- 2026-10-03 00:38 Q124 -> doing — batch worker out
+- 2026-10-03 00:38 Q123 -> doing — batch worker out
+- 2026-10-03 00:40 Q187 -> doing — batch worker out
+- 2026-10-03 00:40 Q185 -> doing — batch worker out
+- 2026-10-03 00:42 Q183 -> done — gate pass @7f249478
