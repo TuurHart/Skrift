@@ -42,7 +42,7 @@ struct NoteToolbar: View {
             }
 
             Button(action: audio.cycleRate) {
-                Text("\(rateLabel)×")
+                Text(PlaybackRates.label(audio.rate))
                     .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
                     .padding(.horizontal, 10)
@@ -71,8 +71,4 @@ struct NoteToolbar: View {
         .buttonStyle(.plain)
     }
 
-    private var rateLabel: String {
-        let r = audio.rate
-        return r == r.rounded() ? String(Int(r)) : String(format: "%g", r)
-    }
 }

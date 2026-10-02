@@ -21,8 +21,6 @@ final class AudioController {
     /// already switched notes is ignored (no stale player).
     private var loadToken = 0
 
-    private static let rateSteps: [Float] = [0.75, 1, 1.25, 1.5, 2]
-
     func load(path: String) {
         stop()
         player = nil
@@ -71,8 +69,7 @@ final class AudioController {
     }
 
     func cycleRate() {
-        let i = Self.rateSteps.firstIndex(of: rate) ?? 1
-        rate = Self.rateSteps[(i + 1) % Self.rateSteps.count]
+        rate = PlaybackRates.next(after: rate)   // C115: the one speed list
         player?.rate = rate
     }
 

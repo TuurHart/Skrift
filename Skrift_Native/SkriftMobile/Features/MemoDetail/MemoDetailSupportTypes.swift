@@ -205,14 +205,10 @@ struct PlayerBar: View {
         .accessibilityIdentifier("player-scrubber")
     }
 
-    var rateLabel: String {
-        player.rate == 1 ? "1×" : (player.rate == 1.5 ? "1.5×" : "2×")
-    }
+    var rateLabel: String { PlaybackRates.label(player.rate) }
 
     func timeString(_ t: TimeInterval) -> String {
-        guard t.isFinite else { return "0:00" }
-        let total = Int(t)
-        return String(format: "%d:%02d", total / 60, total % 60)
+        DurationFormat.label(seconds: t)
     }
 }
 

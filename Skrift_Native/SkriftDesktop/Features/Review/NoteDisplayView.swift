@@ -694,6 +694,10 @@ struct NoteDisplayView: View {
     private func showsTransport(_ file: PipelineFile) -> Bool {
         guard file.sourceType != .note else { return false }
         if file.durationSeconds > 0 { return true }
-        return !file.path.isEmpty && FileManager.default.fileExists(atPath: file.path)
+        // A capture's `path` is its FOLDER (UploadService): a directory is not audio, so only a
+        // regular file counts (note-player-06).
+        var isDir: ObjCBool = false
+        return !file.path.isEmpty
+            && FileManager.default.fileExists(atPath: file.path, isDirectory: &isDir) && !isDir.boolValue
     }
 }

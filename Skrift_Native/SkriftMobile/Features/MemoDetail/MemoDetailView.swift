@@ -604,7 +604,8 @@ struct MemoDetailView: View {
     /// `skSurface`) instead of a capsule hovering mid-air. The phone keeps its
     /// floating glass capsule (`bottomChrome`) byte-for-byte.
     var dockedPlayer: some View {
-        playerBarStack
+        // C115/C240: the iPad dock follows the Mac transport order (back, play, forward).
+        playerBarStack(macTransportOrder: true)
             .padding(.horizontal, 6)
             .background(Color.skSurface)
             .overlay(alignment: .top) {
@@ -620,7 +621,7 @@ struct MemoDetailView: View {
         // `.ultraThinMaterial` is only the fallback for iOS < 26.
         if #available(iOS 26.0, *) {
             GlassEffectContainer {
-                playerBarStack
+                playerBarStack()
                     // .clear (not .regular) = the lensed, refractive look — .regular
                     // reads as frosted. (Device must have full Liquid Glass on: Reduce
                     // Motion / Reduce Transparency OFF, Liquid Glass = Clear.)
@@ -637,7 +638,7 @@ struct MemoDetailView: View {
             .padding(.horizontal, Theme.Space.margin)
             .padding(.bottom, 6)
         } else {
-            playerBarStack
+            playerBarStack()
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
                 .shadow(color: .black.opacity(0.28), radius: 18, y: 6)
@@ -646,8 +647,8 @@ struct MemoDetailView: View {
         }
     }
 
-    var playerBarStack: some View {
-        PlayerBar(player: player, clock: player.clock)
+    func playerBarStack(macTransportOrder: Bool = false) -> some View {
+        PlayerBar(player: player, clock: player.clock, macTransportOrder: macTransportOrder)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .overlay(alignment: .top) {
@@ -684,8 +685,7 @@ struct MemoDetailView: View {
         let words = MemoShare.wordCount(of: memo.transcript)
         var parts: [String] = [words == 1 ? "1 word" : "\(words) words"]
         if memo.duration > 0 {
-            let total = Int(memo.duration)
-            parts.append(String(format: "%d:%02d", total / 60, total % 60))
+            parts.append(DurationFormat.label(seconds: memo.duration))
         }
         return parts.joined(separator: " · ")
     }

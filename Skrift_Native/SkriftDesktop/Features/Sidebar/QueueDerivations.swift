@@ -92,10 +92,5 @@ enum SkriftFormat {
     /// `"HH:MM:SS"` string: the stored value isn't always a string (see
     /// `PipelineFile.durationSeconds`), so parsing belongs at the read and this only
     /// formats. Hours matter here — an audiobook capture runs to double digits.
-    static func duration(seconds: Double) -> String {
-        let total = Int(max(0, seconds.isFinite ? seconds : 0).rounded())
-        let (h, m, s) = (total / 3600, (total % 3600) / 60, total % 60)
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
-    }
+    static func duration(seconds: Double) -> String { DurationFormat.label(seconds: seconds) }   // C115: one rule, both apps
 }
