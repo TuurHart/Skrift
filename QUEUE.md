@@ -1545,7 +1545,7 @@ do: `NoteBody.swift` (`BodyText`, `readBody`, `quoteCard`, `karaoke`, `summaryAs
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DRV-d15 DSH-c14 (cleanup-audit P16)
 
-### Q204 [auto] (doing) one word-split rule for Mac karaoke: emoji no longer splits a word
+### Q204 [auto] (done) one word-split rule for Mac karaoke: emoji no longer splits a word
 spec: C113 C240
 needs: -
 gate+: yes
@@ -2495,3 +2495,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:37 Q218 -> doing — batch worker out
 - 2026-10-02 18:37 Q219 -> doing — batch worker out
 - 2026-10-02 18:38 Q119 -> done — gate pass @0b4a717f
+- 2026-10-02 18:40 Q204 -> done — gate pass @751eb401
