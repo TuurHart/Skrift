@@ -387,6 +387,28 @@ struct BodyTextView: NSViewRepresentable {
         /// including Backspace — stays native. (Esc arrives as `complete:`, the
         /// NSTextView default binding; intercepting it also keeps the system
         /// completion list from opening over ours.)
+        /// C172: the leading quote block of a capture is read-only; only the ramble below it
+        /// edits. The verdict is the shared `CaptureQuote.editVerdict` (the one splitter), so
+        /// the Mac refuses exactly the edits the phone's ramble-only editor can't make.
+        func textView(_ view: NSTextView, shouldChangeTextIn range: NSRange,
+                      replacementString: String?) -> Bool {
+            // Marked (IME) text is mid-composition: judge it when it commits.
+            if view.hasMarkedText() { return true }
+            switch CaptureQuote.editVerdict(body: view.string, range: range,
+                                            replacement: replacementString) {
+            case .allow:
+                return true
+            case .reject:
+                NSSound.beep()
+                return false
+            case .allowAfterSeparator(let separator):
+                // Re-enter with the separator in front; the second pass sees a blank line
+                // already there and allows it.
+                view.insertText(separator + (replacementString ?? ""), replacementRange: range)
+                return false
+            }
+        }
+
         func textView(_ view: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             guard tagSuggest.isVisible, let tv = view as? SelfSizingTextView else { return false }
             switch commandSelector {
