@@ -1045,7 +1045,7 @@ do: `QuickNoteDraft.discard` does `context.delete`, a hard delete, where `MemoDe
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteSoftDeleteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P41
 
-### Q141 [auto] (doing) an Apple Note import is dated to its creation date, or shows date unknown, never the import moment
+### Q141 [auto] (done) an Apple Note import is dated to its creation date, or shows date unknown, never the import moment
 spec: C76 D18
 needs: -
 gate+: yes
@@ -2768,3 +2768,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:25 Q181 -> doing — worker out
 - 2026-10-03 00:26 Q184 -> doing — worker out
 - 2026-10-03 00:27 Q180 -> done — gate pass @081a6075
+- 2026-10-03 00:29 Q141 -> done — gate pass @dcf11ade
