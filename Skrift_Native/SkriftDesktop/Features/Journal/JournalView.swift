@@ -21,6 +21,7 @@ struct JournalView: View {
     /// Snapshot-only: open directly in map mode with the top place selected.
     var debugStartInMap = false
 
+    @ObservedObject private var lockGate = LockGate.shared
     @State private var memos: [Memo] = []
     /// Cached per refresh — recomputing name-grouping on every body eval put
     /// PlaceCluster.build in the map-gesture hot path (freeze-y rapid zoom,
@@ -284,10 +285,14 @@ struct JournalView: View {
                         refresh()
                     },
                     onDeleteMemo: { memo in
-                        memo.deletedAt = Date()
-                        memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
-                        try? cloudContext?.save()
-                        refresh()
+                        // Q101 (R88/C161): a locked, not-yet-unlocked note needs auth to trash.
+                        Task { @MainActor in
+                            guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
+                            memo.deletedAt = Date()
+                            memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
+                            try? cloudContext?.save()
+                            refresh()
+                        }
                     },
                     onRestoreMacLocal: { pf in
                         DesktopTrash.restore([pf], in: localCtx)
@@ -540,7 +545,7 @@ struct JournalView: View {
                 Text(cardTitle(memo))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary).lineLimit(1)
-                if !memo.locked, !snippet(memo).isEmpty {
+                if !isHidden(memo), !snippet(memo).isEmpty {
                     Text(snippet(memo))
                         .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                         .lineLimit(1)
@@ -566,7 +571,7 @@ struct JournalView: View {
                 Text(cardTitle(memo))
                     .font(.system(size: 13.5, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary).lineLimit(1)
-                if memo.locked {
+                if isHidden(memo) {
                     (Text(Image(systemName: "lock.fill")) + Text(" Locked note"))
                         .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
                 } else if !snippet(memo).isEmpty {
@@ -626,8 +631,15 @@ struct JournalView: View {
         }
     }
 
+    /// Q101 (C91/C161): the row hides a locked note's words until unlocked THIS session
+    /// (the bare `memo.locked` flag ignored the per-session unlock).
+    private func isHidden(_ memo: Memo) -> Bool { lockGate.isLocked(memo) }
+
     private func cardTitle(_ memo: Memo) -> String {
-        if memo.locked { return memo.title ?? "Locked note" }
+        if isHidden(memo) {
+            return NoteVisibility.displayTitle(locked: memo.locked, unlockedThisSession: false,
+                                               title: memo.title, fallback: { "" })
+        }
         if let t = memo.title, !t.isEmpty { return t }
         let first = (memo.transcript ?? "")
             .components(separatedBy: .newlines).first?

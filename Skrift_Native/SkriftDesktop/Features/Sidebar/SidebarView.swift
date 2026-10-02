@@ -802,7 +802,8 @@ struct SidebarView: View {
                 }
             }
         }
-        return rows.filter { WayOutRules.matchesSearch($0, query: model.searchText) }
+        return rows.filter { WayOutRules.matchesSearch($0, query: model.searchText,
+                                              unlockedThisSession: LockGate.shared.isUnlocked($0.id.uuidString)) }
     }
 
     /// One list, two row kinds, interleaved by the active sort.

@@ -34,6 +34,9 @@ struct WayOutColumn: View {
     var onChanged: () -> Void = {}
 
     @State private var confirmDeleteMacLocal: PipelineFile?
+    /// Q101 (R88/C91/C161): the shelf is a content surface — a locked, not-yet-unlocked
+    /// note shows title + 🔒 only, same as the list (`LockGate.isLocked` → `NoteVisibility`).
+    @ObservedObject private var lockGate = LockGate.shared
 
     private var total: Int { fading.count + deleted.count + macOnlyFiles.count }
     private var orderedMacOnly: [PipelineFile] {
@@ -128,11 +131,19 @@ struct WayOutColumn: View {
 
     private func memoRow(_ memo: Memo) -> some View {
         let station = MemoSpine.station(for: .from(memo, backlinked: []))
+        let hidden = lockGate.isLocked(memo)
         return HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(WayOutRules.displayTitle(memo))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary).lineLimit(1)
+                HStack(spacing: 5) {
+                    if hidden {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10.5, weight: .semibold)).foregroundStyle(Theme.textMuted)
+                    }
+                    Text(hidden ? LockedRow.title(for: memo) : WayOutRules.displayTitle(memo))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary).lineLimit(1)
+                }
+                if !hidden {
                 HStack(spacing: 10) {
                     if let replacedAt = memo.replacedAt {
                         // D139: the version he did not keep when settling an edit conflict.
@@ -144,6 +155,7 @@ struct WayOutColumn: View {
                     if memo.duration > 0 { Text(SkriftFormat.duration(seconds: memo.duration)) }
                 }
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                }
             }
             Spacer(minLength: 8)
             Text(MemoSpine.oneLiner(for: station))
@@ -188,7 +200,7 @@ struct WayOutColumn: View {
         let days = pf.trashDaysRemaining()
         return HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(pf.displayTitle)
+                Text(lockGate.isLocked(pf) ? LockedRow.title(for: pf) : pf.displayTitle)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary).lineLimit(1)
                 Text(days == 0 ? "Removed today" : "\(days) day\(days == 1 ? "" : "s") left")

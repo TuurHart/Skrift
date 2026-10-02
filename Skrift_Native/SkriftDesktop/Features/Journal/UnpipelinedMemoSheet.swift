@@ -43,6 +43,9 @@ struct UnpipelinedMemoSheet: View {
     /// `onProcessed` so RootView doesn't jump to a queue row that won't exist.
     var onDeleted: (String) -> Void = { _ in }
 
+    /// Q101 (R88/C91/C161): a content surface — a locked, not-yet-unlocked note shows
+    /// title + 🔒 and an Unlock button, no meta, sentence, body, photos or rating.
+    @ObservedObject private var lockGate = LockGate.shared
     @State private var memo: Memo?
     @State private var loaded = false
     /// Body runs: text interleaved with resolved photos, in marker order.
@@ -100,11 +103,24 @@ struct UnpipelinedMemoSheet: View {
     }
 
     private func sheetContent(_ memo: Memo) -> some View {
-        VStack(spacing: 0) {
+        let hidden = lockGate.isLocked(memo)
+        return VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(WayOutRules.displayTitle(memo))
-                    .font(.system(size: 16, weight: .bold)).foregroundStyle(Theme.textPrimary)
-                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    if hidden { Image(systemName: "lock.fill").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.textMuted) }
+                    Text(hidden ? LockedRow.title(for: memo) : WayOutRules.displayTitle(memo))
+                        .font(.system(size: 16, weight: .bold)).foregroundStyle(Theme.textPrimary)
+                        .lineLimit(2)
+                }
+                if hidden {
+                    Text("Locked notes stay hidden here too — unlock to see them.")
+                        .font(.system(size: 12.5)).foregroundStyle(Theme.textMuted)
+                    capsuleButton("Unlock", prominent: true) {
+                        Task { _ = await lockGate.unlock(memo.id.uuidString) }
+                    }
+                    .accessibilityIdentifier("unpipelined-sheet.unlock")
+                    Spacer(minLength: 0)
+                } else {
                 HStack(spacing: 10) {
                     Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
                     if let place = memo.metadata?.location?.placeName { Text(place) }
@@ -115,6 +131,7 @@ struct UnpipelinedMemoSheet: View {
                 ScrollView { bodyView }
                 if action == .process {
                     circlesBlock
+                }
                 }
             }
             .padding(.horizontal, 20).padding(.vertical, 16)
@@ -187,7 +204,11 @@ struct UnpipelinedMemoSheet: View {
                     .accessibilityIdentifier("unpipelined-sheet.bringback")
             }
             if memo.deletedAt == nil {
-                Button { delete(memo) } label: {
+                Button { Task { @MainActor in
+                    // R88/C161: trashing a locked, not-yet-unlocked note needs auth first.
+                    guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
+                    delete(memo)
+                } } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "trash").font(.system(size: 10))
                         Text("Delete").font(.system(size: 11, weight: .semibold))
