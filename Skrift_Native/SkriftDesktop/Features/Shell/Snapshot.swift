@@ -42,6 +42,9 @@ enum Snapshot {
         if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
         if let p = path("-snapshot-naming")         { MainActor.assumeIsolated { renderNaming(to: p); exit(0) } }
+        if let p = path("-snapshot-capture-corpus"), let c = path("-corpus") {
+            MainActor.assumeIsolated { renderCaptureCorpus(to: p, corpusPath: c); exit(0) }
+        }
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
@@ -1298,6 +1301,68 @@ enum Snapshot {
         .frame(width: 880, height: 560, alignment: .topLeading)
         .background(Theme.bg)
         writePNG(view, to: path)
+    }
+
+    /// Q143: the synthetic corpus's captures pushed through the REAL ingest (`MemoCloudIngest` →
+    /// `UploadService` → working folders on disk), then each one's review pane drawn: link
+    /// (description), image (pixels), PDF (first page + page chip + text disclosure), an
+    /// UNRATED link (honest banner, placeholder), and a video with a typed thought (annotation
+    /// lead). Writes `<dir>/<name>.png`. Triggered by: `-snapshot-capture-corpus <dir> -corpus <corpus>`.
+    @MainActor private static func renderCaptureCorpus(to dir: String, corpusPath: String, scheme: ColorScheme = .dark) {
+        guard let container = try? ModelContainer(
+            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
+        let ctx = container.mainContext
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("capture-corpus-\(UUID().uuidString)")
+        let corpusURL = URL(fileURLWithPath: (corpusPath as NSString).expandingTildeInPath, isDirectory: true)
+        _ = try? CorpusSeed.seed(from: corpusURL, into: ctx, recordingsDirectory: tmp.appendingPathComponent("rec"))
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        var upload = UploadService()
+        upload.outputDir = tmp.appendingPathComponent("out")
+
+        // corpus note id → (output name, tweak applied to the memo before ingest, rated?)
+        let wanted: [(id: String, name: String, tweak: (Memo) -> Void, rated: Bool)] = [
+            ("F01EAE04-8833-5D90-B94E-554AD80F3644", "capture-link", { _ in }, true),
+            ("F01EAE04-8833-5D90-B94E-554AD80F3644", "capture-link-unrated", { _ in }, false),
+            ("F1922133-BE45-58AF-B6B2-BEABBB91BA00", "capture-image", { _ in }, true),
+            ("FDA21613-E326-5919-98D2-8205AD1580C2", "capture-pdf", { m in
+                var sc = m.sharedContent
+                sc?.text = "Offerte kiln lijn. Nine metres of cable, dedicated 16 A circuit, EUR 640 plus the box. "
+                    + String(repeating: "Delivery within three weeks of the signed quote. ", count: 30)
+                m.sharedContent = sc
+            }, true),
+            ("4A17A76D-6ECF-5B59-81AC-6872C5C4B682", "video-annotation-lead", { m in
+                m.annotationText = "Filmed this to remember why I said no to the workshop."
+            }, true),
+        ]
+        let all = (try? ctx.fetch(FetchDescriptor<Memo>())) ?? []
+        for w in wanted {
+            guard let id = UUID(uuidString: w.id), let memo = all.first(where: { $0.id == id }) else {
+                print("renderCaptureCorpus: \(w.name) — corpus note \(w.id) missing"); continue
+            }
+            w.tweak(memo)
+            let memoID = memo.id
+            let assets = (try? ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
+            // A second pass over the same memo (the unrated variant) needs a fresh row id.
+            let rowID = w.id
+            if let old = try? ctx.fetch(FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == rowID })), !old.isEmpty {
+                for o in old { ctx.delete(o) }
+            }
+            guard let pf = try? MemoCloudIngest.ingest(memo: memo, assets: assets, upload: upload,
+                                                       into: ctx, processEverything: true) else {
+                print("renderCaptureCorpus: \(w.name) — ingest returned nil"); continue
+            }
+            if !w.rated { pf.significance = 0 }
+            let coordinator = ProcessingCoordinator()
+            let view = NoteDisplayView(file: pf, coordinator: coordinator, scrollable: false)
+                .frame(width: 860, height: 880)
+                .background(Theme.bg)
+                .preferredColorScheme(scheme)
+                .modelContainer(container)
+            hostPNG(view, size: NSSize(width: 860, height: 880), to: "\(dir)/\(w.name).png")
+            print("renderCaptureCorpus: wrote \(w.name).png")
+        }
     }
 
     /// C3 capture review: sidebar with the url capture selected + the review pane
