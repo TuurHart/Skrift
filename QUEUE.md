@@ -698,7 +698,7 @@ gate+: yes
 do: Tuur 2026-10-02: five Signal clips from 1 Oct (signal-2026-10-01-07-44-33-032.m4a … 08-06-25-049.m4a + a 080349.jpeg) dragged onto the Mac on 2 Oct merged into one note — but the note reads "Fri, 2 Oct 2026" on the Mac and "Today · 08:08" on the phone, the import moment. C124: a merged multi-clip note is dated to the FIRST message (filename date, C70) — here Thu 1 Oct 07:44 — and each clip's own time is kept in the manifest, not shown in the body. Also verify in the same note that each clip starts its own paragraph (C124): the merged body reads "…a pause between every word so the Um this is gonna be a hard one to fix…", which looks like a clip boundary inside one paragraph. Fix both in the Mac merge path (IngestService.ingest(combineAudio:) / AudioClipMerge / MixedBundle, Q74/Q92/Q94) and confirm the phone share path (CaptureInboxDrainer) dates and breaks the same way. Desktop test over the ingress P1/P3 shapes: recordedAt = first clip's filename time, one paragraph per clip. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q97 [auto] (doing) phone list puts most notes under Yesterday: group by the note's real date, not when it arrived on this phone
+### Q97 [auto] (done) phone list puts most notes under Yesterday: group by the note's real date, not when it arrived on this phone
 spec: C70 C115
 needs: -
 gate+: yes
@@ -1035,3 +1035,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:16 Q98 added
 - 2026-10-02 08:26 Q98 -> doing — worker out
 - 2026-10-02 08:28 Q95 -> done — gate pass @56a66399
+- 2026-10-02 08:50 Q97 -> done — gate pass @a032d4c0
