@@ -1353,7 +1353,7 @@ do: Rows list-sidebar-65 -68, capture-import-15, capture-source-02, books-114. D
 check: `grep -rqE "class SourceGlyphParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q180 [auto] (doing) note menus: list context menus, Redo and Copy transcript follow one rule set from NoteMenu
+### Q180 [auto] (done) note menus: list context menus, Redo and Copy transcript follow one rule set from NoteMenu
 spec: C239 C240 C179 C161
 needs: -
 gate+: yes
@@ -1361,7 +1361,7 @@ do: Rows list-sidebar-83, note-menu-07 -13. Both list context menus build from `
 check: `grep -rqE "class NoteMenuParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q181 [auto] (todo) Connections panel: one width, header, why-chips and hide verb on iPad and Mac
+### Q181 [auto] (doing) Connections panel: one width, header, why-chips and hide verb on iPad and Mac
 spec: C239 C240 R58
 needs: Q119
 gate+: yes
@@ -1377,7 +1377,7 @@ do: Rows recsj-084 -088 -091 -092. Move the recents → related-scores → pick 
 check: `grep -rqE "class JournalParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q183 [auto] (todo) conversations: phone karaoke uses KaraokeTrack, split speakers has Cancel and a read-only body on the phone, speaker sheet shows the all-turns line
+### Q183 [auto] (doing) conversations: phone karaoke uses KaraokeTrack, split speakers has Cancel and a read-only body on the phone, speaker sheet shows the all-turns line
 spec: C239 C240 C124
 needs: -
 gate+: yes
@@ -1385,7 +1385,7 @@ do: Rows note-speaker-07, note-split-03, note-speaker-01. Phone conversation kar
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ConversationKaraokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q184 [auto] (todo) one new-person-from-a-name flow and one note-link picker on phone and Mac
+### Q184 [auto] (doing) one new-person-from-a-name flow and one note-link picker on phone and Mac
 spec: C239 C240 C81
 needs: Q113
 gate+: yes
@@ -2761,3 +2761,10 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:16 Q265 -> done — gate pass @c4fdfd42
 - 2026-10-03 00:16 Q268 added
 - 2026-10-03 00:16 Q268 -> tuur — awaiting sitting
+- 2026-10-03 00:19 Q141 -> doing — redispatch 2/3: 1970 'date unknown' sentinel would start the fading clock at 1970 — anchor must fall back to import time
+- 2026-10-03 00:22 Q183 -> doing — worker out
+- 2026-10-03 00:23 Q142 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-03 00:23 Q142 -> doing — redispatch 2/3: rebase after CONFLICT
+- 2026-10-03 00:25 Q181 -> doing — worker out
+- 2026-10-03 00:26 Q184 -> doing — worker out
+- 2026-10-03 00:27 Q180 -> done — gate pass @081a6075
