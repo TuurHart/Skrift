@@ -219,22 +219,34 @@ struct NoteCardView: View {
             .padding(.top, 1)
     }
 
+    /// Q265: chips wrap onto at most 2 lines, then a "+N" chip (see ChipFlow.swift). A row of
+    /// duration + place + weather + tags used to run past the card edge and clip.
     private var chipsRow: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(model.chips.enumerated()), id: \.offset) { _, chip in
-                HStack(spacing: 3) {
-                    if let symbol = chip.systemImage {
-                        Image(systemName: symbol).font(.system(size: 8.5))
-                    }
-                    Text(chip.text).font(.system(size: 10))
-                }
-                .foregroundStyle(chip.isTag ? style.accentText : style.textDim)
-                .padding(.horizontal, 7).padding(.vertical, 2)
-                .background(chip.isTag ? style.accentSoft : style.chipFill, in: Capsule())
-                .lineLimit(1).fixedSize()
+        let chips = model.chips
+        return ChipFlowLayout(chipCount: chips.count) {
+            ForEach(Array(chips.enumerated()), id: \.offset) { _, chip in
+                chipView(chip)
             }
-            Spacer(minLength: 0)
+            ForEach(1..<max(chips.count, 1), id: \.self) { k in
+                chipView(NoteCardModel.Chip(text: "+\(k)", systemImage: nil))
+                    .accessibilityHidden(true)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
         .padding(.top, 4)
+    }
+
+    private func chipView(_ chip: NoteCardModel.Chip) -> some View {
+        HStack(spacing: 3) {
+            if let symbol = chip.systemImage {
+                Image(systemName: symbol).font(.system(size: 8.5))
+            }
+            Text(chip.text).font(.system(size: 10))
+        }
+        .foregroundStyle(chip.isTag ? style.accentText : style.textDim)
+        .padding(.horizontal, 7).padding(.vertical, 2)
+        .background(chip.isTag ? style.accentSoft : style.chipFill, in: Capsule())
+        .lineLimit(1)
     }
 }

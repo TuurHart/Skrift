@@ -1,0 +1,135 @@
+import SwiftUI
+
+/// Q265 (C115/C240): the note card's chip row wraps instead of running past the card edge.
+/// Chips flow onto at most `maxLines` lines in their given order; if some still do not fit,
+/// the tail is replaced by one "+N" chip (N = how many are hidden). Shared by both apps'
+/// `NoteCardView`. No `#if os()`; SwiftUI-only so the host-less Mac test bundle compiles it.
+
+/// The line-break decision, pure so a test can drive it without a view.
+enum ChipLineBreaker {
+    struct Plan: Equatable {
+        /// How many of the real chips are shown (the first `visible`, in order).
+        var visible: Int
+        /// Items per line. When chips are hidden the "+N" chip counts as the last item of the
+        /// last line; so `lineCounts.reduce(0,+) == visible + (hidden > 0 ? 1 : 0)`.
+        var lineCounts: [Int]
+        var hidden: Int
+    }
+
+    /// `widths[i]` = chip i's natural width; `overflowWidth(k)` = width of the "+k" chip.
+    /// Every item is clamped to `maxWidth` (a chip wider than the row takes a line alone and
+    /// truncates). Always shows at least one chip.
+    static func plan(widths: [CGFloat], overflowWidth: (Int) -> CGFloat,
+                     maxWidth: CGFloat, spacing: CGFloat, maxLines: Int) -> Plan {
+        let n = widths.count
+        guard n > 0 else { return Plan(visible: 0, lineCounts: [], hidden: 0) }
+        if let all = fit(widths.map { min($0, maxWidth) }, maxWidth: maxWidth,
+                         spacing: spacing, maxLines: maxLines) {
+            return Plan(visible: n, lineCounts: all, hidden: 0)
+        }
+        var v = n - 1
+        while v >= 1 {
+            let items = widths.prefix(v).map { min($0, maxWidth) } + [min(overflowWidth(n - v), maxWidth)]
+            if let counts = fit(items, maxWidth: maxWidth, spacing: spacing, maxLines: maxLines) {
+                return Plan(visible: v, lineCounts: counts, hidden: n - v)
+            }
+            v -= 1
+        }
+        // No longer run fits: the first chip, then "+N" on its own line.
+        return Plan(visible: 1, lineCounts: maxLines >= 2 ? [1, 1] : [1], hidden: n - 1)
+    }
+
+    /// Greedy line fill; nil if it needs more than `maxLines` lines.
+    private static func fit(_ items: [CGFloat], maxWidth: CGFloat, spacing: CGFloat,
+                            maxLines: Int) -> [Int]? {
+        var counts: [Int] = []
+        var x: CGFloat = 0
+        var inLine = 0
+        for w in items {
+            if inLine > 0, x + spacing + w > maxWidth {
+                counts.append(inLine); inLine = 0; x = 0
+            }
+            x += (inLine > 0 ? spacing : 0) + w
+            inLine += 1
+        }
+        if inLine > 0 { counts.append(inLine) }
+        return counts.count <= maxLines ? counts : nil
+    }
+}
+
+/// Lays out `chipCount` chips followed by `chipCount - 1` candidate "+k" chips (k = 1...n-1,
+/// at index `chipCount + k - 1`). Only the chosen "+N" candidate is placed on-screen; unchosen
+/// chips and candidates are parked off-screen (the row clips). Subviews must be in that order.
+struct ChipFlowLayout: Layout {
+    var chipCount: Int
+    var spacing: CGFloat = 4
+    var lineSpacing: CGFloat = 4
+    var maxLines: Int = 2
+
+    private func plan(_ subviews: Subviews, maxWidth: CGFloat) -> ChipLineBreaker.Plan {
+        let widths = (0..<chipCount).map { subviews[$0].sizeThatFits(.unspecified).width }
+        return ChipLineBreaker.plan(
+            widths: widths,
+            overflowWidth: { k in
+                let i = chipCount + k - 1
+                return i < subviews.count ? subviews[i].sizeThatFits(.unspecified).width : 0
+            },
+            maxWidth: maxWidth, spacing: spacing, maxLines: maxLines)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        guard chipCount > 0 else { return .zero }
+        let maxWidth = proposal.width ?? .infinity
+        let p = plan(subviews, maxWidth: maxWidth)
+        var widest: CGFloat = 0, height: CGFloat = 0
+        var item = 0
+        for (line, count) in p.lineCounts.enumerated() {
+            var x: CGFloat = 0, rowH: CGFloat = 0
+            for _ in 0..<count {
+                let s = size(of: item, plan: p, subviews: subviews, maxWidth: maxWidth)
+                x += (x > 0 ? spacing : 0) + s.width
+                rowH = max(rowH, s.height)
+                item += 1
+            }
+            widest = max(widest, x)
+            height += rowH + (line > 0 ? lineSpacing : 0)
+        }
+        return CGSize(width: min(maxWidth, widest), height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        guard chipCount > 0 else { return }
+        let p = plan(subviews, maxWidth: bounds.width)
+        var shown = Set<Int>()
+        var item = 0, y = bounds.minY
+        for (line, count) in p.lineCounts.enumerated() {
+            var x = bounds.minX, rowH: CGFloat = 0
+            for _ in 0..<count {
+                let idx = index(of: item, plan: p)
+                let s = size(of: item, plan: p, subviews: subviews, maxWidth: bounds.width)
+                subviews[idx].place(at: CGPoint(x: x, y: y), anchor: .topLeading,
+                                    proposal: ProposedViewSize(width: s.width, height: s.height))
+                shown.insert(idx)
+                x += s.width + spacing
+                rowH = max(rowH, s.height)
+                item += 1
+            }
+            y += rowH + lineSpacing
+        }
+        for i in 0..<subviews.count where !shown.contains(i) {
+            subviews[i].place(at: CGPoint(x: bounds.minX - 10_000, y: bounds.minY - 10_000),
+                              anchor: .topLeading, proposal: .unspecified)
+        }
+    }
+
+    /// Subview index for the `item`-th shown element (the last one is "+N" when chips are hidden).
+    private func index(of item: Int, plan p: ChipLineBreaker.Plan) -> Int {
+        (p.hidden > 0 && item == p.visible) ? chipCount + p.hidden - 1 : item
+    }
+
+    private func size(of item: Int, plan p: ChipLineBreaker.Plan, subviews: Subviews,
+                      maxWidth: CGFloat) -> CGSize {
+        let s = subviews[index(of: item, plan: p)].sizeThatFits(.unspecified)
+        return CGSize(width: min(s.width, maxWidth), height: s.height)
+    }
+}
