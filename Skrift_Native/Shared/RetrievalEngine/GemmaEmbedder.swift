@@ -17,7 +17,18 @@ import UIKit
 /// `MockEmbedder`). One engine + one `modelRev` ⇒ the two devices' local
 /// indexes stay comparable.
 actor GemmaEmbedder: EmbeddingEngine {
-    static let shared = GemmaEmbedder()
+    static let shared = GemmaEmbedder(
+        loader: {
+            try await EmbeddingGemma.downloadAndLoad(modelsDir: GemmaEmbedder.modelsDir) { p in
+                GemmaEmbedder.downloadProgress?(p.bytesReceived, p.bytesTotal)
+            }
+        },
+        observesBackground: true)
+
+    /// How the model gets loaded. Production = download + CoreML load; tests inject a
+    /// counting stand-in, because `EmbeddingGemma` itself needs the 295 MB assets.
+    typealias Loader = @Sendable () async throws -> EmbeddingGemma
+    private let loader: Loader
 
     /// App-wired log sink (phone → DevLog, Mac → its own trace). No-op default.
     nonisolated(unsafe) static var log: @Sendable (String) -> Void = { _ in }
@@ -30,6 +41,7 @@ actor GemmaEmbedder: EmbeddingEngine {
     private let dim = 512
     private var model: EmbeddingGemma?
     private var lastUse = Date.distantPast
+    private var idleTask: Task<Void, Never>?
 
     /// Foreground hold: a cold `prepare()` costs MINUTES on an A15 (ANE model
     /// load + the 31.8 MB tokenizer parse — devlog 2026-07-08: first query of a
@@ -40,10 +52,12 @@ actor GemmaEmbedder: EmbeddingEngine {
     /// was buying.
     private let idleUnloadAfter: TimeInterval = 600
 
-    private init() {
+    init(loader: @escaping Loader, observesBackground: Bool = false) {
+        self.loader = loader
         // iOS: a suspended app holding 295 MB is first in line for jetsam — free it
         // on background. macOS has no jetsam pressure; the idle timer suffices.
         #if canImport(UIKit)
+        guard observesBackground else { return }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
         ) { _ in
@@ -82,19 +96,20 @@ actor GemmaEmbedder: EmbeddingEngine {
     func prepare() async throws {
         if model == nil {
             if loadTask == nil {
-                // Yield the Neural Engine to an active transcription: this cold load is ~2 min and
-                // would otherwise STARVE the ASR (device-found 2026-07-15 — a 13s clip waited ~2 min).
-                // Capped so a long book transcription can't defer Related notes forever.
-                var waited = 0.0
-                while TranscriptionActivity.isActive, waited < 30 {
-                    try? await Task.sleep(for: .milliseconds(400)); waited += 0.4
-                }
-                let t0 = Date()
-                Self.log("embedder: cold load START")
-                loadTask = Task {
-                    let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir) { p in
-                        Self.downloadProgress?(p.bytesReceived, p.bytesTotal)
+                // The transcription wait lives INSIDE the single-flight task: out here the loop
+                // suspends the actor before `loadTask` is set, so a second caller re-enters, still
+                // sees nil, and starts a second 295 MB load.
+                loadTask = Task { [loader] in
+                    // Yield the Neural Engine to an active transcription: this cold load is ~2 min and
+                    // would otherwise STARVE the ASR (device-found 2026-07-15 — a 13s clip waited ~2 min).
+                    // Capped so a long book transcription can't defer Related notes forever.
+                    var waited = 0.0
+                    while TranscriptionActivity.isActive, waited < 30 {
+                        try? await Task.sleep(for: .milliseconds(400)); waited += 0.4
                     }
+                    let t0 = Date()
+                    Self.log("embedder: cold load START")
+                    let m = try await loader()
                     Self.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
                     return m
                 }
@@ -120,10 +135,21 @@ actor GemmaEmbedder: EmbeddingEngine {
     /// `idleUnloadAfter`: the reload is minutes, not "a moment", so the idle
     /// window must outlast a whole search-and-read session.
     private func scheduleIdleUnload() {
-        Task { [weak self, idleUnloadAfter] in
-            try? await Task.sleep(nanoseconds: UInt64((idleUnloadAfter + 5) * 1_000_000_000))
-            await self?.unloadIfIdle()
+        guard idleTask == nil else { return }   // ONE sleeper; it re-reads `lastUse` when it wakes
+        idleTask = Task { [weak self] in await self?.idleLoop() }
+    }
+
+    /// Sleeps until `lastUse + idleUnloadAfter`, re-checking after each wake (a use in the
+    /// meantime pushes the deadline out), then unloads. `embed()` calls `prepare()` per chunk,
+    /// so a sweep used to leave one 605 s sleeper per chunk.
+    private func idleLoop() async {
+        while model != nil {
+            let remaining = lastUse.addingTimeInterval(idleUnloadAfter).timeIntervalSinceNow
+            if remaining <= 0 { break }
+            try? await Task.sleep(nanoseconds: UInt64((remaining + 5) * 1_000_000_000))
         }
+        unloadIfIdle()
+        idleTask = nil
     }
 
     private func unloadIfIdle() {
