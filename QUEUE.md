@@ -1258,7 +1258,7 @@ do: Phone `ImportanceDots` uses ≥0.8 / ≥0.4 thresholds (JournalHomeView.swif
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportanceStopsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P68
 
-### Q168 [auto] (doing) semantic index embeds the same text on every device; the Mac warms the embedder on the first search keystroke
+### Q168 [auto] (done) semantic index embeds the same text on every device; the Mac warms the embedder on the first search keystroke
 spec: C87 C231 C110
 needs: -
 gate+: yes
@@ -2601,3 +2601,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:41 Q144 -> tuur — mock https://claude.ai/artifact/43NTAjUbFrB6C8vHw1NL3m (mocks/Q144-mac-weather-daypart.html). Question: type the OpenWeatherMap key on the Mac separately, or should the Mac pick it up from the phone over iCloud? (D92 'same key' reads both ways)
 - 2026-10-02 21:41 Q162 -> doing — mockup agent out
 - 2026-10-02 21:41 Q177 -> done — gate pass @ae6d8b32
+- 2026-10-02 21:43 Q168 -> done — gate pass @4f272318
