@@ -46,8 +46,25 @@ enum VocabularyCloudSync {
         case .pushedLocal, .noop:
             break
         }
+        // The "Separate destinations" switch rides the same carrier on a THIRD stamp
+        // (Q98 / D162). Re-fetch: the vocab reconcile above may just have inserted the row.
+        DestinationSettings.seedStampIfNeeded(defaults: defaults)
+        var destinationsTouched = false
+        switch DestinationsSyncCore.reconcile(
+            localEnabled: DestinationSettings.storedEnabled(defaults: defaults),
+            localModifiedAt: DestinationSettings.modifiedAt(defaults: defaults),
+            records: repository.allVocabularyRecords(),
+            insert: { repository.context.insert($0) }) {
+        case .adoptRemote(let enabled, let ts):
+            DestinationSettings.adoptSynced(enabled, modifiedAt: ts, defaults: defaults)
+            DevLog.log("vocab: adopted synced destinations switch enabled=\(enabled)")
+        case .pushedLocal:
+            destinationsTouched = true
+        case .noop:
+            break
+        }
         // Fresh device with nothing anywhere: no carrier was touched, nothing to save.
-        if records.isEmpty, outcome == .noop { return }
+        if records.isEmpty, outcome == .noop, !destinationsTouched { return }
         repository.save()
     }
 }

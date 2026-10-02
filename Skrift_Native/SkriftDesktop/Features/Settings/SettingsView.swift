@@ -112,18 +112,22 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             section("Destinations") {
-                // OFF by default and per-device — most people want one folder, and the four
-                // destinations are Tuur's own way of keeping his thoughts out of a repo an AI
-                // reads. The switch is `DestinationSettings` (UserDefaults, shared with iOS),
-                // NOT an AppSettings field: it is a local fact about this device, like which
-                // folders are picked here.
+                // OFF by default — most people want one folder, and the four destinations
+                // are Tuur's own way of keeping his thoughts out of a repo an AI reads. The
+                // switch is `DestinationSettings` (UserDefaults) and SYNCS to the other
+                // devices through the vocabulary carrier (Q98 / D162); the portfolio FOLDER
+                // below stays per device.
                 HStack {
                     Text("Separate destinations").font(.system(size: 12))
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
                     if interactive {
                         Toggle("", isOn: Binding(get: { DestinationSettings.isEnabled },
-                                                 set: { DestinationSettings.isEnabled = $0; destinationsOn = $0 }))
+                                                 set: {
+                                                     DestinationSettings.isEnabled = $0
+                                                     destinationsOn = $0
+                                                     VocabularyCloudSync.run()   // push the switch now (Q98)
+                                                 }))
                             .labelsHidden().toggleStyle(.switch).controlSize(.small)
                     } else {
                         Text(destinationsOn ? "On" : "Off")
@@ -132,6 +136,10 @@ struct SettingsView: View {
                 }
                 if destinationsOn {
                     folderRow("Portfolio folder", \.portfolioRoot)
+                    if settings.portfolioRoot.isEmpty {
+                        Text(DestinationSettings.needsFolderNotice)
+                            .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                    }
                     if !settings.portfolioRoot.isEmpty {
                         let root = (settings.portfolioRoot as NSString).lastPathComponent
                         ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
@@ -155,6 +163,11 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                    // A value synced in from another device lands in UserDefaults; follow it.
+                    .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                        let stored = DestinationSettings.storedEnabled()
+                        if stored != destinationsOn { destinationsOn = stored }
+                    }
             }
             section("Enhancement") {
                 textRow("Model (HuggingFace repo)", \.enhancementModelRepo)

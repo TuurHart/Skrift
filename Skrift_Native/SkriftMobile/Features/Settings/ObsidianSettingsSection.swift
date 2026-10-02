@@ -110,7 +110,18 @@ struct ObsidianSettingsSection: View {
             }
             .tint(.skAccent)
             .accessibilityIdentifier("destinations-toggle")
-            .onChange(of: destinationsOn) { _, on in DestinationSettings.isEnabled = on }
+            .onChange(of: destinationsOn) { _, on in
+                // Only a REAL flip here: adopting the synced value also moves `destinationsOn`,
+                // and re-stamping that as a new edit would let it overwrite a later change.
+                guard on != DestinationSettings.storedEnabled() else { return }
+                DestinationSettings.set(on)
+                VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit now (Q98)
+            }
+            // A value synced in from another device lands in UserDefaults; follow it.
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                let stored = DestinationSettings.storedEnabled()
+                if stored != destinationsOn { destinationsOn = stored }
+            }
 
             if destinationsOn {
                 Button {
@@ -165,7 +176,8 @@ struct ObsidianSettingsSection: View {
                  + "four destinations you pick on the note itself."
         }
         guard portfolioName != nil else {
-            return "Pick the folder your portfolio lives in — Skrift writes Project, Idea and "
+            return DestinationSettings.needsFolderNotice + ". This switch is on for all your "
+                 + "devices; the folder is chosen per device. Skrift writes Project, Idea and "
                  + "Inspiration notes into folders inside it. Personal notes still go to your "
                  + "Obsidian vault and never here."
         }
