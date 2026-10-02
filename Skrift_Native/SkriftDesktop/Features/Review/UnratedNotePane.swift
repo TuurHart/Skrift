@@ -51,7 +51,7 @@ struct UnratedNotePane: View {
                         commit()
                         // A rating pipelines the memo: kick the sweep that ingests it; the
                         // shell follows it to its new row when the `@Query` yields it.
-                        if let value = new, value > 0 {
+                        if NoteConsent.isRated(new) {
                             // It's pipelining: the real ingest folder takes over, so
                             // the materialised cache copy is dropped.
                             if let uuid = UUID(uuidString: memoID) {
@@ -89,7 +89,7 @@ struct UnratedNotePane: View {
         defer { loaded = true }
         guard let uuid = UUID(uuidString: memoID),
               let ctx = MemoCloudStore.container?.mainContext else { return }
-        guard let found = try? ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == uuid })).first else {
+        guard let found = MemoCloudStore.memo(id: uuid, context: ctx) else {
             // A new note nobody has typed in: no Memo exists. Show the empty note through the
             // ordinary projection; `commit` creates the row on the first keystroke.
             if let draft, draft.isDraft(memoID), let blank = draft.placeholder() {

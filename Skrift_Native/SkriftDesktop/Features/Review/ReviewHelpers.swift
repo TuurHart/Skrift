@@ -1,10 +1,6 @@
 import SwiftUI
 
 extension PipelineFile {
-    // `durationSeconds` moved to Models/PipelineFile.swift — it's a read of the stored
-    // metadata blob, not a view helper, and Models/ is compiled into the host-less test
-    // bundle so the two-shapes rule can actually be tested.
-
     /// Body text precedence — matches the web `getBestText`: the name-linked
     /// `sanitised` (what exports), then the copy-edit, then the raw transcript.
     var bestBodyText: String { sanitised ?? enhancedCopyedit ?? transcript ?? "" }
@@ -32,16 +28,6 @@ extension PipelineFile {
 }
 
 extension SkriftFormat {
-    // `seconds(fromHMS:)` is gone — parsing the stored value is
-    // `PipelineFile.durationSeconds(fromMetadataValue:)`, which handles the numeric
-    // shape too. This left a string-only parser sitting next to a reader that needed
-    // both, which is how the synced-note duration went missing.
-    //
-    // `.clock(_:)` (m:ss only, no hours) is GONE (sweep E finding #10, sweep-d-mac.md
-    // #10): it disagreed with `.duration(seconds:)` past 60 minutes — the header/
-    // player read e.g. "125:33" for the SAME note the sidebar correctly read "2:05:33".
-    // Every former `.clock` call site now routes through `.duration(seconds:)`.
-
     private static let breadcrumbDF: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "EEE, d MMM yyyy"

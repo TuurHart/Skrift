@@ -66,7 +66,7 @@ struct UnpipelinedMemoSheet: View {
         .background(Theme.bg)
         .task { load() }
         .onChange(of: rating) { _, new in
-            if let value = new, value > 0, let memo { rate(memo, value) }
+            if NoteConsent.isRated(new), let value = new, let memo { rate(memo, value) }
         }
         .accessibilityIdentifier("unpipelined-sheet")
     }

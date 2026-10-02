@@ -9,7 +9,7 @@ import AppKit
 struct CaptureSourceStrip: View {
     let file: PipelineFile
 
-    private var sc: SharedContent? { SharedContent.decode(from: file.audioMetadataJSON) }
+    private var sc: SharedContent? { file.sharedContent }
 
     private var label: String {
         switch sc?.type {
@@ -66,7 +66,7 @@ struct CaptureSourceStrip: View {
 struct CaptureBanner: View {
     let file: PipelineFile
 
-    private var sc: SharedContent? { SharedContent.decode(from: file.audioMetadataJSON) }
+    private var sc: SharedContent? { file.sharedContent }
 
     private var bannerText: String {
         let typePhrase: String
@@ -112,7 +112,7 @@ struct CaptureBanner: View {
 struct CaptureSharedContentBlock: View {
     let file: PipelineFile
 
-    private var sc: SharedContent? { SharedContent.decode(from: file.audioMetadataJSON) }
+    private var sc: SharedContent? { file.sharedContent }
 
     /// The synced `.file` document, materialized under the capture folder's `files/` (3b) —
     /// the single file there. nil until the document asset arrives (then the card gains "Open").

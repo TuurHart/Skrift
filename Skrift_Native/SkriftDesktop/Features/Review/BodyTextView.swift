@@ -2,20 +2,6 @@ import SwiftUI
 import AppKit
 import ImageIO
 
-/// Editable note body with live `[[wiki link]]` accent styling + inline image
-/// thumbnails for `[[img_NNN]]` markers — an NSTextView bridge (SwiftUI's TextEditor
-/// can't do either). Self-sizing (no internal scroll; the surrounding SwiftUI
-/// ScrollView scrolls). The MODEL string always keeps the literal `[[img_NNN]]`
-/// markers + `[[brackets]]` (WYSIWYG to the exported markdown); the text view shows a
-/// thumbnail in the marker's place via a custom attachment, and the marker is
-/// reconstructed from that attachment whenever the user edits.
-///
-/// Unlink (mocks/name-unlink.html): when `onUnlink` is wired, an already-linked
-/// `[[Name]]` whose core matches a live person is clickable — single-click opens a
-/// popover offering "unlink this mention" (→ the plain alias as spoken), "unlink all
-/// mentions in this note" (persisted so re-processing won't re-link), or "change to →
-/// <person>". (The in-prose three-tier suggested rendering + which-person popover land
-/// in chunk 4 — see archive/state-2026-09/NAMING_MODEL.md / mocks/naming-review.html.)
 /// What the gutter's naming popover needs from its host (Q87, mock Q86-split-speakers.html).
 struct SpeakerAssign {
     /// The other speakers in the note (labels as shown), for "Move just this line to…".
@@ -28,6 +14,20 @@ struct SpeakerAssign {
     var onMoveLine: (_ index: Int, _ other: String) -> Void
 }
 
+/// Editable note body with live `[[wiki link]]` accent styling + inline image
+/// thumbnails for `[[img_NNN]]` markers — an NSTextView bridge (SwiftUI's TextEditor
+/// can't do either). Self-sizing (no internal scroll; the surrounding SwiftUI
+/// ScrollView scrolls). The MODEL string always keeps the literal `[[img_NNN]]`
+/// markers + `[[brackets]]` (WYSIWYG to the exported markdown); the text view shows a
+/// thumbnail in the marker's place via a custom attachment, and the marker is
+/// reconstructed from that attachment whenever the user edits.
+///
+/// Unlink (mocks/name-unlink.html): when `onUnlink` is wired, an already-linked
+/// `[[Name]]` whose core matches a live person is clickable — single-click opens a
+/// popover offering "unlink this mention" (→ the plain alias as spoken), "unlink all
+/// mentions in this note" (persisted so re-processing won't re-link), or "change to →
+/// <person>". Dotted SUGGESTED names open the which-person popover
+/// (mocks/naming-review.html).
 struct BodyTextView: NSViewRepresentable {
     @Binding var text: String
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
@@ -96,14 +96,6 @@ struct BodyTextView: NSViewRepresentable {
     struct KaraokePlayback {
         var active: Int?
         var seekWord: (Int) -> Void
-
-        /// A fixed mid-playback state for the headless snapshots: `fraction` of the way through
-        /// `body`'s words.
-        init(fractionOf body: String, fraction: Double) {
-            let n = body.split(whereSeparator: { $0.isWhitespace }).count
-            active = n > 0 ? min(n - 1, Int(fraction * Double(n))) : nil
-            seekWord = { _ in }
-        }
 
         init(active: Int?, seekWord: @escaping (Int) -> Void) {
             self.active = active
@@ -193,7 +185,7 @@ struct BodyTextView: NSViewRepresentable {
         //    snap-stable, so a snapped-only compare re-rendered on every keystroke — the
         //    photo flashed and typed text jumped before the image); AND
         //  • its shown form — a body stored before v2 is shown through the Q13 read-only
-        //    fallback (`BodyV2Legacy`, Q14 removes it), so a raw-only compare would loop
+        //    fallback (`BodyV2Legacy`), so a raw-only compare would loop
         //    forever on it (raw ≠ shown when a photo is mid-sentence). Identity for v2.
         // Differ from both ⇒ the text genuinely changed under us (a phone sync).
         let ms = context.coordinator.modelString(tv)
@@ -545,7 +537,7 @@ struct BodyTextView: NSViewRepresentable {
             let primary = NSColor(Theme.textPrimary)
             // Body v2 stores every picture as its own paragraph (C10), so the display IS
             // the stored text — no render-time snap (C17). A body stored before v2 is
-            // shown through the Q13 read-only fallback (`BodyV2Legacy`, Q14 removes it).
+            // shown through the Q13 read-only fallback (`BodyV2Legacy`).
             let model = BodyV2Legacy.shown(rawModel).text
             hideTagSuggest()   // note switch / external change → the caret's run is gone
             // Synchronous: text + markers-as-text only — instant. Image disk-load +
@@ -1255,9 +1247,6 @@ struct BodyTextView: NSViewRepresentable {
     }
 }
 
-/// State 2 (mocks/naming-review.html): click a dotted SUGGESTED name → which person? One
-/// candidate (a recognised common-word name) reads "Link "Rose"?"; 2+ (the ambiguous twins)
-/// read "Which "Jack"? · N people share this name". Plus New person… and Leave as plain text.
 /// A memo the `[[` picker can link to (phone parity: id + title + a date subtitle).
 struct MemoLinkCandidate: Identifiable, Equatable {
     let id: UUID
@@ -1326,6 +1315,9 @@ struct MemoLinkPopover: View {
     }
 }
 
+/// State 2 (mocks/naming-review.html): click a dotted SUGGESTED name → which person? One
+/// candidate (a recognised common-word name) reads "Link "Rose"?"; 2+ (the ambiguous twins)
+/// read "Which "Jack"? · N people share this name". Plus New person… and Leave as plain text.
 struct SuggestionPopover: View {
     let spoken: String
     let candidates: [NameCandidate]
