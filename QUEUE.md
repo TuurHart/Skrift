@@ -935,7 +935,7 @@ do: Phone has a checklist button and Return-continuation (NoteBodyView.swift:640
 check: `grep -rqE "class MacTaskContinueTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P27
 
-### Q127 [auto] (doing) Mac: the ⋯ menu of an unrated note offers Process (which floors the rating), Lock and Delete
+### Q127 [auto] (done) Mac: the ⋯ menu of an unrated note offers Process (which floors the rating), Lock and Delete
 spec: C40 D159 C187
 needs: Q100
 gate+: yes
@@ -2686,3 +2686,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:18 Q105 -> doing — batch worker out
 - 2026-10-02 23:18 Q107 -> doing — batch worker out
 - 2026-10-02 23:21 Q135 -> done — gate pass @1f414d95
+- 2026-10-02 23:26 Q127 -> done — gate pass @becf6adc
