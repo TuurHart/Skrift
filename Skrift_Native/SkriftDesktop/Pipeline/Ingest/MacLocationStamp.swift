@@ -28,7 +28,6 @@ import os
 @MainActor
 enum MacLocationStamp {
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "location")
-    private static let oneShot = LocationOneShot()
 
     /// Stamp this note with where the Mac is, unless it already has metadata.
     ///
@@ -41,6 +40,9 @@ enum MacLocationStamp {
     static func stamp(memo: Memo, file pf: PipelineFile, in ctx: ModelContext) {
         let memoID = memo.id
         Task { @MainActor in
+            // One instance PER CALL: a shared one has a single continuation slot, so a second
+            // `current()` before the first fix returned would strand the first caller forever.
+            let oneShot = LocationOneShot()
             guard let place = await oneShot.current() else {
                 log.debug("no location fix — leaving the note without one")
                 return

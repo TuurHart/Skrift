@@ -242,23 +242,11 @@ public struct ResumableModelDownloader: Downloader {
         (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
     }
 
-    /// Enough globbing for the patterns mlx-swift-lm passes (`*.safetensors`, `*.json`, …):
-    /// `*` matches within a path segment, everything else is literal.
+    /// Shell-style glob via `fnmatch` with flag 0, so `*` crosses `/` (a repo-relative name
+    /// like `sub/config.json` matches `*.json`). Covers the patterns mlx-swift-lm passes
+    /// (`*.safetensors`, `*.json`, …).
     static func glob(_ pattern: String, matches name: String) -> Bool {
-        if pattern == "*" { return true }
-        let parts = pattern.components(separatedBy: "*")
-        guard parts.count > 1 else { return pattern == name }
-        var rest = Substring(name)
-        if let first = parts.first, !first.isEmpty {
-            guard rest.hasPrefix(first) else { return false }
-            rest = rest.dropFirst(first.count)
-        }
-        for middle in parts.dropFirst().dropLast() where !middle.isEmpty {
-            guard let r = rest.range(of: middle) else { return false }
-            rest = rest[r.upperBound...]
-        }
-        if let last = parts.last, !last.isEmpty { return rest.hasSuffix(last) }
-        return true
+        fnmatch(pattern, name, 0) == 0
     }
 
     enum DownloadError: LocalizedError {
