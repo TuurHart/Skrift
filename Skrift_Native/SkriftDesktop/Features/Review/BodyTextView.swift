@@ -158,6 +158,7 @@ struct BodyTextView: NSViewRepresentable {
         tv.isHorizontallyResizable = false
         tv.textContainer?.widthTracksTextView = true
         tv.allowsUndo = true
+        NoteFindBar.enable(on: tv)            // Q125: system find bar (Cmd+F while the note has focus)
         // Single-click on a linked `[[Name]]` → unlink popover (suppress cursor placement);
         // during karaoke a click seeks instead.
         tv.onSingleClickAt = { [weak coordinator = context.coordinator, weak tv] idx in
@@ -1607,6 +1608,13 @@ final class SelfSizingTextView: NSTextView {
     var speakerTurns: [(loc: Int, slot: Int)] = [] { didSet { needsDisplay = true } }
     /// While playing, the gutter location of the turn being read (mock E1 · b). nil = paused.
     var liveTurnLoc: Int? { didSet { if oldValue != liveTurnLoc { needsDisplay = true } } }
+
+    /// Q125: the find BAR docks into the enclosing scroll view; a text view hosted without one
+    /// falls back to the system find panel instead of showing nothing.
+    override func performTextFinderAction(_ sender: Any?) {
+        usesFindBar = enclosingScrollView != nil
+        super.performTextFinderAction(sender)
+    }
 
     override var intrinsicContentSize: NSSize {
         guard let layoutManager, let textContainer else { return super.intrinsicContentSize }

@@ -188,6 +188,8 @@ targets:
       # Pure-arithmetic layout rule from Features/ (imports CoreGraphics only —
       # the rest of Features/ is SwiftUI and would drag the whole app in).
       - path: Features/Review/NoteMeasure.swift
+      # Q125: the note find bar's setup + menu verbs (AppKit-only), so MacFindBarTests can assert it.
+      - path: Features/Review/NoteFindBar.swift
       # The recorder, file-by-file for the same reason: it imports only AVFoundation +
       # CoreAudio (system frameworks), while the rest of Engines/ is FluidAudio and MLX and
       # would turn the fast MLX-free loop into the slow one. What's under test is the
