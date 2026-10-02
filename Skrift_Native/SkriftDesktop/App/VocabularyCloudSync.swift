@@ -73,6 +73,19 @@ enum VocabularyCloudSync {
         case .pushedLocal, .noop:
             break
         }
+        // The "Separate destinations" switch rides the same carrier on a THIRD stamp
+        // (Q98 / D162). Re-fetch: the vocab reconcile above may just have inserted the row.
+        DestinationSettings.seedStampIfNeeded()
+        switch DestinationsSyncCore.reconcile(
+            localEnabled: DestinationSettings.storedEnabled(),
+            localModifiedAt: DestinationSettings.modifiedAt(),
+            records: (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? [],
+            insert: { context.insert($0) }) {
+        case .adoptRemote(let enabled, let ts):
+            DestinationSettings.adoptSynced(enabled, modifiedAt: ts)
+        case .pushedLocal, .noop:
+            break
+        }
         do { try context.save() }
         catch {
             Logger(subsystem: "com.skrift.desktop", category: "cloudkit")

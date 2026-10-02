@@ -73,15 +73,19 @@ enum NoteDestination: String, CaseIterable, Codable, Sendable {
 
 // MARK: - The feature switch
 
-/// Destinations are OFF until turned on, on every device (Tuur, 2026-08-26: *"this might
-/// actually be a toggle in settings because somebody might not care. This is very specific
-/// for me"*). Off means the chip row does not appear and every note is `.personal` — i.e.
-/// today's behaviour, unchanged, which is also what the App Store build ships as.
+/// Destinations are OFF until turned on (Tuur, 2026-08-26: *"this might actually be a toggle
+/// in settings because somebody might not care. This is very specific for me"*). Off means the
+/// chip row does not appear and every note is `.personal` — i.e. today's behaviour, unchanged,
+/// which is also what the App Store build ships as.
 ///
-/// Per-device like the vault bookmark, and deliberately NOT synced: whether THIS device shows
-/// the control is a local fact, the same way "is a folder picked here" is.
+/// The ON/OFF switch SYNCS across devices (Tuur 2026-10-02, D162, Q98: "if I turn it on
+/// somewhere, it turns on everywhere"): a Bool plus its own LWW stamp in UserDefaults, mirrored
+/// to the `VocabularyRecord` carrier by `DestinationsSyncCore`. The portfolio FOLDER stays per
+/// device (a security-scoped bookmark / path means nothing on another machine): a device with
+/// the switch on and no folder shows the chips and cannot export yet.
 enum DestinationSettings {
     private static let key = "skrift.destinations.enabled"
+    static let stampKey = "skrift.destinations.enabledModifiedAt"
 
     /// ONE portfolio root, not three pickers. The three portfolio destinations are SIBLINGS
     /// inside it (`_projects` / `_ideas` / `_inspiration` — `NoteDestination.portfolioFolder`),
@@ -94,9 +98,46 @@ enum DestinationSettings {
     static let portfolioRootKey = "skrift.destinations.portfolioRoot"
 
     static var isEnabled: Bool {
-        get { forcedOn || UserDefaults.standard.bool(forKey: key) }
-        set { UserDefaults.standard.set(newValue, forKey: key) }
+        get { forcedOn || storedEnabled() }
+        set { set(newValue) }
     }
+
+    /// The persisted switch, ignoring the `-destinationsOn` rig override — what sync reads.
+    static func storedEnabled(defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: key)
+    }
+
+    /// `.distantPast` until a real flip (or the one-time seed below) — a device that never
+    /// chose must not push its default over another device's choice.
+    static func modifiedAt(defaults: UserDefaults = .standard) -> Date {
+        (defaults.object(forKey: stampKey) as? Date) ?? .distantPast
+    }
+
+    /// The user flipped the switch here → store it and bump the stamp so it wins LWW.
+    /// Writing the value already stored is ignored, so re-applying a synced value can
+    /// never re-stamp it as a new edit.
+    static func set(_ on: Bool, defaults: UserDefaults = .standard, now: Date = Date()) {
+        guard on != storedEnabled(defaults: defaults) else { return }
+        defaults.set(on, forKey: key)
+        defaults.set(now, forKey: stampKey)
+    }
+
+    /// A value arrived from another device — keep the REMOTE stamp (never bumped to now).
+    static func adoptSynced(_ on: Bool, modifiedAt: Date, defaults: UserDefaults = .standard) {
+        defaults.set(on, forKey: key)
+        defaults.set(modifiedAt, forKey: stampKey)
+    }
+
+    /// One-time migration: a device that already had the switch ON before this synced carries
+    /// no stamp. The default is OFF, so "on" can only be a deliberate choice — date it now so
+    /// it propagates instead of waiting for a flip.
+    static func seedStampIfNeeded(defaults: UserDefaults = .standard, now: Date = Date()) {
+        guard storedEnabled(defaults: defaults), defaults.object(forKey: stampKey) == nil else { return }
+        defaults.set(now, forKey: stampKey)
+    }
+
+    /// Settings copy for a device that has the switch on but no folder picked here.
+    static let needsFolderNotice = "Pick a portfolio folder on this device to export"
 
     /// `-destinationsOn` — the screenshot/UI rig's override. Read straight from the
     /// process arguments so this type stays app-agnostic (the Mac has no `LaunchFlags`).
@@ -111,6 +152,7 @@ enum DestinationSettings {
     static func resetIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-resetDestinations") else { return }
         UserDefaults.standard.removeObject(forKey: key)
+        UserDefaults.standard.removeObject(forKey: stampKey)
         UserDefaults.standard.removeObject(forKey: portfolioRootKey)
     }
 }

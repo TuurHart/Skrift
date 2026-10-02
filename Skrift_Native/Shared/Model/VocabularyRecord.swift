@@ -33,11 +33,21 @@ final class VocabularyRecord {
     /// can't infer a shorthand default and fails to expand.)
     var languageModifiedAt: Date = Date.distantPast
 
+    /// The "Separate destinations" switch (`DestinationSettings`, Q98 / D162) — a third
+    /// setting on this same singleton row with its OWN stamp, for the same reason as the
+    /// language mode. `.distantPast` = no device ever flipped it. The portfolio FOLDER is
+    /// deliberately not here: a folder bookmark is per device.
+    var destinationsEnabled: Bool = false
+    var destinationsModifiedAt: Date = Date.distantPast
+
     init(words: [String], modifiedAt: Date = Date(),
-         multilingual: Bool = false, languageModifiedAt: Date = Date.distantPast) {
+         multilingual: Bool = false, languageModifiedAt: Date = Date.distantPast,
+         destinationsEnabled: Bool = false, destinationsModifiedAt: Date = Date.distantPast) {
         self.words = words
         self.modifiedAt = modifiedAt
         self.multilingual = multilingual
         self.languageModifiedAt = languageModifiedAt
+        self.destinationsEnabled = destinationsEnabled
+        self.destinationsModifiedAt = destinationsModifiedAt
     }
 }
