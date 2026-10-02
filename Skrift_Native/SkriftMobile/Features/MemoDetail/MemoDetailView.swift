@@ -776,7 +776,7 @@ struct MemoDetailView: View {
     /// blank author and the same note exported by two devices would differ by a
     /// frontmatter line (the edit guard would then treat it as user-edited forever).
     func exportNow(_ memo: Memo) {
-        let author = UserDefaults.standard.string(forKey: "skrift.publish.author") ?? ""
+        let author = AuthorSettings.name()   // the synced export author (Q158)
         let coordinator = PublishCoordinator.live(author: author)
         if let refusal = coordinator.exportRefusal(memo) {
             exportNotice = refusal

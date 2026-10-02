@@ -63,8 +63,25 @@ enum VocabularyCloudSync {
         case .noop:
             break
         }
+        // The export AUTHOR rides the same carrier on a FOURTH stamp (Q158): one name on
+        // every device, so the iPad and the Mac write the same `author:` bytes.
+        AuthorSettings.seedStampIfNeeded(defaults: defaults)
+        var authorTouched = false
+        switch AuthorSyncCore.reconcile(
+            localName: AuthorSettings.name(defaults: defaults),
+            localModifiedAt: AuthorSettings.modifiedAt(defaults: defaults),
+            records: repository.allVocabularyRecords(),
+            insert: { repository.context.insert($0) }) {
+        case .adoptRemote(let name, let ts):
+            AuthorSettings.adoptSynced(name, modifiedAt: ts, defaults: defaults)
+            DevLog.log("vocab: adopted synced export author")
+        case .pushedLocal:
+            authorTouched = true
+        case .noop:
+            break
+        }
         // Fresh device with nothing anywhere: no carrier was touched, nothing to save.
-        if records.isEmpty, outcome == .noop, !destinationsTouched { return }
+        if records.isEmpty, outcome == .noop, !destinationsTouched, !authorTouched { return }
         repository.save()
     }
 }

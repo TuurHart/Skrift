@@ -40,14 +40,22 @@ final class VocabularyRecord {
     var destinationsEnabled: Bool = false
     var destinationsModifiedAt: Date = Date.distantPast
 
+    /// The export author (`author:` frontmatter, `AuthorSyncCore`, Q158) — a fourth setting on
+    /// this row with its OWN stamp. `.distantPast` = no device ever set it.
+    var authorName: String = ""
+    var authorModifiedAt: Date = Date.distantPast
+
     init(words: [String], modifiedAt: Date = Date(),
          multilingual: Bool = false, languageModifiedAt: Date = Date.distantPast,
-         destinationsEnabled: Bool = false, destinationsModifiedAt: Date = Date.distantPast) {
+         destinationsEnabled: Bool = false, destinationsModifiedAt: Date = Date.distantPast,
+         authorName: String = "", authorModifiedAt: Date = Date.distantPast) {
         self.words = words
         self.modifiedAt = modifiedAt
         self.multilingual = multilingual
         self.languageModifiedAt = languageModifiedAt
         self.destinationsEnabled = destinationsEnabled
         self.destinationsModifiedAt = destinationsModifiedAt
+        self.authorName = authorName
+        self.authorModifiedAt = authorModifiedAt
     }
 }

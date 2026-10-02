@@ -74,9 +74,13 @@ struct SetupWizardView: View {
 
     private func finish() {
         var s = SettingsStore.shared.load()
-        s.authorName = author
+        if s.authorName != author {
+            s.authorName = author
+            s.authorModifiedAt = Date()   // a dated LWW write: the author syncs (Q158)
+        }
         s.noteFolder = vault
         SettingsStore.shared.save(s)
+        VocabularyCloudSync.run()
         NSCursor.arrow.set()
         onDone()
     }

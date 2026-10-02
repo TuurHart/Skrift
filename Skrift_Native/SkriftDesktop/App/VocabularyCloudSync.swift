@@ -86,6 +86,24 @@ enum VocabularyCloudSync {
         case .pushedLocal, .noop:
             break
         }
+        // The export AUTHOR rides the same carrier on a FOURTH stamp (Q158). A name set before
+        // this synced has no stamp: date it now so it reaches the iPad instead of losing to a blank.
+        if settings.authorModifiedAt == nil, !settings.authorName.isEmpty {
+            settings.authorModifiedAt = Date()
+            SettingsStore.shared.save(settings)
+        }
+        switch AuthorSyncCore.reconcile(
+            localName: settings.authorName,
+            localModifiedAt: settings.authorModifiedAt ?? .distantPast,
+            records: (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? [],
+            insert: { context.insert($0) }) {
+        case .adoptRemote(let name, let ts):
+            settings.authorName = name
+            settings.authorModifiedAt = ts
+            SettingsStore.shared.save(settings)
+        case .pushedLocal, .noop:
+            break
+        }
         do { try context.save() }
         catch {
             Logger(subsystem: "com.skrift.desktop", category: "cloudkit")

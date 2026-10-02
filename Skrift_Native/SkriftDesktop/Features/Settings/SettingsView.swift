@@ -19,6 +19,8 @@ struct SettingsView: View {
     /// Mirrors `DestinationSettings.isEnabled` so the section redraws when the switch moves
     /// (that flag is UserDefaults, not an `@Published` settings field).
     @State private var destinationsOn = DestinationSettings.isEnabled
+    /// The author changed while this sheet was open → push it to the carrier on close (Q158).
+    @State private var authorEdited = false
     @State private var people: [Person] = NamesStore.shared.livePeople()
     @State private var nameQuery = ""
     @State private var newCustomWord = ""
@@ -40,7 +42,14 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
-        .onChange(of: settings) { _, _ in persist() }
+        .onChange(of: settings) { _, new in
+            // An author edit is a dated LWW write (Q158); pushed once when the sheet closes.
+            if new.authorName != savedBaseline.authorName {
+                settings.authorModifiedAt = Date()
+                authorEdited = true
+            }
+            persist()
+        }
         // Prompt edits push to the synced carrier once, when the window goes away
         // (the autosave above already persisted text + stamp per keystroke).
         // A prompt left blank IS the default (Q157): write the default text back before the
@@ -51,6 +60,7 @@ struct SettingsView: View {
                 persist()
             }
             PolishPromptsCloudSync.run()
+            if authorEdited { VocabularyCloudSync.run() }   // push the author (Q158)
         }
         .task { reloadNames() }
         // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,

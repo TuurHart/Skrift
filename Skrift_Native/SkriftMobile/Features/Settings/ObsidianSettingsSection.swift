@@ -21,10 +21,10 @@ import UniformTypeIdentifiers
 /// (`ObsidianVault.setVault` had zero callers before 2026-07-26 — no picker meant no
 /// vault could ever be configured, so none of the publish code had ever run on a device.)
 struct ObsidianSettingsSection: View {
-    /// The `author:` written into every note's frontmatter. Matching the Mac's
-    /// Settings author matters: the SAME note exported by both devices must compile
-    /// to the SAME bytes, or each device would see the other's file as "changed".
-    @AppStorage("skrift.publish.author") private var author = ""
+    /// The `author:` written into every note's frontmatter. ONE synced setting (Q158,
+    /// `AuthorSyncCore`): the SAME note exported by both devices must compile to the SAME
+    /// bytes, or each device would see the other's file as "changed".
+    @State private var author = AuthorSettings.name()
 
     @State private var pickingFolder = false
     @State private var folderName = ObsidianVault.displayName
@@ -64,12 +64,28 @@ struct ObsidianSettingsSection: View {
             // so a switch here only made a third consent out of two. And no "which
             // notes" picker either: export is RATED-ONLY, on every device (Tuur,
             // 2026-07-26 — "cant export either"); one rule, no setting to get wrong.
-            if folderName != nil, canProcess {
-                LabeledContent("Author") {
-                    TextField("optional", text: $author)
-                        .multilineTextAlignment(.trailing)
-                        .autocorrectionDisabled()
-                }
+            // Always shown (Q158): the author syncs, so the name typed on any device is the
+            // one every export writes — hiding it until a folder was picked left an iPad
+            // exporting `author: ` while the Mac wrote the name.
+            LabeledContent("Author") {
+                TextField("optional", text: $author)
+                    .multilineTextAlignment(.trailing)
+                    .autocorrectionDisabled()
+                    .accessibilityIdentifier("obsidian-author")
+                    .onSubmit { VocabularyCloudSync.run(NotesRepository.shared) }
+            }
+            .onChange(of: author) { _, name in
+                // Only a REAL edit is stamped: following a synced value also moves `author`.
+                guard name != AuthorSettings.name() else { return }
+                AuthorSettings.set(name)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                let stored = AuthorSettings.name()
+                if stored != author { author = stored }
+            }
+            .onDisappear {
+                // Push a typed name once when Settings closes (each keystroke is stamped above).
+                VocabularyCloudSync.run(NotesRepository.shared)
             }
             if let pickError {
                 Text(pickError)
