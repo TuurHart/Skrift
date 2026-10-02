@@ -235,7 +235,7 @@ struct NoteProperties: View {
     /// its first line instead. Not `displayTitle`: its filename fallback is `memo_<UUID>`
     /// or empty (Q177, capture-quick-09).
     private var titlePrompt: String {
-        SharedCopy.titlePrompt(ghosts: [file.enhancedTitle, file.firstBodyLine])
+        SharedCopy.titlePrompt(ghosts: [file.titleGhost])
     }
 
     private var titleBinding: Binding<String> {

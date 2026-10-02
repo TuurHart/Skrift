@@ -20,14 +20,7 @@ extension Memo {
     /// Display-only — it never writes `Memo.title`, so the choice you haven't made yet
     /// stays unmade.
     func displayTitle(enhancedTitle: String?) -> String {
-        if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { return t }
-        if let e = enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines), !e.isEmpty {
-            return NoteTitle.clip(e)
-        }
-        if let line = firstTranscriptLine { return line }
-        // C3 captures: derive title from sharedContent (urlTitle / text head / "Image")
-        if isShareCapture { return shareCaptureTitle }
-        return SourceKind.of(self).emptyTitleFallback   // typed → "Note", else "Voice note"
+        ladderTitle(suggestedTitle: enhancedTitle)   // C25: the ONE ladder (`NoteTitle.display`)
     }
 
     /// First non-empty line of the transcript with `[[img_NNN]]` markers removed.

@@ -338,6 +338,6 @@ struct BatchRunner {
         // Honor a title the phone pre-set (unlikely for captures, but consistent).
         if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
         // The capture rung of the shared C25 ladder — the export names files with it too.
-        return ExportNaming.captureTitle(sc)
+        return NoteTitle.captureTitle(sc)
     }
 }
