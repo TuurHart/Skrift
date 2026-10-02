@@ -1913,6 +1913,12 @@ do: `plan/hand-merge.sh` re-implements `plan/accept.sh` steps 2-5 with drift: it
 check: `./gate.sh`
 source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 
+### Q250 [tuur] (todo) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
+spec: C78 C239
+needs: Q138
+do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
+check: `./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2403,3 +2409,4 @@ source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 - 2026-10-02 12:50 Q101 -> doing — worker out
 - 2026-10-02 12:56 Q138 -> done — gate pass @0985a481
 - 2026-10-02 12:57 Q237 -> done — gate pass @12953ca6
+- 2026-10-02 12:58 Q250 added
