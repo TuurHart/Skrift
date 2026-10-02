@@ -1337,7 +1337,7 @@ do: Rows list-sidebar-04 -09 -11 -31 -35 -57 -63, note-empty-01, capture-quick-0
 check: `grep -rqE "class ListChromeCopyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q178 [auto] (doing) Way-out: one intro, row meta line and urgency colour rule on phone, iPad and Mac
+### Q178 [auto] (done) Way-out: one intro, row meta line and urgency colour rule on phone, iPad and Mac
 spec: C239 C240 D136
 needs: Q108
 gate+: yes
@@ -2547,3 +2547,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 19:07 Q153 -> doing — worker out (opus)
 - 2026-10-02 19:08 Q182 -> doing — worker out
 - 2026-10-02 19:10 Q117 -> done — gate pass @b6b0648d
+- 2026-10-02 19:11 Q178 -> done — gate pass @8d8207e6
