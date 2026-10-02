@@ -360,48 +360,40 @@ struct NoteDisplayView: View {
         let undo = NamingUndo(message: message, unlinkedNames: file.unlinkedNames, namePicks: file.namePicks)
         mutate()
         coordinator.resanitiseForNames(file, context: ctx)
+        MacCloudMetaSync.setNameResolutions(for: file)   // the decision reaches every device (C81)
         namingUndo = undo
     }
 
     /// Suggestion popover → "which person?" / common-word confirm: FORCE-LINK the alias.
     private func pickName(_ file: PipelineFile, alias: String, canonical: String) {
-        let key = alias.lowercased()
         let canon = NamesMerge.normaliseCanonical(canonical)
         applyNaming(file, "Linked “\(alias)” → \(NamesMerge.keyName(canon))") {
-            var picks = file.namePicks; picks[key] = canon; file.namePicks = picks
-            // Re-promote: clear any prune of the chosen person so it links.
-            file.unlinkedNames.removeAll { $0.caseInsensitiveCompare(canon) == .orderedSame
-                || NamesMerge.keyName($0).caseInsensitiveCompare(NamesMerge.keyName(canon)) == .orderedSame }
+            // Force-link + re-promote (clears any prune of the chosen person) — the shared rule.
+            var r = file.nameResolutions; r.link(alias: alias, to: canon); file.nameResolutions = r
         }
     }
 
     /// Suggestion popover → "Leave as plain text": SILENCE the alias (renders plain).
     private func plainName(_ file: PipelineFile, alias: String) {
-        let key = alias.lowercased()
         applyNaming(file, "“\(alias)” left as plain text") {
-            var picks = file.namePicks; picks[key] = ""; file.namePicks = picks
+            var r = file.nameResolutions; r.keepPlain(alias: alias); file.nameResolutions = r
         }
     }
 
     /// Linked popover → "Unlink — side-mention": PRUNE the person (→ dotted suggestion).
     private func unlinkName(_ file: PipelineFile, canonical: String) {
         let canon = NamesMerge.normaliseCanonical(canonical)
-        let key = NamesMerge.keyName(canon).lowercased()
         applyNaming(file, "Unlinked \(NamesMerge.keyName(canon)) — now a side-mention") {
-            if !file.unlinkedNames.contains(where: { NamesMerge.keyName($0).lowercased() == key }) {
-                file.unlinkedNames.append(canon)
-            }
-            // Drop any pick that re-promoted them (so the prune takes effect).
-            file.namePicks = file.namePicks.filter { NamesMerge.keyName($0.value).lowercased() != key }
+            // Prune the person + drop any pick that re-promoted them — the shared rule.
+            var r = file.nameResolutions; r.unlinkPerson(canon); file.nameResolutions = r
         }
     }
 
     /// Linked popover → "Change person…": FORCE-LINK the alias to a different person.
     private func changeName(_ file: PipelineFile, alias: String, newCanonical: String) {
-        let key = alias.lowercased()
         let canon = NamesMerge.normaliseCanonical(newCanonical)
         applyNaming(file, "Changed “\(alias)” → \(NamesMerge.keyName(canon))") {
-            var picks = file.namePicks; picks[key] = canon; file.namePicks = picks
+            var picks = file.namePicks; picks[NameResolutions.aliasKey(alias)] = canon; file.namePicks = picks
         }
     }
 
@@ -426,6 +418,7 @@ struct NoteDisplayView: View {
         file.unlinkedNames = undo.unlinkedNames
         file.namePicks = undo.namePicks
         coordinator.resanitiseForNames(file, context: ctx)
+        MacCloudMetaSync.setNameResolutions(for: file)   // an undo is a decision too (C81)
         namingUndo = nil
     }
 

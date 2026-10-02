@@ -1066,9 +1066,9 @@ struct MemoPageView: View {
         case .linked:
             // Change person — only when the alias is shared (an ambiguous force-pick).
             ForEach(span.candidates.filter { candidateKey($0.canonical) != candidateKey(span.canonical ?? "") }, id: \.id) { c in
-                Button("Switch to \(candidateLabel(c))") { applyLink(span.alias, to: c.canonical) }
+                Button(NameActionLabel.changePerson(to: candidateLabel(c))) { applyLink(span.alias, to: c.canonical) }
             }
-            Button("Unlink — keep as plain text") { applyUnlink(span) }
+            Button(NameActionLabel.unlink) { applyUnlink(span) }
             if let canonical = span.canonical {
                 Button("Open \(firstName(canonical))’s person card") {
                     personSheet = PersonSheetRequest(canonical: canonical, prefillAlias: nil)
@@ -1076,18 +1076,18 @@ struct MemoPageView: View {
             }
         case .suggested, .plain:
             ForEach(span.candidates, id: \.id) { c in
-                Button("Link to \(candidateLabel(c))") { applyLink(span.alias, to: c.canonical) }
+                Button(NameActionLabel.link(to: candidateLabel(c))) { applyLink(span.alias, to: c.canonical) }
             }
-            Button("New person…") { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            Button(NameActionLabel.newPerson) { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
             if span.tier == .suggested {
-                Button("Keep as plain text") { applyKeepPlain(span.alias) }
+                Button(NameActionLabel.keepPlain) { applyKeepPlain(span.alias) }
             }
         case .ambiguous:
             ForEach(span.candidates, id: \.id) { c in
                 Button(candidateLabel(c)) { applyLink(span.alias, to: c.canonical) }
             }
-            Button("New person…") { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
-            Button("Keep as plain text") { applyKeepPlain(span.alias) }
+            Button(NameActionLabel.newPerson) { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            Button(NameActionLabel.keepPlain) { applyKeepPlain(span.alias) }
         }
     }
 

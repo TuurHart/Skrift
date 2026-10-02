@@ -46,6 +46,8 @@ enum MacCloudMetaSync {
             guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx) else { continue }
             var pushed = false
             for field in MirroredNoteFields.pushable where field.push!(pf, memo) { pushed = true }
+            // Pre-2026-10 Mac-only name decisions go out once (fills an EMPTY memo only).
+            if NameResolutionsMirror.migrateLegacy(pf, to: memo) { pushed = true }
             if pushed { wrote = true; EditConflicts.recordEdit(memo, in: ctx) }   // C98: words only
         }
         if wrote {
@@ -80,6 +82,14 @@ enum MacCloudMetaSync {
             memo.destination = d
             return true
         }
+    }
+
+    /// The user made a NAME decision on the Mac (unlink / pick / silence / change person, or
+    /// undid one). Event-driven like `setDestination`: the decision lands on the synced
+    /// `Memo.nameResolutionsData` now, so every device links the note the same way (C81, D20).
+    /// No `lastEditedAt` bump, same reasoning as `mirror`.
+    static func setNameResolutions(for pf: PipelineFile) {
+        write(pf, "nameResolutions") { memo in NameResolutionsMirror.push(pf, to: memo) }
     }
 
     /// The user CHOSE this note's title on the Mac — "Suggested", "From recording", or

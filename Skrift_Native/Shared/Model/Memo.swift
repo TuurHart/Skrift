@@ -159,9 +159,11 @@ final class Memo {
     /// `neverLink` / `namePicks` inputs the shared `Sanitiser` accepts. The phone keeps
     /// the transcript RAW and re-derives tiers (`Sanitiser.nameSpans`) against these on
     /// demand (`mocks/phone-name-linking.html`); they also steer the on-device Obsidian
-    /// export. Phone-side display/export only — the mobile↔Mac contract (phone sends RAW,
-    /// Mac links names with its OWN overrides) is untouched; the Mac's CloudKit ingest
-    /// ignores this field. ADDITIVE, nil default → lightweight migration + CloudKit-safe.
+    /// export. SYNCED both ways (C81, D20, R37): the Mac adopts it into
+    /// `PipelineFile.nameResolutionsData` (`MirroredNoteFields` "nameResolutions") and writes
+    /// its own decisions back (`MacCloudMetaSync.setNameResolutions`). Typed form:
+    /// `NameResolutions` (Shared/Naming). ADDITIVE, nil default → lightweight migration +
+    /// CloudKit-safe.
     var nameResolutionsData: Data?
 
     /// The install that RECORDED this memo (`DeviceID.current`). With CloudKit a memo

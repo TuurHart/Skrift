@@ -97,21 +97,17 @@ final class PipelineFile {
     var sanitised: String?
     /// `[AmbiguousOccurrence]` stored as a JSON blob (struct arrays trap SwiftData).
     var ambiguousNamesJSON: Data?
-    /// Canonical keys (bare names, no brackets) the user chose to UNLINK everywhere
-    /// in this note ("Unlink all mentions in this note", mocks/name-unlink.html).
-    /// Fed back into `Sanitiser.process(neverLink:)` so re-processing never re-links
-    /// them HERE — the person stays in the names DB and links normally elsewhere.
-    /// Primitive `[String]` is safe to store directly (see the gotcha above).
-    var unlinkedNames: [String] = []
-    /// Per-note "which person?" picks (NAMING_MODEL.md decision 9 — the ambiguity-pick
-    /// record): alias (lowercased) → the chosen person's canonical `[[Name]]`. Set when the
-    /// user resolves a dotted SUGGESTION in review — an ambiguous twin ("which Jack?") or a
-    /// common-word confirmation ("Will" → Will Smith) — so the deterministic re-link
-    /// force-links that alias to that person for THIS note and a re-process remembers the
-    /// choice (decision 9: note-level pick). Stored as a JSON blob (a dictionary traps
-    /// SwiftData — see the gotcha above); empty by default. Consumed by the Sanitiser in
-    /// chunk 4 (the in-prose popover writes it). Replaced the opt-in `aboutPeople` include-list.
-    var namePicksJSON: Data?
+    /// The note's name DECISIONS (unlink / pick / silence) — the SAME blob as the synced
+    /// `Memo.nameResolutionsData` (`NameResolutions`, Shared/Naming), so the Mac mirrors it
+    /// both ways (C81, D20, R37). Read/write through `nameResolutions` (or the
+    /// `unlinkedNames` / `namePicks` views). nil = no decisions.
+    var nameResolutionsData: Data?
+    /// LEGACY Mac-only copies (pre-2026-10), kept ONLY as a migration source: read once
+    /// through `nameResolutions` and cleared on the first write. Renamed with
+    /// `originalName` so existing rows keep their data across the lightweight migration.
+    /// Delete both once every installed Mac has written its rows through (C81).
+    @Attribute(originalName: "unlinkedNames") var legacyUnlinkedNames: [String] = []
+    @Attribute(originalName: "namePicksJSON") var legacyNamePicksJSON: Data?
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?
@@ -251,11 +247,37 @@ final class PipelineFile {
         set { ambiguousNamesJSON = newValue.flatMap { try? JSONEncoder().encode($0) } }
     }
 
-    /// Decoded per-note "which person?" picks (backed by `namePicksJSON`) — alias
-    /// (lowercased) → chosen canonical `[[Name]]`. The ambiguity-pick record (decision 9).
+    /// True while this row still carries pre-shared-blob decisions nobody has migrated.
+    var hasLegacyNameResolutions: Bool {
+        nameResolutionsData == nil && (!legacyUnlinkedNames.isEmpty || legacyNamePicksJSON != nil)
+    }
+
+    /// The note's name decisions (shared shape). Reads fold in un-migrated legacy data;
+    /// every write lands in the shared blob and clears the legacy copies.
+    var nameResolutions: NameResolutions {
+        get {
+            if nameResolutionsData != nil { return NameResolutions.decode(nameResolutionsData) }
+            let picks = legacyNamePicksJSON.flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:]
+            return NameResolutions(unlinkedNames: legacyUnlinkedNames, namePicks: picks)
+        }
+        set {
+            nameResolutionsData = newValue.encoded
+            if !legacyUnlinkedNames.isEmpty { legacyUnlinkedNames = [] }
+            if legacyNamePicksJSON != nil { legacyNamePicksJSON = nil }
+        }
+    }
+
+    /// Canonical keys pruned for this whole note — the `Sanitiser.neverLink` input.
+    var unlinkedNames: [String] {
+        get { nameResolutions.unlinkedNames }
+        set { var r = nameResolutions; r.unlinkedNames = newValue; nameResolutions = r }
+    }
+
+    /// Per-note "which person?" picks — alias (lowercased) → chosen canonical `[[Name]]`,
+    /// or "" to silence. The `Sanitiser.namePicks` input.
     var namePicks: [String: String] {
-        get { namePicksJSON.flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:] }
-        set { namePicksJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
+        get { nameResolutions.namePicks }
+        set { var r = nameResolutions; r.namePicks = newValue; nameResolutions = r }
     }
 
     /// Per-word transcript timings (backed by `wordTimingsJSON`) — drives karaoke.
