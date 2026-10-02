@@ -735,7 +735,7 @@ do: Mac `WayOutColumn.memoRow` and `UnpipelinedMemoSheet` show title, date, plac
 check: `grep -rqE "class MacLockedSurfacesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LockedSurfacesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P2
 
-### Q102 [auto] (doing) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
+### Q102 [auto] (tuur) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
 spec: C182 C215 D10
 needs: -
 gate+: yes
@@ -815,7 +815,7 @@ check: Tuur picked the table and FEATURES.md follows it.
 brief: iPad binds ⌘N twice: the app menu 'New Recording' (SkriftApp.swift:243-248) and the list pencil 'New note' (MemosListView+Header.swift:116); which one wins is unverified; FEATURES.md:61 says new note, :126 says record (list-sidebar-22, capture-quick-02, recsj-037). The Mac has only ⌘N (new note) and ⌥⌘C; no menu command for Record, no ⌘F, no ⌘1-3 surfaces (list-sidebar-24, recsj-036, -052). Recommended: ⌘N = new note on every device; Record = ⇧⌘N; Mac gets ⌘F (search), ⌘1 / ⌘2 for Notes / Review, and a Record menu command. He picks; then it is one `.commands` block per app.
 source: plan/reads/parity-audit.md P12
 
-### Q112 [auto] (todo) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
+### Q112 [auto] (doing) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
 spec: C172 C31 C21
 needs: -
 gate+: yes
@@ -1801,7 +1801,7 @@ do: `NamesMerge.keyName(x).trimmingCharacters(in: .whitespaces)` (sometimes `.lo
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SanitiserSmokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-d18 SRS-d19 SRS-c07 (cleanup-audit P48)
 
-### Q236 [auto] (stuck) two real bugs in model loading and location, plus a glob that lies about itself
+### Q236 [auto] (done) two real bugs in model loading and location, plus a glob that lies about itself
 spec: C115
 needs: -
 gate+: yes
@@ -1841,7 +1841,7 @@ do: `SpeakerTranscript.swift` rebuilds `**name:** text` joined by blank lines in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SpeakerTranscriptTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c10 SPL-c11 SPL-c12 (cleanup-audit P53)
 
-### Q241 [auto] (todo) six suspected bugs the audit tripped over: prove each with a test or log why not
+### Q241 [auto] (doing) six suspected bugs the audit tripped over: prove each with a test or log why not
 spec: C115
 needs: -
 gate+: yes
@@ -2414,3 +2414,7 @@ check: `./gate.sh`
 - 2026-10-02 13:01 Q102 -> doing — worker out
 - 2026-10-02 13:01 Q163 -> done — gate pass @12420ad6
 - 2026-10-02 13:01 Q236 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/Q236ModelLoadingTests.swift 
+- 2026-10-02 13:06 Q241 -> doing — worker out
+- 2026-10-02 13:07 Q102 -> tuur — hand-merge: worktree agent-acedeea7d0147ca0b @d2c3acf0 (desktop gate green); protected phone test ProcessPileTests.testLockedNoteIsNotWaiting (:41) must flip to 'a locked note IS waiting' in the same merge
+- 2026-10-02 13:07 Q112 -> doing — worker out
+- 2026-10-02 13:07 Q236 -> done — gate pass @8f3f5cb6
