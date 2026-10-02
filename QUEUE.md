@@ -684,7 +684,7 @@ gate+: yes
 do: C70 is a required difference: recordedAt = embedded date → date in the filename (WhatsApp / Signal / Telegram / recorder patterns, Mac parity) → file date → now; the phone never parses the filename today. Q92 extended the Mac's `IngestService.dateFromFilename` (incl. compact HHMMSS like `signal-2026-10-01-080349`); Q93 found the share extension hands the drain no filenames — clips carry file mod dates, pictures only EXIF (empty for Signal JPEGs) — so a real Signal share of clips + a picture falls back to pictures-first. Move the filename-date ladder into `Shared/` (one copy, the Mac calls it too), make the share extension carry each item's original filename / suggestedName and its selection position, and let the drain date clips and pictures from it so MixedBundle places a Signal picture between the clips at its time and the note is dated to the first message (C124). Tests: the ladder's patterns (shared, desktop + phone), a Signal-named share bundle → picture between clip 3 and 4. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q95 [auto] (doing) Mac sidebar reflows when dragged narrow instead of clipping its left edge
+### Q95 [auto] (done) Mac sidebar reflows when dragged narrow instead of clipping its left edge
 spec: C115 C240
 needs: -
 gate+: yes
@@ -705,7 +705,7 @@ gate+: yes
 do: Tuur 2026-10-02 on Skrift Dev, iPhone 17 Pro (a NEW phone — Skrift Dev was installed on it fresh and filled from CloudKit): "most notes are considered to be yesterday… there's a whole ton of notes yesterday, but yesterday I didn't record anything". Suspect: the phone's day groups key on a per-device `createdAt` / arrival time (when the note first landed on this phone) instead of the note's real date. C70: recordedAt = the content's true date; createdAt = when it entered Skrift (the ORIGINAL moment, which must sync, not reset per device). Find what the phone list groups and sorts by (NotesListModel.dayGroups, MemosListView+Derived, the sort chip default), and what CloudKit sync does to createdAt on a fresh install; make the day headers group by the note's recorded date (the date shown on the card) and keep createdAt the original value across devices. Check the Mac and iPad group the same way (one shared rule, C115). Phone test: a memo arriving via sync today with recordedAt 3 weeks ago lands in that day's group. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q98 [auto] (todo) the Separate destinations switch syncs: on one device turns it on everywhere (folder bookmarks stay per device)
+### Q98 [auto] (doing) the Separate destinations switch syncs: on one device turns it on everywhere (folder bookmarks stay per device)
 spec: C62
 needs: -
 gate+: yes
@@ -1033,3 +1033,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:15 Q97 added
 - 2026-10-02 08:15 Q97 -> doing — worker out
 - 2026-10-02 08:16 Q98 added
+- 2026-10-02 08:26 Q98 -> doing — worker out
+- 2026-10-02 08:28 Q95 -> done — gate pass @56a66399
