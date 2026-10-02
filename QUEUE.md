@@ -855,7 +855,7 @@ do: SPEC C81/D20/R37 say name picks sync on every device. Today the phone keeps 
 check: `grep -rqE "class NameResolutionSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NameResolutionSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P17
 
-### Q117 [auto] (doing) one input for the Process / Export / Re-export button and for the export outcome line
+### Q117 [auto] (done) one input for the Process / Export / Re-export button and for the export outcome line
 spec: C194 C180 C61
 needs: -
 gate+: yes
@@ -1139,7 +1139,7 @@ do: D50/C160 decide the user can correct a misheard word in a captured quote; th
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P53
 
-### Q153 [auto] (todo) export: file name, title, link stems and date: phone and Mac produce the same file for one note
+### Q153 [auto] (doing) export: file name, title, link stems and date: phone and Mac produce the same file for one note
 spec: C57 C64 C165 D65
 needs: Q114
 gate+: yes
@@ -1369,7 +1369,7 @@ do: Rows recsj-066 -070 -072 -073, note-conn-03 -07 -10. One panel width and hea
 check: `grep -rqE "class ConnectionsPanelParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q182 [auto] (todo) Journal: one Then-vs-Now picker, one calendar grid builder, one first-day rule, one intro copy
+### Q182 [auto] (doing) Journal: one Then-vs-Now picker, one calendar grid builder, one first-day rule, one intro copy
 spec: C239 C240 D136
 needs: -
 gate+: yes
@@ -2544,3 +2544,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 18:57 Q178 -> doing — worker out
 - 2026-10-02 19:05 Q193 -> done — gate pass @7c88717f
 - 2026-10-02 19:05 Q195 -> done — gate pass (batched with Q193)
+- 2026-10-02 19:07 Q153 -> doing — worker out (opus)
+- 2026-10-02 19:08 Q182 -> doing — worker out
+- 2026-10-02 19:10 Q117 -> done — gate pass @b6b0648d
