@@ -1147,7 +1147,7 @@ do: iPad names the file from `exportTitle` (user title, else first body line, ne
 check: `grep -rqE "class ExportNamingParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportNamingParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P54
 
-### Q154 [auto] (todo) export: picture markers become embeds the same way on both exporters; a dangling marker is dropped
+### Q154 [auto] (doing) export: picture markers become embeds the same way on both exporters; a dangling marker is dropped
 spec: C57 C196 R51
 needs: -
 gate+: yes
@@ -1729,7 +1729,7 @@ do: `PublishCoordinator.live()` hard-codes `isMacPaired: { false }` and `policy:
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-d02 MSV-d03 (cleanup-audit P39)
 
-### Q227 [auto] (doing) the lock flow asks the right ledger whether a note was exported
+### Q227 [auto] (done) the lock flow asks the right ledger whether a note was exported
 spec: C115
 needs: Q225
 gate+: yes
@@ -2477,3 +2477,5 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:10 Q235 -> doing — batch worker out
 - 2026-10-02 18:11 Q173 -> doing — worker out
 - 2026-10-02 18:13 Q139 -> done — gate pass @870808e1
+- 2026-10-02 18:15 Q154 -> doing — worker out (opus)
+- 2026-10-02 18:16 Q227 -> done — gate pass @bd9c7de2
