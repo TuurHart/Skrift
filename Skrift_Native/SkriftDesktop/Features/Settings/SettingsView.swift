@@ -389,7 +389,7 @@ struct SettingsView: View {
         return Circle()
             .fill(LinearGradient(colors: palette, startPoint: .topLeading, endPoint: .bottomTrailing))
             .frame(width: size, height: size)
-            .overlay(Text(Self.initials(name))
+            .overlay(Text(StableHash.initials(name))
                 .font(.system(size: size * 0.36, weight: .bold)).foregroundStyle(.white))
     }
 
@@ -404,15 +404,7 @@ struct SettingsView: View {
     }
     /// Stable per-name palette pick (consistent across launches, unlike `hashValue`).
     private static func avatarIndex(_ name: String) -> Int {
-        let h = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0x7fffffff }
-        return h % avatarPalettes.count
-    }
-
-    /// One- or two-letter avatar initials from a full name.
-    private static func initials(_ name: String) -> String {
-        let words = name.split(separator: " ").prefix(2)
-        let s = words.compactMap { $0.first.map(String.init) }.joined().uppercased()
-        return s.isEmpty ? "?" : s
+        StableHash.index(name, count: avatarPalettes.count)
     }
 
     /// Voice-enrollment status for a names row (the phone's row): "Voice enrolled" (green +

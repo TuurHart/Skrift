@@ -126,7 +126,7 @@ struct Avatar: View {
     ]
 
     var body: some View {
-        let palette = Self.palettes[abs(name.hashValue) % Self.palettes.count]
+        let palette = Self.palettes[StableHash.index(name, count: Self.palettes.count)]
         Circle()
             .fill(LinearGradient(colors: palette, startPoint: .topLeading, endPoint: .bottomTrailing))
             .frame(width: size, height: size)
@@ -137,12 +137,7 @@ struct Avatar: View {
             )
     }
 
-    private var initials: String {
-        let parts = name.split(separator: " ")
-        let first = parts.first?.first.map(String.init) ?? ""
-        let last = parts.count > 1 ? (parts.last?.first.map(String.init) ?? "") : ""
-        return (first + last).uppercased()
-    }
+    private var initials: String { StableHash.initials(name) }
 }
 
 /// Static 5-bar voice glyph for the "enrolled" state.

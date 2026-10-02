@@ -1411,10 +1411,7 @@ private struct NameRow: View {
     static func clean(_ canonical: String) -> String {
         canonical.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
     }
-    static func initials(_ canonical: String) -> String {
-        let chars = clean(canonical).split(separator: " ").prefix(2).compactMap(\.first)
-        return chars.isEmpty ? "?" : String(chars).uppercased()
-    }
+    static func initials(_ canonical: String) -> String { StableHash.initials(canonical) }
 }
 
 /// Carries (selected word, target person canonical) on an "add as alias" menu item.
