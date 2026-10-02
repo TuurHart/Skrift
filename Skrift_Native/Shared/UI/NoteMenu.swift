@@ -154,7 +154,7 @@ extension NoteMenuItem {
                  .undoTidyUp, .remind, .printCard, .share:
                 return "an unrated note has no pipeline row to act on; open it for the rest"
             case .copyMarkdown:
-                return "an unrated note has no compiled Markdown"
+                return "a bare unrated row cannot compile Markdown; the open note's ⋯ offers it"
             case .revealInFinder, .openInObsidian:
                 return "an unrated note has no working folder and has never been exported"
             default: return nil
