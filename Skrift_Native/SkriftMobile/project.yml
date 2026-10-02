@@ -407,6 +407,8 @@ targets:
       # Q94 / C70: the shared filename-date ladder — the loader reads each shared file's
       # original name and orders/dates by it (one copy, the Mac + the drain call it too).
       - path: ../Shared/Pipeline/FilenameDate.swift
+      # C238: the ONE accepted-types list (the loader's audio-by-extension reroute).
+      - path: ../Shared/Pipeline/ImportKinds.swift
       # The rating pill + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the pill without importing the app target. Both halves

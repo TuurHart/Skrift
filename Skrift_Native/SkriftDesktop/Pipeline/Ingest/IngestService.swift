@@ -26,14 +26,18 @@ struct IngestService: Sendable {
 
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
 
-    static let supportedAudio: Set<String> = ["m4a", "wav", "mp3", "mp4", "mov", "opus", "aac", "aiff", "caf"]
+    /// The kind a file URL resolves to - the one the phone's `AppURLHandler.importKind(of:)`
+    /// returns for the same name (`ImportKindsTests`, both targets). C238: one list.
+    static func importKind(of url: URL) -> ImportKinds.Kind? { ImportKinds.kind(of: url) }
+
+    static let supportedAudio: Set<String> = ImportKinds.audioExtensions.union(["mp4", "mov"])
 
     /// Video containers we accept: strip the audio track to an `original.m4a` and feed
     /// the normal audio pipeline (e.g. a self-recorded "life advice" clip). Note
     /// `mp4`/`mov` ALSO appear in `supportedAudio` — those container extensions are
     /// probed for a video track first (`ingestFile`) and only fall back to plain audio
     /// when audio-only, so an audio-only `.mp4`/`.m4a-in-mov` is never mis-extracted.
-    static let supportedVideo: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2", "webm", "mkv"]
+    static let supportedVideo: Set<String> = ImportKinds.videoExtensions
 
     /// ASYNC: heavy file work (copies, container probes, the video-audio export)
     /// runs on detached tasks; only the SwiftData inserts run on the caller's
@@ -318,9 +322,16 @@ struct IngestService: Sendable {
            await Task.detached(operation: { Self.hasVideoTrack(url) }).value {
             return try await ingestVideo(url, into: context)
         }
-        if Self.supportedAudio.contains(ext) { return try await ingestAudio(url, into: context) }
-        if ext == "md" || ext == "markdown" { return try await ingestNote(url, into: context) }
-        return nil
+        // C238: dispatch on the ONE shared kind. A `.video` that carried no video track gets
+        // here as an audio-only container (`supportedAudio` holds mp4/mov for exactly that).
+        switch ImportKinds.kind(forExtension: ext) {
+        case .audio, .video:
+            return Self.supportedAudio.contains(ext) ? try await ingestAudio(url, into: context) : nil
+        case .text: return try await ingestNote(url, into: context)
+        // Pictures are bundled before this point; a PDF / book has no Mac ingest yet (the
+        // drop reports it as skipped, never silently).
+        case .image, .document, .book, .none: return nil
+        }
     }
 
     private func ingestAudio(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
@@ -680,7 +691,7 @@ struct IngestService: Sendable {
         var created: [PipelineFile] = []
         for item in items {
             let ext = item.pathExtension.lowercased()
-            guard ["md", "markdown"].contains(ext) || Self.supportedAudio.contains(ext) || Self.supportedVideo.contains(ext) else { continue }
+            guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video].contains(kind) else { continue }
             if let pf = try await ingestFile(item, into: context) { created.append(pf) }
         }
         return created
