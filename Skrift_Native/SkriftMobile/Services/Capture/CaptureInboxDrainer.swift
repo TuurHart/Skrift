@@ -285,7 +285,7 @@ enum CaptureInboxDrainer {
                     var out: [(index: Int, url: URL)] = []
                     for (i, src) in imageSrcs.enumerated() {
                         let temp = FileManager.default.temporaryDirectory
-                            .appendingPathComponent("shared_import_img_\(entryID)_\(i).jpg")
+                            .appendingPathComponent("shared_import_img_\(entryID)_\(i).\(src.url.pathExtension.isEmpty ? "jpg" : src.url.pathExtension)")   // Q135: keep png/gif
                         try? FileManager.default.removeItem(at: temp)
                         if (try? FileManager.default.copyItem(at: src.url, to: temp)) != nil {
                             out.append((src.index, temp))
@@ -354,7 +354,7 @@ enum CaptureInboxDrainer {
                         savedNames = await offMain { () -> [String] in
                             var out: [String] = []
                             for (i, src) in imageTemps.enumerated() {
-                                let name = "photo_\(midString)_\(String(format: "%03d", i + 1)).jpg"
+                                let name = "photo_\(midString)_\(String(format: "%03d", i + 1)).\(src.pathExtension.isEmpty ? "jpg" : src.pathExtension)"
                                 let dest = AppPaths.recordingsDirectory.appendingPathComponent(name)
                                 try? FileManager.default.removeItem(at: dest)
                                 if (try? FileManager.default.copyItem(at: src, to: dest)) != nil {

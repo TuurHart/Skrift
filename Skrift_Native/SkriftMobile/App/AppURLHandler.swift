@@ -164,18 +164,18 @@ enum AppURLHandler {
         let name = url.lastPathComponent
         let wrote: Bool
         if kind == .image {
-            guard let raw = try? Data(contentsOf: url), let jpeg = downsampledJPEG(from: raw) else { return false }
-            let fileName = "capture_\(id.uuidString).jpg"
+            guard let raw = try? Data(contentsOf: url), let norm = ImageNormalise.normalise(raw) else { return false }
+            let fileName = "capture_\(id.uuidString).\(norm.ext)"
             let taken = ImageDates.exifDate(from: raw).map { ISO8601.string(from: $0) } ?? ""
             let entry = CaptureInboxEntry(
                 id: id, type: "image", url: nil, urlTitle: nil, text: nil,
-                imageFileName: fileName, mimeType: "image/jpeg", annotationText: nil,
+                imageFileName: fileName, mimeType: norm.mime, annotationText: nil,
                 significance: 0, sharedAt: sharedAt,
                 imageFileNames: [fileName],
                 imageRecordedAts: [taken],
                 imageOriginalNames: [name],
                 imageSelectionPositions: [0])
-            wrote = CaptureInbox.write(entry, imageDatas: [jpeg])
+            wrote = CaptureInbox.write(entry, imageDatas: [norm.data])
         } else {
             let ext = url.pathExtension.isEmpty ? "pdf" : url.pathExtension
             let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
@@ -190,16 +190,4 @@ enum AppURLHandler {
         return wrote
     }
 
-    /// ImageIO thumbnail decode (never inflates the full bitmap), EXIF orientation baked in —
-    /// the bounds the share extension's loader uses.
-    private static func downsampledJPEG(from data: Data, maxPixel: CGFloat = 2048) -> Data? {
-        guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-        let opts: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
-        ]
-        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
-        return UIImage(cgImage: cg).jpegData(compressionQuality: 0.85)
-    }
 }

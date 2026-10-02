@@ -180,13 +180,22 @@ struct IngestService: Sendable {
             var failed: [URL] = []
             for p in placements {
                 let n = entries.count + 1
-                let ext = p.url.pathExtension.lowercased()
-                let converts = MixedBundle.convertToJPEGExtensions.contains(ext)
-                let outExt = (converts || ext == "jpeg") ? "jpg" : ext
-                let name = String(format: "img_%03d.", n) + outExt
-                let dest = dir.appendingPathComponent(name)
-                let ok = converts ? Self.convertToJPEG(src: p.url, dst: dest)
-                                  : (try? fm.copyItem(at: p.url, to: dest)) != nil
+                // C74 / D17 (Q135): the shared normaliser — PNG stays PNG, GIF kept byte-for-byte,
+                // longest side <= 2048, HEIC/TIFF/BMP -> JPEG 0.9. Undecodable -> copied as-is.
+                let name: String
+                var ok = false
+                if let norm = ImageNormalise.normalise(fileAt: p.url) {
+                    name = String(format: "img_%03d.", n) + norm.ext
+                    ok = (try? norm.data.write(to: dir.appendingPathComponent(name))) != nil
+                } else {
+                    // Undecodable: a format we convert (HEIC/TIFF/BMP) is a failure, as before;
+                    // any other extension is copied as-is.
+                    let ext = p.url.pathExtension.lowercased()
+                    name = String(format: "img_%03d.", n) + (ext == "jpeg" ? "jpg" : ext)
+                    if !MixedBundle.convertToJPEGExtensions.contains(ext) {
+                        ok = (try? fm.copyItem(at: p.url, to: dir.appendingPathComponent(name))) != nil
+                    }
+                }
                 if ok { entries.append(ImageManifestEntry(filename: name, offsetSeconds: p.offsetSeconds)) }
                 else { failed.append(p.url) }
             }
