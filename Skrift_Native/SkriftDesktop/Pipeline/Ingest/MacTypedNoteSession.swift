@@ -13,9 +13,9 @@ import SwiftData
 final class MacTypedNoteSession {
     private(set) var draft: QuickNoteDraft?
     private(set) var id: UUID?
-    private let makeProvider: () -> (any MetadataProviding)?
+    private let makeProvider: @MainActor () -> (any MetadataProviding)?
 
-    init(metadataProvider: @escaping () -> (any MetadataProviding)? = { MacMetadataService() }) {
+    init(metadataProvider: @escaping @MainActor () -> (any MetadataProviding)? = { MacMetadataService() }) {
         self.makeProvider = metadataProvider
     }
 
