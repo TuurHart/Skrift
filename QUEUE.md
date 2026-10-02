@@ -871,7 +871,7 @@ do: The iPad note bar shows a progress bar + step line and replaces the verb whi
 check: `test $(ls plan/reads/note-p-progress/*.png | wc -l) -ge 1 && grep -rqE "class MacNoteRunStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P19
 
-### Q119 [auto] (doing) Connections: one set of rules on iPad, Mac and the phone footer (importance stops, row cap, failure states, consent gate, default sort)
+### Q119 [auto] (done) Connections: one set of rules on iPad, Mac and the phone footer (importance stops, row cap, failure states, consent gate, default sort)
 spec: R58 C110 C210 C232 D30
 needs: -
 gate+: yes
@@ -1657,7 +1657,7 @@ do: (1) `SkriftDesktop/Features/Journal/JournalView.swift:584-587` formats a not
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c27 DAU-c20 SPL-c24 MLJ-c08 (cleanup-audit P30)
 
-### Q218 [auto] (todo) phone recording and quick note: unread state, forwarders, doc fixes
+### Q218 [auto] (doing) phone recording and quick note: unread state, forwarders, doc fixes
 spec: C240
 needs: Q173
 gate+: no
@@ -1665,7 +1665,7 @@ do: In `SkriftMobile/`: delete `RecordingActivityManager.isRunning` (`Services/R
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d02 MRC-d03 MRC-d04 MRC-d05 MRC-d06 MRC-d08 MRC-d09 MRC-d10 MRC-d11 MRC-d14 MRC-d15 MRC-d16 MRC-d19 MRC-d24 MRC-d25 MRC-d26 MRC-c20 (cleanup-audit P31)
 
-### Q219 [auto] (todo) one AVAudioFile duration, one buffer copy, one retrying transcribe
+### Q219 [auto] (doing) one AVAudioFile duration, one buffer copy, one retrying transcribe
 spec: C239
 needs: Q218
 gate+: yes
@@ -1705,7 +1705,7 @@ do: `FeedbackCaptureView` is the only consumer (`FeedbackCaptureView.swift:82-83
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d05 MLJ-d06 MLJ-c23 MLJ-c24 (cleanup-audit P36)
 
-### Q224 [auto] (todo) three phone state bugs: lost print card, stuck model spinner, re-stamped language
+### Q224 [auto] (doing) three phone state bugs: lost print card, stuck model spinner, re-stamped language
 spec: C115
 needs: Q173
 gate+: no
@@ -1793,7 +1793,7 @@ do: In `Shared/` (re-grep each symbol by NAME first, both apps and all tests): d
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PersonEditCoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-d01 SRS-d02 SRS-d03 SRS-d04 SRS-d06 SRS-d10 SRS-d12 SRS-d15 SRS-d16 SRS-d20 SRS-c02 SRS-c03 (cleanup-audit P47)
 
-### Q235 [auto] (doing) naming: one match key, one pipe split, one link finder
+### Q235 [auto] (done) naming: one match key, one pipe split, one link finder
 spec: C239
 needs: Q116
 gate+: no
@@ -2490,3 +2490,8 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:29 Q195 -> doing — batch worker out
 - 2026-10-02 18:30 Q154 -> done — gate pass @aa1511df
 - 2026-10-02 18:32 Q202 -> done — gate pass @26948504
+- 2026-10-02 18:32 Q235 -> done — gate pass (batched with Q202)
+- 2026-10-02 18:37 Q224 -> doing — batch worker out
+- 2026-10-02 18:37 Q218 -> doing — batch worker out
+- 2026-10-02 18:37 Q219 -> doing — batch worker out
+- 2026-10-02 18:38 Q119 -> done — gate pass @0b4a717f
