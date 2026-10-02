@@ -312,7 +312,17 @@ struct NoteDisplayView: View {
             if let phase = coordinator.splitPhases[file.id] {
                 SplitSpeakersBand(since: { if case .running(let s) = phase { return s } else { return nil } }())
             }
-            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
+            // Q124 (C173): the phone's "Transcribing" pill — the body is read-only until the text lands.
+            if scrollable, let label = MacBodyEditableState.pillLabel(transcribe: file.steps.transcribe) {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(label)
+                }
+                .font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textSecondary)
+                .accessibilityIdentifier("transcribing-pill")
+            }
+            NoteBody(file: file, audio: audio, interactive: scrollable, splitting: coordinator.splitPhases[file.id] != nil,
+                     onAddName: addName, onAddAlias: addAlias,
                      onSuggestionPick: scrollable ? { a, c in pickName(file, alias: a, canonical: c) } : nil,
                      onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
