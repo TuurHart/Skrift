@@ -95,3 +95,27 @@ enum WayOut {
         return .quiet
     }
 }
+
+/// The Review entry row's facts (Q169) — one glyph, one title, one count rule, one unread rule
+/// for the phone's river row and the Mac rail row.
+extension WayOut {
+    /// SF Symbol of the Fading entry (never an emoji).
+    static let entryGlyph = "leaf"
+    static let entryTitle = "Fading"
+
+    /// The entry's count: fading + Recently Deleted MEMOS. The Mac's transitional local-only
+    /// files tail is deliberately not added (it has no phone twin); the shelf still lists it.
+    static func entryCount(fading: Int, deleted: Int) -> Int { fading + deleted }
+
+    /// The amber dot lights only for a fade-entry newer than the last shelf visit.
+    static func entryUnread(fading: [Memo], lastSeen: Date) -> Bool {
+        fading.contains { MemoLifecycle.fadeEntersAt($0) > lastSeen }
+    }
+}
+
+extension SourceKind {
+    /// The glyph a Review note row leads with: the source glyph, or the lock while hidden.
+    static func rowGlyph(for memo: Memo, hidden: Bool) -> String {
+        hidden ? "lock.fill" : of(memo).glyph
+    }
+}
