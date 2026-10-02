@@ -13,7 +13,7 @@ struct CustomWordsView: View {
         Form {
             Section {
                 HStack {
-                    TextField("Add a word or name…", text: $newWord)
+                    TextField(SettingsCopy.customWordPlaceholder, text: $newWord)
                         .autocorrectionDisabled()
                         .focused($fieldFocused)
                         .onSubmit(addWord)
@@ -28,7 +28,7 @@ struct CustomWordsView: View {
                     .accessibilityIdentifier("custom-word-add")
                 }
             } footer: {
-                Text("The transcriber listens for these words and corrects near-misses (“skrift” → “Skrift”). Spelled exactly as you want them written. The first transcription after adding words downloads a ~100 MB model.")
+                Text(SettingsCopy.customWordsHelp)
             }
 
             if !words.isEmpty {

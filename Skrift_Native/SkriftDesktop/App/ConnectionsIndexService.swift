@@ -87,7 +87,10 @@ final class ConnectionsIndexService {
                 await MainActor.run {
                     guard let self else { return }
                     self.downloadFraction = nil
-                    self.lastError = "Model download failed: \(error.localizedDescription)"
+                    // Same as the phone after a failed download: the switch flips back off, the
+                    // failure line stays (Settings + the gate both read `lastError`).
+                    self.isEnabled = false
+                    self.lastError = RetrievalGate.Copy.downloadFailed(error.localizedDescription)
                 }
             }
             GemmaEmbedder.downloadProgress = nil
@@ -139,9 +142,10 @@ final class ConnectionsIndexService {
                     Task { @MainActor in self?.sweepProgress = (done, total) }
                 }
                 logger.log("Connections sweep: \(stats.embedded, privacy: .public) embedded · \(stats.skipped, privacy: .public) skipped · \(stats.removed, privacy: .public) removed · \(Date().timeIntervalSince(t0), format: .fixed(precision: 1))s for \(snapshots.count, privacy: .public) memos")
+                await MainActor.run { self?.lastError = nil }   // a good sweep ends the failure Settings showed
             } catch {
                 logger.error("Connections sweep failed: \(error, privacy: .public)")
-                await MainActor.run { self?.lastError = "Index sweep failed: \(error.localizedDescription)" }
+                await MainActor.run { self?.lastError = RetrievalGate.Copy.sweepFailed(error.localizedDescription) }
             }
             await MainActor.run {
                 self?.sweeping = false

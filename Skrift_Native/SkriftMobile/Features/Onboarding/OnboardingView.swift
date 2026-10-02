@@ -135,9 +135,9 @@ struct OnboardingView: View {
 
     private var modelDesc: String {
         if modelStatus.ready { return "Ready · on-device" }
-        if let p = modelStatus.downloadProgress { return "Downloading · 494 MB · \(Int(p * 100))%" }
+        if let p = modelStatus.downloadProgress { return "Downloading · \(ModelSizes.parakeet) · \(Int(p * 100))%" }
         if modelFailed { return "Download failed · check your connection and retry" }
-        return "494 MB · one-time, on-device"
+        return "\(ModelSizes.parakeet) · one-time, on-device"
     }
 
     // MARK: - Actions (best-effort; real grants are device-owed)

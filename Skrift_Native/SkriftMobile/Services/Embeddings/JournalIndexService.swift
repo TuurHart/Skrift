@@ -70,9 +70,11 @@ final class JournalIndexService {
                 DevLog.log(String(format: "JournalIndex sweep: %d embedded · %d skipped · %d removed · %.1fs for %d memos",
                                   stats.embedded, stats.skipped, stats.removed,
                                   Date().timeIntervalSince(t0), snapshots.count))
+                // A good sweep ends the failure the Settings row was showing.
+                await MainActor.run { self?.lastError = nil }
             } catch {
                 DevLog.log("JournalIndex sweep failed: \(error)")
-                await MainActor.run { self?.lastError = "Index sweep failed: \(error.localizedDescription)" }
+                await MainActor.run { self?.lastError = RetrievalGate.Copy.sweepFailed(error.localizedDescription) }
             }
             await MainActor.run {
                 self?.sweeping = false

@@ -4,7 +4,7 @@ import SwiftUI
 /// "Add voice"). The phone is a full peer editor: `PersonEditorView` edits aliases and short
 /// names through `PersonEditCore`, new people are born through `PersonEditCore.createIfNeeded`
 /// (aliases `[full, first]`), and names sync over CloudKit. The phone links names into
-/// transcripts (C80) and is the place to enroll voices.
+/// transcripts itself (C80/D77 — it is not the Mac's job) and is the place to enroll voices.
 struct NamesListView: View {
     @State private var people: [Person] = []
     @State private var search = ""
@@ -33,9 +33,9 @@ struct NamesListView: View {
     @ViewBuilder private var content: some View {
         if people.isEmpty {
             ContentUnavailableView(
-                "No people yet",
+                NamesCopy.emptyTitle,
                 systemImage: "person.2",
-                description: Text("Add people so the Mac can link their names in your notes.")
+                description: Text(NamesCopy.emptyBody)
             )
             .accessibilityIdentifier("names-empty")
         } else {
@@ -46,7 +46,7 @@ struct NamesListView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20).padding(.top, 4)
 
-                SearchField(text: $search, prompt: "Search people")
+                SearchField(text: $search, prompt: NamesCopy.searchPlaceholder)
                     .padding(.horizontal, 16).padding(.top, 8)
 
                 LazyVStack(spacing: 0) {
@@ -66,9 +66,7 @@ struct NamesListView: View {
     }
 
     private var filtered: [Person] {
-        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return people }
-        return people.filter { NamesDisplay.name($0).lowercased().contains(q) }
+        NamesFilter.apply(people, query: search)
     }
 
     private func reload() { people = store.livePeople() }
@@ -80,18 +78,18 @@ private struct PersonRow: View {
     let person: Person
 
     var body: some View {
-        HStack(spacing: 12) {
-            Avatar(name: NamesDisplay.name(person))
-            VStack(alignment: .leading, spacing: 5) {
+        HStack(spacing: NameRowLook.rowSpacing) {
+            Avatar(name: NamesDisplay.name(person), size: NameRowLook.avatarSize)
+            VStack(alignment: .leading, spacing: NameRowLook.textSpacing) {
                 Text(NamesDisplay.name(person))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: NameRowLook.nameSize, weight: .semibold))
                     .foregroundStyle(Color.skText)
                 voiceStatus
             }
             Spacer()
-            Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skTextFaint)
+            Image(systemName: "chevron.right").font(.system(size: NameRowLook.chevronSize, weight: .semibold)).foregroundStyle(Color.skTextFaint)
         }
-        .padding(.vertical, 11).padding(.horizontal, 6)
+        .padding(.vertical, NameRowLook.verticalPadding).padding(.horizontal, NameRowLook.horizontalPadding)
         // A plain 0.5pt rule — NOT `Divider()` in an overlay, which renders as a full-height
         // VERTICAL line (SwiftUI quirk, visible as a stray center line down the list on iOS 26).
         .overlay(alignment: .bottom) { Rectangle().fill(Color.skBorder).frame(height: 0.5) }
@@ -102,15 +100,15 @@ private struct PersonRow: View {
         if NamesDisplay.isEnrolled(person) {
             HStack(spacing: 6) {
                 VoiceBars()
-                Text("Voice enrolled")
+                Text(NamesCopy.voiceEnrolled)
             }
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skGreen)
+            .font(.system(size: NameRowLook.statusSize, weight: .semibold)).foregroundStyle(Color.skGreen)
         } else {
             HStack(spacing: 6) {
-                Image(systemName: "waveform").font(.system(size: 12))
-                Text("Add voice")
+                Image(systemName: "waveform").font(.system(size: NameRowLook.statusSize))
+                Text(NamesCopy.voiceMissing)
             }
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skAccent)
+            .font(.system(size: NameRowLook.statusSize, weight: .semibold)).foregroundStyle(Color.skAccent)
         }
     }
 }
@@ -173,7 +171,7 @@ struct AddPersonView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Full name", text: $name)
+                    TextField(NamesCopy.fullNamePlaceholder, text: $name)
                         .accessibilityIdentifier("person-name-field")
                     TextField("Short name (optional)", text: $short)
                         .accessibilityIdentifier("person-short-field")
@@ -181,16 +179,16 @@ struct AddPersonView: View {
                     Text("The first name is added as an alias so the person links in your notes. Edit aliases from the person's page.")
                 }
             }
-            .navigationTitle("Add Person")
+            .navigationTitle(NamesCopy.newPersonTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
+                    Button(NamesCopy.doneVerb, action: save)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                         .accessibilityIdentifier("save-person-button")
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(NamesCopy.cancelVerb) { dismiss() }
                 }
             }
         }

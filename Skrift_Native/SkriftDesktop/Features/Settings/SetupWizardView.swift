@@ -42,7 +42,7 @@ struct SetupWizardView: View {
 
                 HStack(spacing: 7) {
                     Image(systemName: "arrow.down.circle").font(.system(size: 12))
-                    Text("The transcription + enhancement models (~0.6 GB + ~9 GB) download automatically the first time you Process a memo.")
+                    Text("The transcription + enhancement models (\(ModelSizes.parakeet) + \(ModelSizes.gemma)) download automatically the first time you Process a memo.")
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)

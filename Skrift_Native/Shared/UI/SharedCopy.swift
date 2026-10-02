@@ -135,6 +135,30 @@ enum SharedCopy {
         "Locked notes stay out of Obsidian publish and need \(authName) here. They're hidden, not encrypted."
     }
     static let unlockVerb = "Unlock"
+
+    // ── Q159: what iCloud sync carries (parity audit setexp-13, -15) ──
+
+    /// ONE sentence for what the iCloud switch moves, on the phone's iCloud footer and the
+    /// Mac's Sync help. The Mac help used to name only memos and polish although its one
+    /// switch also gates names, custom words, language, destinations and polish prompts.
+    static let syncWhatSyncs = "Your notes, names, custom words, language, destinations and polish prompts sync across your devices via iCloud."
+    /// Only the Mac said this; every device needs it.
+    static let syncSameAccount = "Every device needs to be signed into the same iCloud account."
+}
+
+/// Model download sizes quoted to the user — one figure per model (setexp-42). The phone said
+/// Parakeet "494 MB" and the Mac "~0.6 GB"; the iPad said Gemma "8.9 GB" and the Mac "~9 GB".
+/// The exact figure wins; `gemmaFreeSpace` is the headroom a device needs while it downloads.
+enum ModelSizes {
+    static let parakeetMB = 494
+    static let gemmaGB = 8.9
+    static let gemmaFreeGB = 9
+    static let spotterMB = 100
+
+    static var parakeet: String { "\(parakeetMB) MB" }
+    static var gemma: String { "\(gemmaGB) GB" }
+    static var gemmaFreeSpace: String { "~\(gemmaFreeGB) GB free" }
+    static var spotter: String { "~\(spotterMB) MB" }
 }
 
 /// One header look for the day groups and the RELATED section on every list (the

@@ -14,7 +14,7 @@ struct PolishSettingsView: View {
 
     private let explainer = "Your Mac polishes every synced note automatically. This iPad can polish too — only the note you're looking at, only when you ask. Same model, same result; whichever ran last wins everywhere."
     private let promptsFooter = "Prompt edits sync between your Mac and iPad — newest edit wins, so both polishers always speak with one voice."
-    private let footnote = "Runs on the iPad's Apple-silicon GPU while the app is open — the iPad never polishes in the background or on battery-critical. Needs an M-series iPad with ~9 GB free. Everything stays on device."
+    private let footnote = "Runs on the iPad's Apple-silicon GPU while the app is open — the iPad never polishes in the background or on battery-critical. Needs an M-series iPad with \(ModelSizes.gemmaFreeSpace). Everything stays on device."
 
     var body: some View {
         Form {
@@ -94,7 +94,7 @@ struct PolishSettingsView: View {
                 Text("Gemma 4 E4B — the model your Mac uses")
                     .font(.system(size: 15, weight: .medium))
                     .fixedSize(horizontal: false, vertical: true)
-                Text("8.9 GB · downloads once, runs entirely on this iPad")
+                Text("\(ModelSizes.gemma) · downloads once, runs entirely on this iPad")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.skTextDim)
                     .fixedSize(horizontal: false, vertical: true)

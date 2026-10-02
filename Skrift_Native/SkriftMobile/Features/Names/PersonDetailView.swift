@@ -66,7 +66,7 @@ struct PersonDetailView: View {
         .sheet(isPresented: $showEnroll) {
             VoiceEnrollView(canonical: canonical,
                             displayName: person.map(NamesDisplay.name) ?? canonical) {
-                load(); onChange()   // refresh the card → "Voice enrolled"
+                load(); onChange()   // refresh the card (flips to the enrolled state)
             }
         }
         // Full editor (name / aliases / short) — the Names-list path to renaming a person.
@@ -83,18 +83,18 @@ struct PersonDetailView: View {
             if NamesDisplay.isEnrolled(person) {
                 HStack(spacing: 8) {
                     VoiceBars()
-                    Text("Voice enrolled")
+                    Text(NamesCopy.voiceEnrolled)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color.skGreen)
                     Spacer()
                 }
-                Text("Conversation mode can attribute speech to \(NamesDisplay.name(person)).")
+                Text(NamesCopy.voiceEnrolledHelp(name: NamesDisplay.name(person)))
                     .font(.footnote).foregroundStyle(Color.skTextDim)
             } else {
                 Button { showEnroll = true } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "waveform")
-                        Text("Add voice")
+                        Text(NamesCopy.voiceMissing)
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skTextFaint)
                     }
@@ -102,7 +102,7 @@ struct PersonDetailView: View {
                     .foregroundStyle(Color.skAccent)
                 }
                 .accessibilityIdentifier("add-voice-button")
-                Text("Enroll a short voice sample so Conversation mode can tell who's speaking.")
+                Text(NamesCopy.voiceMissingRecordHelp)
                     .font(.footnote).foregroundStyle(Color.skTextDim)
             }
         }

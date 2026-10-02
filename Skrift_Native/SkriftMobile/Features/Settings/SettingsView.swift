@@ -75,7 +75,7 @@ struct SettingsView: View {
                         Label("Synced audiobooks", systemImage: "books.vertical")
                     }
                 } footer: {
-                    Text("Your notes, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
+                    Text("\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) Audiobooks sync per-book — turn one on from its long-press menu.")
                 }
 
                 // Obsidian publish — the picked folder IS the destination (2026-07-26,
@@ -117,7 +117,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Capture")
                 } footer: {
-                    Text("Language: keep English for the cleanest English; switch to Multilingual when recording Dutch or other languages (it stops the model drifting to English on non-English speech). Remove filler words drops standalone um/uh/hmm from new voice-memo transcripts (never from audiobook quotes). When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
+                    Text("Language: \(ASRLanguageMode.footer) Remove filler words drops standalone um/uh/hmm from new voice-memo transcripts (never from audiobook quotes). When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
                 }
 
                 Section {
