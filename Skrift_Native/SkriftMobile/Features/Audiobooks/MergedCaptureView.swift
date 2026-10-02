@@ -310,10 +310,16 @@ struct MergedCaptureView: View {
     /// "— David Deutsch, *The Beginning of Infinity*, ch. 4" — plain (the Mac
     /// writes the [[..]] wikilink at export).
     private var attributionText: Text {
-        let lead = Text("\u{2014} \(book.author), ").foregroundStyle(Color.skTextDim)
-        let title = Text(book.title).italic().foregroundStyle(Color.skTextDim)
-        let suffix = book.chapterNumberString(at: pausedAt).map { ", ch. \($0)" } ?? ""
-        let tail = Text(suffix).foregroundStyle(Color.skTextDim)
+        // The ONE attribution builder (C172) — the preview reads exactly like the caption the
+        // saved note will show ("— Author, Title · ch. N"), and an empty author is dropped
+        // instead of printing "— , Title".
+        guard let parts = CaptureQuote.attributionParts(book: book.title, author: book.author,
+                                                        chapter: book.chapterNumberString(at: pausedAt)) else {
+            return Text("")
+        }
+        let lead = Text(parts.lead).foregroundStyle(Color.skTextDim)
+        let title = Text(parts.title).italic().foregroundStyle(Color.skTextDim)
+        let tail = Text(parts.tail).foregroundStyle(Color.skTextDim)
         return lead + title + tail
     }
 
