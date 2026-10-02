@@ -18,40 +18,34 @@ enum MemoExporter {
                          enhancement: MemoEnhancement? = nil,
                          linkStems: [UUID: String] = [:],
                          profile: ExportProfile = .obsidian) -> String {
-        var input = compilerInput(for: memo, people: people, enhancement: enhancement)
-        if !linkStems.isEmpty {
-            input.memoLinkResolver = { linkStems[$0] }   // value capture — Sendable
-        }
+        let input = compilerInput(for: memo, people: people, enhancement: enhancement,
+                                  linkStems: linkStems)
         return Compiler.compile(input, author: author, date: dateString(memo.recordedAt),
                                 knownPeople: people, profile: profile)
     }
 
     // MARK: - Memo → CompilerInput
 
-    /// Map a `Memo` into the neutral `CompilerInput` the shared `Compiler` consumes — the phone
-    /// analogue of the desktop `PipelineFile.compilerInput`. The body is the on-device
-    /// name-LINKED transcript (or annotation, for a share-capture), placed in `sanitised` so it
-    /// wins the Compiler's body precedence; `transcript` keeps the RAW as the fallback.
-    static func compilerInput(for memo: Memo, people: [Person], enhancement: MemoEnhancement? = nil) -> CompilerInput {
+    /// Map a `Memo` into the neutral `CompilerInput` through the ONE shared builder
+    /// (`CompilerInput.make`, the Mac's too): body = the Mac's copy-edit when it has words, else
+    /// the raw transcript / annotation, name-linked on-device with the note's own unlink / pick
+    /// decisions (R37); `voice:` is `cleaned` only when that copy-edit is the body (Q155).
+    static func compilerInput(for memo: Memo, people: [Person], enhancement: MemoEnhancement? = nil,
+                              linkStems: [UUID: String] = [:]) -> CompilerInput {
         let capture = memo.isShareCapture
         let enh = (enhancement?.hasContent == true) ? enhancement : nil
-        // Body: prefer the Mac's polished copy-edit; else the raw transcript/annotation. Either
-        // way it's re-linked on-device (no drift) and placed in `sanitised` so it wins the
-        // Compiler's body precedence; `transcript` keeps the base text as the fallback.
-        let baseBody: String = {
-            if let c = enh?.copyedit, !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return c }
-            return capture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
-        }()
-        let linked = MemoLinking.linkedTranscript(baseBody, people: people)
+        let raw = capture ? memo.annotationText : memo.transcript
         let meta = memo.metadata
-        return CompilerInput(
-            filename: "memo",                                  // unused: enhancedTitle is always set
-            transcript: baseBody.isEmpty ? nil : baseBody,
-            sanitised: linked.isEmpty ? nil : linked,
+        return CompilerInput.make(
+            filename: "memo",                                  // unused: the title is always set
+            raw: (raw ?? "").isEmpty ? nil : raw,
+            copyedit: enh?.copyedit,
+            people: people,
+            resolutions: memo.nameResolutions,
             // The same C25 ladder that names the file (and that the Mac uses), so the
             // frontmatter title and the filename can no longer disagree.
-            enhancedTitle: exportTitle(for: memo, people: people, enhancement: enhancement),
-            enhancedSummary: nonEmpty(enh?.summary),
+            title: exportTitle(for: memo, people: people, enhancement: enhancement),
+            summary: nonEmpty(enh?.summary),
             tags: memo.tags,
             significance: memo.significance,
             sourceType: capture ? .capture : .audio,
@@ -60,10 +54,8 @@ enum MemoExporter {
             sharedContent: capture ? memo.sharedContent.map(compilerShared) : nil,
             rawRecordedAt: nil,
             destination: memo.destination,
-            // Said here, not guessed in the Compiler: the phone carries its polished body in
-            // `sanitised` (re-linked on-device), so the Compiler cannot tell cleaned from raw.
-            voice: memo.audioFilename.isEmpty ? .written : (enh != nil ? .cleaned : .raw)
-        )
+            spoken: !memo.audioFilename.isEmpty,
+            linkStems: linkStems)
     }
 
     // MARK: - Title / body helpers
@@ -81,7 +73,7 @@ enum MemoExporter {
     /// The on-device name-linked body (transcript for audio, annotation for a share-capture).
     static func linkedBody(for memo: Memo, people: [Person]) -> String {
         let raw = memo.isShareCapture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
-        return MemoLinking.linkedTranscript(raw, people: people)
+        return CompilerInput.linkBody(raw, people: people, resolutions: memo.nameResolutions)
     }
 
     /// Flatten `[[Canonical|spoken]]` → "spoken", `[[Name]]` → "Name", and drop `[[img_NNN]]`

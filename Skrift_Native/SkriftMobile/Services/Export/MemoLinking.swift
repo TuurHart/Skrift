@@ -13,18 +13,11 @@ import Foundation
 ///
 /// Pure (people injected) → fully testable; the engine itself lives in `Shared/Naming`.
 enum MemoLinking {
-    /// The name-linked form of `rawTranscript`. Routes attributed (≥2 speaker-turn)
-    /// transcripts through the conversation linker and everything else through the monologue
-    /// linker — mirroring the Mac's `BatchRunner` routing (it picks `processConversation` for
-    /// `SpeakerTranscript`-attributed text). Returns the input unchanged when there's nothing
-    /// to link (empty text, or no live people).
-    static func linkedTranscript(_ rawTranscript: String?, people: [Person]) -> String {
-        guard let raw = rawTranscript, !raw.isEmpty else { return rawTranscript ?? "" }
-        let live = people.filter { !$0.isDeleted }
-        guard !live.isEmpty else { return raw }
-        if SpeakerTranscript.parse(raw) != nil {
-            return Sanitiser.processConversation(text: raw, people: live).sanitised
-        }
-        return Sanitiser.process(text: raw, people: live).sanitised
+    /// The name-linked form of `rawTranscript` — the shared export linker
+    /// (`CompilerInput.linkBody`, Q155), so the phone and the Mac route and link one way.
+    /// Returns the input unchanged when there's nothing to link (empty text, or no live people).
+    static func linkedTranscript(_ rawTranscript: String?, people: [Person],
+                                 resolutions: NameResolutions = NameResolutions()) -> String {
+        CompilerInput.linkBody(rawTranscript ?? "", people: people, resolutions: resolutions)
     }
 }
