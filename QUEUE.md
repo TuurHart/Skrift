@@ -1425,7 +1425,7 @@ do: `applyTrim`, `TrimResult` and `isUnchangedTrim` in `SkriftMobile/Services/Au
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuoteCaptureSaveTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d01 MAS-d02 MAS-c05 MAU-d-m1 (cleanup-audit P1)
 
-### Q189 [auto] (todo) audiobook services: small dead code, one interruption rule, comment fixes
+### Q189 [auto] (doing) audiobook services: small dead code, one interruption rule, comment fixes
 spec: C240
 needs: -
 gate+: no
@@ -1433,7 +1433,7 @@ do: Delete in `SkriftMobile/Services/Audiobooks/`: the single-URL `importBook(fr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookLibraryStoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d04 MAS-d05 MAS-d06 MAS-d07 MAS-d08 MAS-d09 MAS-d11 MAS-d13 MAS-d15 MAS-d-m1..m4 MAS-c29 (cleanup-audit P2)
 
-### Q190 [auto] (todo) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
+### Q190 [auto] (doing) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
 spec: C239
 needs: Q189
 gate+: no
@@ -1441,7 +1441,7 @@ do: (1) `FileAlignment.epubSignature` is documented as compared nowhere and read
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TextDetachTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d10 MAS-d14 MAS-c02 MAS-c17 MAS-c18 MAS-c24 (cleanup-audit P3)
 
-### Q191 [auto] (todo) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
+### Q191 [auto] (doing) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
 spec: C239
 needs: Q190
 gate+: no
@@ -1449,7 +1449,7 @@ do: In `AudiobookCloudSync.swift` the transcript and alignment sidecar sets (`tr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookCloudSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d12 MAS-c26 MAS-c27 (cleanup-audit P4)
 
-### Q192 [auto] (todo) BookAlignment: one align-one-text helper, single-text mergeSentences
+### Q192 [auto] (doing) BookAlignment: one align-one-text helper, single-text mergeSentences
 spec: C239
 needs: Q190
 gate+: no
@@ -1489,7 +1489,7 @@ do: In `SkriftMobile/Features/MemoDetail/` and the files named: delete `Conversa
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteBodyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MMD-d01 MMD-d02 MMD-d03 MMD-d05 MMD-d07 MMD-d13 MMD-d14 MMD-d15 MMD-d16 MMD-c08 (cleanup-audit P9)
 
-### Q197 [auto] (todo) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
+### Q197 [auto] (doing) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
 spec: C240
 needs: -
 gate+: no
@@ -1497,7 +1497,7 @@ do: `Paragrapher.paragraphed` and `defaultGap` have no production caller (`Share
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d01 SPL-d02 (cleanup-audit P10)
 
-### Q198 [auto] (todo) shared pipeline: unused overloads, always-default parameters, stale headers
+### Q198 [auto] (doing) shared pipeline: unused overloads, always-default parameters, stale headers
 spec: C240
 needs: -
 gate+: no
@@ -1513,7 +1513,7 @@ do: (1) `MemoSpine` (`Shared/Pipeline/MemoSpine.swift`): `QueuePhase`, `Input.qu
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSpineTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d03 SPL-d07 SPL-d11 SPL-c20 SPL-c30 MMD-d06 (cleanup-audit P12)
 
-### Q200 [auto] (todo) one number-word table for AlignmentCore and ChapterDetector
+### Q200 [auto] (doing) one number-word table for AlignmentCore and ChapterDetector
 spec: C239
 needs: -
 gate+: no
@@ -1553,7 +1553,7 @@ do: Bug found by reading, not run: `BodyTextView.Coordinator.wordRanges` (`Skrif
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DRV-d14 DRV-d-m1 DRV-c08 (cleanup-audit P17)
 
-### Q205 [auto] (todo) Mac shell: delete the unused stub engines, naming demo and dead members
+### Q205 [auto] (doing) Mac shell: delete the unused stub engines, naming demo and dead members
 spec: C240
 needs: -
 gate+: no
@@ -1577,7 +1577,7 @@ do: The block "conversation ? `Sanitiser.processConversation` : `Sanitiser.proce
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d11 DPE-c02 DRV-c17 (cleanup-audit P20)
 
-### Q208 [auto] (todo) Mac process queue: a Process asked during a Redo no longer gets stranded
+### Q208 [auto] (doing) Mac process queue: a Process asked during a Redo no longer gets stranded
 spec: C49 C239
 needs: Q205
 gate+: yes
@@ -1593,7 +1593,7 @@ do: `RunFile.swift` has 17 `...IfRequested` entry points; 16 define their own `l
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-c10 DSH-c09 DSH-c12 DSH-d10 DAU-c21 PER-c02 (cleanup-audit P22)
 
-### Q210 [auto] (todo) Mac settings: delete the dead toggles and the old wire DTOs
+### Q210 [auto] (doing) Mac settings: delete the dead toggles and the old wire DTOs
 spec: C240
 needs: -
 gate+: no
@@ -1633,7 +1633,7 @@ do: The only production ingest path is `MemoCloudIngest.swift:48` calling `uploa
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d12 DPE-d13 DPE-d14 (cleanup-audit P27)
 
-### Q215 [auto] (todo) Mac sidebar and app: unused pill and helpers, wrong comments
+### Q215 [auto] (doing) Mac sidebar and app: unused pill and helpers, wrong comments
 spec: C240
 needs: Q205
 gate+: no
@@ -2434,3 +2434,14 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 13:19 Q112 -> done — gate pass @48b4e8ed
 - 2026-10-02 13:19 Q103 -> doing — worker out
 - 2026-10-02 13:21 Q115 -> done — gate pass @1967b830
+- 2026-10-02 17:28 Q189 -> doing — batch worker out
+- 2026-10-02 17:28 Q190 -> doing — batch worker out
+- 2026-10-02 17:28 Q191 -> doing — batch worker out
+- 2026-10-02 17:28 Q192 -> doing — batch worker out
+- 2026-10-02 17:28 Q197 -> doing — batch worker out
+- 2026-10-02 17:28 Q198 -> doing — batch worker out
+- 2026-10-02 17:28 Q200 -> doing — batch worker out
+- 2026-10-02 17:28 Q205 -> doing — batch worker out
+- 2026-10-02 17:28 Q208 -> doing — batch worker out
+- 2026-10-02 17:28 Q215 -> doing — batch worker out
+- 2026-10-02 17:28 Q210 -> doing — batch worker out
