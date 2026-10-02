@@ -110,7 +110,7 @@ final class ConnectionsIndexService {
         // pass, so un-rating a note also withdraws it from the graph.
         // Q168: the TEXT comes from the synced Memo + MemoEnhancement (the phone's rule), so
         // one note embeds the same words on both devices. A fresh context sees CloudKit imports.
-        let cloud = MemoCloudContainer.container.map { ModelContext($0) }
+        let cloud = MemoCloudStore.container.map { ModelContext($0) }
         let snapshots = MacEmbeddingSnapshot.snapshots(files: files, cloud: cloud)
         let index = resolvedIndex()
         sweeping = true
