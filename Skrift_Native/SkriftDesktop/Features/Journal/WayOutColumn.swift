@@ -145,14 +145,13 @@ struct WayOutColumn: View {
                 }
                 if !hidden {
                 HStack(spacing: 10) {
-                    if let replacedAt = memo.replacedAt {
-                        // D139: the version he did not keep when settling an edit conflict.
-                        Text("replaced \(replacedAt.formatted(date: .abbreviated, time: .omitted))")
-                            .foregroundStyle(Theme.amber).fontWeight(.semibold)
+                    ForEach(Array(WayOut.metaParts(for: memo).enumerated()), id: \.offset) { _, part in
+                        if part.emphasized {
+                            Text(part.text).foregroundStyle(Theme.amber).fontWeight(.semibold)
+                        } else {
+                            Text(part.text)
+                        }
                     }
-                    Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
-                    if let place = memo.metadata?.location?.placeName { Text(place) }
-                    if memo.duration > 0 { Text(SkriftFormat.duration(seconds: memo.duration)) }
                 }
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 }
@@ -171,7 +170,7 @@ struct WayOutColumn: View {
                         .background(Theme.destructive.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(.plain)
-                .help("To Recently Deleted — 14 days to undo")
+                .help(SharedCopy.peekUndoLine)
                 .accessibilityIdentifier("wayout-row-delete")
             }
         }
@@ -185,13 +184,13 @@ struct WayOutColumn: View {
         .frame(maxWidth: 760, alignment: .leading)
     }
 
-    /// Warm colors carry the same urgency reading as the old shelves (never
-    /// reintroduced as new doctrine, just preserved): Fading stays amber until
-    /// ≤3 days out, then red; Deleted stays muted until ≤3 days out, then red.
+    /// The colour rule lives in `WayOut.tone` (Shared); this only maps it to the Mac palette.
     private func urgencyColor(_ station: MemoSpine.Station) -> Color {
-        if WayOut.isUrgent(station) { return Theme.destructive }
-        if case .fading = station { return Theme.amber }
-        return Theme.textMuted
+        switch WayOut.tone(for: station) {
+        case .urgent: return Theme.destructive
+        case .warm:   return Theme.amber
+        case .quiet:  return Theme.textMuted
+        }
     }
 
     // ── Mac-only tail (PipelineFile-backed, local) ───────────────────────
