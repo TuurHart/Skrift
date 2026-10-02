@@ -82,6 +82,8 @@ struct SidebarView: View {
     /// Process action — the source for both the band's membership and (once
     /// step ③ lands) the one-trash footer count.
     @State private var cloudMemos: [Memo] = []
+    /// Owns `cloudMemos`' context (Q241 bug 5): changes to those rows save through it.
+    @State private var cloudSnapshot: CloudMemoSnapshot?
     /// Search by meaning (Q82 group 13): note ids similar in MEANING to the query, best first —
     /// the phone's RELATED section. Filled async under the exact matches.
     @State private var relatedIDs: [UUID] = []
@@ -908,7 +910,7 @@ struct SidebarView: View {
     }
 
     private func saveLockChange() {
-        try? MemoCloudStore.container?.mainContext.save()
+        saveCloudMemoChange()
         refreshCloudMemos()
     }
 
@@ -919,9 +921,15 @@ struct SidebarView: View {
             guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
             memo.deletedAt = Date()
             memo.trashSeenAt = memo.deletedAt   // deleted in-session — purge clock starts now (v3)
-            try? MemoCloudStore.container?.mainContext.save()
+            saveCloudMemoChange()
             refreshCloudMemos()
         }
+    }
+
+    /// The rows in `cloudMemos` belong to the snapshot's own context (Q241 bug 5), so a change to
+    /// them is saved THERE; saving `mainContext` wrote nothing.
+    private func saveCloudMemoChange() {
+        if let snap = cloudSnapshot { snap.save() } else { try? MemoCloudStore.container?.mainContext.save() }
     }
 
 
@@ -934,7 +942,9 @@ struct SidebarView: View {
         // persistent STORE but does NOT refresh objects already registered with
         // `mainContext`, so it hands back STALE memos and a just-synced one is missing.
         // A brand-new context has an empty row cache, so every fetch hits the store.
-        cloudMemos = (try? ModelContext(cloud).fetch(FetchDescriptor<Memo>())) ?? []
+        let snap = CloudMemoSnapshot(container: cloud)
+        cloudSnapshot = snap
+        cloudMemos = snap.memos
     }
 
     /// Search/filter excluded every memo (the queue itself isn't empty). Mirrors

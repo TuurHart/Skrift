@@ -446,6 +446,10 @@ struct IngestService: Sendable {
         pf.transcribeStatus = .done
         // BatchRunner won't clobber this; the LLM title becomes the suggestion.
         pf.enhancedTitle = title
+        // Q241 (4): like every other Mac import (D159) it arrives UNRATED. An inserted row with
+        // neither flag reads as a legacy RATED row (`NoteConsent.isRated`).
+        pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
     }

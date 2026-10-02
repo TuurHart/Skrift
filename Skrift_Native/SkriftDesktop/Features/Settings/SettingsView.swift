@@ -13,6 +13,9 @@ struct SettingsView: View {
 
     @AppStorage(AppTheme.key) private var appTheme = "dark"
     @State private var settings = SettingsStore.shared.load()
+    /// What this sheet last loaded or saved. The CloudKit runners write vocab/language/prompts
+    /// to disk behind an open sheet, so a save persists only the diff from this (Q241 bug 6).
+    @State private var savedBaseline = SettingsStore.shared.load()
     /// Mirrors `DestinationSettings.isEnabled` so the section redraws when the switch moves
     /// (that flag is UserDefaults, not an `@Published` settings field).
     @State private var destinationsOn = DestinationSettings.isEnabled
@@ -37,7 +40,7 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
-        .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
+        .onChange(of: settings) { _, _ in persist() }
         // Prompt edits push to the synced carrier once, when the window goes away
         // (the autosave above already persisted text + stamp per keystroke).
         .onDisappear { PolishPromptsCloudSync.run() }
@@ -495,7 +498,7 @@ struct SettingsView: View {
                 // Stamp = "chosen here", which is what wins LWW over a device that never
                 // picked; then push so the phone/iPad see it without waiting for a sweep.
                 settings.transcriptionLanguageModifiedAt = Date()
-                SettingsStore.shared.save(settings)
+                persist()
                 VocabularyCloudSync.run()
                 // The config is baked into the loaded manager — drop it so the next
                 // transcription rebuilds with the chosen mode.
@@ -566,8 +569,16 @@ struct SettingsView: View {
     /// mirroring the names push-on-edit above.
     private func commitVocabEdit() {
         settings.customVocabularyModifiedAt = Date()
-        SettingsStore.shared.save(settings)
+        persist()
         VocabularyCloudSync.run()
+    }
+
+    /// Autosave: write only what changed since the last save, over whatever is on disk NOW
+    /// (`SettingsStore.saveEdit`), so a stale open sheet can't overwrite a vocab/language/prompt
+    /// value a CloudKit runner just landed (Q241 bug 6).
+    private func persist() {
+        SettingsStore.shared.saveEdit(from: savedBaseline, to: settings)
+        savedBaseline = settings
     }
 
     private func chooseFolder(_ key: WritableKeyPath<AppSettings, String>) {

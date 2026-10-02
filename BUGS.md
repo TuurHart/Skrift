@@ -397,3 +397,20 @@ Leads. Check them against source before you act — section 5 is why.
 - ✅ **List thumbnail stale after deleting photos** — fixed 2026-07-18.
 - ✅ **Audiobook import rejects MP3** — fixed twice, second time with a different root cause
       (2026-06-24, then 2026-07-05, device-verified).
+- ✅ **Q241 audit suspects, 2026-10-02 (cleanup-audit P54).** (1) `SourceKind.of` misses a phone
+      video's `sourceType`: NOT a bug. `SourceKind.mediaMarker` reads `mediaSource` then `sourceType`
+      (`Shared/Pipeline/SourceTaxonomy.swift:55-61`) and `SourceKindRealShapeTests.testPhoneVideoReadsMemoMetadataSourceType`
+      already pins it (Q138). (2) typed marker dropped by a `memo.metadata = ...` write: REAL (adding a
+      photo, `NoteBodyView.insertPhoto`), fixed in the `Memo.metadata` setter. (3) the import sweep
+      omitted `MemoDeduper`: real, fixed (`CloudSyncMonitor.runMemoSweeps`). (4) `ingestNote` did not
+      stamp `isLocalImport`: real (read as RATED), fixed. (5) the sidebar mutated memos from a
+      throwaway context and saved `mainContext`: real (the delete/lock never reached the store),
+      fixed with `CloudMemoSnapshot`. (6) the open Settings sheet writing stale vocab/language/prompts
+      back: real at the disk level, fixed with `SettingsStore.saveEdit` (diff-only autosave).
+- [ ] **Journal river can lag a sidebar lock/delete (Q241 bug 5, second half, NOT fixed).**
+      `JournalView.refresh` (`Features/Journal/JournalView.swift:83`) and `UnpipelinedMemoSheet.load`
+      read `cloud.mainContext`, which a CloudKit import (or a save from the sidebar's own snapshot
+      context) does not refresh. Not reproduced as a test: it needs both views live. Fixing it
+      means one shared "memo read context" that Journal both reads and mutates through, because
+      moving Journal's fetch to a fresh context alone brings bug 5 back there (it mutates and
+      saves `mainContext` at `JournalView.swift:283-289`). Needs a design call, not a patch.
