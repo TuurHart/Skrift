@@ -48,7 +48,9 @@ enum MemoExporter {
             filename: "memo",                                  // unused: enhancedTitle is always set
             transcript: baseBody.isEmpty ? nil : baseBody,
             sanitised: linked.isEmpty ? nil : linked,
-            enhancedTitle: nonEmpty(enh?.title) ?? exportTitle(for: memo, people: people),
+            // The same C25 ladder that names the file (and that the Mac uses), so the
+            // frontmatter title and the filename can no longer disagree.
+            enhancedTitle: exportTitle(for: memo, people: people, enhancement: enhancement),
             enhancedSummary: nonEmpty(enh?.summary),
             tags: memo.tags,
             significance: memo.significance,
@@ -66,18 +68,14 @@ enum MemoExporter {
 
     // MARK: - Title / body helpers
 
-    /// The export title: the user's title if set, else the first non-empty line of the linked
-    /// body (flattened, truncated), else a placeholder. Always non-empty so the Compiler never
-    /// falls back to the (synthetic) filename stem.
-    static func exportTitle(for memo: Memo, people: [Person]) -> String {
-        if let t = nonEmpty(memo.title) { return t }
-        let body = flattenLinks(linkedBody(for: memo, people: people))
-        if let first = body.components(separatedBy: .newlines)
-            .map({ $0.trimmingCharacters(in: .whitespaces) })
-            .first(where: { !$0.isEmpty }) {
-            return String(first.prefix(80))
-        }
-        return "Untitled Memo"
+    /// The export title — the shared C25 ladder (`ExportNaming.title`, the Mac's rule too):
+    /// user title → the Mac's suggested title (`enhancement.title`) → first body line →
+    /// share title → "Note"/"Voice note". Always non-empty so the Compiler never falls back
+    /// to the (synthetic) filename stem. `people` is kept for call-site stability: linking
+    /// only wraps spoken words, so the plain first line is the same with or without it.
+    static func exportTitle(for memo: Memo, people: [Person],
+                            enhancement: MemoEnhancement? = nil) -> String {
+        ExportNaming.title(for: memo, enhancement: enhancement)
     }
 
     /// The on-device name-linked body (transcript for audio, annotation for a share-capture).
@@ -134,12 +132,6 @@ enum MemoExporter {
         return t
     }
 
-    private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
-    static func dateString(_ date: Date) -> String { dateFormatter.string(from: date) }
+    /// `date:` — the recording's local day, the ONE rule the Mac uses too (C64).
+    static func dateString(_ date: Date) -> String { ExportNaming.localDay(date) }
 }
