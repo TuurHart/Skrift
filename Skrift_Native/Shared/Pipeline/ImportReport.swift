@@ -84,6 +84,8 @@ struct ImportReport: Equatable, Sendable {
     static let textInFolder = "A .txt inside a folder is not a note; drop it directly"
     static let book = "Audiobooks and ePubs are added from the Books tab on the phone"
     static let pdfNotOnMac = "PDFs are not imported on the Mac yet"
+    /// Q136: a dragged-in URL the Mac cannot make a link card of (mailto:, ftp:, ...).
+    static let notAWebLink = "Skrift takes web links (http or https) only"
 
     /// Why `name` was skipped, from the kind it resolves to (`ImportKinds`) and the app that
     /// refused it. `onMac`: the Mac has no PDF door yet.

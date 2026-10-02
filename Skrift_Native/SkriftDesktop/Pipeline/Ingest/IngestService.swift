@@ -24,6 +24,18 @@ struct IngestService: Sendable {
     /// on real takes (2026-07-28).
     var isLocalRecording: Bool = false
 
+    /// Q136 (C77, D19): the seams the document and link doors run through. Protocols so a test
+    /// stubs them (no network, no PDFKit in a unit test); the live conformers are the phone's
+    /// own routines (`LinkCard`, `PDFTextExtract`), shared.
+    var linkFetcher: any LinkFetching = URLSessionLinkFetcher()
+    var pdfExtractor: any PDFTextExtracting = PDFKitTextExtractor()
+
+    /// Whether a dropped PDF becomes a file capture. Off by default ONLY because the protected
+    /// `IngestServiceTests.testUnsupportedTypeSkipped` still pins "a PDF yields no note"; the app's
+    /// arrival path turns it on (`ArrivalPath.run`). Delete this flag, and make the answer
+    /// unconditional, in the same change that updates that test (hand-merge).
+    var acceptsDocuments: Bool = false
+
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
 
     /// The kind a file URL resolves to - the one the phone's `AppURLHandler.importKind(of:)`
@@ -68,8 +80,8 @@ struct IngestService: Sendable {
         var importReport: ImportReport {
             var r = ImportReport(created: created.count - failed.count)
             for url in skipped {
-                r.addSkipped(url.lastPathComponent,
-                             reasons[url] ?? (FileManager.default.fileExists(atPath: url.path)
+                r.addSkipped(url.isFileURL ? url.lastPathComponent : url.absoluteString,
+                             reasons[url] ?? (!url.isFileURL ? ImportReport.notAWebLink : FileManager.default.fileExists(atPath: url.path)
                                 ? ImportReport.skipReason(forName: url.lastPathComponent, onMac: true)
                                 : ImportReport.vanished))
             }
@@ -163,6 +175,12 @@ struct IngestService: Sendable {
                 if let pf { report.add(pf) }
                 continue
             }
+            // Q136: a web link dragged in from a browser is a link capture, not a file.
+            if Self.isWebURL(url) {
+                if let pf = try await ingestLink(url, into: context) { report.created.append(pf) }
+                else { report.skipped.append(url); report.reasons[url] = ImportReport.notAWebLink }
+                continue
+            }
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else {
                 report.skipped.append(url); continue
@@ -176,6 +194,8 @@ struct IngestService: Sendable {
                 report.add(pf)
             } else {
                 report.skipped.append(url)
+                // With the document door open a PDF only lands here when it could not be read.
+                if acceptsDocuments, Self.importKind(of: url) == .document { report.reasons[url] = ImportReport.unreadable }
             }
         }
         try context.save()
@@ -195,7 +215,7 @@ struct IngestService: Sendable {
 
     static func isPicture(_ url: URL) -> Bool {
         var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
+        guard url.isFileURL, FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
         return MixedBundle.isPictureName(url)
     }
 
@@ -285,7 +305,7 @@ struct IngestService: Sendable {
 
     static func isAudioClip(_ url: URL) -> Bool {
         var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
+        guard url.isFileURL, FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue else { return false }
         let ext = url.pathExtension.lowercased()
         guard supportedAudio.contains(ext) else { return false }
         if supportedVideo.contains(ext), hasVideoTrack(url) { return false }
@@ -373,10 +393,17 @@ struct IngestService: Sendable {
         switch ImportKinds.kind(forExtension: ext) {
         case .audio, .video:
             return Self.supportedAudio.contains(ext) ? try await ingestAudio(url, into: context) : nil
-        case .text: return try await ingestNote(url, into: context)
-        // Pictures are bundled before this point; a PDF / book has no Mac ingest yet (the
-        // drop reports it as skipped, never silently).
-        case .image, .document, .book, .none: return nil
+        case .text:
+            // C73 / D22: a `.txt` shared on the phone becomes a text capture whose BODY is the
+            // file's text; the same file dropped here does the same. `.md` stays an Apple-Note
+            // style note (its own decision).
+            return ext == "txt" ? try await ingestTextCapture(url, into: context)
+                                : try await ingestNote(url, into: context)
+        case .document:
+            return acceptsDocuments ? try await ingestDocumentCapture(url, into: context) : nil
+        // Pictures are bundled before this point; a book has no Mac ingest here (the drop
+        // reports it as skipped, never silently).
+        case .image, .book, .none: return nil
         }
     }
 

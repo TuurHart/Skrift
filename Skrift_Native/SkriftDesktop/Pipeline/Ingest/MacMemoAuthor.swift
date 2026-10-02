@@ -59,6 +59,10 @@ enum MacMemoAuthor {
         // the metadata blob (media marker, place, clip manifest, picture manifest), one
         // `photo` asset per picture, and an `audioFilename` only when there IS audio.
         let shape = authoredShape(for: pf, memoID: id)
+        // Q136: a capture the Mac made (a dropped link / PDF / .txt) carries its `sharedContent`
+        // exactly as a phone capture does, with the body as the ANNOTATION, so the phone reads
+        // it as the same kind of note. A row without one (a picture note) is as before.
+        let capture = pf.sourceType == .capture ? SharedContent.decode(from: pf.audioMetadataJSON) : nil
         let memo = Memo(id: id, audioFilename: shape.audioFilename,
                         duration: shape.hasAudio ? (audioDuration(at: audioURL) ?? 0) : 0,
                         // The closest PipelineFile analogue to "recordedAt" — IngestService's own
@@ -68,8 +72,12 @@ enum MacMemoAuthor {
                         // D159: no floor — an unrated file authors an unrated Memo.
                         significance: sig,
                         metadataData: shape.metadataData,
+                        sharedContentData: Memo.encodeJSON(capture),
+                        annotationText: capture == nil || (pf.transcript ?? "").isEmpty ? nil : pf.transcript,
                         recordingDeviceID: DeviceID.current())
-        if let t = pf.transcript, !t.isEmpty {
+        if capture != nil {
+            memo.transcriptStatus = .done   // nothing to hear: a capture's words are its annotation
+        } else if let t = pf.transcript, !t.isEmpty {
             // A live-recording finalize (`LiveRecordingSession.stop()`) seeds `pf.transcript`
             // (+ `.done`) BEFORE this call runs — but ONLY for an EDITED take: an ordinary
             // (not-edited) recording's words always arrive later, via the transcribe hook,
@@ -89,6 +97,12 @@ enum MacMemoAuthor {
         for photo in shape.photos {
             guard let blob = try? Data(contentsOf: photo.source) else { continue }
             ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.photo, filename: photo.filename, blob: blob))
+        }
+        // A `.file` capture's document (a dropped PDF): the real file rides along as the phone's
+        // own `document` asset, so it reaches the phone and not just its extracted text.
+        if let name = capture?.filePath, !name.isEmpty, let folder = pf.workingFolder,
+           let blob = try? Data(contentsOf: folder.appendingPathComponent("files").appendingPathComponent(name)) {
+            ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.document, filename: name, blob: blob))
         }
 
         try ctx.save()
@@ -121,6 +135,7 @@ enum MacMemoAuthor {
             guard let memo = try ctx.fetch(FetchDescriptor<Memo>(
                 predicate: #Predicate { $0.id == id })).first else { continue }
             guard memo.recordingDeviceID == DeviceID.current() else { continue }
+            guard memo.sharedContentData == nil else { continue }   // a capture's text is its annotation
             guard (memo.transcript ?? "").isEmpty else { continue }
             markTranscribed(memo, transcript: t)
             count += 1

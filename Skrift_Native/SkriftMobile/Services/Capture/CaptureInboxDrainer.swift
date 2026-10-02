@@ -476,11 +476,12 @@ enum CaptureInboxDrainer {
            displayName.hasSuffix(".md") || displayName.hasSuffix(".markdown") || displayName.hasSuffix(".txt"),
            let srcURL = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
            FileManager.default.fileExists(atPath: srcURL.path) {
+            // Q136: the size / encoding / blank rule is `SharedTextFile` (the Mac drop uses it too).
             let text = await offMain { () -> String? in
-                guard let data = try? Data(contentsOf: srcURL), data.count <= 512_000 else { return nil }
-                return String(data: data, encoding: .utf8)
+                guard let data = try? Data(contentsOf: srcURL) else { return nil }
+                return SharedTextFile.body(of: data)
             }
-            if let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            if let trimmed = text {
                 textFileBody = trimmed
                 sharedContent = SharedContent(type: .text,
                                               fileName: entry.fileDisplayName ?? entry.fileName)
