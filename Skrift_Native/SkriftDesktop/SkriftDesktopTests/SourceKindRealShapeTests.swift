@@ -46,14 +46,13 @@ final class SourceKindRealShapeTests: XCTestCase {
         let cap = try capture(SharedContent(type: .url, url: "https://example.com"))
         let pf = MemoNoteProjection.file(for: cap)
         XCTAssertEqual(pf.sourceType, .capture)
-        XCTAssertEqual(pf.sourceDescriptor.glyph, SourceKind.captureURL.glyph)
-        XCTAssertEqual(pf.sharedContentType, "url")
+        XCTAssertEqual(SharedContent.decode(from: pf.audioMetadataJSON)?.type, .url)
 
         let vid = Memo(audioFilename: "v.m4a", recordedAt: Date(), transcript: "w", transcriptStatus: .done)
         vid.metadataData = try JSONEncoder().encode(MemoMetadata(sourceType: MemoMetadata.Source.video))
         let vpf = MemoNoteProjection.file(for: vid)
         XCTAssertEqual(vpf.sourceType, .audio)
-        XCTAssertEqual(vpf.sourceDescriptor.glyph, SourceKind.video.glyph)
+        XCTAssertEqual(vpf.mediaSource, "video")
     }
 #endif
 }
