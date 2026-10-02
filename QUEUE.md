@@ -1969,7 +1969,7 @@ gate+: yes
 do: Reported by the Q155 worker on top of session head (after Q153 merged at 7041ea92): protected phone tests fail — MemoExporterTests.testExportTitleFallback ('Note' vs expected 'Untitled Memo'), MemoExporterTests.testMarkdownPrefersMacEnhancement ('uses the Mac title'), PortfolioExportTests x5 (file named 'the-bench-outside-cafe-garrett.md', expected 'a-bench-made-of-an-oak-slab.md'). The gate runs the Mac suite only, so this slipped. 1) Confirm on the session head: `plan/mtest.sh MemoExporterTests` and `plan/mtest.sh PortfolioExportTests`; then on 9a5f0868~ ancestors if needed to name the commit that broke them (Q153 7041ea92 suspected: ExportNaming / ExportProfile file-name + title ladder; also Q114's NoteTitle ladder and Q177's titlePlaceholder). 2) Fix the CODE so the protected tests pass again while keeping the Q153 parity intent (same file from phone and Mac); never edit those tests. 3) If an assertion genuinely contradicts SPEC C25/C59, stop and report it as 'needs hand-merge: <test, line, why>'. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoExporterTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PortfolioExportTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportNamingParityTests && ./gate.sh`
 
-### Q259 [auto] (doing) phone: a store that fails to start shows a 'couldn't start' state instead of crashing (NotesRepository.swift:41 fatalError)
+### Q259 [auto] (done) phone: a store that fails to start shows a 'couldn't start' state instead of crashing (NotesRepository.swift:41 fatalError)
 spec: C115
 needs: -
 gate+: yes
@@ -2658,3 +2658,4 @@ check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-02 22:59 Q127 -> doing — batch worker out
 - 2026-10-02 22:59 Q118 -> doing — batch worker out
 - 2026-10-02 22:59 Q114 -> done — gate pass @2b5564a4
+- 2026-10-02 23:02 Q259 -> done — gate pass @7256e7f1
