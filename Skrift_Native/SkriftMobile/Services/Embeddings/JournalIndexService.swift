@@ -187,13 +187,8 @@ final class JournalIndexService {
             // `sweep`'s orphan pass deletes the rows of a note whose rating goes back
             // to 0 (its `existing` minus `seen`).
             guard NoteConsent.isRated(memo) else { return nil }
-            let enhancement = repository.enhancement(forMemo: memo.id)
-            let polished = (enhancement?.hasContent == true) ? enhancement?.copyedit : nil
-            return SemanticSearch.snapshot(
-                id: memo.id, userTitle: memo.title, enhancedTitle: enhancement?.title,
-                summary: enhancement?.summary, polished: polished, transcript: memo.transcript,
-                annotation: memo.annotationText, place: memo.metadata?.location?.placeName,
-                tags: memo.tags)
+            // The ONE shared Memo → snapshot rule the Mac uses too (Q168).
+            return SemanticSearch.snapshot(memo: memo, enhancement: repository.enhancement(forMemo: memo.id))
         }
     }
 

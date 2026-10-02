@@ -758,6 +758,9 @@ struct SidebarView: View {
     /// same shared floor. Exact matches never wait on it.
     private func refreshRelated() async {
         let q = model.searchText.trimmingCharacters(in: .whitespaces)
+        // Q168: start the engine load at the keystroke, before the debounce (the phone's
+        // `scheduleRelated`). No-op when warm or when Connections is off.
+        if SemanticSearch.warmsEngine(forQuery: q) { ConnectionsIndexService.shared.warmUp() }
         guard !q.isEmpty, ConnectionsIndexService.shared.isActive else {
             if !relatedIDs.isEmpty { relatedIDs = [] }
             return
