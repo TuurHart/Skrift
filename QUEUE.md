@@ -712,6 +712,13 @@ gate+: yes
 do: Tuur 2026-10-02: "the export to different places should be synced across devices — if I turn it on somewhere, it turns on everywhere" (D162). Today `DestinationSettings.isEnabled` is per device (phone Settings → Obsidian → "Separate destinations", ObsidianSettingsSection.swift:107; the Mac has its own), so the phone hid the Personal chip until he flipped it there too. Sync the on/off switch through CloudKit the way other shared settings already sync (find the existing pattern — custom vocabulary / names records, LWW), so turning it on or off on any device does the same on all. The portfolio folder bookmark stays per device (C62: a destination is a per-device folder bookmark) — a device with the switch on but no folder still shows the chips and simply cannot export yet; say so in its Settings. Tests: the switch round-trips through the sync record, LWW. Update C62 wording. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q99 [auto] (todo) split speakers on a merged note keeps one paragraph per clip (pass clipStarts in the diarisation rebuild on phone and Mac)
+spec: C124 C102
+needs: -
+gate+: yes
+do: Q96 made a merged multi-clip note keep one paragraph per clip (ClipManifestEntry: Mac clip_manifest.json beside original.m4a, phone MemoMetadata.clipManifest; BodyV2.Input.clipStarts), but the diarisation rebuild paths call BodyV2.committed without clipStarts — the phone `diarizeIntoTurns` and the Mac rebuild (guard widened to clipStarts by Q96, not wired). Pass the clip starts there too so split speakers on a merged note keeps the clip paragraphs inside the turns (C124 with C102). Tests on both apps with a synthetic merged note. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -1038,3 +1045,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:50 Q97 -> done — gate pass @a032d4c0
 - 2026-10-02 08:52 Q98 -> done — gate pass @4fbaccb6
 - 2026-10-02 08:54 Q96 -> done — gate pass @69cc1cf2
+- 2026-10-02 08:54 Q99 added
