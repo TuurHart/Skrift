@@ -140,8 +140,8 @@ struct MemoSaver {
             id: id,
             audioFilename: filename,
             duration: 0,
-            // The FIRST (oldest) clip's date — upgraded to its embedded asset
-            // date in the async core when one exists (C70, the Mac's ingestMergedAudio too).
+            // The FIRST (oldest) clip's bundle date (name → file date); kept as is by the
+            // async core, like the Mac's ingestMergedAudio (Q134 / C124).
             recordedAt: recordedAt ?? FilenameDate.ladder(embedded: nil, fileAt: sources[0]) ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
@@ -187,9 +187,9 @@ struct MemoSaver {
             }
             return false
         }
-        // First clip's embedded asset date (when present) beats the file date
-        // the placeholder was seeded with — read BEFORE the temps are deleted.
-        let embedded = await Self.embeddedCreationDate(of: AVURLAsset(url: sources[0]))
+        // Q134 / C124: the merged note keeps the date it was seeded with — the first clip's
+        // bundle date (name → file date), the same value the Mac's `ingestMergedAudio` uses.
+        // (Until Q134 the first clip's embedded asset date won here and the two apps disagreed.)
         for src in sources { try? FileManager.default.removeItem(at: src) }
 
         var duration: TimeInterval = 0
@@ -199,7 +199,6 @@ struct MemoSaver {
         DevLog.log("importAudioClips[\(id)] merged ok; duration=\(String(format: "%.1f", duration))s")
         guard let memo = repository.memo(id: id) else { return true }
         memo.duration = duration
-        if let embedded { memo.recordedAt = embedded }
         var meta = memo.metadata ?? MemoMetadata()
         meta.clipManifest = clipManifest
         memo.metadata = meta

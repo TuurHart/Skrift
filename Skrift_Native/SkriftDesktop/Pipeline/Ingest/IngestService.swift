@@ -263,11 +263,11 @@ struct IngestService: Sendable {
             throw error
         }
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
-        // Q134 / C70: the FIRST clip's ladder, embedded date first — the phone's
-        // `importAudioClipsAsync` does the same, so a merged bundle dates alike on both apps. (The
-        // STITCHED file's own embedded date is the stitch moment; ArrivalPath never backfills it.)
-        let firstEmbedded = await Task.detached { Self.embeddedRecordingDate(of: first) }.value
-        let recorded = FilenameDate.ladder(embedded: firstEmbedded, fileAt: first) ?? Date()
+        // Q134 / C124: the FIRST clip's own bundle date (its name, then its file date) — the same
+        // value it was ordered by and that its manifest entry carries. No embedded date: the
+        // stitched file's is the stitch moment (ArrivalPath never backfills a merged row), and the
+        // phone's `importAudioClipsAsync` no longer lets the first clip's override it either.
+        let recorded = Self.importDate(of: first, kind: .clip) ?? Date()
         // C124 / D35: each clip's start in the merged audio + its own message time, kept beside
         // the audio. The transcript pass turns the starts into paragraph breaks; the times are
         // never shown in the body.
