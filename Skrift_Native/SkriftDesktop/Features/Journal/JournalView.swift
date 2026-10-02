@@ -37,7 +37,7 @@ struct JournalView: View {
     @Environment(\.modelContext) private var localCtx
     @State private var macLocalTrash: [PipelineFile] = []
     @State private var month: Date = Date()
-    @State private var selectedDay: Date = Date()
+    @State private var selectedDay: Date = JournalCalendarGrid.firstSelectedDay()
     /// The column beside the rail: the Looking-back river, the map, or the ONE trash /
     /// conveyor (mocks/lifecycle-ia-explorations.html #m3 — Fading and Recently Deleted
     /// stop being two places). View-local on purpose: it resets on a surface switch.
@@ -116,16 +116,9 @@ struct JournalView: View {
         guard ConnectionsIndexService.shared.isActive else { thenNow = nil; return }
         let snapshot = memos
         Task { @MainActor in
-            guard let window = ThenVsNow.window(now: Date()) else { return }
-            let gapCut = window.gapCut
-            let dates = ThenVsNow.dates(of: snapshot)
-            let recents = ThenVsNow.recents(in: snapshot, since: window.recentCut)
-            var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
-            for memo in recents {
-                candidates.append((memo.id, await ConnectionsIndexService.shared.relatedScores(to: memo.id)))
-            }
-            guard let pair = ThenVsNow.pick(candidates: candidates, dates: dates,
-                                            gapCut: gapCut, floor: RetrievalTuning.relatedFloor) else {
+            guard let pair = await ThenVsNow.derive(memos: snapshot, relatedScores: { id in
+                await ConnectionsIndexService.shared.relatedScores(to: id)
+            }) else {
                 thenNow = nil
                 return
             }
@@ -308,7 +301,7 @@ struct JournalView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 Text(SharedCopy.reviewTitle).font(.system(size: 17, weight: .bold))
-                Text("As your notes age, past thinking resurfaces here — a month ago, a year ago, on this day.")
+                Text(SharedCopy.reviewIntro)
                     .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                     .padding(.bottom, 10)
 
@@ -499,22 +492,19 @@ struct JournalView: View {
     /// The juxtaposition card (shared `ThenVsNow` rule): what you thought THEN,
     /// what you said NOW — arranged, never interpreted. Each half opens its note.
     private func thenNowCard(_ pair: (then: Memo, now: Memo)) -> some View {
-        let months = calendar.dateComponents(
-            [.month], from: LookbackProvider.journalDate(pair.then),
-            to: LookbackProvider.journalDate(pair.now)).month ?? ThenVsNow.minGapMonths
+        let months = ThenVsNow.monthsApart(then: LookbackProvider.journalDate(pair.then),
+                                           now: LookbackProvider.journalDate(pair.now))
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("THEN VS NOW")
+                Text(ThenVsNow.cardTitle.uppercased())
                     .font(.system(size: 10, weight: .bold)).tracking(0.4)
                     .foregroundStyle(Theme.accent)
                 Spacer()
-                Text("\(months) months apart")
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
             }
             thenNowHalf(pair.then)
             HStack(spacing: 6) {
                 Rectangle().fill(Theme.surfaceHover).frame(height: 1)
-                Text("\(months) months later")
+                Text(ThenVsNow.laterCaption(months: months))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Theme.accent)
                     .fixedSize()
@@ -694,11 +684,11 @@ private struct MiniMonthGrid: View {
     private var calendar: Calendar { .current }
 
     var body: some View {
-        let days = gridDays()
+        let days = JournalCalendarGrid.days(in: month)
         VStack(spacing: 2) {
             HStack(spacing: 0) {
-                ForEach(weekdaySymbols(), id: \.self) { wd in
-                    Text(wd).font(.system(size: 8.5, weight: .semibold))
+                ForEach(Array(JournalCalendarGrid.weekdaySymbols().enumerated()), id: \.offset) { wd in
+                    Text(wd.element).font(.system(size: 8.5, weight: .semibold))
                         .foregroundStyle(Theme.textMuted)
                         .frame(maxWidth: .infinity)
                 }
@@ -730,10 +720,15 @@ private struct MiniMonthGrid: View {
                         .foregroundStyle(inMonth
                             ? (isToday || isSelected ? Theme.textPrimary : Theme.textSecondary)
                             : Theme.textMuted.opacity(0.4))
-                    Circle()
-                        .fill(Theme.accent.opacity(dotOpacity(stat)))
-                        .frame(width: dotSize(stat), height: dotSize(stat))
-                        .frame(height: 6)
+                    let dots = JournalCalendarGrid.dots(count: stat?.count ?? 0, hot: stat?.hot == true)
+                    HStack(spacing: 1.5) {
+                        ForEach(0..<dots.count, id: \.self) { _ in
+                            Circle()
+                                .fill(Theme.accent.opacity(dots.strong ? 1 : JournalCalendarGrid.dimDotOpacity))
+                                .frame(width: 3, height: 3)
+                        }
+                    }
+                    .frame(height: 6)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 3)
@@ -747,36 +742,5 @@ private struct MiniMonthGrid: View {
         } else {
             Color.clear.frame(maxWidth: .infinity).frame(height: 26)
         }
-    }
-
-    private func dotSize(_ stat: (count: Int, hot: Bool)?) -> CGFloat {
-        guard let stat, stat.count > 0 else { return 0 }
-        return stat.count >= 4 ? 6 : stat.count >= 2 ? 5 : 4
-    }
-
-    private func dotOpacity(_ stat: (count: Int, hot: Bool)?) -> Double {
-        guard let stat, stat.count > 0 else { return 0 }
-        return stat.hot ? 1 : stat.count >= 2 ? 0.8 : 0.45
-    }
-
-    /// The displayed grid: leading/trailing days padded to full weeks (nil = blank).
-    private func gridDays() -> [Date?] {
-        guard let interval = calendar.dateInterval(of: .month, for: month) else { return [] }
-        let first = interval.start
-        let weekday = calendar.component(.weekday, from: first)
-        let leading = (weekday - calendar.firstWeekday + 7) % 7
-        let dayCount = calendar.range(of: .day, in: .month, for: month)?.count ?? 30
-        var out: [Date?] = Array(repeating: nil, count: leading)
-        for d in 0..<dayCount {
-            out.append(calendar.date(byAdding: .day, value: d, to: first))
-        }
-        while out.count % 7 != 0 { out.append(nil) }
-        return out
-    }
-
-    private func weekdaySymbols() -> [String] {
-        let syms = calendar.veryShortWeekdaySymbols   // Sun-first
-        let shift = calendar.firstWeekday - 1
-        return Array(syms[shift...] + syms[..<shift])
     }
 }

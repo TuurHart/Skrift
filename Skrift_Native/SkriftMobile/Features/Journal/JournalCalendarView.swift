@@ -6,7 +6,7 @@ struct JournalCalendarView: View {
     private let repository = NotesRepository.shared
     @State private var memos: [Memo] = []
     @State private var month = Date()
-    @State private var selectedDay: Int?
+    @State private var selectedDay: Int? = Calendar.current.component(.day, from: JournalCalendarGrid.firstSelectedDay())
 
     private let calendar = Calendar.current
 
@@ -100,11 +100,11 @@ struct MonthGrid: View {
     private let calendar = Calendar.current
 
     var body: some View {
-        let cells = makeCells()
+        let cells = JournalCalendarGrid.days(in: month).map { $0.map { calendar.component(.day, from: $0) } }
         VStack(spacing: 2) {
             HStack(spacing: 2) {
-                ForEach(weekdaySymbols(), id: \.self) { s in
-                    Text(s)
+                ForEach(Array(JournalCalendarGrid.weekdaySymbols().enumerated()), id: \.offset) { s in
+                    Text(s.element)
                         .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(Color.skTextFaint)
                         .frame(maxWidth: .infinity)
@@ -131,10 +131,11 @@ struct MonthGrid: View {
                 Text("\(day)")
                     .font(.system(size: 9.5, weight: isToday ? .bold : .regular))
                     .foregroundStyle(day == selectedDay || isToday ? Color.skText : Color.skTextDim)
+                let dots = JournalCalendarGrid.dots(count: info?.count ?? 0, hot: info?.hot == true)
                 HStack(spacing: 1.5) {
-                    ForEach(0..<min(info?.count ?? 0, 3), id: \.self) { _ in
+                    ForEach(0..<dots.count, id: \.self) { _ in
                         Circle()
-                            .fill(info?.hot == true ? Color.skAccent : Color.skAccent.opacity(0.45))
+                            .fill(dots.strong ? Color.skAccent : Color.skAccent.opacity(JournalCalendarGrid.dimDotOpacity))
                             .frame(width: 3, height: 3)
                     }
                 }
@@ -154,24 +155,5 @@ struct MonthGrid: View {
         } else {
             Color.clear.frame(maxWidth: .infinity, minHeight: height)
         }
-    }
-
-    /// Day numbers padded with leading/trailing nils to full weeks.
-    private func makeCells() -> [Int?] {
-        guard let interval = calendar.dateInterval(of: .month, for: month),
-              let dayRange = calendar.range(of: .day, in: .month, for: month)
-        else { return [] }
-        let firstWeekday = calendar.component(.weekday, from: interval.start)
-        let lead = (firstWeekday - calendar.firstWeekday + 7) % 7
-        var cells: [Int?] = Array(repeating: nil, count: lead)
-        cells += dayRange.map { Optional($0) }
-        while cells.count % 7 != 0 { cells.append(nil) }
-        return cells
-    }
-
-    private func weekdaySymbols() -> [String] {
-        let symbols = calendar.veryShortWeekdaySymbols
-        let shift = calendar.firstWeekday - 1
-        return Array(symbols[shift...] + symbols[..<shift])
     }
 }

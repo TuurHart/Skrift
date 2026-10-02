@@ -20,7 +20,7 @@ struct JournalSidePane: View {
     let memos: [Memo]
 
     @State private var month = Date()
-    @State private var selectedDay: Int? = Calendar.current.component(.day, from: Date())
+    @State private var selectedDay: Int? = Calendar.current.component(.day, from: JournalCalendarGrid.firstSelectedDay())
     @State private var mapMode = false
     @State private var mapFocus: PlaceCluster?
 

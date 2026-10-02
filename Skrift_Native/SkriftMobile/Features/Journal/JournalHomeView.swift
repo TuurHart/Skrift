@@ -169,7 +169,7 @@ struct JournalHomeView: View {
         // the pair's notes never double-show as lookback cards.
         Task {
             let snapshot = memos
-            if let pair = await JournalIndexService.shared.thenVsNow(repository: repository) {
+            if let pair = await JournalIndexService.shared.thenVsNow(memos: snapshot, repository: repository) {
                 let byID = Dictionary(snapshot.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
                 if let then = byID[pair.then], let nowMemo = byID[pair.now] {
                     thenNow = (then, nowMemo)
@@ -184,16 +184,15 @@ struct JournalHomeView: View {
     /// The juxtaposition card: what you thought THEN, what you said NOW —
     /// arranged, never interpreted.
     private func thenNowCard(_ pair: (then: Memo, now: Memo)) -> some View {
-        let months = Calendar.current.dateComponents(
-            [.month], from: LookbackProvider.journalDate(pair.then),
-            to: LookbackProvider.journalDate(pair.now)).month ?? 6
+        let months = ThenVsNow.monthsApart(then: LookbackProvider.journalDate(pair.then),
+                                           now: LookbackProvider.journalDate(pair.now))
         return JournalCard {
             VStack(alignment: .leading, spacing: 8) {
-                JournalCardHeader(title: "Then vs now")
+                JournalCardHeader(title: ThenVsNow.cardTitle)
                 JournalMemoRow(memo: pair.then)
                 HStack(spacing: 6) {
                     Rectangle().fill(Color.skElev).frame(height: 1)
-                    Text("\(months) months later")
+                    Text(ThenVsNow.laterCaption(months: months))
                         .font(.system(size: 9.5, weight: .semibold))
                         .foregroundStyle(Color.skAccentText)
                         .fixedSize()
@@ -293,7 +292,7 @@ struct JournalHomeView: View {
             Text(SharedCopy.reviewTitle)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Color.skText)
-            Text("As your notes age, past thinking resurfaces here —\na month ago, a year ago, on this day.")
+            Text(SharedCopy.reviewIntroLines.joined(separator: "\n"))
                 .font(.system(size: 13))
                 .foregroundStyle(Color.skTextDim)
                 .multilineTextAlignment(.center)

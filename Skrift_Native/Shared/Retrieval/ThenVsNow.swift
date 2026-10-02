@@ -57,4 +57,32 @@ enum ThenVsNow {
         }
         return best?.pair
     }
+
+    /// The whole derivation, once: recents → each one's related-scores → pick. Each app only
+    /// supplies `relatedScores` (phone/iPad `JournalIndexService`, Mac `ConnectionsIndexService`)
+    /// and the SAME partition of notes: the LIVE one (`MemoLifecycle.partition(...).live`).
+    /// SPEC is silent on fading notes here (C231 says only "last ~2 weeks vs >= 6 months
+    /// older"), and Review already hides fading notes from every other card, so they are
+    /// not offered as a "then" or a "now" either.
+    static func derive(memos: [Memo], now: Date = Date(), calendar: Calendar = .current,
+                       floor: Float = RetrievalTuning.relatedFloor,
+                       relatedScores: (UUID) async -> [(memoID: UUID, score: Float)]) async -> Pair? {
+        guard let window = window(now: now, calendar: calendar) else { return nil }
+        let dates = dates(of: memos)
+        var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
+        for memo in recents(in: memos, since: window.recentCut) {
+            candidates.append((memo.id, await relatedScores(memo.id)))
+        }
+        return pick(candidates: candidates, dates: dates, gapCut: window.gapCut, floor: floor)
+    }
+
+    // Card copy: one title, one caption, one month count on every device.
+    static let cardTitle = "Then vs now"
+
+    /// Whole months between the two notes' journal dates (never below the 6-month rule).
+    static func monthsApart(then: Date, now: Date, calendar: Calendar = .current) -> Int {
+        calendar.dateComponents([.month], from: then, to: now).month ?? minGapMonths
+    }
+
+    static func laterCaption(months: Int) -> String { "\(months) months later" }
 }

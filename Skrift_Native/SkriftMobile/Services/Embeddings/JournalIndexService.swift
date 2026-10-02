@@ -145,19 +145,12 @@ final class JournalIndexService {
     /// Then vs Now (fast-follow, built 2026-07-08; core SHARED since v2): the
     /// newest memos vs their ≥6-month-older semantic kin. Window + pick =
     /// `ThenVsNow`; this wrapper feeds it the phone's related-scores.
-    func thenVsNow(repository: NotesRepository) async -> ThenNowPair? {
+    /// `memos` = the LIVE partition (same input as the Mac; see `ThenVsNow.derive`).
+    func thenVsNow(memos: [Memo], repository: NotesRepository) async -> ThenNowPair? {
         guard isActive else { return nil }
-        let memos = repository.allMemos()
-        guard let window = ThenVsNow.window(now: Date()) else { return nil }
-        let gapCut = window.gapCut
-        let dates = ThenVsNow.dates(of: memos)
-        let recents = ThenVsNow.recents(in: memos, since: window.recentCut)
-        var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
-        for memo in recents {
-            candidates.append((memo.id, await relatedScores(to: memo.id, repository: repository)))
+        return await ThenVsNow.derive(memos: memos) { id in
+            await self.relatedScores(to: id, repository: repository)
         }
-        return Self.bestThenNow(candidates: candidates, dates: dates, gapCut: gapCut,
-                                floor: RetrievalTuning.relatedFloor)
     }
 
     /// Pure pair-picking — forwards to the SHARED `ThenVsNow.pick` (kept for
