@@ -1577,7 +1577,7 @@ do: The block "conversation ? `Sanitiser.processConversation` : `Sanitiser.proce
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d11 DPE-c02 DRV-c17 (cleanup-audit P20)
 
-### Q208 [auto] (doing) Mac process queue: a Process asked during a Redo no longer gets stranded
+### Q208 [auto] (done) Mac process queue: a Process asked during a Redo no longer gets stranded
 spec: C49 C239
 needs: Q205
 gate+: yes
@@ -2460,3 +2460,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:43 Q192 -> todo — back to todo: needs Q190 (hand-merge)
 - 2026-10-02 17:43 Q116 -> doing — worker out (opus)
 - 2026-10-02 17:44 Q103 -> done — gate pass @b290fdfe
+- 2026-10-02 17:46 Q208 -> done — gate pass @1e71fa7e
