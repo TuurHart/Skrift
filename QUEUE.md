@@ -1187,7 +1187,7 @@ do: Two unsynced stores: iPad `@AppStorage skrift.publish.author` (shown only wh
 check: `grep -rqE "class AuthorSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AuthorSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P59
 
-### Q159 [auto] (doing) Settings sync wording from shared copy: what syncs, the iCloud account note, language footer, model sizes
+### Q159 [auto] (done) Settings sync wording from shared copy: what syncs, the iCloud account note, language footer, model sizes
 spec: D119 C217
 needs: -
 gate+: yes
@@ -2007,7 +2007,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q265 [auto] (doing) note card chips wrap instead of clipping: NoteCardView.chipsRow overflows the card with 5+ chips on Mac and phone
+### Q265 [auto] (done) note card chips wrap instead of clipping: NoteCardView.chipsRow overflows the card with 5+ chips on Mac and phone
 spec: C115 C240
 needs: -
 gate+: yes
@@ -2751,3 +2751,5 @@ check: Tuur approved; done via plan/hand-merge.sh.
 - 2026-10-03 00:11 Q180 -> doing — worker out
 - 2026-10-03 00:11 Q156 -> done — gate pass @b2b132c1
 - 2026-10-03 00:13 Q176 -> done — gate pass @4c1f0e10
+- 2026-10-03 00:13 Q159 -> done — gate pass (batched with Q176)
+- 2026-10-03 00:16 Q265 -> done — gate pass @c4fdfd42
