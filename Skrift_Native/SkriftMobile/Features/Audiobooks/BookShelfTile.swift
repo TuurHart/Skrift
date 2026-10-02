@@ -15,6 +15,10 @@ struct BookShelfTile: View {
     var transferFraction: Double? = nil
     /// The live re-align line for this book (nil when none runs). Same text as the row.
     var realign: String? = nil
+    /// D127 (Q6 mock): capture notes made from this book. 0 = no pill. The pill is its own
+    /// button (opens the book's notes), apart from the tile's tap-to-play.
+    var noteCount: Int = 0
+    var onNotes: (() -> Void)? = nil
     let action: () -> Void
 
     private var transferring: Bool { syncState == .uploading || syncState == .downloading }
@@ -70,6 +74,22 @@ struct BookShelfTile: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
+        // The ❝ N pill sits on the cover's bottom-right corner (mock: right 6, bottom 6). It is
+        // an overlay of the tile, not inside the tile's Button label, so it taps on its own.
+        // The cover is square and full width, so a square clear spacer finds its bottom edge.
+        .overlay(alignment: .top) {
+            if noteCount > 0, let onNotes {
+                VStack(spacing: 0) {
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .allowsHitTesting(false)
+                        .overlay(alignment: .bottomTrailing) {
+                            BookNotesPill(count: noteCount, action: onNotes).padding(6)
+                        }
+                    Spacer(minLength: 0).allowsHitTesting(false)
+                }
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ipad-library-book-tile")
         .accessibilityLabel(BookTileState.accessibilityLabel(

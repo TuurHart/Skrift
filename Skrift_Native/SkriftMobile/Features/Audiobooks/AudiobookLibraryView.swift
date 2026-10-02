@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 
 /// The Books tab (mock state 1, Bound-inspired; root tab since 2026-06-19,
@@ -48,6 +49,23 @@ struct AudiobookLibraryView: View {
     /// Delete needs a confirm (device feedback: one swipe = gone). Holds the book
     /// awaiting confirmation; the dialog is sync-aware (mock screen 7).
     @State private var pendingDelete: Audiobook?
+
+    // MARK: - D127: per-book "❝ N" notes (Q6 mock)
+
+    /// Live memos, for the per-book note count. One query here; `BookNotesJoin` counts them
+    /// once per render (never one fetch per tile — the frozen-library trap).
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+    /// The pill's target: the book whose notes sheet is open.
+    @State private var notesSheetBook: Audiobook?
+    private var noteCounts: [UUID: Int] { BookNotesJoin.counts(in: liveMemos) }
+
+    /// A row of the notes sheet opens the note in Notes (they live there).
+    private func openNote(_ memo: Memo) {
+        notesSheetBook = nil
+        TabSelectionBridge.shared.select(.notes)
+        MemoOpenBridge.shared.open(memo.id)
+    }
 
     // MARK: - 📖 Book text (spike 6 / multi-text)
 
@@ -144,6 +162,12 @@ struct AudiobookLibraryView: View {
         }
         // 📖 The "Book text" flow (sheet + picker + alerts) — shared with the player.
         .bookTextFlow(book: $bookTextSheetBook)
+        // ❝ N: the book's capture notes (D127).
+        .sheet(item: $notesSheetBook) { book in
+            BookNotesSheet(book: book, notes: BookNotesJoin.notes(forBook: book.id, in: liveMemos),
+                           onOpen: openNote)
+                .presentationDetents([.medium, .large])
+        }
         .alert("Import failed", isPresented: .init(
             get: { importError != nil },
             set: { if !$0 { importError = nil } }
@@ -383,7 +407,9 @@ struct AudiobookLibraryView: View {
                         BookShelfTile(book: book, isCurrent: isCurrent, syncState: syncState,
                                       transferFraction: cloudSync.bookTransfers[book.id]?.fraction,
                                       realign: BookTileState.realignLine(active: textActivity.isActive(book.id),
-                                                                         stage: textActivity.stage)) {
+                                                                         stage: textActivity.stage),
+                                      noteCount: noteCounts[book.id] ?? 0,
+                                      onNotes: { notesSheetBook = book }) {
                             openOrPlay(book, syncState: syncState)
                         }
                         .contextMenu { contextMenuItems(book) }
@@ -598,6 +624,13 @@ struct AudiobookLibraryView: View {
             )
         }
         .buttonStyle(.plain)
+        // ❝ N on the compact row: a small pill at the trailing edge (its own button).
+        .overlay(alignment: .trailing) {
+            if let count = noteCounts[book.id], count > 0 {
+                BookNotesPill(count: count, compact: true) { notesSheetBook = book }
+                    .padding(.trailing, 12)
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("library-book-row")
         .accessibilityLabel("\(book.title) by \(book.author), \(AudiobookTime.clock(book.timeLeft)) left")

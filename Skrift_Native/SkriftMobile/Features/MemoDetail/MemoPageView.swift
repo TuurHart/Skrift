@@ -64,6 +64,9 @@ struct MemoPageView: View {
     /// "“X” is already in your names" — the shared New-person flow's refusal (Q184).
     @State var knownNameNotice: String?
     @State var showPeopleSheet = false
+    /// D127: the quote block's jump-back opens the player at the note's book position.
+    @State var showBookPlayerFromNote = false
+    @State var bookJumpFailed = false
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
     // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
@@ -621,6 +624,24 @@ struct MemoPageView: View {
                     }
                 }
                 .padding(.top, 18)
+
+                // D127 / Q6 mock: "Back to it at 1:12:05 in Library". Only while the book is
+                // still in the library and the note stored where in it the quote came from.
+                if let target = BookNotesJoin.jumpTarget(for: memo),
+                   AudiobookLibraryStore.shared.book(id: target.bookID) != nil {
+                    BookJumpBackButton(position: target.position) {
+                        if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
+                        else { bookJumpFailed = true }
+                    }
+                    .padding(.top, 10)
+                    .padding(.leading, 14)
+                    .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
+                    .alert("Audio isn’t on this device", isPresented: $bookJumpFailed) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text("This book’s audio was removed from this device. Re-download it in Books, then jump back.")
+                    }
+                }
             }
         }
     }
