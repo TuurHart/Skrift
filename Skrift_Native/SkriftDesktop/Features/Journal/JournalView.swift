@@ -36,6 +36,8 @@ struct JournalView: View {
     /// everything else on this screen reads from).
     @Environment(\.modelContext) private var localCtx
     @State private var macLocalTrash: [PipelineFile] = []
+    /// Same key the phone uses: the amber dot lights for fade-entries newer than the last shelf visit.
+    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
     @State private var month: Date = Date()
     @State private var selectedDay: Date = JournalCalendarGrid.firstSelectedDay()
     /// The column beside the rail: the Looking-back river, the map, or the ONE trash /
@@ -177,20 +179,20 @@ struct JournalView: View {
                 if !fadingMemos.isEmpty || !trashedMemos.isEmpty || !macLocalTrash.isEmpty {
                     let isOn = showing == .wayOut
                     Button {
+                        fadingLastSeenTs = Date().timeIntervalSince1970
                         showing = .wayOut
                     } label: {
-                        HStack(spacing: 6) {
-                            Text("🍂").font(.system(size: 10))
-                            Text("Fading").font(.system(size: 12))
-                                .foregroundStyle(isOn ? Theme.textPrimary : Theme.textSecondary)
-                            Spacer()
-                            Text("\(fadingMemos.count + trashedMemos.count + macLocalTrash.count)")
-                                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 6)
-                        .background(isOn ? Theme.accent.opacity(0.13) : .clear,
-                                    in: RoundedRectangle(cornerRadius: 7))
-                        .contentShape(Rectangle())
+                        WayOutEntryRow(
+                            count: WayOut.entryCount(fading: fadingMemos.count, deleted: trashedMemos.count),
+                            unread: WayOut.entryUnread(fading: fadingMemos,
+                                                       lastSeen: Date(timeIntervalSince1970: fadingLastSeenTs)),
+                            isOn: isOn,
+                            style: WayOutEntryStyle(
+                                amber: Theme.amber, text: Theme.textPrimary, textDim: Theme.textSecondary, textFaint: Theme.textMuted,
+                                fill: isOn ? Theme.accent.opacity(0.13) : .clear,
+                                glyphSize: 11, titleFont: .system(size: 12),
+                                countFont: .system(size: 10.5),
+                                cornerRadius: 7, horizontalPadding: 8, verticalPadding: 6))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 14)
@@ -555,7 +557,9 @@ struct JournalView: View {
     private func card(_ memo: Memo, kick: String, warmKick: Bool) -> some View {
         Button { openInQueue(memo) } label: {
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: SourceKind.rowGlyph(for: memo, hidden: isHidden(memo)))
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                     Text(kick.uppercased())
                         .font(.system(size: 10, weight: .bold)).tracking(0.4)
                         .foregroundStyle(warmKick ? Theme.textMuted : Theme.accent)

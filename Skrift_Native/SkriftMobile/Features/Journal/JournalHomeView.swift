@@ -130,26 +130,15 @@ struct JournalHomeView: View {
     /// (the 2026-07-18 unread semantics, verbatim; opening the shelf clears it).
     private var wayOutRow: some View {
         Button { showWayOut = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "leaf")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.skAmber)
-                Text("Fading")
-                    .font(.system(size: 13.5, weight: .medium))
-                    .foregroundStyle(Color.skTextDim)
-                if wayOutFading.contains(where: {
-                    MemoLifecycle.fadeEntersAt($0).timeIntervalSince1970 > fadingLastSeenTs
-                }) {
-                    Circle().fill(Color.skAmber).frame(width: 6, height: 6)
-                }
-                Spacer(minLength: 8)
-                Text("\(wayOutFading.count + wayOutDeletedCount)")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background(Color.skElev, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .contentShape(Rectangle())
+            WayOutEntryRow(
+                count: WayOut.entryCount(fading: wayOutFading.count, deleted: wayOutDeletedCount),
+                unread: WayOut.entryUnread(fading: wayOutFading,
+                                           lastSeen: Date(timeIntervalSince1970: fadingLastSeenTs)),
+                style: WayOutEntryStyle(
+                    amber: .skAmber, text: .skText, textDim: .skTextDim, textFaint: .skTextFaint, fill: .skElev,
+                    glyphSize: 13, titleFont: .system(size: 13.5, weight: .medium),
+                    countFont: .system(size: 12, weight: .semibold),
+                    cornerRadius: 14, horizontalPadding: 14, verticalPadding: 12))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("review-wayout-row")
@@ -354,7 +343,7 @@ struct JournalMemoRow: View {
     var body: some View {
         NavigationLink(value: memo.id) {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: isHidden ? "lock.fill" : "mic")
+                Image(systemName: SourceKind.rowGlyph(for: memo, hidden: isHidden))
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextFaint)
                     .frame(width: 16)
