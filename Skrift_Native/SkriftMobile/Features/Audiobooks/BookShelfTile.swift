@@ -11,7 +11,13 @@ struct BookShelfTile: View {
     let book: Audiobook
     let isCurrent: Bool
     let syncState: AudiobookLibraryView.BookSyncState?
+    /// Live transfer fraction (nil before the first byte, or when not transferring).
+    var transferFraction: Double? = nil
+    /// The live re-align line for this book (nil when none runs). Same text as the row.
+    var realign: String? = nil
     let action: () -> Void
+
+    private var transferring: Bool { syncState == .uploading || syncState == .downloading }
 
     var body: some View {
         Button(action: action) {
@@ -44,6 +50,16 @@ struct BookShelfTile: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 8)
 
+                if !book.author.isEmpty {
+                    Text(book.author)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextDim)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 1)
+                }
+
                 progressBar
                     .frame(height: 3)
                     .padding(.top, 6)
@@ -56,7 +72,9 @@ struct BookShelfTile: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ipad-library-book-tile")
-        .accessibilityLabel("\(book.title) by \(book.author), \(AudiobookTime.clock(book.timeLeft)) left")
+        .accessibilityLabel(BookTileState.accessibilityLabel(
+            title: book.title, author: book.author, timeLeft: AudiobookTime.clock(book.timeLeft),
+            syncState: syncState, transferFraction: transferFraction, realign: realign))
     }
 
     private var syncGlyph: String? {
@@ -69,18 +87,42 @@ struct BookShelfTile: View {
 
     @ViewBuilder
     private var progressBar: some View {
-        if syncState == .uploading || syncState == .downloading {
-            ProgressView()
-                .progressViewStyle(.linear)
-                .tint(Color.skAccent)
-                .scaleEffect(x: 1, y: 0.7, anchor: .center)
+        if transferring {
+            // Determinate once the transport reports a fraction, like the row.
+            Group {
+                if let transferFraction { ProgressView(value: transferFraction) } else { ProgressView() }
+            }
+            .progressViewStyle(.linear)
+            .tint(Color.skAccent)
+            .scaleEffect(x: 1, y: 0.7, anchor: .center)
         } else {
             ThinProgressBar(fraction: book.isFinished ? 1 : book.progress,
                             fill: book.isFinished ? Color.skGreen : Color.skAccent, minFill: 2)
         }
     }
 
+    @ViewBuilder
     private var statusLine: some View {
+        if transferring {
+            Text(BookTileState.transferLabel(uploading: syncState == .uploading, fraction: transferFraction))
+                .font(.system(size: 10))
+                .monospacedDigit()
+                .foregroundStyle(Color.skAccentText)
+                .lineLimit(1)
+        } else if let realign {
+            HStack(spacing: 5) {
+                ProgressView().controlSize(.mini)
+                Text(realign)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.skAccentText)
+                    .lineLimit(1)
+            }
+        } else {
+            progressStatusLine
+        }
+    }
+
+    private var progressStatusLine: some View {
         HStack {
             Text(Self.progressLabel(for: book))
             Spacer(minLength: 4)

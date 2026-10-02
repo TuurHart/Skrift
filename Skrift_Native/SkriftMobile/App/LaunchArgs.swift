@@ -88,6 +88,8 @@ enum LaunchFlags {
     static var showTextSheet: Bool { args.boolFlag("-showTextSheet") }
     /// Present the A0 "Give this book text" import prompt over the seeded book.
     static var showTextPrompt: Bool { args.boolFlag("-showTextPrompt") }
+    /// DEBUG render hook: the real `BookShelfTile` in every state (uploading %, re-align, …).
+    static var showBookTileGallery: Bool { args.boolFlag("-showBookTileGallery") }
     /// Open the Settings tab on launch (screenshot routing).
     static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model
