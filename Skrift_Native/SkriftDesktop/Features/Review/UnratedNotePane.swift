@@ -25,6 +25,13 @@ struct UnratedNotePane: View {
     /// scrolls to the match and flashes it, exactly like a pipelined one (Tuur:
     /// "should flash"). Reading your own note back is never gated on the rating.
     var searchQuery: String = ""
+    /// The Mac's new-note draft (new note button / Cmd-N). While `memoID` is the draft's id and no
+    /// `Memo` exists yet, the pane edits a transient projection, and the FIRST non-empty edit
+    /// creates the Memo with that same id (`commit`), so the open note never changes identity
+    /// under the cursor and an untouched note leaves nothing behind (C43/D91).
+    var draft: MacTypedNoteSession? = nil
+    /// Put the cursor in the body once for this note (a new note opens ready to type, C112).
+    var focusBody: Bool = false
 
     @State private var projection: PipelineFile?
     @State private var memo: Memo?
@@ -35,7 +42,8 @@ struct UnratedNotePane: View {
             if let projection {
                 NoteDisplayView(file: projection, coordinator: coordinator,
                                 onOpenMemo: onOpenMemo,
-                                searchQuery: searchQuery)
+                                searchQuery: searchQuery,
+                                focusBodyToken: focusBody ? "new-note:\(memoID)" : nil)
                     // The note view edits the projection; these put those edits on the
                     // memo, which is the real record. Cheap value compares — SwiftData
                     // models are Observable, so each fires only on an actual change.
@@ -84,9 +92,15 @@ struct UnratedNotePane: View {
         memo = nil
         defer { loaded = true }
         guard let uuid = UUID(uuidString: memoID),
-              let ctx = MemoCloudStore.container?.mainContext,
-              let found = try? ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == uuid })).first
-        else { return }
+              let ctx = MemoCloudStore.container?.mainContext else { return }
+        guard let found = try? ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == uuid })).first else {
+            // A new note nobody has typed in: no Memo exists. Show the empty note through the
+            // ordinary projection; `commit` creates the row on the first keystroke.
+            if let draft, draft.isDraft(memoID), let blank = draft.placeholder() {
+                projection = MemoNoteProjection.file(for: blank)
+            }
+            return
+        }
         memo = found
         let pf = MemoNoteProjection.file(for: found)
         // Audio, photos and word timings out of the synced blobs — an unrated note
@@ -106,8 +120,19 @@ struct UnratedNotePane: View {
 
     /// Mirror the projection's current values onto the memo and save.
     private func commit() {
-        guard let projection, let memo,
-              MemoNoteProjection.writeBack(projection, to: memo) else { return }
+        guard let projection else { return }
+        if memo == nil, let draft, draft.isDraft(memoID), let ctx = MemoCloudStore.container?.mainContext {
+            // First edit of a new note: only text creates the row (a rating or tag picked
+            // first rides along onto it, like the phone's quick note).
+            let title = (projection.enhancedTitle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let created = draft.edited(title: title, body: projection.transcript ?? "",
+                                             tags: projection.tags,
+                                             significance: projection.significance ?? 0,
+                                             context: ctx) else { return }
+            memo = created
+            NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
+        }
+        guard let memo, MemoNoteProjection.writeBack(projection, to: memo) else { return }
         try? MemoCloudStore.container?.mainContext.save()
     }
 }

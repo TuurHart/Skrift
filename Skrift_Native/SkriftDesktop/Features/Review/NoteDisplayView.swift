@@ -35,6 +35,8 @@ struct NoteDisplayView: View {
     /// The sidebar's live search text — a note opened while it's non-empty scrolls
     /// to the first match and flashes it (phone parity). "" on snapshot hosts.
     var searchQuery: String = ""
+    /// A new note asks for the cursor in its body, once per token (see `BodyTextView.focusToken`).
+    var focusBodyToken: String? = nil
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     /// Pre-action snapshot backing the inline undo toast. The OPT-OUT body is a pure function
@@ -306,7 +308,8 @@ struct NoteDisplayView: View {
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
                      linkTitle: { id in liveTitle(of: id) },
-                     searchJumpToken: searchQuery.isEmpty ? nil : "\(file.id)\u{1}\(searchQuery)")
+                     searchJumpToken: searchQuery.isEmpty ? nil : "\(file.id)\u{1}\(searchQuery)",
+                     focusToken: focusBodyToken)
                 .opacity(coordinator.splitPhases[file.id] == nil ? 1 : 0.45)
                 .allowsHitTesting(coordinator.splitPhases[file.id] == nil)
             // The bottom LINKED FROM strip is GONE — backlinks live in the
