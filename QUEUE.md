@@ -1761,7 +1761,7 @@ do: In `SkriftMobile/` (re-grep each symbol by NAME in both apps and tests first
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TrashTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d03 MAM-d04 MAM-d07 MAM-d08 MAM-d09 MAM-d15 MAM-d20 MAM-d22 MAM-d-m1 MAM-c24 MAM-c25 (cleanup-audit P43)
 
-### Q231 [auto] (doing) one quick-action widget, and the share extension stops compiling files it does not use
+### Q231 [auto] (done) one quick-action widget, and the share extension stops compiling files it does not use
 spec: C239
 needs: -
 gate+: no
@@ -1924,6 +1924,24 @@ spec: C172
 needs: -
 do: -
 check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
+
+### Q252 [tuur] (todo) verify: Q116's SwiftData column rename (@Attribute(originalName:) legacyUnlinkedNames/legacyNamePicksJSON) opens a COPY of the prod Mac store and keeps existing name decisions, before the next prod promotion
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
+### Q253 [tuur] (todo) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
+### Q254 [tuur] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2496,3 +2514,7 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:37 Q219 -> doing — batch worker out
 - 2026-10-02 18:38 Q119 -> done — gate pass @0b4a717f
 - 2026-10-02 18:40 Q204 -> done — gate pass @751eb401
+- 2026-10-02 18:40 Q231 -> done — gate pass (batched with Q204)
+- 2026-10-02 18:41 Q252 added
+- 2026-10-02 18:41 Q253 added
+- 2026-10-02 18:41 Q254 added
