@@ -9,8 +9,9 @@ import Foundation
 /// waiting for anything — it is waiting for YOU. That distinction is why the
 /// iPad's header button and its "N not rated" line count different piles.
 enum ProcessPile {
-    /// Notes a polisher would pick up right now: rated, live, unlocked, with a
-    /// real transcript, and nothing written back yet.
+    /// Notes a polisher would pick up right now: rated, live, with a real
+    /// transcript, and nothing written back yet. A LOCKED note counts: lock gates the
+    /// eyes, not the pipeline (C182/C215/D10).
     ///
     /// `enhancedIDs` is the set of memo IDs a polish pass has already RUN for
     /// (`MemoEnhancement.isProcessed`, not `hasContent` — a pass that produced
@@ -22,7 +23,7 @@ enum ProcessPile {
     }
 
     static func isWaiting(_ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
-        guard NoteConsent.isRated(memo), memo.deletedAt == nil, !memo.locked else { return false }
+        guard NoteConsent.isRated(memo), memo.deletedAt == nil else { return false }
         guard !enhancedIDs.contains(memo.id) else { return false }
         return !(memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -33,7 +34,7 @@ enum ProcessPile {
     }
 
     static func isDone(_ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
-        NoteConsent.isRated(memo) && memo.deletedAt == nil && !memo.locked
+        NoteConsent.isRated(memo) && memo.deletedAt == nil
             && enhancedIDs.contains(memo.id)
     }
 
