@@ -973,7 +973,7 @@ do: Mac `newTypedNote` (SidebarView.swift:370-375) calls `MacMemoAuthor.typedNot
 check: `grep -rqE "class MacTypedNoteDiscardTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P32
 
-### Q132 [auto] (doing) phone: the One note / N notes chooser at every door (Files importer, Open-in, AirDrop), through the shared AudioImportChoice
+### Q132 [auto] (done) phone: the One note / N notes chooser at every door (Files importer, Open-in, AirDrop), through the shared AudioImportChoice
 spec: C145 C68 C238
 needs: -
 gate+: yes
@@ -997,7 +997,7 @@ do: Q94 fixed the share extension only. A Signal / WhatsApp file with no embedde
 check: `grep -rqE "class ImportDateLadderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportDateLadderTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P35
 
-### Q135 [auto] (todo) pictures on import follow C74 on both apps: PNG stays PNG, GIF kept, downsample to 2048, no re-encode
+### Q135 [auto] (doing) pictures on import follow C74 on both apps: PNG stays PNG, GIF kept, downsample to 2048, no re-encode
 spec: C74 D17
 needs: -
 gate+: yes
@@ -1203,7 +1203,7 @@ do: Delete-person fires with no confirmation on all four entry points (PersonEdi
 check: `grep -rqE "class NamesSyncRefreshTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NamesDeleteConfirmTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P61
 
-### Q161 [auto] (todo) Mac can turn semantic indexing off; one name for the feature on Settings and in the panel
+### Q161 [auto] (doing) Mac can turn semantic indexing off; one name for the feature on Settings and in the panel
 spec: C110 C232
 needs: -
 gate+: yes
@@ -1962,6 +1962,13 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
+### Q258 [auto] (doing) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
+spec: C25 C59
+needs: -
+gate+: yes
+do: Reported by the Q155 worker on top of session head (after Q153 merged at 7041ea92): protected phone tests fail — MemoExporterTests.testExportTitleFallback ('Note' vs expected 'Untitled Memo'), MemoExporterTests.testMarkdownPrefersMacEnhancement ('uses the Mac title'), PortfolioExportTests x5 (file named 'the-bench-outside-cafe-garrett.md', expected 'a-bench-made-of-an-oak-slab.md'). The gate runs the Mac suite only, so this slipped. 1) Confirm on the session head: `plan/mtest.sh MemoExporterTests` and `plan/mtest.sh PortfolioExportTests`; then on 9a5f0868~ ancestors if needed to name the commit that broke them (Q153 7041ea92 suspected: ExportNaming / ExportProfile file-name + title ladder; also Q114's NoteTitle ladder and Q177's titlePlaceholder). 2) Fix the CODE so the protected tests pass again while keeping the Q153 parity intent (same file from phone and Mac); never edit those tests. 3) If an assertion genuinely contradicts SPEC C25/C59, stop and report it as 'needs hand-merge: <test, line, why>'. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoExporterTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PortfolioExportTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportNamingParityTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2616,3 +2623,8 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:56 Q160 -> done — gate pass @3780d440
 - 2026-10-02 21:59 Q132 -> doing — worker out
 - 2026-10-02 22:02 Q121 -> done — gate pass @9a5f0868
+- 2026-10-02 22:14 Q135 -> doing — worker out
+- 2026-10-02 22:15 Q161 -> doing — worker out
+- 2026-10-02 22:26 Q258 added
+- 2026-10-02 22:26 Q258 -> doing — worker out (opus)
+- 2026-10-02 22:26 Q132 -> done — gate pass @2f9c8593
