@@ -1203,7 +1203,7 @@ do: Delete-person fires with no confirmation on all four entry points (PersonEdi
 check: `grep -rqE "class NamesSyncRefreshTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NamesDeleteConfirmTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P61
 
-### Q161 [auto] (doing) Mac can turn semantic indexing off; one name for the feature on Settings and in the panel
+### Q161 [auto] (done) Mac can turn semantic indexing off; one name for the feature on Settings and in the panel
 spec: C110 C232
 needs: -
 gate+: yes
@@ -2646,3 +2646,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && 
 - 2026-10-02 22:54 Q125 -> doing — batch worker out
 - 2026-10-02 22:54 Q126 -> doing — batch worker out
 - 2026-10-02 22:54 Q155 -> done — gate pass @ad5823fc
+- 2026-10-02 22:56 Q161 -> done — gate pass @c67f2462
