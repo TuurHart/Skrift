@@ -174,13 +174,11 @@ extension MemosListView {
         }
     }
 
-    /// The date a memo is grouped under (day-headers), matching the active sort so
-    /// the headers and the order agree.
+    /// The date a memo is grouped under (day-headers): the note's real date via the shared
+    /// rule (`NotesListModel.groupDate`) — NOT `addedAt`, even when the list is ordered by
+    /// "Recently added" (Q97: arrival time is not a day the note happened).
     func groupDate(_ memo: Memo) -> Date {
-        switch sort {
-        case .added:  return memo.addedAt
-        case .edited: return memo.lastEditedAt
-        default:      return memo.recordedAt   // recent / oldest (longest = single group)
-        }
+        NotesListModel.groupDate(recordedAt: memo.recordedAt, lastEditedAt: memo.lastEditedAt,
+                                 byEditTime: sort == .edited)
     }
 }
