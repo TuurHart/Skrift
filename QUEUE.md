@@ -688,7 +688,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 spec: C115 C240
 needs: -
 gate+: yes
-do: Tuur 2026-10-02 on Skrift Dev (real window — the Q35/Q37/Q65 'left-edge clip' question answered): at the normal sidebar width nothing clips, but "I can drag the sidebar in and then it just clips off weirdly": the logo, the Import · Record · ✎ row, the chip row, day headers ("RI 3 APR") and every card lose their left edge instead of shrinking. Make the sidebar content lay out to the sidebar's actual width (cards, chips and verb row shrink/wrap; the chip row keeps scrolling sideways), or set a minimum sidebar width at which nothing clips — pick the one that matches the phone's list. Prove with headless `-snapshot-shell` renders at 220, 260 and 292 pt (add a width flag if missing), LOOK, commit under `plan/reads/sidebar-q95/`. Never run SkriftDesktopUITests.
+do: Tuur 2026-10-02 on Skrift Dev (real window — the Q35/Q37/Q65 'left-edge clip' question answered): at the normal sidebar width nothing clips, but "I can drag the sidebar in and then it just clips off weirdly": the logo, the Import · Record · ✎ row, the chip row, day headers ("RI 3 APR") and every card lose their left edge instead of shrinking. Make the sidebar content lay out to the sidebar's actual width (cards, chips and verb row shrink/wrap; the chip row keeps scrolling sideways), or set a minimum sidebar width at which nothing clips — pick the one that matches the phone's list. Prove with headless `-snapshot-shell` renders at 220, 260 and 292 pt (add a width flag if missing), LOOK, commit under `plan/reads/sidebar-q95/`. Never run SkriftDesktopUITests. ADDED 2026-10-02 (same sidebar, same worker): (a) the chip row scrolls sideways on the phone but NOT on the Mac ("on the phone I can scroll through it and on the Mac I cannot") — make the Mac chip row scroll sideways like the phone's shared FilterChipRow; (b) on the phone the day header stays pinned at the top while scrolling; the Mac has no pinned day header — pin the Mac sidebar's day headers the same way.
 check: `test $(ls plan/reads/sidebar-q95/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q96 [auto] (doing) a merged import is dated to its first clip's filename time, not the import moment; each clip starts a paragraph (C124, C70)
@@ -696,6 +696,13 @@ spec: C124 C70
 needs: -
 gate+: yes
 do: Tuur 2026-10-02: five Signal clips from 1 Oct (signal-2026-10-01-07-44-33-032.m4a … 08-06-25-049.m4a + a 080349.jpeg) dragged onto the Mac on 2 Oct merged into one note — but the note reads "Fri, 2 Oct 2026" on the Mac and "Today · 08:08" on the phone, the import moment. C124: a merged multi-clip note is dated to the FIRST message (filename date, C70) — here Thu 1 Oct 07:44 — and each clip's own time is kept in the manifest, not shown in the body. Also verify in the same note that each clip starts its own paragraph (C124): the merged body reads "…a pause between every word so the Um this is gonna be a hard one to fix…", which looks like a clip boundary inside one paragraph. Fix both in the Mac merge path (IngestService.ingest(combineAudio:) / AudioClipMerge / MixedBundle, Q74/Q92/Q94) and confirm the phone share path (CaptureInboxDrainer) dates and breaks the same way. Desktop test over the ingress P1/P3 shapes: recordedAt = first clip's filename time, one paragraph per clip. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q97 [auto] (doing) phone list puts most notes under Yesterday: group by the note's real date, not when it arrived on this phone
+spec: C70 C115
+needs: -
+gate+: yes
+do: Tuur 2026-10-02 on Skrift Dev, iPhone 17 Pro (a NEW phone — Skrift Dev was installed on it fresh and filled from CloudKit): "most notes are considered to be yesterday… there's a whole ton of notes yesterday, but yesterday I didn't record anything". Suspect: the phone's day groups key on a per-device `createdAt` / arrival time (when the note first landed on this phone) instead of the note's real date. C70: recordedAt = the content's true date; createdAt = when it entered Skrift (the ORIGINAL moment, which must sync, not reset per device). Find what the phone list groups and sorts by (NotesListModel.dayGroups, MemosListView+Derived, the sort chip default), and what CloudKit sync does to createdAt on a fresh install; make the day headers group by the note's recorded date (the date shown on the card) and keep createdAt the original value across devices. Check the Mac and iPad group the same way (one shared rule, C115). Phone test: a memo arriving via sync today with recordedAt 3 weeks ago lands in that day's group. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ## Log
@@ -1016,3 +1023,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:12 Q96 added
 - 2026-10-02 08:12 Q95 -> doing — worker out
 - 2026-10-02 08:12 Q96 -> doing — worker out
+- 2026-10-02 08:15 Q97 added
+- 2026-10-02 08:15 Q97 -> doing — worker out
