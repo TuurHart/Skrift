@@ -735,12 +735,17 @@ struct BodyTextView: NSViewRepresentable {
             guard let storage = tv.textStorage, let rx = BodyTextView.markerRegex else { return }
             let full = storage.string as NSString
             let sel = tv.selectedRanges
+            let pad = tv.textContainer?.lineFragmentPadding ?? 0
+            var column = (tv.textContainer?.size.width ?? 0) - 2 * pad
+            if column <= 0 || column > 4000 { column = tv.bounds.width - 2 * pad }   // untracked container
+            column = max(100, column)
             storage.beginEditing()
             for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
                 let num = Int(full.substring(with: m.range(at: 1))) ?? 0
                 guard let img = thumbs[num] else { continue }
                 let att = ImageMarkerAttachment(imgNumber: num)
                 att.image = img
+                att.bounds = CGRect(origin: .zero, size: NoteLook.photoSize(image: img.size, columnWidth: column))
                 storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
             }
             storage.endEditing()
@@ -1205,15 +1210,16 @@ struct BodyTextView: NSViewRepresentable {
         /// Thread-safe downscaled thumbnail via ImageIO — decodes directly at thumbnail
         /// size, so it's cheap to run OFF the main thread (unlike NSImage
         /// lockFocus/draw, which forced a full decode on main → the ~600ms/image lag).
-        static func loadThumbnail(url: URL, maxPixel: CGFloat = 720) -> NSImage? {
+        static func loadThumbnail(url: URL, maxPixel: CGFloat = 1024) -> NSImage? {
             guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
                   let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, [
                       kCGImageSourceCreateThumbnailFromImageAlways: true,
                       kCGImageSourceThumbnailMaxPixelSize: maxPixel,
                       kCGImageSourceCreateThumbnailWithTransform: true,
                   ] as CFDictionary) else { return nil }
-            // Display at half the pixel size → ~360pt wide, crisp on Retina.
-            let img = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
+            // Pixel-size image; `splice` sizes it with the shared NoteLook rule (fill the
+            // column, 320pt tall cap — the phone's), 1024px is crisp for that on Retina.
+            let img = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width), height: CGFloat(cg.height)))
             return roundedCorners(img)
         }
 
@@ -1221,7 +1227,7 @@ struct BodyTextView: NSViewRepresentable {
         private static func roundedCorners(_ image: NSImage) -> NSImage {
             let size = image.size
             guard size.width > 0, size.height > 0 else { return image }
-            let radius = min(size.width, size.height) * 0.04
+            let radius = min(size.width, size.height) * NoteLook.photoCornerFraction
             let out = NSImage(size: size)
             out.lockFocus()
             let rect = NSRect(origin: .zero, size: size)
@@ -1577,18 +1583,18 @@ final class MemoLinkChipAttachment: NSTextAttachment {
     /// The chip: rounded accent-tinted capsule, 🗒 + title (mock panel 3's idiom).
     private static func chipImage(title: String) -> NSImage {
         let font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
-        let label = "🗒 \(title)" as NSString
+        let label = NoteLook.memoLinkLabel(title: title, maxTitle: nil) as NSString
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font, .foregroundColor: NSColor(Theme.nameLink),
         ]
         let tsize = label.size(withAttributes: attrs)
-        let padH: CGFloat = 8
+        let padH = NoteLook.memoLinkPadH
         let size = NSSize(width: ceil(tsize.width) + padH * 2, height: 21)
         return NSImage(size: size, flipped: false) { rect in
             let accent = NSColor(Theme.nameLink)
-            let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
-            accent.withAlphaComponent(0.13).setFill(); path.fill()
-            accent.withAlphaComponent(0.35).setStroke(); path.lineWidth = 1; path.stroke()
+            let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: NoteLook.memoLinkCornerRadius, yRadius: NoteLook.memoLinkCornerRadius)
+            accent.withAlphaComponent(NoteLook.memoLinkFillAlpha).setFill(); path.fill()
+            accent.withAlphaComponent(NoteLook.memoLinkStrokeAlpha).setStroke(); path.lineWidth = 1; path.stroke()
             label.draw(at: NSPoint(x: padH, y: (rect.height - tsize.height) / 2), withAttributes: attrs)
             return true
         }

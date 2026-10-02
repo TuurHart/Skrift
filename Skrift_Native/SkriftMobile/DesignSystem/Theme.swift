@@ -44,7 +44,8 @@ extension Color {
     static let skElev    = skDynamic(Palette.chipFill)                    // chips / fields
     /// Hairline: a faint dark line on light, a faint white line on dark.
     static let skBorder  = Color(uiColor: UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.06) : UIColor(white: 0, alpha: 0.09)
+        tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: NoteLook.hairlineAlphaDark)
+                                       : UIColor(white: 0, alpha: NoteLook.hairlineAlphaLight)
     })
 
     // Text

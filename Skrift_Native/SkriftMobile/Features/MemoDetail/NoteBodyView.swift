@@ -1059,19 +1059,23 @@ struct NoteBodyView: UIViewRepresentable {
             return a
         }
 
-        /// The chip image: "→ Title" in accent on a soft pill — atomic (one
-        /// glyph), so typing next to it can never extend the link.
+        /// The chip image: "🗒 Title" in accent on a bordered soft pill (the shared
+        /// `NoteLook` look, same as the Mac) — atomic (one glyph), so typing next to it
+        /// can never extend the link.
         static func memoLinkAttachment(title: String) -> NSTextAttachment {
             let font = UIFont.systemFont(ofSize: bodyFont().pointSize - 1.5, weight: .medium)
-            let display = title.isEmpty ? "Untitled" : (title.count > 28 ? title.prefix(27) + "…" : title)
-            let text = "→ \(display)" as NSString
+            let text = NoteLook.memoLinkLabel(title: title, maxTitle: NoteLook.memoLinkMaxTitlePhone) as NSString
             let textSize = text.size(withAttributes: [.font: font])
-            let padH: CGFloat = 8, padV: CGFloat = 3
+            let padH = NoteLook.memoLinkPadH, padV: CGFloat = 3
             let size = CGSize(width: ceil(textSize.width) + padH * 2,
                               height: ceil(textSize.height) + padV * 2)
             let image = UIGraphicsImageRenderer(size: size).image { _ in
-                UIColor(Color.skAccentSoft).setFill()
-                UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 7).fill()
+                let accent = UIColor(Color.skNameLinked)
+                let path = UIBezierPath(roundedRect: CGRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5),
+                                        cornerRadius: NoteLook.memoLinkCornerRadius)
+                accent.withAlphaComponent(NoteLook.memoLinkFillAlpha).setFill(); path.fill()
+                accent.withAlphaComponent(NoteLook.memoLinkStrokeAlpha).setStroke()
+                path.lineWidth = 1; path.stroke()
                 text.draw(at: CGPoint(x: padH, y: padV),
                           withAttributes: [.font: font, .foregroundColor: UIColor(Color.skNameLinked)])
             }
@@ -1261,12 +1265,8 @@ struct NoteBodyView: UIViewRepresentable {
                 // NSTextAttachment scales to FILL `bounds` (no aspect preserve),
                 // so bounds must match the image aspect. Fit width × 320-pt cap;
                 // a portrait frame shrinks WIDTH to keep aspect.
-                let aspect = img.size.width / max(1, img.size.height)
-                let maxHeight: CGFloat = 320
-                var w = width
-                var h = width / max(0.01, aspect)
-                if h > maxHeight { h = maxHeight; w = maxHeight * aspect }
-                att.bounds = CGRect(x: 0, y: -4, width: w, height: h)
+                let fit = NoteLook.photoSize(image: img.size, columnWidth: width)
+                att.bounds = CGRect(x: 0, y: -4, width: fit.width, height: fit.height)
             } else {
                 att.image = Self.placeholder(width: width)
                 att.bounds = CGRect(x: 0, y: -4, width: width, height: 150)
@@ -1278,7 +1278,7 @@ struct NoteBodyView: UIViewRepresentable {
         private static func roundedCorners(_ image: UIImage) -> UIImage {
             let size = image.size
             guard size.width > 0, size.height > 0 else { return image }
-            let radius = min(size.width, size.height) * 0.04
+            let radius = min(size.width, size.height) * NoteLook.photoCornerFraction
             let rect = CGRect(origin: .zero, size: size)
             let r = UIGraphicsImageRendererFormat.default(); r.scale = image.scale
             return UIGraphicsImageRenderer(size: size, format: r).image { _ in
