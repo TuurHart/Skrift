@@ -116,7 +116,7 @@ struct UnpipelinedMemoSheet: View {
                     Spacer(minLength: 0)
                 } else {
                 HStack(spacing: 10) {
-                    Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
+                    Text(MemoDate.day(memo.recordedAt))
                     if let place = memo.metadata?.location?.placeName { Text(place) }
                     if memo.duration > 0 { Text(SkriftFormat.duration(seconds: memo.duration)) }
                 }

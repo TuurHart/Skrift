@@ -53,7 +53,7 @@ enum LookbackProvider {
     /// `createdAt` — that's when it entered Skrift (an import gets today's
     /// `createdAt` but should look back to the moment it captures).
     static func journalDate(_ memo: Memo) -> Date {
-        memo.recordedAt
+        memo.ageDate   // a date-unknown note buckets on its arrival day, never 1970
     }
 
     static func entries(for memos: [Memo], now: Date = Date(),

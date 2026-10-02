@@ -5,7 +5,25 @@ import Foundation
 /// unified notes list) so the Mac's queue rows stamp with the SAME clock word and day
 /// group as the phone/iPad, instead of the Mac's own lowercase "today" (no time).
 enum MemoDate {
+    /// C76 / D18: the stored form of "this note has no creation date" (an Apple Notes export
+    /// that carries none). `recordedAt` is a non-optional `Date` on both stores, so the unknown
+    /// date is ONE sentinel instant (the epoch) that sorts last and never reads as a real day;
+    /// every label below turns it into words instead of "1970-01-01".
+    static let unknown = Date(timeIntervalSince1970: 0)
+    static let unknownLabel = "Date unknown"
+    static func isUnknown(_ date: Date) -> Bool { date == unknown }
+
+    /// The date text a detail row shows ("12 Sep 2026"), or "Date unknown".
+    static func day(_ date: Date) -> String {
+        isUnknown(date) ? unknownLabel : date.formatted(date: .abbreviated, time: .omitted)
+    }
+    /// The clock time a card kicker shows ("14:29"), or "Date unknown".
+    static func time(_ date: Date) -> String {
+        isUnknown(date) ? unknownLabel : date.formatted(date: .omitted, time: .shortened)
+    }
+
     static func label(_ date: Date, now: Date = Date()) -> String {
+        if isUnknown(date) { return unknownLabel }
         let cal = Calendar.current
         let time = timeFormatter.string(from: date)
         // Day delta against the INJECTED `now` (not `isDateInToday`, which ignores `now` and
@@ -26,6 +44,7 @@ enum MemoDate {
 
     /// Day-group header key for the list ("Today" / "Yesterday" / "Mon 3 Jun").
     static func group(_ date: Date, now: Date = Date()) -> String {
+        if isUnknown(date) { return unknownLabel }
         let cal = Calendar.current
         // Day delta against the injected `now` (deterministic across midnight — see `label`).
         let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),

@@ -336,7 +336,7 @@ struct JournalView: View {
                         if memo.transcriptStatus != .done {
                             slimRow(memo)   // in-flight = a quiet row, never a card (review-1)
                         } else {
-                            card(memo, kick: memo.recordedAt.formatted(date: .omitted, time: .shortened), warmKick: true)
+                            card(memo, kick: MemoDate.time(memo.recordedAt), warmKick: true)
                         }
                     }
                 }
@@ -609,7 +609,7 @@ struct JournalView: View {
             Text("Voice note · transcribing…")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
             Spacer()
-            Text(memo.recordedAt.formatted(date: .omitted, time: .shortened))
+            Text(MemoDate.time(memo.recordedAt))
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
         }
         .padding(.horizontal, 12).padding(.vertical, 7)

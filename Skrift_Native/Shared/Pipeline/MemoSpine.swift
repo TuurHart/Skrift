@@ -84,7 +84,7 @@ enum MemoSpine {
         /// phone: enhancement-arrived → `.ready`, exported → `.exported`).
         static func from(_ memo: Memo, backlinked: Set<UUID>,
                          queue: QueuePhase? = nil) -> Input {
-            Input(recordedAt: memo.recordedAt,
+            Input(recordedAt: memo.ageDate,
                   keptAt: memo.keptAt,
                   deletedAt: memo.deletedAt,
                   trashSeenAt: memo.trashSeenAt,
@@ -188,7 +188,7 @@ enum MemoSpine {
             }
             return "\(why) — but it's not rated, so the Mac won't polish it."
         case .new(let fadesAt):
-            if let kept = memo.keptAt, kept > memo.recordedAt {
+            if let kept = memo.keptAt, kept > memo.ageDate {
                 return "You \(touchVerb(for: memo)) this on \(Self.day(kept)), which restarted its clock — it starts fading \(Self.day(fadesAt)) unless you rate it."
             }
             return "Not rated, so the Mac won't polish it — it starts fading \(Self.day(fadesAt))."

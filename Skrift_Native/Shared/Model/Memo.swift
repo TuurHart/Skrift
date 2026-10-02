@@ -255,6 +255,12 @@ final class Memo {
         self.recordingDeviceID = recordingDeviceID
     }
 
+    /// `recordedAt` for every AGE / lookback / bucket decision (the fade clock, the journal axis,
+    /// Then-vs-Now). A date-unknown note (`MemoDate.unknown`, C76/D18) has no content date, so it
+    /// ages and buckets from when it ARRIVED: never from 1970, which would fade it on the next sweep.
+    /// Display still reads `recordedAt` (so the card says "Date unknown").
+    var ageDate: Date { MemoDate.isUnknown(recordedAt) ? (createdAt ?? Date()) : recordedAt }
+
     /// When the memo entered Skrift — legacy memos (nil `createdAt`) fall back to
     /// `recordedAt`. The "Recently added" sort key.
     var addedAt: Date { createdAt ?? recordedAt }

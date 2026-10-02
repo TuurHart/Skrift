@@ -193,6 +193,6 @@ final class ConnectionsIndexService {
     /// moment when synced; locally-ingested files fall back to their upload time.
     nonisolated static func journalDate(_ file: PipelineFile) -> Date {
         let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
-        return meta?.recordedAt.flatMap { ISO8601.date(from: $0) } ?? file.uploadedAt
+        return meta?.recordedAt.flatMap { ISO8601.date(from: $0) } ?? (MemoDate.isUnknown(file.uploadedAt) ? (file.lastActivityAt ?? Date()) : file.uploadedAt)
     }
 }
