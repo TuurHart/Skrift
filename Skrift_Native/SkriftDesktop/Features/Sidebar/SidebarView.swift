@@ -28,6 +28,8 @@ struct SidebarView: View {
     @State private var micProblem: MacRecorder.Refusal?
     /// Files waiting on the "One note / N notes" chooser (Q74). nil = nothing pending.
     @State private var pendingAudioImport: PendingAudioImport?
+    /// Locking a note this machine already exported (Q100 / C161): the plaintext file stays.
+    @State private var lockVaultNotice = false
 
     private var filtered: [PipelineFile] { model.visible(files) }
     /// `filtered` minus a quiet local take (unrated, error-free Mac recording — the
@@ -138,6 +140,11 @@ struct SidebarView: View {
             Button("OK", role: .cancel) { micProblem = nil }
         } message: {
             Text(micProblem?.message ?? "")
+        }
+        .alert("Already in your vault", isPresented: $lockVaultNotice) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(LockVaultNotice.message)
         }
         .sheet(item: $pendingAudioImport) { pending in
             AudioImportChoiceSheet(
@@ -256,6 +263,23 @@ struct SidebarView: View {
     /// lossless; the launch purge removes them (and trashes the folder) after the
     /// retention window. Was a hard `ctx.delete` + immediate folder-trash.
     private func deleteFiles(_ targets: [PipelineFile]) {
+        // R88/C161: a locked note needs device-owner auth before it can be trashed — the
+        // phone's `deleteMemo` rule, via the shared `LockPolicy`. Unlocked-only batches
+        // stay synchronous.
+        guard targets.contains(where: { LockGate.shared.isLocked($0) }) else {
+            performDelete(targets)
+            return
+        }
+        Task {
+            var allowed: [PipelineFile] = []
+            for t in targets where await LockGate.shared.policy.authorizeDelete(id: t.id, locked: t.locked) {
+                allowed.append(t)
+            }
+            if !allowed.isEmpty { performDelete(allowed) }
+        }
+    }
+
+    private func performDelete(_ targets: [PipelineFile]) {
         // Don't strand the selection/active note on a now-hidden file.
         let ids = Set(targets.map(\.id))
         DesktopTrash.softDelete(targets, in: ctx)
@@ -764,6 +788,9 @@ struct SidebarView: View {
         var rows = model.filter == .notRated ? [] : strandedMemos
         if model.filter == .all || model.filter == .notRated {
             rows += unpipelinedMemos
+            // A locked quiet note stays in the list as title + 🔒 (Q100, C91) — it is out of
+            // `unpipelinedMemos` (resolved, never nags the counts) but never out of sight.
+            rows += WayOutRules.lockedQuiet(memos: effectiveCloudMemos, files: files)
             // Search honesty (no-bad-info, 2026-07-21): while SEARCHING, fading
             // notes are findable here too — their one-liner ("moves to Recently
             // Deleted in Nd") is the marker. Browse mode keeps the one-home law
@@ -791,9 +818,27 @@ struct SidebarView: View {
     }
 
     private func quietMemoRow(_ memo: Memo) -> some View {
+        let selected = model.selection.contains(memo.id.uuidString)
+        return NoteCardView(model: quietCardModel(memo, selected: selected), style: .mac)
+            .contentShape(Rectangle())
+            .onTapGesture { openInPane(memo) }
+            .contextMenu {
+                Button(memo.locked ? "Unlock" : "Lock") { toggleLock(memo) }
+                Button("Open") { openInPane(memo) }
+                Divider()
+                Button("Delete", role: .destructive) { deleteQuiet(memo) }
+            }
+            .accessibilityIdentifier("quiet-memo-row")
+    }
+
+    private func quietCardModel(_ memo: Memo, selected: Bool) -> NoteCardModel {
         // Quiet rows render the SAME shared card, dimmed (m2): quiet ≠ urgent,
         // the spine one-liner rides the stamp slot, no pill, no verbs.
-        let selected = model.selection.contains(memo.id.uuidString)
+        // Locked ⇒ title + 🔒 and nothing else (C91/C161, R88) — still IN the list, dimmed.
+        if memo.locked {
+            return LockedRow.card(stamp: MemoDate.label(memo.recordedAt), title: LockedRow.title(for: memo),
+                                  selected: selected, quiet: true)
+        }
         var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
         m.quiet = true
         // Unrated memos ARE 0 — three hollow balls, same readout as the phone's
@@ -830,16 +875,7 @@ struct SidebarView: View {
             m.title = WayOutRules.displayTitle(memo)   // "Voice note" / "Note" fallback
         }
         if memo.duration > 0 { m.chips.append(.init(text: SkriftFormat.duration(seconds: memo.duration))) }
-        return NoteCardView(model: m, style: .mac)
-            .contentShape(Rectangle())
-            .onTapGesture { openInPane(memo) }
-            .contextMenu {
-                Button(memo.locked ? "Unlock" : "Lock") { toggleLock(memo) }
-                Button("Open") { openInPane(memo) }
-                Divider()
-                Button("Delete", role: .destructive) { deleteQuiet(memo) }
-            }
-            .accessibilityIdentifier("quiet-memo-row")
+        return m
     }
 
     /// Open an unrated memo in the DETAIL PANE, the way the iPad opens any note
@@ -852,18 +888,40 @@ struct SidebarView: View {
         model.select(memo.id.uuidString)
     }
 
+    /// Lock (instant) / remove lock (device-owner auth) — the phone's `toggleLock` policy,
+    /// via the shared `LockPolicy` (Q100, C161/C213). Locking a note this machine already
+    /// exported says the plaintext file still exists.
     private func toggleLock(_ memo: Memo) {
-        memo.locked.toggle()
+        if memo.locked {
+            Task {
+                guard await LockGate.shared.policy.removeLock(memo) else { return }
+                saveLockChange()
+            }
+        } else {
+            guard LockGate.shared.policy.lock(memo) else {
+                coordinator.flash("Set a device passcode to lock notes")
+                return
+            }
+            saveLockChange()
+            if LockVaultNotice.hasPublished(memo.id, settings: SettingsStore.shared.load()) { lockVaultNotice = true }
+        }
+    }
+
+    private func saveLockChange() {
         try? MemoCloudStore.container?.mainContext.save()
         refreshCloudMemos()
     }
 
-    /// Soft delete into the shared Recently Deleted (14 days, both devices).
+    /// Soft delete into the shared Recently Deleted (14 days, both devices). A locked
+    /// note needs device-owner auth first (R88/C161).
     private func deleteQuiet(_ memo: Memo) {
-        memo.deletedAt = Date()
-        memo.trashSeenAt = memo.deletedAt   // deleted in-session — purge clock starts now (v3)
-        try? MemoCloudStore.container?.mainContext.save()
-        refreshCloudMemos()
+        Task {
+            guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
+            memo.deletedAt = Date()
+            memo.trashSeenAt = memo.deletedAt   // deleted in-session — purge clock starts now (v3)
+            try? MemoCloudStore.container?.mainContext.save()
+            refreshCloudMemos()
+        }
     }
 
 
@@ -1292,6 +1350,14 @@ private struct QueueRowView: View {
         if let id = UUID(uuidString: file.id), EditConflictWatch.shared.ids.contains(id) {
             m.statusPill = .twoVersions
         }
+        // Locked ⇒ title + 🔒 (+ the status pill, as on the phone) and NOTHING else —
+        // no words, balls or chips (C91/C161, R88; the phone's `cardModel` rule).
+        if file.locked {
+            var l = LockedRow.card(stamp: m.stamp, title: LockedRow.title(for: file),
+                                   selected: selected, quiet: false)
+            l.statusPill = m.statusPill
+            return l
+        }
         let body = NoteSnippet.plain(file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
             .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1392,8 +1458,9 @@ enum SidebarEntry: Identifiable {
     }
     var title: String {
         switch self {
-        case .file(let f): return f.queueTitle
-        case .memo(let m): return WayOutRules.displayTitle(m)
+        // Locked: the sort key is the placeholder-safe title, never the hidden first line.
+        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
+        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
         }
     }
 }

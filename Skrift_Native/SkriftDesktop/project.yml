@@ -236,6 +236,9 @@ targets:
       # through — Foundation-only, same file-by-file discipline as Palette/SharedCopy
       # above (the rest of Shared/Session pulls in LocalAuthentication/AppKit).
       - path: ../Shared/Session/NoteVisibility.swift
+      # Q100: the lock verbs' policy (Foundation-only, closure-injected) so MacLockGateTests
+      # can drive delete/lock/unlock without LocalAuthentication.
+      - path: ../Shared/Session/LockPolicy.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
