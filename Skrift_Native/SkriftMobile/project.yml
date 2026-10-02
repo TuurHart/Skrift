@@ -414,6 +414,8 @@ targets:
       # C68 / C145: the ONE One-note / N-notes chooser wording (`AudioImportChoice`) - the share
       # sheet reads it instead of hand-writing the strings (Q132).
       - path: ../Shared/Pipeline/AudioClipMerge.swift
+      # C74 / D17 (Q135): the ONE image normaliser (PNG stays PNG, GIF kept, <= 2048 px).
+      - path: ../Shared/Pipeline/ImageNormalise.swift
       # The rating pill + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the pill without importing the app target. Both halves

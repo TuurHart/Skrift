@@ -373,7 +373,8 @@ enum SharePayloadLoader {
     /// Load every shared image, DOWNSAMPLED via ImageIO (max 2048 px, EXIF
     /// orientation baked in) — a full `UIImage(data:)` decode of a 48 MP shot
     /// would blow the extension's ~120 MB ceiling, and a multi-select multiplies
-    /// that. Normalised to JPEG 0.85 for consistent storage. Unreadable images
+    /// that. Normalised by the shared `ImageNormalise` (C74 / D17): PNG stays PNG, a GIF is kept
+    /// byte-for-byte, HEIC/TIFF/BMP become JPEG 0.9. Unreadable images
     /// are skipped; multiple photos always combine into ONE note (B2).
     ///
     /// Q57/C218: each provider's data load + downsample runs CONCURRENTLY (a
@@ -386,7 +387,9 @@ enum SharePayloadLoader {
             for (i, provider) in providers.enumerated() {
                 group.addTask {
                     let typeID: String
-                    if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
+                    if provider.hasItemConformingToTypeIdentifier(UTType.gif.identifier) {
+                        typeID = UTType.gif.identifier
+                    } else if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
                         typeID = UTType.png.identifier
                     } else if provider.hasItemConformingToTypeIdentifier(UTType.jpeg.identifier) {
                         typeID = UTType.jpeg.identifier
@@ -398,11 +401,11 @@ enum SharePayloadLoader {
                             cont.resume(returning: data)
                         }
                     }
-                    guard let rawData, let jpeg = downsampledJPEG(from: rawData) else { return (i, nil) }
+                    guard let rawData, let norm = ImageNormalise.normalise(rawData) else { return (i, nil) }
                     return (i, SharedImageItem(
-                        data: jpeg,
-                        fileName: "capture_\(UUID().uuidString).jpg",
-                        mimeType: "image/jpeg",
+                        data: norm.data,
+                        fileName: "capture_\(UUID().uuidString).\(norm.ext)",
+                        mimeType: norm.mime,
                         recordedAt: ImageDates.exifDate(from: rawData),   // BEFORE the re-encode (A4)
                         originalName: FilenameDate.bestName([provider.suggestedName]),   // Q94 / C70
                         selectionIndex: positions?[i] ?? i
@@ -412,22 +415,7 @@ enum SharePayloadLoader {
             for await (i, item) in group { slots[i] = item }
         }
         let items = slots.compactMap { $0 }
-        return SharePayload(type: .image, imageItems: items, mimeType: items.isEmpty ? nil : "image/jpeg")
-    }
-
-    /// ImageIO thumbnail decode: never inflates the full-resolution bitmap
-    /// (kCGImageSourceThumbnailMaxPixelSize caps the decode) and bakes the EXIF
-    /// orientation in (WithTransform). Falls back to the raw bytes → nil only
-    /// when the data isn't an image at all.
-    private static func downsampledJPEG(from data: Data, maxPixel: CGFloat = 2048) -> Data? {
-        guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-        let opts: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
-        ]
-        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
-        return UIImage(cgImage: cg).jpegData(compressionQuality: 0.85)
+        return SharePayload(type: .image, imageItems: items, mimeType: items.first?.mimeType)
     }
 
     // MARK: - Text
