@@ -751,7 +751,7 @@ do: Three hand-written matchers: phone `Memo.matches` (MemoDisplay.swift:81-97),
 check: `grep -rqE "class NoteSearchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteSearchParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P4
 
-### Q104 [auto] (doing) filters apply to every row kind: Mac date range on unrated, stranded and fading rows; Related rows obey chip + date; fading hits show under any chip
+### Q104 [auto] (done) filters apply to every row kind: Mac date range on unrated, stranded and fading rows; Related rows obey chip + date; fading hits show under any chip
 spec: C115 D148 C212
 needs: -
 gate+: yes
@@ -981,7 +981,7 @@ do: Q74 gave the Mac every door but said the phone 'already has' the chooser. It
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh FilesImportChooserTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P33
 
-### Q133 [auto] (todo) ONE accepted-types list in Shared, used by Open-in, the share extension, the Files picker and the Mac ingest
+### Q133 [auto] (doing) ONE accepted-types list in Shared, used by Open-in, the share extension, the Files picker and the Mac ingest
 spec: C238 C199 D19
 needs: -
 gate+: yes
@@ -1545,7 +1545,7 @@ do: `NoteBody.swift` (`BodyText`, `readBody`, `quoteCard`, `karaoke`, `summaryAs
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DRV-d15 DSH-c14 (cleanup-audit P16)
 
-### Q204 [auto] (todo) one word-split rule for Mac karaoke: emoji no longer splits a word
+### Q204 [auto] (doing) one word-split rule for Mac karaoke: emoji no longer splits a word
 spec: C113 C240
 needs: -
 gate+: yes
@@ -1761,7 +1761,7 @@ do: In `SkriftMobile/` (re-grep each symbol by NAME in both apps and tests first
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TrashTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d03 MAM-d04 MAM-d07 MAM-d08 MAM-d09 MAM-d15 MAM-d20 MAM-d22 MAM-d-m1 MAM-c24 MAM-c25 (cleanup-audit P43)
 
-### Q231 [auto] (todo) one quick-action widget, and the share extension stops compiling files it does not use
+### Q231 [auto] (doing) one quick-action widget, and the share extension stops compiling files it does not use
 spec: C239
 needs: -
 gate+: no
@@ -2481,3 +2481,7 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:16 Q227 -> done — gate pass @bd9c7de2
 - 2026-10-02 18:16 Q223 -> done — gate pass (batched with Q227)
 - 2026-10-02 18:21 Q134 -> done — gate pass @3c1f35f8
+- 2026-10-02 18:27 Q133 -> doing — worker out
+- 2026-10-02 18:27 Q204 -> doing — worker out
+- 2026-10-02 18:27 Q231 -> doing — worker out
+- 2026-10-02 18:28 Q104 -> done — gate pass @b47406ff
