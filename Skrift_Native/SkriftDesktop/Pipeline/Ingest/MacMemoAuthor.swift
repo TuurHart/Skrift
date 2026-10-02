@@ -179,9 +179,10 @@ enum MacMemoAuthor {
 
     /// The phone-shaped memo for a Mac row.
     /// - `audioFilename`: empty for a `.note` / `.capture` row (no audio, so `SourceKind.of`
-    ///   reads it as a note, not a 0:00 voice memo); `memo_<uuid>.<audio ext>` for a video
-    ///   (the row keeps the MOVIE's name, but the blob is the extracted audio; the phone's own
-    ///   video import names it the same way); the row's own filename otherwise.
+    ///   reads it as a note, not a 0:00 voice memo); the row's own filename when its extension
+    ///   is the audio file's; otherwise `memo_<uuid>.<audio ext>`, the phone's own naming (a
+    ///   video row keeps the MOVIE's name and a merged row its first clip's, but the blob is
+    ///   the extracted or stitched m4a).
     /// - metadata: `mediaSource` (plus the phone's `sourceType` for a video, C71), a place the
     ///   row already carries, the clip manifest of a merged note (C124), and the picture
     ///   manifest renamed to the phone's unique `photo_<uuid>_NNN.<ext>` (the phone keeps every
@@ -191,13 +192,16 @@ enum MacMemoAuthor {
         let hasAudio = pf.sourceType == .audio
         let isVideo = pf.mediaSource == MemoMetadata.Source.video
         let audioFilename: String
+        let audioExt = (pf.path as NSString).pathExtension
         if !hasAudio {
             audioFilename = ""
-        } else if isVideo {
-            let ext = (pf.path as NSString).pathExtension
-            audioFilename = "memo_\(memoID.uuidString).\(ext.isEmpty ? "m4a" : ext)"
-        } else {
+        } else if audioExt.isEmpty
+                    || (pf.filename as NSString).pathExtension.caseInsensitiveCompare(audioExt) == .orderedSame {
             audioFilename = pf.filename
+        } else {
+            // A video (`IMG_0001.MOV` → `original.m4a`) or a merged note (named after its first
+            // `.opus` clip, stitched to `original.m4a`): the name would lie about the blob.
+            audioFilename = "memo_\(memoID.uuidString).\(audioExt)"
         }
 
         var meta = MemoMetadata()
