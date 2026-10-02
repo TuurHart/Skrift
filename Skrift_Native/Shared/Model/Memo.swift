@@ -360,6 +360,15 @@ final class Memo {
         set { metadataData = Self.encodeJSON(newValue) }
     }
 
+    /// Typed shared-capture payload, decoded from / encoded to the raw `sharedContentData` blob
+    /// (the BARE `SharedContent` object, not the `{"sharedContent":...}` wrapper the Mac's
+    /// `PipelineFile` metadata uses). Shared so `SourceKind.of` reads the same blob the phone
+    /// writes. An unknown `type` decodes to nil (C78).
+    var sharedContent: SharedContent? {
+        get { Self.decodeJSON(sharedContentData) }
+        set { sharedContentData = Self.encodeJSON(newValue) }
+    }
+
     // MARK: - The mobile↔Mac transcript-trust rule
 
     /// The Mac re-transcribes a synced memo UNLESS the phone's transcript is trusted.

@@ -160,7 +160,8 @@ struct UploadService: Sendable {
             prepared.uploadedAt = rec
         }
         // Unified source taxonomy marker (e.g. "video") → source glyph + label.
-        if let src = (meta?["sourceType"] as? String)?.trimmingCharacters(in: .whitespaces), !src.isEmpty {
+        // Either spelling: the phone's `MemoMetadata` writes `sourceType`, the Mac author `mediaSource`.
+        if let src = SourceKind.mediaMarker(in: meta) {
             prepared.mediaSource = src
         }
         // Phone may send an optional user-set `title` — honor it (BatchRunner

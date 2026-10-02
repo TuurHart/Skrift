@@ -48,27 +48,52 @@ enum SourceKind: Equatable {
         self == .typedNote ? "Note" : "Voice note"
     }
 
-    /// Kind of a synced `Memo` — priority: audiobook quote → video → capture
-    /// subtype → audio/no-audio (mirrors the Mac's `PipelineFile` descriptor;
-    /// a book capture and a video both carry audio, so type alone can't tell).
+    /// The media marker inside a metadata JSON object. Two spellings exist for one fact:
+    /// the phone's `MemoMetadata` encodes `sourceType` (no CodingKeys; `Source.video`),
+    /// the Mac author and `Memo.newTyped` write `mediaSource` ("video" / "typed"). Both are
+    /// read, `mediaSource` first (C71 glyph key drift).
+    static func mediaMarker(in json: [String: Any]?) -> String? {
+        guard let json else { return nil }
+        for key in ["mediaSource", "sourceType"] {
+            if let v = (json[key] as? String)?.trimmingCharacters(in: .whitespaces), !v.isEmpty { return v }
+        }
+        return nil
+    }
+
+    /// THE classifier: every surface (phone row/pane/chips, iPad Journal, the Mac projection
+    /// and the Mac's `PipelineFile` rows) reduces its own storage to these facts and calls
+    /// this. Priority: audiobook quote, video, typed, capture subtype, audio/no-audio.
+    /// - `sharedType`: the capture's `type` string (nil / unknown means not a typed capture)
+    /// - `isCaptureRow`: the row is already known to be a capture (Mac `.capture` rows), so
+    ///   an unknown subtype reads as `.captureOther` rather than falling through.
+    static func classify(hasBook: Bool, media: String?, sharedType: String?,
+                         isCaptureRow: Bool = false, hasAudio: Bool) -> SourceKind {
+        if hasBook { return .audiobookQuote }
+        if media == "video" { return .video }
+        // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
+        // Without the marker a no-audio memo reads as an Apple Note import below.
+        if media == "typed" { return .typedNote }
+        switch sharedType {
+        case "url":   return .captureURL
+        case "image": return .captureImage
+        case "text":  return .captureText
+        case "file":  return .captureFile
+        default:      break
+        }
+        if isCaptureRow { return .captureOther }
+        return hasAudio ? .voiceMemo : .appleNote
+    }
+
+    /// Kind of a synced `Memo`. A capture is the phone's bare `Memo.sharedContentData`
+    /// (`CaptureInboxDrainer`); a video is `sourceType` OR `mediaSource` in `metadataData`.
+    /// The `{"sharedContent":...}` wrapper inside `metadataData` is still tolerated (the shape
+    /// the pre-Q138 `SourceTaxonomyTests` seeds); the bare blob wins.
     static func of(_ memo: Memo) -> SourceKind {
-        if let book = memo.metadata?.bookTitle, !book.isEmpty { return .audiobookQuote }
-        if let data = memo.metadataData,
-           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let media = obj["mediaSource"] as? String {
-            if media == "video" { return .video }
-            // A note born typed (the Mac's ✎/⌘N verb — `MacMemoAuthor.typedNote`).
-            // Without the marker a no-audio memo reads as an Apple Note import below.
-            if media == "typed" { return .typedNote }
-        }
-        if let shared = SharedContent.decode(from: memo.metadataData) {
-            switch shared.type {
-            case .url:   return .captureURL
-            case .image: return .captureImage
-            case .text:  return .captureText
-            case .file:  return .captureFile
-            }
-        }
-        return memo.audioFilename.isEmpty ? .appleNote : .voiceMemo
+        let meta = memo.metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        let shared = memo.sharedContent ?? SharedContent.decode(from: memo.metadataData)
+        return classify(hasBook: memo.metadata?.bookTitle.map { !$0.isEmpty } ?? false,
+                        media: mediaMarker(in: meta),
+                        sharedType: shared?.type.rawValue,
+                        hasAudio: !memo.audioFilename.isEmpty)
     }
 }
