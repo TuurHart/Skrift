@@ -136,3 +136,50 @@ enum BodyTransform {
     }
 
 }
+
+// MARK: - Task-line Return continuation (Apple Notes flow) — shared by the phone and the Mac
+
+extension BodyTransform {
+    /// What Return does on a checklist line, decided on the DISPLAY text (each box is one glyph).
+    /// Pure: no UIKit/AppKit, so both editors and a host-less test drive the same rule.
+    enum TaskReturn: Equatable {
+        /// Not ours: let the editor insert its ordinary newline (caret sits at/before the box).
+        case passthrough
+        /// Empty item → the list ends. Delete `range` (box + padding); the line becomes plain.
+        case dissolve(range: NSRange)
+        /// Continue the list. Optionally delete `removeSpace` (a space right after the caret —
+        /// Notes trims the split tail), then insert `lead` ("\n" + the line's indent) at
+        /// `insertAt` (the deleted space is AFTER it, so the offset is unchanged), then a fresh
+        /// unchecked box, then one space.
+        case continued(removeSpace: NSRange?, insertAt: Int, lead: String)
+    }
+
+    /// `boxIndex` = display offset of the line's checkbox glyph (the caller checks it is one).
+    /// The caret may be anywhere in the line; the rule never touches text before the box
+    /// except to copy its indent onto the new item.
+    static func taskReturn(in display: NSString, caret: Int, boxIndex: Int) -> TaskReturn {
+        guard display.length > 0, boxIndex >= 0, boxIndex < display.length else { return .passthrough }
+        let caret = min(max(caret, 0), display.length)
+        let line = display.lineRange(for: NSRange(location: caret, length: 0))
+        guard boxIndex >= line.location, boxIndex < line.location + line.length else { return .passthrough }
+        // Caret at or before the box: the box is not being split, so Return is a plain newline.
+        guard caret > boxIndex else { return .passthrough }
+
+        let lineEnd = line.location + line.length
+        let hasNewline = lineEnd > line.location && display.character(at: lineEnd - 1) == 10
+        let contentEnd = hasNewline ? lineEnd - 1 : lineEnd
+        let contentStart = boxIndex + 1
+        let content = contentStart < contentEnd
+            ? display.substring(with: NSRange(location: contentStart, length: contentEnd - contentStart)) : ""
+
+        if content.trimmingCharacters(in: .whitespaces).isEmpty {
+            return .dissolve(range: NSRange(location: line.location, length: contentEnd - line.location))
+        }
+        let indent = display.substring(with: NSRange(location: line.location, length: boxIndex - line.location))
+        var remove: NSRange?
+        if caret < contentEnd, display.character(at: caret) == 32 {
+            remove = NSRange(location: caret, length: 1)
+        }
+        return .continued(removeSpace: remove, insertAt: caret, lead: "\n" + indent)
+    }
+}

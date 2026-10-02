@@ -104,6 +104,25 @@ struct SkriftDesktopApp: App {
         .defaultSize(width: 1180, height: 780)
         .windowStyle(.hiddenTitleBar)
         .modelContainer(SharedStore.container)
+        .commands {
+            // Q126: the phone's ☑ on the Mac. Only the focused note's text view answers.
+            CommandMenu("Format") {
+                Button("Checklist") {
+                    NSApp.sendAction(#selector(SelfSizingTextView.toggleChecklist(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+            }
+            // Q125 (D125): find in the open note. Routed down the responder chain, so it only
+            // lands while a note's text view has focus.
+            CommandGroup(after: .textEditing) {
+                Button(NoteFindBar.Verb.show.title) { NoteFindBar.send(.show) }
+                    .keyboardShortcut("f", modifiers: .command)
+                Button(NoteFindBar.Verb.next.title) { NoteFindBar.send(.next) }
+                    .keyboardShortcut("g", modifiers: .command)
+                Button(NoteFindBar.Verb.previous.title) { NoteFindBar.send(.previous) }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+            }
+        }
     }
 }
 
