@@ -205,6 +205,27 @@ enum MemoSpine {
         }
     }
 
+    /// How close a note's fade must be before a list row mentions it (D136).
+    static let fadeWarningDays = 7
+
+    /// The urgency-only amber clock line a LIST ROW carries (⏱ eyeball wave 2, 2026-07-22; D136;
+    /// Q107 moved it here from the phone's `MemosListView` so the Mac's quiet rows call the same
+    /// rule): shown only when fading starts within `fadeWarningDays`, or the note is already
+    /// fading (a search hit). Rated, trashed and locked notes carry none.
+    static func rowClockLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
+        guard !NoteConsent.isRated(memo), memo.deletedAt == nil, !memo.locked else { return nil }
+        let station = station(for: .from(memo, backlinked: backlinked), now: now)
+        switch station {
+        case .fading:
+            return oneLiner(for: station, now: now)
+        case .new(let fadesAt):
+            let warnAt = fadesAt.addingTimeInterval(-Double(fadeWarningDays) * 86_400)
+            return now >= warnAt ? oneLiner(for: station, now: now) : nil
+        default:
+            return nil
+        }
+    }
+
     /// Display verb for the clock-restart sentence — freshest-signal precedence
     /// (the old touch order, kept for display only; all of these write `keptAt`
     /// at their commit sites now).

@@ -3,9 +3,6 @@ import SwiftUI
 extension MemosListView {
     // MARK: - Derived
 
-    /// How close a note's fade must be before the notebook mentions it.
-    private static let fadeWarningDays = 7
-
     /// Unrated-live = the quiet FADE, every width (m1b B + Tuur's 2026-07-23
     /// phone extension — his flow rates important notes AT capture, so an
     /// unrated row genuinely means untriaged, not fresh: "when I take a note
@@ -21,17 +18,8 @@ extension MemosListView {
     /// appears (amber) only when the clock actually matters — fading starts
     /// within `fadeWarningDays`, or the note is already fading (a search hit).
     func clockLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
-        guard !NoteConsent.isRated(memo), memo.deletedAt == nil, !memo.locked else { return nil }
-        let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
-        switch station {
-        case .fading:
-            return MemoSpine.oneLiner(for: station, now: now)
-        case .new(let fadesAt):
-            let warnAt = fadesAt.addingTimeInterval(-Double(Self.fadeWarningDays) * 86_400)
-            return now >= warnAt ? MemoSpine.oneLiner(for: station, now: now) : nil
-        default:
-            return nil
-        }
+        // Q107: the rule is shared (`MemoSpine.rowClockLine`) — the Mac's quiet rows call it too.
+        MemoSpine.rowClockLine(for: memo, backlinked: backlinked, now: now)
     }
 
     /// The lifecycle split (MemoLifecycle, 2026-07-17): fading notes leave the

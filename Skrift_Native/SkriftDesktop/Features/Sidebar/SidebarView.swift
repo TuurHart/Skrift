@@ -816,36 +816,12 @@ struct SidebarView: View {
             .accessibilityIdentifier("quiet-memo-row")
     }
 
+    /// Q107 (C115/D136/D135/C98): the quiet row's card comes from `MacQuietCard`, which follows
+    /// the phone's `MemoCard.cardModel` rule for rule (chips, 7-day fading line, no balls when
+    /// locked, "2 versions" pill). Quiet rows render dimmed (m2): quiet is not urgent.
     private func quietCardModel(_ memo: Memo, selected: Bool) -> NoteCardModel {
-        // Quiet rows render the SAME shared card, dimmed (m2): quiet ≠ urgent,
-        // the spine one-liner rides the stamp slot, no pill, no verbs.
-        // Locked ⇒ title + 🔒 and nothing else (C91/C161, R88) — still IN the list, dimmed.
-        if memo.locked {
-            return LockedRow.card(stamp: MemoDate.label(memo.recordedAt), title: LockedRow.title(for: memo),
-                                  selected: selected, quiet: true)
-        }
-        var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
-        m.quiet = true
-        // Unrated memos ARE 0 — three hollow balls, same readout as the phone's
-        // quiet rows (D135's "display-only balls on rows" applies here too).
-        m.balls = memo.locked ? nil : 0
-        // The card's stamp already prints the date — hand the quiet line WITHOUT
-        // its leading date (Tuur's first m2 eyeball catch, 2026-08-19), and WITHOUT
-        // duration (Q35: mocks/one-notes-list.html's "One list" tab — the shared
-        // `oneModel` — puts duration in the chip row for EVERY card, rated or not;
-        // it never lives in the line text).
-        // A RATED memo among the quiet rows is a stranded one (`WayOutRules.stranded`) —
-        // the ordinary quiet rows are all unrated. It gets the honest waiting line rather
-        // than the spine's "processes on next run", which it can't do without a row.
-        m.quietLine = NoteConsent.isRated(memo) ? WayOutRules.strandedLine(for: memo)
-                                                : WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
-        m.selected = selected
-        m.locked = memo.locked
-        // Q106 (C115): the same shared builder the rated rows and the phone call — title,
-        // quote, snippet, source / book / duration / place / tag chips (an unrated typed note
-        // wears its "Note" chip, a video its "Video" chip).
-        m.apply(NoteCardBuilder.content(for: memo.cardFacts()))
-        return m
+        MacQuietCard.model(for: memo, selected: selected, backlinked: backlinkedIDs,
+                           conflicts: EditConflictWatch.shared.ids)
     }
 
     /// Open an unrated memo in the DETAIL PANE, the way the iPad opens any note
