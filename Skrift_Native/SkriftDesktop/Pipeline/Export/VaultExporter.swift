@@ -37,7 +37,8 @@ enum VaultExporter {
     }
 
     /// The portfolio folder for a destination, from the Mac's settings — `<portfolioRoot>/_ideas`
-    /// etc. Empty when no portfolio root is picked here, which `export` turns into `noVault`.
+    /// etc. Empty when no portfolio root is picked here, which `export` turns into
+    /// `noPortfolioFolder` (not `noVault`: the user's fix is a different Settings row).
     static func portfolioFolder(for destination: NoteDestination, settings: AppSettings) -> String {
         let root = settings.portfolioRoot.trimmingCharacters(in: .whitespaces)
         guard !root.isEmpty, let sub = destination.portfolioFolder else { return "" }
@@ -92,17 +93,62 @@ enum VaultExporter {
                                   summary: pf.enhancedSummary))
     }
 
-    enum ExportError: LocalizedError {
+    /// A refusal from the shared gate (`ExportGate`, Q156). The cases the write path itself
+    /// throws keep their names; the words are `ExportOutcomeCopy.refusal`, never typed here.
+    enum ExportError: LocalizedError, Equatable {
         case noVault
+        case noPortfolioFolder
         case lockedNote
         case twoVersions
-        var errorDescription: String? {
-            switch self {
-            case .twoVersions: return "This note has two versions. Pick one to export it."
-            case .noVault: return "Set your Obsidian vault path in Settings first."
-            case .lockedNote: return "This note is locked — locked notes stay inside Skrift (the vault is plain text). Unlock it on any device to export."
+        /// Any other gate (trashed / unrated / nothing / unprocessed), for callers that ask the
+        /// `full` scope and want to throw.
+        case refused(ExportGate.Failure)
+
+        init(_ failure: ExportGate.Failure) {
+            switch failure {
+            case .noVaultFolder: self = .noVault
+            case .noPortfolioFolder: self = .noPortfolioFolder
+            case .locked: self = .lockedNote
+            case .twoVersions: self = .twoVersions
+            default: self = .refused(failure)
             }
         }
+
+        var failure: ExportGate.Failure {
+            switch self {
+            case .noVault: return .noVaultFolder
+            case .noPortfolioFolder: return .noPortfolioFolder
+            case .lockedNote: return .locked
+            case .twoVersions: return .twoVersions
+            case .refused(let f): return f
+            }
+        }
+
+        var errorDescription: String? { ExportOutcomeCopy.refusal(failure, device: .mac).text }
+    }
+
+    /// The gate's inputs for a Mac row. `processed` is the caller's: the `full` scope needs the
+    /// synced `MemoEnhancement` (`workInputs(...).hasPolish`); the `engine` scope never asks.
+    static func gateFacts(for pf: PipelineFile, settings: AppSettings, processed: Bool) -> ExportGate.Facts {
+        let body = (pf.sanitised ?? pf.transcript ?? "")
+        return ExportGate.Facts(
+            destinationIsPortfolio: pf.destination.isPortfolio,
+            folderConfigured: exportHome(for: pf, settings: settings) != nil,
+            trashed: pf.deletedAt != nil,
+            locked: pf.locked,
+            twoVersionsHeld: EditConflictHold.isHeld(pf.id),
+            rated: NoteConsent.isRated(pf),
+            hasContent: !body.isEmpty || !pf.exportTitle.isEmpty,
+            processed: processed)
+    }
+
+    /// What a PERSON's Export press (and a re-export after a sync) must pass: every gate, the
+    /// same predicate the iPad runs. nil = may export.
+    static func fullGateFailure(for pf: PipelineFile, cloud: ModelContext?,
+                                settings: AppSettings) -> ExportGate.Failure? {
+        let processed = workInputs(for: pf, cloud: cloud, settings: settings).hasPolish
+        return ExportGate.check(gateFacts(for: pf, settings: settings, processed: processed),
+                                device: .mac)
     }
 
     /// Export through the SHARED engine (`VaultWriter`, 2026-07-26): this file keeps
@@ -114,17 +160,23 @@ enum VaultExporter {
     /// there, with a bare non-atomic write, into a folder that lives in iCloud.
     @discardableResult
     static func export(_ pf: PipelineFile, settings: AppSettings) throws -> Result {
-        // The lock gate: a locked note NEVER reaches the plaintext vault — the same
-        // promise the phone's PublishCoordinator makes. (Locking never deletes an
-        // already-exported file; the phone's lock flow says so to the user.)
-        guard !pf.locked else { throw ExportError.lockedNote }
-        // D139: a note with two versions waits until he picks one.
-        guard !EditConflictHold.isHeld(pf.id) else { throw ExportError.twoVersions }
+        // The engine-scope gate (`ExportGate`, the SAME predicate the iPad runs): folder, a
+        // locked note NEVER reaching the plaintext vault, and the D139 two-versions hold
+        // (Mac-only). Rating / trash / processing are asked by the callers that act on a
+        // person's press (`ProcessingCoordinator.export`, `reexportEdited`) with the `full`
+        // scope — this write path is also reached by the headless harness with bare rows.
+        // (Locking never deletes an already-exported file; the phone's lock flow says so.)
+        if let failure = ExportGate.check(gateFacts(for: pf, settings: settings, processed: true),
+                                          device: .mac, scope: .engine) {
+            throw ExportError(failure)
+        }
         // WHERE and HOW both follow the note's destination — `.personal` is the Obsidian
         // vault and today's layout, unchanged; a portfolio destination is its folder inside
         // the portfolio root, written flat (`ExportProfile`).
         let profile = ExportProfile.of(pf.destination)
-        guard let vaultURL = exportHome(for: pf, settings: settings) else { throw ExportError.noVault }
+        guard let vaultURL = exportHome(for: pf, settings: settings) else {
+            throw ExportError(pf.destination.isPortfolio ? .noPortfolioFolder : .noVaultFolder)
+        }
         try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
 
         let id = ledgerID(for: pf)

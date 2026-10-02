@@ -533,6 +533,13 @@ final class ProcessingCoordinator {
     /// the `-runfile … -export` headless harness (`RunFile.swift`) awaits it directly.
     func export(_ pf: PipelineFile, context: ModelContext) async {
         let settings = SettingsStore.shared.load()
+        // The SAME predicate the iPad asks (`ExportGate`, Q156): the first failing gate is
+        // named, in the shared words, and stays until dismissed (C194).
+        let cloud = settings.cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
+        if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
+            lastError = ExportOutcomeCopy.refusal(failure, device: .mac).text
+            return
+        }
         do {
             let result = try await Task.detached(priority: .userInitiated) {
                 try VaultExporter.export(pf, settings: settings)
@@ -551,8 +558,13 @@ final class ProcessingCoordinator {
             // went unnoticed until Tuur hit it head-on (2026-08-28).
             if msg.isRefusal { lastError = msg.text } else { flash(msg.text) }
         } catch {
-            lastError = "Export failed: \(error.localizedDescription)"
-            flash((error as? LocalizedError)?.errorDescription ?? "Export failed")
+            // A gate refusal thrown by the write path is a REFUSAL, in the shared words; any
+            // other throw is a failed write.
+            if let e = error as? VaultExporter.ExportError {
+                lastError = ExportOutcomeCopy.refusal(e.failure, device: .mac).text
+            } else {
+                lastError = ExportOutcomeCopy.failed(error).text
+            }
         }
     }
 
