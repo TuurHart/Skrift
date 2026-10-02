@@ -787,7 +787,7 @@ struct MemoDetailView: View {
             // whichever device you pressed it on. `noVault`/nil have no engine outcome behind
             // them (the gate refused before the writer ran), so they stay here.
             guard let report = try coordinator.publishReportIfEligible(memo) else {
-                exportNotice = "This note isn't eligible to export right now."
+                exportNotice = ExportOutcomeCopy.notEligible.text
                 return
             }
             // The engine's own outcome (written / unchanged / backed off / moved / legacy vs
@@ -796,10 +796,10 @@ struct MemoDetailView: View {
             if let outcome = report.vaultOutcome {
                 say(outcome, assetCount: report.assetCount)
             } else {
-                exportNotice = "The vault folder couldn't be opened — pick it again in Settings → Obsidian."
+                exportNotice = ExportOutcomeCopy.folderUnreadable(device: .ipad).text
             }
         } catch {
-            exportNotice = "Export failed: \(error.localizedDescription)"
+            exportNotice = ExportOutcomeCopy.failed(error).text
         }
     }
 

@@ -56,60 +56,48 @@ struct PublishCoordinator {
         )
     }
 
+    /// The ONE predicate (`ExportGate`, Q156): the first gate this memo fails right now, nil
+    /// when it may publish. The folder IS the consent, per destination: a note bound for the
+    /// portfolio needs the PORTFOLIO folder picked here, one bound for the vault needs the vault.
+    ///
+    /// Locked notes stay inside Skrift (the vault is plaintext .md on disk; locking never
+    /// deletes an already-published file, the lock flow tells the user it's still there).
+    /// Rated-only unless the (test-only) `.all` policy says otherwise.
+    ///
+    /// PROCESSED ONLY (Tuur, 2026-08-11): "only the iPad and the Mac can do that AFTER they
+    /// processed the note." A vault note is a polished note — the raw ramble stays inside
+    /// Skrift. `isProcessed`, NOT `hasContent` (2026-08-26): the question is whether a pass
+    /// RAN, not whether it produced words. A note the model had nothing to say about was
+    /// stranded here forever — refused with "Process this note first", and pressing Process
+    /// did the identical nothing. The Mac never had this bug: its own button reads a step flag
+    /// that `BatchRunner` sets `.done` on empty input.
+    ///
+    /// The Mac's two-versions hold (`EditConflictHold`) is deliberately NOT asked here: it is
+    /// Mac-only (D139 does not require it on the iPad) — see the `ExportGate` table.
+    func gateFailure(_ memo: Memo) -> ExportGate.Failure? {
+        var facts = ExportGate.Facts(
+            memo: memo,
+            folderConfigured: memo.destination.isPortfolio ? portfolioConfigured() : obsidianEnabled(),
+            processed: enhancementProvider(memo.id)?.isProcessed == true)
+        if policy() == .all { facts.rated = true }
+        return ExportGate.check(facts, device: .ipad)
+    }
+
     /// Whether this memo should publish to Obsidian right now.
     func shouldPublish(_ memo: Memo) -> Bool {
-        // The folder IS the consent, per destination: a note bound for the portfolio needs the
-        // PORTFOLIO folder picked here, and one bound for the vault needs the vault.
-        guard memo.destination.isPortfolio ? portfolioConfigured() : obsidianEnabled() else { return false }
-        guard memo.deletedAt == nil else { return false }
-        // Locked notes stay inside Skrift — the vault is plaintext .md on disk.
-        // (Locking never deletes an already-published file; the lock flow tells
-        // the user it's still in the vault.)
-        guard !memo.locked else { return false }
         if isMacPaired() && !publishWhenPaired() { return false }   // Mac owns export when paired
-        if policy() == .importantOnly && !NoteConsent.isRated(memo) { return false }
-        // Needs some content to be worth a file.
-        let hasBody = !(memo.transcript ?? "").isEmpty || !(memo.annotationText ?? "").isEmpty
-        guard hasBody || (memo.title?.isEmpty == false) else { return false }
-        // PROCESSED ONLY (Tuur, 2026-08-11): "only the iPad and the Mac can do that
-        // AFTER they processed the note." A vault note is a polished note — the raw
-        // ramble stays inside Skrift. This is also what the Mac has always done: its
-        // primary button reads "Process" until the enhancement exists and only then
-        // becomes "Export to Obsidian", so requiring it here makes the two agree.
-        //
-        // `isProcessed`, NOT `hasContent` (2026-08-26): the question is whether a pass
-        // RAN, not whether it produced words. A note the model had nothing to say about
-        // was stranded here forever — refused with "Process this note first", and
-        // pressing Process did the identical nothing. The Mac never had this bug: its
-        // own button reads a step flag that `BatchRunner` sets `.done` on empty input.
-        return enhancementProvider(memo.id)?.isProcessed == true
+        return gateFailure(memo) == nil
     }
 
     /// Why `shouldPublish` would refuse this memo right now, in the user's words — nil
-    /// when it would publish. Lives BESIDE the gate so the two lists can't drift: every
-    /// guard in `shouldPublish` has one line here, in the same order. Exists because the
+    /// when it would publish. The predicate is `gateFailure` (`ExportGate`, shared with the
+    /// Mac) and the words are `ExportOutcomeCopy.refusal`, so neither can drift. Exists because the
     /// iPad's chrome Export button ran the gate SILENTLY (Tuur, 2026-08-18: "i clicked
     /// the export to obsidian button on ipad. nothing happened" — no vault was configured
     /// on that device, and nothing said so).
     func exportRefusal(_ memo: Memo) -> String? {
-        if memo.destination.isPortfolio, !portfolioConfigured() {
-            return "No portfolio folder is set on this device yet. Pick one in Settings → Destinations."
-        }
-        if !memo.destination.isPortfolio, !obsidianEnabled() {
-            return "No vault folder is set on this device yet. Pick one in Settings → Obsidian."
-        }
-        if memo.deletedAt != nil { return "This note is in Recently Deleted." }
-        if memo.locked { return "Locked notes stay inside Skrift — the vault is plain text on disk." }
         if isMacPaired() && !publishWhenPaired() { return "The Mac owns Obsidian export while paired." }
-        if policy() == .importantOnly && !NoteConsent.isRated(memo) {
-            return "Rate this note first — unrated notes never leave Skrift."
-        }
-        let hasBody = !(memo.transcript ?? "").isEmpty || !(memo.annotationText ?? "").isEmpty
-        if !(hasBody || (memo.title?.isEmpty == false)) { return "There's nothing to export yet." }
-        if enhancementProvider(memo.id)?.isProcessed != true {
-            return "Process this note first — the vault gets the polished note, not the raw one."
-        }
-        return nil
+        return gateFailure(memo).map { ExportOutcomeCopy.refusal($0, device: .ipad).text }
     }
 
     /// Publish one memo if eligible; nil when the gate excludes it.

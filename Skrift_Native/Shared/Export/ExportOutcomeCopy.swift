@@ -31,6 +31,53 @@ enum ExportOutcomeCopy {
         var isRefusal: Bool { stickiness == .sticky }
     }
 
+    // MARK: - Refusals before the engine runs (Q156)
+
+    /// The sentence for each gate `ExportGate.check` can fail, the SAME words on both devices;
+    /// only the pointer to where Settings lives follows the device. Always sticky: a refusal
+    /// stays until dismissed and names the FIRST failing gate (C194).
+    static func refusal(_ failure: ExportGate.Failure, device: ExportGate.Device) -> Message {
+        let text: String
+        switch failure {
+        case .noPortfolioFolder:
+            text = "No portfolio folder is set on this device yet. Pick one in Settings → Destinations."
+        case .noVaultFolder:
+            let place = device == .mac ? "Settings → Vault & author" : "Settings → Obsidian"
+            text = "No vault folder is set on this device yet. Pick one in \(place)."
+        case .trashed:
+            text = "This note is in Recently Deleted."
+        case .locked:
+            text = "Locked notes stay inside Skrift — the vault is plain text on disk. "
+                 + "Unlock the note to export it."
+        case .twoVersions:
+            text = "This note has two versions. Pick one to export it."
+        case .unrated:
+            text = "Rate this note first — unrated notes never leave Skrift."
+        case .nothingToExport:
+            text = "There's nothing to export yet."
+        case .unprocessed:
+            text = "Process this note first — the vault gets the polished note, not the raw one."
+        }
+        return .init(text: text, stickiness: .sticky)
+    }
+
+    /// A pick exists but the folder can't be opened (stale bookmark, drive gone).
+    static func folderUnreadable(device: ExportGate.Device) -> Message {
+        let place = device == .mac ? "Settings → Vault & author" : "Settings → Obsidian"
+        return .init(text: "The vault folder couldn't be opened — pick it again in \(place).",
+                     stickiness: .sticky)
+    }
+
+    /// The gate passed a moment ago and the publish path still declined (the note changed
+    /// under the press).
+    static let notEligible = Message(text: "This note isn't eligible to export right now.",
+                                     stickiness: .sticky)
+
+    /// The write threw.
+    static func failed(_ error: Error) -> Message {
+        .init(text: "Export failed: \(error.localizedDescription)", stickiness: .sticky)
+    }
+
     /// The ONE name rule: the stem of the file the engine wrote or refused (Q117 — the iPad
     /// quoted the note's display title, the Mac the file stem, so one outcome read two ways).
     static func noteName(forRelativePath rel: String) -> String {
