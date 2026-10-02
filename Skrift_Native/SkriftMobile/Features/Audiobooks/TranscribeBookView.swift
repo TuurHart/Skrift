@@ -118,11 +118,11 @@ struct TranscribeBookView: View {
 
     private var guidance: some View {
         VStack(alignment: .leading, spacing: 9) {
-            row("bolt.fill", "Runs on battery — best overnight on a charger for a full book.")
+            row("bolt.fill", TranscribeBookCopy.runsOnBattery)
             row("arrow.clockwise", "Resumes where it left off if interrupted.")
             row("rectangle.portrait.and.arrow.right", "Leave any time — it keeps running.")
             if job.phase == .pausedUnplugged {
-                row("battery.25", "Paused — the battery is below 20%. Resumes when you plug in.", tint: .skAmber)
+                row("battery.25", TranscribeBookCopy.pausedLowBattery, tint: .skAmber)
             }
             if case .failed(let why) = job.phase {
                 row("exclamationmark.triangle", "Stopped: \(why)", tint: .skAmber)
@@ -165,7 +165,7 @@ struct TranscribeBookView: View {
                 case .pausedUnplugged where isThisBook:
                     secondaryButton("Pause", id: "transcribe-book-pause") { job.pauseByUser() }
                 default:
-                    primaryButton(job.progress > 0.001 ? "Resume transcribing" : "Start transcribing",
+                    primaryButton(TranscribeBookCopy.startLabel(hasProgress: job.progress > 0.001),
                                   id: "transcribe-book-start") { job.start(book: book) }
                 }
             }

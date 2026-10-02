@@ -286,7 +286,7 @@ struct NoteProperties: View {
         // Image / Text / File / Apple Note) — plus the extras this surface shows:
         // the book title for an audiobook quote, and the provenance for a capture.
         let base = file.sourceTypeLabel
-        if let book = file.bookCapture { return "\(base) · \(book.title)" }
+        if let book = file.bookCapture { return SharedCopy.quoteChip(bookTitle: book.title) }
         if file.sourceType == .capture {
             let metaObj = (try? JSONSerialization.jsonObject(with: file.audioMetadataJSON ?? Data())) as? [String: Any]
             let sourceStr = (metaObj?["source"] as? String).map { " · \($0)" } ?? " · phone"

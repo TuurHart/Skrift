@@ -416,13 +416,13 @@ struct ReadAlongView: View {
                 .padding(.bottom, 4)
             Text("Listen now, read along later")
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.skText)
-            Text("Transcribe this book on-device to follow the words as they're read. Runs while you listen — a few minutes.")
+            Text("Transcribe this book on-device to follow the words as they're read. \(TranscribeBookCopy.runsOnBattery)")
                 .font(.system(size: 12.5)).foregroundStyle(Color.skTextDim)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             Button(action: onTranscribe) {
                 HStack(spacing: 7) {
                     Image(systemName: "text.book.closed").font(.system(size: 13, weight: .semibold))
-                    Text("Transcribe for read-along").font(.system(size: 13, weight: .semibold))
+                    Text(TranscribeBookCopy.start).font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16).padding(.vertical, 10)

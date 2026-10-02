@@ -188,3 +188,25 @@ enum PolishPrompts {
         return (trimmed.isEmpty || trimmed == fallback) ? nil : trimmed
     }
 }
+
+/// The three prompt knobs, in the ONE order both apps list them (Q187, row setexp-47:
+/// Copy-edit, Summary, Title — the phone's order) with the one label each.
+enum PolishPromptKind: CaseIterable {
+    case copyEdit, summary, title
+
+    var label: String {
+        switch self {
+        case .copyEdit: return "Copy-edit prompt"
+        case .summary: return "Summary prompt"
+        case .title: return "Title prompt"
+        }
+    }
+
+    var defaultText: String {
+        switch self {
+        case .copyEdit: return PolishPrompts.copyEdit
+        case .summary: return PolishPrompts.summary
+        case .title: return PolishPrompts.title
+        }
+    }
+}

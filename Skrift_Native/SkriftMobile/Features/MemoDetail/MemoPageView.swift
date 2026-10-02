@@ -1309,6 +1309,15 @@ struct MemoPageView: View {
         if let w = memo.metadata?.weather {
             chips.append(MetaChip(text: "\(w.temperature)°", symbol: "cloud.sun.fill"))
         }
+        // Q187 (books-109): a quote note carries the Mac's two extra chips — the book
+        // ("Audiobook quote · <title>") and the length — in the Mac's order.
+        if memo.isBookCapture, let title = memo.metadata?.bookTitle?.trimmingCharacters(in: .whitespaces) {
+            chips.append(MetaChip(text: SharedCopy.quoteChip(bookTitle: title),
+                                  symbol: SourceKind.audiobookQuote.glyph))
+            if memo.duration > 0 {
+                chips.append(MetaChip(text: DurationFormat.label(seconds: memo.duration), symbol: "waveform"))
+            }
+        }
         // Q85: no daypart chip — the mock's chips row is date · place · weather.
         return chips
     }

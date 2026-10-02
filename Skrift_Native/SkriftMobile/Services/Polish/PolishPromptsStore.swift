@@ -99,14 +99,4 @@ enum PolishPromptsStore {
     }
 }
 
-enum PolishPromptKind: CaseIterable {
-    case copyEdit, summary, title
-
-    var label: String {
-        switch self {
-        case .copyEdit: return "Copy-edit prompt"
-        case .summary: return "Summary prompt"
-        case .title: return "Title prompt"
-        }
-    }
-}
+// PolishPromptKind (the order + labels) lives in Shared/Pipeline/PolishPrompts.swift (Q187).

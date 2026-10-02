@@ -187,9 +187,10 @@ struct SettingsView: View {
             }
             section("Enhancement") {
                 textRow("Model (HuggingFace repo)", \.enhancementModelRepo)
-                promptRow("Copy-edit prompt", \.prompts.copyEdit, default: PolishPrompts.copyEdit)
-                promptRow("Title prompt", \.prompts.title, default: PolishPrompts.title)
-                promptRow("Summary prompt", \.prompts.summary, default: PolishPrompts.summary)
+                // One order and label set with the iPad (PolishPromptKind, Q187).
+                ForEach(PolishPromptKind.allCases, id: \.self) { kind in
+                    promptRow(kind.label, Self.promptKey(kind), default: kind.defaultText)
+                }
             }
             section("Transcription") {
                 languageRow
@@ -387,6 +388,14 @@ struct SettingsView: View {
                         .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
                 }
             }
+        }
+    }
+
+    private static func promptKey(_ kind: PolishPromptKind) -> WritableKeyPath<AppSettings, String> {
+        switch kind {
+        case .copyEdit: return \.prompts.copyEdit
+        case .summary: return \.prompts.summary
+        case .title: return \.prompts.title
         }
     }
 
