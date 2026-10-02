@@ -18,7 +18,7 @@ extension IngestService {
 
     /// A dropped `.txt`: the file's text IS the body of a text capture, no document kept. An
     /// oversized, non-UTF-8 or blank file stays a document capture, as on the phone.
-    func ingestTextCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
+    func ingestTextCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let body = await Task.detached(priority: .userInitiated) { () -> String? in
             guard let data = try? Data(contentsOf: url) else { return nil }
             return SharedTextFile.body(of: data)
@@ -34,8 +34,9 @@ extension IngestService {
     /// A dropped document: copied under the capture's `files/` (the Mac opens the real file),
     /// and a PDF's embedded text goes in `sharedContent.text` so it is searchable. A scanned
     /// PDF has no text and stays findable by its name.
-    func ingestDocumentCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
-        let data = try await Task.detached(priority: .userInitiated) { try Data(contentsOf: url) }.value
+    func ingestDocumentCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+        // An unreadable file is REPORTED as skipped (ImportReport), not thrown past the rest of the drop.
+        guard let data = await Task.detached(priority: .userInitiated, operation: { try? Data(contentsOf: url) }).value else { return nil }
         let ext = url.pathExtension.lowercased()
         let mime = ext == "pdf" ? "application/pdf" : (ext == "txt" ? "text/plain" : "application/octet-stream")
         return try await makeCapture(

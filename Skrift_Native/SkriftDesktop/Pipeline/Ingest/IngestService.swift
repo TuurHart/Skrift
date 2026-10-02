@@ -80,8 +80,8 @@ struct IngestService: Sendable {
         var importReport: ImportReport {
             var r = ImportReport(created: created.count - failed.count)
             for url in skipped {
-                r.addSkipped(url.lastPathComponent,
-                             reasons[url] ?? (FileManager.default.fileExists(atPath: url.path)
+                r.addSkipped(url.isFileURL ? url.lastPathComponent : url.absoluteString,
+                             reasons[url] ?? (!url.isFileURL ? ImportReport.notAWebLink : FileManager.default.fileExists(atPath: url.path)
                                 ? ImportReport.skipReason(forName: url.lastPathComponent, onMac: true)
                                 : ImportReport.vanished))
             }
@@ -178,7 +178,7 @@ struct IngestService: Sendable {
             // Q136: a web link dragged in from a browser is a link capture, not a file.
             if Self.isWebURL(url) {
                 if let pf = try await ingestLink(url, into: context) { report.created.append(pf) }
-                else { report.skipped.append(url) }
+                else { report.skipped.append(url); report.reasons[url] = ImportReport.notAWebLink }
                 continue
             }
             var isDir: ObjCBool = false
@@ -194,6 +194,8 @@ struct IngestService: Sendable {
                 report.add(pf)
             } else {
                 report.skipped.append(url)
+                // With the document door open a PDF only lands here when it could not be read.
+                if acceptsDocuments, Self.importKind(of: url) == .document { report.reasons[url] = ImportReport.unreadable }
             }
         }
         try context.save()
