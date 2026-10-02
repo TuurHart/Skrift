@@ -115,7 +115,7 @@ struct JournalSidePane: View {
     private func dayRows(_ date: Date) -> some View {
         let dayMemos = LookbackProvider.memos(for: memos, onDay: date)
         if dayMemos.isEmpty {
-            Text("Nothing recorded this day.")
+            Text(SharedCopy.reviewEmptyDay)
                 .font(.system(size: 12))
                 .foregroundStyle(Color.skTextFaint)
         } else {
@@ -189,7 +189,7 @@ struct JournalSidePane: View {
                     HStack(spacing: 4) {
                         Image(systemName: "xmark")
                             .font(.system(size: 9, weight: .semibold))
-                        Text("back to calendar")
+                        Text(SharedCopy.backVerb)
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(Color.skTextFaint)

@@ -38,9 +38,9 @@ struct WayOutView: View {
                 Color.skBg.ignoresSafeArea()
                 if total == 0 {
                     ContentUnavailableView(
-                        "Nothing is fading",
+                        SharedCopy.wayOutEmptyTitle,
                         systemImage: "leaf",
-                        description: Text("Quiet notes start fading \(MemoLifecycle.fadeAfterDays) days after you last touch them.")
+                        description: Text(SharedCopy.wayOutEmptyBody)
                     )
                     .accessibilityIdentifier("wayout-empty")
                 } else {
@@ -101,7 +101,7 @@ struct WayOutView: View {
 
     private var list: some View {
         List {
-            Text("Quiet notes leave on their own when their clock runs out — Bring back rescues one at any point.")
+            Text(SharedCopy.wayOutIntro)
                 .font(.system(size: 11.5))
                 .foregroundStyle(Color.skTextFaint)
                 .listRowBackground(Color.clear)
@@ -119,7 +119,7 @@ struct WayOutView: View {
                             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                     }
                 } header: {
-                    SectionLabel("STILL VISIBLE")
+                    SectionLabel(SharedCopy.wayOutFadingLabel.uppercased())
                 }
             }
             if !deleted.isEmpty {
@@ -134,9 +134,9 @@ struct WayOutView: View {
                             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                     }
                 } header: {
-                    SectionLabel("RECENTLY DELETED")
+                    SectionLabel(SharedCopy.wayOutDeletedLabel.uppercased())
                 } footer: {
-                    Text("Deleted notes are kept for \(TrashPolicy.retentionDays) days, then removed for good — the clock only starts once you've opened the app with them here.")
+                    Text(SharedCopy.wayOutFooter)
                         .font(.system(size: 11.5))
                         .foregroundStyle(Color.skTextFaint)
                 }
@@ -441,7 +441,7 @@ private struct WayOutPeekSheet: View {
                 }
             }
             if runs.isEmpty {
-                Text("No transcript.")
+                Text(SharedCopy.peekNoTranscript)
                     .font(.system(size: 14.5))
                     .foregroundStyle(Color.skTextDim)
                     .frame(maxWidth: .infinity, alignment: .leading)

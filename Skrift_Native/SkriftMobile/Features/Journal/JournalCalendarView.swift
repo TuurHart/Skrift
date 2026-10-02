@@ -74,7 +74,7 @@ struct JournalCalendarView: View {
                 .textCase(.uppercase)
                 .padding(.leading, 4)
             if dayMemos.isEmpty {
-                Text("Nothing recorded this day.")
+                Text(SharedCopy.reviewEmptyDay)
                     .font(.system(size: 12))
                     .foregroundStyle(Color.skTextFaint)
                     .padding(.leading, 4)

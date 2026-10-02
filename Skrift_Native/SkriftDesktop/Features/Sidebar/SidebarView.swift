@@ -350,7 +350,7 @@ struct SidebarView: View {
         } label: {
             HStack(spacing: 6) {
                 Circle().fill(Theme.destructive).frame(width: 9, height: 9)
-                Text("Record").lineLimit(1)
+                Text(SharedCopy.recordVerb).lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .semibold))
             .foregroundStyle(Theme.destructive)
@@ -474,7 +474,7 @@ struct SidebarView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "play.fill").font(.system(size: 10))
-                Text("Process")
+                Text(SharedCopy.processVerb)
                 if pendingCount > 0 {
                     Text("\(pendingCount)")
                         .font(.system(size: 11))
@@ -801,10 +801,10 @@ struct SidebarView: View {
             .contentShape(Rectangle())
             .onTapGesture { openInPane(memo) }
             .contextMenu {
-                Button(memo.locked ? "Unlock" : "Lock") { toggleLock(memo) }
+                Button(NoteMenuItem.lockItem(isLocked: memo.locked).label) { toggleLock(memo) }
                 Button("Open") { openInPane(memo) }
                 Divider()
-                Button("Delete", role: .destructive) { deleteQuiet(memo) }
+                Button(NoteMenuItem.delete.label, role: .destructive) { deleteQuiet(memo) }
             }
             .accessibilityIdentifier("quiet-memo-row")
     }
@@ -929,9 +929,9 @@ struct SidebarView: View {
         VStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.5))
-            Text("No matches").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            Text(SharedCopy.noMatchesTitle).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
             if !model.searchText.isEmpty {
-                Text("Nothing matches “\(model.searchText)”.")
+                Text(SharedCopy.noMatchesBody(model.searchText))
                     .font(.system(size: 11.5)).foregroundStyle(Theme.textMuted)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }
@@ -946,8 +946,8 @@ struct SidebarView: View {
         VStack(spacing: 10) {
             Image(systemName: "tray.and.arrow.down")
                 .font(.system(size: 26)).foregroundStyle(Theme.textMuted.opacity(0.5))
-            Text("No memos yet").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textSecondary)
-            Text("Drop a voice memo here, click + \(SharedCopy.importVerb) above, or sync from your phone.")
+            Text(SharedCopy.emptyLibraryTitle).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            Text(SharedCopy.emptyLibraryBody)
                 .font(.system(size: 11.5)).foregroundStyle(Theme.textMuted)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
         }
@@ -970,13 +970,9 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 6) {
             if let label = rs.loadingLabel {
                 HStack {
-                    Text("Loading " + label)
+                    Text(rs.loadingFraction.map(SharedCopy.processingDownload) ?? SharedCopy.processingLoading(label))
                         .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
                     Spacer()
-                    if let f = rs.loadingFraction {
-                        Text("\(Int(f * 100))%")
-                            .font(.system(size: 11).monospacedDigit()).foregroundStyle(Theme.textSecondary)
-                    }
                 }
                 progressTrack(rs.loadingFraction)
             } else {
@@ -1042,12 +1038,12 @@ struct SidebarView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            pillButton("Process", fg: .white, bg: Theme.accent) {
+            pillButton(SharedCopy.processVerb, fg: .white, bg: Theme.accent) {
                 let ids = Array(model.selection)
                 model.selection.removeAll()
                 Task { await coordinator.process(fileIDs: ids, context: ctx) }
             }
-            pillButton("Delete", fg: Theme.destructive, bg: Theme.destructive.opacity(0.15)) { deleteSelected() }
+            pillButton(NoteMenuItem.delete.label, fg: Theme.destructive, bg: Theme.destructive.opacity(0.15)) { deleteSelected() }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -1090,7 +1086,7 @@ struct SidebarView: View {
         if targets.count > 1 {
             let pending = targets.filter { coordinator.needsProcessing($0) }
             if !pending.isEmpty {
-                Button("Process \(pending.count)") { Task { await coordinator.process(fileIDs: pending.map(\.id), context: ctx) } }
+                Button("\(SharedCopy.processVerb) \(pending.count)") { Task { await coordinator.process(fileIDs: pending.map(\.id), context: ctx) } }
             }
             let exportable = targets.filter { $0.steps.enhance == .done }
             if !exportable.isEmpty {
@@ -1099,12 +1095,12 @@ struct SidebarView: View {
                 }
             }
             Divider()
-            Button("Delete \(targets.count)", role: .destructive) {
+            Button("\(NoteMenuItem.delete.label) \(targets.count)", role: .destructive) {
                 deleteFiles(targets); model.selection.removeAll()
             }
         } else {
             if coordinator.needsProcessing(f) {
-                Button("Process") { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
+                Button(SharedCopy.processVerb) { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
             }
             // Re-transcribe re-runs ASR from the audio, which would DESTROY a
             // speaker-attributed transcript's turns (the phone never uploads the
@@ -1123,32 +1119,31 @@ struct SidebarView: View {
             }
             if f.steps.enhance == .done {
                 let isConversation = f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript)
-                Menu("Redo") {
-                    Button("Title") { Task { await coordinator.redo(.title, for: f, context: ctx) } }
+                Menu(NoteMenuItem.redo.label) {
+                    Button(NoteRedoItem.title.label) { Task { await coordinator.redo(.title, for: f, context: ctx) } }
                     // Copy-edit strips the `**Name:**` turn prefixes from a conversation
                     // — hidden for diarized memos (they stay verbatim, like the phone).
                     if !isConversation {
-                        Button("Copy-edit") { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
+                        Button(NoteRedoItem.copyEdit.label) { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
                     }
-                    Button("Summary") { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
+                    Button(NoteRedoItem.summary.label) { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
                 }
                 Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") {
                     Task { await coordinator.export(f, context: ctx) }
                 }
             }
             Divider()
-            Button("Reveal in Finder") { revealInFinder(f) }
+            Button(NoteMenuItem.revealInFinder.label) { revealInFinder(f) }
             if f.steps.export == .done, let p = f.exported, !p.isEmpty {
-                Button("Open in Obsidian") { openInObsidian(p) }
-            }
-            Menu("Copy") {
-                Button("Transcript") { copyText(f.transcript ?? "") }
-                Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName, knownPeople: NamesStore.shared.livePeople())) }
+                Button(NoteMenuItem.openInObsidian.label) { openInObsidian(p) }
             }
             // Locked note: copying leaks the gated content — unlock in the note view first.
-            .disabled(LockGate.shared.isLocked(f))
+            Button(NoteMenuItem.copyTranscript.label) { copyText(f.transcript ?? "") }
+                .disabled(LockGate.shared.isLocked(f))
+            Button(NoteMenuItem.copyMarkdown.label) { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName, knownPeople: NamesStore.shared.livePeople())) }
+                .disabled(LockGate.shared.isLocked(f))
             Divider()
-            Button("Delete", role: .destructive) { deleteFiles([f]) }
+            Button(NoteMenuItem.delete.label, role: .destructive) { deleteFiles([f]) }
         }
     }
 

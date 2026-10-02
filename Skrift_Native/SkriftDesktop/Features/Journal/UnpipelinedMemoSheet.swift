@@ -168,7 +168,7 @@ struct UnpipelinedMemoSheet: View {
                 }
             }
             if runs.isEmpty {
-                Text("No transcript yet.")
+                Text(SharedCopy.peekNoTranscript)
                     .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -216,7 +216,7 @@ struct UnpipelinedMemoSheet: View {
             }
             Spacer(minLength: 8)
             if memo.deletedAt == nil {
-                Text("to Recently Deleted · 14 days to undo")
+                Text(SharedCopy.peekUndoLine)
                     .font(.system(size: 10)).foregroundStyle(Theme.textMuted)
             }
         }
