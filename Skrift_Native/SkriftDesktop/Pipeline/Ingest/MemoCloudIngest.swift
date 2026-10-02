@@ -59,6 +59,9 @@ enum MemoCloudIngest {
             // (`MirroredNoteFields`). `adopt` rather than `pull` because this is FIRST
             // contact: tags in particular must not be wiped by an empty phone list.
             for field in MirroredNoteFields.all { _ = field.adopt(memo, pf) }
+            // The phone's name decisions (C81, D20): the row's first link already honours them
+            // only if they are on it before the sanitise step runs.
+            NameResolutionsMirror.pull(memo, into: pf)
         }
         return pf
     }

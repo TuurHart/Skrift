@@ -1345,8 +1345,8 @@ struct SuggestionPopover: View {
                         tint: .accent) { onPick(c) }
             }
             Divider().overlay(Theme.hairline.opacity(0.08)).padding(.vertical, 6)
-            NameRow(symbol: "plus", title: "New person…", tint: .muted, action: onNew)
-            NameRow(symbol: "minus", title: "Leave as plain text", tint: .muted, action: onPlain)
+            NameRow(symbol: "plus", title: NameActionLabel.newPerson, tint: .muted, action: onNew)
+            NameRow(symbol: "minus", title: NameActionLabel.keepPlain, tint: .muted, action: onPlain)
         }
         .padding(11).frame(width: 270).background(Theme.surfaceHover)
     }
@@ -1378,9 +1378,9 @@ struct LinkedNamePopover: View {
             }
             .padding(.leading, 2).padding(.bottom, 9)
 
-            NameRow(symbol: "link.badge.minus", title: "Unlink — just a side-mention", tint: .primary, action: onUnlink)
+            NameRow(symbol: "link.badge.minus", title: NameActionLabel.unlink, tint: .primary, action: onUnlink)
             if !others.isEmpty {
-                NameRow(symbol: "arrow.left.arrow.right", title: "Change person…", tint: .primary,
+                NameRow(symbol: "arrow.left.arrow.right", title: NameActionLabel.changePerson, tint: .primary,
                         chevron: changing ? "chevron.down" : "chevron.right") { changing.toggle() }
                 if changing {
                     ForEach(others.prefix(8), id: \.self) { o in

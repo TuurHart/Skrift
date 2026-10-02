@@ -122,6 +122,8 @@ enum MemoCloudUpdate {
             if field.recompiles { contentChanged = true } else { metaChanged = true }
             why.append(field.name)
         }
+        // The note's name decisions (C81, D20) — the links reach the body, so recompile.
+        if NameResolutionsMirror.pull(memo, into: pf) { contentChanged = true; why.append("nameResolutions") }
 
         // The flat OCR search text — derived, not a mirrored field.
         let ocr = MemoCloudIngest.ocrText(for: memo)
