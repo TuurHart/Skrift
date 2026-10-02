@@ -197,6 +197,7 @@ struct SettingsView: View {
                 toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync, defaultOn: true,
                           help: "Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. This is the only phone↔Mac transport: with it off, the Mac neither picks up your phone's memos nor sends its polish back.")
             }
+            section(RetrievalGate.Copy.settingTitle) { connectionsSection }
             section("Names · \(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
@@ -253,6 +254,51 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
+    }
+
+    // ── Connections consent (Q161) ─────────────────────────
+    /// The Mac's twin of the phone's Settings switch: same name, same copy, same states
+    /// (`RetrievalGate.Copy`). OFF withdraws consent: sweeps stop and the panel,
+    /// search-by-meaning and the journal rail hide; the model stays on disk.
+    @ViewBuilder private var connectionsSection: some View {
+        let svc = ConnectionsIndexService.shared
+        let on = svc.isEnabled
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(RetrievalGate.Copy.settingTitle).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                Spacer()
+                if interactive {
+                    Toggle("", isOn: Binding(
+                        get: { svc.isEnabled },
+                        set: { svc.setConsent($0, SharedStore.container.mainContext) }
+                    ))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+                    .accessibilityIdentifier("setting-connections")
+                } else {
+                    Text(on ? "On" : "Off").font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+                }
+            }
+            Text(RetrievalGate.Copy.gateBody(device: "Mac"))
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            if let f = svc.downloadFraction {
+                Text(f >= 0.999 ? RetrievalGate.Copy.preparingTitle : RetrievalGate.Copy.downloadingTitle)
+                    .font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
+                if f < 0.999 {
+                    Text(RetrievalGate.Copy.downloadingSub(fraction: f))
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                }
+            } else if on, let p = svc.sweepProgress {
+                Text(RetrievalGate.Copy.indexingTitle).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
+                Text("\(p.done) of \(p.total) notes")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            } else if on, let err = svc.lastError {
+                Text(err).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            } else if !on && svc.isModelDownloaded {
+                Text("Model downloaded · index paused")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            }
+        }
     }
 
     // ── Section card ────────────────────────────────────────

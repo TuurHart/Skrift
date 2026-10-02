@@ -35,6 +35,26 @@ enum RetrievalGate: Equatable {
         return .ready
     }
 
+    /// What flipping the consent switch must DO (Q161): the Mac used to only ever turn it
+    /// on, so consent could not be withdrawn. Pure so both Settings surfaces and the
+    /// tests share one rule.
+    enum ConsentAction: Equatable {
+        /// Set the flag, fetch the model if missing, then sweep.
+        case enable
+        /// Clear the flag: sweeps stop and every semantic surface hides. The model and
+        /// the on-disk index stay, so re-enabling is instant.
+        case withdraw
+        case none
+    }
+
+    static func consentAction(wasEnabled: Bool, nowEnabled: Bool) -> ConsentAction {
+        switch (wasEnabled, nowEnabled) {
+        case (false, true): return .enable
+        case (true, false): return .withdraw
+        default: return .none
+        }
+    }
+
     /// The failure line (C110, R58): a READY surface with no rows whose last
     /// lookup or sweep FAILED says "Connections unavailable" + the error, never
     /// "No connections yet". nil = show the honest state (rows, or empty).
@@ -51,13 +71,21 @@ enum RetrievalGate: Equatable {
         /// Mac note toolbar): a plain WORD — no ◨ glyph (it hid the meaning) and
         /// no count (capped at 7 it reads "7" forever ⇒ zero signal; Tuur
         /// 2026-07-24). Quiet → accent while the panel is up.
-        static let summonLabel = "Connections"
+        static let summonLabel = featureName
+
+        /// THE name of the feature everywhere it is named: the Settings switch on
+        /// phone, iPad and Mac, the summon word, and the gate's CTA (Q161 — it used
+        /// to be "Semantic journal index" in Settings and three other phrasings in
+        /// the panel).
+        static let featureName = "Connections"
+        /// The Settings switch's label (same word as the panel).
+        static let settingTitle = featureName
 
         static func gateBody(device: String) -> String {
             "Related notes, threads, and search by meaning — not just keywords. Runs fully on this \(device); nothing leaves the device. The language model is a one-time \(modelMB) MB download."
         }
         static let gateTitle = "Find connections between your notes"
-        static let gateCTA = "Turn on Connections"
+        static let gateCTA = "Turn on \(featureName)"
         static let gateFootnote = "Downloads EmbeddingGemma · \(modelMB) MB"
 
         static let downloadingTitle = "Downloading model…"
