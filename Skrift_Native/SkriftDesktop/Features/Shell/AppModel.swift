@@ -82,7 +82,7 @@ final class AppModel {
     /// Single source of truth for both the rows and the shift-click range order.
     func visible(_ files: [PipelineFile]) -> [PipelineFile] {
         let f = listFilter
-        return f.sort(f.fileRows(files), by: sort)
+        return f.sort(f.fileRows(files), by: sort, title: { $0.queueTitle })
     }
 
     /// Where a ⇧-click range starts (`ListSelection`); moves on plain and ⌘ clicks only.

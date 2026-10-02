@@ -799,7 +799,7 @@ struct SidebarView: View {
     private var entries: [SidebarEntry] {
         var out: [SidebarEntry] = queueRowFiles.map { .file($0) }
         out.append(contentsOf: visibleMemoRows.map { .memo($0) })
-        return model.listFilter.sort(out, by: model.sort)
+        return model.listFilter.sort(out, by: model.sort, title: { $0.title })
     }
 
     private func quietMemoRow(_ memo: Memo) -> some View {
@@ -1333,4 +1333,14 @@ extension NoteCardStyle {
         // near-transparent wash meant to blend into the old white sidebar).
         surface: Theme.surface,
         border: Theme.hairline.opacity(0.16))
+}
+
+extension SidebarEntry {
+    /// The Title-sort key. Locked: the placeholder-safe title, never the hidden first line.
+    var title: String {
+        switch self {
+        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
+        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
+        }
+    }
 }

@@ -108,7 +108,7 @@ final class MacQuietRowChipsTests: XCTestCase {
         let m = memo(daysOld: 1)
         EditConflictWatch.shared.set([m.id])
         defer { EditConflictWatch.shared.set([]) }
-        XCTAssertEqual(MacQuietCard.model(for: m, selected: false, backlinked: []).statusPill, .twoVersions)
+        XCTAssertEqual(MacQuietCard.model(for: m, selected: false, backlinked: [], conflicts: EditConflictWatch.shared.ids).statusPill, .twoVersions)
     }
 
     // MARK: a stranded rated memo keeps its honest waiting line and its own balls

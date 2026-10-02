@@ -87,18 +87,18 @@ struct MacListFilter {
         sort == .newest ? addedAt(f) : f.uploadedAt
     }
 
-    func sort(_ files: [PipelineFile], by sort: SidebarSort) -> [PipelineFile] {
+    func sort(_ files: [PipelineFile], by sort: SidebarSort, title: (PipelineFile) -> String) -> [PipelineFile] {
         files.sorted { a, b in
             switch sort {
             case .newest: return sortDate(a, sort: sort) > sortDate(b, sort: sort)
             case .oldest: return sortDate(a, sort: sort) < sortDate(b, sort: sort)
-            case .title:  return a.queueTitle.localizedCaseInsensitiveCompare(b.queueTitle) == .orderedAscending
+            case .title:  return title(a).localizedCaseInsensitiveCompare(title(b)) == .orderedAscending
             }
         }
     }
 
     /// The two row kinds interleaved by the active sort.
-    func sort(_ entries: [SidebarEntry], by sort: SidebarSort) -> [SidebarEntry] {
+    func sort(_ entries: [SidebarEntry], by sort: SidebarSort, title: (SidebarEntry) -> String) -> [SidebarEntry] {
         func key(_ e: SidebarEntry) -> Date {
             switch e {
             case .file(let f): return sortDate(f, sort: sort)
@@ -108,7 +108,7 @@ struct MacListFilter {
         switch sort {
         case .newest: return entries.sorted { key($0) > key($1) }
         case .oldest: return entries.sorted { key($0) < key($1) }
-        case .title:  return entries.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case .title:  return entries.sorted { title($0).localizedCaseInsensitiveCompare(title($1)) == .orderedAscending }
         }
     }
 
@@ -227,13 +227,6 @@ enum SidebarEntry: Identifiable {
             return NotesListModel.groupDate(recordedAt: f.uploadedAt, lastEditedAt: f.uploadedAt, byEditTime: false)
         case .memo(let m):
             return NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false)
-        }
-    }
-    var title: String {
-        switch self {
-        // Locked: the sort key is the placeholder-safe title, never the hidden first line.
-        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
-        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
         }
     }
 }

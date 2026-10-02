@@ -4,6 +4,7 @@ import SwiftData
 /// Q105 (C70, C115; parity audit list-sidebar-46/51/58/102): the Mac sidebar shows ONE row per
 /// note id, offers the phone's Recorded / Added date picker, sorts Newest on the note's ADDED
 /// date, and keys day headers on the shared `NotesListModel.groupDate`.
+@MainActor
 final class MacSidebarOrderTests: XCTestCase {
 
     private let day: TimeInterval = 86_400
@@ -70,9 +71,9 @@ final class MacSidebarOrderTests: XCTestCase {
         let (om, of) = note("old", rec: 0, added: 30)
         let (nm, nf) = note("new", rec: 10, added: 10)
         let filter = MacListFilter(chip: .all, addedAtByID: MacListFilter.addedDates(memos: [om, nm]))
-        XCTAssertEqual(filter.sort([nf, of], by: .newest).map(\.filename), ["old.m4a", "new.m4a"],
+        XCTAssertEqual(filter.sort([nf, of], by: .newest, title: { $0.filename }).map(\.filename), ["old.m4a", "new.m4a"],
                        "Newest = most recently ADDED first")
-        XCTAssertEqual(filter.sort([nf, of], by: .oldest).map(\.filename), ["old.m4a", "new.m4a"],
+        XCTAssertEqual(filter.sort([nf, of], by: .oldest, title: { $0.filename }).map(\.filename), ["old.m4a", "new.m4a"],
                        "Oldest stays on the recorded date (the phone's .oldest)")
     }
 
@@ -81,7 +82,7 @@ final class MacSidebarOrderTests: XCTestCase {
         let quiet = Memo(audioFilename: "q.m4a", recordedAt: at(20), transcript: "quiet",
                          transcriptStatus: .done, createdAt: at(20))
         let filter = MacListFilter(chip: .all, addedAtByID: MacListFilter.addedDates(memos: [om, quiet]))
-        let sorted = filter.sort([.memo(quiet), .file(of)], by: .newest)
+        let sorted = filter.sort([.memo(quiet), .file(of)], by: .newest, title: { _ in "" })
         guard case .file = sorted[0] else { return XCTFail("the added-day-30 rated row leads under Newest") }
     }
 

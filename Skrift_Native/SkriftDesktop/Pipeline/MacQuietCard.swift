@@ -10,7 +10,7 @@ import Foundation
 enum MacQuietCard {
     @MainActor
     static func model(for memo: Memo, selected: Bool, backlinked: Set<UUID>,
-                      conflicts: Set<UUID> = EditConflictWatch.shared.ids,
+                      conflicts: Set<UUID>,
                       now: Date = Date()) -> NoteCardModel {
         let stamp = MemoDate.label(memo.recordedAt)
         let conflicted = conflicts.contains(memo.id)
