@@ -184,7 +184,7 @@ struct ShareSheetView: View {
                 // question only applies on the voice-note route. A mixed
                 // bundle is ALWAYS one note (B3) — no chooser either.
                 if hasLongClip { booksChooser }
-                if payload.audioItems.count > 1, !(hasLongClip && sendToBooks), !isMixedBundle {
+                if AudioImportChoice.needsChoice(clipCount: payload.audioItems.count), !(hasLongClip && sendToBooks), !isMixedBundle {
                     chooser
                 }
             }
@@ -389,15 +389,15 @@ struct ShareSheetView: View {
     private var chooser: some View {
         HStack(spacing: 8) {
             choiceCard(
-                title: "One note",
-                subtitle: "Clips stitched in order — one story, one transcript",
+                title: AudioImportChoice.oneNote.title(clipCount: payload.audioItems.count),
+                subtitle: AudioImportChoice.oneNote.subtitle,
                 selected: combineIntoOne
             ) { combineIntoOne = true }
             .accessibilityIdentifier("capture-choice-combine")
 
             choiceCard(
-                title: "\(payload.audioItems.count) notes",
-                subtitle: "Each voice note becomes its own memo",
+                title: AudioImportChoice.separateNotes.title(clipCount: payload.audioItems.count),
+                subtitle: AudioImportChoice.separateNotes.subtitle,
                 selected: !combineIntoOne
             ) { combineIntoOne = false }
             .accessibilityIdentifier("capture-choice-split")
@@ -689,8 +689,9 @@ struct ShareSheetView: View {
     /// Save label re-states the multi-audio choice live (signed mock):
     /// "Save as one note" ⇄ "Save N notes".
     private var saveLabel: String {
-        guard payload.isAudio, payload.audioItems.count > 1 else { return "Save to Skrift" }
-        return combineIntoOne ? "Save as one note" : "Save \(payload.audioItems.count) notes"
+        guard payload.isAudio, AudioImportChoice.needsChoice(clipCount: payload.audioItems.count) else { return "Save to Skrift" }
+        let choice: AudioImportChoice = combineIntoOne ? .oneNote : .separateNotes
+        return choice.confirmTitle(clipCount: payload.audioItems.count)
     }
 
     private var saveButton: some View {
