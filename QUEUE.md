@@ -831,7 +831,7 @@ do: Phone speaker naming relabels, then `VoiceEnroller.enroll` adds a person onl
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PersonCreationRulesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P14
 
-### Q114 [auto] (todo) one display-title ladder in Shared (C25): derived title, capture title, placeholder, link-picker rows
+### Q114 [auto] (doing) one display-title ladder in Shared (C25): derived title, capture title, placeholder, link-picker rows
 spec: C25 C239 C115
 needs: -
 gate+: yes
@@ -1155,7 +1155,7 @@ do: Phone `convertPhotoMarkers` drops dangling markers and uses `profile.imageMa
 check: `grep -rqE "class ExportImageMarkerParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportImageMarkerParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P55
 
-### Q155 [auto] (todo) export: one CompilerInput builder (voice, body source, link stems) on both exporters
+### Q155 [auto] (doing) export: one CompilerInput builder (voice, body source, link stems) on both exporters
 spec: C196 C57 R37
 needs: Q153 Q142
 gate+: yes
@@ -1195,7 +1195,7 @@ do: Phone iCloud footer lists notes, names, custom words and per-book audiobooks
 check: `grep -rqE "class SettingsCopySharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SettingsCopySharedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P60
 
-### Q160 [auto] (doing) names: delete a person confirms first and pushes at once; the phone Names list refreshes on sync
+### Q160 [auto] (done) names: delete a person confirms first and pushes at once; the phone Names list refreshes on sync
 spec: R79 C266 R67
 needs: -
 gate+: yes
@@ -1401,7 +1401,7 @@ do: Rows note-body-15 -19, note-chrome-01 -02. One shared token file (e.g. `Skri
 check: `test -f Skrift_Native/Shared/UI/NoteLook.swift && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q186 [auto] (doing) import bundling and audio export follow one rule on phone and Mac
+### Q186 [auto] (tuur) import bundling and audio export follow one rule on phone and Mac
 spec: C68 C239 C240
 needs: -
 gate+: yes
@@ -2610,3 +2610,7 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:43 Q168 -> done — gate pass @4f272318
 - 2026-10-02 21:43 Q257 added
 - 2026-10-02 21:43 Q257 -> tuur — awaiting sitting
+- 2026-10-02 21:49 Q114 -> doing — worker out
+- 2026-10-02 21:55 Q186 -> tuur — hand-merge: wt/Q186 @03747cdd (agent-a4b84bff486dfc6c2); protected MacMultiAudioImportTests.testMixedBundleMergesTheClipsAndKeepsTheRest (:155-171) must change to created.count == 1 + annotation 'Buy milk' (C68 reverses the old gap). NEW synced Memo.includeAudioInExport -> CloudKit prod schema deploy at promotion.
+- 2026-10-02 21:56 Q155 -> doing — worker out (opus)
+- 2026-10-02 21:56 Q160 -> done — gate pass @3780d440
