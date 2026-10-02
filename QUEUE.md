@@ -895,7 +895,7 @@ do: `PlayerBar` has `macTransportOrder` / density but its only call site is `Pla
 check: `test $(ls plan/reads/note-p-player/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh DurationFormatTests && grep -rqE "class DurationFormatTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P22
 
-### Q122 [auto] (doing) Mac header chips read the shared date label and the shared source labels
+### Q122 [auto] (done) Mac header chips read the shared date label and the shared source labels
 spec: C78 C115 C240
 needs: Q138
 gate+: yes
@@ -2699,3 +2699,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:27 Q136 -> doing — worker out
 - 2026-10-02 23:31 Q169 -> doing — worker out
 - 2026-10-02 23:33 Q137 -> done — gate pass @c9aa9161
+- 2026-10-02 23:36 Q122 -> done — gate pass @d6777391
