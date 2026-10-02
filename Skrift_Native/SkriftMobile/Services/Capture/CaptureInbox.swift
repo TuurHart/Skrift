@@ -286,18 +286,10 @@ enum CaptureInbox {
     /// and an unstable sort scrambled the provider order (device round 1). Rules:
     /// any missing date, or all dates within 2 s of each other → keep the
     /// provider order (it IS the chat order); otherwise sort by (date, index).
+    /// Q134: the rule lives in Shared (`FilenameDate.chronologicalOrder`) so the Mac's
+    /// `MixedBundle.ordered` keeps the same 2 s window.
     static func stableClipOrder(dates: [Date?]) -> [Int] {
-        let identity = Array(dates.indices)
-        guard dates.count > 1 else { return identity }
-        let known = dates.compactMap { $0 }
-        guard known.count == dates.count,
-              let min = known.min(), let max = known.max(),
-              max.timeIntervalSince(min) >= 2
-        else { return identity }
-        return identity.sorted {
-            let a = dates[$0]!, b = dates[$1]!
-            return a == b ? $0 < $1 : a < b
-        }
+        FilenameDate.chronologicalOrder(dates)
     }
 
     // MARK: - Extension diagnostics (App Group file → devlog on drain)

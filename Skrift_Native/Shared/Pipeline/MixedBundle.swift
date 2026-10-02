@@ -35,17 +35,12 @@ enum MixedBundle {
         var pictures: [Placement]
     }
 
-    /// Bundle order: by filename date when EVERY item has one (chat order — C68, C70), else the
-    /// order the bundle arrived in. All-or-nothing on purpose: one undated file in the middle
-    /// would otherwise be sorted against dates it cannot be compared to. Stable either way.
+    /// Bundle order: by date when EVERY item has one (chat order — C68, C70), else the order the
+    /// bundle arrived in. All-or-nothing on purpose: one undated file in the middle would
+    /// otherwise be sorted against dates it cannot be compared to. Dates all within 2 s are one
+    /// moment and keep the arrival order too (Q134, the phone's old clip rule). Stable either way.
     static func ordered(_ items: [Item]) -> [Item] {
-        guard items.count > 1, items.allSatisfy({ $0.date != nil }) else { return items }
-        return items.enumerated()
-            .sorted { a, b in
-                let da = a.element.date!, db = b.element.date!
-                return da != db ? da < db : a.offset < b.offset
-            }
-            .map(\.element)
+        FilenameDate.chronologicalOrder(items.map(\.date)).map { items[$0] }
     }
 
     /// Order the bundle, then place every picture by the clip time that precedes it.

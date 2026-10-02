@@ -92,10 +92,10 @@ struct IngestService: Sendable {
             let items: [MixedBundle.Item] = localURLs.compactMap { url in
                 let key = url.standardizedFileURL
                 if clipSet.contains(key) {
-                    return .init(url: url, kind: .clip, date: Self.dateFromFilename(url.lastPathComponent))
+                    return .init(url: url, kind: .clip, date: Self.importDate(of: url, kind: .clip))
                 }
                 if bundling, pictureSet.contains(key) {
-                    return .init(url: url, kind: .picture, date: Self.dateFromFilename(url.lastPathComponent))
+                    return .init(url: url, kind: .picture, date: Self.importDate(of: url, kind: .picture))
                 }
                 return nil
             }
@@ -205,7 +205,7 @@ struct IngestService: Sendable {
     /// already text, so there is nothing to transcribe.
     private func ingestPictureNote(_ pictures: [URL], into context: ModelContext) async throws -> (PipelineFile?, [URL]) {
         let ordered = MixedBundle.ordered(pictures.map {
-            MixedBundle.Item(url: $0, kind: .picture, date: Self.dateFromFilename($0.lastPathComponent))
+            MixedBundle.Item(url: $0, kind: .picture, date: Self.importDate(of: $0, kind: .picture))
         })
         let id = UUID().uuidString
         let folderName = "capture_\(id)"
@@ -218,9 +218,8 @@ struct IngestService: Sendable {
             try? FileManager.default.removeItem(at: folder)
             return (nil, failed)
         }
-        let recorded = ordered.compactMap(\.date).min()
-            ?? (try? ordered[0].url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
-            ?? Date()
+        // C74: the earliest picture's ladder date (EXIF → filename → file date), else now.
+        let recorded = ordered.compactMap(\.date).min() ?? Date()
         let pf = PipelineFile(id: id, filename: folderName, path: folder.path, size: 0, sourceType: .capture,
                               uploadedAt: recorded)
         pf.transcript = MixedBundle.pictureOnlyBody(count: written)
@@ -264,9 +263,11 @@ struct IngestService: Sendable {
             throw error
         }
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
-        let recorded = Self.dateFromFilename(filename)
-            ?? (try? first.resourceValues(forKeys: [.creationDateKey]))?.creationDate
-            ?? Date()
+        // Q134 / C124: the FIRST clip's own bundle date (its name, then its file date) — the same
+        // value it was ordered by and that its manifest entry carries. No embedded date: the
+        // stitched file's is the stitch moment (ArrivalPath never backfills a merged row), and the
+        // phone's `importAudioClipsAsync` no longer lets the first clip's override it either.
+        let recorded = Self.importDate(of: first, kind: .clip) ?? Date()
         // C124 / D35: each clip's start in the merged audio + its own message time, kept beside
         // the audio. The transcript pass turns the starts into paragraph breaks; the times are
         // never shown in the body.
@@ -284,7 +285,7 @@ struct IngestService: Sendable {
     private func writeClipManifest(_ clips: [URL], into folder: URL) async throws {
         try await Self.offMain {
             let manifest = MixedBundle.clipManifest(
-                clips: clips, dates: { Self.dateFromFilename($0.lastPathComponent) },
+                clips: clips, dates: { Self.importDate(of: $0, kind: .clip) },
                 clipDuration: { Self.audioSeconds(of: $0) })
             let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted]
             try enc.encode(manifest).write(to: folder.appendingPathComponent(Self.clipManifestName))
@@ -337,9 +338,7 @@ struct IngestService: Sendable {
         // else the source file's creation date (right for fresh memos), else now. The
         // app then backfills the EMBEDDED recording date (AudioMetadata) when present,
         // which is correct even for copied/ported Apple recordings.
-        let recorded = Self.dateFromFilename(filename)
-            ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
-            ?? Date()
+        let recorded = FilenameDate.ladder(embedded: nil, fileAt: url) ?? Date()
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
@@ -399,10 +398,7 @@ struct IngestService: Sendable {
         // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
         // it), then a filename date, then the file's creation date, then now.
         let embedded = await Task.detached(operation: { Self.embeddedRecordingDate(of: url) }).value
-        let recorded = embedded
-            ?? Self.dateFromFilename(filename)
-            ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
-            ?? Date()
+        let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
 
         // sourceType .audio: it's now an audio file. Keep the original (video) filename
         // so the title isn't "original" and it's recognizable in the queue.
@@ -457,6 +453,16 @@ struct IngestService: Sendable {
 
     /// Filename date (C70) — the ONE ladder lives in `Shared/Pipeline/FilenameDate.swift`.
     static func dateFromFilename(_ name: String) -> Date? { FilenameDate.date(from: name) }
+
+    /// One bundle item's C70 date, the phone's `CaptureInboxDrainer.sharePlan` rungs exactly
+    /// (Q134): a clip by its name, then its file date (its embedded date only dates the NOTE,
+    /// below); a picture by EXIF, then its name, then its file date (C74).
+    static func importDate(of url: URL, kind: MixedBundle.Kind) -> Date? {
+        switch kind {
+        case .clip: return FilenameDate.ladder(embedded: nil, fileAt: url)
+        case .picture: return ImageDates.ladderDate(at: url)
+        }
+    }
 
     // MARK: - Video helpers (synchronous AVFoundation — host-less testable)
 
