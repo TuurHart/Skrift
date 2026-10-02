@@ -818,7 +818,7 @@ struct MemoPageView: View {
                 speakerSlots: SpeakerTurnStyle.slots(forParsedNames: turns.map(\.name), people: people),
                 tapToSeek: tapToSeek,
                 onTag: startAssigning(_:_:),
-                onSeek: seekToWord,
+                onSeekTime: seek(toTime:),
                 onEditText: editTurnText,
                 imageURL: turnImageURL
             )
@@ -909,9 +909,9 @@ struct MemoPageView: View {
         memo.imageURL(markerIndex: n)
     }
 
-    /// Karaoke tap-to-seek: jump playback to the tapped word.
-    func seekToWord(_ i: Int) {
-        guard let t = Karaoke.seekTime(forWord: i, in: timings) else { return }
+    /// Conversation karaoke tap-to-seek: jump playback to the time the shared `KaraokeTrack`
+    /// gave the tapped word.
+    func seek(toTime t: Double) {
         player.seek(to: t)
         if !player.isPlaying { player.play() }
     }

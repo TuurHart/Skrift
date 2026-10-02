@@ -50,9 +50,7 @@ struct SpeakerTurnsView: View {
         return offs
     }
 
-    static func spokenWordCount(_ text: String) -> Int {
-        text.split(whereSeparator: { $0.isWhitespace }).filter { !$0.hasPrefix("[[img_") }.count
-    }
+    static func spokenWordCount(_ text: String) -> Int { ConversationKaraoke.spokenWords(text).count }
 
     var body: some View {
         let slots = slotForTurn
@@ -213,5 +211,39 @@ struct SpeakerTurnsView: View {
                     .onTapGesture { onSeek(gi) }
             }
         }
+    }
+}
+
+/// Which word is playing in a CONVERSATION: the same `KaraokeTrack` the monologue and the Mac
+/// ask, over ALL turns' spoken words in order (Q183 / C239; the phone used to read
+/// `Karaoke.activeWordIndex`, word N = timing N with no alignment). A word's index is global
+/// across turns, `[[img_NNN]]` markers excluded (they are not spoken).
+enum ConversationKaraoke {
+    static func spokenWords(_ text: String) -> [String] {
+        text.split(whereSeparator: { $0.isWhitespace }).map(String.init).filter { !$0.hasPrefix("[[img_") }
+    }
+
+    static func displayedWords(turns: [SpeakerTranscript.Turn]) -> [String] {
+        turns.flatMap { spokenWords($0.text) }
+    }
+
+    static func track(turns: [SpeakerTranscript.Turn], timings: [WordTiming], duration: Double) -> KaraokeTrack {
+        KaraokeTrack(displayedWords: displayedWords(turns: turns), timings: timings, duration: duration)
+    }
+}
+
+/// Holds the conversation's track between 20 Hz ticks: the turns' words are split once, and the
+/// track is rebuilt only when the turns, the timings or the duration change.
+final class ConversationKaraokeCache {
+    private var turns: [SpeakerTranscript.Turn] = []
+    private var words: [String] = []
+    private let tracks = KaraokeTrackCache()
+
+    func track(turns newTurns: [SpeakerTranscript.Turn], timings: [WordTiming], duration: Double) -> KaraokeTrack {
+        if newTurns != turns {
+            turns = newTurns
+            words = ConversationKaraoke.displayedWords(turns: newTurns)
+        }
+        return tracks.track(displayedWords: words, timings: timings, duration: duration)
     }
 }
