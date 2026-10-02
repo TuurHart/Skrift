@@ -746,11 +746,14 @@ struct SidebarView: View {
         let exact = Set(shown.map(\.id))
         let memos = Dictionary(effectiveCloudMemos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return relatedIDs.compactMap { id -> SidebarEntry? in
+            // Q101 (C91/C161): a semantic hit is the note's words too — a locked, not-yet-unlocked
+            // note never surfaces through Related.
             if let f = files.first(where: { $0.id == id.uuidString }) {
+                if LockGate.shared.isLocked(f) { return nil }
                 let e = SidebarEntry.file(f)
                 return exact.contains(e.id) ? nil : e
             }
-            guard let m = memos[id], m.deletedAt == nil else { return nil }
+            guard let m = memos[id], m.deletedAt == nil, !LockGate.shared.isLocked(m) else { return nil }
             let e = SidebarEntry.memo(m)
             return exact.contains(e.id) ? nil : e
         }

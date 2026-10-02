@@ -104,7 +104,7 @@ extension MemosListView {
 
 
     func matchesSearch(_ memo: Memo) -> Bool {
-        memo.matches(query: search)
+        memo.matches(query: search, unlockedThisSession: LockGate.shared.isUnlocked(memo.id.uuidString))
     }
 
     /// The rendered Related section: raw semantic hits minus exact matches,
@@ -112,7 +112,8 @@ extension MemosListView {
     /// threaded in from `derived`'s one-per-render `enhancedMemoIDs` build.
     func relatedDisplay(excluding exact: Set<UUID>, enhanced: Set<UUID>) -> [Memo] {
         guard !related.isEmpty else { return [] }
-        return related.filter { !exact.contains($0.id) && matchesFilter($0, enhanced: enhanced) }
+        // Q101 (C91/C161): a semantic hit is the note's words too — a hidden locked note never surfaces here.
+        return related.filter { !exact.contains($0.id) && !LockGate.shared.isLocked($0) && matchesFilter($0, enhanced: enhanced) }
     }
 
     /// Debounced semantic lookup for the current query (P8). Exact matches

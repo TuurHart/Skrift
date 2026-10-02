@@ -231,6 +231,17 @@ enum MemoShare {
         return "# \(title)\n\n\(cleaned)"
     }
 
+    /// What "Share note…" hands the share sheet (Q101, C161/C213): the markdown text and
+    /// the recording, but NOTHING for a locked note that hasn't been unlocked this session.
+    static func items(for memo: Memo, unlockedThisSession: Bool) -> [Any] {
+        guard NoteVisibility.contentVisible(locked: memo.locked, unlockedThisSession: unlockedThisSession) else { return [] }
+        var items: [Any] = [markdown(title: memo.title ?? memo.firstTranscriptLine, body: memo.transcript ?? "")]
+        if let url = memo.audioURL, FileManager.default.fileExists(atPath: url.path) {
+            items.append(url)
+        }
+        return items
+    }
+
     /// Spoken-word count — markers aren't words.
     static func wordCount(of transcript: String?) -> Int {
         guard let t = transcript else { return 0 }
