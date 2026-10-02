@@ -1008,7 +1008,7 @@ struct MemoPageView: View {
     /// The recording's first line (markers/speaker-prefix stripped) — the "From the
     /// recording" title option.
     var recordingFirstLine: String? {
-        memo.firstTranscriptLine.map { String($0.prefix(60)) }
+        NoteTitle.recordingLine(transcript: memo.transcript)
     }
 
     func summaryCard(_ summary: String) -> some View {

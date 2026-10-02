@@ -33,4 +33,22 @@ enum NoteTitle {
         }
         return head.trimmingCharacters(in: .whitespaces) + "…"
     }
+
+    /// Longest "From the recording" title option, in characters.
+    static let recordingLimit = 60
+
+    /// The "From the recording" title option, ONE rule for both apps (C181/C25): the first
+    /// non-empty line of the RAW transcript (markers / speaker prefixes stripped), cut to 60.
+    /// nil when there is no transcript text. Never reads a filename — a phone memo's file is
+    /// `memo_<uuid>.m4a`, which must never be offered as a title.
+    static func recordingLine(transcript: String?) -> String? {
+        guard let transcript else { return nil }
+        let line = NoteSnippet.plain(transcript)
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first(where: { !$0.isEmpty })
+        guard let line else { return nil }
+        let cut = String(clip(line).prefix(recordingLimit)).trimmingCharacters(in: .whitespaces)
+        return cut.isEmpty ? nil : cut
+    }
 }

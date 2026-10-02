@@ -33,9 +33,12 @@ struct NoteProperties: View {
     @State private var selectedTitle: TitleKind = .suggested
 
     private var suggested: String { (file.titleSuggested ?? "").trimmingCharacters(in: .whitespaces) }
-    private var original: String { SkriftFormat.cleanFilename(file.filename) }
+    /// C181: the first-transcript-line cut, the phone's "From the recording: …" — never the
+    /// filename (`memo_<uuid>.m4a` would be written as the title and synced).
+    private var original: String { MacTitleSuggestion.fromRecording(transcript: file.transcript) }
     private var showChooser: Bool {
-        file.steps.transcribe == .done && !suggested.isEmpty && !original.isEmpty && suggested != original
+        file.steps.transcribe == .done
+            && MacTitleSuggestion.showChooser(suggested: suggested, recording: original)
     }
 
     /// Q56/R90: `TagLibrary.counts` was a full `PipelineFile` fetch called TWICE
