@@ -611,7 +611,11 @@ struct SidebarView: View {
             if showDateStrip {
                 DateRangeStrip(style: style,
                                from: $model.dateFrom, to: $model.dateTo,
-                               fixedLabel: "Uploaded")
+                               // Q105: the phone's Recorded / Added picker, one shared strip.
+                               fieldLabels: MemoDateField.allCases.map(\.rawValue),
+                               fieldIndex: Binding(
+                                   get: { MemoDateField.allCases.firstIndex(of: model.dateField) ?? 0 },
+                                   set: { model.dateField = MemoDateField.allCases[$0] }))
             }
         }
     }
@@ -658,7 +662,7 @@ struct SidebarView: View {
                 // one flat "All" bucket instead.
                 ForEach(model.sort == .title
                         ? [(title: "", items: rows)]
-                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.date) }),
+                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.groupDate) }),
                         id: \.title) { group in
                     // Q95: the day header PINS at the top of the scroll like the phone's
                     // (`pinnedViews: [.sectionHeaders]` on the LazyVStack below). The header
@@ -797,16 +801,11 @@ struct SidebarView: View {
         model.listFilter.memoRows(memos: effectiveCloudMemos, files: files)
     }
 
-    /// One list, two row kinds, interleaved by the active sort.
+    /// One list, two row kinds, interleaved by the active sort (Newest = added date, Q105).
     private var entries: [SidebarEntry] {
         var out: [SidebarEntry] = queueRowFiles.map { .file($0) }
         out.append(contentsOf: visibleMemoRows.map { .memo($0) })
-        switch model.sort {
-        case .newest: out.sort { $0.date > $1.date }
-        case .oldest: out.sort { $0.date < $1.date }
-        case .title:  out.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-        }
-        return out
+        return model.listFilter.sort(out, by: model.sort, title: { $0.title })
     }
 
     private func quietMemoRow(_ memo: Memo) -> some View {
@@ -823,36 +822,12 @@ struct SidebarView: View {
             .accessibilityIdentifier("quiet-memo-row")
     }
 
+    /// Q107 (C115/D136/D135/C98): the quiet row's card comes from `MacQuietCard`, which follows
+    /// the phone's `MemoCard.cardModel` rule for rule (chips, 7-day fading line, no balls when
+    /// locked, "2 versions" pill). Quiet rows render dimmed (m2): quiet is not urgent.
     private func quietCardModel(_ memo: Memo, selected: Bool) -> NoteCardModel {
-        // Quiet rows render the SAME shared card, dimmed (m2): quiet ≠ urgent,
-        // the spine one-liner rides the stamp slot, no pill, no verbs.
-        // Locked ⇒ title + 🔒 and nothing else (C91/C161, R88) — still IN the list, dimmed.
-        if memo.locked {
-            return LockedRow.card(stamp: MemoDate.label(memo.recordedAt), title: LockedRow.title(for: memo),
-                                  selected: selected, quiet: true)
-        }
-        var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
-        m.quiet = true
-        // Unrated memos ARE 0 — three hollow balls, same readout as the phone's
-        // quiet rows (D135's "display-only balls on rows" applies here too).
-        m.balls = memo.locked ? nil : 0
-        // The card's stamp already prints the date — hand the quiet line WITHOUT
-        // its leading date (Tuur's first m2 eyeball catch, 2026-08-19), and WITHOUT
-        // duration (Q35: mocks/one-notes-list.html's "One list" tab — the shared
-        // `oneModel` — puts duration in the chip row for EVERY card, rated or not;
-        // it never lives in the line text).
-        // A RATED memo among the quiet rows is a stranded one (`WayOutRules.stranded`) —
-        // the ordinary quiet rows are all unrated. It gets the honest waiting line rather
-        // than the spine's "processes on next run", which it can't do without a row.
-        m.quietLine = NoteConsent.isRated(memo) ? WayOutRules.strandedLine(for: memo)
-                                                : WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
-        m.selected = selected
-        m.locked = memo.locked
-        // Q106 (C115): the same shared builder the rated rows and the phone call — title,
-        // quote, snippet, source / book / duration / place / tag chips (an unrated typed note
-        // wears its "Note" chip, a video its "Video" chip).
-        m.apply(NoteCardBuilder.content(for: memo.cardFacts()))
-        return m
+        MacQuietCard.model(for: memo, selected: selected, backlinked: backlinkedIDs,
+                           conflicts: EditConflictWatch.shared.ids)
     }
 
     /// Open an unrated memo in the DETAIL PANE, the way the iPad opens any note
@@ -909,7 +884,13 @@ struct SidebarView: View {
 
 
     private func refreshCloudMemos() {
-        defer { backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos) }
+        defer {
+            backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos)
+            // Q105: Newest + the Added filter read the memo's `addedAt` (a pipeline row carries
+            // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
+            let added = MacListFilter.addedDates(memos: effectiveCloudMemos)
+            if model.addedAtByID != added { model.addedAtByID = added }
+        }
         guard fixtureCloudMemos == nil else { return }   // snapshot fixtures: never open the real store
         guard let cloud = MemoCloudStore.container else { cloudMemos = []; return }
         // FRESH CONTEXT, not `mainContext` — the same trap `MemoCloudReconciler.reconcile`
@@ -1345,32 +1326,6 @@ private struct QueueRowView: View {
     }
 }
 
-/// One list, two row kinds (rated pipeline rows + quiet unrated memos).
-enum SidebarEntry: Identifiable {
-    case file(PipelineFile)
-    case memo(Memo)
-
-    var id: String {
-        switch self {
-        case .file(let f): return "pf-" + f.id
-        case .memo(let m): return "memo-" + m.id.uuidString
-        }
-    }
-    var date: Date {
-        switch self {
-        case .file(let f): return f.uploadedAt
-        case .memo(let m): return m.recordedAt
-        }
-    }
-    var title: String {
-        switch self {
-        // Locked: the sort key is the placeholder-safe title, never the hidden first line.
-        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
-        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
-        }
-    }
-}
-
 /// The Mac's colors for the shared m2 note card — Theme tokens mapped ONCE
 /// (the SignificanceStyle pattern; the iPad's twin lives in MemosListView).
 extension NoteCardStyle {
@@ -1384,4 +1339,14 @@ extension NoteCardStyle {
         // near-transparent wash meant to blend into the old white sidebar).
         surface: Theme.surface,
         border: Theme.hairline.opacity(0.16))
+}
+
+extension SidebarEntry {
+    /// The Title-sort key. Locked: the placeholder-safe title, never the hidden first line.
+    var title: String {
+        switch self {
+        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
+        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
+        }
+    }
 }

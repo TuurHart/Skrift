@@ -6,25 +6,7 @@ import Observation
 // Shared/Model/QueueFilter.swift — ONE label set shared with the iPad Notes
 // column, so a chip reads the same word on both apps.
 
-/// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`
-/// (the Mac queue has no "edited" notion and durations are strings, so the useful
-/// axes are recency + alphabetical).
-enum SidebarSort: CaseIterable {
-    case newest, oldest, title
-    /// Compact label for the inline sort control.
-    var short: String {
-        switch self {
-        case .newest: return "Newest"
-        case .oldest: return "Oldest"
-        case .title:  return "Title"
-        }
-    }
-    /// The next sort in the cycle (the inline control advances on tap).
-    var next: SidebarSort {
-        let all = Self.allCases
-        return all[(all.firstIndex(of: self).map { $0 + 1 } ?? 0) % all.count]
-    }
-}
+// `SidebarSort` + `SidebarEntry` live in Pipeline/MacListFilter.swift (host-less, Q105).
 
 /// UI state for the review surface: which note is open, the multi-selection, and
 /// the queue filter. Files themselves live in SwiftData (`@Query`), so this model
@@ -46,6 +28,10 @@ final class AppModel {
     /// iPad's Filter sheet (Tuur 2026-07-23: "add Date to the Mac"). nil = open.
     var dateFrom: Date?
     var dateTo: Date?
+    /// Q105: which date the range filters on (the phone's Recorded / Added picker).
+    var dateField: MemoDateField = .recorded
+    /// `Memo.addedAt` per note id, set by the sidebar next to its memo fetch (Newest sorts on it).
+    var addedAtByID: [String: Date] = [:]
     var dateFilterActive: Bool { dateFrom != nil || dateTo != nil }
 
     /// Multi-selection built with ⌘/⇧-click (native macOS list semantics).
@@ -88,21 +74,15 @@ final class AppModel {
     /// locked-quiet, fading search hits, Related rows), not just pipeline rows.
     var listFilter: MacListFilter {
         MacListFilter(chip: filter, query: searchText, from: dateFrom, to: dateTo,
+                      dateField: dateField, addedAtByID: addedAtByID,
                       isUnlocked: { LockGate.shared.isUnlocked($0) })
     }
 
-    /// The queue as displayed: filter → search → sort. Single source of truth for
-    /// both the rows and the shift-click range order.
+    /// The queue as displayed: filter → search → sort (Newest = the note's added date, Q105).
+    /// Single source of truth for both the rows and the shift-click range order.
     func visible(_ files: [PipelineFile]) -> [PipelineFile] {
-        listFilter.fileRows(files).sorted(by: sortComparator)
-    }
-
-    private func sortComparator(_ a: PipelineFile, _ b: PipelineFile) -> Bool {
-        switch sort {
-        case .newest: return a.uploadedAt > b.uploadedAt
-        case .oldest: return a.uploadedAt < b.uploadedAt
-        case .title:  return a.queueTitle.localizedCaseInsensitiveCompare(b.queueTitle) == .orderedAscending
-        }
+        let f = listFilter
+        return f.sort(f.fileRows(files), by: sort, title: { $0.queueTitle })
     }
 
     /// Where a ⇧-click range starts (`ListSelection`); moves on plain and ⌘ clicks only.

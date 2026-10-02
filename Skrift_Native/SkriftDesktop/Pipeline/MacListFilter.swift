@@ -10,6 +10,12 @@ struct MacListFilter {
     var query: String = ""
     var from: Date?
     var to: Date?
+    /// Q105: which date the range reads — the phone's Recorded / Added picker (C115).
+    var dateField: MemoDateField = .recorded
+    /// `Memo.addedAt` per note id. A `PipelineFile` carries only the recorded date
+    /// (`uploadedAt`), so the day a note entered Skrift comes from its `Memo` (a synced memo's
+    /// pipeline row shares its UUID). A row with no memo falls back to its recorded date.
+    var addedAtByID: [String: Date] = [:]
     /// Per-session unlock (`LockGate.shared.isUnlocked`) — injected so tests need no LocalAuthentication.
     var isUnlocked: (String) -> Bool = { _ in false }
 
@@ -41,16 +47,69 @@ struct MacListFilter {
         return chip == .all || chip == .notRated
     }
 
-    // MARK: - the shared rules
+    // MARK: - dates (Q105, C70/C115)
 
-    /// Chip + date range for a pipeline row (its date = `uploadedAt`, the day header's date).
-    func passesFilter(_ f: PipelineFile) -> Bool {
-        NotesListModel.passesFilter(inChip: inChip(f), date: f.uploadedAt, from: from, to: to)
+    /// The day a pipeline row entered Skrift (`Memo.addedAt` via its shared id).
+    func addedAt(_ f: PipelineFile) -> Date { addedAtByID[f.id] ?? f.uploadedAt }
+
+    /// `addedAt` per note id, from the one-row-per-id memo list the sidebar shows.
+    static func addedDates(memos: [Memo]) -> [String: Date] {
+        Dictionary(memos.map { ($0.id.uuidString, $0.addedAt) }, uniquingKeysWith: { a, _ in a })
     }
 
-    /// Chip + date range for a memo row (its date = `recordedAt`, the day header's date).
+    /// The date the range filter reads for a pipeline row under the picked field.
+    func filterDate(_ f: PipelineFile) -> Date {
+        NotesListModel.filterDate(field: dateField, recordedAt: f.uploadedAt, addedAt: addedAt(f))
+    }
+
+    /// The date the range filter reads for a memo row under the picked field.
+    func filterDate(_ m: Memo) -> Date {
+        NotesListModel.filterDate(field: dateField, recordedAt: m.recordedAt, addedAt: m.addedAt)
+    }
+
+    // MARK: - the shared rules
+
+    /// Chip + date range for a pipeline row (the Recorded / Added field the strip picked).
+    func passesFilter(_ f: PipelineFile) -> Bool {
+        NotesListModel.passesFilter(inChip: inChip(f), date: filterDate(f), from: from, to: to)
+    }
+
+    /// Chip + date range for a memo row (the Recorded / Added field the strip picked).
     func passesFilter(_ m: Memo) -> Bool {
-        NotesListModel.passesFilter(inChip: inChip(m), date: m.recordedAt, from: from, to: to)
+        NotesListModel.passesFilter(inChip: inChip(m), date: filterDate(m), from: from, to: to)
+    }
+
+    // MARK: - order (Q105)
+
+    /// What the list sorts on. Newest = the note's ADDED date (C70 "Recently added", the
+    /// phone's `.added`); Oldest = the recorded date (the phone's `.oldest`).
+    func sortDate(_ f: PipelineFile, sort: SidebarSort) -> Date {
+        sort == .newest ? addedAt(f) : f.uploadedAt
+    }
+
+    func sort(_ files: [PipelineFile], by sort: SidebarSort, title: (PipelineFile) -> String) -> [PipelineFile] {
+        files.sorted { a, b in
+            switch sort {
+            case .newest: return sortDate(a, sort: sort) > sortDate(b, sort: sort)
+            case .oldest: return sortDate(a, sort: sort) < sortDate(b, sort: sort)
+            case .title:  return title(a).localizedCaseInsensitiveCompare(title(b)) == .orderedAscending
+            }
+        }
+    }
+
+    /// The two row kinds interleaved by the active sort.
+    func sort(_ entries: [SidebarEntry], by sort: SidebarSort, title: (SidebarEntry) -> String) -> [SidebarEntry] {
+        func key(_ e: SidebarEntry) -> Date {
+            switch e {
+            case .file(let f): return sortDate(f, sort: sort)
+            case .memo(let m): return sort == .newest ? m.addedAt : m.recordedAt
+            }
+        }
+        switch sort {
+        case .newest: return entries.sorted { key($0) > key($1) }
+        case .oldest: return entries.sorted { key($0) < key($1) }
+        case .title:  return entries.sorted { title($0).localizedCaseInsensitiveCompare(title($1)) == .orderedAscending }
+        }
     }
 
     func matchesSearch(_ f: PipelineFile) -> Bool {
@@ -126,5 +185,48 @@ struct MacListFilter {
                 case .memo(let m): return passesFilter(m)
                 }
             })
+    }
+}
+
+/// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`
+/// (the Mac queue has no "edited" notion and durations are strings, so the useful
+/// axes are recency + alphabetical).
+enum SidebarSort: CaseIterable {
+    case newest, oldest, title
+    /// Compact label for the inline sort control.
+    var short: String {
+        switch self {
+        case .newest: return "Newest"
+        case .oldest: return "Oldest"
+        case .title:  return "Title"
+        }
+    }
+    /// The next sort in the cycle (the inline control advances on tap).
+    var next: SidebarSort {
+        let all = Self.allCases
+        return all[(all.firstIndex(of: self).map { $0 + 1 } ?? 0) % all.count]
+    }
+}
+
+/// One list, two row kinds (rated pipeline rows + quiet unrated memos).
+enum SidebarEntry: Identifiable {
+    case file(PipelineFile)
+    case memo(Memo)
+
+    var id: String {
+        switch self {
+        case .file(let f): return "pf-" + f.id
+        case .memo(let m): return "memo-" + m.id.uuidString
+        }
+    }
+    /// The date a day header keys on — the shared rule (`NotesListModel.groupDate`, Q97 / Q105),
+    /// the note's recorded date. The Mac has no "Recently edited" sort, so never the edit day.
+    var groupDate: Date {
+        switch self {
+        case .file(let f):
+            return NotesListModel.groupDate(recordedAt: f.uploadedAt, lastEditedAt: f.uploadedAt, byEditTime: false)
+        case .memo(let m):
+            return NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false)
+        }
     }
 }

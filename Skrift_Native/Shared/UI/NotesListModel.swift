@@ -5,7 +5,21 @@ import Foundation
 /// phone/iPad, `PipelineFile` + unrated `Memo` on the Mac) through these three
 /// shared shapes, so a chip count, a day-group key, or a pill's visibility rule
 /// can never mean something different on one device than another.
+/// Which date a date-range filter applies to (the Recorded / Added picker on both apps'
+/// `DateRangeStrip`, Q105 / C115).
+enum MemoDateField: String, CaseIterable, Identifiable {
+    case recorded = "Recorded"
+    case added = "Added"
+    var id: String { rawValue }
+}
+
 enum NotesListModel {
+
+    /// The date the range filter reads for one row under the picked field (Q105): the note's
+    /// content date (`recordedAt`) or the day it entered Skrift (`addedAt`, C70).
+    static func filterDate(field: MemoDateField, recordedAt: Date, addedAt: Date) -> Date {
+        field == .added ? addedAt : recordedAt
+    }
 
     /// One count per triage chip. `.all` never carries a count (D135: "All
     /// carries no number") — the caller only fills in the three that do.

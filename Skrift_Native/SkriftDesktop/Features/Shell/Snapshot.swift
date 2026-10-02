@@ -84,6 +84,10 @@ enum Snapshot {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderStrandedRow(to: p, scheme: light ? .light : .dark); exit(0) }
         }
+        if let p = path("-snapshot-quiet-rows") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderQuietRows(to: p, scheme: light ? .light : .dark); exit(0) }
+        }
         if let p = path("-snapshot-card-kinds") {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderCardKinds(to: p, scheme: light ? .light : .dark); exit(0) }
@@ -336,6 +340,46 @@ enum Snapshot {
             .preferredColorScheme(scheme)
             .modelContainer(container)
         hostPNG(view, size: NSSize(width: 292, height: 800), to: path)
+    }
+
+    /// Q107: the Mac's QUIET (unrated) rows through the real sidebar, one per rule the phone's
+    /// card follows: a calm tagged note with place + weather chips and a duration; one 25 days old
+    /// (inside the 7-day fading window, so the amber line shows); one 10 days old (no line);
+    /// a note with two versions (the pill); a locked note (title + lock, no balls).
+    /// `-snapshot-quiet-rows <path>` · add `-light` for the light theme.
+    @MainActor private static func renderQuietRows(to path: String, scheme: ColorScheme) {
+        func enc<T: Encodable>(_ v: T) -> Data { (try? JSONEncoder().encode(v)) ?? Data() }
+        let now = Date()
+        func ago(_ days: Double, hours: Double = 0) -> Date { now.addingTimeInterval(-(days * 24 + hours) * 3600) }
+        let calm = Memo(audioFilename: "a.m4a", duration: 83, recordedAt: ago(0, hours: 2), tags: ["daily", "harbour"],
+                        title: "Walk past the harbour", transcript: "Walked past the harbour, gulls everywhere.",
+                        transcriptStatus: .done,
+                        metadataData: enc(MemoMetadata(
+                            location: LocationInfo(latitude: 38.7, longitude: -9.1, placeName: "Lisbon"),
+                            weather: WeatherInfo(conditions: "Clear", temperature: 18, temperatureUnit: "C"))))
+        let fadingSoon = Memo(audioFilename: "b.m4a", duration: 40, recordedAt: ago(25), tags: ["idea"],
+                              title: "Fading soon", transcript: "An idea I never rated.", transcriptStatus: .done)
+        let older = Memo(audioFilename: "c.m4a", duration: 12, recordedAt: ago(10),
+                         title: "Ten days old", transcript: "Nothing to warn about yet.", transcriptStatus: .done)
+        let conflicted = Memo(audioFilename: "d.m4a", duration: 20, recordedAt: ago(1),
+                              title: "Edited on two devices", transcript: "Two versions of these words.",
+                              transcriptStatus: .done)
+        let locked = Memo(audioFilename: "e.m4a", duration: 30, recordedAt: ago(2),
+                          title: "Private thought", transcript: "hidden", transcriptStatus: .done)
+        locked.locked = true
+        // Arrived when recorded, so "Newest" (the added date) reads in the picture's order.
+        for m in [calm, fadingSoon, older, conflicted, locked] { m.createdAt = m.recordedAt }
+        EditConflictWatch.shared.set([conflicted.id])
+        defer { EditConflictWatch.shared.set([]) }
+        let coordinator = ProcessingCoordinator()
+        let view = SidebarView(model: AppModel(), files: [], coordinator: coordinator,
+                               session: fixtureSession(coordinator: coordinator),
+                               fixtureCloudMemos: [calm, conflicted, locked, older, fadingSoon])
+            .frame(width: 292, height: 900)
+            .padding(16)
+            .background(Theme.bg)
+            .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 292 + 32, height: 932), to: path)
     }
 
     /// Q106: one synthetic note of each kind (voice, video, audiobook quote, link, text, image,
