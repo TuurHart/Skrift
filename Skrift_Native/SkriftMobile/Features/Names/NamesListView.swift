@@ -26,6 +26,8 @@ struct NamesListView: View {
         }
         .sheet(isPresented: $showAdd) { AddPersonView { reload() } }
         .onAppear(perform: reload)
+        // A names reconcile merged people in/out (R67) — re-read, do not wait for the next appear.
+        .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)) { _ in reload() }
     }
 
     @ViewBuilder private var content: some View {

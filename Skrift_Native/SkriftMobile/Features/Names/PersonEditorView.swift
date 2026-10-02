@@ -32,6 +32,7 @@ struct PersonEditorView: View {
     @State private var showAddAlias = false
     @State private var newAlias = ""
     @State private var loaded = false
+    @State private var deleteConfirm = NameDeleteConfirm()
 
     private var isNew: Bool { canonical == nil }
     private var enrolled: Bool { PersonEditCore.isEnrolled(original) }
@@ -74,6 +75,7 @@ struct PersonEditorView: View {
             } message: {
                 Text("A spoken word that should be recognised as this person.")
             }
+            .deleteConfirmation($deleteConfirm) { deletePerson($0) }
         }
     }
 
@@ -156,7 +158,7 @@ struct PersonEditorView: View {
     }
 
     private var deleteButton: some View {
-        Button(role: .destructive, action: deletePerson) {
+        Button(role: .destructive) { if let canonical { deleteConfirm.request(canonical) } } label: {
             Text("Delete person")
                 .font(.system(size: 15))
                 .foregroundStyle(Color.skRed)
@@ -215,8 +217,9 @@ struct PersonEditorView: View {
         dismiss()
     }
 
-    private func deletePerson() {
-        if let canonical { store.delete(canonical: canonical) }
+    /// Runs only after the confirmation dialog's "Delete person" (R79).
+    private func deletePerson(_ canonical: String) {
+        store.delete(canonical: canonical)
         NamesCloudSync.run(NotesRepository.shared)   // push the tombstone to CloudKit now
         onDeleted()
         dismiss()

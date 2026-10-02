@@ -39,5 +39,8 @@ enum NamesCloudSync {
         let pruned = store.pruneOldTombstones()
         if pruned > 0 { DevLog.log("names: pruned \(pruned) old tombstone(s)") }
         repository.save()
+        // Open Names list / person card re-read the store (R67) — the sweep runs off a CloudKit
+        // import, so they have no other way to know the roster changed.
+        NamesSyncCore.notifyIfChanged(outcome)
     }
 }

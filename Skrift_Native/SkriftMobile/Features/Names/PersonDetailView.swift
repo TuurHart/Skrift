@@ -14,6 +14,7 @@ struct PersonDetailView: View {
     @State private var person: Person?
     @State private var showEnroll = false
     @State private var showEdit = false
+    @State private var deleteConfirm = NameDeleteConfirm()
     private let store = NamesStore.shared
 
     var body: some View {
@@ -35,7 +36,7 @@ struct PersonDetailView: View {
 
                     Spacer()
 
-                    Button(role: .destructive, action: deletePerson) {
+                    Button(role: .destructive) { deleteConfirm.request(canonical) } label: {
                         Label("Delete person", systemImage: "trash")
                             .font(.system(size: 15, weight: .semibold))
                             .frame(maxWidth: .infinity)
@@ -59,6 +60,9 @@ struct PersonDetailView: View {
             }
         }
         .onAppear(perform: load)
+        // A rename/delete arriving by sync re-reads the person (load() pops back if they are gone) — R67.
+        .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)) { _ in load() }
+        .deleteConfirmation($deleteConfirm) { deletePerson($0) }
         .sheet(isPresented: $showEnroll) {
             VoiceEnrollView(canonical: canonical,
                             displayName: person.map(NamesDisplay.name) ?? canonical) {
@@ -113,10 +117,36 @@ struct PersonDetailView: View {
         if person == nil { dismiss() }
     }
 
-    private func deletePerson() {
+    /// Runs only after the confirmation dialog's "Delete person" (R79). Pushes the tombstone
+    /// at once, like the editor's delete — it used to wait for the next sweep.
+    private func deletePerson(_ canonical: String) {
         store.delete(canonical: canonical)
+        NamesCloudSync.run(NotesRepository.shared)
         onChange()
         dismiss()
+    }
+}
+
+extension View {
+    /// Confirmation dialog in front of every phone "delete person" gesture (C266). `onDelete`
+    /// gets the canonical only after the user confirms; cancel / dismiss deletes nothing.
+    func deleteConfirmation(_ state: Binding<NameDeleteConfirm>,
+                            onDelete: @escaping (String) -> Void) -> some View {
+        confirmationDialog(
+            state.wrappedValue.pending.map(NameDeleteConfirm.title(for:)) ?? "",
+            isPresented: Binding(get: { state.wrappedValue.isPending },
+                                 set: { if !$0 { state.wrappedValue.cancel() } }),
+            titleVisibility: .visible,
+            presenting: state.wrappedValue.pending
+        ) { canonical in
+            Button(NameDeleteConfirm.confirmLabel, role: .destructive) {
+                if let c = state.wrappedValue.confirm() { onDelete(c) } else { onDelete(canonical) }
+            }
+            .accessibilityIdentifier("confirm-delete-person")
+            Button("Cancel", role: .cancel) { state.wrappedValue.cancel() }
+        } message: { _ in
+            Text(NameDeleteConfirm.message)
+        }
     }
 }
 
