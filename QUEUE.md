@@ -1092,7 +1092,7 @@ check: Tuur picked and SPEC C63/C148 follow.
 brief: C63/C148 want a video filed Inspiration / Idea / Project to keep its source movie as a SYNCED asset (≤ ~200 MB) exported from whichever device exports it. Today neither side does it: the Mac keeps every imported movie locally for any destination (`IngestService.swift:364-384`, stale comment at :355 still says 'NOT kept'), the phone keeps none and its share card says 'the video file itself isn't kept'; `MemoAsset.Kind` has no video kind, so it also needs a CloudKit schema deploy (capture-import-21, setexp-94). Choose: build the synced asset (schema deploy owed) or drop the plan and delete the Mac copy.
 source: plan/reads/parity-audit.md P47
 
-### Q147 [auto] (todo) book cover colour and name avatar colour are stable (no per-process hashValue)
+### Q147 [auto] (doing) book cover colour and name avatar colour are stable (no per-process hashValue)
 spec: C229 C115
 needs: -
 gate+: yes
@@ -1100,7 +1100,7 @@ do: `BookCoverView` picks 1 of 5 gradients with `abs(book.id.uuidString.hashValu
 check: `grep -rqE "class StableHashTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StableHashTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P48
 
-### Q148 [auto] (todo) Books: the shelf tile shows what the row shows, and the delete dialog does not say iPhone on an iPad
+### Q148 [auto] (doing) Books: the shelf tile shows what the row shows, and the delete dialog does not say iPhone on an iPad
 spec: C229 C218
 needs: -
 gate+: yes
@@ -1171,7 +1171,7 @@ do: iPad `shouldPublish` checks folder, trash, lock, rated, body/title, processe
 check: `grep -rqE "class ExportGateParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportGateParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P57
 
-### Q157 [auto] (todo) Mac polish prompt: blank falls back to the default, Reset to default, and a blank never syncs
+### Q157 [auto] (doing) Mac polish prompt: blank falls back to the default, Reset to default, and a blank never syncs
 spec: C28 C150
 needs: -
 gate+: yes
@@ -2548,3 +2548,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 19:08 Q182 -> doing — worker out
 - 2026-10-02 19:10 Q117 -> done — gate pass @b6b0648d
 - 2026-10-02 19:11 Q178 -> done — gate pass @8d8207e6
+- 2026-10-02 20:58 Q157 -> doing — worker out
+- 2026-10-02 20:58 Q147 -> doing — worker out
+- 2026-10-02 20:58 Q148 -> doing — worker out

@@ -1,4 +1,4 @@
-mode: PAUSED 2026-10-02 ~20:00 (Tuur turned the session off) — resume with /3-session from worktree session-3-f90c83, branch claude/skrift-parity-audit-133898.
+mode: overnight (resumed 2026-10-02 late by Tuur) — session worktree session-3-f90c83, branch claude/skrift-parity-audit-133898
 stop-when: queue.sh counts shows 0 todo and 0 doing
 interrupted mid-work (workers died with the session; their worktrees keep their commits — check each tree, finish or redispatch from its committed state, accept with bash plan/accept-chain.sh <id> <worktree-dir>):
   Q106 wt=agent-af440e78484fd1afe · Q153 wt=agent-acd7728db181ffbd2 · Q182 wt=agent-a69249f8ea205f50c (Q182 finished green — just accept)
