@@ -135,17 +135,20 @@ enum VaultExporter {
         var finalMarkdown = BodyV2Legacy.shown(markdown).text
         var imageCount = 0
         let imagesDir = pf.workingFolder?.appendingPathComponent("images")
-        if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path) {
-            let attDir = imageDestination(vaultURL: vaultURL, relativePath: relPath, profile: profile)
-            // Share-Wave-2 image captures inline photos as `[[img_NNN]]` markers in the
-            // annotation (same contract as recorded memos) → convert + copy exactly like
-            // memos. Legacy marker-less captures keep the copy-under-original-name path
-            // (their pinned `![[filename]]` embed references the original name).
-            if pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
-                (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown, id: id)
-            } else {
-                (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe, into: attDir, id: id)
-            }
+        let attDir = imageDestination(vaultURL: vaultURL, relativePath: relPath, profile: profile)
+        if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path),
+           pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
+            // Legacy marker-less captures keep the copy-under-original-name path (their
+            // pinned `![[filename]]` embed references the original name).
+            (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown, id: id)
+        } else if let imagesDir {
+            // Memos AND Share-Wave-2 captures carry `[[img_NNN]]` markers → the shared
+            // converter. Runs even with no `images/` folder: a dangling marker is dropped,
+            // never printed (C196).
+            (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe,
+                                                              into: attDir, id: id, profile: profile)
+        } else if finalMarkdown.contains("[[img_") {
+            (finalMarkdown, _) = profile.convertPictureMarkers(finalMarkdown, manifest: [], stem: safe)
         }
 
         // Apple-Note attachments: copy the note's `Attachments/` into the vault
@@ -209,44 +212,49 @@ enum VaultExporter {
         VaultName.stem(title: title, filename: filename)
     }
 
-    /// Replace `[[img_NNN]]` markers with `![[<safe>_NNN.ext]]` Obsidian embeds,
-    /// copying the matched image (by `img_NNN`/`_NNN.` name, else the NNN-th file)
-    /// into `attDir` under the new name. Returns the rewritten markdown + copy count.
+    /// Replace `[[img_NNN]]` markers with this profile's embeds of `<safe>_NNN.ext`
+    /// (`![[x]]` vault, `![](x)` portfolio) through the ONE shared converter
+    /// (`ExportProfile.convertPictureMarkers`, the phone's publisher uses it too), copying
+    /// each resolved picture into `attDir`. NNN resolves through the note's
+    /// `image_manifest.json` (the N-th entry, the same rule `NoteBody` renders with);
+    /// a folder written before manifests existed falls back to its sorted `images/`
+    /// listing. A marker with no entry, no file on disk, or a failed copy is DROPPED.
+    /// Returns the rewritten markdown + copy count.
     /// `id` disambiguates a name collision with a file this device doesn't own (C58) —
     /// same ownership rule the markdown lane already applies (C54): never a blind
     /// `removeItem`, a foreign occupant gets left alone and ours lands under a suffix.
     static func convertImageMarkers(_ markdown: String, imagesDir: URL, safe: String,
-                                    into attDir: URL, id: UUID) -> (String, Int) {
+                                    into attDir: URL, id: UUID,
+                                    profile: ExportProfile = .obsidian) -> (String, Int) {
+        guard markdown.contains("[[img_") else { return (markdown, 0) }
         let fm = FileManager.default
-        let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])
-            .filter { !$0.lastPathComponent.hasPrefix(".") }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        guard !files.isEmpty, let rx = try? NSRegularExpression(pattern: "\\[\\[img_(\\d{3})\\]\\]") else {
-            return (markdown, 0)
-        }
-        let ns = markdown as NSString
-        var replacements: [(NSRange, String)] = []
         var copied = 0
-        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
-            let nnn = ns.substring(with: m.range(at: 1))
-            let idx = (Int(nnn) ?? 1) - 1
-            let file = files.first { $0.lastPathComponent.contains("_\(nnn).") || $0.lastPathComponent.hasPrefix("img_\(nnn)") }
-                ?? ((0..<files.count).contains(idx) ? files[idx] : nil)
-            guard let file else { continue }
-            let ext = file.pathExtension.isEmpty ? "jpg" : file.pathExtension
-            let preferredName = "\(safe)_\(nnn).\(ext)"
+        let r = profile.convertPictureMarkers(markdown, manifest: pictureManifest(imagesDir: imagesDir),
+                                              stem: safe) { source, preferredName in
+            let file = imagesDir.appendingPathComponent(source)
+            guard fm.fileExists(atPath: file.path) else { return nil }
             guard let written = VaultAttachmentOwnership.copyOwned(from: file, preferredName: preferredName,
                                                                     into: attDir, id: id) else {
-                Self.logCopyFailure(name: file.lastPathComponent); continue
+                Self.logCopyFailure(name: source); return nil
             }
             copied += 1
-            replacements.append((m.range, "![[\(written.lastPathComponent)]]"))
+            return written.lastPathComponent
         }
-        var out = markdown
-        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
-            out = (out as NSString).replacingCharacters(in: range, with: repl)
+        return (r.markdown, copied)
+    }
+
+    /// The note's picture manifest as ordered filenames: `image_manifest.json` beside
+    /// `images/` (written by phone sync, uploads, video and mixed-drop ingest), else the
+    /// sorted `images/` listing for a folder that predates manifests. Empty when neither.
+    static func pictureManifest(imagesDir: URL) -> [String] {
+        let manifestURL = imagesDir.deletingLastPathComponent().appendingPathComponent("image_manifest.json")
+        if let data = try? Data(contentsOf: manifestURL),
+           let entries = try? JSONDecoder().decode([ImageManifestEntry].self, from: data) {
+            return entries.map(\.filename)
         }
-        return (out, copied)
+        return ((try? FileManager.default.contentsOfDirectory(atPath: imagesDir.path)) ?? [])
+            .filter { !$0.hasPrefix(".") }
+            .sorted()
     }
 
     /// A copy failure LOGGED — a bare `try?` made a missing attachment indistinguishable

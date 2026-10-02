@@ -215,39 +215,14 @@ struct ObsidianPublisher {
         }
     }
 
-    /// Replace `[[img_NNN]]` markers with `![[<stem>_NNN.ext]]` embeds, resolving NNN
-    /// through the manifest (the same rule as the app's own body rendering and the
-    /// Mac's exporter). Returns the rewritten markdown + (source filename → embed
-    /// name) for the markers that resolved; unresolvable markers are DROPPED, never
-    /// printed literally.
+    /// Replace `[[img_NNN]]` markers with this profile's embeds of `<stem>_NNN.ext`, through
+    /// the ONE shared converter (`ExportProfile.convertPictureMarkers`, the Mac's exporter
+    /// uses it too). Returns the rewritten markdown + (source filename → embed name) for the
+    /// markers that resolved; unresolvable markers are DROPPED, never printed literally.
     static func convertPhotoMarkers(_ markdown: String, manifest: [ImageManifestEntry],
                                     stem: String,
                                     profile: ExportProfile = .obsidian) -> (String, [(String, String)]) {
-        guard let rx = try? NSRegularExpression(pattern: "\\[\\[img_(\\d{3})\\]\\]") else {
-            return (markdown, [])
-        }
-        let ns = markdown as NSString
-        var replacements: [(NSRange, String)] = []
-        var resolved: [(String, String)] = []
-        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
-            let nnn = ns.substring(with: m.range(at: 1))
-            guard let n = Int(nnn), n >= 1, n <= manifest.count else {
-                replacements.append((m.range, ""))   // dangling marker → drop
-                continue
-            }
-            let source = manifest[n - 1].filename
-            let ext = (source as NSString).pathExtension
-            let embedName = "\(stem)_\(nnn).\(ext.isEmpty ? "jpg" : ext)"
-            resolved.append((source, embedName))
-            // `![[x]]` in a vault, `![](x)` in the portfolio — a vault-relative embed is exactly
-            // what makes a note unreadable anywhere else, and the portfolio's rule is that an
-            // entry has to be able to walk out whole. Obsidian renders both.
-            replacements.append((m.range, profile.imageMarkdown(embedName)))
-        }
-        var out = markdown
-        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
-            out = (out as NSString).replacingCharacters(in: range, with: repl)
-        }
-        return (out, resolved)
+        let r = profile.convertPictureMarkers(markdown, manifest: manifest.map(\.filename), stem: stem)
+        return (r.markdown, r.placed.map { ($0.source, $0.embedName) })
     }
 }

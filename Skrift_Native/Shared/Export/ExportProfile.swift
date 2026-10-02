@@ -112,3 +112,55 @@ enum ExportProfile: Sendable {
         usesWikiEmbeds ? "![[\(filename)]]" : "![](\(filename))"
     }
 }
+
+// MARK: - Picture markers (C57, C196, R51)
+
+/// One picture an export placed: the manifest's source filename and the name the note embeds.
+struct PlacedPicture: Equatable, Sendable {
+    let source: String
+    let embedName: String
+}
+
+extension ExportProfile {
+    /// THE picture-marker converter, shared by the phone's `ObsidianPublisher` and the Mac's
+    /// `VaultExporter` so both write the same note. `[[img_NNN]]` resolves through the
+    /// manifest (the N-th entry's filename, the same rule as the body rendering on both apps)
+    /// and becomes this profile's embed of `<stem>_NNN.<ext>` (`![[x]]` vault, `![](x)`
+    /// portfolio). A marker with no manifest entry, or whose picture `place` cannot put
+    /// down (missing file, failed copy), is DROPPED — never printed literally (C196).
+    ///
+    /// `place(source, preferredName)` returns the name actually written (the Mac may
+    /// disambiguate around a foreign file, C58) or nil to drop the marker. The phone writes
+    /// its blobs later through the engine, so its default accepts the preferred name.
+    func convertPictureMarkers(_ markdown: String, manifest: [String], stem: String,
+                               place: (_ source: String, _ preferredName: String) -> String? = { _, name in name })
+        -> (markdown: String, placed: [PlacedPicture]) {
+        guard let rx = try? NSRegularExpression(pattern: "\\[\\[img_(\\d{3})\\]\\]") else {
+            return (markdown, [])
+        }
+        let ns = markdown as NSString
+        var replacements: [(NSRange, String)] = []
+        var placed: [PlacedPicture] = []
+        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
+            let nnn = ns.substring(with: m.range(at: 1))
+            guard let n = Int(nnn), n >= 1, n <= manifest.count, !manifest[n - 1].isEmpty else {
+                replacements.append((m.range, ""))   // dangling marker → drop
+                continue
+            }
+            let source = manifest[n - 1]
+            let ext = (source as NSString).pathExtension
+            let preferred = "\(stem)_\(nnn).\(ext.isEmpty ? "jpg" : ext)"
+            guard let written = place(source, preferred) else {
+                replacements.append((m.range, ""))   // picture could not be placed → drop
+                continue
+            }
+            placed.append(PlacedPicture(source: source, embedName: written))
+            replacements.append((m.range, imageMarkdown(written)))
+        }
+        var out = markdown
+        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
+            out = (out as NSString).replacingCharacters(in: range, with: repl)
+        }
+        return (out, placed)
+    }
+}
