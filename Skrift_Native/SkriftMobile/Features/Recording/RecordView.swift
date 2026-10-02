@@ -25,6 +25,9 @@ struct RecordView: View {
 
     @State private var showCamera = false
     @State private var emptyRecording = false
+    /// Q164: the typed mic refusal behind the alert below (denied / restricted mic at start,
+    /// or a dead take at stop). Open Settings appears when Settings can fix it.
+    @State private var micRefusal: RecordingCore.Refusal?
     /// Context captured when the recorder opens — shown as ready-state chips and
     /// reused at save (so we don't capture location/weather twice).
     @State private var context: MemoMetadata?
@@ -111,6 +114,25 @@ struct RecordView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("That recording captured no audio — check that Skrift has microphone access, and hold the recording a moment before stopping.")
+        }
+        // Q164: a refused mic (denied / restricted) at start is shown as it happens, not as
+        // "Nothing recorded" after the fact.
+        .onChange(of: service.startRefusal) { _, refusal in
+            if let refusal { micRefusal = refusal }
+        }
+        .alert(micRefusal?.fixedInPrivacySettings == true ? "Microphone is off" : "Nothing recorded",
+               isPresented: Binding(get: { micRefusal != nil }, set: { if !$0 { micRefusal = nil; service.acknowledgeStartRefusal() } }),
+               presenting: micRefusal) { refusal in
+            if refusal.fixedInPrivacySettings {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: { refusal in
+            Text(refusal.phoneMessage)
         }
         .onChange(of: intentBridge.stopRequestID) {
             if service.isRecording { stopTapped() }
@@ -553,6 +575,13 @@ struct RecordView: View {
         guard result.duration >= 0.4 else {
             try? FileManager.default.removeItem(at: result.url)
             emptyRecording = true
+            return
+        }
+        // Q164: a take that heard no signal is a dead take, like the Mac's (recsj-014): never a
+        // silent note. Delete it, say which input let us down, stay on the recorder to retry.
+        if let refusal = result.refusal {
+            try? FileManager.default.removeItem(at: result.url)
+            micRefusal = refusal
             return
         }
         // Append mode: fold the new clip into an existing memo, stay on it.

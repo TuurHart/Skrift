@@ -37,63 +37,9 @@ final class MacRecorder {
         case failed(Refusal)
     }
 
-    /// Why a take couldn't start — and, the part that matters, whether the user can DO
-    /// anything about it. A refusal used to be a bare sentence, so the two cases that are
-    /// worlds apart for the person holding the mouse ("this Mac has no microphone" and
-    /// "we're switched off in Privacy settings") arrived looking identical: a wall of text
-    /// with no way forward. `permissionDenied` in particular is a TRAP — once TCC holds a
-    /// denial the system never prompts again, so pressing Record can look broken forever
-    /// while every log line says the app asked politely. That case gets a button.
-    enum Refusal: Equatable {
-        /// No input device at all — a mini or a Studio with nothing plugged in.
-        case noInputDevice
-        /// TCC says no. Nothing the app does will prompt again; only Settings clears it.
-        case permissionDenied
-        /// Managed device / parental controls. Same dead end, different owner.
-        case permissionRestricted
-        /// A device exists (CoreAudio's default-input answers yes) but the capture layer
-        /// can't get a usable object from it — the AVCaptureSession-era shape of the old
-        /// "0 Hz format" case: same dead end, same fix.
-        case noUsableFormat
-        /// The session or the output file refused, with CoreAudio's own words.
-        case engineFailed(String)
-        /// The session ran but the input delivered no audio at all — carries the device name.
-        /// This is the dozing-Bluetooth signature: the take LOOKS live (transport up, timer
-        /// counting) while zero buffers arrive, and before this case existed the failure was
-        /// routed to a value nothing renders, so the whole thing read as "the app did nothing"
-        /// (Tuur, twice, 2026-07-28).
-        case nothingCaptured(String)
-        /// Buffers arrived but every sample was exactly zero — same family, said precisely.
-        case recordedSilence(String)
+    /// The typed refusal lives in `Shared/Recording/RecordingRefusal.swift` (Q164) so the phone shows the same one.
+    typealias Refusal = RecordingCore.Refusal
 
-        var message: String {
-            switch self {
-            case .noInputDevice:
-                "This Mac has no microphone. Connect one (or a headset) and try again."
-            case .permissionDenied:
-                "Skrift isn't allowed to use the microphone. Turn it on in Privacy & Security ▸ Microphone — macOS won't ask again on its own."
-            case .permissionRestricted:
-                "Microphone access is restricted on this Mac, so Skrift can't record."
-            case .noUsableFormat:
-                "No microphone is available. Check System Settings ▸ Sound ▸ Input."
-            case .engineFailed(let why):
-                "Couldn't start recording: \(why)"
-            case .nothingCaptured(let device):
-                "“\(device)” delivered no audio — a Bluetooth mic may be asleep. Wake it, or pick another input in System Settings ▸ Sound ▸ Input."
-            case .recordedSilence(let device):
-                "“\(device)” recorded only silence. Check it's the mic you meant in System Settings ▸ Sound ▸ Input."
-            }
-        }
-
-        /// True when System Settings ▸ Privacy & Security ▸ Microphone is where this gets
-        /// fixed — the alert grows a button that goes straight there.
-        var fixedInPrivacySettings: Bool {
-            self == .permissionDenied || self == .permissionRestricted
-        }
-
-        /// Deep link to the exact pane. Only meaningful when `fixedInPrivacySettings`.
-        static let privacySettingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
-    }
 
     /// Every gate in `start()` logs its verdict. This exists because the record path failed
     /// twice with the user watching and nothing written down anywhere — diagnosing it meant
@@ -392,9 +338,7 @@ final class MacRecorder {
         // No signal = a broken take whatever its byte count: an encoder fed zeros (or
         // nothing) still writes headers and frames, so size alone can't tell a quiet room
         // from a dead input. Delete it and say which device let us down.
-        guard size > 1024, sawSignal else {
-            let reason: Refusal = size > 1024 ? .recordedSilence(activeInputName)
-                                              : .nothingCaptured(activeInputName)
+        if let reason = RecordingCore.deadTakeVerdict(fileBytes: Int(size), sawSignal: sawSignal, deviceName: activeInputName) {
             discardFinishedTake()
             releaseTake()
             elapsed = 0
@@ -569,7 +513,7 @@ final class MacRecorder {
     /// Pure decision: has this take gone long enough with nothing delivered that it should be
     /// given up on? Free of `Timer`/`Task`/`Date` so it's testable without waiting on a clock.
     nonisolated static func shouldFailFast(elapsedSinceStart: TimeInterval, hasReceivedBuffer: Bool) -> Bool {
-        !hasReceivedBuffer && elapsedSinceStart >= 1.5
+        RecordingCore.shouldFailFast(elapsedSinceStart: elapsedSinceStart, hasReceivedBuffer: hasReceivedBuffer)
     }
 
     private func scheduleFailFastCheck(generation: Int) {
@@ -717,14 +661,9 @@ final class MacRecorder {
     /// the part that decides whether the user is offered a way out, and it was previously
     /// buried in an async function that needs real hardware to reach.
     nonisolated static func refusal(for status: AVAuthorizationStatus) -> Refusal {
-        switch status {
-        case .restricted: .permissionRestricted
         // `.notDetermined` reaching here means the prompt itself was declined (or could not
-        // be shown, as from a CLI launch) — either way the grant is now withheld, and
-        // treating it as anything softer than "denied" would send the user looking for a
-        // prompt that will never come.
-        default: .permissionDenied
-        }
+        // be shown, as from a CLI launch): the shared mapping treats it as "denied".
+        RecordingCore.refusal(for: status)
     }
 }
 
