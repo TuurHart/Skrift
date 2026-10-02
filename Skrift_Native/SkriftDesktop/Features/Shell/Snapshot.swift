@@ -365,17 +365,19 @@ enum Snapshot {
         let locked = Memo(audioFilename: "e.m4a", duration: 30, recordedAt: ago(2),
                           title: "Private thought", transcript: "hidden", transcriptStatus: .done)
         locked.locked = true
+        // Arrived when recorded, so "Newest" (the added date) reads in the picture's order.
+        for m in [calm, fadingSoon, older, conflicted, locked] { m.createdAt = m.recordedAt }
         EditConflictWatch.shared.set([conflicted.id])
         defer { EditConflictWatch.shared.set([]) }
         let coordinator = ProcessingCoordinator()
         let view = SidebarView(model: AppModel(), files: [], coordinator: coordinator,
                                session: fixtureSession(coordinator: coordinator),
                                fixtureCloudMemos: [calm, conflicted, locked, older, fadingSoon])
-            .frame(width: 292, height: 560)
+            .frame(width: 292, height: 900)
             .padding(16)
             .background(Theme.bg)
             .preferredColorScheme(scheme)
-        hostPNG(view, size: NSSize(width: 292 + 32, height: 592), to: path)
+        hostPNG(view, size: NSSize(width: 292 + 32, height: 932), to: path)
     }
 
     /// Q106: one synthetic note of each kind (voice, video, audiobook quote, link, text, image,
