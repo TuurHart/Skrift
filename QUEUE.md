@@ -863,7 +863,7 @@ do: The label table `NoteWorkState` is shared, the inputs are not: iPad `hasPoli
 check: `grep -rqE "class NoteWorkStateInputsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteWorkStateInputsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P18
 
-### Q118 [auto] (doing) Mac note shows per-note progress and a failure line with Retry; the iPad shows the failure reason without hover
+### Q118 [auto] (done) Mac note shows per-note progress and a failure line with Retry; the iPad shows the failure reason without hover
 spec: C194 C182
 needs: -
 gate+: yes
@@ -1995,6 +1995,12 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
+### Q263 [tuur] (tuur) Q126 shipped Mac Format > Checklist (⇧⌘L) but no on-screen checklist button — want a toolbar button too? Also eyeball once on Dev: ⌘F find bar docking (Q125) and Return continuing a task line (Q126)
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2687,3 +2693,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:18 Q107 -> doing — batch worker out
 - 2026-10-02 23:21 Q135 -> done — gate pass @1f414d95
 - 2026-10-02 23:26 Q127 -> done — gate pass @becf6adc
+- 2026-10-02 23:26 Q118 -> done — gate pass (batched with Q127)
+- 2026-10-02 23:26 Q263 added
+- 2026-10-02 23:26 Q263 -> tuur — awaiting sitting
