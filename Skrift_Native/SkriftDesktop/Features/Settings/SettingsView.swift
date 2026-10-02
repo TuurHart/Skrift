@@ -43,7 +43,15 @@ struct SettingsView: View {
         .onChange(of: settings) { _, _ in persist() }
         // Prompt edits push to the synced carrier once, when the window goes away
         // (the autosave above already persisted text + stamp per keystroke).
-        .onDisappear { PolishPromptsCloudSync.run() }
+        // A prompt left blank IS the default (Q157): write the default text back before the
+        // push so the field, the polisher and the carrier all say the same thing.
+        .onDisappear {
+            if settings.prompts != settings.prompts.effective {
+                settings.prompts = settings.prompts.effective
+                persist()
+            }
+            PolishPromptsCloudSync.run()
+        }
         .task { reloadNames() }
         // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,
         // so the list doesn't sit stale while it's open.
@@ -174,9 +182,9 @@ struct SettingsView: View {
             }
             section("Enhancement") {
                 textRow("Model (HuggingFace repo)", \.enhancementModelRepo)
-                promptRow("Copy-edit prompt", \.prompts.copyEdit)
-                promptRow("Title prompt", \.prompts.title)
-                promptRow("Summary prompt", \.prompts.summary)
+                promptRow("Copy-edit prompt", \.prompts.copyEdit, default: PolishPrompts.copyEdit)
+                promptRow("Title prompt", \.prompts.title, default: PolishPrompts.title)
+                promptRow("Summary prompt", \.prompts.summary, default: PolishPrompts.summary)
             }
             section("Transcription") {
                 languageRow
@@ -327,9 +335,25 @@ struct SettingsView: View {
         }
     }
 
-    private func promptRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>) -> some View {
+    private func promptRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>,
+                           default defaultText: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            HStack {
+                Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                Spacer()
+                // Same wording as the iPad's Settings. Shown while the text differs from
+                // the shared default (a blank counts as the default, so no button then).
+                if interactive && PolishPrompts.effective(settings[keyPath: key], fallback: defaultText) != defaultText {
+                    Button("Reset to default") {
+                        settings[keyPath: key] = defaultText
+                        settings.promptsModifiedAt = Date()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityIdentifier("settings.prompt-reset")
+                }
+            }
             Group {
                 if interactive {
                     TextEditor(text: bindPrompt(key))
@@ -347,6 +371,10 @@ struct SettingsView: View {
             .padding(8)
             .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline.opacity(0.08), lineWidth: 1))
+            if interactive && settings[keyPath: key].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Blank — the default prompt is used.")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            }
         }
     }
 

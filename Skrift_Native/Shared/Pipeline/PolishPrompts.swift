@@ -169,4 +169,22 @@ enum PolishPrompts {
     static let title = """
     Generate a short, descriptive title for this text (5–15 words). If the speaker explicitly names the topic, use their words. Match the primary language of the text. Return ONLY the title, nothing else.
     """
+
+    // MARK: - The blank rule (Q157, C28)
+
+    /// ONE rule for every device: a prompt that is blank (empty or whitespace only) is
+    /// the shared default. The iPad's `PolishPromptsStore` and the Mac's polisher +
+    /// sync both route through this, so a blanked prompt can never polish with an
+    /// empty prompt on one device and the default on the other.
+    static func effective(_ text: String, fallback: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    /// What a store persists for `text`: nil (store nothing, the default rules) when it
+    /// is blank or byte-identical to `fallback`, else the trimmed text.
+    static func storable(_ text: String, fallback: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed.isEmpty || trimmed == fallback) ? nil : trimmed
+    }
 }

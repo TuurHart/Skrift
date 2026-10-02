@@ -17,6 +17,14 @@ enum PolishPromptsSyncCore {
                                    summary: PolishPrompts.summary,
                                    title: PolishPrompts.title)
         var isAllDefault: Bool { self == .defaults }
+
+        /// The blank rule applied to all three (`PolishPrompts.effective`): a blank
+        /// prompt IS the default, so a blob never carries an empty prompt.
+        var effective: Blob {
+            Blob(copyEdit: PolishPrompts.effective(copyEdit, fallback: PolishPrompts.copyEdit),
+                 summary: PolishPrompts.effective(summary, fallback: PolishPrompts.summary),
+                 title: PolishPrompts.effective(title, fallback: PolishPrompts.title))
+        }
     }
 
     enum Outcome: Equatable {
@@ -29,10 +37,12 @@ enum PolishPromptsSyncCore {
         case noop
     }
 
-    static func reconcile(localBlob: Blob, localModifiedAt: Date,
+    static func reconcile(localBlob rawLocalBlob: Blob, localModifiedAt: Date,
                           records: [PolishPromptsRecord], now: Date = Date(),
                           insert: (PolishPromptsRecord) -> Void,
                           delete: (PolishPromptsRecord) -> Void) -> Outcome {
+        // Never push an empty prompt (Q157): a blank local prompt syncs as the default.
+        let localBlob = rawLocalBlob.effective
         guard let newest = records.max(by: { $0.modifiedAt < $1.modifiedAt }) else {
             // No carrier yet. A device that has NEVER edited its prompts (all-default
             // + no stamp) must NOT create a default-@-now carrier: whole-blob LWW
@@ -52,7 +62,7 @@ enum PolishPromptsSyncCore {
 
         if newest.modifiedAt > localModifiedAt {
             return .adoptRemote(blob: Blob(copyEdit: newest.copyEdit, summary: newest.summary,
-                                           title: newest.title),
+                                           title: newest.title).effective,
                                 modifiedAt: newest.modifiedAt)
         } else if localModifiedAt > newest.modifiedAt {
             newest.copyEdit = localBlob.copyEdit

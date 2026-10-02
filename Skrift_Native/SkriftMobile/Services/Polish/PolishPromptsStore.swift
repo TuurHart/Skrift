@@ -47,14 +47,12 @@ enum PolishPromptsStore {
 
     static func setText(_ text: String, for prompt: PolishPromptKind,
                         defaults: UserDefaults = .standard) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = key(for: prompt)
-        let fallback = fallbackText(for: prompt)
         // Empty or byte-identical to the default → store nothing (the default rules).
-        if trimmed.isEmpty || trimmed == fallback {
-            defaults.removeObject(forKey: key)
+        if let stored = PolishPrompts.storable(text, fallback: fallbackText(for: prompt)) {
+            defaults.set(stored, forKey: key)
         } else {
-            defaults.set(trimmed, forKey: key)
+            defaults.removeObject(forKey: key)
         }
         defaults.set(Date(), forKey: stampKey)
     }
@@ -72,16 +70,15 @@ enum PolishPromptsStore {
     // MARK: - plumbing
 
     private static func text(_ key: String, fallback: String, defaults: UserDefaults) -> String {
-        let stored = defaults.string(forKey: key)
-        return (stored?.isEmpty == false ? stored : nil) ?? fallback
+        PolishPrompts.effective(defaults.string(forKey: key) ?? "", fallback: fallback)
     }
 
     private static func store(_ text: String, at key: String, fallback: String,
                               defaults: UserDefaults) {
-        if text == fallback || text.isEmpty {
-            defaults.removeObject(forKey: key)
+        if let stored = PolishPrompts.storable(text, fallback: fallback) {
+            defaults.set(stored, forKey: key)
         } else {
-            defaults.set(text, forKey: key)
+            defaults.removeObject(forKey: key)
         }
     }
 
