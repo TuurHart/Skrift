@@ -1,0 +1,387 @@
+<title>Q162 iCloud Sync State</title>
+<style>
+/* Layout: one column, phone-first. Sticky state picker on top drives three tabs
+   (Mac list / Mac Settings / iPhone). App surfaces use Skrift's Palette.swift values. */
+:root {
+  --page: #eceef4; --ink: #1c1c20; --ink2: #5d5d6a; --ink3: #9696a2;
+  --rule: rgba(20,20,40,.10);
+  --bg: #f7f7fa; --side: #f5f5f7; --surface: #ffffff; --chip: #ebebf0;
+  --t1: #1c1c20; --t2: #6c6c76; --t3: #9696a2;
+  --hair: rgba(0,0,0,.07); --hair2: rgba(0,0,0,.05);
+  --accent: #6c5ce0; --accentText: #6051c8; --accentSoft: rgba(108,92,224,.13);
+  --amber: #d97706; --amberSoft: rgba(217,119,6,.12); --amberLine: rgba(217,119,6,.35);
+  --red: #dc2626; --green: #0f9d72;
+  --pick: #c2410c; --pickSoft: rgba(194,65,12,.09);
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #090a0f; --ink: #e4e4e7; --ink2: #a0a0ad; --ink3: #6b6b7e; --rule: rgba(255,255,255,.10);
+  --bg: #0f1117; --side: #0f1117; --surface: #181a23; --chip: #1e2130;
+  --t1: #e4e4e7; --t2: #8b8b97; --t3: #55556a; --hair: rgba(255,255,255,.08); --hair2: rgba(255,255,255,.05);
+  --accent: #7c6bf5; --accentText: #b9acff; --accentSoft: rgba(124,107,245,.16);
+  --amber: #f59e0b; --amberSoft: rgba(245,158,11,.13); --amberLine: rgba(245,158,11,.38);
+  --red: #ef4444; --green: #34d399; --pick: #fb923c; --pickSoft: rgba(251,146,60,.10);
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #090a0f; --ink: #e4e4e7; --ink2: #a0a0ad; --ink3: #6b6b7e; --rule: rgba(255,255,255,.10);
+  --bg: #0f1117; --side: #0f1117; --surface: #181a23; --chip: #1e2130;
+  --t1: #e4e4e7; --t2: #8b8b97; --t3: #55556a; --hair: rgba(255,255,255,.08); --hair2: rgba(255,255,255,.05);
+  --accent: #7c6bf5; --accentText: #b9acff; --accentSoft: rgba(124,107,245,.16);
+  --amber: #f59e0b; --amberSoft: rgba(245,158,11,.13); --amberLine: rgba(245,158,11,.38);
+  --red: #ef4444; --green: #34d399; --pick: #fb923c; --pickSoft: rgba(251,146,60,.10);
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--page); color: var(--ink); font-family: var(--sys); margin: 0 }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 80px; display: grid; gap: 16px }
+h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; text-wrap: balance }
+.lede { color: var(--ink2); font-size: 13.5px; line-height: 1.45; margin: 4px 0 0; max-width: 62ch }
+.mono { font-family: var(--mono) }
+.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3) }
+
+/* loud picks */
+.picks { border: 1.5px solid var(--pick); background: var(--pickSoft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 9px }
+.picks .eyebrow { color: var(--pick) }
+.pick { display: grid; grid-template-columns: 22px 1fr; gap: 6px; font-size: 13px; line-height: 1.4 }
+.pick b { color: var(--pick); font-family: var(--mono) }
+.pick em { font-style: normal; color: var(--ink2) }
+.ask { border-top: 1px dashed var(--pick); padding-top: 9px; font-size: 13.5px; line-height: 1.4 }
+.ask strong { color: var(--pick) }
+
+/* sticky controls */
+.controls { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--page); padding-block: 8px; display: grid; gap: 8px; border-bottom: 1px solid var(--rule) }
+.seg { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px }
+.seg button { flex: none; font: 600 12.5px var(--sys); padding: 8px 11px; min-height: 36px; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink2); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink) }
+.seg button:focus-visible, .tabs button:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden }
+.tabs button { font: 600 13px var(--sys); padding: 10px 4px; min-height: 40px; border: 0; background: transparent; color: var(--ink2); cursor: pointer }
+.tabs button + button { border-left: 1px solid var(--rule) }
+.tabs button[aria-selected="true"] { background: var(--accentSoft); color: var(--accentText) }
+
+.stage { display: grid; gap: 12px; justify-items: center }
+.note { font-size: 12.5px; color: var(--ink2); line-height: 1.45; max-width: 62ch; justify-self: stretch }
+.note code { font-family: var(--mono); font-size: 11.5px }
+.tag { display: inline-block; font: 600 9.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 2px 5px; border-radius: 4px; vertical-align: 1px }
+.tag.new { color: var(--pick); border: 1px solid var(--pick) }
+.tag.old { color: var(--ink3); border: 1px solid var(--ink3) }
+.newbox { outline: 1.5px dashed var(--pick); outline-offset: 3px; border-radius: 10px }
+
+/* ── Mac sidebar ── */
+.win { width: min(100%, 300px); background: var(--side); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.12); position: relative; color: var(--t1) }
+.lights { display: flex; gap: 7px; padding: 12px 12px 0 }
+.lights i { width: 11px; height: 11px; border-radius: 50%; background: var(--hair); display: block }
+.shead { padding: 14px 12px 11px; display: grid; gap: 12px; border-bottom: .5px solid var(--hair) }
+.brand { display: flex; align-items: center; gap: 8px }
+.logo { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #8e7dff, #6a59ef); color: #fff; font: 800 13px var(--sys); display: grid; place-items: center }
+.brand b { font-size: 15px }
+.brand .gear { margin-left: auto; width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--t2); cursor: pointer; border: 0; background: transparent }
+.row3 { display: flex; gap: 7px }
+.abtn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12.5px var(--sys); padding: 7px 0; border-radius: 8px; background: var(--hair); color: var(--t1) }
+.abtn.rec { color: var(--red) } .abtn.rec i { width: 9px; height: 9px; border-radius: 50%; background: var(--red); display: block }
+.abtn.compose { flex: none; width: 34px }
+.proc { display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 12.5px var(--sys); padding: 7px 0; border-radius: 8px; background: var(--accent); color: #fff }
+.proc span { font-size: 11px; background: rgba(255,255,255,.22); border-radius: 5px; padding: 0 5px }
+.search { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 7px; background: var(--hair); font-size: 12px; color: var(--t3) }
+.chips { display: flex; gap: 5px; font-size: 11px; color: var(--t2); white-space: nowrap; overflow: hidden }
+.chips span { padding: 4px 9px; border-radius: 6px }
+.chips .on { color: var(--accent); background: var(--accentSoft); box-shadow: inset 0 0 0 1px rgba(108,92,224,.22) }
+.chips .sort { margin-left: auto; color: var(--t3) }
+.list { padding: 6px 8px 10px; display: grid; gap: 2px; min-height: 250px; align-content: start }
+.qrow { padding: 8px 8px; border-radius: 8px; display: grid; gap: 3px; opacity: .55 }
+.qrow b { font-size: 12.5px; font-weight: 600 }
+.qrow span { font-size: 11px; color: var(--t2) }
+.qrow.sel { background: var(--accentSoft); opacity: .7 }
+
+/* the capsule (both apps) */
+.cap { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--t2); padding: 6px 13px; border-radius: 999px; background: var(--surface); border: 1px solid var(--hair); white-space: nowrap; max-width: 100% }
+.cap.warn { color: var(--amber); background: var(--amberSoft); border-color: var(--amberLine); cursor: pointer }
+.cap.off { color: var(--t2); background: var(--chip); cursor: pointer }
+.cap .chev { opacity: .7 }
+.capslot { display: flex; justify-content: center; padding: 8px 8px 0 }
+.capfloat { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; pointer-events: none }
+.capfloat .cap { pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.10) }
+.ghost { font: 10.5px var(--mono); color: var(--t3); text-align: center; padding: 8px 0 0 }
+.spin { width: 11px; height: 11px; border-radius: 50%; border: 1.6px solid var(--t3); border-top-color: transparent; animation: sp .8s linear infinite; flex: none }
+@keyframes sp { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--t3); opacity: .6 } }
+svg.ic { width: 14px; height: 14px; flex: none }
+
+.place { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--ink2); flex-wrap: wrap; justify-content: center }
+.place button { font: 600 12px var(--sys); padding: 7px 10px; min-height: 34px; border-radius: 7px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink2); cursor: pointer }
+.place button[aria-pressed="true"] { border-color: var(--pick); color: var(--pick); background: var(--pickSoft) }
+
+/* ── Mac Settings sheet ── */
+.sheet { width: 100%; max-width: 520px; background: var(--bg); color: var(--t1); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.12) }
+.sheethead { display: flex; align-items: center; padding: 14px 16px; border-bottom: .5px solid var(--hair) }
+.sheethead b { font-size: 15px }
+.done { margin-left: auto; font: 600 12.5px var(--sys); color: #fff; background: var(--accent); border: 0; border-radius: 7px; padding: 6px 14px; cursor: pointer }
+.secs { padding: 16px; display: grid; gap: 18px }
+.sec { border: 1px solid var(--hair); background: var(--hair2); border-radius: 12px; padding: 14px; display: grid; gap: 12px }
+.sec.dim { opacity: .45 }
+.sec h4 { margin: 0; font: 400 10px var(--sys); letter-spacing: .07em; text-transform: uppercase; color: var(--t3) }
+.srow { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0 }
+.srow .r { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--t2) }
+.srow .r.warn { color: var(--amber); font-weight: 600 }
+.help { font-size: 10.5px; color: var(--t3); line-height: 1.45 }
+.alert { border-radius: 9px; background: var(--amberSoft); border: 1px solid var(--amberLine); padding: 10px 11px; display: grid; gap: 8px; font-size: 11.5px; line-height: 1.45; color: var(--t1) }
+.alert .detail { font: 10px var(--mono); color: var(--t3) }
+.alert button, .pbtn { justify-self: start; font: 600 11.5px var(--sys); padding: 6px 11px; min-height: 30px; border-radius: 7px; border: 1px solid var(--amberLine); background: var(--surface); color: var(--amber); cursor: pointer }
+.offline { font-size: 11.5px; color: var(--t2); line-height: 1.45 }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--chip); border: 1px solid var(--hair); position: relative; cursor: pointer; flex: none; padding: 0 }
+.sw::after { content: ""; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s }
+.sw[aria-checked="true"] { background: var(--accent); border-color: var(--accent) }
+.sw[aria-checked="true"]::after { left: 15px }
+.gates { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; font-size: 11px; color: var(--t2) }
+.gates li { display: grid; grid-template-columns: 14px 1fr; gap: 6px; line-height: 1.35 }
+.gates li::before { content: "↔"; color: var(--t3); font-size: 10px }
+.gates li.in::before { content: "↓" } .gates li.out::before { content: "↑" }
+.gates.struck li { text-decoration: line-through; text-decoration-color: var(--t3) }
+.oldhelp { font-size: 10.5px; color: var(--t3); line-height: 1.45; text-decoration: line-through }
+
+/* ── iPhone ── */
+.phones { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; width: 100% }
+.phone { width: min(100%, 300px); height: 560px; background: var(--side); color: var(--t1); border: 7px solid #111; border-radius: 40px; overflow: hidden; position: relative; display: flex; flex-direction: column }
+.pstatus { display: flex; justify-content: space-between; padding: 10px 24px 4px; font: 600 12px var(--sys) }
+.ptitle { font: 700 26px var(--sys); padding: 6px 16px 8px; letter-spacing: -.01em }
+.pcards { padding: 0 12px; display: grid; gap: 8px }
+.pcard { background: var(--surface); border-radius: 12px; padding: 11px 12px; display: grid; gap: 3px; opacity: .55 }
+.pcard b { font-size: 13.5px } .pcard span { font-size: 11.5px; color: var(--t2) }
+.pbar { margin-top: auto; padding: 10px 14px 18px; display: flex; gap: 8px; align-items: center }
+.pbar .pill { flex: 1; height: 44px; border-radius: 22px; background: var(--surface); opacity: .55 }
+.pbar .rec { width: 52px; height: 52px; border-radius: 50%; background: var(--red); opacity: .8 }
+.pcapslot { position: absolute; left: 0; right: 0; bottom: 92px; display: flex; justify-content: center; padding-inline: 10px }
+.form { padding: 0 14px; display: grid; gap: 6px }
+.fgroup { background: var(--surface); border-radius: 11px; overflow: hidden }
+.frow { display: flex; align-items: center; gap: 9px; padding: 11px 12px; font-size: 14px }
+.frow + .frow { border-top: .5px solid var(--hair) }
+.frow .r { margin-left: auto; color: var(--t2); display: flex; align-items: center; gap: 6px; font-size: 13.5px }
+.frow .r.warn { color: var(--amber); font-weight: 600 }
+.ffoot { font-size: 11.5px; color: var(--t2); line-height: 1.4; padding: 0 12px 6px }
+.ffoot.warn { color: var(--t1) }
+.ffoot .pbtn { margin-top: 7px; display: inline-block }
+.na { font: 11px var(--mono); color: var(--t3); padding: 10px 16px; line-height: 1.5 }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); font-size: 12.5px; padding: 9px 14px; border-radius: 9px; max-width: calc(100% - 32px); z-index: 20 }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q162 · mockup · D119 · setexp-12/14/16/18/130</div>
+    <h1>The Mac shows iCloud sync state</h1>
+    <p class="lede">Pick a state below; all three screens follow it. Dashed orange outlines are new. Grey rows are existing parts drawn from source and left unchanged.</p>
+  </header>
+
+  <section class="picks" aria-label="Choices to overrule">
+    <div class="eyebrow">Picks you might overrule</div>
+    <div class="pick"><b>1</b><div><strong>Mac capsule sits in a slot above the list</strong>, under the filter chips, and pushes the list down 30pt while it shows. <em>The phone floats its capsule at the bottom instead. Flip "Placement" on the Mac list tab to see that version.</em></div></div>
+    <div class="pick"><b>2</b><div><strong>Broken or switched-off sync keeps a capsule in the list until it is fixed</strong>, amber for signed out or couldn't start, grey for switched off. Tapping it opens Settings. <em>Today the phone only shows a capsule while syncing, and a signed-out phone says "Up to date".</em></div></div>
+    <div class="pick"><b>3</b><div><strong>The Mac keeps its switch, under a status row in one Sync card</strong>, and the switch's paragraph of help becomes a list of what it gates. <em>The label stays "CloudKit sync with the Mac". The phone still gets no switch.</em></div></div>
+    <div class="ask"><strong>Question for Tuur:</strong> when sync is broken or off, should the list carry a capsule that stays until it is fixed (pick 2), or should only Settings say so?</div>
+  </section>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Sync state">
+      <button type="button" id="st-syncing" data-state="syncing" aria-pressed="false">Syncing</button>
+      <button type="button" id="st-up" data-state="up" aria-pressed="true">Up to date</button>
+      <button type="button" id="st-off" data-state="off" aria-pressed="false">Switched off (Mac)</button>
+      <button type="button" id="st-signedout" data-state="signedout" aria-pressed="false">Signed out</button>
+      <button type="button" id="st-failed" data-state="failed" aria-pressed="false">Couldn't start</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-maclist" data-tab="maclist" aria-selected="true">Mac list</button>
+      <button type="button" role="tab" id="tab-macset" data-tab="macset" aria-selected="false">Mac Settings</button>
+      <button type="button" role="tab" id="tab-phone" data-tab="phone" aria-selected="false">iPhone</button>
+    </div>
+  </div>
+
+  <!-- ═══ MAC LIST ═══ -->
+  <section class="stage" data-panel="maclist">
+    <div class="place" role="group" aria-label="Capsule placement">
+      Placement:
+      <button type="button" id="pl-top" data-place="top" aria-pressed="true">A · above the list (pick)</button>
+      <button type="button" id="pl-bottom" data-place="bottom" aria-pressed="false">B · floating at bottom, like the phone</button>
+    </div>
+
+    <div class="win" id="macwin">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="shead">
+        <div class="brand"><span class="logo">S</span><b>Skrift</b>
+          <button type="button" class="gear" id="gear" aria-label="Settings">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
+          </button>
+        </div>
+        <div class="row3">
+          <span class="abtn">+ Import</span>
+          <span class="abtn rec"><i></i>Record</span>
+          <span class="abtn compose">✎</span>
+        </div>
+        <div class="proc">▶ Process <span>3</span></div>
+        <div class="search">⌕ Search memos</div>
+        <div class="chips"><span class="on">All</span><span>Needs Work <b>3</b></span><span>Done <b>41</b></span><span>Unrated <b>2</b></span><span>Date ▾</span><span class="sort">Newest</span></div>
+      </div>
+
+      <div class="capslot" data-where="top"><div class="newbox capmount"></div></div>
+      <div class="ghost" data-where="top" data-show="up">(nothing here when up to date)</div>
+
+      <div class="list">
+        <div class="qrow sel"><b>Call with Jack about the hotel</b><span>Today 09:14 · 4 min</span></div>
+        <div class="qrow"><b>Walk along the Tejo</b><span>Yesterday · 11 min</span></div>
+        <div class="qrow"><b>Reading notes, The Overstory</b><span>30 Sep · 2 min</span></div>
+        <div class="qrow"><b>Robot gripper, second idea</b><span>29 Sep · 6 min</span></div>
+        <div class="qrow"><b>Groceries and the vet</b><span>28 Sep · 1 min</span></div>
+      </div>
+
+      <div class="capfloat" data-where="bottom"><div class="newbox capmount"></div></div>
+    </div>
+
+    <p class="note"><span class="tag new">new</span> The capsule reads the same monitor rule the phone uses: shown while CloudKit events are in flight, hidden after one quiet second. The persistent states come from an account check (<code>CKContainer.accountStatus</code>), the switch, and whether <code>MemoCloudStore.container</code> is nil. Today nothing on the Mac reads any of the three for display. Tap an amber or grey capsule to jump to Settings.</p>
+  </section>
+
+  <!-- ═══ MAC SETTINGS ═══ -->
+  <section class="stage" data-panel="macset" hidden>
+    <div class="sheet">
+      <div class="sheethead"><b>Settings</b><button type="button" class="done" id="done">Done</button></div>
+      <div class="secs">
+        <div class="sec dim"><h4>Transcription</h4><div class="srow">Language<span class="r">English</span></div></div>
+
+        <div class="sec newbox" id="syncsec">
+          <h4>Sync</h4>
+          <div class="srow">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--accent)"><path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg>
+            iCloud
+            <span class="r" data-show="syncing"><span class="spin"></span>Syncing…</span>
+            <span class="r" data-show="up">Up to date</span>
+            <span class="r" data-show="off">Off</span>
+            <span class="r warn" data-show="signedout">Not signed in</span>
+            <span class="r warn" data-show="failed">Couldn't start</span>
+          </div>
+
+          <div class="alert" data-show="signedout">
+            <div>This Mac isn't signed in to iCloud. Your phone's notes can't reach it and your phone won't get this Mac's polish. Notes you make here stay on this Mac until you sign in.</div>
+            <button type="button" id="open-icloud" data-ack="Would open System Settings › Apple Account › iCloud">Open iCloud Settings…</button>
+          </div>
+          <div class="alert" data-show="failed">
+            <div>Skrift couldn't open its iCloud store on this Mac, so nothing syncs. Your notes on this Mac are safe. Skrift tries again when it reopens.</div>
+            <div class="detail">memo_cloud.store · ModelContainer init failed (example detail line)</div>
+            <button type="button" id="relaunch" data-ack="Would quit and reopen Skrift (the store is built once per launch)">Reopen Skrift</button>
+          </div>
+
+          <div class="srow" style="border-top:.5px solid var(--hair); padding-top:11px">
+            CloudKit sync with the Mac
+            <span class="r"><button type="button" class="sw" id="macswitch" role="switch" aria-checked="true" aria-label="CloudKit sync with the Mac"></button></span>
+          </div>
+          <div class="offline" data-show="off">Off. This Mac works on its own notes and sends nothing to your phone.</div>
+          <ul class="gates" id="gates">
+            <li class="in">Notes from your phone and iPad come in</li>
+            <li class="out">Title, summary and copy-edit go back to your phone</li>
+            <li class="out">Notes you record or type on this Mac go to your phone</li>
+            <li>Edits, ratings and deletes, both ways</li>
+            <li>Names and voices</li>
+            <li>Custom words, language, the destinations switch</li>
+            <li>Polish prompts</li>
+          </ul>
+          <div class="help">Needs this Mac signed in to the same iCloud account as your phone.</div>
+          <div class="oldhelp"><span class="tag old">replaced</span> Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone…</div>
+        </div>
+
+        <div class="sec dim"><h4>Names · 12</h4><div class="srow">Tap a person to edit their full name, aliases, short name, and voice.</div></div>
+      </div>
+    </div>
+    <p class="note"><span class="tag new">new</span> The gate list is what <code>cloudKitMacSyncEnabled</code> actually gates in source: the memo reconciler, <code>MacMemoAuthor</code>, edit / meta / delete sync, names, the vocabulary carrier (words, language, destinations) and polish prompts. Flip the switch to see the Off state. The Journal empty state's "Turn on iCloud sync in Settings" (<code>JournalView.swift:351</code>) would reuse these exact words.</p>
+  </section>
+
+  <!-- ═══ iPHONE ═══ -->
+  <section class="stage" data-panel="phone" hidden>
+    <div class="phones">
+      <div class="phone">
+        <div class="pstatus"><span>9:41</span><span>●●● 5G</span></div>
+        <div class="ptitle">Notes</div>
+        <div class="pcards">
+          <div class="pcard"><b>Call with Jack about the hotel</b><span>Today 09:14 · 4 min</span></div>
+          <div class="pcard"><b>Walk along the Tejo</b><span>Yesterday · 11 min</span></div>
+          <div class="pcard"><b>Reading notes, The Overstory</b><span>30 Sep · 2 min</span></div>
+        </div>
+        <div class="pcapslot"><div class="pcapmount"></div></div>
+        <div class="pbar"><div class="pill"></div><div class="rec"></div></div>
+      </div>
+
+      <div class="phone">
+        <div class="pstatus"><span>9:41</span><span>●●● 5G</span></div>
+        <div class="ptitle">Settings</div>
+        <div class="form">
+          <div class="fgroup">
+            <div class="frow">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--accent)"><path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg>
+              iCloud sync
+              <span class="r" data-show="syncing"><span class="spin"></span>Syncing…</span>
+              <span class="r" data-show="up off">Up to date</span>
+              <span class="r warn newbox" data-show="signedout">Not signed in</span>
+              <span class="r warn" data-show="failed">n/a</span>
+            </div>
+            <div class="frow"><span style="width:14px"></span>Synced audiobooks<span class="r">›</span></div>
+          </div>
+          <div class="ffoot" data-show="syncing up off failed">Your notes, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.</div>
+          <div class="ffoot warn newbox" data-show="signedout">This iPhone isn't signed in to iCloud. Your notes stay on this iPhone and won't reach your Mac or iPad until you sign in.<br><button type="button" class="pbtn" id="open-ios" data-ack="Would open the Settings app at your Apple Account">Open Settings</button></div>
+        </div>
+      </div>
+    </div>
+    <p class="note" data-show="off"><span class="tag old">phone</span> The phone has no switch and always syncs, so "Switched off" only exists on the Mac. The phone shows its normal state here.</p>
+    <p class="note" data-show="failed"><span class="tag old">phone</span> The phone has no "couldn't start" state: <code>NotesRepository.swift:41</code> calls <code>fatalError</code> when its store fails, so the app crashes at launch instead. Out of scope for this item; it would need its own bug.</p>
+    <p class="note" data-show="signedout"><span class="tag new">new</span> Today a signed-out phone still builds its store, sees no CloudKit events, and says "Up to date". The only signed-out text that exists is per audiobook ("Not signed in to iCloud — sync paused for this book."). This adds the account check to the note row and the list. The copy lives once in <code>SharedCopy</code> for both apps.</p>
+  </section>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  var state = 'up', tab = 'maclist', place = 'top', lastOn = 'up';
+  var CLOUD = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg>';
+  var SLASH = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/><path d="M4 4l16 16"/></svg>';
+  function capsule(s, device) {
+    if (s === 'syncing') return '<span class="cap"><span class="spin"></span>Syncing with iCloud…</span>';
+    if (s === 'off') return device === 'mac' ? '<span class="cap off" data-go="1">' + SLASH + 'iCloud sync is off<span class="chev">›</span></span>' : '';
+    if (s === 'signedout') return '<span class="cap warn" data-go="1">' + SLASH + 'Not signed in to iCloud<span class="chev">›</span></span>';
+    if (s === 'failed') return device === 'mac' ? '<span class="cap warn" data-go="1">' + SLASH + 'iCloud sync couldn’t start<span class="chev">›</span></span>' : '';
+    return '';
+  }
+  function render() {
+    document.querySelectorAll('[data-state]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.state === state)); });
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === tab)); });
+    document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== tab; });
+    document.querySelectorAll('[data-place]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.place === place)); });
+    document.querySelectorAll('[data-show]').forEach(function (el) { el.hidden = el.dataset.show.split(' ').indexOf(state) < 0; });
+    document.querySelectorAll('[data-where]').forEach(function (el) {
+      if (el.dataset.where !== place) { el.hidden = true; }
+      else if (!el.dataset.show) { el.hidden = false; }
+    });
+    var mac = capsule(state, 'mac');
+    document.querySelectorAll('.capmount').forEach(function (m) { m.innerHTML = mac; m.style.display = mac ? '' : 'none'; });
+    var top = document.querySelector('.capslot');
+    top.style.display = (place === 'top' && mac) ? '' : 'none';
+    var ph = capsule(state, 'phone');
+    var pm = document.querySelector('.pcapmount');
+    pm.innerHTML = ph; pm.className = 'pcapmount' + (ph && state !== 'syncing' ? ' newbox' : '');
+    var sw = document.getElementById('macswitch');
+    sw.setAttribute('aria-checked', String(state !== 'off'));
+    document.getElementById('gates').classList.toggle('struck', state === 'off');
+  }
+  var t;
+  function toast(msg) { var el = document.getElementById('toast'); el.textContent = msg; el.hidden = false; clearTimeout(t); t = setTimeout(function () { el.hidden = true; }, 2200); }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button, [data-go]');
+    if (!b) return;
+    if (b.dataset.state) { state = b.dataset.state; if (state !== 'off') lastOn = state; render(); }
+    else if (b.dataset.tab) { tab = b.dataset.tab; render(); }
+    else if (b.dataset.place) { place = b.dataset.place; render(); }
+    else if (b.dataset.go) { tab = 'macset'; render(); var s = document.getElementById('syncsec'); s.scrollIntoView({ block: 'center', behavior: 'smooth' }); toast('Opened Settings at Sync'); }
+    else if (b.id === 'macswitch') { state = state === 'off' ? (lastOn === 'off' ? 'up' : lastOn) : 'off'; render(); toast(state === 'off' ? 'Sync switched off' : 'Sync switched on'); }
+    else if (b.id === 'gear') { tab = 'macset'; render(); }
+    else if (b.id === 'done') { tab = 'maclist'; render(); }
+    else if (b.dataset.ack) { toast(b.dataset.ack); }
+  });
+  render();
+})();
+</script>

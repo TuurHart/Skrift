@@ -1983,6 +1983,18 @@ gate+: yes
 do: Found by Q143: the phone's link thumbnail lives as a relative file in the phone's recordings dir (`urlThumbnailUrl`, CaptureInboxDrainer.swift:451) and AssetMaterializer syncs only audio, manifest photos, the document and sidecars, so the Mac card always falls back to the globe tile. Ship the thumbnail as a MemoAsset (reuse Kind.photo or add a kind — prefer reuse if it doesn't pollute the photo manifest), materialize it on the Mac into the capture folder where `PipelineFile.captureThumbnailURL` (PipelineFile+CaptureFacts.swift) already looks. Never break existing synced memos (additive only). Desktop test `LinkThumbnailSyncTests`; phone test for the writer side. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q261 [tuur] (tuur) decide: should list cards follow C25 for captures (needs hand-merge of protected CaptureDisplayTests/NoteCardModelParityTests), and should a Mac import with a real file name show 'Voice note' until it has words (C25 letter) instead of its file name (Q114 kept the name)
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
+### Q262 [tuur] (tuur) review the Mac unrated-capture banner copy Q143 wrote: 'Not rated, so it is not polished: rate it and the Mac adds a title, tags and summary.'
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2662,3 +2674,7 @@ check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-02 23:02 Q135 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
 - 2026-10-02 23:02 Q135 -> doing — redispatch 2/3: rebase after CONFLICT
 - 2026-10-02 23:04 Q143 -> done — gate pass @1146a36a
+- 2026-10-02 23:04 Q261 added
+- 2026-10-02 23:04 Q261 -> tuur — awaiting sitting
+- 2026-10-02 23:04 Q262 added
+- 2026-10-02 23:04 Q262 -> tuur — awaiting sitting

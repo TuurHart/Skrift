@@ -1,0 +1,543 @@
+<title>Q152 Fix Quote</title>
+<style>
+/* Layout: a step rail on top, then one iPhone-13-wide app screen (edge to edge on a phone), mock notes in a loud pink layer that is never app UI. */
+:root{
+  /* app palette, from Shared/UI/Palette.swift (phone values) */
+  --bg:#f5f5f7; --surface:#ffffff; --elev:#ebebf0; --border:rgba(60,60,67,.18);
+  --t1:#1c1c1e; --t2:#6c6c72; --t3:#a3a3aa;
+  --accent:#6c5ce0; --accent-soft:rgba(108,92,224,.13); --accent-text:#6051c8;
+  --red:#dc2626; --green:#0f9d72;
+  /* mac palette */
+  --mac-bg:#f7f7fa; --mac-t1:#1c1c20; --mac-t2:#6c6c76;
+  /* mock layer (not app UI) */
+  --rail:#e6e4ee; --pick:#c2185b; --pick-soft:rgba(194,24,91,.08);
+  --sheet-bg:rgba(242,242,247,.96); --scrim:rgba(0,0,0,.28);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --border:rgba(255,255,255,.09);
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+  --accent:#7c6bf5; --accent-soft:rgba(124,107,245,.13); --accent-text:#b9acff;
+  --red:#ef4444; --green:#34d399;
+  --mac-bg:#0f1117; --mac-t1:#e4e4e7; --mac-t2:#8b8b97;
+  --rail:#07080c; --pick:#f48fb1; --pick-soft:rgba(244,143,177,.08);
+  --sheet-bg:rgba(30,32,42,.97); --scrim:rgba(0,0,0,.5); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --border:rgba(255,255,255,.09);
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+  --accent:#7c6bf5; --accent-soft:rgba(124,107,245,.13); --accent-text:#b9acff;
+  --red:#ef4444; --green:#34d399;
+  --mac-bg:#0f1117; --mac-t1:#e4e4e7; --mac-t2:#8b8b97;
+  --rail:#07080c; --pick:#f48fb1; --pick-soft:rgba(244,143,177,.08);
+  --sheet-bg:rgba(30,32,42,.97); --scrim:rgba(0,0,0,.5); color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--rail);color:var(--t1);font-family:var(--font);-webkit-font-smoothing:antialiased;margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- mock rail ---------- */
+.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--rail);padding:10px 16px 8px;border-bottom:1px solid var(--border)}
+.rail-top{display:flex;align-items:baseline;gap:8px;max-width:390px;margin:0 auto}
+.rail-id{font:600 11px/1 var(--mono);letter-spacing:.06em;color:var(--pick)}
+.rail-title{font-weight:700;font-size:14px}
+.rail-sub{font-size:11px;color:var(--t2);margin-left:auto}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-width:390px;margin:8px auto 0}
+.step{font-size:12.5px;font-weight:600;padding:8px 4px;border-radius:9px;color:var(--t2);background:transparent;border:1px solid var(--border);text-align:center}
+.step span{display:block;font:500 9.5px/1.2 var(--mono);letter-spacing:.05em;color:var(--t3);margin-bottom:2px}
+.step[aria-selected="true"]{background:var(--surface);color:var(--t1);border-color:var(--accent)}
+
+/* ---------- phone stage ---------- */
+.stage{max-width:390px;margin:0 auto;background:var(--bg);position:relative;min-height:690px;overflow:hidden}
+@media (min-width:430px){.stage{margin-top:14px;border-radius:28px;border:1px solid var(--border);box-shadow:0 20px 50px rgba(0,0,0,.18)}}
+.navbar{display:flex;align-items:center;height:44px;padding:0 6px 0 8px}
+.back{color:var(--accent);font-size:17px;display:flex;align-items:center;gap:2px;padding:6px}
+.back svg{width:12px;height:20px}
+.nav-r{margin-left:auto;display:flex}
+.nav-btn{width:34px;height:34px;display:grid;place-items:center;color:var(--t2)}
+.nav-btn svg{width:18px;height:18px}
+.title-row{padding:4px 18px 9px;border-bottom:.5px solid var(--border);font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.page{padding:6px 18px 120px;transition:opacity .2s}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);background:var(--elev);padding:2px 7px;border-radius:7px}
+.chip svg{width:10px;height:10px}
+.tagrow{margin-top:8px;font-size:12px;color:var(--t3)}
+.trimmed{margin-top:6px;font:10px/1.3 var(--mono);color:var(--pick);opacity:.8}
+
+/* quote block: CaptureQuoteViews.swift — 3pt bar @65% accent, 14 lead pad, italic 15.5, 78% text, caption 12.5 medium dim, 8 gap */
+.quote{position:relative;padding-left:14px;margin-top:18px;display:flex;flex-direction:column;gap:8px;border-radius:10px;transition:background .2s,padding .2s}
+.quote::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px;background:var(--accent);opacity:.65}
+.qtext{font-size:15.5px;font-style:italic;line-height:1.55;color:color-mix(in srgb,var(--t1) 78%,transparent);margin:0}
+.attr{font-size:12.5px;font-weight:500;color:var(--t2)}
+.ramble{font-size:16px;line-height:1.5;margin-top:18px;color:var(--t1);transition:opacity .2s}
+.ramble p{margin:0 0 10px}
+
+/* fix mode */
+.fixing .quote{background:var(--surface);padding:12px 12px 12px 18px;margin-left:-4px;margin-right:-4px;box-shadow:0 0 0 1px var(--border)}
+.fixing .quote::before{top:10px;bottom:10px;left:6px}
+.fixing .ramble,.fixing .chips,.fixing .tagrow{opacity:.32;pointer-events:none}
+.w{border-radius:4px;transition:background .15s,color .15s}
+.fixing .w{cursor:pointer;text-decoration:underline dotted var(--t3);text-underline-offset:4px;text-decoration-thickness:1px}
+.fixing .w.fixed{color:var(--accent-text);text-decoration-color:var(--accent);font-weight:500}
+.fixing .w.sel{background:var(--accent-soft);color:var(--accent-text);text-decoration:none;box-shadow:0 0 0 2px var(--accent-soft)}
+.w.kara-done{color:var(--t3)}
+.w.kara-on{color:var(--accent)}
+
+.fixbanner{display:none;align-items:center;gap:10px;padding:9px 18px;background:var(--accent-soft);font-size:13px;color:var(--accent-text);border-bottom:.5px solid var(--border)}
+.fixing .fixbanner{display:flex}
+.fixbanner b{font-weight:600}
+.fixbanner .count{font-size:12px;color:var(--t2)}
+.done-btn{margin-left:auto;font-weight:600;font-size:15px;color:var(--accent);padding:4px 2px}
+
+.card{margin-top:12px;background:var(--surface);border-radius:14px;box-shadow:0 0 0 1px var(--border),0 8px 24px rgba(0,0,0,.08);padding:12px;display:flex;flex-direction:column;gap:10px}
+.card-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;color:var(--t3);text-transform:uppercase}
+.heard{font-size:15px;font-style:italic;color:var(--t2)}
+.stamp{font:11px var(--mono);color:var(--t3);margin-left:auto}
+.hear{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:6px 10px;border-radius:9px}
+.hear svg{width:10px;height:10px}
+.hearbar{flex:1;min-width:60px;height:3px;border-radius:2px;background:var(--elev);overflow:hidden}
+.hearbar i{display:block;height:100%;width:0;background:var(--accent)}
+.extend{font-size:12px;color:var(--t2);background:var(--elev);padding:5px 9px;border-radius:8px}
+.extend:disabled{opacity:.35}
+.field{width:100%;font:500 17px var(--font);color:var(--t1);background:var(--bg);border:1px solid var(--accent);border-radius:10px;padding:10px 12px}
+.card-act{display:flex;gap:8px;align-items:center}
+.putback{font-size:13px;color:var(--t2);text-decoration:underline;text-underline-offset:3px}
+.btn{font-size:15px;font-weight:600;padding:9px 16px;border-radius:10px}
+.btn.ghost{color:var(--t2)}
+.btn.primary{background:var(--accent);color:#fff;margin-left:auto}
+.btn.primary:disabled{opacity:.4}
+.keeps{font-size:12px;color:var(--t2);line-height:1.4}
+.keeps b{font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums}
+
+/* action sheet = SwiftUI confirmationDialog */
+.scrim{position:absolute;inset:0;background:var(--scrim);display:flex;flex-direction:column;justify-content:flex-end;padding:8px;gap:8px;z-index:10}
+.ag{background:var(--sheet-bg);border-radius:14px;overflow:hidden;backdrop-filter:blur(20px)}
+.ag-title{font-size:13px;color:var(--t2);text-align:center;padding:13px 16px;border-bottom:.5px solid var(--border)}
+.ag button{display:block;width:100%;font-size:19px;color:var(--accent);text-align:center;padding:15px 8px;border-bottom:.5px solid var(--border);position:relative}
+.ag button:last-child{border-bottom:0}
+.ag button.del{color:var(--red)}
+.ag button.cancel{font-weight:600}
+.ag button.new{background:var(--pick-soft);box-shadow:inset 0 0 0 2px var(--pick)}
+.newtag{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:600 9.5px var(--mono);letter-spacing:.06em;color:var(--pick)}
+
+.toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:9px 8px 9px 16px;font-size:13px;font-weight:500;display:flex;gap:12px;align-items:center;white-space:nowrap;z-index:12;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.toast button{color:var(--accent);font-weight:600;padding:2px 8px}
+
+/* ---------- mock notes (pink layer) ---------- */
+.notes{max-width:390px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:10px}
+.pick{border:1.5px dashed var(--pick);background:var(--pick-soft);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.45}
+.pick h4{margin:0 0 4px;font:600 10.5px var(--mono);letter-spacing:.07em;color:var(--pick);text-transform:uppercase}
+.pick p{margin:0}
+.pick .alt{margin-top:5px;color:var(--t2);font-size:12.5px}
+.pick.q{border-style:solid}
+.pick.q p{font-weight:600}
+.src{font:11px/1.45 var(--mono);color:var(--t2);padding:0 2px}
+.src code{color:var(--t1)}
+
+/* ---------- audio tab ---------- */
+.au{padding:14px 18px 40px;display:flex;flex-direction:column;gap:14px}
+.au h3{margin:0;font-size:15px}
+.au p{margin:0;font-size:13px;line-height:1.5;color:var(--t2)}
+.slots{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.slots table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.slots th{font:600 10px var(--mono);letter-spacing:.05em;color:var(--t3);text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.slots td{padding:5px 9px;border-bottom:.5px solid var(--border);white-space:nowrap}
+.slots td.t{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.slots tr.ch td{background:var(--accent-soft)}
+.slots tr.ch td.now{color:var(--accent-text);font-weight:600}
+.slots td.was{color:var(--t3);text-decoration:line-through}
+.slots tr.ramble-first td{border-top:2px solid var(--t3)}
+.timeline{position:relative;height:46px;border-radius:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.timeline .seg{position:absolute;top:8px;bottom:8px;border-radius:3px;background:var(--elev)}
+.timeline .seg.ch{background:var(--accent)}
+.timeline .seg.ram{background:var(--t3);opacity:.35}
+.timeline .head{position:absolute;top:0;bottom:0;width:2px;background:var(--pick);left:0;display:none}
+.tl-scale{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--t3);margin-top:3px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;line-height:1.4}
+.kv dt{font:11px var(--mono);color:var(--t3);padding-top:1px}
+.kv dd{margin:0;color:var(--t1);min-width:0}
+.kv code{font:11.5px var(--mono);background:var(--elev);padding:1px 4px;border-radius:4px;word-break:break-all}
+
+/* ---------- mac tab ---------- */
+.mac{margin:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--mac-bg);box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.mac-bar{height:30px;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--border);background:var(--surface)}
+.mac-bar i{width:10px;height:10px;border-radius:50%;background:var(--elev);display:block}
+.mac-bar span{margin-left:auto;font-size:11px;color:var(--mac-t2)}
+.mac-body{padding:16px 18px 20px;color:var(--mac-t1)}
+.mac-title{font-weight:700;font-size:16px;margin-bottom:10px}
+.mac .qtext{font-size:14px}
+.mac .ramble{font-size:14px}
+.beep{margin-top:10px;font-size:12px;color:var(--mac-t2);display:flex;align-items:center;gap:6px}
+.beep kbd{font:11px var(--mono);background:var(--elev);border-radius:4px;padding:1px 5px}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="rail">
+  <div class="rail-top"><span class="rail-id">Q152</span><span class="rail-title">Fix quote</span><span class="rail-sub">D50 · C160 · C172</span></div>
+  <div class="steps" role="tablist">
+    <button class="step" role="tab" data-tab="menu" aria-selected="true"><span>1</span>Menu</button>
+    <button class="step" role="tab" data-tab="fix" aria-selected="false"><span>2</span>Fix</button>
+    <button class="step" role="tab" data-tab="audio" aria-selected="false"><span>3</span>Audio</button>
+    <button class="step" role="tab" data-tab="mac" aria-selected="false"><span>4</span>Mac</button>
+  </div>
+</div>
+
+<!-- ============ PHONE (tabs 1 + 2) ============ -->
+<section id="phone">
+  <div class="stage" id="stage">
+    <div class="navbar">
+      <button class="back" id="back"><svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>Notes</button>
+      <div class="nav-r">
+        <button class="nav-btn" aria-label="Add recording" data-ack="Add recording"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v12M3 9h12"/></svg></button>
+        <button class="nav-btn" aria-label="Split speakers" data-ack="Split speakers"><svg viewBox="0 0 20 18" fill="currentColor"><circle cx="7" cy="5" r="3.2"/><circle cx="14" cy="5.5" r="2.7"/><path d="M1 16c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5z"/><path d="M14 10.5c3 0 5 1.9 5 5.5h-4.5c0-2.2-.7-4-2-5.2.5-.2 1-.3 1.5-.3z"/></svg></button>
+        <button class="nav-btn" id="more" aria-label="More"><svg viewBox="0 0 20 4" fill="currentColor"><circle cx="2" cy="2" r="2"/><circle cx="10" cy="2" r="2"/><circle cx="18" cy="2" r="2"/></svg></button>
+      </div>
+    </div>
+    <div class="title-row">Boats against the current</div>
+    <div class="fixbanner" id="banner">
+      <div><b>Fix quote</b> · tap the word you misheard<div class="count" id="count">No words fixed yet</div></div>
+      <button class="done-btn" id="done">Done</button>
+    </div>
+    <div class="page" id="page">
+      <div class="chips">
+        <span class="chip"><svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 1.5h3.2c.5 0 .8.3.8.8V9c0-.4-.4-.7-.8-.7H1zM9 1.5H5.8c-.5 0-.8.3-.8.8V9c0-.4.4-.7.8-.7H9z"/></svg>The Great Gatsby</span>
+        <span class="chip"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="5" cy="5" r="4"/><path d="M5 2.6V5l1.6 1"/></svg>2 Oct, 08:41</span>
+      </div>
+      <div class="tagrow">+ tag</div>
+      <div class="trimmed">mock: importance pill + summary trimmed (Q152 doesn't touch them)</div>
+      <div class="quote" id="quote">
+        <p class="qtext" id="qtext"></p>
+        <div class="attr">— F. Scott Fitzgerald, The Great Gatsby · ch. 9</div>
+      </div>
+      <div id="cardslot"></div>
+      <div class="ramble" id="ramble">
+        <p>This is the whole Lisbon move some days. Rowing hard toward something that's already behind me.</p>
+        <p>Come back to this when I write about the studio.</p>
+      </div>
+    </div>
+
+    <div class="scrim" id="sheet" hidden>
+      <div class="ag">
+        <div class="ag-title">57 words · 0:41</div>
+        <button data-ack="Export to Obsidian">Export to Obsidian</button>
+        <button data-ack="Add recording">Add recording</button>
+        <button data-ack="Split speakers…">Split speakers…</button>
+        <button class="new" id="fixItem">Fix quote…<span class="newtag">NEW</span></button>
+        <button data-ack="Remind me…">Remind me…</button>
+        <button data-ack="Lock note">Lock note</button>
+        <button data-ack="Share note…">Share note…</button>
+        <button data-ack="Copy transcript">Copy transcript</button>
+        <button class="del" data-ack="Delete">Delete</button>
+      </div>
+      <div class="ag"><button class="cancel" id="cancel">Cancel</button></div>
+    </div>
+    <div class="toast" id="toast" hidden><span id="toastText"></span><button id="toastUndo">Undo</button></div>
+  </div>
+
+  <div class="notes" id="notes-menu">
+    <div class="pick">
+      <h4>Where the verb lives</h4>
+      <p>"Fix quote…" sits in the ⋯ sheet right after Split speakers, so it lands in the shared <code>NoteMenuItem</code> order as a "to the recording" verb (after <code>flattenToMonologue</code>, before <code>retranscribe</code>). It only appears on a note whose body opens with a quote block (<code>CaptureQuote.split != nil</code>).</p>
+      <p class="alt">Not picked: long-press the quote block itself. Faster to find, but the quote already takes taps for seek-to-word during playback (Q83).</p>
+    </div>
+    <div class="src">Sheet rows drawn from <code>MemoDetailView.swift:424</code> confirmationDialog for a polished quote capture with no printer and nothing to undo. Title row is <code>memoStatsLine</code>.</div>
+  </div>
+
+  <div class="notes" id="notes-fix" hidden>
+    <div class="pick">
+      <h4>Pick 1 · one word at a time</h4>
+      <p>You tap the misheard word and retype it. If the engine split one word in two ("or gastric"), "Include next word" grows the selection first. Each fix keeps the audio slot of the words it replaces.</p>
+      <p class="alt">Not picked: free-typing over the whole quote. Then every save needs a word diff to re-find which audio goes with which word, and a slip can shift the karaoke for the rest of the note.</p>
+    </div>
+    <div class="pick">
+      <h4>Pick 2 · fix card under the quote</h4>
+      <p>The card opens inline, right under the quote, so the keyboard can't cover the word you are fixing. The ramble dims and is untouchable until Done.</p>
+      <p class="alt">Not picked: a separate sheet (loses the surrounding words), or a bar docked above the keyboard (on an iPhone 13 that leaves about four lines of quote visible).</p>
+    </div>
+    <div class="pick">
+      <h4>Pick 3 · no trace after Done</h4>
+      <p>Once you tap Done, the fixed words look like every other word in the quote, on the phone, on the Mac and in the export. The words the engine heard stay in the timings file only, so "Put back" works inside Fix mode later.</p>
+    </div>
+    <div class="src">Try it: tap "both" → type "boats" → Fix. Then "or" → Include next word → "orgastic". Then "born" → "borne". Done gives an Undo toast.</div>
+  </div>
+</section>
+
+<!-- ============ AUDIO (tab 3) ============ -->
+<section id="audio" hidden>
+  <div class="stage">
+    <div class="au">
+      <h3>How a fix stays on its audio</h3>
+      <p>The quote audio never changes. Every word in the quote owns a time slot in the note's timings file. A fix rewrites the words and keeps the slots: one word for one word keeps its slot exactly; "or gastric" → "orgastic" joins two slots into one; one word typed as two splits its slot evenly.</p>
+      <div>
+        <div class="timeline" id="tl"><div class="head" id="head"></div></div>
+        <div class="tl-scale"><span>0:00</span><span id="tlEnd"></span></div>
+      </div>
+      <button class="hear" id="playQuote" style="align-self:flex-start"><svg viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l7 4-7 4z"/></svg><span>Play quote with karaoke</span></button>
+      <p class="qtext" id="karaText" style="font-size:15px"></p>
+      <div class="slots"><table><thead><tr><th>#</th><th>SLOT</th><th>HEARD</th><th>NOW</th></tr></thead><tbody id="slotRows"></tbody></table></div>
+      <dl class="kv" id="kv"></dl>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="pick">
+      <h4>What one save writes</h4>
+      <p>The note body's <code>&gt; </code> lines (rewritten through the one splitter, <code>CaptureQuote</code>; C172) and the timings sidecar <code>wt_&lt;id&gt;.json</code>, in the same save. Both already sync to the Mac. The ramble's karaoke starts at the quote's new word count, so a join or split moves it with no extra work.</p>
+    </div>
+    <div class="src">This table follows whatever you fixed on step 2.</div>
+  </div>
+</section>
+
+<!-- ============ MAC (tab 4) ============ -->
+<section id="mac" hidden>
+  <div class="mac">
+    <div class="mac-bar"><i></i><i></i><i></i><span>Skrift · Review</span></div>
+    <div class="mac-body">
+      <div class="mac-title">Boats against the current</div>
+      <div class="quote" id="macQuote" tabindex="0">
+        <p class="qtext" id="macText"></p>
+        <div class="attr">— F. Scott Fitzgerald, The Great Gatsby · ch. 9</div>
+      </div>
+      <div class="ramble"><p>This is the whole Lisbon move some days. Rowing hard toward something that's already behind me.</p><p>Come back to this when I write about the studio.</p></div>
+      <div class="beep" id="beep">Click into the quote and type: it beeps, as today (<kbd>NSSound.beep</kbd>).</div>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="pick">
+      <h4>Pick 4 · phone only</h4>
+      <p>The Mac gets the fixed quote through sync and shows it read-only, exactly as it draws any quote today (<code>BodyTextView.styleLeadingQuote</code>). No Fix verb in the Mac's ⋯, and typing into the quote still beeps.</p>
+      <p class="alt">Not picked: the same verb on the Mac. It needs a word-tap layer over the NSTextView and a way to hear the slot. Cheap to add later because the save path is shared.</p>
+    </div>
+    <div class="pick q">
+      <h4>The one question</h4>
+      <p>Is "one word at a time, plus Include next word" enough for the mishearings you actually get, or do you want to free-type over the whole quote?</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  // ---- fake data: heard quote + clip-relative slots ----
+  var HEARD = "Gatsby believed in the green light, the or gastric future that year by year recedes before us. So we beat on, both against the current, born back ceaselessly into the past.".split(" ");
+  var RAMBLE_WORDS = 26;
+  var words = [], t = 0.20;
+  HEARD.forEach(function(h){
+    var d = 0.24 + Math.min(h.replace(/[^a-z]/gi,"").length, 10) * 0.035;
+    words.push({t:h, s:+t.toFixed(2), e:+(t+d).toFixed(2), g:null});
+    t += d + (/[,.]$/.test(h) ? 0.32 : 0.04);
+  });
+  var QUOTE_END = words[words.length-1].e;
+  var groups = {}, gid = 0;
+  var fixing = false, sel = null, snapshot = null, hearTimer = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  function fmt(x){ var m = Math.floor(x/60), s = x - m*60; return m + ":" + (s<10?"0":"") + s.toFixed(1); }
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+  // ---- render the quote ----
+  function renderQuote(){
+    var q = $("qtext"); q.innerHTML = "";
+    words.forEach(function(w,i){
+      var sp = document.createElement("span");
+      sp.className = "w" + (w.g!==null ? " fixed" : "") + (sel && i>=sel.a && i<=sel.b ? " sel" : "");
+      sp.textContent = w.t; sp.dataset.i = i;
+      q.appendChild(sp); q.appendChild(document.createTextNode(" "));
+    });
+    var n = Object.keys(groups).length;
+    $("count").textContent = n ? (n===1 ? "1 fix" : n + " fixes") + " · tap Done to keep" : "No words fixed yet";
+    $("macText").textContent = words.map(function(w){return w.t;}).join(" ");
+  }
+
+  $("qtext").addEventListener("click", function(e){
+    if(!fixing) return;
+    var i = e.target.dataset && e.target.dataset.i; if(i===undefined) return;
+    i = +i; var w = words[i];
+    if(w.g!==null){ // select the whole fixed group
+      var a=i,b=i; while(a>0 && words[a-1].g===w.g) a--; while(b<words.length-1 && words[b+1].g===w.g) b++;
+      sel = {a:a,b:b};
+    } else sel = {a:i,b:i};
+    renderQuote(); renderCard(true);
+  });
+
+  function selText(){ return words.slice(sel.a, sel.b+1).map(function(w){return w.t;}).join(" "); }
+  function selOriginal(){
+    var out = [], seen = {};
+    for(var i=sel.a;i<=sel.b;i++){ var w=words[i];
+      if(w.g!==null){ if(!seen[w.g]){ seen[w.g]=1; out = out.concat(groups[w.g].orig); } }
+      else out.push(w); }
+    return out;
+  }
+
+  function renderCard(focus){
+    var slot = $("cardslot");
+    if(!sel){ slot.innerHTML = ""; return; }
+    var orig = selOriginal(), s = words[sel.a].s, e = words[sel.b].e;
+    var isFixed = words[sel.a].g!==null;
+    var prev = sel.a>0 ? words[sel.a-1].t : null, next = sel.b<words.length-1 ? words[sel.b+1].t : null;
+    slot.innerHTML =
+      '<div class="card" role="group" aria-label="Fix word">'+
+        '<div class="card-row"><span class="lbl">Heard</span><span class="heard">'+esc(orig.map(function(w){return w.t;}).join(" "))+'</span><span class="stamp">'+fmt(s)+'–'+fmt(e)+'</span></div>'+
+        '<div class="card-row"><button class="hear" id="hear"><svg viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l7 4-7 4z"/></svg><span>Hear it</span></button><span class="hearbar"><i id="hearbar"></i></span></div>'+
+        (isFixed ? '' : '<div class="card-row"><button class="extend" id="extPrev"'+(prev?'':' disabled')+'>+ ‹ '+esc(prev||"start")+'</button><button class="extend" id="extNext"'+(next?'':' disabled')+'>Include next word: '+esc(next||"end")+' ›</button></div>')+
+        '<input class="field" id="fixField" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(selText()).replace(/"/g,"&quot;")+'" aria-label="Correct text">'+
+        '<div class="keeps">Keeps its place in the audio: <b>'+fmt(s)+'–'+fmt(e)+'</b>'+(sel.b>sel.a?' ('+(sel.b-sel.a+1)+' slots joined)':'')+'</div>'+
+        '<div class="card-act">'+(isFixed?'<button class="putback" id="putback">Put back “'+esc(orig.map(function(w){return w.t;}).join(" "))+'”</button>':'<button class="btn ghost" id="cardCancel">Cancel</button>')+
+        '<button class="btn primary" id="fixBtn" disabled>Fix</button></div>'+
+      '</div>';
+    var f = $("fixField");
+    f.addEventListener("input", syncBtn); f.addEventListener("keydown", function(ev){ if(ev.key==="Enter") applyFix(); });
+    syncBtn();
+    $("fixBtn").onclick = applyFix;
+    $("hear").onclick = hear;
+    if($("cardCancel")) $("cardCancel").onclick = function(){ sel=null; renderQuote(); renderCard(); };
+    if($("putback")) $("putback").onclick = putBack;
+    if($("extPrev")) $("extPrev").onclick = function(){ sel.a--; widenToGroups(); renderQuote(); renderCard(true); };
+    if($("extNext")) $("extNext").onclick = function(){ sel.b++; widenToGroups(); renderQuote(); renderCard(true); };
+    if(focus){ f.focus({preventScroll:true}); f.select(); }
+  }
+  function widenToGroups(){
+    while(sel.a>0 && words[sel.a].g!==null && words[sel.a-1].g===words[sel.a].g) sel.a--;
+    while(sel.b<words.length-1 && words[sel.b].g!==null && words[sel.b+1].g===words[sel.b].g) sel.b++;
+  }
+  function syncBtn(){
+    var v = $("fixField").value.trim();
+    $("fixBtn").disabled = !v || v === selText();
+  }
+  function hear(){
+    var bar = $("hearbar"), lab = document.querySelector("#hear span");
+    var dur = (words[sel.b].e - words[sel.a].s + 0.8) * 1000; // window + 0.4 s pad each side
+    clearInterval(hearTimer); var t0 = Date.now(); lab.textContent = "Playing…";
+    hearTimer = setInterval(function(){
+      var p = Math.min(1,(Date.now()-t0)/dur); if(!document.body.contains(bar)){clearInterval(hearTimer);return;}
+      bar.style.width = (p*100)+"%";
+      if(p>=1){ clearInterval(hearTimer); lab.textContent = "Hear it"; setTimeout(function(){ if(bar) bar.style.width="0"; },300); }
+    },30);
+  }
+  function applyFix(){
+    var v = $("fixField").value.trim(); if(!v || v===selText()) return;
+    var orig = selOriginal(), s = words[sel.a].s, e = words[sel.b].e;
+    var parts = v.split(/\s+/), step = (e-s)/parts.length, g = ++gid;
+    // drop any groups we are replacing
+    for(var i=sel.a;i<=sel.b;i++) if(words[i].g!==null) delete groups[words[i].g];
+    var neu = parts.map(function(p,k){ return {t:p, s:+(s+k*step).toFixed(2), e:+(s+(k+1)*step).toFixed(2), g:g}; });
+    groups[g] = {orig:orig};
+    words.splice.apply(words,[sel.a, sel.b-sel.a+1].concat(neu));
+    sel = null; renderQuote(); renderCard(); renderAudio();
+  }
+  function putBack(){
+    var g = words[sel.a].g, orig = groups[g].orig; delete groups[g];
+    words.splice.apply(words,[sel.a, sel.b-sel.a+1].concat(orig));
+    sel = null; renderQuote(); renderCard(); renderAudio();
+  }
+
+  // ---- fix mode ----
+  function clone(){ return {w:JSON.parse(JSON.stringify(words)), g:JSON.parse(JSON.stringify(groups))}; }
+  function enterFix(){
+    closeSheet(); fixing = true; snapshot = clone();
+    $("stage").classList.add("fixing"); renderQuote();
+    $("quote").scrollIntoView({block:"nearest"});
+  }
+  function exitFix(){
+    var changed = JSON.stringify(words) !== JSON.stringify(snapshot.w);
+    fixing = false; sel = null; $("stage").classList.remove("fixing");
+    renderQuote(); renderCard();
+    if(changed) toast("Quote fixed", true);
+  }
+  $("done").onclick = exitFix;
+  $("fixItem").onclick = function(){ select("fix"); };
+
+  // ---- sheet + toast ----
+  function openSheet(){ $("sheet").hidden = false; }
+  function closeSheet(){ $("sheet").hidden = true; }
+  $("more").onclick = function(){ if(fixing) return; openSheet(); };
+  $("cancel").onclick = closeSheet;
+  $("sheet").addEventListener("click", function(e){ if(e.target.id==="sheet") closeSheet(); });
+  var toastTimer;
+  function toast(text, undo){
+    $("toastText").textContent = text; $("toastUndo").hidden = !undo; $("toast").hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ $("toast").hidden = true; }, 4000);
+  }
+  $("toastUndo").onclick = function(){
+    if(snapshot){ words = snapshot.w; groups = snapshot.g; renderQuote(); renderAudio(); }
+    $("toast").hidden = true; toast("Quote put back", false);
+  };
+  document.querySelectorAll("[data-ack]").forEach(function(b){
+    b.addEventListener("click", function(){ closeSheet(); toast(b.dataset.ack + " · unchanged by Q152", false); });
+  });
+  $("back").onclick = function(){ toast("Back to Notes · not part of this mock", false); };
+
+  // ---- audio tab ----
+  function renderAudio(){
+    var tl = $("tl"); tl.querySelectorAll(".seg").forEach(function(n){n.remove();});
+    var total = QUOTE_END + 5.5;
+    words.forEach(function(w){
+      var d = document.createElement("div"); d.className = "seg" + (w.g!==null?" ch":"");
+      d.style.left = (w.s/total*100)+"%"; d.style.width = Math.max(0.4,(w.e-w.s)/total*100 - 0.25)+"%"; tl.appendChild(d);
+    });
+    var r = document.createElement("div"); r.className="seg ram";
+    r.style.left = ((QUOTE_END+0.5)/total*100)+"%"; r.style.right = "1%"; tl.appendChild(r);
+    $("tlEnd").textContent = fmt(total) + " · grey = ramble";
+
+    var rows = "", seen = {};
+    words.forEach(function(w,i){
+      var heard = "";
+      if(w.g!==null && !seen[w.g]){ seen[w.g]=1; heard = groups[w.g].orig.map(function(o){return o.t;}).join(" "); }
+      else if(w.g!==null) heard = "↑";
+      rows += '<tr class="'+(w.g!==null?"ch":"")+'"><td class="t">'+i+'</td><td class="t">'+w.s.toFixed(2)+'–'+w.e.toFixed(2)+'</td>'+
+        '<td class="'+(w.g!==null?"was":"")+'">'+esc(w.g!==null?heard:w.t)+'</td><td class="now">'+esc(w.t)+'</td></tr>';
+    });
+    rows += '<tr class="ramble-first"><td class="t">'+words.length+'</td><td class="t">'+(QUOTE_END+0.5).toFixed(2)+'–</td><td colspan="2" style="color:var(--t2)">ramble starts here (“This is the whole…”)</td></tr>';
+    $("slotRows").innerHTML = rows;
+
+    var n = Object.keys(groups).length;
+    $("kv").innerHTML =
+      '<dt>quote words</dt><dd>'+words.length+' (heard: '+HEARD.length+')</dd>'+
+      '<dt>ramble base</dt><dd>index '+words.length+' · '+RAMBLE_WORDS+' ramble words follow</dd>'+
+      '<dt>fixes</dt><dd>'+n+'</dd>'+
+      '<dt>audio file</dt><dd>untouched</dd>'+
+      '<dt>attribution</dt><dd>unchanged (C160)</dd>'+
+      '<dt>body</dt><dd><code>&gt; '+esc(words.slice(0,6).map(function(w){return w.t;}).join(" "))+' …</code></dd>';
+    var k = $("karaText"); k.innerHTML = "";
+    words.forEach(function(w,i){ var sp=document.createElement("span"); sp.className="w"; sp.textContent=w.t; sp.dataset.k=i; k.appendChild(sp); k.appendChild(document.createTextNode(" ")); });
+  }
+  var karaTimer;
+  $("playQuote").onclick = function(){
+    clearInterval(karaTimer); var t0 = Date.now(), speed = 1.6, head = $("head"), total = QUOTE_END + 5.5;
+    var spans = $("karaText").querySelectorAll(".w"); head.style.display = "block";
+    karaTimer = setInterval(function(){
+      var now = (Date.now()-t0)/1000*speed;
+      head.style.left = (now/total*100)+"%";
+      words.forEach(function(w,i){ spans[i].className = "w" + (now>=w.e ? " kara-done" : (now>=w.s ? " kara-on" : "")); });
+      if(now > QUOTE_END + 0.4){ clearInterval(karaTimer); head.style.display="none"; spans.forEach(function(s){s.className="w";}); }
+    },40);
+  };
+
+  // ---- mac beep ----
+  $("macQuote").addEventListener("keydown", function(e){
+    if(e.key.length===1 || e.key==="Backspace"){ e.preventDefault(); var b=$("macQuote"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); }
+  });
+  $("macQuote").addEventListener("click", function(){ var b=$("macQuote"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake"); });
+
+  // ---- tabs ----
+  function select(tab){
+    document.querySelectorAll(".step").forEach(function(s){ s.setAttribute("aria-selected", s.dataset.tab===tab ? "true" : "false"); });
+    $("phone").hidden = !(tab==="menu" || tab==="fix");
+    $("audio").hidden = tab!=="audio"; $("mac").hidden = tab!=="mac";
+    $("notes-menu").hidden = tab!=="menu"; $("notes-fix").hidden = tab!=="fix";
+    if(tab==="menu"){ if(fixing){ fixing=false; sel=null; $("stage").classList.remove("fixing"); renderQuote(); renderCard(); } openSheet(); }
+    if(tab==="fix" && !fixing) enterFix();
+    if(tab==="audio") renderAudio();
+    try{ localStorage.setItem("q152tab", tab); }catch(e){}
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll(".step").forEach(function(s){ s.onclick = function(){ select(s.dataset.tab); }; });
+
+  renderQuote(); renderAudio();
+  var start = "menu";
+  try{ start = localStorage.getItem("q152tab") || "menu"; }catch(e){}
+  if(/^#(menu|fix|audio|mac)$/.test(location.hash)) start = location.hash.slice(1);
+  select(start);
+})();
+</script>
