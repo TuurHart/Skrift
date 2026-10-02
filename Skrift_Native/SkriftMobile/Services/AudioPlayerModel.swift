@@ -39,8 +39,6 @@ final class AudioPlayerModel: NSObject, ObservableObject {
     /// when the book starts: the REVERSE of the exclusion in `play()` below.
     private(set) static weak var nowPlaying: AudioPlayerModel?
 
-    private static let rates: [Float] = [1, 1.5, 2]
-
     /// Point the player at a memo's audio (or clear it). No-op if it's already
     /// loaded, so swiping back to a page doesn't restart it.
     ///
@@ -111,7 +109,7 @@ final class AudioPlayerModel: NSObject, ObservableObject {
     func skip(_ delta: TimeInterval) { seek(to: currentTime + delta) }
 
     func cycleRate() {
-        let next = Self.rates[(Self.rates.firstIndex(of: rate).map { $0 + 1 } ?? 0) % Self.rates.count]
+        let next = PlaybackRates.next(after: rate)   // C115: the one speed list
         rate = next
         if isPlaying { player?.rate = next }
     }

@@ -232,6 +232,10 @@ targets:
       # Q81: the note ⋯ menu's wording table (Foundation-only), so the "Undo tidy-up"
       # label is testable.
       - path: ../Shared/UI/NoteMenu.swift
+      # Q121: the ONE seconds->clock label and playback-speed list (Foundation-only), compiled here
+      # so DurationFormatTests can drive them (the app targets get them through Shared/UI).
+      - path: ../Shared/UI/DurationFormat.swift
+      - path: ../Shared/UI/PlaybackRates.swift
       # Q58 sweep E: the ONE lock-visibility predicate both apps' isLocked(_:) route
       # through — Foundation-only, same file-by-file discipline as Palette/SharedCopy
       # above (the rest of Shared/Session pulls in LocalAuthentication/AppKit).
