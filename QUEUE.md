@@ -1529,7 +1529,7 @@ do: `migrateParkedToOneClock` and `runOneClockMigrationOnce` (`Shared/Pipeline/M
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoLifecycleTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d14 (cleanup-audit P14)
 
-### Q202 [auto] (doing) Mac review column: unused parameters, one title builder, comments in the right place
+### Q202 [auto] (done) Mac review column: unused parameters, one title builder, comments in the right place
 spec: C240
 needs: Q116
 gate+: no
@@ -2489,3 +2489,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:29 Q193 -> doing — batch worker out
 - 2026-10-02 18:29 Q195 -> doing — batch worker out
 - 2026-10-02 18:30 Q154 -> done — gate pass @aa1511df
+- 2026-10-02 18:32 Q202 -> done — gate pass @26948504
