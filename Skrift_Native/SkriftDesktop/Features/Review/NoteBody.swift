@@ -66,7 +66,22 @@ struct NoteBody: View {
                 readBody
             }
         }
+        // Q143 (note-capture-06): an empty capture annotation reads as an invitation, the
+        // phone's own words (`CaptureAnnotationEditor`). The text view keeps a 5 pt line
+        // fragment padding, so the prompt sits on the caret.
+        .overlay(alignment: .topLeading) {
+            if interactive, file.sourceType == .capture, file.bestBodyText.isEmpty {
+                Text(NoteBody.capturePlaceholder)
+                    .font(Self.bodyFont)
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.leading, 5)
+                    .allowsHitTesting(false)
+            }
+        }
     }
+
+    /// The prompt on an empty capture annotation — the phone's wording, one string.
+    static let capturePlaceholder = "Add a note about this…"
 
     /// Read/snapshot body. A leading `> ` block renders styled (italic + accent bar, plus the
     /// attribution caption when the C2 book fields are known) above the ramble — presentation
