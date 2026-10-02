@@ -33,13 +33,13 @@ enum ThenVsNow {
     /// The newest notes that get a neighbour query, and every note's journal date — the two
     /// inputs each app feeds its own related-scores.
     static func recents(in memos: [Memo], since recentCut: Date) -> [Memo] {
-        Array(memos.filter { $0.recordedAt >= recentCut }
-            .sorted { $0.recordedAt > $1.recordedAt }
+        Array(memos.filter { $0.ageDate >= recentCut }
+            .sorted { $0.ageDate > $1.ageDate }
             .prefix(maxRecents))
     }
 
     static func dates(of memos: [Memo]) -> [UUID: Date] {
-        Dictionary(memos.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
+        Dictionary(memos.map { ($0.id, $0.ageDate) }, uniquingKeysWith: { a, _ in a })
     }
 
     /// Pure pair-picking (unit-tested in both suites): best-scoring hit that is

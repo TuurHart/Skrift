@@ -80,7 +80,7 @@ enum WayOut {
     }
 
     private static func dateLabel(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
+        MemoDate.day(date)
     }
 
     /// How a row's countdown reads; each app maps a tone to its own colour

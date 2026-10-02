@@ -13,6 +13,15 @@ enum MemoDate {
     static let unknownLabel = "Date unknown"
     static func isUnknown(_ date: Date) -> Bool { date == unknown }
 
+    /// The date text a detail row shows ("12 Sep 2026"), or "Date unknown".
+    static func day(_ date: Date) -> String {
+        isUnknown(date) ? unknownLabel : date.formatted(date: .abbreviated, time: .omitted)
+    }
+    /// The clock time a card kicker shows ("14:29"), or "Date unknown".
+    static func time(_ date: Date) -> String {
+        isUnknown(date) ? unknownLabel : date.formatted(date: .omitted, time: .shortened)
+    }
+
     static func label(_ date: Date, now: Date = Date()) -> String {
         if isUnknown(date) { return unknownLabel }
         let cal = Calendar.current

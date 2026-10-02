@@ -20,7 +20,7 @@ enum MemoExporter {
                          profile: ExportProfile = .obsidian) -> String {
         let input = compilerInput(for: memo, people: people, enhancement: enhancement,
                                   linkStems: linkStems)
-        return Compiler.compile(input, author: author, date: dateString(memo.recordedAt),
+        return Compiler.compile(input, author: author, date: MemoDate.isUnknown(memo.recordedAt) ? "" : dateString(memo.recordedAt),
                                 knownPeople: people, profile: profile)
     }
 

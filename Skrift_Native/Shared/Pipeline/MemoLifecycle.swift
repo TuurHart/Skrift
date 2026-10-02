@@ -32,7 +32,7 @@ enum MemoLifecycle {
 
     /// The one clock: recording started it; the freshest touch restarted it.
     static func clockStart(of memo: Memo) -> Date {
-        max(memo.recordedAt, memo.keptAt ?? .distantPast)
+        max(memo.ageDate, memo.keptAt ?? .distantPast)
     }
 
     /// Held OFF the clock entirely: rated (the active track), locked, pending

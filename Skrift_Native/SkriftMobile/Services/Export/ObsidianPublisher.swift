@@ -192,7 +192,7 @@ struct ObsidianPublisher {
 
         let relPath: String
         switch writer.assess(id: memo.id, title: title, filenameFallback: fallback,
-                             recordedAt: memo.recordedAt) {
+                             recordedAt: MemoDate.isUnknown(memo.recordedAt) ? nil : memo.recordedAt) {
         case .refused(let outcome):
             return PublishReport(outcome: Self.refusal(outcome),
                                  relativePath: outcome.relativePath, assetCount: 0)
