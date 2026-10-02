@@ -989,7 +989,7 @@ do: Three audio lists: phone `AppURLHandler` (m4a mp3 wav aac caf aiff aif opus 
 check: `grep -rqE "class ImportKindsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportKindsTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P34
 
-### Q134 [auto] (doing) one date ladder at every door: Files / AirDrop audio and video date from the filename, Mac images read EXIF, merged clips agree
+### Q134 [auto] (done) one date ladder at every door: Files / AirDrop audio and video date from the filename, Mac images read EXIF, merged clips agree
 spec: C70 R24 C74
 needs: Q133
 gate+: yes
@@ -1697,7 +1697,7 @@ do: In `SkriftMobile/`: delete `SelectableCard` (`Features/MemosList/NotesBottom
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d02 MLJ-d04 MLJ-d07 MLJ-d08 MLJ-d11 MLJ-d13 MLJ-d16 MLJ-c14 MLJ-c15 MLJ-c20 MSV-d17 (cleanup-audit P35)
 
-### Q223 [auto] (doing) feedback: a single-item mail composer, a store that only saves, no duplicate draft
+### Q223 [auto] (done) feedback: a single-item mail composer, a store that only saves, no duplicate draft
 spec: C240
 needs: -
 gate+: no
@@ -2479,3 +2479,5 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:13 Q139 -> done — gate pass @870808e1
 - 2026-10-02 18:15 Q154 -> doing — worker out (opus)
 - 2026-10-02 18:16 Q227 -> done — gate pass @bd9c7de2
+- 2026-10-02 18:16 Q223 -> done — gate pass (batched with Q227)
+- 2026-10-02 18:21 Q134 -> done — gate pass @3c1f35f8
