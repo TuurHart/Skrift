@@ -1,5 +1,4 @@
 import XCTest
-@testable import SkriftDesktop
 
 /// Q154 (C57, C196, R51): picture markers become embeds the SAME way on both exporters,
 /// through the one shared `ExportProfile.convertPictureMarkers`. A portfolio note gets
