@@ -823,7 +823,7 @@ do: The Mac editor is one `NSTextView` over the whole body; `styleLeadingQuote` 
 check: `grep -rqE "class MacQuoteReadOnlyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P13
 
-### Q113 [auto] (doing) phone creates people only through PersonEditCore.materialise (speaker naming, Add Person sheet)
+### Q113 [auto] (done) phone creates people only through PersonEditCore.materialise (speaker naming, Add Person sheet)
 spec: R12 C83 C80
 needs: -
 gate+: yes
@@ -2446,3 +2446,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:28 Q215 -> doing — batch worker out
 - 2026-10-02 17:28 Q210 -> doing — batch worker out
 - 2026-10-02 17:31 Q241 -> done — gate pass @fc56ae38
+- 2026-10-02 17:41 Q113 -> done — gate pass @0b16cb62
