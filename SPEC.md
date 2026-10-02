@@ -315,7 +315,9 @@ suite is retired; the unit suite IS the gate (D85).
   `author`, `type`, `source` (C130); writes `capture:` and `voice:` (set by each app, never
   derived) and `date:` = the recording date (never `added:`, D94); `location:` stays (C137); flat,
   named, media beside the note; the whole feature sits behind ONE Settings switch, off by
-  default; a destination is a per-device folder bookmark, one portfolio root. || check:
+  default, that SYNCS across devices (D162, LWW via the vocabulary carrier); a destination folder
+  is a per-device bookmark, one portfolio root; a device with the switch on and no folder shows the
+  chips and says it cannot export until one is picked. || check:
   `PortfolioExportTests`; corpus `dest-*`. — ledgers:144-155
 - C63 [auto] No video goes to the Obsidian vault: a video note exports markdown + audio + the
   frame there. A video filed Inspiration / Idea / Project keeps its source movie as a SYNCED asset
