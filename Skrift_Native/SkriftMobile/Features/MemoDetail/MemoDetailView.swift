@@ -731,7 +731,7 @@ struct MemoDetailView: View {
             memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
             repository.save()
             player.stopAndClear()
-            if ObsidianVault.hasPublished(memo.id) { lockVaultNotice = true }
+            if PublishCoordinator.hasPublished(memo) { lockVaultNotice = true }
         }
     }
 

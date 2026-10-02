@@ -1,6 +1,6 @@
 import Foundation
 
-/// The Mac twin of the phone's `ObsidianVault.hasPublished` (Q100, C161): locking a note
+/// The Mac twin of the phone's `PublishCoordinator.hasPublished` (Q100, C161): locking a note
 /// that this machine already exported must say the plaintext file still exists — Skrift
 /// never deletes vault files. Reads only Skrift's OWN export ledger for the personal
 /// destination, never the vault's contents.

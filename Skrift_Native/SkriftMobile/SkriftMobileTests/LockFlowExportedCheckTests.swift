@@ -44,7 +44,5 @@ final class LockFlowExportedCheckTests: XCTestCase {
 
         XCTAssertTrue(PublishCoordinator.hasPublished(memo),
                       "the lock flow must see a note the writer exported")
-        XCTAssertTrue(ObsidianVault.hasPublished(memo.id),
-                      "the old predicate asked the picked root's ledger")
     }
 }
