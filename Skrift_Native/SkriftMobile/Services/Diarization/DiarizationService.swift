@@ -9,7 +9,7 @@ enum DiarizationError: Error { case notReady }
 
 /// Sortformer-backed diarizer ("who spoke when"), chosen over the legacy pyannote
 /// `DiarizerManager` for diarization (best splits, stable IDs — see the handoff +
-/// DiarizeSpike; default config, no clusteringThreshold games).
+/// archive/spikes/DiarizeSpike; default config, no clusteringThreshold games).
 ///
 /// IDENTIFICATION ("is this Tiuri?") is a SEPARATE step: Sortformer can't ingest a
 /// voiceprint, so after diarizing we embed each speaker's audio (`SpeakerEmbedder`,

@@ -5,7 +5,7 @@ import Foundation
 /// segment covers its midpoint (nearest segment if it lands in a gap); consecutive
 /// words group into turns; tiny word "islands" shorter than `minTurnWords`, flanked
 /// by the same other speaker, are smoothed away (the diarizer occasionally drops a
-/// single word into the wrong speaker — the "But" blip caught in the DiarizeSpike
+/// single word into the wrong speaker — the "But" blip caught in the archive/spikes/DiarizeSpike
 /// validation). Output is `**Name:** text` turns — the Markdown that syncs phone↔Mac
 /// and renders WYSIWYG in the app.
 ///

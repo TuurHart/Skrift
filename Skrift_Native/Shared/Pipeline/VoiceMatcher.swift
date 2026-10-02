@@ -13,7 +13,7 @@ import Foundation
 /// when", Sortformer): Sortformer can't ingest an embedding, so identification is a
 /// standalone cosine match. The matched name becomes the `**Name:**` turn label.
 enum VoiceMatcher {
-    /// Cosine-similarity threshold for "same person". Measured in `DiarizeSpike` on real
+    /// Cosine-similarity threshold for "same person". Measured in `archive/spikes/DiarizeSpike` on real
     /// audio (M4 ANE): genuinely different people score ≤0.22, the same person ≥0.62
     /// (in- and cross-recording) — so 0.5 sits safely in the gap (0.28 above the
     /// different-people ceiling, 0.12 below the same-speaker floor), favouring NO false

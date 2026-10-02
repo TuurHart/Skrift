@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Rescue lost recordings — pull the orphaned `rec_tmp_*.m4a` files off the iPhone.
+"""Diagnose lost recordings — pull the quarantined and orphaned takes off the iPhone.
 
-A recording is persisted NOWHERE until `stop()` (LiveRecordingService.swift:433 →
-RecordView.swift:548): the audio goes to `Documents/recordings/rec_tmp_<uuid>.m4a`
-and only becomes a memo when the user stops it. So every time the app dies
-mid-recording — a call suspends it and iOS jetsams it, a crash, a swipe-kill —
-the take is lost and that file is orphaned. Nothing in the app ever looks at
-`rec_tmp_*` again, so the orphans are all still there, one per lost recording.
+A recording is persisted NOWHERE until the user stops it: the audio goes to
+`Documents/recordings/rec_tmp_<uuid>.m4a` and only becomes a memo on stop. When the
+app dies mid-recording (a call suspends it and iOS jetsams it, a crash, a swipe-kill)
+the take is left behind. Since Q16 the app sweeps these itself on launch
+(`RecordingRecovery.swift:10-45`): a take with readable audio becomes a "Recovered
+recording" note; a take with none is MOVED to `Documents/QuarantinedRecordings`
+(never deleted) with a `quarantine_<take>.json` sidecar. This tool pulls both
+folders and tells you what state each file is in, so you can see what the sweep
+quarantined and what is still orphaned (a take a dead process left that the sweep
+has not reached yet).
 
 MUST RUN ON THE MAC, with the iPhone plugged in and unlocked. It shells out to
 `xcrun devicectl`, so a remote/cloud session cannot do this.
@@ -17,21 +21,20 @@ MUST RUN ON THE MAC, with the iPhone plugged in and unlocked. It shells out to
     python3 tools/rescue-lost-recordings.py --scan ./pulled # analyse an already-pulled folder
 
 What it does, in order:
-  1. Lists the files ON THE DEVICE first (`devicectl device info files`) — that
-     listing carries the real on-device timestamps, which a copy may not preserve.
-     The mtime is the forensic bit: it dates the last buffer written, i.e. the
-     moment capture stopped for good.
-  2. Copies `Documents/recordings` off the device.
-  3. Reports every orphan: size, minutes of audio (~1 MB/min at the app's AAC
-     settings), and whether the MP4 is FINALIZED.
+  1. Lists `Documents/recordings` ON THE DEVICE first (`devicectl device info files`):
+     that listing carries the real on-device timestamps, which a copy may not
+     preserve. The mtime is the forensic bit: it dates the last buffer written, i.e.
+     the moment capture stopped for good.
+  2. Copies `Documents/recordings` and `Documents/QuarantinedRecordings` off the device.
+  3. Reports every `rec_tmp_*` file: size, minutes of audio (~1 MB/min at the app's
+     AAC settings), and whether the MP4 is FINALIZED.
 
-**Why most orphans won't play.** `AVAudioFile` writes the MP4 index (`moov`) in
-`close()`, which only stop/cancel reach (LiveRecordingService.swift:555). A killed
-recording leaves the AAC frames sitting in `mdat` with no index, so AVFoundation
-and ffmpeg both refuse the file. That is a repairable state, not a lost one — the
-audio is there — but it needs a `moov` rebuilt from a reference file recorded by
-the same app at the same sample rate. This script tells you WHICH files are in
-that state; it does not repair them.
+**Why most of these won't play.** `AVAudioFile` writes the MP4 index (`moov`) in
+`close()`, which only stop/cancel reach. A killed recording leaves the AAC frames in
+`mdat` with no index, so AVFoundation and ffmpeg both refuse the file. That is a
+repairable state, not a lost one (the audio is there), but it needs a `moov` rebuilt
+from a reference file recorded by the same app at the same sample rate. This script
+tells you WHICH files are in that state; it does not repair them.
 """
 
 import argparse
@@ -48,6 +51,7 @@ from datetime import datetime
 PROD_BUNDLE = "com.skrift.mobile"
 DEV_BUNDLE = "com.skrift.mobile.dev"
 REMOTE_DIR = "Documents/recordings"
+QUARANTINE_DIR = "Documents/QuarantinedRecordings"   # RecordingRecovery.swift quarantineDirectory
 
 # The app's AAC settings are high-quality mono/stereo at the mic's rate; in
 # practice its .m4a files land near this. Only used to turn bytes into a
@@ -191,32 +195,18 @@ def list_on_device(udid, bundle):
     return result.stdout
 
 
-def pull(udid, bundle, dest):
+def copy_from(udid, bundle, source, dest):
+    """Copy one path out of the app container; True on success."""
     os.makedirs(dest, exist_ok=True)
     result = run([
         "xcrun", "devicectl", "device", "copy", "from",
         "--device", udid,
         "--domain-type", "appDataContainer",
         "--domain-identifier", bundle,
-        "--source", REMOTE_DIR,
+        "--source", source,
         "--destination", dest,
     ], check=False)
-    if result.returncode != 0:
-        sys.exit(f"Copy failed:\n{result.stderr.strip()}")
-    return dest
-
-
-def pull_devlog(udid, bundle, dest):
-    """Dev only — Release compiles DevLog to a no-op, so prod has no devlog.txt."""
-    result = run([
-        "xcrun", "devicectl", "device", "copy", "from",
-        "--device", udid,
-        "--domain-type", "appDataContainer",
-        "--domain-identifier", bundle,
-        "--source", "Documents/devlog.txt",
-        "--destination", dest,
-    ], check=False)
-    return result.returncode == 0
+    return result.returncode == 0, result.stderr.strip()
 
 
 # ---------------------------------------------------------------- reporting
@@ -235,7 +225,7 @@ def report(folder):
 
     if not orphans:
         print("\nNo rec_tmp_* files. Either no recording has ever been lost, or they were "
-              "pulled from the wrong container (--dev pulls the other one).")
+              "pulled from the wrong container (--dev pulls the other one). Quarantined takes keep their rec_tmp_ names too, under QuarantinedRecordings/.")
         return orphans
 
     print(f"\n{len(orphans)} orphaned recording(s), newest first:\n")
@@ -279,10 +269,19 @@ def main():
     print(f"--- on-device listing of {REMOTE_DIR} (real timestamps) ---")
     print(list_on_device(udid, bundle))
 
-    dest = pull(udid, bundle, args.dest)
-    print(f"copied to {dest}")
-    if args.dev and pull_devlog(udid, bundle, dest):
-        print(f"pulled devlog.txt — grep it for 'interruption BEGAN' and what follows")
+    dest = args.dest
+    ok, err = copy_from(udid, bundle, REMOTE_DIR, dest)
+    if not ok:
+        sys.exit(f"Copy failed:\n{err}")
+    print(f"copied {REMOTE_DIR} to {dest}")
+    # Absent until the app has quarantined a take, so a failure here is normal.
+    if copy_from(udid, bundle, QUARANTINE_DIR, dest)[0]:
+        print(f"copied {QUARANTINE_DIR} to {dest}")
+    else:
+        print(f"no {QUARANTINE_DIR} on the device (the sweep has quarantined nothing)")
+    # Dev only: Release compiles DevLog to a no-op, so prod has no devlog.txt.
+    if args.dev and copy_from(udid, bundle, "Documents/devlog.txt", dest)[0]:
+        print("pulled devlog.txt — grep it for 'interruption BEGAN' and what follows")
 
     report(dest)
 
