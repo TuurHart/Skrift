@@ -104,18 +104,11 @@ final class AppModel {
         }
     }
 
-    /// Free-text match over the row title, transcript, summary, and photo OCR text.
-    /// Empty query matches everything (mirrors the phone's `matchesSearch`).
+    /// Free-text match — the ONE shared matcher (`NoteSearch`, Q103/C236): title, transcript,
+    /// summary, tags, place, shared-capture text, photo OCR. Empty query matches everything.
     func matchesSearch(_ f: PipelineFile) -> Bool {
-        // Q101 (C91/C161): a locked, not-yet-unlocked note matches on its explicitly set
-        // title only — never its transcript, summary or OCR (nor the first-line title
-        // fallback, which is its words).
-        let unlocked = LockGate.shared.isUnlocked(f.id)
-        return NoteVisibility.matches(query: searchText, locked: f.locked,
-                               unlockedThisSession: unlocked,
-                               title: NoteVisibility.contentVisible(locked: f.locked, unlockedThisSession: unlocked)
-                                   ? f.queueTitle : f.enhancedTitle,
-                               bodyFields: { [f.transcript, f.enhancedSummary, f.imageOCRText] })
+        // Q101 (C91/C161): a locked, not-yet-unlocked note matches on its set title only.
+        f.matchesNoteSearch(query: searchText, unlockedThisSession: LockGate.shared.isUnlocked(f.id))
     }
 
     /// Within the date-range filter — the shared `DateRangeFilter` rule (same one

@@ -165,17 +165,11 @@ enum WayOutRules {
         files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
     }
 
-    /// Free-text match for a quiet (unrated) row — title + transcript, the
-    /// memo-side mirror of `AppModel.matchesSearch`. Empty query matches all.
+    /// Free-text match for a quiet (unrated) row — the ONE shared matcher (`NoteSearch`,
+    /// Q103), same fields as the rated list. Empty query matches all. A locked note's words
+    /// stay out until unlocked this session (C161/C91, Q101).
     static func matchesSearch(_ memo: Memo, query: String, unlockedThisSession: Bool = false) -> Bool {
-        // A locked note's words are hidden (C161/C91) until unlocked this session: searching
-        // them (or the first-line title fallback derived from them) would reveal them — only
-        // its set title matches (Q101: `NoteVisibility.matches`).
-        NoteVisibility.matches(query: query, locked: memo.locked,
-                               unlockedThisSession: unlockedThisSession,
-                               title: NoteVisibility.contentVisible(locked: memo.locked, unlockedThisSession: unlockedThisSession)
-                                   ? displayTitle(memo) : memo.title,
-                               bodyFields: { [memo.transcript] })
+        NoteSearch.matches(query: query, memo.noteSearchSnapshot(unlockedThisSession: unlockedThisSession))
     }
 
     // MARK: - ④ the conveyor

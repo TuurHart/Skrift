@@ -52,9 +52,14 @@ extension MemosListView {
     var searchingNow: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
 
     func filtered(lifecycle: (live: [Memo], fading: [Memo]), enhanced: Set<UUID>) -> [Memo] {
-        var out = lifecycle.live.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
+        // The generated title + summary live on MemoEnhancement; index them once per pass
+        // (only while searching) so the shared matcher sees them (Q103/C236).
+        let polish: [UUID: (title: String, summary: String)] = searchingNow
+            ? Dictionary(enhancements.map { ($0.memoID, ($0.title, $0.summary)) }, uniquingKeysWith: { a, _ in a })
+            : [:]
+        var out = lifecycle.live.filter { matchesSearch($0, polish: polish[$0.id]) && matchesFilter($0, enhanced: enhanced) }
         if searchingNow {
-            out += lifecycle.fading.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
+            out += lifecycle.fading.filter { matchesSearch($0, polish: polish[$0.id]) && matchesFilter($0, enhanced: enhanced) }
         }
         return out.sorted(by: sortComparator)
     }
@@ -103,8 +108,9 @@ extension MemosListView {
     }
 
 
-    func matchesSearch(_ memo: Memo) -> Bool {
-        memo.matches(query: search, unlockedThisSession: LockGate.shared.isUnlocked(memo.id.uuidString))
+    func matchesSearch(_ memo: Memo, polish: (title: String, summary: String)? = nil) -> Bool {
+        memo.matches(query: search, unlockedThisSession: LockGate.shared.isUnlocked(memo.id.uuidString),
+                     enhancedTitle: polish?.title, summary: polish?.summary)
     }
 
     /// The rendered Related section: raw semantic hits minus exact matches,
