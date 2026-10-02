@@ -65,12 +65,24 @@ enum BodyV2Text {
     static func breakLocations(in text: String, words: [WordTiming], clipStarts: [Double] = []) -> [Int] {
         guard !words.isEmpty else { return [] }
         let ns = text as NSString
-        let tokens = try! NSRegularExpression(pattern: #"\S+"#)
+        let all = try! NSRegularExpression(pattern: #"\S+"#)
             .matches(in: text, range: NSRange(location: 0, length: ns.length))
+        // A speaker turn header (`**Speaker 1:**`, `**[[Maria]]:**`) is text the recogniser never
+        // emitted: its tokens must not count against the words, or every turn shifts the pairing.
+        let headers = (try? NSRegularExpression(pattern: #"\*\*[^\n*]+:\*\*"#))?
+            .matches(in: text, range: NSRange(location: 0, length: ns.length)).map(\.range) ?? []
+        func inHeader(_ r: NSRange) -> Bool { headers.contains { NSIntersectionRange($0, r).length > 0 } }
+        let tokens = all.filter { !inHeader($0.range) }
         var forced = Set<Int>()                       // token indexes that open a clip
         for start in clipStarts where start > 0 {
             if let i = words.firstIndex(where: { $0.start >= start - 0.05 }), i > 0, i < tokens.count {
-                forced.insert(i)
+                // Already the first word of a turn or a line: that is a paragraph start already.
+                let loc = tokens[i].range.location
+                var back = loc
+                while back > 0, ns.character(at: back - 1) == 32 || ns.character(at: back - 1) == 9 { back -= 1 }
+                let atLineStart = back == 0 || ns.character(at: back - 1) == 10
+                let afterHeader = headers.contains { $0.location + $0.length == back }
+                if !atLineStart, !afterHeader { forced.insert(i) }
             }
         }
         if text.contains("\n") { return forced.sorted().map { tokens[$0].range.location } }

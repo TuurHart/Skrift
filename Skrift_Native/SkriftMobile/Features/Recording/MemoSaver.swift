@@ -962,10 +962,15 @@ struct MemoSaver {
         guard let memo = repository.memo(id: id) else { return false }
         // Fusion rebuilds from the words, which drops the `[[img_NNN]]` photo markers — so
         // body v2 places them again from their moments, each after the sentence within the
-        // turn being spoken when it was taken (C169; photos + manifest are untouched).
-        if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
+        // turn being spoken when it was taken (C169; photos + manifest are untouched). It drops
+        // a merged note's clip paragraphs the same way, so those clip starts go through again
+        // (C124 with C102): each clip still opens a paragraph inside its turn.
+        let manifest = memo.metadata?.imageManifest ?? []
+        let clipStarts = MixedBundle.breakStarts(memo.metadata?.clipManifest ?? [])
+        if !manifest.isEmpty || !clipStarts.isEmpty {
             attributed = BodyV2.committed(BodyV2.Input(text: attributed, words: words,
-                                                       manifest: manifest, source: .speech))
+                                                       manifest: manifest, source: .speech,
+                                                       clipStarts: clipStarts))
         }
         memo.transcript = attributed
         memo.transcriptStatus = .done

@@ -46,7 +46,7 @@ final class SplitMergedNoteClipParagraphsTests: XCTestCase {
         XCTAssertTrue(paras[0].hasPrefix("**Speaker 1:** w1 "), body)
         XCTAssertTrue(paras[1].hasPrefix("w8 "), "clip 2 starts a paragraph inside turn 1: \(body)")
         XCTAssertTrue(paras[2].hasPrefix("**Speaker 2:** w11 "), body)
-        XCTAssertTrue(paras[3].hasPrefix("w14 "), "clip 3 starts a paragraph inside turn 2: \(body)")
+        XCTAssertTrue(paras[3].hasPrefix("w15 "), "clip 3 (4 s, first word at or after it is w15) starts a paragraph inside turn 2: \(body)")
     }
 
     func testWithoutClipStartsTheTurnsStayWhole() async throws {
