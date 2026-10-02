@@ -26,6 +26,7 @@ struct PersonEditor: View {
     @State private var fullName: String
     @State private var aliases: String     // comma-separated
     @State private var short: String
+    @State private var deleteConfirm = NameDeleteConfirm()
 
     private let original: Person?
     private let enrolled: Bool
@@ -69,6 +70,22 @@ struct PersonEditor: View {
         }
         .frame(width: 420, height: 460)
         .background(Theme.bg)
+        // Delete is a tombstone that goes out over CloudKit at once — confirm first (R79 / C266).
+        .confirmationDialog(
+            deleteConfirm.pending.map(NameDeleteConfirm.title(for:)) ?? "",
+            isPresented: Binding(get: { deleteConfirm.isPending },
+                                 set: { if !$0 { deleteConfirm.cancel() } }),
+            titleVisibility: .visible,
+            presenting: deleteConfirm.pending
+        ) { canonical in
+            Button(NameDeleteConfirm.confirmLabel, role: .destructive) {
+                let c = deleteConfirm.confirm() ?? canonical
+                onDelete?(c); onClose()
+            }
+            Button("Cancel", role: .cancel) { deleteConfirm.cancel() }
+        } message: { _ in
+            Text(NameDeleteConfirm.message)
+        }
     }
 
     private var fields: some View {
@@ -99,7 +116,7 @@ struct PersonEditor: View {
             Spacer()
             if !isNew, let onDelete, let original {
                 Button(role: .destructive) {
-                    onDelete(original.canonical); onClose()
+                    deleteConfirm.request(original.canonical)
                 } label: {
                     Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(Theme.destructive)
                         .frame(width: 26, height: 26).contentShape(Rectangle())

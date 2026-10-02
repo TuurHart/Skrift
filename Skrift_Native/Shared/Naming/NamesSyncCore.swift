@@ -1,6 +1,13 @@
 import Foundation
 import SwiftData
 
+extension Notification.Name {
+    /// Posted when a CloudKit names reconcile changes the local roster, so open UI (the Mac
+    /// Settings names list, the phone Names list + person card) live-refreshes instead of
+    /// showing stale data until reopened (R67). Both apps post it from `NamesCloudSync.run`.
+    static let namesDidChangeFromSync = Notification.Name("skrift.namesDidChangeFromSync")
+}
+
 /// The names reconcile — ONE algorithm for every device (phone, iPad, Mac). Folds the
 /// local `names.json` people together with every synced `NamesRecord` carrier through
 /// `NamesMerge.mergeByCanonical` (per-canonical last-write-wins + **union** of
@@ -13,6 +20,14 @@ import SwiftData
 /// writing `names.json`, saving the context, and any change notification. It supplies
 /// `insert`/`delete` for the carrier collapse (matching `VocabularySyncCore`'s recipe).
 enum NamesSyncCore {
+
+    /// Tell open UI the roster changed under it. Posts only when the merge changed the local
+    /// roster (an unchanged reconcile must not re-render every names screen on each sweep).
+    /// `center` is injectable for tests.
+    static func notifyIfChanged(_ outcome: Outcome, center: NotificationCenter = .default) {
+        guard outcome.localChanged else { return }
+        center.post(name: .namesDidChangeFromSync, object: nil)
+    }
 
     struct Outcome {
         /// The merged roster — the caller writes it to `names.json` IFF `localChanged`.
