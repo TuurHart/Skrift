@@ -104,7 +104,13 @@ struct SidebarView: View {
             queue
             bottomBar
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Q95: a SwiftUI `.frame(maxWidth: .infinity)` with the default CENTER alignment
+        // centres any child wider than the column, so a column dragged below the content's
+        // own floor lost BOTH edges (Tuur 2026-10-02: "it just clips off weirdly"). Leading
+        // alignment + clip: whatever cannot fit is cut on the RIGHT, the logo / verbs / chips /
+        // day headers / cards always keep their left edge.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
         // D135/D136 (one-notes-list): the sidebar ground turns from white to the
         // phone's grey — rows become white cards, matching the phone/iPad.
         .background(Theme.sidebarGround)
@@ -325,7 +331,7 @@ struct SidebarView: View {
         } label: {
             HStack(spacing: 6) {
                 Circle().fill(Theme.destructive).frame(width: 9, height: 9)
-                Text("Record")
+                Text("Record").lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .semibold))
             .foregroundStyle(Theme.destructive)
@@ -481,7 +487,7 @@ struct SidebarView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: system).font(.system(size: 11, weight: .semibold))
-                Text(title)
+                Text(title).lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .semibold))
             .foregroundStyle(Theme.textPrimary)
@@ -623,7 +629,7 @@ struct SidebarView: View {
             // D136: day groups, new on the Mac — the SAME `MemoDate.group` key the
             // phone/iPad use, via the shared `NotesListModel.dayGroups`, so a day
             // header reads the same word everywhere.
-            let content = VStack(alignment: .leading, spacing: 10) {
+            let inner = Group {
                 // Synthetic "Recording…"/"settling…" row (m1/m2/m4) — NOT a `PipelineFile`,
                 // pinned above every real row, purely presentational from `session`.
                 if sessionBusy {
@@ -637,24 +643,33 @@ struct SidebarView: View {
                         ? [(title: "", items: rows)]
                         : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.date) }),
                         id: \.title) { group in
-                    VStack(alignment: .leading, spacing: 6) {
+                    // Q95: the day header PINS at the top of the scroll like the phone's
+                    // (`pinnedViews: [.sectionHeaders]` on the LazyVStack below). The header
+                    // carries the sidebar's own ground so cards scroll UNDER it, not through it.
+                    Section {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(group.items) { entry in
+                                switch entry {
+                                case .file(let f):
+                                    QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                                        model.handleClick(f.id, displayOrder: displayedIDs, selectable: Set(orderedIDs))
+                                    }
+                                    .contextMenu { rowMenu(f) }
+                                case .memo(let m):
+                                    quietMemoRow(m)
+                                }
+                            }
+                        }
+                        .padding(.bottom, 10)
+                    } header: {
                         if !group.title.isEmpty {
                             Text(group.title.uppercased())
                                 .font(.system(size: 10.5, weight: .bold))
                                 .kerning(0.4)
                                 .foregroundStyle(Theme.textMuted)
-                                .padding(.horizontal, 4)
-                        }
-                        ForEach(group.items) { entry in
-                            switch entry {
-                            case .file(let f):
-                                QueueRowView(file: f, selected: model.selection.contains(f.id)) {
-                                    model.handleClick(f.id, displayOrder: displayedIDs, selectable: Set(orderedIDs))
-                                }
-                                .contextMenu { rowMenu(f) }
-                            case .memo(let m):
-                                quietMemoRow(m)
-                            }
+                                .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Theme.sidebarGround)
                         }
                     }
                 }
@@ -679,6 +694,15 @@ struct SidebarView: View {
                             }
                         }
                     }
+                }
+            }
+            // Lazy + pinned headers in the live (hosted) list; the ImageRenderer fixtures
+            // (`scrollable: false`) keep the plain VStack they always drew.
+            let content = Group {
+                if scrollable {
+                    LazyVStack(alignment: .leading, spacing: 10, pinnedViews: [.sectionHeaders]) { inner }
+                } else {
+                    VStack(alignment: .leading, spacing: 10) { inner }
                 }
             }
             .padding(8)
