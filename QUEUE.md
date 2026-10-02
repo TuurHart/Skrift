@@ -783,7 +783,7 @@ do: Quiet rows append only a duration chip (list-sidebar-69, -67 via Q68, which 
 check: `test $(ls plan/reads/list-p-quiet/*.png | wc -l) -ge 1 && grep -rqE "class MacQuietRowChipsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P8
 
-### Q108 [auto] (doing) strings written twice move to SharedCopy: empty library, no results, Way-out, peek, Review headings, lock/copy menu verbs
+### Q108 [auto] (done) strings written twice move to SharedCopy: empty library, no results, Way-out, peek, Review headings, lock/copy menu verbs
 spec: C115 C240 D136
 needs: -
 gate+: yes
@@ -2533,3 +2533,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && 
 - 2026-10-02 18:50 Q106 -> doing — worker out
 - 2026-10-02 18:53 Q117 -> doing — worker out
 - 2026-10-02 18:53 Q224 -> done — gate pass @d5830340
+- 2026-10-02 18:55 Q108 -> done — gate pass @ad3bfb83
