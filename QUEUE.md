@@ -1171,7 +1171,7 @@ do: iPad `shouldPublish` checks folder, trash, lock, rated, body/title, processe
 check: `grep -rqE "class ExportGateParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportGateParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P57
 
-### Q157 [auto] (doing) Mac polish prompt: blank falls back to the default, Reset to default, and a blank never syncs
+### Q157 [auto] (done) Mac polish prompt: blank falls back to the default, Reset to default, and a blank never syncs
 spec: C28 C150
 needs: -
 gate+: yes
@@ -2586,3 +2586,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:17 Q106 -> done — gate pass @c00d0e3e
 - 2026-10-02 21:19 Q153 -> stuck — gate failed — .queue/Q153.gate.log
 - 2026-10-02 21:19 Q153 -> doing — redispatch 2/3 (opus): first try interrupted by shutdown; accept GATE FAIL CaptureCompilerTests.testUrlCaptureSharedBlockAboveBody
+- 2026-10-02 21:25 Q157 -> done — gate pass @743bb9e4
