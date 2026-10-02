@@ -1234,7 +1234,7 @@ do: Phone discards only a take shorter than 0.4 s (RecordView.swift:561); a long
 check: `grep -rqE "class DeadTakeVerdictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh DeadTakeVerdictTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P65
 
-### Q165 [auto] (doing) Mac live recording shows the model state and a loading placeholder, like the phone
+### Q165 [auto] (done) Mac live recording shows the model state and a loading placeholder, like the phone
 spec: C220 C224
 needs: -
 gate+: yes
@@ -2001,6 +2001,12 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
+### Q264 [tuur] (tuur) decide: capture source label — signed mock capture-items.html says 'Shared link', Q122 made every surface read SourceKind.label ('Link' / 'Link · domain'); keep 'Link' or restore 'Shared link' everywhere? Also: hand-merge to delete the unused MemoDisplay.shareCaptureTypeLabel + its protected CaptureDisplayTests case; and should the Mac header date chip show the time?
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2700,3 +2706,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:31 Q169 -> doing — worker out
 - 2026-10-02 23:33 Q137 -> done — gate pass @c9aa9161
 - 2026-10-02 23:36 Q122 -> done — gate pass @d6777391
+- 2026-10-02 23:36 Q165 -> done — gate pass (batched with Q122)
+- 2026-10-02 23:36 Q264 added
+- 2026-10-02 23:36 Q264 -> tuur — awaiting sitting
