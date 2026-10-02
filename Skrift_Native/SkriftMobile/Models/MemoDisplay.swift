@@ -75,25 +75,14 @@ extension Memo {
         return days == 1 ? "1 day left" : "\(days) days left"
     }
 
-    /// Full-text search over everything the memo knows: title, transcript,
-    /// tags, place, capture fields — and the photos' OCR text (chunk 6).
-    /// Extracted from the list so it's testable and single-sourced.
-    func matches(query: String, unlockedThisSession: Bool = false) -> Bool {
-        // Q101 (C91/C161): a locked note's body fields stay out of the match until it is
-        // unlocked this session; only its title can hit (the row shows as "Locked note").
-        NoteVisibility.matches(query: query, locked: locked, unlockedThisSession: unlockedThisSession,
-                               title: title, bodyFields: { [self] in
-            var f: [String?] = [transcript]
-            f.append(contentsOf: tags.map { Optional($0) })
-            f.append(metadata?.location?.placeName)
-            // C3 capture items: search annotation + urlTitle + text snippet
-            f.append(annotationText)
-            f.append(sharedContent?.urlTitle)
-            f.append(sharedContent?.text)
-            // Photo OCR (on-device Vision → synced manifest text).
-            f.append(contentsOf: (metadata?.imageManifest ?? []).map { $0.text })
-            return f
-        })
+    /// Full-text search — the ONE shared matcher (`NoteSearch`, Q103/C236): title, generated
+    /// title, transcript, summary, tags, place, annotation, shared-capture text, photo OCR.
+    /// `enhancedTitle` / `summary` are the note's `MemoEnhancement` fields when the caller has
+    /// them. A locked note's body stays out until unlocked this session (Q101).
+    func matches(query: String, unlockedThisSession: Bool = false,
+                 enhancedTitle: String? = nil, summary: String? = nil) -> Bool {
+        NoteSearch.matches(query: query, noteSearchSnapshot(unlockedThisSession: unlockedThisSession,
+                                                            enhancedTitle: enhancedTitle, summary: summary))
     }
 
     /// Resolve a `[[img_NNN]]` transcript marker (1-based) to its photo file in
