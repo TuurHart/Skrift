@@ -32,7 +32,7 @@ struct JournalCalendarView: View {
         .background(Color.skBg)
         .navigationTitle(month.formatted(.dateTime.month(.wide).year()))
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { memos = repository.canonicalMemos() }
+        .onAppear { memos = ReviewNotes.live(repository.canonicalMemos()) }   // no fading dots (Q166)
     }
 
     private var monthHeader: some View {
