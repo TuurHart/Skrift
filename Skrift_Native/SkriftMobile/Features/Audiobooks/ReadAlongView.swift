@@ -75,7 +75,7 @@ final class ReadAlongModel: ObservableObject {
         if !covered, fileIndex == loadedFileIndex, let audioURL {
             let sig = store.signature(forFileAt: audioURL)
             let frontier = store.coveredUpTo(bookID: book.id, fileIndex: fileIndex, expectedSignature: sig)
-            if fileLocal > frontier + 0.05 {          // mirrors FileTranscript.isCovered
+            if !FileTranscript.isCovered(frontier: frontier, upTo: fileLocal) {
                 loadedUpTo = fileLocal + 2            // keep the existing re-check throttle
                 return
             }

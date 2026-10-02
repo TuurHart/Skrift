@@ -27,7 +27,7 @@ final class AudiobookSession {
     static let shared = AudiobookSession()
 
     /// C3: a book session is active (playing or paused-with-book-loaded).
-    var isActive: Bool = false
+    var isActive: Bool { book != nil }
     private(set) var book: Audiobook?
     private(set) var isPlaying = false
     private(set) var currentTime: TimeInterval = 0
@@ -133,7 +133,6 @@ final class AudiobookSession {
         currentTime = resume
         coverImage = store.coverURL(of: newBook).flatMap { UIImage(contentsOfFile: $0.path) }
         seek(to: currentTime)
-        isActive = true
 
         installTimeObserver(on: avPlayer)
         configureRemoteCommandsIfNeeded()
@@ -184,7 +183,6 @@ final class AudiobookSession {
         closePlayer()
         book = nil
         coverImage = nil
-        isActive = false
         pausedByInterruption = false   // nothing left to resume into
         metadataShortfallLogged = false
         clearSleep()
@@ -627,19 +625,23 @@ final class AudiobookSession {
     /// (the classic "UI says playing, phone is silent").
     fileprivate func resumeAfterInterruptionIfOurs(shouldResume: Bool) {
         guard pausedByInterruption else { return }
-        guard shouldResume else {
-            // No resume hint: whoever interrupted still holds the route. Drop
-            // the latch — resuming later on a stale interruption would yank
-            // audio back from an app the user is now actively using.
-            pausedByInterruption = false
-            DevLog.log("audiobook interruption ended WITHOUT shouldResume — staying paused")
-            return
-        }
-        guard !LiveRecordingService.isRecordingActive else {
-            // Session priority (the 2026-06-12 device finding): a live recording
-            // outranks playback. Keep the latch — the recorder's stop is not an
-            // interruption end, so this book stays paused until the user taps.
-            DevLog.log("audiobook interruption ended — deferring, a recording is live")
+        guard Self.shouldResumeAfterInterruption(
+            pausedByInterruption: pausedByInterruption,
+            shouldResumeHint: shouldResume,
+            recordingActive: LiveRecordingService.isRecordingActive
+        ) else {
+            if !shouldResume {
+                // No resume hint: whoever interrupted still holds the route. Drop
+                // the latch — resuming later on a stale interruption would yank
+                // audio back from an app the user is now actively using.
+                pausedByInterruption = false
+                DevLog.log("audiobook interruption ended WITHOUT shouldResume — staying paused")
+            } else {
+                // Session priority (the 2026-06-12 device finding): a live recording
+                // outranks playback. Keep the latch — the recorder's stop is not an
+                // interruption end, so this book stays paused until the user taps.
+                DevLog.log("audiobook interruption ended — deferring, a recording is live")
+            }
             return
         }
         pausedByInterruption = false

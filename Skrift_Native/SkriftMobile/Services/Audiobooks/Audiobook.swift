@@ -13,6 +13,19 @@ struct AudiobookChapter: Codable, Equatable, Sendable {
     var isSeparator: Bool? = nil
 }
 
+extension Array where Element == AudiobookChapter {
+    /// Each chapter's duration from the next one's start; the last runs to the
+    /// book's end (never before its own start). Input must already be start-sorted.
+    func fillingDurations(bookDuration: TimeInterval) -> [AudiobookChapter] {
+        var chapters = self
+        for i in chapters.indices {
+            let end = i + 1 < chapters.count ? chapters[i + 1].start : Swift.max(bookDuration, chapters[i].start)
+            chapters[i].duration = Swift.max(0, end - chapters[i].start)
+        }
+        return chapters
+    }
+}
+
 /// An imported audiobook. The audio lives in `Documents/audiobooks/<id>/`
 /// (cover art beside it as `cover.jpg`); this record + the playback progress
 /// persist in the library's `library.json`. Book files NEVER sync to the Mac —
@@ -534,16 +547,7 @@ final class AudiobookLibraryStore: ObservableObject {
 
     /// Library order: most recently played first, never-played books after
     /// (newest import first).
-    var sortedByRecent: [Audiobook] {
-        books.sorted { a, b in
-            switch (a.lastPlayedAt, b.lastPlayedAt) {
-            case let (pa?, pb?): return pa > pb
-            case (.some, .none): return true
-            case (.none, .some): return false
-            case (.none, .none): return a.importedAt > b.importedAt
-            }
-        }
-    }
+    var sortedByRecent: [Audiobook] { BookSort.recentlyPlayed.sorted(books) }
 
     func book(id: UUID) -> Audiobook? {
         books.first { $0.id == id }

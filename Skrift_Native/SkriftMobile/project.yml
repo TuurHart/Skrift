@@ -224,9 +224,8 @@ targets:
             UTTypeTagSpecification:
               public.filename-extension:
                 - $(SKRIFT_BOOK_EXT)
-        # Read at runtime by BookBundle so the packager names files with the type
-        # this build actually owns (same trick as SkriftAppGroup above).
-        SkriftBookUTI: $(SKRIFT_BOOK_UTI)
+        # Read at runtime by BookBundle so the packager names files with the extension
+        # this build owns (same trick as SkriftAppGroup above).
         SkriftBookExtension: $(SKRIFT_BOOK_EXT)
         LSSupportsOpeningDocumentsInPlace: true
         # Photos picker (filtered to videos) reads a library asset's recording date.

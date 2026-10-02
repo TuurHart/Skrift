@@ -83,13 +83,6 @@ enum AudiobookImporter {
         return try await importParts(from: sources, libraryDirectory: libraryDirectory)
     }
 
-    /// Copy `source` into the library folder and read its tags. Returns the
-    /// pending import — the caller adds it to the store directly when the tags
-    /// were complete, or shows the editable confirm sheet first.
-    static func importBook(from source: URL, libraryDirectory: URL) async throws -> PendingAudiobookImport {
-        try await importBook(from: [source], libraryDirectory: libraryDirectory)
-    }
-
     private static func importSingleFile(from source: URL, libraryDirectory: URL) async throws -> PendingAudiobookImport {
         let id = UUID()
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()

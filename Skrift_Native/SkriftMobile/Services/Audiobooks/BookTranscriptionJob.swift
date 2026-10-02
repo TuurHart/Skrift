@@ -76,7 +76,6 @@ final class BookTranscriptionJob: ObservableObject {
     private var chunkTask: Task<ChunkFusion.Fused?, Error>?
     private var suspendedForCapture = false
     private var batteryObserver: NSObjectProtocol?
-    private var levelObserver: NSObjectProtocol?
 
     init(library: AudiobookLibraryStore = .shared,
          store: BookTranscriptStore = BookTranscriptStore(),
@@ -126,7 +125,7 @@ final class BookTranscriptionJob: ObservableObject {
     /// Lets the sheet show the REAL % (and the "Resume" label + estimate) the
     /// moment it opens — before Start — instead of 0.
     func savedProgress(for book: Audiobook) -> Double {
-        publishValue(book: book, starts: book.fileStartTimes)
+        publishValue(book: book)
     }
 
     /// Reflect `book`'s saved progress when idle so the sheet bar/label/estimate
@@ -178,7 +177,6 @@ final class BookTranscriptionJob: ObservableObject {
     private func run(bookID: UUID) async {
         guard let book = library.book(id: bookID) else { phase = .failed("book missing"); return }
         let transcriber = makeTranscriber()
-        let starts = book.fileStartTimes
 
         for fileIndex in book.files.indices {
             if Task.isCancelled { return }
@@ -239,7 +237,7 @@ final class BookTranscriptionJob: ObservableObject {
                     DevLog.log("bookJob[\(bookID)] chunk \(Int(chunkStart))s failed twice — skipping span")
                     ft = ft.appending([], upTo: chunkEnd)
                     try? store.save(ft, bookID: bookID)
-                    publishProgress(book: book, starts: starts)
+                    publishProgress(book: book)
                     continue
                 }
                 retriedChunk = false
@@ -250,7 +248,7 @@ final class BookTranscriptionJob: ObservableObject {
                 catch { phase = .failed("save failed: \(error.localizedDescription)"); return }
                 recordThroughput(audioSeconds: chunkEnd - chunkStart,
                                  computeSeconds: Date().timeIntervalSince(started))
-                publishProgress(book: book, starts: starts)
+                publishProgress(book: book)
             }
         }
         if !Task.isCancelled {
@@ -336,7 +334,7 @@ final class BookTranscriptionJob: ObservableObject {
             // LEADING CONTEXT (2026-06-19): a chunk is transcribed from a COLD
             // decoder with no preceding audio, so its OPENING words get mis-decoded
             // / wrongly capitalised (device artifacts "UndetectedED", "WILLIM
-            // RAULF"). Prepend ~2 s of audio before chunkStart as decode context,
+            // RAULF"). Prepend `chunkLead` (3 s) of audio before chunkStart as decode context,
             // then DROP those lead-in words (they're the previous chunk's already-
             // kept tail) — keeping word times exactly file-local. First chunk has no
             // lead. Cheap; chunkEnd behaviour is unchanged, so ChunkFusion's
@@ -394,12 +392,12 @@ final class BookTranscriptionJob: ObservableObject {
 
     // MARK: - Progress
 
-    private func publishProgress(book: Audiobook, starts: [TimeInterval]) {
-        progress = publishValue(book: book, starts: starts)
+    private func publishProgress(book: Audiobook) {
+        progress = publishValue(book: book)
     }
 
     /// Covered seconds across all files / total book seconds.
-    private func publishValue(book: Audiobook, starts: [TimeInterval]) -> Double {
+    private func publishValue(book: Audiobook) -> Double {
         let total = book.duration
         guard total > 0 else { return 0 }
         var covered: TimeInterval = 0
@@ -475,7 +473,7 @@ final class BookTranscriptionJob: ObservableObject {
         }
         batteryObserver = NotificationCenter.default.addObserver(
             forName: UIDevice.batteryStateDidChangeNotification, object: nil, queue: .main, using: recheck)
-        levelObserver = NotificationCenter.default.addObserver(
+        _ = NotificationCenter.default.addObserver(
             forName: UIDevice.batteryLevelDidChangeNotification, object: nil, queue: .main, using: recheck)
         // No `.NSProcessInfoPowerStateDidChange` observer: that notification fires ONLY
         // for Low Power Mode toggles, which no longer change the policy above.

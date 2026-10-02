@@ -40,10 +40,6 @@ enum BookBundle {
         Bundle.main.object(forInfoDictionaryKey: "SkriftBookExtension") as? String ?? "skriftbook"
     }
 
-    static var typeIdentifier: String {
-        Bundle.main.object(forInfoDictionaryKey: "SkriftBookUTI") as? String ?? "com.skrift.book"
-    }
-
     /// True when `url` is a book bundle this build owns — the test
     /// `AppURLHandler` runs before it decides an incoming file is ours.
     static func isBookBundle(_ url: URL) -> Bool {
@@ -76,7 +72,7 @@ enum BookBundle {
                       to destination: URL,
                       progress: ((Double) -> Void)? = nil) throws -> BookBundleManifest {
         let fm = FileManager.default
-        let derived = derivedSidecars(bookID: book.id, folder: folder, fileCount: book.files.count)
+        let derived = derivedSidecars(folder: folder, fileCount: book.files.count)
         let coverURL = folder.appendingPathComponent(BookBundleManifest.Dir.cover)
         let hasCover = fm.fileExists(atPath: coverURL.path)
 
@@ -135,7 +131,7 @@ enum BookBundle {
     /// The bytes a bundle for this book would weigh — what the share sheet shows
     /// before you commit to packaging ("Audio + book text · 797 MB").
     static func estimatedSize(book: Audiobook, folder: URL) -> Int64 {
-        let derived = derivedSidecars(bookID: book.id, folder: folder, fileCount: book.files.count)
+        let derived = derivedSidecars(folder: folder, fileCount: book.files.count)
         let names = book.files
             + attachedTexts(book: book, folder: folder)
             + derived.transcripts + derived.alignments
@@ -255,7 +251,7 @@ enum BookBundle {
         return declared + onDisk.subtracting(declared).sorted()
     }
 
-    private static func derivedSidecars(bookID: UUID, folder: URL, fileCount: Int)
+    private static func derivedSidecars(folder: URL, fileCount: Int)
         -> (transcripts: [String], alignments: [String]) {
         let fm = FileManager.default
         var transcripts: [String] = []
