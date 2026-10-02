@@ -1473,7 +1473,7 @@ do: `TranscribeBookView.swift` is reachable only from the read-along nudge (`Rea
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d02 MAU-c01 (cleanup-audit P7)
 
-### Q195 [auto] (doing) shared book sheet pieces: progress bar, grabber, scaffold, glass chrome, labelled field
+### Q195 [auto] (done) shared book sheet pieces: progress bar, grabber, scaffold, glass chrome, labelled field
 spec: C239 C240
 needs: Q193
 gate+: no
@@ -2543,3 +2543,4 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 18:55 Q256 added
 - 2026-10-02 18:57 Q178 -> doing — worker out
 - 2026-10-02 19:05 Q193 -> done — gate pass @7c88717f
+- 2026-10-02 19:05 Q195 -> done — gate pass (batched with Q193)
