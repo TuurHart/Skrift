@@ -1513,7 +1513,7 @@ do: (1) `MemoSpine` (`Shared/Pipeline/MemoSpine.swift`): `QueuePhase`, `Input.qu
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSpineTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d03 SPL-d07 SPL-d11 SPL-c20 SPL-c30 MMD-d06 (cleanup-audit P12)
 
-### Q200 [auto] (doing) one number-word table for AlignmentCore and ChapterDetector
+### Q200 [auto] (done) one number-word table for AlignmentCore and ChapterDetector
 spec: C239
 needs: -
 gate+: no
@@ -1553,7 +1553,7 @@ do: Bug found by reading, not run: `BodyTextView.Coordinator.wordRanges` (`Skrif
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DRV-d14 DRV-d-m1 DRV-c08 (cleanup-audit P17)
 
-### Q205 [auto] (doing) Mac shell: delete the unused stub engines, naming demo and dead members
+### Q205 [auto] (done) Mac shell: delete the unused stub engines, naming demo and dead members
 spec: C240
 needs: -
 gate+: no
@@ -1633,7 +1633,7 @@ do: The only production ingest path is `MemoCloudIngest.swift:48` calling `uploa
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d12 DPE-d13 DPE-d14 (cleanup-audit P27)
 
-### Q215 [auto] (doing) Mac sidebar and app: unused pill and helpers, wrong comments
+### Q215 [auto] (done) Mac sidebar and app: unused pill and helpers, wrong comments
 spec: C240
 needs: Q205
 gate+: no
@@ -2461,3 +2461,6 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:43 Q116 -> doing — worker out (opus)
 - 2026-10-02 17:44 Q103 -> done — gate pass @b290fdfe
 - 2026-10-02 17:46 Q208 -> done — gate pass @1e71fa7e
+- 2026-10-02 17:46 Q205 -> done — gate pass (batched with Q208)
+- 2026-10-02 17:46 Q215 -> done — gate pass (batched with Q208)
+- 2026-10-02 17:48 Q200 -> done — gate pass @b8a0b887
