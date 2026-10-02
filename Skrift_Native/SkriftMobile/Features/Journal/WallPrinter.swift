@@ -19,7 +19,7 @@ final class WallPrinter: ObservableObject {
     /// The orange tier — where the circles change color.
     static let threshold = 0.8
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
     private enum Key {
         static let printerURL = "wallPrinterURL"
         static let autoPrint = "wallAutoPrint"
@@ -27,15 +27,27 @@ final class WallPrinter: ObservableObject {
         static let ledger = "wallPrintedLedger"   // [memoID: printedAt]
     }
 
-    @Published private(set) var queuedCount = 0
+    /// Queue + ledger live here and persist on every change (didSet), loaded once in
+    /// `init`. A drain that awaits the printer mutates THESE, so a card enqueued
+    /// meanwhile survives (the old drain wrote a stale snapshot back over the key).
+    @Published private(set) var queue: [String] {
+        didSet { defaults.set(queue, forKey: Key.queue) }
+    }
+    private var ledger: [String: Date] {
+        didSet { defaults.set(ledger, forKey: Key.ledger) }
+    }
+    var queuedCount: Int { queue.count }
+
     @Published private(set) var printerName: String?
     @Published var autoPrint: Bool {
         didSet { defaults.set(autoPrint, forKey: Key.autoPrint) }
     }
 
-    private init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         autoPrint = defaults.bool(forKey: Key.autoPrint)
-        queuedCount = defaults.stringArray(forKey: Key.queue)?.count ?? 0
+        queue = defaults.stringArray(forKey: Key.queue) ?? []
+        ledger = (defaults.dictionary(forKey: Key.ledger) as? [String: Date]) ?? [:]
         printerName = defaults.string(forKey: Key.printerURL).map { _ in "Saved printer" }
     }
 
@@ -52,34 +64,30 @@ final class WallPrinter: ObservableObject {
     }
 
     func ratingCommitted(_ memo: Memo, repository: NotesRepository) {
-        guard autoPrint, hasPrinter else { return }
-        var queue = defaults.stringArray(forKey: Key.queue) ?? []
-        let id = memo.id.uuidString
-        guard Self.shouldEnqueue(significance: memo.significance,
-                                 alreadyPrinted: printedAt(memo.id) != nil,
-                                 alreadyQueued: queue.contains(id)) else { return }
-        queue.append(id)
-        defaults.set(queue, forKey: Key.queue)
-        queuedCount = queue.count
+        guard autoPrint, hasPrinter, enqueue(memo) else { return }
         Task { await tryDrain(repository) }
     }
 
+    /// Queue a memo if the gate allows. Returns whether it was added.
+    @discardableResult
+    func enqueue(_ memo: Memo) -> Bool {
+        let id = memo.id.uuidString
+        guard Self.shouldEnqueue(significance: memo.significance,
+                                 alreadyPrinted: printedAt(memo.id) != nil,
+                                 alreadyQueued: queue.contains(id)) else { return false }
+        queue.append(id)
+        return true
+    }
+
     func printedAt(_ memoID: UUID) -> Date? {
-        (defaults.dictionary(forKey: Key.ledger) as? [String: Date])?[memoID.uuidString]
+        ledger[memoID.uuidString]
     }
 
     /// ⋯ → "Print Card": manual path — prints (or reprints) immediately.
     func printCard(_ memo: Memo, repository: NotesRepository) {
-        var queue = defaults.stringArray(forKey: Key.queue) ?? []
-        if !queue.contains(memo.id.uuidString) {
-            queue.append(memo.id.uuidString)
-            defaults.set(queue, forKey: Key.queue)
-            queuedCount = queue.count
-        }
+        if !queue.contains(memo.id.uuidString) { queue.append(memo.id.uuidString) }
         // Manual = allowed to reprint: clear the ledger stamp first.
-        var ledger = (defaults.dictionary(forKey: Key.ledger) as? [String: Date]) ?? [:]
         ledger.removeValue(forKey: memo.id.uuidString)
-        defaults.set(ledger, forKey: Key.ledger)
         Task { await tryDrain(repository) }
     }
 
@@ -89,7 +97,6 @@ final class WallPrinter: ObservableObject {
     /// queued card; unreachable → leave the queue + nudge via notification
     /// (the Journal-home row is the persistent surface).
     func tryDrain(_ repository: NotesRepository) async {
-        let queue = defaults.stringArray(forKey: Key.queue) ?? []
         guard !queue.isEmpty,
               let urlString = defaults.string(forKey: Key.printerURL),
               let url = URL(string: urlString) else { return }
@@ -100,23 +107,28 @@ final class WallPrinter: ObservableObject {
         }
         guard reachable else { notifyQueued(queue.count); return }
 
-        var remaining = queue
-        var ledger = (defaults.dictionary(forKey: Key.ledger) as? [String: Date]) ?? [:]
-        for id in queue {
-            guard let uuid = UUID(uuidString: id),
-                  let memo = repository.allMemos().first(where: { $0.id == uuid }) else {
-                remaining.removeAll { $0 == id }
+        // One fetch, not one allMemos() scan per queued card.
+        let memosByID = Dictionary(repository.allMemos().map { ($0.id, $0) },
+                                   uniquingKeysWith: { first, _ in first })
+        await drain(memosByID: memosByID) { await self.printOne($0, to: printer) }
+    }
+
+    /// The drain core (printer injected so the queue handling is testable). Mutates
+    /// `queue`/`ledger` per card, so a card enqueued while a print is awaited is kept.
+    func drain(memosByID: [UUID: Memo], print: (Memo) async -> Bool) async {
+        let snapshot = queue
+        var printed = 0
+        for id in snapshot {
+            guard let uuid = UUID(uuidString: id), let memo = memosByID[uuid] else {
+                queue.removeAll { $0 == id }   // memo gone: drop the card
                 continue
             }
-            let ok = await printOne(memo, to: printer)
-            guard ok else { break } // printer hiccup — retry the rest next drain
+            guard await print(memo) else { break } // printer hiccup: retry the rest next drain
             ledger[id] = Date()
-            remaining.removeAll { $0 == id }
+            queue.removeAll { $0 == id }
+            printed += 1
         }
-        defaults.set(ledger, forKey: Key.ledger)
-        defaults.set(remaining, forKey: Key.queue)
-        queuedCount = remaining.count
-        DevLog.log("Wall: printed \(queue.count - remaining.count), queued \(remaining.count)")
+        DevLog.log("Wall: printed \(printed), queued \(queue.count)")
     }
 
     private func printOne(_ memo: Memo, to printer: UIPrinter) async -> Bool {

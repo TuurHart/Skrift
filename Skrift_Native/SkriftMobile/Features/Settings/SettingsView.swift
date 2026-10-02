@@ -16,13 +16,25 @@ struct SettingsView: View {
     // Key = TranscriptionService.multilingualKey. false = English (v3 default, cleanest
     // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
     // rebuilds the model when this flips.
-    @AppStorage("transcriptionMultilingual") private var transcriptionMultilingual = false
+    @AppStorage(ASRLanguageMode.settingKey) private var transcriptionMultilingual = false
     // Opt-in deterministic hesitation strip (um/uh/hmm…) for voice memos —
     // applied at save by MemoSaver via FillerFilter; audiobook quotes never.
     @AppStorage(FillerFilter.settingKey) private var stripFillerWords = false
     @State private var showFeedback = false
     /// Global CloudKit (device↔device) sync activity → the honest "iCloud" status row.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+
+    /// Reads the @AppStorage (so a sync adoption still re-renders the picker) but saves in
+    /// the SETTER: an `.onChange` also fires for a synced value and re-stamped it as "now",
+    /// overwriting the remote stamp. Only a user pick stamps (so it wins the LWW sync).
+    private var languageSelection: Binding<Bool> {
+        Binding(get: { transcriptionMultilingual },
+                set: { now in
+                    transcriptionMultilingual = now
+                    ASRLanguageStore.save(.from(multilingual: now))
+                    VocabularyCloudSync.run(NotesRepository.shared)
+                })
+    }
 
     private var customWordsCount: String {
         let n = CustomVocabularyStore.words().count
@@ -84,19 +96,12 @@ struct SettingsView: View {
                     }
                     Toggle("Copy transcript to clipboard", isOn: $autoCopyTranscript)
                         .accessibilityIdentifier("setting-auto-copy-transcript")
-                    Picker("Language", selection: $transcriptionMultilingual) {
+                    Picker("Language", selection: languageSelection) {
                         ForEach(ASRLanguageMode.allCases) { mode in
                             Text(mode.label).tag(mode.isMultilingual)
                         }
                     }
                     .accessibilityIdentifier("setting-transcription-language")
-                    // Stamp the choice so it WINS the LWW sync to the Mac/iPad
-                    // (2026-07-26). The raw @AppStorage write alone left the stamp at
-                    // distantPast, i.e. "never chosen" — the sync would ignore it.
-                    .onChange(of: transcriptionMultilingual) { _, now in
-                        ASRLanguageStore.save(.from(multilingual: now))
-                        VocabularyCloudSync.run(NotesRepository.shared)
-                    }
                     Toggle("Remove filler words", isOn: $stripFillerWords)
                         .accessibilityIdentifier("setting-strip-fillers")
                     NavigationLink {
