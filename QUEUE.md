@@ -1950,6 +1950,12 @@ gate+: yes
 do: Q133 made Shared/Pipeline/ImportKinds resolve .m4b and .epub to kind .book, but phone Open-in (AppURLHandler) still ignores them. Route a .book Open-in to the same Books library import the Library tab uses (the BookImportBridge / AudiobookLibrary import path; grep it), so opening an .m4b or .epub from Files or another app adds it to Books. Phone test `BookOpenInRoutingTests` on the pure routing decision. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q256 [tuur] (todo) review Q108's picked wording: empty library 'No notes yet / Tap Record to capture your first note, or Import audio you already have.'; Way-out footer drops the phone's 'clock only starts once you've opened the app' and the Mac's 'Your iPhone does the permanent deleting'; iPad 'back to calendar' -> 'Back'; Mac loading row 'Getting the model — N%'
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2534,3 +2540,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && 
 - 2026-10-02 18:53 Q117 -> doing — worker out
 - 2026-10-02 18:53 Q224 -> done — gate pass @d5830340
 - 2026-10-02 18:55 Q108 -> done — gate pass @ad3bfb83
+- 2026-10-02 18:55 Q256 added
