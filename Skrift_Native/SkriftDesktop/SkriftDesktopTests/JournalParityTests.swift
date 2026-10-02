@@ -22,13 +22,13 @@ final class JournalParityTests: XCTestCase {
     func testDeriveRunsTheWholeLoopFromRelatedScores() async {
         let fresh = memo(daysAgo: 2), old = memo(daysAgo: 300), recentToo = memo(daysAgo: 5)
         let pair = await ThenVsNow.derive(memos: [fresh, old, recentToo], now: now, calendar: calendar,
-                                          floor: 0.5) { id in
-            id == fresh.id ? [(memoID: recentToo.id, score: 0.9), (memoID: old.id, score: 0.7)] : []
+                                          floor: Float(0.5)) { (id: UUID) -> [(memoID: UUID, score: Float)] in
+            id == fresh.id ? [(memoID: recentToo.id, score: Float(0.9)), (memoID: old.id, score: Float(0.7))] : []
         }
         // recentToo is too young to be a "then"; the old note is the pick.
         XCTAssertEqual(pair, ThenVsNow.Pair(then: old.id, now: fresh.id))
-        let none = await ThenVsNow.derive(memos: [fresh, old], now: now, calendar: calendar, floor: 0.5) { _ in
-            [(memoID: old.id, score: 0.1)]
+        let none = await ThenVsNow.derive(memos: [fresh, old], now: now, calendar: calendar, floor: Float(0.5)) { (_: UUID) -> [(memoID: UUID, score: Float)] in
+            [(memoID: old.id, score: Float(0.1))]
         }
         XCTAssertNil(none)
     }
