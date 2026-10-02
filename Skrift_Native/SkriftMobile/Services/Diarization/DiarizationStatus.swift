@@ -25,9 +25,23 @@ final class DiarizationStatus: ObservableObject {
     /// + a "this can take a while" note is the agreed UX, 2026-06-21).
     @Published private(set) var startedAt: Date?
 
-    func begin(_ id: UUID, phase: Phase = .identifying) { memoID = id; self.phase = phase; startedAt = Date() }
+    /// Set by the Cancel button while a split runs; `MemoSaver` reads it at its next checkpoint
+    /// (after the diarizer returns, BEFORE anything is written) and abandons the split, so the
+    /// note is exactly as it was. Reset by `begin` / `finish`.
+    @Published private(set) var cancelRequested = false
+
+    func begin(_ id: UUID, phase: Phase = .identifying) {
+        memoID = id; self.phase = phase; startedAt = Date(); cancelRequested = false
+    }
     func set(_ phase: Phase) { self.phase = phase }
-    func finish() { memoID = nil; phase = .idle; startedAt = nil }
+    func finish() { memoID = nil; phase = .idle; startedAt = nil; cancelRequested = false }
+
+    /// True while a SPLIT (Split speakers) runs for `id`, model download/prepare included.
+    /// Not the voiceprint enrolling that naming starts. The note body is read-only while true.
+    func isSplitting(_ id: UUID) -> Bool { memoID == id && phase != .idle && phase != .enrolling }
+
+    /// The Cancel button: abandon the running split of `id`.
+    func requestCancel(for id: UUID) { if isSplitting(id) { cancelRequested = true } }
 
     /// True while actively running diarization for `id` (not a model download/prepare) —
     /// gates the "this can take a while" reassurance subtitle.
@@ -55,7 +69,7 @@ final class DiarizationStatus: ObservableObject {
             if let p { return "Downloading voice model… \(Int(p * 100))%" }
             return "Downloading voice model…"
         case .preparingVoiceModel: return "Preparing voice model…"
-        case .identifying: return "Identifying speakers…"
+        case .identifying: return SplitSpeakersCopy.listening   // same words as the Mac
         case .enrolling: return "Learning this voice…"
         }
     }

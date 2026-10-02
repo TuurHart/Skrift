@@ -196,6 +196,7 @@ struct MemoPageView: View {
             SpeakerAssignSheet(
                 speaker: target.speaker,
                 otherSpeakers: SpeakerNaming.otherSpeakers(than: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
+                turnCount: SpeakerNaming.turnCount(of: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 people: NamesStore.shared.livePeople(),
                 onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
@@ -564,8 +565,20 @@ struct MemoPageView: View {
                             Text(diarStatus.labelWithElapsed(for: memo.id) ?? label)
                                 .font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
                         }
+                        // Q183: the Mac's Cancel — abandons the split; the note stays as it was.
+                        if diarStatus.isSplitting(memo.id) {
+                            Spacer(minLength: 0)
+                            Button("Cancel") { diarStatus.requestCancel(for: memo.id) }
+                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skAccent)
+                                .disabled(diarStatus.cancelRequested)
+                                .accessibilityIdentifier("split-cancel" + suffix)
+                        }
                     }
-                    if diarStatus.isIdentifying(memo.id) {
+                    if diarStatus.isSplitting(memo.id) {
+                        // The shared line: keeps going if you leave, and the text is read-only until done.
+                        Text(SplitSpeakersCopy.keepsGoing)
+                            .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
+                    } else if diarStatus.isIdentifying(memo.id) {
                         Text("This can take a while — it keeps going if you leave.")
                             .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
                     }
@@ -811,6 +824,7 @@ struct MemoPageView: View {
     @ViewBuilder var conversationContent: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             ConversationTurnsSection(
+                memoID: memo.id,
                 player: player, clock: player.clock, timings: timings, turns: turns,
                 // Resolved HERE, where the roster already lives: the shared slot rule needs
                 // `people` to know that a speaker's `[[Tiuri Hartog]]` header and their later

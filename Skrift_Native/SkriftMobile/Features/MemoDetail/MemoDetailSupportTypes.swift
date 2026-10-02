@@ -45,6 +45,7 @@ struct CaptureAnnotationEditor: View {
 /// CLOCK, so during playback only this subtree re-evaluates per position change —
 /// the page above it re-renders only on rare player state (play/pause).
 struct ConversationTurnsSection: View {
+    let memoID: UUID
     @ObservedObject var player: AudioPlayerModel
     @ObservedObject var clock: PlayerClock
     let timings: [WordTiming]
@@ -59,6 +60,8 @@ struct ConversationTurnsSection: View {
 
     /// Q183: ONE track over every turn's words (`KaraokeTrack`, as the monologue and the Mac).
     @State private var cache = ConversationKaraokeCache()
+    /// Read-only while this note is being split again.
+    @ObservedObject private var diarStatus = DiarizationStatus.shared
 
     var body: some View {
         let track = cache.track(turns: turns, timings: timings, duration: player.duration)
@@ -70,7 +73,8 @@ struct ConversationTurnsSection: View {
             tapToSeek: tapToSeek,
             onSeek: { i in if let t = track.seekTime(forWord: i) { onSeekTime(t) } },
             onEditText: onEditText,
-            imageURL: imageURL
+            imageURL: imageURL,
+            readOnly: diarStatus.isSplitting(memoID)
         )
     }
 }

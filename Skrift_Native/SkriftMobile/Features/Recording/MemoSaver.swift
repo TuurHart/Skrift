@@ -897,15 +897,16 @@ struct MemoSaver {
         // next launch (recoverStuckDiarizations). 0 = Auto, N>0 = forced N speakers.
         memo.pendingDiarizationTarget = targetSpeakers ?? 0
         repository.save()
-        let split = await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
+        let outcome = await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
         // Attempt complete (a real split OR a <2-speaker no-op) — clear the marker.
         // A kill MID-diarize never reaches here, so the marker survives for recovery.
         repository.memo(id: id)?.pendingDiarizationTarget = nil
         repository.save()
-        return split ? .split : .oneVoice
+        return outcome
     }
 
-    enum SplitOutcome: Equatable { case split, oneVoice, unavailable }
+    /// `.cancelled`: the user pressed Cancel while it ran; nothing was written (Q183).
+    enum SplitOutcome: Equatable { case split, oneVoice, unavailable, cancelled }
 
     /// "Flatten to monologue" (Q87): undo a split WITHOUT transcribing again. The turn headers
     /// drop into plain prose (the words and the user's fixes stay), the diarization sidecar goes,
@@ -960,16 +961,19 @@ struct MemoSaver {
     /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as
     /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
     /// left as the plain transcript.
-    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming], targetSpeakers: Int?) async -> Bool {
+    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming], targetSpeakers: Int?) async -> SplitOutcome {
         DiarizationStatus.shared.begin(id)
         defer { DiarizationStatus.shared.finish() }
-        guard let out = try? await diarizer.diarize(audioURL: audioURL, targetSpeakers: targetSpeakers),
-              Set(out.segments.map(\.speaker)).count >= 2 else { return false }
+        let result = try? await diarizer.diarize(audioURL: audioURL, targetSpeakers: targetSpeakers)
+        // Cancel checkpoint: nothing has been written yet, so the note is exactly as it was.
+        if DiarizationStatus.shared.cancelRequested || Task.isCancelled { return .cancelled }
+        guard let out = result,
+              Set(out.segments.map(\.speaker)).count >= 2 else { return .oneVoice }
         // Auto-matched (enrolled) speakers come back named; the rest are "Speaker N".
         var attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
             out.slotNames[$0] ?? "Speaker \($0 + 1)"
         }
-        guard let memo = repository.memo(id: id) else { return false }
+        guard let memo = repository.memo(id: id) else { return .unavailable }
         // Fusion rebuilds from the words, which drops the `[[img_NNN]]` photo markers — so
         // body v2 places them again from their moments, each after the sentence within the
         // turn being spoken when it was taken (C169; photos + manifest are untouched). It drops
@@ -1000,6 +1004,6 @@ struct MemoSaver {
         for seg in out.segments { names[String(seg.speaker)] = out.slotNames[seg.speaker] ?? "Speaker \(seg.speaker + 1)" }
         let turnSlots = SpeakerFusion.turns(words: words, segments: out.segments).map(\.speaker)
         DiarizationStore().write(DiarizationData(segments: out.segments, slotNames: names, turnSlots: turnSlots), for: id)
-        return true
+        return .split
     }
 }

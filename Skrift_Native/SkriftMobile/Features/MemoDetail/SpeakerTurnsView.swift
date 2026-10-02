@@ -22,6 +22,8 @@ struct SpeakerTurnsView: View {
     /// Resolve a `[[img_NNN]]` marker (1-based) to its photo file URL — inline photos coexist
     /// with speaker turns (the photo shows in the turn being spoken when it was taken).
     var imageURL: (Int) -> URL? = { _ in nil }
+    /// A re-split is running: a tap on a turn does not open its editor (the Mac's read-only body, Q183).
+    var readOnly: Bool = false
 
     @State private var editingIndex: Int?
     @State private var draft = ""
@@ -132,7 +134,7 @@ struct SpeakerTurnsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
-                .onTapGesture { startEditing(turnIndex, fullText) }
+                .onTapGesture { if !readOnly { startEditing(turnIndex, fullText) } }
         }
     }
 

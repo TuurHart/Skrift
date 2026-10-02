@@ -24,6 +24,16 @@ enum SpeakerNaming {
                                          to: name)
     }
 
+    /// How many turns belong to the speaker wearing `displayed` (their whole voice, short or
+    /// full name alike): "A person names all 3 of Speaker 2's turns" (`SplitSpeakersCopy.namesAllTurns`).
+    /// One count for the phone's assign sheet and the Mac's popover (Q183).
+    static func turnCount(of displayed: String, in transcript: String?, people: [Person]) -> Int {
+        let resolver = SpeakerTurnStyle.HeaderResolver(people: people)
+        let target = resolver.identity(for: SpeakerTurnStyle.label(for: displayed))
+        return (SpeakerTranscript.parse(transcript) ?? [])
+            .filter { resolver.identity(for: SpeakerTurnStyle.label(for: $0.name)) == target }.count
+    }
+
     /// The other speakers in the note, for "move this line to…": distinct identities in
     /// first-appearance order, excluding the one wearing `displayed`.
     static func otherSpeakers(than displayed: String, in transcript: String?, people: [Person]) -> [String] {
