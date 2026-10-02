@@ -72,6 +72,12 @@ final class MacImportDoorsTests: XCTestCase {
         LinkFetchResponse(data: Data(s.utf8), contentType: "text/html; charset=utf-8")
     }
 
+    /// The ONE row a single-item drop makes.
+    private func ingestOne(_ svc: IngestService, _ urls: [URL]) async throws -> PipelineFile {
+        let rows = try await svc.ingest(localURLs: urls, into: try makeContext())
+        return try XCTUnwrap(rows.first)
+    }
+
     private func shared(_ pf: PipelineFile) throws -> SharedContent {
         try XCTUnwrap(SharedContent.decode(from: pf.audioMetadataJSON), "the row carries sharedContent")
     }
@@ -107,7 +113,7 @@ final class MacImportDoorsTests: XCTestCase {
         let f = work.appendingPathComponent("novel.txt")
         try String(repeating: "word ", count: SharedTextFile.byteCap / 4).write(to: f, atomically: true, encoding: .utf8)
 
-        let pf = try XCTUnwrap(try await service(work).ingest(localURLs: [f], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work), [f])
         let sc = try shared(pf)
         XCTAssertEqual(sc.type, .file, "a novel-length .txt is not a note body (phone rule)")
         XCTAssertEqual(sc.fileName, "novel.txt")
@@ -118,7 +124,7 @@ final class MacImportDoorsTests: XCTestCase {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("n.md")
         try "# T\n\nbody".write(to: f, atomically: true, encoding: .utf8)
-        let pf = try XCTUnwrap(try await service(work).ingest(localURLs: [f], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work), [f])
         XCTAssertEqual(pf.sourceType, .note, "the .md question is its own decision")
     }
 
@@ -149,8 +155,7 @@ final class MacImportDoorsTests: XCTestCase {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("scan.pdf")
         try Data("%PDF-1.4".utf8).write(to: f)
-        let pf = try XCTUnwrap(try await service(work, pdfText: nil)
-            .ingest(localURLs: [f], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, pdfText: nil), [f])
         XCTAssertNil(try shared(pf).text)
         XCTAssertEqual(try title(pf), "scan.pdf")
     }
@@ -187,8 +192,7 @@ final class MacImportDoorsTests: XCTestCase {
     func testFailedFetchTitlesTheCardByItsHostNeverTheUrl() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let url = URL(string: "https://www.metro.example.org/a/very/long/path?x=1")!
-        let pf = try XCTUnwrap(try await service(work, fetcher: StubFetcher())
-            .ingest(localURLs: [url], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, fetcher: StubFetcher()), [url])
         let sc = try shared(pf)
         XCTAssertEqual(sc.type, .url, "the link is kept even when the page could not be read")
         XCTAssertEqual(sc.urlTitle, "metro.example.org")
@@ -203,8 +207,7 @@ final class MacImportDoorsTests: XCTestCase {
                 LinkFetchResponse(data: Data("%PDF-1.5 body".utf8), contentType: "application/pdf"),
         ])
         let url = URL(string: "https://arxiv.example/pdf/2406.19741")!
-        let pf = try XCTUnwrap(try await service(work, fetcher: fetcher, pdfText: "Attention is all you need today")
-            .ingest(localURLs: [url], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, fetcher: fetcher, pdfText: "Attention is all you need today"), [url])
         let sc = try shared(pf)
         XCTAssertEqual(sc.type, .file, "a link to a PDF lands as a file capture (C73)")
         XCTAssertEqual(sc.text, "Attention is all you need today")
@@ -218,8 +221,7 @@ final class MacImportDoorsTests: XCTestCase {
                                                                  contentType: "text/html"),
         ])
         let url = URL(string: "https://example.com/fake.pdf")!
-        let pf = try XCTUnwrap(try await service(work, fetcher: fetcher)
-            .ingest(localURLs: [url], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, fetcher: fetcher), [url])
         XCTAssertEqual(try shared(pf).type, .url, "content-type lies, the %PDF check is the gate")
         XCTAssertNil(pf.captureDocumentURL)
     }
@@ -228,8 +230,7 @@ final class MacImportDoorsTests: XCTestCase {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let fetcher = StubFetcher()
         let url = URL(string: "https://maps.apple.com/?ll=38.7223,-9.1393&q=Hotel%20Du%20Vin")!
-        let pf = try XCTUnwrap(try await service(work, fetcher: fetcher)
-            .ingest(localURLs: [url], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, fetcher: fetcher), [url])
         XCTAssertEqual(try shared(pf).urlTitle, "Hotel Du Vin")
         let meta = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(pf.audioMetadataJSON)) as? [String: Any])
         let loc = try XCTUnwrap(meta["location"] as? [String: Any])
@@ -263,8 +264,7 @@ final class MacImportDoorsTests: XCTestCase {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("contract.pdf")
         try Data("%PDF-1.4 fake".utf8).write(to: f)
-        let pf = try XCTUnwrap(try await service(work, pdfText: "Some contract words here")
-            .ingest(localURLs: [f], into: try makeContext()).first)
+        let pf = try await ingestOne(service(work, pdfText: "Some contract words here"), [f])
 
         let cloud = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
