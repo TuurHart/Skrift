@@ -50,3 +50,55 @@ enum NoteWorkState: Equatable {
     /// the polisher is the obvious next move rather than a deliberate re-run.
     var wantsProcessing: Bool { self == .needsProcessing }
 }
+
+// MARK: - The one input
+
+extension NoteWorkState {
+    /// The two facts `NoteWorkState.of` needs, derived ONCE for every app (Q117, C194).
+    ///
+    /// The label table was shared and the inputs were not: the iPad asked
+    /// `MemoEnhancement.isProcessed` + the per-folder export ledger, the Mac asked its own
+    /// step flags (`steps.enhance == .done || all three parts`, `steps.export == .done`).
+    /// A pass that produced nothing read as processed on one device and not the other, and a
+    /// note exported to a since-changed vault folder read as "Re-export" on the Mac only.
+    /// Both apps now come through here.
+    struct Inputs: Equatable {
+        let hasPolish: Bool
+        let isExported: Bool
+
+        var state: NoteWorkState { .of(hasPolish: hasPolish, isExported: isExported) }
+
+        /// A Mac row's OWN polish facts, for a note whose synced `MemoEnhancement` is not in
+        /// the CloudKit store (sync off, a local-only import, or the write-back still queued).
+        /// Same rule as `MemoEnhancement.isProcessed`: a pass ran, or all three parts exist.
+        struct LocalPolish: Equatable {
+            var passRan = false
+            var copyedit: String? = nil
+            var title: String? = nil
+            var summary: String? = nil
+
+            var isProcessed: Bool {
+                passRan || MemoEnhancement.isProcessed(
+                    processedAt: nil, copyedit: copyedit ?? "", title: title ?? "", summary: summary ?? "")
+            }
+        }
+
+        /// - Parameters:
+        ///   - enhancement: the memo's synced `MemoEnhancement`, if any.
+        ///   - ledger: the export ledger of the folder this note would be written to (the
+        ///     note's destination's folder); nil when none is configured.
+        static func from(memo: Memo, enhancement: MemoEnhancement?, ledger: ExportLedger?) -> Inputs {
+            from(ledgerID: memo.id, enhancement: enhancement, ledger: ledger)
+        }
+
+        /// The same rule for a caller that has no `Memo` in hand (a Mac-only row) or whose
+        /// ledger key is not the memo's id (the Mac keys it on the row id). `local` is OR-ed
+        /// in so a polish this device just ran is never forgotten before it syncs.
+        static func from(ledgerID: UUID, enhancement: MemoEnhancement?, ledger: ExportLedger?,
+                         local: LocalPolish? = nil) -> Inputs {
+            let processed = enhancement?.isProcessed == true || local?.isProcessed == true
+            return Inputs(hasPolish: processed,
+                          isExported: ledger?.entry(for: ledgerID) != nil)
+        }
+    }
+}

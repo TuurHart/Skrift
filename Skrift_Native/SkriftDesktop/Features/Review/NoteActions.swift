@@ -14,18 +14,19 @@ struct NoteActions: View {
     var copyOnly = false
     @Environment(\.modelContext) private var ctx
 
-    /// Polished — by ANY device. `steps.enhance` is only ever set by THIS Mac's own run,
-    /// so a note the iPad polished came back through `MemoCloudUpdate.apply` with its
-    /// content (enhancedTitle/Copyedit/Summary all populated) but its step untouched — and
-    /// the button offered "Process" for work already done, which would redo it (Tuur,
-    /// 2026-08-14). Processed is processed, whoever ran it: the same rule `ProcessPile`
-    /// keys on, and the reason polish is worth syncing at all.
-    ///
-    /// ALL THREE parts, not any one: `enhancedTitle` is also written from the user's CHOSEN
-    /// title (`MemoCloudUpdate`), so an "any part present" test would call a merely-retitled
-    /// note processed. A real polish always produces all three.
-    private var enhanceDone: Bool { file.steps.enhance == .done || hasParts }
-    private var exported: Bool { file.steps.export == .done }
+    /// Polished — by ANY device, and exported — to the folder THIS note goes to. Both come
+    /// from `NoteWorkState.Inputs`, the one derivation the iPad uses too (Q117): the synced
+    /// `MemoEnhancement.isProcessed` (plus this row's own pass, OR-ed in until the write-back
+    /// lands) and the export ledger, not the Mac-local `steps.export` flag. Processed is
+    /// processed, whoever ran it (Tuur, 2026-08-14), and ALL THREE parts count — never any
+    /// one, since `enhancedTitle` is also written from the user's CHOSEN title.
+    private var workInputs: NoteWorkState.Inputs {
+        // Read for observation: finishing an export flips this row's status, which re-renders
+        // the button; the ledger read inside `workInputs` is a disk fact SwiftUI can't see.
+        _ = file.exportStatus
+        return VaultExporter.workInputs(for: file, cloud: cloudContext, settings: SettingsStore.shared.load())
+    }
+    private var enhanceDone: Bool { workInputs.hasPolish }
     private var isAppleNote: Bool { file.sourceType == .note }
     private var transcribeDone: Bool { file.steps.transcribe == .done }
     /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
@@ -35,7 +36,7 @@ struct NoteActions: View {
 
     /// One shared rule, so the Mac and the iPad can never describe the same note
     /// differently (`NoteWorkState`).
-    private var workState: NoteWorkState { .of(hasPolish: enhanceDone, isExported: exported) }
+    private var workState: NoteWorkState { workInputs.state }
     private var primaryLabel: String { workState.label(for: file.destination) }
 
     private var hasParts: Bool {

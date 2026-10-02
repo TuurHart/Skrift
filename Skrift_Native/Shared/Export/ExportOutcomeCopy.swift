@@ -31,8 +31,21 @@ enum ExportOutcomeCopy {
         var isRefusal: Bool { stickiness == .sticky }
     }
 
-    /// `noteName` is the note's exported stem; `assetCount` is images+documents written, which
-    /// only the Mac counts today (the phone passes nil and simply omits the clause).
+    /// The ONE name rule: the stem of the file the engine wrote or refused (Q117 — the iPad
+    /// quoted the note's display title, the Mac the file stem, so one outcome read two ways).
+    static func noteName(forRelativePath rel: String) -> String {
+        ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
+    }
+
+    /// The call both apps make: the name comes from the engine's own outcome, and
+    /// `assetCount` is the files (photos, documents) the write placed beside the note.
+    static func message(for outcome: VaultWriteOutcome, assetCount: Int? = nil) -> Message {
+        message(for: outcome, noteName: noteName(forRelativePath: outcome.relativePath),
+                assetCount: assetCount)
+    }
+
+    /// `noteName` is the note's exported stem; `assetCount` is images+documents written
+    /// (nil / 0 omits the clause).
     static func message(for outcome: VaultWriteOutcome,
                         noteName: String,
                         assetCount: Int? = nil) -> Message {

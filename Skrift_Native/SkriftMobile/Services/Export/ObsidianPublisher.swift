@@ -42,9 +42,42 @@ enum PublishOutcome: Equatable {
     /// Filed out of the picked folder → left where the user put it (the folder is an
     /// INBOX; the return path / plugin follows moves later).
     case movedAway(relativePath: String)
-    /// Refused: a pre-stamp legacy export or someone else's file at the target.
+    /// Refused: someone else's file at the target.
     case blocked(relativePath: String)
+    /// Refused: a PRE-STAMP Skrift export sits at the target (Q117 — folded into `.blocked`
+    /// before, so the note said "isn't Skrift's" about a file that is).
+    case blockedLegacy(relativePath: String)
     case noVault
+
+    /// The engine's own outcome for the shared words (`ExportOutcomeCopy`); nil for
+    /// `.noVault`, which has no engine decision behind it. `path` is the file the engine
+    /// named — `.skippedUnchanged` carries none of its own.
+    func vaultOutcome(path: String) -> VaultWriteOutcome? {
+        switch self {
+        case .written(let rel):         return .created(relativePath: rel)
+        case .skippedUnchanged:         return .unchanged(relativePath: path)
+        case .userEdited(let rel):      return .backedOffUserEdited(relativePath: rel)
+        case .movedAway(let rel):       return .movedAway(relativePath: rel)
+        case .blocked(let rel):         return .blockedForeign(relativePath: rel)
+        case .blockedLegacy(let rel):   return .blockedLegacy(relativePath: rel)
+        case .noVault:                  return nil
+        }
+    }
+}
+
+/// `PublishOutcome` plus what the outcome LINE needs and the outcome itself cannot carry
+/// without breaking its one-value cases: the file the engine named and the photos/audio
+/// placed beside it (Q117 — the Mac quotes the written stem and counts files, the iPad quoted
+/// a display title and counted nothing).
+struct PublishReport: Equatable {
+    var outcome: PublishOutcome
+    /// The vault-relative path the engine decided on; empty for `.noVault`.
+    var relativePath: String
+    /// Files written beside the note (embedded photos, audio) — 0 unless this was a write.
+    var assetCount: Int
+
+    /// The engine's outcome in the shared type, nil for `.noVault`.
+    var vaultOutcome: VaultWriteOutcome? { outcome.vaultOutcome(path: relativePath) }
 }
 
 /// The iPhone/iPad's Obsidian export, over the SHARED `VaultWriter` (2026-07-26).
@@ -121,6 +154,12 @@ struct ObsidianPublisher {
     /// unchanged writes nothing, an edited file backs it off, a filed-away note is not
     /// re-created, and nothing that isn't provably Skrift's is ever overwritten.
     func publish(_ memo: Memo) throws -> PublishOutcome {
+        try publishReport(memo).outcome
+    }
+
+    /// `publish`, with the file the engine named and the photos it placed — what the
+    /// outcome line quotes (`ExportOutcomeCopy`).
+    func publishReport(_ memo: Memo) throws -> PublishReport {
         // WHERE and HOW both follow the note's destination. `.personal` is the Obsidian vault
         // and today's layout, unchanged; a portfolio destination is its folder inside the
         // portfolio root, written flat (see `ExportProfile`).
@@ -128,7 +167,9 @@ struct ObsidianPublisher {
         let pickedRoot: URL? = memo.destination.isPortfolio
             ? portfolioFolderProvider(memo.destination)
             : vaultProvider()
-        guard let vaultRoot = pickedRoot else { return .noVault }
+        guard let vaultRoot = pickedRoot else {
+            return PublishReport(outcome: .noVault, relativePath: "", assetCount: 0)
+        }
         // Scope the ROOT the bookmark was made against — for the portfolio that is the portfolio
         // root, not the per-destination subfolder we write into.
         let scopeRoot = memo.destination.isPortfolio ? (portfolioScopeRoot() ?? vaultRoot) : vaultRoot
@@ -150,11 +191,8 @@ struct ObsidianPublisher {
         switch writer.assess(id: memo.id, title: title, filenameFallback: fallback,
                              recordedAt: memo.recordedAt) {
         case .refused(let outcome):
-            switch outcome {
-            case .backedOffUserEdited(let rel): return .userEdited(relativePath: rel)
-            case .movedAway(let rel):           return .movedAway(relativePath: rel)
-            default:                            return .blocked(relativePath: outcome.relativePath)
-            }
+            return PublishReport(outcome: Self.refusal(outcome),
+                                 relativePath: outcome.relativePath, assetCount: 0)
         case .proceed(let rel, _):
             relPath = rel
         }
@@ -190,7 +228,7 @@ struct ObsidianPublisher {
         let dest = home.appendingPathComponent(relPath)
         if let existing = VaultWriter.readCoordinated(dest),
            VaultStamp.contentEquivalent(VaultStamp.apply(to: converted, id: memo.id), existing) {
-            return .skippedUnchanged
+            return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
         }
 
         // A real write — now the blobs.
@@ -207,11 +245,25 @@ struct ObsidianPublisher {
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
                                   attachments: attachments, audio: audio)
         switch r.outcome {
-        case .created, .updated: return .written(relativePath: relPath)
-        case .unchanged:         return .skippedUnchanged
+        case .created, .updated:
+            return PublishReport(outcome: .written(relativePath: relPath), relativePath: relPath,
+                                 assetCount: attachments.count)
+        case .unchanged:
+            return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
+        default:
+            return PublishReport(outcome: Self.refusal(r.outcome),
+                                 relativePath: r.outcome.relativePath, assetCount: 0)
+        }
+    }
+
+    /// The engine's refusal in the coordinator's vocabulary, KEEPING legacy apart from foreign
+    /// (they have different sentences and different remedies).
+    private static func refusal(_ outcome: VaultWriteOutcome) -> PublishOutcome {
+        switch outcome {
         case .backedOffUserEdited(let rel): return .userEdited(relativePath: rel)
         case .movedAway(let rel):           return .movedAway(relativePath: rel)
-        default:                 return .blocked(relativePath: r.outcome.relativePath)
+        case .blockedLegacy(let rel):       return .blockedLegacy(relativePath: rel)
+        default:                            return .blocked(relativePath: outcome.relativePath)
         }
     }
 
