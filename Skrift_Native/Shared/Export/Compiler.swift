@@ -30,12 +30,18 @@ enum Compiler {
         if !profile.keepsPlaceLinks { body = plainifyNonPeopleLinks(in: body, knownPeople: knownPeople) }
         let summary = (input.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let rawStem = (input.filename as NSString).deletingPathExtension
+        // Both bridges pass the C25 ladder's title (`ExportNaming.title`); the stem is the
+        // engine-test fallback only.
         let title = firstNonEmpty(input.enhancedTitle, rawStem) ?? rawStem
 
         // `date` from the phone's `recordedAt` (captures use this as the share
         // time); falls back to the raw metadata JSON when the metadata didn't decode.
         let recordedAt = meta?.recordedAt ?? input.rawRecordedAt
-        let date = overrideDate ?? recordedAt.map { String($0.prefix(10)) } ?? ""
+        // The recording's LOCAL day (C64), never the UTC text's first ten characters: the
+        // Mac stores `recordedAt` as UTC, so `prefix(10)` moved a 23:30 note to tomorrow.
+        // An unparseable string keeps the old prefix rule.
+        let date = overrideDate
+            ?? recordedAt.map { ExportNaming.localDay(iso: $0) ?? String($0.prefix(10)) } ?? ""
 
         // Audiobook quote-capture (spec 7): the presence of a book title marks the
         // memo as a capture from an actively-mined audiobook.

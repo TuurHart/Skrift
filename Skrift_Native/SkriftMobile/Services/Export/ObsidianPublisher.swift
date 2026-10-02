@@ -143,7 +143,10 @@ struct ObsidianPublisher {
         let writer = VaultWriter(root: home,
                                  ledger: ledgerOverride ?? .default(for: home),
                                  profile: profile)
-        let title = MemoExporter.exportTitle(for: memo, people: people)
+        // ONE title ladder with the Mac (C25 via `ExportNaming`): user title → the Mac's
+        // suggested title → first body line → …, so both name the same note the same file.
+        let enhancement = enhancementProvider(memo.id)
+        let title = MemoExporter.exportTitle(for: memo, people: people, enhancement: enhancement)
         let fallback = memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
 
         let relPath: String
@@ -167,13 +170,14 @@ struct ObsidianPublisher {
             if let rel = writer.ledger.relativePath(for: id) {
                 stems[id] = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
             } else if let target = memoProvider(id) {
-                stems[id] = VaultName.stem(title: MemoExporter.exportTitle(for: target, people: people),
-                                           filename: target.audioFilename)
+                stems[id] = ExportNaming.stem(title: MemoExporter.exportTitle(for: target, people: people,
+                                                                              enhancement: enhancementProvider(id)),
+                                              filename: target.audioFilename)
             }
         }
 
         let markdown = MemoExporter.markdown(for: memo, people: people, author: author,
-                                             enhancement: enhancementProvider(memo.id),
+                                             enhancement: enhancement,
                                              linkStems: stems, profile: profile)
         // Photo markers → real embeds, names derived from the MANIFEST alone so the
         // heavy blobs are only fetched when a write actually happens.
