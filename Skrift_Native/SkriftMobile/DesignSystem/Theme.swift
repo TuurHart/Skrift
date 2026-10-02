@@ -54,7 +54,7 @@ extension Color {
 
     // Accent + semantics
     static let skAccent     = skDynamic(Palette.accent)
-    static let skAccentSoft = skDynamic(Palette.accent, alpha: 0.13)
+    static let skAccentSoft = skDynamic(Palette.accent, alpha: Palette.accentSoftAlpha)
     /// The lighter-purple accent used for small text/labels (e.g. tag text). On
     /// light it deepens so it stays legible on white.
     static let skAccentText = skDynamic(Palette.accentText)

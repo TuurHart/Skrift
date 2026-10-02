@@ -191,7 +191,7 @@ struct NoteProperties: View {
     @ViewBuilder private var titleLine: some View {
         if interactive {
             TextField("", text: titleBinding,
-                      prompt: Text(file.displayTitle).foregroundStyle(Theme.textMuted), axis: .vertical)
+                      prompt: Text(titlePrompt).foregroundStyle(Theme.textMuted), axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
@@ -229,6 +229,13 @@ struct NoteProperties: View {
         .buttonStyle(.plain)
         .help(isActive ? "This is the current title" : "Use “\(value)”")
         .accessibilityIdentifier(kind == .suggested ? "title-use-suggested" : "title-use-recording")
+    }
+
+    /// "Add a title" on a brand-new note (shared copy); an untitled note with words ghosts
+    /// its first line instead. Not `displayTitle`: its filename fallback is `memo_<UUID>`
+    /// or empty (Q177, capture-quick-09).
+    private var titlePrompt: String {
+        SharedCopy.titlePrompt(ghosts: [file.enhancedTitle, file.firstBodyLine])
     }
 
     private var titleBinding: Binding<String> {

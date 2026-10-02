@@ -153,13 +153,17 @@ struct NoteDisplayView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 34, weight: .medium))
                 .foregroundStyle(Theme.textMuted)
-            Text("This note is locked")
-                .font(.system(size: 15, weight: .semibold))
+            Text(LockedRow.title(for: file))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
-            Text("Locked notes stay inside Skrift and are excluded from vault export.")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textSecondary)
-            Button("Unlock…") {
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text(SharedCopy.lockedBody(authName: "Touch ID or your password"))
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
+            Button(SharedCopy.unlockVerb) {
                 Task { _ = await lockGate.unlock(file.id) }
             }
             .buttonStyle(.borderedProminent).tint(Theme.accent).controlSize(.regular)
@@ -674,12 +678,12 @@ struct NoteDisplayView: View {
 
     private var emptyState: some View {
         VStack(spacing: 6) {
-            Image(systemName: "sparkles")
+            Image(systemName: SharedCopy.emptyPaneGlyph)
                 .font(.system(size: 30))
                 .foregroundStyle(Theme.textMuted.opacity(0.4))
-            Text("Select a note to get started")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.textMuted)
+            Text(SharedCopy.emptyPaneTitle)
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -5,7 +5,7 @@ import Foundation
 /// the phone's `MemosListView+Row.cardModel` builds. Pure so the host-less test bundle
 /// can pin it; `SidebarView` routes both row kinds through here.
 enum LockedRow {
-    static let placeholderTitle = "Locked note"
+    static let placeholderTitle = SharedCopy.lockedTitleFallback
 
     /// The explicit title only — never the first-line fallback, which is the note's words.
     static func title(for memo: Memo) -> String {

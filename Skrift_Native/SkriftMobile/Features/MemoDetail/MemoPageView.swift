@@ -268,12 +268,12 @@ struct MemoPageView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(Color.skTextDim)
-            Text(memo.title?.isEmpty == false ? memo.title! : "Locked note")
+            Text(memo.title?.isEmpty == false ? memo.title! : SharedCopy.lockedTitleFallback)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Color.skText)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-            Text("Locked notes stay out of Obsidian publish and need Face ID here. They're hidden, not encrypted.")
+            Text(SharedCopy.lockedBody(authName: "Face ID"))
                 .font(.system(size: 12.5))
                 .foregroundStyle(Color.skTextFaint)
                 .multilineTextAlignment(.center)
@@ -281,7 +281,7 @@ struct MemoPageView: View {
             Button {
                 Task { _ = await lockGate.unlock(memo.id) }
             } label: {
-                Label("Unlock", systemImage: "faceid")
+                Label(SharedCopy.unlockVerb, systemImage: "faceid")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 22).padding(.vertical, 11)
@@ -977,15 +977,15 @@ struct MemoPageView: View {
         // text snippet / "Image") — there's no transcript line to fall back to.
         if memo.isShareCapture {
             let hint = memo.shareCaptureTitle
-            return Text(hint.isEmpty ? "Add a title" : hint).foregroundStyle(Color.skTextFaint)
+            return Text(hint.isEmpty ? SharedCopy.titlePlaceholder : hint).foregroundStyle(Color.skTextFaint)
         }
         // Strip a leading `**Speaker:** ` prefix (conversation note) or `> `
         // blockquote marker (capture memo) so the title prompt shows the
         // actual first words, not the Markdown.
-        let line = (memo.firstTranscriptLine ?? "Add a title")
+        let line = (memo.firstTranscriptLine ?? SharedCopy.titlePlaceholder)
             .replacingOccurrences(of: #"^\*\*.+?:\*\*\s*"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
-        return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
+        return Text(line.isEmpty ? SharedCopy.titlePlaceholder : line).foregroundStyle(Color.skTextFaint)
     }
 
     // MARK: - Mac polish (Phase 4)

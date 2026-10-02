@@ -182,7 +182,7 @@ struct NoteCardView: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(style.textDim)
-            Text(model.title?.isEmpty == false ? model.title! : "Locked note")
+            Text(model.title?.isEmpty == false ? model.title! : SharedCopy.lockedTitleFallback)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(style.text)
                 .lineLimit(1)

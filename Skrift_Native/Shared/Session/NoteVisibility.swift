@@ -15,7 +15,7 @@ enum NoteVisibility {
     // MARK: - Q101: the pure rules every non-list surface applies
 
     /// What a locked note's row/peek shows in place of its title when it has no explicit one.
-    static let placeholderTitle = "Locked note"
+    static let placeholderTitle = SharedCopy.lockedTitleFallback
 
     /// Title for a surface that may show a locked note: the note's own title when its
     /// content is visible; when hidden, ONLY an explicitly set title (never the first-line

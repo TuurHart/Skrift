@@ -115,7 +115,8 @@ extension MemosListView {
             .buttonStyle(.plain)
             .keyboardShortcut("n", modifiers: .command)
             .accessibilityIdentifier("ipad-new-note-button")
-            .accessibilityLabel("New note")
+            .accessibilityLabel(SharedCopy.newNoteLabel)
+            .help(SharedCopy.newNoteTooltip)
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 2)
@@ -306,7 +307,7 @@ extension MemosListView {
     /// Import menu below; Filter moves into the chip bar's icon-only button).
     var headerRow: some View {
         HStack(spacing: 18) {
-            ScreenTitle("Notes")
+            ScreenTitle(SharedCopy.notesTitle)
             Spacer(minLength: 0)
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {

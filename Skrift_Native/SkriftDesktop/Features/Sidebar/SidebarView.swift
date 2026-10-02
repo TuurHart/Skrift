@@ -378,7 +378,8 @@ struct SidebarView: View {
         }
         .buttonStyle(.plain)
         .keyboardShortcut("n", modifiers: .command)
-        .help("New note (⌘N)")
+        .help(SharedCopy.newNoteTooltip)
+        .accessibilityLabel(SharedCopy.newNoteLabel)
         .accessibilityIdentifier("sidebar.new-note")
     }
 
@@ -542,7 +543,7 @@ struct SidebarView: View {
                         .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
+                .accessibilityLabel(SharedCopy.clearSearchLabel)
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 5)
@@ -674,9 +675,9 @@ struct SidebarView: View {
                     } header: {
                         if !group.title.isEmpty {
                             Text(group.title.uppercased())
-                                .font(.system(size: 10.5, weight: .bold))
-                                .kerning(0.4)
-                                .foregroundStyle(Theme.textMuted)
+                                .font(.system(size: ListChrome.headerSize, weight: .bold))
+                                .kerning(ListChrome.headerKerning)
+                                .foregroundStyle(Theme.textSecondary)
                                 .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 6)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Theme.sidebarGround)
@@ -686,10 +687,14 @@ struct SidebarView: View {
                 if !related.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
-                            Text("RELATED").font(.system(size: 10.5, weight: .bold)).kerning(0.4)
-                            Text("similar in meaning").font(.system(size: 10.5))
+                            Text(ListChrome.relatedHeader)
+                                .font(.system(size: ListChrome.headerSize, weight: .bold))
+                                .kerning(ListChrome.headerKerning)
+                                .foregroundStyle(Theme.textSecondary)
+                            Text(ListChrome.relatedSubtitle)
+                                .font(.system(size: ListChrome.subtitleSize))
+                                .foregroundStyle(Theme.textMuted)
                         }
-                        .foregroundStyle(Theme.textMuted)
                         .padding(.horizontal, 4)
                         .accessibilityIdentifier("sidebar.related-header")
                         ForEach(related) { entry in
@@ -1361,7 +1366,7 @@ enum SidebarEntry: Identifiable {
 /// (the SignificanceStyle pattern; the iPad's twin lives in MemosListView).
 extension NoteCardStyle {
     static let mac = NoteCardStyle(
-        accent: Theme.accent, accentSoft: Theme.accent.opacity(0.16),
+        accent: Theme.accent, accentSoft: Theme.accent.opacity(Palette.accentSoftAlpha),
         accentText: Theme.accentText,
         text: Theme.textPrimary, textDim: Theme.textSecondary, textFaint: Theme.textMuted,
         amber: Theme.amber, green: Theme.green, red: Theme.destructive,
