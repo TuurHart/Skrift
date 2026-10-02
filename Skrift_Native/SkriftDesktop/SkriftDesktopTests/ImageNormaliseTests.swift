@@ -2,11 +2,10 @@ import XCTest
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
-@testable import SkriftDesktop
 
 /// C74 / D17 (Q135): a picture entering the app. PNG stays PNG, a GIF is kept byte-for-byte,
 /// the longest side is capped at 2048 (a downsample only when larger), HEIC/TIFF/BMP -> JPEG 0.9.
-/// The same file runs in the phone's SkriftMobileTests (shared source, one rule).
+/// The same tests run in the phone's SkriftMobileTests (shared source, one rule).
 final class ImageNormaliseTests: XCTestCase {
 
     private func cgImage(width: Int, height: Int) -> CGImage {
