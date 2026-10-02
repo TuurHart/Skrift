@@ -743,7 +743,7 @@ do: `ProcessPile.isWaiting` (Shared/Pipeline/ProcessPile.swift:25) returns false
 check: `grep -rqE "class ProcessPileLockedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P3
 
-### Q103 [auto] (doing) one shared note-search matcher on phone, iPad and Mac, with the C236 fields
+### Q103 [auto] (done) one shared note-search matcher on phone, iPad and Mac, with the C236 fields
 spec: C236 C111 C115 C240
 needs: -
 gate+: yes
@@ -847,7 +847,7 @@ do: The Mac chooser value is `SkriftFormat.cleanFilename(file.filename)` (NotePr
 check: `grep -rqE "class MacTitleSuggestionTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P16
 
-### Q116 [auto] (todo) name decisions (unlink, pick, silence) sync between devices; one wording set for the actions
+### Q116 [auto] (doing) name decisions (unlink, pick, silence) sync between devices; one wording set for the actions
 spec: C81 D20 R37
 needs: -
 gate+: yes
@@ -1029,7 +1029,7 @@ do: `SourceKind.of(memo)` decodes `SharedContent` from `memo.metadataData` expec
 check: `grep -rqE "class SourceKindRealShapeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SourceKindRealShapeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P39
 
-### Q139 [auto] (todo) MacMemoAuthor writes what a phone memo carries: mediaSource, clip manifest, photo assets
+### Q139 [auto] (doing) MacMemoAuthor writes what a phone memo carries: mediaSource, clip manifest, photo assets
 spec: R36 R34 C71 C124
 needs: Q138
 gate+: yes
@@ -1433,7 +1433,7 @@ do: Delete in `SkriftMobile/Services/Audiobooks/`: the single-URL `importBook(fr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookLibraryStoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d04 MAS-d05 MAS-d06 MAS-d07 MAS-d08 MAS-d09 MAS-d11 MAS-d13 MAS-d15 MAS-d-m1..m4 MAS-c29 (cleanup-audit P2)
 
-### Q190 [auto] (doing) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
+### Q190 [auto] (tuur) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
 spec: C239
 needs: Q189
 gate+: no
@@ -1441,7 +1441,7 @@ do: (1) `FileAlignment.epubSignature` is documented as compared nowhere and read
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TextDetachTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d10 MAS-d14 MAS-c02 MAS-c17 MAS-c18 MAS-c24 (cleanup-audit P3)
 
-### Q191 [auto] (doing) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
+### Q191 [auto] (todo) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
 spec: C239
 needs: Q190
 gate+: no
@@ -1449,7 +1449,7 @@ do: In `AudiobookCloudSync.swift` the transcript and alignment sidecar sets (`tr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookCloudSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d12 MAS-c26 MAS-c27 (cleanup-audit P4)
 
-### Q192 [auto] (doing) BookAlignment: one align-one-text helper, single-text mergeSentences
+### Q192 [auto] (todo) BookAlignment: one align-one-text helper, single-text mergeSentences
 spec: C239
 needs: Q190
 gate+: no
@@ -1489,7 +1489,7 @@ do: In `SkriftMobile/Features/MemoDetail/` and the files named: delete `Conversa
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteBodyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MMD-d01 MMD-d02 MMD-d03 MMD-d05 MMD-d07 MMD-d13 MMD-d14 MMD-d15 MMD-d16 MMD-c08 (cleanup-audit P9)
 
-### Q197 [auto] (doing) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
+### Q197 [auto] (tuur) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
 spec: C240
 needs: -
 gate+: no
@@ -1497,7 +1497,7 @@ do: `Paragrapher.paragraphed` and `defaultGap` have no production caller (`Share
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d01 SPL-d02 (cleanup-audit P10)
 
-### Q198 [auto] (doing) shared pipeline: unused overloads, always-default parameters, stale headers
+### Q198 [auto] (tuur) shared pipeline: unused overloads, always-default parameters, stale headers
 spec: C240
 needs: -
 gate+: no
@@ -1593,7 +1593,7 @@ do: `RunFile.swift` has 17 `...IfRequested` entry points; 16 define their own `l
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-c10 DSH-c09 DSH-c12 DSH-d10 DAU-c21 PER-c02 (cleanup-audit P22)
 
-### Q210 [auto] (doing) Mac settings: delete the dead toggles and the old wire DTOs
+### Q210 [auto] (tuur) Mac settings: delete the dead toggles and the old wire DTOs
 spec: C240
 needs: -
 gate+: no
@@ -1601,7 +1601,7 @@ do: In `SkriftDesktop/`: delete `Models/FileDTO.swift` (`StepsDTO`, `FileDTO`, `
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d01 DPE-d02 DPE-d03 DPE-d04 DAU-d11 DAU-d12 DAU-d13 (cleanup-audit P23)
 
-### Q211 [auto] (todo) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
+### Q211 [auto] (doing) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
 spec: C240
 needs: -
 gate+: no
@@ -1697,7 +1697,7 @@ do: In `SkriftMobile/`: delete `SelectableCard` (`Features/MemosList/NotesBottom
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d02 MLJ-d04 MLJ-d07 MLJ-d08 MLJ-d11 MLJ-d13 MLJ-d16 MLJ-c14 MLJ-c15 MLJ-c20 MSV-d17 (cleanup-audit P35)
 
-### Q223 [auto] (todo) feedback: a single-item mail composer, a store that only saves, no duplicate draft
+### Q223 [auto] (doing) feedback: a single-item mail composer, a store that only saves, no duplicate draft
 spec: C240
 needs: -
 gate+: no
@@ -1713,7 +1713,7 @@ do: Found by reading; each gets a failing test first where one can be written, o
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-c09 MLJ-c26 MLJ-c01 (cleanup-audit P37)
 
-### Q225 [auto] (todo) phone services: unread members, unused overloads and test-only helpers
+### Q225 [auto] (doing) phone services: unread members, unused overloads and test-only helpers
 spec: C240
 needs: Q211
 gate+: no
@@ -1729,7 +1729,7 @@ do: `PublishCoordinator.live()` hard-codes `isMacPaired: { false }` and `policy:
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-d02 MSV-d03 (cleanup-audit P39)
 
-### Q227 [auto] (todo) the lock flow asks the right ledger whether a note was exported
+### Q227 [auto] (doing) the lock flow asks the right ledger whether a note was exported
 spec: C115
 needs: Q225
 gate+: no
@@ -2447,3 +2447,16 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:28 Q210 -> doing — batch worker out
 - 2026-10-02 17:31 Q241 -> done — gate pass @fc56ae38
 - 2026-10-02 17:41 Q113 -> done — gate pass @0b16cb62
+- 2026-10-02 17:42 Q210 -> tuur — hand-merge: deleting the dead toggles needs edits to protected SkriftDesktopTests (MemoCloudReconcilerTests, MemoCloudIngestTests, DiarizationTests, DiarizationOptInTests, processEverything:false lines) — not started; do it with the approval
+- 2026-10-02 17:42 Q211 -> doing — batch worker out
+- 2026-10-02 17:42 Q225 -> doing — batch worker out
+- 2026-10-02 17:42 Q227 -> doing — batch worker out
+- 2026-10-02 17:42 Q223 -> doing — batch worker out
+- 2026-10-02 17:42 Q197 -> tuur — hand-merge: moves/deletes existing protected tests (BodyNormaliseMigrationTests, ParagrapherTests, TranscriptionLogicTests) — not started
+- 2026-10-02 17:42 Q198 -> tuur — hand-merge: edits many protected tests (ASRPostProcessTests:26, durationMs constructions, QuoteSeekTests:28, KaraokeTrackTests:63, EPubTOCEntry/splitFragment, BPEMerge/ASRLanguageStore/VocabularyTermParsing) — not started
+- 2026-10-02 17:42 Q139 -> doing — worker out (opus)
+- 2026-10-02 17:43 Q190 -> tuur — hand-merge: BookAlignmentTests.swift:502,520,541 + OdysseyRealDataDiagnostics.swift:112 pass epubSignature: — not started
+- 2026-10-02 17:43 Q191 -> todo — back to todo: needs Q190 (hand-merge)
+- 2026-10-02 17:43 Q192 -> todo — back to todo: needs Q190 (hand-merge)
+- 2026-10-02 17:43 Q116 -> doing — worker out (opus)
+- 2026-10-02 17:44 Q103 -> done — gate pass @b290fdfe
