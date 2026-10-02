@@ -791,8 +791,7 @@ struct MemoPageView: View {
         // Only a REAL title overrides the chip's snapshot. A capture / Maps note with no title +
         // no transcript would otherwise resolve to "Untitled" and CLOBBER the good snapshot the
         // link was made with (2026-07-15 device finding) — return nil so the snapshot stays.
-        let t = (m.title ?? m.firstTranscriptLine)?.trimmingCharacters(in: .whitespaces)
-        return (t?.isEmpty == false) ? t : nil
+        return m.ladderGhost(withUserTitle: true)   // C25: the same ladder as every other title
     }
 
     /// Everything linkable from here: most recent first, self excluded.
@@ -801,7 +800,7 @@ struct MemoPageView: View {
             .filter { $0.id != memo.id }
             .map { m in
                 (id: m.id,
-                 title: (m.title ?? m.firstTranscriptLine ?? "Untitled").trimmingCharacters(in: .whitespaces),
+                 title: m.ladderTitle(),   // C25: never "Untitled", never a raw file name
                  subtitle: MemoDate.label(m.recordedAt))
             }
     }
@@ -973,19 +972,10 @@ struct MemoPageView: View {
     }
 
     var titlePrompt: Text {
-        // C3 captures: use the resolved capture title as the prompt (urlTitle /
-        // text snippet / "Image") — there's no transcript line to fall back to.
-        if memo.isShareCapture {
-            let hint = memo.shareCaptureTitle
-            return Text(hint.isEmpty ? SharedCopy.titlePlaceholder : hint).foregroundStyle(Color.skTextFaint)
-        }
-        // Strip a leading `**Speaker:** ` prefix (conversation note) or `> `
-        // blockquote marker (capture memo) so the title prompt shows the
-        // actual first words, not the Markdown.
-        let line = (memo.firstTranscriptLine ?? SharedCopy.titlePlaceholder)
-            .replacingOccurrences(of: #"^\*\*.+?:\*\*\s*"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
-        return Text(line.isEmpty ? SharedCopy.titlePlaceholder : line).foregroundStyle(Color.skTextFaint)
+        // C25 + Q177: the ghost is what the ONE ladder would title the note (`NoteTitle.derived`:
+        // first body line with markers / `**Speaker:**` / `> ` stripped, else the capture
+        // title); "Add a title" when there is nothing to derive from.
+        Text(SharedCopy.titlePrompt(ghosts: [memo.ladderGhost()])).foregroundStyle(Color.skTextFaint)
     }
 
     // MARK: - Mac polish (Phase 4)

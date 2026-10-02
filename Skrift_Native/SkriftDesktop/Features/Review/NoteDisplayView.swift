@@ -351,9 +351,9 @@ struct NoteDisplayView: View {
         let key = id.uuidString
         var d = FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == key })
         d.fetchLimit = 1
-        // `queueTitle` = displayTitle (enhanced title → first body line → filename), so the chip
-        // reads as the target's opening words for a title-less note — matching the phone.
-        return (try? ctx.fetch(d))?.first?.queueTitle
+        // The C25 ladder's derived title (`titleGhost`): nil when the target has nothing to
+        // derive from, so a good snapshot is never overwritten by "Voice note" / a file name.
+        return (try? ctx.fetch(d))?.first?.titleGhost
     }
 
     /// Snapshot the override sets, run `mutate`, re-derive + save, and arm the undo toast.

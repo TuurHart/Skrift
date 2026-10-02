@@ -635,11 +635,7 @@ struct JournalView: View {
             return NoteVisibility.displayTitle(locked: memo.locked, unlockedThisSession: false,
                                                title: memo.title, fallback: { "" })
         }
-        if let t = memo.title, !t.isEmpty { return t }
-        let first = (memo.transcript ?? "")
-            .components(separatedBy: .newlines).first?
-            .trimmingCharacters(in: .whitespaces) ?? ""
-        return first.isEmpty ? "Voice note" : NoteTitle.clip(first)
+        return memo.ladderTitle()   // C25: the ONE ladder
     }
 
     private func snippet(_ memo: Memo) -> String {
