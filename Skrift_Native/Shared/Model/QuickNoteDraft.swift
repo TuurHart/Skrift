@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 
-/// The lazy-creation + silent-discard core of the quick-note screen
-/// (C43/D91, D134/D135 — signed mock `quick-note.html`). Kept UI-free
+/// The lazy-creation + silent-discard core of the quick-note screen, SHARED by the phone's
+/// quick note and the Mac's ✎/⌘N (C43/D91, D134/D135 — signed mock `quick-note.html`). Kept UI-free
 /// (no SwiftUI) so `QuickNoteTests` can drive it directly without rendering.
 ///
 /// `Memo.newTyped` saves eagerly today (the ✎/⌘N verb on both apps) — fine for
@@ -23,8 +23,13 @@ final class QuickNoteDraft {
     /// awaited by the keyboard path (C112). Internal so tests can await it.
     private(set) var captureTask: Task<Void, Never>?
 
-    init(metadataProvider: (any MetadataProviding)? = nil) {
+    /// The id the `Memo` is born with (nil = a fresh one). The Mac mints it at the click, so the
+    /// open pane's id is already the note's id when the first keystroke creates the row.
+    private let id: UUID?
+
+    init(metadataProvider: (any MetadataProviding)? = nil, id: UUID? = nil) {
         self.metadataProvider = metadataProvider
+        self.id = id
     }
 
     /// Call on every title/body change. A no-op until the first non-empty
@@ -42,7 +47,7 @@ final class QuickNoteDraft {
                 seedDestination: NoteDestination = .personal) -> Memo? {
         if memo == nil {
             guard !title.isEmpty || !body.isEmpty else { return nil }
-            memo = try? Memo.newTyped(into: context)
+            memo = try? Memo.newTyped(into: context, id: id ?? UUID())
             memo?.tags = seedTags
             memo?.significance = seedSignificance
             memo?.destination = seedDestination

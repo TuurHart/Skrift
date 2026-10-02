@@ -62,7 +62,31 @@ final class AppModel {
     /// `PipelineFile` would carry that same UUID once a rating creates one). There used
     /// to be a second `paneMemoID` beside this, because an unrated memo was a different
     /// kind of thing shown a different way; it isn't — see `UnratedNotePane`.
-    var activeID: String?
+    var activeID: String? {
+        didSet {
+            // Leaving a new typed note: one that was typed in and emptied again is deleted;
+            // one never typed in never existed (C43/D91). Every way of changing the open
+            // note passes through here.
+            if oldValue != activeID, typedNotes.isDraft(oldValue), let ctx = MemoCloudStore.container?.mainContext {
+                typedNotes.leave(context: ctx)
+                NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
+            }
+        }
+    }
+
+    /// The Mac's new typed note (✎/⌘N): the rules are the phone quick note's (`QuickNoteDraft`).
+    let typedNotes = MacTypedNoteSession()
+    /// Set when New note opens a draft: the pane puts the cursor in the body once for this id.
+    var focusBodyID: String?
+
+    /// ✎/⌘N. Opens an empty note with the cursor in the body. Creates NO `Memo` — the first
+    /// keystroke does (`UnratedNotePane.commit`) — so clicking and leaving leaves nothing behind.
+    func beginTypedNote() {
+        guard let ctx = MemoCloudStore.container?.mainContext else { return }
+        let id = typedNotes.begin(context: ctx).uuidString
+        focusBodyID = id
+        select(id)
+    }
 
     func isComplete(_ f: PipelineFile) -> Bool {
         let s = f.steps

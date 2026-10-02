@@ -4,11 +4,6 @@ import Foundation
 
 /// Captures contextual metadata when a recording stops. `@MainActor` so the
 /// CoreLocation manager gets a run loop for its delegate callbacks.
-@MainActor
-protocol MetadataProviding {
-    func capture() async -> MemoMetadata
-}
-
 /// Real capture: CoreLocation (+reverse-geocode), CMPedometer steps, SolarCalc
 /// daylight, day period, and OpenWeatherMap weather+pressure. Mirrors the RN
 /// `captureMetadata`. All fields are optional/non-blocking — any failure or

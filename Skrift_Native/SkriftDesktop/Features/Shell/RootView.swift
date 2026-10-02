@@ -104,7 +104,9 @@ struct RootView: View {
                                             // moment the sweep's `@Query` yields it.
                                             onRated: { _ in },
                                             onOpenMemo: { other in model.select(other) },
-                                            searchQuery: model.searchText)
+                                            searchQuery: model.searchText,
+                                            draft: model.typedNotes,
+                                            focusBody: model.focusBodyID == id)
                                 .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             NoteDisplayView(file: nil, coordinator: coordinator)
