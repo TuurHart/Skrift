@@ -390,6 +390,11 @@ struct BodyTextView: NSViewRepresentable {
             switch CaptureQuote.editVerdict(body: view.string, range: range,
                                             replacement: replacementString) {
             case .allow:
+                // Q126: Return on a checklist line continues the list (the shared rule).
+                if replacementString == "\n", range.length == 0,
+                   let tv = view as? SelfSizingTextView, tv.continueTaskLine(at: range.location) {
+                    return false
+                }
                 return true
             case .reject:
                 NSSound.beep()
@@ -1728,6 +1733,70 @@ final class SelfSizingTextView: NSTextView {
                          y: block.minY, width: 3, height: barBottom - block.minY)
         NSColor(Theme.accent).withAlphaComponent(0.65).setFill()
         NSBezierPath(roundedRect: bar, xRadius: 1.5, yRadius: 1.5).fill()
+    }
+
+    // MARK: checklist (Q126) — Return continuation + the Format ▸ Checklist toggle
+
+    /// Display offset of the checkbox glyph on the line holding `caret` (an indent may precede
+    /// it), or nil when the line is not a task line.
+    private func taskBoxIndex(onLineAt caret: Int) -> Int? {
+        guard let storage = textStorage, storage.length > 0 else { return nil }
+        let ns = storage.string as NSString
+        let line = ns.lineRange(for: NSRange(location: min(caret, ns.length), length: 0))
+        var i = line.location
+        while i < NSMaxRange(line), ns.character(at: i) == 32 || ns.character(at: i) == 9 { i += 1 }
+        guard i < NSMaxRange(line),
+              storage.attribute(.attachment, at: i, effectiveRange: nil) is TaskBoxAttachment else { return nil }
+        return i
+    }
+
+    /// A fresh unchecked box + its padding space, in the current typing attributes.
+    private func freshTaskBox() -> NSAttributedString {
+        let out = NSMutableAttributedString(attachment: TaskBoxAttachment(checked: false))
+        out.addAttributes(typingAttributes, range: NSRange(location: 0, length: out.length))
+        out.append(NSAttributedString(string: " ", attributes: typingAttributes))
+        return out
+    }
+
+    /// Return at `caret`: continue / end a checklist per the SHARED `BodyTransform.taskReturn`
+    /// (the phone's rule). True = handled (the caller swallows the newline). Edits go through
+    /// `insertText`, so they are undoable and fire the normal text-change path (model commit).
+    func continueTaskLine(at caret: Int) -> Bool {
+        guard isEditable, !hasMarkedText(), let box = taskBoxIndex(onLineAt: caret) else { return false }
+        switch BodyTransform.taskReturn(in: string as NSString, caret: caret, boxIndex: box) {
+        case .passthrough:
+            return false
+        case .dissolve(let range):
+            insertText("", replacementRange: range)
+            return true
+        case .continued(let removeSpace, let insertAt, let lead):
+            if let removeSpace { insertText("", replacementRange: removeSpace) }
+            let piece = NSMutableAttributedString(string: lead, attributes: typingAttributes)
+            piece.append(freshTaskBox())
+            insertText(piece, replacementRange: NSRange(location: insertAt, length: 0))
+            return true
+        }
+    }
+
+    /// Format ▸ Checklist (the phone's ☑): make the caret's line a checklist item, or drop its
+    /// box when it already is one. Reached through the responder chain, so it acts only on the
+    /// note that has focus.
+    @objc func toggleChecklist(_ sender: Any?) {
+        guard isEditable, let storage = textStorage else { return }
+        let ns = storage.string as NSString
+        let caret = min(selectedRange().location, ns.length)
+        let line = ns.lineRange(for: NSRange(location: caret, length: 0))
+        if let box = taskBoxIndex(onLineAt: caret) {
+            // Un-task: drop the box and its padding space when present.
+            var drop = 1
+            if box + 1 < ns.length, ns.character(at: box + 1) == 32 { drop = 2 }
+            insertText("", replacementRange: NSRange(location: box, length: drop))
+            setSelectedRange(NSRange(location: max(box, caret - drop), length: 0))
+        } else {
+            let piece = freshTaskBox()
+            insertText(piece, replacementRange: NSRange(location: line.location, length: 0))
+            setSelectedRange(NSRange(location: caret + piece.length, length: 0))
+        }
     }
 
     override func mouseDown(with event: NSEvent) {

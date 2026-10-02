@@ -874,32 +874,29 @@ struct NoteBodyView: UIViewRepresentable {
                                            effectiveRange: nil) is Bool
             else { return false }
 
-            // The line past its 1-char box glyph, without the trailing newline.
-            let contentStart = line.location + 1
-            let lineEnd = line.location + line.length
-            let hasNewline = lineEnd > line.location && ns.character(at: lineEnd - 1) == 10
-            let contentEnd = hasNewline ? lineEnd - 1 : lineEnd
-            let content = contentStart < contentEnd
-                ? ns.substring(with: NSRange(location: contentStart,
-                                             length: contentEnd - contentStart)) : ""
-
-            if content.trimmingCharacters(in: .whitespaces).isEmpty {
+            // The rule (empty item ends the list; else split + fresh box) is the SHARED
+            // `BodyTransform.taskReturn`, the same one the Mac's editor runs.
+            let rule = BodyTransform.taskReturn(in: ns, caret: caret, boxIndex: line.location)
+            let insertAt: Int
+            let lead: String
+            switch rule {
+            case .passthrough:
+                return false
+            case .dissolve(let range):
                 // Empty item → end the list here.
                 tv.textStorage.replaceCharacters(
-                    in: NSRange(location: line.location, length: contentEnd - line.location),
-                    with: NSAttributedString(string: "", attributes: baseAttributes()))
+                    in: range, with: NSAttributedString(string: "", attributes: baseAttributes()))
                 tv.selectedRange = NSRange(location: line.location, length: 0)
                 textViewDidChange(tv)
                 return true
+            case .continued(let removeSpace, let at, let leading):
+                // A space right after the caret is consumed (Notes trims the split tail),
+                // then "\n" + fresh box + " ".
+                if let removeSpace { tv.textStorage.deleteCharacters(in: removeSpace) }
+                insertAt = at
+                lead = leading
             }
-
-            // Split/continue: a space right after the caret is consumed (Notes
-            // trims the split tail), then "\n" + fresh box + " ".
-            var insertAt = caret
-            if insertAt < contentEnd, ns.character(at: insertAt) == 32 {
-                tv.textStorage.deleteCharacters(in: NSRange(location: insertAt, length: 1))
-            }
-            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
+            let piece = NSMutableAttributedString(string: lead, attributes: baseAttributes())
             let box = NSMutableAttributedString(attachment: Self.taskAttachment(checked: false))
             box.addAttribute(Self.taskKey, value: false,
                              range: NSRange(location: 0, length: box.length))
