@@ -727,7 +727,7 @@ do: Q21 gated the phone only. On the Mac: `QueueRowView.cardModel` never sets `l
 check: `grep -rqE "class MacLockGateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P1
 
-### Q101 [auto] (todo) a locked note stays locked on every other surface: Mac Way-out + peek, Review rows on phone and Mac, Share note, search
+### Q101 [auto] (doing) a locked note stays locked on every other surface: Mac Way-out + peek, Review rows on phone and Mac, Share note, search
 spec: C161 C213 C91 R88
 needs: Q100
 gate+: yes
@@ -1021,7 +1021,7 @@ do: Phone `AppURLHandler.handle` ignores an unsupported or failed file silently 
 check: `grep -rqE "class ImportReportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportReportTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P38
 
-### Q138 [auto] (doing) SourceKind.of reads the right blobs: phone captures and videos classify correctly; one classifier for rows, panes and projection
+### Q138 [auto] (done) SourceKind.of reads the right blobs: phone captures and videos classify correctly; one classifier for rows, panes and projection
 spec: C78 C239 C71 R36
 needs: -
 gate+: yes
@@ -2398,3 +2398,7 @@ source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 - 2026-10-02 12:43 Q237 -> doing — worker out
 - 2026-10-02 12:46 Q236 -> doing — worker out
 - 2026-10-02 12:49 Q100 -> done — gate pass @c5c0dc6b
+- 2026-10-02 12:49 Q101 -> doing — worker out
+- 2026-10-02 12:49 Q101 -> todo — held: 3 workers out
+- 2026-10-02 12:50 Q101 -> doing — worker out
+- 2026-10-02 12:56 Q138 -> done — gate pass @0985a481
