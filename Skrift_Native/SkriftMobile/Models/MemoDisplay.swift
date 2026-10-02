@@ -78,22 +78,22 @@ extension Memo {
     /// Full-text search over everything the memo knows: title, transcript,
     /// tags, place, capture fields — and the photos' OCR text (chunk 6).
     /// Extracted from the list so it's testable and single-sourced.
-    func matches(query: String) -> Bool {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return true }
-        if title?.lowercased().contains(q) == true { return true }
-        if transcript?.lowercased().contains(q) == true { return true }
-        if tags.contains(where: { $0.lowercased().contains(q) }) { return true }
-        if metadata?.location?.placeName?.lowercased().contains(q) == true { return true }
-        // C3 capture items: search annotation + urlTitle + text snippet
-        if annotationText?.lowercased().contains(q) == true { return true }
-        if sharedContent?.urlTitle?.lowercased().contains(q) == true { return true }
-        if sharedContent?.text?.lowercased().contains(q) == true { return true }
-        // Photo OCR (on-device Vision → synced manifest text).
-        if metadata?.imageManifest?.contains(where: { $0.text?.lowercased().contains(q) == true }) == true {
-            return true
-        }
-        return false
+    func matches(query: String, unlockedThisSession: Bool = false) -> Bool {
+        // Q101 (C91/C161): a locked note's body fields stay out of the match until it is
+        // unlocked this session; only its title can hit (the row shows as "Locked note").
+        NoteVisibility.matches(query: query, locked: locked, unlockedThisSession: unlockedThisSession,
+                               title: title, bodyFields: { [self] in
+            var f: [String?] = [transcript]
+            f.append(contentsOf: tags.map { Optional($0) })
+            f.append(metadata?.location?.placeName)
+            // C3 capture items: search annotation + urlTitle + text snippet
+            f.append(annotationText)
+            f.append(sharedContent?.urlTitle)
+            f.append(sharedContent?.text)
+            // Photo OCR (on-device Vision → synced manifest text).
+            f.append(contentsOf: (metadata?.imageManifest ?? []).map { $0.text })
+            return f
+        })
     }
 
     /// Resolve a `[[img_NNN]]` transcript marker (1-based) to its photo file in

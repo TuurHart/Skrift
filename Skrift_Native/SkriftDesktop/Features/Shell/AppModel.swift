@@ -83,14 +83,15 @@ final class AppModel {
     /// Free-text match over the row title, transcript, summary, and photo OCR text.
     /// Empty query matches everything (mirrors the phone's `matchesSearch`).
     func matchesSearch(_ f: PipelineFile) -> Bool {
-        let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return true }
-        if f.queueTitle.lowercased().contains(q) { return true }
-        if f.transcript?.lowercased().contains(q) == true { return true }
-        if f.enhancedSummary?.lowercased().contains(q) == true { return true }
-        // Photo OCR (phone-authored, synced) — find a note by what's IN its photos.
-        if f.imageOCRText?.lowercased().contains(q) == true { return true }
-        return false
+        // Q101 (C91/C161): a locked, not-yet-unlocked note matches on its explicitly set
+        // title only — never its transcript, summary or OCR (nor the first-line title
+        // fallback, which is its words).
+        let unlocked = LockGate.shared.isUnlocked(f.id)
+        return NoteVisibility.matches(query: searchText, locked: f.locked,
+                               unlockedThisSession: unlocked,
+                               title: NoteVisibility.contentVisible(locked: f.locked, unlockedThisSession: unlocked)
+                                   ? f.queueTitle : f.enhancedTitle,
+                               bodyFields: { [f.transcript, f.enhancedSummary, f.imageOCRText] })
     }
 
     /// Within the date-range filter — the shared `DateRangeFilter` rule (same one

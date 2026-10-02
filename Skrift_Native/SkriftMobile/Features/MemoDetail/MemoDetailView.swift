@@ -453,7 +453,7 @@ struct MemoDetailView: View {
                 Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
             }
             Button(NoteMenuItem.remind.label, action: { reminderMemo = currentMemo })
-            if WallPrinter.shared.hasPrinter, let memo = currentMemo {
+            if WallPrinter.shared.hasPrinter, let memo = currentMemo, !lockGate.isLocked(memo) {
                 Button(NoteMenuItem.printCard.label, action: {
                     WallPrinter.shared.printCard(memo, repository: repository)
                 })
@@ -461,7 +461,15 @@ struct MemoDetailView: View {
             if let memo = currentMemo {
                 Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
             }
-            Button("Share note…", action: { showShare = true })
+            Button("Share note…", action: {
+                // Q101 (C161/C213): a locked, not-yet-unlocked note needs auth before it leaves the app.
+                Task { @MainActor in
+                    if let memo = currentMemo, lockGate.isLocked(memo) {
+                        guard await lockGate.unlock(memo.id) else { return }
+                    }
+                    showShare = true
+                }
+            })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
@@ -685,12 +693,7 @@ struct MemoDetailView: View {
     /// Share OUT (survey fold, user-approved): the note as markdown text, plus
     /// the recording file when there is one.
     func shareItems(for memo: Memo) -> [Any] {
-        var items: [Any] = [MemoShare.markdown(title: memo.title ?? memo.firstTranscriptLine,
-                                               body: memo.transcript ?? "")]
-        if let url = memo.audioURL, FileManager.default.fileExists(atPath: url.path) {
-            items.append(url)
-        }
-        return items
+        MemoShare.items(for: memo, unlockedThisSession: LockGate.shared.isUnlocked(memo.id.uuidString))
     }
 
     /// C10/D4 + Q40: the current note's body and its polished copy-edit, normalised once each.

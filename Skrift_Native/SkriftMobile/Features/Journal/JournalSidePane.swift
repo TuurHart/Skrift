@@ -213,15 +213,20 @@ struct JournalSidePane: View {
 /// the river's cards use.
 private struct JournalDayRow: View {
     let memo: Memo
+    /// Q101 (C91/C161): the day row's title falls back to the first line of the transcript,
+    /// so a locked note shows its set title or "Locked note" until unlocked this session.
+    @ObservedObject private var lockGate = LockGate.shared
+    private var isHidden: Bool { lockGate.isLocked(memo) }
     var body: some View {
         JournalCard {
             NavigationLink(value: memo.id) {
                 HStack(spacing: 10) {
-                    Image(systemName: SourceKind.of(memo).glyph)
+                    Image(systemName: isHidden ? "lock.fill" : SourceKind.of(memo).glyph)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.skTextFaint)
                         .frame(width: 16)
-                    Text(memo.displayTitle)
+                    Text(NoteVisibility.displayTitle(locked: memo.locked, unlockedThisSession: !isHidden,
+                                                     title: memo.title, fallback: { memo.displayTitle }))
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(Color.skText)
                         .lineLimit(1)

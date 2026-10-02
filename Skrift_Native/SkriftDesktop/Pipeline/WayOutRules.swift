@@ -167,15 +167,15 @@ enum WayOutRules {
 
     /// Free-text match for a quiet (unrated) row — title + transcript, the
     /// memo-side mirror of `AppModel.matchesSearch`. Empty query matches all.
-    static func matchesSearch(_ memo: Memo, query: String) -> Bool {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return true }
-        // A locked note's words are hidden (C161/C91): searching them (or the first-line
-        // title fallback derived from them) would reveal them — only its set title matches.
-        if memo.locked { return (memo.title ?? "").lowercased().contains(q) }
-        if displayTitle(memo).lowercased().contains(q) { return true }
-        if memo.transcript?.lowercased().contains(q) == true { return true }
-        return false
+    static func matchesSearch(_ memo: Memo, query: String, unlockedThisSession: Bool = false) -> Bool {
+        // A locked note's words are hidden (C161/C91) until unlocked this session: searching
+        // them (or the first-line title fallback derived from them) would reveal them — only
+        // its set title matches (Q101: `NoteVisibility.matches`).
+        NoteVisibility.matches(query: query, locked: memo.locked,
+                               unlockedThisSession: unlockedThisSession,
+                               title: NoteVisibility.contentVisible(locked: memo.locked, unlockedThisSession: unlockedThisSession)
+                                   ? displayTitle(memo) : memo.title,
+                               bodyFields: { [memo.transcript] })
     }
 
     // MARK: - ④ the conveyor

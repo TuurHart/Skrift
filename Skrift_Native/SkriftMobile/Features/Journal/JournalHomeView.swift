@@ -347,17 +347,22 @@ struct JournalCardHeader: View {
 struct JournalMemoRow: View {
     let memo: Memo
     var showTime = false
+    /// Q101 (C91/C161): the same Shared gate as the Notes list — a locked, not-yet-unlocked
+    /// note shows title + 🔒 only (no snippet, place or importance).
+    @ObservedObject private var lockGate = LockGate.shared
+    private var isHidden: Bool { lockGate.isLocked(memo) }
 
     var body: some View {
         NavigationLink(value: memo.id) {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "mic")
+                Image(systemName: isHidden ? "lock.fill" : "mic")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextFaint)
                     .frame(width: 16)
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(memo.displayTitle)
+                    Text(NoteVisibility.displayTitle(locked: memo.locked, unlockedThisSession: !isHidden,
+                                                     title: memo.title, fallback: { memo.displayTitle }))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.skText)
                         .lineLimit(1)
@@ -367,7 +372,7 @@ struct JournalMemoRow: View {
                             .foregroundStyle(Color.skTextDim)
                             .lineLimit(1)
                     }
-                    meta
+                    if !isHidden { meta }
                 }
                 Spacer(minLength: 0)
             }
@@ -377,7 +382,8 @@ struct JournalMemoRow: View {
     }
 
     private var snippet: String? {
-        memo.transcript.map { NoteSnippet.plain($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+        NoteVisibility.snippet(locked: memo.locked, unlockedThisSession: !isHidden,
+                               memo.transcript.map { NoteSnippet.plain($0).trimmingCharacters(in: .whitespacesAndNewlines) })
     }
 
     private var meta: some View {
