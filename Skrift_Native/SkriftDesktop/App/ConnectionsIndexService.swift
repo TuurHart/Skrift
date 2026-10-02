@@ -88,8 +88,8 @@ final class ConnectionsIndexService {
         }
     }
 
-    /// Fire-and-forget engine load — call on note switch so the first row query
-    /// doesn't pay the cold load (the panel opens instantly, rows fill in).
+    /// Fire-and-forget engine load — call on note switch and on the first search keystroke
+    /// (Q168) so the first query doesn't pay the cold load.
     func warmUp() {
         guard isActive else { return }
         Task.detached(priority: .utility) { try? await GemmaEmbedder.shared.prepare() }
@@ -108,7 +108,10 @@ final class ConnectionsIndexService {
         // Consent-gated membership (NoteConsent.joinsConnectionsIndex): live +
         // rated. Rows absent from this set are REMOVED by the sweep's orphan
         // pass, so un-rating a note also withdraws it from the graph.
-        let snapshots = files.filter(NoteConsent.joinsConnectionsIndex).compactMap(Self.snapshot)
+        // Q168: the TEXT comes from the synced Memo + MemoEnhancement (the phone's rule), so
+        // one note embeds the same words on both devices. A fresh context sees CloudKit imports.
+        let cloud = MemoCloudContainer.container.map { ModelContext($0) }
+        let snapshots = MacEmbeddingSnapshot.snapshots(files: files, cloud: cloud)
         let index = resolvedIndex()
         sweeping = true
         sweepProgress = (0, snapshots.count)
@@ -164,19 +167,6 @@ final class ConnectionsIndexService {
     }
 
     // ── snapshots ──
-
-    /// Index-relevant content of one PipelineFile — nil when it can't join the
-    /// index (non-UUID id = pre-CloudKit demo rows; empty body = nothing to embed).
-    static func snapshot(_ file: PipelineFile) -> MemoSnapshot? {
-        guard let uuid = UUID(uuidString: file.id) else { return nil }
-        let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
-        // The body the note SHOWS (`sanitised` carries the Mac's own edits), then the shared
-        // precedence: polished else transcript, user title else the polish's.
-        return SemanticSearch.snapshot(
-            id: uuid, userTitle: nil, enhancedTitle: file.enhancedTitle, summary: file.enhancedSummary,
-            polished: file.sanitised ?? file.enhancedCopyedit, transcript: file.transcript, annotation: nil,
-            place: meta?.location?.placeName, tags: file.tags)
-    }
 
     /// The journal/thread axis (panel dates + thread order): the phone's recorded
     /// moment when synced; locally-ingested files fall back to their upload time.

@@ -157,7 +157,7 @@ extension MemosListView {
         // Engine load starts at the FIRST keystroke, not after the debounce —
         // a cold load is minutes on device (devlog 2026-07-08), so every
         // head-start counts. No-op when warm or when the index is off.
-        if !search.isEmpty { JournalIndexService.shared.warmUp() }
+        if SemanticSearch.warmsEngine(forQuery: search) { JournalIndexService.shared.warmUp() }
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
