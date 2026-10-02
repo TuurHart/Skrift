@@ -76,12 +76,11 @@ enum MixedBundle {
     static func clipManifest(clips: [URL], dates: (URL) -> Date?, clipDuration: (URL) -> Double) -> [ClipEntry] {
         var elapsed = 0.0
         var out: [ClipEntry] = []
-        let iso = ISO8601DateFormatter()
         for url in clips {
             let d = max(0, clipDuration(url))
             guard d > 0 else { continue }          // the stitcher skips an unreadable clip too
             out.append(ClipEntry(filename: url.lastPathComponent, startSeconds: elapsed,
-                                 recordedAt: dates(url).map { iso.string(from: $0) }))
+                                 recordedAt: dates(url).map { ISO8601.string(from: $0) }))
             elapsed += d
         }
         return out
