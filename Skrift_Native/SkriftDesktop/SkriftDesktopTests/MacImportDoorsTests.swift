@@ -245,6 +245,10 @@ final class MacImportDoorsTests: XCTestCase {
         let report = try await service(work).ingestReport(localURLs: [mail], into: try makeContext())
         XCTAssertTrue(report.created.isEmpty)
         XCTAssertEqual(report.skipped, [mail])
+        // Q137: the banner names the link and says why, not "vanished".
+        let banner = report.importReport
+        XCTAssertEqual(banner.skipped.map(\.name), ["mailto:someone@example.com"])
+        XCTAssertEqual(banner.skipped.map(\.reason), [ImportReport.notAWebLink])
     }
 
     func testALinkAndAFileInOneDropAreBothImported() async throws {
