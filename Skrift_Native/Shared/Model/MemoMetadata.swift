@@ -50,6 +50,11 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// an older one (which a missing enum case would).
     var sourceType: String?
 
+    /// C124 / D35: a merged multi-clip note keeps where each clip starts in the merged audio and
+    /// its own message time. ADDITIVE + optional (nil on every other memo; unknown keys are ignored
+    /// by an older decoder). The body never shows the times, only the paragraph break each start forces.
+    var clipManifest: [ClipManifestEntry]?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -66,7 +71,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         bookChapter: String? = nil,
         bookID: UUID? = nil,
         bookPosition: Double? = nil,
-        sourceType: String? = nil
+        sourceType: String? = nil,
+        clipManifest: [ClipManifestEntry]? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -84,6 +90,7 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.bookID = bookID
         self.bookPosition = bookPosition
         self.sourceType = sourceType
+        self.clipManifest = clipManifest
     }
 
     /// Known `sourceType` values — the first entries of the deferred unified
@@ -91,6 +98,17 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     enum Source {
         static let video = "video"
     }
+}
+
+/// One clip's place in a merged multi-clip note (C124, D35): where its speech STARTS in the
+/// merged audio and its own message time. Lives with the metadata schema because the phone
+/// syncs it in `MemoMetadata.clipManifest`; the Mac writes the same shape to `clip_manifest.json`
+/// beside the merged audio. The body never shows `recordedAt`.
+struct ClipManifestEntry: Codable, Equatable, Sendable {
+    var filename: String
+    var startSeconds: Double
+    /// The clip's own message time (C70 ladder), ISO-8601; nil when its name carries none.
+    var recordedAt: String?
 }
 
 struct LocationInfo: Codable, Equatable, Sendable {

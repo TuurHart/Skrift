@@ -128,7 +128,7 @@ struct MemoSaver {
     /// transcribed once — one continuous transcript/karaoke, exactly like an
     /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
     @discardableResult
-    func importAudioClips(from sources: [URL], recordedAt: Date? = nil) -> UUID? {
+    func importAudioClips(from sources: [URL], recordedAt: Date? = nil, clipDates: [Date?] = []) -> UUID? {
         guard !sources.isEmpty else { return nil }
         if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt) }
 
@@ -147,7 +147,7 @@ struct MemoSaver {
         DevLog.log("importAudioClips: placeholder memo \(id) inserted; clips=\(sources.count)")
         Task {
             await BackgroundTask.run(name: "skrift.import-clips") {
-                await importAudioClipsAsync(id: id, sources: sources)
+                await importAudioClipsAsync(id: id, sources: sources, clipDates: clipDates)
             }
         }
         return id
@@ -158,8 +158,22 @@ struct MemoSaver {
     /// the merge succeeded. Unreadable clips are skipped (logged); if NONE are
     /// readable the memo fails honestly with a reason title, never a silent husk.
     @discardableResult
-    func importAudioClipsAsync(id: UUID, sources: [URL]) async -> Bool {
+    func importAudioClipsAsync(id: UUID, sources: [URL], clipDates: [Date?] = []) async -> Bool {
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(RecordingCore.filename(id: id))
+        // C124 / D35: where each clip starts in the merged audio + its own message time, read
+        // BEFORE the temps are deleted. The transcript pass breaks a paragraph at each start;
+        // the times are never shown in the body.
+        let dateOf = Dictionary(sources.enumerated().compactMap { i, u in
+            clipDates.indices.contains(i) ? clipDates[i].map { (u, $0) } : nil
+        }, uniquingKeysWith: { a, _ in a })
+        let clipManifest = await Task.detached(priority: .userInitiated) {
+            MixedBundle.clipManifest(
+                clips: sources, dates: { dateOf[$0] },
+                clipDuration: { u in
+                    guard let f = try? AVAudioFile(forReading: u), f.fileFormat.sampleRate > 0 else { return 0 }
+                    return Double(f.length) / f.fileFormat.sampleRate
+                })
+        }.value
         do {
             try await Self.mergeAudio(sources: sources, to: dest)
         } catch {
@@ -184,6 +198,9 @@ struct MemoSaver {
         guard let memo = repository.memo(id: id) else { return true }
         memo.duration = duration
         if let embedded { memo.recordedAt = embedded }
+        var meta = memo.metadata ?? MemoMetadata()
+        meta.clipManifest = clipManifest
+        memo.metadata = meta
         repository.save()
         await runTranscription(id: id)
         return true
@@ -775,7 +792,8 @@ struct MemoSaver {
             // word-timing alignment holds. `.speech` only with real word times.
             memo.transcript = text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
                 text: storedText, words: storedTimings, manifest: manifest,
-                source: storedTimings.isEmpty ? .typed : .speech))
+                source: storedTimings.isEmpty ? .typed : .speech,
+                clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? [])))
             memo.transcriptConfidence = result.confidence
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done

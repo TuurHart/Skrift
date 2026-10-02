@@ -48,6 +48,9 @@ struct IngestService: Sendable {
     struct IngestReport {
         var created: [PipelineFile] = []
         var skipped: [URL] = []
+        /// Ids of the rows that are N clips stitched into one (C124). Their date is the first
+        /// clip's message time, never the stitched file's own embedded date.
+        var merged: Set<String> = []
     }
 
     /// `combineAudio` is the answer to the C68 chooser ("One note"): when true and TWO OR
@@ -112,6 +115,7 @@ struct IngestService: Sendable {
                 guard !bundleDone else { continue }
                 bundleDone = true
                 let pf = try await ingestClips(composition.clips, into: context)
+                if composition.clips.count > 1 { report.merged.insert(pf.id) }
                 report.skipped += try await attachPictures(composition.pictures, to: pf)
                 report.created.append(pf)
                 continue
@@ -263,12 +267,38 @@ struct IngestService: Sendable {
         let recorded = Self.dateFromFilename(filename)
             ?? (try? first.resourceValues(forKeys: [.creationDateKey]))?.creationDate
             ?? Date()
+        // C124 / D35: each clip's start in the merged audio + its own message time, kept beside
+        // the audio. The transcript pass turns the starts into paragraph breaks; the times are
+        // never shown in the body.
+        try await writeClipManifest(clips, into: folder)
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
+    }
+
+    static let clipManifestName = "clip_manifest.json"
+
+    private func writeClipManifest(_ clips: [URL], into folder: URL) async throws {
+        try await Self.offMain {
+            let manifest = MixedBundle.clipManifest(
+                clips: clips, dates: { Self.dateFromFilename($0.lastPathComponent) },
+                clipDuration: { Self.audioSeconds(of: $0) })
+            let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted]
+            try enc.encode(manifest).write(to: folder.appendingPathComponent(Self.clipManifestName))
+        }
+    }
+
+    /// The paragraph-break moments of a merged note, from its `clip_manifest.json` (empty for
+    /// anything that is not one).
+    static func clipStarts(forAudioAt path: String) -> [Double] {
+        guard !path.isEmpty else { return [] }
+        let url = URL(fileURLWithPath: path).deletingLastPathComponent().appendingPathComponent(clipManifestName)
+        guard let data = try? Data(contentsOf: url),
+              let m = try? JSONDecoder().decode([MixedBundle.ClipEntry].self, from: data) else { return [] }
+        return MixedBundle.breakStarts(m)
     }
 
     /// Run throwing file work on a detached task so a slow copy never parks the

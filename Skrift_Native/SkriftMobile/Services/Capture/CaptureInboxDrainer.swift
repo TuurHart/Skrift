@@ -341,7 +341,8 @@ enum CaptureInboxDrainer {
                         DevLog.log("drain: Books route FAILED (\(error)) — importing as memo instead")
                     }
                 }
-                if let mid = MemoSaver(repository: repository).importAudioClips(from: temps, recordedAt: clipDate) {
+                if let mid = MemoSaver(repository: repository).importAudioClips(
+                    from: temps, recordedAt: clipDate, clipDates: temps.map { plan.clipDates[$0] }) {
                     // B3: bundled photos land under the memo's own id — the manifest
                     // is set BEFORE the transcription result arrives, so the shared
                     // ImageMarkers pass drops [[img_NNN]] into the transcript exactly

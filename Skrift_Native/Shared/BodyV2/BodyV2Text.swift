@@ -57,17 +57,30 @@ enum BodyV2Text {
     /// `maxSentences`). Text that already has a newline is untouched (empty result); so is
     /// text with no word times (typed text is never paragraphed). Tokens pair with `words`
     /// by index, as the recogniser emitted them.
-    static func breakLocations(in text: String, words: [WordTiming]) -> [Int] {
-        guard !words.isEmpty, !text.contains("\n") else { return [] }
+    ///
+    /// `clipStarts` (C124): in a merged multi-clip note each clip begins a paragraph. The first
+    /// token whose word starts at or after a clip's start opens one, whatever the pause or the
+    /// sentence state, and whether or not the text already holds newlines (a picture paragraph
+    /// may have been placed first). The first word of the note never gets a break.
+    static func breakLocations(in text: String, words: [WordTiming], clipStarts: [Double] = []) -> [Int] {
+        guard !words.isEmpty else { return [] }
         let ns = text as NSString
         let tokens = try! NSRegularExpression(pattern: #"\S+"#)
             .matches(in: text, range: NSRange(location: 0, length: ns.length))
+        var forced = Set<Int>()                       // token indexes that open a clip
+        for start in clipStarts where start > 0 {
+            if let i = words.firstIndex(where: { $0.start >= start - 0.05 }), i > 0, i < tokens.count {
+                forced.insert(i)
+            }
+        }
+        if text.contains("\n") { return forced.sorted().map { tokens[$0].range.location } }
         var out: [Int] = []
         var sentences = 0
         var prevEnded = false
         for (i, m) in tokens.enumerated() where i < words.count {
-            if i > 0, prevEnded,
-               words[i].start - words[i - 1].end >= gap || sentences >= maxSentences {
+            if forced.contains(i)
+                || (i > 0 && prevEnded
+                    && (words[i].start - words[i - 1].end >= gap || sentences >= maxSentences)) {
                 out.append(m.range.location)
                 sentences = 0
             }

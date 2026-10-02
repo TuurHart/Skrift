@@ -54,6 +54,7 @@ struct BatchRunner {
     /// commit only when at least two voices come back. One voice → `BatchRunnerError.oneVoice`
     /// with the note untouched (its hand edits survive); `cancelCheck` true → `.cancelled`, same.
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = [],
+             clipStarts: [Double] = [],
              stopAfterTranscribe: Bool = false, retranscribe: Bool = false,
              requireSplit: Bool = false, cancelCheck: (@Sendable () -> Bool)? = nil) async throws {
         // Captures (C3) never transcribe or diarize — their annotation is already text.
@@ -99,7 +100,7 @@ struct BatchRunner {
             // alignment holds. `.speech` only with real word times.
             let newTranscript = BodyV2.committed(BodyV2.Input(
                 text: result.text, words: result.wordTimings, manifest: imageManifest,
-                source: result.wordTimings.isEmpty ? .typed : .speech))
+                source: result.wordTimings.isEmpty ? .typed : .speech, clipStarts: clipStarts))
             // Q87: a split is decided BEFORE anything of the old note is dropped.
             if requireSplit {
                 func abandon(_ e: BatchRunnerError) -> BatchRunnerError {
@@ -159,9 +160,10 @@ struct BatchRunner {
             }
             // Fusion rebuilds from the words and drops the picture markers — body v2 places
             // them again, after the sentence within the turn (C169), like the phone.
-            if !imageManifest.isEmpty, let t = pf.transcript {
+            if !imageManifest.isEmpty || !clipStarts.isEmpty, let t = pf.transcript {
                 pf.transcript = BodyV2.committed(BodyV2.Input(text: t, words: pf.wordTimings,
-                                                              manifest: imageManifest, source: .speech))
+                                                              manifest: imageManifest, source: .speech,
+                                                              clipStarts: clipStarts))
             }
             // Retain the diarization so a speaker's voice can be enrolled later from the
             // review screen (slice their audio by these segments → embedSpeaker) without
