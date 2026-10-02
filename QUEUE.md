@@ -823,7 +823,7 @@ do: The Mac editor is one `NSTextView` over the whole body; `styleLeadingQuote` 
 check: `grep -rqE "class MacQuoteReadOnlyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P13
 
-### Q113 [auto] (todo) phone creates people only through PersonEditCore.materialise (speaker naming, Add Person sheet)
+### Q113 [auto] (doing) phone creates people only through PersonEditCore.materialise (speaker naming, Add Person sheet)
 spec: R12 C83 C80
 needs: -
 gate+: yes
@@ -965,7 +965,7 @@ check: Tuur picked and the rule went into SPEC.
 brief: Phone shared-text capture is a borderless italic quote (Tuur 2026-07-12, memory feedback_no_bubbles_on_shared_input, not in SPEC); the Mac draws a bordered, tinted 'SHARED CONTENT' card for all four capture types; the phone's own link and file cards are bordered boxes, so the rule is not uniform on the phone either (note-capture-02, capture-drain-07). Recommended: write the rule into SPEC with the exact scope (text quote only), then the Mac text capture draws the accent-bar quote and the other three keep their cards.
 source: plan/reads/parity-audit.md P31
 
-### Q131 [auto] (doing) Mac new typed note: the Memo is created on the first keystroke, an empty one is discarded, the body has focus, place is stamped
+### Q131 [auto] (done) Mac new typed note: the Memo is created on the first keystroke, an empty one is discarded, the body has focus, place is stamped
 spec: C43 D91 C112 D151
 needs: -
 gate+: yes
@@ -2419,3 +2419,5 @@ check: `./gate.sh`
 - 2026-10-02 13:07 Q112 -> doing — worker out
 - 2026-10-02 13:07 Q236 -> done — gate pass @8f3f5cb6
 - 2026-10-02 13:10 Q101 -> done — gate pass @0b3ebcc9
+- 2026-10-02 13:11 Q113 -> doing — worker out
+- 2026-10-02 13:13 Q131 -> done — gate pass @217cd128
