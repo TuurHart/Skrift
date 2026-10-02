@@ -1045,7 +1045,7 @@ do: `QuickNoteDraft.discard` does `context.delete`, a hard delete, where `MemoDe
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteSoftDeleteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P41
 
-### Q141 [auto] (todo) an Apple Note import is dated to its creation date, or shows date unknown, never the import moment
+### Q141 [auto] (doing) an Apple Note import is dated to its creation date, or shows date unknown, never the import moment
 spec: C76 D18
 needs: -
 gate+: yes
@@ -1053,7 +1053,7 @@ do: `IngestService.ingestNote` builds the `PipelineFile` without `uploadedAt`, s
 check: `grep -rqE "class AppleNoteDateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P42
 
-### Q142 [auto] (todo) exported frontmatter source: a typed note says the same thing from phone and Mac
+### Q142 [auto] (doing) exported frontmatter source: a typed note says the same thing from phone and Mac
 spec: D65 C57
 needs: Q138
 gate+: yes
@@ -1163,7 +1163,7 @@ do: Two builders: phone `MemoExporter.compilerMetadata` (voice from `enhancement
 check: `grep -rqE "class CompilerInputParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh CompilerInputParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P56
 
-### Q156 [auto] (doing) export gate and refusal sentences: one predicate and one set of strings
+### Q156 [auto] (done) export gate and refusal sentences: one predicate and one set of strings
 spec: C61 C194
 needs: -
 gate+: yes
@@ -1179,7 +1179,7 @@ do: iPad Save is disabled on a blank prompt, an empty prompt falls back to the s
 check: `grep -rqE "class MacPromptBlankTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P58
 
-### Q158 [auto] (todo) export author name is one synced setting
+### Q158 [auto] (doing) export author name is one synced setting
 spec: C62 D162
 needs: -
 gate+: yes
@@ -1353,7 +1353,7 @@ do: Rows list-sidebar-65 -68, capture-import-15, capture-source-02, books-114. D
 check: `grep -rqE "class SourceGlyphParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q180 [auto] (todo) note menus: list context menus, Redo and Copy transcript follow one rule set from NoteMenu
+### Q180 [auto] (doing) note menus: list context menus, Redo and Copy transcript follow one rule set from NoteMenu
 spec: C239 C240 C179 C161
 needs: -
 gate+: yes
@@ -2743,3 +2743,10 @@ check: Tuur approved; done via plan/hand-merge.sh.
 - 2026-10-02 23:52 Q267 -> tuur — awaiting sitting
 - 2026-10-02 23:52 Q136 -> doing — redispatch 2/3: rebase after CONFLICT
 - 2026-10-03 00:01 Q136 -> done — gate pass @a76b4a1c
+- 2026-10-03 00:05 Q141 -> doing — worker out
+- 2026-10-03 00:05 Q142 -> doing — batch worker out (opus)
+- 2026-10-03 00:05 Q158 -> doing — batch worker out (opus)
+- 2026-10-03 00:05 Q265 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-03 00:06 Q265 -> doing — redispatch 2/3: rebase after CONFLICT
+- 2026-10-03 00:11 Q180 -> doing — worker out
+- 2026-10-03 00:11 Q156 -> done — gate pass @b2b132c1
