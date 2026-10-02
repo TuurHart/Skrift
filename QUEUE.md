@@ -2027,6 +2027,12 @@ needs: -
 do: -
 check: Tuur approved; done via plan/hand-merge.sh.
 
+### Q268 [tuur] (tuur) review Q176/Q159 picks (in the Q176 commit message): person editor 'Person'/'New person' + Done on both (Mac was Edit person/Save); Mac names filter always shown when the list has people
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2753,3 +2759,5 @@ check: Tuur approved; done via plan/hand-merge.sh.
 - 2026-10-03 00:13 Q176 -> done — gate pass @4c1f0e10
 - 2026-10-03 00:13 Q159 -> done — gate pass (batched with Q176)
 - 2026-10-03 00:16 Q265 -> done — gate pass @c4fdfd42
+- 2026-10-03 00:16 Q268 added
+- 2026-10-03 00:16 Q268 -> tuur — awaiting sitting
