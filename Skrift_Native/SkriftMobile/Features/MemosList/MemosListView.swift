@@ -30,13 +30,6 @@ enum MemoSort: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which date a date-range filter applies to.
-enum MemoDateField: String, CaseIterable, Identifiable {
-    case recorded = "Recorded"
-    case added = "Added"
-    var id: String { rawValue }
-}
-
 struct MemoFilter: Equatable {
     var unsyncedOnly = false
     var hasPhotosOnly = false

@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The strip Date opens under the chip row (Q66/D148, mock A: "a small strip
-/// under the row, not a sheet"). An optional field picker (phone: Recorded /
-/// Added; the Mac has one date, so it passes `fixedLabel: "Uploaded"`), then a
+/// under the row, not a sheet"). An optional field picker (Recorded / Added on
+/// both apps since Q105; `fixedLabel` is kept for a caller with one date), then a
 /// From and a To pill. An unset pill arms its bound to today on tap; a set one
 /// shows a compact DatePicker and a clear button. Clear drops both.
 extension View {

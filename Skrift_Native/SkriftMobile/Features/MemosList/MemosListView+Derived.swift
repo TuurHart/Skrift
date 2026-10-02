@@ -195,7 +195,7 @@ extension MemosListView {
         if filter.unsyncedOnly && memo.syncStatus == .synced { extra = false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { extra = false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { extra = false }
-        let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
+        let d = NotesListModel.filterDate(field: filter.dateField, recordedAt: memo.recordedAt, addedAt: memo.addedAt)
         return NotesListModel.passesFilter(inChip: ProcessPile.matches(chip, memo, enhancedIDs: enhanced),
                                            date: d, from: filter.from, to: filter.to, extra: extra)
     }

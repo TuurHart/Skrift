@@ -605,7 +605,11 @@ struct SidebarView: View {
             if showDateStrip {
                 DateRangeStrip(style: style,
                                from: $model.dateFrom, to: $model.dateTo,
-                               fixedLabel: "Uploaded")
+                               // Q105: the phone's Recorded / Added picker, one shared strip.
+                               fieldLabels: MemoDateField.allCases.map(\.rawValue),
+                               fieldIndex: Binding(
+                                   get: { MemoDateField.allCases.firstIndex(of: model.dateField) ?? 0 },
+                                   set: { model.dateField = MemoDateField.allCases[$0] }))
             }
         }
     }
@@ -652,7 +656,7 @@ struct SidebarView: View {
                 // one flat "All" bucket instead.
                 ForEach(model.sort == .title
                         ? [(title: "", items: rows)]
-                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.date) }),
+                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.groupDate) }),
                         id: \.title) { group in
                     // Q95: the day header PINS at the top of the scroll like the phone's
                     // (`pinnedViews: [.sectionHeaders]` on the LazyVStack below). The header
@@ -791,16 +795,11 @@ struct SidebarView: View {
         model.listFilter.memoRows(memos: effectiveCloudMemos, files: files)
     }
 
-    /// One list, two row kinds, interleaved by the active sort.
+    /// One list, two row kinds, interleaved by the active sort (Newest = added date, Q105).
     private var entries: [SidebarEntry] {
         var out: [SidebarEntry] = queueRowFiles.map { .file($0) }
         out.append(contentsOf: visibleMemoRows.map { .memo($0) })
-        switch model.sort {
-        case .newest: out.sort { $0.date > $1.date }
-        case .oldest: out.sort { $0.date < $1.date }
-        case .title:  out.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-        }
-        return out
+        return model.listFilter.sort(out, by: model.sort)
     }
 
     private func quietMemoRow(_ memo: Memo) -> some View {
@@ -903,7 +902,13 @@ struct SidebarView: View {
 
 
     private func refreshCloudMemos() {
-        defer { backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos) }
+        defer {
+            backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos)
+            // Q105: Newest + the Added filter read the memo's `addedAt` (a pipeline row carries
+            // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
+            let added = MacListFilter.addedDates(memos: effectiveCloudMemos)
+            if model.addedAtByID != added { model.addedAtByID = added }
+        }
         guard fixtureCloudMemos == nil else { return }   // snapshot fixtures: never open the real store
         guard let cloud = MemoCloudStore.container else { cloudMemos = []; return }
         // FRESH CONTEXT, not `mainContext` — the same trap `MemoCloudReconciler.reconcile`
@@ -1336,32 +1341,6 @@ private struct QueueRowView: View {
         // rows, so the old `sourceType != .audio` chip test never saw them).
         m.apply(NoteCardBuilder.content(for: file.cardFacts))
         return m
-    }
-}
-
-/// One list, two row kinds (rated pipeline rows + quiet unrated memos).
-enum SidebarEntry: Identifiable {
-    case file(PipelineFile)
-    case memo(Memo)
-
-    var id: String {
-        switch self {
-        case .file(let f): return "pf-" + f.id
-        case .memo(let m): return "memo-" + m.id.uuidString
-        }
-    }
-    var date: Date {
-        switch self {
-        case .file(let f): return f.uploadedAt
-        case .memo(let m): return m.recordedAt
-        }
-    }
-    var title: String {
-        switch self {
-        // Locked: the sort key is the placeholder-safe title, never the hidden first line.
-        case .file(let f): return f.locked ? LockedRow.title(for: f) : f.queueTitle
-        case .memo(let m): return m.locked ? LockedRow.title(for: m) : WayOutRules.displayTitle(m)
-        }
     }
 }
 

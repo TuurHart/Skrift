@@ -17,7 +17,10 @@ struct CloudMemoSnapshot {
     init(container: ModelContainer) {
         let ctx = ModelContext(container)
         self.context = ctx
-        self.memos = (try? ctx.fetch(FetchDescriptor<Memo>())) ?? []
+        // Q105: ONE row per note id — a CloudKit re-sync can leave exact clones (same UUID) that
+        // the phone heals later; until then the list must not draw the note twice. The same
+        // keeper rule the reconciler and Journal call (`MemoDuplicates.canonicalRows`).
+        self.memos = MemoDuplicates.canonicalRows((try? ctx.fetch(FetchDescriptor<Memo>())) ?? [])
     }
 
     func save() { try? context.save() }
