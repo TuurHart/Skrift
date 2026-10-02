@@ -41,18 +41,22 @@ extension PipelineFile {
     var compilerInput: CompilerInput {
         let meta = audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
         let sc = SharedContent.decode(from: audioMetadataJSON)
-        return CompilerInput(
+        // The ONE shared builder (Q155): body source, voice and link stems follow the phone's
+        // rules. `linked` is the stored `sanitised` — linked at processing time with this
+        // row's picks, and the text the user edits on the Mac — never re-derived here
+        // (nil stays nil: an unprocessed row falls through to copy-edit → transcript).
+        return CompilerInput.make(
             filename: filename,
-            transcript: transcript,
-            sanitised: sanitised,
-            enhancedCopyedit: enhancedCopyedit,
+            raw: transcript,
+            copyedit: enhancedCopyedit,
+            linked: .some(sanitised),
             // The stored title (rungs 1+2 of the C25 ladder), NOT `exportTitle`: the Mac
             // always sets it before export (BatchRunner), so it equals the filename's title
             // in practice; feeding the ladder here put an un-titled capture's annotation line
             // into `title:` above the shared block (CaptureCompilerTests). The FILE name
             // uses `exportTitle` (VaultExporter).
-            enhancedTitle: enhancedTitle,
-            enhancedSummary: enhancedSummary,
+            title: enhancedTitle,
+            summary: enhancedSummary,
             tags: tags,
             significance: significance,
             sourceType: NoteSourceType(rawValue: sourceType.rawValue) ?? .audio,
@@ -74,10 +78,7 @@ extension PipelineFile {
             sharedContent: sc.map { .init(type: $0.type.rawValue, url: $0.url, urlTitle: $0.urlTitle, text: $0.text, fileName: $0.fileName) },
             rawRecordedAt: Self.rawMetaString(audioMetadataJSON, key: "recordedAt"),
             destination: destination,
-            voice: (sourceType != .audio || path.isEmpty) ? .written
-                : ((enhancedCopyedit ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                   ? .raw : .cleaned)
-        )
+            spoken: sourceType == .audio && !path.isEmpty)
     }
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).
@@ -115,7 +116,7 @@ extension Compiler {
         let body = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
         if !MemoLinkSyntax.occurrences(in: body).isEmpty, let context = pf.modelContext {
             let stems = MemoLinkStems.map(context, ledger: linkLedger)
-            if !stems.isEmpty { input.memoLinkResolver = { stems[$0] } }   // value capture — Sendable
+            input.setLinkStems(stems)
         }
         return compile(input, author: author, date: date, knownPeople: knownPeople,
                        profile: profile)
