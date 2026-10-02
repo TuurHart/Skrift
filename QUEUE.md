@@ -1179,7 +1179,7 @@ do: iPad Save is disabled on a blank prompt, an empty prompt falls back to the s
 check: `grep -rqE "class MacPromptBlankTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P58
 
-### Q158 [auto] (doing) export author name is one synced setting
+### Q158 [auto] (done) export author name is one synced setting
 spec: C62 D162
 needs: -
 gate+: yes
@@ -2033,6 +2033,24 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
+### Q269 [tuur] (tuur) decide the exported source spelling for a typed note: Q142 writes 'source: Typed-note' (portfolio 'capture: Typed-note') — keep, or another word?
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
+### Q270 [tuur] (tuur) Q180 pick to confirm: the Mac now offers Redo when ANY polish part exists — a note with only your chosen title shows Redo too (Mac enhancedTitle also stores a chosen title). Keep, or require a real polish?
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
+### Q271 [tuur] (tuur) promotion note: after Q141, undated Apple Note imports carry recordedAt=1970 (MemoDate.unknown); an older installed phone/Mac build would fade them at once — promote both apps together before importing Apple Notes on the new build
+spec: -
+needs: -
+do: -
+check: Tuur decided or approved; follow-up item added if needed.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2770,3 +2788,10 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:27 Q180 -> done — gate pass @081a6075
 - 2026-10-03 00:29 Q141 -> done — gate pass @dcf11ade
 - 2026-10-03 00:35 Q142 -> done — gate pass @10fa881e
+- 2026-10-03 00:35 Q158 -> done — gate pass (batched with Q142)
+- 2026-10-03 00:36 Q269 added
+- 2026-10-03 00:36 Q269 -> tuur — awaiting sitting
+- 2026-10-03 00:36 Q270 added
+- 2026-10-03 00:36 Q270 -> tuur — awaiting sitting
+- 2026-10-03 00:36 Q271 added
+- 2026-10-03 00:36 Q271 -> tuur — awaiting sitting
