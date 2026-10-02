@@ -107,98 +107,15 @@ struct MemoCard: View {
             m.title = memo.title?.isEmpty == false ? memo.title : "Locked note"
             return m   // locked rows show title + 🔒 and NOTHING else
         }
-        if memo.isShareCapture {
-            m.title = memo.shareCaptureTitle
-            m.snippet = memo.shareCaptureSnippet
-        } else if hasTitle {
-            m.title = memo.displayTitle(enhancedTitle: enhancedTitle)
-            if memo.isBookCapture, let quote = memo.quoteSnippet {
-                m.quote = quote
-            } else {
-                m.snippet = transcriptSnippet
-            }
-        } else {
-            if memo.isBookCapture, let quote = memo.quoteSnippet {
-                m.quote = quote
-                m.snippet = transcriptSnippet
-            } else {
-                m.snippet = snippet
-            }
-        }
-        m.chips = chips.map { .init(text: $0.text, systemImage: $0.symbol, isTag: false) }
-        // Source glyph joins the chips (m2 has no leading glyph column) + the tags.
-        if !memo.isShareCapture, !memo.isBookCapture {
-            let kind = SourceKind.of(memo)
-            if kind != .voiceMemo {
-                m.chips.insert(.init(text: kind.label, systemImage: kind.glyph), at: 0)
-            }
-        }
-        m.chips.append(contentsOf: NoteCardModel.tagChips(for: memo.tags))
+        // Q106 (C115): title, quote, snippet and chips come from the ONE shared builder
+        // the Mac's rows call too (`NoteCardBuilder`); only the chrome above is this app's.
+        m.apply(NoteCardBuilder.content(for: memo.cardFacts(generatedTitle: enhancedTitle)))
         if let filename = memo.thumbnailPhotoFilename,
            let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
             m.thumb = Image(uiImage: img)
         }
         return m
     }
-
-    struct Chip: Hashable { let text: String; let symbol: String? }
-
-    var chips: [Chip] {
-        var out: [Chip] = []
-        // C3 share-item captures show a type label + optional domain instead of duration.
-        if memo.isShareCapture {
-            out.append(Chip(text: memo.shareCaptureTypeLabel, symbol: memo.shareCaptureGlyph))
-            if let domain = memo.shareCaptureURLDomain {
-                out.append(Chip(text: domain, symbol: nil))
-            }
-            return out
-        }
-        // Audiobook captures lead the meta line with "Book · ch. N".
-        if let book = memo.bookCaptionLabel {
-            out.append(Chip(text: book, symbol: SourceKind.audiobookQuote.glyph))
-        }
-        // Video imports lead the meta line with a "Video" source chip.
-        if memo.isVideoImport {
-            out.append(Chip(text: SourceKind.video.label, symbol: SourceKind.video.glyph))
-        }
-        // No duration chip on a note that HAS no audio (typed notes, Apple Note
-        // imports) — a permanent "0:00" claims a recording that doesn't exist.
-        if !memo.audioFilename.isEmpty {
-            out.append(Chip(text: memo.durationLabel, symbol: nil))
-        }
-        if let place = memo.metadata?.location?.placeName, !place.isEmpty {
-            out.append(Chip(text: place, symbol: "mappin.circle.fill"))
-        }
-        if let w = memo.metadata?.weather { out.append(Chip(text: "\(w.temperature)°", symbol: "cloud.sun.fill")) }
-        return out
-    }
-
-    /// True when this row has a title to lead with — the user's own, else the Mac's
-    /// generated one. Without the second arm a polished note showed its title in detail
-    /// and its body text in the list.
-    var hasTitle: Bool {
-        if !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) { return true }
-        return !(enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-    }
-    var snippet: String {
-        // "Note" for a typed note, "Voice note" otherwise — the shared fallback
-        // (mocks/mac-new-note.html m3: "Voice note" on something you wrote reads
-        // as a bug).
-        guard let line = memo.firstTranscriptLine else {
-            return SourceKind.of(memo).emptyTitleFallback
-        }
-        guard let transcript = memo.transcript else { return line }
-        // Show the (2-line) transcript, but strip `[[img_NNN]]` markers so the raw
-        // marker never reads as the row text — a VIDEO import always opens with
-        // `[[img_001]]` (the frame), which otherwise filled the whole snippet.
-        let cleaned = NoteSnippet.plain(transcript)
-            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return cleaned.isEmpty ? line : cleaned
-    }
-    /// Secondary line for titled rows: the transcript's first line, markers stripped.
-    /// Nil when there's no transcript yet (the title alone carries the row).
-    var transcriptSnippet: String? { memo.firstTranscriptLine }
 }
 
 // MARK: - Quick copy

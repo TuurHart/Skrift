@@ -834,25 +834,10 @@ struct SidebarView: View {
                                                 : WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
         m.selected = selected
         m.locked = memo.locked
-        // Snippet + chips (Q35, BUGS "not fixed" note on Q33 — CH.mac's signed diff): a
-        // quiet row gets the SAME body-derived title/snippet split QueueRowView uses for a
-        // rated row, not just a title + line. An explicit phone `title` keeps the full body
-        // as the snippet; an untitled note leaves the card title nil and the body alone
-        // carries the row (never repeats the first line as both title and snippet — the
-        // Q26 fix this mirrors).
-        let hasExplicitTitle = !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
-        let body = NoteSnippet.plain(memo.transcript ?? "")
-            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if hasExplicitTitle {
-            m.title = memo.title
-            m.snippet = body.isEmpty ? nil : body
-        } else if !body.isEmpty {
-            m.snippet = body
-        } else {
-            m.title = WayOutRules.displayTitle(memo)   // "Voice note" / "Note" fallback
-        }
-        if memo.duration > 0 { m.chips.append(.init(text: SkriftFormat.duration(seconds: memo.duration))) }
+        // Q106 (C115): the same shared builder the rated rows and the phone call — title,
+        // quote, snippet, source / book / duration / place / tag chips (an unrated typed note
+        // wears its "Note" chip, a video its "Video" chip).
+        m.apply(NoteCardBuilder.content(for: memo.cardFacts()))
         return m
     }
 
@@ -1336,36 +1321,12 @@ private struct QueueRowView: View {
             l.statusPill = m.statusPill
             return l
         }
-        let body = NoteSnippet.plain(file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
-            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        // The raw filename leak (Tuur's 11:26 screenshot): the filename arm of
-        // displayTitle never belongs on a CARD — a row with neither a title nor a word of
-        // body falls to the shared taxonomy word instead. Tested by the filename SHAPE
-        // before ("memo_…"), which missed every other shape a filename can take — the
-        // typed-note rows ingested since 2026-08-20 are named `<uuid>.md`.
-        let named = !(file.enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
-        if named {
-            m.title = file.queueTitle
-            m.snippet = body.isEmpty ? nil : body
-        } else if file.firstBodyLine != nil {
-            // Q26 fix (BUGS §4 untitled-row repeat): an untitled row used to fall
-            // back to `queueTitle` (= the opening line) for the title AND show the
-            // full body — starting with that SAME line — as the snippet, so the
-            // row read its own first line twice. The phone's `MemoCard` never has
-            // this bug because it leaves `title` nil for an untitled note (mirrored
-            // here): the body alone carries the row.
-            m.snippet = body.isEmpty ? file.firstBodyLine : body
-        } else {
-            m.title = file.sourceDescriptor.label
-        }
-        if let dur = file.durationString { m.chips.append(.init(text: dur)) }
-        if file.sourceType != .audio {
-            m.chips.append(.init(text: file.sourceDescriptor.label, systemImage: file.sourceDescriptor.glyph))
-        }
-        // Q65/Q68: the Mac row used to stop at duration/source and never show the
-        // note's own tags, unlike the phone's card. Same shared builder as the phone.
-        m.chips.append(contentsOf: NoteCardModel.tagChips(for: file.tags))
+        // Q106 (C115/C78/C172): title, quote, snippet and chips come from the ONE shared
+        // builder the phone's `MemoCard` and the quiet rows call — a book capture's quote +
+        // "Book · ch. N" chip, a video's source chip, a capture's title + domain chip all
+        // arrive through `file.cardFacts` (a book capture and a video are both `.audio`
+        // rows, so the old `sourceType != .audio` chip test never saw them).
+        m.apply(NoteCardBuilder.content(for: file.cardFacts))
         return m
     }
 }

@@ -59,12 +59,9 @@ extension PipelineFile {
     /// `sourceType`/`sharedContentType`. A book capture + a video both sync as
     /// `.audio`, so type alone can't tell them apart — the markers do.
     var sourceDescriptor: (glyph: String, label: String) {
-        let kind = SourceKind.classify(hasBook: bookCapture != nil, media: mediaSource,
-                                       sharedType: sharedContentType,
-                                       isCaptureRow: sourceType == .capture,
-                                       hasAudio: sourceType == .audio)
-        // Glyph + label come from the SHARED taxonomy: one copy, both apps.
-        return (kind.glyph, kind.label)
+        // `sourceKind` (Models/PipelineFile+CardFacts.swift) is the one classification call;
+        // glyph + label come from the SHARED taxonomy: one copy, both apps.
+        return (sourceKind.glyph, sourceKind.label)
     }
 
     /// Duration like "2:14" pulled from the phone metadata blob, if present. Goes

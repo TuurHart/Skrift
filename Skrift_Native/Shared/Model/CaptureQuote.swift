@@ -123,9 +123,21 @@ struct CaptureQuote: Equatable, Sendable {
         var s = "— "
         if let author = clean(author) { s += "\(author), " }
         s += title
-        if let chapter = clean(chapter) {
-            s += " · " + (chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter)
-        }
+        if let label = chapterLabel(chapter) { s += " · " + label }
         return s
+    }
+
+    /// The short list-row caption — "Book · ch. N" (no author, no dash). One chapter rule
+    /// with `attribution`. nil without a book title.
+    static func caption(book: String?, chapter: String? = nil) -> String? {
+        guard let title = book?.trimmingCharacters(in: .whitespaces), !title.isEmpty else { return nil }
+        guard let label = chapterLabel(chapter) else { return title }
+        return "\(title) · \(label)"
+    }
+
+    /// "ch. 4" for a purely numeric chapter, an m4b chapter NAME as-is, nil when blank.
+    static func chapterLabel(_ chapter: String?) -> String? {
+        guard let c = chapter?.trimmingCharacters(in: .whitespaces), !c.isEmpty else { return nil }
+        return c.allSatisfy(\.isNumber) ? "ch. \(c)" : c
     }
 }
