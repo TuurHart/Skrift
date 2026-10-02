@@ -1809,7 +1809,7 @@ do: Found by reading, not run. (1) `GemmaEmbedder.prepare()` (`Shared/RetrievalE
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh EmbeddingIndexTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-m1 SRS-c15 SRS-c16 SRS-c23 (cleanup-audit P49)
 
-### Q237 [auto] (doing) archive the finished spikes and the stray duplicate mock
+### Q237 [auto] (done) archive the finished spikes and the stray duplicate mock
 spec: C240
 needs: -
 gate+: no
@@ -2402,3 +2402,4 @@ source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 - 2026-10-02 12:49 Q101 -> todo — held: 3 workers out
 - 2026-10-02 12:50 Q101 -> doing — worker out
 - 2026-10-02 12:56 Q138 -> done — gate pass @0985a481
+- 2026-10-02 12:57 Q237 -> done — gate pass @12953ca6
