@@ -60,7 +60,7 @@ final class ExportNamingParityTests: XCTestCase {
     }
 
     func testLocalDayIsTheRecordingsDayNotTheUTCDay() {
-        XCTAssertEqual(TimeZone.current.identifier, Self.zone.identifier, "precondition: the test zone is active")
+        XCTAssertEqual(ExportNaming.deviceZone.identifier, Self.zone.identifier, "precondition: the test zone is active")
         XCTAssertEqual(ExportNaming.localDay(Self.lateEvening), Self.expectedDay)
         XCTAssertEqual(ExportNaming.localDay(iso: ISO8601.string(from: Self.lateEvening)), Self.expectedDay,
                        "the Mac's stored UTC text reads back as the local day")

@@ -64,9 +64,13 @@ enum ExportNaming {
 
     // MARK: - date: (C64)
 
+    /// The device's zone: `NSTimeZone.default` is the system zone unless the app (or a test)
+    /// set one; `TimeZone.current` ignores that override.
+    static var deviceZone: TimeZone { NSTimeZone.default }
+
     /// The recording's LOCAL day, `yyyy-MM-dd`, in `timeZone` (the device's). One rule for
     /// every device: a note recorded at 23:30 is that day everywhere it is exported.
-    static func localDay(_ date: Date, timeZone: TimeZone = .current) -> String {
+    static func localDay(_ date: Date, timeZone: TimeZone = deviceZone) -> String {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = timeZone
         let c = cal.dateComponents([.year, .month, .day], from: date)
@@ -75,7 +79,7 @@ enum ExportNaming {
 
     /// `localDay` of a stored ISO-8601 string (the Mac keeps `recordedAt` as UTC text).
     /// nil when the string does not parse.
-    static func localDay(iso: String, timeZone: TimeZone = .current) -> String? {
+    static func localDay(iso: String, timeZone: TimeZone = deviceZone) -> String? {
         parseISO(iso).map { localDay($0, timeZone: timeZone) }
     }
 
