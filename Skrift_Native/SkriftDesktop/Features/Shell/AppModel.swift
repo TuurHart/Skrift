@@ -81,39 +81,20 @@ final class AppModel {
         select(id)
     }
 
-    func isComplete(_ f: PipelineFile) -> Bool {
-        let s = f.steps
-        return s.transcribe == .done && s.sanitise == .done && s.enhance == .done && s.export == .done
-    }
+    func isComplete(_ f: PipelineFile) -> Bool { MacListFilter.isComplete(f) }
 
-    func matchesFilter(_ f: PipelineFile) -> Bool {
-        switch filter {
-        case .all:       return true
-        case .needsWork: return !isComplete(f)
-        case .done:      return isComplete(f)
-        // No PipelineFile is unrated by definition (the gate rates on entry) —
-        // the Not-rated chip shows the quiet Memo rows instead (SidebarView).
-        case .notRated:  return false
-        }
-    }
-
-    /// Free-text match — the ONE shared matcher (`NoteSearch`, Q103/C236): title, transcript,
-    /// summary, tags, place, shared-capture text, photo OCR. Empty query matches everything.
-    func matchesSearch(_ f: PipelineFile) -> Bool {
-        // Q101 (C91/C161): a locked, not-yet-unlocked note matches on its set title only.
-        f.matchesNoteSearch(query: searchText, unlockedThisSession: LockGate.shared.isUnlocked(f.id))
-    }
-
-    /// Within the date-range filter — the shared `DateRangeFilter` rule (same one
-    /// the iPad's Filter sheet uses), over the row's uploaded date.
-    func matchesDate(_ f: PipelineFile) -> Bool {
-        DateRangeFilter.contains(f.uploadedAt, from: dateFrom, to: dateTo)
+    /// The list's filter state as the Mac adapter onto the shared list rules (Q104): chip,
+    /// search, date range — applied to EVERY row kind (pipeline rows, unrated, stranded,
+    /// locked-quiet, fading search hits, Related rows), not just pipeline rows.
+    var listFilter: MacListFilter {
+        MacListFilter(chip: filter, query: searchText, from: dateFrom, to: dateTo,
+                      isUnlocked: { LockGate.shared.isUnlocked($0) })
     }
 
     /// The queue as displayed: filter → search → sort. Single source of truth for
     /// both the rows and the shift-click range order.
     func visible(_ files: [PipelineFile]) -> [PipelineFile] {
-        files.filter { matchesFilter($0) && matchesSearch($0) && matchesDate($0) }.sorted(by: sortComparator)
+        listFilter.fileRows(files).sorted(by: sortComparator)
     }
 
     private func sortComparator(_ a: PipelineFile, _ b: PipelineFile) -> Bool {
