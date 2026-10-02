@@ -12,6 +12,16 @@ enum CaptureSpan {
         var end: TimeInterval
         var length: TimeInterval { max(0, end - start) }
     }
+
+    /// Seconds of audio before the playhead a capture offers for quoting.
+    static let lookBack: TimeInterval = 90
+
+    /// The look-back window in FILE-LOCAL time: `[playhead − lookBack … playhead]`,
+    /// clamped to the file. `fileBounds` is the GLOBAL span of the file the playhead is in.
+    static func captureWindow(pausedAt: TimeInterval, fileBounds: Span) -> (start: TimeInterval, end: TimeInterval) {
+        let end = min(max(0, pausedAt - fileBounds.start), fileBounds.length)
+        return (max(0, end - lookBack), end)
+    }
 }
 
 /// Sentence boundaries over word timings.

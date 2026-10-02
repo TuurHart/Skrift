@@ -493,7 +493,7 @@ struct MemoDetailView: View {
         }
         .sheet(isPresented: $showShare) {
             if let memo = currentMemo {
-                ActivityShareSheet(items: shareItems(for: memo))
+                ShareSheet(items: shareItems(for: memo))
                     .presentationDetents([.medium, .large])
             }
         }

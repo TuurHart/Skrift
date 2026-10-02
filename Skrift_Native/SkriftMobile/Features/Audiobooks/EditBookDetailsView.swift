@@ -35,30 +35,11 @@ struct EditBookDetailsView: View {
 
                 coverRow
 
-                field("Title", text: $title, id: "edit-book-title")
-                field("Author", text: $author, id: "edit-book-author")
+                LabeledTextField(label: "Title", text: $title, id: "edit-book-title")
+                LabeledTextField(label: "Author", text: $author, id: "edit-book-author")
 
-                HStack(spacing: 8) {
-                    Button("Cancel") { dismiss() }
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.skTextDim)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
-                        .accessibilityIdentifier("edit-book-cancel")
-
-                    Button {
-                        save()
-                    } label: {
-                        Text("Save")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
-                            .background(Color.skAccent, in: .rect(cornerRadius: 11, style: .continuous))
-                    }
-                    .accessibilityIdentifier("edit-book-save")
-                }
+                CancelConfirmRow(confirmTitle: "Save", cancelID: "edit-book-cancel",
+                                 confirmID: "edit-book-save", onCancel: { dismiss() }, onConfirm: save)
 
                 Spacer(minLength: 0)
             }
@@ -119,21 +100,6 @@ struct EditBookDetailsView: View {
                     .foregroundStyle(Color.skTextFaint)
             }
             Spacer(minLength: 0)
-        }
-    }
-
-    private func field(_ label: String, text: Binding<String>, id: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .kerning(0.5)
-                .foregroundStyle(Color.skTextFaint)
-            TextField(label, text: text)
-                .font(.system(size: 14))
-                .foregroundStyle(Color.skText)
-                .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(Color.skElev, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
-                .accessibilityIdentifier(id)
         }
     }
 

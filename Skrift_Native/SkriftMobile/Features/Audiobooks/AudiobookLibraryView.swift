@@ -420,12 +420,9 @@ struct AudiobookLibraryView: View {
         // reconcile sweep is already fetching the audio.
     }
 
-    /// The long-press menu — EXACTLY today's four items, shared by the list row
-    /// and the shelf tile.
-    @ViewBuilder
-    /// ONE menu for the compact rows AND the iPad shelf tiles (merge 2026-07-23:
-    /// contents = main's unified-Text-sheet verbs; the extraction is the iPad
-    /// wave's, so the two presentations can't drift).
+    /// ONE long-press menu for the compact rows AND the iPad shelf tiles (merge
+    /// 2026-07-23: contents = main's unified-Text-sheet verbs; the extraction is the
+    /// iPad wave's, so the two presentations can't drift).
     private func contextMenuItems(_ book: Audiobook) -> some View {
         // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off
         // 2026-07-23): the unified sheet owns BOTH levels — transcribe
@@ -643,108 +640,5 @@ struct AudiobookLibraryView: View {
             session.endSession()
         }
         store.remove(book)
-    }
-
-    // MARK: - 📖 Attach book text (spike 6)
-
-    /// Copy the picked file in, align every covered transcript file against
-    /// it, and route the outcome to whichever of the three surfaces fits
-    /// (BASE.md's `AttachSummary`): a plain toast when it aligned (fully or
-    /// partially) or when there's no transcript yet to align against, or the
-    /// reject-confirm alert when every file came back rejected.
-
-    /// "Remove" on the reject alert: clears the ePub fields only (re-fetches
-    /// the current record by id rather than trusting the captured `book`, in
-    /// case something else changed it while the alignment ran). The alignment
-    /// sidecars themselves are left in place — a `.rejected` verdict is honest
-    /// data, not corruption, and re-attaching later can only overwrite it.
-}
-
-/// One-time editable confirm sheet, shown ONLY when the file's tags were
-/// missing (locked design: import asks nothing otherwise).
-struct AudiobookImportConfirmSheet: View {
-    let pending: PendingAudiobookImport
-    var onConfirm: (Audiobook) -> Void
-    var onCancel: () -> Void
-
-    @State private var title: String
-    @State private var author: String
-
-    init(pending: PendingAudiobookImport,
-         onConfirm: @escaping (Audiobook) -> Void,
-         onCancel: @escaping () -> Void) {
-        self.pending = pending
-        self.onConfirm = onConfirm
-        self.onCancel = onCancel
-        _title = State(initialValue: pending.book.title)
-        _author = State(initialValue: pending.book.author)
-    }
-
-    var body: some View {
-        ZStack {
-            Color.skBg.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    BookCoverView(book: pending.book)
-                        .frame(width: 54, height: 54)
-                        .clipShape(.rect(cornerRadius: 9, style: .continuous))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Confirm book details")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(Color.skText)
-                        Text("This file’s tags were incomplete — fill in what’s missing.")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.skTextDim)
-                    }
-                }
-
-                field("Title", text: $title, id: "import-title")
-                field("Author", text: $author, id: "import-author")
-
-                HStack(spacing: 8) {
-                    Button("Cancel") { onCancel() }
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.skTextDim)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
-                        .accessibilityIdentifier("import-cancel")
-
-                    Button {
-                        var book = pending.book
-                        book.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                        book.author = author.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if book.title.isEmpty { book.title = pending.book.title }
-                        onConfirm(book)
-                    } label: {
-                        Text("Add to Library")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
-                            .background(Color.skAccent, in: .rect(cornerRadius: 11, style: .continuous))
-                    }
-                    .accessibilityIdentifier("import-confirm")
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(Theme.Space.margin)
-        }
-        .interactiveDismissDisabled()
-    }
-
-    private func field(_ label: String, text: Binding<String>, id: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .kerning(0.5)
-                .foregroundStyle(Color.skTextFaint)
-            TextField(label, text: text)
-                .font(.system(size: 14))
-                .foregroundStyle(Color.skText)
-                .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(Color.skElev, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
-                .accessibilityIdentifier(id)
-        }
     }
 }

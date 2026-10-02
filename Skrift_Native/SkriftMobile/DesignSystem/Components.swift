@@ -172,3 +172,169 @@ struct SearchField: View {
 
 enum TagChipStyle { case applied, suggestion, add }
 
+/// `UIActivityViewController` in SwiftUI clothing: the system share sheet (the one wrapper
+/// the memo "Share note…" and the book "Share book…" sheets both present).
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Book sheet pieces (shared by the audiobook sheets)
+
+/// A capsule progress bar on the border track. `fill` is a parameter (the shelf tile turns
+/// green when finished); `minFill` keeps a visible dot at zero progress.
+struct ThinProgressBar: View {
+    let fraction: Double
+    var height: CGFloat = 3
+    var fill: Color = .skAccent
+    var minFill: CGFloat = 4
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.skBorder)
+                Capsule().fill(fill)
+                    .frame(width: max(minFill, geo.size.width * fraction))
+            }
+        }
+        .frame(height: height)
+    }
+}
+
+/// The drawn drag handle at the top of a bottom sheet (the signed mocks draw it; the system
+/// indicator is not used). Width and spacing differ a little per sheet, so they are parameters.
+struct SheetGrabber: View {
+    var width: CGFloat = 36
+    var top: CGFloat = 8
+    var bottom: CGFloat = 14
+
+    var body: some View {
+        Capsule().fill(Color.skBorder).frame(width: width, height: 4)
+            .frame(maxWidth: .infinity)
+            .padding(.top, top).padding(.bottom, bottom)
+    }
+}
+
+/// Small-caps label over a rounded text field (book title / author forms).
+struct LabeledTextField: View {
+    let label: String
+    @Binding var text: String
+    let id: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .kerning(0.5)
+                .foregroundStyle(Color.skTextFaint)
+            TextField(label, text: $text)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.skText)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Color.skElev, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+                .accessibilityIdentifier(id)
+        }
+    }
+}
+
+/// The outlined Cancel + accent confirm pair at the bottom of a small form sheet.
+struct CancelConfirmRow: View {
+    let confirmTitle: String
+    let cancelID: String
+    let confirmID: String
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button("Cancel") { onCancel() }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.skTextDim)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
+                .accessibilityIdentifier(cancelID)
+
+            Button(action: onConfirm) {
+                Text(confirmTitle)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(Color.skAccent, in: .rect(cornerRadius: 11, style: .continuous))
+            }
+            .accessibilityIdentifier(confirmID)
+        }
+    }
+}
+
+extension View {
+    /// The floating glass capsule of the mini-player bar and pill: fixed height, thin material,
+    /// hairline border, top sheen, drop shadow (`shadow` = blur radius; the offset is half).
+    func miniGlass(height: CGFloat, shadow: CGFloat = 16) -> some View {
+        self
+            .frame(height: height)
+            .background(.ultraThinMaterial, in: .capsule)
+            .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))
+            .overlay(
+                Capsule()
+                    .fill(LinearGradient(colors: [.white.opacity(0.09), .clear],
+                                         startPoint: .top, endPoint: .center))
+                    .allowsHitTesting(false)
+            )
+            .shadow(color: .black.opacity(0.45), radius: shadow, y: shadow / 2)
+    }
+}
+
+/// Scaffold for the two book-transfer sheets (share out, import in): drag handle, cover +
+/// title + subtitle header, the caller's phase content, an optional amber failure line. The
+/// cover view and the detent height stay parameters.
+struct BookTransferSheet<Cover: View, Content: View>: View {
+    let id: String
+    let detent: CGFloat
+    let title: String
+    let subtitle: String
+    let failure: String?
+    @ViewBuilder var cover: () -> Cover
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            SheetGrabber(width: 34)
+
+            HStack(spacing: 12) {
+                cover()
+                    .frame(width: 58, height: 58)
+                    .clipShape(RoundedRectangle.sk(8))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.skText)
+                        .lineLimit(2)
+                    Text(subtitle)
+                        .font(.system(size: 12)).foregroundStyle(Color.skTextDim)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+
+            content()
+
+            if let failure {
+                Text(failure)
+                    .font(.system(size: 12)).foregroundStyle(Color.skAmber)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 10)
+            }
+        }
+        .padding(16)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color.skSurface.ignoresSafeArea())
+        .presentationDetents([.height(detent)])
+        .accessibilityIdentifier(id)
+    }
+}

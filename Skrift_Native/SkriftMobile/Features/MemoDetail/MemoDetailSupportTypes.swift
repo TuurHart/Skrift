@@ -250,14 +250,6 @@ enum MemoShare {
     }
 }
 
-struct ActivityShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
-}
-
 // MARK: - Name-linking presentation state
 
 /// A transcript name span the user tapped → drives the resolve confirmationDialog.

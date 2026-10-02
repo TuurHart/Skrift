@@ -11,7 +11,6 @@ struct AudiobookSyncSheet: View {
     let book: Audiobook
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
     @State private var isOn: Bool
-    @Environment(\.dismiss) private var dismiss
 
     init(book: Audiobook) {
         self.book = book
@@ -24,21 +23,13 @@ struct AudiobookSyncSheet: View {
         return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
-    private var durationText: String {
-        let total = Int(max(0, book.duration).rounded())
-        let h = total / 3600, m = (total % 3600) / 60
-        if h > 0 { return m > 0 ? "\(h)h \(m)m" : "\(h)h" }
-        return "\(m)m"
-    }
-
     private var transfer: CloudSyncMonitor.AudiobookTransfer? { cloudSync.bookTransfers[book.id] }
 
     var body: some View {
         ZStack {
             Color.skSurface.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 0) {
-                Capsule().fill(Color.skBorder).frame(width: 34, height: 4)
-                    .frame(maxWidth: .infinity).padding(.top, 8).padding(.bottom, 16)
+                SheetGrabber(width: 34, bottom: 16)
 
                 bookRow.padding(.bottom, 4)
                 toggleRow
@@ -61,7 +52,7 @@ struct AudiobookSyncSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(book.title).font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.skText).lineLimit(1)
-                Text(sizeText.isEmpty ? book.author : "\(book.author) · \(durationText) · \(sizeText)")
+                Text(sizeText.isEmpty ? book.author : "\(book.author) · \(BookTextDisplay.durationText(book.duration)) · \(sizeText)")
                     .font(.system(size: 12)).foregroundStyle(Color.skTextDim).lineLimit(1)
             }
             Spacer(minLength: 0)

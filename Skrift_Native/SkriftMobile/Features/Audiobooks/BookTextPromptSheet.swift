@@ -18,13 +18,12 @@ struct BookTextPromptSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var transcribingThisBook: Bool {
-        job.activeBookID == book.id && job.isRunningOrPaused
+        job.isWorking(on: book.id)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                .frame(maxWidth: .infinity).padding(.top, 8).padding(.bottom, 14)
+            SheetGrabber()
 
             Text("Give this book text")
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(Color.skText)

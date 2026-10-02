@@ -104,12 +104,17 @@ final class BookTranscriptionJob: ObservableObject {
         switch phase { case .running, .pausedUnplugged, .pausedByUser: return true; default: return false }
     }
 
+    /// True while this job is actively working `bookID` (running or either paused flavor).
+    func isWorking(on bookID: UUID) -> Bool {
+        activeBookID == bookID && isRunningOrPaused
+    }
+
     // MARK: - Controls
 
     /// Start (or resume from the saved frontier) transcribing `book`. No-op if a
     /// job for this book is already live.
     func start(book: Audiobook) {
-        if activeBookID == book.id, isRunningOrPaused { return }
+        if isWorking(on: book.id) { return }
         cancel()
         enableBatteryMonitoring()   // ensure `isPluggedIn` is valid before we read it
         activeBookID = book.id

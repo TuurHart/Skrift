@@ -6,27 +6,17 @@ import SwiftUI
 /// lightweight position bookmarks.
 struct ChaptersBookmarksSheet: View {
     let book: Audiobook
-    /// Which tab opens first — the Bookmark button deep-links to .bookmarks.
-    var initialTab: Tab = .chapters
-
     private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var tab: Tab
+    @State private var tab: Tab = .chapters
     @State private var bookmarks: [AudiobookBookmark] = []
     private let store = BookmarkStore()
 
     enum Tab { case chapters, bookmarks }
 
-    init(book: Audiobook, initialTab: Tab = .chapters) {
-        self.book = book
-        self.initialTab = initialTab
-        _tab = State(initialValue: initialTab)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                .padding(.top, 10).padding(.bottom, 14)
+            SheetGrabber(top: 10)
 
             Picker("", selection: $tab) {
                 Text("Chapters").tag(Tab.chapters)

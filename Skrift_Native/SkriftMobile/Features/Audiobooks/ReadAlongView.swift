@@ -87,13 +87,8 @@ final class ReadAlongModel: ObservableObject {
             // 📖 True text where the ePub aligned trustworthily; nil (missing /
             // stale / not `.aligned`) falls straight back to the ASR-only line
             // this replaced — same coverage/frontier logic either way.
-            let fa = alignmentStore.fileAlignment(bookID: book.id, fileIndex: fileIndex)
-            let fresh = fa.map {
-                alignmentStore.isFresh($0, bookID: book.id, fileIndex: fileIndex, audioURL: audioURL)
-            } ?? false
-            sentences = AlignedSentenceSource.sentences(
-                alignment: fa, isFresh: fresh, transcriptWords: ft.words,
-                snappedStart: 0, snappedEnd: 0
+            sentences = alignmentStore.alignedSentences(
+                bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, transcriptWords: ft.words
             ) ?? QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
             covered = !sentences.isEmpty
             loadedUpTo = ft.coveredUpTo
@@ -404,7 +399,7 @@ struct ReadAlongView: View {
     /// while a whole-book transcribe runs, otherwise the "read along later" nudge.
     @ViewBuilder
     private var nudge: some View {
-        if transcribeJob.activeBookID == book.id, transcribeJob.isRunningOrPaused {
+        if transcribeJob.isWorking(on: book.id) {
             transcribingState
         } else {
             notTranscribedState

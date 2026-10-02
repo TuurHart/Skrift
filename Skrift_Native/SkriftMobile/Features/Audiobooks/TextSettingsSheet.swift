@@ -11,8 +11,7 @@ struct TextSettingsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Capsule().fill(Color.skBorder).frame(width: 36, height: 4)
-                .frame(maxWidth: .infinity).padding(.top, 10).padding(.bottom, 18)
+            SheetGrabber(top: 10, bottom: 18)
 
             Text("TEXT").font(.system(size: 11, weight: .semibold)).kerning(0.4)
                 .foregroundStyle(Color.skTextFaint).padding(.bottom, 14)

@@ -7,7 +7,6 @@ import SwiftUI
 /// per-book toggle, so the user can see + reclaim what audiobook sync is using.
 struct SyncedAudiobooksView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
-    private let repository = NotesRepository.shared
     /// Bumped after an action so the list re-reads sync/removed state (lives in the repo
     /// + UserDefaults, not in `store.books`).
     @State private var tick = 0
