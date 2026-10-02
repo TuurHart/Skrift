@@ -6,7 +6,7 @@ import SwiftData
 /// quiet words · ONE chips row carrying every fact the old four-row properties table
 /// listed, flowing straight into the tags · the significance circles · a small
 /// include-audio switch. Edits mutate the SwiftData model directly (autosaves).
-/// Significance is the 10-circle control (mocks/significance-circles.html).
+/// Significance is the shared rating pill (`NoteRatingRow`).
 struct NoteProperties: View {
     @Bindable var file: PipelineFile
     /// Live app = true (editable TextFields). Snapshot = false (Text, since
@@ -125,8 +125,10 @@ struct NoteProperties: View {
         // The rating goes through its OWN call, not the passive mirror: only here do we
         // know a nil means "the user cleared it" rather than "never rated" — and the
         // mirror can't tell those apart, so it declines to guess.
-        .onChange(of: file.significance) { _, new in MacCloudMetaSync.setRating(new, for: file) }
-        .onChange(of: file.significance) { refreshFadingLine() }
+        .onChange(of: file.significance) { _, new in
+            MacCloudMetaSync.setRating(new, for: file)
+            refreshFadingLine()
+        }
     }
 
     /// Everything the old properties table listed, as chips: the note's date, the
@@ -139,8 +141,7 @@ struct NoteProperties: View {
         var chips: [MacChip] = [MacChip(text: SkriftFormat.breadcrumbDate(file.uploadedAt),
                                         symbol: "calendar")]
         // Q85: the signed header drops the daypart chip (date · place · weather only).
-        let dayPeriodSymbols: Set<String> = ["sunrise.fill", "sun.max.fill", "sunset.fill", "moon.stars.fill"]
-        chips += file.contextChips.filter { !dayPeriodSymbols.contains($0.symbol) }
+        chips += file.contextChips(includeDayPeriod: false)
             .map { MacChip(text: $0.text, symbol: $0.symbol) }
         // `sourceSymbol` is the SAME descriptor the sidebar row draws, so the chip's
         // glyph and the list glyph can never disagree.
@@ -179,15 +180,8 @@ struct NoteProperties: View {
                     titleSourceButton(.original, "From recording", value: original)
                 }
             }
-        } else if interactive {
-            TextField("", text: titleBinding, prompt: Text(file.displayTitle).foregroundStyle(Theme.textMuted), axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 19, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
         } else {
-            Text(file.displayTitle)
-                .font(.system(size: 19, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
+            titleLine
         }
     }
 
@@ -271,12 +265,10 @@ struct NoteProperties: View {
     /// brevity (mirrors the mock: "swiftwithmajid.com/2026/05/rich-text-editing").
     private var captureURLDisplayValue: String? {
         guard file.sourceType == .capture else { return nil }
-        let sc = SharedContent.decode(from: file.audioMetadataJSON)
+        let sc = file.sharedContent
         guard sc?.type == .url, let urlStr = sc?.url, !urlStr.isEmpty else { return nil }
         if let u = URL(string: urlStr) {
-            let host = u.host ?? ""
-            let path = u.path.isEmpty ? "" : u.path
-            return host + path
+            return (u.host ?? "") + u.path
         }
         return urlStr
     }

@@ -30,7 +30,7 @@ extension Sanitiser {
     /// entry here is what `unlinkOccurrence(index: i)` / `relinkOccurrence(index: i)`
     /// replaces — order-based, so storage-offset drift can't misapply.
     static func linkOccurrences(of canonical: String, in text: String) -> [BodyLink] {
-        let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces)
+        let key = NamesMerge.bareName(canonical)
         guard !key.isEmpty else { return [] }
         return linkOccurrences(in: text).filter {
             linkTarget($0.core).caseInsensitiveCompare(key) == .orderedSame
@@ -50,7 +50,7 @@ extension Sanitiser {
     /// (case-insensitive) — the pipe-tolerant replacement for a literal `[[Canonical]]`
     /// substring search, so the alias-display form is recognised as an existing mention.
     static func hasCanonicalLink(_ canonKey: String, in text: String) -> Bool {
-        let key = NamesMerge.keyName(canonKey).trimmingCharacters(in: .whitespaces)
+        let key = NamesMerge.bareName(canonKey)
         guard !key.isEmpty,
               let rx = try? NSRegularExpression(
                 pattern: "\\[\\[\(NSRegularExpression.escapedPattern(for: key))(\\|[^\\]]*)?\\]\\]",
@@ -127,7 +127,7 @@ extension Sanitiser {
     static func spokenAlias(for p: Person) -> String {
         let short = shortName(for: p)
         if !short.isEmpty { return short }
-        return NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+        return NamesMerge.bareName(p.canonical)
     }
 
 }

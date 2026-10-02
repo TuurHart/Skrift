@@ -21,8 +21,7 @@ struct NoteDisplayView: View {
     /// (just rated in the pane, the sweep's real row not swept in yet) stays
     /// `.unrated` because the pipeline verbs still have no row to act on — the pane
     /// swaps to the real row by itself moments later.
-    private var capabilities: NoteCapabilities {
-        guard let file else { return .full }
+    private func capabilities(for file: PipelineFile) -> NoteCapabilities {
         guard NoteConsent.isRated(file) else { return .unrated }
         return file.modelContext == nil ? .unrated : .full
     }
@@ -55,9 +54,7 @@ struct NoteDisplayView: View {
     /// Locked-note session gate (synced `locked` flag; Touch ID/password unlocks per session).
     @ObservedObject private var lockGate = LockGate.shared
     /// The Connections panel's per-note data (rows + backlinks + gate state). Lives
-    /// here — not in the panel — so the query survives collapsing the column. (It
-    /// used to feed a count badge on the toggle; the badge is gone — see
-    /// `connectionsToggle`.)
+    /// here — not in the panel — so the query survives collapsing the column.
     @State private var connections = ConnectionsModel()
     /// Panel visibility — app-wide + persisted (mock #m5 decision), ⌥⌘C toggles.
     @AppStorage("connectionsPanelVisible") private var connectionsVisible = true
@@ -70,7 +67,7 @@ struct NoteDisplayView: View {
     /// note and an unrated one. Everything that makes a note LOOK like a note (header,
     /// chips, importance, body) is unconditional; only the verbs that act on a
     /// pipeline row are switchable, because an unrated memo hasn't got one.
-    struct NoteCapabilities: Equatable {
+    struct NoteCapabilities {
         /// Process / Export / re-transcribe / redo — and the per-note
         /// include-audio-in-export switch, which governs an export that can't happen.
         var pipeline = true
@@ -208,7 +205,7 @@ struct NoteDisplayView: View {
                 // on a narrow one the column steps aside rather than hiding text
                 // behind glass.
                 let m = NoteMeasure.column(width: geo.size.width,
-                                           panelWidth: inspectorOpen ? ConnectionsPanel.width : 0)
+                                           panelWidth: inspectorOpen(file) ? ConnectionsPanel.width : 0)
                 let body = column(file)
                     .frame(width: m.colW, alignment: .leading)
                     .frame(width: m.region, alignment: .center)
@@ -232,7 +229,7 @@ struct NoteDisplayView: View {
             // hosted render, not by reasoning). Live app only (snapshot hosts render
             // the panel body via their own fixture mode).
             .overlay(alignment: .trailing) {
-                if scrollable, connectionsVisible, capabilities.connections {
+                if inspectorOpen(file) {
                     ConnectionsPanel(file: file, model: connections,
                                      onOpenMemo: { onOpenMemo?($0) },
                                      onCollapse: { setConnections(false) })
@@ -260,12 +257,12 @@ struct NoteDisplayView: View {
             }
         }
         .task(id: file.id) {
-            guard capabilities.connections else { return }
+            guard capabilities(for: file).connections else { return }
             await connections.refresh(for: file, context: ctx)
         }
         // A sweep just finished → fresh rows may exist for this note; re-query.
         .onChange(of: ConnectionsIndexService.shared.sweeping) { _, sweeping in
-            guard capabilities.connections, !sweeping else { return }
+            guard capabilities(for: file).connections, !sweeping else { return }
             Task { await connections.refresh(for: file, context: ctx) }
         }
     }
@@ -276,7 +273,7 @@ struct NoteDisplayView: View {
     /// note's override sets and re-derives the body deterministically (no LLM).
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            NoteProperties(file: file, interactive: scrollable, canExport: capabilities.pipeline,
+            NoteProperties(file: file, interactive: scrollable, canExport: capabilities(for: file).pipeline,
                            coordinator: coordinator,
                            onTagToast: { tagToast = $0 },
                            onRatingToast: { ratingToast = $0 })
@@ -330,7 +327,6 @@ struct NoteDisplayView: View {
     // Every action mutates the note's override sets (`unlinkedNames` prune + `namePicks`
     // which-person/silence), then re-derives the body via the deterministic Sanitiser.
 
-    /// Snapshot the override sets, run `mutate`, re-derive + save, and arm the undo toast.
     /// The `[[` picker's link targets: every other live memo (id must be a memo UUID; trashed
     /// excluded), most-recent first, with a date subtitle. Built lazily when the picker opens.
     private func linkCandidates(excluding file: PipelineFile) -> [MemoLinkCandidate] {
@@ -356,6 +352,7 @@ struct NoteDisplayView: View {
         return (try? ctx.fetch(d))?.first?.queueTitle
     }
 
+    /// Snapshot the override sets, run `mutate`, re-derive + save, and arm the undo toast.
     private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {
         let undo = NamingUndo(message: message, unlinkedNames: file.unlinkedNames, namePicks: file.namePicks)
         mutate()
@@ -447,10 +444,6 @@ struct NoteDisplayView: View {
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.10), lineWidth: 0.5))
     }
 
-    /// The floating tag-removal Undo pill (Q41, mock `tag-ui-revamp.html`) — unlike
-    /// `namingUndoToast` above (an inline row that stays in the flow), this one
-    /// floats and self-dismisses after 4 s, matching the mock's "every removal
-    /// offers Undo for 4 s".
     /// Q85: the rating pill's step toast; gone after 1.6 s (signed mock).
     @ViewBuilder private var ratingToastView: some View {
         if let toast = ratingToast {
@@ -464,6 +457,10 @@ struct NoteDisplayView: View {
         }
     }
 
+    /// The floating tag-removal Undo pill (Q41, mock `tag-ui-revamp.html`) — unlike
+    /// `namingUndoToast` above (an inline row that stays in the flow), this one
+    /// floats and self-dismisses after 4 s, matching the mock's "every removal
+    /// offers Undo for 4 s".
     @ViewBuilder private var tagToastView: some View {
         if let toast = tagToast {
             TagUndoToastView(tag: toast.tag, style: .mac, onUndo: {
@@ -569,7 +566,8 @@ struct NoteDisplayView: View {
     /// sidebar, so this just names the source + date.)
     private func breadcrumb(_ file: PipelineFile) -> some View {
         HStack(spacing: 7) {
-            Text(sourceLabel(file)).foregroundStyle(Theme.textSecondary)
+            // Unified source taxonomy — shares `sourceTypeLabel` with the sidebar glyph.
+            Text(file.sourceTypeLabel).foregroundStyle(Theme.textSecondary)
             Text("·").foregroundStyle(Theme.textMuted)
             Text(SkriftFormat.breadcrumbDate(file.uploadedAt)).foregroundStyle(Theme.textMuted)
             Spacer()
@@ -577,12 +575,6 @@ struct NoteDisplayView: View {
         .font(.system(size: 12))
         .padding(.leading, 28)
         .frame(height: 48)
-    }
-
-    private func sourceLabel(_ file: PipelineFile) -> String {
-        // Unified source taxonomy (mic / video / book / link / image / text / file /
-        // Apple Note) — shares `sourceTypeLabel` with the sidebar glyph so they match.
-        file.sourceTypeLabel
     }
 
     /// The docked player — a full-note-width bar on the panel surface with a
@@ -622,8 +614,8 @@ struct NoteDisplayView: View {
             // An unrated note keeps its ⋯ — copying text that's on screen needs no
             // rating — but the menu holds only the verbs that can act without a
             // pipeline row, and the primary Process/Export button is absent.
-            NoteActions(file: file, coordinator: coordinator, copyOnly: !capabilities.pipeline)
-            if capabilities.connections { connectionsToggle }
+            NoteActions(file: file, coordinator: coordinator, copyOnly: !capabilities(for: file).pipeline)
+            if capabilities(for: file).connections { connectionsToggle }
         }
         .padding(.horizontal, 18)
         .frame(height: 48)
@@ -634,7 +626,9 @@ struct NoteDisplayView: View {
 
     /// Is the inspector actually floating right now? (The snapshot fixture hosts
     /// render the panel body themselves, so the measure must not reserve for it.)
-    private var inspectorOpen: Bool { scrollable && connectionsVisible && capabilities.connections }
+    private func inspectorOpen(_ file: PipelineFile) -> Bool {
+        scrollable && connectionsVisible && capabilities(for: file).connections
+    }
 
     /// Open/close Connections on the house spring (`SkMotion`, shared with the
     /// phone) — the panel used to SNAP in with no animation at all, which is half

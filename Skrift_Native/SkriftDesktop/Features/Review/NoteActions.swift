@@ -4,7 +4,6 @@ import SwiftData
 
 /// Contextual primary action (Process → Export to Obsidian → Re-export) plus a ⋯
 /// overflow (re-transcribe, redo per-step). Ported from `NoteActions.tsx`.
-/// Actions are stubbed until the export/enhance pipeline is wired to the UI.
 struct NoteActions: View {
     let file: PipelineFile
     var coordinator: ProcessingCoordinator
@@ -51,6 +50,29 @@ struct NoteActions: View {
     // only held pipeline verbs. It now always carries Copy/Reveal, so it's
     // always there — a control that vanishes is worse than one that's short.
 
+    /// The cloud store the tidy-up ledger lives behind; nil when Mac sync is off.
+    private var cloudContext: ModelContext? {
+        SettingsStore.shared.load().cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
+    }
+
+    /// Q14/Q40: the one-time body tidy-up of an old note keeps its pre-tidy copy in a local
+    /// ledger; the item shows while that copy exists and the text is still the tidied one.
+    @ViewBuilder private var undoTidyUpItem: some View {
+        if file.canUndoBodyNormalise(cloud: cloudContext) {
+            Button(NoteMenuItem.undoTidyUp.label) { file.undoBodyNormalise(cloud: cloudContext) }
+        }
+    }
+
+    /// Copying a locked note leaks the gated content — the note view's own
+    /// unlock gate is the way in (same rule as the notes-list menu).
+    @ViewBuilder private var copyItems: some View {
+        let locked = LockGate.shared.isLocked(file)
+        Button(NoteMenuItem.copyTranscript.label) { copy(file.transcript ?? "") }
+            .disabled(locked)
+        Button(NoteMenuItem.copyMarkdown.label) { copy(compiledMarkdown()) }
+            .disabled(locked)
+    }
+
     /// The note's ⋯ menu, in the shared order (`NoteMenuItem` — one vocabulary,
     /// two renderers). It used to hold Re-transcribe + three Redos and nothing
     /// else, while everything you'd actually reach for lived in the notes-list
@@ -60,35 +82,19 @@ struct NoteActions: View {
     /// Remind me / Share note / Split speakers, and Lock — the Mac's lock lives
     /// only on the Review side's unrated `Memo` rows, and reaching it for an open
     /// `PipelineFile` needs a cloud write-back (its own chunk, see backlog).
-    /// Q14/Q40: the one-time body tidy-up of an old note keeps its pre-tidy copy in a local
-    /// ledger; the item shows while that copy exists and the text is still the tidied one.
-    private var cloudContext: ModelContext? {
-        SettingsStore.shared.load().cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
-    }
-
-    @ViewBuilder private var undoTidyUpItem: some View {
-        if file.canUndoBodyNormalise(cloud: cloudContext) {
-            Button(NoteMenuItem.undoTidyUp.label) { file.undoBodyNormalise(cloud: cloudContext) }
-        }
-    }
-
     @ViewBuilder private var overflowItems: some View {
         if copyOnly {
             // Reveal in Finder / Open in Obsidian are absent by FACT, not by policy:
             // an unrated note has no working folder and has never been exported.
-            let locked = LockGate.shared.isLocked(file)
             undoTidyUpItem
-            Button(NoteMenuItem.copyTranscript.label) { copy(file.transcript ?? "") }
-                .disabled(locked)
-            Button(NoteMenuItem.copyMarkdown.label) { copy(compiledMarkdown()) }
-                .disabled(locked)
+            copyItems
         } else {
             fullOverflowItems
         }
     }
 
     @ViewBuilder private var fullOverflowItems: some View {
-        if isConversation, file.sourceType == .audio {
+        if isConversation {
             Button(NoteMenuItem.flattenToMonologue.label) {
                 Task { await coordinator.flattenToMonologue(file, context: ctx) }
             }
@@ -109,13 +115,7 @@ struct NoteActions: View {
         }
         undoTidyUpItem
         Divider()
-        // Copying a locked note leaks the gated content — the note view's own
-        // unlock gate is the way in (same rule as the notes-list menu).
-        let locked = LockGate.shared.isLocked(file)
-        Button(NoteMenuItem.copyTranscript.label) { copy(file.transcript ?? "") }
-            .disabled(locked)
-        Button(NoteMenuItem.copyMarkdown.label) { copy(compiledMarkdown()) }
-            .disabled(locked)
+        copyItems
         Button(NoteMenuItem.revealInFinder.label) { revealInFinder() }
             .disabled(file.path.isEmpty)
         if file.steps.export == .done, let p = file.exported, !p.isEmpty {

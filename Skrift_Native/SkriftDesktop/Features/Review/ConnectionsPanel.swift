@@ -38,7 +38,7 @@ struct ConnectionBacklink: Identifiable, Equatable {
 
 /// Per-note orchestration: scores from `ConnectionsIndexService`, backlink scan,
 /// why-chips, the hover-✕ hide list. Owned by NoteDisplayView (refreshes on note
-/// switch even while the panel is collapsed — the toolbar badge needs the count).
+/// switch even while the panel is collapsed).
 @MainActor
 @Observable
 final class ConnectionsModel {
@@ -47,7 +47,6 @@ final class ConnectionsModel {
     /// A query for the CURRENT note is in flight (covers the engine cold load).
     private(set) var querying = false
     private var currentFileID: String?
-    var count: Int { related.count + backlinks.count }
 
     private static let hiddenDefaultsKey = "connectionsHiddenPairs"
 
@@ -276,9 +275,12 @@ struct ConnectionsPanelBody: View {
         let date: Date
     }
 
+    /// Stable identity for the "this note" entry, so the rail does not rebuild it every render.
+    private static let thisNoteEntryID = UUID()
+
     private var threadRows: [ThreadEntry] {
         var entries = visibleRelated.map { ThreadEntry(id: $0.id, row: $0, date: $0.date) }
-        entries.append(ThreadEntry(id: UUID(), row: nil, date: currentDate))
+        entries.append(ThreadEntry(id: Self.thisNoteEntryID, row: nil, date: currentDate))
         return entries.sorted { $0.date < $1.date }
     }
 

@@ -14,7 +14,7 @@ enum RosterAudit {
             // Count DISTINCT people per alias (a person listing an alias twice still counts once).
             var seenForPerson = Set<String>()
             for a in p.aliases {
-                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                let al = NamesMerge.aliasKey(a)
                 guard !al.isEmpty, seenForPerson.insert(al).inserted else { continue }
                 m[al, default: 0] += 1
             }
@@ -37,8 +37,8 @@ enum RosterAudit {
         guard !aliases.isEmpty else { return [] }
         // Canonical keys of the people who own a newly-ambiguous alias.
         let affectedCanon = Set(people.filter { p in
-            p.aliases.contains { aliases.contains($0.trimmingCharacters(in: .whitespaces).lowercased()) }
-        }.map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() })
+            p.aliases.contains { aliases.contains(NamesMerge.aliasKey($0)) }
+        }.map { NamesMerge.matchKey($0.canonical) })
         guard !affectedCanon.isEmpty else { return [] }
         return files.filter { f in
             guard f.deletedAt == nil, let body = f.sanitised else { return false }

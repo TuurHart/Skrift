@@ -171,9 +171,7 @@ struct SplitSpeakersRow: View {
     /// The note's last edit, when the transcript was hand-edited (the synced `Memo` carries it).
     private func lastEditDate() -> Date? {
         let memo: Memo? = UUID(uuidString: file.id).flatMap { id in
-            MemoCloudStore.container.flatMap {
-                try? ModelContext($0).fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })).first
-            }
+            MemoCloudStore.container.flatMap { MemoCloudStore.memo(id: id, context: ModelContext($0)) }
         }
         guard file.transcriptUserEdited || memo?.transcriptUserEdited == true else { return nil }
         return memo?.editedAt ?? file.syncedSourceEditedAt

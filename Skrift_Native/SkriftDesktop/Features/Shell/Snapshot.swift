@@ -1397,4 +1397,13 @@ enum Snapshot {
         dispatchMain()
     }
 }
+
+extension BodyTextView.KaraokePlayback {
+    /// A fixed mid-playback state for the headless snapshots: `fraction` of the way through
+    /// `body`'s words.
+    init(fractionOf body: String, fraction: Double) {
+        let n = body.split(whereSeparator: { $0.isWhitespace }).count
+        self.init(active: n > 0 ? min(n - 1, Int(fraction * Double(n))) : nil, seekWord: { _ in })
+    }
+}
 #endif

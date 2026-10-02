@@ -123,6 +123,22 @@ enum NamesMerge {
             ? String(canonical.dropFirst(2).dropLast(2)) : canonical
     }
 
+    /// The bare, trimmed name of a canonical (`[[Tiuri Hartog]]` → `Tiuri Hartog`).
+    static func bareName(_ canonical: String) -> String {
+        keyName(canonical).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// The case-insensitive key two canonicals are compared by: `bareName`, lowercased.
+    static func matchKey(_ canonical: String) -> String {
+        bareName(canonical).lowercased()
+    }
+
+    /// The alias-side key (an alias as typed or spoken, trimmed + lowercased) — the same
+    /// fold as `matchKey`, for text that carries no `[[ ]]`.
+    static func aliasKey(_ alias: String) -> String {
+        alias.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
     /// Max per-entry timestamp, or now if there are no entries.
     static func topLevelTimestamp(_ people: [Person]) -> String {
         let ts = people.map(\.lastModifiedAt).filter { !$0.isEmpty }

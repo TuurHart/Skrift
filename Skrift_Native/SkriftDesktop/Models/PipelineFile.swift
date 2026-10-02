@@ -310,12 +310,20 @@ final class PipelineFile {
                            chapter: BookCapture.trimmedNonEmpty(meta.bookChapter))
     }
 
+    /// The shared thing a capture memo carries (url / text / file), decoded from the
+    /// metadata blob; nil for everything else.
+    var sharedContent: SharedContent? { SharedContent.decode(from: audioMetadataJSON) }
+
     /// Ambient CONTEXT chips — place · weather · daypart — the phone shows under the
     /// title (`MemoDetailView.metaChips`). Decoded from the synced metadata blob through
     /// the lenient `PhoneMetadata` (typed `location`/`weather`/`dayPeriod` keys, the shape
     /// the phone actually syncs — the old Mac properties row read demo-only `phone_location`
     /// keys, so real memos showed nothing). Empty for captures / older uploads with no context.
-    var contextChips: [(text: String, symbol: String)] {
+    var contextChips: [(text: String, symbol: String)] { contextChips(includeDayPeriod: true) }
+
+    /// `contextChips`, optionally without the daypart chip (the Mac header shows date · place ·
+    /// weather only).
+    func contextChips(includeDayPeriod: Bool) -> [(text: String, symbol: String)] {
         guard sourceType != .capture, let data = audioMetadataJSON,
               let meta = try? JSONDecoder().decode(PhoneMetadata.self, from: data) else { return [] }
         var chips: [(String, String)] = []
@@ -325,7 +333,7 @@ final class PipelineFile {
         if let t = meta.weather?.temperature {
             chips.append(("\(Int(t.rounded()))°", "cloud.sun.fill"))
         }
-        if let raw = meta.dayPeriod, let period = DayPeriod(rawValue: raw) {
+        if includeDayPeriod, let raw = meta.dayPeriod, let period = DayPeriod(rawValue: raw) {
             chips.append((period.label, period.symbol))   // shared label/symbol → phone parity
         }
         return chips

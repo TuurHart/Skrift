@@ -12,13 +12,11 @@ import AppKit
 struct MacRatingRow: View {
     /// nil = the user hasn't rated this note yet. Set values are exact 0.1 snaps.
     @Binding var value: Double?
-    var enabled: Bool = true
-    var fadingLine: String? = nil
     @State private var toast: RatingToast?
 
     var body: some View {
-        NoteRatingRow(value: $value, style: .mac, enabled: enabled,
-                      fadingLine: fadingLine, lineColor: Theme.amber.opacity(0.9),
+        NoteRatingRow(value: $value, style: .mac,
+                      fadingLine: nil, lineColor: Theme.amber.opacity(0.9),
                       onToast: { toast = $0 })
             .overlay(alignment: .top) {
                 if let toast {

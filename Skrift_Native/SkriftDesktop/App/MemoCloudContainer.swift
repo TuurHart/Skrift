@@ -41,6 +41,13 @@ enum MemoCloudStore {
     /// The CloudKit-backed container, or `nil` when CloudKit is unavailable/disabled.
     static let container: ModelContainer? = makeContainer()
 
+    /// The synced `Memo` with this id (predicate fetch, limit 1), or nil.
+    static func memo(id: UUID, context: ModelContext) -> Memo? {
+        var d = FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })
+        d.fetchLimit = 1
+        return try? context.fetch(d).first
+    }
+
     private static func makeContainer() -> ModelContainer? {
         // Never touch CloudKit under tests — hosted UI tests run offline + deterministic,
         // exactly like the phone's `NotesRepository` (XCTest detection).

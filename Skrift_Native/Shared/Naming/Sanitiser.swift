@@ -55,21 +55,21 @@ enum Sanitiser {
         let prunedAliasMap: [String: [Person]]
 
         static func key(_ p: Person) -> String {
-            NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces).lowercased()
+            NamesMerge.matchKey(p.canonical)
         }
 
         init(people: [Person], neverLink: Set<String>, namePicks: [String: String]) {
             let liveAll = people.filter { !$0.isDeleted }
             live = liveAll
-            let pruned = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
+            let pruned = Set(neverLink.map { NamesMerge.matchKey($0) })
             prunedKeys = pruned
 
             var f: [String: Person] = [:]
             var s = Set<String>()
             for (rawAlias, rawCanon) in namePicks {
-                let a = rawAlias.trimmingCharacters(in: .whitespaces).lowercased()
+                let a = NamesMerge.aliasKey(rawAlias)
                 guard !a.isEmpty else { continue }
-                let canonKey = NamesMerge.keyName(rawCanon).trimmingCharacters(in: .whitespaces).lowercased()
+                let canonKey = NamesMerge.matchKey(rawCanon)
                 if canonKey.isEmpty { s.insert(a); continue }
                 if let p = liveAll.first(where: { Overrides.key($0) == canonKey }) { f[a] = p }
             }
@@ -78,7 +78,7 @@ enum Sanitiser {
             var map: [String: [Person]] = [:]
             for p in liveAll where !pruned.contains(Overrides.key(p)) {
                 for a in p.aliases {
-                    let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                    let al = NamesMerge.aliasKey(a)
                     guard !al.isEmpty, !s.contains(al) else { continue }
                     if let owner = f[al] { if Overrides.key(owner) == Overrides.key(p) { map[al, default: []].append(p) } }
                     else { map[al, default: []].append(p) }
@@ -92,7 +92,7 @@ enum Sanitiser {
             for p in liveAll where pruned.contains(Overrides.key(p))
                 && f.values.allSatisfy({ Overrides.key($0) != Overrides.key(p) }) {
                 for a in p.aliases {
-                    let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                    let al = NamesMerge.aliasKey(a)
                     guard !al.isEmpty, !s.contains(al), map[al] == nil else { continue }
                     pmap[al, default: []].append(p)
                 }
@@ -124,6 +124,16 @@ enum Sanitiser {
             }
             return out
         }
+
+        /// What the auto-link pass may do with `p`'s aliases: `unambiguous` = the owned aliases
+        /// no one else shares (every later mention of them demotes); `linkAliases` = the
+        /// distinctive subset (plus any force-picked alias, which bypasses FP-prone) that may
+        /// earn the one link.
+        func linkable(_ p: Person) -> (unambiguous: [String], linkAliases: [String]) {
+            let unambiguous = ownedAliases(of: p).filter { !ambiguousAliases.contains($0.lowercased()) }
+            let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) || forced[$0.lowercased()] != nil }
+            return (unambiguous, linkAliases)
+        }
     }
 
     /// `neverLink` carries the note's persisted PRUNE choices (`PipelineFile.unlinkedNames`,
@@ -149,11 +159,9 @@ enum Sanitiser {
         // link; every later mention of their unambiguous aliases demotes to the short name.
         var linkedKeys = Set<String>()
         for p in ov.linkPeople {
-            let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let canonKey = NamesMerge.bareName(p.canonical)
             let short = shortName(for: p)
-            let unambiguous = ov.ownedAliases(of: p).filter { !ov.ambiguousAliases.contains($0.lowercased()) }
-            // Link-eligible: distinctive aliases, plus any force-picked alias (bypass FP-prone).
-            let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) || ov.forced[$0.lowercased()] != nil }
+            let (unambiguous, linkAliases) = ov.linkable(p)
             let linkText = "[[\(canonKey)]]"
 
             // The text may ALREADY carry this person's canonical link — bare `[[Name]]` OR the
@@ -167,34 +175,14 @@ enum Sanitiser {
                 if !short.isEmpty {
                     for link in existingLinks.dropFirst().reversed() { text = nsReplace(text, link.range, with: short) }
                 }
-            } else if !linkAliases.isEmpty {
-                let prot = nonProseRanges(in: text)
-                var earliest: (range: NSRange, poss: String)?
-                for rx in linkAliases.compactMap({ wordRegex($0) }) {
-                    // First ELIGIBLE match of this alias (skipping any inside a link / non-prose
-                    // span — e.g. a leading audiobook quote), then take the earliest across aliases.
-                    for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
-                        if earliest == nil || m.range.location < earliest!.range.location {
-                            earliest = (m.range, possText(m, in: text))
-                        }
-                        break
-                    }
-                }
-                if let first = earliest {
-                    text = nsReplace(text, first.range, with: linkText + first.poss)
-                    isLinked = true
-                }
+            } else if let first = firstSafeMatch(of: linkAliases, in: text) {
+                text = nsReplace(text, first.range, with: linkText + possText(first, in: text))
+                isLinked = true
             }
             if isLinked { linkedKeys.insert(canonKey.lowercased()) }
 
             guard isLinked, !short.isEmpty else { continue }
-            let prot = nonProseRanges(in: text)
-            for rx in unambiguous.compactMap({ wordRegex($0) }) {
-                for m in rx.matches(in: text, range: fullRange(text)).reversed() {
-                    if !eligible(text, m.range.location, prot) { continue }
-                    text = nsReplace(text, m.range, with: short + possText(m, in: text))
-                }
-            }
+            text = demoteMentions(of: unambiguous, to: short, in: text)
         }
 
         let suggested = suggestedOccurrences(in: text, overrides: ov, linkedKeys: linkedKeys)
@@ -202,6 +190,38 @@ enum Sanitiser {
     }
 
     // MARK: - Helpers
+
+    /// The earliest ELIGIBLE match across `aliases`: each alias's first match that is neither
+    /// inside a link nor a non-prose span (e.g. a leading audiobook quote), then the earliest of
+    /// those. `prot` = `nonProseRanges(in: text)` when the caller already has it.
+    static func firstSafeMatch(of aliases: [String], in text: String,
+                               prot: [NSRange]? = nil) -> NSTextCheckingResult? {
+        guard !aliases.isEmpty else { return nil }
+        let prot = prot ?? nonProseRanges(in: text)
+        var earliest: NSTextCheckingResult?
+        for rx in aliases.compactMap({ wordRegex($0) }) {
+            for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
+                if earliest == nil || m.range.location < earliest!.range.location { earliest = m }
+                break
+            }
+        }
+        return earliest
+    }
+
+    /// Every eligible mention of `aliases` in `text` becomes `replacement` (the possessive stays
+    /// outside it). The caller picks the string: `process` the short name, `linkInline` the short
+    /// or, with none defined, the canonical.
+    static func demoteMentions(of aliases: [String], to replacement: String, in text: String) -> String {
+        var text = text
+        let prot = nonProseRanges(in: text)
+        for rx in aliases.compactMap({ wordRegex($0) }) {
+            for m in rx.matches(in: text, range: fullRange(text)).reversed() {
+                if !eligible(text, m.range.location, prot) { continue }
+                text = nsReplace(text, m.range, with: replacement + possText(m, in: text))
+            }
+        }
+        return text
+    }
 
     /// A match location is eligible for linking/suggesting when it's neither inside an
     /// existing `[[ ]]` link nor inside a non-prose span. The single gate both `process`
