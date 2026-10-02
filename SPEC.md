@@ -1887,3 +1887,5 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      now lands the picture between the clips ("quite cool", Q92); PRIVATE ¦ PORTFOLIO "very nice"; the
      sidebar clips only when dragged narrow (Q95); a merged import is dated to the import, not the first
      clip (Q96).
+162. **D162 The destinations switch syncs.** ✅ 2026-10-02: "if I turn it on somewhere, it turns on
+     everywhere" — the on/off switch syncs across devices; the folder bookmark stays per device (Q98).

@@ -705,6 +705,13 @@ gate+: yes
 do: Tuur 2026-10-02 on Skrift Dev, iPhone 17 Pro (a NEW phone — Skrift Dev was installed on it fresh and filled from CloudKit): "most notes are considered to be yesterday… there's a whole ton of notes yesterday, but yesterday I didn't record anything". Suspect: the phone's day groups key on a per-device `createdAt` / arrival time (when the note first landed on this phone) instead of the note's real date. C70: recordedAt = the content's true date; createdAt = when it entered Skrift (the ORIGINAL moment, which must sync, not reset per device). Find what the phone list groups and sorts by (NotesListModel.dayGroups, MemosListView+Derived, the sort chip default), and what CloudKit sync does to createdAt on a fresh install; make the day headers group by the note's recorded date (the date shown on the card) and keep createdAt the original value across devices. Check the Mac and iPad group the same way (one shared rule, C115). Phone test: a memo arriving via sync today with recordedAt 3 weeks ago lands in that day's group. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
+### Q98 [auto] (todo) the Separate destinations switch syncs: on one device turns it on everywhere (folder bookmarks stay per device)
+spec: C62
+needs: -
+gate+: yes
+do: Tuur 2026-10-02: "the export to different places should be synced across devices — if I turn it on somewhere, it turns on everywhere" (D162). Today `DestinationSettings.isEnabled` is per device (phone Settings → Obsidian → "Separate destinations", ObsidianSettingsSection.swift:107; the Mac has its own), so the phone hid the Personal chip until he flipped it there too. Sync the on/off switch through CloudKit the way other shared settings already sync (find the existing pattern — custom vocabulary / names records, LWW), so turning it on or off on any device does the same on all. The portfolio folder bookmark stays per device (C62: a destination is a per-device folder bookmark) — a device with the switch on but no folder still shows the chips and simply cannot export yet; say so in its Settings. Tests: the switch round-trips through the sync record, LWW. Update C62 wording. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -1025,3 +1032,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:12 Q96 -> doing — worker out
 - 2026-10-02 08:15 Q97 added
 - 2026-10-02 08:15 Q97 -> doing — worker out
+- 2026-10-02 08:16 Q98 added
