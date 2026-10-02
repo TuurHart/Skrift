@@ -90,7 +90,9 @@ enum ArrivalPath {
         // Backfill the real recording date (async; survives copies because the date lives
         // inside the m4a).
         let audio = created.filter { $0.sourceType == .audio }
-        for pf in audio {
+        for pf in audio where !report.merged.contains(pf.id) {
+            // (A stitched note keeps the FIRST clip's filename time, C124: the stitched file's
+            // own embedded date is the stitch moment, not a message time.)
             if let d = await hooks.recordingDate(URL(fileURLWithPath: pf.path)) {
                 pf.uploadedAt = d
             }

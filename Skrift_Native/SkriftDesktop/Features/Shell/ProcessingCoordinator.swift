@@ -223,6 +223,7 @@ final class ProcessingCoordinator {
             do {
                 try await runner.run(pf, audioURL: audioURL,
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
+                                     clipStarts: hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : [],
                                      retranscribe: retranscribeIDs.contains(pf.id),
                                      requireSplit: isSplit,
                                      cancelCheck: cancelCheck)
@@ -304,6 +305,7 @@ final class ProcessingCoordinator {
             do {
                 try await runner.run(pf, audioURL: hasAudio ? URL(fileURLWithPath: pf.path) : nil,
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
+                                     clipStarts: hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : [],
                                      stopAfterTranscribe: true)
                 pf.error = nil
                 pf.lastActivityAt = Date()

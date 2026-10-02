@@ -67,6 +67,39 @@ enum MixedBundle {
         return Composition(clips: clips, pictures: pictures)
     }
 
+    /// One clip's place in a merged note (C124, D35): where its speech STARTS in the merged audio
+    /// and its own message time. Written beside the merged audio (`clip_manifest.json` on the
+    /// Mac, `MemoMetadata.clipManifest` on the phone); the body never shows `recordedAt`, only
+    /// the paragraph break the start forces.
+    struct ClipEntry: Codable, Equatable, Sendable {
+        var filename: String
+        var startSeconds: Double
+        /// The clip's own message time (C70 ladder), ISO-8601; nil when its name carries none.
+        var recordedAt: String?
+    }
+
+    /// The manifest of `clips` stitched in this order. `clipDuration` as in `compose`; `dates`
+    /// gives each clip's message time.
+    static func clipManifest(clips: [URL], dates: (URL) -> Date?, clipDuration: (URL) -> Double) -> [ClipEntry] {
+        var elapsed = 0.0
+        var out: [ClipEntry] = []
+        let iso = ISO8601DateFormatter()
+        for url in clips {
+            let d = max(0, clipDuration(url))
+            guard d > 0 else { continue }          // the stitcher skips an unreadable clip too
+            out.append(ClipEntry(filename: url.lastPathComponent, startSeconds: elapsed,
+                                 recordedAt: dates(url).map { iso.string(from: $0) }))
+            elapsed += d
+        }
+        return out
+    }
+
+    /// The moments (seconds) at which a clip OTHER THAN THE FIRST begins: the forced paragraph
+    /// breaks of a merged note (C124).
+    static func breakStarts(_ manifest: [ClipEntry]) -> [Double] {
+        manifest.dropFirst().map(\.startSeconds).filter { $0 > 0 }
+    }
+
     /// The body of a note made of pictures alone: each one its own paragraph (C12/C13).
     static func pictureOnlyBody(count: Int) -> String {
         (0..<max(0, count)).map { $0 + 1 }

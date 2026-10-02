@@ -30,6 +30,9 @@ enum BodyV2 {
         var manifest: [ImageManifestEntry] = []
         var source: Source
         var userEdited: Bool = false
+        /// C124: the moments (seconds) at which a merged note's 2nd, 3rd… clip begins. Each
+        /// opens a new paragraph even mid-sentence or with no pause. Speech with word times only.
+        var clipStarts: [Double] = []
     }
 
     static func committed(_ input: Input) -> String {
@@ -77,7 +80,7 @@ enum BodyV2 {
                 spots.append((item.at.map { loc in spot(after: max(loc - 1, 0), in: ns) }, item.n))
             }
         }
-        let breaks = timed ? BodyV2Text.breakLocations(in: bare, words: input.words) : []
+        let breaks = timed ? BodyV2Text.breakLocations(in: bare, words: input.words, clipStarts: input.clipStarts) : []
         return BodyV2Text.normalised(build(ns, spots: spots, breaks: breaks))
     }
 
