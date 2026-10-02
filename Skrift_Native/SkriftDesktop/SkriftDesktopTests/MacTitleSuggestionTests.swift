@@ -11,7 +11,7 @@ final class MacTitleSuggestionTests: XCTestCase {
         let value = MacTitleSuggestion.fromRecording(transcript: pf.transcript)
         XCTAssertEqual(value, "Remember to call the dentist tomorrow morning.")
         XCTAssertFalse(value.hasPrefix("memo_"))
-        XCTAssertNotEqual(value, SkriftFormat.cleanFilename(name))
+        XCTAssertNotEqual(value, String(name.dropLast(4)))
     }
 
     func testNoTranscriptOffersNothing() {
