@@ -1,4 +1,10 @@
-mode: session (overnight run complete)
+mode: overnight (started 2026-10-02, session worktree session-3-f90c83, branch claude/skrift-parity-audit-133898)
+stop-when: queue.sh counts shows 0 todo and 0 doing
+workers are subagents of the live Claude session (no pid); alive = a process in `ps` mentions its worktree, or its worktree has a commit in the last 45 min. Accepts: bash plan/accept-chain.sh <id> <worktree-dir> (serial, lockf). Briefs: scratchpad brief.py. Merged wt/* branches get deleted from origin after accept.
+worker: Q101 wt=agent-a10c3903a4df3d357 relaunches=0
+worker: Q163 wt=agent-a2566864642bc7999 relaunches=0 (phone suites re-run requested)
+worker: Q236 wt=agent-a81f1459cb81f281d relaunches=0
+accepting: Q138 agent-a5fb064ed66761e39, Q237 agent-a0e0b5e52b5b0aa54
 finding: Q2: mock at Skrift_Native/SkriftDesktop/mocks/three-ball-importance.html; current control is SignificanceCirclesView.swift (.phone/.mac style tables); new balls 15pt phone/iPad (was 18pt, 44pt tap target), 10pt Mac (was 13pt); amber removed with the refine wall.
 finding: Q1: mock at Skrift_Native/SkriftDesktop/mocks/quick-note.html; phone has NO New Note button today (only iPad ✎ in Import·Record·✎); Lock Screen/Control Center/Siri only record today; `Memo.newTyped` saves on the tap, so an empty note would sync to the Mac — create the Memo on first keystroke.
 finding: Q5: board at Skrift_Native/SkriftDesktop/mocks/Q5-long-form-inspiration.html; app pictures are wireframes from memory, not screenshots; directions A Shelf / B List / C Front Page; default tab name "Library"; Skrift parts from AudiobookLibraryView.swift, BookShelfTile.swift, Palette.swift.
