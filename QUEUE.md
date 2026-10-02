@@ -767,7 +767,7 @@ do: Mac sidebar fetches raw `Memo` rows without `MemoDuplicates.canonicalRows`, 
 check: `grep -rqE "class MacSidebarOrderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P6
 
-### Q106 [auto] (todo) Mac rows get the same card model the phone feeds: quote + book chip, shared-item title + domain chip, source chip for video and audiobook
+### Q106 [auto] (doing) Mac rows get the same card model the phone feeds: quote + book chip, shared-item title + domain chip, source chip for video and audiobook
 spec: C115 C240 C172 C78
 needs: Q138
 gate+: yes
@@ -855,7 +855,7 @@ do: SPEC C81/D20/R37 say name picks sync on every device. Today the phone keeps 
 check: `grep -rqE "class NameResolutionSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NameResolutionSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P17
 
-### Q117 [auto] (todo) one input for the Process / Export / Re-export button and for the export outcome line
+### Q117 [auto] (doing) one input for the Process / Export / Re-export button and for the export outcome line
 spec: C194 C180 C61
 needs: -
 gate+: yes
@@ -1657,7 +1657,7 @@ do: (1) `SkriftDesktop/Features/Journal/JournalView.swift:584-587` formats a not
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c27 DAU-c20 SPL-c24 MLJ-c08 (cleanup-audit P30)
 
-### Q218 [auto] (doing) phone recording and quick note: unread state, forwarders, doc fixes
+### Q218 [auto] (tuur) phone recording and quick note: unread state, forwarders, doc fixes
 spec: C240
 needs: Q173
 gate+: no
@@ -1665,7 +1665,7 @@ do: In `SkriftMobile/`: delete `RecordingActivityManager.isRunning` (`Services/R
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d02 MRC-d03 MRC-d04 MRC-d05 MRC-d06 MRC-d08 MRC-d09 MRC-d10 MRC-d11 MRC-d14 MRC-d15 MRC-d16 MRC-d19 MRC-d24 MRC-d25 MRC-d26 MRC-c20 (cleanup-audit P31)
 
-### Q219 [auto] (doing) one AVAudioFile duration, one buffer copy, one retrying transcribe
+### Q219 [auto] (todo) one AVAudioFile duration, one buffer copy, one retrying transcribe
 spec: C239
 needs: Q218
 gate+: yes
@@ -1705,10 +1705,10 @@ do: `FeedbackCaptureView` is the only consumer (`FeedbackCaptureView.swift:82-83
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d05 MLJ-d06 MLJ-c23 MLJ-c24 (cleanup-audit P36)
 
-### Q224 [auto] (doing) three phone state bugs: lost print card, stuck model spinner, re-stamped language
+### Q224 [auto] (done) three phone state bugs: lost print card, stuck model spinner, re-stamped language
 spec: C115
 needs: Q173
-gate+: no
+gate+: yes
 do: Found by reading; each gets a failing test first where one can be written, otherwise log what you found. (1) `WallPrinter.tryDrain` (`SkriftMobile/Features/Journal/WallPrinter.swift:30-120`) snapshots the queue, awaits printing, then writes `remaining` back over the key, dropping any card `ratingCommitted` enqueued during the drain; queue and ledger are re-read from UserDefaults in five places and `queuedCount` is a hand-synced mirror. Hold queue and ledger as stored properties with `didSet` persistence, loaded once in `init`, derive `queuedCount`, fetch memos once into a dictionary in `tryDrain`. `WallPrinterTests`: enqueue during a drain survives. (2) `OnboardingView.modelRequested` is never reset (`Features/Onboarding/OnboardingView.swift:13-51,130-134`): after a failed download the row shows a spinner forever (`try?` swallows the error and `ModelLoadStatus.ready`/`downloadProgress` are false/nil after `.failed`); reset it after `ensureLoaded` as `ModelsView.downloadASR` does and show the failure. Q173 also edits this view (the permission step): rebase on it. (3) The language picker (`Features/Settings/SettingsView.swift:19,87-99`) writes the Bool through `@AppStorage` and then `.onChange` calls `ASRLanguageStore.save`, so when sync adopts a value while Settings is open the `.onChange` re-stamps it as now and overwrites the remote stamp. Keep `@AppStorage(ASRLanguageMode.settingKey)` (so sync still re-renders the picker) and put the save and `VocabularyCloudSync.run` in a `Binding` setter; delete the `.onChange`. Do NOT replace it with `Binding(get: ASRLanguageStore.mode())`.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-c09 MLJ-c26 MLJ-c01 (cleanup-audit P37)
@@ -2528,3 +2528,8 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && 
 - 2026-10-02 18:42 Q108 -> doing — worker out
 - 2026-10-02 18:45 Q133 -> done — gate pass @0f289a69
 - 2026-10-02 18:46 Q255 added
+- 2026-10-02 18:50 Q218 -> tuur — hand-merge: edits protected VideoImportTests x4, QuickNoteRouteTests:40, QuickNoteHeaderQ88Tests:14,25 (+5 QuickNoteDraft.edited sites), MemoSaverTests x7, QuoteCaptureSaveTests:94, AutoCopyAndCameraFlipTests:115, LiveCaptionCadenceTests x9 — not started
+- 2026-10-02 18:50 Q219 -> todo — waits on Q218 hand-merge
+- 2026-10-02 18:50 Q106 -> doing — worker out
+- 2026-10-02 18:53 Q117 -> doing — worker out
+- 2026-10-02 18:53 Q224 -> done — gate pass @d5830340
