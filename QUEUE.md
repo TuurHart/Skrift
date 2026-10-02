@@ -1053,7 +1053,7 @@ do: `IngestService.ingestNote` builds the `PipelineFile` without `uploadedAt`, s
 check: `grep -rqE "class AppleNoteDateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P42
 
-### Q142 [auto] (doing) exported frontmatter source: a typed note says the same thing from phone and Mac
+### Q142 [auto] (done) exported frontmatter source: a typed note says the same thing from phone and Mac
 spec: D65 C57
 needs: Q138
 gate+: yes
@@ -2769,3 +2769,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:26 Q184 -> doing — worker out
 - 2026-10-03 00:27 Q180 -> done — gate pass @081a6075
 - 2026-10-03 00:29 Q141 -> done — gate pass @dcf11ade
+- 2026-10-03 00:35 Q142 -> done — gate pass @10fa881e
