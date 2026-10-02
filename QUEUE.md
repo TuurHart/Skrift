@@ -719,7 +719,7 @@ gate+: yes
 do: Q96 made a merged multi-clip note keep one paragraph per clip (ClipManifestEntry: Mac clip_manifest.json beside original.m4a, phone MemoMetadata.clipManifest; BodyV2.Input.clipStarts), but the diarisation rebuild paths call BodyV2.committed without clipStarts — the phone `diarizeIntoTurns` and the Mac rebuild (guard widened to clipStarts by Q96, not wired). Pass the clip starts there too so split speakers on a merged note keeps the clip paragraphs inside the turns (C124 with C102). Tests on both apps with a synthetic merged note. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q100 [auto] (todo) Mac list: a locked note shows the locked placeholder, and deleting or unlocking it asks LockGate
+### Q100 [auto] (done) Mac list: a locked note shows the locked placeholder, and deleting or unlocking it asks LockGate
 spec: C161 C213 C91 R88
 needs: -
 gate+: yes
@@ -1021,7 +1021,7 @@ do: Phone `AppURLHandler.handle` ignores an unsupported or failed file silently 
 check: `grep -rqE "class ImportReportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportReportTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P38
 
-### Q138 [auto] (todo) SourceKind.of reads the right blobs: phone captures and videos classify correctly; one classifier for rows, panes and projection
+### Q138 [auto] (doing) SourceKind.of reads the right blobs: phone captures and videos classify correctly; one classifier for rows, panes and projection
 spec: C78 C239 C71 R36
 needs: -
 gate+: yes
@@ -1218,7 +1218,7 @@ do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-lis
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P63
 
-### Q163 [auto] (todo) Mac recorder survives a kill: segments + launch sweep, and a disk-full stop saves what landed
+### Q163 [auto] (doing) Mac recorder survives a kill: segments + launch sweep, and a disk-full stop saves what landed
 spec: C99 D131 R46 C224
 needs: -
 gate+: yes
@@ -1801,7 +1801,7 @@ do: `NamesMerge.keyName(x).trimmingCharacters(in: .whitespaces)` (sometimes `.lo
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SanitiserSmokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-d18 SRS-d19 SRS-c07 (cleanup-audit P48)
 
-### Q236 [auto] (todo) two real bugs in model loading and location, plus a glob that lies about itself
+### Q236 [auto] (doing) two real bugs in model loading and location, plus a glob that lies about itself
 spec: C115
 needs: -
 gate+: no
@@ -1809,7 +1809,7 @@ do: Found by reading, not run. (1) `GemmaEmbedder.prepare()` (`Shared/RetrievalE
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh EmbeddingIndexTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-m1 SRS-c15 SRS-c16 SRS-c23 (cleanup-audit P49)
 
-### Q237 [auto] (todo) archive the finished spikes and the stray duplicate mock
+### Q237 [auto] (doing) archive the finished spikes and the stray duplicate mock
 spec: C240
 needs: -
 gate+: no
@@ -2392,3 +2392,9 @@ source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 - 2026-10-02 12:19 Q247 added
 - 2026-10-02 12:19 Q248 added
 - 2026-10-02 12:19 Q249 added
+- 2026-10-02 12:34 Q100 -> doing — worker out
+- 2026-10-02 12:34 Q163 -> doing — worker out
+- 2026-10-02 12:34 Q138 -> doing — worker out
+- 2026-10-02 12:43 Q237 -> doing — worker out
+- 2026-10-02 12:46 Q236 -> doing — worker out
+- 2026-10-02 12:49 Q100 -> done — gate pass @c5c0dc6b
