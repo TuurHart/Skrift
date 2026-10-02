@@ -796,7 +796,7 @@ spec: C115 C61 D135
 needs: -
 do: -
 check: Tuur picked one definition and it went into SPEC.
-brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`).
+brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`). Also: ProcessPile.unrated (ProcessPile.swift:32) and the .notRated chip (:52) drop locked notes, so a locked unrated note sits under no chip but All; C182 does not cover unrated notes. Should locked unrated notes count under Unrated? (from Q102)
 source: plan/reads/parity-audit.md P10
 
 ### Q110 [tuur] (todo) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
