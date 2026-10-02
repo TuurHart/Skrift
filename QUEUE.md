@@ -1801,10 +1801,10 @@ do: `NamesMerge.keyName(x).trimmingCharacters(in: .whitespaces)` (sometimes `.lo
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SanitiserSmokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-d18 SRS-d19 SRS-c07 (cleanup-audit P48)
 
-### Q236 [auto] (doing) two real bugs in model loading and location, plus a glob that lies about itself
+### Q236 [auto] (stuck) two real bugs in model loading and location, plus a glob that lies about itself
 spec: C115
 needs: -
-gate+: no
+gate+: yes
 do: Found by reading, not run. (1) `GemmaEmbedder.prepare()` (`Shared/RetrievalEngine/GemmaEmbedder.swift:84-94`): two concurrent calls both pass the `loadTask == nil` check before the `TranscriptionActivity` wait loop suspends, each creates a Task, the second overwrites the first, so the 295 MB model loads twice (the exact failure the single-flight comment at 75-79 describes). Move the wait loop inside the single-flight Task; write a test that two concurrent `prepare()` calls start one load (inject the loader). Also keep ONE idle-unload Task: `scheduleIdleUnload()` spawns a new 605 s sleeping Task on every `prepare()` and `embed()` calls `prepare()` per chunk (`EmbeddingIndex.swift:124,127,133`), so a sweep leaves thousands of sleepers; use one task that loops until `lastUse + 600 s`. (2) `MacLocationStamp` shares one `LocationOneShot` instance (`SkriftDesktop/Pipeline/Ingest/MacLocationStamp.swift:31,40-45`); a second `current()` before the first fix returns overwrites the continuation and leaves the first caller suspended. Create `LocationOneShot()` per call as the phone does (`MetadataService.swift:20`). Reachability is low (one stamp per Mac recording). (3) `ResumableModelDownloader.glob` (`ModelDownload/ResumableModelDownloader.swift:245-262`) is a 17-line hand-written matcher whose doc says `*` stays within a path segment while the code lets it cross `/`: replace the body with `fnmatch(pattern, name, 0) == 0` (flag 0, `*` crosses `/` as today) and fix the doc; the patterns mlx-swift-lm passes (`*.safetensors`, `*.json`) are unaffected. The file imports MLXLMCommon, so it is not in the Mac test bundle: put the test in the phone suite. Leave the `hubCacheCopy` migration shim (it saved an 8.9 GB download once; Tuur's call). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh EmbeddingIndexTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-m1 SRS-c15 SRS-c16 SRS-c23 (cleanup-audit P49)
@@ -2413,3 +2413,4 @@ check: `./gate.sh`
 - 2026-10-02 12:58 Q131 -> doing — worker out
 - 2026-10-02 13:01 Q102 -> doing — worker out
 - 2026-10-02 13:01 Q163 -> done — gate pass @12420ad6
+- 2026-10-02 13:01 Q236 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/Q236ModelLoadingTests.swift 
