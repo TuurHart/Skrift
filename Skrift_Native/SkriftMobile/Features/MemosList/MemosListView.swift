@@ -105,6 +105,8 @@ struct MemosListView: View {
     /// Share-imports being copied out of the inbox (A14) — drives the top pill so
     /// a big shared movie doesn't look like nothing happened until the drain ends.
     @ObservedObject var drainState = CaptureDrainState.shared
+    /// What the last import skipped or failed (Q137 / C199) — the list banner.
+    @ObservedObject var importReports = ImportReportBridge.shared
     @State var search = LaunchFlags.initialSearch ?? ""
     /// Semantic hits for the current search (P8) — empty unless the journal
     /// index is active AND something clears the floor.
@@ -274,13 +276,19 @@ struct MemosListView: View {
             .overlay(alignment: .top) {
                 // Import pill outranks the transient sync banner (both are rare;
                 // the drain runs at foreground before sync chatter starts).
-                if drainState.pendingCount > 0 {
-                    importPendingPill
-                } else {
-                    syncBannerView
+                VStack(spacing: 6) {
+                    if let report = importReports.report {
+                        ImportReportBanner(report: report) { importReports.dismiss() }
+                    }
+                    if drainState.pendingCount > 0 {
+                        importPendingPill
+                    } else {
+                        syncBannerView
+                    }
                 }
             }
             .animation(Theme.Motion.spring, value: syncBanner)
+            .animation(Theme.Motion.spring, value: importReports.report)
             .animation(Theme.Motion.spring, value: drainState.pendingCount)
             // Record presentation is an idiom fact (BASE law): a centered card
             // sheet on iPad (m7 — the room stays visible behind it), a full-screen

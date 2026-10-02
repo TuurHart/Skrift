@@ -101,6 +101,10 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             SurfaceSwitch(model: model)
                 .padding(.horizontal, 10).padding(.top, 10)
+            if let report = coordinator.importReport {
+                ImportReportBanner(report: report) { coordinator.importReport = nil }
+                    .padding(.horizontal, 10).padding(.top, 8)
+            }
             header
             queue
             bottomBar
@@ -242,12 +246,14 @@ struct SidebarView: View {
                             model.select(first.id)
                         }
                     },
-                    onSkipped: { skipped in
-                        let names = skipped.prefix(3).map(\.lastPathComponent).joined(separator: ", ")
-                        let more = skipped.count > 3 ? " and \(skipped.count - 3) more" : ""
-                        coordinator.lastError = "Couldn't import: \(names)\(more) (unsupported or unreadable)"
+                    onReport: { report in
+                        // The list banner (Q137): nothing to show when everything imported.
+                        coordinator.importReport = report.banner
                     })
             } catch {
+                var report = ImportReport()
+                report.addFailed("Import", error.localizedDescription)
+                coordinator.importReport = report
                 coordinator.lastError = "Import failed: \(error.localizedDescription)"
             }
         }
