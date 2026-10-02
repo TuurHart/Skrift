@@ -4,7 +4,7 @@ import UIKit
 
 /// Capture app feedback (ported from Shhhcribble, adapted to Skrift's Transcribing).
 /// Flow: dictate (record → on-device transcribe, re-record appends) and/or type a
-/// note, optionally paste a screenshot → Send → persist to FeedbackStore + open the
+/// note, optionally paste a screenshot → Send → persist via FeedbackStore + open the
 /// mail composer; mark sent on a real send. If Mail isn't set up, the draft is kept.
 struct FeedbackCaptureView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,6 +15,9 @@ struct FeedbackCaptureView: View {
     @State private var phase: Phase = .idle
     @State private var errorMessage: String?
     @State private var pendingMailItem: FeedbackItem?
+    /// The folder written by the first Send tap; a retry after the no-mail alert reuses it
+    /// instead of saving a second draft.
+    @State private var savedItem: FeedbackItem?
     @State private var showNoMailAlert = false
 
     private let transcriber: any Transcribing = TranscriberFactory.make()
@@ -80,7 +83,7 @@ struct FeedbackCaptureView: View {
             }
             .sheet(item: $pendingMailItem) { item in
                 FeedbackMailComposer(item: item) { sent in
-                    sent.forEach { FeedbackStore.shared.markSent($0) }
+                    FeedbackStore.markSent(sent)
                     pendingMailItem = nil
                     dismiss()
                 }
@@ -89,7 +92,7 @@ struct FeedbackCaptureView: View {
             .alert("Mail not available", isPresented: $showNoMailAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Mail isn't set up on this device. Your feedback is saved — set up Mail, then send it from the Feedback list.")
+                Text("Mail isn't set up on this device. Your feedback is saved on this phone. Set up Mail, then tap Send again.")
             }
         }
         .interactiveDismissDisabled(phase == .recording || phase == .transcribing)
@@ -180,12 +183,13 @@ struct FeedbackCaptureView: View {
     }
 
     private func sendNow() {
-        let item = pendingMailItem ?? FeedbackStore.shared.save(
+        let item = savedItem ?? FeedbackStore.save(
             transcript: transcript.trimmingCharacters(in: .whitespacesAndNewlines),
             note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             screenshot: pastedImage,
             durationSeconds: recorder.elapsed
         )
+        savedItem = item
         guard MFMailComposeViewController.canSendMail() else { showNoMailAlert = true; return }
         pendingMailItem = item
     }
