@@ -29,15 +29,15 @@ final class MacLockGateTests: XCTestCase {
         var authAsks = 0
         func policy() -> LockPolicy {
             LockPolicy(
-                isUnlocked: { [unowned self] in unlocked.contains($0) },
-                unlock: { [unowned self] id in
-                    authAsks += 1
-                    guard authOK else { return false }
-                    unlocked.insert(id)
+                isUnlocked: { self.unlocked.contains($0) },
+                unlock: { id in
+                    self.authAsks += 1
+                    guard self.authOK else { return false }
+                    self.unlocked.insert(id)
                     return true
                 },
-                canAuthenticate: { [unowned self] in canAuth },
-                authorizeRemoveLock: { [unowned self] in authAsks += 1; return authOK })
+                canAuthenticate: { self.canAuth },
+                authorizeRemoveLock: { self.authAsks += 1; return self.authOK })
         }
     }
 
