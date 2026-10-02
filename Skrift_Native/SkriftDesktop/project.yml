@@ -185,9 +185,6 @@ targets:
       - path: SkriftDesktopTests
       - path: Models
       - path: Pipeline
-      # NEW pure-logic folder (LiveRecordingDraft/LiveRecordingFinalize, the 2026-07-28
-      # LIVE-ENGINE lane) — explicit per `BRIEF_LIVEENGINE.md` (granted for this one edit).
-      - path: Pipeline/Recording
       # Pure-arithmetic layout rule from Features/ (imports CoreGraphics only —
       # the rest of Features/ is SwiftUI and would drag the whole app in).
       - path: Features/Review/NoteMeasure.swift

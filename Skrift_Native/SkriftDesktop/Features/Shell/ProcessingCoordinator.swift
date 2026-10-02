@@ -29,41 +29,15 @@ final class ProcessingCoordinator {
     /// engine dots (green = loaded, dim = idle/unloaded) so they reflect reality.
     private(set) var modelsLoaded = false
 
-    // Engine seam — the real FluidAudio/MLX services by default; swapped for canned
-    // stubs when launched with `-stubEnhancement` (UI piloting / XCUITest), so
-    // Process→Ready runs instantly without the 9 GB model.
-    private let transcriber: Transcribing
-    private let enhancer: Enhancing
-    private let diarizer: Diarizing?
-    private let stubbedEngines: Bool
+    // Engine seam — the real FluidAudio/MLX services.
+    private let transcriber: Transcribing = TranscriptionService.shared
+    private let enhancer: Enhancing = EnhancementService.shared
+    private let diarizer: Diarizing? = DiarizationService.shared
 
     /// Frees the ~9 GB of model weights after the queue goes idle (the Python app
     /// did this). Cancelled when a run starts, rescheduled when it ends.
     private var idleUnloadTask: Task<Void, Never>?
     private static let idleUnloadDelay: Duration = .seconds(60)
-
-    init() {
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("-stubEnhancement") {
-            let seed: String
-            if let i = args.firstIndex(of: "-seedTranscript"), i + 1 < args.count {
-                seed = args[i + 1]
-            } else {
-                seed = "This is a stubbed transcript for UI piloting. We talked through the desktop rewrite and what to test next week."
-            }
-            transcriber = StubTranscriber(text: seed)
-            enhancer = StubEnhancer()
-            diarizer = nil
-            stubbedEngines = true
-            return
-        }
-        #endif
-        transcriber = TranscriptionService.shared
-        enhancer = EnhancementService.shared
-        diarizer = DiarizationService.shared
-        stubbedEngines = false
-    }
 
     #if DEBUG
     /// Snapshot helper — a coordinator with a preset run state for verification.
@@ -131,8 +105,6 @@ final class ProcessingCoordinator {
 
     private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = [],
                             splitIDs: Set<String> = []) async {
-        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
-
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all
             // A split re-runs a note that is already Ready, so it bypasses the "still needs
@@ -182,32 +154,29 @@ final class ProcessingCoordinator {
 
         // Pre-load the engines up front so the first run shows download/load
         // progress in the run bar (instant when the models are already cached).
-        // Skipped for stubbed engines (UI piloting) — nothing to load.
-        if !stubbedEngines {
-            let needsAudio = targets.contains {
-                $0.sourceType == .audio && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
-            }
-            // Show the load banner only when the models aren't already resident —
-            // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
-            // was misleading (#31).
-            let showLoad = !modelsLoaded
-            do {
-                if needsAudio {
-                    if showLoad { runState?.loadingLabel = "transcription model" }
-                    try await TranscriptionService.shared.ensureLoaded { f in
-                        Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
-                    }
-                }
-                if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
-                try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
+        let needsAudio = targets.contains {
+            $0.sourceType == .audio && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
+        }
+        // Show the load banner only when the models aren't already resident —
+        // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
+        // was misleading (#31).
+        let showLoad = !modelsLoaded
+        do {
+            if needsAudio {
+                if showLoad { runState?.loadingLabel = "transcription model" }
+                try await TranscriptionService.shared.ensureLoaded { f in
                     Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                 }
-            } catch {
-                lastError = "Model load failed: \(error.localizedDescription)"
-                return   // defer resets isRunning + runState
             }
-            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
+            if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
+            try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
+                Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
+            }
+        } catch {
+            lastError = "Model load failed: \(error.localizedDescription)"
+            return   // defer resets isRunning + runState
         }
+        if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         modelsLoaded = true
 
         for pf in targets {
@@ -268,7 +237,6 @@ final class ProcessingCoordinator {
     }
 
     private func runTranscribe(fileIDs: [String], context: ModelContext) async {
-        guard !isRunning else { return }
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let targets = all.filter { fileIDs.contains($0.id) && $0.transcribeStatus != .done }
         guard !targets.isEmpty else { return }
@@ -282,18 +250,16 @@ final class ProcessingCoordinator {
             TranscriptionActivity.end()
         }
 
-        if !stubbedEngines {
-            runState?.loadingLabel = modelsLoaded ? nil : "transcription model"
-            do {
-                try await TranscriptionService.shared.ensureLoaded { f in
-                    Task { @MainActor in self.runState?.loadingFraction = f }
-                }
-            } catch {
-                lastError = "Transcription model failed to load: \(error.localizedDescription)"
-                return
+        runState?.loadingLabel = modelsLoaded ? nil : "transcription model"
+        do {
+            try await TranscriptionService.shared.ensureLoaded { f in
+                Task { @MainActor in self.runState?.loadingFraction = f }
             }
-            runState?.loadingLabel = nil; runState?.loadingFraction = nil
+        } catch {
+            lastError = "Transcription model failed to load: \(error.localizedDescription)"
+            return
         }
+        runState?.loadingLabel = nil; runState?.loadingFraction = nil
 
         let settings = SettingsStore.shared.load()
         let runner = BatchRunner(transcriber: transcriber, enhancer: enhancer, settings: settings,
@@ -371,9 +337,8 @@ final class ProcessingCoordinator {
 
     /// After the queue is idle for `idleUnloadDelay`, free the ASR + LLM weights so
     /// they don't sit pinned (~9 GB) for the rest of the session. Reloads lazily on
-    /// the next run. No-op when engines are stubbed (nothing loaded).
+    /// the next run.
     private func scheduleIdleUnload() {
-        guard !stubbedEngines else { return }
         idleUnloadTask?.cancel()
         idleUnloadTask = Task { [weak self] in
             try? await Task.sleep(for: Self.idleUnloadDelay)
@@ -486,14 +451,14 @@ final class ProcessingCoordinator {
             NamesStore.shared.upsert(canonical: trimmed, aliases: [trimmed, first], short: first)
         }
         let canonical = known.map { NamesMerge.keyName($0.canonical) } ?? trimmed
-        let slot = Self.diarizationSlot(of: displayed, in: pf)
+        let slot = Self.diarizationSlot(of: displayed)
         guard SplitSpeakers.nameSpeaker(pf, displayed: displayed, as: canonical,
                                         people: NamesStore.shared.livePeople()) else { return }
         resanitiseForNames(pf, context: context)
         MacCloudEditSync.shared.note(pf)
         reflectSplitToMemo(pf)
         flash("\(displayed) is \(canonical) now")
-        if let slot, !stubbedEngines, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
+        if let slot, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
             let audio = URL(fileURLWithPath: pf.path), segments = pf.diarizationSegments
             Task.detached(priority: .utility) {
                 guard let vec = try? await DiarizationService.shared.embedSpeaker(audioURL: audio, segments: segments, slot: slot),
@@ -517,7 +482,7 @@ final class ProcessingCoordinator {
 
     /// The diarization slot behind a displayed speaker: "Speaker N" is slot N-1 (the label
     /// BatchRunner writes); nil for a voice the Mac already matched (nothing new to learn).
-    private static func diarizationSlot(of displayed: String, in pf: PipelineFile) -> Int? {
+    private static func diarizationSlot(of displayed: String) -> Int? {
         guard SpeakerTranscript.isUnnamed(displayed),
               let n = Int(displayed.dropFirst("Speaker ".count)), n >= 1 else { return nil }
         return n - 1
@@ -634,18 +599,16 @@ final class ProcessingCoordinator {
 
         let settings = SettingsStore.shared.load()
         let repo = settings.enhancementModelRepo
-        if !stubbedEngines {
-            let showLoad = !modelsLoaded
-            if showLoad { runState?.loadingLabel = "enhancement model" }
-            do {
-                try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
-                    Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
-                }
-            } catch {
-                lastError = "Model load failed: \(error.localizedDescription)"; return
+        let showLoad = !modelsLoaded
+        if showLoad { runState?.loadingLabel = "enhancement model" }
+        do {
+            try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
+                Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
             }
-            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
+        } catch {
+            lastError = "Model load failed: \(error.localizedDescription)"; return
         }
+        if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         modelsLoaded = true
 
         do {

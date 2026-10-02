@@ -7,8 +7,8 @@ import XCTest
 /// NOTE: XCUITest is TCC-blocked in the headless automation context (needs a
 /// one-time macOS Automation grant); run from Xcode or a granted machine. The
 /// harness + ids compile as part of `build-for-testing`. Extend with Process →
-/// Ready and resolver flows once the engines can be stubbed for UI tests
-/// (launch hooks `-stubEnhancement` / `-seedTranscript`, per plan §5).
+/// Ready and resolver flows would need engine stubs, which no longer exist
+/// (the `-stubEnhancement` launch hook was deleted in Q205).
 final class ReviewWalkthroughUITests: XCTestCase {
     func testSidebarAndSettingsWalkthrough() {
         let app = XCUIApplication()

@@ -39,7 +39,6 @@ enum Theme {
     static let green       = dyn(Palette.green)                       // ready / check / export
     static let blue        = dyn(light: 0x2563eb, dark: 0x60a5fa)     // transcribe (Mac-only)
     static let amber       = dyn(Palette.amber)                       // enhance
-    static let violet      = dyn(light: 0x6c5ce0, dark: 0xa78bfa)     // sanitise (Mac-only)
     static let destructive = dyn(Palette.red)
 
     // Naming review tiers (mocks/naming-review.html)

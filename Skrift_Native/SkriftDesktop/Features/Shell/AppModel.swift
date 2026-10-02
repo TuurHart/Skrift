@@ -9,8 +9,8 @@ import Observation
 /// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`
 /// (the Mac queue has no "edited" notion and durations are strings, so the useful
 /// axes are recency + alphabetical).
-enum SidebarSort: String, CaseIterable {
-    case newest = "Newest first", oldest = "Oldest first", title = "Title (A–Z)"
+enum SidebarSort: CaseIterable {
+    case newest, oldest, title
     /// Compact label for the inline sort control.
     var short: String {
         switch self {
@@ -36,13 +36,6 @@ final class AppModel {
     /// (mock journal-desktop.html — the Queue | Journal switch at the sidebar top).
     enum MainSurface { case queue, journal }
     var surface: MainSurface = .queue
-
-    /// Which Review column shows over the rail (mocks/lifecycle-ia-explorations.html
-    /// #m3 — the ONE trash / conveyor, replacing the old Fading + Recently Deleted
-    /// pair). `nil` = the Looking-back river / map. Single case by design: the whole
-    /// point of step ③/④ is that Fading and Recently Deleted stop being two places.
-    enum ReviewShelf { case wayOut }
-    var reviewShelf: ReviewShelf?
 
     var filter: QueueFilter = .all
     /// Free-text query over the queue (title + transcript + summary). Empty = no filter.

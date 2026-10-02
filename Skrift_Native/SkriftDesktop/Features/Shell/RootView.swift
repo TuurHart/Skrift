@@ -6,7 +6,7 @@ import SwiftData
 struct RootView: View {
     @Environment(\.modelContext) private var ctx
     @State private var model = AppModel()
-    @State private var coordinator = ProcessingCoordinator()
+    @State private var coordinator: ProcessingCoordinator
     /// The Mac's ONE live take, end to end (LANES-2026-07-28/BRIEF_LIVEUI.md §7: RootView
     /// owns it, hands it to the sidebar's Record/stop buttons and the pane's draft view).
     /// Built eagerly in `init()`, not lazily on `.task` — `SharedStore.container` (the SAME
@@ -46,8 +46,7 @@ struct RootView: View {
                 JournalView(model: model, coordinator: coordinator, onOpenInQueue: { id in
                     if files.contains(where: { $0.id == id }) {
                         model.surface = .queue
-                        model.activeID = id
-                        model.selection = [id]
+                        model.select(id)
                     } else {
                         unpipelinedSheetID = id
                     }
@@ -87,32 +86,30 @@ struct RootView: View {
                     // whatever `activeID` happens to be. `.failed` deliberately falls through
                     // to the ordinary switch below — a refusal is not a draft state, it only
                     // ever shows via the sidebar's alert (BRIEF_LIVEUI.md §6).
-                    switch liveSession.phase {
-                    case .starting, .live, .settling:
-                        RecordingDraftView(session: liveSession)
-                            .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
-                    default:
-                        if let activeFile {
-                            NoteDisplayView(file: activeFile, coordinator: coordinator,
-                                            onOpenMemo: { id in model.select(id) },
-                                            searchQuery: model.searchText)
-                                .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
-                        } else if let id = model.activeID {
-                            UnratedNotePane(memoID: id, coordinator: coordinator,
-                                            // A rating pipelines it; the id doesn't change,
-                                            // so the pane swaps to the real row by itself the
-                                            // moment the sweep's `@Query` yields it.
-                                            onRated: { _ in },
-                                            onOpenMemo: { other in model.select(other) },
-                                            searchQuery: model.searchText,
-                                            draft: model.typedNotes,
-                                            focusBody: model.focusBodyID == id)
-                                .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
-                        } else {
-                            NoteDisplayView(file: nil, coordinator: coordinator)
-                                .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
+                    Group {
+                        switch liveSession.phase {
+                        case .starting, .live, .settling:
+                            RecordingDraftView(session: liveSession)
+                        default:
+                            if let activeFile {
+                                NoteDisplayView(file: activeFile, coordinator: coordinator,
+                                                onOpenMemo: { id in model.select(id) },
+                                                searchQuery: model.searchText)
+                            } else if let id = model.activeID {
+                                UnratedNotePane(memoID: id, coordinator: coordinator,
+                                                // A rating pipelines it; the id doesn't change,
+                                                // so the pane swaps to the real row by itself the
+                                                // moment the sweep's `@Query` yields it.
+                                                onOpenMemo: { other in model.select(other) },
+                                                searchQuery: model.searchText,
+                                                draft: model.typedNotes,
+                                                focusBody: model.focusBodyID == id)
+                            } else {
+                                NoteDisplayView(file: nil, coordinator: coordinator)
+                            }
                         }
                     }
+                    .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
@@ -135,8 +132,7 @@ struct RootView: View {
                 onProcessed: { id in
                     unpipelinedSheetID = nil
                     model.surface = .queue
-                    model.activeID = id
-                    model.selection = [id]
+                    model.select(id)
                 },
                 onDeleted: { _ in unpipelinedSheetID = nil })
         }
@@ -170,21 +166,16 @@ struct RootView: View {
             // run for a while, and nothing else here should wait on it.
             let sweepSession = liveSession
             Task { await sweepSession.recoverInterruptedTakes() }
-            // Real app starts empty; `-demo` populates with sample notes for dev/demo,
-            // `-naming-demo` (DEBUG) seeds one self-consistent naming-review example.
+            // Real app starts empty; the DEBUG `-demo` flag populates sample notes.
             let args = ProcessInfo.processInfo.arguments
+            var seededDemo = false
             #if DEBUG
-            let namingDemo = args.contains("-naming-demo")
-            #else
-            let namingDemo = false
-            #endif
-            if namingDemo {
-                #if DEBUG
-                DemoSeed.seedNamingDemo(ctx)
-                #endif
-            } else if args.contains("-demo") {
+            if args.contains("-demo") {
                 DemoSeed.seedIfEmpty(ctx)
-            } else {
+                seededDemo = true
+            }
+            #endif
+            if !seededDemo {
                 let s = SettingsStore.shared.load()
                 if s.authorName.isEmpty && s.noteFolder.isEmpty { showWizard = true }
             }
@@ -231,10 +222,7 @@ struct RootView: View {
     }
 
     private func ensureSelection() {
-        if model.activeID == nil, let first = files.first {
-            model.activeID = first.id
-            model.selection = [first.id]
-        }
+        if model.activeID == nil, let first = files.first { model.select(first.id) }
     }
 }
 
