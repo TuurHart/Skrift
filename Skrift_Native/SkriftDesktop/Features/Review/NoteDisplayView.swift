@@ -496,17 +496,13 @@ struct NoteDisplayView: View {
     /// pre-filled with the selected words as both the full name and the first alias, so you
     /// can fill in the rest before saving — instead of silently creating a bare name.
     private func addName(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        // Already a known person? Just confirm it; no need to re-add.
-        if NamesStore.shared.livePeople().contains(where: {
-            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(trimmed) == .orderedSame
-                || $0.aliases.contains { $0.localizedCaseInsensitiveCompare(trimmed) == .orderedSame }
-        }) {
-            coordinator.flash("“\(trimmed)” is already in your names")
-            return
+        // The shared flow (Q184): already-known check first, then the prefilled editor.
+        switch NewPersonFromName.start(text, people: NamesStore.shared.livePeople()) {
+        case .empty: return
+        case .existing: coordinator.flash(NewPersonFromName.alreadyKnownMessage(text))
+        case .prefill(let name, let alias):
+            editorRequest = PersonEditorRequest(prefillName: name, prefillAlias: alias)
         }
-        editorRequest = PersonEditorRequest(prefillName: trimmed, prefillAlias: trimmed)
     }
 
     /// Persist a person from the editor, re-derive the OPEN note (so a newly-added person

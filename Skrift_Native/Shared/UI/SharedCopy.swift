@@ -172,3 +172,21 @@ enum ListChrome {
     static let relatedHeader = "RELATED"
     static let relatedSubtitle = "similar in meaning"
 }
+
+/// The note-link picker behind the editor's `[[` trigger (phone sheet, Mac popover): one title,
+/// one search placeholder, one empty line, one row cap, one match rule (Q184, note-body-21).
+enum LinkPickerCopy {
+    static let title = "Link a note"
+    static let searchPlaceholder = "Search notes"
+    static let emptyText = "No notes match"
+    /// Rows shown while the search field is empty (the list is most-recent first).
+    static let emptyQueryRowCap = 50
+
+    /// The rows to show: no query -> the first `emptyQueryRowCap`; otherwise every row whose
+    /// text (title, date line) contains the query, case-insensitively.
+    static func visible<R>(_ rows: [R], query: String, text: (R) -> [String]) -> [R] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return Array(rows.prefix(emptyQueryRowCap)) }
+        return rows.filter { r in text(r).contains { $0.lowercased().contains(q) } }
+    }
+}

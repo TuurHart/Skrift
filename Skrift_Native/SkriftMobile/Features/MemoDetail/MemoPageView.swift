@@ -61,6 +61,8 @@ struct MemoPageView: View {
     /// two paddings stack and the pill floats mid-screen over the Importance card.
     @State var keyboardVisible = false
     @State var personSheet: PersonSheetRequest?
+    /// "“X” is already in your names" — the shared New-person flow's refusal (Q184).
+    @State var knownNameNotice: String?
     @State var showPeopleSheet = false
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
@@ -227,6 +229,10 @@ struct MemoPageView: View {
                     recomputeSpans()
                 }
             )
+        }
+        .alert(knownNameNotice ?? "", isPresented: Binding(get: { knownNameNotice != nil },
+                                                           set: { if !$0 { knownNameNotice = nil } })) {
+            Button("OK", role: .cancel) {}
         }
         // People-in-this-note chip surface (mock state 4) — link / re-link via chips.
         .sheet(isPresented: $showPeopleSheet) { peopleSheetView }
@@ -1083,7 +1089,7 @@ struct MemoPageView: View {
             ForEach(span.candidates, id: \.id) { c in
                 Button(NameActionLabel.link(to: candidateLabel(c))) { applyLink(span.alias, to: c.canonical) }
             }
-            Button(NameActionLabel.newPerson) { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            Button(NameActionLabel.newPerson) { startNewPerson(from: span) }
             if span.tier == .suggested {
                 Button(NameActionLabel.keepPlain) { applyKeepPlain(span.alias) }
             }
@@ -1091,8 +1097,20 @@ struct MemoPageView: View {
             ForEach(span.candidates, id: \.id) { c in
                 Button(candidateLabel(c)) { applyLink(span.alias, to: c.canonical) }
             }
-            Button(NameActionLabel.newPerson) { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            Button(NameActionLabel.newPerson) { startNewPerson(from: span) }
             Button(NameActionLabel.keepPlain) { applyKeepPlain(span.alias) }
+        }
+    }
+
+    /// "New person…" on a tapped name: the shared flow (`NewPersonFromName`) — the roster check
+    /// first, then the editor prefilled with the name as full name and alias. A name that already
+    /// offers people to link to is "someone else" on purpose, so the check is skipped there.
+    func startNewPerson(from span: NameSpan) {
+        switch NewPersonFromName.start(span.alias, people: NamesStore.shared.livePeople(),
+                                       someoneElse: !span.candidates.isEmpty) {
+        case .empty: break
+        case .existing: knownNameNotice = NewPersonFromName.alreadyKnownMessage(span.alias)
+        case .prefill(_, let alias): personSheet = PersonSheetRequest(canonical: nil, prefillAlias: alias)
         }
     }
 

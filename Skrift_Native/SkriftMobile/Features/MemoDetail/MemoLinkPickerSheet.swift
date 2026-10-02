@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The memo picker behind the editor's `[[` trigger (chunk 5): search-as-you-
 /// type over titles + first lines, most recent first, current memo excluded.
-/// Picking inserts a `[[memo:UUID|Title]]` chip at the trigger.
+/// Picking inserts a `[[memo:UUID|Title]]` chip at the trigger. Title, placeholder, empty
+/// line and the empty-query row cap come from `LinkPickerCopy` (the Mac popover reads the same).
 struct MemoLinkPickerSheet: View {
     /// (id, display title, date line) — prepared by the page.
     let candidates: [(id: UUID, title: String, subtitle: String)]
@@ -11,17 +12,18 @@ struct MemoLinkPickerSheet: View {
     @State private var query = ""
 
     private var filtered: [(id: UUID, title: String, subtitle: String)] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return candidates }
-        return candidates.filter {
-            $0.title.lowercased().contains(q) || $0.subtitle.lowercased().contains(q)
-        }
+        LinkPickerCopy.visible(candidates, query: query) { [$0.title, $0.subtitle] }
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.skBg.ignoresSafeArea()
+                if filtered.isEmpty {
+                    Text(LinkPickerCopy.emptyText)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.skTextDim)
+                }
                 List(filtered, id: \.id) { row in
                     Button {
                         onPick(row.id, row.title)
@@ -43,10 +45,10 @@ struct MemoLinkPickerSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
-                            prompt: "Search notes")
+                            prompt: LinkPickerCopy.searchPlaceholder)
                 .accessibilityIdentifier("memo-link-picker")
             }
-            .navigationTitle("Link a note")
+            .navigationTitle(LinkPickerCopy.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
