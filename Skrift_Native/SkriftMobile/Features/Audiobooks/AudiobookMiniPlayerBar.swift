@@ -22,10 +22,10 @@ struct AudiobookMiniPlayerBar: View {
         if let book = session.book {
             // Width budget on the smallest target screen (390pt − 2×14 mount
             // padding = 362pt): lead 12 + cover 48(+4 pad) + 3×40 transport
-            // + 3×4 spacing + spacer ≥4 + Capture pill ~92 (10 ❝ + 5 + ~50
-            // text + 2×12 padding) + 4 + chevron 30 + trail 14 ≈ 340 ≤ 362 —
-            // the pill can NEVER be squeezed into wrapping (and its text is
-            // fixedSize + lineLimit(1) besides).
+            // + 3×4 spacing + spacer ≥4 + Add note pill ~92 (10 ❝ + 5 + ~50
+            // text + 2×12 padding) + trail 14 ≈ 306 ≤ 362 — the pill can
+            // NEVER be squeezed into wrapping (and its text is fixedSize +
+            // lineLimit(1) besides).
             HStack(spacing: 4) {
                 Button {
                     showPlayer = true

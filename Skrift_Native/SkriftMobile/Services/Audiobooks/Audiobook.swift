@@ -265,6 +265,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     var timeLeft: TimeInterval { max(0, duration - position) }
     var progress: Double { duration > 0 ? min(1, max(0, position / duration)) : 0 }
+    /// Within `BookStatusFilter.finishedTail` of the end: functionally finished even when
+    /// `progress` has not rounded to 1.0 (never show a stalled 99%).
+    var isFinished: Bool { duration > 0 && timeLeft <= BookStatusFilter.finishedTail }
 
     // MARK: - Global time ↔ file mapping
 
@@ -476,7 +479,7 @@ enum BookStatusFilter: CaseIterable, Sendable {
     }
 
     func matches(_ book: Audiobook) -> Bool {
-        let finished = book.duration > 0 && book.timeLeft <= Self.finishedTail
+        let finished = book.isFinished
         switch self {
         case .finished: return finished
         case .inProgress: return !finished && book.position > 1

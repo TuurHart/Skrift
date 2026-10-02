@@ -160,24 +160,14 @@ struct BookShareSheet: View {
     }
 }
 
-/// `UIActivityViewController` in SwiftUI clothing — the system share sheet.
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
-}
-
 // MARK: - Pure copy (unit-tested — BookShareCopyTests.swift)
 
 /// The sheet's strings, as plain functions of their inputs so the wording is
 /// assertable without a view.
 enum BookShareCopy {
 
-    /// "Homer · Emily Wilson · 28h 04m"
+    /// "Homer · Emily Wilson · 28 h 04" (the length is `BookTextDisplay.durationText`;
+    /// the signed mock draws "28h 04m", the pinned tests fix the spaced form).
     static func subtitle(author: String, duration: TimeInterval) -> String {
         let length = BookTextDisplay.durationText(duration)
         return author.isEmpty ? length : "\(author) · \(length)"

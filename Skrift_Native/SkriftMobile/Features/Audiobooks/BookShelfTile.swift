@@ -13,13 +13,6 @@ struct BookShelfTile: View {
     let syncState: AudiobookLibraryView.BookSyncState?
     let action: () -> Void
 
-    /// Mirrors `BookStatusFilter.finished` — a book within the tail is "done"
-    /// even if `progress` hasn't rounded to a literal 1.0 (the no-bad-info
-    /// rule: never show a stalled 99% when it's functionally finished).
-    private var isFinished: Bool {
-        book.duration > 0 && book.timeLeft <= BookStatusFilter.finishedTail
-    }
-
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
@@ -86,8 +79,8 @@ struct BookShelfTile: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.skBorder).frame(height: 3)
                     Capsule()
-                        .fill(isFinished ? Color.skGreen : Color.skAccent)
-                        .frame(width: max(2, geo.size.width * (isFinished ? 1 : book.progress)), height: 3)
+                        .fill(book.isFinished ? Color.skGreen : Color.skAccent)
+                        .frame(width: max(2, geo.size.width * (book.isFinished ? 1 : book.progress)), height: 3)
                 }
             }
         }
@@ -97,7 +90,7 @@ struct BookShelfTile: View {
         HStack {
             Text(Self.progressLabel(for: book))
             Spacer(minLength: 4)
-            if !isFinished {
+            if !book.isFinished {
                 Text(AudiobookTime.clock(book.timeLeft) + " left")
             }
         }
@@ -111,7 +104,7 @@ struct BookShelfTile: View {
     /// "finished" past the tail threshold (same rule as `BookStatusFilter`).
     /// Pure — unit-tested in `IPadBooksLogicTests`.
     static func progressLabel(for book: Audiobook) -> String {
-        guard !(book.duration > 0 && book.timeLeft <= BookStatusFilter.finishedTail) else { return "finished" }
+        guard !book.isFinished else { return "finished" }
         let pct = Int((book.progress * 100).rounded())
         if let chapter = book.chapterIndex(at: book.position) {
             return "ch \(chapter + 1) · \(pct)%"

@@ -5,8 +5,9 @@ import UIKit
 /// `mocks/audiobook-player-redesign.html`, 2026-06-13). A warm cover-tinted
 /// header with the cover demoted to a chip; the live read-along text is the hero
 /// (current line lit, from the wave-2 sidecar) with a "transcribe to read along"
-/// nudge when a spot isn't chunked; speed/sleep flank the transport; a slim
-/// Chapters + Bookmark row sits above the hero Capture pill. Swipe down to
+/// nudge when a spot isn't chunked; the transport is just back / play / forward,
+/// with Aa, the Add note hero, speed and sleep in the utility row below it; the
+/// chapter pill in the header opens the Chapters / Bookmarks sheet. Swipe down to
 /// collapse to the mini-player; tap the cover to edit book details.
 struct AudiobookPlayerView: View {
     private var session = AudiobookSession.shared
@@ -27,7 +28,6 @@ struct AudiobookPlayerView: View {
     @State private var shareBook: Audiobook?
     @State private var showTOC = false
     @State private var showTextSettings = false
-    @State private var tocInitialTab: ChaptersBookmarksSheet.Tab = .chapters
     @State private var scrubTime: TimeInterval?
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
@@ -52,7 +52,7 @@ struct AudiobookPlayerView: View {
         ZStack {
             bodyBackground.ignoresSafeArea()
             if let book = session.book {
-                content(book)
+                compactContent(book)
             } else {
                 Color.clear.onAppear { dismiss() }
             }
@@ -86,7 +86,7 @@ struct AudiobookPlayerView: View {
             if let id = session.book?.id { currentBookmarks = bookmarks.load(bookID: id) }
         }) {
             if let book = session.book {
-                ChaptersBookmarksSheet(book: book, initialTab: tocInitialTab)
+                ChaptersBookmarksSheet(book: book)
                     .presentationDetents([.medium, .large])
             }
         }
@@ -138,10 +138,6 @@ struct AudiobookPlayerView: View {
     /// RETIRED (recover from git if the book-expert redesign wants parts); the
     /// only regular-width difference is the read-along capping to a reading
     /// measure so prose never runs wall-to-wall.
-    private func content(_ book: Audiobook) -> some View {
-        compactContent(book)
-    }
-
     private func compactContent(_ book: Audiobook) -> some View {
         let time = scrubTime ?? session.currentTime
         let location = book.fileLocation(at: time)
@@ -252,7 +248,7 @@ struct AudiobookPlayerView: View {
             if let pill = chapterPill(book) {
                 // The chapter pill opens the Chapters/Bookmarks browse sheet (it left
                 // the utility row to make room for Add note; also in the ⋯ menu).
-                Button { tocInitialTab = .chapters; showTOC = true } label: {
+                Button { showTOC = true } label: {
                     Text(pill).font(.system(size: 9.5, weight: .medium)).monospacedDigit()
                         .foregroundStyle(Color.skAccentText)
                         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -274,7 +270,7 @@ struct AudiobookPlayerView: View {
 
     private func menu(_ book: Audiobook) -> some View {
         Menu {
-            Button { tocInitialTab = .chapters; showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
+            Button { showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off 2026-07-23):
             // the unified sheet carries transcribe (Level 1) + book text (Level 2).
@@ -483,6 +479,8 @@ struct AudiobookPlayerView: View {
         withAnimation(.easeOut(duration: 0.2)) { toast = text }
         Task {
             try? await Task.sleep(nanoseconds: 1_600_000_000)
+            // Only clear OUR toast: a second one inside the window keeps its own 1.6 s.
+            guard toast == text else { return }
             withAnimation(.easeIn(duration: 0.3)) { toast = nil }
         }
     }
@@ -539,12 +537,10 @@ struct AudiobookPlayerView: View {
               let book = session.book else { return }
         let global = session.currentTime
         let fileIndex = book.fileIndex(at: global)
-        let bounds = book.fileBounds(at: global)
-        let endLocal = min(max(0, global - bounds.start), bounds.length)
-        let startLocal = max(0, endLocal - 90)
+        let window = CaptureSpan.captureWindow(pausedAt: global, fileBounds: book.fileBounds(at: global))
         let audioURL = session.store.audioURL(of: book, fileIndex: fileIndex)
         let chunked = transcripts.coveredWindowWords(
-            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: startLocal, end: endLocal) != nil
+            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: window.start, end: window.end) != nil
         guard !chunked else { return }
         Task { try? await TranscriptionService.shared.ensureLoaded() }
     }

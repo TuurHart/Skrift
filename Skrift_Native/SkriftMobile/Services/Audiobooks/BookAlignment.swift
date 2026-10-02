@@ -294,6 +294,18 @@ final class BookAlignmentStore: Sendable {
         }
         return fa.transcriptSignature == FileAlignment.signature(forTranscript: ft)
     }
+
+    /// The true-text sentence list for one file, or nil when there is no usable alignment
+    /// (missing, stale, or not `.aligned`) — the caller then builds its own ASR-only list.
+    /// Shared by the read-along and the capture screen.
+    func alignedSentences(bookID: UUID, fileIndex: Int, audioURL: URL,
+                          transcriptWords: [WordTiming]) -> [BufferSentence]? {
+        let fa = fileAlignment(bookID: bookID, fileIndex: fileIndex)
+        let fresh = fa.map { isFresh($0, bookID: bookID, fileIndex: fileIndex, audioURL: audioURL) } ?? false
+        return AlignedSentenceSource.sentences(
+            alignment: fa, isFresh: fresh, transcriptWords: transcriptWords,
+            snappedStart: 0, snappedEnd: 0)
+    }
 }
 
 // MARK: - Runner
@@ -353,8 +365,7 @@ enum BookAlignmentRunner {
     /// it defers deliberately, with copy that says so).
     @MainActor
     private static func isTranscribing(_ bookID: UUID) -> Bool {
-        BookTranscriptionJob.shared.activeBookID == bookID
-            && BookTranscriptionJob.shared.isRunningOrPaused
+        BookTranscriptionJob.shared.isWorking(on: bookID)
     }
 
     enum AttachError: LocalizedError, Equatable {

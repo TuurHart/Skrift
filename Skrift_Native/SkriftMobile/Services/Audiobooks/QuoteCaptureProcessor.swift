@@ -49,9 +49,13 @@ struct QuoteCaptureOutput: Sendable {
 enum QuoteCaptureError: LocalizedError {
     case exportFailed
     case noSpeech
+    /// The memo for the quote could not be created.
+    case saveFailed
 
     var errorDescription: String? {
         switch self {
+        case .saveFailed:
+            return "Couldn’t build that quote — try a different selection"
         case .exportFailed:
             return "Couldn’t extract that span from the book’s audio."
         case .noSpeech:

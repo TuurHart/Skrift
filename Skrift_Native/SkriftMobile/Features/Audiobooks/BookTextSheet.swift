@@ -98,27 +98,13 @@ struct BookTextSheet: View {
             .padding(.horizontal, Theme.Space.margin)
             .padding(.bottom, 8)
 
-            if busyMessage == nil, textActivity.isActive(book.id), let stage = textActivity.stage {
-                // A background re-align (schema heal / re-check) is running for this book.
+            // One status toast: the presenting view's attach stage wins; otherwise a
+            // background re-align (schema heal / re-check) running for this book. The
+            // standing reassurance line is true for both (Tuur 2026-07-22: "didn't know
+            // if I could keep listening" - playback is genuinely unaffected).
+            if let message = busyMessage ?? (textActivity.isActive(book.id) ? textActivity.stage : nil) {
                 VStack(spacing: 3) {
-                    Text(stage)
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
-                    Text("You can keep listening while this runs.")
-                        .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
-                }
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Color.skElev, in: RoundedRectangle.sk(16))
-                .transition(.opacity)
-                .padding(.bottom, 20)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .allowsHitTesting(false)
-            }
-
-            if let busyMessage {
-                // Stage line + the standing reassurance (Tuur 2026-07-22: "didn't know
-                // if I could keep listening" — playback is genuinely unaffected).
-                VStack(spacing: 3) {
-                    Text(busyMessage)
+                    Text(message)
                         .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
                     Text("You can keep listening while this runs.")
                         .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
@@ -170,7 +156,7 @@ struct BookTextSheet: View {
     /// True when the singleton job is actively working THIS book (running or either
     /// paused flavor) — the only state in which the card shows live progress.
     private var transcribingThisBook: Bool {
-        job.activeBookID == book.id && job.isRunningOrPaused
+        job.isWorking(on: book.id)
     }
 
     /// THIS book's transcript progress: the job's live number only while it's

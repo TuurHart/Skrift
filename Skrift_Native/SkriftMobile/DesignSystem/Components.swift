@@ -172,3 +172,14 @@ struct SearchField: View {
 
 enum TagChipStyle { case applied, suggestion, add }
 
+/// `UIActivityViewController` in SwiftUI clothing: the system share sheet (the one wrapper
+/// the memo "Share note…" and the book "Share book…" sheets both present).
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}

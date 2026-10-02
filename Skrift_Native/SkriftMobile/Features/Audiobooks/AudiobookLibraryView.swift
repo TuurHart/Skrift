@@ -420,12 +420,9 @@ struct AudiobookLibraryView: View {
         // reconcile sweep is already fetching the audio.
     }
 
-    /// The long-press menu — EXACTLY today's four items, shared by the list row
-    /// and the shelf tile.
-    @ViewBuilder
-    /// ONE menu for the compact rows AND the iPad shelf tiles (merge 2026-07-23:
-    /// contents = main's unified-Text-sheet verbs; the extraction is the iPad
-    /// wave's, so the two presentations can't drift).
+    /// ONE long-press menu for the compact rows AND the iPad shelf tiles (merge
+    /// 2026-07-23: contents = main's unified-Text-sheet verbs; the extraction is the
+    /// iPad wave's, so the two presentations can't drift).
     private func contextMenuItems(_ book: Audiobook) -> some View {
         // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off
         // 2026-07-23): the unified sheet owns BOTH levels — transcribe
@@ -644,20 +641,6 @@ struct AudiobookLibraryView: View {
         }
         store.remove(book)
     }
-
-    // MARK: - 📖 Attach book text (spike 6)
-
-    /// Copy the picked file in, align every covered transcript file against
-    /// it, and route the outcome to whichever of the three surfaces fits
-    /// (BASE.md's `AttachSummary`): a plain toast when it aligned (fully or
-    /// partially) or when there's no transcript yet to align against, or the
-    /// reject-confirm alert when every file came back rejected.
-
-    /// "Remove" on the reject alert: clears the ePub fields only (re-fetches
-    /// the current record by id rather than trusting the captured `book`, in
-    /// case something else changed it while the alignment ran). The alignment
-    /// sidecars themselves are left in place — a `.rejected` verdict is honest
-    /// data, not corruption, and re-attaching later can only overwrite it.
 }
 
 /// One-time editable confirm sheet, shown ONLY when the file's tags were

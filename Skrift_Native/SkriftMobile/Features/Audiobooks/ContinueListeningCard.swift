@@ -68,7 +68,6 @@ struct ContinueListeningCard: View {
             .accessibilityLabel("\(book.title), \(AudiobookTime.clock(book.timeLeft)) left — open the player")
 
             Button {
-                DevLog.log("card x-dismiss TAPPED — writing dismissedDay=\(Self.today())")
                 withAnimation(Theme.Motion.spring) { dismissedDay = Self.today() }
             } label: {
                 Image(systemName: "xmark")
@@ -115,9 +114,13 @@ struct ContinueListeningCard: View {
 
     /// Local calendar day string ("2026-07-07") for the dismiss-for-today gate.
     static func today(_ date: Date = Date()) -> String {
+        dayFormatter.string(from: date)
+    }
+
+    private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.calendar = Calendar.current
         f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
+        return f
+    }()
 }

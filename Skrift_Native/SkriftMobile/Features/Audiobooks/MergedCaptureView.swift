@@ -64,11 +64,9 @@ struct MergedCaptureView: View {
     /// branch below tries it first so the saved quote is the VERBATIM published
     /// sentence wherever the alignment trusts its own match.
     private let alignmentStore = BookAlignmentStore(directory: AudiobookLibraryStore.shared.directory)
-    private var session = AudiobookSession.shared
     @State private var state: LoadState = .loading
     @State private var sel = TextCaptureSelection(lo: 0, hi: 0)
     @State private var significance: Double = 0
-    @State private var touched = false
     @State private var toast = ""
     @State private var toastColor: Color = .skTextDim
     @State private var building = false
@@ -78,6 +76,8 @@ struct MergedCaptureView: View {
     @State private var displayLo = 0
     @State private var displayHi = 0
     /// The memo created when "Record your thoughts" fires (so the ramble appends).
+    /// Non-nil also means the quote is built and the flow owns the window buffer —
+    /// `onDisappear` must not delete it out from under the recorder.
     @State private var createdMemoID: UUID?
     /// The buffer temp to clean up when the flow exits (the ±buffer audio).
     @State private var createdBufferURL: URL?
@@ -85,13 +85,13 @@ struct MergedCaptureView: View {
     /// "opened the recorder then cancelled" so a quote-only memo from a bail is
     /// discarded (always-records).
     @State private var rambleSaved = false
-    /// True once the quote has been built + memo created — the flow now owns the
-    /// window buffer; stops `onDisappear` deleting it out from under the recorder.
-    @State private var handedOff = false
 
     // Window in FILE-LOCAL time: [playhead − 90 s … playhead], clamped to the file.
-    private var windowEndLocal: TimeInterval { min(max(0, pausedAt - fileBounds.start), fileBounds.length) }
-    private var windowStartLocal: TimeInterval { max(0, windowEndLocal - 90) }
+    private var captureWindow: (start: TimeInterval, end: TimeInterval) {
+        CaptureSpan.captureWindow(pausedAt: pausedAt, fileBounds: fileBounds)
+    }
+    private var windowEndLocal: TimeInterval { captureWindow.end }
+    private var windowStartLocal: TimeInterval { captureWindow.start }
     private var isReady: Bool { if case .ready = state { return true }; return false }
 
     var body: some View {
@@ -107,9 +107,9 @@ struct MergedCaptureView: View {
         .task { await load() }
         .onDisappear {
             // Clean the live window buffer ONLY if we left without building (the
-            // sidecar path has no separate buffer; once handed off the recorder /
+            // sidecar path has no separate buffer; once the memo exists the recorder /
             // cleanupBuffer owns it).
-            if !handedOff, case .ready(.window(let w)) = state {
+            if createdMemoID == nil, case .ready(.window(let w)) = state {
                 try? FileManager.default.removeItem(at: w.bufferURL)
             }
         }
@@ -374,14 +374,9 @@ struct MergedCaptureView: View {
             // sentence-splitting at all (LANE_CORE split once, into the
             // sidecar); only a low-confidence sentence's own small ASR splice
             // ever calls buildSentences here.
-            let fa = alignmentStore.fileAlignment(bookID: book.id, fileIndex: fileIndex)
-            let fresh = fa.map {
-                alignmentStore.isFresh($0, bookID: book.id, fileIndex: fileIndex, audioURL: audioURL)
-            } ?? false
             let all: [BufferSentence]
-            if let aligned = AlignedSentenceSource.sentences(
-                alignment: fa, isFresh: fresh, transcriptWords: ft.words,
-                snappedStart: 0, snappedEnd: 0
+            if let aligned = alignmentStore.alignedSentences(
+                bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, transcriptWords: ft.words
             ) {
                 all = aligned.filter { $0.end > winStart - 30 && $0.start < winEnd + 150 }
             } else {
@@ -422,7 +417,6 @@ struct MergedCaptureView: View {
     }
 
     private func tap(_ i: Int) {
-        touched = true
         if let msg = sel.tap(i) {
             toast = msg
             toastColor = msg.hasPrefix("added") ? .green : (msg.hasPrefix("dropped") ? .skTextDim : .skAmber)
@@ -433,7 +427,7 @@ struct MergedCaptureView: View {
     /// Build the quote from the selection, create the memo, apply the
     /// significance, then open the recorder for the ramble.
     private func recordThoughts() {
-        guard !handedOff, case .ready(let source) = state else { return }
+        guard createdMemoID == nil, case .ready(let source) = state else { return }
         building = true
         Task {
             do {
@@ -462,12 +456,7 @@ struct MergedCaptureView: View {
                     // jump-back surface needs. Additive metadata; Mac ignores it.
                     bookID: book.id,
                     bookPosition: output.spanStart
-                ) else {
-                    building = false
-                    toast = "Couldn\u{2019}t build that quote — try a different selection"; toastColor = .skAmber
-                    return
-                }
-                handedOff = true
+                ) else { throw QuoteCaptureError.saveFailed }
                 // Apply the significance set on this screen.
                 if let memo = NotesRepository.shared.memo(id: memoID) {
                     memo.significance = significance

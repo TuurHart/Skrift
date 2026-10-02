@@ -18,7 +18,7 @@ struct BookTextPromptSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private var transcribingThisBook: Bool {
-        job.activeBookID == book.id && job.isRunningOrPaused
+        job.isWorking(on: book.id)
     }
 
     var body: some View {
