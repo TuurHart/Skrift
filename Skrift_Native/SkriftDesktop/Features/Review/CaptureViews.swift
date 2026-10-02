@@ -12,15 +12,10 @@ struct CaptureSourceStrip: View {
     private var sc: SharedContent? { file.sharedContent }
 
     private var label: String {
-        switch sc?.type {
-        case .url:
-            let domain = sc?.url.flatMap { URL(string: $0)?.host } ?? ""
-            return "Shared link\(domain.isEmpty ? "" : " · \(domain)")"
-        case .text: return "Shared text"
-        case .image: return "Shared image"
-        case .file: return "Shared file"
-        case nil: return "Capture"
-        }
+        // One label table (`SourceKind`): Link / Text / Image / File / Capture, the same words
+        // as the sidebar row and the header chip.
+        let domain = sc?.type == .url ? sc?.url.flatMap { URL(string: $0)?.host } : nil
+        return file.sourceKind.stripLabel(domain: domain)
     }
 
     private var urlToOpen: URL? {

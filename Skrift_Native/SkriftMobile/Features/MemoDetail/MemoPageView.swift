@@ -1282,7 +1282,7 @@ struct MemoPageView: View {
         var chips: [MetaChip] = [MetaChip(text: MemoDate.label(memo.recordedAt), symbol: nil)]
         // C3 captures: show the source type label instead of location/weather chips.
         if memo.isShareCapture {
-            chips.append(MetaChip(text: memo.shareCaptureTypeLabel, symbol: memo.shareCaptureGlyph))
+            chips.append(MetaChip(text: SourceKind.of(memo).label, symbol: memo.shareCaptureGlyph))
             return chips
         }
         // Video imports show a "Video" source chip (no location/weather was captured).
@@ -1365,7 +1365,7 @@ struct MemoPageView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.skText)
                     .lineLimit(2)
-                Text(memo.shareCaptureTypeLabel)
+                Text(SourceKind.of(memo).label)
                     .font(.system(size: 11))
                     .foregroundStyle(Color.skTextFaint)
             }
