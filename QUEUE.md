@@ -1943,6 +1943,13 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
+### Q255 [auto] (todo) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
+spec: C199
+needs: Q133
+gate+: yes
+do: Q133 made Shared/Pipeline/ImportKinds resolve .m4b and .epub to kind .book, but phone Open-in (AppURLHandler) still ignores them. Route a .book Open-in to the same Books library import the Library tab uses (the BookImportBridge / AudiobookLibrary import path; grep it), so opening an .m4b or .epub from Files or another app adds it to Books. Phone test `BookOpenInRoutingTests` on the pure routing decision. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2520,3 +2527,4 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-02 18:41 Q254 added
 - 2026-10-02 18:42 Q108 -> doing — worker out
 - 2026-10-02 18:45 Q133 -> done — gate pass @0f289a69
+- 2026-10-02 18:46 Q255 added
