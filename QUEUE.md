@@ -1108,7 +1108,7 @@ do: Row: author line, determinate transfer bar with 'Uploading audio · 38%', li
 check: `test $(ls plan/reads/books-p-shelf/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTileStateTests && ./gate.sh`
 source: plan/reads/parity-audit.md P49
 
-### Q149 [auto] (todo) one quote attribution builder and one quote-block splitter
+### Q149 [auto] (doing) one quote attribution builder and one quote-block splitter
 spec: C172 C60
 needs: -
 gate+: yes
@@ -1124,7 +1124,7 @@ do: Only the share extension (`hasLongClip`, ShareSheetView.swift:35-37) offers 
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LongAudioOfferTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P51
 
-### Q151 [auto] (todo) Library: per-book 'N notes' pill and jump-back (D127, Q6 mock)
+### Q151 [auto] (doing) Library: per-book 'N notes' pill and jump-back (D127, Q6 mock)
 spec: D127 C229
 needs: -
 gate+: yes
@@ -1345,7 +1345,7 @@ do: Rows list-sidebar-109 -110 -111, recsj-107. Mac `WayOutColumn` hard-codes 30
 check: `grep -rqE "class WayOutDisplayTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q179 [auto] (doing) every source glyph and label comes from SourceKind: delete the phone's second glyph table, fix the Mac picture-only import label, journal rows use it
+### Q179 [auto] (done) every source glyph and label comes from SourceKind: delete the phone's second glyph table, fix the Mac picture-only import label, journal rows use it
 spec: C78 C239 C240
 needs: Q106 Q138
 gate+: yes
@@ -2804,3 +2804,6 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:42 Q183 -> done — gate pass @7f249478
 - 2026-10-03 00:44 Q184 -> done — gate pass @f2f2f520
 - 2026-10-03 00:46 Q181 -> done — gate pass @d142fcc7
+- 2026-10-03 00:50 Q149 -> doing — batch worker out
+- 2026-10-03 00:50 Q151 -> doing — batch worker out
+- 2026-10-03 00:53 Q179 -> done — gate pass @2d870ea8
