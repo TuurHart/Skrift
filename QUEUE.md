@@ -895,7 +895,7 @@ do: `PlayerBar` has `macTransportOrder` / density but its only call site is `Pla
 check: `test $(ls plan/reads/note-p-player/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh DurationFormatTests && grep -rqE "class DurationFormatTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P22
 
-### Q122 [auto] (todo) Mac header chips read the shared date label and the shared source labels
+### Q122 [auto] (doing) Mac header chips read the shared date label and the shared source labels
 spec: C78 C115 C240
 needs: Q138
 gate+: yes
@@ -919,7 +919,7 @@ do: Phone `.reading` mode blocks edits while a note is transcribing so a draft c
 check: `grep -rqE "class MacBodyEditableStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P25
 
-### Q125 [auto] (doing) Mac: find in the note
+### Q125 [auto] (done) Mac: find in the note
 spec: D125 C113
 needs: -
 gate+: yes
@@ -1234,7 +1234,7 @@ do: Phone discards only a take shorter than 0.4 s (RecordView.swift:561); a long
 check: `grep -rqE "class DeadTakeVerdictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh DeadTakeVerdictTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P65
 
-### Q165 [auto] (todo) Mac live recording shows the model state and a loading placeholder, like the phone
+### Q165 [auto] (doing) Mac live recording shows the model state and a loading placeholder, like the phone
 spec: C220 C224
 needs: -
 gate+: yes
@@ -2678,3 +2678,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 23:04 Q261 -> tuur — awaiting sitting
 - 2026-10-02 23:04 Q262 added
 - 2026-10-02 23:04 Q262 -> tuur — awaiting sitting
+- 2026-10-02 23:07 Q122 -> doing — batch worker out
+- 2026-10-02 23:07 Q165 -> doing — batch worker out
+- 2026-10-02 23:10 Q125 -> done — gate pass @bd0ce8e9
