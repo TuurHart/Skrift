@@ -128,7 +128,7 @@ extension MemoCloudReconciler {
                 Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
                     .error("reconcile: reflect save FAILED — phone edits not persisted: \(error)")
             }
-            reexportEdited(outcome.updatedIDs, in: local, settings: settings)
+            reexportEdited(outcome.updatedIDs, in: local, cloud: cloudContext, settings: settings)
         }
 
         // Q5 (2026-07-21): the Mac AUTHORS a Memo for any local PipelineFile that doesn't have
@@ -155,14 +155,21 @@ extension MemoCloudReconciler {
     /// Re-export the vault markdown for rows a phone edit just changed — but only those already
     /// exported (`.done`), so we never push an un-reviewed note into the vault. Best-effort:
     /// a failed export is logged RIGHT HERE (nothing upstream logs it), never fatal to the sweep.
-    private static func reexportEdited(_ ids: [String], in context: ModelContext, settings: AppSettings) {
+    private static func reexportEdited(_ ids: [String], in context: ModelContext,
+                                       cloud: ModelContext, settings: AppSettings) {
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>(
             predicate: #Predicate { ids.contains($0.id) }))) ?? []
-        // Locked rows are skipped outright (the exporter would refuse anyway — this keeps the
-        // sweep quiet). A note UNLOCKED on the phone re-exports right here on the same sweep.
-        // Trashed rows are skipped too — a note the phone just binned must not be re-written into
-        // the vault (a restore clears `deletedAt`, so it re-exports on the sweep that restores it).
-        for pf in files where pf.exportStatus == .done && !pf.locked && pf.deletedAt == nil {
+        // The SAME gate a person's Export press passes (`ExportGate`, Q156: this used to
+        // check locked + trashed only, so a note whose rating the phone withdrew was still
+        // re-written). A refused row is skipped quietly: locked (a note UNLOCKED on the phone
+        // re-exports on the same sweep), trashed (a note the phone just binned must not be
+        // re-written; a restore clears `deletedAt`), unrated, held with two versions.
+        for pf in files where pf.exportStatus == .done {
+            if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
+                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                    .info("re-export skipped \(pf.id, privacy: .public): gate \(String(describing: failure), privacy: .public)")
+                continue
+            }
             do {
                 let result = try VaultExporter.export(pf, settings: settings)
                 // The engine's refusals are the CONTRACT working, not failures: a
