@@ -1251,25 +1251,24 @@ struct MemoLinkPopover: View {
     @FocusState private var focused: Bool
 
     private var filtered: [MemoLinkCandidate] {
-        let q = query.lowercased().trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return Array(candidates.prefix(50)) }
-        return candidates.filter {
-            $0.title.lowercased().contains(q) || $0.subtitle.lowercased().contains(q)
-        }
+        LinkPickerCopy.visible(candidates, query: query) { [$0.title, $0.subtitle] }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            Text(LinkPickerCopy.title).font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.textMuted)
+                .padding(.horizontal, 4).padding(.bottom, 6)
             HStack(spacing: 6) {
                 Image(systemName: "link").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                TextField("Link a note…", text: $query)
+                TextField(LinkPickerCopy.searchPlaceholder, text: $query)
                     .textFieldStyle(.plain).font(.system(size: 13)).focused($focused)
                     .onSubmit { if let first = filtered.first { onPick(first.id, first.title) } else { onCancel() } }
             }
             .padding(.horizontal, 4).padding(.bottom, 8)
 
             if filtered.isEmpty {
-                Text("No notes match").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                Text(LinkPickerCopy.emptyText).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                     .padding(.leading, 2).padding(.vertical, 4)
             } else {
                 ScrollView {
