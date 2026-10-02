@@ -743,7 +743,7 @@ do: `ProcessPile.isWaiting` (Shared/Pipeline/ProcessPile.swift:25) returns false
 check: `grep -rqE "class ProcessPileLockedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P3
 
-### Q103 [auto] (todo) one shared note-search matcher on phone, iPad and Mac, with the C236 fields
+### Q103 [auto] (doing) one shared note-search matcher on phone, iPad and Mac, with the C236 fields
 spec: C236 C111 C115 C240
 needs: -
 gate+: yes
@@ -839,7 +839,7 @@ do: Four ladders for one rule: phone `Memo.displayTitle`, Mac `WayOutRules.displ
 check: `grep -rqE "class NoteTitleLadderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteTitleLadderTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P15
 
-### Q115 [auto] (doing) Mac 'From the recording' title suggestion never offers memo_<uuid>
+### Q115 [auto] (done) Mac 'From the recording' title suggestion never offers memo_<uuid>
 spec: C181 C25
 needs: -
 gate+: yes
@@ -2432,3 +2432,5 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 13:16 Q251 added
 - 2026-10-02 13:16 Q112 -> doing — re-accept: first check run was SIGTERM'd mid-build at load ~109 (env, not code)
 - 2026-10-02 13:19 Q112 -> done — gate pass @48b4e8ed
+- 2026-10-02 13:19 Q103 -> doing — worker out
+- 2026-10-02 13:21 Q115 -> done — gate pass @1967b830
