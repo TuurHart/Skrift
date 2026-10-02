@@ -8,7 +8,7 @@ enum SettingsCopy {
 
     // ── Custom words (setexp-29, -30) ──
     static let customWordPlaceholder = "Add a word or name…"
-    static let customWordsHelp = "The transcriber listens for these words and corrects near-misses (“skrift” → “Skrift”). Spelled exactly as you want them written. The first transcription after adding words downloads a ~100 MB model."
+    static let customWordsHelp = "The transcriber listens for these words and corrects near-misses (“skrift” → “Skrift”). Spelled exactly as you want them written. The first transcription after adding words downloads a \(ModelSizes.spotter) model."
 
     // ── Obsidian folder (setexp-58, -59) ──
     /// Signed mock `vault-folder-model.html` names this row "Obsidian folder"; the phone said "Folder".

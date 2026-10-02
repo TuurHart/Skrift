@@ -190,7 +190,7 @@ struct SettingsView: View {
             }
             section("Sync") {
                 toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync, defaultOn: true,
-                          help: "Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. This is the only phone↔Mac transport: with it off, the Mac neither picks up your phone's memos nor sends its polish back.")
+                          help: "\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) The Mac processes the memos your phone synced and sends its polished title, summary and copy-edit back. This is the only phone↔Mac transport: with it off, neither happens.")
             }
             section(RetrievalGate.Copy.settingTitle) { connectionsSection }
             section("Names · \(displayPeople.count)") {
