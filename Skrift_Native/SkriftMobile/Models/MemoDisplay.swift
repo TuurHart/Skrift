@@ -31,16 +31,7 @@ extension Memo {
     }
 
     /// First non-empty line of the transcript with `[[img_NNN]]` markers removed.
-    var firstTranscriptLine: String? {
-        guard let transcript else { return nil }
-        let cleaned = NoteSnippet.plain(transcript)   // C115: no `**Speaker n:**` / `[[Name]]` in a row
-        let line = cleaned
-            .split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .first(where: { !$0.isEmpty })
-        guard let line, !line.isEmpty else { return nil }
-        return NoteTitle.clip(line)
-    }
+    var firstTranscriptLine: String? { NoteCardBuilder.firstLine(of: transcript) }   // C115: one rule, both apps
 
     var durationLabel: String {
         let total = Int(duration.rounded())
@@ -158,50 +149,19 @@ extension Memo {
     /// the "ch. " prefix (matching the export attribution); anything else (e.g.
     /// an m4b chapter *name*) is shown as-is. Nil for non-capture memos.
     var bookCaptionLabel: String? {
-        guard let book = metadata?.bookTitle?.trimmingCharacters(in: .whitespaces),
-              !book.isEmpty else { return nil }
-        guard let chapter = metadata?.bookChapter?.trimmingCharacters(in: .whitespaces),
-              !chapter.isEmpty else { return book }
-        let label = chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter
-        return "\(book) · \(label)"
+        CaptureQuote.caption(book: metadata?.bookTitle, chapter: metadata?.bookChapter)
     }
 
     /// The C1 quote block — the transcript's leading "> " blockquote lines,
     /// stripped of the markers and joined into one row-sized snippet. Nil when
     /// the transcript doesn't open with a blockquote (or doesn't exist yet).
-    var quoteSnippet: String? {
-        guard let transcript else { return nil }
-        var lines: [String] = []
-        for raw in transcript.components(separatedBy: .newlines) {
-            let line = raw.trimmingCharacters(in: .whitespaces)
-            if line.hasPrefix(">") {
-                let text = line.dropFirst().trimmingCharacters(in: .whitespaces)
-                if !text.isEmpty { lines.append(text) }
-            } else if lines.isEmpty && line.isEmpty {
-                continue            // tolerate leading blank lines
-            } else {
-                break               // the quote block is the TOP — stop at the first non-quote line
-            }
-        }
-        guard !lines.isEmpty else { return nil }
-        return String(lines.joined(separator: " ").prefix(120))
-    }
+    /// Q106: the one shared builder (`NoteCardBuilder.quoteLine`, over `CaptureQuote.split`).
+    var quoteSnippet: String? { NoteCardBuilder.quoteLine(in: transcript) }
 
     /// First line of the ramble below the C1 quote block (markers stripped) —
     /// the capture row's secondary text. Nil while the capture has no ramble
     /// yet ("Save & keep listening" without recording thoughts).
-    var rambleSnippet: String? {
-        guard let transcript else { return nil }
-        let cleaned = NoteSnippet.plain(transcript)
-        // Quote lines only legally appear at the top (C1), so skipping every
-        // "> " line is equivalent to skipping the head block — and simpler.
-        for raw in cleaned.components(separatedBy: .newlines) {
-            let line = raw.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty || line.hasPrefix(">") { continue }
-            return NoteTitle.clip(line)
-        }
-        return nil
-    }
+    var rambleSnippet: String? { NoteCardBuilder.rambleLine(in: transcript) }
 
     /// The leading `> ` quote block split for the DETAIL screen. Nil when the body doesn't
     /// open with one.
@@ -251,38 +211,13 @@ extension Memo {
     /// annotation-or-"Image" (image). Falls back through annotationText → generic.
     var shareCaptureTitle: String {
         guard let sc = sharedContent else { return "Capture" }
-        switch sc.type {
-        case .url:
-            if let t = sc.urlTitle?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { return t }
-            if let u = sc.url, let host = URL(string: u)?.host { return host }
-            return "Link"
-        case .text:
-            if let text = sc.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
-                return NoteTitle.clip(text)
-            }
-            return "Text snippet"
-        case .image:
-            if let ann = annotationText?.trimmingCharacters(in: .whitespaces), !ann.isEmpty {
-                return NoteTitle.clip(ann)
-            }
-            return "Image"
-        case .file:
-            return sc.fileName ?? "File"
-        }
+        return NoteCardBuilder.captureTitle(shared: sc, annotation: annotationText)
     }
 
     /// Snippet / secondary line: annotationText for all types; domain for URLs as fallback.
     var shareCaptureSnippet: String? {
-        if let ann = annotationText?.trimmingCharacters(in: .whitespacesAndNewlines), !ann.isEmpty {
-            return String(ann.prefix(120))
-        }
-        // For URL captures with no annotation, show the domain as the snippet.
-        if sharedContent?.type == .url,
-           let urlStr = sharedContent?.url,
-           let host = URL(string: urlStr)?.host {
-            return host.replacingOccurrences(of: "www.", with: "")
-        }
-        return nil
+        guard let sc = sharedContent else { return nil }
+        return NoteCardBuilder.captureSnippet(shared: sc, annotation: annotationText)
     }
 
     /// "Link", "Text", or "Image" chip label for the detail header chips.
@@ -298,10 +233,7 @@ extension Memo {
 
     /// Domain label for URL captures, e.g. "swiftwithmajid.com".
     var shareCaptureURLDomain: String? {
-        guard sharedContent?.type == .url,
-              let urlStr = sharedContent?.url,
-              let host = URL(string: urlStr)?.host else { return nil }
-        return host.replacingOccurrences(of: "www.", with: "")
+        sharedContent.flatMap { NoteCardBuilder.domain(of: $0) }
     }
 }
 

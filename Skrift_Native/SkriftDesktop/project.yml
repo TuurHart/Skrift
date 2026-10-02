@@ -216,6 +216,9 @@ targets:
       # tag→chip builder both card models route through (C115). SwiftUI-only (no app
       # frameworks), same file-by-file discipline as Palette/NoteMeasure above.
       - path: ../Shared/UI/NoteCardView.swift
+      # Q106: the ONE card-content builder (title / quote / snippet / chips), Foundation-only —
+      # the Mac's rated + quiet rows and the phone's MemoCard all call it.
+      - path: ../Shared/UI/NoteCardBuilder.swift
       # The cross-app label table (Foundation-only strings). Pulled in because
       # Shared/Pipeline's NoteWorkState names its buttons from it, and this bundle
       # compiles all of Shared/Pipeline.
