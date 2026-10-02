@@ -24,6 +24,18 @@ enum WayOutRules {
     /// never collide with one, so it's naturally excluded from the lookup map
     /// with no extra filtering needed (same as the old `ingested` Set).
     static func unpipelined(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
+        quietRows(memos: memos, files: files, locked: false, now: now)
+    }
+
+    /// LOCKED quiet notes (Q100, C91): unrated, live, locked. They are NOT in
+    /// `unpipelined` (a resolved note doesn't nag the band / counts), but a locked note
+    /// still has to be IN the list — as a title + 🔒 placeholder — or locking a
+    /// never-rated note makes its row vanish (parity audit list-sidebar-73).
+    static func lockedQuiet(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
+        quietRows(memos: memos, files: files, locked: true, now: now)
+    }
+
+    private static func quietRows(memos: [Memo], files: [PipelineFile], locked: Bool, now: Date) -> [Memo] {
         var byMemoID: [UUID: PipelineFile] = [:]
         for f in files {
             guard let id = UUID(uuidString: f.id) else { continue }
@@ -33,11 +45,11 @@ enum WayOutRules {
         // Review conveyor — the band listing it too made it double-homed
         // ("are those the fading ones?", Tuur's 2026-07-21 eyeball round).
         // The list = quiet clock-run notes: what the Mac is quietly ignoring.
-        // LOCKED notes are excluded too (m6, 2026-07-22): lock is the explicit
-        // keep-don't-polish verb — a resolved note doesn't nag.
+        // LOCKED notes are excluded from `unpipelined` (m6, 2026-07-22): lock is the
+        // explicit keep-don't-polish verb — a resolved note doesn't nag.
         let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
         return memos.filter { memo in
-            guard memo.deletedAt == nil && !NoteConsent.isRated(memo) && !memo.locked
+            guard memo.deletedAt == nil && !NoteConsent.isRated(memo) && memo.locked == locked
                     && !MemoLifecycle.isFading(memo, backlinked: backlinked, now: now) else { return false }
             guard let pf = byMemoID[memo.id] else { return true }   // no pipeline row at all
             return isQuietLocalTake(pf)   // a row exists, but it's a quiet local take
@@ -158,6 +170,9 @@ enum WayOutRules {
     static func matchesSearch(_ memo: Memo, query: String) -> Bool {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return true }
+        // A locked note's words are hidden (C161/C91): searching them (or the first-line
+        // title fallback derived from them) would reveal them — only its set title matches.
+        if memo.locked { return (memo.title ?? "").lowercased().contains(q) }
         if displayTitle(memo).lowercased().contains(q) { return true }
         if memo.transcript?.lowercased().contains(q) == true { return true }
         return false

@@ -111,17 +111,15 @@ extension MemosListView {
     /// (requires auth — Apple Notes idiom). Locking an already-published memo
     /// surfaces the vault notice; Skrift never deletes vault files.
     func toggleLock(_ memo: Memo) {
+        // Policy (auth to unlock, canAuthenticate to lock, markEdited) is the shared
+        // `LockPolicy` the Mac list calls too (Q100).
         if memo.locked {
             Task {
-                guard await LockGate.shared.authorizeRemoveLock() else { return }
-                memo.locked = false
-                memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
+                guard await LockGate.shared.policy.removeLock(memo) else { return }
                 NotesRepository.shared.save()
             }
         } else {
-            guard LockGate.shared.canAuthenticate() else { return }
-            memo.locked = true
-            memo.markEdited(stampWords: false)   // lock isn't title/body/tags (C98)
+            guard LockGate.shared.policy.lock(memo) else { return }
             NotesRepository.shared.save()
             if ObsidianVault.hasPublished(memo.id) { lockVaultNotice = true }
         }
@@ -151,7 +149,7 @@ extension MemosListView {
             return
         }
         Task {
-            guard await LockGate.shared.unlock(memo.id) else { return }
+            guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
             repository.softDelete(memo)
         }
     }
