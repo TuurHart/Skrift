@@ -850,6 +850,7 @@ struct MemoDetailView: View {
             }
             // Q87: the spinner used to just vanish. Say it (only on the note still open).
             if outcome == .oneVoice { showSplitToast(SplitSpeakersCopy.oneVoice) }
+            if outcome == .cancelled { showSplitToast(SplitSpeakersCopy.cancelled) }
         }
     }
 

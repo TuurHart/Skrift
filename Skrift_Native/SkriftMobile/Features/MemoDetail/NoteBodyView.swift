@@ -10,9 +10,11 @@ import Combine
 enum NoteBody {
     enum Mode: Equatable { case editing, playing, reading }
 
-    static func mode(isPlaying: Bool, status: TranscriptStatus) -> Mode {
+    /// `splitting`: Split speakers is running on this note — read-only like a transcription in
+    /// flight, as on the Mac (Q183): the split rewrites the whole body when it lands.
+    static func mode(isPlaying: Bool, status: TranscriptStatus, splitting: Bool = false) -> Mode {
         if isPlaying { return .playing }
-        if status == .transcribing { return .reading }
+        if status == .transcribing || splitting { return .reading }
         return .editing
     }
 }
@@ -83,7 +85,13 @@ struct NoteBodyView: UIViewRepresentable {
 
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true
 
-    private var mode: NoteBody.Mode { NoteBody.mode(isPlaying: player.isPlaying, status: memo.transcriptStatus) }
+    /// Observed so the body flips read-only the moment a split starts and editable when it ends.
+    @ObservedObject private var diarStatus = DiarizationStatus.shared
+
+    private var mode: NoteBody.Mode {
+        NoteBody.mode(isPlaying: player.isPlaying, status: memo.transcriptStatus,
+                      splitting: diarStatus.isSplitting(memo.id))
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(memo: memo, onCommit: onCommit) }
 

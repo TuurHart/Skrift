@@ -91,9 +91,7 @@ enum SplitSpeakers {
     /// How many of the SHOWN turns belong to the speaker wearing `displayed` (their whole voice,
     /// short or full name alike). "A person names all 3 of Speaker 2's turns."
     static func turnCount(of displayed: String, in pf: PipelineFile, people: [Person]) -> Int {
-        let resolver = SpeakerTurnStyle.HeaderResolver(people: people)
-        let target = resolver.identity(for: displayed)
-        return turnLabels(in: pf).filter { resolver.identity(for: $0) == target }.count
+        SpeakerNaming.turnCount(of: displayed, in: shownBody(pf), people: people)
     }
 
     /// The other speakers in the note, for the popover's "move this line" list: distinct

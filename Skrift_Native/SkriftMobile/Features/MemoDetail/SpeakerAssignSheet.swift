@@ -11,6 +11,8 @@ import SwiftUI
 struct SpeakerAssignSheet: View {
     let speaker: String                       // the tapped label, e.g. "Speaker 3"
     let otherSpeakers: [String]               // other distinct turn labels in this memo
+    /// How many turns this speaker has: naming a person names ALL of them (the Mac popover's line).
+    var turnCount: Int = 0
     let people: [Person]
     var onAssignPerson: (Person) -> Void
     var onMergeInto: (String) -> Void
@@ -25,6 +27,11 @@ struct SpeakerAssignSheet: View {
                 Color.skBg.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        if turnCount > 0 {
+                            Text(SplitSpeakersCopy.namesAllTurns(count: turnCount, speaker: speaker))
+                                .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
+                                .accessibilityIdentifier("assign-names-all-turns")
+                        }
                         if !people.isEmpty {
                             section("PEOPLE") {
                                 ForEach(people, id: \.canonical) { person in
