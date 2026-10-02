@@ -92,4 +92,8 @@ struct CompilerInput: Sendable {
     /// Mac in `enhancedCopyedit`, the phone re-linked into `sanitised`), so a Compiler-side
     /// guess reads `raw` on one device and `cleaned` on the other for the same note.
     var voice: NoteVoice = .raw
+    /// The note's kind from the ONE classifier (`SourceKind`), set by both exporters (Q142).
+    /// The Compiler reads it for the kinds `sourceType` cannot tell apart — a typed note rides
+    /// `.audio` on the phone and `.note` on the Mac. nil = engine tests / unclassified.
+    var kind: SourceKind? = nil
 }

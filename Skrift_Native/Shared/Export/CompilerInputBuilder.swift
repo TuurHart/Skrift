@@ -59,6 +59,7 @@ extension CompilerInput {
                      rawRecordedAt: String?,
                      destination: NoteDestination,
                      spoken: Bool,
+                     kind: SourceKind? = nil,
                      linkStems: [UUID: String] = [:]) -> CompilerInput {
         let work = workingBody(raw: raw, copyedit: copyedit)
         let sanitised: String? = {
@@ -81,7 +82,8 @@ extension CompilerInput {
             sharedContent: sharedContent,
             rawRecordedAt: rawRecordedAt,
             destination: destination,
-            voice: !spoken ? .written : (work.fromCopyedit ? .cleaned : .raw))
+            voice: !spoken ? .written : (work.fromCopyedit ? .cleaned : .raw),
+            kind: kind)
         input.setLinkStems(linkStems)
         return input
     }

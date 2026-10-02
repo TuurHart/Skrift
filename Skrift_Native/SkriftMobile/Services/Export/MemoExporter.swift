@@ -55,6 +55,7 @@ enum MemoExporter {
             rawRecordedAt: nil,
             destination: memo.destination,
             spoken: !memo.audioFilename.isEmpty,
+            kind: SourceKind.of(memo),                     // typed → `Typed-note` (Q142)
             linkStems: linkStems)
     }
 

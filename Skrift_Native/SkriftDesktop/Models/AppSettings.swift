@@ -26,6 +26,9 @@ struct AppSettings: Codable, Equatable, Sendable {
     }
 
     var authorName: String = ""
+    /// LWW stamp for `authorName` ALONE (`AuthorSyncCore`, Q158) — the author syncs with the
+    /// iPad's export author. nil = never edited on this Mac (optional for legacy decode).
+    var authorModifiedAt: Date? = nil
 
     // Enhancement model (shipped default = the tuned 8bit; downloaded from HF on first run)
     var enhancementModelRepo: String = PolishPrompts.defaultModelRepo

@@ -78,7 +78,13 @@ extension PipelineFile {
             sharedContent: sc.map { .init(type: $0.type.rawValue, url: $0.url, urlTitle: $0.urlTitle, text: $0.text, fileName: $0.fileName) },
             rawRecordedAt: Self.rawMetaString(audioMetadataJSON, key: "recordedAt"),
             destination: destination,
-            spoken: sourceType == .audio && !path.isEmpty)
+            spoken: sourceType == .audio && !path.isEmpty,
+            // The ONE classifier the phone's exporter uses too (Q142): a typed row is
+            // `.note` + `mediaSource: "typed"` here, which alone would read `Apple-Note`.
+            kind: SourceKind.classify(hasBook: !(meta?.bookTitle ?? "").isEmpty,
+                                      media: mediaSource, sharedType: sc?.type.rawValue,
+                                      isCaptureRow: sourceType == .capture,
+                                      hasAudio: sourceType == .audio && !path.isEmpty))
     }
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).
