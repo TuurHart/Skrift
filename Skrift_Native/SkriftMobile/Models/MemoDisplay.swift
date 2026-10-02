@@ -52,7 +52,7 @@ extension Memo {
     /// A video import is an ordinary audio memo otherwise (not a share/book capture),
     /// so it needs its own source marker (`metadata.sourceType`).
     var isVideoImport: Bool {
-        metadata?.sourceType == MemoMetadata.Source.video
+        SourceKind.of(self) == .video
     }
 
     /// Whole days until the startup purge permanently removes this trashed memo
@@ -255,13 +255,7 @@ extension Memo {
 
     /// SF Symbol glyph for the list row icon, keyed off `sharedContent.type`.
     var shareCaptureGlyph: String {
-        switch sharedContent?.type {
-        case .url:   return "link"
-        case .text:  return "text.quote"
-        case .image: return "photo"
-        case .file:  return "doc"
-        case nil:    return "link"
-        }
+        sharedContent == nil ? SourceKind.captureURL.glyph : SourceKind.of(self).glyph
     }
 
     /// Primary title for a capture row: urlTitle (URL), first words of text (text),

@@ -74,27 +74,11 @@ extension PipelineFile {
     /// `sourceType`/`sharedContentType`. A book capture + a video both sync as
     /// `.audio`, so type alone can't tell them apart — the markers do.
     var sourceDescriptor: (glyph: String, label: String) {
-        let kind: SourceKind
-        if bookCapture != nil { kind = .audiobookQuote }
-        else if mediaSource == "video" { kind = .video }
-        // A note somebody TYPED, ingested as a `.note` row — the marker is what keeps it
-        // from reading as an Apple Note import, that row kind's only other population.
-        else if mediaSource == "typed" { kind = .typedNote }
-        else {
-            switch sourceType {
-            case .note:  kind = .appleNote
-            case .audio: kind = .voiceMemo
-            case .capture:
-                switch sharedContentType {
-                case "url":   kind = .captureURL
-                case "image": kind = .captureImage
-                case "text":  kind = .captureText
-                case "file":  kind = .captureFile
-                default:      kind = .captureOther
-                }
-            }
-        }
-        // Glyph + label come from the SHARED taxonomy — one copy, both apps.
+        let kind = SourceKind.classify(hasBook: bookCapture != nil, media: mediaSource,
+                                       sharedType: sharedContentType,
+                                       isCaptureRow: sourceType == .capture,
+                                       hasAudio: sourceType == .audio)
+        // Glyph + label come from the SHARED taxonomy: one copy, both apps.
         return (kind.glyph, kind.label)
     }
 

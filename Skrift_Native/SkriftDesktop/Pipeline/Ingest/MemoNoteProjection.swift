@@ -60,7 +60,9 @@ enum MemoNoteProjection {
                               size: 0,
                               sourceType: sourceType(for: kind),
                               uploadedAt: memo.recordedAt)
+        // The marker the Mac row classifier (`PipelineFile.sourceDescriptor`) reads back.
         if kind == .video { pf.mediaSource = "video" }
+        if kind == .typedNote { pf.mediaSource = "typed" }
         pf.transcript = memo.transcript
         pf.enhancedTitle = memo.title
         pf.tags = memo.tags

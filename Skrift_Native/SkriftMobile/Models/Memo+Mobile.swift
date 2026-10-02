@@ -32,12 +32,6 @@ extension Memo {
         return AppPaths.recordingsDirectory.appendingPathComponent(path)
     }
 
-    /// Typed shared-capture payload, decoded from / encoded to the raw `sharedContentData` blob.
-    var sharedContent: SharedContent? {
-        get { Self.decodeJSON(sharedContentData) }
-        set { sharedContentData = Self.encodeJSON(newValue) }
-    }
-
     /// Typed per-note name-linking resolution choices, over the `nameResolutionsData` blob.
     var nameResolutions: NameResolutions {
         get { Self.decodeJSON(nameResolutionsData) ?? NameResolutions() }
