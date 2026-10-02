@@ -567,7 +567,7 @@ struct BodyTextView: NSViewRepresentable {
         /// ~20×/s while playing).
         func applyKaraoke(_ tv: SelfSizingTextView, active modelActive: Int?) {
             guard let storage = tv.textStorage else { return }
-            let words = Coordinator.wordRanges(storage.string)
+            let words = KaraokeMap.wordRanges(in: storage.string as NSString, countAttachmentOnlyTokens: true)
             if karaokeModelIndex == nil || karaokeModelIndex?.count != words.count {
                 karaokeModelIndex = words.indices.map { modelWordIndex($0, in: storage, words: words) }
             }
@@ -599,26 +599,6 @@ struct BodyTextView: NSViewRepresentable {
                 if role != .upcoming { storage.addAttribute(.foregroundColor, value: colors[role]!, range: r) }
             }
             storage.endEditing()
-        }
-
-        /// Whitespace-delimited word ranges — the karaoke highlight unit + the
-        /// click-to-seek hit map. Matches `BodyText.tokenize`'s word definition so the
-        /// NSTextView highlight lines up with the read-path one.
-        static func wordRanges(_ s: String) -> [NSRange] {
-            let ns = s as NSString
-            var ranges: [NSRange] = []
-            var start = -1
-            for i in 0..<ns.length {
-                let c = ns.character(at: i)
-                let isSpace = CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(c) ?? UnicodeScalar(32))
-                if isSpace {
-                    if start >= 0 { ranges.append(NSRange(location: start, length: i - start)); start = -1 }
-                } else if start < 0 {
-                    start = i
-                }
-            }
-            if start >= 0 { ranges.append(NSRange(location: start, length: ns.length - start)) }
-            return ranges
         }
 
         /// A STORAGE word index → the MODEL word index the karaoke times are keyed by.
@@ -727,7 +707,7 @@ struct BodyTextView: NSViewRepresentable {
             storage.beginEditing()
             for t in turns.reversed() {
                 // The header's TRAILING SPACE is deliberately left in the text: it keeps the
-                // attachment a whitespace-delimited token of its own, so `wordRanges` counts
+                // attachment a whitespace-delimited token of its own, so `KaraokeMap.wordRanges(countAttachmentOnlyTokens: true)` counts
                 // exactly what it counted when the header was literal `**Name:**` — karaoke
                 // word indices and click-to-seek are unchanged by this whole feature. The
                 // space is then kerned out to the spine padding in `restyle`.
@@ -1041,7 +1021,7 @@ struct BodyTextView: NSViewRepresentable {
         func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
             // Karaoke: click a word → seek there (the old behavior the user missed).
             if let k = parent.karaoke, let storage = tv.textStorage {
-                let words = Coordinator.wordRanges(storage.string)
+                let words = KaraokeMap.wordRanges(in: storage.string as NSString, countAttachmentOnlyTokens: true)
                 if let wi = words.firstIndex(where: { NSLocationInRange(idx, $0) || idx == NSMaxRange($0) }) {
                     // Translate to a MODEL word index first — that's what the word-times are
                     // keyed by, and a spliced attachment can stand for several model words.

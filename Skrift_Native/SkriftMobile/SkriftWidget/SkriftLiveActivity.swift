@@ -4,13 +4,13 @@ import SkriftShared
 import SwiftUI
 import WidgetKit
 
-// Skrift tokens (the widget target can't see the app's DesignSystem; the few
-// colors are inlined). accent #7c6bf5, red #ef4444, amber #f59e0b, pill #15161d.
+// Skrift tokens: the dark values come from the shared `Palette` via `WidgetColors`
+// (QuickActionWidget.swift) — the widget target can't see the app's DesignSystem.
 private enum SK {
-    static let accent = Color(red: 0.486, green: 0.420, blue: 0.961)
-    static let red = Color(red: 0.937, green: 0.267, blue: 0.267)
-    static let amber = Color(red: 0.961, green: 0.620, blue: 0.043)
-    static let pill = Color(red: 0.082, green: 0.086, blue: 0.114)
+    static let accent = WidgetColors.accent
+    static let red = WidgetColors.red
+    static let amber = WidgetColors.amber
+    static let pill = WidgetColors.pill
     static let recordURL = URL(string: "skrift://record")
 }
 

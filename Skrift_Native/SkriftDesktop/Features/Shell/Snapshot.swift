@@ -812,7 +812,7 @@ enum Snapshot {
             // Every DISPLAYED word must translate back to the model word with the same text —
             // that is exactly what a click-to-seek does before it looks up a time.
             let ns = tv.string as NSString
-            let words = BodyTextView.Coordinator.wordRanges(tv.string)
+            let words = KaraokeMap.wordRanges(in: tv.string as NSString, countAttachmentOnlyTokens: true)
             let modelWords = want.split(whereSeparator: { $0.isWhitespace }).map(String.init)
             var mismatch: String?
             for (i, r) in words.enumerated() {

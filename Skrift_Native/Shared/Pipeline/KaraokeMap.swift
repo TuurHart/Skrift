@@ -14,13 +14,17 @@ enum KaraokeMap {
     /// Character ranges of the spoken words in display order. `ranges[i]` is the
     /// i-th word of THIS text (callers add the region's sidecar offset — e.g. a
     /// capture ramble starts at `CaptureQuote.spokenWordCount`).
-    static func wordRanges(in text: NSString) -> [NSRange] {
+    ///
+    /// `countAttachmentOnlyTokens`: the Mac editor splices a speaker-gutter attachment in front of
+    /// a turn and it must count as a word (the literal `**Name:**` it stands for was one), so the
+    /// Mac passes true; the phone has no such attachment and keeps false.
+    static func wordRanges(in text: NSString, countAttachmentOnlyTokens: Bool = false) -> [NSRange] {
         var ranges: [NSRange] = []
         var tokenStart: Int? = nil
         var tokenHasWord = false
 
         func closeToken(at end: Int) {
-            if let start = tokenStart, tokenHasWord {
+            if let start = tokenStart, tokenHasWord || countAttachmentOnlyTokens {
                 ranges.append(NSRange(location: start, length: end - start))
             }
             tokenStart = nil
