@@ -71,8 +71,9 @@ struct JournalMapCanvas: View {
                 visibleRegion = context.region
                 // A real gesture returns the card to frame mode; a dive's own
                 // landing doesn't.
-                if programmaticMove { programmaticMove = false }
-                else if selected != nil { selected = nil }
+                let ended = ReviewNotes.cameraEnded(programmaticMove: programmaticMove)
+                programmaticMove = ended.programmaticMove
+                if ended.clearPinnedPlace, selected != nil { selected = nil }
                 // …but re-cluster only on a MEANINGFUL zoom change (>20%) —
                 // every span commit rebuilds all annotations (the Mac's rapid-
                 // zoom stutter). Panning never re-clusters.
@@ -84,7 +85,8 @@ struct JournalMapCanvas: View {
             bottomCard
         }
         .onAppear {
-            clusters = PlaceCluster.build(from: repository.canonicalMemos())
+            // The Review note set: no fading pins (Q166).
+            clusters = PlaceCluster.build(from: ReviewNotes.live(repository.canonicalMemos()))
             // Enter already focused on the place that was tapped (iPad pane).
             if let focus = initialFocus, let match = clusters.first(where: { $0.id == focus.id }) {
                 dive(into: match)
@@ -158,9 +160,8 @@ struct JournalMapCanvas: View {
     }
 
     @ViewBuilder private var bottomCard: some View {
-        let title = selected.map { "\($0.name) · \($0.memos.count) note\($0.memos.count == 1 ? "" : "s")" }
-            ?? "In view · \(inFrameMemos.count) note\(inFrameMemos.count == 1 ? "" : "s")"
         let memos = selected?.memos ?? inFrameMemos
+        let title = "\(selected?.name ?? "In view") · \(ReviewNotes.noteCount(memos.count))"
         if !memos.isEmpty {
             JournalCard {
                 VStack(alignment: .leading, spacing: 8) {

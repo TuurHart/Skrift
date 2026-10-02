@@ -55,6 +55,10 @@ struct JournalView: View {
     /// automatic camera re-fit all pins, snapping the map back mid-gesture
     /// (the "glitchy" 2026-07-16 device finding).
     @State private var camera: MapCameraPosition = .automatic
+    /// True while a camera move the app made (a dive or a place-row focus) is
+    /// landing — its onEnd keeps the pinned place; every real pan or zoom clears
+    /// it (`ReviewNotes.cameraEnded`, the phone's b89 rule; Q166).
+    @State private var programmaticMove = false
 
     private var calendar: Calendar { .current }
 
@@ -93,7 +97,7 @@ struct JournalView: View {
             rows = []
         }
         trashedMemos = rows.filter { $0.deletedAt != nil }
-        let split = MemoLifecycle.partition(rows)
+        let split = ReviewNotes.split(rows)
         memos = split.live
         fadingMemos = split.fading
         clusters = PlaceCluster.build(from: memos)
@@ -224,6 +228,7 @@ struct JournalView: View {
         selectedPlace = cluster
         showing = .map
         if let region = PlaceCluster.fitRegion(for: [cluster]) {
+            programmaticMove = true
             withAnimation { camera = .region(region) }
         }
     }
@@ -383,6 +388,11 @@ struct JournalView: View {
                 // The viewport always updates (drives the in-frame notes list —
                 // cheap, no Map content change)…
                 visibleRegion = context.region
+                // A real pan or zoom returns the list to "In view"; a dive's or
+                // a place-row focus's own landing doesn't (Q166, recsj-100).
+                let ended = ReviewNotes.cameraEnded(programmaticMove: programmaticMove)
+                programmaticMove = ended.programmaticMove
+                if ended.clearPinnedPlace, selectedPlace != nil { selectedPlace = nil }
                 // …but re-cluster only on a MEANINGFUL zoom change (>20%): each
                 // span commit tears down + rebuilds every annotation, and rapid
                 // zoom-in/out fired one per gesture end — the stutter Tuur felt.
@@ -404,13 +414,15 @@ struct JournalView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(shownTitle).font(.system(size: 13.5, weight: .bold))
                 Spacer()
-                Text("\(shownMemos.count) note\(shownMemos.count == 1 ? "" : "s") · newest first")
+                Text("\(ReviewNotes.noteCount(shownMemos.count)) · newest first")
                     .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             }
             .padding(.top, 10)
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(shownMemos.prefix(20), id: \.persistentModelID) { memo in
+                // Every note the heading counts, lazily (the old prefix(20) said
+                // "34 notes" over 20 cards — recsj-101; the phone's b89 fix).
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(shownMemos, id: \.persistentModelID) { memo in
                         card(memo,
                              kick: LookbackProvider.journalDate(memo).formatted(date: .abbreviated, time: .shortened),
                              warmKick: true)
@@ -469,6 +481,7 @@ struct JournalView: View {
                     || region.span.longitudeDelta < $0.span.longitudeDelta * 0.95
             } ?? true
             if tighter {
+                programmaticMove = true
                 withAnimation { camera = .region(region) }
             }
         }
