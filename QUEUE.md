@@ -1061,7 +1061,7 @@ do: The shared source map has no typed value: the same typed note exports `sourc
 check: `grep -rqE "class ExportSourceFieldTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportSourceFieldTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P43
 
-### Q143 [auto] (doing) Mac note shows captures like the phone: image pixels, link description + thumbnail, PDF first page, the typed thought, an honest banner
+### Q143 [auto] (done) Mac note shows captures like the phone: image pixels, link description + thumbnail, PDF first page, the typed thought, an honest banner
 spec: C119 D126 C25
 needs: Q138
 gate+: yes
@@ -2659,3 +2659,6 @@ check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-02 22:59 Q118 -> doing — batch worker out
 - 2026-10-02 22:59 Q114 -> done — gate pass @2b5564a4
 - 2026-10-02 23:02 Q259 -> done — gate pass @7256e7f1
+- 2026-10-02 23:02 Q135 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-02 23:02 Q135 -> doing — redispatch 2/3: rebase after CONFLICT
+- 2026-10-02 23:04 Q143 -> done — gate pass @1146a36a
