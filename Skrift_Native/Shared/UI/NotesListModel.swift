@@ -13,6 +13,17 @@ enum NotesListModel {
         [.needsWork: needsWork, .done: done, .notRated: notRated]
     }
 
+    /// The ONE date a day header keys on (Q97, C70/C115). A header is a claim about WHEN THE
+    /// NOTE HAPPENED, so it follows the note's `recordedAt` (the date its card shows) under
+    /// every sort except "Recently edited", where the header names the edit day. It never
+    /// follows `createdAt`: that is when the note entered Skrift (a Mac-authored import or a
+    /// fresh device's CloudKit fill all share one arrival day), and grouping on it filed a
+    /// whole archive under "Yesterday" (Tuur 2026-10-02). The Mac queue already keys on the
+    /// content date (`QueueEntry.date`), so all three surfaces read the same day.
+    static func groupDate(recordedAt: Date, lastEditedAt: Date, byEditTime: Bool) -> Date {
+        byEditTime ? lastEditedAt : recordedAt
+    }
+
     /// Day-group a list into `(title, items)` buckets, in the order items already
     /// arrive (so the caller's own sort decides group order) — ONE grouping pass
     /// instead of a hand-rolled reduce per app. `dayLabel` is each app's own
