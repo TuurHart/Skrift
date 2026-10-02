@@ -95,7 +95,7 @@ enum MixedBundle {
     }
 
     /// File extensions the import layer treats as pictures (C238).
-    static let pictureExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "heif", "gif", "webp", "tif", "tiff", "bmp"]
+    static let pictureExtensions: Set<String> = ImportKinds.imageExtensions
 
     static func isPictureName(_ url: URL) -> Bool { pictureExtensions.contains(url.pathExtension.lowercased()) }
 

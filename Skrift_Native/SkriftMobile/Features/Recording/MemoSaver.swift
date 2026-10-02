@@ -373,7 +373,7 @@ struct MemoSaver {
     /// doc type delivers them anyway, and routing them into `importVideo` yields the
     /// honest "format not supported" memo — dropping them here would silently eat the
     /// share (A9).
-    nonisolated static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2"]
+    nonisolated static let videoExtensions: Set<String> = ImportKinds.videoExtensions
 
     /// True when the URL's extension is a known video container. Used to route a
     /// shared/opened file to `importVideo` rather than `importAudio`.

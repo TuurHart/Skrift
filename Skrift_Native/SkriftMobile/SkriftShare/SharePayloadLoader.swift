@@ -208,7 +208,7 @@ enum SharePayloadLoader {
         // cards. An audio EXTENSION is the tell — reroute as a single-clip
         // audio share (transcribed memo, slim audio sheet).
         let ext = result.url.pathExtension.lowercased()
-        if ["m4a", "mp3", "wav", "aac", "caf", "aiff", "aif", "opus", "ogg", "oga", "flac"].contains(ext) {
+        if ImportKinds.audioExtensions.contains(ext) {
             var duration: TimeInterval?
             if let f = try? AVAudioFile(forReading: result.url) {
                 duration = Double(f.length) / f.fileFormat.sampleRate

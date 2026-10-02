@@ -334,7 +334,7 @@ struct MemosListView: View {
             // AppURLHandler path as open-in/AirDrop: video → strip audio +
             // frame, audio → transcribed memo, both jump to the new note.
             .fileImporter(isPresented: $showMediaFileImporter,
-                          allowedContentTypes: [.audio, .movie],
+                          allowedContentTypes: ImportKinds.allowedContentTypes(),
                           allowsMultipleSelection: true) { result in
                 if case .success(let urls) = result {
                     for url in urls { AppURLHandler.handle(url) }
