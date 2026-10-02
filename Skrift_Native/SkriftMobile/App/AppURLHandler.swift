@@ -63,7 +63,8 @@ enum AppURLHandler {
     /// into one transcribed memo; `.separateNotes` imports each. Files that are not voice notes
     /// in the pick are handled as ever. Returns the memo to jump to.
     @discardableResult
-    static func resolve(_ urls: [URL], choice: AudioImportChoice, saver: MemoSaver = MemoSaver()) async -> UUID? {
+    static func resolve(_ urls: [URL], choice: AudioImportChoice, saver: MemoSaver? = nil) async -> UUID? {
+        let saver = saver ?? MemoSaver()
         let clips = audioClips(in: urls)
         let clipSet = Set(clips)
         var jump: UUID?
