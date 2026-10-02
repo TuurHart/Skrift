@@ -97,6 +97,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// source taxonomy. Stored as strings (see `sourceType` above).
     enum Source {
         static let video = "video"
+        /// A Mac picture-only import (no sharedContent): reads "Image" like a phone image share (Q179).
+        static let image = "image"
     }
 }
 

@@ -289,6 +289,7 @@ struct IngestService: Sendable {
         let pf = PipelineFile(id: id, filename: folderName, path: folder.path, size: 0, sourceType: .capture,
                               uploadedAt: recorded)
         pf.transcript = MixedBundle.pictureOnlyBody(count: written)
+        pf.mediaSource = MemoMetadata.Source.image   // reads "Image" like a phone image share, not "Capture" (Q179)
         pf.transcribeStatus = .done
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
