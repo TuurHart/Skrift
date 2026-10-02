@@ -12,6 +12,9 @@ struct NoteActions: View {
     /// Copying text that's already on your screen is not something a rating should
     /// gate (Tuur, 2026-07-26: "this is not one of those differences").
     var copyOnly = false
+    /// The note was moved to Recently Deleted from its own ⋯ (an unrated note's Delete): the
+    /// shell drops the selection so the pane doesn't keep showing a trashed note.
+    var onRemoved: (() -> Void)? = nil
     @Environment(\.modelContext) private var ctx
 
     /// Polished — by ANY device, and exported — to the folder THIS note goes to. Both come
@@ -85,12 +88,86 @@ struct NoteActions: View {
     /// `PipelineFile` needs a cloud write-back (its own chunk, see backlog).
     @ViewBuilder private var overflowItems: some View {
         if copyOnly {
-            // Reveal in Finder / Open in Obsidian are absent by FACT, not by policy:
-            // an unrated note has no working folder and has never been exported.
-            undoTidyUpItem
-            copyItems
+            unratedOverflowItems
         } else {
             fullOverflowItems
+        }
+    }
+
+    /// An unrated note's ⋯ (Q127): Process (floors the rating), Lock, Copy, Delete — the iPad's set
+    /// (`MacUnratedMenu`). Reveal in Finder / Open in Obsidian are absent by FACT, not by policy:
+    /// an unrated note has no working folder and has never been exported.
+    @ViewBuilder private var unratedOverflowItems: some View {
+        let entries = MacUnratedMenu.entries(rated: NoteConsent.isRated(file),
+                                             locked: LockGate.shared.isLocked(file),
+                                             canUndoTidyUp: file.canUndoBodyNormalise(cloud: cloudContext))
+        ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+            if entry == .item(.delete) { Divider() }
+            switch entry {
+            case .process:
+                Button(MacUnratedMenu.label(entry)) { processUnrated() }
+            case .item(.undoTidyUp):
+                Button(MacUnratedMenu.label(entry)) { file.undoBodyNormalise(cloud: cloudContext) }
+            case .item(.lock), .item(.unlock):
+                Button(MacUnratedMenu.label(entry)) { toggleUnratedLock() }
+            case .item(.copyTranscript):
+                Button(MacUnratedMenu.label(entry)) { copy(file.transcript ?? "") }
+                    .disabled(LockGate.shared.isLocked(file))
+            case .item(.copyMarkdown):
+                Button(MacUnratedMenu.label(entry)) { copy(compiledMarkdown()) }
+                    .disabled(LockGate.shared.isLocked(file))
+            case .item(.delete):
+                Button(MacUnratedMenu.label(entry), role: .destructive) { deleteUnrated() }
+            case .item:
+                EmptyView()
+            }
+        }
+    }
+
+    /// The synced `Memo` behind this unrated note's projection (same id, `MemoNoteProjection`).
+    private var unratedMemo: Memo? {
+        guard let uuid = UUID(uuidString: file.id),
+              let cloud = MemoCloudStore.container?.mainContext else { return nil }
+        return MemoCloudStore.memo(id: uuid, context: cloud)
+    }
+
+    /// Process on an unrated note IS a judgment (C40/D159): floor the rating. The pane
+    /// (`UnratedNotePane`) mirrors a projection's rating onto the memo and kicks the reconcile
+    /// sweep, so this writes the ONE place the circles write — no second door out of unrated.
+    private func processUnrated() {
+        file.significance = NoteConsent.flooredByProcess(file.significance)
+    }
+
+    /// Lock (instant) / remove lock (device-owner auth) through the shared `LockPolicy`, the
+    /// same as the notes-list row menu.
+    private func toggleUnratedLock() {
+        guard let memo = unratedMemo else { return }
+        Task {
+            if memo.locked {
+                guard await LockGate.shared.policy.removeLock(memo) else { return }
+            } else if !LockGate.shared.policy.lock(memo) {
+                coordinator.flash("Set a device passcode to lock notes")
+                return
+            }
+            file.locked = memo.locked
+            try? MemoCloudStore.container?.mainContext.save()
+            NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
+        }
+    }
+
+    /// Soft delete into the shared Recently Deleted (14 days, both devices); a locked note needs
+    /// device-owner auth first (R88/C161) — the notes-list row's `deleteQuiet`.
+    private func deleteUnrated() {
+        guard let memo = unratedMemo else { return }
+        Task {
+            guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
+            memo.deletedAt = Date()
+            memo.trashSeenAt = memo.deletedAt   // deleted in-session: the purge clock starts now (v3)
+            MemoNoteProjection.discardMedia(for: memo.id)
+            try? MemoCloudStore.container?.mainContext.save()
+            NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
+            coordinator.flash("Moved to Recently Deleted")
+            onRemoved?()
         }
     }
 
@@ -141,7 +218,17 @@ struct NoteActions: View {
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
     }
 
+    /// THIS note's run state (Q118): the coordinator's live run mapped onto this note, plus the
+    /// note's own failure. The Mac's `PolishCenter.Phase`.
+    private var runState: MacNoteRunState {
+        MacNoteRunState.of(noteID: file.id, run: coordinator.runState?.snapshot,
+                           transcribe: file.transcribeStatus, enhance: file.enhanceStatus,
+                           error: file.error, needsProcessing: workState.wantsProcessing)
+    }
+
     private func primaryAction() {
+        // The verb is replaced while a run is on this note; this guards a stray key-equivalent.
+        guard !runState.isBusy else { return }
         if !enhanceDone {
             Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
         } else {
@@ -149,18 +236,64 @@ struct NoteActions: View {
         }
     }
 
+    /// The verb, or while a pass runs on this note a bar + step line in its place (the iPad's
+    /// `processControl`), or after a failed pass "Couldn't process — Retry".
+    @ViewBuilder private var primaryControl: some View {
+        switch runState {
+        case .idle:
+            Button(action: primaryAction) {
+                Text(primaryLabel)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+        case .queued:
+            runCapsule(line: MacNoteRunState.queuedLine, fraction: nil)
+        case .loading(let line, let fraction):
+            runCapsule(line: line, fraction: fraction)
+        case .running(let line, let fraction):
+            runCapsule(line: line, fraction: fraction)
+        case .failed(let reason):
+            Button(action: primaryAction) {
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10.5))
+                    Text("\(MacNoteRunState.failedLine) — Retry").font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Theme.destructive)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(Theme.destructive.opacity(0.12), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .help(reason.isEmpty ? MacNoteRunState.failedLine : reason)
+            .accessibilityIdentifier("note-process-retry")
+        }
+    }
+
+    private func runCapsule(line: String, fraction: Double?) -> some View {
+        HStack(spacing: 8) {
+            if let fraction {
+                ProgressView(value: fraction)
+                    .progressViewStyle(.linear)
+                    .frame(width: 74)
+                    .tint(Theme.accentText)
+            }
+            Text(line)
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(Theme.accentText)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 11).padding(.vertical, 7)
+        .background(Theme.accent.opacity(0.14), in: Capsule())
+        .accessibilityIdentifier("note-process-progress")
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             if !copyOnly {
-                Button(action: primaryAction) {
-                    Text(primaryLabel)
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
+                primaryControl
             }
 
             // Native Menu: auto-dismisses on outside click (N3) and the items

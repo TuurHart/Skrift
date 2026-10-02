@@ -275,18 +275,27 @@ struct MemoDetailView: View {
                 }
             }
         case .failed(let message):
-            Button { PolishCenter.shared.polishNow(memo) } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10.5))
-                    Text("Retry").font(.system(size: 12, weight: .semibold))
+            // Q118: the reason is PRINTED beside Retry (as the compact band prints its line),
+            // not left only in `.help`, which a touch can never show.
+            HStack(spacing: 8) {
+                Button { PolishCenter.shared.polishNow(memo) } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10.5))
+                        Text("Retry").font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.skRed)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.skRed.opacity(0.12), in: Capsule())
                 }
-                .foregroundStyle(Color.skRed)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(Color.skRed.opacity(0.12), in: Capsule())
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("ipad-process-retry")
+                Text(phase.line ?? message)
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(Color.skRed)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("ipad-process-failure-line")
             }
-            .buttonStyle(.plain)
             .help(message)
-            .accessibilityIdentifier("ipad-process-retry")
         default:
             if let line = phase.line {
                 HStack(spacing: 8) {

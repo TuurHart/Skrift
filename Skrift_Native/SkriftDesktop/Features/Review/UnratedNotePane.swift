@@ -18,6 +18,8 @@ struct UnratedNotePane: View {
     var coordinator: ProcessingCoordinator
     /// A memo-link chip inside the body pointed at another note.
     var onOpenMemo: (String) -> Void = { _ in }
+    /// The note was deleted from its own ⋯: the shell drops the selection.
+    var onRemoved: () -> Void = {}
     /// The sidebar's live search text — an unrated note opened from a search result
     /// scrolls to the match and flashes it, exactly like a pipelined one (Tuur:
     /// "should flash"). Reading your own note back is never gated on the rating.
@@ -39,6 +41,7 @@ struct UnratedNotePane: View {
             if let projection {
                 NoteDisplayView(file: projection, coordinator: coordinator,
                                 onOpenMemo: onOpenMemo,
+                                onRemoved: onRemoved,
                                 searchQuery: searchQuery,
                                 focusBodyToken: focusBody ? "new-note:\(memoID)" : nil)
                     // The note view edits the projection; these put those edits on the

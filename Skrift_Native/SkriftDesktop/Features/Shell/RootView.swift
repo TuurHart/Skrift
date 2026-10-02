@@ -99,6 +99,10 @@ struct RootView: View {
                                                 // so the pane swaps to the real row by itself the
                                                 // moment the sweep's `@Query` yields it.
                                                 onOpenMemo: { other in model.select(other) },
+                                                onRemoved: {
+                                                    model.selection.remove(id)
+                                                    if model.activeID == id { model.activeID = nil }
+                                                },
                                                 searchQuery: model.searchText,
                                                 draft: model.typedNotes,
                                                 focusBody: model.focusBodyID == id)
