@@ -1841,7 +1841,7 @@ do: `SpeakerTranscript.swift` rebuilds `**name:** text` joined by blank lines in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SpeakerTranscriptTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c10 SPL-c11 SPL-c12 (cleanup-audit P53)
 
-### Q241 [auto] (doing) six suspected bugs the audit tripped over: prove each with a test or log why not
+### Q241 [auto] (done) six suspected bugs the audit tripped over: prove each with a test or log why not
 spec: C115
 needs: -
 gate+: yes
@@ -2445,3 +2445,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:28 Q208 -> doing — batch worker out
 - 2026-10-02 17:28 Q215 -> doing — batch worker out
 - 2026-10-02 17:28 Q210 -> doing — batch worker out
+- 2026-10-02 17:31 Q241 -> done — gate pass @fc56ae38
