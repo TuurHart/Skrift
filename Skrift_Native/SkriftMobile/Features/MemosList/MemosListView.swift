@@ -563,7 +563,9 @@ struct MemosListView: View {
                     }
                 }
                 if d.groups.isEmpty && d.related.isEmpty {
-                    Text(SharedCopy.noMatchesTitle)
+                    Text(SharedCopy.noMatchesTitle
+                         + (search.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\n" + SharedCopy.noMatchesBody(search)))
+                        .multilineTextAlignment(.center)
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
                         .frame(maxWidth: .infinity)
