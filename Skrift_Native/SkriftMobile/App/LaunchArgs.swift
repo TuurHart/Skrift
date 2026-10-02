@@ -90,6 +90,8 @@ enum LaunchFlags {
     static var showTextPrompt: Bool { args.boolFlag("-showTextPrompt") }
     /// DEBUG render hook: the real `BookShelfTile` in every state (uploading %, re-align, …).
     static var showBookTileGallery: Bool { args.boolFlag("-showBookTileGallery") }
+    /// DEBUG render hook: also present the D127 "notes from this book" sheet over the gallery.
+    static var showBookNotesSheet: Bool { args.boolFlag("-showBookNotesSheet") }
     /// Open the Settings tab on launch (screenshot routing).
     static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model
