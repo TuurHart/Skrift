@@ -88,6 +88,9 @@ struct BodyTextView: NSViewRepresentable {
     /// A NEW note opens ready to type (C112): once per token, make this view the first
     /// responder as soon as it has a window. nil = leave focus alone.
     var focusToken: String? = nil
+    /// Q124 (C173): the note's transcription (or a split) is in flight — the text stays
+    /// readable but not editable until the result lands (`MacBodyEditableState`).
+    var readOnly: Bool = false
 
     /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
     /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
@@ -201,7 +204,7 @@ struct BodyTextView: NSViewRepresentable {
             if tv.isEditable { tv.isEditable = false }
             context.coordinator.applyKaraoke(tv, active: k.active)
         } else {
-            if !tv.isEditable { tv.isEditable = true }
+            if tv.isEditable == readOnly { tv.isEditable = !readOnly }
             tv.liveTurnLoc = nil          // paused → no turn is "now"
             // render() already restyled; otherwise we're leaving karaoke — restyle in place.
             if !textChanged { context.coordinator.restyle(tv) }

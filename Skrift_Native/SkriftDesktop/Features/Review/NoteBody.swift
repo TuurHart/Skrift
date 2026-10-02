@@ -35,6 +35,9 @@ struct NoteBody: View {
     var searchJumpToken: String? = nil
     /// A new note: put the cursor in the body once for this token.
     var focusToken: String? = nil
+    /// Q183/Q124: a Split speakers run is rewriting this note's words — read-only like a
+    /// transcription in flight.
+    var splitting: Bool = false
 
     private static let bodyFont = Font.system(size: 16)
     @State private var trackCache = KaraokeTrackCache()
@@ -51,6 +54,12 @@ struct NoteBody: View {
 
     private var karaokeActive: Bool {
         audio.isPlaying && effectiveDuration > 0 && file.steps.transcribe == .done
+    }
+
+    /// Q124 (C173): playing / read-only (transcribing or splitting) / editing — the phone's
+    /// `NoteBody.mode` on the Mac's step columns.
+    private var editState: MacBodyEditableState {
+        MacBodyEditableState.of(isPlaying: karaokeActive, transcribe: file.steps.transcribe, splitting: splitting)
     }
 
     var body: some View {
@@ -155,7 +164,8 @@ struct NoteBody: View {
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution,
             searchJumpToken: searchJumpToken,
-            focusToken: focusToken
+            focusToken: focusToken,
+            readOnly: editState == .reading
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
