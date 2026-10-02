@@ -192,25 +192,17 @@ struct ConnectionsPanelBody: View {
 
     private var header: some View {
         HStack(spacing: 7) {
-            Text("CONNECTIONS")
-                .font(.system(size: 10, weight: .bold)).tracking(0.5)
-                .foregroundStyle(Theme.textMuted)
-            let count = related.count + backlinks.count
-            if count > 0 {
-                Text("\(count)")
-                    .font(.system(size: 9.5, weight: .bold).monospacedDigit())
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 7).padding(.vertical, 1)
-                    .background(Theme.surfaceHover, in: Capsule())
-            }
+            ConnectionsHeaderLabel(count: related.count + backlinks.count, style: .mac)
             Spacer()
+            // Mac extra kept: the tooltip carries the shortcut (information the iPad has no use for).
             Button(action: onCollapse) {
                 Image(systemName: "chevron.right.2")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.textMuted)
             }
             .buttonStyle(.plain)
-            .help("Hide Connections (⌥⌘C)")
+            .help("\(ConnectionsPanelSpec.closeLabel) (⌥⌘C)")
+            .accessibilityLabel(ConnectionsPanelSpec.closeLabel)
         }
         .padding(.horizontal, 14).padding(.top, 13).padding(.bottom, 10)
     }
@@ -329,6 +321,12 @@ struct ConnectionsPanelBody: View {
         }
         .buttonStyle(.plain)
         .help(rowTooltip(row))
+        // Q181: the Date rail (the default view) had no hide at all; same wording as the iPad.
+        .contextMenu {
+            Button(role: .destructive) { onHide(row) } label: {
+                Label(ConnectionsPanelSpec.hideLabel, systemImage: ConnectionsPanelSpec.hideIcon)
+            }
+        }
         .accessibilityIdentifier("connections-rail-row")
     }
 
@@ -369,7 +367,7 @@ struct ConnectionsPanelBody: View {
                                         .foregroundStyle(Theme.textSecondary)
                                 }
                                 .buttonStyle(.plain)
-                                .help("Not related — hide this pairing")
+                                .help(ConnectionsPanelSpec.hideLabel)
                                 .accessibilityIdentifier("connections-hide")
                             } else {
                                 Text(Self.day(row.date))
@@ -389,6 +387,11 @@ struct ConnectionsPanelBody: View {
                     .strokeBorder(Theme.hairline.opacity(hoveredRow == row.id ? 0.12 : 0.07), lineWidth: 1))
                 .onHover { inside in hoveredRow = inside ? row.id : (hoveredRow == row.id ? nil : hoveredRow) }
                 .help(rowTooltip(row))
+                .contextMenu {
+                    Button(role: .destructive) { onHide(row) } label: {
+                        Label(ConnectionsPanelSpec.hideLabel, systemImage: ConnectionsPanelSpec.hideIcon)
+                    }
+                }
                 .accessibilityIdentifier("connections-flat-row")
             }
         }
@@ -403,18 +406,9 @@ struct ConnectionsPanelBody: View {
     }
 
     private func dateLine(date: Date, flag: String?, importance: Double?) -> some View {
-        HStack(spacing: 6) {
-            Text(Self.day(date).uppercased())
-                .font(.system(size: 9, weight: .bold).monospacedDigit()).tracking(0.4)
-                .foregroundStyle(Theme.textMuted)
-            if let flag {
-                Text(flag)
-                    .font(.system(size: 9, weight: .bold)).tracking(0.4)
-                    .foregroundStyle(Theme.accent)
-            }
-            Spacer(minLength: 4)
-            importanceText(importance)
-        }
+        ConnectionDateLine(date: date, flag: flag,
+                           readout: ThreeBallScale.readout(for: importance),
+                           isTop: ThreeBallScale.isTopStop(importance), style: .mac)
     }
 
     /// P1 (picked): the owner-set importance as the control's own decimal readout —
@@ -429,30 +423,7 @@ struct ConnectionsPanelBody: View {
     }
 
     private func whyRow(_ chips: [ConnectionWhy]) -> some View {
-        let shown = chips.prefix(3)
-        let extra = chips.count - shown.count
-        return HStack(spacing: 4) {
-            ForEach(Array(shown), id: \.self) { chip in whyChip(chip) }
-            if extra > 0 {
-                Text("+\(extra)").font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Theme.textMuted)
-            }
-        }
-        .padding(.top, 2)
-    }
-
-    private func whyChip(_ chip: ConnectionWhy) -> some View {
-        let color: Color = switch chip.kind {
-        case .person: Theme.nameLink
-        case .tag: Theme.accent
-        case .term: Theme.textSecondary
-        }
-        return Text(chip.text)
-            .font(.system(size: 9, weight: .semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 7).padding(.vertical, 1)
-            .background(color.opacity(chip.kind == .term ? 0.08 : 0.13), in: RoundedRectangle(cornerRadius: 8))
-            .lineLimit(1)
+        ConnectionWhyRow(chips: chips, style: .mac)
     }
 
     // ── LINKED FROM (the old bottom strip, moved in) ──
@@ -646,10 +617,17 @@ struct ConnectionsPanelBody: View {
         .padding(.horizontal, 8)
     }
 
-    private static func day(_ date: Date?) -> String {
-        guard let date else { return "—" }
-        return date.formatted(.dateTime.day().month(.abbreviated))
-    }
+    private static func day(_ date: Date?) -> String { ConnectionsPanelSpec.day(date) }
+}
+
+extension ConnectionsPanelStyle {
+    /// The Mac's colours for the shared panel chrome (`Shared/UI/ConnectionsPanelShared.swift`).
+    static let mac = ConnectionsPanelStyle(
+        headerTitle: Theme.textMuted, countText: Theme.textSecondary, countFill: Theme.surfaceHover,
+        dateText: Theme.textMuted, flagText: Theme.accent,
+        importance: Theme.accent, importanceTop: Theme.amber,
+        whyPerson: Theme.nameLink, whyTag: Theme.accent, whyTerm: Theme.textSecondary,
+        whyMore: Theme.textMuted)
 }
 
 // MARK: - Live wrapper
@@ -659,7 +637,7 @@ struct ConnectionsPanelBody: View {
 struct ConnectionsPanel: View {
     /// The inspector's fixed width — ONE source, because `NoteMeasure` has to know
     /// exactly how much of the note it floats over.
-    static let width: CGFloat = 280
+    static let width: CGFloat = ConnectionsPanelSpec.panelWidth
 
     let file: PipelineFile
     let model: ConnectionsModel

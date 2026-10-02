@@ -220,6 +220,9 @@ targets:
       - path: ../Shared/UI/NoteCardView.swift
       # Q265: the card's chip wrap layout + its pure line-break decision (SwiftUI Layout only).
       - path: ../Shared/UI/ChipFlow.swift
+      # Q181: the Connections panel's shared constants + chip cap + header/why-chip/date-line views
+      # (SwiftUI only; the per-app colours stay in each app's `ConnectionsPanelStyle` extension).
+      - path: ../Shared/UI/ConnectionsPanelShared.swift
       # Q106: the ONE card-content builder (title / quote / snippet / chips), Foundation-only —
       # the Mac's rated + quiet rows and the phone's MemoCard all call it.
       - path: ../Shared/UI/NoteCardBuilder.swift

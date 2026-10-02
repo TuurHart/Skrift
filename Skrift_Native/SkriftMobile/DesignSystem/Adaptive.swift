@@ -11,7 +11,7 @@ enum Adaptive {
     /// The Notes list column width in the split view (the phone canvas, kept).
     static let listColumnWidth: CGFloat = 375
     /// Standing side panels (Connections, chapters rail).
-    static let sidePanelWidth: CGFloat = 300
+    static let sidePanelWidth: CGFloat = ConnectionsPanelSpec.panelWidth
 
     static var isPadIdiom: Bool { UIDevice.current.userInterfaceIdiom == .pad }
 }

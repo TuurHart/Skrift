@@ -6,8 +6,7 @@ import SwiftData
 // `Features/Review/ConnectionsPanel.swift` is the source anatomy):
 // ONE list · Date⇄Closest pill · Date mode = the thread RAIL (oldest first, the
 // arc, THIS NOTE highlighted) · why-chips per row (SHARED derivation —
-// `ConnectionWhyDerivation`; person chips are Mac-only until the phone grows a
-// sanitised layer) · importance decimal ONLY when rated · NO closeness %
+// `ConnectionWhyDerivation`; person chips from `linkedNames`, Q181) · importance decimal ONLY when rated · NO closeness %
 // (the Mac keeps it behind hover; touch shows none) · long-press = the Mac's
 // hover-✕ "not related" hide (same defaults key) · "Show all N" past the
 // relatedKMac cap · in-panel consent gate. Open/close lives in the NOTE'S
@@ -57,6 +56,14 @@ enum ConnectionsPanelLogic {
                              downloadFraction: downloadFraction,
                              sweeping: sweeping, sweepProgress: sweepProgress,
                              hasRows: hasRows, querying: querying)
+    }
+
+    /// The `[[Name]]` people a body links to, derived with the shared linker over the local
+    /// names DB (the phone stores no `sanitised`). Feeds `ConnectionWhyDerivation.chips`.
+    static func linkedNames(body: String, people: [Person]) -> Set<String> {
+        guard !people.isEmpty, !body.isEmpty else { return [] }
+        return ConnectionWhyDerivation.wikiNames(
+            inSanitised: MemoLinking.linkedTranscript(body, people: people))
     }
 
     /// The rows the panel lists: the Mac's cap (`relatedKMac`, earliest kept)
@@ -185,7 +192,7 @@ struct ConnectionsPanel: View {
                 .padding(.horizontal, 16).padding(.bottom, 20)
             }
         }
-        .frame(width: Adaptive.sidePanelWidth)
+        .frame(width: ConnectionsPanelSpec.panelWidth)
         .overlay(alignment: .leading) {
             Rectangle().fill(Color.skBorder).frame(width: 0.5).ignoresSafeArea()
         }
@@ -194,16 +201,7 @@ struct ConnectionsPanel: View {
 
     private var header: some View {
         HStack(spacing: 7) {
-            Text("CONNECTIONS")
-                .font(.system(size: 11, weight: .bold)).tracking(0.5)
-                .foregroundStyle(Color.skTextFaint)
-            if count > 0 {
-                Text("\(count)")
-                    .font(.system(size: 10, weight: .bold).monospacedDigit())
-                    .foregroundStyle(Color.skTextDim)
-                    .padding(.horizontal, 7).padding(.vertical, 1)
-                    .background(Color.skElev, in: Capsule())
-            }
+            ConnectionsHeaderLabel(count: count, style: .phone)
             Spacer()
             if let onClose {
                 Button(action: onClose) {
@@ -214,7 +212,7 @@ struct ConnectionsPanel: View {
                         .background(Color.skElev, in: Circle())
                 }
                 .accessibilityIdentifier("ipad-connections-close")
-                .accessibilityLabel("Hide Connections")
+                .accessibilityLabel(ConnectionsPanelSpec.closeLabel)
             }
         }
         .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
@@ -337,7 +335,7 @@ struct ConnectionsPanel: View {
                 .buttonStyle(.plain)
                 .contextMenu {
                     Button(role: .destructive) { hide(row) } label: {
-                        Label("Not related — hide", systemImage: "xmark")
+                        Label(ConnectionsPanelSpec.hideLabel, systemImage: ConnectionsPanelSpec.hideIcon)
                     }
                 }
                 .accessibilityIdentifier("ipad-connections-row")
@@ -406,7 +404,7 @@ struct ConnectionsPanel: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) { hide(row) } label: {
-                Label("Not related — hide", systemImage: "xmark")
+                Label(ConnectionsPanelSpec.hideLabel, systemImage: ConnectionsPanelSpec.hideIcon)
             }
         }
         .accessibilityIdentifier("ipad-connections-rail-row")
@@ -432,47 +430,16 @@ struct ConnectionsPanel: View {
     }
 
     private func dateLine(date: Date, flag: String?, importance: Double) -> some View {
-        HStack(spacing: 6) {
-            Text(Self.day(date))
-                .font(.system(size: 10).monospacedDigit())
-                .foregroundStyle(Color.skTextFaint)
-            if let flag {
-                Text(flag)
-                    .font(.system(size: 8.5, weight: .bold)).tracking(0.4)
-                    .foregroundStyle(Color.skAccentText)
-            }
-            Spacer(minLength: 4)
-            if let imp = ConnectionsPanelLogic.importanceReadout(importance) {
-                Text(imp)
-                    .font(.system(size: 10, weight: .bold).monospacedDigit())
-                    .foregroundStyle(ConnectionsPanelLogic.importanceIsTop(importance)
-                                     ? Color.skAmber : Color.skAccentText)
-            }
-        }
+        ConnectionDateLine(date: date, flag: flag,
+                           readout: ConnectionsPanelLogic.importanceReadout(importance),
+                           isTop: ConnectionsPanelLogic.importanceIsTop(importance), style: .phone)
     }
 
-    // ── why-chips (shared derivation; person chips arrive when the phone
-    //    grows a sanitised name layer — tags + terms carry the why for now) ──
+    // ── why-chips: the shared row (cap 3 + "+N", colour per kind) over the shared
+    //    derivation; person chips come from the name-linked body (`linkedNames`) ──
 
-    @ViewBuilder private func whyRow(_ chips: [ConnectionWhy]) -> some View {
-        if !chips.isEmpty {
-            HStack(spacing: 4) {
-                ForEach(chips, id: \.self) { chip in
-                    HStack(spacing: 3) {
-                        if chip.kind == .person {
-                            Image(systemName: "person.fill").font(.system(size: 7.5))
-                        }
-                        Text(chip.kind == .term ? "“\(chip.text)”" : chip.text)
-                            .font(.system(size: 9.5, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(Color.skTextDim)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Color.skElev, in: Capsule())
-                }
-            }
-            .padding(.top, 3)
-        }
+    private func whyRow(_ chips: [ConnectionWhy]) -> some View {
+        ConnectionWhyRow(chips: chips, style: .phone)
     }
 
 
@@ -668,6 +635,10 @@ struct ConnectionsPanel: View {
         let hidden = Self.hiddenNeighbours(of: target)
         let currentTags = memo.tags
         let currentBody = bodyOf(memo)
+        // Q181: the real name lists (the Mac's `wikiNames` of its sanitised body), derived
+        // on demand with the same shared linker — so a shared person shows a person chip.
+        let people = NamesStore.shared.livePeople()
+        let currentNames = ConnectionsPanelLogic.linkedNames(body: currentBody, people: people)
         related = scores
             .filter { $0.score >= RetrievalTuning.relatedFloor && $0.memoID != target
                       && !hidden.contains($0.memoID.uuidString) }
@@ -682,8 +653,9 @@ struct ConnectionsPanel: View {
                         date: LookbackProvider.journalDate(m),
                         score: hit.score, significance: m.significance,
                         why: ConnectionWhyDerivation.chips(
-                            currentNames: [], currentTags: currentTags, currentBody: currentBody,
-                            otherNames: [], otherTags: m.tags, otherBody: bodyOf(m)))
+                            currentNames: currentNames, currentTags: currentTags, currentBody: currentBody,
+                            otherNames: ConnectionsPanelLogic.linkedNames(body: bodyOf(m), people: people),
+                            otherTags: m.tags, otherBody: bodyOf(m)))
                 }
             }
     }
@@ -715,8 +687,15 @@ struct ConnectionsPanel: View {
         }.value
     }
 
-    private static func day(_ date: Date?) -> String {
-        guard let date else { return "—" }
-        return date.formatted(.dateTime.day().month(.abbreviated))
-    }
+    private static func day(_ date: Date?) -> String { ConnectionsPanelSpec.day(date) }
+}
+
+extension ConnectionsPanelStyle {
+    /// The phone/iPad's colours for the shared panel chrome (`Shared/UI/ConnectionsPanelShared.swift`).
+    static let phone = ConnectionsPanelStyle(
+        headerTitle: .skTextFaint, countText: .skTextDim, countFill: .skElev,
+        dateText: .skTextFaint, flagText: .skAccentText,
+        importance: .skAccentText, importanceTop: .skAmber,
+        whyPerson: .skNameLinked, whyTag: .skAccentText, whyTerm: .skTextDim,
+        whyMore: .skTextFaint)
 }
