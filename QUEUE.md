@@ -775,7 +775,7 @@ do: `QueueRowView.cardModel` and the quiet-row builder (SidebarView.swift:1277-1
 check: `test $(ls plan/reads/list-p-cardmodel/*.png | wc -l) -ge 1 && grep -rqE "class NoteCardModelParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteCardModelParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P7
 
-### Q107 [auto] (doing) Mac quiet (unrated) rows carry tags, place and weather chips, the D136 fading-line rule, balls when not locked, and the 2-versions pill
+### Q107 [auto] (done) Mac quiet (unrated) rows carry tags, place and weather chips, the D136 fading-line rule, balls when not locked, and the 2-versions pill
 spec: C115 D136 D135 C98
 needs: Q106
 gate+: yes
@@ -1187,7 +1187,7 @@ do: Two unsynced stores: iPad `@AppStorage skrift.publish.author` (shown only wh
 check: `grep -rqE "class AuthorSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AuthorSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P59
 
-### Q159 [auto] (todo) Settings sync wording from shared copy: what syncs, the iCloud account note, language footer, model sizes
+### Q159 [auto] (doing) Settings sync wording from shared copy: what syncs, the iCloud account note, language footer, model sizes
 spec: D119 C217
 needs: -
 gate+: yes
@@ -1266,7 +1266,7 @@ do: Phone passes user title + annotation + enhancement title / summary / copy-ed
 check: `grep -rqE "class MacEmbeddingSnapshotTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P69
 
-### Q169 [auto] (doing) Review note row uses the source glyph; map and Way-out entry glyphs agree
+### Q169 [auto] (done) Review note row uses the source glyph; map and Way-out entry glyphs agree
 spec: C78 C115
 needs: Q138
 gate+: yes
@@ -1321,7 +1321,7 @@ check: Tuur approved the hook and ran `./plan/twin-check.sh --baseline` once.
 brief: Section 6 of plan/reads/parity-audit.md has the script. gate.sh and plan/ are protected, so the item is the hand-merge: add `plan/twin-check.sh`, generate `plan/twins.baseline`, and add one line to `gate.sh` before xcodegen. It also gives C239 its named `plan/twins.md` (generated from `--report`), which does not exist today.
 source: plan/reads/parity-audit.md P76
 
-### Q176 [auto] (todo) settings + names: one copy set and one names filter on phone, iPad and Mac
+### Q176 [auto] (doing) settings + names: one copy set and one names filter on phone, iPad and Mac
 spec: C239 C240 R58
 needs: -
 gate+: yes
@@ -2013,6 +2013,13 @@ needs: -
 gate+: yes
 do: Found by Q107 and visible in plan/reads/list-p-quiet/mac-quiet-rows-light.png: the shared Skrift_Native/Shared/UI/NoteCardView.swift chipsRow lays chips out with fixedSize and no wrapping, so a row with duration + place + weather + 2 tags runs past the card edge and clips (Mac sidebar and phone list). Wrap the chips with the existing Shared/UI/FlowLayout.swift (max 2 lines, then a '+N' chip if more remain), keeping chip order and spacing. Prove it with a Mac headless -snapshot PNG of a 5-chip and an 8-chip row (look at it) plus a host-less layout test of the line-break decision if one is extractable. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q266 [auto] (todo) link captures: the Mac retries a failed link fetch up to 3 times (C72) and the phone titles an untitled link by its host, not 'Capture'
+spec: C72
+needs: Q136
+gate+: yes
+do: Left by Q136: (1) the Mac's link capture (IngestService+Captures.swift, LinkFetching seam) does not retry a failed fetch — C72 says up to 3 retries; add a bounded retry with backoff behind the seam (testable with a stub fetcher). (2) The phone still shows 'Capture' for a link with no page title, while the Mac uses the host per C72 — make the phone use the same shared rule (Shared/Pipeline/ImportDoors.swift / LinkCard). Desktop test `LinkFetchRetryTests`, phone test `LinkUntitledHostTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LinkUntitledHostTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2720,3 +2727,8 @@ check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/
 - 2026-10-02 23:44 Q265 -> doing — worker out
 - 2026-10-02 23:44 Q156 -> doing — worker out
 - 2026-10-02 23:46 Q105 -> done — gate pass @31ddc957
+- 2026-10-02 23:46 Q107 -> done — gate pass (batched with Q105)
+- 2026-10-02 23:51 Q266 added
+- 2026-10-02 23:51 Q176 -> doing — batch worker out
+- 2026-10-02 23:51 Q159 -> doing — batch worker out
+- 2026-10-02 23:52 Q169 -> done — gate pass @a7313798
