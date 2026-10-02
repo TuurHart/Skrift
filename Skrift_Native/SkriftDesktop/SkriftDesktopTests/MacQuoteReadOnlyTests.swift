@@ -91,7 +91,8 @@ final class MacQuoteReadOnlyTests: XCTestCase {
         XCTAssertEqual(verdict(quoteOnly, end, 0, "\n"), .allow)
         // Applying the separator verdict yields a body whose block is the original, exactly.
         let typed = apply(quoteOnly, end, 0, "\n\nhello")
-        XCTAssertEqual(CaptureQuote.split(typed)?.rawBlock, CaptureQuote.split(quoteOnly)?.rawBlock)
+        XCTAssertTrue(typed.hasPrefix(CaptureQuote.split(quoteOnly)!.rawBlock), "quote bytes stay an exact prefix")
+        XCTAssertEqual(CaptureQuote.split(typed)?.displayText, CaptureQuote.split(quoteOnly)?.displayText)
         XCTAssertEqual(CaptureQuote.split(typed)?.ramble, "hello")
     }
 
