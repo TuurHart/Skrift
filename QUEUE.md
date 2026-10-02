@@ -1100,7 +1100,7 @@ do: `BookCoverView` picks 1 of 5 gradients with `abs(book.id.uuidString.hashValu
 check: `grep -rqE "class StableHashTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StableHashTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P48
 
-### Q148 [auto] (doing) Books: the shelf tile shows what the row shows, and the delete dialog does not say iPhone on an iPad
+### Q148 [auto] (done) Books: the shelf tile shows what the row shows, and the delete dialog does not say iPhone on an iPad
 spec: C229 C218
 needs: -
 gate+: yes
@@ -1242,7 +1242,7 @@ do: The phone recorder shows Downloading / Preparing / ready / Couldn't load / n
 check: `grep -rqE "class MacRecordingModelStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P66
 
-### Q166 [auto] (doing) Review reads one note set: Calendar and Map exclude fading notes, Then vs Now uses the same input, map pins clear on a real gesture
+### Q166 [auto] (done) Review reads one note set: Calendar and Map exclude fading notes, Then vs Now uses the same input, map pins clear on a real gesture
 spec: C212 C87 C233
 needs: -
 gate+: yes
@@ -1401,7 +1401,7 @@ do: Rows note-body-15 -19, note-chrome-01 -02. One shared token file (e.g. `Skri
 check: `test -f Skrift_Native/Shared/UI/NoteLook.swift && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q186 [auto] (todo) import bundling and audio export follow one rule on phone and Mac
+### Q186 [auto] (doing) import bundling and audio export follow one rule on phone and Mac
 spec: C68 C239 C240
 needs: -
 gate+: yes
@@ -2590,3 +2590,6 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-02 21:26 Q177 -> doing — worker out
 - 2026-10-02 21:27 Q168 -> doing — worker out (opus)
 - 2026-10-02 21:30 Q147 -> done — gate pass @a01d5eb9
+- 2026-10-02 21:30 Q148 -> done — gate pass (batched with Q147)
+- 2026-10-02 21:33 Q186 -> doing — worker out (opus)
+- 2026-10-02 21:35 Q166 -> done — gate pass @ac2db3e9
