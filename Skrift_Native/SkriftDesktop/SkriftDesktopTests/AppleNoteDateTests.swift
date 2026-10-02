@@ -52,8 +52,9 @@ final class AppleNoteDateTests: XCTestCase {
         try Data("# Old\n\nbody\n".utf8).write(to: url)
         let aged = local(2019, 3, 4, 5, 6, 7)
         try FileManager.default.setAttributes([.creationDate: aged, .modificationDate: aged], ofItemAtPath: url.path)
-        let pf = try XCTUnwrap(try await IngestService(outputDir: dir.appendingPathComponent("out"))
-            .ingest(localURLs: [url], into: try context()).first)
+        let made = try await IngestService(outputDir: dir.appendingPathComponent("out"))
+            .ingest(localURLs: [url], into: try context())
+        let pf = try XCTUnwrap(made.first)
         XCTAssertEqual(pf.uploadedAt, MemoDate.unknown, "file dates are export time, not the note's")
     }
 
