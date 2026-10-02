@@ -160,9 +160,6 @@ struct BookTranscriptStore: Sendable {
 
     // MARK: - Cleanup
 
-    /// Remove every transcript sidecar for a book (called when the book is
-    /// deleted, alongside `AudiobookLibraryStore.remove`). The per-file naming
-    /// lets us sweep the folder without knowing the file count.
     /// Posted with the book's `UUID` as `object` when its transcript is deleted.
     ///
     /// Deleting the files is not enough: anything that already decoded them holds
@@ -173,6 +170,10 @@ struct BookTranscriptStore: Sendable {
     /// (device bug, Tuur 2026-08-11). Any future in-memory reader must listen too.
     static let transcriptRemovedNotification = Notification.Name("SkriftBookTranscriptRemoved")
 
+    /// Remove every transcript sidecar for a book and post `transcriptRemovedNotification`.
+    /// Backs the "remove transcript" action ONLY (`BookTextSheet`); deleting a book removes
+    /// its whole folder (`AudiobookLibraryStore.remove`). The per-file naming lets us sweep
+    /// the folder without knowing the file count.
     func removeTranscripts(forBookID id: UUID) {
         let folder = folder(forBookID: id)
         guard let entries = try? FileManager.default.contentsOfDirectory(

@@ -51,7 +51,13 @@ struct FileTranscript: Codable, Equatable, Sendable {
     /// ENDS at `time` can be served entirely from this sidecar. A small epsilon
     /// absorbs float drift at a chunk boundary.
     func isCovered(upTo time: TimeInterval) -> Bool {
-        time <= coveredUpTo + 0.05
+        Self.isCovered(frontier: coveredUpTo, upTo: time)
+    }
+
+    /// The same test against a bare frontier (the store's cached `coveredUpTo`), for
+    /// callers that peek the frontier without decoding the sidecar.
+    static func isCovered(frontier: TimeInterval, upTo time: TimeInterval) -> Bool {
+        time <= frontier + 0.05
     }
 
     /// Words whose time span overlaps `[start, end]` (file-local) — the material

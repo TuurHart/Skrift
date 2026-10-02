@@ -58,6 +58,8 @@ enum ChapterDetector {
     /// An implicit "Opening" chapter is prepended when the first detected
     /// heading starts later than this (title/credits announcement).
     static let openingThreshold: TimeInterval = 30
+    /// `gapBefore` sentinel for a heading at a file start (no preceding word, so no silence to measure).
+    static let fileStartGap: TimeInterval = 999
 
     // MARK: - Model
 
@@ -80,7 +82,7 @@ enum ChapterDetector {
         /// Silence before the heading (file starts report a large sentinel).
         let gapBefore: TimeInterval
 
-        init(kind: Kind, start: TimeInterval, title: String?, gapBefore: TimeInterval = 999) {
+        init(kind: Kind, start: TimeInterval, title: String?, gapBefore: TimeInterval = ChapterDetector.fileStartGap) {
             self.kind = kind
             self.start = start
             self.title = title
@@ -185,7 +187,7 @@ enum ChapterDetector {
         for (i, segment) in segments.enumerated() {
             guard let first = segment.first else { continue }
             if isComplete(segment) {
-                if segments.count >= 2, !markedByStructure(first.start) {
+                if !markedByStructure(first.start) {
                     out.append(Heading(kind: .separator(i + 1), start: first.start,
                                        title: nil, gapBefore: first.gapBefore))
                 }
@@ -282,7 +284,7 @@ enum ChapterDetector {
     static func titleShapeDominates(candidates: [Heading], unmatchedGaps: [TimeInterval],
                                     bookDuration: TimeInterval) -> Bool {
         var sites: [(gap: TimeInterval, matched: Bool)] =
-            candidates.filter { $0.gapBefore < 999 }.map { ($0.gapBefore, true) }
+            candidates.filter { $0.gapBefore < fileStartGap }.map { ($0.gapBefore, true) }
         sites.append(contentsOf: unmatchedGaps.map { ($0, false) })
         let k = max(minTitleOnlyQuorum, Int(bookDuration * maxChaptersPerSecond / 2))
         let topSites = sites.sorted { $0.gap > $1.gap }.prefix(k)
@@ -308,7 +310,7 @@ enum ChapterDetector {
         var unmatched: [TimeInterval] = []
         var i = 0
         while i < words.count {
-            let gap = i == 0 ? 999 : (words[i].start - words[i - 1].end)
+            let gap = i == 0 ? fileStartGap : (words[i].start - words[i - 1].end)
             if gap >= gapBefore || i == 0 {
                 if let (heading, consumed) = matchHeading(words, at: i, globalOrigin: globalOrigin,
                                                           gap: gap) {
@@ -537,11 +539,7 @@ enum ChapterDetector {
             if case .separator = h.kind { ch.isSeparator = true }
             chapters.append(ch)
         }
-        for i in chapters.indices {
-            let end = i + 1 < chapters.count ? chapters[i + 1].start : max(bookDuration, chapters[i].start)
-            chapters[i].duration = max(0, end - chapters[i].start)
-        }
-        return chapters
+        return chapters.fillingDurations(bookDuration: bookDuration)
     }
 
     /// "Chapter 7" / "Part 2" / "Prologue", with the spoken title appended the

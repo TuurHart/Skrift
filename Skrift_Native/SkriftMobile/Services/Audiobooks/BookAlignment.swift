@@ -335,7 +335,6 @@ enum BookAlignmentRunner {
 
     struct AttachSummary: Equatable {
         var alignedFiles: Int
-        var rejectedFiles: Int
         var totalFiles: Int
         /// True when the book was mid-transcription at attach time: the file was copied
         /// in and recorded, but NO alignment ran (matching a moving partial transcript
@@ -418,7 +417,7 @@ enum BookAlignmentRunner {
             let transcriptStore = BookTranscriptStore()
             var perFile: [Int: FileAlignResult] = [:]
             var transcriptSigs: [Int: String] = [:]
-            var aligned = 0, rejected = 0, total = 0
+            var aligned = 0, total = 0
             if !deferring {
                 for i in book.files.indices {
                     let audioURL = folder.appendingPathComponent(book.files[i])
@@ -433,11 +432,10 @@ enum BookAlignmentRunner {
                     perFile[i] = fileResult
                     transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
                     if fileResult.verdict == .aligned { aligned += 1 }
-                    if fileResult.verdict == .rejected { rejected += 1 }
                 }
             }
             return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig,
-                                 transcriptSigs: transcriptSigs, aligned: aligned, rejected: rejected, total: total,
+                                 transcriptSigs: transcriptSigs, aligned: aligned, total: total,
                                  drm: epubBook.drm)
         }.value
         progress?("Placing chapters…")
@@ -455,7 +453,7 @@ enum BookAlignmentRunner {
             precomputedTOC: [filename: outcome.toc],
             newlyAttachedFilename: filename
         )
-        return AttachSummary(alignedFiles: outcome.aligned, rejectedFiles: outcome.rejected,
+        return AttachSummary(alignedFiles: outcome.aligned,
                              totalFiles: outcome.total, deferredWhileTranscribing: deferring,
                              drm: outcome.drm)
     }
@@ -467,7 +465,6 @@ enum BookAlignmentRunner {
         var epubSig: String
         var transcriptSigs: [Int: String]
         var aligned: Int
-        var rejected: Int
         var total: Int
         var drm: EPubDRMVerdict = .none
     }
@@ -1438,13 +1435,9 @@ enum BookAlignmentRunner {
         let ordered = entries.enumerated().sorted { a, b in
             a.element.start != b.element.start ? a.element.start < b.element.start : a.offset < b.offset
         }.map(\.element)
-        var chapters = ordered.map { AudiobookChapter(title: $0.title, start: $0.start, duration: 0,
-                                                      isSeparator: $0.isSeparator) }
-        for i in chapters.indices {
-            let end = i + 1 < chapters.count ? chapters[i + 1].start : max(bookDuration, chapters[i].start)
-            chapters[i].duration = max(0, end - chapters[i].start)
-        }
-        return chapters
+        return ordered.map { AudiobookChapter(title: $0.title, start: $0.start, duration: 0,
+                                              isSeparator: $0.isSeparator) }
+            .fillingDurations(bookDuration: bookDuration)
     }
 
     // MARK: - Misc
