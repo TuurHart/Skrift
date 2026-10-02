@@ -85,3 +85,42 @@ struct RunQueue {
         return out
     }
 }
+
+/// Who holds the Mac's one run slot, and what waits behind them (Q77, Q208).
+///
+/// Every kind of run takes the slot through here — a queued job (`request`) or a Redo
+/// (`acquire`) — and the holder drains `waiting` with `advance()` before letting go. A request
+/// that arrives during a Redo used to sit in `waiting` until some later request happened to
+/// drain it, because Redo took the slot without ever draining. Pure value logic so the
+/// MLX-free test bundle can pin it; `ProcessingCoordinator` owns the one instance.
+struct RunTurn {
+    private(set) var waiting = RunQueue()
+    private(set) var held = false
+
+    /// Ask to run `job`. True = the slot was free and is now yours: run it, then `advance()`
+    /// until nil. False = the job is queued and the current holder will run it.
+    mutating func request(_ job: RunQueue.Job) -> Bool {
+        if held { waiting.enqueue(job); return false }
+        held = true
+        return true
+    }
+
+    /// Take the slot for a run that is not a queued job (Redo). False = busy, nothing queued.
+    mutating func acquire() -> Bool {
+        if held { return false }
+        held = true
+        return true
+    }
+
+    /// Holder only, after finishing a run: the next waiting job (oldest first), or nil after
+    /// releasing the slot.
+    mutating func advance() -> RunQueue.Job? {
+        if let next = waiting.next() { return next }
+        held = false
+        return nil
+    }
+
+    /// Drop a waiting split for `id` (Cancel pressed while it was still queued).
+    @discardableResult
+    mutating func removeSplit(id: String) -> Bool { waiting.removeSplit(id: id) }
+}
