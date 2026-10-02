@@ -101,6 +101,15 @@ enum RetrievalGate: Equatable {
             "\(done) of \(total) notes · runs in the background,\npauses while transcribing"
         }
 
+        /// Settings status lines when the index is idle (the phone's wording, both apps).
+        static let readyLine = "Ready — your notes index when the app opens."
+        static let pausedLine = "Model downloaded · index paused"
+
+        /// A failed model download / index sweep (setexp-54, R58). The phone's dash form;
+        /// the SAME line is the service's `lastError` on both apps and shows in Settings.
+        static func downloadFailed(_ reason: String) -> String { "Download failed — \(reason)" }
+        static func sweepFailed(_ reason: String) -> String { "Index sweep failed: \(reason)" }
+
         static let findingTitle = "Finding connections…"
         static let findingSub = "Warming the on-device model —\nquick once it's loaded."
 

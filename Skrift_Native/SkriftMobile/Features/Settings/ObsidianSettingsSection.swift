@@ -47,10 +47,10 @@ struct ObsidianSettingsSection: View {
                 pickingFolder = true
             } label: {
                 HStack {
-                    Label("Folder", systemImage: "folder")
+                    Label(SettingsCopy.obsidianFolderLabel, systemImage: "folder")
                         .foregroundStyle(Color.skText)
                     Spacer()
-                    Text(folderName ?? "Choose…")
+                    Text(folderName ?? SettingsCopy.chooseVerb)
                         .foregroundStyle(folderName == nil ? Color.skAccent : Color.skTextDim)
                 }
             }
@@ -79,7 +79,7 @@ struct ObsidianSettingsSection: View {
         } header: {
             Text("Obsidian")
         } footer: {
-            Text(footerText)
+            Text(SettingsCopy.obsidianHelp(folderName: folderName, canProcess: canProcess))
         }
         .fileImporter(isPresented: $pickingFolder,
                       allowedContentTypes: [.folder]) { result in
@@ -106,7 +106,7 @@ struct ObsidianSettingsSection: View {
     private var destinationsSection: some View {
         Section {
             Toggle(isOn: $destinationsOn) {
-                Label("Separate destinations", systemImage: "arrow.triangle.branch")
+                Label(SettingsCopy.destinationsToggleLabel, systemImage: "arrow.triangle.branch")
                     .foregroundStyle(Color.skText)
             }
             .tint(.skAccent)
@@ -129,10 +129,10 @@ struct ObsidianSettingsSection: View {
                     pickingPortfolio = true
                 } label: {
                     HStack {
-                        Label("Portfolio folder", systemImage: "folder.badge.gearshape")
+                        Label(SettingsCopy.portfolioFolderLabel, systemImage: "folder.badge.gearshape")
                             .foregroundStyle(Color.skText)
                         Spacer()
-                        Text(portfolioName ?? "Choose…")
+                        Text(portfolioName ?? SettingsCopy.chooseVerb)
                             .foregroundStyle(portfolioName == nil ? Color.skAccent : Color.skTextDim)
                     }
                 }
@@ -155,7 +155,7 @@ struct ObsidianSettingsSection: View {
         } header: {
             Text("Destinations")
         } footer: {
-            Text(destinationsFooter)
+            Text(SettingsCopy.destinationsHelp(on: destinationsOn, hasFolder: portfolioName != nil))
         }
         .fileImporter(isPresented: $pickingPortfolio,
                       allowedContentTypes: [.folder]) { result in
@@ -169,35 +169,4 @@ struct ObsidianSettingsSection: View {
             }
         }
     }
-
-    /// Says what the switch actually does — including the part that matters most, which is
-    /// which side of the line a note ends up on.
-    private var destinationsFooter: String {
-        guard destinationsOn else {
-            return "Off, every note goes to your Obsidian vault. On, each note carries one of "
-                 + "four destinations you pick on the note itself."
-        }
-        guard portfolioName != nil else {
-            return DestinationSettings.needsFolderNotice + ". This switch is on for all your "
-                 + "devices; the folder is chosen per device. Skrift writes Project, Idea and "
-                 + "Inspiration notes into folders inside it. Personal notes still go to your "
-                 + "Obsidian vault and never here."
-        }
-        return "Personal notes go to your Obsidian vault. Project, Idea and Inspiration go to the "
-             + "portfolio — a folder you have chosen to let an AI read, so nothing personal is "
-             + "ever written there."
-    }
-
-    /// Says what THIS device will actually do with the folder — never more.
-    private var footerText: String {
-        guard let folderName else {
-            return canProcess
-                ? "Pick the folder inside your vault where Skrift should put its notes — audio and photos land in subfolders beside them. Skrift only ever touches its own files."
-                : "Pick your Skrift folder so this iPhone can read your vault. Notes are written to it by your Mac (and iPad) once they've been processed."
-        }
-        return canProcess
-            ? "Notes, audio and photos go into “\(folderName)”. A note you edit or move in Obsidian is left alone — Skrift never overwrites your version."
-            : "This iPhone reads “\(folderName)”; it doesn't write to it. Your Mac and iPad put notes there once they've processed them."
-    }
-
 }

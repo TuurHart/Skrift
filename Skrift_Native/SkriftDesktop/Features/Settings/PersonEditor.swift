@@ -82,7 +82,7 @@ struct PersonEditor: View {
                 let c = deleteConfirm.confirm() ?? canonical
                 onDelete?(c); onClose()
             }
-            Button("Cancel", role: .cancel) { deleteConfirm.cancel() }
+            Button(NamesCopy.cancelVerb, role: .cancel) { deleteConfirm.cancel() }
         } message: { _ in
             Text(NameDeleteConfirm.message)
         }
@@ -90,9 +90,9 @@ struct PersonEditor: View {
 
     private var fields: some View {
         VStack(alignment: .leading, spacing: 16) {
-            field(label: "Full name",
-                  help: "The Obsidian note title. Becomes the [[link]] target.",
-                  text: $fullName, placeholder: "Bruno Aragorn")
+            field(label: NamesCopy.fullNameLabel,
+                  help: NamesCopy.fullNameHelp(isNew: isNew),
+                  text: $fullName, placeholder: NamesCopy.fullNamePlaceholder)
             field(label: "Aliases",
                   help: "Spoken words (comma-separated) that should be RECOGNISED as this person.",
                   text: $aliases, placeholder: "Bruno, Bru", font: .system(size: 12)) {
@@ -111,7 +111,7 @@ struct PersonEditor: View {
 
     private var header: some View {
         HStack {
-            Text(isNew ? "Add person" : "Edit person")
+            Text(isNew ? NamesCopy.newPersonTitle : NamesCopy.editorTitle)
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.textPrimary)
             Spacer()
             if !isNew, let onDelete, let original {
@@ -123,10 +123,10 @@ struct PersonEditor: View {
                 }
                 .buttonStyle(.plain).help("Delete this person")
             }
-            Button("Cancel", action: onClose)
+            Button(NamesCopy.cancelVerb, action: onClose)
                 .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                 .padding(.horizontal, 10).padding(.vertical, 6)
-            Button("Save", action: save)
+            Button(NamesCopy.doneVerb, action: save)
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(canSave ? .white : Theme.textMuted)
@@ -172,12 +172,12 @@ struct PersonEditor: View {
             Text("Voice").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textPrimary)
             HStack(spacing: 6) {
                 Image(systemName: "waveform").font(.system(size: 11, weight: .semibold))
-                Text(enrolled ? "Voice enrolled" : "No voice yet")
+                Text(enrolled ? NamesCopy.voiceEnrolled : NamesCopy.voiceMissing)
                     .font(.system(size: 12.5, weight: .semibold))
             }
             .foregroundStyle(enrolled ? Theme.green : Theme.textMuted)
-            Text(enrolled ? "Conversation mode can recognise this person."
-                 : "Name them in a conversation (phone or Mac) to enroll their voice.")
+            Text(enrolled ? NamesCopy.voiceEnrolledHelp(name: original?.displayName ?? fullName)
+                 : NamesCopy.voiceMissingHint)
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }

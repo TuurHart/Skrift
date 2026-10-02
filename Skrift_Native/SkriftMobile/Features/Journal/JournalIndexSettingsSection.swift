@@ -71,7 +71,7 @@ struct JournalIndexSettingsSection: View {
                     .foregroundStyle(Color.skTextDim)
             }
         case .failed(let message):
-            Text("Download failed — \(message)")
+            Text(RetrievalGate.Copy.downloadFailed(message))
                 .font(.footnote)
                 .foregroundStyle(Color.skRed)
         case .idle:
@@ -85,12 +85,17 @@ struct JournalIndexSettingsSection: View {
                         .font(.footnote)
                         .foregroundStyle(Color.skTextDim)
                 }
+            } else if enabled, let err = service.lastError {
+                // A failed sweep shows here as on the Mac (R58) — it was invisible on phone/iPad.
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(Color.skRed)
             } else if enabled && GemmaEmbedder.isModelDownloaded {
-                Text("Ready — your notes index when the app opens.")
+                Text(RetrievalGate.Copy.readyLine)
                     .font(.footnote)
                     .foregroundStyle(Color.skTextDim)
             } else if !enabled && GemmaEmbedder.isModelDownloaded {
-                Text("Model downloaded · index paused")
+                Text(RetrievalGate.Copy.pausedLine)
                     .font(.footnote)
                     .foregroundStyle(Color.skTextDim)
             }

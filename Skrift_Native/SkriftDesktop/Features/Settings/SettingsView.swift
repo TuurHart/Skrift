@@ -84,11 +84,7 @@ struct SettingsView: View {
     private var displayPeople: [Person] { peopleOverride ?? people }
 
     private var visiblePeople: [Person] {
-        let people = displayPeople
-        return nameQuery.isEmpty ? people : people.filter {
-            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveContains(nameQuery)
-                || $0.aliases.contains { $0.localizedCaseInsensitiveContains(nameQuery) }
-        }
+        NamesFilter.apply(displayPeople, query: nameQuery)
     }
 
     private var sections: some View {
@@ -114,10 +110,17 @@ struct SettingsView: View {
                 // the Mac had, so the same vault received `1 Recordings`/`0 Images` from
                 // here and `Voice Memos`/`Attachments` from iOS. Skrift owns the layout now
                 // — Recordings/ Images/ Documents/ inside the folder it resolves to.
-                folderRow("Obsidian folder", \.noteFolder)
-                Text("Skrift keeps its notes here, with Recordings, Images and Documents "
-                     + "beside them. Point at a folder and it uses its own Skrift folder "
-                     + "inside — or point straight at that folder.")
+                folderRow(SettingsCopy.obsidianFolderLabel, \.noteFolder)
+                // The shared sentence (what this device does with the folder) + a Mac-only extra:
+                // the resolve rule carries information the phone's picker never needs.
+                Text(SettingsCopy.obsidianHelp(
+                        folderName: settings.noteFolder.isEmpty ? nil
+                            : (settings.noteFolder as NSString).lastPathComponent,
+                        canProcess: true))
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Point at a folder and it uses its own Skrift folder inside — or point straight at that folder.")
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -129,7 +132,7 @@ struct SettingsView: View {
                 // devices through the vocabulary carrier (Q98 / D162); the portfolio FOLDER
                 // below stays per device.
                 HStack {
-                    Text("Separate destinations").font(.system(size: 12))
+                    Text(SettingsCopy.destinationsToggleLabel).font(.system(size: 12))
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
                     if interactive {
@@ -146,11 +149,7 @@ struct SettingsView: View {
                     }
                 }
                 if destinationsOn {
-                    folderRow("Portfolio folder", \.portfolioRoot)
-                    if settings.portfolioRoot.isEmpty {
-                        Text(DestinationSettings.needsFolderNotice)
-                            .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-                    }
+                    folderRow(SettingsCopy.portfolioFolderLabel, \.portfolioRoot)
                     if !settings.portfolioRoot.isEmpty {
                         let root = (settings.portfolioRoot as NSString).lastPathComponent
                         ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
@@ -165,12 +164,8 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Text(destinationsOn
-                     ? "Personal notes go to your Obsidian vault. Project, Idea and Inspiration go "
-                       + "to the portfolio — a folder you have chosen to let an AI read, so nothing "
-                       + "personal is ever written there."
-                     : "Off, every note goes to your Obsidian vault. On, each note carries one of "
-                       + "four destinations you pick on the note itself.")
+                Text(SettingsCopy.destinationsHelp(on: destinationsOn,
+                                                   hasFolder: !settings.portfolioRoot.isEmpty))
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -202,11 +197,11 @@ struct SettingsView: View {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
-                if interactive && displayPeople.count > 6 {
-                    RingedField(placeholder: "Filter names…", text: $nameQuery)
+                if interactive && !displayPeople.isEmpty {
+                    RingedField(placeholder: NamesCopy.searchPlaceholder, text: $nameQuery)
                 }
                 if displayPeople.isEmpty {
-                    Text("No people yet — add the ones your notes are about.")
+                    Text("\(NamesCopy.emptyTitle) — \(NamesCopy.emptyBody)")
                         .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
                 } else {
                     ForEach(visiblePeople, id: \.canonical) { person in
@@ -290,12 +285,16 @@ struct SettingsView: View {
                 }
             } else if on, let p = svc.sweepProgress {
                 Text(RetrievalGate.Copy.indexingTitle).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
-                Text("\(p.done) of \(p.total) notes")
+                Text(RetrievalGate.Copy.indexingSub(done: p.done, total: p.total))
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-            } else if on, let err = svc.lastError {
-                Text(err).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            } else if let err = svc.lastError {
+                // Failures are red on the phone too; a failed download also flips the switch off.
+                Text(err).font(.system(size: 10.5)).foregroundStyle(Theme.destructive)
+            } else if on && svc.isModelDownloaded {
+                Text(RetrievalGate.Copy.readyLine)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
             } else if !on && svc.isModelDownloaded {
-                Text("Model downloaded · index paused")
+                Text(RetrievalGate.Copy.pausedLine)
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
             }
         }
@@ -371,7 +370,7 @@ struct SettingsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if interactive {
-                    Button("Choose…") { chooseFolder(key) }
+                    Button(SettingsCopy.chooseVerb) { chooseFolder(key) }
                         .buttonStyle(.plain)
                         .font(.system(size: 12)).foregroundStyle(Theme.accent)
                         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -442,17 +441,17 @@ struct SettingsView: View {
     /// colourful name-gradient avatar, the full name, and a voice-enrollment status line.
     /// Tapping it (interactive) opens the detail editor.
     private func nameListRow(_ person: Person) -> some View {
-        HStack(spacing: 12) {
-            nameAvatar(person.displayName, size: 38)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(person.displayName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textPrimary)
-                voiceStatus(!(person.voiceEmbeddings?.isEmpty ?? true))
+        HStack(spacing: NameRowLook.rowSpacing) {
+            nameAvatar(person.displayName, size: NameRowLook.avatarSize)
+            VStack(alignment: .leading, spacing: NameRowLook.textSpacing) {
+                Text(person.displayName).font(.system(size: NameRowLook.nameSize, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+                voiceStatus(PersonEditCore.isEnrolled(person))
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+            Image(systemName: "chevron.right").font(.system(size: NameRowLook.chevronSize, weight: .semibold))
                 .foregroundStyle(Theme.textMuted.opacity(0.6))
         }
-        .padding(.vertical, 6).padding(.horizontal, 4)
+        .padding(.vertical, NameRowLook.verticalPadding).padding(.horizontal, NameRowLook.horizontalPadding)
         .contentShape(Rectangle())
     }
 
@@ -487,17 +486,17 @@ struct SettingsView: View {
         if enrolled {
             HStack(spacing: 6) {
                 voiceBars
-                Text("Voice enrolled")
+                Text(NamesCopy.voiceEnrolled)
             }
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.green)
+            .font(.system(size: NameRowLook.statusSize, weight: .semibold)).foregroundStyle(Theme.green)
             .help("A voiceprint is enrolled — Conversation mode can recognise this person.")
         } else {
             HStack(spacing: 6) {
                 Image(systemName: "waveform").font(.system(size: 11))
-                Text("Add voice")
+                Text(NamesCopy.voiceMissing)
             }
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
-            .help("No voiceprint yet — name them in a conversation (phone or Mac) to enroll their voice.")
+            .font(.system(size: NameRowLook.statusSize, weight: .semibold)).foregroundStyle(Theme.accent)
+            .help(NamesCopy.voiceMissingHint)
         }
     }
 
@@ -582,12 +581,12 @@ struct SettingsView: View {
     /// (`VocabularyBooster` CTC spot + rescore). Mirrors the phone's editor.
     @ViewBuilder private var customWordsEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Custom words — names the transcriber mis-hears (“Skrift”, people, products), spelled as they should be written. First transcription after adding words downloads a ~100 MB spotter model.")
+            Text(SettingsCopy.customWordsHelp)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
             if interactive {
                 HStack(spacing: 6) {
-                    RingedField(placeholder: "Add a word…", text: $newCustomWord)
+                    RingedField(placeholder: SettingsCopy.customWordPlaceholder, text: $newCustomWord)
                         .frame(maxWidth: 220)
                         .onSubmit { addCustomWord() }
                     Button { addCustomWord() } label: {

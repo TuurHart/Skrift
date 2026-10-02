@@ -57,11 +57,11 @@ struct PersonEditorView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle(isNew ? "New person" : "Person")
+            .navigationTitle(isNew ? NamesCopy.newPersonTitle : NamesCopy.editorTitle)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(NamesCopy.cancelVerb) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", action: save)
+                    Button(NamesCopy.doneVerb, action: save)
                         .fontWeight(.semibold)
                         .disabled(trimmedName.isEmpty)
                         .accessibilityIdentifier("person-editor-done")
@@ -82,10 +82,9 @@ struct PersonEditorView: View {
     // MARK: fields
 
     private var fullNameField: some View {
-        field(title: "Full name",
-              help: isNew ? "The Obsidian note title — becomes the [[link]] target."
-                          : "The Obsidian note title — the [[link]] target. Change it to rename this person.") {
-            TextField("Full name", text: $fullName)
+        field(title: NamesCopy.fullNameLabel,
+              help: NamesCopy.fullNameHelp(isNew: isNew)) {
+            TextField(NamesCopy.fullNamePlaceholder, text: $fullName)
                 .font(.system(size: 15))
                 .foregroundStyle(Color.skText)
                 .tint(.skAccent)
@@ -145,14 +144,16 @@ struct PersonEditorView: View {
             if enrolled {
                 HStack(spacing: 7) {
                     VoiceBars()
-                    Text("Voice enrolled").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skGreen)
+                    Text(NamesCopy.voiceEnrolled).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skGreen)
                 }
             } else {
                 HStack(spacing: 7) {
-                    Image(systemName: "mic").font(.system(size: 13)).foregroundStyle(Color.skTextDim)
-                    Text("Not enrolled — record in a note or on your Mac")
-                        .font(.system(size: 14)).foregroundStyle(Color.skTextDim)
+                    Image(systemName: "waveform").font(.system(size: 13)).foregroundStyle(Color.skAccent)
+                    Text(NamesCopy.voiceMissing)
+                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skAccent)
                 }
+                Text(NamesCopy.voiceMissingHint)
+                    .font(.system(size: 12)).foregroundStyle(Color.skTextDim)
             }
         }
     }
