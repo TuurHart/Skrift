@@ -7,6 +7,9 @@ import Foundation
 /// sanitised → enhanced copy-edit → transcript (the name-linked text wins, since it's what
 /// exports). The vault write/copy is the Export step.
 enum Compiler {
+    /// The `source:` / `capture:` value of a typed note (Q142) — one spelling for both apps.
+    static let typedSource = "Typed-note"
+
     /// `knownPeople` (the live names DB) filters the `people:` list to actual persons —
     /// excluding non-person wiki-links (places like `[[Hotel Du Vin]]`, manual links) that a
     /// transcript/Apple-Note body may carry. nil = no filter (engine tests / minor call sites).
@@ -57,6 +60,11 @@ enum Compiler {
             source = "Audiobook-quote"
         } else if input.mediaSource == "video" {
             source = "Video"
+        } else if input.kind == .typedNote {
+            // A note born typed (Q142). Each exporter sets `kind` from `SourceKind`; before
+            // this the phone wrote `Voice-memo` (typed rides `.audio`) and the Mac
+            // `Apple-Note` (typed rides `.note`) for the same note.
+            source = Compiler.typedSource
         } else {
             switch input.sourceType {
             case .note: source = "Apple-Note"
