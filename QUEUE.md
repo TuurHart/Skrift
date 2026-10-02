@@ -691,7 +691,7 @@ gate+: yes
 do: Tuur 2026-10-02 on Skrift Dev (real window — the Q35/Q37/Q65 'left-edge clip' question answered): at the normal sidebar width nothing clips, but "I can drag the sidebar in and then it just clips off weirdly": the logo, the Import · Record · ✎ row, the chip row, day headers ("RI 3 APR") and every card lose their left edge instead of shrinking. Make the sidebar content lay out to the sidebar's actual width (cards, chips and verb row shrink/wrap; the chip row keeps scrolling sideways), or set a minimum sidebar width at which nothing clips — pick the one that matches the phone's list. Prove with headless `-snapshot-shell` renders at 220, 260 and 292 pt (add a width flag if missing), LOOK, commit under `plan/reads/sidebar-q95/`. Never run SkriftDesktopUITests. ADDED 2026-10-02 (same sidebar, same worker): (a) the chip row scrolls sideways on the phone but NOT on the Mac ("on the phone I can scroll through it and on the Mac I cannot") — make the Mac chip row scroll sideways like the phone's shared FilterChipRow; (b) on the phone the day header stays pinned at the top while scrolling; the Mac has no pinned day header — pin the Mac sidebar's day headers the same way.
 check: `test $(ls plan/reads/sidebar-q95/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q96 [auto] (doing) a merged import is dated to its first clip's filename time, not the import moment; each clip starts a paragraph (C124, C70)
+### Q96 [auto] (done) a merged import is dated to its first clip's filename time, not the import moment; each clip starts a paragraph (C124, C70)
 spec: C124 C70
 needs: -
 gate+: yes
@@ -1037,3 +1037,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./g
 - 2026-10-02 08:28 Q95 -> done — gate pass @56a66399
 - 2026-10-02 08:50 Q97 -> done — gate pass @a032d4c0
 - 2026-10-02 08:52 Q98 -> done — gate pass @4fbaccb6
+- 2026-10-02 08:54 Q96 -> done — gate pass @69cc1cf2
