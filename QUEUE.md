@@ -1147,7 +1147,7 @@ do: iPad names the file from `exportTitle` (user title, else first body line, ne
 check: `grep -rqE "class ExportNamingParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ExportNamingParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P54
 
-### Q154 [auto] (doing) export: picture markers become embeds the same way on both exporters; a dangling marker is dropped
+### Q154 [auto] (done) export: picture markers become embeds the same way on both exporters; a dangling marker is dropped
 spec: C57 C196 R51
 needs: -
 gate+: yes
@@ -1457,7 +1457,7 @@ do: In `SkriftMobile/Services/Audiobooks/BookAlignment.swift`: (1) `mergeSentenc
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MultiTextMergeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-c06 MAS-c09 (cleanup-audit P5)
 
-### Q193 [auto] (todo) audiobook screens: dead state, orphan comments, small shared pieces, a toast bug
+### Q193 [auto] (doing) audiobook screens: dead state, orphan comments, small shared pieces, a toast bug
 spec: C240
 needs: Q173
 gate+: no
@@ -1473,7 +1473,7 @@ do: `TranscribeBookView.swift` is reachable only from the read-along nudge (`Rea
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d02 MAU-c01 (cleanup-audit P7)
 
-### Q195 [auto] (todo) shared book sheet pieces: progress bar, grabber, scaffold, glass chrome, labelled field
+### Q195 [auto] (doing) shared book sheet pieces: progress bar, grabber, scaffold, glass chrome, labelled field
 spec: C239 C240
 needs: Q193
 gate+: no
@@ -2486,3 +2486,6 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:27 Q231 -> doing — worker out
 - 2026-10-02 18:28 Q104 -> done — gate pass @b47406ff
 - 2026-10-02 18:29 Q173 -> done — gate pass @8c5d69ed
+- 2026-10-02 18:29 Q193 -> doing — batch worker out
+- 2026-10-02 18:29 Q195 -> doing — batch worker out
+- 2026-10-02 18:30 Q154 -> done — gate pass @aa1511df
