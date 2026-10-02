@@ -1298,7 +1298,7 @@ do: appTheme → ColorScheme (SkriftApp.swift:272-278 and Theme.swift:105-120, s
 check: `grep -rqE "class TwinLogicSharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TwinLogicSharedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P73
 
-### Q173 [auto] (doing) small phone bugs and dead code the audit turned up
+### Q173 [auto] (done) small phone bugs and dead code the audit turned up
 spec: C115 C229
 needs: -
 gate+: yes
@@ -2485,3 +2485,4 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 18:27 Q204 -> doing — worker out
 - 2026-10-02 18:27 Q231 -> doing — worker out
 - 2026-10-02 18:28 Q104 -> done — gate pass @b47406ff
+- 2026-10-02 18:29 Q173 -> done — gate pass @8c5d69ed
