@@ -9,8 +9,10 @@ extension PipelineFile {
             // The Mac row's set title IS the polish title (`MemoNoteProjection` copies the
             // phone's chosen title into it); it is what a locked row still shows.
             title: enhancedTitle, generatedTitle: nil,
-            derivedTitle: NoteVisibility.contentVisible(locked: locked, unlockedThisSession: unlockedThisSession)
-                ? queueTitle : nil,
+            // The row's last-resort title is the file name (`displayTitle`'s fallback — that
+            // type lives in Features/, outside the host-less test bundle). The first-body-line
+            // tier is the transcript, which is searched anyway.
+            derivedTitle: (filename as NSString).deletingPathExtension,
             transcript: transcript, summary: enhancedSummary, tags: tags,
             place: nil, annotation: nil, shared: [], ocr: [imageOCRText])
     }
