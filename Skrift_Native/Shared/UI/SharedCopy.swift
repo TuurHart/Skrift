@@ -52,4 +52,46 @@ enum SharedCopy {
     static func processingDownload(_ fraction: Double) -> String {
         "Getting the model — \(Int((fraction * 100).rounded()))%"
     }
+
+    // ── Q108: strings that were typed twice (parity audit P9) ──
+
+    /// THE verb for starting a take — the red-dot button in the notes verb row
+    /// on the phone, iPad and Mac.
+    static let recordVerb = "Record"
+
+    /// "Back" — leaving the Places map / Fading column on the Mac, the Places
+    /// map on the iPad (was 'back to calendar' there).
+    static let backVerb = "Back"
+
+    /// Empty library. The body names the two buttons that exist (D136: the mic
+    /// corner button is gone; the Mac button is "Import", not "Upload").
+    static let emptyLibraryTitle = "No notes yet"
+    static let emptyLibraryBody = "Tap \(recordVerb) to capture your first note, or \(importVerb) audio you already have."
+
+    /// Search/filter excluded every note.
+    static let noMatchesTitle = "No matches"
+    static func noMatchesBody(_ query: String) -> String { "Nothing matches “\(query)”." }
+
+    /// Review's selected day with nothing in it.
+    static let reviewEmptyDay = "Nothing recorded this day."
+
+    /// The Fading shelf (phone sheet, Mac column). The numbers come from
+    /// `MemoLifecycle.fadeAfterDays` / `TrashPolicy.retentionDays`, never a literal.
+    static let wayOutEmptyTitle = "Nothing is fading"
+    static var wayOutEmptyBody: String {
+        "Quiet notes start fading \(MemoLifecycle.fadeAfterDays) days after you last touch them."
+    }
+    static let wayOutIntro = "Everything leaving, soonest first. Quiet notes leave on their own when their clock runs out; Bring back rescues one from any point."
+    static let wayOutFadingLabel = "Still visible → moving to Recently Deleted"
+    static let wayOutDeletedLabel = "In Recently Deleted → gone for good"
+    static var wayOutFooter: String {
+        "Automatic: each note moves along on its day. Deleted notes are kept for \(TrashPolicy.retentionDays) days, then removed for good. Bring back gives a note a fresh \(MemoLifecycle.fadeAfterDays) days."
+    }
+
+    /// The peek before a rescue.
+    static let peekNoTranscript = "No transcript yet."
+    static var peekUndoLine: String { "to Recently Deleted · \(TrashPolicy.retentionDays) days to undo" }
+
+    /// The run bar while a model loads: "Loading transcription model · 1 of 2".
+    static func processingLoading(_ what: String) -> String { "Loading \(what)" }
 }

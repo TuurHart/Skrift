@@ -541,16 +541,16 @@ struct MemosListView: View {
                                         }
                                         .accessibilityIdentifier("context-remind-button")
                                         Button { toggleLock(memo) } label: {
-                                            Label(memo.locked ? "Remove Lock" : "Lock Note",
-                                                  systemImage: memo.locked ? "lock.open" : "lock")
+                                            let lockItem = NoteMenuItem.lockItem(isLocked: memo.locked)
+                                            Label(lockItem.label, systemImage: lockItem.systemImage)
                                         }
                                         .accessibilityIdentifier("context-lock-button")
                                         Button { copyTranscript(memo) } label: {
-                                            Label("Copy transcript", systemImage: "doc.on.doc")
+                                            Label(NoteMenuItem.copyTranscript.label, systemImage: NoteMenuItem.copyTranscript.systemImage)
                                         }
                                         .accessibilityIdentifier("context-copy-button")
                                         Button(role: .destructive) { deleteMemo(memo) } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label(NoteMenuItem.delete.label, systemImage: NoteMenuItem.delete.systemImage)
                                         }
                                     }
                                 }
@@ -563,7 +563,9 @@ struct MemosListView: View {
                     }
                 }
                 if d.groups.isEmpty && d.related.isEmpty {
-                    Text("No matches")
+                    Text(SharedCopy.noMatchesTitle
+                         + (search.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\n" + SharedCopy.noMatchesBody(search)))
+                        .multilineTextAlignment(.center)
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
                         .frame(maxWidth: .infinity)
@@ -659,9 +661,9 @@ struct MemosListView: View {
     var emptyState: some View {
         VStack(spacing: 0) {
             ContentUnavailableView(
-                "No notes yet",
+                SharedCopy.emptyLibraryTitle,
                 systemImage: "waveform",
-                description: Text("Tap the mic to record your first note.")
+                description: Text(SharedCopy.emptyLibraryBody)
             )
             .accessibilityIdentifier("memos-empty")
         }

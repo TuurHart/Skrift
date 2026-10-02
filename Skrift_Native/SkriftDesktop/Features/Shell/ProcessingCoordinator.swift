@@ -174,12 +174,16 @@ final class ProcessingCoordinator {
         let showLoad = !modelsLoaded
         do {
             if needsAudio {
-                if showLoad { runState?.loadingLabel = "transcription model" }
+                if showLoad { runState?.loadingLabel = SharedCopy.processingStep("transcription model", 1, of: 2) }
                 try await TranscriptionService.shared.ensureLoaded { f in
                     Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                 }
             }
-            if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
+            if showLoad {
+                // "1 of 2" / "2 of 2" only when both models load this run.
+                runState?.loadingLabel = needsAudio ? SharedCopy.processingStep("enhancement model", 2, of: 2) : "enhancement model"
+                runState?.loadingFraction = nil
+            }
             try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
                 Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
             }

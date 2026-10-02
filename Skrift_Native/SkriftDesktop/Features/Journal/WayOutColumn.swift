@@ -47,24 +47,24 @@ struct WayOutColumn: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             if total == 0 {
-                Text("Nothing is fading.")
+                Text(SharedCopy.wayOutEmptyTitle + ". " + SharedCopy.wayOutEmptyBody)
                     .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
             } else {
-                Text("Everything leaving, on one line, soonest first. Quiet notes drift here when their clock runs out; Bring back rescues from any point of the journey.")
+                Text(SharedCopy.wayOutIntro)
                     .font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if !fading.isEmpty {
-                        section("Still visible → moving to Recently Deleted") {
+                        section(SharedCopy.wayOutFadingLabel) {
                             ForEach(WayOutRules.fadingOrdered(fading), id: \.persistentModelID) { memo in
                                 memoRow(memo)
                             }
                         }
                     }
                     if !deleted.isEmpty {
-                        section("In Recently Deleted → gone for good") {
+                        section(SharedCopy.wayOutDeletedLabel) {
                             ForEach(WayOutRules.deletedOrdered(deleted), id: \.persistentModelID) { memo in
                                 memoRow(memo)
                             }
@@ -81,7 +81,7 @@ struct WayOutColumn: View {
                     }
                 }
             }
-            Text("Automatic: each note moves along on its day. Bring back = a fresh 30 days on its clock. Your iPhone does the permanent deleting.")
+            Text(SharedCopy.wayOutFooter)
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             Spacer(minLength: 0)
         }
@@ -235,7 +235,7 @@ func backCapsule(action: @escaping () -> Void) -> some View {
     Button(action: action) {
         HStack(spacing: 5) {
             Image(systemName: "chevron.left").font(.system(size: 10, weight: .bold))
-            Text("Back").font(.system(size: 11.5, weight: .semibold))
+            Text(SharedCopy.backVerb).font(.system(size: 11.5, weight: .semibold))
         }
         .foregroundStyle(Theme.accent)
         .padding(.horizontal, 12).padding(.vertical, 5)

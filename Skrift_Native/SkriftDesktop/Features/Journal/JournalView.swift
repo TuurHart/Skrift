@@ -329,7 +329,7 @@ struct JournalView: View {
                     dayHeader
                     let dayMemos = LookbackProvider.memos(for: memos, onDay: selectedDay)
                     if dayMemos.isEmpty {
-                        Text("No notes this day.")
+                        Text(SharedCopy.reviewEmptyDay)
                             .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
                     }
                     ForEach(dayMemos, id: \.persistentModelID) { memo in

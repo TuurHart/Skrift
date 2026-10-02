@@ -89,7 +89,7 @@ extension MemosListView {
             } label: {
                 HStack(spacing: 6) {
                     Circle().fill(Color.skRed).frame(width: 9, height: 9)
-                    Text("Record")
+                    Text(SharedCopy.recordVerb)
                 }
                 .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(Color.skRed)

@@ -459,9 +459,9 @@ struct MemoDetailView: View {
                 })
             }
             if let memo = currentMemo {
-                Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
+                Button(NoteMenuItem.lockItem(isLocked: memo.locked).label, action: { toggleLock(memo) })
             }
-            Button("Share note…", action: {
+            Button(NoteMenuItem.share.label, action: {
                 // Q101 (C161/C213): a locked, not-yet-unlocked note needs auth before it leaves the app.
                 Task { @MainActor in
                     if let memo = currentMemo, lockGate.isLocked(memo) {
@@ -470,8 +470,8 @@ struct MemoDetailView: View {
                     showShare = true
                 }
             })
-            Button("Copy transcript", action: copyTranscript)
-            Button("Delete", role: .destructive, action: deleteCurrent)
+            Button(NoteMenuItem.copyTranscript.label, action: copyTranscript)
+            Button(NoteMenuItem.delete.label, role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
         }
         .sheet(item: $reminderMemo) { memo in
