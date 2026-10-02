@@ -36,6 +36,16 @@ enum NoteConsent {
         ThreeBallScale.step(for: significance) > 0
     }
 
+    /// What pressing Process / Polish on an unrated note writes (C40/D159): a judgment, the
+    /// 0.1 floor of the three-ball scale. `PolishCenter.polishNow` writes the same literal.
+    static let processFloor = 0.1
+
+    /// The significance a note carries after Process is pressed on it: an unrated note is
+    /// floored to `processFloor`; a rated one keeps its own (pressing Process never lowers it).
+    static func flooredByProcess(_ significance: Double?) -> Double {
+        isRated(significance) ? (significance ?? processFloor) : processFloor
+    }
+
     /// The memo channel (both apps): non-optional storage, 0 = unrated.
     static func isRated(_ memo: Memo) -> Bool {
         isRated(memo.significance)

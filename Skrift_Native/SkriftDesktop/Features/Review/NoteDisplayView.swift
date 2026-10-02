@@ -31,6 +31,9 @@ struct NoteDisplayView: View {
     /// Navigate to another memo's row (memo-link chip / LINKED FROM) — wired by
     /// RootView to the AppModel selection; nil on snapshot hosts → inert.
     var onOpenMemo: ((String) -> Void)? = nil
+    /// This note was moved to Recently Deleted from its own ⋯ (an unrated note): the shell
+    /// drops the selection. nil on snapshot hosts → inert.
+    var onRemoved: (() -> Void)? = nil
     /// The sidebar's live search text — a note opened while it's non-empty scrolls
     /// to the first match and flashes it (phone parity). "" on snapshot hosts.
     var searchQuery: String = ""
@@ -618,7 +621,8 @@ struct NoteDisplayView: View {
             // An unrated note keeps its ⋯ — copying text that's on screen needs no
             // rating — but the menu holds only the verbs that can act without a
             // pipeline row, and the primary Process/Export button is absent.
-            NoteActions(file: file, coordinator: coordinator, copyOnly: !capabilities(for: file).pipeline)
+            NoteActions(file: file, coordinator: coordinator, copyOnly: !capabilities(for: file).pipeline,
+                        onRemoved: onRemoved)
             if capabilities(for: file).connections { connectionsToggle }
         }
         .padding(.horizontal, 18)
