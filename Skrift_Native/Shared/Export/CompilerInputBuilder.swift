@@ -89,6 +89,10 @@ extension CompilerInput {
     /// Memo-link stems: UUID → the linked note's exported stem. Empty → no resolver (links
     /// fall back to `[[<title snapshot>]]`).
     mutating func setLinkStems(_ stems: [UUID: String]) {
-        memoLinkResolver = stems.isEmpty ? nil : { stems[$0] }   // value capture — Sendable
+        if stems.isEmpty {
+            memoLinkResolver = nil
+        } else {
+            memoLinkResolver = { stems[$0] }   // value capture — Sendable
+        }
     }
 }
