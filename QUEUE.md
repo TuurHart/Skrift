@@ -2464,3 +2464,5 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:46 Q205 -> done — gate pass (batched with Q208)
 - 2026-10-02 17:46 Q215 -> done — gate pass (batched with Q208)
 - 2026-10-02 17:48 Q200 -> done — gate pass @b8a0b887
+- 2026-10-02 17:48 Q189 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-02 17:48 Q189 -> doing — redispatch 2/3: rebase after CONFLICT
