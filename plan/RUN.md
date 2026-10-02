@@ -1,4 +1,4 @@
-mode: PAUSED 2026-10-02 by Tuur ("put a pin in it") — resume with /3-session from worktree session-3-f90c83, branch claude/skrift-parity-audit-133898.
+mode: overnight (resumed 2026-10-02 evening by Tuur) — session worktree session-3-f90c83, branch claude/skrift-parity-audit-133898
 stop-when: queue.sh counts shows 0 todo and 0 doing
 ready to accept at pause (all three finished, checks green; accept each from its worktree with bash plan/accept-chain.sh <id> <worktree-dir>, then delete origin/wt/<id>):
   Q241 wt=agent-aa3531c5e8356e7c3 · Q113 wt=agent-a9a5b72e1b31f6530 · Q103 wt=agent-a2f9f01a1a242a7ad (accept in this order; queue states are still 'doing')
