@@ -42,14 +42,19 @@ extension MemosListView {
     /// `MemoLifecycle.backlinkedIDs(in:)` ONCE per render and threads it through,
     /// instead of `MemoLifecycle.partition` re-running that corpus scan itself.
     func lifecycle(backlinked: Set<UUID>) -> (live: [Memo], fading: [Memo]) {
+        Self.lifecycle(memos, backlinked: backlinked)
+    }
+
+    /// Pure form of `lifecycle(backlinked:)` (Q104: the parity test feeds it a synthetic library).
+    static func lifecycle(_ memos: [Memo], backlinked: Set<UUID>, now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
         var live: [Memo] = [], fading: [Memo] = []
         for m in memos where m.deletedAt == nil {
-            if MemoLifecycle.isFading(m, backlinked: backlinked) { fading.append(m) } else { live.append(m) }
+            if MemoLifecycle.isFading(m, backlinked: backlinked, now: now) { fading.append(m) } else { live.append(m) }
         }
         return (live, fading)
     }
 
-    var searchingNow: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
+    var searchingNow: Bool { NotesListModel.isSearching(search) }
 
     func filtered(lifecycle: (live: [Memo], fading: [Memo]), enhanced: Set<UUID>) -> [Memo] {
         // The generated title + summary live on MemoEnhancement; index them once per pass
@@ -57,11 +62,27 @@ extension MemosListView {
         let polish: [UUID: (title: String, summary: String)] = searchingNow
             ? Dictionary(enhancements.map { ($0.memoID, ($0.title, $0.summary)) }, uniquingKeysWith: { a, _ in a })
             : [:]
-        var out = lifecycle.live.filter { matchesSearch($0, polish: polish[$0.id]) && matchesFilter($0, enhanced: enhanced) }
-        if searchingNow {
-            out += lifecycle.fading.filter { matchesSearch($0, polish: polish[$0.id]) && matchesFilter($0, enhanced: enhanced) }
-        }
-        return out.sorted(by: sortComparator)
+        return Self.listRows(lifecycle: lifecycle, search: search, chip: listChip, filter: filter,
+                             enhanced: enhanced, polish: polish,
+                             isUnlocked: { LockGate.shared.isUnlocked($0) })
+            .sorted(by: sortComparator)
+    }
+
+    /// The phone's adapter onto the shared list rule (`NotesListModel.listRows`, Q104): live
+    /// rows plus, while searching, fading rows, both through the same search + chip + filter
+    /// sheet. Unsorted; pure so `NotesListFilterParityTests` drives it.
+    static func listRows(lifecycle: (live: [Memo], fading: [Memo]), search: String, chip: QueueFilter,
+                         filter: MemoFilter, enhanced: Set<UUID>,
+                         polish: [UUID: (title: String, summary: String)] = [:],
+                         isUnlocked: (String) -> Bool) -> [Memo] {
+        NotesListModel.listRows(
+            live: lifecycle.live, fading: lifecycle.fading, searching: NotesListModel.isSearching(search),
+            matchesSearch: { m in
+                let p = polish[m.id]
+                return m.matches(query: search, unlockedThisSession: isUnlocked(m.id.uuidString),
+                                 enhancedTitle: p?.title, summary: p?.summary)
+            },
+            passesFilter: { passesFilter($0, chip: chip, filter: filter, enhanced: enhanced) })
     }
 
     struct Group { let title: String; let memos: [Memo] }
@@ -118,8 +139,16 @@ extension MemosListView {
     /// threaded in from `derived`'s one-per-render `enhancedMemoIDs` build.
     func relatedDisplay(excluding exact: Set<UUID>, enhanced: Set<UUID>) -> [Memo] {
         guard !related.isEmpty else { return [] }
-        // Q101 (C91/C161): a semantic hit is the note's words too — a hidden locked note never surfaces here.
-        return related.filter { !exact.contains($0.id) && !LockGate.shared.isLocked($0) && matchesFilter($0, enhanced: enhanced) }
+        return Self.relatedRows(related, shown: exact, chip: listChip, filter: filter, enhanced: enhanced,
+                                isLocked: { LockGate.shared.isLocked($0) })
+    }
+
+    /// The phone's adapter onto the shared Related rule (`NotesListModel.relatedRows`, Q104).
+    /// Q101 (C91/C161): a semantic hit is the note's words too — a hidden locked note never surfaces.
+    static func relatedRows(_ hits: [Memo], shown: Set<UUID>, chip: QueueFilter, filter: MemoFilter,
+                            enhanced: Set<UUID>, isLocked: (Memo) -> Bool) -> [Memo] {
+        NotesListModel.relatedRows(hits, shown: shown, id: \.id, hidden: isLocked,
+                                   passesFilter: { passesFilter($0, chip: chip, filter: filter, enhanced: enhanced) })
     }
 
     /// Debounced semantic lookup for the current query (P8). Exact matches
@@ -156,19 +185,19 @@ extension MemosListView {
     }
 
     func matchesFilter(_ memo: Memo, enhanced: Set<UUID>) -> Bool {
-        // The Mac's triage chip (regular width only). `.all` is a no-op, so
-        // compact and the phone are untouched (listChip stays .all there).
-        // D136: the chip bar filters on EVERY width now (was iPad-regular only —
-        // `listChip` stayed `.all` on the phone before, a no-op).
-        if !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
-        if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
-        if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
-        if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
-        if filter.from != nil || filter.to != nil {
-            let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
-            if !DateRangeFilter.contains(d, from: filter.from, to: filter.to) { return false }
-        }
-        return true
+        Self.passesFilter(memo, chip: listChip, filter: filter, enhanced: enhanced)
+    }
+
+    /// The phone's chip + filter-sheet answer for one memo, through the shared rule
+    /// (`NotesListModel.passesFilter`, Q104). D136: the chip bar filters on every width.
+    static func passesFilter(_ memo: Memo, chip: QueueFilter, filter: MemoFilter, enhanced: Set<UUID>) -> Bool {
+        var extra = true
+        if filter.unsyncedOnly && memo.syncStatus == .synced { extra = false }
+        if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { extra = false }
+        if let place = filter.place, memo.metadata?.location?.placeName != place { extra = false }
+        let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
+        return NotesListModel.passesFilter(inChip: ProcessPile.matches(chip, memo, enhancedIDs: enhanced),
+                                           date: d, from: filter.from, to: filter.to, extra: extra)
     }
 
     func sortComparator(_ a: Memo, _ b: Memo) -> Bool {

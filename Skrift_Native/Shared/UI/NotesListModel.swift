@@ -38,4 +38,43 @@ enum NotesListModel {
         }
         return order.map { (title: $0, items: bucket[$0] ?? []) }
     }
+
+    // MARK: - Q104: the three filter rules, applied to EVERY row kind (C115, D148)
+    //
+    // The phone feeds `Memo`s; the Mac feeds `PipelineFile` rows (rated) plus `Memo` rows
+    // (unrated, stranded, locked-quiet, fading search hits). Each app says which chip a
+    // row belongs to and which date the range reads; these rules decide membership, so no
+    // row kind can skip the date range or the chip on one device and not the other.
+
+    /// Rule 1 — the filter sheet every row passes: the active chip and the date range.
+    /// `inChip` is the caller's chip answer for this row; `extra` carries any further
+    /// filter terms one app offers (the phone's Unsynced / Photos / Place).
+    static func passesFilter(inChip: Bool, date: Date, from: Date?, to: Date?, extra: Bool = true) -> Bool {
+        inChip && extra && DateRangeFilter.contains(date, from: from, to: to)
+    }
+
+    /// Rule 2 — the list rows: live rows that match the search and pass the filter, and,
+    /// only while searching, fading rows held to the SAME two tests (fading leaves the
+    /// list, never search — no-bad-info 2026-07-21). A fading hit therefore shows under
+    /// whichever chip it belongs to and inside the date range, on every device.
+    static func listRows<T>(live: [T], fading: [T], searching: Bool,
+                            matchesSearch: (T) -> Bool, passesFilter: (T) -> Bool) -> [T] {
+        let keep: (T) -> Bool = { matchesSearch($0) && passesFilter($0) }
+        var out = live.filter(keep)
+        if searching { out += fading.filter(keep) }
+        return out
+    }
+
+    /// Rule 3 — the Related rows: semantic hits minus the rows the exact search already
+    /// shows, minus hidden (locked, not unlocked) notes, through the same filter as the
+    /// list. Hit order (best first) is kept.
+    static func relatedRows<T, ID: Hashable>(_ hits: [T], shown: Set<ID>, id: (T) -> ID,
+                                             hidden: (T) -> Bool, passesFilter: (T) -> Bool) -> [T] {
+        hits.filter { !shown.contains(id($0)) && !hidden($0) && passesFilter($0) }
+    }
+
+    /// Whether a query is live (the trim rule both apps already used).
+    static func isSearching(_ query: String) -> Bool {
+        !query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 }

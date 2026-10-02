@@ -727,21 +727,25 @@ struct SidebarView: View {
     }
 
     /// The Related rows: the semantic hits that the exact search did not already show.
+    /// Through the shared Related rule (Q104): the same chip + date range as the list, so a
+    /// filtered list never grows unfiltered Related rows underneath it.
     private func relatedEntries(excluding shown: [SidebarEntry]) -> [SidebarEntry] {
-        guard !relatedIDs.isEmpty else { return [] }
-        let exact = Set(shown.map(\.id))
-        let memos = Dictionary(effectiveCloudMemos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        return relatedIDs.compactMap { id -> SidebarEntry? in
-            // Q101 (C91/C161): a semantic hit is the note's words too — a locked, not-yet-unlocked
-            // note never surfaces through Related.
-            if let f = files.first(where: { $0.id == id.uuidString }) {
-                if LockGate.shared.isLocked(f) { return nil }
-                let e = SidebarEntry.file(f)
-                return exact.contains(e.id) ? nil : e
+        let exact = Set(shown.map { entry -> String in
+            switch entry {
+            case .file(let f): return f.id
+            case .memo(let m): return m.id.uuidString
             }
-            guard let m = memos[id], m.deletedAt == nil, !LockGate.shared.isLocked(m) else { return nil }
-            let e = SidebarEntry.memo(m)
-            return exact.contains(e.id) ? nil : e
+        })
+        // Q101 (C91/C161): a semantic hit is the note's words too — a locked, not-yet-unlocked
+        // note never surfaces through Related.
+        return model.listFilter.relatedRows(
+            hits: relatedIDs, files: files, memos: effectiveCloudMemos, shown: exact,
+            isLockedFile: { LockGate.shared.isLocked($0) }, isLockedMemo: { LockGate.shared.isLocked($0) }
+        ).map { row in
+            switch row {
+            case .file(let f): return .file(f)
+            case .memo(let m): return .memo(m)
+            }
         }
     }
 
@@ -769,30 +773,14 @@ struct SidebarView: View {
     // circles live. Right-click carries the fast verbs (Flag/Lock/Delete).
     // Rated rows keep the full click/selection machinery.
 
+    /// Stranded, quiet, locked-quiet and (while searching) fading rows, each through the
+    /// shared list rule (Q104, `MacListFilter.memoRows`): search AND chip AND the date range,
+    /// the same three tests a pipeline row and every phone row pass. Stranded notes (rated,
+    /// no pipeline row) ride every chip except Not rated; unrated kinds sit under All and
+    /// Not rated. Fading notes join only while searching (no-bad-info, 2026-07-21) — their
+    /// one-liner ("moves to Recently Deleted in Nd") is the marker.
     private var visibleMemoRows: [Memo] {
-        // Stranded notes ride every filter chip except Not-rated: a rated note with no row
-        // can't answer "needs work" or "done" (both read a `PipelineFile` it doesn't have),
-        // and being unfindable is the exact bug they exist to prevent. Not-rated excludes
-        // them because they ARE rated.
-        var rows = model.filter == .notRated ? [] : strandedMemos
-        if model.filter == .all || model.filter == .notRated {
-            rows += unpipelinedMemos
-            // A locked quiet note stays in the list as title + 🔒 (Q100, C91) — it is out of
-            // `unpipelinedMemos` (resolved, never nags the counts) but never out of sight.
-            rows += WayOutRules.lockedQuiet(memos: effectiveCloudMemos, files: files)
-            // Search honesty (no-bad-info, 2026-07-21): while SEARCHING, fading
-            // notes are findable here too — their one-liner ("moves to Recently
-            // Deleted in Nd") is the marker. Browse mode keeps the one-home law
-            // (fading's surface is the conveyor).
-            if !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-                let ingested = Set(files.compactMap { UUID(uuidString: $0.id) })
-                rows += MemoLifecycle.partition(effectiveCloudMemos).fading.filter {
-                    !NoteConsent.isRated($0) && !ingested.contains($0.id)
-                }
-            }
-        }
-        return rows.filter { WayOutRules.matchesSearch($0, query: model.searchText,
-                                              unlockedThisSession: LockGate.shared.isUnlocked($0.id.uuidString)) }
+        model.listFilter.memoRows(memos: effectiveCloudMemos, files: files)
     }
 
     /// One list, two row kinds, interleaved by the active sort.
