@@ -815,7 +815,7 @@ check: Tuur picked the table and FEATURES.md follows it.
 brief: iPad binds ⌘N twice: the app menu 'New Recording' (SkriftApp.swift:243-248) and the list pencil 'New note' (MemosListView+Header.swift:116); which one wins is unverified; FEATURES.md:61 says new note, :126 says record (list-sidebar-22, capture-quick-02, recsj-037). The Mac has only ⌘N (new note) and ⌥⌘C; no menu command for Record, no ⌘F, no ⌘1-3 surfaces (list-sidebar-24, recsj-036, -052). Recommended: ⌘N = new note on every device; Record = ⇧⌘N; Mac gets ⌘F (search), ⌘1 / ⌘2 for Notes / Review, and a Record menu command. He picks; then it is one `.commands` block per app.
 source: plan/reads/parity-audit.md P12
 
-### Q112 [auto] (doing) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
+### Q112 [auto] (stuck) Mac: the audiobook / shared-text quote block is read-only, only the ramble edits (C172)
 spec: C172 C31 C21
 needs: -
 gate+: yes
@@ -839,7 +839,7 @@ do: Four ladders for one rule: phone `Memo.displayTitle`, Mac `WayOutRules.displ
 check: `grep -rqE "class NoteTitleLadderTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteTitleLadderTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P15
 
-### Q115 [auto] (todo) Mac 'From the recording' title suggestion never offers memo_<uuid>
+### Q115 [auto] (doing) Mac 'From the recording' title suggestion never offers memo_<uuid>
 spec: C181 C25
 needs: -
 gate+: yes
@@ -1919,6 +1919,12 @@ needs: Q138
 do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
+### Q251 [tuur] (todo) decide: Mac quote read-only applies to any note opening with '> ' (Q112, text-only per C172) — keep, or gate on a capture flag so a hand-typed blockquote stays editable
+spec: C172
+needs: -
+do: -
+check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2421,3 +2427,6 @@ check: `./gate.sh`
 - 2026-10-02 13:10 Q101 -> done — gate pass @0b3ebcc9
 - 2026-10-02 13:11 Q113 -> doing — worker out
 - 2026-10-02 13:13 Q131 -> done — gate pass @217cd128
+- 2026-10-02 13:13 Q115 -> doing — worker out
+- 2026-10-02 13:16 Q112 -> stuck — check failed — .queue/Q112.check.log
+- 2026-10-02 13:16 Q251 added
