@@ -847,7 +847,7 @@ do: The Mac chooser value is `SkriftFormat.cleanFilename(file.filename)` (NotePr
 check: `grep -rqE "class MacTitleSuggestionTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P16
 
-### Q116 [auto] (doing) name decisions (unlink, pick, silence) sync between devices; one wording set for the actions
+### Q116 [auto] (done) name decisions (unlink, pick, silence) sync between devices; one wording set for the actions
 spec: C81 D20 R37
 needs: -
 gate+: yes
@@ -871,7 +871,7 @@ do: The iPad note bar shows a progress bar + step line and replaces the verb whi
 check: `test $(ls plan/reads/note-p-progress/*.png | wc -l) -ge 1 && grep -rqE "class MacNoteRunStateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P19
 
-### Q119 [auto] (todo) Connections: one set of rules on iPad, Mac and the phone footer (importance stops, row cap, failure states, consent gate, default sort)
+### Q119 [auto] (doing) Connections: one set of rules on iPad, Mac and the phone footer (importance stops, row cap, failure states, consent gate, default sort)
 spec: R58 C110 C210 C232 D30
 needs: -
 gate+: yes
@@ -1601,7 +1601,7 @@ do: In `SkriftDesktop/`: delete `Models/FileDTO.swift` (`StepsDTO`, `FileDTO`, `
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d01 DPE-d02 DPE-d03 DPE-d04 DAU-d11 DAU-d12 DAU-d13 (cleanup-audit P23)
 
-### Q211 [auto] (doing) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
+### Q211 [auto] (tuur) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
 spec: C240
 needs: -
 gate+: no
@@ -1713,7 +1713,7 @@ do: Found by reading; each gets a failing test first where one can be written, o
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-c09 MLJ-c26 MLJ-c01 (cleanup-audit P37)
 
-### Q225 [auto] (doing) phone services: unread members, unused overloads and test-only helpers
+### Q225 [auto] (tuur) phone services: unread members, unused overloads and test-only helpers
 spec: C240
 needs: Q211
 gate+: no
@@ -1732,7 +1732,7 @@ source: plan/reads/cleanup-audit.md MSV-d02 MSV-d03 (cleanup-audit P39)
 ### Q227 [auto] (doing) the lock flow asks the right ledger whether a note was exported
 spec: C115
 needs: Q225
-gate+: no
+gate+: yes
 do: `ObsidianVault.hasPublished(_ memoID:)` (`SkriftMobile/Services/Export/ObsidianPublisher.swift:35-38`) keys the ledger on the picked root (`ExportLedger.default(for: vault)`) while the writer and `PublishCoordinator.hasPublished` (`PublishCoordinator.swift:126-138`) key it on the vault home (`VaultLayout.home(forPicked:profile:)`, `<pick>/Skrift` unless the pick is already named Skrift or already holds Skrift notes, `VaultLayout.swift:50-66`) and on the note's destination. So the lock-flow notice at `MemoDetailView.swift:731` and `MemosListView+Actions.swift:126` can say "not in your vault" for a note that was exported. Write a failing test that exports a memo into a picked folder named something other than Skrift and then asks the lock flow's check, then delete `ObsidianVault.hasPublished` and have both callers use `PublishCoordinator.hasPublished(memo)`. Found by reading, not run on a device; if the test passes today, log why and still remove the duplicate predicate.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-m1 (cleanup-audit P40)
@@ -2469,3 +2469,7 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 - 2026-10-02 17:52 Q134 -> doing — worker out (opus)
 - 2026-10-02 17:55 Q104 -> doing — worker out (opus)
 - 2026-10-02 17:56 Q189 -> done — gate pass @54e170e3
+- 2026-10-02 18:02 Q119 -> doing — worker out (opus)
+- 2026-10-02 18:04 Q211 -> tuur — hand-merge: SplitSpeakersTests.swift:107 (isWaitingSplit), PipelineFileTests.swift:17-18 (steps setter) — not started
+- 2026-10-02 18:04 Q225 -> tuur — hand-merge: PublishCoordinatorTests:24,33, MemoAssetTests, MemoModelTests:65, LiveCaptionCadenceTests:47-63, LiveCaptionSettleTests:54-56, testSetAPIKeyRoundTrip — not started; needs Q211
+- 2026-10-02 18:07 Q116 -> done — gate pass @d93a540d
