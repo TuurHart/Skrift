@@ -321,8 +321,7 @@ struct NoteDisplayView: View {
                 .font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textSecondary)
                 .accessibilityIdentifier("transcribing-pill")
             }
-            NoteBody(file: file, audio: audio, interactive: scrollable, splitting: coordinator.splitPhases[file.id] != nil,
-                     onAddName: addName, onAddAlias: addAlias,
+            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
                      onSuggestionPick: scrollable ? { a, c in pickName(file, alias: a, canonical: c) } : nil,
                      onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
@@ -333,7 +332,8 @@ struct NoteDisplayView: View {
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
                      linkTitle: { id in liveTitle(of: id) },
                      searchJumpToken: searchQuery.isEmpty ? nil : "\(file.id)\u{1}\(searchQuery)",
-                     focusToken: focusBodyToken)
+                     focusToken: focusBodyToken,
+                     splitting: coordinator.splitPhases[file.id] != nil)
                 .opacity(coordinator.splitPhases[file.id] == nil ? 1 : 0.45)
                 .allowsHitTesting(coordinator.splitPhases[file.id] == nil)
             // The bottom LINKED FROM strip is GONE — backlinks live in the
