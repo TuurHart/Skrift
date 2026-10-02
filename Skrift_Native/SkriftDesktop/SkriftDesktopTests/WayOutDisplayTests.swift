@@ -1,5 +1,4 @@
 import XCTest
-@testable import SkriftDesktop
 
 /// Q178: the way-out row's meta line and urgency tone live once in `WayOut` (Shared); the phone's
 /// `WayOutView` and the Mac's `WayOutColumn` both render these values.
