@@ -55,6 +55,36 @@ struct IngestService: Sendable {
         /// Ids of the rows that are N clips stitched into one (C124). Their date is the first
         /// clip's message time, never the stitched file's own embedded date.
         var merged: Set<String> = []
+        /// Why a skipped file was skipped, when the default (by its kind) is not the whole
+        /// story: a picture or a `.txt` found INSIDE a dropped folder is a supported type, and
+        /// saying "unsupported" would lie.
+        var reasons: [URL: String] = [:]
+        /// Rows made for a file that was taken but could not be imported (a video with no audio
+        /// track): they are in `created` too, as failed notes the list shows.
+        var failed: [ImportReport.Problem] = []
+
+        /// The one report both apps show (C199 / C202): `created` counts only the rows that
+        /// are not failures.
+        var importReport: ImportReport {
+            var r = ImportReport(created: created.count - failed.count)
+            for url in skipped {
+                r.addSkipped(url.lastPathComponent,
+                             reasons[url] ?? (FileManager.default.fileExists(atPath: url.path)
+                                ? ImportReport.skipReason(forName: url.lastPathComponent, onMac: true)
+                                : ImportReport.vanished))
+            }
+            r.failed = failed
+            return r
+        }
+
+        /// Add a row an ingest made; a failed-import row (`IngestService.isFailedImport`) is
+        /// recorded as a failure too.
+        mutating func add(_ pf: PipelineFile) {
+            created.append(pf)
+            if IngestService.isFailedImport(pf) {
+                failed.append(.init(name: pf.filename, reason: pf.enhancedTitle ?? ImportReport.noAudioTrack))
+            }
+        }
     }
 
     /// `combineAudio` is the answer to the C68 chooser ("One note"): when true and TWO OR
@@ -121,7 +151,7 @@ struct IngestService: Sendable {
                 let pf = try await ingestClips(composition.clips, into: context)
                 if composition.clips.count > 1 { report.merged.insert(pf.id) }
                 report.skipped += try await attachPictures(composition.pictures, to: pf)
-                report.created.append(pf)
+                report.add(pf)
                 continue
             }
             if pictureSet.contains(key) {
@@ -130,7 +160,7 @@ struct IngestService: Sendable {
                 pictureNoteDone = true
                 let (pf, failed) = try await ingestPictureNote(pictures, into: context)
                 report.skipped += failed
-                if let pf { report.created.append(pf) }
+                if let pf { report.add(pf) }
                 continue
             }
             var isDir: ObjCBool = false
@@ -138,9 +168,12 @@ struct IngestService: Sendable {
                 report.skipped.append(url); continue
             }
             if isDir.boolValue {
-                report.created.append(contentsOf: try await ingestFolder(url, into: context))
+                let folder = try await ingestFolder(url, into: context)
+                for pf in folder.created { report.add(pf) }
+                report.skipped += folder.skipped.map(\.url)
+                for (u, why) in folder.skipped { report.reasons[u] = why }
             } else if let pf = try await ingestFile(url, into: context) {
-                report.created.append(pf)
+                report.add(pf)
             } else {
                 report.skipped.append(url)
             }
@@ -320,7 +353,11 @@ struct IngestService: Sendable {
         let ext = url.pathExtension.lowercased()
         if Self.supportedVideo.contains(ext),
            await Task.detached(operation: { Self.hasVideoTrack(url) }).value {
-            return try await ingestVideo(url, into: context)
+            do { return try await ingestVideo(url, into: context) }
+            catch VideoIngestError.noAudioTrack {
+                // C202: a silent video is a visible failed note, like the phone's.
+                return try await ingestFailedVideo(url, title: ImportReport.noAudioTrack, into: context)
+            }
         }
         // C238: dispatch on the ONE shared kind. A `.video` that carried no video track gets
         // here as an audio-only container (`supportedAudio` holds mp4/mov for exactly that).
@@ -420,6 +457,32 @@ struct IngestService: Sendable {
         pf.isLocalImport = !isLocalRecording
         context.insert(pf)
         return pf
+    }
+
+    /// A video that cannot be imported (no audio track) still gets a row: a failed note named
+    /// for what went wrong, glyph "video", no audio and no words - the phone's
+    /// `MemoSaver.processVideo` failure shape (C202, "Video had no audio track", identical).
+    /// A `.note` row, so nothing downstream tries to read audio it does not have.
+    private func ingestFailedVideo(_ url: URL, title: String, into context: ModelContext) async throws -> PipelineFile {
+        let filename = url.lastPathComponent
+        let id = UUID().uuidString
+        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let embedded = await Task.detached(operation: { Self.embeddedRecordingDate(of: url) }).value
+        let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
+        let pf = PipelineFile(id: id, filename: filename, path: folder.appendingPathComponent("original.md").path,
+                              size: 0, sourceType: .note, uploadedAt: recorded)
+        pf.mediaSource = "video"
+        pf.transcribeStatus = .error
+        pf.enhancedTitle = title
+        pf.isLocalRecording = isLocalRecording
+        pf.isLocalImport = !isLocalRecording
+        context.insert(pf)
+        return pf
+    }
+
+    /// A row `ingestFailedVideo` made.
+    static func isFailedImport(_ pf: PipelineFile) -> Bool {
+        pf.sourceType == .note && pf.mediaSource == "video" && pf.transcribeStatus == .error
     }
 
     private func ingestNote(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
@@ -685,19 +748,31 @@ struct IngestService: Sendable {
     /// exports, audio recordings, AND video clips (e.g. dropping a folder of voice
     /// memos / self-recorded videos). Skips subfolders (an Apple Notes export's
     /// `Attachments/` images aren't notes).
-    private func ingestFolder(_ url: URL, into context: ModelContext) async throws -> [PipelineFile] {
-        let items = ((try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? [])
+    private func ingestFolder(_ url: URL, into context: ModelContext) async throws
+        -> (created: [PipelineFile], skipped: [(url: URL, reason: String)]) {
+        let items = ((try? FileManager.default.contentsOfDirectory(
+            at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? [])
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         var created: [PipelineFile] = []
+        var skipped: [(url: URL, reason: String)] = []
         for item in items {
+            let isDir = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            if isDir { continue }   // an Apple Notes export's `Attachments/` is not a note
             let ext = item.pathExtension.lowercased()
-            guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video].contains(kind) else { continue }
+            guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video].contains(kind) else {
+                // Said, never dropped: a picture / PDF / book / unknown file in a folder.
+                skipped.append((item, ImportKinds.kind(forExtension: ext) == .image
+                                ? ImportReport.pictureInFolder
+                                : ImportReport.skipReason(forName: item.lastPathComponent, onMac: true)))
+                continue
+            }
             // A folder is an Apple Notes export: its `.md` files are notes, a stray `.txt` is
             // clutter (IngestServiceTests pins this). A `.txt` DROPPED directly is a note.
-            if kind == .text, ext == "txt" { continue }
+            if kind == .text, ext == "txt" { skipped.append((item, ImportReport.textInFolder)); continue }
             if let pf = try await ingestFile(item, into: context) { created.append(pf) }
+            else { skipped.append((item, ImportReport.skipReason(forName: item.lastPathComponent, onMac: true))) }
         }
-        return created
+        return (created, skipped)
     }
 
     private func makeFolder(id: String, filename: String) throws -> (URL, String) {

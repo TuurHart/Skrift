@@ -73,7 +73,8 @@ enum ArrivalPath {
                     service: IngestService = IngestService(),
                     combineAudio: Bool = false,
                     onCreated: ([PipelineFile]) -> Void = { _ in },
-                    onSkipped: ([URL]) -> Void = { _ in }) async throws -> [PipelineFile] {
+                    onSkipped: ([URL]) -> Void = { _ in },
+                    onReport: (ImportReport) -> Void = { _ in }) async throws -> [PipelineFile] {
         guard !urls.isEmpty else { return [] }
         // The row is BORN knowing it's a capture. Not stamped afterwards: the reconcile sweep
         // sees inserted-but-unsaved rows and runs while this function is awaiting file work,
@@ -86,6 +87,8 @@ enum ArrivalPath {
         onCreated(created)
         // Q92: a file that did not become a note is SAID, never silently dropped.
         if !report.skipped.isEmpty { onSkipped(report.skipped) }
+        // Q137 / C199: ONE report (made, skipped, failed + why) for the list banner.
+        onReport(report.importReport)
 
         // Backfill the real recording date (async; survives copies because the date lives
         // inside the m4a).

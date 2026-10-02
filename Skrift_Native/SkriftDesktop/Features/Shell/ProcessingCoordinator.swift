@@ -23,6 +23,10 @@ final class ProcessingCoordinator {
     var isRunning: Bool { runState != nil }
     private static let busyMessage = "A run is already going — wait for it to finish."
     var lastError: String?
+    /// What the last import did (Q137 / C199): shown as a dismissible banner at the top of the
+    /// notes list, so a drop with no note open still says what happened. Only set when
+    /// something was skipped or failed.
+    var importReport: ImportReport?
     /// Transient confirmation banner (auto-clears) — shown by RootView so an action
     /// like Export gives visible feedback (N5).
     var toast: String?
