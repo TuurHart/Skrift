@@ -67,16 +67,9 @@ enum MixedBundle {
         return Composition(clips: clips, pictures: pictures)
     }
 
-    /// One clip's place in a merged note (C124, D35): where its speech STARTS in the merged audio
-    /// and its own message time. Written beside the merged audio (`clip_manifest.json` on the
-    /// Mac, `MemoMetadata.clipManifest` on the phone); the body never shows `recordedAt`, only
-    /// the paragraph break the start forces.
-    struct ClipEntry: Codable, Equatable, Sendable {
-        var filename: String
-        var startSeconds: Double
-        /// The clip's own message time (C70 ladder), ISO-8601; nil when its name carries none.
-        var recordedAt: String?
-    }
+    /// One clip's place in a merged note (C124, D35). The type lives in `MemoMetadata.swift`
+    /// (the share extension compiles that file but not this one).
+    typealias ClipEntry = ClipManifestEntry
 
     /// The manifest of `clips` stitched in this order. `clipDuration` as in `compose`; `dates`
     /// gives each clip's message time.
