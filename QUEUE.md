@@ -2224,6 +2224,12 @@ gate+: yes
 do: Tuur 2026-10-03 (D177): the audiobook jump-back (Q151/Q273, `AudiobookSession.isJumpBack`, `beginJumpBack(to:)`) also appears on non-book notes that have a source position — PDF captures and podcast clips. Keep the '❝ N' Library capsule. Phone test `JumpBackNonBookTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./gate.sh`
 
+### Q298 [tuur] (tuur) promotion (Q186 + Q287): deploy the CloudKit prod schema for the new synced Memo.includeAudioInExport (and MemoAsset kind video once Q287 lands) before promoting either app
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3146,3 +3152,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 - 2026-10-03 09:13 Q296 -> tuur — mock https://claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5 (mocks/Q296-mac-checklist-button.html). Question: button on the left beside the notes-list toggle (A) or right before Process (B)? Also: multi-line selection -> checklist is NEW on both apps (shared rule change)
 - 2026-10-03 09:23 Q288 -> doing — dispatched (sonnet)
 - 2026-10-03 09:27 Q186 -> done — hand-merged (D174: one bundle rule, MacMultiAudioImportTests flipped to one note)
+- 2026-10-03 09:28 Q298 added
+- 2026-10-03 09:28 Q298 -> tuur — parked: promotion
