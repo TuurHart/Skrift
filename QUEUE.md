@@ -1897,7 +1897,7 @@ do: `CompilerSharedContent` (`Shared/Export/CompilerInput.swift:53-64,84`) is a 
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c05 SRS-c06 (cleanup-audit P60)
 
-### Q248 [auto] (doing) one temp-dir helper and one corpus-root helper per test bundle
+### Q248 [auto] (tuur) one temp-dir helper and one corpus-root helper per test bundle
 spec: C239
 needs: -
 gate+: no
@@ -2936,3 +2936,4 @@ check: (fill in)
 - 2026-10-03 02:15 Q172 -> done — gate pass @584aa5fd
 - 2026-10-03 02:15 Q188 -> tuur — needs hand-merge: wt/Q188 @b65cab6f (agent-ac17ad7e4e274ca9a) deletes trim tests in protected AudiobookCaptureMathTests + QuoteCaptureSaveTests, drops snapped args in AlignedSentenceSourceTests + TextCaptureTests; gate green 1440; approve then plan/hand-merge.sh
 - 2026-10-03 02:19 Q228 -> done — gate pass @22e678ab
+- 2026-10-03 02:19 Q248 -> tuur — needs hand-merge: wt/Q248 @b993383c (agent-a95f4d0123ea15b77) ports tempDir()/corpus climb in 21 desktop + 3 phone protected test files to makeTempDir()/CorpusSeed.fixtureRoot, assertions unchanged; gate green 1444; approve then plan/hand-merge.sh
