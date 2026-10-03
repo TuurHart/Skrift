@@ -331,7 +331,7 @@
 - [mechanical] Phone→Mac update path: `MemoCloudUpdate` + `MemoCloudReconciler.sweep` (`SweepOutcome`) + `PipelineFile.syncedSourceEditedAt` watermark — src: `archive/handoffs/LIVE_SYNC_HANDOFF.md:15-17`
 - [mechanical] Mac→phone edit path: `MacCloudEditSync` debounced write-back via `MacCloudWriteBack.upsert(bodyOverride:)` + `Sanitiser.unlinkToSpoken`; projections (nil `modelContext`) are skipped — src: `archive/handoffs/LIVE_SYNC_HANDOFF.md:13-15`, `memory/project_ipad_wave1.md:265-267`
 - [mechanical] `MacMemoAuthor.author()` infers user-edited from "transcript already present on a fresh local recording"; the seed ORDERING (edited path seeds in `onCreated`, unedited inside the transcribe hook) is a contract — src: `memory/project_live_transcription.md:23-27`
-- [mechanical] Headless verbs (quit the GUI first): `-runfile <audio> [-transcript] [-vault]`, `-recordingest`, `-ratetorow`, `-trashfile`, `-ratefile`, `-vaultexport`, `-turncheck`, `-voiceloop`, `-snapshot*` — src: `memory/project_mac_recording.md:88-89`, `CLAUDE.md:76-78`
+- [mechanical] Headless verbs (quit the GUI first): `-runfile <audio> [-transcript] [-vault]`, `-recordingest`, `-ratetorow`, `-trashfile`, `-ratefile`, `-vaultexport`, `-turncheck`, `-snapshot*` — src: `memory/project_mac_recording.md:88-89`, `CLAUDE.md:76-78`
 
 ### Export compiler
 - [mechanical] Vault stamp = frontmatter `skriftID` · `skriftHash` · real `lastTouched` — a PUBLIC contract for the plugin; Obsidian Bases can table Skrift notes today (`skriftID exists`) — src: `FEATURES.md:70`, `memory/project_ipad_wave1.md:322-325`
