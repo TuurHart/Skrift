@@ -1306,7 +1306,7 @@ do: Phone onboarding shows a green check for the permission step whatever the us
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh OnboardingPermissionStateTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P74
 
-### Q174 [auto] (stuck) FEATURES.md and plan/parity.md match the code again
+### Q174 [auto] (done) FEATURES.md and plan/parity.md match the code again
 spec: C239
 needs: -
 do: Stale rows found by the audit: FEATURES.md:119 (iPad list '320-420 draggable', it is fixed 375), :61 vs :126 (⌘N), :377 (Quick note Desktop n/a, the Mac has the compose chip), :53 (search-hit flash Mac ➖, it jumps), :238 (quote rendering Desktop n/a), :161 (captures 'Mobile n/a' predates iPad polish), the 'Quote protection in enhancement' row (omits phone `PolishEscrow`), the 'Custom vocabulary sync' row (~:292, Desktop 'not built', it exists), :120 ('unlocked' in the Process pile); plan/parity.md:44 name resolutions 'deliberately not' (SPEC C81/D20 say sync). SPEC wording for C220 ('Mac rotates at 7 s', code is 20 s) and C199/C145 stays with Tuur: list them in the commit message. Edit only FEATURES.md and plan/parity.md.
@@ -1857,7 +1857,7 @@ do: Eight App adapters hand-write `cloudKitMacSyncEnabled && MemoCloudStore.cont
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c06 DAU-c07 DAU-c08 (cleanup-audit P55)
 
-### Q243 [auto] (doing) polish: one prompt descriptor, one title/summary turn, no redundant canPolish clause
+### Q243 [auto] (done) polish: one prompt descriptor, one title/summary turn, no redundant canPolish clause
 spec: C239
 needs: Q187
 gate+: no
@@ -2917,3 +2917,5 @@ check: (fill in)
 - 2026-10-03 01:51 Q243 -> doing — re-accept with Q240
 - 2026-10-03 01:52 Q212 -> doing — dispatched (sonnet), hand-merge expected
 - 2026-10-03 01:54 Q240 -> done — gate pass @5d57762b
+- 2026-10-03 01:54 Q243 -> done — gate pass (batched with Q240)
+- 2026-10-03 01:55 Q174 -> done — gate pass @44c7aa8f
