@@ -1976,7 +1976,7 @@ gate+: yes
 do: Found by the Q162 mockup agent: Skrift_Native/SkriftMobile/Services/NotesRepository.swift:41 calls fatalError when the SwiftData/CloudKit store fails to build, so the phone crashes at launch instead of telling the user. Replace the crash with a recoverable path: keep the error, show a plain full-screen 'Skrift couldn't open your notes' state with the error text and a hint (reopen / check iCloud storage), and log it via DevLog. Never delete or recreate the store automatically (data safety). Put the decision in a pure, testable function. Phone test `StoreStartFailureTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && ./gate.sh`
 
-### Q260 [auto] (doing) sync a link capture's thumbnail to the Mac as a MemoAsset (phone writes it, Mac card shows it)
+### Q260 [auto] (done) sync a link capture's thumbnail to the Mac as a MemoAsset (phone writes it, Mac card shows it)
 spec: C78 C143
 needs: Q143
 gate+: yes
@@ -2883,3 +2883,4 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:43 Q214 -> doing — worker out
 - 2026-10-03 01:44 Q273 -> done — gate pass @f373cd0e
 - 2026-10-03 01:45 Q247 -> done — gate pass @83c88db1
+- 2026-10-03 01:48 Q260 -> done — gate pass @66f18d12
