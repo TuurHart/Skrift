@@ -12,10 +12,10 @@ final class TwinUICopyQ171Tests: XCTestCase {
         let a = cal.date(from: DateComponents(year: 2026, month: 9, day: 22))!
         let b = cal.date(from: DateComponents(year: 2026, month: 9, day: 25))!
         XCTAssertEqual(DateChipText.title(from: nil, to: nil), "Date \u{25BE}")
-        XCTAssertEqual(DateChipText.range(from: a, to: b), "22\u{2013}25 Sep")
+        XCTAssertEqual(DateChipText.range(from: a, to: b), "22 Sep\u{2013}25 Sep")
         XCTAssertEqual(DateChipText.range(from: a, to: nil), "from 22 Sep")
         XCTAssertEqual(DateChipText.range(from: nil, to: b), "to 25 Sep")
-        XCTAssertEqual(DateChipText.title(from: a, to: b), "Date \u{00B7} 22\u{2013}25 Sep \u{25BE}")
+        XCTAssertEqual(DateChipText.title(from: a, to: b), "Date \u{00B7} 22 Sep\u{2013}25 Sep \u{25BE}")
     }
 
     func testConnectionsSubCaption() {

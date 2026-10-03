@@ -80,7 +80,7 @@ extension MemosListView {
                 LiveRecordingService.prestart()
                 showRecord = true
             } label: {
-                RecordVerbLabel(style: .phone)
+                RecordVerbLabel(title: SharedCopy.recordVerb, style: .phone)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("ipad-record-button")

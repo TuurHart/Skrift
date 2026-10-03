@@ -233,6 +233,8 @@ targets:
       # Q176: the Settings + Names strings, the ONE names matcher and the name-row tokens
       # (Foundation-only) so SharedSettingsCopyTests / SettingsCopySharedTests can drive them.
       - path: ../Shared/UI/SettingsCopy.swift
+      # Q171: the Date chip's words (Foundation-only), driven by TwinUICopyQ171Tests.
+      - path: ../Shared/UI/DateChipText.swift
       # Q26 unified notes list: chip counts / day groups / pill rule, Foundation-only
       # (no SwiftUI), same discipline as Palette/SharedCopy above.
       - path: ../Shared/UI/NotesListModel.swift

@@ -354,7 +354,7 @@ struct SidebarView: View {
         Button {
             Task { await startRecording() }
         } label: {
-            RecordVerbLabel(style: .mac)
+            RecordVerbLabel(title: SharedCopy.recordVerb, style: .mac)
         }
         .buttonStyle(.plain)
         .help("Record a voice memo on this Mac")

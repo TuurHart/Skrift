@@ -43,13 +43,15 @@ struct ImportVerbLabel: View {
     }
 }
 
-/// The red dot + "Record".
+/// The red dot + the Record word. The caller passes `SharedCopy.recordVerb` (the word stays
+/// read from the shared table at each app's call site, which `SharedCopyUsageTests` pins).
 struct RecordVerbLabel: View {
+    let title: String
     let style: VerbButtonStyle
     var body: some View {
         HStack(spacing: 6) {
             Circle().fill(style.record).frame(width: 9, height: 9)
-            Text(SharedCopy.recordVerb).lineLimit(1)
+            Text(title).lineLimit(1)
         }
         .font(.system(size: 12.5, weight: .semibold))
         .foregroundStyle(style.record)
