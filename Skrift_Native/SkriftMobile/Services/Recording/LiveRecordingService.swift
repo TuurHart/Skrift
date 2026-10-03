@@ -69,7 +69,18 @@ final class LiveRecordingService {
     /// Start failed because the mic input isn't ready (its format is invalid
     /// or mid-route-transition). `startRetrying` keeps retrying on this —
     /// installing a tap anyway would raise an uncatchable NSException.
-    enum StartError: Error { case inputFormatNotReady }
+    enum StartError: Error {
+        case inputFormatNotReady
+        /// The mic is denied/restricted (Q164): retrying cannot help, only Settings can.
+        case refused(RecordingCore.Refusal)
+    }
+
+    /// The refusal for the current microphone permission, `nil` when allowed or still to be
+    /// asked. Mock services never refuse (no mic involved).
+    private func permissionRefusal() -> RecordingCore.Refusal? {
+        guard !mock else { return nil }
+        return RecordingCore.permissionRefusal(for: AVCaptureDevice.authorizationStatus(for: .audio))
+    }
 
     private let mock: Bool
     private static let waveformBars = 40
@@ -86,6 +97,14 @@ final class LiveRecordingService {
     @ObservationIgnored private nonisolated(unsafe) var checkpoint: RecordingCheckpoint?
     /// Latched by the writer on the first failed write — later buffers drop.
     @ObservationIgnored private nonisolated(unsafe) var writeFailed = false
+    /// Q164: latched by the writer the first time a buffer carries a non-zero sample. Read in
+    /// `stop()` only after `writerQueue.sync {}` has drained, so the access is ordered.
+    @ObservationIgnored private nonisolated(unsafe) var sawSignal = false
+    /// Q164: why the last `start()` was refused (mic denied / restricted). The record screen
+    /// shows it as an alert with Open Settings; `nil` otherwise.
+    private(set) var startRefusal: RecordingCore.Refusal?
+    /// The alert was shown and dismissed: clear it so the next refused start shows it again.
+    func acknowledgeStartRefusal() { startRefusal = nil }
     /// Captions paused because the app went to the background (D131); they
     /// resume on the way back to the foreground.
     @ObservationIgnored private var captionsSuspendedForBackground = false
@@ -426,6 +445,12 @@ final class LiveRecordingService {
                                + " — tap-to-live=\(Self.ms(tRequested))ms")
                     return
                 }
+                catch StartError.refused(let why) {
+                    // Denied / restricted mic: 16 retries cannot fix it (Q164). The record
+                    // screen reads `startRefusal` and offers Open Settings.
+                    DevLog.log("start REFUSED (\(why)) — not retrying")
+                    return
+                }
                 catch {
                     // Session busy (e.g. Siri releasing the mic) or the input
                     // format isn't ready yet — wait and retry.
@@ -439,6 +464,12 @@ final class LiveRecordingService {
 
     func start() throws {
         guard !isRecording else { return }
+        if let refusal = permissionRefusal() {
+            startRefusal = refusal
+            throw StartError.refused(refusal)
+        }
+        startRefusal = nil
+        sawSignal = false
         // Reflect the CURRENT "Live transcription" preference, and reset any transient
         // auto-off (the timer) left on a reused service from a prior recording — so a
         // long recording's auto-off never silences the NEXT one (2026-06-22).
@@ -551,7 +582,13 @@ final class LiveRecordingService {
         }
     }
 
-    struct Result { let url: URL; let duration: TimeInterval; let liveCaption: String }
+    /// `refusal` (Q164): the shared dead-take verdict, set for a take of 0.4 s or more that
+    /// heard no signal (or whose file holds no audio). The caller deletes the file and shows
+    /// it; `nil` = keep.
+    struct Result {
+        let url: URL; let duration: TimeInterval; let liveCaption: String
+        var refusal: RecordingCore.Refusal? = nil
+    }
 
     func stop() -> Result? {
         guard isRecording else { return nil }
@@ -559,7 +596,9 @@ final class LiveRecordingService {
         stopTimers()
         teardownRecoveryObservers()
         var duration = elapsed
+        var refusal: RecordingCore.Refusal?
         if !mock {
+            let deviceName = currentInputName()   // before the session is handed back
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
@@ -581,6 +620,11 @@ final class LiveRecordingService {
             // last stretch of speech (the intermittent cut-off-tail bug).
             audioFile?.close()
             if let merged = finishCheckpoint(mainURL: tempURL) { duration = merged }
+            if duration >= 0.4, let url = tempURL {
+                let bytes = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int) ?? 0
+                refusal = RecordingCore.deadTakeVerdict(fileBytes: bytes, sawSignal: sawSignal, deviceName: deviceName)
+                if let refusal { DevLog.log("stop(): DEAD TAKE — \(bytes) bytes, signal=\(sawSignal): \(refusal)") }
+            }
             engine = nil
             audioFile = nil
             tapInputUID = nil
@@ -601,7 +645,7 @@ final class LiveRecordingService {
         let caption = liveCaption
         guard let url = tempURL else { return nil }
         tempURL = nil
-        return Result(url: url, duration: duration, liveCaption: caption)
+        return Result(url: url, duration: duration, liveCaption: caption, refusal: refusal)
     }
 
     func cancel() {
@@ -1017,6 +1061,7 @@ final class LiveRecordingService {
                                       + " pre-notification transition time NOT included)", rawMs, fillMs))
                 }
                 let lvl = RecordingCore.level(out)
+                if lvl > 0 { self?.sawSignal = true }
                 Task { @MainActor [weak self] in
                     guard let self, self.isRecording, !self.isPaused else { return }
                     self.level = lvl
