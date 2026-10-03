@@ -62,9 +62,12 @@ enum NoteTitle {
             ?? emptyFallback
     }
 
-    /// The capture rung: urlTitle → first 8 words of the shared text → file name → "Capture".
+    /// The capture rung: urlTitle → (a link) its host → first 8 words of the shared text → file
+    /// name → "Capture". A link with no page title is titled by its HOST (C72, `LinkCard.hostTitle`,
+    /// the rule the Mac's link door stores), never by its search-only article text or the raw URL.
     static func captureTitle(_ sc: SharedContent?) -> String {
         if let title = sc?.urlTitle?.trimmingCharacters(in: .whitespaces), !title.isEmpty { return title }
+        if let host = linkHost(sc) { return host }
         if let text = sc?.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
             let words = text.split(separator: " ")
             let head = words.prefix(8).joined(separator: " ")
@@ -72,6 +75,14 @@ enum NoteTitle {
         }
         if let fileName = sc?.fileName?.trimmingCharacters(in: .whitespaces), !fileName.isEmpty { return fileName }
         return "Capture"
+    }
+
+    /// A link capture's host title (`www.` dropped), or nil for any other capture / no host.
+    static func linkHost(_ sc: SharedContent?) -> String? {
+        guard sc?.type == .url,
+              let raw = sc?.url?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let url = URL(string: raw) else { return nil }
+        return LinkCard.hostTitle(url)
     }
 
     /// The first non-empty line of `body` with markers stripped (`[[img_NNN]]`, name and

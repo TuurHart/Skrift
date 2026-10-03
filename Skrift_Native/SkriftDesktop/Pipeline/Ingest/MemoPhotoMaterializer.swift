@@ -23,8 +23,9 @@ enum MemoPhotoMaterializer {
     @discardableResult
     static func materializeMissing(memo: Memo, pf: PipelineFile,
                                    fetchAssets: () -> [MemoAsset]) -> Bool {
+        let thumbWrote = materializeLinkThumbnail(memo: memo, pf: pf, fetchAssets: fetchAssets)
         let manifest = memo.metadata?.imageManifest ?? []
-        guard !manifest.isEmpty, let folder = pf.workingFolder else { return false }
+        guard !manifest.isEmpty, let folder = pf.workingFolder else { return thumbWrote }
 
         let fm = FileManager.default
         let imagesDir = folder.appendingPathComponent("images", isDirectory: true)
@@ -66,6 +67,24 @@ enum MemoPhotoMaterializer {
                 if (try? data.write(to: manifestURL)) != nil { wrote = true }
             }
         }
-        return wrote
+        return wrote || thumbWrote
+    }
+
+    /// Q260: a link capture's thumbnail asset that synced AFTER first ingest (CloudKit delivers
+    /// asset rows independently of the Memo). Written beside the capture, where
+    /// `PipelineFile.captureThumbnailURL` looks. Assets are fetched only while the file is missing.
+    @discardableResult
+    static func materializeLinkThumbnail(memo: Memo, pf: PipelineFile,
+                                         fetchAssets: () -> [MemoAsset]) -> Bool {
+        guard let name = MemoAsset.Kind.linkThumbnailFilename(memo.sharedContent),
+              let folder = pf.workingFolder else { return false }
+        let fm = FileManager.default
+        let dest = folder.appendingPathComponent(name)
+        guard !fm.fileExists(atPath: dest.path),
+              let thumb = fetchAssets().first(where: {
+                  $0.kind == MemoAsset.Kind.thumbnail && $0.filename == name
+              }), !thumb.blob.isEmpty else { return false }
+        try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        return (try? thumb.blob.write(to: dest)) != nil
     }
 }

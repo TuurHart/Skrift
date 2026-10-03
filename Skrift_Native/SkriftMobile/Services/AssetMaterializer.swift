@@ -112,6 +112,11 @@ enum AssetMaterializer {
         if let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty,
            captureFile(rel, kind: MemoAsset.Kind.document, memoID: memo.id,
                        existing: existing, repository: repository) { dirty = true }
+        // A link capture's downloaded thumbnail → a thumbnail asset, so the Mac's card shows
+        // it instead of the globe tile (Q260). Its own kind, never a photo (no manifest entry).
+        if let thumb = MemoAsset.Kind.linkThumbnailFilename(memo.sharedContent),
+           captureFile(thumb, kind: MemoAsset.Kind.thumbnail, memoID: memo.id,
+                       existing: existing, repository: repository) { dirty = true }
         // Per-memo JSON sidecars (Phase 1d): word-timings (karaoke/read-along) +
         // diarization (speaker turns/names). Small, in the same recordings dir, keyed
         // by memo id. Absent on most memos → captureFile no-ops. byteCount staleness

@@ -70,5 +70,18 @@ final class MemoAsset {
         /// A shared `.file` capture's document (e.g. a PDF) — so the actual file, not just
         /// its extracted text, reaches the Mac (3b). Additive; absent on every other memo.
         static let document = "document"
+        /// A link capture's locally downloaded thumbnail (`sharedContent.urlThumbnailUrl`, a
+        /// relative recordings filename) — so the Mac's link card shows it instead of the globe
+        /// tile (Q260). Its own kind, NOT `photo`: a photo asset feeds the image manifest and the
+        /// `[[img_NNN]]` markers, which a card thumbnail must never join. Additive.
+        static let thumbnail = "thumbnail"
+        /// The relative filename a link capture's thumbnail travels under, or nil when the
+        /// field is empty or a legacy remote URL (never fetched — the offline rule).
+        static func linkThumbnailFilename(_ shared: SharedContent?) -> String? {
+            guard let shared, shared.type == .url,
+                  let name = shared.urlThumbnailUrl?.trimmingCharacters(in: .whitespaces),
+                  !name.isEmpty, !name.contains("://"), !name.contains("/") else { return nil }
+            return name
+        }
     }
 }

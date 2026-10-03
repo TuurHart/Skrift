@@ -164,6 +164,13 @@ enum MemoCloudIngest {
                                        contentType: "application/octet-stream", data: doc.blob))
         }
 
+        // thumbnail — a link capture's card image (Q260), written into the capture folder
+        // where `PipelineFile.captureThumbnailURL` looks. Absent on every other memo.
+        if let thumb = assets.first(where: { $0.kind == MemoAsset.Kind.thumbnail }), !thumb.blob.isEmpty {
+            parts.append(MultipartPart(name: "thumbnail", filename: thumb.filename,
+                                       contentType: "image/jpeg", data: thumb.blob))
+        }
+
         return parts
     }
 

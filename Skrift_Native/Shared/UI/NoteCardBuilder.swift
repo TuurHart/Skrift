@@ -181,7 +181,7 @@ enum NoteCardBuilder {
         switch sc.type {
         case .url:
             if let t = clean(sc.urlTitle) { return t }
-            if let u = sc.url, let host = URL(string: u)?.host { return host }
+            if let host = NoteTitle.linkHost(sc) { return host }   // C72: one host rule
             return "Link"
         case .text:
             if let text = clean(sc.text) { return NoteTitle.clip(text) }

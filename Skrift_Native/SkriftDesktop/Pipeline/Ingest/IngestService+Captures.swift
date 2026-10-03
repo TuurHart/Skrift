@@ -50,8 +50,10 @@ extension IngestService {
     /// A dragged-in link, run through the phone's routine: a Maps share → a place; a link that
     /// points AT a PDF → the downloaded file (magic-byte check) with its text; anything else →
     /// one GET for title / description / thumbnail / article text. A failed fetch keeps a bare
-    /// link card titled by its HOST, never the raw URL (C72). There is no retry on the Mac.
+    /// link card titled by its HOST, never the raw URL (C72). A failed GET is retried up to three
+    /// times with backoff (`RetryingLinkFetcher`, Q266) before the drop settles for that card.
     func ingestLink(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+        let linkFetcher = RetryingLinkFetcher(base: self.linkFetcher, sleep: linkRetrySleep)
         guard Self.isWebURL(url) else { return nil }
         let raw = url.absoluteString
         var shared = SharedContent(type: .url, url: raw)
