@@ -1401,7 +1401,7 @@ do: Rows note-body-15 -19, note-chrome-01 -02. One shared token file (e.g. `Skri
 check: `test -f Skrift_Native/Shared/UI/NoteLook.swift && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q186 [auto] (doing) import bundling and audio export follow one rule on phone and Mac
+### Q186 [auto] (done) import bundling and audio export follow one rule on phone and Mac
 spec: C68 C239 C240
 needs: -
 gate+: yes
@@ -2154,7 +2154,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D172): 'take a video of something cool — a bridge, a lamp — keep the video and the transcript, for portfolio ideas'. Build C63/C148: a new `MemoAsset.Kind.video` (≤ ~200 MB, refuse larger with a clear message), written by the phone share/import path and the Mac import path when the note is filed Inspiration / Idea / Project; whichever device exports it copies the movie into the export. Phone share card copy 'the video file itself isn't kept' changes accordingly; fix the stale Mac comment IngestService.swift:355. Other destinations keep no movie. CloudKit: the new kind is a schema change — note it for promotion. Desktop test `VideoAssetSyncTests`, phone test `VideoAssetPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class VideoAssetSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VideoAssetPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q288 [auto] (todo) Mac Looking back anchors on today
+### Q288 [auto] (doing) Mac Looking back anchors on today
 spec: C231 D173
 needs: -
 gate+: yes
@@ -3144,3 +3144,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 - 2026-10-03 09:05 Q296 -> doing — mockup agent (opus)
 - 2026-10-03 09:12 Q289 -> tuur — mock https://claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW (mocks/Q289-mac-recorder-pause.html). Question: after × asks 'Discard this recording?', does the take keep recording until you answer, or pause?
 - 2026-10-03 09:13 Q296 -> tuur — mock https://claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5 (mocks/Q296-mac-checklist-button.html). Question: button on the left beside the notes-list toggle (A) or right before Process (B)? Also: multi-line selection -> checklist is NEW on both apps (shared rule change)
+- 2026-10-03 09:23 Q288 -> doing — dispatched (sonnet)
+- 2026-10-03 09:27 Q186 -> done — hand-merged (D174: one bundle rule, MacMultiAudioImportTests flipped to one note)
