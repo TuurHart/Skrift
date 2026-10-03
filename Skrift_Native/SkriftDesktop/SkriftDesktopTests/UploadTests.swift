@@ -150,7 +150,7 @@ final class CaptureIngestTests: XCTestCase {
         }
         """.utf8)
         // No audio asset (C3 §1), no transcript (C3 §2), a sharedContent payload.
-        let memo = Memo(audioFilename: "", recordedAt: ISO8601.date(from: "2026-06-11T14:02:00Z")!,
+        let memo = Memo(audioFilename: "", recordedAt: ISO8601.date(from: "2026-06-11T14:02:00.000Z")!,
                         transcriptStatus: .done, significance: 0.6,
                         sharedContentData: shared,
                         annotationText: "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.")
