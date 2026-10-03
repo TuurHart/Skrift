@@ -12,12 +12,6 @@ final class Q241SuspectedBugsTests: XCTestCase {
                            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     // MARK: (2) a typed note's marker survives a typed `memo.metadata = ...` write
 
     /// `NoteBodyView.insertPhoto` does `var meta = memo.metadata ?? MemoMetadata(); ...;
@@ -58,7 +52,7 @@ final class Q241SuspectedBugsTests: XCTestCase {
     // MARK: (4) a Mac-imported Apple Note markdown arrives unrated
 
     func testAnImportedMarkdownNoteIsUnrated() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = ModelContext(try ModelContainer(for: PipelineFile.self,
                                                   configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         let md = work.appendingPathComponent("Groceries.md")
@@ -72,7 +66,7 @@ final class Q241SuspectedBugsTests: XCTestCase {
 
     /// A note arriving through the recording side keeps the recording flag, never both.
     func testAMarkdownNoteFromARecordingSideIngestIsNotAnImport() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = ModelContext(try ModelContainer(for: PipelineFile.self,
                                                   configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         let md = work.appendingPathComponent("n.md")
@@ -124,7 +118,7 @@ final class Q241SuspectedBugsTests: XCTestCase {
     // MARK: (6) the open Settings sheet must not write stale cloud-owned fields back
 
     func testAnEditInAStaleSettingsSheetKeepsWhatARunnerWroteToDisk() throws {
-        let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
         let store = SettingsStore(fileURL: dir.appendingPathComponent("settings.json"))
 
         var opened = AppSettings()
@@ -154,7 +148,7 @@ final class Q241SuspectedBugsTests: XCTestCase {
     }
 
     func testAnEditToACloudOwnedFieldStillWins() throws {
-        let dir = try tempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+        let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
         let store = SettingsStore(fileURL: dir.appendingPathComponent("settings.json"))
         let base = store.load()
         var sheet = base

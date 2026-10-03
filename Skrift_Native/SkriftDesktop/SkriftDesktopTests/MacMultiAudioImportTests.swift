@@ -14,12 +14,6 @@ final class MacMultiAudioImportTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     /// A real, decodable clip: `seconds` of a 440 Hz tone at `amplitude` (16 kHz mono, CAF).
     /// Distinct amplitudes let the test tell WHICH clip sits where in the merged file.
     private func writeTone(in dir: URL, name: String, seconds: Double, amplitude: Float) throws -> URL {
@@ -58,7 +52,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     // MARK: - the chooser decision
 
     func testChooserOnlyAppearsForTwoOrMoreAudioClips() throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let note = work.appendingPathComponent("note.md")
         try "hello".write(to: note, atomically: true, encoding: .utf8)
@@ -84,7 +78,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     // MARK: - One note
 
     func testThreeClipsOneNoteMergesInGivenOrderIntoOneRow() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let ctx = try makeContext()
 
@@ -112,7 +106,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     }
 
     func testOneNoteKeepsTheFirstClipsIdentity() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let ctx = try makeContext()
 
@@ -129,7 +123,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     // MARK: - N notes
 
     func testThreeClipsNNotesMakesThreeRows() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let ctx = try makeContext()
 
@@ -144,7 +138,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     }
 
     func testDefaultIngestStaysSeparate() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let ctx = try makeContext()
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
@@ -157,7 +151,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     /// Clips merge; a markdown note in the same drop stays its own note (the Mac has no
     /// photo/annotation composer yet — the merged clips still land as ONE audio note).
     func testMixedBundleMergesTheClipsAndKeepsTheRest() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
         let note = work.appendingPathComponent("plan.md")
         try "Buy milk".write(to: note, atomically: true, encoding: .utf8)
@@ -172,7 +166,7 @@ final class MacMultiAudioImportTests: XCTestCase {
     }
 
     func testUnreadableClipsFailLoudlyNotSilently() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let a = work.appendingPathComponent("a.m4a"), b = work.appendingPathComponent("b.m4a")
         try Data([0, 1, 2]).write(to: a); try Data([3, 4]).write(to: b)
         let ctx = try makeContext()

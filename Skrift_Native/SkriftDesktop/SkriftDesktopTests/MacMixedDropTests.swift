@@ -21,12 +21,6 @@ final class MacMixedDropTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     /// A real AAC `.m4a`: `seconds` of a 440 Hz tone at `amplitude`.
     private func writeClip(in dir: URL, name: String, seconds: Double, amplitude: Float) throws -> URL {
         let url = dir.appendingPathComponent(name)
@@ -93,7 +87,7 @@ final class MacMixedDropTests: XCTestCase {
     // MARK: - (a) One note
 
     func testMixedDropOneNotePlacesThePictureBetweenClip3And4() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let drop = try signalDrop(in: work)
         let ctx = try makeContext()
         // Finder order is arbitrary: picture last, clips 4 and 5 swapped. Time decides (C70).
@@ -147,7 +141,7 @@ final class MacMixedDropTests: XCTestCase {
     // MARK: - (b) N notes
 
     func testMixedDropNNotesGivesFiveAudioNotesAndOnePictureNote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let drop = try signalDrop(in: work)
         let ctx = try makeContext()
 
@@ -173,7 +167,7 @@ final class MacMixedDropTests: XCTestCase {
     // MARK: - pictures alone (C68: N photos → always one note)
 
     func testPicturesAloneMakeOneNote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let a = try writeJPEG(in: work, name: "signal-2026-10-01-080349.jpeg")
         let b = try writeJPEG(in: work, name: "signal-2026-10-01-080412.jpeg")
         let ctx = try makeContext()
@@ -193,7 +187,7 @@ final class MacMixedDropTests: XCTestCase {
     /// turns that list into a message. Four shapes: One note, N notes, pictures alone, and a
     /// drop with a type nobody imports plus a file that vanished before the copy.
     func testNoDroppedFileIsEverSilentlySkipped() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let drop = try signalDrop(in: work)
         let pdf = work.appendingPathComponent("contract.pdf")
         try Data("%PDF-1.4".utf8).write(to: pdf)
@@ -258,7 +252,7 @@ final class MacMixedDropTests: XCTestCase {
     }
 
     func testOneClipAndOnePictureIsOneNoteWithoutAChooser() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let drop = try signalDrop(in: work)
         let ctx = try makeContext()
 

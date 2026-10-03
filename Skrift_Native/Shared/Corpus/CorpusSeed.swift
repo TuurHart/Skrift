@@ -14,6 +14,16 @@ import SwiftData
 /// Launch: `-corpus <path-to-test-fixtures/corpus>` on either app.
 enum CorpusSeed {
 
+    /// `test-fixtures/corpus` for a unit test in `Skrift_Native/<App>/<App>Tests/<file>.swift`:
+    /// pass `#filePath` and it climbs file → tests dir → app dir → `Skrift_Native` → repo root.
+    /// The one copy of that climb for both unit-test bundles.
+    static func fixtureRoot(file: String = #filePath) -> URL {
+        URL(fileURLWithPath: file)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("test-fixtures/corpus", isDirectory: true)
+    }
+
     // MARK: note.json (the schema generate.py writes — keep the two in step)
 
     struct Manifest: Decodable {

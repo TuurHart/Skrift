@@ -22,12 +22,6 @@ final class ArrivalPathTests: XCTestCase {
                                                                            cloudKitDatabase: .none)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     /// A stand-in for a take. Ingest only needs a real file with a known extension — the
     /// bytes never reach an audio engine on this path.
     private func fakeTake(in dir: URL, named name: String = "memo_TEST.m4a") throws -> URL {
@@ -41,7 +35,7 @@ final class ArrivalPathTests: XCTestCase {
     /// The whole recording contract in one run: the note exists, it is UNRATED on the synced
     /// Memo, and its words were asked for immediately — without anyone pressing Process.
     func testARecordingArrivesUnratedAndIsTranscribedAtOnce() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
 
@@ -67,7 +61,7 @@ final class ArrivalPathTests: XCTestCase {
     /// is idempotent, so whoever gets there first wins), so pin that the row is already in the
     /// cloud store by the time transcription is asked for.
     func testTheUnratedMemoExistsBeforeTranscriptionIsRequested() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
 
@@ -87,7 +81,7 @@ final class ArrivalPathTests: XCTestCase {
     /// The row must be selectable the instant it exists — a note that only appears once its
     /// words do makes stopping a recording look like it did nothing.
     func testTheRowIsHandedBackBeforeTranscriptionRuns() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
 
         var order: [String] = []
@@ -105,7 +99,7 @@ final class ArrivalPathTests: XCTestCase {
     /// A take that reached disk is never lost to a missing CloudKit container — the file is
     /// already safe and the sweep picks it up later.
     func testACaptureWithNoCloudContainerStillLandsAndTranscribes() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
 
         var transcribed: [String] = []
@@ -125,7 +119,7 @@ final class ArrivalPathTests: XCTestCase {
     /// The other edge: an import arrives unrated too (D159) and never goes through the CAPTURE
     /// transcribe hook — its words come from `transcribeImport` (Q77, MacImportUnratedTests).
     func testAnImportIsNotTranscribedAsACaptureOnArrival() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
 
@@ -148,7 +142,7 @@ final class ArrivalPathTests: XCTestCase {
     /// The recording date comes out of the audio, not the filesystem — a copy is not a
     /// re-recording. Applies to both doors.
     func testTheRecordingDateIsBackfilledFromTheAudio() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
 
         let spoken = Date(timeIntervalSince1970: 1_700_000_000)
@@ -163,7 +157,7 @@ final class ArrivalPathTests: XCTestCase {
     }
 
     func testTheReconcileSweepIsKickedForBothDoors() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         for asRecording in [true, false] {
             let ctx = try pipelineContext()
             var kicks = 0
@@ -182,7 +176,7 @@ final class ArrivalPathTests: XCTestCase {
     /// The flag must be on the row and SAVED before anything else runs — it is what makes the
     /// reconcile sweep agree with us about the rating when it gets there first.
     func testACaptureStampsTheRowBeforeHandingItBack() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
 
         var stampedAtHandback: Bool?
@@ -196,7 +190,7 @@ final class ArrivalPathTests: XCTestCase {
     }
 
     func testAnImportIsNotStampedAsARecording() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let created = try await ArrivalPath.run(
             urls: [try fakeTake(in: work, named: "dropped.m4a")], asRecording: false, into: ctx,

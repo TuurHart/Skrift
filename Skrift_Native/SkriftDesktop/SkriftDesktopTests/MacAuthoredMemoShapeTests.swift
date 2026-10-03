@@ -36,13 +36,6 @@ final class MacAuthoredMemoShapeTests: XCTestCase {
                                                                            cloudKitDatabase: .none)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("mams-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
-    }
-
     private func write(_ text: String, _ url: URL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data(text.utf8).write(to: url)
@@ -123,7 +116,7 @@ final class MacAuthoredMemoShapeTests: XCTestCase {
 
     private func authorAll() throws -> ModelContext {
         let ctx = try cloudContext()
-        for (pf, audio) in try rows(in: try tempDir()) {
+        for (pf, audio) in try rows(in: makeTempDir()) {
             XCTAssertNotNil(try MacMemoAuthor.author(for: pf, audioURL: audio, into: ctx), pf.filename)
         }
         return ctx
@@ -212,12 +205,12 @@ final class MacAuthoredMemoShapeTests: XCTestCase {
 
     /// The real import path: a picture-only drop through `IngestService`, then the sweep's author.
     func testIngestedPictureDropAuthorsPhotoAssets() async throws {
-        let src = try tempDir()
+        let src = makeTempDir()
         let pics = [src.appendingPathComponent("a.jpg"), src.appendingPathComponent("b.jpg")]
         for p in pics { try write("PIXELS \(p.lastPathComponent)", p) }
         let local = ModelContext(try ModelContainer(for: PipelineFile.self,
                                                     configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
-        let report = try await IngestService(outputDir: try tempDir()).ingestReport(localURLs: pics, into: local)
+        let report = try await IngestService(outputDir: makeTempDir()).ingestReport(localURLs: pics, into: local)
         let pf = try XCTUnwrap(report.created.first)
         XCTAssertEqual(pf.sourceType, .capture)
 

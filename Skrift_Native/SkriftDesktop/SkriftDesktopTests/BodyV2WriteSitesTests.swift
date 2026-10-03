@@ -74,18 +74,12 @@ final class BodyV2WriteSitesTests: XCTestCase {
 
     // MARK: - Mac text imports: the write site now commits through v2
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     /// A dropped `.md` file with a nested list and interior double-spaces: the
     /// imported transcript keeps the list's indentation but collapses the interior runs
     /// — proof the Mac text-import write site now runs through `BodyV2.committed`,
     /// not a bare file-content passthrough.
     func testMacTextImportCommitsThroughBodyV2() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("Shopping list.md")
         try "- milk  and  eggs\n  - semi  skimmed\n- bread".write(to: noteURL, atomically: true, encoding: .utf8)
 

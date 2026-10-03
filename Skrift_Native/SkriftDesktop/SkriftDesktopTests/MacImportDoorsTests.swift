@@ -39,12 +39,6 @@ final class MacImportDoorsTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     private func service(_ work: URL, fetcher: StubFetcher = StubFetcher(),
                          pdfText: String? = nil) -> IngestService {
         var s = IngestService(outputDir: work.appendingPathComponent("out"))
@@ -92,7 +86,7 @@ final class MacImportDoorsTests: XCTestCase {
     // MARK: - .txt (D22)
 
     func testTxtDropIsATextCaptureWhoseBodyIsTheFile() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("notes.txt")
         try "Buy milk\nand eggs for Friday".write(to: f, atomically: true, encoding: .utf8)
 
@@ -109,7 +103,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testOversizedTxtStaysADocumentCapture() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("novel.txt")
         try String(repeating: "word ", count: SharedTextFile.byteCap / 4).write(to: f, atomically: true, encoding: .utf8)
 
@@ -121,7 +115,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testMarkdownStaysANote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("n.md")
         try "# T\n\nbody".write(to: f, atomically: true, encoding: .utf8)
         let pf = try await ingestOne(service(work), [f])
@@ -131,7 +125,7 @@ final class MacImportDoorsTests: XCTestCase {
     // MARK: - PDF (C73)
 
     func testPdfDropIsAFileCaptureWithItsText() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("contract.pdf")
         try Data("%PDF-1.4 fake".utf8).write(to: f)
 
@@ -152,7 +146,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testPdfDropWithNoTextIsTitledByItsFileName() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("scan.pdf")
         try Data("%PDF-1.4".utf8).write(to: f)
         let pf = try await ingestOne(service(work, pdfText: nil), [f])
@@ -163,7 +157,7 @@ final class MacImportDoorsTests: XCTestCase {
     // MARK: - Links (C72)
 
     func testLinkDropIsEnrichedWithTitleDescriptionThumbnail() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let page = """
         <html><head><title>Fallback</title>
         <meta property="og:title" content="The Real Title">
@@ -190,7 +184,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testFailedFetchTitlesTheCardByItsHostNeverTheUrl() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let url = URL(string: "https://www.metro.example.org/a/very/long/path?x=1")!
         let pf = try await ingestOne(service(work, fetcher: StubFetcher()), [url])
         let sc = try shared(pf)
@@ -200,7 +194,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testLinkThatPointsAtAPdfDownloadsTheFile() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let fetcher = StubFetcher([
             "HEAD https://arxiv.example/pdf/2406.19741": LinkFetchResponse(contentType: "application/pdf; qs=0.001"),
             "GET https://arxiv.example/pdf/2406.19741":
@@ -215,7 +209,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testPdfLinkWithoutMagicBytesFallsBackToTheLinkCard() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let fetcher = StubFetcher([
             "GET https://example.com/fake.pdf": LinkFetchResponse(data: Data("<html>nope</html>".utf8),
                                                                  contentType: "text/html"),
@@ -227,7 +221,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testMapsLinkBecomesAPlaceWithoutAnyFetch() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let fetcher = StubFetcher()
         let url = URL(string: "https://maps.apple.com/?ll=38.7223,-9.1393&q=Hotel%20Du%20Vin")!
         let pf = try await ingestOne(service(work, fetcher: fetcher), [url])
@@ -240,7 +234,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testNonHttpUrlIsReportedNotDropped() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let mail = URL(string: "mailto:someone@example.com")!
         let report = try await service(work).ingestReport(localURLs: [mail], into: try makeContext())
         XCTAssertTrue(report.created.isEmpty)
@@ -252,7 +246,7 @@ final class MacImportDoorsTests: XCTestCase {
     }
 
     func testALinkAndAFileInOneDropAreBothImported() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("a.txt")
         try "hello there".write(to: f, atomically: true, encoding: .utf8)
         let link = URL(string: "https://example.com/x")!
@@ -265,7 +259,7 @@ final class MacImportDoorsTests: XCTestCase {
     // MARK: - The phone gets the same kind back (author)
 
     func testAuthoredMemoCarriesTheSharedContentAndTheDocument() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let f = work.appendingPathComponent("contract.pdf")
         try Data("%PDF-1.4 fake".utf8).write(to: f)
         let pf = try await ingestOne(service(work, pdfText: "Some contract words here"), [f])

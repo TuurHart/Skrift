@@ -10,12 +10,8 @@ final class UploadServiceTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("up_\(UUID().uuidString)", isDirectory: true)
-    }
-
     func testIngestTrustedTranscriptIsAccepted() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let parts = [
             MultipartPart(name: "files", filename: "memo_abc.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
@@ -36,7 +32,7 @@ final class UploadServiceTests: XCTestCase {
     }
 
     func testIngestReadsWordTimingsAndDiarizationSidecar() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let words = Data(#"[{"word":"hi","start":0.0,"end":0.5},{"word":"there","start":0.5,"end":1.0}]"#.utf8)
         let diar = Data(#"{"segments":[{"speaker":0,"start":0.0,"end":1.0},{"speaker":1,"start":1.0,"end":2.0}],"slotNames":{"0":"Tiuri Hartog"}}"#.utf8)
@@ -61,7 +57,7 @@ final class UploadServiceTests: XCTestCase {
 
     func testIngestWithoutNewPartsStaysByteCompatible() throws {
         // An older phone build (no wordTimings/diar parts) ingests exactly as before.
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let parts = [
             MultipartPart(name: "files", filename: "memo_old.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
@@ -76,7 +72,7 @@ final class UploadServiceTests: XCTestCase {
     }
 
     func testIngestUntrustedTranscriptIsDropped() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let parts = [
             MultipartPart(name: "files", filename: "memo_xyz.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
@@ -99,7 +95,7 @@ final class UploadServiceTests: XCTestCase {
 
     /// Phone-sent `significance` (flag-to-send rating) pre-fills the review slider.
     func testIngestReadsSignificanceFromMetadata() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let parts = [
             MultipartPart(name: "files", filename: "memo_sig.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
@@ -123,7 +119,7 @@ final class UploadServiceTests: XCTestCase {
     /// upload time (the extracted m4a has no embedded date to backfill), and carry
     /// the `"video"` source marker so the Mac shows the video glyph + "Video" label.
     func testIngestVideoUsesRecordedDateAndMarksSource() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let metaJSON = #"{"transcriptConfidence":0.9,"recordedAt":"2026-06-14T17:44:01.000Z","sourceType":"video"}"#
         let parts = [
@@ -148,16 +144,12 @@ final class CaptureIngestTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("cap_\(UUID().uuidString)", isDirectory: true)
-    }
-
     // MARK: Contract fixture — url capture (CAPTURE_CONTRACT.md literal example)
 
     /// The contract's literal url-capture fixture must produce one .capture PipelineFile
     /// with the annotation as transcript (transcribeStatus = .done) and significance pre-filled.
     func testUrlCaptureContractFixture() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
         let metaJSON = """
@@ -208,7 +200,7 @@ final class CaptureIngestTests: XCTestCase {
     // MARK: Image capture — images/ folder + manifest
 
     func testImageCaptureWritesImageFolder() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
         let metaJSON = """
@@ -242,7 +234,7 @@ final class CaptureIngestTests: XCTestCase {
     // MARK: No sharedContent + no audio → nothing created (current behavior preserved)
 
     func testUploadWithNoFilesAndNoSharedContentCreatesNothing() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
         // A malformed / incomplete upload — no audio, no sharedContent.
@@ -258,7 +250,7 @@ final class CaptureIngestTests: XCTestCase {
     // MARK: Normal audio upload is byte-identical in behavior
 
     func testNormalAudioUploadUnchanged() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
         let parts = [
             MultipartPart(name: "files", filename: "memo_audio.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
@@ -279,7 +271,7 @@ final class CaptureIngestTests: XCTestCase {
     // MARK: Empty annotation capture
 
     func testEmptyAnnotationCapture() throws {
-        let svc = UploadService(outputDir: tempDir())
+        let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
         let metaJSON = Data(#"{"sharedContent":{"type":"text","text":"Some quote"},"significance":0.5}"#.utf8)
