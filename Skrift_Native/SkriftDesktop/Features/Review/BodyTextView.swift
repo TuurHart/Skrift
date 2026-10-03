@@ -91,6 +91,9 @@ struct BodyTextView: NSViewRepresentable {
     /// Q124 (C173): the note's transcription (or a split) is in flight — the text stays
     /// readable but not editable until the result lands (`MacBodyEditableState`).
     var readOnly: Bool = false
+    /// D175/C172: true only for a real captured quote (audiobook / text capture, see
+    /// `PipelineFile.hasLockedQuote`); a hand-typed leading `> ` stays editable.
+    var quoteLocked: Bool = false
 
     /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
     /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
@@ -391,7 +394,8 @@ struct BodyTextView: NSViewRepresentable {
             // Marked (IME) text is mid-composition: judge it when it commits.
             if view.hasMarkedText() { return true }
             switch CaptureQuote.editVerdict(body: view.string, range: range,
-                                            replacement: replacementString) {
+                                            replacement: replacementString,
+                                            locked: parent.quoteLocked) {
             case .allow:
                 // Q126: Return on a checklist line continues the list (the shared rule).
                 if replacementString == "\n", range.length == 0,

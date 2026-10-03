@@ -27,8 +27,11 @@ extension CaptureQuote {
 
     /// Judge one edit — `range` replaced by `replacement` — against the body's quote block.
     /// `replacement == nil` is an attribute-only change (no characters move), always allowed.
-    static func editVerdict(body: String, range: NSRange, replacement: String?) -> CaptureQuoteEdit {
-        guard let replacement else { return .allow }
+    /// `locked` (D175): only a REAL captured quote (an audiobook / text capture) is read-only;
+    /// a hand-typed `> ` blockquote on any other note passes `locked: false` and edits freely.
+    static func editVerdict(body: String, range: NSRange, replacement: String?,
+                            locked: Bool = true) -> CaptureQuoteEdit {
+        guard locked, let replacement else { return .allow }
         let readOnly = readOnlyLength(in: body)
         guard readOnly > 0 else { return .allow }
         if range.location < readOnly { return .reject }

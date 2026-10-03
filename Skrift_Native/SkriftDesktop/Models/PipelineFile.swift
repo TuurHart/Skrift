@@ -310,6 +310,11 @@ final class PipelineFile {
                            chapter: BookCapture.trimmedNonEmpty(meta.bookChapter))
     }
 
+    /// D175 / C172: the leading `> ` block is read-only in the editor only when this note is a
+    /// real captured quote (an audiobook / text capture carries the book fields). A blockquote
+    /// the user typed by hand on any other note stays editable.
+    var hasLockedQuote: Bool { bookCapture != nil }
+
     /// The shared thing a capture memo carries (url / text / file), decoded from the
     /// metadata blob; nil for everything else.
     var sharedContent: SharedContent? { SharedContent.decode(from: audioMetadataJSON) }
