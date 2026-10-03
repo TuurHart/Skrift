@@ -1124,7 +1124,7 @@ do: Only the share extension (`hasLongClip`, ShareSheetView.swift:35-37) offers 
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LongAudioOfferTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P51
 
-### Q151 [auto] (doing) Library: per-book 'N notes' pill and jump-back (D127, Q6 mock)
+### Q151 [auto] (done) Library: per-book 'N notes' pill and jump-back (D127, Q6 mock)
 spec: D127 C229
 needs: -
 gate+: yes
@@ -1226,7 +1226,7 @@ do: The phone writes `rec_seg_<take>_NNN.m4a` segments every 60 s plus a marker 
 check: `grep -rqE "class MacRecoverySweepTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P64
 
-### Q164 [auto] (doing) phone: a take with no signal is a dead take, like the Mac; denied or restricted mic shows an alert with Open Settings
+### Q164 [auto] (done) phone: a take with no signal is a dead take, like the Mac; denied or restricted mic shows an alert with Open Settings
 spec: C222 C224
 needs: -
 gate+: yes
@@ -2839,3 +2839,5 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && 
 - 2026-10-03 01:14 Q167 -> tuur — hand-merge: protected WallPrinterTests.testEnqueueGateIsOrangeTierOncePerNote line 38 asserts shouldEnqueue(significance: 0.7) is FALSE — C233/C210 retire that; flip to TRUE (+ a 0.6 false case), then WallPrinter.shouldEnqueue -> ThreeBallScale.isTopStop and ImportanceDots (JournalHomeView.swift:404) -> ThreeBallScale.step(for:). Not started.
 - 2026-10-03 01:14 Q207 -> doing — worker out
 - 2026-10-03 01:14 Q140 -> done — gate pass @91bfe7d4
+- 2026-10-03 01:14 Q164 -> done — gate pass (batched with Q140)
+- 2026-10-03 01:18 Q151 -> done — gate pass @06242d37
