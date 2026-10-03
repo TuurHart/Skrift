@@ -71,13 +71,12 @@ enum MemoCloudUpdate {
         // Comparing the actual text is race-proof AND self-healing (recovers even if a prior run
         // advanced the watermark without applying).
         var contentChanged = false
-        var why: [String] = []   // DIAG 2026-07-27: which field fired (the `reflected=N` churn hunt)
 
         // Path 2 — the phone edited the polished copy-edit / title / summary.
         if let e = phoneEnh {
-            if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; contentChanged = true; why.append("enh.copyedit") }
-            if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; contentChanged = true; why.append("enh.title") }
-            if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; contentChanged = true; why.append("enh.summary") }
+            if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; contentChanged = true }
+            if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; contentChanged = true }
+            if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; contentChanged = true }
         }
 
         // Path 2b — the note's TITLE was chosen on another device. `Memo.title` is the
@@ -94,13 +93,13 @@ enum MemoCloudUpdate {
         if let chosen = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines),
            !chosen.isEmpty, pf.enhancedTitle != chosen {
             pf.enhancedTitle = chosen
-            contentChanged = true; why.append("memo.title")
+            contentChanged = true
         }
 
         // Path 3 — the phone edited the RAW transcript.
         if let t = memo.transcript, pf.transcript != t {
             pf.transcript = t
-            contentChanged = true; why.append("transcript")
+            contentChanged = true
         }
 
         // The metadata BLOB changed (book fields edited, photo OCR landed, …) — refresh the
@@ -109,7 +108,6 @@ enum MemoCloudUpdate {
         let blob = MemoCloudIngest.metadataJSON(for: memo)
         if pf.audioMetadataJSON != blob {
             pf.audioMetadataJSON = blob
-            why.append("metaBlob")
             contentChanged = true
         }
 
@@ -121,20 +119,15 @@ enum MemoCloudUpdate {
         var metaChanged = false
         for field in MirroredNoteFields.all where field.pull(memo, pf) {
             if field.recompiles { contentChanged = true } else { metaChanged = true }
-            why.append(field.name)
         }
         // The note's name decisions (C81, D20) — the links reach the body, so recompile.
-        if NameResolutionsMirror.pull(memo, into: pf) { contentChanged = true; why.append("nameResolutions") }
+        if NameResolutionsMirror.pull(memo, into: pf) { contentChanged = true }
 
         // The flat OCR search text — derived, not a mirrored field.
         let ocr = MemoCloudIngest.ocrText(for: memo)
-        if pf.imageOCRText != ocr { pf.imageOCRText = ocr; metaChanged = true; why.append("ocr") }
+        if pf.imageOCRText != ocr { pf.imageOCRText = ocr; metaChanged = true }
 
         guard contentChanged || metaChanged || trashChanged else { return false }
-        #if DEBUG
-        Logger(subsystem: "com.skrift.desktop", category: "synctrace")
-            .notice("reflect \(pf.id, privacy: .public) ← \(why.joined(separator: ","), privacy: .public)")
-        #endif
 
         if contentChanged {
             // Re-link + recompile once (no LLM) over the pristine working text (copy-edit →
