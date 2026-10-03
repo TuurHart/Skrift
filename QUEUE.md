@@ -1037,7 +1037,7 @@ do: `MacMemoAuthor.author` builds the Memo with no metadata and one audio `MemoA
 check: `grep -rqE "class MacAuthoredMemoShapeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MacAuthoredMemoReadTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P40
 
-### Q140 [auto] (doing) phone quick-note Delete is a soft delete like every other delete
+### Q140 [auto] (done) phone quick-note Delete is a soft delete like every other delete
 spec: C212 C90
 needs: -
 gate+: yes
@@ -1116,7 +1116,7 @@ do: Attribution is built three ways: `MergedCaptureView` hand-builds '— author
 check: `grep -rqE "class QuoteSplitParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuoteSplitParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P50
 
-### Q150 [auto] (todo) audio of an hour or more offers Audiobook vs Voice note at Open-in and the Files importer, not only in the share sheet
+### Q150 [auto] (doing) audio of an hour or more offers Audiobook vs Voice note at Open-in and the Files importer, not only in the share sheet
 spec: C79 C145
 needs: Q132
 gate+: yes
@@ -1250,7 +1250,7 @@ do: Only `JournalHomeView.reload` partitions fading from live; `JournalCalendarV
 check: `grep -rqE "class ReviewNoteSetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewNoteSetTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P67
 
-### Q167 [auto] (doing) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
+### Q167 [auto] (tuur) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
 spec: C210 D30 C233
 needs: -
 gate+: yes
@@ -1569,7 +1569,7 @@ do: These DEBUG flags have no invoker in `plan/*.sh`, `gate.sh`, UITests, SPEC o
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d07 DSH-d08 DSH-d09 DSH-d19 PER-d13 (cleanup-audit P19)
 
-### Q207 [auto] (todo) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
+### Q207 [auto] (doing) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
 spec: C239
 needs: Q116
 gate+: yes
@@ -1943,7 +1943,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q255 [auto] (todo) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
+### Q255 [auto] (doing) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
 spec: C199
 needs: Q133
 gate+: yes
@@ -1976,7 +1976,7 @@ gate+: yes
 do: Found by the Q162 mockup agent: Skrift_Native/SkriftMobile/Services/NotesRepository.swift:41 calls fatalError when the SwiftData/CloudKit store fails to build, so the phone crashes at launch instead of telling the user. Replace the crash with a recoverable path: keep the error, show a plain full-screen 'Skrift couldn't open your notes' state with the error text and a hint (reopen / check iCloud storage), and log it via DevLog. Never delete or recreate the store automatically (data safety). Put the decision in a pure, testable function. Phone test `StoreStartFailureTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh StoreStartFailureTests && ./gate.sh`
 
-### Q260 [auto] (todo) sync a link capture's thumbnail to the Mac as a MemoAsset (phone writes it, Mac card shows it)
+### Q260 [auto] (doing) sync a link capture's thumbnail to the Mac as a MemoAsset (phone writes it, Mac card shows it)
 spec: C78 C143
 needs: Q143
 gate+: yes
@@ -2014,7 +2014,7 @@ gate+: yes
 do: Found by Q107 and visible in plan/reads/list-p-quiet/mac-quiet-rows-light.png: the shared Skrift_Native/Shared/UI/NoteCardView.swift chipsRow lays chips out with fixedSize and no wrapping, so a row with duration + place + weather + 2 tags runs past the card edge and clips (Mac sidebar and phone list). Wrap the chips with the existing Shared/UI/FlowLayout.swift (max 2 lines, then a '+N' chip if more remain), keeping chip order and spacing. Prove it with a Mac headless -snapshot PNG of a 5-chip and an 8-chip row (look at it) plus a host-less layout test of the line-break decision if one is extractable. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q266 [auto] (todo) link captures: the Mac retries a failed link fetch up to 3 times (C72) and the phone titles an untitled link by its host, not 'Capture'
+### Q266 [auto] (doing) link captures: the Mac retries a failed link fetch up to 3 times (C72) and the phone titles an untitled link by its host, not 'Capture'
 spec: C72
 needs: Q136
 gate+: yes
@@ -2056,6 +2056,13 @@ spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
+
+### Q273 [auto] (todo) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
+spec: D127
+needs: Q151
+gate+: yes
+do: Q151 built the per-book notes jump-back as open + seek + play, and the player's normal progress persistence then overwrites the book's resume place. The signed mock Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html says the jump-back toast reads 'The book's own place is not moved'. Make a jump-back playback session not persist position (or restore the saved resume place when the jump-back session ends / the user leaves), and show the mock's toast. Pure, testable decision for 'should this session write progress'. Phone test `BookJumpBackPlaceTests`. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2824,3 +2831,11 @@ check: Tuur decided; follow-up item added if he changes it.
 - 2026-10-03 01:03 Q185 -> done — gate pass (batched with Q187)
 - 2026-10-03 01:04 Q272 added
 - 2026-10-03 01:04 Q272 -> tuur — awaiting sitting
+- 2026-10-03 01:10 Q255 -> doing — batch worker out
+- 2026-10-03 01:10 Q150 -> doing — batch worker out
+- 2026-10-03 01:11 Q273 added
+- 2026-10-03 01:12 Q260 -> doing — batch worker out (opus)
+- 2026-10-03 01:12 Q266 -> doing — batch worker out (opus)
+- 2026-10-03 01:14 Q167 -> tuur — hand-merge: protected WallPrinterTests.testEnqueueGateIsOrangeTierOncePerNote line 38 asserts shouldEnqueue(significance: 0.7) is FALSE — C233/C210 retire that; flip to TRUE (+ a 0.6 false case), then WallPrinter.shouldEnqueue -> ThreeBallScale.isTopStop and ImportanceDots (JournalHomeView.swift:404) -> ThreeBallScale.step(for:). Not started.
+- 2026-10-03 01:14 Q207 -> doing — worker out
+- 2026-10-03 01:14 Q140 -> done — gate pass @91bfe7d4
