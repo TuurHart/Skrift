@@ -665,23 +665,16 @@ struct ConnectionsPanel: View {
     /// the raw transcript OR the Mac's polished copyedit, so scan both.
     private func scanBacklinks() async -> [BacklinkVM] {
         let mine = memo.id
-        let copyeditByID = Dictionary(
-            repository.allEnhancements().map { ($0.memoID, $0.copyedit) },
+        let copyeditByID = Backlinks.copyeditsByMemoID(repository.allEnhancements())
+        let memos = repository.allMemos().filter { $0.id != mine }
+        let rows = memos.map { Backlinks.Row(id: $0.id, transcript: $0.transcript, copyedit: copyeditByID[$0.id]) }
+        let meta: [UUID: (title: String, date: Date)] = Dictionary(
+            memos.map { ($0.id, ($0.ladderTitle(), LookbackProvider.journalDate($0))) },   // C25 ladder
             uniquingKeysWith: { a, _ in a })
-        let others: [(id: UUID, title: String, date: Date, body: String)] = repository.allMemos()
-            .filter { $0.id != mine }
-            .map { m in
-                let body = [m.transcript, copyeditByID[m.id]]
-                    .compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: "\n")
-                return (m.id, m.title ?? m.firstTranscriptLine ?? "Untitled",
-                        LookbackProvider.journalDate(m), body)
-            }
         return await Task.detached(priority: .utility) {
-            let marker = "[[memo:\(mine.uuidString)"
-            let found: [BacklinkVM] = others.compactMap { row in
-                guard row.body.contains(marker),
-                      MemoLinkSyntax.targets(in: row.body).contains(mine) else { return nil }
-                return BacklinkVM(id: row.id, title: String(row.title.prefix(60)), date: row.date)
+            let found: [BacklinkVM] = Backlinks.scan(for: mine, in: rows).compactMap { id in
+                guard let m = meta[id] else { return nil }
+                return BacklinkVM(id: id, title: String(m.title.prefix(60)), date: m.date)
             }
             return Array(found.sorted { $0.date > $1.date }.prefix(6))
         }.value

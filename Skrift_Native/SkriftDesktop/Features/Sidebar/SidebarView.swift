@@ -899,7 +899,9 @@ struct SidebarView: View {
 
     private func refreshCloudMemos() {
         defer {
-            backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos)
+            let copyedits = fixtureCloudMemos == nil
+                ? (MemoCloudStore.container.map { Backlinks.copyeditsByMemoID(in: ModelContext($0)) } ?? [:]) : [:]
+            backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos, copyedits: copyedits)
             // Q105: Newest + the Added filter read the memo's `addedAt` (a pipeline row carries
             // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
             let added = MacListFilter.addedDates(memos: effectiveCloudMemos)

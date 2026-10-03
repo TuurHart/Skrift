@@ -116,15 +116,22 @@ final class ConnectionsModel {
 
     /// Who links HERE: `[[memo:<id>|…]]` in any live body, newest first.
     static func backlinkScan(for file: PipelineFile, in all: [PipelineFile]) -> [ConnectionBacklink] {
-        let needle = "memo:\(file.id)"
-        var found: [ConnectionBacklink] = []
+        // Q120: the shared scan, over every body a link can live in (a phone link sits in the
+        // transcript, a Mac one in the name-linked or copy-edited body). Only a memo UUID can be
+        // a link target; a local file with another id stands in as a throwaway UUID so it still
+        // counts as a linker.
+        guard let target = UUID(uuidString: file.id) else { return [] }
+        var byRowID: [UUID: PipelineFile] = [:]
+        var rows: [Backlinks.Row] = []
         for f in all where f.id != file.id && f.deletedAt == nil {
-            let body = f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? ""
-            if body.contains(needle) {
-                found.append(ConnectionBacklink(id: f.id, title: f.queueTitle, date: f.uploadedAt))
-            }
+            let rowID = UUID(uuidString: f.id) ?? UUID()
+            byRowID[rowID] = f
+            rows.append(Backlinks.Row(id: rowID, bodies: [f.transcript, f.sanitised, f.enhancedCopyedit]))
         }
-        return found.sorted { $0.date > $1.date }
+        return Backlinks.scan(for: target, in: rows)
+            .compactMap { byRowID[$0] }
+            .map { ConnectionBacklink(id: $0.id, title: $0.queueTitle, date: $0.uploadedAt) }
+            .sorted { $0.date > $1.date }
     }
 
     // ── why-chips: the SHARED dumb-v1 overlap heuristic (Shared/Retrieval) ──
