@@ -295,13 +295,7 @@ struct SkriftApp: App {
 
     // The palette is dark-first (explicit dark surfaces), so "auto"/"light" are
     // best-effort until a light palette lands; default stays dark.
-    private var colorScheme: ColorScheme? {
-        switch appTheme {
-        case "light": return .light
-        case "auto": return nil
-        default: return .dark
-        }
-    }
+    private var colorScheme: ColorScheme? { ThemePreference.colorScheme(appTheme) }   // shared with the Mac (Q172)
 }
 
 /// App shell. The root is a tab bar (audiobook reading-mode redesign 2026-06-19):

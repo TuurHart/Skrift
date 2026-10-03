@@ -118,22 +118,17 @@ extension ChipRowStyle {
 /// controls (text-field placeholders, carets, menus) follow `NSApp.appearance`,
 /// so both must be set — that's why the app forced `.darkAqua` before.
 enum AppTheme {
-    static let key = "appTheme"
-    static var current: String { UserDefaults.standard.string(forKey: key) ?? "dark" }
+    static let key = ThemePreference.key
+    static var current: String { UserDefaults.standard.string(forKey: key) ?? ThemePreference.defaultRaw }
 
-    static func colorScheme(_ raw: String) -> ColorScheme? {
-        switch raw {
-        case "light": return .light
-        case "auto":  return nil       // follow the system
-        default:      return .dark
-        }
-    }
+    /// The shared reading (Q172) — same switch the phone uses.
+    static func colorScheme(_ raw: String) -> ColorScheme? { ThemePreference.colorScheme(raw) }
 
     static func nsAppearance(_ raw: String) -> NSAppearance? {
-        switch raw {
-        case "light": return NSAppearance(named: .aqua)
-        case "auto":  return nil        // follow the system
-        default:      return NSAppearance(named: .darkAqua)
+        switch ThemePreference.mode(raw) {
+        case .light:  return NSAppearance(named: .aqua)
+        case .system: return nil        // follow the system
+        case .dark:   return NSAppearance(named: .darkAqua)
         }
     }
 

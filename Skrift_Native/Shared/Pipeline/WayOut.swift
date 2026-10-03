@@ -18,6 +18,15 @@ enum WayOut {
         memo.trashSeenAt = nil   // purge-clock hygiene (v3); the validity guard ignores stale stamps anyway
     }
 
+    /// The one soft-delete verb, `bringBack`'s inverse (Q172, list-sidebar-89): the note
+    /// moves to Recently Deleted and, because the user is here, its purge clock starts now
+    /// (v3). Both apps' delete gestures and both fading sweeps route through it. The
+    /// caller saves.
+    static func softDelete(_ memo: Memo, now: Date = Date()) {
+        memo.deletedAt = now
+        memo.trashSeenAt = now
+    }
+
     /// Fading rows, soonest-to-move-to-Recently-Deleted first.
     static func fadingOrdered(_ memos: [Memo]) -> [Memo] {
         memos.sorted { MemoLifecycle.fadesAt($0) < MemoLifecycle.fadesAt($1) }

@@ -11,35 +11,18 @@ import SwiftData
 //   • `PipelineFile.compilerInput` — maps a queue item into the neutral DTO.
 //   • `Compiler.compile(file:)` — byte-identical shim so every existing call site is unchanged.
 
-/// Phone-sent metadata, decoded from `PipelineFile.audioMetadataJSON` (the phone's
-/// MemoMetadata shape) for the export frontmatter. All optional / lenient.
-struct PhoneMetadata: Codable, Sendable {
-    struct Location: Codable, Sendable { var placeName: String? }
-    struct Weather: Codable, Sendable { var conditions: String?; var temperature: Double?; var temperatureUnit: String? }
-    struct Pressure: Codable, Sendable { var hPa: Double?; var trend: String? }
-    struct Daylight: Codable, Sendable { var sunrise: String?; var sunset: String?; var hoursOfLight: Double? }
-    var location: Location?
-    var weather: Weather?
-    var pressure: Pressure?
-    var dayPeriod: String?
-    var daylight: Daylight?
-    var steps: Int?
-    var recordedAt: String?
-    // Audiobook quote-capture (contract C2) — additive optional fields riding the
-    // existing metadata JSON. Absent on every non-capture memo and on uploads from
-    // older phone builds (synthesized Codable = decodeIfPresent / encodeIfPresent),
-    // so the contract stays byte-compatible in both directions.
-    var bookTitle: String?
-    var bookAuthor: String?
-    var bookChapter: String?
-}
+/// Phone-sent metadata, decoded from `PipelineFile.audioMetadataJSON` for the export
+/// frontmatter. Q172 (books-102): the lenient reader now lives in Shared beside the
+/// schema it reads (`MemoMetadata.Lenient`, `MemoMetadata.lenient(from:)`); this name
+/// stays for the Mac call sites and tests.
+typealias PhoneMetadata = MemoMetadata.Lenient
 
 extension PipelineFile {
     /// Map this queue item into the neutral `CompilerInput` the shared `Compiler` consumes.
     /// Decodes the metadata blob through the desktop `PhoneMetadata`/`SharedContent` helpers
     /// exactly as the pre-Shared `Compiler.compile` did, so output stays byte-identical.
     var compilerInput: CompilerInput {
-        let meta = audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let meta = MemoMetadata.lenient(from: audioMetadataJSON)
         let sc = SharedContent.decode(from: audioMetadataJSON)
         // The ONE shared builder (Q155): body source, voice and link stems follow the phone's
         // rules. `linked` is the stored `sanitised` — linked at processing time with this

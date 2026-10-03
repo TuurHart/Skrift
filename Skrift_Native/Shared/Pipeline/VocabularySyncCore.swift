@@ -49,4 +49,16 @@ enum VocabularySyncCore {
         }
         return .noop
     }
+
+    /// The add-custom-word rule (Q172, setexp-31) both Settings screens ran by hand: trim,
+    /// refuse empty, refuse a case-insensitive duplicate, append. Returns the new list, or
+    /// nil when nothing is added (the caller still clears its field). The caller stamps,
+    /// persists and pushes.
+    static func adding(_ typed: String, to words: [String]) -> [String]? {
+        let trimmed = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !words.contains(where: { $0.lowercased() == trimmed.lowercased() })
+        else { return nil }
+        return words + [trimmed]
+    }
 }

@@ -243,8 +243,7 @@ struct BatchRunner {
         }
         // Skip the summary on SHORT notes (user 2026-06-15) — a brief memo doesn't need
         // one. A manual "Redo summary" still generates it regardless (deliberate override).
-        let bodyWordCount = transcript.split(whereSeparator: \.isWhitespace).count
-        let summaryText = bodyWordCount >= settings.effectiveSummaryMinWords
+        let summaryText = SummaryRule.meetsThreshold(transcript, minWords: settings.effectiveSummaryMinWords)
             ? try await enhancer.summary(transcript, prompts: prompts, modelRepo: repo)
             : ""
         // Last await is behind us — final guard before the destructive writes

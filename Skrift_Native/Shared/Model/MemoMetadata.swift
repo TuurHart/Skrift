@@ -3,8 +3,8 @@ import Foundation
 /// Contextual metadata captured when a recording stops — the SCHEMA of
 /// `Memo.metadataData` (persisted as a JSON blob, synced over CloudKit). ONE
 /// shared definition: the phone writes it, the Mac reads it (typed via
-/// `Memo.metadata`; the Mac's `PhoneMetadata` in CompilerBridge.swift remains
-/// as the deliberately-lenient reader for LEGACY working-folder payloads from
+/// `Memo.metadata`; `MemoMetadata.Lenient` below (the Mac's `PhoneMetadata`) is
+/// the deliberately-lenient reader for LEGACY working-folder payloads from
 /// the RN/Python era). Field names and shapes are the wire contract — they
 /// match the RN `MemoMetadata` (`archive/Mobile/lib/metadata.ts`) and the keys
 /// the old backend read (`archive/backend/api/files.py`); never rename them.
@@ -99,6 +99,40 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         static let video = "video"
         /// A Mac picture-only import (no sharedContent): reads "Image" like a phone image share (Q179).
         static let image = "image"
+    }
+}
+
+extension MemoMetadata {
+    /// The LENIENT reader of the same blob (Q172, books-102; was the Mac's `PhoneMetadata`
+    /// in CompilerBridge.swift). Every field optional and loosely typed (temperature and
+    /// hPa as Double, dayPeriod as a string, location without coordinates), so a legacy
+    /// RN/Python-era payload or a partial one still yields what it has instead of nil —
+    /// the strict `MemoMetadata` decoder refuses those (no `tags`, no lat/long). Reads only
+    /// the frontmatter fields; `bookID`/`bookPosition` are ignored (FEATURES.md "ignore").
+    /// Encodes absent fields as absent (synthesized encodeIfPresent).
+    struct Lenient: Codable, Sendable {
+        struct Location: Codable, Sendable { var placeName: String? }
+        struct Weather: Codable, Sendable { var conditions: String?; var temperature: Double?; var temperatureUnit: String? }
+        struct Pressure: Codable, Sendable { var hPa: Double?; var trend: String? }
+        struct Daylight: Codable, Sendable { var sunrise: String?; var sunset: String?; var hoursOfLight: Double? }
+        var location: Location?
+        var weather: Weather?
+        var pressure: Pressure?
+        var dayPeriod: String?
+        var daylight: Daylight?
+        var steps: Int?
+        var recordedAt: String?
+        // Audiobook quote-capture (contract C2) — additive optional fields riding the
+        // existing metadata JSON. Absent on every non-capture memo and on uploads from
+        // older phone builds, so the contract stays byte-compatible in both directions.
+        var bookTitle: String?
+        var bookAuthor: String?
+        var bookChapter: String?
+    }
+
+    /// The ONE lenient decode of a metadata blob: nil for no blob or unreadable JSON.
+    static func lenient(from data: Data?) -> Lenient? {
+        data.flatMap { try? JSONDecoder().decode(Lenient.self, from: $0) }
     }
 }
 

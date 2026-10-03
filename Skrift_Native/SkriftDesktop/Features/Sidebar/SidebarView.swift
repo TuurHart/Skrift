@@ -835,8 +835,7 @@ struct SidebarView: View {
     private func deleteQuiet(_ memo: Memo) {
         Task {
             guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
-            memo.deletedAt = Date()
-            memo.trashSeenAt = memo.deletedAt   // deleted in-session — purge clock starts now (v3)
+            WayOut.softDelete(memo)   // in-session delete: the purge clock starts now (v3)
             saveCloudMemoChange()
             refreshCloudMemos()
         }

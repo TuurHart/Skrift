@@ -47,9 +47,7 @@ struct NoteProperties: View {
     /// switch and on this note's own tag edits (the `.onChange(of: file.tags)`
     /// below already fires for those).
     @State private var tagCounts: [String: Int] = [:]
-    private var tagLibrary: [String] {
-        tagCounts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
-    }
+    private var tagLibrary: [String] { TagRules.mostUsedFirst(tagCounts) }
     private func refreshTagCounts() { tagCounts = TagLibrary.counts(file.modelContext) }
 
     /// Q85: the orange "starts fading … — rate it to keep it" line beside the pill. Only
@@ -304,8 +302,7 @@ struct NoteProperties: View {
 /// suggestion surfaces can't disagree.
 @MainActor enum TagLibrary {
     static func mostUsedFirst(_ context: ModelContext?) -> [String] {
-        let c = counts(context)
-        return c.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+        TagRules.mostUsedFirst(counts(context))   // the phone's ranking too (Q172)
     }
 
     /// How many (non-deleted) notes carry each tag — the Mac menu's trailing usage
@@ -313,11 +310,7 @@ struct NoteProperties: View {
     static func counts(_ context: ModelContext?) -> [String: Int] {
         guard let context else { return [:] }
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        var counts: [String: Int] = [:]
-        for f in files where f.deletedAt == nil {
-            for t in f.tags { counts[t, default: 0] += 1 }
-        }
-        return counts
+        return TagRules.counts(files.lazy.filter { $0.deletedAt == nil }.map(\.tags))
     }
 }
 

@@ -303,7 +303,7 @@ final class PipelineFile {
     /// about whether a memo is a book capture.
     var bookCapture: BookCapture? {
         guard let data = audioMetadataJSON,
-              let meta = try? JSONDecoder().decode(PhoneMetadata.self, from: data),
+              let meta = MemoMetadata.lenient(from: data),
               let title = BookCapture.trimmedNonEmpty(meta.bookTitle) else { return nil }
         return BookCapture(title: title,
                            author: BookCapture.trimmedNonEmpty(meta.bookAuthor),
@@ -325,7 +325,7 @@ final class PipelineFile {
     /// weather only).
     func contextChips(includeDayPeriod: Bool) -> [(text: String, symbol: String)] {
         guard sourceType != .capture, let data = audioMetadataJSON,
-              let meta = try? JSONDecoder().decode(PhoneMetadata.self, from: data) else { return [] }
+              let meta = MemoMetadata.lenient(from: data) else { return [] }
         var chips: [(String, String)] = []
         if let place = meta.location?.placeName?.trimmingCharacters(in: .whitespaces), !place.isEmpty {
             chips.append((place, "mappin.circle.fill"))

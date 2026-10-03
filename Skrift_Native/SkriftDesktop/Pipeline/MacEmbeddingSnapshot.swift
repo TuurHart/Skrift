@@ -50,7 +50,7 @@ enum MacEmbeddingSnapshot {
     /// A row with no synced memo: the body it shows (`sanitised` carries the Mac's own
     /// edits), else its copy-edit, else the transcript.
     static func fileOnly(_ file: PipelineFile, id: UUID) -> MemoSnapshot? {
-        let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let meta = MemoMetadata.lenient(from: file.audioMetadataJSON)
         return SemanticSearch.snapshot(
             id: id, userTitle: nil, enhancedTitle: file.enhancedTitle, summary: file.enhancedSummary,
             polished: file.sanitised ?? file.enhancedCopyedit, transcript: file.transcript, annotation: nil,

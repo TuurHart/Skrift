@@ -20,7 +20,7 @@ extension PipelineFile {
     /// Full snapshot (decodes the metadata blob for place + shared-capture text).
     func noteSearchSnapshot(unlockedThisSession: Bool) -> NoteSearchSnapshot {
         var s = noteSearchBase(unlockedThisSession: unlockedThisSession)
-        let meta = audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let meta = MemoMetadata.lenient(from: audioMetadataJSON)
         let sc = SharedContent.decode(from: audioMetadataJSON)
         s.place = meta?.location?.placeName
         s.shared = [sc?.urlTitle, sc?.urlDescription, sc?.text, sc?.fileName]

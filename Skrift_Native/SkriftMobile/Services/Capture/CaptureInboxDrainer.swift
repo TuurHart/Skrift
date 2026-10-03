@@ -620,9 +620,7 @@ enum CaptureInboxDrainer {
             annotation = annotation.isEmpty ? textFileBody : annotation + "\n\n" + textFileBody
         }
         if let manifest = imageManifest, !manifest.isEmpty {
-            let markers = (1...manifest.count)
-                .map { "[[img_\(String(format: "%03d", $0))]]" }
-                .joined(separator: "\n\n")
+            let markers = MixedBundle.pictureOnlyBody(count: manifest.count)   // the Mac drop's builder (Q172)
             annotation = annotation.isEmpty ? markers : annotation + "\n\n" + markers
             // Body v2 (C10): the share capture's body is committed once, here.
             annotation = BodyV2.committed(BodyV2.Input(text: annotation, manifest: manifest,

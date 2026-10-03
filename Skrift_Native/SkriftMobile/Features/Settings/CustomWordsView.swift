@@ -53,13 +53,14 @@ struct CustomWordsView: View {
     }
 
     private func addWord() {
-        let trimmed = newWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard !words.contains(where: { $0.lowercased() == trimmed.lowercased() }) else {
+        // The shared add rule (Q172). Empty input keeps the field as typed (whitespace);
+        // a duplicate clears it — the phone's behaviour before the fold.
+        guard !newWord.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let updated = VocabularySyncCore.adding(newWord, to: words) else {
             newWord = ""
             return
         }
-        words.append(trimmed)
+        words = updated
         CustomVocabularyStore.save(words)
         VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit so other devices get it now
         newWord = ""

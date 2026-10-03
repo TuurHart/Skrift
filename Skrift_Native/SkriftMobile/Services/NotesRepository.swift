@@ -110,8 +110,7 @@ final class NotesRepository {
     /// injectable for tests.
     func softDelete(_ memo: Memo, at date: Date = Date()) {
         DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus) — caller: \(Self.callerFrames())")
-        memo.deletedAt = date
-        memo.trashSeenAt = date
+        WayOut.softDelete(memo, now: date)
         save()
     }
 
@@ -200,11 +199,7 @@ final class NotesRepository {
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {
-            var counts: [String: Int] = [:]
-            for memo in allMemos() {
-                for tag in memo.tags { counts[tag, default: 0] += 1 }
-            }
-            return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+            TagRules.mostUsedFirst(TagRules.counts(allMemos().lazy.map(\.tags)))   // shared ranking (Q172)
         }
     }
 

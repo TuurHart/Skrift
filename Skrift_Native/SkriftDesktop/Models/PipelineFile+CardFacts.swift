@@ -16,7 +16,7 @@ extension PipelineFile {
     }
 
     var cardFacts: NoteCardFacts {
-        let meta = audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let meta = MemoMetadata.lenient(from: audioMetadataJSON)
         let isCapture = sourceType == .capture
         // The row's body: the polished text when there is one, else the transcript. A capture's
         // body IS its annotation (the Mac stores it as the transcript).
