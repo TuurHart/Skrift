@@ -1625,7 +1625,7 @@ do: The Mac's `diar_<id>.json` sidecar (`Pipeline/BatchManager/DiarizationSideca
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d09 DPE-c03 (cleanup-audit P26)
 
-### Q214 [auto] (doing) Mac ingest: one typed path instead of fake multipart parts
+### Q214 [auto] (tuur) Mac ingest: one typed path instead of fake multipart parts
 spec: C238 C240
 needs: Q207
 gate+: yes
@@ -2919,3 +2919,4 @@ check: (fill in)
 - 2026-10-03 01:54 Q240 -> done — gate pass @5d57762b
 - 2026-10-03 01:54 Q243 -> done — gate pass (batched with Q240)
 - 2026-10-03 01:55 Q174 -> done — gate pass @44c7aa8f
+- 2026-10-03 01:56 Q214 -> tuur — needs hand-merge: wt/Q214 @3dff5149 (agent-a9617e2e31fef03e6) rewrites protected UploadTests.swift + MemoCloudIngestTests.swift; gate green 1431; approve then plan/hand-merge.sh
