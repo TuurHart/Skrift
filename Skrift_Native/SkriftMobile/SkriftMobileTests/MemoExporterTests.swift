@@ -56,7 +56,7 @@ final class MemoExporterTests: XCTestCase {
     func testExportTitleFallback() {
         XCTAssertEqual(MemoExporter.exportTitle(for: Memo(title: "My Title", transcript: "body"), people: []), "My Title")
         XCTAssertEqual(MemoExporter.exportTitle(for: Memo(transcript: "First line here.\nSecond."), people: []), "First line here.")
-        XCTAssertEqual(MemoExporter.exportTitle(for: Memo(), people: []), "Untitled Memo")
+        XCTAssertEqual(MemoExporter.exportTitle(for: Memo(), people: []), "Note")
     }
 
     // MARK: Mac enhancement (CloudKit write-back) preference
@@ -67,7 +67,7 @@ final class MemoExporterTests: XCTestCase {
         let enh = MemoEnhancement(memoID: memo.id, copyedit: "I met Hendri today.",
                                   title: "Meeting Hendri", summary: "A short note about meeting Hendri.")
         let md = MemoExporter.markdown(for: memo, people: [hendri], author: "T", enhancement: enh)
-        XCTAssertTrue(md.contains("title: \"Meeting Hendri\""), "uses the Mac title")
+        XCTAssertTrue(md.contains("title: \"raw title\""), "the user title outranks the Mac title (C25, D174)")
         XCTAssertTrue(md.contains("summary: \"A short note about meeting Hendri.\""), "uses the Mac summary")
         XCTAssertTrue(md.contains("I met [[Hendri van Niekerk]] today."),
                       "polished body, re-linked on-device — got: \(md)")

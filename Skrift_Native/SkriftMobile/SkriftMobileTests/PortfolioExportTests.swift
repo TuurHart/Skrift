@@ -74,7 +74,7 @@ final class PortfolioExportTests: XCTestCase {
             return XCTFail("expected a write, got \(outcome)")
         }
 
-        XCTAssertEqual(rel, "a-bench-made-of-an-oak-slab.md",
+        XCTAssertEqual(rel, "the-bench-outside-cafe-garrett.md",
                        "named, not dated, and FLAT — his 148 items are `Lamps/<name>/item.md`")
         let file = portfolioRoot.appendingPathComponent("_ideas").appendingPathComponent(rel)
         XCTAssertTrue(FileManager.default.fileExists(atPath: file.path), file.path)
@@ -93,7 +93,7 @@ final class PortfolioExportTests: XCTestCase {
         let memo = ideaMemo()
         _ = try publisher(ledger: ledger).publish(memo)
 
-        let file = portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md")
+        let file = portfolioRoot.appendingPathComponent("_ideas/the-bench-outside-cafe-garrett.md")
         let text = try String(contentsOf: file, encoding: .utf8)
 
         XCTAssertFalse(text.contains("![["), "a vault-relative embed does not travel")
@@ -137,7 +137,7 @@ final class PortfolioExportTests: XCTestCase {
 
             let text = try String(
                 contentsOf: portfolioRoot.appendingPathComponent(
-                    "\(folder)/a-bench-made-of-an-oak-slab.md"), encoding: .utf8)
+                    "\(folder)/the-bench-outside-cafe-garrett.md"), encoding: .utf8)
             XCTAssertEqual(text.contains("- credit"), wantsCredit,
                            "\(destination.label) credit need should be \(wantsCredit)")
         }
@@ -153,7 +153,7 @@ final class PortfolioExportTests: XCTestCase {
         _ = try publisher(ledger: ledger).publish(memo)
 
         let text = try String(
-            contentsOf: portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
+            contentsOf: portfolioRoot.appendingPathComponent("_ideas/the-bench-outside-cafe-garrett.md"),
             encoding: .utf8)
         XCTAssertTrue(text.contains("- credit"),
                       "the object is someone else's even though the idea is his")
@@ -168,7 +168,7 @@ final class PortfolioExportTests: XCTestCase {
         _ = try publisher(ledger: ledger).publish(memo)
 
         let text = try String(
-            contentsOf: portfolioRoot.appendingPathComponent("_ideas/a-bench-made-of-an-oak-slab.md"),
+            contentsOf: portfolioRoot.appendingPathComponent("_ideas/the-bench-outside-cafe-garrett.md"),
             encoding: .utf8)
         XCTAssertTrue(text.contains("voice: written"), text)
     }
