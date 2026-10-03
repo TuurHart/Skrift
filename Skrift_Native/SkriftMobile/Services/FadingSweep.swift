@@ -30,15 +30,11 @@ enum FadingSweep {
             DevLog.log("FadingSweep: purge clock started for \(stamped) synced-in trashed note(s)")
         }
 
-        let all = repository.allMemos()
         // A Mac-made link lives in the synced copy-edit, not the transcript (Q120).
-        let backlinked = MemoLifecycle.backlinkedIDs(
-            in: all, copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements()))
-        var swept = 0
-        for memo in all where MemoLifecycle.sweepDue(memo, backlinked: backlinked, now: now) {
-            repository.softDelete(memo, at: now)
-            swept += 1
-        }
+        let swept = MemoLifecycle.sweepFading(
+            live: repository.allMemos(),
+            copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements()),
+            now: now) { repository.softDelete($0, at: now) }
         if swept > 0 { DevLog.log("FadingSweep: \(swept) note(s) → Recently Deleted") }
         return swept
     }

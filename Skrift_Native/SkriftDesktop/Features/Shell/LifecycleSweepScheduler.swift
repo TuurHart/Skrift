@@ -15,17 +15,14 @@ enum MacFadingSweep {
     static func run(memos: [Memo], context: ModelContext, now: Date = Date()) {
         // The open-stamp first: phone-swept / phone-deleted rows whose purge
         // clock hasn't started get it started at THIS open.
-        var wrote = MemoLifecycle.stampTrashSightings(memos, now: now) > 0
+        let stamped = MemoLifecycle.stampTrashSightings(memos, now: now)
 
-        let live = memos.filter { $0.deletedAt == nil }
         // A phone-made link lives in the transcript, a Mac-made one in the copy-edit (Q120).
-        let backlinked = MemoLifecycle.backlinkedIDs(in: live, copyedits: Backlinks.copyeditsByMemoID(in: context))
-        for memo in live where MemoLifecycle.sweepDue(memo, backlinked: backlinked, now: now) {
-            memo.deletedAt = now
-            memo.trashSeenAt = now   // swept with the user present — clock starts now
-            wrote = true
-        }
-        if wrote { try? context.save() }
+        // Swept with the user present, so the purge clock starts now (`WayOut.softDelete`).
+        let swept = MemoLifecycle.sweepFading(
+            live: memos, copyedits: Backlinks.copyeditsByMemoID(in: context), now: now
+        ) { WayOut.softDelete($0, now: now) }
+        if stamped > 0 || swept > 0 { try? context.save() }
     }
 }
 

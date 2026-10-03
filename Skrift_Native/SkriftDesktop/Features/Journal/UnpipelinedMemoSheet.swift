@@ -328,8 +328,7 @@ struct UnpipelinedMemoSheet: View {
     /// restorable from either device for `TrashPolicy.retentionDays` (the
     /// purge clock starts now — the user is right here; v3 2026-07-23).
     private func delete(_ memo: Memo) {
-        memo.deletedAt = Date()
-        memo.trashSeenAt = memo.deletedAt
+        WayOut.softDelete(memo)   // in-session delete: the purge clock starts now (v3)
         try? MemoCloudStore.container?.mainContext.save()
         onDeleted(memoID)
     }

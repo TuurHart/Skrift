@@ -157,8 +157,7 @@ struct NoteActions: View {
         guard let memo = unratedMemo else { return }
         Task {
             guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
-            memo.deletedAt = Date()
-            memo.trashSeenAt = memo.deletedAt   // deleted in-session: the purge clock starts now (v3)
+            WayOut.softDelete(memo)   // in-session delete: the purge clock starts now (v3)
             MemoNoteProjection.discardMedia(for: memo.id)
             try? MemoCloudStore.container?.mainContext.save()
             NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)

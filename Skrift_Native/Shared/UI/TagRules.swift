@@ -103,4 +103,21 @@ enum TagRules {
         guard !t.isEmpty else { return nil }
         return existing.first { $0.lowercased() == t.lowercased() }
     }
+
+    /// How many notes carry each tag (Q172, note-tags-04). The caller picks which notes
+    /// count (phone: every live `Memo`; Mac: every live `PipelineFile`).
+    static func counts<S: Sequence>(_ tagLists: S) -> [String: Int] where S.Element == [String] {
+        var counts: [String: Int] = [:]
+        for tags in tagLists {
+            for tag in tags { counts[tag, default: 0] += 1 }
+        }
+        return counts
+    }
+
+    /// The tag library order (Q172, note-tags-04): most-used first, ties by key
+    /// ascending. ONE ranking for the phone's `NotesRepository.allTags` and the Mac's
+    /// `TagLibrary.mostUsedFirst` + the properties typeahead.
+    static func mostUsedFirst(_ counts: [String: Int]) -> [String] {
+        counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
 }

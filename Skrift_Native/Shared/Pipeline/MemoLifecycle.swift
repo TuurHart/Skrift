@@ -98,6 +98,24 @@ enum MemoLifecycle {
         return (live, fading)
     }
 
+    /// The at-open fading sweep loop (Q172): every live note that is `sweepDue` goes to
+    /// Recently Deleted through `softDelete` (the phone passes its repository verb, which
+    /// logs and saves; the Mac passes `WayOut.softDelete` and saves once). Backlinks are
+    /// scanned once over `live`. Returns how many moved. The caller stamps trash
+    /// sightings first (`stampTrashSightings`) and owns saving.
+    @discardableResult
+    static func sweepFading(live: [Memo], copyedits: [UUID: String] = [:], now: Date = Date(),
+                            softDelete: (Memo) -> Void) -> Int {
+        let live = live.filter { $0.deletedAt == nil }
+        let backlinked = backlinkedIDs(in: live, copyedits: copyedits)
+        var swept = 0
+        for memo in live where sweepDue(memo, backlinked: backlinked, now: now) {
+            softDelete(memo)
+            swept += 1
+        }
+        return swept
+    }
+
     // MARK: - v3 "no note dies unseen" (2026-07-23): the trash clock
 
     /// The validity rule, one place: a sighting counts only for the CURRENT

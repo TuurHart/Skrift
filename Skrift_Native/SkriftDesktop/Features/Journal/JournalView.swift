@@ -281,8 +281,7 @@ struct JournalView: View {
                     // Q101 (R88/C161): a locked, not-yet-unlocked note needs auth to trash.
                     Task { @MainActor in
                         guard await LockGate.shared.policy.authorizeDelete(id: memo.id.uuidString, locked: memo.locked) else { return }
-                        memo.deletedAt = Date()
-                        memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
+                        WayOut.softDelete(memo)   // in-session delete: the purge clock starts now (v3)
                         try? cloudContext?.save()
                         refresh()
                     }

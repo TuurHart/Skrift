@@ -110,8 +110,7 @@ final class NotesRepository {
     /// injectable for tests.
     func softDelete(_ memo: Memo, at date: Date = Date()) {
         DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus) — caller: \(Self.callerFrames())")
-        memo.deletedAt = date
-        memo.trashSeenAt = date
+        WayOut.softDelete(memo, now: date)
         save()
     }
 
