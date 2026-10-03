@@ -1290,7 +1290,7 @@ do: Rows where the two apps agree today only because two copies were typed: the 
 check: `test $(ls plan/reads/twin-p-ui/*.png | wc -l) -ge 2 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P72
 
-### Q172 [auto] (doing) single-source the logic written twice (twin-same rows)
+### Q172 [auto] (done) single-source the logic written twice (twin-same rows)
 spec: C239 C240
 needs: -
 gate+: yes
@@ -1737,7 +1737,7 @@ do: `ObsidianVault.hasPublished(_ memoID:)` (`SkriftMobile/Services/Export/Obsid
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-m1 (cleanup-audit P40)
 
-### Q228 [auto] (todo) share extension: drop the share-side dictation that was retired on 2026-07-10
+### Q228 [auto] (doing) share extension: drop the share-side dictation that was retired on 2026-07-10
 spec: C240
 needs: Q132
 gate+: no
@@ -2932,3 +2932,5 @@ check: (fill in)
 - 2026-10-03 02:01 Q212 -> tuur — needs hand-merge: wt/Q212 @3415bbc5 (agent-a468155f352ccf2c9) ports protected WayOutRulesTests (3 duplicate tests deleted, covered by WayOutSharedTests), DesktopTrashTests, VideoIngestTests, MergedNoteDateAndParagraphsTests, VaultExporterTests; gate green 1437; approve then plan/hand-merge.sh
 - 2026-10-03 02:01 Q280 added
 - 2026-10-03 02:01 Q280 -> tuur — parked for the sitting
+- 2026-10-03 02:06 Q228 -> doing — dispatched (sonnet), hand-merge likely
+- 2026-10-03 02:15 Q172 -> done — gate pass @584aa5fd
