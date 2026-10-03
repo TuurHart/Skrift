@@ -395,13 +395,16 @@ struct JournalMemoRow: View {
 }
 
 /// Compact 3-dot importance read-out (the full 10-circle control lives in the
-/// editor; cards only need a glanceable level). TIER-mapped, not rounded —
-/// device finding 2026-07-07: 0.8 × 3 rounded DOWN, so an orange-tier
-/// (Important) note showed 2 dots. 3 = Important, 2 = Useful, 1 = Passing.
+/// editor; cards only need a glanceable level). Reads `ThreeBallScale.step`
+/// (C210), the same buckets as the Mac: 3 = Important (0.7–1.0), 2 = Useful, 1 = Passing.
 struct ImportanceDots: View {
     let significance: Double
+    /// Dots lit for a legacy 0.1–1.0 value (0 = unrated).
+    static func filledCount(for significance: Double) -> Int {
+        ThreeBallScale.step(for: significance)
+    }
     var body: some View {
-        let filled = significance >= 0.8 ? 3 : significance >= 0.4 ? 2 : significance > 0 ? 1 : 0
+        let filled = Self.filledCount(for: significance)
         HStack(spacing: 2) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
