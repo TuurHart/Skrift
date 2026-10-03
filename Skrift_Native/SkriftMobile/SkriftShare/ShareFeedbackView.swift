@@ -21,7 +21,7 @@ struct ShareFeedbackView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color(red: 0.055, green: 0.059, blue: 0.086)   // #0e0f16, matches the sheet backdrop
+            ShareTheme.backdrop
                 .ignoresSafeArea()
             card
         }
@@ -47,17 +47,7 @@ struct ShareFeedbackView: View {
                 .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .background(
-            Color(red: 0.106, green: 0.110, blue: 0.157)   // #1b1d28 sheet surface
-                .ignoresSafeArea(.container, edges: .bottom)
-                .clipShape(.rect(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous))
-        )
-        .overlay(alignment: .top) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.07), lineWidth: 0.5)
-                .ignoresSafeArea(.container, edges: .bottom)
-        }
-        .accessibilityIdentifier("share-feedback-\(a11yKind)")
+        .shareSheetSurface()        .accessibilityIdentifier("share-feedback-\(a11yKind)")
     }
 
     // MARK: - Pieces
