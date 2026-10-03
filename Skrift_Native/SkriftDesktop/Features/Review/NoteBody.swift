@@ -165,7 +165,8 @@ struct NoteBody: View {
             quoteAttribution: file.bookCapture?.attribution,
             searchJumpToken: searchJumpToken,
             focusToken: focusToken,
-            readOnly: editState == .reading
+            readOnly: editState == .reading,
+            quoteLocked: file.hasLockedQuote
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
