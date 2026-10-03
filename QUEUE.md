@@ -1625,7 +1625,7 @@ do: The Mac's `diar_<id>.json` sidecar (`Pipeline/BatchManager/DiarizationSideca
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d09 DPE-c03 (cleanup-audit P26)
 
-### Q214 [auto] (todo) Mac ingest: one typed path instead of fake multipart parts
+### Q214 [auto] (doing) Mac ingest: one typed path instead of fake multipart parts
 spec: C238 C240
 needs: Q207
 gate+: yes
@@ -2057,7 +2057,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q273 [auto] (doing) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
+### Q273 [auto] (done) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
 spec: D127
 needs: Q151
 gate+: yes
@@ -2880,3 +2880,5 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:38 Q150 -> done — gate pass (batched with Q255)
 - 2026-10-03 01:38 Q171 -> doing — worker out
 - 2026-10-03 01:40 Q207 -> done — gate pass @02ec480c
+- 2026-10-03 01:43 Q214 -> doing — worker out
+- 2026-10-03 01:44 Q273 -> done — gate pass @f373cd0e
