@@ -149,20 +149,14 @@ enum MemoCloudUpdate {
 
     /// Deterministic re-link + recompile (no LLM) over the pristine working text
     /// (copy-edit → transcript) — the same operation as `ProcessingCoordinator.resanitiseForNames`,
-    /// inlined here so the updater stays pure/testable (no coordinator, no container).
+    /// sharing `PipelineFile.relinkNames` so the updater stays pure/testable (no coordinator, no container).
     private static func resanitiseAndCompile(_ pf: PipelineFile, people: [Person], author: String) {
         // The shared body-source rule (Q155): a copy-edit with no words (a title-only polish
         // writes "") falls through to the transcript, as on the phone.
         let working = CompilerInput.workingBody(raw: pf.transcript, copyedit: pf.enhancedCopyedit).text
         guard !working.isEmpty else { return }
         let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
-        let result = isConversation
-            ? Sanitiser.processConversation(text: working, people: people,
-                                            neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-            : Sanitiser.process(text: working, people: people,
-                                neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-        pf.sanitised = result.sanitised
-        pf.ambiguousNames = result.ambiguous.isEmpty ? nil : result.ambiguous
+        pf.relinkNames(working: working, isConversation: isConversation, people: people)
         pf.sanitiseStatus = .done
         pf.compiledText = Compiler.compile(file: pf, author: author, knownPeople: people)
     }

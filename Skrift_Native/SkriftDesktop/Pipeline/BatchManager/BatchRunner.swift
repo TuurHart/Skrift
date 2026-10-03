@@ -275,11 +275,7 @@ struct BatchRunner {
         // OPT-OUT (NAMING_MODEL.md): every known person is auto-linked by default (first
         // mention, risk-tiered — FP-prone/ambiguous names surface as dotted suggestions);
         // the user prunes stray subjects via `unlinkedNames`.
-        let san = isConversation
-            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-        pf.sanitised = san.sanitised
-        pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+        pf.relinkNames(working: working, isConversation: isConversation, people: people)
 
         pf.enhanceStatus = .done
 

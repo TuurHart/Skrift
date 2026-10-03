@@ -421,3 +421,31 @@ extension PipelineFile {
         return sourceType == .capture ? url : url.deletingLastPathComponent()
     }
 }
+
+extension PipelineFile {
+    /// The body as shown and as exported: the name-linked `sanitised`, then the copy-edit, then
+    /// the raw transcript. ONE rule for the editor, the split-speakers switch, the Connections
+    /// panel and the cloud write-back (it lives here, not in Features, so the host-less test
+    /// bundle sees it too). `BatchRunner`'s body-edit guard compares the OPTIONAL chain and
+    /// `CompilerBridge` reads a `CompilerInput`; neither uses this.
+    var bestBodyText: String { sanitised ?? enhancedCopyedit ?? transcript ?? "" }
+
+    /// Re-link the note's names over `working` and write `sanitised` + `ambiguousNames` (empty
+    /// means nil), honouring the note's own name decisions (`unlinkedNames`, `namePicks`).
+    /// A conversation takes the turn-aware linker, a monologue the first-mention linker.
+    /// The CALLER decides `isConversation` (BatchRunner derives it once from the transcript and
+    /// reuses it for tags + copy-edit; the others derive it from `working`), and owns
+    /// `sanitiseStatus` and the compile step. Host-less on purpose: no coordinator, no container.
+    ///
+    /// Phone difference, recorded not unified: `MemoLinking` routes on a looser predicate
+    /// (`SpeakerTranscript.parse != nil`, two headers) than the Mac's `isAttributed` (two
+    /// DISTINCT names). Left as is; Tuur to decide.
+    func relinkNames(working: String, isConversation: Bool, people: [Person]) {
+        let neverLink = Set(unlinkedNames)
+        let result = isConversation
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: neverLink, namePicks: namePicks)
+            : Sanitiser.process(text: working, people: people, neverLink: neverLink, namePicks: namePicks)
+        sanitised = result.sanitised
+        ambiguousNames = result.ambiguous.isEmpty ? nil : result.ambiguous
+    }
+}

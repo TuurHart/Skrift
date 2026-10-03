@@ -1,10 +1,6 @@
 import SwiftUI
 
 extension PipelineFile {
-    /// Body text precedence — matches the web `getBestText`: the name-linked
-    /// `sanitised` (what exports), then the copy-edit, then the raw transcript.
-    var bestBodyText: String { sanitised ?? enhancedCopyedit ?? transcript ?? "" }
-
     /// The share capture behind this row (its annotation lives in `transcript`), else nil.
     private var ladderShared: SharedContent? {
         sourceType == .capture ? SharedContent.decode(from: audioMetadataJSON) : nil
