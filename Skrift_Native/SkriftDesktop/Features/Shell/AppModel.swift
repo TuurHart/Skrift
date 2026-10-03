@@ -75,8 +75,8 @@ final class AppModel {
     /// locked-quiet, fading search hits, Related rows), not just pipeline rows.
     var listFilter: MacListFilter {
         MacListFilter(chip: filter, query: searchText, from: dateFrom, to: dateTo,
-                      dateField: dateField, addedAtByID: addedAtByID, processedIDs: processedIDs,
-                      isUnlocked: { LockGate.shared.isUnlocked($0) })
+                      dateField: dateField, addedAtByID: addedAtByID,
+                      isUnlocked: { LockGate.shared.isUnlocked($0) }, processedIDs: processedIDs)
     }
 
     /// The queue as displayed: filter → search → sort (Newest = the note's added date, Q105).
