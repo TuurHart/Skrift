@@ -27,13 +27,6 @@ final class ExportNamingParityTests: XCTestCase {
         super.tearDown()
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("q153-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
-    }
-
     private static var lateEvening: Date {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = zone
@@ -46,7 +39,7 @@ final class ExportNamingParityTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path),
                           "corpus not generated — run test-fixtures/corpus/generate.py")
         let repo = NotesRepository(inMemory: true)
-        try CorpusSeed.seed(from: root, into: repo.context, recordingsDirectory: try tempDir())
+        try CorpusSeed.seed(from: root, into: repo.context, recordingsDirectory: makeTempDir())
         let id = Self.noteID
         let memo = try XCTUnwrap(try repo.context.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })).first)
         memo.recordedAt = Self.lateEvening
@@ -60,7 +53,7 @@ final class ExportNamingParityTests: XCTestCase {
         XCTAssertEqual(MemoExporter.exportTitle(for: memo, people: [], enhancement: enh), Self.expectedStem)
 
         // ObsidianPublisher: the file it writes.
-        let vault = try tempDir()
+        let vault = makeTempDir()
         let publisher = ObsidianPublisher(
             vaultProvider: { vault },
             manageScope: false,

@@ -6,18 +6,7 @@ import SwiftData
 final class CorpusSeedTests: XCTestCase {
 
     static var corpusRoot: URL {
-        // Skrift_Native/SkriftDesktop/SkriftDesktopTests/<this file> → repo root
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("test-fixtures/corpus", isDirectory: true)
-    }
-
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("corpus-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
+        CorpusSeed.fixtureRoot(file: #filePath)
     }
 
     private func cloudContext() throws -> ModelContext {
@@ -36,14 +25,14 @@ final class CorpusSeedTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path),
                           "corpus not generated — run test-fixtures/corpus/generate.py")
         let ctx = try cloudContext()
-        let first = try CorpusSeed.seed(from: root, into: ctx, recordingsDirectory: try tempDir())
+        let first = try CorpusSeed.seed(from: root, into: ctx, recordingsDirectory: makeTempDir())
         let manifest = try JSONDecoder().decode(CorpusSeed.Manifest.self,
                                                 from: Data(contentsOf: root.appendingPathComponent("manifest.json")))
         XCTAssertEqual(first.inserted, manifest.count, "every manifest note becomes a Memo")
         XCTAssertGreaterThan(first.assets, manifest.count / 2, "voice notes carry audio, pictures carry photos")
         XCTAssertGreaterThan(first.enhancements, 0)
 
-        let again = try CorpusSeed.seed(from: root, into: ctx, recordingsDirectory: try tempDir())
+        let again = try CorpusSeed.seed(from: root, into: ctx, recordingsDirectory: makeTempDir())
         XCTAssertEqual(again.inserted, 0, "re-seeding is a no-op")
         XCTAssertEqual(again.skipped, manifest.count)
     }
@@ -52,9 +41,9 @@ final class CorpusSeedTests: XCTestCase {
         let root = Self.corpusRoot
         try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path))
         let cloud = try cloudContext()
-        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: try tempDir())
+        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let pipeline = try pipelineContext()
-        let upload = UploadService(outputDir: try tempDir())
+        let upload = UploadService(outputDir: makeTempDir())
 
         let memos = try cloud.fetch(FetchDescriptor<Memo>())
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>())

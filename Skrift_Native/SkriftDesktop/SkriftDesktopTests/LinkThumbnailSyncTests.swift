@@ -13,10 +13,6 @@ final class LinkThumbnailSyncTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("lts_\(UUID().uuidString)", isDirectory: true)
-    }
-
     private func linkMemo(thumb: String?) -> Memo {
         let memo = Memo(id: UUID(), audioFilename: "", recordedAt: Date(),
                         transcriptStatus: .done, significance: 0.6, annotationText: "Read later.")
@@ -33,7 +29,7 @@ final class LinkThumbnailSyncTests: XCTestCase {
         let memo = linkMemo(thumb: name)
         let asset = MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.thumbnail, filename: name, blob: jpeg)
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [asset],
-                                                          upload: UploadService(outputDir: tempDir()),
+                                                          upload: UploadService(outputDir: makeTempDir()),
                                                           into: try memoryContext()))
         let url = try XCTUnwrap(pf.captureThumbnailURL, "the card must find the synced thumbnail")
         XCTAssertEqual(url.lastPathComponent, name)
@@ -48,7 +44,7 @@ final class LinkThumbnailSyncTests: XCTestCase {
         let name = "linkthumb_\(UUID().uuidString).jpg"
         let memo = linkMemo(thumb: name)
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [],
-                                                          upload: UploadService(outputDir: tempDir()),
+                                                          upload: UploadService(outputDir: makeTempDir()),
                                                           into: try memoryContext()))
         XCTAssertNil(pf.captureThumbnailURL, "no asset yet → globe tile")
 
@@ -66,7 +62,7 @@ final class LinkThumbnailSyncTests: XCTestCase {
     func testLegacyRemoteThumbnailIsNeverFetchedOrWritten() throws {
         let memo = linkMemo(thumb: "https://cdn.example.com/og.jpg")
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [],
-                                                          upload: UploadService(outputDir: tempDir()),
+                                                          upload: UploadService(outputDir: makeTempDir()),
                                                           into: try memoryContext()))
         var fetched = false
         XCTAssertFalse(MemoPhotoMaterializer.materializeMissing(memo: memo, pf: pf,

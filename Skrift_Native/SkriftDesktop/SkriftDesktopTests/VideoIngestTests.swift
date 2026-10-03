@@ -13,12 +13,6 @@ final class VideoIngestTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     // MARK: - Pure detection / date helpers
 
     func testVideoExtensionSet() {
@@ -41,7 +35,7 @@ final class VideoIngestTests: XCTestCase {
 
     func testHasVideoTrackFalseForAudioOnly() async throws {
         // An audio-only m4a: no video track → falls through to plain-audio ingest.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let audioURL = work.appendingPathComponent("voice.m4a")
         try makeSilentAudioFile(at: audioURL, seconds: 1.0)
         XCTAssertFalse(IngestService.hasVideoTrack(audioURL))
@@ -50,14 +44,14 @@ final class VideoIngestTests: XCTestCase {
     // MARK: - End-to-end (real generated video)
 
     func testHasVideoTrackTrueForRealVideo() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
         XCTAssertTrue(IngestService.hasVideoTrack(videoURL))
     }
 
     func testExtractAudioFromVideoProducesPlayableM4A() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
 
@@ -72,7 +66,7 @@ final class VideoIngestTests: XCTestCase {
     }
 
     func testExtractAudioThrowsForVideoWithoutAudio() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("silent.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: false)
 
@@ -89,7 +83,7 @@ final class VideoIngestTests: XCTestCase {
         // A synthetic AVAssetWriter .mov is auto-stamped with an embedded creation date
         // (now) that correctly wins over the filename, so we assert the filename-date
         // FALLBACK helper directly below — the path real videos lacking metadata use.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("My life advice 2025-12-18.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: nil)
 
@@ -111,7 +105,7 @@ final class VideoIngestTests: XCTestCase {
 
     func testIngestVideoUsesEmbeddedRecordingDate() async throws {
         // An embedded creation date wins over the filename / filesystem date.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let embedded = ISO8601DateFormatter().date(from: "2023-07-04T09:30:00Z")!
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: embedded)
@@ -132,7 +126,7 @@ final class VideoIngestTests: XCTestCase {
         // Video ingest grabs ONE representative frame into `images/img_001.jpg` and
         // writes a phone-shaped `image_manifest.json` (offset 0) — so the existing
         // [[img_001]] marker pipeline renders + exports the frame.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
 
@@ -153,7 +147,7 @@ final class VideoIngestTests: XCTestCase {
     func testThumbnailFailureDoesNotFailIngest() async throws {
         // A video whose frame can't be grabbed still ingests its audio (the thumbnail
         // is best-effort and logged) — exercised via the helper on a non-video file.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let audioURL = work.appendingPathComponent("voice.m4a")
         try makeSilentAudioFile(at: audioURL, seconds: 1.0)
         XCTAssertThrowsError(try IngestService.writeVideoThumbnail(from: audioURL, into: work))

@@ -11,12 +11,6 @@ import SwiftData
 /// removed — the pre-registered required difference, in code.
 final class RoundTripParityTests: XCTestCase {
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("rt-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
-    }
     private func cloudContext() throws -> ModelContext {
         ModelContext(try ModelContainer(for: Memo.self, MemoAsset.self, MemoEnhancement.self,
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
@@ -31,9 +25,9 @@ final class RoundTripParityTests: XCTestCase {
         let root = CorpusSeedTests.corpusRoot
         try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path))
         let cloud = try cloudContext()
-        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: try tempDir())
+        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let pipeline = try pipelineContext()
-        let upload = UploadService(outputDir: try tempDir())
+        let upload = UploadService(outputDir: makeTempDir())
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>())
 
         var compared = 0

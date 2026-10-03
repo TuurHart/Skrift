@@ -27,12 +27,6 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     private func writeClip(in dir: URL, name: String, seconds: Double) throws -> URL {
         let url = dir.appendingPathComponent(name)
         let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
@@ -86,7 +80,7 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
     // MARK: - date
 
     func testMergedNoteIsDatedToTheFirstClipsFilenameTimeNotTheImportMoment() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let urls = try signalDrop(in: work)
         let ctx = try makeContext()
         let before = Date()
@@ -115,7 +109,7 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
     }
 
     func testASingleClipStillTakesItsEmbeddedDate() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clip = try writeClip(in: work, name: "signal-2026-10-01-07-44-33-032.m4a", seconds: 2)
         let embedded = Date(timeIntervalSince1970: 1_700_000_000)
         let hooks = ArrivalPath.Hooks(recordingDate: { _ in embedded }, reconcileSoon: {},
@@ -129,7 +123,7 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
     // MARK: - clip manifest
 
     func testTheMergedNoteKeepsEachClipsStartAndTimeInItsManifest() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let urls = try signalDrop(in: work)
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: urls, combineAudio: true, into: try makeContext())
@@ -210,7 +204,7 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
     /// Ingress P1/P3 shape end to end on the Mac: five clips + a picture in, one note whose
     /// clip starts the transcript pass will break on, dated to the first clip.
     func testP1ShapeFiveClipsOnePictureOneDatedNoteWithFiveBreaks() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let urls = try signalDrop(in: work)
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: urls, combineAudio: true, into: try makeContext())

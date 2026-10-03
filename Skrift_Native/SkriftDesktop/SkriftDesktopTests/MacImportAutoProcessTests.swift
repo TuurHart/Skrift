@@ -14,12 +14,6 @@ final class MacImportAutoProcessTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     private func fakeMemo(in dir: URL, named name: String) throws -> URL {
         let url = dir.appendingPathComponent(name)
         try Data(repeating: 0, count: 4096).write(to: url)
@@ -29,7 +23,7 @@ final class MacImportAutoProcessTests: XCTestCase {
     /// Two synthetic voice memos come in through the Import seam; both are handed to
     /// transcription with no Process call anywhere in the test.
     func testTwoImportedVoiceMemosAreQueuedForTranscriptionWithoutProcess() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
 
         var imported: [String] = []
@@ -51,7 +45,7 @@ final class MacImportAutoProcessTests: XCTestCase {
     /// The transcription request lands AFTER the rows exist and were handed back, so the list
     /// shows them at once and only the words arrive later.
     func testImportRowsAreHandedBackBeforeTheirTranscriptionIsRequested() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         var order: [String] = []
         var hooks = ArrivalPath.Hooks.inert
@@ -67,7 +61,7 @@ final class MacImportAutoProcessTests: XCTestCase {
     /// A markdown note arrives already "transcribed" and a recording has its own hook — neither
     /// is sent through the import transcription.
     func testOnlyImportedAudioIsSentToImportTranscription() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let note = work.appendingPathComponent("Plan.md")
         try "hello".write(to: note, atomically: true, encoding: .utf8)

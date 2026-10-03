@@ -14,12 +14,6 @@ final class ImportReportTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     // MARK: - The shared report (identical on both apps)
 
     func testHeadlineAndLines() {
@@ -65,7 +59,7 @@ final class ImportReportTests: XCTestCase {
     /// C202: a video with no audio track makes a visible FAILED note named "Video had no audio
     /// track" (the phone's wording), and the report lists it as failed, not as made.
     func testSilentVideoBecomesAFailedNote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let video = work.appendingPathComponent("silent.mov")
         try makeSilentVideo(at: video)
 
@@ -87,7 +81,7 @@ final class ImportReportTests: XCTestCase {
 
     /// C77 / D19: a file the Mac refuses is named with its reason; a vanished one says so.
     func testSkippedFilesCarryReasons() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let zip = work.appendingPathComponent("archive.zip")
         try Data([0, 1]).write(to: zip)
         let pdf = work.appendingPathComponent("contract.pdf")
@@ -105,7 +99,7 @@ final class ImportReportTests: XCTestCase {
     /// A dropped folder: the pictures (and a stray .txt) inside it are REPORTED, the notes and
     /// clips inside it are made. Subfolders (an Apple Notes `Attachments/`) stay quiet.
     func testFolderOfPicturesIsReportedNotIgnored() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let folder = work.appendingPathComponent("export", isDirectory: true)
         try FileManager.default.createDirectory(at: folder.appendingPathComponent("Attachments"),
                                                 withIntermediateDirectories: true)
@@ -131,7 +125,7 @@ final class ImportReportTests: XCTestCase {
     /// The arrival path hands the same report to the list banner.
     @MainActor
     func testArrivalPathDeliversTheReport() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let zip = work.appendingPathComponent("archive.zip")
         try Data([0, 1]).write(to: zip)
         var got: ImportReport?

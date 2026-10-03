@@ -8,14 +8,8 @@ final class IngestServiceTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     func testIngestMarkdownNote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("Groceries en het plan.md")
         try "Buy milk and eggs".write(to: noteURL, atomically: true, encoding: .utf8)
 
@@ -34,7 +28,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testIngestAudioCopiesIntoPerFileFolder() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let audioURL = work.appendingPathComponent("Voice Memo 09-14.m4a")
         try Data([0x00, 0x01, 0x02, 0x03]).write(to: audioURL)
 
@@ -52,7 +46,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testUnsupportedTypeSkipped() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let pdf = work.appendingPathComponent("doc.pdf")
         try Data([0x25, 0x50, 0x44, 0x46]).write(to: pdf)   // %PDF
 
@@ -64,7 +58,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testIngestFolderOfNotes() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let notes = work.appendingPathComponent("AppleNotesExport", isDirectory: true)
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
         try "Note one".write(to: notes.appendingPathComponent("a.md"), atomically: true, encoding: .utf8)
@@ -82,7 +76,7 @@ final class IngestServiceTests: XCTestCase {
     func testIngestFolderWithAudioAndNotes() async throws {
         // Dropping a folder of recordings (+ a note) imports the audio AND the .md,
         // skips other types — the path used to port the old app's recordings.
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let folder = work.appendingPathComponent("Recordings", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try Data([0, 1, 2, 3]).write(to: folder.appendingPathComponent("New Recording 22.m4a"))
@@ -122,7 +116,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testIngestNoteImportsAndRenamesAttachment() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("export.md")
         try "# My Trip\n\nLook: ![](Attachments/IMG_1.png)".write(to: noteURL, atomically: true, encoding: .utf8)
         let srcAtt = work.appendingPathComponent("Attachments", isDirectory: true)
@@ -146,7 +140,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testIngestNoteParsesHeadingTitle() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("export-2026-06-07.md")
         try "# Hotel du Vin plan\n\nBook the table for Friday.".write(to: noteURL, atomically: true, encoding: .utf8)
 

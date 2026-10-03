@@ -8,12 +8,8 @@ import XCTest
 // MARK: - Store: round-trip + schema gate
 
 final class BookAlignmentStoreTests: XCTestCase {
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("al_\(UUID().uuidString)", isDirectory: true)
-    }
-
     func testSaveLoadRoundTrip() throws {
-        let store = BookAlignmentStore(directory: tempDir())
+        let store = BookAlignmentStore(directory: makeTempDir())
         let id = UUID()
         let sentence = AlignedSentence(
             text: "Hello world.", start: 0, end: 1, wordStart: 0, wordEnd: 2, confidence: 1,
@@ -27,7 +23,7 @@ final class BookAlignmentStoreTests: XCTestCase {
     }
 
     func testSchemaGateRejectsOldSchema() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let store = BookAlignmentStore(directory: dir)
         let id = UUID()
         let fa = FileAlignment(schema: 0, fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "rejected")
@@ -41,7 +37,7 @@ final class BookAlignmentStoreTests: XCTestCase {
     /// install" case) reads as absent too, same as any other stale schema — every attached text
     /// re-aligns fresh on the book's next open.
     func testSchemaGateRejectsV2Sidecar() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let store = BookAlignmentStore(directory: dir)
         let id = UUID()
         let fa = FileAlignment(schema: 2, fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
@@ -55,7 +51,7 @@ final class BookAlignmentStoreTests: XCTestCase {
     /// — the plain round-trip above (`testSaveLoadRoundTrip`) never touches them; this confirms
     /// they persist correctly too.
     func testSchema3RoundTripWithSourcesAndTextFile() throws {
-        let store = BookAlignmentStore(directory: tempDir())
+        let store = BookAlignmentStore(directory: makeTempDir())
         let id = UUID()
         let sentence = AlignedSentence(
             text: "Hello world.", start: 0, end: 1, wordStart: 0, wordEnd: 2, confidence: 1,
@@ -75,7 +71,7 @@ final class BookAlignmentStoreTests: XCTestCase {
     /// re-aligns on its next open and existing installs gain bridges + re-derived marks
     /// without user action.
     func testSchemaGateRejectsV3Sidecar() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let store = BookAlignmentStore(directory: dir)
         let id = UUID()
         let fa = FileAlignment(schema: 3, fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
@@ -86,7 +82,7 @@ final class BookAlignmentStoreTests: XCTestCase {
     }
 
     func testBridgedFlagPersists() throws {
-        let store = BookAlignmentStore(directory: tempDir())
+        let store = BookAlignmentStore(directory: makeTempDir())
         let id = UUID()
         var sentence = AlignedSentence(text: "Bridged.", start: 2, end: 4, wordStart: 0, wordEnd: 1,
                                        confidence: 0, words: [], sourceFile: "ch1.xhtml", textFile: "a.epub")
@@ -98,11 +94,11 @@ final class BookAlignmentStoreTests: XCTestCase {
     }
 
     func testMissingReturnsNil() {
-        XCTAssertNil(BookAlignmentStore(directory: tempDir()).fileAlignment(bookID: UUID(), fileIndex: 0))
+        XCTAssertNil(BookAlignmentStore(directory: makeTempDir()).fileAlignment(bookID: UUID(), fileIndex: 0))
     }
 
     func testSaveCreatesBookFolder() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let store = BookAlignmentStore(directory: dir)
         let id = UUID()
         try store.save(FileAlignment(fileIndex: 3, transcriptSignature: "", epubSignature: "", verdict: "partial"), bookID: id)
@@ -113,10 +109,6 @@ final class BookAlignmentStoreTests: XCTestCase {
 // MARK: - Freshness
 
 final class BookAlignmentFreshnessTests: XCTestCase {
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("fresh_\(UUID().uuidString)", isDirectory: true)
-    }
-
     private func missingAudioURL() -> URL {
         // A path that doesn't exist — `BookTranscriptStore.signature(forFileAt:)` returns ""
         // for it, which we exploit as a stable, file-free staleness key both sides can agree on.
@@ -124,7 +116,7 @@ final class BookAlignmentFreshnessTests: XCTestCase {
     }
 
     func testFreshWhenSignatureMatchesCurrentTranscript() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let bookID = UUID()
         let transcriptStore = BookTranscriptStore(directory: dir)
         let ft = FileTranscript(fileIndex: 0, signature: "", coveredUpTo: 42, words: [WordTiming(word: "a", start: 0, end: 1)])
@@ -137,7 +129,7 @@ final class BookAlignmentFreshnessTests: XCTestCase {
     }
 
     func testStaleWhenSignatureDiffersFromCurrentTranscript() throws {
-        let dir = tempDir()
+        let dir = makeTempDir()
         let bookID = UUID()
         let transcriptStore = BookTranscriptStore(directory: dir)
         let ft = FileTranscript(fileIndex: 0, signature: "", coveredUpTo: 42, words: [WordTiming(word: "a", start: 0, end: 1)])
@@ -149,7 +141,7 @@ final class BookAlignmentFreshnessTests: XCTestCase {
     }
 
     func testStaleWhenNoTranscriptAtAll() {
-        let alignmentStore = BookAlignmentStore(directory: tempDir())
+        let alignmentStore = BookAlignmentStore(directory: makeTempDir())
         let fa = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "e", verdict: "aligned")
         XCTAssertFalse(alignmentStore.isFresh(fa, bookID: UUID(), fileIndex: 0, audioURL: missingAudioURL()))
     }

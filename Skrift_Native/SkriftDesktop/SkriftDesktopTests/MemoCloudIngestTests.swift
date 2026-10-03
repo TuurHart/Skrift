@@ -13,10 +13,6 @@ final class MemoCloudIngestTests: XCTestCase {
         return ModelContext(container)
     }
 
-    private func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("mci_\(UUID().uuidString)", isDirectory: true)
-    }
-
     /// Encode a phone-`MemoMetadata`-shaped blob (property-name keys, like JSONEncoder).
     private func metadataBlob(_ dict: [String: Any]) -> Data {
         try! JSONSerialization.data(withJSONObject: dict)
@@ -47,7 +43,7 @@ final class MemoCloudIngestTests: XCTestCase {
         // CloudKit path.
         let cloudCtx = try memoryContext()
         let pf1 = try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                             upload: UploadService(outputDir: tempDir()), into: cloudCtx)
+                                             upload: UploadService(outputDir: makeTempDir()), into: cloudCtx)
         let cloud = try XCTUnwrap(pf1)
 
         // HTTP path: feed the SAME synthesized parts straight through UploadService (no memoID
@@ -56,7 +52,7 @@ final class MemoCloudIngestTests: XCTestCase {
         let httpCtx = try memoryContext()
         let parts = MemoCloudIngest.buildParts(memo: memo, assets: assets,
                                                filename: MemoCloudIngest.audioFilename(for: memo))
-        let http = try XCTUnwrap(try UploadService(outputDir: tempDir()).ingest(parts: parts, into: httpCtx).first)
+        let http = try XCTUnwrap(try UploadService(outputDir: makeTempDir()).ingest(parts: parts, into: httpCtx).first)
 
         // id: CloudKit forces the memo UUID; HTTP mints a random one.
         XCTAssertEqual(cloud.id, memo.id.uuidString)
@@ -101,7 +97,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcriptConfidence: 0.4, transcriptUserEdited: false, significance: 0.6)
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         XCTAssertNil(pf.transcript, "low-confidence, un-edited transcript must not be trusted")
         XCTAssertEqual(pf.transcribeStatus, .pending, "Mac must re-ASR an untrusted transcript")
     }
@@ -112,7 +108,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcriptConfidence: 0.1, transcriptUserEdited: true, significance: 0.6)
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         XCTAssertEqual(pf.transcript, "hand-fixed")
         XCTAssertEqual(pf.transcribeStatus, .done)
     }
@@ -124,7 +120,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcriptStatus: .done, significance: 0)
         let ctx = try memoryContext()
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                upload: UploadService(outputDir: tempDir()), into: ctx),
+                                                upload: UploadService(outputDir: makeTempDir()), into: ctx),
                      "significance 0 syncs but never enters the queue")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 0)
     }
@@ -134,7 +130,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcriptStatus: .done, significance: 0)
         let ctx = try memoryContext()
         let pf = try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                            upload: UploadService(outputDir: tempDir()), into: ctx,
+                                            upload: UploadService(outputDir: makeTempDir()), into: ctx,
                                             processEverything: true)
         XCTAssertNotNil(pf, "the 8d 'process everything' override ingests significance-0 memos")
     }
@@ -144,7 +140,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcriptStatus: .done, significance: 0.6, deletedAt: Date())
         let ctx = try memoryContext()
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                upload: UploadService(outputDir: makeTempDir()), into: ctx))
     }
 
     // MARK: - Dedup (one PipelineFile per memo, regardless of transport)
@@ -153,7 +149,7 @@ final class MemoCloudIngestTests: XCTestCase {
         let memo = Memo(id: UUID(), audioFilename: "memo_d.m4a", recordedAt: Date(),
                         transcript: "hi", transcriptStatus: .done, transcriptConfidence: 0.9, significance: 0.6)
         let ctx = try memoryContext()
-        let upload = UploadService(outputDir: tempDir())
+        let upload = UploadService(outputDir: makeTempDir())
         XCTAssertNotNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)], upload: upload, into: ctx))
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)], upload: upload, into: ctx),
                      "a second reconcile of the same memo must not create a duplicate")
@@ -167,11 +163,11 @@ final class MemoCloudIngestTests: XCTestCase {
         let ctx = try memoryContext()
         let bonjourParts = MemoCloudIngest.buildParts(memo: memo, assets: [audioAsset(memo)],
                                                       filename: memo.audioFilename)
-        _ = try UploadService(outputDir: tempDir()).ingest(parts: bonjourParts, into: ctx)  // random id
+        _ = try UploadService(outputDir: makeTempDir()).ingest(parts: bonjourParts, into: ctx)  // random id
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 1)
 
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                upload: UploadService(outputDir: tempDir()), into: ctx),
+                                                upload: UploadService(outputDir: makeTempDir()), into: ctx),
                      "CloudKit ingest must dedup against a Bonjour-ingested row by filename")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 1)
     }
@@ -184,7 +180,7 @@ final class MemoCloudIngestTests: XCTestCase {
         memo.sharedContentData = metadataBlob(["type": "url", "url": "https://example.com", "urlTitle": "Example"])
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         XCTAssertEqual(pf.id, memo.id.uuidString)
         XCTAssertEqual(pf.sourceType, .capture, "no audio + sharedContent → capture")
         XCTAssertEqual(pf.transcript, "Worth reading.", "annotation becomes the transcript")
@@ -204,7 +200,7 @@ final class MemoCloudIngestTests: XCTestCase {
                             filename: name, blob: Data("%PDF-1.4 fake".utf8))
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [doc],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         // 3b: the synced document lands under the capture folder's files/ so the Mac can open it.
         let filesDir = URL(fileURLWithPath: pf.path).appendingPathComponent("files")
         let contents = try FileManager.default.contentsOfDirectory(at: filesDir, includingPropertiesForKeys: nil)
@@ -229,7 +225,7 @@ final class MemoCloudIngestTests: XCTestCase {
         ]
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         XCTAssertEqual(pf.wordTimings.map(\.word), ["one", "two"])
         XCTAssertEqual(pf.diarizationSegments.count, 1)
         XCTAssertEqual(pf.diarizationSegments.first?.speaker, 0)
@@ -253,7 +249,7 @@ final class MemoCloudIngestTests: XCTestCase {
 
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         XCTAssertTrue(pf.locked)
         XCTAssertEqual(pf.remindAt, remind)
         XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
@@ -271,7 +267,7 @@ final class MemoCloudIngestTests: XCTestCase {
         let memo = try typedMemo(text: "Mats was tien jaar.\n\nHij keek naar de zee.", significance: 0.1)
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx),
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx),
                                "a rated typed note MUST become a row — anything else is an invisible note")
         XCTAssertEqual(pf.id, memo.id.uuidString, "the memo UUID is the contract spine")
         XCTAssertEqual(pf.sourceType, .note, "no audio + no sharedContent → a text note row")
@@ -291,7 +287,7 @@ final class MemoCloudIngestTests: XCTestCase {
         let memo = try typedMemo(text: "half a thought", significance: 0)
         let ctx = try memoryContext()
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [],
-                                                upload: UploadService(outputDir: tempDir()), into: ctx),
+                                                upload: UploadService(outputDir: makeTempDir()), into: ctx),
                      "unrated = no consent: the quiet row is its whole surface")
     }
 
@@ -305,7 +301,7 @@ final class MemoCloudIngestTests: XCTestCase {
                               filename: "img_001.jpg", blob: Data("JPEG".utf8))
         let ctx = try memoryContext()
         let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [photo],
-                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+                                                          upload: UploadService(outputDir: makeTempDir()), into: ctx))
         let images = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
             .appendingPathComponent("images")
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: images.path), ["img_001.jpg"])

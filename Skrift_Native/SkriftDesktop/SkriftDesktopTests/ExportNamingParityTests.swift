@@ -29,13 +29,6 @@ final class ExportNamingParityTests: XCTestCase {
         super.tearDown()
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("q153-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
-    }
-
     /// 2026-08-19 23:30 in Los Angeles = 2026-08-20 06:30 UTC.
     private static var lateEvening: Date {
         var cal = Calendar(identifier: .gregorian)
@@ -50,7 +43,7 @@ final class ExportNamingParityTests: XCTestCase {
         let cloud = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
-        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: try tempDir())
+        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let id = Self.noteID
         let memo = try XCTUnwrap(try cloud.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })).first,
                                  "corpus note 045 must exist")
@@ -84,12 +77,12 @@ final class ExportNamingParityTests: XCTestCase {
         let id = memo.id
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == id }))
         let row = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                           upload: UploadService(outputDir: try tempDir()),
+                                                           upload: UploadService(outputDir: makeTempDir()),
                                                            into: pipeline))
         MemoCloudUpdate.apply(memo: memo, enhancement: enh, to: row, people: [], author: "",
                               thisDeviceID: "q153-mac", isFreshRow: true)
 
-        let vault = try tempDir()
+        let vault = makeTempDir()
         var settings = AppSettings.default
         settings.noteFolder = vault.path
         let written = try VaultExporter.export(row, settings: settings)

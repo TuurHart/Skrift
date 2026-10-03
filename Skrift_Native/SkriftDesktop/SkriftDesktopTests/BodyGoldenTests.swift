@@ -9,11 +9,7 @@ import XCTest
 final class BodyGoldenTests: XCTestCase {
 
     static var corpusRoot: URL {
-        // Skrift_Native/SkriftDesktop/SkriftDesktopTests/<this file> → repo root
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("test-fixtures/corpus", isDirectory: true)
+        CorpusSeed.fixtureRoot(file: #filePath)
     }
 
     static var goldenDir: URL {

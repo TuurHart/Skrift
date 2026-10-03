@@ -17,18 +17,7 @@ import SwiftData
 final class ChipCountParityTests: XCTestCase {
 
     static var corpusRoot: URL {
-        // Skrift_Native/SkriftDesktop/SkriftDesktopTests/<this file> → repo root
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("test-fixtures/corpus", isDirectory: true)
-    }
-
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("chipcount-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        return dir
+        CorpusSeed.fixtureRoot(file: #filePath)
     }
 
     func testMacAndIPadAgreeOnNeedsWorkAndUnrated() throws {
@@ -38,7 +27,7 @@ final class ChipCountParityTests: XCTestCase {
         let cloud = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
-        _ = try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: try tempDir())
+        _ = try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let memos = try cloud.fetch(FetchDescriptor<Memo>())
         XCTAssertGreaterThan(memos.count, 60, "most of the corpus is rated")
 

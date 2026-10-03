@@ -7,10 +7,7 @@ import SwiftData
 final class CorpusSeedTests: XCTestCase {
 
     static var corpusRoot: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("test-fixtures/corpus", isDirectory: true)
+        CorpusSeed.fixtureRoot(file: #filePath)
     }
 
     @MainActor

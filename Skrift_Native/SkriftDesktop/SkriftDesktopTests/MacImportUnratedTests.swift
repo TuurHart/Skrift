@@ -19,12 +19,6 @@ final class MacImportUnratedTests: XCTestCase {
                                                                            cloudKitDatabase: .none)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     private func fakeAudio(in dir: URL, named name: String = "imported memo.m4a") throws -> URL {
         let url = dir.appendingPathComponent(name)
         try Data(repeating: 0, count: 4096).write(to: url)
@@ -44,7 +38,7 @@ final class MacImportUnratedTests: XCTestCase {
 
     /// The row an import leaves behind reads UNRATED, and it is not a recording.
     func testAnImportRowIsUnrated() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let pf = try await importOne(work: work, ctx: ctx)
         XCTAssertFalse(pf.isLocalRecording)
@@ -53,7 +47,7 @@ final class MacImportUnratedTests: XCTestCase {
 
     /// Words are not polish: an unrated import is still handed to transcription on arrival.
     func testAnUnratedImportIsStillTranscribedOnArrival() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         var transcribed: [String] = []
         let pf = try await importOne(work: work, ctx: ctx) { transcribed += $0 }
@@ -62,7 +56,7 @@ final class MacImportUnratedTests: XCTestCase {
 
     /// Absent from the process queue while unrated; a quiet row, not a lit queue row.
     func testAnUnratedImportIsNotInTheProcessQueue() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let pf = try await importOne(work: work, ctx: ctx)
         pf.transcribeStatus = .done   // its words have landed
@@ -73,7 +67,7 @@ final class MacImportUnratedTests: XCTestCase {
 
     /// Once rated it enters the queue like any rated note.
     func testARatedImportEntersTheProcessQueue() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let pf = try await importOne(work: work, ctx: ctx)
         pf.transcribeStatus = .done
@@ -86,7 +80,7 @@ final class MacImportUnratedTests: XCTestCase {
     /// The Memo an import authors (the reconcile sweep does it) is unrated too, so the phone
     /// does not see it pre-rated "passing".
     func testTheSweepAuthorsAnImportsMemoUnrated() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
         let pf = try await importOne(work: work, ctx: ctx)
