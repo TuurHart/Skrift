@@ -1873,7 +1873,7 @@ do: `ObsidianVault` and `PortfolioVault` (`SkriftMobile/Services/Export/Obsidian
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ObsidianPublisherTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-c08 MSV-c09 MSV-c10 (cleanup-audit P57)
 
-### Q245 [auto] (todo) share sheet: one card chrome, a split saveTapped, one theme
+### Q245 [auto] (done) share sheet: one card chrome, a split saveTapped, one theme
 spec: C239
 needs: Q228 Q132
 gate+: no
@@ -2937,3 +2937,5 @@ check: (fill in)
 - 2026-10-03 02:15 Q188 -> tuur — needs hand-merge: wt/Q188 @b65cab6f (agent-ac17ad7e4e274ca9a) deletes trim tests in protected AudiobookCaptureMathTests + QuoteCaptureSaveTests, drops snapped args in AlignedSentenceSourceTests + TextCaptureTests; gate green 1440; approve then plan/hand-merge.sh
 - 2026-10-03 02:19 Q228 -> done — gate pass @22e678ab
 - 2026-10-03 02:19 Q248 -> tuur — needs hand-merge: wt/Q248 @b993383c (agent-a95f4d0123ea15b77) ports tempDir()/corpus climb in 21 desktop + 3 phone protected test files to makeTempDir()/CorpusSeed.fixtureRoot, assertions unchanged; gate green 1444; approve then plan/hand-merge.sh
+- 2026-10-03 02:19 Q245 -> doing — dispatched (sonnet)
+- 2026-10-03 02:29 Q245 -> done — gate pass @1f0d456b
