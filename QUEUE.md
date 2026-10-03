@@ -735,7 +735,7 @@ do: Mac `WayOutColumn.memoRow` and `UnpipelinedMemoSheet` show title, date, plac
 check: `grep -rqE "class MacLockedSurfacesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LockedSurfacesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P2
 
-### Q102 [auto] (doing) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
+### Q102 [auto] (done) ProcessPile.isWaiting follows C182/C215: a locked note is in the Process pile on phone, iPad and Mac
 spec: C182 C215 D10
 needs: -
 gate+: yes
@@ -2985,3 +2985,4 @@ check: (fill in)
 - 2026-10-03 08:56 Q216 -> done — gate pass @412c88ae (merged; accept parked it only for its tuur lane)
 - 2026-10-03 08:58 Q206 -> tuur — built @0458e662 — awaiting sitting
 - 2026-10-03 08:58 Q206 -> done — gate pass (merged; tuur lane)
+- 2026-10-03 09:03 Q102 -> done — hand-merged (D164: locked note in the Process pile, test flipped at 3bb0ea5b)
