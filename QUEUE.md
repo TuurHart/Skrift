@@ -1569,7 +1569,7 @@ do: These DEBUG flags have no invoker in `plan/*.sh`, `gate.sh`, UITests, SPEC o
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d07 DSH-d08 DSH-d09 DSH-d19 PER-d13 (cleanup-audit P19)
 
-### Q207 [auto] (doing) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
+### Q207 [auto] (stuck) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
 spec: C239
 needs: Q116
 gate+: yes
@@ -2063,6 +2063,24 @@ needs: Q151
 gate+: yes
 do: Q151 built the per-book notes jump-back as open + seek + play, and the player's normal progress persistence then overwrites the book's resume place. The signed mock Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html says the jump-back toast reads 'The book's own place is not moved'. Make a jump-back playback session not persist position (or restore the saved resume place when the jump-back session ends / the user leaves), and show the mock's toast. Pure, testable decision for 'should this session write progress'. Phone test `BookJumpBackPlaceTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && ./gate.sh`
+
+### Q274 [tuur] (tuur) device check on the iPhone (Q164): deny the mic in Settings and tap Record — expect one alert with Open Settings, no retry loop; then record a silent take (cover the mic) — expect it treated as a dead take
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if needed.
+
+### Q275 [tuur] (tuur) Q151 picks to settle: the compact phone Library row got an invented trailing '❝ N' capsule (the Q6 mock only draws the tile grid) — keep? Should the jump-back also appear on non-book notes (PDF/podcast)?
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if needed.
+
+### Q276 [tuur] (tuur) decide: what makes a note a 'conversation' for name linking — phone: transcript parses with two speaker headers; Mac: two distinct named speakers (Q207 left both, documented)
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if needed.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2845,3 +2863,10 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && 
 - 2026-10-03 01:20 Q273 -> doing — batch worker out
 - 2026-10-03 01:20 Q239 -> doing — batch worker out
 - 2026-10-03 01:23 Q120 -> done — gate pass @378ef99c
+- 2026-10-03 01:23 Q207 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-03 01:24 Q274 added
+- 2026-10-03 01:24 Q274 -> tuur — awaiting sitting
+- 2026-10-03 01:24 Q275 added
+- 2026-10-03 01:24 Q275 -> tuur — awaiting sitting
+- 2026-10-03 01:24 Q276 added
+- 2026-10-03 01:24 Q276 -> tuur — awaiting sitting
