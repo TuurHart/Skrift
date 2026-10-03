@@ -19,32 +19,38 @@ struct MacListFilter {
     /// Per-session unlock (`LockGate.shared.isUnlocked`) — injected so tests need no LocalAuthentication.
     var isUnlocked: (String) -> Bool = { _ in false }
 
-    /// A row whose four pipeline steps are done.
-    static func isComplete(_ f: PipelineFile) -> Bool {
-        let s = f.steps
-        return s.transcribe == .done && s.sanitise == .done && s.enhance == .done && s.export == .done
+    /// Memo ids whose synced `MemoEnhancement` says a polish pass RAN (`isProcessed`), on any
+    /// device — set by the sidebar beside its memo fetch, like `addedAtByID`. D167: Done means
+    /// processed on phone, iPad and Mac, so a note the iPad polished is Done here too.
+    var processedIDs: Set<UUID> = []
+
+    /// The synced-enhancement ids `processedIDs` holds, from one enhancement fetch.
+    static func processedIDs(enhancements: [MemoEnhancement]) -> Set<UUID> {
+        Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
     }
 
-    // MARK: - chip membership per row kind
+    /// A pipeline row is processed when its synced enhancement says so OR this Mac's own pass
+    /// ran (the same OR `NoteWorkState.Inputs.from` takes, so a fresh local polish counts before
+    /// it syncs). The export step never enters (D167).
+    func isProcessed(_ f: PipelineFile) -> Bool {
+        if let id = UUID(uuidString: f.id), processedIDs.contains(id) { return true }
+        return NoteWorkState.Inputs.LocalPolish(passRan: f.steps.enhance == .done,
+                                                copyedit: f.enhancedCopyedit, title: f.enhancedTitle,
+                                                summary: f.enhancedSummary).isProcessed
+    }
+
+    // MARK: - chip membership per row kind (the shared `QueueFilter.admits`, D167 / C115)
 
     /// A pipeline row's chip. No `PipelineFile` is unrated by definition (the gate rates on
     /// entry), so Not rated holds only memo rows.
     func inChip(_ f: PipelineFile) -> Bool {
-        switch chip {
-        case .all:       return true
-        case .needsWork: return !Self.isComplete(f)
-        case .done:      return Self.isComplete(f)
-        case .notRated:  return false
-        }
+        chip.admits(rated: true, processed: isProcessed(f), locked: f.locked)
     }
 
-    /// A memo row's chip. Unrated rows (quiet, locked-quiet, fading) sit under All and Not
-    /// rated. A rated memo row is STRANDED (no pipeline row): it rides every chip except Not
-    /// rated, because it cannot answer "needs work" or "done" and being unfindable is the
-    /// bug it exists to prevent.
+    /// A memo row's chip (unrated, locked-quiet, fading or a STRANDED rated memo with no
+    /// pipeline row) — the exact rule the phone and iPad apply to the same memo.
     func inChip(_ m: Memo) -> Bool {
-        if NoteConsent.isRated(m) { return chip != .notRated }
-        return chip == .all || chip == .notRated
+        chip.admits(m, enhancedIDs: processedIDs)
     }
 
     // MARK: - dates (Q105, C70/C115)

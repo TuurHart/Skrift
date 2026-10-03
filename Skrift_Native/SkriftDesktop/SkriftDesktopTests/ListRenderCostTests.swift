@@ -72,8 +72,8 @@ final class ListRenderCostTests: XCTestCase {
             chipCountBuilds += 1
             let enhanced: Set<UUID> = []
             return NotesListModel.chipCounts(
-                needsWork: memos.filter { ProcessPile.matches(.needsWork, $0, enhancedIDs: enhanced) }.count,
-                done: memos.filter { ProcessPile.matches(.done, $0, enhancedIDs: enhanced) }.count,
+                needsWork: memos.filter { QueueFilter.needsWork.admits($0, enhancedIDs: enhanced) }.count,
+                done: memos.filter { QueueFilter.done.admits($0, enhancedIDs: enhanced) }.count,
                 notRated: ProcessPile.unrated(memos: memos).count)
         }
 

@@ -184,7 +184,7 @@ extension MemosListView {
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { extra = false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { extra = false }
         let d = NotesListModel.filterDate(field: filter.dateField, recordedAt: memo.recordedAt, addedAt: memo.addedAt)
-        return NotesListModel.passesFilter(inChip: ProcessPile.matches(chip, memo, enhancedIDs: enhanced),
+        return NotesListModel.passesFilter(inChip: chip.admits(memo, enhancedIDs: enhanced),
                                            date: d, from: filter.from, to: filter.to, extra: extra)
     }
 

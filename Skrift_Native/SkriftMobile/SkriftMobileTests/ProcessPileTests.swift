@@ -96,18 +96,18 @@ final class ProcessPileTests: XCTestCase {
 
         // All catches everything.
         for m in [unrated, toDo, done] {
-            XCTAssertTrue(ProcessPile.matches(.all, m, enhancedIDs: enhanced))
+            XCTAssertTrue(QueueFilter.all.admits(m, enhancedIDs: enhanced))
         }
         // Needs Work = rated, not yet processed.
-        XCTAssertTrue(ProcessPile.matches(.needsWork, toDo, enhancedIDs: enhanced))
-        XCTAssertFalse(ProcessPile.matches(.needsWork, done, enhancedIDs: enhanced))
-        XCTAssertFalse(ProcessPile.matches(.needsWork, unrated, enhancedIDs: enhanced))
+        XCTAssertTrue(QueueFilter.needsWork.admits(toDo, enhancedIDs: enhanced))
+        XCTAssertFalse(QueueFilter.needsWork.admits(done, enhancedIDs: enhanced))
+        XCTAssertFalse(QueueFilter.needsWork.admits(unrated, enhancedIDs: enhanced))
         // Done = rated + processed.
-        XCTAssertTrue(ProcessPile.matches(.done, done, enhancedIDs: enhanced))
-        XCTAssertFalse(ProcessPile.matches(.done, toDo, enhancedIDs: enhanced))
+        XCTAssertTrue(QueueFilter.done.admits(done, enhancedIDs: enhanced))
+        XCTAssertFalse(QueueFilter.done.admits(toDo, enhancedIDs: enhanced))
         // Unrated = significance 0.
-        XCTAssertTrue(ProcessPile.matches(.notRated, unrated, enhancedIDs: enhanced))
-        XCTAssertFalse(ProcessPile.matches(.notRated, toDo, enhancedIDs: enhanced))
+        XCTAssertTrue(QueueFilter.notRated.admits(unrated, enhancedIDs: enhanced))
+        XCTAssertFalse(QueueFilter.notRated.admits(toDo, enhancedIDs: enhanced))
     }
 
     /// Every rated note lands in exactly one of Needs Work / Done; the chips
@@ -117,9 +117,9 @@ final class ProcessPileTests: XCTestCase {
         let pool = [a, b, c]
         let enhanced: Set<UUID> = [b.id]
         for m in pool {
-            let inNeeds = ProcessPile.matches(.needsWork, m, enhancedIDs: enhanced)
-            let inDone  = ProcessPile.matches(.done, m, enhancedIDs: enhanced)
-            let inUnrated = ProcessPile.matches(.notRated, m, enhancedIDs: enhanced)
+            let inNeeds = QueueFilter.needsWork.admits(m, enhancedIDs: enhanced)
+            let inDone  = QueueFilter.done.admits(m, enhancedIDs: enhanced)
+            let inUnrated = QueueFilter.notRated.admits(m, enhancedIDs: enhanced)
             XCTAssertEqual([inNeeds, inDone, inUnrated].filter { $0 }.count, 1,
                            "each note belongs to exactly one chip")
         }

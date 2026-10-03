@@ -51,16 +51,25 @@ struct SidebarView: View {
     /// Q37 fix: Needs Work used to count ONLY `files` (PipelineFile rows), so a
     /// rated memo waiting on its OWN row — `strandedMemos`, WayOutRules.stranded —
     /// was invisible to the chip (the "Needs Work 6 vs the iPad's 99" gap over the
-    /// same corpus: the iPad's `ProcessPile.matches(.needsWork,…)` scans every rated
+    /// same corpus: the iPad's Needs Work chip scans every rated
     /// memo directly, with no pipeline-row prerequisite). Unrated switched from the
     /// band's `unpipelinedMemos` (which also excludes a fading note — right for the
     /// row list, since the conveyor owns that row, but wrong for the doctrine above:
     /// "ALL live items") to `ProcessPile.unrated`, the SAME shared call the iPad's
     /// chip makes — one definition, not two.
+    ///
+    /// Q282 (D167): Needs Work / Done go through the ONE shared `QueueFilter.admits` the
+    /// phone and iPad call (via `MacListFilter.inChip`). Done = processed on any device,
+    /// never "exported", for pipeline rows and stranded memos alike.
     private var chipCounts: [QueueFilter: Int] {
-        NotesListModel.chipCounts(
-            needsWork: files.filter { !model.isComplete($0) }.count + strandedMemos.count,
-            done: files.filter { model.isComplete($0) }.count,
+        var f = model.listFilter
+        func count(_ chip: QueueFilter) -> Int {
+            f.chip = chip
+            return files.filter { f.inChip($0) }.count + strandedMemos.filter { f.inChip($0) }.count
+        }
+        return NotesListModel.chipCounts(
+            needsWork: count(.needsWork),
+            done: count(.done),
             notRated: ProcessPile.unrated(memos: effectiveCloudMemos).count)
     }
     /// Files still waiting on the Process button — gated through
@@ -858,6 +867,12 @@ struct SidebarView: View {
             // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
             let added = MacListFilter.addedDates(memos: effectiveCloudMemos)
             if model.addedAtByID != added { model.addedAtByID = added }
+            // Q282 (D167): which notes a polish pass ran for on ANY device, for the Done chip.
+            let processed = fixtureCloudMemos == nil
+                ? MacListFilter.processedIDs(enhancements: (try? cloudSnapshot?.context.fetch(
+                    FetchDescriptor<MemoEnhancement>())) ?? [])
+                : []
+            if model.processedIDs != processed { model.processedIDs = processed }
         }
         guard fixtureCloudMemos == nil else { return }   // snapshot fixtures: never open the real store
         guard let cloud = MemoCloudStore.container else { cloudMemos = []; return }
