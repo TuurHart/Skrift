@@ -879,7 +879,7 @@ do: iPad prints the raw stored importance (legacy 0.7 → '0.7', amber at ≥0.8
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ConnectionsRulesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P20
 
-### Q120 [auto] (doing) one backlink scan and one note-title-for-display helper in Shared
+### Q120 [auto] (done) one backlink scan and one note-title-for-display helper in Shared
 spec: C239 C115 C25
 needs: Q114
 gate+: yes
@@ -1108,7 +1108,7 @@ do: Row: author line, determinate transfer bar with 'Uploading audio · 38%', li
 check: `test $(ls plan/reads/books-p-shelf/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTileStateTests && ./gate.sh`
 source: plan/reads/parity-audit.md P49
 
-### Q149 [auto] (doing) one quote attribution builder and one quote-block splitter
+### Q149 [auto] (done) one quote attribution builder and one quote-block splitter
 spec: C172 C60
 needs: -
 gate+: yes
@@ -1825,7 +1825,7 @@ do: (1) A `PrefKey` enum with each key and its default beside it in `Shared/Mode
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d21 MLJ-d17 MMD-c20 MSV-c35 MAU-c07 (cleanup-audit P51)
 
-### Q239 [auto] (todo) phone WayOut: call the Shared WayOut directly, one partition
+### Q239 [auto] (doing) phone WayOut: call the Shared WayOut directly, one partition
 spec: C239
 needs: Q178
 gate+: no
@@ -2057,7 +2057,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q273 [auto] (todo) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
+### Q273 [auto] (doing) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
 spec: D127
 needs: Q151
 gate+: yes
@@ -2841,3 +2841,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && 
 - 2026-10-03 01:14 Q140 -> done — gate pass @91bfe7d4
 - 2026-10-03 01:14 Q164 -> done — gate pass (batched with Q140)
 - 2026-10-03 01:18 Q151 -> done — gate pass @06242d37
+- 2026-10-03 01:18 Q149 -> done — gate pass (batched with Q151)
+- 2026-10-03 01:20 Q273 -> doing — batch worker out
+- 2026-10-03 01:20 Q239 -> doing — batch worker out
+- 2026-10-03 01:23 Q120 -> done — gate pass @378ef99c
