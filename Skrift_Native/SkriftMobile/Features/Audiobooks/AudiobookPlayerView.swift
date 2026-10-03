@@ -98,6 +98,13 @@ struct AudiobookPlayerView: View {
             if let id = session.book?.id { currentBookmarks = bookmarks.load(bookID: id) }
             await prewarmIfUseful()
         }
+        // Q273 / Q6 mock: a note's jump-back says the book's own place stays put.
+        .task(id: session.isJumpBack) {
+            if session.isJumpBack, let book = session.book {
+                showToast(BookNotesJoin.jumpToast(bookTitle: book.title, position: session.currentTime),
+                          seconds: 2.8)
+            }
+        }
         // Idle-recede countdown. Restarts whenever the key changes (an interaction
         // bumps idleToken; play/pause flips; chrome shown). Only counts down while
         // chrome is up AND playing — so a paused reader keeps its controls. ONE
@@ -475,10 +482,10 @@ struct AudiobookPlayerView: View {
         AudiobookCloudSync.bookmarksChanged(bookID: book.id)   // push-on-edit (synced books)
     }
 
-    private func showToast(_ text: String) {
+    private func showToast(_ text: String, seconds: Double = 1.6) {
         withAnimation(.easeOut(duration: 0.2)) { toast = text }
         Task {
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
             // Only clear OUR toast: a second one inside the window keeps its own 1.6 s.
             guard toast == text else { return }
             withAnimation(.easeIn(duration: 0.3)) { toast = nil }

@@ -43,6 +43,15 @@ enum BookNotesJoin {
         "Back to it at \(AudiobookTime.clock(position)) in Library"
     }
 
+    /// Q273: whether a playback session writes its position to the book's resume place. A
+    /// jump-back session does not (Q6 mock: "The book's own place is not moved").
+    static func shouldPersistProgress(jumpBackSession: Bool) -> Bool { !jumpBackSession }
+
+    /// The Q6 mock's jump-back toast.
+    static func jumpToast(bookTitle: String, position: TimeInterval) -> String {
+        "Opens \(bookTitle) at \(AudiobookTime.clock(position)). The book’s own place is not moved."
+    }
+
     /// The pill's count text and its VoiceOver label ("5 notes from this").
     static func accessibilityLabel(count: Int) -> String {
         "\(count) note\(count == 1 ? "" : "s") from this book"
@@ -74,8 +83,7 @@ enum BookNotesJoin {
                      session: AudiobookSession = .shared) -> Bool {
         guard let book = store.book(id: target.bookID) else { return false }
         guard session.open(book, autoplay: false) else { return false }
-        session.seek(to: target.position)
-        session.play()
+        session.beginJumpBack(to: target.position)   // Q273: the book's own place is not moved
         return true
     }
 }

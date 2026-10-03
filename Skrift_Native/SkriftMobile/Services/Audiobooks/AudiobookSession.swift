@@ -36,6 +36,10 @@ final class AudiobookSession {
     private(set) var sleepUntil: Date?
     /// Sleep at the end of the current chapter.
     private(set) var sleepAtChapterEnd = false
+    /// Q273 / D127: this session was started by a note's jump-back. It plays from the note's
+    /// place but never writes progress, so the book's own resume place is not moved (Q6 mock).
+    /// Ends on the next `open` of any book, or `endSession`.
+    private(set) var isJumpBack = false
 
     // nonisolated: plain Sendable constants — referenced from non-main contexts
     // (remote-command handler closures) without an actor hop.
@@ -95,7 +99,7 @@ final class AudiobookSession {
     /// freely).
     @discardableResult
     func open(_ newBook: Audiobook, autoplay: Bool = false) -> Bool {
-        if book?.id == newBook.id, player != nil {
+        if book?.id == newBook.id, player != nil, !isJumpBack {
             if autoplay, !isPlaying { play() }
             return true
         }
@@ -119,7 +123,8 @@ final class AudiobookSession {
             return false
         }
 
-        persistProgress(force: true)   // the outgoing book keeps its position
+        persistProgress(force: true)   // the outgoing book keeps its position (a jump-back writes nothing)
+        isJumpBack = false             // reopening from the library lands on the book's own place
         closePlayer()
 
         let item = AVPlayerItem(asset: AudiobookImporter.makeAsset(url: url))
@@ -164,7 +169,7 @@ final class AudiobookSession {
     /// tiny, so we never yank you mid-listen. Called from `CloudSyncMonitor` on a
     /// CloudKit import.
     func adoptSyncedPosition() {
-        guard let b = book, !isPlaying,
+        guard let b = book, !isPlaying, !isJumpBack,
               let synced = newerSyncedBook(than: b)?.keepingLocalTextFields(from: b),
               abs(synced.position - currentTime) > 5 else { return }
         store.update(synced)
@@ -180,6 +185,7 @@ final class AudiobookSession {
                    + " at=\(String(format: "%.1f", currentTime))s wasPlaying=\(isPlaying)")
         cancelIdleEnd()
         persistProgress(force: true)
+        isJumpBack = false
         closePlayer()
         book = nil
         coverImage = nil
@@ -188,6 +194,17 @@ final class AudiobookSession {
         clearSleep()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         deactivateAudioSession()
+    }
+
+    /// Q273: play from `time` without moving the book's own resume place. The place is saved
+    /// first (the tick may be up to 5 s ahead of the store), then writes stop until the session
+    /// ends or the book is reopened.
+    func beginJumpBack(to time: TimeInterval) {
+        guard book != nil else { return }
+        persistProgress(force: true)
+        isJumpBack = true
+        seek(to: time)
+        play()
     }
 
     // MARK: - Transport
@@ -487,7 +504,7 @@ final class AudiobookSession {
     /// (the playback tick) throttle to one write per 5 s; transport actions
     /// force an immediate write.
     private func persistProgress(force: Bool = false) {
-        guard let book else { return }
+        guard let book, BookNotesJoin.shouldPersistProgress(jumpBackSession: isJumpBack) else { return }
         if !force, Date().timeIntervalSince(lastPersist) < 5 { return }
         lastPersist = Date()
         store.updateProgress(id: book.id, position: currentTime)
