@@ -1609,7 +1609,7 @@ do: Desktop `Engines/TranscriptionService.swift`: delete `models` (the strong re
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VocabularyBoosterTrustTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d05 DPE-d06 DPE-d07 DPE-d10 DPE-d11 DPE-d23 MSV-d16 DPE-c11 (cleanup-audit P24)
 
-### Q212 [auto] (todo) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
+### Q212 [auto] (doing) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
 spec: C239 C240
 needs: Q114 Q178
 gate+: no
@@ -1833,7 +1833,7 @@ do: Delete the static forwarders `orderedByImminence`, `oneLiner` and `total` in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WayOutViewTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d14 MLJ-d15 (cleanup-audit P52)
 
-### Q240 [auto] (doing) speaker transcript: one rebuild, one header regex, one slot assigner
+### Q240 [auto] (done) speaker transcript: one rebuild, one header regex, one slot assigner
 spec: C239
 needs: Q183
 gate+: no
@@ -2915,3 +2915,5 @@ check: (fill in)
 - 2026-10-03 01:50 Q243 -> done — gate pass (batched with Q240)
 - 2026-10-03 01:51 Q240 -> doing — re-accept: the first accept got a bad worktree path and merged nothing
 - 2026-10-03 01:51 Q243 -> doing — re-accept with Q240
+- 2026-10-03 01:52 Q212 -> doing — dispatched (sonnet), hand-merge expected
+- 2026-10-03 01:54 Q240 -> done — gate pass @5d57762b
