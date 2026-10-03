@@ -12,13 +12,17 @@ final class AudioPickBridge: ObservableObject {
         let id = UUID()
         let urls: [URL]
         let clipCount: Int
+        /// Q150 / C79: a clip of an hour or more is in the pick, so Audiobook vs Voice note is
+        /// asked too (the share sheet's question, `LongAudioRoute`).
+        var hasLongClip = false
     }
 
     @Published var pending: Pending?
 
     private init() {}
 
-    func offer(_ urls: [URL]) {
-        pending = Pending(urls: urls, clipCount: AppURLHandler.audioClips(in: urls).count)
+    func offer(_ urls: [URL], hasLongClip: Bool = false) {
+        pending = Pending(urls: urls, clipCount: AppURLHandler.audioClips(in: urls).count,
+                          hasLongClip: hasLongClip)
     }
 }

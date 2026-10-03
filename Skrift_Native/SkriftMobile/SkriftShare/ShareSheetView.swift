@@ -33,7 +33,7 @@ struct ShareSheetView: View {
 
     /// Any clip at/over the 1-hour threshold → the Books routing chooser shows.
     private var hasLongClip: Bool {
-        payload.audioItems.contains { ($0.duration ?? 0) >= 3600 }
+        LongAudioRoute.needsOffer(durations: payload.audioItems.map(\.duration))
     }
 
     // TextEditor placeholder state
@@ -370,15 +370,15 @@ struct ShareSheetView: View {
     private var booksChooser: some View {
         HStack(spacing: 8) {
             choiceCard(
-                title: "Audiobook",
-                subtitle: "Read-along in the Books tab — it's a long one",
+                title: LongAudioRoute.audiobook.title,
+                subtitle: LongAudioRoute.audiobook.subtitle,
                 selected: sendToBooks
             ) { sendToBooks = true }
             .accessibilityIdentifier("capture-choice-books")
 
             choiceCard(
-                title: "Voice note",
-                subtitle: "Transcribe the whole thing as a note",
+                title: LongAudioRoute.voiceNote.title,
+                subtitle: LongAudioRoute.voiceNote.subtitle,
                 selected: !sendToBooks
             ) { sendToBooks = false }
             .accessibilityIdentifier("capture-choice-memo")

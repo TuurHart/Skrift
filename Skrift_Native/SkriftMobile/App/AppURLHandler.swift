@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import ImageIO
 import UIKit
@@ -31,13 +32,26 @@ enum AppURLHandler {
     /// through here: 2+ voice notes raise the One-note / N-notes chooser (`AudioPickBridge`),
     /// anything else is handled file by file exactly as before.
     static func handle(batch urls: [URL]) {
-        if AudioImportChoice.needsChoice(clipCount: audioClips(in: urls).count) {
-            AudioPickBridge.shared.offer(urls)
+        let clips = audioClips(in: urls)
+        // Q150 / C79: a clip of an hour or more also raises the question (Audiobook vs Voice
+        // note), even alone. A clip whose length cannot be read is a voice note, as ever.
+        let hasLong = LongAudioRoute.needsOffer(durations: clips.map { durationProbe($0) })
+        if hasLong || AudioImportChoice.needsChoice(clipCount: clips.count) {
+            AudioPickBridge.shared.offer(urls, hasLongClip: hasLong)
         } else {
             var report = ImportReport()
             for url in urls { report.merge(route(url)) }
             ImportReportBridge.shared.post(report)
         }
+    }
+
+    /// How long a clip runs, read from its header (no decode). Replaceable so tests need no
+    /// hour-long file.
+    static var durationProbe: (URL) -> TimeInterval? = { url in
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let file = try? AVAudioFile(forReading: url), file.fileFormat.sampleRate > 0 else { return nil }
+        return Double(file.length) / file.fileFormat.sampleRate
     }
 
     // Open-in / AirDrop deliver one `onOpenURL` per file, back to back. Voice notes are held for
@@ -65,7 +79,8 @@ enum AppURLHandler {
     /// into one transcribed memo; `.separateNotes` imports each. Files that are not voice notes
     /// in the pick are handled as ever. Returns the memo to jump to.
     @discardableResult
-    static func resolve(_ urls: [URL], choice: AudioImportChoice, saver: MemoSaver? = nil) async -> UUID? {
+    static func resolve(_ urls: [URL], choice: AudioImportChoice, route longRoute: LongAudioRoute = .voiceNote,
+                        saver: MemoSaver? = nil, library: AudiobookLibraryStore? = nil) async -> UUID? {
         let saver = saver ?? MemoSaver()
         let clips = audioClips(in: urls)
         let clipSet = Set(clips)
@@ -73,6 +88,17 @@ enum AppURLHandler {
         var report = ImportReport()
         defer { ImportReportBridge.shared.post(report) }
         for url in urls where !clipSet.contains(url) { report.merge(route(url)) }
+        // Q150: the long audio was sent to Books — the clips become the parts of ONE book (the
+        // share sheet's rule). A book that cannot be read falls through to the note path below:
+        // the audio is never lost.
+        if longRoute == .audiobook, !clips.isEmpty {
+            let store = library ?? AudiobookLibraryStore.shared
+            if let pending = try? await AudiobookImporter.importBook(from: clips, libraryDirectory: store.directory) {
+                store.add(pending.book)
+                TabSelectionBridge.shared.select(.books)
+                return nil   // a book, not a note: no memo to jump to
+            }
+        }
         if choice.combines, clips.count > 1 {
             let staged = await Task.detached(priority: .userInitiated) { stageForMerge(clips) }.value
             if let id = saver.importAudioClips(from: staged.urls, recordedAt: staged.dates.first.flatMap { $0 },
@@ -161,8 +187,18 @@ enum AppURLHandler {
                 if importAsCapture(url) { report.created += 1 }
                 else { report.addFailed(name, ImportReport.unreadable) }
             case .book:
-                // Books have their own door (the Books library): said, not dropped.
-                report.addSkipped(name, ImportReport.book)
+                // Books have their own door (the Books library): the file is handed there
+                // and the tab comes forward (Q255, C199).
+                switch BookOpenInRouting.decision(for: url) {
+                case .importAudiobook:
+                    BookFileImportBridge.shared.offer(url)
+                    TabSelectionBridge.shared.select(.books)
+                case .needsAudiobook:
+                    TabSelectionBridge.shared.select(.books)
+                    report.addSkipped(name, BookOpenInRouting.epubReason)
+                case .notAudiobookFile:
+                    report.addSkipped(name, ImportReport.book)
+                }
             case .none:
                 report.addSkipped(name, ImportReport.skipReason(forName: name, onMac: false))
             }
