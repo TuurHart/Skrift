@@ -1250,7 +1250,7 @@ do: Only `JournalHomeView.reload` partitions fading from live; `JournalCalendarV
 check: `grep -rqE "class ReviewNoteSetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewNoteSetTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P67
 
-### Q167 [auto] (todo) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
+### Q167 [auto] (doing) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
 spec: C210 D30 C233
 needs: -
 gate+: yes
@@ -1401,7 +1401,7 @@ do: Rows note-body-15 -19, note-chrome-01 -02. One shared token file (e.g. `Skri
 check: `test -f Skrift_Native/Shared/UI/NoteLook.swift && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q186 [auto] (todo) import bundling and audio export follow one rule on phone and Mac
+### Q186 [auto] (doing) import bundling and audio export follow one rule on phone and Mac
 spec: C68 C239 C240
 needs: -
 gate+: yes
@@ -1962,7 +1962,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q258 [auto] (todo) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
+### Q258 [auto] (doing) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
 spec: C25 C59
 needs: -
 gate+: yes
@@ -2161,7 +2161,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; anchor on today like the phone, iPad and the signed journal-desktop mock. Desktop test `LookbackAnchorTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LookbackAnchorTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q289 [tuur] (todo) mockup: Mac recorder pause/resume and a confirmed discard
+### Q289 [tuur] (doing) mockup: Mac recorder pause/resume and a confirmed discard
 spec: C220 C262 D173
 needs: -
 gate+: yes
@@ -2210,7 +2210,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): Q180 shows Redo when ANY polish part exists, including a title Tuur chose himself (Mac enhancedTitle stores chosen titles). Redo only when a real polish ran (summary, tags or a generated title); a chosen-title-only note offers Polish. Desktop test `RedoOfferTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class RedoOfferTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q296 [tuur] (todo) mockup: a checklist button in the Mac editor toolbar
+### Q296 [tuur] (doing) mockup: a checklist button in the Mac editor toolbar
 spec: D177
 needs: -
 gate+: yes
@@ -3137,3 +3137,8 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 - 2026-10-03 09:05 Q167 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)
 - 2026-10-03 09:05 Q258 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)
 - 2026-10-03 09:05 Q186 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)
+- 2026-10-03 09:05 Q258 -> doing — dispatched (opus)
+- 2026-10-03 09:05 Q167 -> doing — dispatched (sonnet)
+- 2026-10-03 09:05 Q186 -> doing — resumed worker: rebase + D174 test flip
+- 2026-10-03 09:05 Q289 -> doing — mockup agent (opus)
+- 2026-10-03 09:05 Q296 -> doing — mockup agent (opus)
