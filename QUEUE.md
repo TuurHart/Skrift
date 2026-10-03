@@ -2175,7 +2175,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac can record but has no 'Add recording' to an existing note (note-menu-03, capture-quick-16; FEATURES.md:30 '➖'). Add it to the note menu, appending via Shared AudioClipMerge the way the phone appends (see Q220). Desktop test `MacAppendRecordingTests` on the append step. Never run SkriftDesktopUITests.
 check: `grep -rqE "class MacAppendRecordingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q291 [auto] (doing) Mac quote read-only only for real captured quotes
+### Q291 [auto] (done) Mac quote read-only only for real captured quotes
 spec: C172 D175
 needs: -
 gate+: yes
@@ -3161,3 +3161,4 @@ check: (fill in)
 - 2026-10-03 09:45 Q282 -> doing — dispatched (opus)
 - 2026-10-03 09:46 Q167 -> done — hand-merged (D174: legacy 0.7 is the top stop, WallPrinterTests:38 flipped)
 - 2026-10-03 10:02 Q258 -> done — hand-merged (D174: phone export test expectations follow C25)
+- 2026-10-03 10:04 Q291 -> done — gate pass @458c2286
