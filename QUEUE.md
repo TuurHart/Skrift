@@ -1833,7 +1833,7 @@ do: Delete the static forwarders `orderedByImminence`, `oneLiner` and `total` in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WayOutViewTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d14 MLJ-d15 (cleanup-audit P52)
 
-### Q240 [auto] (done) speaker transcript: one rebuild, one header regex, one slot assigner
+### Q240 [auto] (doing) speaker transcript: one rebuild, one header regex, one slot assigner
 spec: C239
 needs: Q183
 gate+: no
@@ -2912,3 +2912,6 @@ check: (fill in)
 - 2026-10-03 01:48 Q279 -> tuur — parked for the sitting
 - 2026-10-03 01:49 Q172 -> doing — dispatched (opus)
 - 2026-10-03 01:50 Q240 -> done — no changes; gate pass @4f911148
+- 2026-10-03 01:50 Q243 -> done — gate pass (batched with Q240)
+- 2026-10-03 01:51 Q240 -> doing — re-accept: the first accept got a bad worktree path and merged nothing
+- 2026-10-03 01:51 Q243 -> doing — re-accept with Q240
