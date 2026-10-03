@@ -40,10 +40,7 @@ enum AlignedSentenceSource {
     /// ASR-only builder owns it entirely). Otherwise maps every
     /// `AlignedSentence` to one or more `BufferSentence`s:
     ///
-    /// - `confidence >= confidenceFloor` → the aligned book text verbatim,
-    ///   `isInInitialSpan` computed with the exact same formula
-    ///   `QuoteCaptureProcessor.buildSentences` uses, so the two sources agree
-    ///   on "in the quote" whichever one a caller ends up rendering.
+    /// - `confidence >= confidenceFloor` → the aligned book text verbatim.
     /// - `confidence < confidenceFloor` → the aligned sentence's own text is
     ///   NOT trustworthy; instead the transcript words it was spliced from
     ///   (`transcriptWords[wordStart..<wordEnd]`) are re-partitioned through
@@ -64,9 +61,7 @@ enum AlignedSentenceSource {
     static func sentences(
         alignment: FileAlignment?,
         isFresh: Bool,
-        transcriptWords: [WordTiming],
-        snappedStart: TimeInterval,
-        snappedEnd: TimeInterval
+        transcriptWords: [WordTiming]
     ) -> [BufferSentence]? {
         guard let alignment, isFresh,
               alignment.verdict == AlignmentCore.Verdict.aligned.rawValue
@@ -77,17 +72,13 @@ enum AlignedSentenceSource {
             // matched; the corroborated sandwich is the trust basis, so they render as
             // book text, never as an ASR splice.
             guard sentence.confidence >= confidenceFloor || sentence.bridged == true else {
-                return asrFallback(
-                    for: sentence, transcriptWords: transcriptWords,
-                    snappedStart: snappedStart, snappedEnd: snappedEnd
-                )
+                return asrFallback(for: sentence, transcriptWords: transcriptWords)
             }
             return [BufferSentence(
                 text: sentence.text,
                 start: sentence.start,
                 end: sentence.end,
-                words: sentence.words,
-                isInInitialSpan: sentence.end > snappedStart && sentence.start < snappedEnd
+                words: sentence.words
             )]
         }
         let gapFill: [BufferSentence] = uncoveredWordRanges(
@@ -95,10 +86,7 @@ enum AlignedSentenceSource {
         )
         .filter { $0.count >= gapFillMinWords }
         .flatMap {
-            QuoteCaptureProcessor.buildSentences(
-                from: Array(transcriptWords[$0]),
-                snappedStart: snappedStart, snappedEnd: snappedEnd
-            )
+            QuoteCaptureProcessor.buildSentences(from: Array(transcriptWords[$0]))
         }
         return (mapped + gapFill).sorted { $0.start < $1.start }
     }
@@ -131,16 +119,12 @@ enum AlignedSentenceSource {
     /// into sentence(s) via the existing builder.
     private static func asrFallback(
         for sentence: AlignedSentence,
-        transcriptWords: [WordTiming],
-        snappedStart: TimeInterval,
-        snappedEnd: TimeInterval
+        transcriptWords: [WordTiming]
     ) -> [BufferSentence] {
         let lo = max(0, min(sentence.wordStart, transcriptWords.count))
         let hi = max(lo, min(sentence.wordEnd, transcriptWords.count))
         guard hi > lo else { return [] }
         let slice = Array(transcriptWords[lo..<hi])
-        return QuoteCaptureProcessor.buildSentences(
-            from: slice, snappedStart: snappedStart, snappedEnd: snappedEnd
-        )
+        return QuoteCaptureProcessor.buildSentences(from: slice)
     }
 }

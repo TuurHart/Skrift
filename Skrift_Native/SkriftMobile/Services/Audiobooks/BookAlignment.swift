@@ -303,8 +303,7 @@ final class BookAlignmentStore: Sendable {
         let fa = fileAlignment(bookID: bookID, fileIndex: fileIndex)
         let fresh = fa.map { isFresh($0, bookID: bookID, fileIndex: fileIndex, audioURL: audioURL) } ?? false
         return AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: fresh, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0)
+            alignment: fa, isFresh: fresh, transcriptWords: transcriptWords)
     }
 }
 

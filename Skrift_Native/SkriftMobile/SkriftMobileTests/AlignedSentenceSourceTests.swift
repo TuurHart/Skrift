@@ -40,8 +40,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
 
     func testNilWhenAlignmentMissing() {
         let result = AlignedSentenceSource.sentences(
-            alignment: nil, isFresh: true, transcriptWords: [],
-            snappedStart: 0, snappedEnd: 0
+            alignment: nil, isFresh: true, transcriptWords: []
         )
         XCTAssertNil(result)
     }
@@ -51,8 +50,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
             makeSentence("Hi.", start: 0, end: 1, wordStart: 0, wordEnd: 1, confidence: 0.9)
         ])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: false, transcriptWords: [],
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: false, transcriptWords: []
         )
         XCTAssertNil(result, "a stale alignment must fall back to the caller's ASR-only builder")
     }
@@ -63,8 +61,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
                 makeSentence("Hi.", start: 0, end: 1, wordStart: 0, wordEnd: 1, confidence: 0.9)
             ])
             let result = AlignedSentenceSource.sentences(
-                alignment: fa, isFresh: true, transcriptWords: [],
-                snappedStart: 0, snappedEnd: 0
+                alignment: fa, isFresh: true, transcriptWords: []
             )
             XCTAssertNil(result, "verdict \(verdict) must not build a sentence list")
         }
@@ -82,8 +79,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         let fa = makeAlignment(sentences: [s1, s2])
 
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: [],
-            snappedStart: 0.5, snappedEnd: 2.0
+            alignment: fa, isFresh: true, transcriptWords: []
         )
 
         guard let result, result.count == 2 else {
@@ -93,11 +89,9 @@ final class AlignedSentenceSourceTests: XCTestCase {
         XCTAssertEqual(result[0].start, 0.0)
         XCTAssertEqual(result[0].end, 1.0)
         XCTAssertEqual(result[0].words, s1Words)
-        XCTAssertEqual(result[0].isInInitialSpan, true, "1.0 > 0.5 && 0.0 < 2.0")
 
         XCTAssertEqual(result[1].text, "Out of span.")
         XCTAssertEqual(result[1].words, s2Words)
-        XCTAssertEqual(result[1].isInInitialSpan, false, "5.0 is not < snappedEnd(2.0)")
     }
 
     func testConfidenceExactlyFloorIsTrusted() {
@@ -107,8 +101,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
                              confidence: AlignedSentenceSource.confidenceFloor)
         let fa = makeAlignment(sentences: [s])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: [],
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: []
         )
         XCTAssertEqual(result?.count, 1)
         XCTAssertEqual(result?.first?.text, "Exactly trusted.",
@@ -129,8 +122,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         let fa = makeAlignment(sentences: [untrusted])
 
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
 
         XCTAssertEqual(result?.count, 1)
@@ -154,8 +146,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         let fa = makeAlignment(sentences: [untrusted])
 
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
 
         guard let result, result.count == 2 else {
@@ -175,8 +166,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         )
         let fa = makeAlignment(sentences: [untrusted])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: [makeWord("only", 0, 0.2)],
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: [makeWord("only", 0, 0.2)]
         )
         XCTAssertEqual(result?.count, 0)
     }
@@ -199,8 +189,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
             makeWord("Second,", 5.0, 5.4), makeWord("spliced.", 5.4, 6.0),
         ]
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text), ["First.", "Second, spliced."])
     }
@@ -213,10 +202,8 @@ final class AlignedSentenceSourceTests: XCTestCase {
             makeSentence("B.", start: 1, end: 2, wordStart: 0, wordEnd: 1, confidence: 0.2),
         ])
         let words = [makeWord("B.", 1, 2)]
-        let r1 = AlignedSentenceSource.sentences(alignment: fa, isFresh: true, transcriptWords: words,
-                                                  snappedStart: 0, snappedEnd: 0)
-        let r2 = AlignedSentenceSource.sentences(alignment: fa, isFresh: true, transcriptWords: words,
-                                                  snappedStart: 0, snappedEnd: 0)
+        let r1 = AlignedSentenceSource.sentences(alignment: fa, isFresh: true, transcriptWords: words)
+        let r2 = AlignedSentenceSource.sentences(alignment: fa, isFresh: true, transcriptWords: words)
         XCTAssertEqual(r1?.count, 2)
         XCTAssertEqual(r1, r2)
     }
@@ -242,8 +229,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         let fa = makeAlignment(sentences: [s1, s2])
 
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text),
                        ["First sentence.", "It is not the Trojan War.", "Last sentence."],
@@ -263,8 +249,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
             makeSentence("Two.", start: 2.0, end: 2.5, wordStart: 3, wordEnd: 4, confidence: 0.9),
         ])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text), ["One.", "Two."])
     }
@@ -281,8 +266,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
             makeSentence("Book text.", start: 5.0, end: 6.0, wordStart: 3, wordEnd: 5, confidence: 0.9),
         ])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text), ["This is Audible.", "Book text.", "The end credits."])
     }
@@ -298,8 +282,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
                          wordStart: 0, wordEnd: 3, confidence: 0.2),
         ])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text), ["Hello wurld today."])
     }
@@ -316,8 +299,7 @@ final class AlignedSentenceSourceTests: XCTestCase {
         bridged.bridged = true
         let fa = makeAlignment(sentences: [bridged])
         let result = AlignedSentenceSource.sentences(
-            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
-            snappedStart: 0, snappedEnd: 0
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords
         )
         XCTAssertEqual(result?.map(\.text), ["Gamma delta epsilon."],
                        "book text renders once — no ASR splice, no gap-fill duplicate")

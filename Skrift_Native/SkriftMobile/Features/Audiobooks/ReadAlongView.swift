@@ -89,7 +89,7 @@ final class ReadAlongModel: ObservableObject {
             // this replaced — same coverage/frontier logic either way.
             sentences = alignmentStore.alignedSentences(
                 bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, transcriptWords: ft.words
-            ) ?? QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
+            ) ?? QuoteCaptureProcessor.buildSentences(from: ft.words)
             covered = !sentences.isEmpty
             loadedUpTo = ft.coveredUpTo
         } else {
