@@ -60,9 +60,9 @@ enum PolishEscrow {
     /// The Mac's summary rule (`BatchRunner` reads `settings.effectiveSummaryMinWords`,
     /// default 75): a brief memo gets no summary. The title always runs — matching the Mac,
     /// which sets `titleSuggested` unconditionally.
-    static let summaryMinWords = 75
+    static let summaryMinWords = SummaryRule.defaultMinWords   // one constant with the Mac (Q172)
 
     static func wordsMeetSummaryThreshold(_ transcript: String) -> Bool {
-        transcript.split(whereSeparator: \.isWhitespace).count >= summaryMinWords
+        SummaryRule.meetsThreshold(transcript, minWords: summaryMinWords)
     }
 }

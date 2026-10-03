@@ -199,11 +199,7 @@ final class NotesRepository {
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {
-            var counts: [String: Int] = [:]
-            for memo in allMemos() {
-                for tag in memo.tags { counts[tag, default: 0] += 1 }
-            }
-            return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+            TagRules.mostUsedFirst(TagRules.counts(allMemos().lazy.map(\.tags)))   // shared ranking (Q172)
         }
     }
 

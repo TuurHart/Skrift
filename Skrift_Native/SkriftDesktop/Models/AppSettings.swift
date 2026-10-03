@@ -55,7 +55,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Skip the Gemma summary for notes shorter than this many words (user 2026-06-15 —
     /// short memos don't need one). Optional for legacy decode; nil → 75.
     var summaryMinWords: Int? = nil
-    var effectiveSummaryMinWords: Int { summaryMinWords ?? 75 }
+    var effectiveSummaryMinWords: Int { summaryMinWords ?? SummaryRule.defaultMinWords }   // shared with the iPad (Q172)
 
     // Custom-vocabulary boost (CTC spot + rescore after ASR — `VocabularyBooster`):
     // words Parakeet routinely mis-hears, spelled as they should be written.

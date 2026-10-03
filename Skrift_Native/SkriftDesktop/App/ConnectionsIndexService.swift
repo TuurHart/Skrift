@@ -192,7 +192,7 @@ final class ConnectionsIndexService {
     /// The journal/thread axis (panel dates + thread order): the phone's recorded
     /// moment when synced; locally-ingested files fall back to their upload time.
     nonisolated static func journalDate(_ file: PipelineFile) -> Date {
-        let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let meta = MemoMetadata.lenient(from: file.audioMetadataJSON)
         return meta?.recordedAt.flatMap { ISO8601.date(from: $0) } ?? (MemoDate.isUnknown(file.uploadedAt) ? (file.lastActivityAt ?? Date()) : file.uploadedAt)
     }
 }

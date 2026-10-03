@@ -85,9 +85,7 @@ struct SettingsView: View {
 
     /// Reload the names list from the store, sorted by full name.
     private func reloadNames() {
-        people = NamesStore.shared.livePeople().sorted {
-            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(NamesMerge.keyName($1.canonical)) == .orderedAscending
-        }
+        people = NamesMerge.sortPeople(NamesStore.shared.livePeople())   // the store's own order (Q172)
     }
 
     /// The list source — injected people (snapshot/test) or the loaded store.
@@ -639,11 +637,10 @@ struct SettingsView: View {
     }
 
     private func addCustomWord() {
-        let trimmed = newCustomWord.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              !settings.customWords.contains(where: { $0.lowercased() == trimmed.lowercased() })
+        // The shared add rule (Q172): trim, refuse empty / case-insensitive duplicate.
+        guard let updated = VocabularySyncCore.adding(newCustomWord, to: settings.customWords)
         else { newCustomWord = ""; return }
-        settings.customVocabulary = settings.customWords + [trimmed]
+        settings.customVocabulary = updated
         newCustomWord = ""
         commitVocabEdit()
     }
