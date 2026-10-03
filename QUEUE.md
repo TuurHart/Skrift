@@ -1962,7 +1962,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q258 [auto] (doing) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
+### Q258 [auto] (done) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
 spec: C25 C59
 needs: -
 gate+: yes
@@ -3160,3 +3160,4 @@ check: (fill in)
 - 2026-10-03 09:41 Q292 -> doing — dispatched (sonnet)
 - 2026-10-03 09:45 Q282 -> doing — dispatched (opus)
 - 2026-10-03 09:46 Q167 -> done — hand-merged (D174: legacy 0.7 is the top stop, WallPrinterTests:38 flipped)
+- 2026-10-03 10:02 Q258 -> done — hand-merged (D174: phone export test expectations follow C25)
