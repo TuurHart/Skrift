@@ -42,7 +42,7 @@ struct NoteActions: View {
     private var workState: NoteWorkState { workInputs.state }
     private var primaryLabel: String { workState.label(for: file.destination) }
 
-    /// Redo's availability is the ONE shared rule (`NoteRedoItem.isOffered`, Q180): ANY polished
+    /// Redo's availability: the shared rule (`NoteRedoItem.isOffered`, Q180) plus a REAL polish (Q295: a chosen title alone is not one): ANY polished
     /// part, engine, unlocked. It used to demand all three parts, so a note the iPad offered
     /// Redo on had none here.
     private var redoOffered: Bool {
