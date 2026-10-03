@@ -26,12 +26,12 @@ final class ShareViewController: UIViewController {
         // presentation is host-owned) — a translucent scrim over it reads as
         // washed gray, and the keyboard gap shows it too. #0e0f16, one step
         // darker than the card surface.
-        view.backgroundColor = UIColor(red: 0.055, green: 0.059, blue: 0.086, alpha: 1)
+        view.backgroundColor = ShareTheme.backdropUI
         // Fill the host sheet. The host sizes this remote view to its CONTENT
         // (intrinsic/preferredContentSize), not the sheet — a compact card
         // would float at the bottom of an unpaintable gray sheet backdrop.
         // Ask for more height than any sheet can give; the host clamps it.
-        preferredContentSize = CGSize(width: 0, height: 10_000)
+        preferredContentSize = CGSize(width: 0, height: ShareTheme.hostHeight)
         // The sheet always uses the dark palette (mock spec). SwiftUI's
         // preferredColorScheme does NOT propagate inside an extension's
         // UIHostingController — without this the adaptive sk* colors render
@@ -115,7 +115,7 @@ final class ShareViewController: UIViewController {
         // If the host derives our size from the constraint system instead, this
         // breaks gracefully down to whatever the sheet actually offers — never
         // content-hugs back to the bare card.
-        let greedyHeight = view.heightAnchor.constraint(greaterThanOrEqualToConstant: 10_000)
+        let greedyHeight = view.heightAnchor.constraint(greaterThanOrEqualToConstant: ShareTheme.hostHeight)
         greedyHeight.priority = UILayoutPriority(999)
         NSLayoutConstraint.activate([
             hc.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),

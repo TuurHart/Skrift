@@ -47,7 +47,7 @@ struct ShareSheetView: View {
             // a remote view — the page behind is never visible to us anyway).
             // Tap = dismiss the keyboard first; only a tap with no keyboard up
             // cancels (so a stray tap can't eat a typed annotation).
-            Color(red: 0.055, green: 0.059, blue: 0.086)   // #0e0f16
+            ShareTheme.backdrop
                 .ignoresSafeArea()
                 .onTapGesture {
                     if annotationFocused { annotationFocused = false } else { onCancel() }
@@ -87,20 +87,7 @@ struct ShareSheetView: View {
                 .padding(.bottom, 16)
         }
         .padding(.horizontal, 16)
-        .background(
-            // Sheet surface: slightly elevated above the scrim.
-            // `.container` only — ignoring the whole bottom safe area would
-            // also ignore the KEYBOARD region, leaving the circles + Save
-            // buried under the keyboard while typing (the 2026-06-12 finding).
-            Color(red: 0.106, green: 0.110, blue: 0.157)   // #1b1d28 per mock
-                .ignoresSafeArea(.container, edges: .bottom)
-                .clipShape(.rect(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous))
-        )
-        .overlay(alignment: .top) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.07), lineWidth: 0.5)
-                .ignoresSafeArea(.container, edges: .bottom)
-        }
+        .shareSheetSurface()   // elevated above the scrim
         .shadow(color: .black.opacity(0.5), radius: 36, y: -10)
     }
 
@@ -239,11 +226,7 @@ struct ShareSheetView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-            )
+            .shareCardChrome()
             honestyLine("Transcribes on-device · the video file itself isn't kept")
         }
         .accessibilityIdentifier("capture-video-card")
@@ -275,11 +258,7 @@ struct ShareSheetView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-            )
+            .shareCardChrome()
             honestyLine(payload.filePageCount != nil
                         ? "Its text becomes searchable in Skrift · opens inline in the note"
                         : "Opens from the note · Skrift opens on it next time")
@@ -348,11 +327,7 @@ struct ShareSheetView: View {
                 .padding(.vertical, 5)
         }
         .padding(.horizontal, 12)
-        .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-        )
+        .shareCardChrome()
         .accessibilityIdentifier("capture-clip-stack")
     }
 
@@ -501,21 +476,8 @@ struct ShareSheetView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-            )
-
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.skAccent.opacity(0.55))
-                    .frame(width: 6, height: 6)
-                Text("Transcribes on-device · Skrift opens on it next time")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            .padding(.leading, 2)
+            .shareCardChrome()
+            honestyLine("Transcribes on-device · Skrift opens on it next time")
         }
         .accessibilityIdentifier("capture-audio-card")
         .accessibilityLabel(audioTitle)
@@ -564,11 +526,7 @@ struct ShareSheetView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-        )
+        .shareCardChrome()
         .accessibilityIdentifier("capture-link-card")
         .accessibilityLabel("Link: \(payload.urlTitle ?? urlDomain ?? "Link")")
     }
@@ -589,11 +547,7 @@ struct ShareSheetView: View {
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Color.skSurface, in: .rect(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-        )
+        .shareCardChrome(radius: 10)
         .accessibilityIdentifier("capture-text-preview")
     }
 
@@ -714,102 +668,141 @@ struct ShareSheetView: View {
         return url.host?.replacingOccurrences(of: "www.", with: "")
     }
 
+    /// The typed thought, trimmed; nil when empty.
+    private var trimmedThought: String? {
+        let t = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+
+    /// "" = unknown date (the index-aligned arrays can't hold nil).
+    private static func iso(_ date: Date?) -> String {
+        date.map { ISO8601.string(from: $0) } ?? ""
+    }
+
+    /// The four index-aligned image arrays an entry carries. All nil when there
+    /// are no images (the entry fields are optional, never empty arrays).
+    private struct ImageColumns {
+        let fileNames: [String]?
+        let recordedAts: [String]?
+        let originalNames: [String]?
+        let selectionPositions: [Int]?
+
+        init(_ items: [SharedImageItem]) {
+            guard !items.isEmpty else {
+                fileNames = nil; recordedAts = nil; originalNames = nil; selectionPositions = nil
+                return
+            }
+            fileNames = items.map(\.fileName)
+            // EXIF taken-dates, aligned to the names ("" = none) — the drainer
+            // dates the capture to the earliest photo, not the share moment (A4).
+            recordedAts = items.map { ShareSheetView.iso($0.recordedAt) }
+            // Q94 / C70: the original names date a picture-only note too (Signal JPEGs).
+            originalNames = items.map { $0.originalName ?? "" }
+            selectionPositions = items.enumerated().map { $0.element.selectionIndex ?? $0.offset }
+        }
+    }
+
     private func saveTapped() {
-        // Audio share: slim "audio" entries — no annotation/dictation (no ramble
-        // UI on audio shares), just significance. Combine (default) = ONE entry
-        // carrying every clip name in play order → one merged memo; split = one
-        // entry per clip → N memos. The host maps clips to entries by index.
+        // Audio share: slim "audio" entries — no annotation (no ramble UI on audio
+        // shares), just significance. The host maps clips to entries by index.
         if payload.isAudio {
-            let items = payload.audioItems
-            let imageItems = payload.imageItems
-            let sharedAt = ISO8601.string(from: Date())
-            // Clip dates ride the entry, index-aligned to the names ("" = unknown)
-            // — the import dates the memo to the voice note, not the share moment.
-            func iso(_ item: SharedAudioItem) -> String {
-                item.recordedAt.map { ISO8601.string(from: $0) } ?? ""
-            }
-            func entry(id: UUID, names: [String], dates: [String], clips: [SharedAudioItem]) -> CaptureInboxEntry {
-                CaptureInboxEntry(
-                    id: id, type: "audio", url: nil, urlTitle: nil,
-                    // B3: the bundle's chat text rides the entry → the memo's
-                    // annotation (leads the note above the transcript).
-                    text: payload.text,
-                    imageFileName: nil, mimeType: nil, annotationText: nil,
-                    significance: significance, sharedAt: sharedAt,
-                    audioFileNames: names, audioRecordedAts: dates,
-                    // E2: ≥1h clips route to Books unless overridden in the sheet.
-                    routeToBooks: (hasLongClip && sendToBooks) ? true : nil,
-                    // B3: bundled photos ride the same entry, index-aligned datas.
-                    imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
-                    imageRecordedAts: imageItems.isEmpty ? nil
-                        : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" },
-                    // Q94 / C70: each file's original name + selection position ride along so
-                    // the drain dates by the shared filename ladder and orders by selection.
-                    audioOriginalNames: clips.map { $0.originalName ?? "" },
-                    audioSelectionPositions: clips.enumerated().map { $0.element.selectionIndex ?? $0.offset },
-                    imageOriginalNames: imageItems.isEmpty ? nil : imageItems.map { $0.originalName ?? "" },
-                    imageSelectionPositions: imageItems.isEmpty ? nil
-                        : imageItems.enumerated().map { $0.element.selectionIndex ?? $0.offset }
-                )
-            }
-            func ext(_ item: SharedAudioItem) -> String {
-                item.url.pathExtension.isEmpty ? "m4a" : item.url.pathExtension
-            }
-            // A Books-routed share is always ONE entry: the clips become the
-            // parts of one book (multi-file audiobook), never N notes. A mixed
-            // bundle (B3) is likewise always one note.
-            if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) || isMixedBundle {
-                let id = UUID()
-                let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
-                onSave([entry(id: id, names: names, dates: items.map(iso), clips: items)],
-                       imageItems.map(\.data))
-            } else {
-                let entries = items.map { item -> CaptureInboxEntry in
-                    let id = UUID()
-                    return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"],
-                                 dates: [iso(item)], clips: [item])
-                }
-                onSave(entries, [])
-            }
-            return
+            let (entries, imageDatas) = audioEntries()
+            onSave(entries, imageDatas)
+        } else if let entry = videoEntry() {
+            onSave([entry], [])
+        } else if let entry = fileEntry() {
+            onSave([entry], [])
+        } else {
+            onSave([mediaEntry()], payload.imageItems.map(\.data))
         }
+    }
 
-        // E1 (mock m1): video rides its own entry type — the typed thought +
-        // significance now travel with it (the silent import lost both, A13).
-        if payload.isVideo, let videoURL = payload.videoURL {
-            let id = UUID()
-            let ext = videoURL.pathExtension.isEmpty ? "mov" : videoURL.pathExtension
-            let thought = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
-            onSave([CaptureInboxEntry(
-                id: id, type: "video", url: nil, urlTitle: nil, text: nil,
-                imageFileName: nil, mimeType: nil,
-                annotationText: thought.isEmpty ? nil : thought,
-                significance: significance, sharedAt: ISO8601.string(from: Date()),
-                videoFileName: "video_\(id.uuidString).\(ext)"
-            )], [])
-            return
-        }
-        // E1 (mock m2): documents likewise — the sheet's thought becomes the
-        // capture's annotation body, significance flags it for sync.
-        if payload.type == .file, payload.fileURL != nil {
-            let id = UUID()
-            let ext = payload.fileURL?.pathExtension.isEmpty == false
-                ? payload.fileURL!.pathExtension : "pdf"
-            let thought = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
-            onSave([CaptureInboxEntry(
-                id: id, type: "file", url: nil, urlTitle: nil, text: nil,
-                imageFileName: nil, mimeType: payload.mimeType,
-                annotationText: thought.isEmpty ? nil : thought,
-                significance: significance, sharedAt: ISO8601.string(from: Date()),
-                fileName: "file_\(id.uuidString).\(ext)",
-                fileDisplayName: payload.fileName
-            )], [])
-            return
-        }
-
-        let trimmed = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Combine (default) = ONE entry carrying every clip name in play order → one
+    /// merged memo; split = one entry per clip → N memos. Also returns the image
+    /// datas aligned to the entry's image names (none on the split path).
+    private func audioEntries() -> (entries: [CaptureInboxEntry], imageDatas: [Data]) {
+        let items = payload.audioItems
         let imageItems = payload.imageItems
-        let entry = CaptureInboxEntry(
+        let images = ImageColumns(imageItems)
+        let sharedAt = ISO8601.string(from: Date())
+        func entry(id: UUID, names: [String], clips: [SharedAudioItem]) -> CaptureInboxEntry {
+            CaptureInboxEntry(
+                id: id, type: "audio", url: nil, urlTitle: nil,
+                // B3: the bundle's chat text rides the entry → the memo's
+                // annotation (leads the note above the transcript).
+                text: payload.text,
+                imageFileName: nil, mimeType: nil, annotationText: nil,
+                significance: significance, sharedAt: sharedAt,
+                // Clip dates ride the entry, index-aligned to the names ("" = unknown)
+                // — the import dates the memo to the voice note, not the share moment.
+                audioFileNames: names, audioRecordedAts: clips.map { Self.iso($0.recordedAt) },
+                // E2: ≥1h clips route to Books unless overridden in the sheet.
+                routeToBooks: (hasLongClip && sendToBooks) ? true : nil,
+                // B3: bundled photos ride the same entry, index-aligned datas.
+                imageFileNames: images.fileNames,
+                imageRecordedAts: images.recordedAts,
+                // Q94 / C70: each file's original name + selection position ride along so
+                // the drain dates by the shared filename ladder and orders by selection.
+                audioOriginalNames: clips.map { $0.originalName ?? "" },
+                audioSelectionPositions: clips.enumerated().map { $0.element.selectionIndex ?? $0.offset },
+                imageOriginalNames: images.originalNames,
+                imageSelectionPositions: images.selectionPositions
+            )
+        }
+        func ext(_ item: SharedAudioItem) -> String {
+            item.url.pathExtension.isEmpty ? "m4a" : item.url.pathExtension
+        }
+        // A Books-routed share is always ONE entry: the clips become the
+        // parts of one book (multi-file audiobook), never N notes. A mixed
+        // bundle (B3) is likewise always one note.
+        if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) || isMixedBundle {
+            let id = UUID()
+            let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
+            return ([entry(id: id, names: names, clips: items)], imageItems.map(\.data))
+        }
+        let entries = items.map { item -> CaptureInboxEntry in
+            let id = UUID()
+            return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"], clips: [item])
+        }
+        return (entries, [])
+    }
+
+    /// E1 (mock m1): video rides its own entry type — the typed thought +
+    /// significance travel with it (the silent import lost both, A13).
+    private func videoEntry() -> CaptureInboxEntry? {
+        guard payload.isVideo, let videoURL = payload.videoURL else { return nil }
+        let id = UUID()
+        let ext = videoURL.pathExtension.isEmpty ? "mov" : videoURL.pathExtension
+        return CaptureInboxEntry(
+            id: id, type: "video", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil,
+            annotationText: trimmedThought,
+            significance: significance, sharedAt: ISO8601.string(from: Date()),
+            videoFileName: "video_\(id.uuidString).\(ext)"
+        )
+    }
+
+    /// E1 (mock m2): documents likewise — the sheet's thought becomes the
+    /// capture's annotation body, significance flags it for sync.
+    private func fileEntry() -> CaptureInboxEntry? {
+        guard payload.type == .file, let fileURL = payload.fileURL else { return nil }
+        let id = UUID()
+        let ext = fileURL.pathExtension.isEmpty ? "pdf" : fileURL.pathExtension
+        return CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: payload.mimeType,
+            annotationText: trimmedThought,
+            significance: significance, sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).\(ext)",
+            fileDisplayName: payload.fileName
+        )
+    }
+
+    /// URL / text / image(s): the generic capture entry.
+    private func mediaEntry() -> CaptureInboxEntry {
+        let imageItems = payload.imageItems
+        let images = ImageColumns(imageItems)
+        return CaptureInboxEntry(
             id: UUID(),
             type: payload.type.rawValue,
             url: payload.url,
@@ -818,21 +811,29 @@ struct ShareSheetView: View {
             // Legacy single field stays the FIRST image (capture detail + Mac read it).
             imageFileName: imageItems.first?.fileName,
             mimeType: payload.mimeType,
-            annotationText: trimmed.isEmpty ? nil : trimmed,
+            annotationText: trimmedThought,
             significance: significance,
             sharedAt: ISO8601.string(from: Date()),
             // The names array carries EVERY image (single included) — the write
             // path stores them all from `imageDatas`, index-aligned.
-            imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
-            // EXIF taken-dates, aligned to the names ("" = none) — the drainer
-            // dates the capture to the earliest photo, not the share moment (A4).
-            imageRecordedAts: imageItems.isEmpty ? nil
-                : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" },
-            // Q94 / C70: the original names date a picture-only note too (Signal JPEGs).
-            imageOriginalNames: imageItems.isEmpty ? nil : imageItems.map { $0.originalName ?? "" },
-            imageSelectionPositions: imageItems.isEmpty ? nil
-                : imageItems.enumerated().map { $0.element.selectionIndex ?? $0.offset }
+            imageFileNames: images.fileNames,
+            imageRecordedAts: images.recordedAts,
+            imageOriginalNames: images.originalNames,
+            imageSelectionPositions: images.selectionPositions
         )
-        onSave([entry], imageItems.map(\.data))
+    }
+}
+
+// MARK: - Card chrome
+
+private extension View {
+    /// The share sheet's card chrome: skSurface fill + 0.5 pt white-9% hairline.
+    func shareCardChrome(radius: CGFloat = 13) -> some View {
+        self
+            .background(Color.skSurface, in: .rect(cornerRadius: radius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
     }
 }
