@@ -47,7 +47,8 @@ struct ShareFeedbackView: View {
                 .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .shareSheetSurface()        .accessibilityIdentifier("share-feedback-\(a11yKind)")
+        .shareSheetSurface()
+        .accessibilityIdentifier("share-feedback-\(a11yKind)")
     }
 
     // MARK: - Pieces

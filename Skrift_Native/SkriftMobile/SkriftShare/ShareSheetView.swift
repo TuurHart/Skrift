@@ -47,7 +47,8 @@ struct ShareSheetView: View {
             // a remote view — the page behind is never visible to us anyway).
             // Tap = dismiss the keyboard first; only a tap with no keyboard up
             // cancels (so a stray tap can't eat a typed annotation).
-            ShareTheme.backdrop                .ignoresSafeArea()
+            ShareTheme.backdrop
+                .ignoresSafeArea()
                 .onTapGesture {
                     if annotationFocused { annotationFocused = false } else { onCancel() }
                 }
@@ -86,7 +87,8 @@ struct ShareSheetView: View {
                 .padding(.bottom, 16)
         }
         .padding(.horizontal, 16)
-        .shareSheetSurface()   // elevated above the scrim        .shadow(color: .black.opacity(0.5), radius: 36, y: -10)
+        .shareSheetSurface()   // elevated above the scrim
+        .shadow(color: .black.opacity(0.5), radius: 36, y: -10)
     }
 
     // MARK: - Sub-views
@@ -224,7 +226,8 @@ struct ShareSheetView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .shareCardChrome()            honestyLine("Transcribes on-device · the video file itself isn't kept")
+            .shareCardChrome()
+            honestyLine("Transcribes on-device · the video file itself isn't kept")
         }
         .accessibilityIdentifier("capture-video-card")
     }
@@ -255,7 +258,8 @@ struct ShareSheetView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .shareCardChrome()            honestyLine(payload.filePageCount != nil
+            .shareCardChrome()
+            honestyLine(payload.filePageCount != nil
                         ? "Its text becomes searchable in Skrift · opens inline in the note"
                         : "Opens from the note · Skrift opens on it next time")
         }
@@ -323,7 +327,8 @@ struct ShareSheetView: View {
                 .padding(.vertical, 5)
         }
         .padding(.horizontal, 12)
-        .shareCardChrome()        .accessibilityIdentifier("capture-clip-stack")
+        .shareCardChrome()
+        .accessibilityIdentifier("capture-clip-stack")
     }
 
     private func clipLabel(_ item: SharedAudioItem) -> String {
@@ -472,7 +477,8 @@ struct ShareSheetView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .shareCardChrome()
-            honestyLine("Transcribes on-device · Skrift opens on it next time")        }
+            honestyLine("Transcribes on-device · Skrift opens on it next time")
+        }
         .accessibilityIdentifier("capture-audio-card")
         .accessibilityLabel(audioTitle)
     }
@@ -520,7 +526,8 @@ struct ShareSheetView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .shareCardChrome()        .accessibilityIdentifier("capture-link-card")
+        .shareCardChrome()
+        .accessibilityIdentifier("capture-link-card")
         .accessibilityLabel("Link: \(payload.urlTitle ?? urlDomain ?? "Link")")
     }
 
@@ -540,7 +547,8 @@ struct ShareSheetView: View {
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .shareCardChrome(radius: 10)        .accessibilityIdentifier("capture-text-preview")
+        .shareCardChrome(radius: 10)
+        .accessibilityIdentifier("capture-text-preview")
     }
 
     // Image: thumbnail from the loaded data
