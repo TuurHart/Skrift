@@ -29,6 +29,9 @@ struct IngestService: Sendable {
     /// own routines (`LinkCard`, `PDFTextExtract`), shared.
     var linkFetcher: any LinkFetching = URLSessionLinkFetcher()
     var pdfExtractor: any PDFTextExtracting = PDFKitTextExtractor()
+    /// Q266 (C72): the link door wraps `linkFetcher` in `RetryingLinkFetcher` — a failed page
+    /// GET is retried up to three times. The backoff sleep is a seam so a test never waits.
+    var linkRetrySleep: @Sendable (TimeInterval) async -> Void = RetryingLinkFetcher.realSleep
 
     /// Whether a dropped PDF becomes a file capture. Off by default ONLY because the protected
     /// `IngestServiceTests.testUnsupportedTypeSkipped` still pins "a PDF yields no note"; the app's

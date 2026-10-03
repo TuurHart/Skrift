@@ -44,6 +44,34 @@ struct URLSessionLinkFetcher: LinkFetching {
     }
 }
 
+/// C72: a failed GET (metro, offline, a flaky server) is retried at most three times, with a
+/// doubling backoff, behind the same seam. HEAD is never retried: it is only the PDF sniff, and
+/// a failed sniff already falls back to the link card. `sleep` is injectable so a test waits
+/// for nothing.
+struct RetryingLinkFetcher: LinkFetching {
+    /// "At most three times" (C72): one try plus up to three retries.
+    static let maxRetries = 3
+    static let defaultDelays: [TimeInterval] = [0.5, 1, 2]
+    static let realSleep: @Sendable (TimeInterval) async -> Void = { seconds in
+        try? await Task.sleep(nanoseconds: UInt64(max(0, seconds) * 1_000_000_000))
+    }
+
+    var base: any LinkFetching
+    var delays: [TimeInterval] = RetryingLinkFetcher.defaultDelays
+    var sleep: @Sendable (TimeInterval) async -> Void = RetryingLinkFetcher.realSleep
+
+    func fetch(_ url: URL, method: String, timeout: TimeInterval) async -> LinkFetchResponse? {
+        if let first = await base.fetch(url, method: method, timeout: timeout) { return first }
+        guard method == "GET" else { return nil }
+        for delay in delays.prefix(Self.maxRetries) {
+            await sleep(delay)
+            if Task.isCancelled { return nil }
+            if let got = await base.fetch(url, method: method, timeout: timeout) { return got }
+        }
+        return nil
+    }
+}
+
 // MARK: - PDF text seam
 
 /// Embedded text of a PDF on disk. The phone runs it on drain, the Mac on drop; the same
