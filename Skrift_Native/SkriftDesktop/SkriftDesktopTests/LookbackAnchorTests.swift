@@ -24,7 +24,7 @@ final class LookbackAnchorTests: XCTestCase {
         let n = memo(daysAgo: 7)
         let today = LookbackProvider.river(for: [n], now: now, calendar: calendar, showImportantLately: false)
         XCTAssertEqual(today.entries.map(\.label), ["1 week ago"])
-        let shifted = LookbackProvider.river(for: [n], now: now.addingTimeInterval(-3 * 86_400),
+        let shifted = LookbackProvider.river(for: [n], now: now.addingTimeInterval(-6 * 86_400),
                                              calendar: calendar, showImportantLately: false)
         XCTAssertNotEqual(shifted.entries.map(\.label), ["1 week ago"])
     }
