@@ -137,12 +137,11 @@ final class ConnectionsModel {
     // ── why-chips: the SHARED dumb-v1 overlap heuristic (Shared/Retrieval) ──
 
     static func whyChips(current: PipelineFile, other: PipelineFile) -> [ConnectionWhy] {
-        func body(_ f: PipelineFile) -> String { f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? "" }
         return ConnectionWhyDerivation.chips(
             currentNames: ConnectionWhyDerivation.wikiNames(inSanitised: current.sanitised),
-            currentTags: current.tags, currentBody: body(current),
+            currentTags: current.tags, currentBody: current.bestBodyText,
             otherNames: ConnectionWhyDerivation.wikiNames(inSanitised: other.sanitised),
-            otherTags: other.tags, otherBody: body(other))
+            otherTags: other.tags, otherBody: other.bestBodyText)
     }
 }
 

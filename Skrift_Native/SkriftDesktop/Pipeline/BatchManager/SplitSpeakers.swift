@@ -6,10 +6,6 @@ import SwiftData
 /// `ProcessingCoordinator` runs the slow parts (ASR, diarization, polish) around these.
 enum SplitSpeakers {
 
-    /// The body as shown (`PipelineFile.bestBodyText`, which lives in Features and so is not
-    /// visible to the host-less test bundle).
-    private static func shownBody(_ pf: PipelineFile) -> String { pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript ?? "" }
-
     // MARK: state
 
     /// The switch is ON exactly when the note's words ARE turns. Not `diarizeRequested`: that is
@@ -73,7 +69,7 @@ enum SplitSpeakers {
     /// or nil when every speaker is still "Speaker N".
     static func namedPerson(in pf: PipelineFile, people: [Person]) -> String? {
         let resolver = SpeakerTurnStyle.HeaderResolver(people: people)
-        for name in SpeakerTranscript.speakers(in: shownBody(pf)) where !SpeakerTranscript.isUnnamed(name) {
+        for name in SpeakerTranscript.speakers(in: pf.bestBodyText) where !SpeakerTranscript.isUnnamed(name) {
             let label = SpeakerTurnStyle.label(for: name)
             if let p = resolver.person(for: label) { return NamesMerge.keyName(p.canonical) }
             return label
@@ -85,19 +81,19 @@ enum SplitSpeakers {
 
     /// The turn headers of the note as it is SHOWN, in order — the gutter's own index space.
     static func turnLabels(in pf: PipelineFile) -> [String] {
-        (SpeakerTranscript.parse(shownBody(pf)) ?? []).map { SpeakerTurnStyle.label(for: $0.name) }
+        (SpeakerTranscript.parse(pf.bestBodyText) ?? []).map { SpeakerTurnStyle.label(for: $0.name) }
     }
 
     /// How many of the SHOWN turns belong to the speaker wearing `displayed` (their whole voice,
     /// short or full name alike). "A person names all 3 of Speaker 2's turns."
     static func turnCount(of displayed: String, in pf: PipelineFile, people: [Person]) -> Int {
-        SpeakerNaming.turnCount(of: displayed, in: shownBody(pf), people: people)
+        SpeakerNaming.turnCount(of: displayed, in: pf.bestBodyText, people: people)
     }
 
     /// The other speakers in the note, for the popover's "move this line" list: distinct
     /// identities, first-appearance order, excluding the one wearing `displayed`.
     static func otherSpeakers(than displayed: String, in pf: PipelineFile, people: [Person]) -> [String] {
-        SpeakerNaming.otherSpeakers(than: displayed, in: shownBody(pf), people: people)
+        SpeakerNaming.otherSpeakers(than: displayed, in: pf.bestBodyText, people: people)
     }
 
     /// A person names ALL of that speaker's turns. Rewrites the raw transcript (and the
@@ -122,7 +118,7 @@ enum SplitSpeakers {
     /// transcript and copy-edit (a conversation keeps both verbatim) for the caller to re-link.
     @discardableResult
     static func moveLine(_ pf: PipelineFile, turnIndex: Int, to other: String, people: [Person]) -> Bool {
-        let body = shownBody(pf)
+        let body = pf.bestBodyText
         guard isSplit(pf),
               let moved = SpeakerTranscript.reassign(body, turnAt: turnIndex, to: SpeakerTurnStyle.label(for: other))
         else { return false }

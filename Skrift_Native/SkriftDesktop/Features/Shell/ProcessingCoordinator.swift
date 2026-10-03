@@ -687,11 +687,7 @@ final class ProcessingCoordinator {
                 // (honoring the note's persisted "unlink all mentions" choices)
                 let working = c.isEmpty ? transcript : c
                 let people = NamesStore.shared.livePeople()
-                let san = isConversation
-                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-                pf.sanitised = san.sanitised
-                pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+                pf.relinkNames(working: working, isConversation: isConversation, people: people)
             case .summary:
                 pf.enhancedSummary = try await enhancer.summary(transcript, prompts: settings.prompts, modelRepo: repo)
             }
@@ -716,11 +712,7 @@ final class ProcessingCoordinator {
         guard !working.isEmpty else { return }
         let people = NamesStore.shared.livePeople()
         let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
-        let san = isConversation
-            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
-        pf.sanitised = san.sanitised
-        pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+        pf.relinkNames(working: working, isConversation: isConversation, people: people)
         pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)
         if let context { pf.lastActivityAt = Date(); try? context.save() }
     }
