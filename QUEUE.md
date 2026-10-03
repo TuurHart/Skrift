@@ -1306,7 +1306,7 @@ do: Phone onboarding shows a green check for the permission step whatever the us
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh OnboardingPermissionStateTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P74
 
-### Q174 [auto] (doing) FEATURES.md and plan/parity.md match the code again
+### Q174 [auto] (stuck) FEATURES.md and plan/parity.md match the code again
 spec: C239
 needs: -
 do: Stale rows found by the audit: FEATURES.md:119 (iPad list '320-420 draggable', it is fixed 375), :61 vs :126 (⌘N), :377 (Quick note Desktop n/a, the Mac has the compose chip), :53 (search-hit flash Mac ➖, it jumps), :238 (quote rendering Desktop n/a), :161 (captures 'Mobile n/a' predates iPad polish), the 'Quote protection in enhancement' row (omits phone `PolishEscrow`), the 'Custom vocabulary sync' row (~:292, Desktop 'not built', it exists), :120 ('unlocked' in the Process pile); plan/parity.md:44 name resolutions 'deliberately not' (SPEC C81/D20 say sync). SPEC wording for C220 ('Mac rotates at 7 s', code is 20 s) and C199/C145 stays with Tuur: list them in the commit message. Edit only FEATURES.md and plan/parity.md.
@@ -2014,7 +2014,7 @@ gate+: yes
 do: Found by Q107 and visible in plan/reads/list-p-quiet/mac-quiet-rows-light.png: the shared Skrift_Native/Shared/UI/NoteCardView.swift chipsRow lays chips out with fixedSize and no wrapping, so a row with duration + place + weather + 2 tags runs past the card edge and clips (Mac sidebar and phone list). Wrap the chips with the existing Shared/UI/FlowLayout.swift (max 2 lines, then a '+N' chip if more remain), keeping chip order and spacing. Prove it with a Mac headless -snapshot PNG of a 5-chip and an 8-chip row (look at it) plus a host-less layout test of the line-break decision if one is extractable. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q266 [auto] (doing) link captures: the Mac retries a failed link fetch up to 3 times (C72) and the phone titles an untitled link by its host, not 'Capture'
+### Q266 [auto] (done) link captures: the Mac retries a failed link fetch up to 3 times (C72) and the phone titles an untitled link by its host, not 'Capture'
 spec: C72
 needs: Q136
 gate+: yes
@@ -2081,6 +2081,24 @@ spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
+
+### Q277 [tuur] (todo) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
+### Q278 [tuur] (todo) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
+### Q279 [tuur] (todo) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2884,3 +2902,8 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:44 Q273 -> done — gate pass @f373cd0e
 - 2026-10-03 01:45 Q247 -> done — gate pass @83c88db1
 - 2026-10-03 01:48 Q260 -> done — gate pass @66f18d12
+- 2026-10-03 01:48 Q266 -> done — gate pass (batched with Q260)
+- 2026-10-03 01:48 Q174 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-03 01:48 Q277 added
+- 2026-10-03 01:48 Q278 added
+- 2026-10-03 01:48 Q279 added
