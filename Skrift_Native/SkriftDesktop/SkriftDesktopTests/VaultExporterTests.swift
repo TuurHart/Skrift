@@ -263,10 +263,10 @@ final class VaultExporterTests: XCTestCase {
     // MARK: - noteStem: ONE derivation for the exported filename AND memo-link targets
 
     func testNoteStemMatchesExportedFilenameRules() {
-        XCTAssertEqual(VaultExporter.noteStem(title: "Plan: Q3 / Q4", filename: "x.m4a"), "Plan Q3 - Q4")
-        XCTAssertEqual(VaultExporter.noteStem(title: nil, filename: "Voice Memo.m4a"), "Voice Memo")
-        XCTAssertEqual(VaultExporter.noteStem(title: "", filename: "Voice Memo.m4a"), "Voice Memo")
-        XCTAssertEqual(VaultExporter.noteStem(title: "***", filename: ".m4a"), "note")
+        XCTAssertEqual(VaultName.stem(title: "Plan: Q3 / Q4", filename: "x.m4a"), "Plan Q3 - Q4")
+        XCTAssertEqual(VaultName.stem(title: nil, filename: "Voice Memo.m4a"), "Voice Memo")
+        XCTAssertEqual(VaultName.stem(title: "", filename: "Voice Memo.m4a"), "Voice Memo")
+        XCTAssertEqual(VaultName.stem(title: "***", filename: ".m4a"), "note")
     }
 
     // ── the source movie (2026-08-28) ──

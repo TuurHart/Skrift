@@ -66,7 +66,7 @@ struct NoteProperties: View {
         let backlinked = MemoLifecycle.backlinkedIDs(
             in: memos, copyedits: Backlinks.copyeditsByMemoID(in: ModelContext(cloud)))
         guard !MemoLifecycle.neverFades(memo, backlinked: backlinked) else { return }
-        fadingLine = SharedCopy.fadingLine(WayOutRules.oneLiner(for: memo, backlinked: backlinked))
+        fadingLine = SharedCopy.fadingLine(WayOut.oneLiner(for: memo, backlinked: backlinked))
     }
 
     var body: some View {

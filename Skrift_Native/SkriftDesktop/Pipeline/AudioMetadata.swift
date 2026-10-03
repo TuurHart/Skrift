@@ -10,15 +10,7 @@ enum AudioMetadata {
         let asset = AVURLAsset(url: url)
         guard let item = (try? await asset.load(.creationDate)) ?? nil else { return nil }
         if let d = (try? await item.load(.dateValue)) ?? nil { return d }
-        if let s = (try? await item.load(.stringValue)) ?? nil, let d = parse(s) { return d }
+        if let s = (try? await item.load(.stringValue)) ?? nil, let d = ISO8601.lenientDate(from: s) { return d }
         return nil
-    }
-
-    private static func parse(_ s: String) -> Date? {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = iso.date(from: s) { return d }
-        iso.formatOptions = [.withInternetDateTime]
-        return iso.date(from: s)
     }
 }

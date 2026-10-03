@@ -121,17 +121,9 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// All steps run on the RAW transcript. (No LLM significance/tagging — those
     /// are manual/deterministic at review.)
     struct Prompts: Codable, Equatable, Sendable {
-        var copyEdit: String = Prompts.defaultCopyEdit
-        var summary: String = Prompts.defaultSummary
-        var title: String = Prompts.defaultTitle
-
-        // Single-sourced with the iPad's on-demand polisher (wave 1, 2026-07-22):
-        // the default prompt TEXT lives in Shared/Pipeline/PolishPrompts.swift so
-        // the two polishers can never drift. A user-tuned override in settings.json
-        // still wins here (these are only the defaults).
-        static let defaultCopyEdit = PolishPrompts.copyEdit
-        static let defaultSummary = PolishPrompts.summary
-        static let defaultTitle = PolishPrompts.title
+        var copyEdit: String = PolishPrompts.copyEdit
+        var summary: String = PolishPrompts.summary
+        var title: String = PolishPrompts.title
 
         // The blank rule (Q157): a blank prompt IS the shared default — what the
         // polisher sends and what syncs. The raw field may sit blank while the user

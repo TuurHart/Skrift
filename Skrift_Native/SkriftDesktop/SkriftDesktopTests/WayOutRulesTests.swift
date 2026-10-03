@@ -121,8 +121,8 @@ final class WayOutRulesTests: XCTestCase {
 
     func testOneLinerReflectsTheUntouchedLifecycleTrack() {
         let fresh = memo(days: 5, significance: 0)
-        XCTAssertTrue(WayOutRules.oneLiner(for: fresh, now: now).hasPrefix("starts fading "),
-                      "got: \(WayOutRules.oneLiner(for: fresh, now: now))")
+        XCTAssertTrue(WayOut.oneLiner(for: fresh, now: now).hasPrefix("starts fading "),
+                      "got: \(WayOut.oneLiner(for: fresh, now: now))")
     }
 
     func testOneLinerPutsATouchedMemoOnTheClock() {
@@ -131,8 +131,8 @@ final class WayOutRulesTests: XCTestCase {
         let m = memo(days: 400, significance: 0)
         m.tags = ["garden"]
         m.keptAt = now.addingTimeInterval(-5 * 86_400)
-        XCTAssertTrue(WayOutRules.oneLiner(for: m, now: now).hasPrefix("starts fading "),
-                      "got: \(WayOutRules.oneLiner(for: m, now: now))")
+        XCTAssertTrue(WayOut.oneLiner(for: m, now: now).hasPrefix("starts fading "),
+                      "got: \(WayOut.oneLiner(for: m, now: now))")
     }
 
     // MARK: - ③ the footer count (memo trash + Mac-local tail)
@@ -201,39 +201,13 @@ final class WayOutRulesTests: XCTestCase {
 
     // MARK: - ④ the conveyor
 
-    func testBringBackSetsKeptAtAndClearsDeletedAt() {
-        let m = memo(significance: 0, deletedDaysAgo: 5)
-        XCTAssertNil(m.keptAt)
-        XCTAssertNotNil(m.deletedAt)
-        WayOutRules.bringBack(m, now: now)
-        XCTAssertEqual(m.keptAt, now)
-        XCTAssertNil(m.deletedAt)
-    }
-
     func testBringBackSetsKeptAtEvenWhenNotDeleted() {
         // A fading (not yet deleted) note's Bring back: still a touch, still
         // must stamp keptAt, even though there's no deletedAt to clear.
         let m = memo(days: 40, significance: 0)
-        WayOutRules.bringBack(m, now: now)
+        WayOut.bringBack(m, now: now)
         XCTAssertEqual(m.keptAt, now)
         XCTAssertNil(m.deletedAt)
-    }
-
-    func testFadingOrderedIsSoonestToMoveFirst() {
-        let soon = memo(days: 59)     // 1 day from the 60d auto-move
-        let later = memo(days: 31)    // 29 days from the 60d auto-move
-        XCTAssertEqual(WayOutRules.fadingOrdered([later, soon]).map(\.id), [soon.id, later.id])
-    }
-
-    func testDeletedOrderedIsSoonestToPurgeFirst() {
-        // Mirrors the mock's worked example: "deleted 7 Jul · ~1d" listed
-        // ABOVE "deleted 14 Jul · ~8d" — the OLDER deletedAt purges sooner and
-        // sorts first. This is a deliberate reversal of MacTrashColumn's old
-        // newest-deleted-first comparator.
-        let deletedLongAgo = memo(significance: 0, deletedDaysAgo: 13)   // ~1d left of the 14d retention
-        let deletedRecently = memo(significance: 0, deletedDaysAgo: 6)   // ~8d left
-        XCTAssertEqual(WayOutRules.deletedOrdered([deletedRecently, deletedLongAgo]).map(\.id),
-                       [deletedLongAgo.id, deletedRecently.id])
     }
 
     // MARK: - Stranded (rated + rowless — the state with no home in the list)
@@ -277,7 +251,7 @@ final class WayOutRulesTests: XCTestCase {
     func testStrandedLineDoesNotPromiseProcessing() {
         let waiting = memo(significance: 0.5)                       // has an audioFilename
         XCTAssertEqual(WayOutRules.strandedLine(for: waiting), "waiting for its audio")
-        let spine = WayOutRules.oneLiner(for: waiting, now: now)
+        let spine = WayOut.oneLiner(for: waiting, now: now)
         XCTAssertEqual(spine, "processes on next run", "…which is the line it must NOT show")
     }
 }

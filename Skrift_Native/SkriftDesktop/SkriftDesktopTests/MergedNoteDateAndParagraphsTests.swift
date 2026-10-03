@@ -69,14 +69,6 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
         return Calendar.current.date(from: c)!
     }
 
-    /// What `AudioMetadata.recordingDate` does (that file is in the app target, not this bundle):
-    /// the container's embedded creation date, else nil.
-    private func embeddedDate(_ url: URL) async -> Date? {
-        let asset = AVURLAsset(url: url)
-        guard let item = (try? await asset.load(.creationDate)) ?? nil else { return nil }
-        return (try? await item.load(.dateValue)) ?? nil
-    }
-
     // MARK: - date
 
     func testMergedNoteIsDatedToTheFirstClipsFilenameTimeNotTheImportMoment() async throws {
@@ -86,7 +78,7 @@ final class MergedNoteDateAndParagraphsTests: XCTestCase {
         let before = Date()
 
         // The real backfill reads the stitched file's own embedded date ...
-        let live = ArrivalPath.Hooks(recordingDate: { await self.embeddedDate($0) }, reconcileSoon: {},
+        let live = ArrivalPath.Hooks(recordingDate: { await AudioMetadata.recordingDate(of: $0) }, reconcileSoon: {},
                                      transcribe: { _ in }, transcribeImport: { _ in })
         let created = try await ArrivalPath.run(
             urls: urls, asRecording: false, into: ctx, cloudContext: nil, hooks: live,

@@ -319,7 +319,7 @@ struct UnpipelinedMemoSheet: View {
     /// The conveyor's rescue, same semantics as the row button (Q4: keptAt
     /// always + undelete when set) — under one clock that IS "a fresh 30 days".
     private func bringBack(_ memo: Memo) {
-        WayOutRules.bringBack(memo)
+        WayOut.bringBack(memo)
         try? MemoCloudStore.container?.mainContext.save()
         onProcessed(memoID)
     }

@@ -1,12 +1,6 @@
 import Foundation
 import SwiftData
 
-/// Trash retention, mirroring the phone's `TrashPolicy` (Apple Voice Memos' ~2 weeks).
-enum DesktopTrashPolicy {
-    static let retentionDays = 14
-    static var retention: TimeInterval { TimeInterval(retentionDays) * 86_400 }
-}
-
 /// Soft-delete / restore / purge for desktop `PipelineFile`s — the "Recently
 /// Deleted" backend mirroring the phone. Soft-delete KEEPS the working folder on
 /// disk (lossless Restore); only a permanent removal (purge or Delete Now) trashes
@@ -43,7 +37,7 @@ enum DesktopTrash {
         let all = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
         let expired = all.filter {
             guard let d = $0.deletedAt else { return false }
-            return now.timeIntervalSince(d) >= DesktopTrashPolicy.retention
+            return now.timeIntervalSince(d) >= TrashPolicy.retention
         }
         guard !expired.isEmpty else { return 0 }
         deleteForever(expired, in: ctx)

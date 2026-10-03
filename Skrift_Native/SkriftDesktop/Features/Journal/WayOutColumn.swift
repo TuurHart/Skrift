@@ -58,14 +58,14 @@ struct WayOutColumn: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if !fading.isEmpty {
                         section(SharedCopy.wayOutFadingLabel) {
-                            ForEach(WayOutRules.fadingOrdered(fading), id: \.persistentModelID) { memo in
+                            ForEach(WayOut.fadingOrdered(fading), id: \.persistentModelID) { memo in
                                 memoRow(memo)
                             }
                         }
                     }
                     if !deleted.isEmpty {
                         section(SharedCopy.wayOutDeletedLabel) {
-                            ForEach(WayOutRules.deletedOrdered(deleted), id: \.persistentModelID) { memo in
+                            ForEach(WayOut.deletedOrdered(deleted), id: \.persistentModelID) { memo in
                                 memoRow(memo)
                             }
                         }

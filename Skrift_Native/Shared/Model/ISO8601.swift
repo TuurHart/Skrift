@@ -13,7 +13,19 @@ enum ISO8601 {
         return f
     }()
 
+    private static let plainFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
     static func now() -> String { string(from: Date()) }
     static func string(from date: Date) -> String { formatter.string(from: date) }
     static func date(from string: String) -> Date? { formatter.date(from: string) }
+
+    /// For READING a metadata/creation date written either way: fractional seconds first, else
+    /// plain. `date(from:)` stays fractional-only (names sync compares strings lexicographically).
+    static func lenientDate(from string: String) -> Date? {
+        formatter.date(from: string) ?? plainFormatter.date(from: string)
+    }
 }

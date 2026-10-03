@@ -25,12 +25,12 @@ final class VideoIngestTests: XCTestCase {
 
     func testParseISODate() {
         // With fractional seconds (QuickTime style).
-        let withFrac = IngestService.parseISODate("2026-04-13T18:15:24.000Z")
+        let withFrac = ISO8601.lenientDate(from: "2026-04-13T18:15:24.000Z")
         XCTAssertNotNil(withFrac)
         // Without fractional seconds.
-        let noFrac = IngestService.parseISODate("2026-04-13T18:15:24Z")
+        let noFrac = ISO8601.lenientDate(from: "2026-04-13T18:15:24Z")
         XCTAssertNotNil(noFrac)
-        XCTAssertNil(IngestService.parseISODate("not a date"))
+        XCTAssertNil(ISO8601.lenientDate(from: "not a date"))
     }
 
     func testHasVideoTrackFalseForAudioOnly() async throws {
@@ -111,7 +111,7 @@ final class VideoIngestTests: XCTestCase {
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: embedded)
 
         // Sanity: the helper reads it back.
-        let readBack = IngestService.embeddedRecordingDate(of: videoURL)
+        let readBack = await AudioMetadata.recordingDate(of: videoURL)
         XCTAssertNotNil(readBack)
         XCTAssertEqual(readBack!.timeIntervalSince1970, embedded.timeIntervalSince1970, accuracy: 1.0)
 

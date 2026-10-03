@@ -25,17 +25,20 @@ enum SplitSpeakers {
     /// Settle a finished split run: a note that ended as turns is `.split`; a run that found one
     /// voice or was cancelled withdraws the request so the switch falls back to off.
     static func settle(_ pf: PipelineFile, error: Error?) -> Outcome {
+        let outcome: Outcome
         if let e = error as? BatchRunnerError {
             switch e {
-            case .oneVoice: withdraw(pf); return .oneVoice
-            case .cancelled: withdraw(pf); return .cancelled
-            case .missingAudioFile: withdraw(pf); return .failed
+            case .oneVoice: outcome = .oneVoice
+            case .cancelled: outcome = .cancelled
+            case .missingAudioFile: outcome = .failed
             }
+        } else if error != nil {
+            outcome = .failed
+        } else {
+            outcome = isSplit(pf) ? .split : .oneVoice
         }
-        if error != nil { withdraw(pf); return .failed }
-        if isSplit(pf) { return .split }
-        withdraw(pf)
-        return .oneVoice
+        if outcome != .split { withdraw(pf) }
+        return outcome
     }
 
     // MARK: flatten (switching off)
