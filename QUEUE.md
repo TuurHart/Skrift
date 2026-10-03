@@ -1609,7 +1609,7 @@ do: Desktop `Engines/TranscriptionService.swift`: delete `models` (the strong re
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VocabularyBoosterTrustTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d05 DPE-d06 DPE-d07 DPE-d10 DPE-d11 DPE-d23 MSV-d16 DPE-c11 (cleanup-audit P24)
 
-### Q212 [auto] (doing) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
+### Q212 [auto] (tuur) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
 spec: C239 C240
 needs: Q114 Q178
 gate+: no
@@ -1897,7 +1897,7 @@ do: `CompilerSharedContent` (`Shared/Export/CompilerInput.swift:53-64,84`) is a 
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c05 SRS-c06 (cleanup-audit P60)
 
-### Q248 [auto] (todo) one temp-dir helper and one corpus-root helper per test bundle
+### Q248 [auto] (doing) one temp-dir helper and one corpus-root helper per test bundle
 spec: C239
 needs: -
 gate+: no
@@ -2095,6 +2095,12 @@ do: (fill in)
 check: (fill in)
 
 ### Q279 [tuur] (tuur) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
+### Q280 [tuur] (tuur) look (Q171): phone list header Import/Record/New-note row + filter date picker after the shared VerbRow/ChipRowStyle move — compile-checked only, never seen on a sim or device
 spec: -
 needs: -
 do: (fill in)
@@ -2922,3 +2928,7 @@ check: (fill in)
 - 2026-10-03 01:56 Q214 -> tuur — needs hand-merge: wt/Q214 @3dff5149 (agent-a9617e2e31fef03e6) rewrites protected UploadTests.swift + MemoCloudIngestTests.swift; gate green 1431; approve then plan/hand-merge.sh
 - 2026-10-03 01:57 Q188 -> doing — dispatched (sonnet), hand-merge likely
 - 2026-10-03 02:00 Q171 -> done — gate pass @0943590e
+- 2026-10-03 02:01 Q248 -> doing — dispatched (sonnet), hand-merge expected
+- 2026-10-03 02:01 Q212 -> tuur — needs hand-merge: wt/Q212 @3415bbc5 (agent-a468155f352ccf2c9) ports protected WayOutRulesTests (3 duplicate tests deleted, covered by WayOutSharedTests), DesktopTrashTests, VideoIngestTests, MergedNoteDateAndParagraphsTests, VaultExporterTests; gate green 1437; approve then plan/hand-merge.sh
+- 2026-10-03 02:01 Q280 added
+- 2026-10-03 02:01 Q280 -> tuur — parked for the sitting
