@@ -879,7 +879,7 @@ do: iPad prints the raw stored importance (legacy 0.7 → '0.7', amber at ≥0.8
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ConnectionsRulesTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P20
 
-### Q120 [auto] (todo) one backlink scan and one note-title-for-display helper in Shared
+### Q120 [auto] (doing) one backlink scan and one note-title-for-display helper in Shared
 spec: C239 C115 C25
 needs: Q114
 gate+: yes
@@ -1250,7 +1250,7 @@ do: Only `JournalHomeView.reload` partitions fading from live; `JournalCalendarV
 check: `grep -rqE "class ReviewNoteSetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewNoteSetTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P67
 
-### Q167 [auto] (todo) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
+### Q167 [auto] (doing) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
 spec: C210 D30 C233
 needs: -
 gate+: yes
@@ -1409,7 +1409,7 @@ do: Rows capture-import-13, setexp-92. One accept set in `Shared/.../MixedBundle
 check: `grep -rqE "class ImportBundleParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q187 [auto] (doing) small twins: polish prompt row order, transcribe-book copy, quote-note header chips, recording waveform heights
+### Q187 [auto] (done) small twins: polish prompt row order, transcribe-book copy, quote-note header chips, recording waveform heights
 spec: C239 C240 C172
 needs: -
 gate+: no
@@ -2812,3 +2812,6 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 00:53 Q164 -> doing — batch worker out
 - 2026-10-03 00:55 Q124 -> done — gate pass @8c7fe9fa
 - 2026-10-03 00:55 Q123 -> done — gate pass (batched with Q124)
+- 2026-10-03 01:01 Q167 -> doing — batch worker out
+- 2026-10-03 01:01 Q120 -> doing — batch worker out
+- 2026-10-03 01:03 Q187 -> done — gate pass @82e249c2
