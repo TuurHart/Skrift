@@ -1417,7 +1417,7 @@ do: Rows setexp-47, books-75, books-109, recsj-009. Polish prompts in one order 
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q188 [auto] (tuur) delete the dead audio-trim machinery in quote capture
+### Q188 [auto] (done) delete the dead audio-trim machinery in quote capture
 spec: C240
 needs: -
 gate+: no
@@ -2947,3 +2947,4 @@ check: (fill in)
 - 2026-10-03 02:29 Q245 -> done — gate pass @1f0d456b
 - 2026-10-03 02:29 Q281 added
 - 2026-10-03 02:29 Q281 -> tuur — parked for the sitting
+- 2026-10-03 08:35 Q188 -> done — hand-merged (Tuur blanket approval 2026-10-03: ports + deletions of tests of deleted code)
