@@ -20,20 +20,16 @@ enum QuoteProtection {
         var ramble: String
     }
 
-    /// Splits a C1 capture body into its leading quote block + ramble. Returns
-    /// nil when the text doesn't OPEN with a blockquote line (`>` at offset 0) —
-    /// ASR output never does, so plain memos take the normal path untouched.
+    /// Splits a C1 capture body into its leading quote block + ramble. Returns nil when the
+    /// text doesn't OPEN with a non-empty blockquote — ASR output never does, so plain memos
+    /// take the normal path untouched. C172: this is an ADAPTER over `CaptureQuote.split`,
+    /// the one splitter, not a parser of its own — so a body that DISPLAYS as a quote
+    /// (leading blank lines, an indented `>`) is also copy-edit protected, name-link
+    /// protected and exported as a quote. The quote keeps its exact bytes (leading blanks
+    /// and indent included); only the blank separator after it is dropped.
     static func splitLeadingQuote(_ text: String) -> Split? {
-        guard text.hasPrefix(">") else { return nil }
-        let lines = text.components(separatedBy: "\n")
-        var idx = 0
-        while idx < lines.count, lines[idx].hasPrefix(">") { idx += 1 }
-        let quote = lines[..<idx].joined(separator: "\n")
-        var rest = Array(lines[idx...])
-        while let first = rest.first, first.trimmingCharacters(in: .whitespaces).isEmpty {
-            rest.removeFirst()
-        }
-        return Split(quote: quote, ramble: rest.joined(separator: "\n"))
+        guard let split = CaptureQuote.split(text) else { return nil }
+        return Split(quote: split.quoteBlock, ramble: split.ramble)
     }
 
     /// Puts the (untouched) quote back on top of the edited ramble in C1 shape.

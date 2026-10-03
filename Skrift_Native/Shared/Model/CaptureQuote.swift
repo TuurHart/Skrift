@@ -114,17 +114,53 @@ struct CaptureQuote: Equatable, Sendable {
     ///
     /// PLAIN text by design: the real `[[Author]]` wikilink is written at export only
     /// (`Compiler.audiobookBody`), never duplicated into the body.
-    static func attribution(book: String?, author: String? = nil, chapter: String? = nil) -> String? {
+    static func attribution(book: String?, author: String? = nil, chapter: String? = nil,
+                            style: AttributionParts.Style = .plain) -> String? {
+        attributionParts(book: book, author: author, chapter: chapter, style: style)?.text
+    }
+
+    /// The attribution as its three runs, so a view can set the title in italics without
+    /// building a second string (C172: one builder). `style` picks the punctuation: `.plain`
+    /// is the in-app caption ("— Author, Book · ch. N"), `.vault` the export line
+    /// ("— [[Author]], *Book*, ch. N"). The author guard and the chapter rule are the same
+    /// in both: an empty author is dropped (never "— , Book"), a numeric chapter gets
+    /// "ch. ", a chapter NAME shows as-is.
+    struct AttributionParts: Equatable, Sendable {
+        enum Style: Sendable { case plain, vault }
+        let lead: String
+        let title: String
+        let tail: String
+        let style: Style
+
+        /// The title as it is written inline (`*Book*` in the vault, bare in-app).
+        var renderedTitle: String { style == .vault ? "*\(title)*" : title }
+        var text: String { lead + renderedTitle + tail }
+    }
+
+    static func attributionParts(book: String?, author: String? = nil, chapter: String? = nil,
+                                 style: AttributionParts.Style = .plain) -> AttributionParts? {
         func clean(_ v: String?) -> String? {
             guard let t = v?.trimmingCharacters(in: .whitespaces), !t.isEmpty else { return nil }
             return t
         }
         guard let title = clean(book) else { return nil }
-        var s = "— "
-        if let author = clean(author) { s += "\(author), " }
-        s += title
-        if let label = chapterLabel(chapter) { s += " · " + label }
-        return s
+        var lead = "— "
+        if let author = clean(author) {
+            lead += (style == .vault ? "[[\(author)]]" : author) + ", "
+        }
+        var tail = ""
+        if let label = chapterLabel(chapter) { tail = (style == .vault ? ", " : " · ") + label }
+        return AttributionParts(lead: lead, title: title, tail: tail, style: style)
+    }
+
+    /// The quote block alone, exactly as it sits at the top of the body: `rawBlock` minus
+    /// the blank separator lines after it. This is what the copy-edit escrow, the
+    /// name-linker's protected range and the export italicising operate on (C172 — they all
+    /// see the block this splitter found, indent- and blank-line-tolerant).
+    var quoteBlock: String {
+        var lines = rawBlock.components(separatedBy: "\n")
+        while let last = lines.last, last.trimmingCharacters(in: .whitespaces).isEmpty { lines.removeLast() }
+        return lines.joined(separator: "\n")
     }
 
     /// The short list-row caption — "Book · ch. N" (no author, no dash). One chapter rule

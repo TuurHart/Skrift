@@ -215,22 +215,23 @@ enum Compiler {
     static func audiobookBody(_ body: String, book: String, author: String?, chapter: String?) -> String {
         guard let split = QuoteProtection.splitLeadingQuote(body) else { return body }
 
-        let italicQuote = split.quote.components(separatedBy: "\n").map { line -> String in
-            guard line.hasPrefix(">") else { return line }
-            var content = String(line.dropFirst())
-            if content.hasPrefix(" ") { content.removeFirst() }
-            let text = content.trimmingCharacters(in: .whitespaces)
+        // The block comes from the one splitter (`CaptureQuote.split` via the adapter), so it
+        // may carry leading blank lines or an indented marker; both normalise to "> " here.
+        let italicQuote = split.quote.components(separatedBy: "\n").compactMap { line -> String? in
+            let marker = CaptureQuote.markerLength(ofLine: line)
+            guard marker > 0 || !line.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+            let text = (line as NSString).substring(from: marker).trimmingCharacters(in: .whitespaces)
             guard !text.isEmpty else { return ">" }
             // Already emphasised (a re-render or a hand edit) → don't double-wrap.
             if text.count > 1, text.hasPrefix("*"), text.hasSuffix("*") { return "> \(text)" }
             return "> *\(text)*"
         }.joined(separator: "\n")
 
-        var parts: [String] = []
-        if let author { parts.append("[[\(author)]]") }
-        parts.append("*\(book)*")
-        if let chapter { parts.append("ch. \(chapter)") }
-        let attribution = "> — " + parts.joined(separator: ", ")
+        // ONE attribution builder (`CaptureQuote.attributionParts`, `.vault` punctuation): the
+        // same empty-author guard and chapter rule as the in-app caption (C60 — a named
+        // chapter as-is, only a numeric one gets "ch. ").
+        let attribution = "> " + (CaptureQuote.attribution(book: book, author: author, chapter: chapter, style: .vault)
+                                  ?? "— *\(book)*")
 
         let block = italicQuote + "\n>\n" + attribution
         return split.ramble.isEmpty ? block : block + "\n\n" + split.ramble
