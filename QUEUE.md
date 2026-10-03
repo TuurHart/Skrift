@@ -2106,6 +2106,12 @@ needs: -
 do: (fill in)
 check: (fill in)
 
+### Q281 [tuur] (tuur) look (Q245): share a voice memo, a video, a URL and a photo into Skrift on the phone and check the share sheet cards look unchanged after the shared card-chrome refactor — compile-checked only
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -2939,3 +2945,5 @@ check: (fill in)
 - 2026-10-03 02:19 Q248 -> tuur — needs hand-merge: wt/Q248 @b993383c (agent-a95f4d0123ea15b77) ports tempDir()/corpus climb in 21 desktop + 3 phone protected test files to makeTempDir()/CorpusSeed.fixtureRoot, assertions unchanged; gate green 1444; approve then plan/hand-merge.sh
 - 2026-10-03 02:19 Q245 -> doing — dispatched (sonnet)
 - 2026-10-03 02:29 Q245 -> done — gate pass @1f0d456b
+- 2026-10-03 02:29 Q281 added
+- 2026-10-03 02:29 Q281 -> tuur — parked for the sitting
