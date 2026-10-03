@@ -2154,7 +2154,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D172): 'take a video of something cool — a bridge, a lamp — keep the video and the transcript, for portfolio ideas'. Build C63/C148: a new `MemoAsset.Kind.video` (≤ ~200 MB, refuse larger with a clear message), written by the phone share/import path and the Mac import path when the note is filed Inspiration / Idea / Project; whichever device exports it copies the movie into the export. Phone share card copy 'the video file itself isn't kept' changes accordingly; fix the stale Mac comment IngestService.swift:355. Other destinations keep no movie. CloudKit: the new kind is a schema change — note it for promotion. Desktop test `VideoAssetSyncTests`, phone test `VideoAssetPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class VideoAssetSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VideoAssetPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q288 [auto] (doing) Mac Looking back anchors on today
+### Q288 [auto] (done) Mac Looking back anchors on today
 spec: C231 D173
 needs: -
 gate+: yes
@@ -2175,7 +2175,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac can record but has no 'Add recording' to an existing note (note-menu-03, capture-quick-16; FEATURES.md:30 '➖'). Add it to the note menu, appending via Shared AudioClipMerge the way the phone appends (see Q220). Desktop test `MacAppendRecordingTests` on the append step. Never run SkriftDesktopUITests.
 check: `grep -rqE "class MacAppendRecordingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q291 [auto] (todo) Mac quote read-only only for real captured quotes
+### Q291 [auto] (doing) Mac quote read-only only for real captured quotes
 spec: C172 D175
 needs: -
 gate+: yes
@@ -3154,3 +3154,5 @@ check: (fill in)
 - 2026-10-03 09:27 Q186 -> done — hand-merged (D174: one bundle rule, MacMultiAudioImportTests flipped to one note)
 - 2026-10-03 09:28 Q298 added
 - 2026-10-03 09:28 Q298 -> tuur — parked: promotion
+- 2026-10-03 09:33 Q291 -> doing — dispatched (sonnet)
+- 2026-10-03 09:37 Q288 -> done — gate pass @66c96c62
