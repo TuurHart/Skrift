@@ -2082,19 +2082,19 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q277 [tuur] (todo) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
+### Q277 [tuur] (tuur) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
 spec: -
 needs: -
 do: (fill in)
 check: (fill in)
 
-### Q278 [tuur] (todo) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
+### Q278 [tuur] (tuur) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
 spec: -
 needs: -
 do: (fill in)
 check: (fill in)
 
-### Q279 [tuur] (todo) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
+### Q279 [tuur] (tuur) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
 spec: -
 needs: -
 do: (fill in)
@@ -2907,3 +2907,6 @@ check: (fill in)
 - 2026-10-03 01:48 Q277 added
 - 2026-10-03 01:48 Q278 added
 - 2026-10-03 01:48 Q279 added
+- 2026-10-03 01:48 Q277 -> tuur — parked for the sitting
+- 2026-10-03 01:48 Q278 -> tuur — parked for the sitting
+- 2026-10-03 01:48 Q279 -> tuur — parked for the sitting
