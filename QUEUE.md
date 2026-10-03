@@ -2161,7 +2161,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; anchor on today like the phone, iPad and the signed journal-desktop mock. Desktop test `LookbackAnchorTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LookbackAnchorTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q289 [tuur] (doing) mockup: Mac recorder pause/resume and a confirmed discard
+### Q289 [tuur] (tuur) mockup: Mac recorder pause/resume and a confirmed discard
 spec: C220 C262 D173
 needs: -
 gate+: yes
@@ -3142,3 +3142,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 - 2026-10-03 09:05 Q186 -> doing — resumed worker: rebase + D174 test flip
 - 2026-10-03 09:05 Q289 -> doing — mockup agent (opus)
 - 2026-10-03 09:05 Q296 -> doing — mockup agent (opus)
+- 2026-10-03 09:12 Q289 -> tuur — mock https://claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW (mocks/Q289-mac-recorder-pause.html). Question: after × asks 'Discard this recording?', does the take keep recording until you answer, or pause?

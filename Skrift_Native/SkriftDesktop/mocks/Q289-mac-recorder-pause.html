@@ -1,0 +1,557 @@
+<title>Mac Recorder Pause and Discard</title>
+<style>
+/* Layout: one column at phone width. Tabs pick a frame; the Mac sidebar is drawn 1:1 (292pt) from SidebarView.swift, the pane excerpt below it, then picks, the phone strip, the question. */
+:root{
+  /* Mac Theme.swift via Shared/UI/Palette.swift — light column */
+  --win:#f7f7fa;          /* Theme.bg = Palette.bg.mac */
+  --side:#f5f5f7;         /* Theme.sidebarGround = Palette.bg.phone */
+  --surface:#ffffff;      /* Theme.surface */
+  --chip:#ebebf0;         /* Theme.chip = Palette.chipFill */
+  --t1:#1c1c20;           /* Theme.textPrimary (mac) */
+  --t2:#6c6c76;           /* Theme.textSecondary (mac) */
+  --t3:#9696a2;           /* Theme.textMuted = textTertiary.mac */
+  --accent:#6c5ce0;       /* Palette.accent */
+  --accentText:#6051c8;   /* Palette.accentText */
+  --red:#dc2626;          /* Theme.destructive = Palette.red */
+  --hair:0 0 0;           /* Theme.hairline (black on light) */
+  /* phone Theme.swift */
+  --p-bg:#f5f5f7; --p-t1:#1c1c1e; --p-t2:#6c6c72; --p-t3:#a3a3aa;
+  --p-border:rgb(0 0 0 / .09); --p-hi:#a99cff;
+  /* mock-only annotation ink: never an app color */
+  --ink:#0b7285; --ink-soft:rgb(11 114 133 / .10);
+  --shadow:0 10px 30px rgb(0 0 0 / .16), 0 1px 3px rgb(0 0 0 / .12);
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --win:#0f1117; --side:#0f1117; --surface:#181a23; --chip:#1e2130;
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a; --accent:#7c6bf5; --accentText:#b9acff; --red:#ef4444;
+  --hair:255 255 255;
+  --p-bg:#0f1117; --p-t1:#e4e4e7; --p-t2:#8b8b97; --p-t3:#55556a; --p-border:rgb(255 255 255 / .06);
+  --ink:#66d9e8; --ink-soft:rgb(102 217 232 / .12);
+  --shadow:0 10px 30px rgb(0 0 0 / .55), 0 0 0 .5px rgb(255 255 255 / .1);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --win:#0f1117; --side:#0f1117; --surface:#181a23; --chip:#1e2130;
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a; --accent:#7c6bf5; --accentText:#b9acff; --red:#ef4444;
+  --hair:255 255 255;
+  --p-bg:#0f1117; --p-t1:#e4e4e7; --p-t2:#8b8b97; --p-t3:#55556a; --p-border:rgb(255 255 255 / .06);
+  --ink:#66d9e8; --ink-soft:rgb(102 217 232 / .12);
+  --shadow:0 10px 30px rgb(0 0 0 / .55), 0 0 0 .5px rgb(255 255 255 / .1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--win);color:var(--t1);font-family:var(--sys);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.page{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:flex;flex-direction:column;gap:22px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+svg{display:block}
+
+/* ── doc chrome ── */
+.top{display:flex;flex-direction:column;gap:8px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+h1{font-size:21px;line-height:1.2;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.lede{margin:0;color:var(--t2);font-size:13.5px;max-width:60ch}
+.themes{display:flex;gap:4px;align-self:flex-start;background:rgb(var(--hair) / .06);border-radius:8px;padding:3px}
+.themes button{font-size:12px;font-weight:600;color:var(--t2);padding:5px 10px;border-radius:6px}
+.themes button[aria-pressed="true"]{background:var(--surface);color:var(--t1);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+h2{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);margin:0}
+
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:color-mix(in srgb,var(--t1) 7%,var(--win));border-radius:10px;padding:3px;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backdrop-filter:blur(12px)}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 2px;border-radius:8px;min-height:44px;justify-content:center}
+.tabs .n{font-size:10.5px;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums}
+.tabs .l{font-size:12px;font-weight:600;color:var(--t2);white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 3px rgb(0 0 0 / .14)}
+.tabs button[aria-selected="true"] .l{color:var(--t1)}
+.tabs button[aria-selected="true"] .n{color:var(--ink)}
+
+.caption{font-size:13px;color:var(--t2);margin:0;min-height:2.9em}
+.caption b{color:var(--t1);font-weight:600}
+
+.stagewrap{display:flex;flex-direction:column;gap:10px}
+.lbl{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);display:flex;gap:6px;align-items:center}
+
+/* ── Mac sidebar, 1:1 points ── */
+.mac{width:292px;max-width:100%;align-self:center;position:relative;border-radius:12px;overflow:visible;
+  box-shadow:0 0 0 .5px rgb(var(--hair) / .14), 0 8px 24px rgb(0 0 0 / .08)}
+.side{background:var(--side);border-radius:12px;overflow:hidden}
+.hdr{padding:12px 12px 11px;display:flex;flex-direction:column;gap:12px;border-bottom:.5px solid rgb(var(--hair) / .06);position:relative}
+.lights{display:flex;gap:8px;height:14px;align-items:center;margin-bottom:12px}
+.lights i{width:12px;height:12px;border-radius:50%;display:block}
+.lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.brand{display:flex;align-items:center;justify-content:space-between}
+.brand .b{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:700}
+.logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,rgb(142 125 255),rgb(106 89 239));color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center;box-shadow:0 1px 3px rgb(124 107 245 / .45)}
+.gear{width:24px;height:24px;border-radius:6px;background:rgb(var(--hair) / .05);display:grid;place-items:center;color:var(--t2)}
+
+/* verb pair (idle) — VerbRow.swift, VerbButtonStyle.mac */
+.pair{display:flex;gap:7px}
+.verb{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:8px;background:rgb(var(--hair) / .06);color:var(--t1);white-space:nowrap}
+.verb.rec{color:var(--red)}
+.verb.rec .d{width:9px;height:9px;border-radius:50%;background:var(--red)}
+.verb.new{flex:0 0 34px}
+
+/* the transport — SidebarView.swift:388-420, plus the Q289 controls */
+.tp{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;height:40px;
+  background:color-mix(in srgb,var(--red) 11%,transparent);border:1px solid color-mix(in srgb,var(--red) 30%,transparent);
+  transition:background .2s,border-color .2s;position:relative}
+.tp .dot{width:9px;height:9px;border-radius:50%;background:var(--red);flex:none;animation:pulse 1.4s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.35}}
+.tp .time{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--red);font-variant-numeric:tabular-nums;flex:none;min-width:30px}
+.tp .meter{flex:1;min-width:0;height:16px;display:flex;align-items:center;gap:2px}
+.tp .meter i{flex:1;border-radius:1px;background:color-mix(in srgb,var(--red) 55%,transparent);height:12%;transition:height .09s}
+.tp .pword{flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--t2);display:none;white-space:nowrap}
+.cbtn{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;flex:none;position:relative}
+.cbtn::after{content:"";position:absolute;inset:-11px -4px}  /* 44pt-ish hit area for the phone viewer; the Mac has a pointer */
+.cbtn.x{color:var(--t2);background:rgb(var(--hair) / .07)}
+.cbtn.pz{color:var(--red);background:color-mix(in srgb,var(--red) 16%,transparent)}
+.cbtn.stop{background:var(--red)}
+.cbtn.stop span{width:8px;height:8px;border-radius:1.5px;background:#fff}
+.cbtn.x[aria-expanded="true"]{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+/* paused look */
+.tp.paused{background:var(--chip);border-color:rgb(var(--hair) / .10)}
+.tp.paused .dot{animation:none;background:transparent;box-shadow:inset 0 0 0 1.5px var(--t3)}
+.tp.paused .time{color:var(--t2)}
+.tp.paused .meter{display:none}
+.tp.paused .pword{display:block}
+
+.proc{display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:8px;background:var(--accent)}
+.proc.off{opacity:.4}
+.proc .c{font-size:11px;padding:0 5px;border-radius:5px;background:rgb(255 255 255 / .22)}
+.search{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:rgb(var(--hair) / .06);box-shadow:inset 0 0 0 .5px rgb(var(--hair) / .08);font-size:12px;color:var(--t3)}
+.chips{display:flex;gap:8px;align-items:center;white-space:nowrap}
+.chips .scroll{flex:1;min-width:0;display:flex;gap:5px;overflow:hidden}
+.chips span{font-size:11px;padding:4px 9px;border-radius:6px;color:var(--t2);flex:none}
+.chips span.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent)}
+.chips span b{font-weight:600}
+.chips .sort{flex:none;font-size:11px;color:var(--t3)}
+
+.queue{padding:10px 12px 14px;display:flex;flex-direction:column;gap:6px}
+.dayh{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--t3);padding:4px 2px 2px}
+/* LiveTakeRow — RecordingDraftView.swift:240-281 */
+.ltr{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;background:color-mix(in srgb,var(--accent) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent)}
+.ltr .mic{width:14px;color:var(--red);display:grid;place-items:center}
+.ltr .tt{flex:1;min-width:0}
+.ltr .t1{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ltr .t2{font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums}
+.ltr .rd{width:7px;height:7px;border-radius:50%;background:var(--red);opacity:.85;flex:none}
+.ltr.paused .rd{background:transparent;box-shadow:inset 0 0 0 1.5px var(--t3);opacity:1}
+.card{background:var(--surface);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;box-shadow:0 0 0 .5px rgb(var(--hair) / .06)}
+.card .t1{font-size:12.5px;font-weight:600}
+.card .t2{font-size:10.5px;color:var(--t3)}
+
+/* discard confirm — pick A (popover) */
+.pop{position:absolute;left:4px;top:calc(100% + 9px);width:232px;z-index:10;background:var(--surface);border-radius:10px;box-shadow:var(--shadow);padding:13px 13px 12px;display:flex;flex-direction:column;gap:4px}
+.pop::before{content:"";position:absolute;top:-6px;left:12px;width:12px;height:12px;background:var(--surface);transform:rotate(45deg);border-radius:2px 0 0 0;box-shadow:-.5px -.5px 0 rgb(var(--hair) / .08)}
+.pop h3,.alert h3{margin:0;font-size:13px;font-weight:700;color:var(--t1)}
+.pop p,.alert p{margin:0;font-size:11.5px;color:var(--t2);line-height:1.4}
+.btns{display:flex;gap:7px;margin-top:9px}
+.btns button{flex:1;font-size:12.5px;font-weight:600;padding:6px 0;border-radius:7px;min-height:30px}
+.b-discard{color:var(--red);background:color-mix(in srgb,var(--red) 11%,transparent)}
+.b-keep{color:#fff;background:var(--accent)}
+/* alternative: a window alert */
+.scrim{position:absolute;inset:0;border-radius:12px;background:rgb(0 0 0 / .28);z-index:9;display:grid;place-items:center;padding:16px}
+.alert{width:100%;max-width:250px;background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px}
+.alert .logo{width:36px;height:36px;border-radius:9px;font-size:20px;margin-bottom:4px}
+.alert .btns{width:100%}
+
+/* annotation badges — mock ink only */
+.bad{position:absolute;z-index:12;font-size:9.5px;font-weight:800;color:var(--ink);background:var(--side);box-shadow:inset 0 0 0 1.5px var(--ink);border-radius:9px;height:18px;min-width:18px;padding:0 5px;display:grid;place-items:center;letter-spacing:.02em;pointer-events:none}
+
+/* pane excerpt — RecordingDraftBody */
+.pane{width:100%;max-width:420px;align-self:center;background:var(--win);border-radius:12px;box-shadow:0 0 0 .5px rgb(var(--hair) / .14);padding:18px 18px 20px;display:flex;flex-direction:column;gap:12px}
+.ptitle{font-size:22px;font-weight:700;font-style:italic;color:var(--t3);line-height:1.2;margin:0}
+.mchips{display:flex;gap:6px;flex-wrap:wrap}
+.mchip{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--t2);background:rgb(var(--hair) / .06);border-radius:7px;padding:2px 7px;font-variant-numeric:tabular-nums}
+.nr{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--t3)}
+.nr i{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--t3)}
+.draft{font-size:15px;line-height:1.9;margin:0;padding-top:6px;color:var(--t1)}
+.wet{font-style:italic;color:var(--t3)}
+.caret{display:inline-block;width:2px;height:17px;background:var(--accent);vertical-align:-3px;margin-left:2px;animation:pulse .5s ease-in-out infinite alternate}
+.pane.paused .caret{animation:none;opacity:.3}
+.idle-note{font-size:13px;color:var(--t2);margin:0}
+
+.toast{align-self:center;font-size:12px;font-weight:600;color:var(--t1);background:var(--surface);box-shadow:var(--shadow);border-radius:999px;padding:7px 14px;min-height:30px;display:flex;align-items:center;gap:6px;transition:opacity .25s}
+.toast[data-show="false"]{opacity:0}
+
+/* picks */
+.picks{display:flex;flex-direction:column;gap:10px}
+.pick{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:12px;border-radius:10px;background:var(--ink-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 30%,transparent)}
+.pick .bad{position:static;background:transparent}
+.pick h3{margin:0;font-size:14px;font-weight:700;line-height:1.3}
+.pick p{margin:0;font-size:13px;color:var(--t2);grid-column:2;min-width:0}
+.pick p b{color:var(--t1);font-weight:600}
+.seg{grid-column:2;display:flex;gap:4px;background:rgb(var(--hair) / .07);border-radius:8px;padding:3px;align-self:start;justify-self:start;margin-top:4px}
+.seg button{font-size:12px;font-weight:600;color:var(--t2);padding:6px 11px;border-radius:6px;min-height:32px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--t1);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+
+/* phone strip — RecordView.swift */
+.phone{width:100%;max-width:360px;align-self:center;background:var(--p-bg);border-radius:28px;box-shadow:0 0 0 .5px rgb(var(--hair) / .14);padding:14px 16px 22px;display:flex;flex-direction:column;align-items:stretch}
+.ptop{display:flex;justify-content:space-between}
+.pcirc{width:32px;height:32px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1px var(--p-border);display:grid;place-items:center;color:var(--p-t2)}
+.pstat{display:flex;align-items:center;gap:7px;justify-content:center;font-size:13px;font-weight:600;color:var(--p-t2);margin-top:6px}
+.pstat i{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 5px var(--red)}
+.pwave{display:flex;align-items:center;gap:14px;margin-top:26px}
+.pbars{flex:1;min-width:0;height:52px;display:flex;align-items:center;gap:3px}
+.pbars i{flex:1;border-radius:9px;background:linear-gradient(to top,var(--accent),var(--p-hi));height:12%;transition:height .08s}
+.ptime{font-family:var(--round);font-size:22px;font-weight:600;color:var(--p-t2);font-variant-numeric:tabular-nums}
+.pctl{display:flex;justify-content:space-around;align-items:flex-start;margin-top:22px}
+.pcb{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--p-t2)}
+.pcb .c{width:54px;height:54px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1px var(--p-border);display:grid;place-items:center;color:var(--p-t1)}
+.pcb.acc .c{background:color-mix(in srgb,var(--accent) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent);color:var(--accentText)}
+.pstop{width:74px;height:74px;border-radius:50%;box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--red) 35%,transparent);display:grid;place-items:center}
+.pstop span{width:28px;height:28px;border-radius:8px;background:var(--red)}
+.map{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px;color:var(--t2);margin:0}
+.map dt{font-weight:600;color:var(--t1);white-space:nowrap}
+.map dd{margin:0;min-width:0}
+
+.q{padding:14px;border-radius:12px;background:var(--surface);box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 45%,transparent);display:flex;flex-direction:column;gap:6px}
+.q p{margin:0;font-size:15px;font-weight:600;line-height:1.4;text-wrap:pretty}
+.q small{font-size:12.5px;color:var(--t2)}
+.src{font-size:12px;color:var(--t2);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.src code{font-family:var(--mono);font-size:11px;color:var(--t1);word-break:break-all}
+@media (prefers-reduced-motion: reduce){.tp .dot,.caret{animation:none}}
+</style>
+
+<div class="page">
+  <div class="top">
+    <span class="eyebrow">Q289 · mockup · D173 · C262</span>
+    <h1>Mac recorder: pause, resume, discard</h1>
+    <p class="lede">The sidebar transport as it is in source today, plus two new controls: discard (×) and pause / resume. Discard asks first. Everything inside the frames works: pause, resume, discard, keep, stop, record again.</p>
+    <div class="themes" role="group" aria-label="Theme">
+      <button type="button" data-t="system" aria-pressed="true">System</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Frames">
+    <button type="button" role="tab" data-f="rec" aria-selected="true"><span class="n">1</span><span class="l">Recording</span></button>
+    <button type="button" role="tab" data-f="paused" aria-selected="false"><span class="n">2</span><span class="l">Paused</span></button>
+    <button type="button" role="tab" data-f="confirm" aria-selected="false"><span class="n">3</span><span class="l">Discard?</span></button>
+    <button type="button" role="tab" data-f="kept" aria-selected="false"><span class="n">4</span><span class="l">Kept</span></button>
+  </div>
+
+  <div class="stagewrap">
+    <p class="caption" id="caption"></p>
+
+    <div class="lbl">Mac · sidebar header · 292 pt, drawn 1:1</div>
+    <div class="mac" id="mac">
+      <div class="side">
+        <div class="hdr" id="hdr">
+          <div>
+            <div class="lights"><i></i><i></i><i></i></div>
+            <div class="brand">
+              <div class="b"><span class="logo">S</span>Skrift</div>
+              <span class="gear" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span>
+            </div>
+          </div>
+
+          <!-- idle: the verb pair -->
+          <div class="pair" id="pair" hidden>
+            <button type="button" class="verb" id="imp"><svg width="11" height="11" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>Import</button>
+            <button type="button" class="verb rec" id="recbtn"><span class="d"></span>Record</button>
+            <button type="button" class="verb new" id="newn" aria-label="New note"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 9v4.5H2.5V3H7"/><path d="M11.5 1.8l2.7 2.7L8 10.7H5.3V8z"/></svg></button>
+          </div>
+
+          <!-- live: the transport -->
+          <div class="tp" id="tp">
+            <button type="button" class="cbtn x" id="xbtn" aria-label="Discard recording" aria-expanded="false" title="Discard recording">
+              <svg width="9" height="9" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+            </button>
+            <span class="dot"></span>
+            <span class="time" id="time">1:04</span>
+            <span class="meter" id="meter"></span>
+            <span class="pword">Paused</span>
+            <button type="button" class="cbtn pz" id="pzbtn" aria-label="Pause" title="Pause">
+              <svg id="pzicon" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1.5" y="1" width="2.4" height="8" rx=".6"/><rect x="6.1" y="1" width="2.4" height="8" rx=".6"/></svg>
+            </button>
+            <button type="button" class="cbtn stop" id="stopbtn" aria-label="Stop and save" title="Stop and save"><span></span></button>
+
+            <div class="pop" id="pop" hidden role="dialog" aria-labelledby="popT">
+              <h3 id="popT">Discard this recording?</h3>
+              <p id="popB">1:12 of audio and the words so far are deleted. You can't undo this.</p>
+              <div class="btns">
+                <button type="button" class="b-discard" data-act="discard">Discard</button>
+                <button type="button" class="b-keep" data-act="keep">Keep</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="proc off" id="proc"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l7 4-7 4z"/></svg>Process<span class="c">3</span></div>
+          <div class="search"><svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="3.6"/><path d="M7.8 7.8l2.8 2.8" stroke-linecap="round"/></svg>Search memos</div>
+          <div class="chips"><div class="scroll"><span class="on">All</span><span>Needs Work <b>3</b></span><span>Done <b>12</b></span><span>Unrated <b>2</b></span><span>Date</span></div><span class="sort">Newest</span></div>
+
+          <span class="bad" id="badA" style="left:5px;top:-2px" hidden>A</span>
+          <span class="bad" id="badB" hidden>B</span>
+          <span class="bad" id="badC" hidden>C</span>
+        </div>
+        <div class="queue">
+          <div class="dayh">TODAY</div>
+          <div class="ltr" id="ltr">
+            <span class="mic"><svg width="9" height="12" viewBox="0 0 9 12" fill="currentColor"><rect x="2" y="0" width="5" height="8" rx="2.5"/><path d="M.8 5.5a3.7 3.7 0 007.4 0" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M4.5 9.3V12" stroke="currentColor" stroke-width="1.1"/></svg></span>
+            <span class="tt"><div class="t1">Recording…</div><div class="t2" id="ltrsub">today · 1:04</div></span>
+            <span class="rd"></span>
+          </div>
+          <div class="card"><span class="t1">Rui's bike shop, rear brake</span><span class="t2">09:12 · 2:31 · Voice memo</span></div>
+          <div class="card"><span class="t1">Standup notes</span><span class="t2">08:40 · Typed</span></div>
+        </div>
+      </div>
+
+      <div class="scrim" id="scrim" hidden>
+        <div class="alert" role="alertdialog" aria-labelledby="alT">
+          <span class="logo">S</span>
+          <h3 id="alT">Discard this recording?</h3>
+          <p id="alB">1:12 of audio and the words so far are deleted. You can't undo this.</p>
+          <div class="btns">
+            <button type="button" class="b-discard" data-act="discard">Discard</button>
+            <button type="button" class="b-keep" data-act="keep">Keep</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" data-show="false" role="status">&nbsp;</div>
+
+    <div class="lbl">Mac · note pane while recording · excerpt</div>
+    <div class="pane" id="pane">
+      <div id="paneLive" style="display:flex;flex-direction:column;gap:12px">
+        <p class="ptitle">First words become the title…</p>
+        <div class="mchips">
+          <span class="mchip"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="2" width="10" height="9" rx="1.5"/><path d="M1 5h10M4 .8v2.4M8 .8v2.4"/></svg>Sat, 3 Oct 2026</span>
+          <span class="mchip"><svg width="8" height="10" viewBox="0 0 9 12" fill="currentColor"><rect x="2" y="0" width="5" height="8" rx="2.5"/></svg>Voice memo</span>
+          <span class="mchip" id="paneTime"><svg width="11" height="10" viewBox="0 0 12 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1 4v2M3.5 2v6M6 0.8v8.4M8.5 3v4M11 4.2v1.6"/></svg><span>1:04</span></span>
+        </div>
+        <div class="nr"><i></i>Not rated — record first, judge later</div>
+        <p class="draft">Pick up the bike from Rui's on Thursday, and ask him whether the <span class="wet">rear brake pads can wait until after the weekend</span><span class="caret"></span></p>
+      </div>
+      <p class="idle-note" id="paneIdle" hidden>The pane goes back to the note you had open before you pressed Record.</p>
+    </div>
+  </div>
+
+  <section class="picks" aria-labelledby="pk">
+    <h2 id="pk">Three picks you might overrule</h2>
+    <div class="pick">
+      <span class="bad">A</span>
+      <h3>The discard question is a popover on the ×, not a window alert</h3>
+      <p>It points at the button you pressed and stays inside the sidebar. <b>Keep</b> is the default (Return); Discard is red and never the default. The × sits at the far left of the transport, as far from Stop as the row allows, like the phone's X in its top-left corner.</p>
+      <div class="seg" role="group" aria-label="Confirm style">
+        <button type="button" data-cs="pop" aria-pressed="true">Popover</button>
+        <button type="button" data-cs="alert" aria-pressed="false">Window alert</button>
+      </div>
+    </div>
+    <div class="pick">
+      <span class="bad">B</span>
+      <h3>Paused swaps the meter for the word "Paused" and drains the red</h3>
+      <p>The tint goes to the neutral chip fill, the dot goes hollow and stops pulsing, the time freezes in grey. The pause button turns into ▶ Resume in the same spot. The sidebar row and the pane's caret go quiet too. The other way: keep the red and show a frozen flat meter.</p>
+    </div>
+    <div class="pick">
+      <span class="bad">C</span>
+      <h3>While the question is open, the take keeps recording</h3>
+      <p>Watch the time in frame 3: it keeps counting. <b>Keep</b> changes nothing, so no words are lost if you hesitate. The other way: opening the question pauses the take, and Keep resumes it.</p>
+    </div>
+  </section>
+
+  <section class="stagewrap" aria-labelledby="ph">
+    <h2 id="ph">The phone today, for comparison</h2>
+    <div class="lbl">RecordView.swift · controls, 1:1 · mirrors the Mac state above</div>
+    <div class="phone" id="phone">
+      <div class="ptop">
+        <span class="pcirc" aria-label="Close"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg></span>
+        <span class="pcirc" style="color:var(--accent)"><svg width="14" height="13" viewBox="0 0 14 13" fill="currentColor"><path d="M2 0h10a2 2 0 012 2v6a2 2 0 01-2 2H6l-3.5 3V10H2a2 2 0 01-2-2V2a2 2 0 012-2z"/></svg></span>
+      </div>
+      <div class="pstat"><i></i><span id="pstatT">Recording</span></div>
+      <div class="pwave"><div class="pbars" id="pbars"></div><span class="ptime" id="ptime">1:04</span></div>
+      <div class="pctl">
+        <span class="pcb"><span class="c" id="ppz"></span><span id="ppzT">Pause</span></span>
+        <span class="pstop"><span></span></span>
+        <span class="pcb acc"><span class="c"><svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor"><path d="M7 0h6l1.5 2.5H18a2 2 0 012 2V14a2 2 0 01-2 2H2a2 2 0 01-2-2V4.5a2 2 0 012-2h3.5z"/><circle cx="10" cy="9" r="3.4" fill="var(--surface)"/></svg></span>Photo</span>
+      </div>
+    </div>
+    <dl class="map">
+      <dt>× / X</dt><dd>Mac asks first (new). Phone discards with no question today (R71); C262 adds the same question there.</dd>
+      <dt>Pause</dt><dd>Same verbs on both: Pause, then Resume, and the word "Paused". Mac shows them as tooltips.</dd>
+      <dt>Stop</dt><dd>Red square on red, unchanged on both. Stop saves.</dd>
+      <dt>Photo</dt><dd>Phone only. The Mac has no camera control.</dd>
+    </dl>
+  </section>
+
+  <section class="q" aria-labelledby="qq">
+    <h2 id="qq">The question for sign-off</h2>
+    <p>When you press × and the question is up, should the take keep recording (pick C) or pause until you answer?</p>
+    <small>It decides what Keep means: "nothing happened" or "carry on". Copy and button order follow from it.</small>
+  </section>
+
+  <section class="stagewrap" aria-labelledby="sr">
+    <h2 id="sr">Drawn from source</h2>
+    <ul class="src">
+      <li><code>SkriftDesktop/Features/Sidebar/SidebarView.swift:322-330</code> transport replaces the Import / Record / new-note pair while live</li>
+      <li><code>SkriftDesktop/Features/Sidebar/SidebarView.swift:388-420</code> transport: dot, elapsed, 12-bar meter, stop</li>
+      <li><code>SkriftDesktop/Features/Sidebar/SidebarView.swift:472-493</code> Process greys out while recording</li>
+      <li><code>SkriftDesktop/Features/Recording/RecordingDraftView.swift:120-166, 217-234</code> pane title, chips, not-rated line, wet tail and caret</li>
+      <li><code>SkriftDesktop/Features/Recording/RecordingDraftView.swift:240-281</code> the sidebar's Recording… row</li>
+      <li><code>SkriftDesktop/Features/Shell/LiveRecordingSession.swift:213-221</code> <code>cancel()</code> exists, nothing in the UI calls it</li>
+      <li><code>SkriftDesktop/Features/Theme/Theme.swift:10-39</code> and <code>Shared/UI/Palette.swift:27-63</code> colors</li>
+      <li><code>Shared/UI/VerbRow.swift:29-76</code> Import / Record / new-note labels</li>
+      <li><code>SkriftMobile/Features/Recording/RecordView.swift:186-200, 347-355, 418-462, 642-656, 892-921</code> phone X, status, waveform, controls</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const root = document.documentElement;
+  const S = { mode:'rec', prev:'rec', elapsed:64, confirmStyle:'pop', frame:'rec' };
+  const fmt = t => Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0');
+
+  // theme
+  document.querySelectorAll('.themes button').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.t;
+    if (t === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+    document.querySelectorAll('.themes button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    try { localStorage.setItem('q289-theme', t); } catch(e){}
+  }));
+  try { const t = localStorage.getItem('q289-theme'); if (t) document.querySelector('.themes [data-t="'+t+'"]')?.click(); } catch(e){}
+
+  // meters
+  const meter = $('#meter'), pbars = $('#pbars');
+  for (let i=0;i<12;i++) meter.appendChild(document.createElement('i'));
+  for (let i=0;i<40;i++) pbars.appendChild(document.createElement('i'));
+  const mac = Array(12).fill(0), ph = Array(40).fill(0);
+  let phase = 0;
+  function level(){ phase += .37; const speech = (Math.sin(phase)*.5+.5) * (Math.sin(phase*.23)*.5+.5); return Math.min(1, speech*.9 + Math.random()*.35); }
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pushMeters(){
+    const live = S.mode === 'rec' || S.mode === 'kept' || (S.mode === 'confirm' && S.prev !== 'paused');
+    const l = live ? level() : 0;
+    if (live) { mac.shift(); mac.push(l); ph.shift(); ph.push(l); }
+    meter.querySelectorAll('i').forEach((el,i) => el.style.height = ((0.12 + mac[i]*0.88)*100) + '%');
+    pbars.querySelectorAll('i').forEach((el,i) => { el.style.height = ((0.12 + ph[i]*0.88)*100) + '%'; el.style.opacity = (0.45 + ph[i]*0.55); });
+  }
+  setInterval(pushMeters, reduced ? 400 : 110);
+
+  // clock: runs unless paused (pick C: it runs while the question is open)
+  setInterval(() => {
+    const running = S.mode === 'rec' || S.mode === 'kept' || (S.mode === 'confirm' && S.prev !== 'paused');
+    if (running) { S.elapsed += 1; paintTime(); }
+  }, 1000);
+
+  function paintTime(){
+    const t = fmt(S.elapsed);
+    $('#time').textContent = t; $('#ptime').textContent = t;
+    $('#paneTime span').textContent = t;
+    $('#ltrsub').textContent = 'today · ' + t + (isPaused() ? ' · paused' : '');
+    const body = t + ' of audio and the words so far are deleted. You can’t undo this.';
+    $('#popB').textContent = body; $('#alB').textContent = body;
+  }
+  const isPaused = () => S.mode === 'paused' || (S.mode === 'confirm' && S.prev === 'paused');
+
+  const captions = {
+    rec: '<b>Recording.</b> Today’s transport with two additions: × on the left, pause beside Stop. Tap ❚❚ or ×.',
+    paused: '<b>Paused.</b> Time frozen, meter replaced by the word, ▶ in the pause slot resumes. Stop still saves.',
+    confirm: '<b>Discard pressed.</b> The question points at ×. The time behind it keeps counting (pick C).',
+    kept: '<b>Kept.</b> Back to recording, nothing lost, the clock never stopped. Same look as frame 1.',
+    discarded: '<b>Discarded.</b> Audio and words deleted, the pair is back, Process wakes up. Tap Record to start over.',
+    stopped: '<b>Stopped and saved.</b> Unchanged by this item: the take becomes a note. Tap Record to start over.'
+  };
+  let toastTimer;
+  function toast(msg){
+    const t = $('#toast'); t.textContent = msg; t.dataset.show = 'true';
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.dataset.show = 'false'; }, 2600);
+  }
+
+  function render(){
+    const live = !(S.mode === 'discarded' || S.mode === 'stopped');
+    const paused = isPaused();
+    $('#pair').hidden = live; $('#tp').hidden = !live;
+    $('#tp').classList.toggle('paused', paused);
+    $('#ltr').hidden = !live; $('#ltr').classList.toggle('paused', paused);
+    $('#proc').classList.toggle('off', live);
+    $('#paneLive').style.display = live ? 'flex' : 'none'; $('#paneIdle').hidden = live;
+    $('#pane').classList.toggle('paused', paused);
+    // pause / resume control
+    $('#pzbtn').setAttribute('aria-label', paused ? 'Resume' : 'Pause');
+    $('#pzbtn').title = paused ? 'Resume' : 'Pause';
+    $('#pzicon').innerHTML = paused ? '<path d="M2.5 1l6.5 4-6.5 4z"/>' : '<rect x="1.5" y="1" width="2.4" height="8" rx=".6"/><rect x="6.1" y="1" width="2.4" height="8" rx=".6"/>';
+    // confirm
+    const confirming = S.mode === 'confirm';
+    $('#pop').hidden = !(confirming && S.confirmStyle === 'pop');
+    $('#scrim').hidden = !(confirming && S.confirmStyle === 'alert');
+    $('#xbtn').setAttribute('aria-expanded', String(confirming));
+    // badges
+    $('#badA').hidden = !(confirming && S.confirmStyle === 'pop');
+    positionBadges(paused, confirming);
+    // phone mirror
+    $('#pstatT').textContent = live ? (paused ? 'Paused' : 'Recording') : 'Recording';
+    $('#ppzT').textContent = paused ? 'Resume' : 'Pause';
+    $('#ppz').innerHTML = paused
+      ? '<svg width="18" height="20" viewBox="0 0 18 20" fill="currentColor"><path d="M3 1.5l14 8.5-14 8.5z"/></svg>'
+      : '<svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor"><rect x="1" y="1" width="5" height="18" rx="1.2"/><rect x="10" y="1" width="5" height="18" rx="1.2"/></svg>';
+    // caption + tabs
+    $('#caption').innerHTML = captions[S.mode];
+    const tab = S.mode === 'discarded' || S.mode === 'stopped' ? null : (S.mode === 'confirm' ? 'confirm' : (S.mode === 'kept' ? 'kept' : (S.mode === 'paused' ? 'paused' : 'rec')));
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.f === tab)));
+    paintTime();
+  }
+
+  function positionBadges(paused, confirming){
+    const hdr = $('#hdr').getBoundingClientRect();
+    const B = $('#badB'), C = $('#badC');
+    B.hidden = !paused;
+    C.hidden = !(confirming && !paused);
+    if (paused) { const r = $('.pword').getBoundingClientRect(); B.style.left = (r.left - hdr.left + 48) + 'px'; B.style.top = (r.top - hdr.top - 13) + 'px'; }
+    if (confirming && !paused) { const r = $('#time').getBoundingClientRect(); C.style.left = (r.left - hdr.left + 22) + 'px'; C.style.top = (r.top - hdr.top - 15) + 'px'; }
+    if (confirming && S.confirmStyle === 'pop') { const r = $('#xbtn').getBoundingClientRect(); const A = $('#badA'); A.style.left = (r.left - hdr.left - 9) + 'px'; A.style.top = (r.top - hdr.top - 12) + 'px'; }
+  }
+  addEventListener('resize', () => render());
+
+  // controls
+  $('#pzbtn').addEventListener('click', () => {
+    if (S.mode === 'confirm') return;
+    if (isPaused()) { S.mode = 'rec'; toast('Resumed'); }
+    else { S.mode = 'paused'; toast('Paused at ' + fmt(S.elapsed)); }
+    render();
+  });
+  $('#xbtn').addEventListener('click', () => {
+    if (S.mode === 'confirm') { S.mode = S.prev; render(); return; }
+    S.prev = S.mode === 'paused' ? 'paused' : 'rec'; S.mode = 'confirm'; render();
+  });
+  document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.act === 'keep') { S.mode = S.prev === 'paused' ? 'paused' : 'kept'; toast(S.mode === 'paused' ? 'Kept, still paused' : 'Kept, still recording'); }
+    else { S.mode = 'discarded'; toast('Recording discarded'); }
+    render();
+  }));
+  document.addEventListener('keydown', e => {
+    if (S.mode !== 'confirm') return;
+    if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); document.querySelector(S.confirmStyle === 'pop' ? '#pop .b-keep' : '#scrim .b-keep').click(); }
+  });
+  $('#stopbtn').addEventListener('click', () => { S.mode = 'stopped'; toast('Saved as a note'); render(); });
+  $('#recbtn').addEventListener('click', () => { S.elapsed = 0; for (let i=0;i<12;i++) mac[i]=0; S.mode = 'rec'; render(); });
+  $('#imp').addEventListener('click', () => toast('Import opens the file panel (unchanged)'));
+  $('#newn').addEventListener('click', () => toast('New typed note (unchanged)'));
+
+  // frame tabs set fixture times
+  const fixture = { rec:64, paused:72, confirm:78, kept:81 };
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    const f = b.dataset.f; S.elapsed = fixture[f];
+    if (f === 'confirm') { S.prev = 'rec'; S.mode = 'confirm'; }
+    else S.mode = f;
+    if (f === 'kept') toast('Kept, still recording');
+    render();
+  }));
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    S.confirmStyle = b.dataset.cs;
+    document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    S.prev = 'rec'; S.elapsed = fixture.confirm; S.mode = 'confirm'; render();
+    $('#mac').scrollIntoView({block:'center', behavior: reduced ? 'auto' : 'smooth'});
+  }));
+
+  for (let i=0;i<14;i++) { const l = level(); mac.shift(); mac.push(l); }
+  for (let i=0;i<40;i++) { const l = level(); ph.shift(); ph.push(l); }
+  render(); pushMeters();
+})();
+</script>
