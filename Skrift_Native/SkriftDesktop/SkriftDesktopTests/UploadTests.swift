@@ -2,6 +2,9 @@ import XCTest
 import SwiftData
 import Foundation
 
+/// Q214: `UploadService` has ONE typed entry — `ingest(memo:assets:into:)` / `prepare(memo:assets:)`
+/// reading the `Memo` and its `MemoAsset`s directly. (These tests used to feed fake multipart
+/// parts; the Bonjour/HTTP server those mirrored is retired.)
 final class UploadServiceTests: XCTestCase {
 
     private func memoryContext() throws -> ModelContext {
@@ -10,24 +13,24 @@ final class UploadServiceTests: XCTestCase {
         return ModelContext(container)
     }
 
+    private func audio(_ memo: Memo, _ bytes: String = "AUDIO") -> MemoAsset {
+        MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
+                  filename: memo.audioFilename, blob: Data(bytes.utf8))
+    }
+
     func testIngestTrustedTranscriptIsAccepted() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_abc.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9}"#.utf8)),
-            MultipartPart(name: "transcript", filename: nil, contentType: nil, data: Data("hello world".utf8)),
-        ]
-        let created = try svc.ingest(parts: parts, into: ctx)
-        XCTAssertEqual(created.count, 1)
-        let pf = created[0]
+        let memo = Memo(audioFilename: "memo_abc.m4a", transcript: "hello world", transcriptStatus: .done,
+                        transcriptConfidence: 0.9, metadataData: Data(#"{"transcriptConfidence":0.9}"#.utf8))
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio(memo)], into: ctx))
+        XCTAssertEqual(pf.id, memo.id.uuidString)
         XCTAssertEqual(pf.filename, "memo_abc.m4a")
         XCTAssertEqual(pf.transcript, "hello world")
         XCTAssertEqual(pf.transcribeStatus, .done)             // trusted (conf 0.9)
         XCTAssertEqual(pf.sanitiseStatus, .pending)            // Mac links names
         XCTAssertTrue(FileManager.default.fileExists(atPath: pf.path))
-        XCTAssertNotNil(pf.audioMetadataJSON)                  // metadata preserved verbatim
+        XCTAssertNotNil(pf.audioMetadataJSON)                  // metadata stored for downstream readers
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<PipelineFile>()).count, 1)
     }
 
@@ -36,16 +39,15 @@ final class UploadServiceTests: XCTestCase {
         let ctx = try memoryContext()
         let words = Data(#"[{"word":"hi","start":0.0,"end":0.5},{"word":"there","start":0.5,"end":1.0}]"#.utf8)
         let diar = Data(#"{"segments":[{"speaker":0,"start":0.0,"end":1.0},{"speaker":1,"start":1.0,"end":2.0}],"slotNames":{"0":"Tiuri Hartog"}}"#.utf8)
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_conv.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9,"source":"mobile"}"#.utf8)),
-            MultipartPart(name: "transcript", filename: nil, contentType: nil,
-                          data: Data("**Tiuri Hartog:** hi\n\n**Speaker 2:** there".utf8)),
-            MultipartPart(name: "wordTimings", filename: nil, contentType: "application/json", data: words),
-            MultipartPart(name: "diar", filename: nil, contentType: "application/json", data: diar),
+        let memo = Memo(audioFilename: "memo_conv.m4a",
+                        transcript: "**Tiuri Hartog:** hi\n\n**Speaker 2:** there", transcriptStatus: .done,
+                        transcriptConfidence: 0.9)
+        let assets = [
+            audio(memo),
+            MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.wordTimings, filename: "wt.json", blob: words),
+            MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.diarization, filename: "diar.json", blob: diar),
         ]
-        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: assets, into: ctx))
         // Word-timings drive Mac karaoke on a trusted memo it never re-transcribes.
         XCTAssertEqual(pf.wordTimings.map(\.word), ["hi", "there"])
         // Diarization segments retained for voice enrollment + mirrored to the sidecar.
@@ -55,17 +57,13 @@ final class UploadServiceTests: XCTestCase {
         XCTAssertEqual(loaded.slotNames["0"], "Tiuri Hartog")
     }
 
-    func testIngestWithoutNewPartsStaysByteCompatible() throws {
-        // An older phone build (no wordTimings/diar parts) ingests exactly as before.
+    func testIngestWithoutSidecarsStaysByteCompatible() throws {
+        // An older phone build (no wordTimings/diar assets) ingests exactly as before.
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_old.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9}"#.utf8)),
-            MultipartPart(name: "transcript", filename: nil, contentType: nil, data: Data("hello".utf8)),
-        ]
-        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        let memo = Memo(audioFilename: "memo_old.m4a", transcript: "hello", transcriptStatus: .done,
+                        transcriptConfidence: 0.9)
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio(memo)], into: ctx))
         XCTAssertEqual(pf.transcript, "hello")
         XCTAssertTrue(pf.wordTimings.isEmpty)
         XCTAssertTrue(pf.diarizationSegments.isEmpty)
@@ -74,44 +72,39 @@ final class UploadServiceTests: XCTestCase {
     func testIngestUntrustedTranscriptIsDropped() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_xyz.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.5}"#.utf8)),
-            MultipartPart(name: "transcript", filename: nil, contentType: nil, data: Data("low conf".utf8)),
-        ]
-        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        let memo = Memo(audioFilename: "memo_xyz.m4a", transcript: "low conf", transcriptStatus: .done,
+                        transcriptConfidence: 0.5)
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio(memo)], into: ctx))
         XCTAssertNil(pf.transcript)                            // dropped (conf 0.5 < 0.7, not edited)
         XCTAssertEqual(pf.transcribeStatus, .pending)
     }
 
+    /// The trust gate is `Memo.isTrustedTranscript`, read straight off the memo's fields.
     func testTrustViaUserEditedFlag() throws {
-        let svc = UploadService()
-        XCTAssertTrue(svc.isTranscriptTrusted(["transcriptUserEdited": true]))
-        XCTAssertTrue(svc.isTranscriptTrusted(["transcriptConfidence": 0.7]))
-        XCTAssertFalse(svc.isTranscriptTrusted(["transcriptConfidence": 0.69]))
-        XCTAssertFalse(svc.isTranscriptTrusted(nil))
+        let svc = UploadService(outputDir: makeTempDir())
+        func trusted(edited: Bool, confidence: Double?) throws -> Bool {
+            let memo = Memo(audioFilename: "memo_t.m4a", transcript: "words", transcriptStatus: .done,
+                            transcriptConfidence: confidence, transcriptUserEdited: edited)
+            return try XCTUnwrap(svc.prepare(memo: memo, assets: [audio(memo)])).transcript != nil
+        }
+        XCTAssertTrue(try trusted(edited: true, confidence: nil))
+        XCTAssertTrue(try trusted(edited: false, confidence: 0.7))
+        XCTAssertFalse(try trusted(edited: false, confidence: 0.69))
+        XCTAssertFalse(try trusted(edited: false, confidence: nil))
     }
 
-    /// Phone-sent `significance` (flag-to-send rating) pre-fills the review slider.
-    func testIngestReadsSignificanceFromMetadata() throws {
+    /// Phone-sent `significance` (flag-to-process rating) pre-fills the review slider.
+    func testIngestReadsSignificance() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_sig.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9,"significance":0.6}"#.utf8)),
-        ]
-        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        let memo = Memo(audioFilename: "memo_sig.m4a", transcriptStatus: .done,
+                        transcriptConfidence: 0.9, significance: 0.6)
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio(memo)], into: ctx))
         XCTAssertEqual(pf.significance, 0.6)
 
-        // No significance key → stays nil (unrated on the Mac side).
-        let bare = [
-            MultipartPart(name: "files", filename: "memo_nosig.m4a", contentType: "audio/mp4", data: Data("A".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9}"#.utf8)),
-        ]
-        let pf2 = try XCTUnwrap(svc.ingest(parts: bare, into: ctx).first)
+        // Significance 0 → stays nil (unrated on the Mac side).
+        let bare = Memo(audioFilename: "memo_nosig.m4a", transcriptStatus: .done, transcriptConfidence: 0.9)
+        let pf2 = try XCTUnwrap(svc.ingest(memo: bare, assets: [audio(bare, "A")], into: ctx))
         XCTAssertNil(pf2.significance)
     }
 
@@ -121,15 +114,12 @@ final class UploadServiceTests: XCTestCase {
     func testIngestVideoUsesRecordedDateAndMarksSource() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let metaJSON = #"{"transcriptConfidence":0.9,"recordedAt":"2026-06-14T17:44:01.000Z","sourceType":"video"}"#
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_vid.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json", data: Data(metaJSON.utf8)),
-        ]
-        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        let recorded = try XCTUnwrap(ISO8601.date(from: "2026-06-14T17:44:01.000Z"))
+        let memo = Memo(audioFilename: "memo_vid.m4a", recordedAt: recorded, transcriptStatus: .done,
+                        transcriptConfidence: 0.9, metadataData: Data(#"{"sourceType":"video"}"#.utf8))
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio(memo)], into: ctx))
         XCTAssertEqual(pf.mediaSource, "video", "video marker drives the source glyph + label")
-        let expected = try XCTUnwrap(ISO8601.date(from: "2026-06-14T17:44:01.000Z"))
-        XCTAssertEqual(pf.uploadedAt.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1.0,
+        XCTAssertEqual(pf.uploadedAt.timeIntervalSince1970, recorded.timeIntervalSince1970, accuracy: 1.0,
                        "the phone's recordedAt (content date) must win over the upload time")
     }
 }
@@ -152,44 +142,31 @@ final class CaptureIngestTests: XCTestCase {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
-        let metaJSON = """
+        let shared = Data("""
         {
-          "sharedContent": {
-            "type": "url",
-            "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
-            "urlTitle": "Rich text editing in SwiftUI — strategies that work"
-          },
-          "annotationText": "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.",
-          "tags": [],
-          "source": "mobile",
-          "recordedAt": "2026-06-11T14:02:00Z",
-          "duration": 0,
-          "transcriptUserEdited": false,
-          "transcriptMarkersInjected": false,
-          "significance": 0.6
+          "type": "url",
+          "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+          "urlTitle": "Rich text editing in SwiftUI — strategies that work"
         }
-        """.data(using: .utf8)!
-
-        // No `files` part (C3 §1), no `transcript` part (C3 §2), metadata only.
-        let parts = [
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json", data: metaJSON),
-        ]
-        let created = try svc.ingest(parts: parts, into: ctx)
-
-        XCTAssertEqual(created.count, 1, "one capture per upload")
-        let pf = created[0]
+        """.utf8)
+        // No audio asset (C3 §1), no transcript (C3 §2), a sharedContent payload.
+        let memo = Memo(audioFilename: "", recordedAt: ISO8601.date(from: "2026-06-11T14:02:00Z")!,
+                        transcriptStatus: .done, significance: 0.6,
+                        sharedContentData: shared,
+                        annotationText: "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.")
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [], into: ctx), "one capture per memo")
         XCTAssertEqual(pf.sourceType, .capture, "sourceType must be .capture")
         XCTAssertEqual(pf.transcribeStatus, .done, "ASR skipped — transcript already present")
         XCTAssertEqual(pf.transcript,
                         "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.",
                         "annotation becomes the transcript")
-        XCTAssertEqual(pf.significance ?? 0, 0.6, accuracy: 0.001, "significance pre-filled from metadata")
-        XCTAssertNotNil(pf.audioMetadataJSON, "metadata stored verbatim")
+        XCTAssertEqual(pf.significance ?? 0, 0.6, accuracy: 0.001, "significance pre-filled from the memo")
+        XCTAssertNotNil(pf.audioMetadataJSON, "metadata stored for downstream readers")
 
         // The working folder must exist on disk (Pipeline writes sidecars there).
         XCTAssertTrue(FileManager.default.fileExists(atPath: pf.path), "working folder created")
 
-        // Check the metadata round-trips the sharedContent (raw JSON passthrough).
+        // The metadata carries the sharedContent object.
         let meta = try XCTUnwrap(
             (try? JSONSerialization.jsonObject(with: pf.audioMetadataJSON!)) as? [String: Any])
         let sc = try XCTUnwrap(meta["sharedContent"] as? [String: Any])
@@ -203,22 +180,13 @@ final class CaptureIngestTests: XCTestCase {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
-        let metaJSON = """
-        {
-          "sharedContent": {"type": "image", "fileName": "whiteboard.jpg", "mimeType": "image/jpeg"},
-          "annotationText": "The sync flow from Nick's session.",
-          "imageManifest": [{"filename": "whiteboard.jpg", "offsetSeconds": 0}],
-          "significance": 0.7
-        }
-        """.data(using: .utf8)!
-
-        let imageData = Data("FAKEJPEG".utf8)
-        let parts = [
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json", data: metaJSON),
-            MultipartPart(name: "images", filename: "whiteboard.jpg", contentType: "image/jpeg", data: imageData),
-        ]
-        let created = try svc.ingest(parts: parts, into: ctx)
-        let pf = try XCTUnwrap(created.first)
+        let memo = Memo(audioFilename: "", transcriptStatus: .done, significance: 0.7,
+                        metadataData: Data(#"{"imageManifest":[{"filename":"whiteboard.jpg","offsetSeconds":0}]}"#.utf8),
+                        sharedContentData: Data(#"{"type":"image","fileName":"whiteboard.jpg","mimeType":"image/jpeg"}"#.utf8),
+                        annotationText: "The sync flow from Nick's session.")
+        let image = MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.photo,
+                              filename: "whiteboard.jpg", blob: Data("FAKEJPEG".utf8))
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [image], into: ctx))
         XCTAssertEqual(pf.sourceType, .capture)
 
         // The image must be saved under `<folder>/images/whiteboard.jpg`.
@@ -231,39 +199,55 @@ final class CaptureIngestTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: manifestPath), "manifest written")
     }
 
-    // MARK: No sharedContent + no audio → nothing created (current behavior preserved)
+    // MARK: Named audio whose asset has not synced yet → nothing created (preserved)
 
-    func testUploadWithNoFilesAndNoSharedContentCreatesNothing() throws {
+    func testMemoWithNamedAudioButNoAssetCreatesNothing() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
-        // A malformed / incomplete upload — no audio, no sharedContent.
-        let parts = [
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"source":"mobile"}"#.utf8)),
-        ]
-        let created = try svc.ingest(parts: parts, into: ctx)
-        XCTAssertEqual(created.count, 0, "no files + no sharedContent → nothing ingested")
+        // A voice memo whose `MemoAsset` blob has not arrived: no audio asset, no sharedContent,
+        // but it NAMES its file, so it is not a text note either — it waits for the asset.
+        let memo = Memo(audioFilename: "memo_wait.m4a", transcriptStatus: .done, significance: 0.5)
+        XCTAssertNil(try svc.ingest(memo: memo, assets: [], into: ctx),
+                     "named audio + no asset + no sharedContent → nothing ingested, the next sweep retries")
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<PipelineFile>()).count, 0)
     }
 
-    // MARK: Normal audio upload is byte-identical in behavior
+    // MARK: The audio / text / capture decision
 
-    func testNormalAudioUploadUnchanged() throws {
+    func testShapeDecidesAudioTextOrCaptureOnce() throws {
+        let capture = Data(#"{"type":"url","url":"https://example.com"}"#.utf8)
+        let named = Memo(audioFilename: "memo_n.m4a")
+        let audio = MemoAsset(memoID: named.id, kind: MemoAsset.Kind.audio, filename: "memo_n.m4a", blob: Data("A".utf8))
+
+        // Audio asset wins, even with a sharedContent key in the memo (the C3 discriminator).
+        let both = Memo(audioFilename: "memo_n.m4a", sharedContentData: capture)
+        guard case .audio? = UploadService.shape(memo: both, assets: [audio]) else { return XCTFail("audio") }
+        // No audio + parsing payload = capture, whatever the filename.
+        guard case .capture? = UploadService.shape(memo: Memo(audioFilename: "", sharedContentData: capture), assets: [])
+        else { return XCTFail("capture") }
+        // No audio, no filename, no payload = typed text.
+        guard case .text? = UploadService.shape(memo: Memo(audioFilename: ""), assets: []) else { return XCTFail("text") }
+        // A payload that does NOT parse never falls between the arms: text with no filename...
+        guard case .text? = UploadService.shape(memo: Memo(audioFilename: "", sharedContentData: Data("nope".utf8)), assets: [])
+        else { return XCTFail("unparseable payload, no filename = text") }
+        // ...and waiting (nil) when the memo names audio that has not arrived.
+        XCTAssertNil(UploadService.shape(memo: named, assets: []))
+    }
+
+    // MARK: Normal audio memo is byte-identical in behavior
+
+    func testNormalAudioMemoUnchanged() throws {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
-        let parts = [
-            MultipartPart(name: "files", filename: "memo_audio.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
-                          data: Data(#"{"transcriptConfidence":0.9,"sharedContent":{"type":"url"}}"#.utf8)),
-            MultipartPart(name: "transcript", filename: nil, contentType: nil, data: Data("real words".utf8)),
-        ]
-        // Audio upload WITH a sharedContent key in metadata is still treated as a memo
-        // (the `files` part takes precedence per the C3 discriminator).
-        let created = try svc.ingest(parts: parts, into: ctx)
-        XCTAssertEqual(created.count, 1)
-        let pf = created[0]
-        XCTAssertEqual(pf.sourceType, .audio, "audio upload stays .audio")
+        let memo = Memo(audioFilename: "memo_audio.m4a", transcript: "real words", transcriptStatus: .done,
+                        transcriptConfidence: 0.9, sharedContentData: Data(#"{"type":"url"}"#.utf8))
+        let audio = MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
+                              filename: "memo_audio.m4a", blob: Data("AUDIO".utf8))
+        // An audio memo WITH a sharedContent key is still a memo (the audio asset takes
+        // precedence per the C3 discriminator).
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [audio], into: ctx))
+        XCTAssertEqual(pf.sourceType, .audio, "audio memo stays .audio")
         XCTAssertEqual(pf.transcript, "real words")
         XCTAssertEqual(pf.transcribeStatus, .done)
     }
@@ -274,12 +258,9 @@ final class CaptureIngestTests: XCTestCase {
         let svc = UploadService(outputDir: makeTempDir())
         let ctx = try memoryContext()
 
-        let metaJSON = Data(#"{"sharedContent":{"type":"text","text":"Some quote"},"significance":0.5}"#.utf8)
-        let parts = [
-            MultipartPart(name: "metadata", filename: nil, contentType: "application/json", data: metaJSON),
-        ]
-        let created = try svc.ingest(parts: parts, into: ctx)
-        let pf = try XCTUnwrap(created.first)
+        let memo = Memo(audioFilename: "", transcriptStatus: .done, significance: 0.5,
+                        sharedContentData: Data(#"{"type":"text","text":"Some quote"}"#.utf8))
+        let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: [], into: ctx))
         XCTAssertEqual(pf.sourceType, .capture)
         XCTAssertEqual(pf.transcript, "", "empty annotation → empty transcript (not nil)")
         XCTAssertEqual(pf.transcribeStatus, .done, "ASR still skipped for empty annotation")

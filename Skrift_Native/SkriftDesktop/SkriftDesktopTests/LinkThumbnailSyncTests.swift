@@ -72,9 +72,14 @@ final class LinkThumbnailSyncTests: XCTestCase {
         XCTAssertNil(MemoAsset.Kind.linkThumbnailFilename(memo.sharedContent))
     }
 
-    func testAMemoWithoutAThumbnailBuildsNoThumbnailPart() {
+    func testAMemoWithoutAThumbnailWritesNoThumbnailFile() throws {
         let memo = linkMemo(thumb: nil)
-        let parts = MemoCloudIngest.buildParts(memo: memo, assets: [], filename: "x")
-        XCTAssertFalse(parts.contains { $0.name == "thumbnail" })
+        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [],
+                                                          upload: UploadService(outputDir: makeTempDir()),
+                                                          into: try memoryContext()))
+        XCTAssertNil(pf.captureThumbnailURL)
+        let folder = try XCTUnwrap(pf.workingFolder)
+        let jpgs = (try FileManager.default.contentsOfDirectory(atPath: folder.path)).filter { $0.hasSuffix(".jpg") }
+        XCTAssertTrue(jpgs.isEmpty)
     }
 }

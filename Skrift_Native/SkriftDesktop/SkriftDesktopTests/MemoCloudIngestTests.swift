@@ -46,31 +46,14 @@ final class MemoCloudIngestTests: XCTestCase {
                                              upload: UploadService(outputDir: makeTempDir()), into: cloudCtx)
         let cloud = try XCTUnwrap(pf1)
 
-        // HTTP path: feed the SAME synthesized parts straight through UploadService (no memoID
-        // → a fresh random id, exactly as a phone upload). Proves the bridge adds no
-        // behavioral divergence beyond the deliberate memo-UUID id.
-        let httpCtx = try memoryContext()
-        let parts = MemoCloudIngest.buildParts(memo: memo, assets: assets,
-                                               filename: MemoCloudIngest.audioFilename(for: memo))
-        let http = try XCTUnwrap(try UploadService(outputDir: makeTempDir()).ingest(parts: parts, into: httpCtx).first)
-
-        // id: CloudKit forces the memo UUID; HTTP mints a random one.
+        // The row id is the memo UUID (the contract spine); the metadata blob is the
+        // reconstructed phone-shaped JSON, stored for every downstream reader.
         XCTAssertEqual(cloud.id, memo.id.uuidString)
-        XCTAssertNotEqual(http.id, cloud.id)
+        XCTAssertEqual(cloud.filename, memo.audioFilename)
+        XCTAssertEqual(cloud.sourceType, .audio)
+        XCTAssertEqual(cloud.audioMetadataJSON, MemoCloudIngest.metadataJSON(for: memo))
 
-        // Everything else must match field-for-field.
-        XCTAssertEqual(cloud.filename, http.filename)
-        XCTAssertEqual(cloud.transcript, http.transcript)
-        XCTAssertEqual(cloud.transcribeStatus, http.transcribeStatus)
-        XCTAssertEqual(cloud.significance, http.significance)
-        XCTAssertEqual(cloud.uploadedAt, http.uploadedAt)
-        XCTAssertEqual(cloud.enhancedTitle, http.enhancedTitle)
-        XCTAssertEqual(cloud.mediaSource, http.mediaSource)
-        XCTAssertEqual(cloud.sourceType, http.sourceType)
-        XCTAssertEqual(cloud.bookCapture, http.bookCapture)
-        XCTAssertEqual(cloud.audioMetadataJSON, http.audioMetadataJSON)
-
-        // ...and the concrete expected values (not just "equal to each other").
+        // The concrete expected values.
         XCTAssertEqual(cloud.transcript, "Met up with Hendri today.")
         XCTAssertEqual(cloud.transcribeStatus, .done)              // trusted (confidence 0.9)
         XCTAssertEqual(cloud.significance, 0.5)
@@ -161,9 +144,9 @@ final class MemoCloudIngestTests: XCTestCase {
         let memo = Memo(id: UUID(), audioFilename: "memo_b.m4a", recordedAt: Date(),
                         transcript: "hi", transcriptStatus: .done, transcriptConfidence: 0.9, significance: 0.6)
         let ctx = try memoryContext()
-        let bonjourParts = MemoCloudIngest.buildParts(memo: memo, assets: [audioAsset(memo)],
-                                                      filename: memo.audioFilename)
-        _ = try UploadService(outputDir: makeTempDir()).ingest(parts: bonjourParts, into: ctx)  // random id
+        ctx.insert(PipelineFile(id: UUID().uuidString, filename: memo.audioFilename,
+                                path: "/tmp/\(memo.audioFilename)", size: 5, sourceType: .audio))
+        try ctx.save()
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 1)
 
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
