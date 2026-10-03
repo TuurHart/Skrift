@@ -701,13 +701,13 @@ struct IngestService: Sendable {
 
     /// One bundle item's C70 date, the phone's `CaptureInboxDrainer.sharePlan` rungs exactly
     /// (Q134): a clip by its name, then its file date (its embedded date only dates the NOTE,
-    /// below); a picture by EXIF, then its name, then its file date (C74); a video by its
-    /// embedded filming date, then its name, then its file date (the lone-video ladder).
+    /// below); a picture by EXIF, then its name, then its file date (C74). A bundle's video is
+    /// ordered like a clip (its embedded date is async — `AudioMetadata` — and dates only a
+    /// lone video's NOTE).
     static func importDate(of url: URL, kind: MixedBundle.Kind) -> Date? {
         switch kind {
-        case .clip: return FilenameDate.ladder(embedded: nil, fileAt: url)
+        case .clip, .video: return FilenameDate.ladder(embedded: nil, fileAt: url)
         case .picture: return ImageDates.ladderDate(at: url)
-        case .video: return FilenameDate.ladder(embedded: embeddedRecordingDate(of: url), fileAt: url)
         }
     }
 
