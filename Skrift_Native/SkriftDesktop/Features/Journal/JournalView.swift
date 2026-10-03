@@ -318,7 +318,7 @@ struct JournalView: View {
                     // The pair's notes never double-show as lookback cards
                     // (the phone's exclusion rule, verbatim).
                     ForEach(LookbackProvider.river(
-                        for: memos, now: selectedDay,
+                        for: memos, now: Date(),   // D173: anchored on TODAY, never the selected day
                         thenNow: thenNow.map { ThenVsNow.Pair(then: $0.then.id, now: $0.now.id) },
                         showImportantLately: false).entries) { entry in
                         if let memo = memos.first(where: { $0.id == entry.id }) {
