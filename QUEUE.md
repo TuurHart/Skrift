@@ -1609,7 +1609,7 @@ do: Desktop `Engines/TranscriptionService.swift`: delete `models` (the strong re
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VocabularyBoosterTrustTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d05 DPE-d06 DPE-d07 DPE-d10 DPE-d11 DPE-d23 MSV-d16 DPE-c11 (cleanup-audit P24)
 
-### Q212 [auto] (doing) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
+### Q212 [auto] (done) Mac pipeline: drop the WayOut forwarders, one ISO parser, a few tidy-ups
 spec: C239 C240
 needs: Q114 Q178
 gate+: no
@@ -2981,3 +2981,4 @@ check: (fill in)
 - 2026-10-03 08:39 Q206 -> doing — dispatched (sonnet)
 - 2026-10-03 08:48 Q214 -> done — hand-merged (Tuur blanket approval D163: ports + deletions of tests of deleted code)
 - 2026-10-03 08:50 Q216 -> tuur — built @412c88ae — awaiting sitting
+- 2026-10-03 08:52 Q212 -> done — hand-merged (Tuur blanket approval D163: ports + deletions of tests of deleted code)
