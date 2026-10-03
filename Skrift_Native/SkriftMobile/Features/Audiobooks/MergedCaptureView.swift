@@ -391,7 +391,7 @@ struct MergedCaptureView: View {
                 // ~90s. Pads keep the sentences spanning the window edges
                 // intact (display range below never reaches past them).
                 let windowed = ft.words(inWindow: winStart - 30, end: winEnd + 150)
-                all = QuoteCaptureProcessor.buildSentences(from: windowed, snappedStart: 0, snappedEnd: 0)
+                all = QuoteCaptureProcessor.buildSentences(from: windowed)
             }
             guard !all.isEmpty else { state = .empty; return }
             let capIdx = all.lastIndex(where: { $0.start <= winEnd }) ?? (all.count - 1)

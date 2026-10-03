@@ -1,49 +1,37 @@
 import AVFoundation
 import Foundation
 
-/// Sentences derived from the buffer transcript for sentence-level trimming on
-/// the capture sheet. Times are LOCAL to the buffer audio (not the book).
+/// A sentence derived from a transcript window, shown as a selectable line on
+/// the text-capture screen. Times are LOCAL to the audio the words came from
+/// (the window buffer, or the book file for sidecar sentences), not the book.
 struct BufferSentence: Sendable, Equatable {
     var text: String
-    /// First word timing (buffer-local time).
+    /// First word timing (local time).
     var start: TimeInterval
-    /// Last word timing (buffer-local time).
+    /// Last word timing (local time).
     var end: TimeInterval
-    /// Slice of word timings for this sentence (buffer-local).
+    /// Slice of word timings for this sentence (local).
     var words: [WordTiming]
-    /// Whether this sentence falls within the initially snapped span
-    /// (true → starts "in" the quote; false → context-only on first render).
-    var isInInitialSpan: Bool
 }
 
-/// The result of processing one confirmed capture span: the sentence-snapped
-/// quote, its trimmed audio (a temp .m4a the saver moves into recordings), and
-/// the word timings rebased onto that trimmed audio (karaoke sidecar).
+/// The result of building one confirmed capture: the quote text, its audio (a
+/// temp .m4a the saver moves into recordings), and the word timings rebased
+/// onto that audio (karaoke sidecar).
 ///
-/// The buffer audio URL and sentences are retained for sentence-level trimming
-/// on the capture sheet — they are temp files whose lifetime is tied to the
-/// capture flow. The saver must NOT use them; it always uses `audioURL`.
+/// `bufferAudioURL` is a temp file whose lifetime is tied to the capture flow
+/// (cleaned up by the caller on dismiss). The saver must NOT use it; it always
+/// uses `audioURL`.
 struct QuoteCaptureOutput: Sendable {
     var quote: String
-    /// Snapped span in BOOK time (for the "12:05 → 12:38" label + chapter lookup).
+    /// Span in BOOK time (for the "12:05 → 12:38" label + chapter lookup).
     var spanStart: TimeInterval
     var spanEnd: TimeInterval
     var audioURL: URL
     var duration: TimeInterval
     var wordTimings: [WordTiming]
-
-    // MARK: - Sentence-trim data (retained for the capture sheet)
-
-    /// All sentences found in the ±20 s buffer, in order. The capture sheet
-    /// shows these as tappable segments (bright = in, grey = context).
-    /// Empty when the engine returned no word timings.
-    var bufferSentences: [BufferSentence]
-    /// The buffer audio file (span ± 20 s). Temp — cleaned up when the capture
+    /// The audio the quote was carved from. Temp — cleaned up when the capture
     /// flow is dismissed (caller-side cleanup). Non-optional; always present.
     var bufferAudioURL: URL
-    /// Time offset of the buffer's start relative to FILE-LOCAL time.
-    /// `bufferLocalTime + bufferOffset = fileLocalTime`.
-    var bufferOffset: TimeInterval
 }
 
 enum QuoteCaptureError: LocalizedError {
@@ -84,12 +72,9 @@ struct QuoteCaptureProcessor {
     }
 
     /// Transcribe `[windowStart, windowEnd]` (FILE-LOCAL) of `bookAudio` and
-    /// return its sentences for the text-capture select screen. Reuses the same
-    /// export + transcribe + sentence-partition path as `process`. The caller
+    /// return its sentences for the text-capture select screen. The caller
     /// owns `bufferURL`'s lifetime (clean up on dismiss) — it's reused for the
-    /// in-screen preview. The selection the user makes becomes a span the flow
-    /// runs through `process` exactly like the audio mode, so the downstream
-    /// (sheet/save/sync/export) is untouched.
+    /// in-screen preview. The user's selection goes to `buildOutput(from:...)`.
     func transcribeWindowForDisplay(bookAudio: URL,
                                     windowStart: TimeInterval,
                                     windowEnd: TimeInterval) async throws -> WindowTranscript {
@@ -97,9 +82,8 @@ struct QuoteCaptureProcessor {
             .appendingPathComponent("textwin_\(UUID().uuidString).m4a")
         try await Self.exportSpan(of: bookAudio, start: windowStart, end: windowEnd, to: bufferURL)
         let result = try await transcriber.transcribe(audioURL: bufferURL, imageManifest: [])
-        // No pre-snap — the view pre-selects the last sentence and the user
-        // adjusts; isInInitialSpan is unused here (passed 0,0).
-        let sentences = Self.buildSentences(from: result.wordTimings, snappedStart: 0, snappedEnd: 0)
+        // No pre-snap — the view pre-selects the last sentence and the user adjusts.
+        let sentences = Self.buildSentences(from: result.wordTimings)
         return WindowTranscript(sentences: sentences, bufferURL: bufferURL, windowStart: windowStart)
     }
 
@@ -110,36 +94,10 @@ struct QuoteCaptureProcessor {
     /// why text mode skips the trim sheet: the quote is already sentence-exact.
     func buildOutput(from window: WindowTranscript, lo: Int, hi: Int,
                      fileOrigin: TimeInterval) async throws -> QuoteCaptureOutput {
-        guard window.sentences.indices.contains(lo), window.sentences.indices.contains(hi), lo <= hi,
-              let bookSpan = TextCaptureMath.globalSpan(
-                sentences: window.sentences, lo: lo, hi: hi,
-                windowStart: window.windowStart, fileOrigin: fileOrigin)
-        else { throw QuoteCaptureError.noSpeech }
-
-        let selected = Array(window.sentences[lo...hi])
-        let selStart = selected[0].start                 // window-local
-        let selEnd = selected[selected.count - 1].end
-        guard selEnd > selStart else { throw QuoteCaptureError.noSpeech }
-
-        // Quote audio = the selected span carved from the window buffer.
-        let quoteURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("quote_\(UUID().uuidString).m4a")
-        try await Self.exportSpan(of: window.bufferURL, start: selStart, end: selEnd, to: quoteURL)
-
-        let quote = QuoteFormatting.blockquote(selected.map(\.text).joined(separator: " "))
-        let rebased = selected.flatMap(\.words).map {
-            WordTiming(word: $0.word, start: max(0, $0.start - selStart), end: max(0, $0.end - selStart))
-        }
-        return QuoteCaptureOutput(
-            quote: quote,
-            spanStart: bookSpan.start, spanEnd: bookSpan.end,
-            audioURL: quoteURL,
-            duration: max(0, selEnd - selStart),
-            wordTimings: rebased,
-            bufferSentences: window.sentences,   // retained; trim is skipped for text captures
-            bufferAudioURL: window.bufferURL,
-            bufferOffset: window.windowStart
-        )
+        // Sentence times are window-local; book time = local + window start + file origin.
+        try await buildSelectionOutput(
+            sentences: window.sentences, lo: lo, hi: hi, audio: window.bufferURL,
+            bookOffset: window.windowStart + fileOrigin, bufferAudioURL: window.bufferURL)
     }
 
     /// Wave-2 INSTANT capture: build the output from sidecar sentences (whose
@@ -151,17 +109,31 @@ struct QuoteCaptureProcessor {
     /// hand the BOOK FILE as `bufferAudioURL` — the flow deletes it on dismiss.
     func buildOutputFromSidecar(bookAudio: URL, sentences: [BufferSentence],
                                 lo: Int, hi: Int, fileOrigin: TimeInterval) async throws -> QuoteCaptureOutput {
+        try await buildSelectionOutput(
+            sentences: sentences, lo: lo, hi: hi, audio: bookAudio,
+            bookOffset: fileOrigin, bufferAudioURL: nil)
+    }
+
+    /// The shared bounds/slice/export/rebase block of both builders: validate
+    /// `lo...hi`, carve the selected sentences' span out of `audio` (the same
+    /// time basis as `sentences`), blockquote their text, and rebase their word
+    /// timings to the new clip's t = 0. `bookOffset` maps the sentences' time
+    /// basis to BOOK time. `bufferAudioURL` nil → the quote temp itself.
+    private func buildSelectionOutput(
+        sentences: [BufferSentence], lo: Int, hi: Int, audio: URL,
+        bookOffset: TimeInterval, bufferAudioURL: URL?
+    ) async throws -> QuoteCaptureOutput {
         guard sentences.indices.contains(lo), sentences.indices.contains(hi), lo <= hi else {
             throw QuoteCaptureError.noSpeech
         }
         let selected = Array(sentences[lo...hi])
-        let selStart = selected[0].start                 // file-local
+        let selStart = selected[0].start
         let selEnd = selected[selected.count - 1].end
         guard selEnd > selStart else { throw QuoteCaptureError.noSpeech }
 
         let quoteURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("quote_\(UUID().uuidString).m4a")
-        try await Self.exportSpan(of: bookAudio, start: selStart, end: selEnd, to: quoteURL)
+        try await Self.exportSpan(of: audio, start: selStart, end: selEnd, to: quoteURL)
 
         let quote = QuoteFormatting.blockquote(selected.map(\.text).joined(separator: " "))
         let rebased = selected.flatMap(\.words).map {
@@ -169,23 +141,16 @@ struct QuoteCaptureProcessor {
         }
         return QuoteCaptureOutput(
             quote: quote,
-            spanStart: selStart + fileOrigin, spanEnd: selEnd + fileOrigin,
+            spanStart: selStart + bookOffset, spanEnd: selEnd + bookOffset,
             audioURL: quoteURL,
             duration: max(0, selEnd - selStart),
             wordTimings: rebased,
-            bufferSentences: sentences,
-            bufferAudioURL: quoteURL,   // safe: saver moves it, cleanup no-ops (see doc)
-            bufferOffset: 0
+            bufferAudioURL: bufferAudioURL ?? quoteURL
         )
     }
 
-    /// Partition buffer word timings into sentences, marking each as initially
-    /// "in" the quote if it overlaps the snapped span.
-    nonisolated static func buildSentences(
-        from words: [WordTiming],
-        snappedStart: TimeInterval,
-        snappedEnd: TimeInterval
-    ) -> [BufferSentence] {
+    /// Partition word timings into sentences.
+    nonisolated static func buildSentences(from words: [WordTiming]) -> [BufferSentence] {
         guard !words.isEmpty else { return [] }
         let starts = SentenceSnap.sentenceStartIndices(words)
         var sentences: [BufferSentence] = []
@@ -196,107 +161,9 @@ struct QuoteCaptureProcessor {
             let sStart = slice[0].start
             let sEnd = slice[slice.count - 1].end
             let text = slice.map(\.word).joined(separator: " ")
-            // A sentence is "in" if its time window overlaps the snapped span.
-            let isIn = sEnd > snappedStart && sStart < snappedEnd
-            sentences.append(BufferSentence(
-                text: text,
-                start: sStart,
-                end: sEnd,
-                words: slice,
-                isInInitialSpan: isIn
-            ))
+            sentences.append(BufferSentence(text: text, start: sStart, end: sEnd, words: slice))
         }
         return sentences
-    }
-
-    // MARK: - Apply trim (sentence-level, from the capture sheet)
-
-    /// The result of `applyTrim` — everything the sheet needs to update the
-    /// memo's audio file, transcript, duration, and word-timings sidecar.
-    struct TrimResult: Sendable {
-        /// New audio (a temp .m4a); caller moves it onto the memo's audio file
-        /// (same filename, atomic replace) and removes this temp on failure.
-        let audioURL: URL
-        /// New C1 blockquote transcript (included sentence text joined and
-        /// wrapped in "> " markers).
-        let transcript: String
-        /// New duration (seconds), equal to `spanEnd - spanStart`.
-        let duration: TimeInterval
-        /// Word timings rebased to the new audio’s t = 0.
-        let wordTimings: [WordTiming]
-    }
-
-    /// Re-derive the memo’s audio, transcript, and word timings from the
-    /// user’s sentence-trim choices.
-    ///
-    /// - Parameters:
-    ///   - output:          The original `QuoteCaptureOutput` from the flow.
-    ///   - included:        One flag per `output.bufferSentences`. Must have
-    ///                      the same count; at least one must be `true`.
-    ///   - initialIncluded: The original flags (`.isInInitialSpan`) used for
-    ///                      the no-op check. When equal to `included`, returns
-    ///                      `nil` — nothing to do.
-    ///
-    /// Reads from `output.bufferAudioURL` (the ±20 s buffer kept
-    /// alive by the capture flow for exactly this purpose).
-    /// `@MainActor` so it can call `exportSpan` (which inherits MainActor
-    /// from the struct). The CPU work is negligible; the actual audio export
-    /// suspends on the background AVAssetExportSession queue.
-    static func applyTrim(
-        output: QuoteCaptureOutput,
-        included: [Bool],
-        initialIncluded: [Bool]
-    ) async throws -> TrimResult? {
-        guard included.count == output.bufferSentences.count else { return nil }
-
-        // No-op when nothing changed from the initial snap.
-        if included == initialIncluded { return nil }
-
-        // Build the active sentence list.
-        let active = zip(output.bufferSentences, included)
-            .filter(\.1).map(\.0)
-        guard !active.isEmpty else { return nil }
-
-        // Audio span in buffer-local time (BufferSentence.start/end are
-        // local to bufferAudioURL, so no offset adjustment needed).
-        let spanStart = active[0].start
-        let spanEnd   = active[active.count - 1].end
-        guard spanEnd > spanStart else { return nil }
-
-        let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent("trim_\(UUID().uuidString).m4a")
-        try await exportSpan(of: output.bufferAudioURL,
-                             start: spanStart, end: spanEnd, to: dest)
-        let newDuration = max(0, spanEnd - spanStart)
-
-        // Transcript: join included sentence text and wrap in "> " blockquote.
-        let joined = active.map(\.text).joined(separator: " ")
-        let newTranscript = QuoteFormatting.blockquote(joined)
-
-        // Word timings: collect from all included sentences, rebase to t = 0.
-        let allWords = active.flatMap(\.words)
-        let newTimings = allWords.map {
-            WordTiming(word: $0.word,
-                       start: max(0, $0.start - spanStart),
-                       end:   max(0, $0.end   - spanStart))
-        }
-
-        return TrimResult(
-            audioURL:   dest,
-            transcript: newTranscript,
-            duration:   newDuration,
-            wordTimings: newTimings
-        )
-    }
-
-    /// Returns `true` when `included` exactly matches the initial sentence-snap
-    /// state (i.e. trim has not changed). Pure — safe in tests.
-    nonisolated static func isUnchangedTrim(
-        included: [Bool],
-        sentences: [BufferSentence]
-    ) -> Bool {
-        guard included.count == sentences.count else { return true }
-        return zip(included, sentences).allSatisfy { flag, s in flag == s.isInInitialSpan }
     }
 
     /// Export `[start → end]` of `url`’s audio to an .m4a at `dest`

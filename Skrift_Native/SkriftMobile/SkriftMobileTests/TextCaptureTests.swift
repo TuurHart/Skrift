@@ -40,9 +40,9 @@ final class TextCaptureTests: XCTestCase {
 
     func testGlobalSpanMapsWindowLocalToBookTime() {
         let sents = [
-            BufferSentence(text: "a", start: 1, end: 3, words: [], isInInitialSpan: false),
-            BufferSentence(text: "b", start: 3, end: 6, words: [], isInInitialSpan: false),
-            BufferSentence(text: "c", start: 6, end: 9, words: [], isInInitialSpan: false),
+            BufferSentence(text: "a", start: 1, end: 3, words: []),
+            BufferSentence(text: "b", start: 3, end: 6, words: []),
+            BufferSentence(text: "c", start: 6, end: 9, words: []),
         ]
         // window starts 100 s into the file; the file starts 1000 s into the book.
         let span = TextCaptureMath.globalSpan(sentences: sents, lo: 0, hi: 1,
@@ -54,7 +54,7 @@ final class TextCaptureTests: XCTestCase {
     func testGlobalSpanOutOfRangeIsNil() {
         XCTAssertNil(TextCaptureMath.globalSpan(sentences: [], lo: 0, hi: 0,
                                                 windowStart: 0, fileOrigin: 0))
-        let one = [BufferSentence(text: "x", start: 0, end: 1, words: [], isInInitialSpan: false)]
+        let one = [BufferSentence(text: "x", start: 0, end: 1, words: [])]
         XCTAssertNil(TextCaptureMath.globalSpan(sentences: one, lo: 0, hi: 5,
                                                 windowStart: 0, fileOrigin: 0))
     }
