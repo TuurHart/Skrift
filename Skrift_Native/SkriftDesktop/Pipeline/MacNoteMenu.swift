@@ -10,11 +10,22 @@ enum MacNoteMenu {
         file.sourceType == .audio && SpeakerTranscript.isAttributed(file.transcript)
     }
 
-    /// Redo's availability through the ONE shared rule. The Mac's engine is in-process, so
-    /// `engineAvailable` is true here (the phone's depends on the device and model).
+    /// A polish really ran on this note (D176, Q295): a summary, a copy-edit, tags, or a title
+    /// the model generated (`titleSuggested`; a chosen title only lands in `enhancedTitle`).
+    /// A note whose only "polish" is a title Tuur chose himself has not been polished, so it
+    /// offers Polish, not Redo.
+    static func hasRealPolish(_ file: PipelineFile) -> Bool {
+        func has(_ s: String?) -> Bool { !(s ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return has(file.enhancedSummary) || has(file.enhancedCopyedit) || has(file.titleSuggested)
+            || file.tags.contains { has($0) }
+    }
+
+    /// Redo's availability: the shared engine/lock/any-part rule (`NoteRedoItem.isOffered`,
+    /// engine is in-process here so always available) AND a real polish ran (Q295).
     static func redoOffered(_ file: PipelineFile, locked: Bool) -> Bool {
-        NoteRedoItem.isOffered(title: file.enhancedTitle, copyEdit: file.enhancedCopyedit,
-                               summary: file.enhancedSummary, engineAvailable: true, locked: locked)
+        hasRealPolish(file)
+            && NoteRedoItem.isOffered(title: file.enhancedTitle, copyEdit: file.enhancedCopyedit,
+                                      summary: file.enhancedSummary, engineAvailable: true, locked: locked)
     }
 
     /// Re-transcribe re-runs ASR and would destroy a conversation's speaker turns (the turns in
