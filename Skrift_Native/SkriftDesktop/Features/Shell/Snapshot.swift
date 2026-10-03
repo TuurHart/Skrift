@@ -8,10 +8,7 @@ import AVFoundation
 /// exits — no window, no Screen Recording permission. Modes:
 ///   -snapshot <path>            → the review surface (sidebar | note)
 ///   -snapshot-light <path>      → the review surface in LIGHT
-///   -snapshot-settings <path>   → the Settings panel
 ///   -snapshot-settings-light p  → the Settings panel in LIGHT
-///   -snapshot-wizard <path>     → the first-launch wizard
-///   -snapshot-run <path>        → the review surface mid-run
 ///   -snapshot-noterun <path>    → the note bar in its run states: idle, queued, transcribing, polishing, failed (Q118)
 ///   -snapshot-naming <path>     → the opt-out naming tiers + popovers (mocks/naming-review.html)
 ///   -snapshot-capture <path>    → review surface with the C3 url capture selected
@@ -39,9 +36,6 @@ enum Snapshot {
             let w = CGFloat(path("-settingsWidth").flatMap { Double($0) } ?? 620)
             MainActor.assumeIsolated { renderSettingsHosted(to: p, width: w); exit(0) }
         }
-        if let p = path("-snapshot-settings")       { MainActor.assumeIsolated { renderSettings(to: p); exit(0) } }
-        if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
-        if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
         if let p = path("-snapshot-noterun")        { MainActor.assumeIsolated { renderNoteRun(to: p); exit(0) } }
         if let p = path("-snapshot-naming")         { MainActor.assumeIsolated { renderNaming(to: p); exit(0) } }
         if let p = path("-snapshot-capture-corpus"), let c = path("-corpus") {
@@ -1309,22 +1303,6 @@ enum Snapshot {
         hostPNG(view, size: NSSize(width: width, height: 2600), to: path)
     }
 
-    @MainActor private static func renderRun(to path: String) {
-        let files = DemoSeed.snapshotFiles()
-        let model = AppModel()
-        model.activeID = files.first?.id
-        let coordinator = ProcessingCoordinator.preview(
-            .init(total: 5, done: 2, currentTitle: "Standup notes",
-                  loadingLabel: "enhancement model", loadingFraction: 0.45))
-        let view = HStack(spacing: 0) {
-            SidebarView(model: model, files: files, coordinator: coordinator, session: fixtureSession(coordinator: coordinator), scrollable: false).frame(width: 228)
-            NoteDisplayView(file: files.first, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
-        }
-        .frame(width: 1180, height: 780)
-        .background(Theme.bg)
-        writePNG(view, to: path)
-    }
-
     /// The Mac note bar in each run state (Q118): the verb, queued, transcribing, polishing, and a
     /// failed pass with Retry — five notes, each cropped to its chrome band + the top of its body.
     /// Triggered by: `-snapshot-noterun <path>`.
@@ -1589,13 +1567,6 @@ enum Snapshot {
                            voiceEmbeddings: [VoiceEmbedding(vector: [1])], lastModifiedAt: "x")
         let view = PersonEditor(request: PersonEditorRequest(person: bruno),
                                 onSave: { _, _ in }, onDelete: { _ in }, onClose: {}, interactive: false)
-            .background(Theme.bg)
-        writePNG(view, to: path)
-    }
-
-    @MainActor private static func renderWizard(to path: String) {
-        let view = SetupWizardView(interactive: false)
-            .frame(width: 900, height: 620)
             .background(Theme.bg)
         writePNG(view, to: path)
     }
