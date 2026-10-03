@@ -1290,7 +1290,7 @@ do: Rows where the two apps agree today only because two copies were typed: the 
 check: `test $(ls plan/reads/twin-p-ui/*.png | wc -l) -ge 2 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P72
 
-### Q172 [auto] (todo) single-source the logic written twice (twin-same rows)
+### Q172 [auto] (doing) single-source the logic written twice (twin-same rows)
 spec: C239 C240
 needs: -
 gate+: yes
@@ -1833,7 +1833,7 @@ do: Delete the static forwarders `orderedByImminence`, `oneLiner` and `total` in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WayOutViewTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d14 MLJ-d15 (cleanup-audit P52)
 
-### Q240 [auto] (doing) speaker transcript: one rebuild, one header regex, one slot assigner
+### Q240 [auto] (done) speaker transcript: one rebuild, one header regex, one slot assigner
 spec: C239
 needs: Q183
 gate+: no
@@ -2910,3 +2910,5 @@ check: (fill in)
 - 2026-10-03 01:48 Q277 -> tuur — parked for the sitting
 - 2026-10-03 01:48 Q278 -> tuur — parked for the sitting
 - 2026-10-03 01:48 Q279 -> tuur — parked for the sitting
+- 2026-10-03 01:49 Q172 -> doing — dispatched (opus)
+- 2026-10-03 01:50 Q240 -> done — no changes; gate pass @4f911148
