@@ -1889,7 +1889,7 @@ do: `Shared/Export/VaultWrite.swift:330-524`: `ownedName` exists for URL (478-48
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c01 SRS-m2 (cleanup-audit P59)
 
-### Q247 [auto] (doing) compiler: typed shared content and one wiki-link scanner
+### Q247 [auto] (done) compiler: typed shared content and one wiki-link scanner
 spec: C239
 needs: Q155
 gate+: yes
@@ -2882,3 +2882,4 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:40 Q207 -> done — gate pass @02ec480c
 - 2026-10-03 01:43 Q214 -> doing — worker out
 - 2026-10-03 01:44 Q273 -> done — gate pass @f373cd0e
+- 2026-10-03 01:45 Q247 -> done — gate pass @83c88db1
