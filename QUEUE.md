@@ -2203,7 +2203,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): 'Link' / 'Link · domain' (SourceKind.label) stays; the capture-items mock's 'Shared link' is superseded. Delete the unused `MemoDisplay.shareCaptureTypeLabel` and its protected CaptureDisplayTests case (blanket rule D163). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh CaptureDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q295 [auto] (doing) Mac Redo only after a real polish
+### Q295 [auto] (done) Mac Redo only after a real polish
 spec: D176
 needs: -
 gate+: yes
@@ -3162,3 +3162,4 @@ check: (fill in)
 - 2026-10-03 09:46 Q167 -> done — hand-merged (D174: legacy 0.7 is the top stop, WallPrinterTests:38 flipped)
 - 2026-10-03 10:02 Q258 -> done — hand-merged (D174: phone export test expectations follow C25)
 - 2026-10-03 10:04 Q291 -> done — gate pass @458c2286
+- 2026-10-03 10:05 Q295 -> done — gate pass @7114ba58
