@@ -51,7 +51,7 @@ enum MemoExporter {
             sourceType: capture ? .capture : .audio,
             mediaSource: (meta?.sourceType == MemoMetadata.Source.video) ? "video" : nil,
             metadata: meta.map(compilerMetadata),
-            sharedContent: capture ? memo.sharedContent.map(compilerShared) : nil,
+            sharedContent: capture ? memo.sharedContent : nil,
             rawRecordedAt: nil,
             destination: memo.destination,
             spoken: !memo.audioFilename.isEmpty,
@@ -111,11 +111,6 @@ enum MemoExporter {
             recordedAt: nil,                                   // date supplied via the `date:` override
             bookTitle: m.bookTitle, bookAuthor: m.bookAuthor, bookChapter: m.bookChapter
         )
-    }
-
-    static func compilerShared(_ sc: SharedContent) -> CompilerSharedContent {
-        CompilerSharedContent(type: sc.type.rawValue, url: sc.url, urlTitle: sc.urlTitle,
-                              text: sc.text, fileName: sc.fileName)
     }
 
     // MARK: - Small helpers

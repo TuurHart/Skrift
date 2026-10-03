@@ -49,20 +49,6 @@ struct CompilerMetadata: Sendable {
     var bookAuthor: String? = nil
     var bookChapter: String? = nil
 }
-
-/// The shared-content fields a C3 capture pins above its annotation body. Deliberately
-/// distinct from the shared wire struct `SharedContent` (Shared/Model): this is the
-/// Compiler's INPUT seam, not the contract — only the fields the Compiler reads are
-/// carried (no `urlDescription`/`mimeType`), `type` stays a plain string so the Compiler
-/// never gates on the contract enum. Optionals default to `nil` for partial construction.
-struct CompilerSharedContent: Sendable {
-    var type: String          // "url" | "text" | "image" | "file"
-    var url: String? = nil
-    var urlTitle: String? = nil
-    var text: String? = nil
-    var fileName: String? = nil
-}
-
 /// Everything the shared `Compiler.compile(_:)` needs from a note. Each app fills this from
 /// its own model; the Compiler never sees `PipelineFile`/`Memo`.
 struct CompilerInput: Sendable {
@@ -81,7 +67,7 @@ struct CompilerInput: Sendable {
     var sourceType: NoteSourceType = .audio
     var mediaSource: String? = nil
     var metadata: CompilerMetadata? = nil
-    var sharedContent: CompilerSharedContent? = nil
+    var sharedContent: SharedContent? = nil
     /// Fallback for `recordedAt` when the metadata blob didn't decode into `metadata`
     /// (e.g. a capture's raw dict) — the desktop bridge fills it via `rawMetaString`.
     var rawRecordedAt: String? = nil
