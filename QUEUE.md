@@ -1897,7 +1897,7 @@ do: `CompilerSharedContent` (`Shared/Export/CompilerInput.swift:53-64,84`) is a 
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c05 SRS-c06 (cleanup-audit P60)
 
-### Q248 [auto] (tuur) one temp-dir helper and one corpus-root helper per test bundle
+### Q248 [auto] (done) one temp-dir helper and one corpus-root helper per test bundle
 spec: C239
 needs: -
 gate+: no
@@ -2948,3 +2948,4 @@ check: (fill in)
 - 2026-10-03 02:29 Q281 added
 - 2026-10-03 02:29 Q281 -> tuur — parked for the sitting
 - 2026-10-03 08:35 Q188 -> done — hand-merged (Tuur blanket approval 2026-10-03: ports + deletions of tests of deleted code)
+- 2026-10-03 08:37 Q248 -> done — hand-merged (Tuur blanket approval 2026-10-03: ports + deletions of tests of deleted code)
