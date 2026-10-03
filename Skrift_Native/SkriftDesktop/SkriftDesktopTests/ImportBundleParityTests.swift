@@ -205,7 +205,8 @@ final class ImportBundleParityTests: XCTestCase {
         XCTAssertEqual(memo.annotationText, "Look at this one", "the phone reads the same annotation")
     }
 
-    /// A text with no speech in the drop is still a note of its own (nothing to annotate).
+    /// A text with no speech in the drop is still a note of its own (nothing to annotate): a
+    /// `.txt` is a text capture (C73 / D22), never an audio row.
     func testALoneTextIsStillItsOwnNote() async throws {
         let work = makeTempDir()
         let text = work.appendingPathComponent("plan.txt")
@@ -214,8 +215,8 @@ final class ImportBundleParityTests: XCTestCase {
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [text], into: ctx)
         XCTAssertEqual(created.count, 1)
-        XCTAssertEqual(created.first?.sourceType, .note)
-        XCTAssertNil(IngestService.bundleAnnotation(in: created.first?.audioMetadataJSON))
+        XCTAssertEqual(created.first?.sourceType, .capture)
+        XCTAssertTrue(IngestService.speechItems(in: [text]).isEmpty)
     }
 
     /// C68: clip + video + "One note" → ONE note: the video's audio stitched after the clip, its
