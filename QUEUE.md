@@ -1641,7 +1641,7 @@ do: In `SkriftDesktop/`: delete `StatusPill`, `PulseDot`, `QueueStatus.color` an
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-d01 DAU-d02 DAU-d03 DAU-d04 DAU-d05 DAU-d06 DAU-d07 DAU-d08 DAU-d09 DAU-d10 DAU-d16 DAU-d17 DAU-d18 DAU-d-m1 DAU-d-m2 DSH-d15 DPE-d16 DPE-c12 (cleanup-audit P28)
 
-### Q216 [tuur] (doing) delete the 2026-07-27 sync trace
+### Q216 [tuur] (tuur) delete the 2026-07-27 sync trace
 spec: C240
 needs: -
 gate+: no
@@ -2980,3 +2980,4 @@ check: (fill in)
 - 2026-10-03 08:39 Q216 -> doing — dispatched (sonnet)
 - 2026-10-03 08:39 Q206 -> doing — dispatched (sonnet)
 - 2026-10-03 08:48 Q214 -> done — hand-merged (Tuur blanket approval D163: ports + deletions of tests of deleted code)
+- 2026-10-03 08:50 Q216 -> tuur — built @412c88ae — awaiting sitting
