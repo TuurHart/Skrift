@@ -791,7 +791,7 @@ do: One string per fact in `Skrift_Native/Shared/UI/SharedCopy.swift`, read by p
 check: `grep -rqE "class SharedCopyUsageTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P9
 
-### Q109 [tuur] (tuur) decide: what 'Needs Work' and 'Done' mean on every device
+### Q109 [tuur] (done) decide: what 'Needs Work' and 'Done' mean on every device
 spec: C115 C61 D135
 needs: -
 do: -
@@ -799,7 +799,7 @@ check: Tuur picked one definition and it went into SPEC.
 brief: Phone `ProcessPile.matches` (ProcessPile.swift:50-51): Needs Work = rated and not yet processed, Done = processed (the iPhone never exports). Mac `AppModel.matchesFilter`: Needs Work = pipeline row not exported plus stranded rated notes, Done = exported (list-sidebar-40, -41). A processed-but-unexported note is Done on the phone and Needs Work on the Mac, and the Mac Done list can hold stranded notes that are not done (list-sidebar missed note). Recommended: Done = processed, on every device; 'exported' becomes the destination row's own state. One sentence in SPEC D135/C61, then the build is one shared predicate (`QueueFilter`). Also: ProcessPile.unrated (ProcessPile.swift:32) and the .notRated chip (:52) drop locked notes, so a locked unrated note sits under no chip but All; C182 does not cover unrated notes. Should locked unrated notes count under Unrated? (from Q102) Also (Q104): a stranded note (rated, no pipeline row) shows under BOTH Needs Work and Done on the Mac but one of them on the phone; a locked unrated note shows under Not rated on the Mac (lockedQuiet) but not on the phone (ProcessPile.matches(.notRated) excludes locked).
 source: plan/reads/parity-audit.md P10
 
-### Q110 [tuur] (tuur) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
+### Q110 [tuur] (done) decide: the Unsynced chip (D148) against D68, and the Mac status pill (D135)
 spec: D68 D148 D135
 needs: -
 do: -
@@ -807,7 +807,7 @@ check: Tuur picked and it went into SPEC.
 brief: (1) Unsynced chip: D148 signed it into the chip row, D68 says drop the filter as dead under CloudKit, and nothing sets `syncStatus = .synced` outside the seeders, so the chip is a no-op on the phone and absent on the Mac (list-sidebar-48). Phone `MemoFilter.hasPhotosOnly` and `.place` are dead too. Recommended: remove the chip and the dead filters, supersede D148's chip line. (2) Status pill: D135 says a pill only while working or broken on all three devices; the Mac shows Queued / Transcribed / Enhancing / Ready / Exported on every rated row (list-sidebar-76). Recommended: keep the Mac dashboard pills and write that into D135 as the one platform difference, or drop them. No code until he picks.
 source: plan/reads/parity-audit.md P11
 
-### Q111 [tuur] (tuur) decide: keyboard shortcuts — ⌘N on iPad, a Record chord, ⌘F and ⌘1-4 on the Mac
+### Q111 [tuur] (done) decide: keyboard shortcuts — ⌘N on iPad, a Record chord, ⌘F and ⌘1-4 on the Mac
 spec: C112 C114
 needs: -
 do: -
@@ -957,7 +957,7 @@ do: One clickable page: the Mac note header chip becoming tappable (today a stat
 check: Tuur clicked through it and said go.
 source: plan/reads/parity-audit.md P30
 
-### Q130 [tuur] (tuur) decide: boxed capture cards on the Mac against the no-bubbles rule
+### Q130 [tuur] (done) decide: boxed capture cards on the Mac against the no-bubbles rule
 spec: C240 D135
 needs: -
 do: -
@@ -1076,7 +1076,7 @@ do: A Mac recording or typed note carries place only: no weather, no daypart, no
 check: Tuur clicked through it, added his key, and said go.
 source: plan/reads/parity-audit.md P45
 
-### Q145 [tuur] (tuur) decide: a plain .md file — Apple Note on the Mac, Text capture on the phone
+### Q145 [tuur] (done) decide: a plain .md file — Apple Note on the Mac, Text capture on the phone
 spec: C76 C77 D19
 needs: -
 do: -
@@ -1084,7 +1084,7 @@ check: Tuur picked one kind for a .md file and it went into SPEC.
 brief: The same `.md` file becomes a note of kind 'Apple Note' with the heading as title on the Mac (`IngestService.ingestNote`) and a shared 'Text' capture (UTF-8, ≤ 512,000 bytes) on the phone (`CaptureInboxDrainer`) (capture-import-34). Recommended: a `.md` is a typed note whose body is the file (kind note, no capture card), title from the first heading, on both. He picks; then it is one rule in `ImportKinds`.
 source: plan/reads/parity-audit.md P46
 
-### Q146 [tuur] (tuur) decide: keep the source movie of an imported video (C63/C148) or drop the synced-asset plan
+### Q146 [tuur] (done) decide: keep the source movie of an imported video (C63/C148) or drop the synced-asset plan
 spec: C63 C148 C71 D153
 needs: -
 do: -
@@ -1250,7 +1250,7 @@ do: Only `JournalHomeView.reload` partitions fading from live; `JournalCalendarV
 check: `grep -rqE "class ReviewNoteSetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewNoteSetTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P67
 
-### Q167 [auto] (tuur) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
+### Q167 [auto] (todo) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
 spec: C210 D30 C233
 needs: -
 gate+: yes
@@ -1274,7 +1274,7 @@ do: Phone `JournalMemoRow` hard-codes `Image(systemName: "mic")` for every note,
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewRowGlyphTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P70
 
-### Q170 [tuur] (tuur) decide: Mac look-back anchors on the selected day; Mac gets pause / resume and a discard; Mac Add recording
+### Q170 [tuur] (done) decide: Mac look-back anchors on the selected day; Mac gets pause / resume and a discard; Mac Add recording
 spec: C231 C220 D122
 needs: -
 do: -
@@ -1401,7 +1401,7 @@ do: Rows note-body-15 -19, note-chrome-01 -02. One shared token file (e.g. `Skri
 check: `test -f Skrift_Native/Shared/UI/NoteLook.swift && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q186 [auto] (tuur) import bundling and audio export follow one rule on phone and Mac
+### Q186 [auto] (todo) import bundling and audio export follow one rule on phone and Mac
 spec: C68 C239 C240
 needs: -
 gate+: yes
@@ -1919,7 +1919,7 @@ needs: Q138
 do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
-### Q251 [tuur] (tuur) decide: Mac quote read-only applies to any note opening with '> ' (Q112, text-only per C172) — keep, or gate on a capture flag so a hand-typed blockquote stays editable
+### Q251 [tuur] (done) decide: Mac quote read-only applies to any note opening with '> ' (Q112, text-only per C172) — keep, or gate on a capture flag so a hand-typed blockquote stays editable
 spec: C172
 needs: -
 do: -
@@ -1931,7 +1931,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q253 [tuur] (tuur) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
+### Q253 [tuur] (done) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
 spec: -
 needs: -
 do: -
@@ -1950,19 +1950,19 @@ gate+: yes
 do: Q133 made Shared/Pipeline/ImportKinds resolve .m4b and .epub to kind .book, but phone Open-in (AppURLHandler) still ignores them. Route a .book Open-in to the same Books library import the Library tab uses (the BookImportBridge / AudiobookLibrary import path; grep it), so opening an .m4b or .epub from Files or another app adds it to Books. Phone test `BookOpenInRoutingTests` on the pure routing decision. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookOpenInRoutingTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q256 [tuur] (tuur) review Q108's picked wording: empty library 'No notes yet / Tap Record to capture your first note, or Import audio you already have.'; Way-out footer drops the phone's 'clock only starts once you've opened the app' and the Mac's 'Your iPhone does the permanent deleting'; iPad 'back to calendar' -> 'Back'; Mac loading row 'Getting the model — N%'
+### Q256 [tuur] (done) review Q108's picked wording: empty library 'No notes yet / Tap Record to capture your first note, or Import audio you already have.'; Way-out footer drops the phone's 'clock only starts once you've opened the app' and the Mac's 'Your iPhone does the permanent deleting'; iPad 'back to calendar' -> 'Back'; Mac loading row 'Getting the model — N%'
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q257 [tuur] (tuur) review Q177's picks: empty pane 'Select a note' + doc.text on both (Mac sparkles gone); day/RELATED headers use the phone's 11.5/0.5/secondary; accentSoft 0.13; 'New note (⌘N)' tooltip on both; 'Add a title' prompt on both; locked screen shared body with 'hidden, not encrypted', Mac verb 'Unlock' (was 'Unlock…')
+### Q257 [tuur] (done) review Q177's picks: empty pane 'Select a note' + doc.text on both (Mac sparkles gone); day/RELATED headers use the phone's 11.5/0.5/secondary; accentSoft 0.13; 'New note (⌘N)' tooltip on both; 'Add a title' prompt on both; locked screen shared body with 'hidden, not encrypted', Mac verb 'Unlock' (was 'Unlock…')
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q258 [auto] (tuur) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
+### Q258 [auto] (todo) phone suite: MemoExporterTests + PortfolioExportTests fail on export title/filename after Q153 — find the cause, make the code satisfy the protected tests (or report which assertions contradict SPEC for a hand-merge)
 spec: C25 C59
 needs: -
 gate+: yes
@@ -1983,25 +1983,25 @@ gate+: yes
 do: Found by Q143: the phone's link thumbnail lives as a relative file in the phone's recordings dir (`urlThumbnailUrl`, CaptureInboxDrainer.swift:451) and AssetMaterializer syncs only audio, manifest photos, the document and sidecars, so the Mac card always falls back to the globe tile. Ship the thumbnail as a MemoAsset (reuse Kind.photo or add a kind — prefer reuse if it doesn't pollute the photo manifest), materialize it on the Mac into the capture folder where `PipelineFile.captureThumbnailURL` (PipelineFile+CaptureFacts.swift) already looks. Never break existing synced memos (additive only). Desktop test `LinkThumbnailSyncTests`; phone test for the writer side. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkThumbnailSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q261 [tuur] (tuur) decide: should list cards follow C25 for captures (needs hand-merge of protected CaptureDisplayTests/NoteCardModelParityTests), and should a Mac import with a real file name show 'Voice note' until it has words (C25 letter) instead of its file name (Q114 kept the name)
+### Q261 [tuur] (done) decide: should list cards follow C25 for captures (needs hand-merge of protected CaptureDisplayTests/NoteCardModelParityTests), and should a Mac import with a real file name show 'Voice note' until it has words (C25 letter) instead of its file name (Q114 kept the name)
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q262 [tuur] (tuur) review the Mac unrated-capture banner copy Q143 wrote: 'Not rated, so it is not polished: rate it and the Mac adds a title, tags and summary.'
+### Q262 [tuur] (done) review the Mac unrated-capture banner copy Q143 wrote: 'Not rated, so it is not polished: rate it and the Mac adds a title, tags and summary.'
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q263 [tuur] (tuur) Q126 shipped Mac Format > Checklist (⇧⌘L) but no on-screen checklist button — want a toolbar button too? Also eyeball once on Dev: ⌘F find bar docking (Q125) and Return continuing a task line (Q126)
+### Q263 [tuur] (done) Q126 shipped Mac Format > Checklist (⇧⌘L) but no on-screen checklist button — want a toolbar button too? Also eyeball once on Dev: ⌘F find bar docking (Q125) and Return continuing a task line (Q126)
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if he changes it.
 
-### Q264 [tuur] (tuur) decide: capture source label — signed mock capture-items.html says 'Shared link', Q122 made every surface read SourceKind.label ('Link' / 'Link · domain'); keep 'Link' or restore 'Shared link' everywhere? Also: hand-merge to delete the unused MemoDisplay.shareCaptureTypeLabel + its protected CaptureDisplayTests case; and should the Mac header date chip show the time?
+### Q264 [tuur] (done) decide: capture source label — signed mock capture-items.html says 'Shared link', Q122 made every surface read SourceKind.label ('Link' / 'Link · domain'); keep 'Link' or restore 'Shared link' everywhere? Also: hand-merge to delete the unused MemoDisplay.shareCaptureTypeLabel + its protected CaptureDisplayTests case; and should the Mac header date chip show the time?
 spec: -
 needs: -
 do: -
@@ -2027,19 +2027,19 @@ needs: -
 do: -
 check: Tuur approved; done via plan/hand-merge.sh.
 
-### Q268 [tuur] (tuur) review Q176/Q159 picks (in the Q176 commit message): person editor 'Person'/'New person' + Done on both (Mac was Edit person/Save); Mac names filter always shown when the list has people
+### Q268 [tuur] (done) review Q176/Q159 picks (in the Q176 commit message): person editor 'Person'/'New person' + Done on both (Mac was Edit person/Save); Mac names filter always shown when the list has people
 spec: -
 needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q269 [tuur] (tuur) decide the exported source spelling for a typed note: Q142 writes 'source: Typed-note' (portfolio 'capture: Typed-note') — keep, or another word?
+### Q269 [tuur] (done) decide the exported source spelling for a typed note: Q142 writes 'source: Typed-note' (portfolio 'capture: Typed-note') — keep, or another word?
 spec: -
 needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q270 [tuur] (tuur) Q180 pick to confirm: the Mac now offers Redo when ANY polish part exists — a note with only your chosen title shows Redo too (Mac enhancedTitle also stores a chosen title). Keep, or require a real polish?
+### Q270 [tuur] (done) Q180 pick to confirm: the Mac now offers Redo when ANY polish part exists — a note with only your chosen title shows Redo too (Mac enhancedTitle also stores a chosen title). Keep, or require a real polish?
 spec: -
 needs: -
 do: -
@@ -2070,13 +2070,13 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q275 [tuur] (tuur) Q151 picks to settle: the compact phone Library row got an invented trailing '❝ N' capsule (the Q6 mock only draws the tile grid) — keep? Should the jump-back also appear on non-book notes (PDF/podcast)?
+### Q275 [tuur] (done) Q151 picks to settle: the compact phone Library row got an invented trailing '❝ N' capsule (the Q6 mock only draws the tile grid) — keep? Should the jump-back also appear on non-book notes (PDF/podcast)?
 spec: -
 needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q276 [tuur] (tuur) decide: what makes a note a 'conversation' for name linking — phone: transcript parses with two speaker headers; Mac: two distinct named speakers (Q207 left both, documented)
+### Q276 [tuur] (done) decide: what makes a note a 'conversation' for name linking — phone: transcript parses with two speaker headers; Mac: two distinct named speakers (Q207 left both, documented)
 spec: -
 needs: -
 do: -
@@ -2111,6 +2111,118 @@ spec: -
 needs: -
 do: (fill in)
 check: (fill in)
+
+### Q282 [auto] (todo) Done means processed on every device: one shared QueueFilter predicate
+spec: C61 C115 D167
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D167): a note is Done once processed, on phone, iPad and Mac; 'exported' is the destination row's own state, never the filter. Today phone ProcessPile.matches (ProcessPile.swift:50-51) and Mac AppModel.matchesFilter disagree, and the Mac Done list can hold stranded notes. Add one Shared `QueueFilter` (Needs Work / Done) both apps call; delete the two local predicates. Desktop test `QueueFilterSharedTests`, phone test `QueueFilterPhoneTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class QueueFilterSharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QueueFilterPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q283 [auto] (todo) remove the Unsynced chip and the dead photo/place filters
+spec: D68 D148 D168
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D168): delete the Unsynced filter chip (nothing sets syncStatus=.synced outside seeders) and the dead `MemoFilter.hasPhotosOnly` / `.place` on the phone; supersedes D148's chip line. Keep the Mac status pills (D135 platform difference, no change). Phone test `FilterChipsPrunedTests` asserts the chip row no longer offers Unsynced. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh FilterChipsPrunedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q284 [auto] (todo) keyboard shortcuts: ⌘N new note, ⇧⌘N Record everywhere; Mac ⌘F, ⌘1/⌘2, Record menu
+spec: C112 C114 D169
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D169): on every device ⌘N = new note and ⇧⌘N = Record. iPad binds ⌘N twice today (SkriftApp.swift:243-248 'New Recording' and MemosListView+Header.swift:116 'New note'): make the app menu Record ⇧⌘N. Mac: add a Record menu command (⇧⌘N), ⌘F focuses search, ⌘1 Notes / ⌘2 Review. One `.commands` block per app; the key table lives in Shared (`AppShortcuts`) so both read one source. Update FEATURES.md:61/:126. Desktop test `AppShortcutsTests` asserts the table. Never run SkriftDesktopUITests.
+check: `grep -rqE "class AppShortcutsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q285 [auto] (todo) Mac shared-text capture draws the accent-bar quote, not a SHARED CONTENT box
+spec: C240 D170
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D170): the no-bubbles rule covers the shared TEXT quote only. On the Mac, a text capture renders as the phone's borderless italic accent-bar quote; link, file and photo captures keep their cards on both apps. Reuse the phone's quote style via a Shared view/style struct if one exists. Prove it with a Mac headless -snapshot-capture PNG of a text capture (look at it) committed under plan/reads/Q-no-bubbles/. Never run SkriftDesktopUITests.
+check: `ls plan/reads/Q-no-bubbles/*.png >/dev/null && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q286 [auto] (todo) .md import becomes a typed note on phone and Mac
+spec: C76 C77 D171
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D171): a plain .md file imports as a typed note on both apps — body is the file, title from the first heading, no capture card. Today the Mac makes an 'Apple Note' (IngestService.ingestNote) and the phone a 'Text' capture (CaptureInboxDrainer). One rule in Shared ImportKinds. Desktop test `MarkdownImportTests`, phone test `MarkdownImportPhoneTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class MarkdownImportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MarkdownImportPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q287 [auto] (todo) a video filed Inspiration/Idea/Project keeps its movie as a synced asset
+spec: C63 C148 D172
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D172): 'take a video of something cool — a bridge, a lamp — keep the video and the transcript, for portfolio ideas'. Build C63/C148: a new `MemoAsset.Kind.video` (≤ ~200 MB, refuse larger with a clear message), written by the phone share/import path and the Mac import path when the note is filed Inspiration / Idea / Project; whichever device exports it copies the movie into the export. Phone share card copy 'the video file itself isn't kept' changes accordingly; fix the stale Mac comment IngestService.swift:355. Other destinations keep no movie. CloudKit: the new kind is a schema change — note it for promotion. Desktop test `VideoAssetSyncTests`, phone test `VideoAssetPhoneTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class VideoAssetSyncTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh VideoAssetPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q288 [auto] (todo) Mac Looking back anchors on today
+spec: C231 D173
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D173): the Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; anchor on today like the phone, iPad and the signed journal-desktop mock. Desktop test `LookbackAnchorTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class LookbackAnchorTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q289 [tuur] (todo) mockup: Mac recorder pause/resume and a confirmed discard
+spec: C220 C262 D173
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D173): the Mac recorder gets pause / resume and a discard that asks first (the phone has both; its X discards without confirm, R71/C262). Mock first (locked process for new UI): draw the Mac record bar from SOURCE (Features/Recording/), with pause, resume and discard + confirm states. Publish the artifact; the build item follows sign-off.
+check: Tuur signed the mock off.
+
+### Q290 [auto] (todo) Mac: add a recording to an existing note
+spec: C220 D173
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D173): the Mac can record but has no 'Add recording' to an existing note (note-menu-03, capture-quick-16; FEATURES.md:30 '➖'). Add it to the note menu, appending via Shared AudioClipMerge the way the phone appends (see Q220). Desktop test `MacAppendRecordingTests` on the append step. Never run SkriftDesktopUITests.
+check: `grep -rqE "class MacAppendRecordingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q291 [auto] (todo) Mac quote read-only only for real captured quotes
+spec: C172 D175
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D175): Q112 made any Mac note opening with '> ' read-only; gate it on the capture flag (an audiobook/text capture) so a hand-typed blockquote stays editable. Desktop test `QuoteReadOnlyGateTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class QuoteReadOnlyGateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q292 [auto] (todo) one shared 'conversation' rule: two or more speaker headers
+spec: D175
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D175): a note is a conversation for name linking when its transcript parses with two or more speaker headers (named or 'Speaker N'), on both apps. Today the phone uses headers and the Mac two distinct named speakers (Q207). One Shared predicate. Desktop test `ConversationRuleTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class ConversationRuleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q293 [auto] (todo) an import with a real file name shows the name until it has words, on both apps
+spec: C25 D176
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D176): amend C25 — an imported audio with a real file name (not a generic 'New Recording N' / 'Audio N' default) shows that name until it has words, on phone and Mac; generic names fall back to 'Voice note'. One rule in the Shared NoteTitle ladder. Desktop test `ImportFileNameTitleTests`, phone `ImportFileNameTitlePhoneTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class ImportFileNameTitleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportFileNameTitlePhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q294 [auto] (todo) delete the unused MemoDisplay.shareCaptureTypeLabel
+spec: D176
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D176): 'Link' / 'Link · domain' (SourceKind.label) stays; the capture-items mock's 'Shared link' is superseded. Delete the unused `MemoDisplay.shareCaptureTypeLabel` and its protected CaptureDisplayTests case (blanket rule D163). Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh CaptureDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q295 [auto] (todo) Mac Redo only after a real polish
+spec: D176
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D176): Q180 shows Redo when ANY polish part exists, including a title Tuur chose himself (Mac enhancedTitle stores chosen titles). Redo only when a real polish ran (summary, tags or a generated title); a chosen-title-only note offers Polish. Desktop test `RedoOfferTests`. Never run SkriftDesktopUITests.
+check: `grep -rqE "class RedoOfferTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+
+### Q296 [tuur] (todo) mockup: a checklist button in the Mac editor toolbar
+spec: D177
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D177): add an on-screen checklist button next to the Mac's Format > Checklist (⇧⌘L). Mock first: draw the current Mac editor toolbar from SOURCE, add the button and its on-state. Publish the artifact; the build follows sign-off.
+check: Tuur signed the mock off.
+
+### Q297 [auto] (todo) jump-back on PDF and podcast notes too
+spec: D177
+needs: -
+gate+: yes
+do: Tuur 2026-10-03 (D177): the audiobook jump-back (Q151/Q273, `AudiobookSession.isJumpBack`, `beginJumpBack(to:)`) also appears on non-book notes that have a source position — PDF captures and podcast clips. Keep the '❝ N' Library capsule. Phone test `JumpBackNonBookTests`. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2986,3 +3098,42 @@ check: (fill in)
 - 2026-10-03 08:58 Q206 -> tuur — built @0458e662 — awaiting sitting
 - 2026-10-03 08:58 Q206 -> done — gate pass (merged; tuur lane)
 - 2026-10-03 09:03 Q102 -> done — hand-merged (D164: locked note in the Process pile, test flipped at 3bb0ea5b)
+- 2026-10-03 09:05 Q282 added
+- 2026-10-03 09:05 Q283 added
+- 2026-10-03 09:05 Q284 added
+- 2026-10-03 09:05 Q285 added
+- 2026-10-03 09:05 Q286 added
+- 2026-10-03 09:05 Q287 added
+- 2026-10-03 09:05 Q288 added
+- 2026-10-03 09:05 Q289 added
+- 2026-10-03 09:05 Q290 added
+- 2026-10-03 09:05 Q291 added
+- 2026-10-03 09:05 Q292 added
+- 2026-10-03 09:05 Q293 added
+- 2026-10-03 09:05 Q294 added
+- 2026-10-03 09:05 Q295 added
+- 2026-10-03 09:05 Q296 added
+- 2026-10-03 09:05 Q297 added
+- 2026-10-03 09:05 Q109 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q110 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q111 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q130 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q145 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q146 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q170 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q251 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q253 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q261 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q264 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q269 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q270 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q276 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q256 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q257 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q262 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q268 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q263 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q275 -> done — Tuur decided 2026-10-03 (SPEC D167-D177); build items added
+- 2026-10-03 09:05 Q167 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)
+- 2026-10-03 09:05 Q258 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)
+- 2026-10-03 09:05 Q186 -> todo — Tuur approved the protected-test flip 2026-10-03 (D174)

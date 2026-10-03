@@ -1907,3 +1907,38 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      flags, keep -aligncheck/-asrsweep/-asrbench (Q206); build Q220 (append via AudioClipMerge) and Q221
      (pinch zoom, BT mic after a media reset), iPhone check owed. Q203 (second note renderer) is kept: the
      headless -snapshot path depends on it (conductor's call, Tuur deferred).
+167. **D167 Done means processed.** ✅ 2026-10-03 (sitting, Q109): a note is Done once processed on phone, iPad
+     and Mac; 'exported' is the destination row's own state, never the Needs Work / Done filter.
+168. **D168 Unsynced chip goes; Mac pills stay.** ✅ 2026-10-03 (Q110): remove the Unsynced chip and the dead
+     photos/place filters (supersedes D148's chip line); the Mac's per-row status pills are the one platform
+     difference to D135 — the Mac is the processing dashboard.
+169. **D169 Shortcuts.** ✅ 2026-10-03 (Q111): every device ⌘N = new note, ⇧⌘N = Record; the Mac adds ⌘F
+     search, ⌘1 Notes / ⌘2 Review and a Record menu command.
+170. **D170 No-bubbles scope.** ✅ 2026-10-03 (Q130): the no-bubbles rule covers the shared TEXT quote only (accent
+     bar, italic, borderless) on both apps; link, file and photo captures keep their cards.
+171. **D171 A .md file is a typed note.** ✅ 2026-10-03 (Q145): body = the file, title = first heading, no capture
+     card, on phone and Mac.
+172. **D172 Videos keep their movie.** ✅ 2026-10-03 (Q146): "take a video of something cool — a bridge, a lamp —
+     keep the video and the transcript, for portfolio ideas". C63/C148 stand: a video filed Inspiration / Idea /
+     Project keeps its movie as a synced asset (≤ ~200 MB); CloudKit schema deploy owed at promotion.
+173. **D173 Mac recorder gaps.** ✅ 2026-10-03 (Q170): Mac Looking back anchors on today (journal-desktop mock, which
+     was built 2026-07-13); the Mac recorder gets pause / resume and a confirmed discard (mock first); the Mac can
+     add a recording to an existing note.
+174. **D174 Three protected-test flips approved.** ✅ 2026-10-03: a legacy 0.7 is the top stop — three dots and it
+     prints; the wall prints only at three dots (Q167); phone export titles follow C25 ('Note' / 'Voice note'),
+     frontmatter puts Tuur's own title first, the portfolio file is named from the generated title (Q258); one
+     import-bundle rule on both apps, clips + pictures + text become one note (C68), with a synced
+     includeAudioInExport — CloudKit schema deploy owed (Q186).
+175. **D175 Quote lock, import dating, conversations.** ✅ 2026-10-03: the Mac makes only real captured quotes
+     read-only, a hand-typed blockquote stays editable (Q251); merged-clip and import dating is filename, then file
+     date, never the embedded date — supersedes C70's embedded-first order (Q253); a note is a conversation when its
+     transcript parses with two or more speaker headers, one rule on both apps (Q276).
+176. **D176 Titles and labels.** ✅ 2026-10-03: an import with a real file name shows that name until it has words, on
+     both apps; generic default names fall back to 'Voice note' — amends C25 (Q261); the capture source label stays
+     'Link' / 'Link · domain', superseding capture-items.html's 'Shared link' (Q264); the Mac offers Redo only after a
+     real polish (Q270).
+177. **D177 Worker picks reviewed.** ✅ 2026-10-03: wording approved as written — Q256 (empty library, way-out footer,
+     iPad 'Back', 'Getting the model — N%'), Q257 (empty pane, headers, tooltip, 'Add a title', locked screen),
+     Q262 (Mac unrated banner), Q268 ('Person' / 'New person' + Done); typed notes export as 'Typed-note' (Q269); the
+     Mac editor gets an on-screen checklist button, mock first (Q263); the phone Library keeps its '❝ N' capsule and
+     jump-back extends to PDF and podcast notes (Q275).
