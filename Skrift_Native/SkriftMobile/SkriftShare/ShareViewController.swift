@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 ///   1. iOS calls `viewDidLoad` after the extension launches.
 ///   2. We load the share payload from `extensionContext.inputItems`.
 ///   3. Present the SwiftUI `ShareSheetView` via a child UIHostingController.
-///   4. The sheet calls `complete(entry:imageData:)` → CaptureInbox.write → extensionContext complete.
+///   4. The sheet calls `complete(entries:imageDatas:payload:)` → CaptureInbox.write → extensionContext complete.
 ///   5. The sheet calls `cancel()` → extensionContext cancel.
 @objc(ShareViewController)     // must match NSExtensionPrincipalClass (no module prefix in plist)
 final class ShareViewController: UIViewController {
@@ -89,9 +89,8 @@ final class ShareViewController: UIViewController {
     private func presentSheet(payload: SharePayload) {
         let sheet = ShareSheetView(
             payload: payload,
-            onSave: { [weak self] entries, imageDatas, dictationData in
-                self?.complete(entries: entries, imageDatas: imageDatas,
-                               dictationData: dictationData, payload: payload)
+            onSave: { [weak self] entries, imageDatas in
+                self?.complete(entries: entries, imageDatas: imageDatas, payload: payload)
             },
             onCancel: { [weak self] in
                 self?.cancel()
@@ -154,8 +153,7 @@ final class ShareViewController: UIViewController {
     /// Success flashes Saved ✓; a failed write shows the error state with a
     /// retry (temps are kept — they're the retry source). A12: this used to
     /// ignore the write result and complete anyway.
-    private func complete(entries: [CaptureInboxEntry], imageDatas: [Data],
-                          dictationData: Data?, payload: SharePayload) {
+    private func complete(entries: [CaptureInboxEntry], imageDatas: [Data], payload: SharePayload) {
         var allOK = true
         for (i, entry) in entries.enumerated() {
             var audioFileURLs: [URL]?
@@ -167,7 +165,6 @@ final class ShareViewController: UIViewController {
                 }
             }
             let ok = CaptureInbox.write(entry,
-                                        dictationData: i == 0 ? dictationData : nil,
                                         // E1: video/file entries come through the
                                         // sheet now — their temp copies ride along.
                                         videoFileURL: entry.videoFileName != nil ? payload.videoURL : nil,
@@ -181,8 +178,7 @@ final class ShareViewController: UIViewController {
             // drain dedups by memo UUID.
             presentState(.error(message: "The share couldn't be handed to Skrift.", canRetry: true),
                          retry: { [weak self] in
-                             self?.complete(entries: entries, imageDatas: imageDatas,
-                                            dictationData: dictationData, payload: payload)
+                             self?.complete(entries: entries, imageDatas: imageDatas, payload: payload)
                          })
             return
         }

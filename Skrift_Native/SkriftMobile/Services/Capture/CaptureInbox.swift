@@ -153,15 +153,15 @@ enum CaptureInbox {
 
     // MARK: - Write (called by the share extension)
 
-    /// Write a capture entry to the inbox.  For image captures, `imageData` must
-    /// be non-nil and `entry.imageFileName` must be set; for dictated captures,
-    /// `dictationData` must be non-nil and `entry.dictationFileName` set.
+    /// Write a capture entry to the inbox.  Images go in via `imageDatas` (names
+    /// aligned to `entry.imageFileNames`); `dictationData` is legacy-only (the share
+    /// sheet no longer records; kept for pending-entry tests).
     ///
     /// Crash-safe: the file is written atomically (write to a tmp file, then
     /// rename) — a crash mid-write leaves the old entry intact or no entry at all,
     /// never a half-written JSON.
     @discardableResult
-    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
+    static func write(_ entry: CaptureInboxEntry, dictationData: Data? = nil,
                       videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
                       audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
@@ -170,10 +170,6 @@ enum CaptureInbox {
             try FileManager.default.createDirectory(at: entryDir, withIntermediateDirectories: true)
             // Write the payload files first (if any) so that if the JSON write
             // crashes, the orphaned dir gets cleaned up on the next drain pass.
-            if let imageData, let name = entry.imageFileName {
-                let imageURL = entryDir.appendingPathComponent(name)
-                try imageData.write(to: imageURL, options: .atomic)
-            }
             // Multi-photo capture (B2): write every image, names aligned by index.
             if let imageDatas, let names = entry.imageFileNames {
                 for (data, name) in zip(imageDatas, names) {
