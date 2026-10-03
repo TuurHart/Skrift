@@ -1737,7 +1737,7 @@ do: `ObsidianVault.hasPublished(_ memoID:)` (`SkriftMobile/Services/Export/Obsid
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-m1 (cleanup-audit P40)
 
-### Q228 [auto] (doing) share extension: drop the share-side dictation that was retired on 2026-07-10
+### Q228 [auto] (done) share extension: drop the share-side dictation that was retired on 2026-07-10
 spec: C240
 needs: Q132
 gate+: no
@@ -2935,3 +2935,4 @@ check: (fill in)
 - 2026-10-03 02:06 Q228 -> doing — dispatched (sonnet), hand-merge likely
 - 2026-10-03 02:15 Q172 -> done — gate pass @584aa5fd
 - 2026-10-03 02:15 Q188 -> tuur — needs hand-merge: wt/Q188 @b65cab6f (agent-ac17ad7e4e274ca9a) deletes trim tests in protected AudiobookCaptureMathTests + QuoteCaptureSaveTests, drops snapped args in AlignedSentenceSourceTests + TextCaptureTests; gate green 1440; approve then plan/hand-merge.sh
+- 2026-10-03 02:19 Q228 -> done — gate pass @22e678ab
