@@ -105,7 +105,8 @@ final class LinkFetchRetryTests: XCTestCase {
         let sleeps = SleepLog()
         let (svc, work) = try service(fetcher, sleeps: sleeps)
         defer { try? FileManager.default.removeItem(at: work) }
-        let pf = try XCTUnwrap(try await svc.ingestLink(page, into: try context()))
+        let row = try await svc.ingestLink(page, into: try context())
+        let pf = try XCTUnwrap(row)
         let sc = try XCTUnwrap(SharedContent.decode(from: pf.audioMetadataJSON))
         XCTAssertEqual(sc.urlTitle, "The Real Title", "the retry reached the page")
         XCTAssertEqual(fetcher.recorded.filter { $0 == "GET \(page.absoluteString)" }.count, 2)
@@ -117,7 +118,8 @@ final class LinkFetchRetryTests: XCTestCase {
         let sleeps = SleepLog()
         let (svc, work) = try service(fetcher, sleeps: sleeps)
         defer { try? FileManager.default.removeItem(at: work) }
-        let pf = try XCTUnwrap(try await svc.ingestLink(page, into: try context()))
+        let row = try await svc.ingestLink(page, into: try context())
+        let pf = try XCTUnwrap(row)
         let sc = try XCTUnwrap(SharedContent.decode(from: pf.audioMetadataJSON))
         XCTAssertEqual(sc.type, .url)
         XCTAssertEqual(sc.urlTitle, "metro.example.org", "no title → the host, never the raw URL")
