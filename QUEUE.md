@@ -1116,7 +1116,7 @@ do: Attribution is built three ways: `MergedCaptureView` hand-builds '— author
 check: `grep -rqE "class QuoteSplitParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuoteSplitParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P50
 
-### Q150 [auto] (doing) audio of an hour or more offers Audiobook vs Voice note at Open-in and the Files importer, not only in the share sheet
+### Q150 [auto] (done) audio of an hour or more offers Audiobook vs Voice note at Open-in and the Files importer, not only in the share sheet
 spec: C79 C145
 needs: Q132
 gate+: yes
@@ -1282,7 +1282,7 @@ check: Tuur picked per question and FEATURES.md / SPEC follow.
 brief: Three calls. (1) Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; the phone and iPad always anchor on today and the journal-desktop mock says 'same rules as the phone' (recsj-086). (2) The Mac recorder has no pause / resume and no way to discard a take; the phone has both and its X discards with no confirm (R71/C262 open); FEATURES.md:21 lists the Mac '➖' with no decision behind it (recsj-010, -015). (3) The Mac has no 'Add recording' to an existing note although it can record (note-menu-03, capture-quick-16, recsj-045; FEATURES.md:30 '➖'). Recommended: (1) anchor on today, matching the mock text; (2) build pause and a confirmed discard; (3) build it.
 source: plan/reads/parity-audit.md P71
 
-### Q171 [auto] (todo) single-source the UI strings and views written twice (twin-same rows)
+### Q171 [auto] (doing) single-source the UI strings and views written twice (twin-same rows)
 spec: C239 C240
 needs: -
 gate+: yes
@@ -1569,7 +1569,7 @@ do: These DEBUG flags have no invoker in `plan/*.sh`, `gate.sh`, UITests, SPEC o
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d07 DSH-d08 DSH-d09 DSH-d19 PER-d13 (cleanup-audit P19)
 
-### Q207 [auto] (doing) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
+### Q207 [auto] (done) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
 spec: C239
 needs: Q116
 gate+: yes
@@ -2877,3 +2877,6 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:31 Q243 -> doing — batch worker out
 - 2026-10-03 01:35 Q174 -> doing — worker out
 - 2026-10-03 01:38 Q255 -> done — gate pass @9e204637
+- 2026-10-03 01:38 Q150 -> done — gate pass (batched with Q255)
+- 2026-10-03 01:38 Q171 -> doing — worker out
+- 2026-10-03 01:40 Q207 -> done — gate pass @02ec480c
