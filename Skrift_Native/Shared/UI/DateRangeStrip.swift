@@ -60,18 +60,12 @@ struct DateRangeStrip: View {
         if let d = date.wrappedValue {
             HStack(spacing: 2) {
                 Text(label).font(.system(size: 11)).foregroundStyle(style.accent).fixedSize()
-                DatePicker(label, selection: Binding(get: { d }, set: { date.wrappedValue = $0 }),
-                           displayedComponents: .date)
-                    .labelsHidden()
-                    #if os(iOS)
-                    // The compact picker ignores `.font`; shrink it to chip scale and
-                    // give the layout the shrunk size (scaleEffect alone keeps the big frame).
-                    .fixedSize()
-                    .scaleEffect(0.82)
-                    .frame(width: 108, height: 26)
-                    #else
-                    .datePickerStyle(.field).controlSize(.small)
-                    #endif
+                // The per-app fit (phone: shrink the compact picker; Mac: field style) comes
+                // from the style struct, never an `#if os()` here (C240).
+                style.datePickerFit(AnyView(
+                    DatePicker(label, selection: Binding(get: { d }, set: { date.wrappedValue = $0 }),
+                               displayedComponents: .date)
+                        .labelsHidden()))
                 Button { date.wrappedValue = nil } label: {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 11))
                 }

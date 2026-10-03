@@ -42,8 +42,30 @@ extension View {
     /// state is active. Shape-generic so ◧ (circle) and the Connections capsule
     /// share one treatment.
     func barGlass(on: Bool = false, in shape: some InsettableShape = Circle()) -> some View {
-        background(on ? Color.skAccentSoft : Color.skElev, in: shape)
-            .overlay(on ? nil : shape.strokeBorder(Color.skBorder, lineWidth: 0.5))
+        barGlass(on: on, in: shape, style: .phone)
+    }
+}
+
+// Q171: the shared views' per-app style structs (Shared/UI/VerbRow.swift, FilterChipRow.swift).
+extension BarGlassStyle {
+    static let phone = BarGlassStyle(onFill: .skAccentSoft, offFill: .skElev, border: .skBorder)
+}
+extension PanelToggleStyle {
+    static let phone = PanelToggleStyle(glass: .phone, onText: .skAccentText, offText: .skTextDim)
+}
+extension VerbButtonStyle {
+    /// Tap-sized row: 44pt HIG floor, continuous corners, 44-wide square compose chip.
+    static let phone = VerbButtonStyle(text: .skText, record: .skRed, fill: .skElev, minHeight: 44,
+                                       newNoteWidth: 44, importIconSize: 12.5, continuousCorners: true)
+}
+extension ContextChipStyle {
+    static let phone = ContextChipStyle(text: .skTextDim, fill: .skElev)
+}
+extension ChipRowStyle {
+    static let phone = ChipRowStyle(accent: .skAccent, dim: .skTextDim) { picker in
+        // The compact picker ignores `.font`; shrink it to chip scale and give the layout the
+        // shrunk size (scaleEffect alone keeps the big frame).
+        AnyView(picker.fixedSize().scaleEffect(0.82).frame(width: 108, height: 26))
     }
 }
 
@@ -61,11 +83,7 @@ struct PanelToggle: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
-                .frame(width: 30, height: 30)
-                .barGlass(on: on)
+            PanelToggleLabel(icon: icon, on: on, style: .phone)
         }
         .accessibilityIdentifier(id)
         .accessibilityLabel(label)

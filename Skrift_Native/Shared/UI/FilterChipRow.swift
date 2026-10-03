@@ -10,6 +10,35 @@ import SwiftUI
 struct ChipRowStyle {
     var accent: Color
     var dim: Color
+    /// How a set date pill's compact `DatePicker` is fitted to chip scale. This is the one
+    /// platform difference in the date strip, so it lives here and not in an `#if os()` in the
+    /// shared view (C240): the phone shrinks the compact picker, the Mac uses the field style.
+    var datePickerFit: (AnyView) -> AnyView
+}
+
+/// The four status chips: label + optional count, tinted wash + hairline while on (list-sidebar-38).
+/// The tap and the test id stay with the caller.
+struct StatusChip: View {
+    let label: String
+    let count: Int?
+    let on: Bool
+    let style: ChipRowStyle
+    var body: some View {
+        HStack(spacing: 3) {
+            Text(label)
+            if let count {
+                Text("\(count)").fontWeight(.semibold)
+            }
+        }
+        .font(.system(size: 11))
+        .lineLimit(1).fixedSize()
+        .foregroundStyle(on ? style.accent : style.dim)
+        .padding(.horizontal, 9).padding(.vertical, 4)
+        .background(on ? style.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6)
+            .stroke(on ? style.accent.opacity(0.22) : .clear, lineWidth: 1))
+        .contentShape(Rectangle())
+    }
 }
 
 /// A chip past the four status ones — dashed outline when idle (it "stacks",

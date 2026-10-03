@@ -150,6 +150,13 @@ enum SharedCopy {
     static let syncWhatSyncs = "Your notes, names, custom words, language, destinations and polish prompts sync across your devices via iCloud."
     /// Only the Mac said this; every device needs it.
     static let syncSameAccount = "Every device needs to be signed into the same iCloud account."
+
+    // ── Q171: the orange line beside the rating pill (capture-quick-12) ──
+
+    /// "starts fading 25 Oct — rate it to keep it": the spine one-liner + the one suffix.
+    /// Both apps compute the one-liner from their own memo type; the words live here.
+    static let rateToKeepSuffix = " — rate it to keep it"
+    static func fadingLine(_ oneLiner: String) -> String { oneLiner + rateToKeepSuffix }
 }
 
 /// Model download sizes quoted to the user — one figure per model (setexp-42). The phone said

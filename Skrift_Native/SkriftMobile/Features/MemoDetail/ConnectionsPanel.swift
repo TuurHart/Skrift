@@ -156,8 +156,6 @@ struct ConnectionsPanel: View {
             hasRows: !related.isEmpty, querying: finding)
     }
 
-    private static let hiddenDefaultsKey = "connectionsHiddenPairs"   // same shape as the Mac's
-
     var body: some View {
         expanded
         // The visitor sheet is an inspector SURFACE (signed 2026-07-24:
@@ -257,11 +255,9 @@ struct ConnectionsPanel: View {
     private var relatedSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             sortPill
-            Text(sortByDate
-                 ? "the arc of this idea · first mentioned \(Self.day(threadRows.first?.date))"
-                 : (visibleRelated.count < related.count
-                    ? "best match first · showing \(visibleRelated.count) of \(related.count)"
-                    : "best match first · odd matches sink to the bottom"))
+            Text(ConnectionsPanelSpec.subCaption(byDate: sortByDate,
+                                                 firstMentioned: Self.day(threadRows.first?.date),
+                                                 shown: visibleRelated.count, total: related.count))
                 .font(.system(size: 10)).foregroundStyle(Color.skTextFaint)
                 .padding(.top, 6).padding(.bottom, 10)
             if sortByDate { rail } else { flatRows }
@@ -598,15 +594,12 @@ struct ConnectionsPanel: View {
     // MARK: - Hide list (the Mac's hover-✕, long-press on touch; same key)
 
     private func hide(_ row: ConnectionRowVM) {
-        var map = UserDefaults.standard.dictionary(forKey: Self.hiddenDefaultsKey) as? [String: [String]] ?? [:]
-        map[memo.id.uuidString, default: []].append(row.id.uuidString)
-        UserDefaults.standard.set(map, forKey: Self.hiddenDefaultsKey)
+        ConnectionsPanelSpec.hidePair(note: memo.id.uuidString, neighbour: row.id.uuidString)
         related.removeAll { $0.id == row.id }
     }
 
     private static func hiddenNeighbours(of memoID: UUID) -> Set<String> {
-        let map = UserDefaults.standard.dictionary(forKey: hiddenDefaultsKey) as? [String: [String]] ?? [:]
-        return Set(map[memoID.uuidString] ?? [])
+        ConnectionsPanelSpec.hiddenNeighbours(of: memoID.uuidString)
     }
 
     // MARK: - Derivation (main actor; mirrors MemoPageView's footer loaders)

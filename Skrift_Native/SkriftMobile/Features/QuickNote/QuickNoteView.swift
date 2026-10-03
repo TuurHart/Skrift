@@ -196,7 +196,7 @@ struct QuickNoteView: View {
     private var fadingLine: String? {
         guard let memo = draft.memo, significance == 0,
               !MemoLifecycle.neverFades(memo, backlinked: []) else { return nil }
-        return "\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: [])))) — rate it to keep it"
+        return SharedCopy.fadingLine(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: []))))
     }
 
     @ViewBuilder private var tagToastView: some View {
