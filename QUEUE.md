@@ -2210,7 +2210,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): Q180 shows Redo when ANY polish part exists, including a title Tuur chose himself (Mac enhancedTitle stores chosen titles). Redo only when a real polish ran (summary, tags or a generated title); a chosen-title-only note offers Polish. Desktop test `RedoOfferTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class RedoOfferTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q296 [tuur] (doing) mockup: a checklist button in the Mac editor toolbar
+### Q296 [tuur] (tuur) mockup: a checklist button in the Mac editor toolbar
 spec: D177
 needs: -
 gate+: yes
@@ -3143,3 +3143,4 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 - 2026-10-03 09:05 Q289 -> doing — mockup agent (opus)
 - 2026-10-03 09:05 Q296 -> doing — mockup agent (opus)
 - 2026-10-03 09:12 Q289 -> tuur — mock https://claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW (mocks/Q289-mac-recorder-pause.html). Question: after × asks 'Discard this recording?', does the take keep recording until you answer, or pause?
+- 2026-10-03 09:13 Q296 -> tuur — mock https://claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5 (mocks/Q296-mac-checklist-button.html). Question: button on the left beside the notes-list toggle (A) or right before Process (B)? Also: multi-line selection -> checklist is NEW on both apps (shared rule change)

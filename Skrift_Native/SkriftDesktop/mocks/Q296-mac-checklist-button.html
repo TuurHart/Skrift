@@ -1,0 +1,517 @@
+<title>Mac Checklist Button</title>
+<style>
+/* Layout: page header + state tabs, then the two placement variants (A | B) side by side on
+   desktop and stacked on a phone. Each variant is the Mac note pane drawn from source:
+   48pt chrome band, reading column, docked player. App tokens = Palette.swift / Theme.swift. */
+:root {
+  /* App tokens (Shared/UI/Palette.swift, SkriftDesktop/Features/Theme/Theme.swift) — light */
+  --sk-bg: #f7f7fa;            /* Theme.bg (Palette.bg.mac) */
+  --sk-surface: #ffffff;       /* Theme.surface */
+  --sk-chip: #ebebf0;          /* Theme.chip (Palette.chipFill) */
+  --sk-text: #1c1c20;          /* Theme.textPrimary (mac) */
+  --sk-text2: #6c6c76;         /* Theme.textSecondary (mac) */
+  --sk-muted: #9696a2;         /* Theme.textMuted (mac) */
+  --sk-accent: #6c5ce0;        /* Theme.accent */
+  --sk-accent-text: #6051c8;   /* Theme.accentText */
+  --sk-accent-soft: rgba(108, 92, 224, 0.13); /* accent @ Palette.accentSoftAlpha */
+  --sk-hair: 0, 0, 0;          /* Theme.hairline = black on light */
+  --sk-band-hair: rgba(0, 0, 0, 0.09);      /* NoteLook.hairlineAlphaLight */
+  --sel: #b3d7ff;              /* NSTextView default selection (no override in BodyTextView) */
+  --tip-bg: #f0f0f0; --tip-fg: #1c1c20; --tip-border: rgba(0, 0, 0, 0.18);
+  /* Page chrome around the mock */
+  --page: #e8e8ee;
+  --ink: #1c1c20;
+  --ink2: #5d5d68;
+  --rule: rgba(0, 0, 0, 0.10);
+  --flag: #b4540a;
+  --flag-soft: rgba(217, 119, 6, 0.12);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sk-bg: #0f1117; --sk-surface: #181a23; --sk-chip: #1e2130;
+    --sk-text: #e4e4e7; --sk-text2: #8b8b97; --sk-muted: #55556a;
+    --sk-accent: #7c6bf5; --sk-accent-text: #b9acff; --sk-accent-soft: rgba(124, 107, 245, 0.13);
+    --sk-hair: 255, 255, 255; --sk-band-hair: rgba(255, 255, 255, 0.06);
+    --sel: #3f638b;
+    --tip-bg: #2c2c30; --tip-fg: #e4e4e7; --tip-border: rgba(255, 255, 255, 0.16);
+    --page: #07080c; --ink: #e4e4e7; --ink2: #9a9aa6; --rule: rgba(255, 255, 255, 0.10);
+    --flag: #f5a524; --flag-soft: rgba(245, 158, 11, 0.13);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sk-bg: #0f1117; --sk-surface: #181a23; --sk-chip: #1e2130;
+  --sk-text: #e4e4e7; --sk-text2: #8b8b97; --sk-muted: #55556a;
+  --sk-accent: #7c6bf5; --sk-accent-text: #b9acff; --sk-accent-soft: rgba(124, 107, 245, 0.13);
+  --sk-hair: 255, 255, 255; --sk-band-hair: rgba(255, 255, 255, 0.06);
+  --sel: #3f638b;
+  --tip-bg: #2c2c30; --tip-fg: #e4e4e7; --tip-border: rgba(255, 255, 255, 0.16);
+  --page: #07080c; --ink: #e4e4e7; --ink2: #9a9aa6; --rule: rgba(255, 255, 255, 0.10);
+  --flag: #f5a524; --flag-soft: rgba(245, 158, 11, 0.13);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 14px/1.45 var(--sys);
+  padding-inline: 16px; padding-block: 18px 40px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 16px; }
+
+/* ---------- page header ---------- */
+.top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; justify-content: space-between; }
+.top h1 { margin: 0; font-size: 21px; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink2); }
+.top p { margin: 4px 0 0; color: var(--ink2); max-width: 62ch; font-size: 13px; }
+.seg { display: inline-flex; background: rgba(var(--sk-hair), 0.07); border-radius: 8px; padding: 2px; gap: 2px; }
+.seg button {
+  font: 600 12px var(--sys); color: var(--ink2); background: transparent; border: 0;
+  padding: 6px 10px; border-radius: 6px; cursor: pointer; min-height: 30px;
+}
+.seg button[aria-pressed="true"] { background: var(--sk-surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.seg button:focus-visible, .tabs button:focus-visible, .mock button:focus-visible, .linkbtn:focus-visible {
+  outline: 2px solid var(--sk-accent); outline-offset: 2px;
+}
+
+/* ---------- state tabs ---------- */
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tabs button {
+  text-align: left; border: 1px solid var(--rule); background: rgba(var(--sk-hair), 0.03);
+  color: var(--ink); border-radius: 10px; padding: 9px 11px; cursor: pointer; font: 13px/1.3 var(--sys);
+  display: grid; gap: 2px; min-height: 44px;
+}
+.tabs button b { font-size: 11px; color: var(--ink2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.tabs button[aria-selected="true"] { border-color: var(--sk-accent); background: var(--sk-accent-soft); }
+.tabs button[aria-selected="true"] b { color: var(--sk-accent-text); }
+@media (max-width: 700px) { .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.caption {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline;
+  font-size: 13.5px; color: var(--ink); background: rgba(var(--sk-hair), 0.04);
+  border-radius: 10px; padding: 10px 12px;
+}
+.caption .what { flex: 1 1 320px; min-width: 0; }
+.caption .result { flex-basis: 100%; font-size: 12.5px; color: var(--sk-accent-text); font-weight: 600; }
+.caption .result:empty { display: none; }
+.linkbtn {
+  font: 600 12.5px var(--sys); color: var(--sk-accent-text); background: var(--sk-accent-soft);
+  border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; min-height: 30px;
+}
+kbd { font: 600 11.5px var(--mono); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--rule); background: rgba(var(--sk-hair), 0.05); }
+
+/* ---------- variants ---------- */
+.variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 860px) { .variants { grid-template-columns: minmax(0, 1fr); } }
+.variant { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.vhead { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.vtag { font: 700 12px var(--sys); color: #fff; background: var(--ink); border-radius: 5px; padding: 2px 7px; }
+:root[data-theme="dark"] .vtag { color: #07080c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .vtag { color: #07080c; } }
+.vtitle { font-weight: 650; font-size: 14px; }
+.pick { font: 700 10.5px var(--sys); letter-spacing: 0.06em; text-transform: uppercase; color: var(--flag); background: var(--flag-soft); padding: 2px 7px; border-radius: 5px; }
+.vnote { font-size: 12.5px; color: var(--ink2); margin: 0; }
+
+/* ---------- the mock: Mac note pane ---------- */
+.mock {
+  background: var(--sk-bg); color: var(--sk-text); border-radius: 10px; overflow: hidden;
+  border: 0.5px solid rgba(var(--sk-hair), 0.16);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  font-family: var(--sys); min-width: 0; position: relative;
+}
+.mock button { font-family: var(--sys); }
+/* NoteDisplayView.toolbarBar — HStack(spacing:12), NoteLook.bandHeight 48, side pad 14, 0.5 hairline */
+.band {
+  height: 48px; padding-inline: 14px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--sk-band-hair); position: relative;
+}
+.spacer { flex: 1 1 auto; min-width: 0; }
+/* PanelToggleLabel + barGlass: 30x30 circle, chip fill + 0.5 hairline @0.10; on = accentSoft, no border */
+.glass {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--sk-chip); border: 0.5px solid rgba(var(--sk-hair), 0.10);
+  color: var(--sk-text2); cursor: pointer; padding: 0; position: relative;
+}
+.glass.on { background: var(--sk-accent-soft); border-color: transparent; color: var(--sk-accent-text); }
+.glass svg { width: 15px; height: 15px; }
+.glass.new { box-shadow: 0 0 0 2px var(--sk-bg), 0 0 0 3.5px var(--flag); }
+.glass.pulse { animation: pulse 0.32s ease-out; }
+@keyframes pulse { 50% { transform: scale(0.88); } }
+/* NoteActions: HStack(spacing:8) — Process (accent, 12.5 semibold, pad 14x7, r8) + ⋯ glass */
+.actions { display: flex; gap: 8px; align-items: center; flex: none; }
+.process {
+  font-size: 12.5px; font-weight: 600; color: #fff; background: var(--sk-accent);
+  border: 0; border-radius: 8px; padding: 7px 14px; cursor: pointer; line-height: 16px;
+}
+/* connectionsToggle: 12.5 semibold, pad 12, h30, capsule glass */
+.conn {
+  font-size: 12.5px; font-weight: 600; height: 30px; padding: 0 12px; border-radius: 15px; flex: none;
+  background: var(--sk-chip); border: 0.5px solid rgba(var(--sk-hair), 0.10); color: var(--sk-text2); cursor: pointer;
+}
+.conn.on { background: var(--sk-accent-soft); border-color: transparent; color: var(--sk-accent-text); }
+
+/* macOS help tooltip */
+.tip {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-30%);
+  background: var(--tip-bg); color: var(--tip-fg); border: 0.5px solid var(--tip-border);
+  font: 11px/1.2 var(--sys); padding: 3px 6px; border-radius: 4px; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18); pointer-events: none; z-index: 5; opacity: 0;
+  transition: opacity 0.12s;
+}
+.glass:hover .tip, .glass:focus-visible .tip, .tip.pinned { opacity: 1; }
+.b-variant .tip { transform: translateX(-70%); }
+
+/* reading column — NoteMeasure: centred, min 320, gutter 72; padding .vertical 30, VStack spacing 24 */
+.col { padding: 26px clamp(16px, 7%, 36px) 24px; display: grid; gap: 22px; }
+.head { display: grid; gap: 11px; }
+.title { font-size: 19px; font-weight: 700; line-height: 1.25; margin: 0; }
+.chips, .tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* MacContextChip → ContextChipView: 11pt, 7 radius, hairline @0.06 fill, icon 10 */
+.chip {
+  display: inline-flex; gap: 3px; align-items: center; font-size: 11px; color: var(--sk-text2);
+  background: rgba(var(--sk-hair), 0.06); border-radius: 7px; padding: 3px 7px; white-space: nowrap;
+}
+.chip svg { width: 10px; height: 10px; }
+/* TagRowStyle.mac: 12 medium, h22, hpad 9, accent on accentSoft; "+ tag" 12 dim */
+.tagchip { font-size: 12px; font-weight: 500; height: 22px; padding: 0 9px; border-radius: 11px; display: inline-flex; align-items: center; color: var(--sk-accent); background: var(--sk-accent-soft); }
+.addtag { font-size: 12px; color: var(--sk-text2); }
+/* NoteRatingPill mac: h22, 11.5 semibold, 3 dots 8px; lit = accentSoft */
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 10px 0 8px; border-radius: 11px; background: var(--sk-accent-soft); width: max-content; }
+.dots { display: inline-flex; gap: 3px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; border: 1.2px solid var(--sk-accent); }
+.dot.lit { background: var(--sk-accent); }
+.dot.off { border-color: rgba(var(--sk-hair), 0.2); }
+.pill span { font-size: 11.5px; font-weight: 600; color: var(--sk-accent-text); }
+
+/* BodyTextView: system 16pt, NoteBody lineSpacing 6 */
+.body { font-size: 16px; line-height: 25px; cursor: text; user-select: none; -webkit-user-select: none; }
+.line { display: block; min-height: 25px; padding-block: 1px; border-radius: 3px; position: relative; }
+.line .t { border-radius: 2px; }
+.line.sel .t { background: var(--sel); }
+.line.flash { animation: flash 0.9s ease-out; }
+@keyframes flash { 0% { background: var(--sk-accent-soft); } 100% { background: transparent; } }
+/* TaskBoxAttachment: 17x17, inset 1.5, r4.5, stroke textMuted@0.55 1.4; checked = accent fill + white check */
+.box-wrap { display: inline-block; width: 21px; vertical-align: -3.5px; }
+.box { width: 17px; height: 17px; display: block; cursor: pointer; }
+.box rect.o { fill: none; stroke: var(--sk-muted); stroke-opacity: 0.55; stroke-width: 1.4; }
+.box rect.c { fill: var(--sk-accent); }
+.line.done .t { text-decoration: line-through; color: var(--sk-muted); }
+.caret { display: inline-block; width: 1.5px; height: 19px; background: var(--sk-text); vertical-align: -4px; margin-left: 1px; animation: blink 1.05s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* playerDock: NoteToolbar on surface, h52, pad 18, top hairline @0.10 */
+.dock {
+  height: 52px; padding-inline: 18px; background: var(--sk-surface); display: flex; align-items: center; gap: 16px;
+  border-top: 0.5px solid rgba(var(--sk-hair), 0.10);
+}
+.tx { display: flex; gap: 6px; align-items: center; flex: none; }
+.skip { width: 32px; height: 32px; border-radius: 8px; background: rgba(var(--sk-hair), 0.05); display: grid; place-items: center; color: var(--sk-text2); border: 0; padding: 0; cursor: pointer; }
+.skip svg { width: 17px; height: 17px; }
+.play { width: 34px; height: 34px; border-radius: 50%; background: var(--sk-accent); border: 0; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.play svg { width: 13px; height: 13px; }
+.scrub { display: flex; gap: 11px; align-items: center; flex: 1 1 auto; min-width: 0; font: 11.5px var(--mono); color: var(--sk-text2); font-variant-numeric: tabular-nums; }
+.track { flex: 1 1 auto; min-width: 20px; height: 5px; border-radius: 3px; background: rgba(var(--sk-hair), 0.12); position: relative; }
+.track i { position: absolute; inset: 0 auto 0 0; width: 34%; background: var(--sk-accent); border-radius: 3px; }
+.track b { position: absolute; left: 34%; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.25); }
+.rate { font: 600 11.5px var(--mono); color: var(--sk-text2); background: rgba(var(--sk-hair), 0.05); border-radius: 8px; padding: 6px 10px; border: 0; cursor: pointer; flex: none; }
+@media (max-width: 480px) { .band { gap: 8px; padding-inline: 10px; } .conn { padding: 0 10px; } }
+@media (max-width: 420px) { .dock { gap: 10px; padding-inline: 12px; } .scrub { gap: 6px; } }
+
+.toast {
+  position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%);
+  background: rgba(0,0,0,0.85); color: #fff; font-size: 13px; padding: 8px 14px; border-radius: 18px;
+  white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 6;
+}
+.toast.show { opacity: 1; }
+
+/* stored markdown readout */
+.md { background: var(--sk-surface); border: 0.5px solid var(--rule); border-radius: 8px; overflow-x: auto; }
+.md .lbl { font: 600 10.5px var(--sys); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink2); padding: 7px 10px 0; }
+.md pre { margin: 0; padding: 4px 10px 9px; font: 12px/1.6 var(--mono); color: var(--ink2); white-space: pre; }
+.md pre .chg { color: var(--sk-accent-text); background: var(--sk-accent-soft); font-weight: 600; }
+
+/* choices */
+.choices { display: grid; gap: 10px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.choices h2 { margin: 0; font-size: 15px; }
+.choices ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 78ch; font-size: 13.5px; }
+.choices code { font: 12px var(--mono); }
+.q { border: 1.5px solid var(--flag); background: var(--flag-soft); border-radius: 10px; padding: 11px 13px; font-size: 14px; max-width: 78ch; }
+.q b { color: var(--flag); }
+.src { font-size: 12px; color: var(--ink2); max-width: 90ch; }
+.src code { font: 11.5px var(--mono); }
+@media (prefers-reduced-motion: reduce) { .caret, .line.flash, .glass.pulse { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Q296 · D177 · mock for sign-off</div>
+      <h1>Mac Checklist Button</h1>
+      <p>An on-screen button for Format ▸ Checklist (<kbd>⇧⌘L</kbd>) in the Mac note toolbar. Two placements, same behaviour. Click the button, press <kbd>⇧⌘L</kbd>, click a line to move the caret, shift-click to select several lines, click a box to check it off.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Appearance">
+      <button type="button" id="th-system" data-th="system" aria-pressed="true">System</button>
+      <button type="button" id="th-light" data-th="light" aria-pressed="false">Light</button>
+      <button type="button" id="th-dark" data-th="dark" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="States">
+    <button type="button" role="tab" id="tab-1" data-state="1" aria-selected="true"><b>1</b>Toolbar + tooltip</button>
+    <button type="button" role="tab" id="tab-2" data-state="2" aria-selected="false"><b>2</b>Plain line → checklist</button>
+    <button type="button" role="tab" id="tab-3" data-state="3" aria-selected="false"><b>3</b>Checklist line → plain</button>
+    <button type="button" role="tab" id="tab-4" data-state="4" aria-selected="false"><b>4</b>Several lines</button>
+  </div>
+
+  <div class="caption" aria-live="polite">
+    <div class="what" id="what"></div>
+    <button type="button" class="linkbtn" id="extra" hidden></button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <div class="variants">
+    <section class="variant a-variant" aria-label="Variant A">
+      <div class="vhead"><span class="vtag">A</span><span class="vtitle">Left, beside the notes-list toggle</span><span class="pick">my pick</span></div>
+      <p class="vnote">Sits over where the text starts and far from Process/Export. Cost: two look-alike circles side by side. Turn ◧ on to see both lit.</p>
+      <div class="mock" id="mock-a"></div>
+      <div class="md"><div class="lbl">Stored body (markdown)</div><pre id="md-a"></pre></div>
+    </section>
+    <section class="variant b-variant" aria-label="Variant B">
+      <div class="vhead"><span class="vtag">B</span><span class="vtitle">Right, just before Process</span></div>
+      <p class="vnote">Groups it with the other verbs. Cost: an editing tool lives in the note-verbs cluster, a step from the accent Process/Export button.</p>
+      <div class="mock" id="mock-b"></div>
+      <div class="md"><div class="lbl">Stored body (markdown)</div><pre id="md-b"></pre></div>
+    </section>
+  </div>
+
+  <section class="choices">
+    <h2>Choices in this mock you might overrule</h2>
+    <ol>
+      <li><b>Placement.</b> A (left, next to ◧) is my pick; B (right, before Process) is the alternative. The orange ring marks the new button in both; it is not part of the design.</li>
+      <li><b>Look and on-state.</b> The button is the same 30-pt glass circle as ◧ (<code>PanelToggleLabel</code>) with the phone's <code>checklist</code> glyph. It lights accent-soft while the caret is on a checklist line, the phone accessory bar's rule. With a selection, it lights only when every selected line already is a checklist line.</li>
+      <li><b>Several lines.</b> A selection turns every plain line into <code>- [ ] </code>; if all are already checklist lines, the click removes them all; blank lines are skipped. This is new on both apps: today the Mac and the phone act on the caret's line only, so the build would change the shared rule, not just the Mac.</li>
+    </ol>
+    <div class="q"><b>Question for Tuur:</b> A (left, beside the notes-list toggle) or B (right, just before Process)?</div>
+    <p class="src">Drawn from source at the session-3 worktree: toolbar band <code>NoteDisplayView.swift:627–652</code>, ◧ <code>:669–676</code>, Connections <code>:683–696</code>, player dock <code>:609–618</code>; Process + ⋯ <code>NoteActions.swift:236–313</code>; band metrics <code>Shared/UI/NoteLook.swift:58–64</code>; glass chip <code>Shared/UI/VerbRow.swift:78–114</code>, <code>Theme.swift:92–99</code>; tokens <code>Shared/UI/Palette.swift:27–63</code>; box drawing <code>BodyTextView.swift:1449–1481</code>; toggle today <code>BodyTextView.swift:1792–1807</code>, menu <code>SkriftDesktopApp.swift:105–110</code>. The notes list and Connections panel are closed here to make room; the note body is fake.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- glyphs (approximations of the SF Symbols the source names) ----------
+  var G = {
+    sidebar: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"/><path d="M6 2.5v11M3.2 5.2h1.3M3.2 7.2h1.3"/></svg>',
+    checklist: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.6 3.4l1.2 1.2 2.2-2.4M1.6 8.4l1.2 1.2 2.2-2.4M1.6 13.4l1.2 1.2 2.2-2.4M7.4 3.6h7M7.4 8.6h7M7.4 13.6h7"/></svg>',
+    ellipsis: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.35"/><circle cx="8" cy="8" r="1.35"/><circle cx="13" cy="8" r="1.35"/></svg>',
+    back10: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M4.2 5.2A6.3 6.3 0 1 1 2.7 9"/><path d="M4.4 2.4v2.9h2.9"/><text x="9" y="11.6" font-size="5.6" text-anchor="middle" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica,Arial" font-weight="600">10</text></svg>',
+    fwd10: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M13.8 5.2A6.3 6.3 0 1 0 15.3 9"/><path d="M13.6 2.4v2.9h-2.9"/><text x="9" y="11.6" font-size="5.6" text-anchor="middle" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica,Arial" font-weight="600">10</text></svg>',
+    play: '<svg viewBox="0 0 13 13" aria-hidden="true"><path d="M3 1.6v9.8l8-4.9z" fill="#fff"/></svg>',
+    cal: '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9" aria-hidden="true"><rect x="1" y="1.8" width="8" height="7.2" rx="1.4"/><path d="M1 4h8M3 .8v1.6M7 .8v1.6"/></svg>',
+    mic: '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" aria-hidden="true"><rect x="3.4" y="0.8" width="3.2" height="5.4" rx="1.6"/><path d="M2 4.8a3 3 0 0 0 6 0M5 7.8v1.4"/></svg>',
+    wave: '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" aria-hidden="true"><path d="M1 4.2v1.6M2.8 2.6v4.8M4.6 1v8M6.4 3v4M8.2 4v2"/></svg>',
+    pin: '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="0.9" aria-hidden="true"><path d="M5 9.2S8.2 6 8.2 4A3.2 3.2 0 0 0 1.8 4C1.8 6 5 9.2 5 9.2z"/><circle cx="5" cy="4" r="1.1"/></svg>'
+  };
+  function box(checked) {
+    return '<svg class="box" viewBox="0 0 17 17" aria-hidden="true">' +
+      (checked
+        ? '<rect class="c" x="1.5" y="1.5" width="14" height="14" rx="4.5"/><path d="M5 8.4l2.4 2.4 4.8-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+        : '<rect class="o" x="1.5" y="1.5" width="14" height="14" rx="4.5"/>') + '</svg>';
+  }
+
+  // ---------- the fake note ----------
+  var BASE = [
+    "Walked through the kitchen tonight. Most of it is done, a few things are left.",
+    "Call the electrician about the extractor fan",
+    "Order the oak shelf, 140 cm",
+    "Pick a grout colour for the backsplash",
+    "Ask if the old cabinets can go to the workshop",
+    "",
+    "Budget so far is about €8,400, so the shelf waits until November."
+  ];
+  var S = { lines: [], a: 1, b: 1, list: false, conn: false, tab: 1, changed: {}, pinTip: true };
+
+  function fresh(tasks) {
+    S.lines = BASE.map(function (t, i) { return { text: t, task: tasks && tasks[i] ? tasks[i] : null }; });
+    S.changed = {};
+  }
+  var STATES = {
+    1: function () { fresh(); S.a = S.b = 1; S.pinTip = true; },
+    2: function () { fresh(); S.a = S.b = 1; S.pinTip = false; },
+    3: function () { fresh({ 1: "open", 2: "done", 3: "open" }); S.a = S.b = 1; S.pinTip = false; },
+    4: function () { fresh(); S.a = 1; S.b = 4; S.pinTip = false; }
+  };
+  var COPY = {
+    1: "The new button is a 30-pt glass circle, the same chip as ◧, with the phone's checklist glyph. Hover shows <kbd>Checklist (⇧⌘L)</kbd> (pinned open here). The caret is on a plain line, so the button is off.",
+    2: "The caret is on a plain line. Click the checklist button or press <kbd>⇧⌘L</kbd>: the line is stored as <code>- [ ] </code> and draws a box. The caret stays on the line, so the button lights up.",
+    3: "The caret is on a checklist line, so the button is lit (accent-soft, the phone's on-state). Click it: the box and its space go, the words stay. Put the caret on the checked line and the same click drops <code>- [x] </code>.",
+    4: "Lines 2–5 are selected. Click the button: every plain line becomes <code>- [ ] </code>. If all of them already were checklist lines, the same click would remove them all. Today both apps only act on the caret's line, so this part is new."
+  };
+
+  function lo() { return Math.min(S.a, S.b); }
+  function hi() { return Math.max(S.a, S.b); }
+  function selected() {
+    var out = [];
+    for (var i = lo(); i <= hi(); i++) if (S.lines[i].text.length) out.push(i);
+    return out;
+  }
+  function isOn() {
+    var sel = selected();
+    return sel.length > 0 && sel.every(function (i) { return !!S.lines[i].task; });
+  }
+  function toggle(fromBtn) {
+    var sel = selected(); if (!sel.length) return;
+    var removing = isOn();
+    S.changed = {};
+    sel.forEach(function (i) {
+      var l = S.lines[i];
+      if (removing) { l.task = null; S.changed[i] = 1; }
+      else if (!l.task) { l.task = "open"; S.changed[i] = 1; }
+    });
+    var n = Object.keys(S.changed).length;
+    var msg = removing
+      ? (n === 1 ? "Line " + (sel[0] + 1) + " is plain text again." : n + " lines are plain text again.")
+      : (n === 1 ? "Line " + (sel[0] + 1) + " is now “- [ ] " + S.lines[sel[0]].text.slice(0, 28) + "…”" : n + " lines are now checklist items.");
+    document.getElementById("result").textContent = msg + " The button is " + (isOn() ? "lit" : "off") + ".";
+    S.pinTip = false;
+    render(fromBtn);
+  }
+
+  function bandHTML(v) {
+    var on = isOn();
+    var btn = '<button type="button" class="glass new' + (on ? " on" : "") + '" data-act="check" aria-pressed="' + on + '" aria-label="Checklist (⇧⌘L)">' +
+      G.checklist + '<span class="tip' + (S.pinTip ? " pinned" : "") + '">Checklist (⇧⌘L)</span></button>';
+    var list = '<button type="button" class="glass' + (S.list ? " on" : "") + '" data-act="list" aria-pressed="' + S.list + '" title="' + (S.list ? "Hide notes list" : "Show notes list") + '">' + G.sidebar + '</button>';
+    var actions = '<div class="actions"><button type="button" class="process" data-act="process">Process</button>' +
+      '<button type="button" class="glass" data-act="more" aria-label="More">' + G.ellipsis + '</button></div>';
+    var conn = '<button type="button" class="conn' + (S.conn ? " on" : "") + '" data-act="conn" title="' + (S.conn ? "Hide Connections (⌥⌘C)" : "Show Connections (⌥⌘C)") + '">Connections</button>';
+    return '<div class="band">' + list + (v === "a" ? btn : "") + '<div class="spacer"></div>' + (v === "b" ? btn : "") + actions + conn + '</div>';
+  }
+  function bodyHTML() {
+    var caretLine = S.a === S.b ? S.a : -1;
+    return S.lines.map(function (l, i) {
+      var sel = S.a !== S.b && i >= lo() && i <= hi() && l.text.length;
+      var cls = "line" + (sel ? " sel" : "") + (l.task === "done" ? " done" : "") + (S.changed[i] ? " flash" : "");
+      var bx = l.task ? '<span class="box-wrap" data-box="' + i + '">' + box(l.task === "done") + '</span>' : "";
+      var caret = i === caretLine ? '<span class="caret"></span>' : "";
+      return '<span class="' + cls + '" data-line="' + i + '">' + bx + '<span class="t">' + (l.text || "") + '</span>' + caret + '</span>';
+    }).join("");
+  }
+  function mockHTML(v) {
+    return bandHTML(v) +
+      '<div class="col"><div class="head">' +
+        '<h3 class="title">Kitchen — what’s left</h3>' +
+        '<div class="chips"><span class="chip">' + G.cal + 'Thu, 2 Oct 2026</span><span class="chip">' + G.pin + 'Lisbon</span><span class="chip">' + G.mic + 'Voice memo</span><span class="chip">' + G.wave + '1:42</span></div>' +
+        '<div class="tags"><span class="tagchip">#house</span><span class="addtag">+ tag</span></div>' +
+        '<div class="pill"><span class="dots"><i class="dot lit"></i><i class="dot lit"></i><i class="dot off"></i></span><span>Useful</span></div>' +
+      '</div><div class="body" data-body>' + bodyHTML() + '</div></div>' +
+      '<div class="dock"><div class="tx"><button type="button" class="skip" data-act="ack" aria-label="Back 10 seconds">' + G.back10 + '</button><button type="button" class="play" data-act="ack" aria-label="Play">' + G.play + '</button><button type="button" class="skip" data-act="ack" aria-label="Forward 10 seconds">' + G.fwd10 + '</button></div>' +
+      '<div class="scrub"><span>0:35</span><span class="track"><i></i><b></b></span><span>1:42</span></div>' +
+      '<button type="button" class="rate" data-act="ack">1×</button></div>' +
+      '<div class="toast" role="status"></div>';
+  }
+  function mdText() {
+    return S.lines.map(function (l, i) {
+      var s = (l.task === "open" ? "- [ ] " : l.task === "done" ? "- [x] " : "") + l.text;
+      s = s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      return S.changed[i] ? '<span class="chg">' + s + '</span>' : s;
+    }).join("\n");
+  }
+  function render(pulseVariant) {
+    ["a", "b"].forEach(function (v) {
+      document.getElementById("mock-" + v).innerHTML = mockHTML(v);
+      document.getElementById("md-" + v).innerHTML = mdText();
+    });
+    if (pulseVariant) {
+      var b = document.querySelector("#mock-" + pulseVariant + " [data-act=check]");
+      if (b) { b.classList.add("pulse"); b.focus({ preventScroll: true }); }
+    }
+  }
+  function setTab(n) {
+    S.tab = n; STATES[n]();
+    document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(+b.dataset.state === n)); });
+    document.getElementById("what").innerHTML = COPY[n];
+    document.getElementById("result").textContent = "";
+    var ex = document.getElementById("extra");
+    if (n === 4) { ex.hidden = false; ex.textContent = "Try a mixed selection"; }
+    else if (n === 3) { ex.hidden = false; ex.textContent = "Caret on the checked line"; }
+    else ex.hidden = true;
+    render();
+  }
+  function toast(v, text) {
+    var t = document.querySelector("#mock-" + v + " .toast"); if (!t) return;
+    t.textContent = text; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove("show"); }, 1600);
+  }
+
+  document.querySelector(".tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-state]"); if (b) setTab(+b.dataset.state);
+  });
+  document.getElementById("extra").addEventListener("click", function () {
+    if (S.tab === 4) {
+      fresh({ 2: "open" }); S.a = 1; S.b = 4;
+      document.getElementById("result").textContent = "Line 3 is already a checklist item, the rest are plain: the button stays off, and a click makes all four checklist items.";
+    } else if (S.tab === 3) {
+      S.a = S.b = 2; S.pinTip = false;
+      document.getElementById("result").textContent = "Caret on the checked line: the button is lit; a click drops “- [x] ”.";
+    }
+    render();
+  });
+
+  ["a", "b"].forEach(function (v) {
+    var root = document.getElementById("mock-" + v);
+    root.addEventListener("click", function (e) {
+      var act = e.target.closest("[data-act]");
+      if (act) {
+        var a = act.dataset.act;
+        if (a === "check") toggle(v);
+        else if (a === "list") { S.list = !S.list; render(); }
+        else if (a === "conn") { S.conn = !S.conn; render(); }
+        else if (a === "process") toast(v, "Process — not part of this mock");
+        else if (a === "more") toast(v, "⋯ menu — not part of this mock");
+        else toast(v, "Player — not part of this mock");
+        return;
+      }
+      var bx = e.target.closest("[data-box]");
+      if (bx) {
+        var l = S.lines[+bx.dataset.box];
+        l.task = l.task === "done" ? "open" : "done"; S.changed = {};
+        render(); return;
+      }
+      var ln = e.target.closest("[data-line]");
+      if (ln) {
+        var i = +ln.dataset.line;
+        if (e.shiftKey) S.b = i; else { S.a = S.b = i; }
+        S.changed = {}; S.pinTip = false;
+        render();
+      }
+    });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "l" || e.key === "L")) {
+      e.preventDefault(); toggle(null);
+    }
+  });
+
+  // theme switch (per-viewer convenience)
+  function applyTheme(t) {
+    if (t === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.th === t)); });
+    try { localStorage.setItem("q296-theme", t); } catch (err) {}
+  }
+  document.querySelector(".seg").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-th]"); if (b) applyTheme(b.dataset.th);
+  });
+  var saved = null; try { saved = localStorage.getItem("q296-theme"); } catch (err) {}
+  if (saved) applyTheme(saved);
+
+  var start = 1; var h = (location.hash || "").replace("#", "");
+  if (/^s[1-4]$/.test(h)) start = +h.slice(1);
+  setTab(start);
+})();
+</script>
