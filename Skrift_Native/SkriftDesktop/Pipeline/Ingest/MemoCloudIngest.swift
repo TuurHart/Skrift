@@ -55,6 +55,8 @@ enum MemoCloudIngest {
             // The phone's name decisions (C81, D20): the row's first link already honours them
             // only if they are on it before the sanitise step runs.
             NameResolutionsMirror.pull(memo, into: pf)
+            // Q186: the note's include-audio-in-export switch, one value on every device.
+            ExportAudioMirror.pull(memo, into: pf)
         }
         return pf
     }

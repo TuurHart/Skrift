@@ -148,8 +148,8 @@ final class MacMultiAudioImportTests: XCTestCase {
 
     // MARK: - mixed bundles
 
-    /// Clips merge; a markdown note in the same drop stays its own note (the Mac has no
-    /// photo/annotation composer yet — the merged clips still land as ONE audio note).
+    /// Clips merge; a markdown note in the same drop becomes the merged note's annotation
+    /// (C68, D174 — the phone's chat-text rule), so the drop is ONE audio note.
     func testMixedBundleMergesTheClipsAndKeepsTheRest() async throws {
         let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let clips = try threeClips(in: work)
@@ -160,9 +160,10 @@ final class MacMultiAudioImportTests: XCTestCase {
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [clips[0], note, clips[1], clips[2]], combineAudio: true, into: ctx)
 
-        XCTAssertEqual(created.count, 2)
+        // Q186 / D174 (C68): the markdown is the bundle note's ANNOTATION, not a second note.
+        XCTAssertEqual(created.count, 1)
         XCTAssertEqual(created.first?.sourceType, .audio, "the merged note sits where the first clip was")
-        XCTAssertEqual(created.last?.sourceType, .note)
+        XCTAssertEqual(IngestService.bundleAnnotation(in: created.first?.audioMetadataJSON), "Buy milk")
     }
 
     func testUnreadableClipsFailLoudlyNotSilently() async throws {

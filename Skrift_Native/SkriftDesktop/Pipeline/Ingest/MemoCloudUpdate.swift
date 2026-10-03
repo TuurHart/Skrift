@@ -122,6 +122,8 @@ enum MemoCloudUpdate {
         }
         // The note's name decisions (C81, D20) — the links reach the body, so recompile.
         if NameResolutionsMirror.pull(memo, into: pf) { contentChanged = true }
+        // Q186: include-audio-in-export — the asset lane, not the markdown, so no recompile.
+        if ExportAudioMirror.pull(memo, into: pf) { metaChanged = true }
 
         // The flat OCR search text — derived, not a mirrored field.
         let ocr = MemoCloudIngest.ocrText(for: memo)

@@ -84,6 +84,13 @@ enum MacCloudMetaSync {
         }
     }
 
+    /// The user flipped this note's "Include audio in export" switch on the Mac (Q186,
+    /// setexp-92). Event-driven like `setDestination`, so the phone's publisher honours the
+    /// same choice the moment it is made.
+    static func setIncludeAudio(for pf: PipelineFile) {
+        write(pf, "includeAudio") { memo in ExportAudioMirror.push(pf, to: memo) }
+    }
+
     /// The user made a NAME decision on the Mac (unlink / pick / silence / change person, or
     /// undid one). Event-driven like `setDestination`: the decision lands on the synced
     /// `Memo.nameResolutionsData` now, so every device links the note the same way (C81, D20).

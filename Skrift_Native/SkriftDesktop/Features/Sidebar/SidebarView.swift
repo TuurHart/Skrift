@@ -218,7 +218,8 @@ struct SidebarView: View {
         // comes through here: `LiveRecordingSession` calls `ArrivalPath.run` itself.)
         Task { @MainActor in
             // Probing containers for a video track is file I/O — off the main actor.
-            let clipCount = await Task.detached { IngestService.audioClips(in: urls).count }.value
+            // C68 / Q186: a video is speech too — it joins the "One note" bundle.
+            let clipCount = await Task.detached { IngestService.speechItems(in: urls).count }.value
             if AudioImportChoice.needsChoice(clipCount: clipCount) {
                 pendingAudioImport = PendingAudioImport(urls: urls, clipCount: clipCount, cleanup: cleanup)
             } else {

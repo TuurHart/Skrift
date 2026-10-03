@@ -74,6 +74,12 @@ enum MacMemoAuthor {
                         sharedContentData: Memo.encodeJSON(capture),
                         annotationText: capture == nil || (pf.transcript ?? "").isEmpty ? nil : pf.transcript,
                         recordingDeviceID: DeviceID.current())
+        // Q186 / C68: a dropped bundle's text is the note's annotation, as a phone share's
+        // chat text is (`CaptureInboxDrainer`). A capture's annotation is its body (above).
+        if capture == nil, let bundleText = IngestService.bundleAnnotation(in: pf.audioMetadataJSON) {
+            memo.annotationText = bundleText
+        }
+        ExportAudioMirror.push(pf, to: memo)   // Q186: the row's include-audio choice goes out too
         if capture != nil {
             memo.transcriptStatus = .done   // nothing to hear: a capture's words are its annotation
         } else if let t = pf.transcript, !t.isEmpty {
