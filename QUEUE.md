@@ -1250,7 +1250,7 @@ do: Only `JournalHomeView.reload` partitions fading from live; `JournalCalendarV
 check: `grep -rqE "class ReviewNoteSetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ReviewNoteSetTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P67
 
-### Q167 [auto] (doing) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
+### Q167 [auto] (done) Review dots and print-to-wall read the three stops, so a legacy 0.7 is Important everywhere
 spec: C210 D30 C233
 needs: -
 gate+: yes
@@ -2112,7 +2112,7 @@ needs: -
 do: (fill in)
 check: (fill in)
 
-### Q282 [auto] (todo) Done means processed on every device: one shared QueueFilter predicate
+### Q282 [auto] (doing) Done means processed on every device: one shared QueueFilter predicate
 spec: C61 C115 D167
 needs: -
 gate+: yes
@@ -2182,7 +2182,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D175): Q112 made any Mac note opening with '> ' read-only; gate it on the capture flag (an audiobook/text capture) so a hand-typed blockquote stays editable. Desktop test `QuoteReadOnlyGateTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class QuoteReadOnlyGateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q292 [auto] (todo) one shared 'conversation' rule: two or more speaker headers
+### Q292 [auto] (doing) one shared 'conversation' rule: two or more speaker headers
 spec: D175
 needs: -
 gate+: yes
@@ -2203,7 +2203,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): 'Link' / 'Link · domain' (SourceKind.label) stays; the capture-items mock's 'Shared link' is superseded. Delete the unused `MemoDisplay.shareCaptureTypeLabel` and its protected CaptureDisplayTests case (blanket rule D163). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh CaptureDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q295 [auto] (todo) Mac Redo only after a real polish
+### Q295 [auto] (doing) Mac Redo only after a real polish
 spec: D176
 needs: -
 gate+: yes
@@ -3156,3 +3156,7 @@ check: (fill in)
 - 2026-10-03 09:28 Q298 -> tuur — parked: promotion
 - 2026-10-03 09:33 Q291 -> doing — dispatched (sonnet)
 - 2026-10-03 09:37 Q288 -> done — gate pass @66c96c62
+- 2026-10-03 09:41 Q295 -> doing — dispatched (sonnet)
+- 2026-10-03 09:41 Q292 -> doing — dispatched (sonnet)
+- 2026-10-03 09:45 Q282 -> doing — dispatched (opus)
+- 2026-10-03 09:46 Q167 -> done — hand-merged (D174: legacy 0.7 is the top stop, WallPrinterTests:38 flipped)
