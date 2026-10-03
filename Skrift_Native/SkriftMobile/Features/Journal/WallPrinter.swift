@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 /// Print-to-wall (backlog 🖨️ design, locked 2026-07-07): a note crossing into
-/// the ORANGE importance tier (≥0.8) prints a designed card on the home
+/// the TOP importance ball (Important, `ThreeBallScale` step 3) prints a designed card on the home
 /// printer — the physical commonplace wall.
 ///
 /// Mechanics: silent AirPrint via a saved printer (`printToPrinter`, no dialog).
@@ -15,9 +15,6 @@ import UserNotifications
 @MainActor
 final class WallPrinter: ObservableObject {
     static let shared = WallPrinter()
-
-    /// The orange tier — where the circles change color.
-    static let threshold = 0.8
 
     private let defaults: UserDefaults
     private enum Key {
@@ -55,12 +52,14 @@ final class WallPrinter: ObservableObject {
 
     // ── trigger (SignificanceCircles commit) ──
 
-    /// Pure gate, unit-tested: enqueue exactly when the rating sits in the
-    /// orange tier and the note was never printed nor already queued.
+    /// Pure gate, unit-tested: enqueue exactly when the rating reads as the top
+    /// ball (`ThreeBallScale.step` == 3, so a legacy 0.7 counts) and the note was
+    /// never printed nor already queued.
     nonisolated static func shouldEnqueue(significance: Double,
                                           alreadyPrinted: Bool,
                                           alreadyQueued: Bool) -> Bool {
-        significance >= threshold && !alreadyPrinted && !alreadyQueued
+        ThreeBallScale.step(for: significance) == ThreeBallScale.stepCount
+            && !alreadyPrinted && !alreadyQueued
     }
 
     func ratingCommitted(_ memo: Memo, repository: NotesRepository) {

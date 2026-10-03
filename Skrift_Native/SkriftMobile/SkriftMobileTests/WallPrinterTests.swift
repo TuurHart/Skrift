@@ -34,8 +34,10 @@ final class WallPrinterTests: XCTestCase {
         // Crossing into orange, never printed → fires.
         XCTAssertTrue(WallPrinter.shouldEnqueue(significance: 0.8, alreadyPrinted: false, alreadyQueued: false))
         XCTAssertTrue(WallPrinter.shouldEnqueue(significance: 1.0, alreadyPrinted: false, alreadyQueued: false))
-        // Below the tier → never.
-        XCTAssertFalse(WallPrinter.shouldEnqueue(significance: 0.7, alreadyPrinted: false, alreadyQueued: false))
+        // A legacy 0.7 IS the top ball (ThreeBallScale buckets 0.7–1.0 → 3; Tuur-approved, D174).
+        XCTAssertTrue(WallPrinter.shouldEnqueue(significance: 0.7, alreadyPrinted: false, alreadyQueued: false))
+        // Below the top ball → never.
+        XCTAssertFalse(WallPrinter.shouldEnqueue(significance: 0.6, alreadyPrinted: false, alreadyQueued: false))
         // Printed once = printed forever (re-rating never reprints).
         XCTAssertFalse(WallPrinter.shouldEnqueue(significance: 0.9, alreadyPrinted: true, alreadyQueued: false))
         // Already queued → no double-enqueue.
