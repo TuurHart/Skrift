@@ -126,7 +126,7 @@ Rules:
   hybrid player, signed off + built 2026-06-13), **audiobook-player-reading-mode** (e-reader "reading
   mode" + tab-bar IA redesign, signed off and built 2026-06-19, build 14), **journal-desktop** (Journal on
   the Mac + iPad v2 — map mode behind Places, slim in-flight row, body-parity panels; signed off
-  2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"),
+  2026-07-11, built Mac 2026-07-13 + iPad 2026-07-22; FEATURES.md:401),
   **related-panel** (Mac Connections side-panel — ONE list + Date⇄Closest pill, P1 importance
   decimals, closeness = hover-% tooltip, in-panel consent gate, collapsible w/ count badge; signed
   off 2026-07-16 — build board = backlog "🕸️ CONTINUE HERE"),
