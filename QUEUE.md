@@ -1561,7 +1561,7 @@ do: In `SkriftDesktop/`: delete `Features/Shell/StubEngines.swift` and the DEBUG
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d01 DSH-d02 DSH-d05 DSH-d06 DSH-d13 DSH-d14 DSH-d16 DSH-d17 DSH-d20 DSH-c08 DAU-c04 DPE-d20 PER-d12 (cleanup-audit P18)
 
-### Q206 [tuur] (todo) delete finished Mac headless probes
+### Q206 [tuur] (doing) delete finished Mac headless probes
 spec: C240
 needs: -
 gate+: no
@@ -1625,7 +1625,7 @@ do: The Mac's `diar_<id>.json` sidecar (`Pipeline/BatchManager/DiarizationSideca
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d09 DPE-c03 (cleanup-audit P26)
 
-### Q214 [auto] (doing) Mac ingest: one typed path instead of fake multipart parts
+### Q214 [auto] (done) Mac ingest: one typed path instead of fake multipart parts
 spec: C238 C240
 needs: Q207
 gate+: yes
@@ -1641,7 +1641,7 @@ do: In `SkriftDesktop/`: delete `StatusPill`, `PulseDot`, `QueueStatus.color` an
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-d01 DAU-d02 DAU-d03 DAU-d04 DAU-d05 DAU-d06 DAU-d07 DAU-d08 DAU-d09 DAU-d10 DAU-d16 DAU-d17 DAU-d18 DAU-d-m1 DAU-d-m2 DSH-d15 DPE-d16 DPE-c12 (cleanup-audit P28)
 
-### Q216 [tuur] (todo) delete the 2026-07-27 sync trace
+### Q216 [tuur] (doing) delete the 2026-07-27 sync trace
 spec: C240
 needs: -
 gate+: no
@@ -2977,3 +2977,6 @@ check: (fill in)
 - 2026-10-03 08:39 Q102 -> doing — sitting 2026-10-03: approved, rebasing (D163/D164)
 - 2026-10-03 08:39 Q212 -> doing — sitting 2026-10-03: approved, rebasing (D163/D164)
 - 2026-10-03 08:39 Q214 -> doing — sitting 2026-10-03: approved, rebasing (D163/D164)
+- 2026-10-03 08:39 Q216 -> doing — dispatched (sonnet)
+- 2026-10-03 08:39 Q206 -> doing — dispatched (sonnet)
+- 2026-10-03 08:48 Q214 -> done — hand-merged (Tuur blanket approval D163: ports + deletions of tests of deleted code)
