@@ -27,6 +27,30 @@ enum ConnectionsPanelSpec {
     /// The close / collapse control's accessibility label.
     static let closeLabel = "Hide Connections"
 
+    /// The UserDefaults key of the per-note "not related" hide list (`[noteID: [hiddenNeighbourID]]`),
+    /// one key and one reader/writer for both apps (recsj-078).
+    static let hiddenPairsDefaultsKey = "connectionsHiddenPairs"
+
+    /// Hide `neighbour` from `note`'s list (ids as strings; the Mac keys by file id, the phone by memo id).
+    static func hidePair(note: String, neighbour: String, defaults: UserDefaults = .standard) {
+        var map = defaults.dictionary(forKey: hiddenPairsDefaultsKey) as? [String: [String]] ?? [:]
+        map[note, default: []].append(neighbour)
+        defaults.set(map, forKey: hiddenPairsDefaultsKey)
+    }
+
+    static func hiddenNeighbours(of note: String, defaults: UserDefaults = .standard) -> Set<String> {
+        let map = defaults.dictionary(forKey: hiddenPairsDefaultsKey) as? [String: [String]] ?? [:]
+        return Set(map[note] ?? [])
+    }
+
+    /// The caption under the Closest/Date pill (recsj-068). `shown`/`total` are the visible and
+    /// the whole related count; `firstMentioned` is the day line of the Date rail's first row.
+    static func subCaption(byDate: Bool, firstMentioned: String, shown: Int, total: Int) -> String {
+        if byDate { return "the arc of this idea · first mentioned \(firstMentioned)" }
+        return shown < total ? "best match first · showing \(shown) of \(total)"
+                             : "best match first · odd matches sink to the bottom"
+    }
+
     /// "12 Mar" — the row date, one format.
     static func day(_ date: Date?) -> String {
         guard let date else { return "—" }

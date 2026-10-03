@@ -68,7 +68,7 @@ struct NoteProperties: View {
         let backlinked = MemoLifecycle.backlinkedIDs(
             in: memos, copyedits: Backlinks.copyeditsByMemoID(in: ModelContext(cloud)))
         guard !MemoLifecycle.neverFades(memo, backlinked: backlinked) else { return }
-        fadingLine = "\(WayOutRules.oneLiner(for: memo, backlinked: backlinked)) — rate it to keep it"
+        fadingLine = SharedCopy.fadingLine(WayOutRules.oneLiner(for: memo, backlinked: backlinked))
     }
 
     var body: some View {
@@ -348,14 +348,8 @@ struct MacContextChip: View {
     }
 
     var body: some View {
-        HStack(spacing: 3) {
-            if let systemImage { Image(systemName: systemImage).font(.system(size: 10)) }
-            Text(text).lineLimit(1).truncationMode(.tail)
-        }
-        .font(.system(size: 11))
-        .foregroundStyle(fg)
-        .padding(.horizontal, 7).padding(.vertical, 2)
-        .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        ContextChipView(text: text, systemImage: systemImage,
+                        style: ContextChipStyle(text: fg, fill: Theme.hairline.opacity(0.06)))
     }
 }
 

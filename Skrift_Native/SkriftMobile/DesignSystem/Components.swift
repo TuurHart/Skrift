@@ -132,17 +132,7 @@ struct ContextChip: View {
     var systemImage: String?
 
     var body: some View {
-        HStack(spacing: 3) {
-            if let systemImage {
-                Image(systemName: systemImage).font(.system(size: 10))
-            }
-            Text(text).lineLimit(1).truncationMode(.tail)
-        }
-        .font(.system(size: 11))
-        .foregroundStyle(Color.skTextDim)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(Color.skElev, in: .rect(cornerRadius: 7, style: .continuous))
+        ContextChipView(text: text, systemImage: systemImage, style: .phone)
     }
 }
 

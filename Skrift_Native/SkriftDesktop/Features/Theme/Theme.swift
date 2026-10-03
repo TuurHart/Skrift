@@ -90,8 +90,26 @@ extension View {
     /// accent-soft chip while its state is active. Shape-generic so ◧ (circle) and
     /// the Connections capsule share one treatment.
     func barGlass(on: Bool = false, in shape: some InsettableShape = Circle()) -> some View {
-        background(on ? Theme.accentSoft : Theme.chip, in: shape)
-            .overlay(on ? nil : shape.strokeBorder(Theme.hairline.opacity(0.10), lineWidth: 0.5))
+        barGlass(on: on, in: shape, style: .mac)
+    }
+}
+
+// Q171: the shared views' per-app style structs (Shared/UI/VerbRow.swift, FilterChipRow.swift).
+extension BarGlassStyle {
+    static let mac = BarGlassStyle(onFill: Theme.accentSoft, offFill: Theme.chip, border: Theme.hairline.opacity(0.10))
+}
+extension PanelToggleStyle {
+    static let mac = PanelToggleStyle(glass: .mac, onText: Theme.accentText, offText: Theme.textSecondary)
+}
+extension VerbButtonStyle {
+    /// Intrinsic height + 7pt padding, circular corners, 34-wide compose chip.
+    static let mac = VerbButtonStyle(text: Theme.textPrimary, record: Theme.destructive,
+                                     fill: Theme.hairline.opacity(0.06), verticalPadding: 7,
+                                     newNoteWidth: 34, importIconSize: 11, continuousCorners: false)
+}
+extension ChipRowStyle {
+    static let mac = ChipRowStyle(accent: Theme.accent, dim: Theme.textSecondary) { picker in
+        AnyView(picker.datePickerStyle(.field).controlSize(.small))
     }
 }
 

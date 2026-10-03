@@ -653,7 +653,7 @@ struct MemoPageView: View {
     var fadingLine: String? {
         guard memo.deletedAt == nil, memo.transcriptStatus == .done,
               !MemoLifecycle.neverFades(memo, backlinked: detailBacklinkedIDs) else { return nil }
-        return "\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rate it to keep it"
+        return SharedCopy.fadingLine(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs))))
     }
 
     /// Q85: the pill's step toast, at page level like the tag Undo pill; gone after 1.6 s.

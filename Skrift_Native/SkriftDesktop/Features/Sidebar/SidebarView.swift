@@ -324,7 +324,7 @@ struct SidebarView: View {
                 recordingTransport
             } else {
                 HStack(spacing: 7) {
-                    actionButton(title: SharedCopy.importVerb, system: "plus") { openUploadPanel() }
+                    importButton { openUploadPanel() }
                     recordButton
                     newNoteButton
                 }
@@ -354,15 +354,7 @@ struct SidebarView: View {
         Button {
             Task { await startRecording() }
         } label: {
-            HStack(spacing: 6) {
-                Circle().fill(Theme.destructive).frame(width: 9, height: 9)
-                Text(SharedCopy.recordVerb).lineLimit(1)
-            }
-            .font(.system(size: 12.5, weight: .semibold))
-            .foregroundStyle(Theme.destructive)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
-            .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            RecordVerbLabel(style: .mac)
         }
         .buttonStyle(.plain)
         .help("Record a voice memo on this Mac")
@@ -375,12 +367,7 @@ struct SidebarView: View {
     /// row-mates, fixed width. ⌘N works wherever the sidebar exists.
     private var newNoteButton: some View {
         Button { newTypedNote() } label: {
-            Image(systemName: "square.and.pencil")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 34)
-                .padding(.vertical, 7)
-                .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            NewNoteVerbLabel(style: .mac)
         }
         .buttonStyle(.plain)
         .keyboardShortcut("n", modifiers: .command)
@@ -505,17 +492,9 @@ struct SidebarView: View {
     /// invite the same class of problem onto the Mac.
     private var canProcess: Bool { pendingCount > 0 && !coordinator.isRunning && !sessionBusy }
 
-    private func actionButton(title: String, system: String, action: @escaping () -> Void) -> some View {
+    private func importButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: system).font(.system(size: 11, weight: .semibold))
-                Text(title).lineLimit(1)
-            }
-            .font(.system(size: 12.5, weight: .semibold))
-            .foregroundStyle(Theme.textPrimary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
-            .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            ImportVerbLabel(style: .mac)
         }
         .buttonStyle(.plain)
     }
@@ -567,34 +546,20 @@ struct SidebarView: View {
     /// here (the mock: "Mac has no Unsynced today"). Scrolls sideways at the
     /// sidebar's 292pt floor.
     private var filterChips: some View {
-        let style = ChipRowStyle(accent: Theme.accent, dim: Theme.textSecondary)
+        let style = ChipRowStyle.mac
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 5) {
                         ForEach(QueueFilter.allCases, id: \.self) { f in
                             let on = model.filter == f
-                            HStack(spacing: 3) {
-                                Text(f.rawValue)
-                                // D135: "All carries no number" -- the other three show the
-                                // count `chipCounts` computed, over every live item.
-                                if let n = chipCounts[f] {
-                                    Text("\(n)").fontWeight(.semibold)
-                                }
-                            }
-                            .font(.system(size: 11))
-                            .lineLimit(1).fixedSize()
-                            .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
-                            .background(on ? Theme.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                            .overlay(RoundedRectangle(cornerRadius: 6)
-                                .stroke(on ? Theme.accent.opacity(0.22) : .clear, lineWidth: 1))
-                            .contentShape(Rectangle())
+                            // D135: "All carries no number" -- the other three show the
+                            // count `chipCounts` computed, over every live item.
+                            StatusChip(label: f.rawValue, count: chipCounts[f], on: on, style: style)
                             .onTapGesture { model.filter = f }
                             .accessibilityIdentifier("sidebar.chip.\(f.rawValue)")
                         }
-                        ExtraFilterChip(label: model.dateFilterActive ? "Date \u{00B7} \(dateChipLabel) \u{25BE}" : "Date \u{25BE}",
+                        ExtraFilterChip(label: DateChipText.title(from: model.dateFrom, to: model.dateTo),
                                         active: model.dateFilterActive || showDateStrip, style: style)
                             .onTapGesture { showDateStrip.toggle() }
                             .accessibilityIdentifier("sidebar.chip.Date")
@@ -617,19 +582,6 @@ struct SidebarView: View {
                                    get: { MemoDateField.allCases.firstIndex(of: model.dateField) ?? 0 },
                                    set: { model.dateField = MemoDateField.allCases[$0] }))
             }
-        }
-    }
-
-    /// "22\u{2013}25 Sep" / "from 22 Sep" / "to 25 Sep" -- the Date chip's own label
-    /// once a range is live (mirrors the phone's `dateChipLabel`).
-    private var dateChipLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "d MMM"
-        switch (model.dateFrom, model.dateTo) {
-        case let (from?, to?): return "\(f.string(from: from))\u{2013}\(f.string(from: to))"
-        case let (from?, nil): return "from \(f.string(from: from))"
-        case let (nil, to?):   return "to \(f.string(from: to))"
-        default:               return ""
         }
     }
 

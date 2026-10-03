@@ -48,8 +48,6 @@ final class ConnectionsModel {
     private(set) var querying = false
     private var currentFileID: String?
 
-    private static let hiddenDefaultsKey = "connectionsHiddenPairs"
-
     /// The state of the AI zone right now — reads the service live, so views
     /// re-render as it moves; derivation = the shared RetrievalGate machine.
     var state: RetrievalGate {
@@ -101,15 +99,12 @@ final class ConnectionsModel {
     // ── hover-✕ "not related": a per-note hide list, nothing fancier (v1) ──
 
     func hide(_ row: ConnectionRow, for file: PipelineFile) {
-        var map = UserDefaults.standard.dictionary(forKey: Self.hiddenDefaultsKey) as? [String: [String]] ?? [:]
-        map[file.id, default: []].append(row.id.uuidString)
-        UserDefaults.standard.set(map, forKey: Self.hiddenDefaultsKey)
+        ConnectionsPanelSpec.hidePair(note: file.id, neighbour: row.id.uuidString)
         related.removeAll { $0.id == row.id }
     }
 
     private static func hiddenNeighbours(of fileID: String) -> Set<String> {
-        let map = UserDefaults.standard.dictionary(forKey: hiddenDefaultsKey) as? [String: [String]] ?? [:]
-        return Set(map[fileID] ?? [])
+        ConnectionsPanelSpec.hiddenNeighbours(of: fileID)
     }
 
     // ── backlinks (the old MemoBacklinks strip's scan, unchanged) ──
@@ -221,11 +216,9 @@ struct ConnectionsPanelBody: View {
                 sortPill
                 Spacer()
             }
-            Text(sortByDate
-                 ? "the arc of this idea · first mentioned \(Self.day(threadRows.first?.date))"
-                 : (visibleRelated.count < related.count
-                    ? "best match first · showing \(visibleRelated.count) of \(related.count)"
-                    : "best match first · odd matches sink to the bottom"))
+            Text(ConnectionsPanelSpec.subCaption(byDate: sortByDate,
+                                                 firstMentioned: Self.day(threadRows.first?.date),
+                                                 shown: visibleRelated.count, total: related.count))
                 .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
                 .padding(.top, 4).padding(.bottom, 10)
             if sortByDate { rail } else { flatRows }

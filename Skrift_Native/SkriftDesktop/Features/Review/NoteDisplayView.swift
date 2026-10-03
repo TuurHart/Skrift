@@ -668,11 +668,7 @@ struct NoteDisplayView: View {
     /// the notes list is open, quiet while it's hidden (same as the iPad's `PanelToggle`).
     private var sidebarToggle: some View {
         Button { sidebarVisible.toggle() } label: {
-            Image(systemName: "sidebar.left")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(sidebarVisible ? Theme.accentText : Theme.textSecondary)
-                .frame(width: 30, height: 30)
-                .barGlass(on: sidebarVisible)
+            PanelToggleLabel(icon: "sidebar.left", on: sidebarVisible, style: .mac)
         }
         .buttonStyle(.plain)
         .help(NoteLook.listToggleLabel(listVisible: sidebarVisible))

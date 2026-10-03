@@ -67,15 +67,8 @@ extension MemosListView {
                     }
                 }
             } label: {
-                Label(SharedCopy.importVerb, systemImage: "plus")
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(Color.skText)
-                    // Q48/D145: "a bit small" (Tuur, b172) — was `.padding(.vertical, 7)`
-                    // over ~16pt of content, ≈30pt tall. `minHeight: 44` is Apple's HIG
-                    // tap-target floor, which this row was under; that floor (not the
-                    // brief's ~20% guideline) is the binding number here.
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                // Q48/D145: minHeight 44 (HIG tap floor) lives in `VerbButtonStyle.phone`.
+                ImportVerbLabel(style: .phone)
             }
             .accessibilityIdentifier("ipad-import-button")
 
@@ -87,14 +80,7 @@ extension MemosListView {
                 LiveRecordingService.prestart()
                 showRecord = true
             } label: {
-                HStack(spacing: 6) {
-                    Circle().fill(Color.skRed).frame(width: 9, height: 9)
-                    Text(SharedCopy.recordVerb)
-                }
-                .font(.system(size: 12.5, weight: .semibold))
-                .foregroundStyle(Color.skRed)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                RecordVerbLabel(style: .phone)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("ipad-record-button")
@@ -104,13 +90,9 @@ extension MemosListView {
             // Import and Record name their sources, typing is the third verb —
             // a quiet fixed-width chip, ⌘N on a hardware keyboard.
             Button { newTypedNote() } label: {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.skText)
-                    // Widened alongside the height (34 → 44) so the square stays a
-                    // square, not a tall sliver next to the two wide buttons.
-                    .frame(width: 44, height: 44)
-                    .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                // Widened alongside the height (34 → 44) so the square stays a
+                // square, not a tall sliver next to the two wide buttons.
+                NewNoteVerbLabel(style: .phone)
             }
             .buttonStyle(.plain)
             .keyboardShortcut("n", modifiers: .command)
@@ -189,27 +171,14 @@ extension MemosListView {
         // be read as a property inside the ForEach, so its 3 corpus filters +
         // `enhancedMemoIDs` rebuild reran on each of the 4 chip iterations.
         let counts = chipCounts
-        let chipStyle = ChipRowStyle(accent: .skAccent, dim: .skTextDim)
+        let chipStyle = ChipRowStyle.phone
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
                 ForEach(QueueFilter.allCases, id: \.self) { chip in
                     let on = listChip == chip
-                    HStack(spacing: 3) {
-                        Text(chip.rawValue)
-                        if let n = counts[chip] {
-                            Text("\(n)").fontWeight(.semibold)
-                        }
-                    }
-                    .font(.system(size: 11))
-                    .lineLimit(1).fixedSize()
-                    .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
-                    .padding(.horizontal, 9).padding(.vertical, 4)
-                    .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6)
-                        .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
-                    .contentShape(Rectangle())
+                    StatusChip(label: chip.rawValue, count: counts[chip], on: on, style: chipStyle)
                     // Q48/D145 (BUGS §3): this used to wrap the `listChip` write in
                     // `withAnimation`, which put the List's own ForEach/Section diff
                     // inside that animation transaction — SwiftUI then auto-animates
@@ -223,7 +192,7 @@ extension MemosListView {
                     .onTapGesture { listChip = chip }
                     .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
                 }
-                ExtraFilterChip(label: filter.dateActive ? "Date · \(dateChipLabel) ▾" : "Date ▾",
+                ExtraFilterChip(label: DateChipText.title(from: filter.from, to: filter.to),
                                 active: filter.dateActive || showDateStrip, style: chipStyle)
                     .onTapGesture { showDateStrip.toggle() }
                     .accessibilityIdentifier("chip-date")
@@ -255,19 +224,6 @@ extension MemosListView {
         .padding(.horizontal, 16)
         .padding(.top, 2)
         .padding(.bottom, 4)
-    }
-
-    /// "22–25 Sep" / "from 22 Sep" / "to 25 Sep" — the Date chip's own label
-    /// once a range is live (mock's `dateLabel`).
-    var dateChipLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "d MMM"
-        switch (filter.from, filter.to) {
-        case let (from?, to?): return "\(f.string(from: from))–\(f.string(from: to))"
-        case let (from?, nil): return "from \(f.string(from: from))"
-        case let (nil, to?):   return "to \(f.string(from: to))"
-        default:               return ""
-        }
     }
 
     /// D135: "each chip counts its own notes" — over ALL live notes (not the

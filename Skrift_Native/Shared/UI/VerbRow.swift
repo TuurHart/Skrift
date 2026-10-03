@@ -32,6 +32,7 @@ struct ImportVerbLabel: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "plus").font(.system(size: style.importIconSize, weight: .semibold))
+                .accessibilityHidden(true)
             Text(SharedCopy.importVerb).lineLimit(1)
         }
         .font(.system(size: 12.5, weight: .semibold))
