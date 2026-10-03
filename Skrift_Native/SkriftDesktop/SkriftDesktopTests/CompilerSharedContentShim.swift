@@ -1,5 +1,4 @@
 import Foundation
-@testable import SkriftDesktop
 
 // TEMPORARY SHIM (Q247). `CompilerSharedContent` was deleted: the Compiler now takes the one
 // wire struct `SharedContent`. `CompilerTests.swift:325-354` (protected) still builds five of
