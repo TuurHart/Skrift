@@ -1393,7 +1393,7 @@ do: Rows note-name-06, note-body-21. New person from a name in the note: one sha
 check: `grep -rqE "class NewPersonFromNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q185 [auto] (doing) note look tokens in Shared: inline photo size, memo-link chip, top band, list toggle
+### Q185 [auto] (done) note look tokens in Shared: inline photo size, memo-link chip, top band, list toggle
 spec: C239 C240
 needs: -
 gate+: no
@@ -2050,6 +2050,12 @@ spec: -
 needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
+
+### Q272 [tuur] (tuur) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
+spec: -
+needs: -
+do: -
+check: Tuur decided; follow-up item added if he changes it.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -2815,3 +2821,6 @@ check: Tuur decided or approved; follow-up item added if needed.
 - 2026-10-03 01:01 Q167 -> doing — batch worker out
 - 2026-10-03 01:01 Q120 -> doing — batch worker out
 - 2026-10-03 01:03 Q187 -> done — gate pass @82e249c2
+- 2026-10-03 01:03 Q185 -> done — gate pass (batched with Q187)
+- 2026-10-03 01:04 Q272 added
+- 2026-10-03 01:04 Q272 -> tuur — awaiting sitting
