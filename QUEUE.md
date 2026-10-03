@@ -1561,7 +1561,7 @@ do: In `SkriftDesktop/`: delete `Features/Shell/StubEngines.swift` and the DEBUG
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d01 DSH-d02 DSH-d05 DSH-d06 DSH-d13 DSH-d14 DSH-d16 DSH-d17 DSH-d20 DSH-c08 DAU-c04 DPE-d20 PER-d12 (cleanup-audit P18)
 
-### Q206 [tuur] (tuur) delete finished Mac headless probes
+### Q206 [tuur] (done) delete finished Mac headless probes
 spec: C240
 needs: -
 gate+: no
@@ -2984,3 +2984,4 @@ check: (fill in)
 - 2026-10-03 08:52 Q212 -> done — hand-merged (Tuur blanket approval D163: ports + deletions of tests of deleted code)
 - 2026-10-03 08:56 Q216 -> done — gate pass @412c88ae (merged; accept parked it only for its tuur lane)
 - 2026-10-03 08:58 Q206 -> tuur — built @0458e662 — awaiting sitting
+- 2026-10-03 08:58 Q206 -> done — gate pass (merged; tuur lane)
