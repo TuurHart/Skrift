@@ -152,7 +152,7 @@ final class PolishCenter {
         // died. `MLXPolishEngine` is an actor, but `polish` awaits internally and actor
         // reentrancy lets a second run interleave at those awaits, so two generations
         // against an 8.9 GB model were alive together. There is only enough memory for one.
-        guard busyMemoID == nil || busyMemoID == memo.id else { return false }
+        guard busyMemoID == nil else { return false }
         guard isAvailable, !isWorking(memo.id), !memo.locked else { return false }
         let raw = memo.transcript ?? ""
         return !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

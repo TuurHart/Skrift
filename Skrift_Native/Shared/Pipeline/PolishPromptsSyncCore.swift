@@ -18,6 +18,25 @@ enum PolishPromptsSyncCore {
                                    title: PolishPrompts.title)
         var isAllDefault: Bool { self == .defaults }
 
+        /// The text for one prompt kind — lets a store loop over `PolishPromptKind.allCases`
+        /// instead of spelling the three fields in three places.
+        subscript(kind: PolishPromptKind) -> String {
+            get {
+                switch kind {
+                case .copyEdit: return copyEdit
+                case .summary: return summary
+                case .title: return title
+                }
+            }
+            set {
+                switch kind {
+                case .copyEdit: copyEdit = newValue
+                case .summary: summary = newValue
+                case .title: title = newValue
+                }
+            }
+        }
+
         /// The blank rule applied to all three (`PolishPrompts.effective`): a blank
         /// prompt IS the default, so a blob never carries an empty prompt.
         var effective: Blob {

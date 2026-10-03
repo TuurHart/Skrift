@@ -5,27 +5,34 @@ import Foundation
 /// stamp for `PolishPromptsCloudSync`. An unset key = the shared default
 /// (`PolishPrompts`), so a fresh install polishes with the Mac's exact voice.
 enum PolishPromptsStore {
-    private static let copyEditKey = "polishPromptCopyEdit"
-    private static let summaryKey = "polishPromptSummary"
-    private static let titleKey = "polishPromptTitle"
     private static let stampKey = "polishPromptsModifiedAt"
+
+    /// The ONE per-kind descriptor: where it is stored and what an unset/blank/identical
+    /// value means (the shared default, `PolishPromptKind.defaultText`).
+    private static func descriptor(_ kind: PolishPromptKind) -> (key: String, fallback: String) {
+        switch kind {
+        case .copyEdit: return ("polishPromptCopyEdit", kind.defaultText)
+        case .summary: return ("polishPromptSummary", kind.defaultText)
+        case .title: return ("polishPromptTitle", kind.defaultText)
+        }
+    }
 
     // MARK: - Effective prompts (what the engine runs)
 
-    static func copyEdit(defaults: UserDefaults = .standard) -> String {
-        text(copyEditKey, fallback: PolishPrompts.copyEdit, defaults: defaults)
-    }
-    static func summary(defaults: UserDefaults = .standard) -> String {
-        text(summaryKey, fallback: PolishPrompts.summary, defaults: defaults)
-    }
-    static func title(defaults: UserDefaults = .standard) -> String {
-        text(titleKey, fallback: PolishPrompts.title, defaults: defaults)
+    /// What the engine runs for `kind`: the stored edit, or the shared default.
+    static func text(for kind: PolishPromptKind, defaults: UserDefaults = .standard) -> String {
+        let d = descriptor(kind)
+        return PolishPrompts.effective(defaults.string(forKey: d.key) ?? "", fallback: d.fallback)
     }
 
+    static func copyEdit(defaults: UserDefaults = .standard) -> String { text(for: .copyEdit, defaults: defaults) }
+    static func summary(defaults: UserDefaults = .standard) -> String { text(for: .summary, defaults: defaults) }
+    static func title(defaults: UserDefaults = .standard) -> String { text(for: .title, defaults: defaults) }
+
     static func blob(defaults: UserDefaults = .standard) -> PolishPromptsSyncCore.Blob {
-        .init(copyEdit: copyEdit(defaults: defaults),
-              summary: summary(defaults: defaults),
-              title: title(defaults: defaults))
+        var blob = PolishPromptsSyncCore.Blob.defaults
+        for kind in PolishPromptKind.allCases { blob[kind] = text(for: kind, defaults: defaults) }
+        return blob
     }
 
     /// `.distantPast` = never edited on this device (the core's fresh-device guard).
@@ -36,24 +43,14 @@ enum PolishPromptsStore {
     /// True when this prompt differs from the shared default (drives the
     /// "edited" vs "default" subtitle in Settings).
     static func isEdited(_ prompt: PolishPromptKind, defaults: UserDefaults = .standard) -> Bool {
-        switch prompt {
-        case .copyEdit: return copyEdit(defaults: defaults) != PolishPrompts.copyEdit
-        case .summary: return summary(defaults: defaults) != PolishPrompts.summary
-        case .title: return title(defaults: defaults) != PolishPrompts.title
-        }
+        text(for: prompt, defaults: defaults) != prompt.defaultText
     }
 
     // MARK: - Local edits (Settings editors; stamp = a real user edit)
 
     static func setText(_ text: String, for prompt: PolishPromptKind,
                         defaults: UserDefaults = .standard) {
-        let key = key(for: prompt)
-        // Empty or byte-identical to the default → store nothing (the default rules).
-        if let stored = PolishPrompts.storable(text, fallback: fallbackText(for: prompt)) {
-            defaults.set(stored, forKey: key)
-        } else {
-            defaults.removeObject(forKey: key)
-        }
+        store(text, for: prompt, defaults: defaults)
         defaults.set(Date(), forKey: stampKey)
     }
 
@@ -61,40 +58,19 @@ enum PolishPromptsStore {
     /// mirrors `CustomVocabularyStore.adoptSynced`).
     static func adoptSynced(_ blob: PolishPromptsSyncCore.Blob, modifiedAt: Date,
                             defaults: UserDefaults = .standard) {
-        store(blob.copyEdit, at: copyEditKey, fallback: PolishPrompts.copyEdit, defaults: defaults)
-        store(blob.summary, at: summaryKey, fallback: PolishPrompts.summary, defaults: defaults)
-        store(blob.title, at: titleKey, fallback: PolishPrompts.title, defaults: defaults)
+        for kind in PolishPromptKind.allCases { store(blob[kind], for: kind, defaults: defaults) }
         defaults.set(modifiedAt, forKey: stampKey)
     }
 
     // MARK: - plumbing
 
-    private static func text(_ key: String, fallback: String, defaults: UserDefaults) -> String {
-        PolishPrompts.effective(defaults.string(forKey: key) ?? "", fallback: fallback)
-    }
-
-    private static func store(_ text: String, at key: String, fallback: String,
-                              defaults: UserDefaults) {
-        if let stored = PolishPrompts.storable(text, fallback: fallback) {
-            defaults.set(stored, forKey: key)
+    /// Empty or byte-identical to the default → store nothing (the default rules).
+    private static func store(_ text: String, for kind: PolishPromptKind, defaults: UserDefaults) {
+        let d = descriptor(kind)
+        if let stored = PolishPrompts.storable(text, fallback: d.fallback) {
+            defaults.set(stored, forKey: d.key)
         } else {
-            defaults.removeObject(forKey: key)
-        }
-    }
-
-    private static func key(for prompt: PolishPromptKind) -> String {
-        switch prompt {
-        case .copyEdit: return copyEditKey
-        case .summary: return summaryKey
-        case .title: return titleKey
-        }
-    }
-
-    private static func fallbackText(for prompt: PolishPromptKind) -> String {
-        switch prompt {
-        case .copyEdit: return PolishPrompts.copyEdit
-        case .summary: return PolishPrompts.summary
-        case .title: return PolishPrompts.title
+            defaults.removeObject(forKey: d.key)
         }
     }
 }

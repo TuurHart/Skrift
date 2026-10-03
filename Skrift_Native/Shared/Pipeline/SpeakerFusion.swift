@@ -40,9 +40,9 @@ enum SpeakerFusion {
         words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 3,
         name: (Int) -> String = { "Speaker \($0 + 1)" }
     ) -> String {
-        turns(words: words, segments: segments, minTurnWords: minTurnWords)
-            .map { "**\(name($0.speaker)):** \($0.text)" }
-            .joined(separator: "\n\n")
+        SpeakerTranscript.markdown(
+            turns(words: words, segments: segments, minTurnWords: minTurnWords)
+                .map { SpeakerTranscript.Turn(name: name($0.speaker), text: $0.text) })
     }
 
     private static func speaker(at t: Double, segs: [DiarizedSegment]) -> Int {

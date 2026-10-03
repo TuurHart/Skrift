@@ -23,20 +23,41 @@ enum SpeakerTranscript {
         }
 
         static func == (l: Turn, r: Turn) -> Bool { l.name == r.name && l.text == r.text }
+
+        /// The turn as written in a body: `**name:** text`.
+        var markdown: String { "**\(name):** \(text)" }
     }
+
+    /// Turns written back to a body: one `**name:** text` block each, joined by blank lines.
+    static func markdown(_ turns: [Turn]) -> String { turns.map(\.markdown).joined(separator: "\n\n") }
 
     /// A turn header — a bold `**Name:**` anchored to the START of a line/paragraph.
     /// The line anchor (`(?m)^`) is deliberate: a hand-typed/LLM-formatted inline
     /// `**Pros:**` mid-sentence (e.g. an Apple Note) must NOT read as a speaker turn
     /// (the 2026-06-14 false-positive that skipped copy-edit on plain notes).
-    /// Internal, not private: `SpeakerTurnStyle` matches the SAME pattern to find where each
-    /// header sits (this type parses to values and drops the ranges the renderers need).
-    static let headerPattern = #"(?m)^[ \t]*\*\*([^*\n]+?):\*\*[ \t]*"#
-
     /// Compiled ONCE (was a fresh `NSRegularExpression` per call — every one of
     /// `parse`/`parseWithPreamble`/`withPreamble` compiled its own, and `parse`
     /// alone is called from 5+ sites in `MemoDetailView` per commit; C277/C282).
-    private static let headerRegex = try! NSRegularExpression(pattern: headerPattern)
+    /// Internal, not private: `SpeakerTurnStyle` matches with the SAME regex to find where each
+    /// header sits (this type parses to values and drops the ranges the renderers need).
+    static let headerRegex = try! NSRegularExpression(pattern: #"(?m)^[ \t]*\*\*([^*\n]+?):\*\*[ \t]*"#)
+
+    /// A header's label as PARSED: trimmed, `[[ ]]` stripped. `SpeakerTurnStyle` reads the
+    /// same headers, so the strip lives here once.
+    static func parsedLabel(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
+    }
+
+    /// Anything before the first turn header (e.g. an early `[[img_NNN]]` marker), trimmed;
+    /// "" when there is no header or the text starts with one.
+    static func preamble(of text: String?) -> String {
+        guard let text,
+              let first = headerRegex.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)),
+              first.range.location > 0 else { return "" }
+        return (text as NSString).substring(to: first.range.location)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     /// `parse`'s own single-slot cache, keyed on the transcript text: a commit
     /// that fires `parse` from more than one call site (recomputeSpans' onChange
@@ -63,8 +84,7 @@ enum SpeakerTranscript {
         guard matches.count >= 2 else { return nil }
         var turns: [Turn] = []
         for (i, m) in matches.enumerated() {
-            let rawName = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
-            let name = rawName.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
+            let name = parsedLabel(ns.substring(with: m.range(at: 1)))
             let textStart = m.range.location + m.range.length
             let textEnd = (i + 1 < matches.count) ? matches[i + 1].range.location : ns.length
             let text = ns.substring(with: NSRange(location: textStart, length: textEnd - textStart))
@@ -79,22 +99,15 @@ enum SpeakerTranscript {
     /// PRESERVE that preamble instead of dropping it. nil when not ≥2 turns.
     static func parseWithPreamble(_ transcript: String?) -> (preamble: String, turns: [Turn])? {
         guard let t = transcript, let turns = parse(t) else { return nil }
-        let ns = t as NSString
-        let firstLoc = headerRegex.firstMatch(in: t, range: NSRange(location: 0, length: ns.length))?.range.location ?? 0
-        let preamble = ns.substring(to: firstLoc).trimmingCharacters(in: .whitespacesAndNewlines)
-        return (preamble, turns)
+        return (preamble(of: t), turns)
     }
 
     /// Prepend the ORIGINAL transcript's preamble (anything before its first `**Name:**`
     /// header) onto a rebuilt turns body, so an edit / merge / rename never silently
     /// drops it. No-op when there's no preamble.
     static func withPreamble(of original: String?, _ body: String) -> String {
-        guard let original,
-              let first = headerRegex.firstMatch(in: original, range: NSRange(location: 0, length: (original as NSString).length)),
-              first.range.location > 0 else { return body }
-        let preamble = (original as NSString).substring(to: first.range.location)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return preamble.isEmpty ? body : preamble + "\n\n" + body
+        let lead = preamble(of: original)
+        return lead.isEmpty ? body : lead + "\n\n" + body
     }
 
     /// "Speaker N" is the un-named placeholder (offer to tag it); a real name isn't.
@@ -134,20 +147,17 @@ enum SpeakerTranscript {
     /// Returns nil if not parseable. Does NOT re-fuse (names unchanged).
     static func setText(_ transcript: String?, turnAt index: Int, to newText: String) -> String? {
         guard let turns = parse(transcript), index >= 0, index < turns.count else { return nil }
-        let body = turns.enumerated()
-            .map { i, t in "**\(t.name):** \(i == index ? newText.trimmingCharacters(in: .whitespacesAndNewlines) : t.text)" }
-            .joined(separator: "\n\n")
-        return withPreamble(of: transcript, body)
+        let edited = turns.enumerated().map { i, t in
+            Turn(name: t.name, text: i == index ? newText.trimmingCharacters(in: .whitespacesAndNewlines) : t.text)
+        }
+        return withPreamble(of: transcript, markdown(edited))
     }
 
     /// Reassign a SINGLE turn (by position) to another speaker, then re-merge — the
     /// per-line merge fix. Relabels only `turnAt`, NOT every turn of that speaker.
     static func reassign(_ transcript: String?, turnAt index: Int, to newName: String) -> String? {
         guard let turns = parse(transcript), index >= 0, index < turns.count else { return nil }
-        let rebuilt = turns.enumerated()
-            .map { i, t in "**\(i == index ? newName : t.name):** \(t.text)" }
-            .joined(separator: "\n\n")
-        return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
+        return renamed(transcript) { i, _ in i == index ? newName : nil }
     }
 
     /// Collapse consecutive turns by the SAME speaker label into one — repairs
@@ -166,8 +176,7 @@ enum SpeakerTranscript {
                 merged.append((t.name, t.text))
             }
         }
-        let body = merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
-        return withPreamble(of: transcript, body)
+        return withPreamble(of: transcript, markdown(merged.map { Turn(name: $0.name, text: $0.text) }))
     }
 
     /// Rename EVERY turn whose parsed label satisfies `matches` (a speaker's whole voice, however
@@ -175,11 +184,7 @@ enum SpeakerTranscript {
     /// same-speaker turns. nil when not attributed. The Mac's "name from the gutter" (Q87), where
     /// the per-turn slot map of `relabelSlot` does not exist.
     static func relabel(_ transcript: String?, where matches: (String) -> Bool, to newName: String) -> String? {
-        guard let turns = parse(transcript) else { return nil }
-        let rebuilt = turns
-            .map { "**\(matches($0.name) ? newName : $0.name):** \($0.text)" }
-            .joined(separator: "\n\n")
-        return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
+        renamed(transcript) { _, t in matches(t.name) ? newName : nil }
     }
 
     /// Rename every turn belonging to diarization SLOT `slot` (NOT every turn that happens
@@ -189,9 +194,15 @@ enum SpeakerTranscript {
     /// fall back to name-based relabeling.
     static func relabelSlot(_ transcript: String?, turnSlots: [Int], slot: Int, to newName: String) -> String? {
         guard let turns = parse(transcript), turnSlots.count == turns.count else { return nil }
-        let rebuilt = turns.enumerated()
-            .map { i, t in "**\(turnSlots[i] == slot ? newName : t.name):** \(t.text)" }
-            .joined(separator: "\n\n")
+        return renamed(transcript) { i, _ in turnSlots[i] == slot ? newName : nil }
+    }
+
+    /// The ONE rebuild behind `reassign` / `relabel` / `relabelSlot`: each turn keeps its name
+    /// unless `pick(index, turn)` returns a replacement; adjacent same-speaker turns then merge
+    /// and the preamble is kept. nil when not attributed.
+    static func renamed(_ transcript: String?, _ pick: (Int, Turn) -> String?) -> String? {
+        guard let turns = parse(transcript) else { return nil }
+        let rebuilt = markdown(turns.enumerated().map { i, t in Turn(name: pick(i, t) ?? t.name, text: t.text) })
         return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
     }
 }
