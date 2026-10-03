@@ -190,12 +190,12 @@ struct MemoDetailView: View {
                     .accessibilityLabel(showConnections ? "Hide Connections" : "Show Connections")
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 48)
+            .padding(.horizontal, NoteLook.bandSidePadding)
+            .frame(height: NoteLook.bandHeight)
             // A real toolbar has an edge (signed mock): the hairline is what
             // stops the controls reading as floating.
             .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.skBorder).frame(height: 0.5)
+                Rectangle().fill(Color.skBorder).frame(height: NoteLook.bandHairlineHeight)
             }
             .accessibilityIdentifier("ipad-note-chrome")
         }

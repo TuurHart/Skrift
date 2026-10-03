@@ -833,14 +833,17 @@ struct RecordWaveform: View {
 
     var body: some View {
         GeometryReader { geo in
-            let bars = padded
+            // Q187 (recsj-009): heights come from the shared Meter (`RecordingCore.Meter
+            // .height(at:)`, floored 0.12 + 0.88 * level) — the same mapping the Mac's
+            // sidebar meter uses — not a phone-only formula.
+            let meter = meter
             HStack(alignment: .center, spacing: 3) {
-                ForEach(bars.indices, id: \.self) { i in
+                ForEach(0..<meter.width, id: \.self) { i in
                     Capsule()
                         .fill(LinearGradient(colors: [.skAccent, Color(hex: 0xa99cff)],
                                              startPoint: .bottom, endPoint: .top))
-                        .frame(height: max(3, CGFloat(bars[i]) * geo.size.height))
-                        .opacity(0.45 + Double(bars[i]) * 0.55)
+                        .frame(height: CGFloat(meter.height(at: i)) * geo.size.height)
+                        .opacity(0.45 + Double(meter.bars[i]) * 0.55)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -849,10 +852,11 @@ struct RecordWaveform: View {
         .accessibilityHidden(true)
     }
 
-    /// Right-align the newest samples; pad the left with quiet bars.
-    private var padded: [Float] {
-        if samples.count >= barCount { return Array(samples.suffix(barCount)) }
-        return Array(repeating: 0.04, count: barCount - samples.count) + samples
+    /// Right-align the newest samples in a fixed-width Meter; the left stays quiet.
+    private var meter: RecordingCore.Meter {
+        var m = RecordingCore.Meter(width: barCount)
+        for s in samples.suffix(barCount) { m.push(s) }
+        return m
     }
 }
 

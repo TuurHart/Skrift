@@ -433,6 +433,8 @@ targets:
       - path: ../Shared/UI/Palette.swift
       # Theme.Motion delegates to the shared curves, so the extension needs them too.
       - path: ../Shared/UI/Motion.swift
+      # Theme.skBorder reads the hairline alphas from NoteLook (Q185).
+      - path: ../Shared/UI/NoteLook.swift
       - path: DesignSystem/Theme.swift
       - path: DesignSystem/Haptics.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox

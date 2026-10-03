@@ -257,13 +257,13 @@ struct BookTextSheet: View {
                 Text("\(Int((thisBookProgress * 100).rounded()))% · resumes where it left off")
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
                     .padding(.top, 4)
-                transcribeButton("Resume transcribing")
+                transcribeButton(TranscribeBookCopy.resume)
             case .fresh:
                 Text("Not transcribed")
                     .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
                 Text(freshMeta)
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
-                transcribeButton("Transcribe")
+                transcribeButton(TranscribeBookCopy.start)
             }
         }
         .textCard()
@@ -307,8 +307,8 @@ struct BookTextSheet: View {
             parts.append("≈ \(TranscribeBookView.shortDuration(eta)) left")
         }
         parts.append(job.phase == .pausedUnplugged
-                     ? "paused — battery below 20%, resumes when you plug in"
-                     : "runs on battery, pauses below 20%")
+                     ? TranscribeBookCopy.pausedLowBattery
+                     : TranscribeBookCopy.runsOnBattery)
         return parts.joined(separator: " · ")
     }
 

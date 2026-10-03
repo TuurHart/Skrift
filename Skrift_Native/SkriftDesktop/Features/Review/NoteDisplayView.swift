@@ -39,6 +39,7 @@ struct NoteDisplayView: View {
     var searchQuery: String = ""
     /// A new note asks for the cursor in its body, once per token (see `BodyTextView.focusToken`).
     var focusBodyToken: String? = nil
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     /// Pre-action snapshot backing the inline undo toast. The OPT-OUT body is a pure function
@@ -641,10 +642,11 @@ struct NoteDisplayView: View {
                         onRemoved: onRemoved)
             if capabilities(for: file).connections { connectionsToggle }
         }
-        .padding(.horizontal, 18)
-        .frame(height: 48)
+        .padding(.horizontal, NoteLook.bandSidePadding)
+        .frame(height: NoteLook.bandHeight)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.hairline.opacity(0.10)).frame(height: 0.5)
+            Rectangle().fill(Theme.hairline.opacity(NoteLook.hairlineAlpha(dark: colorScheme == .dark)))
+                .frame(height: NoteLook.bandHairlineHeight)
         }
     }
 
@@ -672,7 +674,7 @@ struct NoteDisplayView: View {
                 .barGlass(on: sidebarVisible)
         }
         .buttonStyle(.plain)
-        .help(sidebarVisible ? "Hide the notes list" : "Show the notes list")
+        .help(NoteLook.listToggleLabel(listVisible: sidebarVisible))
         .accessibilityIdentifier("sidebar-toggle")
     }
 

@@ -185,7 +185,7 @@ struct MemosListView: View {
             // iPadOS-26 sidebar pattern. It's the only panel glyph on screen.
             .overlay(alignment: .topLeading) {
                 PanelToggle(icon: "sidebar.left", on: listVisible,
-                            label: listVisible ? "Hide notes list" : "Show notes list",
+                            label: NoteLook.listToggleLabel(listVisible: listVisible),
                             id: "ipad-toggle-list") {
                     withAnimation(Theme.Motion.snappy) { listVisible.toggle() }
                 }
