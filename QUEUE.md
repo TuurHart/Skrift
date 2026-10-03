@@ -1282,7 +1282,7 @@ check: Tuur picked per question and FEATURES.md / SPEC follow.
 brief: Three calls. (1) Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; the phone and iPad always anchor on today and the journal-desktop mock says 'same rules as the phone' (recsj-086). (2) The Mac recorder has no pause / resume and no way to discard a take; the phone has both and its X discards with no confirm (R71/C262 open); FEATURES.md:21 lists the Mac '➖' with no decision behind it (recsj-010, -015). (3) The Mac has no 'Add recording' to an existing note although it can record (note-menu-03, capture-quick-16, recsj-045; FEATURES.md:30 '➖'). Recommended: (1) anchor on today, matching the mock text; (2) build pause and a confirmed discard; (3) build it.
 source: plan/reads/parity-audit.md P71
 
-### Q171 [auto] (doing) single-source the UI strings and views written twice (twin-same rows)
+### Q171 [auto] (done) single-source the UI strings and views written twice (twin-same rows)
 spec: C239 C240
 needs: -
 gate+: yes
@@ -1417,7 +1417,7 @@ do: Rows setexp-47, books-75, books-109, recsj-009. Polish prompts in one order 
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md §3 (uncovered shareable rows, added 2026-10-02)
 
-### Q188 [auto] (todo) delete the dead audio-trim machinery in quote capture
+### Q188 [auto] (doing) delete the dead audio-trim machinery in quote capture
 spec: C240
 needs: -
 gate+: no
@@ -2920,3 +2920,5 @@ check: (fill in)
 - 2026-10-03 01:54 Q243 -> done — gate pass (batched with Q240)
 - 2026-10-03 01:55 Q174 -> done — gate pass @44c7aa8f
 - 2026-10-03 01:56 Q214 -> tuur — needs hand-merge: wt/Q214 @3dff5149 (agent-a9617e2e31fef03e6) rewrites protected UploadTests.swift + MemoCloudIngestTests.swift; gate green 1431; approve then plan/hand-merge.sh
+- 2026-10-03 01:57 Q188 -> doing — dispatched (sonnet), hand-merge likely
+- 2026-10-03 02:00 Q171 -> done — gate pass @0943590e
