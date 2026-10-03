@@ -38,8 +38,10 @@ final class ProcessPileTests: XCTestCase {
         XCTAssertTrue(ProcessPile.waiting(memos: [m], enhancedIDs: [m.id]).isEmpty)
     }
 
-    func testLockedNoteIsNotWaiting() {
-        XCTAssertTrue(ProcessPile.waiting(memos: [memo(locked: true)], enhancedIDs: []).isEmpty)
+    /// C182/C215 (D164): a locked note is still in the Process pile.
+    func testLockedNoteIsWaiting() {
+        let m = memo(locked: true)
+        XCTAssertEqual(ProcessPile.waiting(memos: [m], enhancedIDs: []).map(\.id), [m.id])
     }
 
     func testTrashedNoteIsNotWaiting() {
