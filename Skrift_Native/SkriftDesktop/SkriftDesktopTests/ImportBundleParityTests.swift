@@ -24,12 +24,6 @@ final class ImportBundleParityTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func tempDir() throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("q186-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
-
     private func writeClip(in dir: URL, name: String, seconds: Double) throws -> URL {
         let url = dir.appendingPathComponent(name)
         let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
@@ -186,7 +180,7 @@ final class ImportBundleParityTests: XCTestCase {
     /// capture-import-13: one clip + one picture + one `.txt` → ONE note, the text its annotation
     /// (the phone's chat-text rule), and the annotation reaches the authored `Memo`.
     func testClipPictureAndTextDropIsOneNoteWithTheTextAsAnnotation() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir()
         let clip = try writeClip(in: work, name: "signal-2026-10-01-07-44-33-032.m4a", seconds: 2)
         let pic = try writeJPEG(in: work, name: "signal-2026-10-01-074500.jpeg")
         let text = work.appendingPathComponent("chat.txt")
@@ -213,7 +207,7 @@ final class ImportBundleParityTests: XCTestCase {
 
     /// A text with no speech in the drop is still a note of its own (nothing to annotate).
     func testALoneTextIsStillItsOwnNote() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir()
         let text = work.appendingPathComponent("plan.txt")
         try "The plan".write(to: text, atomically: true, encoding: .utf8)
         let ctx = try makeContext()
@@ -227,7 +221,7 @@ final class ImportBundleParityTests: XCTestCase {
     /// C68: clip + video + "One note" → ONE note: the video's audio stitched after the clip, its
     /// frame a picture at the boundary, and the video counted by the chooser.
     func testAVideoJoinsTheBundleOnTheMac() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir()
         let clip = try writeClip(in: work, name: "signal-2026-10-01-07-44-33-032.m4a", seconds: 2)
         let video = try writeVideo(in: work, name: "signal-2026-10-01-07-50-00-000.mov", seconds: 1)
         XCTAssertEqual(IngestService.speechItems(in: [video, clip]), [video, clip],
@@ -251,7 +245,7 @@ final class ImportBundleParityTests: XCTestCase {
 
     /// A lone video still imports exactly as before (movie kept, frame at the top).
     func testALoneVideoKeepsItsOwnImport() async throws {
-        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let work = makeTempDir()
         let video = try writeVideo(in: work, name: "clip.mov", seconds: 1)
         let ctx = try makeContext()
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
