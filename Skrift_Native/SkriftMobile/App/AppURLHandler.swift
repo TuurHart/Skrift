@@ -161,8 +161,18 @@ enum AppURLHandler {
                 if importAsCapture(url) { report.created += 1 }
                 else { report.addFailed(name, ImportReport.unreadable) }
             case .book:
-                // Books have their own door (the Books library): said, not dropped.
-                report.addSkipped(name, ImportReport.book)
+                // Books have their own door (the Books library): the file is handed there
+                // and the tab comes forward (Q255, C199).
+                switch BookOpenInRouting.decision(for: url) {
+                case .importAudiobook:
+                    BookFileImportBridge.shared.offer(url)
+                    TabSelectionBridge.shared.select(.books)
+                case .needsAudiobook:
+                    TabSelectionBridge.shared.select(.books)
+                    report.addSkipped(name, BookOpenInRouting.epubReason)
+                case .notAudiobookFile:
+                    report.addSkipped(name, ImportReport.book)
+                }
             case .none:
                 report.addSkipped(name, ImportReport.skipReason(forName: name, onMac: false))
             }

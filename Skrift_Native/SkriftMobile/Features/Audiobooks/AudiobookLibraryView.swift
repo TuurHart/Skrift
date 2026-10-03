@@ -27,6 +27,8 @@ struct AudiobookLibraryView: View {
 
     @State private var showImporter = false
     @State private var importing = false
+    @ObservedObject private var openInBridge = BookFileImportBridge.shared
+    @State private var openInQueue: [URL] = []
     @State private var pendingImport: PendingAudiobookImport?
     @State private var importError: String?
     /// Partial-import notice: the book imported but N parts were skipped (unreadable).
@@ -91,6 +93,11 @@ struct AudiobookLibraryView: View {
                 Task { await runImport(urls) }
             }
         }
+        // Q255: an `.m4b` opened from Files / another app runs the SAME import the Add
+        // button runs; one book at a time, the next waits for the confirm sheet.
+        .onAppear { takeOpenIn() }
+        .onChange(of: openInBridge.requestID) { _, _ in takeOpenIn() }
+        .onChange(of: pendingImport?.id) { _, id in if id == nil { startNextOpenIn() } }
         .sheet(item: $pendingImport, onDismiss: {
             // A0 fires here — after the confirm sheet is fully down (a direct
             // sheet-to-sheet swap drops the second presentation on iOS 26). Only
@@ -613,6 +620,20 @@ struct AudiobookLibraryView: View {
         return "\(n) part\(n == 1 ? "" : "s") couldn’t be read by iOS and \(n == 1 ? "was" : "were") skipped:\n"
             + skipped.joined(separator: "\n")
             + "\n\nThe book plays with a gap there — re-download or re-rip \(n == 1 ? "that file" : "those files") and re-import to fill it."
+    }
+
+    private func takeOpenIn() {
+        openInQueue += openInBridge.consume()
+        startNextOpenIn()
+    }
+
+    private func startNextOpenIn() {
+        guard !importing, pendingImport == nil, !openInQueue.isEmpty else { return }
+        let url = openInQueue.removeFirst()
+        Task {
+            await runImport([url])
+            startNextOpenIn()
+        }
     }
 
     private func runImport(_ urls: [URL]) async {
