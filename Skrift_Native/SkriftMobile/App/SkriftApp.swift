@@ -142,9 +142,9 @@ struct SkriftApp: App {
                 .sheet(item: $audioPick.pending) { pending in
                     AudioPickChoiceSheet(
                         pending: pending,
-                        onConfirm: { choice in
+                        onConfirm: { choice, route in
                             audioPick.pending = nil
-                            Task { await AppURLHandler.resolve(pending.urls, choice: choice) }
+                            Task { await AppURLHandler.resolve(pending.urls, choice: choice, route: route) }
                         },
                         onCancel: { audioPick.pending = nil })
                 }

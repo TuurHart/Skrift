@@ -117,3 +117,44 @@ enum AudioImportChoice: String, CaseIterable, Sendable {
 
     var combines: Bool { self == .oneNote }
 }
+
+/// Audio of an hour or more is probably a lecture or an audiobook chapter, not a voice note
+/// (C79): every door that takes audio offers Audiobook (read-along in Books) or Voice note
+/// (transcribe it all as a note). One definition for the share sheet, Open-in / AirDrop and the
+/// Files importer, so the threshold and the words cannot drift (Q150).
+enum LongAudioRoute: String, CaseIterable, Sendable {
+    case audiobook
+    case voiceNote
+
+    /// One hour, the user-locked threshold.
+    static let threshold: TimeInterval = 3600
+
+    /// The offer is made on audiobook (a long clip is far more likely a book).
+    static let `default`: LongAudioRoute = .audiobook
+
+    static func isLong(_ duration: TimeInterval?) -> Bool { (duration ?? 0) >= threshold }
+
+    /// True when any clip of the pick is long enough to ask.
+    static func needsOffer(durations: [TimeInterval?]) -> Bool { durations.contains { isLong($0) } }
+
+    var title: String {
+        switch self {
+        case .audiobook: return "Audiobook"
+        case .voiceNote: return "Voice note"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .audiobook: return "Read-along in the Books tab — it's a long one"
+        case .voiceNote: return "Transcribe the whole thing as a note"
+        }
+    }
+
+    var confirmTitle: String {
+        switch self {
+        case .audiobook: return "Add to Books"
+        case .voiceNote: return "Save as a note"
+        }
+    }
+}
