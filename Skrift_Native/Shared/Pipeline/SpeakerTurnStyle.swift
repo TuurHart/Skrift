@@ -23,7 +23,6 @@ enum SpeakerTurnStyle {
     struct HeaderResolver {
         private let live: [Person]
         private let aliases: [String: [Person]]
-        private let ambiguous: Set<String>
 
         init(people: [Person]) {
             live = people
@@ -35,7 +34,6 @@ enum SpeakerTurnStyle {
                 }
             }
             aliases = map
-            ambiguous = Set(map.filter { $0.value.count >= 2 }.keys)
         }
 
         /// The unique live person a header label names — by canonical key (the phone sends a
@@ -48,8 +46,14 @@ enum SpeakerTurnStyle {
             if let p = live.first(where: {
                 NamesMerge.matchKey($0.canonical) == key
             }) { return p }
-            if !ambiguous.contains(key), let cands = aliases[key], cands.count == 1 { return cands[0] }
+            if let cands = aliases[key], cands.count == 1 { return cands[0] }
             return nil
+        }
+
+        /// `identity(for:)` of a header as DISPLAYED (an Obsidian `Canonical|spoken` header
+        /// reads as its spoken part) — what the naming calls hold.
+        func identity(forDisplayed displayed: String) -> String {
+            identity(for: SpeakerTurnStyle.label(for: displayed))
         }
 
         /// The key two headers share iff they are the same speaker — a resolved person's
@@ -80,30 +84,37 @@ enum SpeakerTurnStyle {
     /// ≥2 line-anchored `**Name:**` headers AND ≥2 distinct speakers. Deliberately the same
     /// test the Sanitiser routes on — a body the linker already treated as a conversation is
     /// the body that should render as one, and a single bold lead-in never sprouts a gutter.
-    /// Fixed pattern — hoisted so `turns(in:)` (called on EVERY keystroke via
-    /// `BodyTextView.restyle`, R90) doesn't recompile it each time (sweep E finding #5).
-    private static let headerRegex = try! NSRegularExpression(pattern: SpeakerTranscript.headerPattern)
+    /// First-appearance slot numbering over speaker identities — the ONE rule behind both
+    /// `turns(in:)` and `slots(forParsedNames:)`.
+    private struct SlotAssigner {
+        private var slots: [String: Int] = [:]
+        var count: Int { slots.count }
+        mutating func slot(for id: String) -> Int {
+            if let known = slots[id] { return known }
+            let n = slots.count
+            slots[id] = n
+            return n
+        }
+    }
 
+    /// The pattern is `SpeakerTranscript.headerRegex`, compiled once — `turns(in:)` is called on
+    /// EVERY keystroke via `BodyTextView.restyle` (R90), so it must not recompile (sweep E #5).
     static func turns(in text: String, people: [Person]) -> [Turn] {
-        let re = headerRegex
         let ns = text as NSString
-        let matches = re.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let matches = SpeakerTranscript.headerRegex.matches(in: text, range: NSRange(location: 0, length: ns.length))
         guard matches.count >= 2 else { return [] }
         let resolver = HeaderResolver(people: people)
-        var slots: [String: Int] = [:]
+        var assigner = SlotAssigner()
         var out: [Turn] = []
         for m in matches {
             let raw = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
-            let parsed = raw.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
-            let id = resolver.identity(for: parsed)
-            let slot: Int
-            if let known = slots[id] { slot = known } else { slot = slots.count; slots[id] = slot }
+            let parsed = SpeakerTranscript.parsedLabel(raw)
             out.append(Turn(headerRange: m.range,
                             display: label(for: parsed),
                             isLinked: raw.contains("[["),
-                            slot: slot))
+                            slot: assigner.slot(for: resolver.identity(for: parsed))))
         }
-        return slots.count >= 2 ? out : []
+        return assigner.count >= 2 ? out : []
     }
 
     /// Hue slots for already-parsed turn names (`SpeakerTranscript.parse` order) — the phone's
@@ -111,14 +122,8 @@ enum SpeakerTurnStyle {
     /// as `turns(in:people:)`, so both apps colour a given speaker identically.
     static func slots(forParsedNames names: [String], people: [Person]) -> [Int] {
         let resolver = HeaderResolver(people: people)
-        var slots: [String: Int] = [:]
-        return names.map { name in
-            let id = resolver.identity(for: name)
-            if let known = slots[id] { return known }
-            let n = slots.count
-            slots[id] = n
-            return n
-        }
+        var assigner = SlotAssigner()
+        return names.map { assigner.slot(for: resolver.identity(for: $0)) }
     }
 
     /// The gutter label for a parsed header name: an Obsidian alias-display header
