@@ -188,21 +188,9 @@ struct PromptEditorView: View {
         .onAppear { text = currentText }
     }
 
-    private var defaultText: String {
-        switch kind {
-        case .copyEdit: return PolishPrompts.copyEdit
-        case .summary: return PolishPrompts.summary
-        case .title: return PolishPrompts.title
-        }
-    }
+    private var defaultText: String { kind.defaultText }
 
-    private var currentText: String {
-        switch kind {
-        case .copyEdit: return PolishPromptsStore.copyEdit()
-        case .summary: return PolishPromptsStore.summary()
-        case .title: return PolishPromptsStore.title()
-        }
-    }
+    private var currentText: String { PolishPromptsStore.text(for: kind) }
 
     private func save() {
         PolishPromptsStore.setText(text, for: kind)

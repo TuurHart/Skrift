@@ -126,12 +126,24 @@ actor MLXPolishEngine: PolishEngine {
         case .copyEdit:
             return try await PolishEscrow.copyEdit(transcript, generate: copyEditGenerate)
         case .title:
-            return try await run(prompt: PolishPromptsStore.title(),
-                                 text: PolishEscrow.plainForTitleSummary(transcript), maxTokens: 64)
+            return try await titleTurn(plain: PolishEscrow.plainForTitleSummary(transcript))
         case .summary:
-            return try await run(prompt: PolishPromptsStore.summary(),
-                                 text: PolishEscrow.plainForTitleSummary(transcript), maxTokens: 256)
+            return try await summaryTurn(plain: PolishEscrow.plainForTitleSummary(transcript))
         }
+    }
+
+    /// Output-token ceilings for the two short turns (copy-edit sizes its own, from its input).
+    private static let titleTokenBudget = 64
+    private static let summaryTokenBudget = 256
+
+    /// The title turn — one spelling for the full polish and the per-part redo.
+    private func titleTurn(plain: String) async throws -> String {
+        try await run(prompt: PolishPromptsStore.title(), text: plain, maxTokens: Self.titleTokenBudget)
+    }
+
+    /// The summary turn — one spelling for the full polish and the per-part redo.
+    private func summaryTurn(plain: String) async throws -> String {
+        try await run(prompt: PolishPromptsStore.summary(), text: plain, maxTokens: Self.summaryTokenBudget)
     }
 
     /// Polish a RAW transcript → the three pieces the Mac writes. Copy-edit runs through the
@@ -151,11 +163,11 @@ actor MLXPolishEngine: PolishEngine {
         onStep(.title, 0.55)
 
         let plain = PolishEscrow.plainForTitleSummary(transcript)
-        let title = try await run(prompt: PolishPromptsStore.title(), text: plain, maxTokens: 64)
+        let title = try await titleTurn(plain: plain)
         onStep(.summary, 0.75)
 
         let summary = PolishEscrow.wordsMeetSummaryThreshold(transcript)
-            ? try await run(prompt: PolishPromptsStore.summary(), text: plain, maxTokens: 256)
+            ? try await summaryTurn(plain: plain)
             : ""
         onStep(.summary, 1.0)
 
