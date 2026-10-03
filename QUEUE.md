@@ -1306,7 +1306,7 @@ do: Phone onboarding shows a green check for the permission step whatever the us
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh OnboardingPermissionStateTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P74
 
-### Q174 [auto] (todo) FEATURES.md and plan/parity.md match the code again
+### Q174 [auto] (doing) FEATURES.md and plan/parity.md match the code again
 spec: C239
 needs: -
 do: Stale rows found by the audit: FEATURES.md:119 (iPad list '320-420 draggable', it is fixed 375), :61 vs :126 (⌘N), :377 (Quick note Desktop n/a, the Mac has the compose chip), :53 (search-hit flash Mac ➖, it jumps), :238 (quote rendering Desktop n/a), :161 (captures 'Mobile n/a' predates iPad polish), the 'Quote protection in enhancement' row (omits phone `PolishEscrow`), the 'Custom vocabulary sync' row (~:292, Desktop 'not built', it exists), :120 ('unlocked' in the Process pile); plan/parity.md:44 name resolutions 'deliberately not' (SPEC C81/D20 say sync). SPEC wording for C220 ('Mac rotates at 7 s', code is 20 s) and C199/C145 stays with Tuur: list them in the commit message. Edit only FEATURES.md and plan/parity.md.
@@ -1569,7 +1569,7 @@ do: These DEBUG flags have no invoker in `plan/*.sh`, `gate.sh`, UITests, SPEC o
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d07 DSH-d08 DSH-d09 DSH-d19 PER-d13 (cleanup-audit P19)
 
-### Q207 [auto] (stuck) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
+### Q207 [auto] (doing) one relink helper for the four conversation-or-monologue sites, bestBodyText in the model layer
 spec: C239
 needs: Q116
 gate+: yes
@@ -1825,7 +1825,7 @@ do: (1) A `PrefKey` enum with each key and its default beside it in `Shared/Mode
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d21 MLJ-d17 MMD-c20 MSV-c35 MAU-c07 (cleanup-audit P51)
 
-### Q239 [auto] (doing) phone WayOut: call the Shared WayOut directly, one partition
+### Q239 [auto] (tuur) phone WayOut: call the Shared WayOut directly, one partition
 spec: C239
 needs: Q178
 gate+: no
@@ -1833,7 +1833,7 @@ do: Delete the static forwarders `orderedByImminence`, `oneLiner` and `total` in
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WayOutViewTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-d14 MLJ-d15 (cleanup-audit P52)
 
-### Q240 [auto] (todo) speaker transcript: one rebuild, one header regex, one slot assigner
+### Q240 [auto] (doing) speaker transcript: one rebuild, one header regex, one slot assigner
 spec: C239
 needs: Q183
 gate+: no
@@ -1857,7 +1857,7 @@ do: Eight App adapters hand-write `cloudKitMacSyncEnabled && MemoCloudStore.cont
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c06 DAU-c07 DAU-c08 (cleanup-audit P55)
 
-### Q243 [auto] (todo) polish: one prompt descriptor, one title/summary turn, no redundant canPolish clause
+### Q243 [auto] (doing) polish: one prompt descriptor, one title/summary turn, no redundant canPolish clause
 spec: C239
 needs: Q187
 gate+: no
@@ -1889,10 +1889,10 @@ do: `Shared/Export/VaultWrite.swift:330-524`: `ownedName` exists for URL (478-48
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c01 SRS-m2 (cleanup-audit P59)
 
-### Q247 [auto] (todo) compiler: typed shared content and one wiki-link scanner
+### Q247 [auto] (doing) compiler: typed shared content and one wiki-link scanner
 spec: C239
 needs: Q155
-gate+: no
+gate+: yes
 do: `CompilerSharedContent` (`Shared/Export/CompilerInput.swift:53-64,84`) is a string-typed five-field copy of `Shared/Model/SharedContent.swift` compiled into the same targets (both `project.yml`s list `../Shared/Model` and `../Shared/Export`); `Compiler.swift:52,59-65,234-257` switches on `"url"/"text"/"image"/"file"` strings and a default hides a new capture type. Use `SharedContent?` and switch exhaustively on `ShareContentType` (add an explicit `.file: break`, today the default swallows it); delete `CompilerSharedContent`, `MemoExporter.compilerShared` (`SkriftMobile/Services/Export/MemoExporter.swift:58,125-128`) and the lambda in `CompilerBridge.swift:69`; update the five `CompilerTests.swift:325-354` constructors (memberwise init, optionals default nil). Leave `CompilerMetadata` and `PhoneMetadata` to Q155. Add `Sanitiser.bodyLinks(in:)` (`linkOccurrences` minus `![[` embeds) and one replacing-ranges helper (`Sanitiser.nsReplace` exists at `Sanitiser.swift:300`; the right-to-left loop is repeated at `Compiler.swift:312`, `VaultExporter.swift:247,317`, `ObsidianPublisher.swift:257`): `peopleLinks` and `plainifyNonPeopleLinks` use it. `ConnectionWhy.wikiNames` may use `linkOccurrences` + `linkTarget` but keeps its `memo:` exclusion and the length-60 guard; it does not skip embeds or `img_NNN` markers today, so accept that one small change and say so. `CompilerTests` and the corpus goldens stay green unedited; the frontmatter key order is a pinned contract. Q155 moves input building: land after it. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c05 SRS-c06 (cleanup-audit P60)
@@ -1943,7 +1943,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q255 [auto] (doing) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
+### Q255 [auto] (done) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
 spec: C199
 needs: Q133
 gate+: yes
@@ -2870,3 +2870,10 @@ check: Tuur decided; follow-up item added if needed.
 - 2026-10-03 01:24 Q275 -> tuur — awaiting sitting
 - 2026-10-03 01:24 Q276 added
 - 2026-10-03 01:24 Q276 -> tuur — awaiting sitting
+- 2026-10-03 01:24 Q207 -> doing — redispatch 2/3: rebase after CONFLICT with Q120
+- 2026-10-03 01:25 Q247 -> doing — worker out
+- 2026-10-03 01:31 Q239 -> tuur — hand-merge: protected WayOutViewTests.swift:27-100 call the forwarders Q239 deletes (WayOutView.total, orderedByImminence, oneLiner) — drop cases WayOutSharedTests covers, retarget the rest. Not started.
+- 2026-10-03 01:31 Q240 -> doing — batch worker out
+- 2026-10-03 01:31 Q243 -> doing — batch worker out
+- 2026-10-03 01:35 Q174 -> doing — worker out
+- 2026-10-03 01:38 Q255 -> done — gate pass @9e204637
