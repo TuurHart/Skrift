@@ -678,7 +678,7 @@ final class ProcessingCoordinator {
                 // A speaker-attributed (conversation) transcript SKIPS copy-edit — the
                 // LLM strips its `**Name:**` turn prefixes (same guard as BatchRunner).
                 // Only an AUDIO memo can be a conversation (a note with bold headings is not).
-                let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(transcript)
+                let isConversation = pf.sourceType == .audio && SpeakerTranscript.isConversation(transcript)
                 let c = isConversation
                     ? transcript
                     : try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
@@ -711,7 +711,7 @@ final class ProcessingCoordinator {
         let working = pf.enhancedCopyedit ?? pf.transcript ?? ""
         guard !working.isEmpty else { return }
         let people = NamesStore.shared.livePeople()
-        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
+        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isConversation(working)
         pf.relinkNames(working: working, isConversation: isConversation, people: people)
         pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)
         if let context { pf.lastActivityAt = Date(); try? context.save() }

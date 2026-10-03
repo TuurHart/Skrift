@@ -123,12 +123,12 @@ enum SpeakerTranscript {
         return out
     }
 
-    /// True when `transcript` is a conversation: ≥2 turn headers AND ≥2 DISTINCT speaker
-    /// labels (a list with repeated `**Pros:**`/`**Pros:**` headers, or a single speaker,
-    /// is not a conversation → it still gets copy-edit + ordinary name-linking).
-    static func isAttributed(_ transcript: String?) -> Bool {
-        guard let turns = parse(transcript) else { return false }
-        return Set(turns.map(\.name)).count >= 2
+    /// THE conversation rule (D175, Q292), one for both apps: a transcript is a conversation
+    /// when it parses with two or more line-anchored speaker headers, named or `Speaker N`.
+    /// Distinct names are NOT required (Tuur 2026-10-03). Callers that also need "is an audio
+    /// memo" (the Mac) add that themselves; the text rule lives only here.
+    static func isConversation(_ transcript: String?) -> Bool {
+        parse(transcript) != nil
     }
 
     /// FLATTEN a speaker-attributed transcript back to plain monologue prose: drop every

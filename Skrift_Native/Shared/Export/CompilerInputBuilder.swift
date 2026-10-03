@@ -4,7 +4,7 @@ import Foundation
 /// `MemoExporter` and the Mac's `PipelineFile.compilerInput` — call `CompilerInput.make`, so the
 /// three rules that used to be written twice are written once:
 ///   • body source: the copy-edit when it has words, else the raw text (`workingBody`);
-///   • the name-linked body: the shared `Sanitiser`, routed by `isAttributed`, honouring the
+///   • the name-linked body: the shared `Sanitiser`, routed by `SpeakerTranscript.isConversation`, honouring the
 ///     note's `NameResolutions` (`linkBody`) — the phone's export ignored its picks (R37);
 ///   • voice: `cleaned` only when the exported body IS the copy-edit. A title-only enhancement
 ///     read `cleaned` on the phone and `raw` on the Mac (setexp-88); now `raw` on both.
@@ -22,7 +22,7 @@ extension CompilerInput {
     }
 
     /// The name-linked form of `text` — the shared `Sanitiser`, the same routing the Mac's
-    /// `BatchRunner` uses (≥2 distinct speakers → the conversation linker), deleted people
+    /// `BatchRunner` uses (≥2 speaker headers → the conversation linker), deleted people
     /// excluded, the note's unlink / pick decisions applied.
     static func linkBody(_ text: String, people: [Person],
                          resolutions: NameResolutions = NameResolutions()) -> String {
@@ -30,7 +30,7 @@ extension CompilerInput {
         let live = people.filter { !$0.isDeleted }
         guard !live.isEmpty else { return text }
         let never = Set(resolutions.unlinkedNames)
-        if SpeakerTranscript.isAttributed(text) {
+        if SpeakerTranscript.isConversation(text) {
             return Sanitiser.processConversation(text: text, people: live, neverLink: never,
                                                  namePicks: resolutions.namePicks).sanitised
         }

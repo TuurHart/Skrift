@@ -705,7 +705,7 @@ struct BodyTextView: NSViewRepresentable {
 
         /// Replace every turn header of a CONVERSATION with its gutter name (signed mock E1).
         /// Only a real conversation qualifies — `SpeakerTurnStyle` uses the pipeline's own
-        /// definition (≥2 line-anchored headers, ≥2 distinct speakers), so an ordinary note
+        /// rule (≥2 line-anchored headers; the gutter also needs ≥2 distinct speakers), so an ordinary note
         /// with one bold `**Note:**` lead-in keeps today's inline styling and never sprouts a
         /// 118pt indent. Synchronous (pure drawing, no IO), like the chip/checkbox splices.
         private func spliceSpeakerGutters(_ tv: SelfSizingTextView) {

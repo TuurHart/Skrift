@@ -437,9 +437,7 @@ extension PipelineFile {
     /// reuses it for tags + copy-edit; the others derive it from `working`), and owns
     /// `sanitiseStatus` and the compile step. Host-less on purpose: no coordinator, no container.
     ///
-    /// Phone difference, recorded not unified: `MemoLinking` routes on a looser predicate
-    /// (`SpeakerTranscript.parse != nil`, two headers) than the Mac's `isAttributed` (two
-    /// DISTINCT names). Left as is; Tuur to decide.
+    /// Both apps decide `isConversation` with `SpeakerTranscript.isConversation` (D175).
     func relinkNames(working: String, isConversation: Bool, people: [Person]) {
         let neverLink = Set(unlinkedNames)
         let result = isConversation

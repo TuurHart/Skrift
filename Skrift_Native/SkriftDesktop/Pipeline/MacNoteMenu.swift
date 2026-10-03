@@ -7,7 +7,7 @@ import Foundation
 enum MacNoteMenu {
     /// A speaker-attributed (conversation) transcript. Only an audio memo can be one.
     static func isConversation(_ file: PipelineFile) -> Bool {
-        file.sourceType == .audio && SpeakerTranscript.isAttributed(file.transcript)
+        file.sourceType == .audio && SpeakerTranscript.isConversation(file.transcript)
     }
 
     /// Redo's availability through the ONE shared rule. The Mac's engine is in-process, so

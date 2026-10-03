@@ -80,10 +80,11 @@ enum SpeakerTurnStyle {
 
     /// The styled turns of a conversation body, or `[]` when the text isn't one.
     ///
-    /// "Is a conversation" is the pipeline's own definition (`SpeakerTranscript.isAttributed`):
-    /// ≥2 line-anchored `**Name:**` headers AND ≥2 distinct speakers. Deliberately the same
-    /// test the Sanitiser routes on — a body the linker already treated as a conversation is
-    /// the body that should render as one, and a single bold lead-in never sprouts a gutter.
+    /// "Is a conversation" is the pipeline's rule (`SpeakerTranscript.isConversation`, D175):
+    /// ≥2 line-anchored `**Name:**` headers. The gutter additionally needs ≥2 distinct speaker
+    /// identities to have anything to colour apart, so `**Pros:**`/`**Pros:**` draws no gutter
+    /// though it still routes as a conversation for name linking. A single bold lead-in never
+    /// sprouts a gutter.
     /// First-appearance slot numbering over speaker identities — the ONE rule behind both
     /// `turns(in:)` and `slots(forParsedNames:)`.
     private struct SlotAssigner {

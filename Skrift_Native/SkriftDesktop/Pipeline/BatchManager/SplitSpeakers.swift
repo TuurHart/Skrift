@@ -11,7 +11,7 @@ enum SplitSpeakers {
     /// The switch is ON exactly when the note's words ARE turns. Not `diarizeRequested`: that is
     /// only the request, and it is withdrawn again when a run finds one voice.
     static func isSplit(_ pf: PipelineFile) -> Bool {
-        pf.sourceType == .audio && SpeakerTranscript.isAttributed(pf.transcript)
+        pf.sourceType == .audio && SpeakerTranscript.isConversation(pf.transcript)
     }
 
     /// C102 opt-in, per note. BatchRunner diarizes only a note that carries this.
@@ -50,7 +50,7 @@ enum SplitSpeakers {
     /// is not split, so a caller can no-op safely.
     @discardableResult
     static func flatten(_ pf: PipelineFile) -> Bool {
-        guard SpeakerTranscript.isAttributed(pf.transcript),
+        guard SpeakerTranscript.isConversation(pf.transcript),
               let flat = SpeakerTranscript.flattened(pf.transcript) else { return false }
         pf.transcript = flat
         pf.diarizationSegments = []
@@ -109,7 +109,7 @@ enum SplitSpeakers {
         guard !name.isEmpty, isSplit(pf) else { return false }
         guard let renamed = SpeakerNaming.rename(pf.transcript, displayed: displayed, to: name, people: people) else { return false }
         pf.transcript = renamed
-        if let ce = pf.enhancedCopyedit, SpeakerTranscript.isAttributed(ce) {
+        if let ce = pf.enhancedCopyedit, SpeakerTranscript.isConversation(ce) {
             pf.enhancedCopyedit = SpeakerNaming.rename(ce, displayed: displayed, to: name, people: people) ?? ce
         }
         return true
