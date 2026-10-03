@@ -63,6 +63,7 @@ struct UploadService: Sendable {
         let imageParts = parts.filter { $0.name == "images" && $0.filename != nil }
         let manifest = (meta?["imageManifest"] as? [[String: Any]]) ?? []
         let documentPart = parts.first { $0.name == "document" && $0.filename != nil }   // .file capture (3b)
+        let thumbnailPart = parts.first { $0.name == "thumbnail" && $0.filename != nil }  // link card image (Q260)
 
         // C3 CAPTURE discriminator: zero audio `files` parts + `sharedContent` present
         // in the metadata → this is a capture (URL/text/image shared into Skrift from
@@ -73,7 +74,7 @@ struct UploadService: Sendable {
             return [try prepareCapture(id: memoID ?? UUID().uuidString, meta: meta,
                                        metadataPart: metadataPart,
                                        imageParts: imageParts, manifest: manifest,
-                                       documentPart: documentPart)]
+                                       documentPart: documentPart, thumbnailPart: thumbnailPart)]
         }
 
         // TEXT-ONLY: a note somebody TYPED (the ✎/⌘N verb on either app, `Memo.newTyped`) —
@@ -244,7 +245,8 @@ struct UploadService: Sendable {
     /// same `saveImages` path as memo photo uploads.
     private func prepareCapture(id: String, meta: [String: Any]?, metadataPart: MultipartPart?,
                                 imageParts: [MultipartPart], manifest: [[String: Any]],
-                                documentPart: MultipartPart? = nil) throws -> PreparedUpload {
+                                documentPart: MultipartPart? = nil,
+                                thumbnailPart: MultipartPart? = nil) throws -> PreparedUpload {
         let folderName = "capture_\(id)"
         let folder = outputDir.appendingPathComponent(folderName, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -255,6 +257,12 @@ struct UploadService: Sendable {
             let dir = folder.appendingPathComponent("files", isDirectory: true)
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             try? doc.data.write(to: dir.appendingPathComponent(name))
+        }
+        // A link capture's thumbnail (Q260): beside the capture, where `captureThumbnailURL`
+        // looks — never under `images/`, which is the photo manifest's folder.
+        if let thumb = thumbnailPart, let name = thumb.filename,
+           !name.isEmpty, !name.contains("/") {
+            try? thumb.data.write(to: folder.appendingPathComponent(name))
         }
 
         let annotation = (meta?["annotationText"] as? String) ?? ""

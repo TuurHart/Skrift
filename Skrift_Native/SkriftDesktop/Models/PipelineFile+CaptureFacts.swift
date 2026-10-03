@@ -30,8 +30,9 @@ extension PipelineFile {
 
     /// A shared link's thumbnail, when its FILE is in the capture's folder. `urlThumbnailUrl`
     /// holds a RELATIVE filename on the phone (a remote URL is a legacy value and never
-    /// fetched — offline rule, same as the phone). The phone does not sync that file today, so
-    /// this is nil until it does; the card then falls back to the globe tile.
+    /// fetched — offline rule, same as the phone). The phone syncs that file as a
+    /// `MemoAsset.Kind.thumbnail` (Q260), landed here by ingest or the late-asset heal; until it
+    /// arrives the card falls back to the globe tile.
     var captureThumbnailURL: URL? {
         guard let name = sharedContent?.urlThumbnailUrl?.trimmingCharacters(in: .whitespaces),
               !name.isEmpty, !name.contains("://"), !name.contains("/"),
