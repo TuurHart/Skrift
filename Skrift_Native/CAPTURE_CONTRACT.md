@@ -98,8 +98,8 @@ bytes) and metadata gains `"imageManifest":[{"filename":"whiteboard.jpg",
 
 ## Desktop semantics (lane D owns the implementation)
 
-- `UploadService.ingest`: when an upload has ZERO audio `files` parts AND
-  `metadata.sharedContent` exists → create ONE `PipelineFile`:
+- `UploadService.prepare(memo:assets:)`: when a memo has NO audio asset AND its
+  `sharedContent` blob parses → create ONE `PipelineFile`:
   `sourceType: .capture`, `transcript = annotationText ?? ""`,
   `transcribeStatus = .done` (skipped — never run ASR), metadata JSON stored
   verbatim as today (`audioMetadataJSON`), significance pre-filled.

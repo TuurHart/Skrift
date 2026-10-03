@@ -624,34 +624,6 @@ struct IngestService: Sendable {
         }.value
     }
 
-    /// SYNC variant for OFF-MAIN callers only (UploadService's prepare phase) —
-    /// the semaphore parks the calling thread for the whole export, which is the
-    /// exact beachball the async `extractAudio` exists to avoid on main.
-    static func extractAudioSync(from source: URL, to dest: URL) throws {
-        let asset = AVURLAsset(url: source)
-        guard let audioTrack = asset.tracks(withMediaType: .audio).first else {
-            throw VideoIngestError.noAudioTrack
-        }
-        let comp = AVMutableComposition()
-        guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            throw VideoIngestError.exportFailed
-        }
-        try track.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
-        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
-            throw VideoIngestError.exportFailed
-        }
-        try? FileManager.default.removeItem(at: dest)
-        export.outputURL = dest
-        export.outputFileType = .m4a
-        let semaphore = DispatchSemaphore(value: 0)
-        export.exportAsynchronously { semaphore.signal() }
-        semaphore.wait()
-        guard export.status == .completed,
-              FileManager.default.fileExists(atPath: dest.path) else {
-            throw VideoIngestError.exportFailed
-        }
-    }
-
     /// Grab one representative frame (~1s in, or the midpoint for very short clips —
     /// avoids a black opening frame; same pick as the phone's `representativeFrame`)
     /// and write it as `images/img_001.jpg` plus a phone-shaped

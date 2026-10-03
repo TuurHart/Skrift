@@ -4,15 +4,12 @@ import SwiftData
 /// The READ bridge for the Mac→CloudKit client (`MAC_CLOUDKIT_PLAN.md`, 8b): turn a
 /// CloudKit-synced `Memo` (+ its `MemoAsset` blob rows) into a local `PipelineFile`.
 ///
-/// **Parity by construction.** Rather than re-implement the field mapping (and risk drift
-/// from the original upload path), this synthesizes the multipart `parts` the phone used to
-/// upload — a `files` audio part, a `metadata` JSON part, the `transcript`, the
-/// `wordTimings` / `diar` sidecars, and `images` parts — and hands them to the EXISTING
-/// `UploadService.ingest`. So the trust gate (`transcriptUserEdited || confidence ≥ 0.7`),
-/// the working-folder materialization, the significance/title/mediaSource reads, and the
-/// image manifest are all the identical code. The one deliberate divergence (per the plan):
-/// the PipelineFile `id` is forced to `memo.id.uuidString` (via `UploadService`'s `memoID`),
-/// so a memo dedups to one row — the contract spine.
+/// **One typed path.** `UploadService.prepare(memo:assets:)` reads the memo's fields and
+/// asset blobs directly and decides audio, text or capture once (`UploadService.shape`): the
+/// trust gate (`transcriptUserEdited || confidence >= 0.7`), the working-folder
+/// materialization, the significance/title/mediaSource reads and the image manifest all live
+/// there. The PipelineFile `id` is the memo UUID, so a memo dedups to one row, the contract
+/// spine. `metadataJSON(for:)` survives only to fill `PipelineFile.audioMetadataJSON`.
 ///
 /// **Dedup.** `ingest(memo:…)` skips a memo that already has a row, by memo-UUID id OR the
 /// embedded `memo_<uuid>.m4a` filename (legacy Bonjour-era rows have a random id).
@@ -42,17 +39,15 @@ enum MemoCloudIngest {
         guard !alreadyIngested(id: id, filename: filename, in: context,
                                allowFilenameMatch: allowFilenameMatch) else { return nil }
 
-        let parts = buildParts(memo: memo, assets: assets, filename: filename)
-        let pf = try upload.ingest(parts: parts, into: context, memoID: id,
-                                   textOnly: isTextOnly(memo: memo, assets: assets)).first
+        let pf = try upload.ingest(memo: memo, assets: assets, into: context)
         // Baseline the live-sync watermark to the memo's current edit time, so a LATER phone
         // edit (newer `lastEditedAt`) is detected by `MemoCloudUpdate` (Part B, phone→Mac).
         pf?.syncedSourceEditedAt = memo.lastEditedAt
-        // Typed row mirrors the multipart shim doesn't carry (lock / reminder / photo OCR) —
+        // Typed row mirrors `UploadService` doesn't carry (lock / reminder / photo OCR) —
         // `MemoCloudUpdate` keeps them fresh on later phone edits.
         if let pf {
             pf.imageOCRText = ocrText(for: memo)
-            // Every mirrored row field the multipart shim doesn't carry — lock, reminder,
+            // Every mirrored row field `UploadService` doesn't carry — lock, reminder,
             // tags, importance, destination — adopted from the ONE declaration
             // (`MirroredNoteFields`). `adopt` rather than `pull` because this is FIRST
             // contact: tags in particular must not be wiped by an empty phone list.
@@ -64,26 +59,6 @@ enum MemoCloudIngest {
         return pf
     }
 
-    /// A memo with words and no media of its own — a TYPED note (`Memo.newTyped`, the ✎/⌘N
-    /// verb on either app), which `UploadService` turns into a `.note` row.
-    ///
-    /// The `audioFilename.isEmpty` half is what makes this safe: a voice memo whose audio
-    /// blob simply hasn't synced yet still NAMES its file, so it is never mistaken for a
-    /// text note and permanently robbed of its audio — it just waits for the asset, and the
-    /// next sweep ingests it properly. (Same discriminator `SourceKind.of` uses for the
-    /// no-audio kinds.) A capture keeps its own branch: `sharedContent` is what makes it one.
-    static func isTextOnly(memo: Memo, assets: [MemoAsset]) -> Bool {
-        guard memo.audioFilename.isEmpty,
-              !assets.contains(where: { $0.kind == MemoAsset.Kind.audio }) else { return false }
-        // The exact complement of `UploadService`'s capture arm, which tests the BLOB the
-        // metadata builder emitted — so a capture whose payload doesn't parse still can't
-        // fall between the two branches back into "no row at all".
-        let sharedContent = memo.sharedContentData.flatMap {
-            (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any]
-        }
-        return sharedContent == nil
-    }
-
     /// Flat OCR text for search — the phone's Vision text on each photo
     /// (`imageManifest[].text`, riding the synced metadata blob), joined. nil when none.
     static func ocrText(for memo: Memo) -> String? {
@@ -93,8 +68,8 @@ enum MemoCloudIngest {
         return texts.isEmpty ? nil : texts.joined(separator: "\n")
     }
 
-    /// The audio filename the phone would have uploaded — `memo.audioFilename`, or the
-    /// `memo_<uuid>.m4a` fallback (matching `UploadPayload.build`). Also the dedup key
+    /// The audio filename the memo's row carries — `memo.audioFilename`, or the
+    /// `memo_<uuid>.m4a` fallback. Also the dedup key
     /// against a legacy Bonjour-era row (whose id is random but whose filename embeds the UUID).
     static func audioFilename(for memo: Memo) -> String {
         memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
@@ -114,64 +89,6 @@ enum MemoCloudIngest {
         // Bonjour row (random id, same filename) — but the caller can switch it off when it
         // knows that row is already OWNED by a different memo, which only the sweep can see.
         return hits.contains { $0.id == id || allowFilenameMatch }
-    }
-
-    /// Synthesize the multipart `parts` the phone's `UploadPayload` would have produced for
-    /// this memo — so `UploadService.ingest` maps it identically. A capture memo (no audio
-    /// asset, `sharedContent` present) yields no `files` part, hitting the capture branch.
-    static func buildParts(memo: Memo, assets: [MemoAsset], filename: String) -> [MultipartPart] {
-        var parts: [MultipartPart] = []
-
-        // metadata (always) — the reconstructed UploadMetadata-shaped JSON.
-        parts.append(MultipartPart(name: "metadata", filename: nil,
-                                   contentType: "application/json", data: metadataJSON(for: memo)))
-
-        // files (audio) — present unless this is a no-audio capture.
-        if let audio = assets.first(where: { $0.kind == MemoAsset.Kind.audio }) {
-            parts.append(MultipartPart(name: "files", filename: filename,
-                                       contentType: "audio/mp4", data: audio.blob))
-        }
-
-        // transcript — sent whenever complete + non-empty (the phone's condition,
-        // UploadPayload.build); UploadService applies the trust gate.
-        if memo.transcriptStatus == .done, let transcript = memo.transcript, !transcript.isEmpty {
-            parts.append(MultipartPart(name: "transcript", filename: nil,
-                                       contentType: nil, data: Data(transcript.utf8)))
-        }
-
-        // Optional additive sidecars (only honored on a trusted transcript, like HTTP).
-        if let wt = assets.first(where: { $0.kind == MemoAsset.Kind.wordTimings }), !wt.blob.isEmpty {
-            parts.append(MultipartPart(name: "wordTimings", filename: nil,
-                                       contentType: "application/json", data: wt.blob))
-        }
-        if let dz = assets.first(where: { $0.kind == MemoAsset.Kind.diarization }), !dz.blob.isEmpty {
-            parts.append(MultipartPart(name: "diar", filename: nil,
-                                       contentType: "application/json", data: dz.blob))
-        }
-
-        // images — one part per photo asset, in stable filename order (so the manifest
-        // entries in the metadata line up with the parts, exactly as the phone sends them).
-        let photos = assets.filter { $0.kind == MemoAsset.Kind.photo }.sorted { $0.filename < $1.filename }
-        for photo in photos {
-            parts.append(MultipartPart(name: "images", filename: photo.filename,
-                                       contentType: "image/jpeg", data: photo.blob))
-        }
-
-        // document — a shared `.file` capture's PDF/doc (3b), materialized into the capture
-        // folder so the Mac can OPEN the real file (not just show its extracted text).
-        if let doc = assets.first(where: { $0.kind == MemoAsset.Kind.document }), !doc.blob.isEmpty {
-            parts.append(MultipartPart(name: "document", filename: doc.filename,
-                                       contentType: "application/octet-stream", data: doc.blob))
-        }
-
-        // thumbnail — a link capture's card image (Q260), written into the capture folder
-        // where `PipelineFile.captureThumbnailURL` looks. Absent on every other memo.
-        if let thumb = assets.first(where: { $0.kind == MemoAsset.Kind.thumbnail }), !thumb.blob.isEmpty {
-            parts.append(MultipartPart(name: "thumbnail", filename: thumb.filename,
-                                       contentType: "image/jpeg", data: thumb.blob))
-        }
-
-        return parts
     }
 
     /// HEAL: adopt a `wordTimings` asset that synced AFTER this memo was ingested.

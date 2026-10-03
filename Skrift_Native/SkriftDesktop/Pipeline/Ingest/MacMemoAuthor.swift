@@ -24,9 +24,8 @@ import AVFoundation
 /// UUID id and no `Memo` yet. This is what covers the live +Upload-button/drag-drop path
 /// (`IngestService`, which mints `UUID().uuidString` ids) — the sweep picks a row up on the next
 /// reconcile, whichever local path created it, without this file ever depending on
-/// `IngestService` or `UploadService`. (`UploadService.ingest`'s `memoID == nil` local branch has
-/// no live caller today — Bonjour, its historical caller, is retired — so there is nothing to
-/// hook there; see the note in `UploadService.ingest`'s doc comment.)
+/// `IngestService` or `UploadService`. (`UploadService` only ingests a synced `Memo` and keeps
+/// its id, so it has no local-file caller to hook.)
 ///
 /// `reflectTranscripts` is the companion: once a Mac-authored memo's `PipelineFile` gets
 /// transcribed by the normal pipeline (BatchRunner), copy that transcript back onto the `Memo` so
