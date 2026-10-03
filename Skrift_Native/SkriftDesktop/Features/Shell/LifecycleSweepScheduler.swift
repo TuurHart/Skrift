@@ -18,7 +18,8 @@ enum MacFadingSweep {
         var wrote = MemoLifecycle.stampTrashSightings(memos, now: now) > 0
 
         let live = memos.filter { $0.deletedAt == nil }
-        let backlinked = MemoLifecycle.backlinkedIDs(in: live)
+        // A phone-made link lives in the transcript, a Mac-made one in the copy-edit (Q120).
+        let backlinked = MemoLifecycle.backlinkedIDs(in: live, copyedits: Backlinks.copyeditsByMemoID(in: context))
         for memo in live where MemoLifecycle.sweepDue(memo, backlinked: backlinked, now: now) {
             memo.deletedAt = now
             memo.trashSeenAt = now   // swept with the user present — clock starts now

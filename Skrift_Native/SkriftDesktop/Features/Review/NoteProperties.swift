@@ -65,7 +65,8 @@ struct NoteProperties: View {
               let memos = try? ModelContext(cloud).fetch(FetchDescriptor<Memo>()),
               let memo = memos.first(where: { $0.id == id }),
               memo.deletedAt == nil, memo.transcriptStatus == .done else { return }
-        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+        let backlinked = MemoLifecycle.backlinkedIDs(
+            in: memos, copyedits: Backlinks.copyeditsByMemoID(in: ModelContext(cloud)))
         guard !MemoLifecycle.neverFades(memo, backlinked: backlinked) else { return }
         fadingLine = "\(WayOutRules.oneLiner(for: memo, backlinked: backlinked)) — rate it to keep it"
     }

@@ -244,7 +244,7 @@ struct UnpipelinedMemoSheet: View {
         guard let memo else { return }
         runs = Self.bodyRuns(for: memo, context: ctx)
         if let all = try? ctx.fetch(FetchDescriptor<Memo>()) {
-            derivedBacklinked = MemoLifecycle.backlinkedIDs(in: all)
+            derivedBacklinked = MemoLifecycle.backlinkedIDs(in: all, copyedits: Backlinks.copyeditsByMemoID(in: ctx))
         }
     }
 

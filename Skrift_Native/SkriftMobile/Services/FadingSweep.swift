@@ -31,7 +31,9 @@ enum FadingSweep {
         }
 
         let all = repository.allMemos()
-        let backlinked = MemoLifecycle.backlinkedIDs(in: all)
+        // A Mac-made link lives in the synced copy-edit, not the transcript (Q120).
+        let backlinked = MemoLifecycle.backlinkedIDs(
+            in: all, copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements()))
         var swept = 0
         for memo in all where MemoLifecycle.sweepDue(memo, backlinked: backlinked, now: now) {
             repository.softDelete(memo, at: now)

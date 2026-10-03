@@ -27,7 +27,8 @@ struct WayOutView: View {
     @State private var peek: Memo?
 
     private var fading: [Memo] {
-        Self.orderedByImminence(fading: MemoLifecycle.partition(liveMemos).fading)
+        Self.orderedByImminence(fading: MemoLifecycle.partition(
+            liveMemos, copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements())).fading)
     }
     private var deleted: [Memo] { Self.orderedByImminence(deleted: deletedMemos) }
     private var total: Int { Self.total(fading: fading, deleted: deleted) }

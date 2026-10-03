@@ -78,19 +78,19 @@ enum MemoLifecycle {
 
     /// Every memo id referenced by a `[[memo:UUID|…]]` link in another note's
     /// body — backlinked notes never fade. One scan per corpus refresh; pass the
-    /// result into the predicates (never scan per row).
-    static func backlinkedIDs(in memos: [Memo]) -> Set<UUID> {
-        var out: Set<UUID> = []
-        for memo in memos where memo.deletedAt == nil {
-            guard let body = memo.transcript, body.contains("[[memo:") else { continue }
-            for occ in MemoLinkSyntax.occurrences(in: body) { out.insert(occ.id) }
-        }
-        return out
+    /// result into the predicates (never scan per row). `copyedits` (memoID →
+    /// `MemoEnhancement.copyedit`) adds the polished copy: a Mac-made link syncs in
+    /// there, not into the transcript (Q120 — `Backlinks` is the one scan).
+    static func backlinkedIDs(in memos: [Memo], copyedits: [UUID: String] = [:]) -> Set<UUID> {
+        Backlinks.linkedIDs(in: memos.lazy.filter { $0.deletedAt == nil }.map {
+            Backlinks.Row(id: $0.id, transcript: $0.transcript, copyedit: copyedits[$0.id])
+        })
     }
 
     /// Convenience: the corpus split once — (main surfaces, fading conveyor).
-    static func partition(_ memos: [Memo], now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
-        let backlinked = backlinkedIDs(in: memos)
+    static func partition(_ memos: [Memo], copyedits: [UUID: String] = [:],
+                          now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
+        let backlinked = backlinkedIDs(in: memos, copyedits: copyedits)
         var live: [Memo] = [], fading: [Memo] = []
         for m in memos where m.deletedAt == nil {
             if isFading(m, backlinked: backlinked, now: now) { fading.append(m) } else { live.append(m) }

@@ -90,7 +90,7 @@ extension MemosListView {
     }
 
     var derived: Derived {
-        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+        let backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
         let enhanced = enhancedMemoIDs
         let split = lifecycle(backlinked: backlinked)
         let f = filtered(lifecycle: split, enhanced: enhanced)
