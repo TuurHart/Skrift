@@ -17,7 +17,7 @@ struct ShareSheetView: View {
     let payload: SharePayload
     /// Entries to write (1 for everything except audio-split, where each clip
     /// becomes its own entry) + the image datas aligned to `imageFileNames`.
-    let onSave: (_ entries: [CaptureInboxEntry], _ imageDatas: [Data], _ dictationData: Data?) -> Void
+    let onSave: (_ entries: [CaptureInboxEntry], _ imageDatas: [Data]) -> Void
     let onCancel: () -> Void
 
     @State private var annotation: String = ""
@@ -762,22 +762,17 @@ struct ShareSheetView: View {
                 let id = UUID()
                 let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
                 onSave([entry(id: id, names: names, dates: items.map(iso), clips: items)],
-                       imageItems.map(\.data), nil)
+                       imageItems.map(\.data))
             } else {
                 let entries = items.map { item -> CaptureInboxEntry in
                     let id = UUID()
                     return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"],
                                  dates: [iso(item)], clips: [item])
                 }
-                onSave(entries, [], nil)
+                onSave(entries, [])
             }
             return
         }
-
-        // No dictation from the sheet — iOS blocks extension recording (above);
-        // the entry field stays nil and CaptureDictation remains drain-side for
-        // any legacy pending entries.
-        let dictationData: Data? = nil
 
         // E1 (mock m1): video rides its own entry type — the typed thought +
         // significance now travel with it (the silent import lost both, A13).
@@ -791,7 +786,7 @@ struct ShareSheetView: View {
                 annotationText: thought.isEmpty ? nil : thought,
                 significance: significance, sharedAt: ISO8601.string(from: Date()),
                 videoFileName: "video_\(id.uuidString).\(ext)"
-            )], [], nil)
+            )], [])
             return
         }
         // E1 (mock m2): documents likewise — the sheet's thought becomes the
@@ -808,7 +803,7 @@ struct ShareSheetView: View {
                 significance: significance, sharedAt: ISO8601.string(from: Date()),
                 fileName: "file_\(id.uuidString).\(ext)",
                 fileDisplayName: payload.fileName
-            )], [], nil)
+            )], [])
             return
         }
 
@@ -826,7 +821,6 @@ struct ShareSheetView: View {
             annotationText: trimmed.isEmpty ? nil : trimmed,
             significance: significance,
             sharedAt: ISO8601.string(from: Date()),
-            dictationFileName: dictationData != nil ? "dictation.m4a" : nil,
             // The names array carries EVERY image (single included) — the write
             // path stores them all from `imageDatas`, index-aligned.
             imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
@@ -839,6 +833,6 @@ struct ShareSheetView: View {
             imageSelectionPositions: imageItems.isEmpty ? nil
                 : imageItems.enumerated().map { $0.element.selectionIndex ?? $0.offset }
         )
-        onSave([entry], imageItems.map(\.data), dictationData)
+        onSave([entry], imageItems.map(\.data))
     }
 }
