@@ -287,13 +287,7 @@ enum VaultExporter {
     /// word boundaries); the rest are stripped, then doubled spaces collapsed
     /// — Gemma loves "Title: Subtitle", which must not become "Title- Subtitle".
     static func noteStem(_ pf: PipelineFile) -> String {
-        noteStem(title: pf.exportTitle, filename: pf.filename)
-    }
-
-    static func noteStem(title: String?, filename: String) -> String {
-        // The one derivation moved to the SHARED `VaultName` (both apps name files
-        // identically now); this wrapper keeps the Mac's call sites + tests stable.
-        ExportNaming.stem(title: title, filename: filename)
+        VaultName.stem(title: pf.exportTitle, filename: pf.filename)
     }
 
     /// Replace `[[img_NNN]]` markers with this profile's embeds of `<safe>_NNN.ext`

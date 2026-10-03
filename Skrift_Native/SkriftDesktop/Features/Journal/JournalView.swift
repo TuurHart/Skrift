@@ -273,7 +273,7 @@ struct JournalView: View {
                 deleted: trashedMemos,
                 macOnlyFiles: macLocalTrash,
                 onBringBack: { memo in
-                    WayOutRules.bringBack(memo)
+                    WayOut.bringBack(memo)
                     try? cloudContext?.save()
                     refresh()
                 },

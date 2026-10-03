@@ -48,7 +48,7 @@ extension PipelineFile {
 
     private var bodyNormaliseLegacyShape: Bool {
         let meta = bodyNormaliseMetadata
-        let madeAt = ((meta["capturedAt"] ?? meta["recordedAt"]) as? String).flatMap { MetadataDate.parse($0) }
+        let madeAt = ((meta["capturedAt"] ?? meta["recordedAt"]) as? String).flatMap { ISO8601.lenientDate(from: $0) }
         return BodyNormaliseMigration.isC203Legacy(sharedContent: meta["sharedContent"] as? [String: Any], madeAt: madeAt)
     }
 
@@ -130,14 +130,5 @@ extension PipelineFile {
     private func remapNameOffsets(body: String, from old: String, to new: String) {
         guard body == "sanitised", let occ = ambiguousNames, !occ.isEmpty else { return }
         ambiguousNames = BodyNormaliseMigration.remap(occ, from: old, to: new)
-    }
-}
-
-/// ISO-8601 with or without fractional seconds (metadata dates are written both ways).
-private enum MetadataDate {
-    static func parse(_ s: String) -> Date? {
-        if let d = ISO8601.date(from: s) { return d }
-        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]
-        return f.date(from: s)
     }
 }

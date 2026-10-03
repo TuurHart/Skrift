@@ -122,18 +122,6 @@ enum WayOutRules {
         memo.ladderTitle(suggestedTitle: suggestedTitle)   // C25: the ONE ladder (`NoteTitle.display`)
     }
 
-    /// The spine one-liner for a `Memo` (band rows, the peek sheet, and the
-    /// conveyor's fading/deleted rows) — builds the `MemoSpine.Input` and reads
-    /// its station in one call, so every caller stays byte-identical to the
-    /// signed copy trio. `backlinked` only matters when the memo might still be
-    /// on the untouched lifecycle track (band rows); a memo already known
-    /// deleted-or-fading short-circuits the chain before backlink status is
-    /// ever consulted, so a caller that already knows that can pass the
-    /// default empty set.
-    static func oneLiner(for memo: Memo, backlinked: Set<UUID> = [], now: Date = Date()) -> String {
-        WayOut.oneLiner(for: memo, backlinked: backlinked, now: now)
-    }
-
     // MARK: - ③ one Recently Deleted (memo trash + the Mac-local tail)
 
     /// A trashed `PipelineFile` with no backing `Memo` — a Mac-local upload from
@@ -159,30 +147,5 @@ enum WayOutRules {
     /// stay out until unlocked this session (C161/C91, Q101).
     static func matchesSearch(_ memo: Memo, query: String, unlockedThisSession: Bool = false) -> Bool {
         NoteSearch.matches(query: query, memo.noteSearchSnapshot(unlockedThisSession: unlockedThisSession))
-    }
-
-    // MARK: - ④ the conveyor
-
-    /// The one rescue verb for both a fading and a deleted note (Q4): sets
-    /// `keptAt` ALWAYS (an explicit rescue is a touch — the note must not
-    /// re-fade the next second) and clears `deletedAt` when it was set. Caller
-    /// saves the cloud context.
-    static func bringBack(_ memo: Memo, now: Date = Date()) {
-        WayOut.bringBack(memo, now: now)
-    }
-
-    /// Fading rows, soonest-to-move-to-Recently-Deleted first (imminence
-    /// ordering — mirrors `FadingShelfColumn`'s prior comparator, unchanged).
-    static func fadingOrdered(_ memos: [Memo]) -> [Memo] {
-        WayOut.fadingOrdered(memos)
-    }
-
-    /// Deleted rows, soonest-to-purge-for-good first (imminence ordering —
-    /// oldest `deletedAt` first). Deliberately NOT `MacTrashColumn`'s old
-    /// newest-deleted-first comparator: the mock's worked example ("deleted
-    /// 7 Jul · ~1d" listed above "deleted 14 Jul · ~8d") shows the conveyor
-    /// orders by what happens next, not by what you did most recently.
-    static func deletedOrdered(_ memos: [Memo]) -> [Memo] {
-        WayOut.deletedOrdered(memos)
     }
 }

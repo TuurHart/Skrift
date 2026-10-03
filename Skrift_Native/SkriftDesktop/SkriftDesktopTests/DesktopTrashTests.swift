@@ -60,7 +60,7 @@ final class DesktopTrashTests: XCTestCase {
     func testDaysRemainingCountdown() {
         let f = makeFile("a")
         f.deletedAt = Date(timeIntervalSinceNow: -2 * 86_400)   // 2 days ago
-        XCTAssertEqual(f.trashDaysRemaining(), DesktopTrashPolicy.retentionDays - 2)
+        XCTAssertEqual(f.trashDaysRemaining(), TrashPolicy.retentionDays - 2)
         f.deletedAt = Date(timeIntervalSinceNow: -100 * 86_400) // long expired
         XCTAssertEqual(f.trashDaysRemaining(), 0, "never negative")
     }

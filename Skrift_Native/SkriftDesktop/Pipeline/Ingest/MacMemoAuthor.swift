@@ -301,7 +301,7 @@ enum MacMemoAuthor {
     /// field (unlike the phone's `Memo`) — this is the only source, so a Mac-authored memo doesn't
     /// permanently show "0:00" on the phone's duration chip. Synchronous `AVURLAsset` access
     /// matches this codebase's own established pattern for a quick local-file read
-    /// (`IngestService.hasVideoTrack`/`embeddedRecordingDate`), not a new one. `nil`/unreadable →
+    /// (`IngestService.hasVideoTrack`), not a new one. `nil`/unreadable →
     /// the caller floors to 0; never blocks authoring.
     private static func audioDuration(at url: URL?) -> TimeInterval? {
         guard let url, FileManager.default.fileExists(atPath: url.path) else { return nil }

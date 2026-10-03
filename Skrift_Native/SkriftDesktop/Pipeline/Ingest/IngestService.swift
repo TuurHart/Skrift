@@ -322,7 +322,7 @@ struct IngestService: Sendable {
         let first = clips[0]
         let filename = first.lastPathComponent
         let id = UUID().uuidString
-        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let folder = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.m4a")
         do {
             try await Self.offMain {
@@ -414,7 +414,7 @@ struct IngestService: Sendable {
     private func ingestAudio(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
-        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let folder = try makeFolder(id: id, filename: filename)
         var ext = url.pathExtension
         if ext.isEmpty { ext = "m4a" }
         let dest = folder.appendingPathComponent("original.\(ext)")
@@ -444,7 +444,7 @@ struct IngestService: Sendable {
     private func ingestVideo(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
-        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let folder = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.m4a")
 
         try await Self.extractAudio(from: url, to: dest)
@@ -485,7 +485,7 @@ struct IngestService: Sendable {
 
         // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
         // it), then a filename date, then the file's creation date, then now.
-        let embedded = await Task.detached(operation: { Self.embeddedRecordingDate(of: url) }).value
+        let embedded = await AudioMetadata.recordingDate(of: url)
         let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
 
         // sourceType .audio: it's now an audio file. Keep the original (video) filename
@@ -506,8 +506,8 @@ struct IngestService: Sendable {
     private func ingestFailedVideo(_ url: URL, title: String, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
-        let (folder, _) = try makeFolder(id: id, filename: filename)
-        let embedded = await Task.detached(operation: { Self.embeddedRecordingDate(of: url) }).value
+        let folder = try makeFolder(id: id, filename: filename)
+        let embedded = await AudioMetadata.recordingDate(of: url)
         let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
         let pf = PipelineFile(id: id, filename: filename, path: folder.appendingPathComponent("original.md").path,
                               size: 0, sourceType: .note, uploadedAt: recorded)
@@ -528,7 +528,7 @@ struct IngestService: Sendable {
     private func ingestNote(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
-        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let folder = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.md")
         // Whole file phase off-main: copy + attachment import (HEIC conversion
         // included) + rewritten-markdown persist. Mirrors
@@ -681,26 +681,6 @@ struct IngestService: Sendable {
         encoder.outputFormatting = [.prettyPrinted]
         try encoder.encode([ImageManifestEntry(filename: name, offsetSeconds: 0)])
             .write(to: folder.appendingPathComponent("image_manifest.json"))
-    }
-
-    /// The video's embedded RECORDING date (QuickTime `creationDate` / mp4
-    /// `creation_time`) read synchronously. Survives copies — unlike the filesystem
-    /// date, which becomes the import/copy time. nil when absent/unparseable.
-    static func embeddedRecordingDate(of url: URL) -> Date? {
-        let asset = AVURLAsset(url: url)
-        guard let item = asset.creationDate else { return nil }
-        if let d = item.dateValue { return d }
-        if let s = item.stringValue, let d = parseISODate(s) { return d }
-        return nil
-    }
-
-    /// Parse an ISO-8601 creation-date string (with or without fractional seconds).
-    static func parseISODate(_ s: String) -> Date? {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = iso.date(from: s) { return d }
-        iso.formatOptions = [.withInternetDateTime]
-        return iso.date(from: s)
     }
 
     /// Filename-safe title: illegal chars → "-", whitespace collapsed, edges trimmed.
@@ -866,9 +846,9 @@ struct IngestService: Sendable {
         return (created, skipped)
     }
 
-    private func makeFolder(id: String, filename: String) throws -> (URL, String) {
+    private func makeFolder(id: String, filename: String) throws -> URL {
         let folder = outputDir.appendingPathComponent("\(id)_\(filename)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        return (folder, id)
+        return folder
     }
 }
