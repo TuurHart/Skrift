@@ -1891,3 +1891,19 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      clip (Q96).
 162. **D162 The destinations switch syncs.** ✅ 2026-10-02: "if I turn it on somewhere, it turns on
      everywhere" — the on/off switch syncs across devices; the folder bookmark stays per device (Q98).
+163. **D163 Protected-test blanket rule.** ✅ 2026-10-03 (sitting): a worker may edit protected tests when the
+     edit only ports call sites or deletes tests of code that is itself being deleted; any change to an
+     assertion on live behaviour still comes to Tuur. Merged via plan/hand-merge.sh (Q188, Q248 first).
+164. **D164 A locked note is in the Process pile.** ✅ 2026-10-03: C182/C215 stand as written on phone, iPad and
+     Mac; ProcessPileTests flips to "a locked note IS waiting" (Q102).
+165. **D165 Twin gate + one merge road.** ✅ 2026-10-03: gate.sh runs plan/twin-check.sh so a new phone/Mac copy
+     of Shared logic fails the gate (Q175); accept.sh gains --approve-protected and hand-merge.sh goes (Q249).
+166. **D166 Cleanup verdicts.** ✅ 2026-10-03: delete the pre-build-63 share dictation drain (Q229), the phone
+     export paired mode — one rule (Q226), the write-only Mac diar sidecar, amending C182 (Q213), the
+     SkriftShared framework target (Q232); prod iPhone, iPad and Mac all ran the one-clock migration, so it
+     goes (Q201); the "memo only appears after relaunch" bug is gone, so syncTrace goes (Q216); the read-along
+     nudge opens the Text sheet and TranscribeBookView retires (Q194, supersedes the player-redesign mock's
+     routing); Mac probes: delete -voiceloop, -audiodate, -vaultpreview and the three superseded snapshot
+     flags, keep -aligncheck/-asrsweep/-asrbench (Q206); build Q220 (append via AudioClipMerge) and Q221
+     (pinch zoom, BT mic after a media reset), iPhone check owed. Q203 (second note renderer) is kept: the
+     headless -snapshot path depends on it (conductor's call, Tuur deferred).
