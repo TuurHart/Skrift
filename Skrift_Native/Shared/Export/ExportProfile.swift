@@ -157,10 +157,6 @@ extension ExportProfile {
             placed.append(PlacedPicture(source: source, embedName: written))
             replacements.append((m.range, imageMarkdown(written)))
         }
-        var out = markdown
-        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
-            out = (out as NSString).replacingCharacters(in: range, with: repl)
-        }
-        return (out, placed)
+        return (Sanitiser.nsReplace(markdown, edits: replacements), placed)
     }
 }

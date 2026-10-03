@@ -320,5 +320,15 @@ enum Sanitiser {
     static func nsReplace(_ s: String, _ range: NSRange, with repl: String) -> String {
         (s as NSString).replacingCharacters(in: range, with: repl)
     }
+    /// Apply several `(range, replacement)` edits to `s` in one pass. Ranges are all in the
+    /// ORIGINAL string's coordinates, in any order (applied right-to-left so earlier ranges
+    /// stay valid) — the one place the replace-by-ranges loop lives.
+    static func nsReplace(_ s: String, edits: [(NSRange, String)]) -> String {
+        var out = s
+        for (range, repl) in edits.sorted(by: { $0.0.location > $1.0.location }) {
+            out = nsReplace(out, range, with: repl)
+        }
+        return out
+    }
     static func fullRange(_ s: String) -> NSRange { NSRange(location: 0, length: (s as NSString).length) }
 }

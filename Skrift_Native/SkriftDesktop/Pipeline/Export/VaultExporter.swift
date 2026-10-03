@@ -404,10 +404,6 @@ enum VaultExporter {
             copied += 1
             replacements.append((m.range, "\(bang)[[\(written.lastPathComponent)]]"))
         }
-        var out = markdown
-        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
-            out = (out as NSString).replacingCharacters(in: range, with: repl)
-        }
-        return (out, copied)
+        return (Sanitiser.nsReplace(markdown, edits: replacements), copied)
     }
 }

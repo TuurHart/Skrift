@@ -70,12 +70,14 @@ enum Compiler {
             case .note: source = "Apple-Note"
             case .audio: source = "Voice-memo"
             case .capture:
+                // Exhaustive over `ShareContentType`: a new capture type fails the build here
+                // instead of silently exporting as a bare `capture`. nil = no shared content.
                 switch sc?.type {
-                case "url":   source = "capture-url"
-                case "text":  source = "capture-text"
-                case "image": source = "capture-image"
-                case "file":  source = "capture-file"
-                default:      source = "capture"
+                case .url?:   source = "capture-url"
+                case .text?:  source = "capture-text"
+                case .image?: source = "capture-image"
+                case .file?:  source = "capture-file"
+                case nil:     source = "capture"
                 }
             }
         }
@@ -246,14 +248,14 @@ enum Compiler {
     ///          UNLESS the body already places the photos via `[[img_NNN]]` markers (share
     ///          Wave 2: the phone inlines photos in the annotation like a recorded memo;
     ///          the pinned embed would double-embed photo 1 under a stale share-time name).
-    static func captureSharedBlock(_ sc: CompilerSharedContent, body: String = "") -> String {
+    static func captureSharedBlock(_ sc: SharedContent, body: String = "") -> String {
         var lines: [String] = []
         switch sc.type {
-        case "url":
+        case .url:
             if let title = sc.urlTitle, !title.isEmpty { lines.append("**\(title)**") }
             if let url = sc.url, !url.isEmpty { lines.append(url) }
             if !lines.isEmpty { lines.append("") }   // blank line before body
-        case "text":
+        case .text:
             if let text = sc.text, !text.isEmpty {
                 // Multi-line snippets: prefix each line with "> ".
                 let quoted = text.components(separatedBy: "\n")
@@ -261,13 +263,13 @@ enum Compiler {
                 lines.append(quoted)
                 lines.append("")
             }
-        case "image":
+        case .image:
             if let name = sc.fileName, !name.isEmpty, !body.contains("[[img_") {
                 lines.append("![[" + name + "]]")
                 lines.append("")
             }
-        default:
-            break
+        case .file:
+            break   // a file capture pins nothing above the body (the exporter copies the file)
         }
         return lines.isEmpty ? "" : lines.joined(separator: "\n")
     }
@@ -286,15 +288,12 @@ enum Compiler {
     /// body carrying a place link (`[[Hotel Du Vin]]`) never lands in `people:`. nil
     /// `knownPeople` = no filter (engine-level callers/tests).
     static func peopleLinks(in body: String, knownPeople: [Person]? = nil) -> [String] {
-        let ns = body as NSString
         let allow: Set<String>? = knownPeople.map {
             Set($0.filter { !$0.isDeleted }.map { NamesMerge.matchKey($0.canonical) })
         }
         var seen = Set<String>()
         var out: [String] = []
-        for link in Sanitiser.linkOccurrences(in: body) {
-            // Skip an Obsidian image embed: a `[[ ]]` immediately preceded by `!`.
-            if link.range.location > 0, ns.substring(with: NSRange(location: link.range.location - 1, length: 1)) == "!" { continue }
+        for link in Sanitiser.bodyLinks(in: body) {   // image embeds already skipped
             let target = Sanitiser.linkTarget(link.core)
             let key = target.lowercased()
             guard !target.isEmpty, allow?.contains(key) ?? true, seen.insert(key).inserted else { continue }
@@ -305,17 +304,14 @@ enum Compiler {
 
     /// Every `[[link]]` whose target is not a known PERSON becomes its plain text. Image
     /// embeds (`![[file]]`) are left alone — they are embeds, not links, and the profile's
-    /// own image syntax already governs them. Works right-to-left so earlier ranges stay valid.
+    /// own image syntax already governs them.
     static func plainifyNonPeopleLinks(in body: String, knownPeople: [Person]?) -> String {
-        let ns = body as NSString
         let allow: Set<String>? = knownPeople.map {
             Set($0.filter { !$0.isDeleted }
                 .map { NamesMerge.matchKey($0.canonical) })
         }
         var edits: [(NSRange, String)] = []
-        for link in Sanitiser.linkOccurrences(in: body) {
-            if link.range.location > 0,
-               ns.substring(with: NSRange(location: link.range.location - 1, length: 1)) == "!" { continue }
+        for link in Sanitiser.bodyLinks(in: body) {
             let target = Sanitiser.linkTarget(link.core)
             guard !target.isEmpty else { continue }
             if allow?.contains(target.lowercased()) == true { continue }   // a person — keep the link
@@ -323,11 +319,7 @@ enum Compiler {
             let shown = Sanitiser.linkDisplay(link.core) ?? target
             edits.append((link.range, shown))
         }
-        var out = body
-        for (range, text) in edits.sorted(by: { $0.0.location > $1.0.location }) {
-            out = (out as NSString).replacingCharacters(in: range, with: text)
-        }
-        return out
+        return Sanitiser.nsReplace(body, edits: edits)
     }
 
     /// Double-quote a YAML scalar, escaping embedded `\` and `"`. Plain scalars

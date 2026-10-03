@@ -39,15 +39,13 @@ enum ConnectionWhyDerivation {
     /// (`[[memo:…]]` note-links excluded). Mac-side input builder.
     static func wikiNames(inSanitised body: String?) -> Set<String> {
         guard let body else { return [] }
+        // The shared scanner (`linkOccurrences`): `[[img_NNN]]` photo markers are not names, a
+        // change from the old hand scan that counted them. Embeds (`![[file]]`) still count,
+        // as before. The `memo:` exclusion and the 60-char guard stay here.
         var names = Set<String>()
-        var search = body.startIndex
-        while let open = body.range(of: "[[", range: search..<body.endIndex),
-              let close = body.range(of: "]]", range: open.upperBound..<body.endIndex) {
-            let inner = String(body[open.upperBound..<close.lowerBound])
-            if !inner.hasPrefix("memo:"), inner.count < 60 {
-                names.insert(String(inner.split(separator: "|").first ?? ""))
-            }
-            search = close.upperBound
+        for link in Sanitiser.linkOccurrences(in: body)
+        where !link.core.hasPrefix("memo:") && link.core.count < 60 {
+            names.insert(Sanitiser.linkTarget(link.core))
         }
         names.remove("")
         return names

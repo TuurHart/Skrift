@@ -55,7 +55,7 @@ extension CompilerInput {
                      sourceType: NoteSourceType,
                      mediaSource: String?,
                      metadata: CompilerMetadata?,
-                     sharedContent: CompilerSharedContent?,
+                     sharedContent: SharedContent?,
                      rawRecordedAt: String?,
                      destination: NoteDestination,
                      spoken: Bool,

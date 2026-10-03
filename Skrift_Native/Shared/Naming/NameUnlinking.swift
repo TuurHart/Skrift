@@ -25,6 +25,17 @@ extension Sanitiser {
         }
     }
 
+    /// The links in a note's BODY: `linkOccurrences` minus Obsidian image embeds (`![[file]]` —
+    /// a `[[ ]]` immediately preceded by `!`, an embed, not a link). The one scanner for
+    /// `people:` and the portfolio's link-plainifying.
+    static func bodyLinks(in text: String) -> [BodyLink] {
+        let ns = text as NSString
+        return linkOccurrences(in: text).filter { link in
+            link.range.location == 0
+                || ns.substring(with: NSRange(location: link.range.location - 1, length: 1)) != "!"
+        }
+    }
+
     /// One person's `[[canonical]]` links in `text` (core match is case-insensitive,
     /// brackets/whitespace tolerated on `canonical`), in reading order. The i-th
     /// entry here is what `unlinkOccurrence(index: i)` / `relinkOccurrence(index: i)`
