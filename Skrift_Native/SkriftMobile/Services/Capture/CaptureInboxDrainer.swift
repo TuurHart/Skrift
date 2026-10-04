@@ -148,8 +148,7 @@ enum CaptureInboxDrainer {
     }
 
     /// Convert each pending inbox entry to a Memo and save. Idempotent: safe to call
-    /// on every foreground transition. Also resumes any dictation transcription a
-    /// previous run never finished (crash / terminal failure recovery).
+    /// on every foreground transition.
     ///
     /// Runs under a background-task assertion (Scribbel `ImportTranscriber` pattern):
     /// a user who opens Skrift after sharing and immediately switches away gets ~30s
@@ -167,7 +166,6 @@ enum CaptureInboxDrainer {
     }
 
     private static func drainCore(into repository: NotesRepository) async {
-        defer { CaptureDictation.resumePending(repository: repository) }
         // Surface any share-extension diagnostics in the app devlog (the
         // extension can't write devlog.txt itself — round-1 mic mystery).
         CaptureInbox.flushExtLog { DevLog.log($0) }
@@ -508,10 +506,9 @@ enum CaptureInboxDrainer {
             }
             if let trimmed = text {
                 // D171 (Q286): a `.md` is a TYPED note (no capture card); a `.txt` stays a text
-                // capture (D22). One rule, `ImportKinds.textRole`, shared with the Mac. A `.md`
-                // that carries a dictated voice note keeps the capture path (the dictation rides it).
+                // capture (D22). One rule, `ImportKinds.textRole`, shared with the Mac.
                 let role = ImportKinds.textRole(forExtension: (displayName as NSString).pathExtension)
-                if role == .typedNote, entry.dictationFileName == nil {
+                if role == .typedNote {
                     markdownBody = trimmed
                     DevLog.log("drain: markdown file \(entry.id) → typed note (\(trimmed.count) chars)")
                 } else {
@@ -607,30 +604,6 @@ enum CaptureInboxDrainer {
             if !manifest.isEmpty { imageManifest = manifest }
         }
 
-        // Dictated voice note: move the audio to the app-owned pending spot
-        // BEFORE the entry is deleted (crash between delete and transcription
-        // must not lose the recording). The app transcribes it async after the
-        // memo is saved; the memo shows .transcribing until the text lands.
-        var hasDictation = false
-        if let srcURL = CaptureInbox.dictationURL(for: entry, entryDir: entryDir),
-           FileManager.default.fileExists(atPath: srcURL.path) {
-            let destURL = CaptureDictation.pendingAudioURL(for: memoID)
-            hasDictation = await offMain { () -> Bool in
-                do {
-                    if FileManager.default.fileExists(atPath: destURL.path) {
-                        try FileManager.default.removeItem(at: destURL)
-                    }
-                    try FileManager.default.copyItem(at: srcURL, to: destURL)
-                    return true
-                } catch {
-                    // Copy failed — save the capture without the voice note rather
-                    // than abandoning the whole entry (same policy as images).
-                    print("[CaptureInboxDrainer] dictation copy failed: \(error)")
-                    return false
-                }
-            }
-        }
-
         // Parse the sharedAt timestamp using the app's canonical formatter
         // (fractional-seconds UTC, matching JavaScript Date.toISOString() and the
         // Mac contract). Fall back to now() if the string is malformed.
@@ -678,9 +651,8 @@ enum CaptureInboxDrainer {
             tags: [],
             syncStatus: .waiting,
             transcript: nil,
-            // No ASR needed for the capture itself; a dictated voice note keeps
-            // the memo .transcribing until its text lands (sync waits on .done).
-            transcriptStatus: hasDictation ? .transcribing : .done,
+            // No ASR needed for the capture itself.
+            transcriptStatus: .done,
             significance: entry.significance,
             metadata: metadata,
             sharedContent: sharedContent,
@@ -690,10 +662,6 @@ enum CaptureInboxDrainer {
         repository.insert(memo)
         // Delete only AFTER the insert+save (repository.insert calls save()).
         CaptureInbox.delete(entryDir: entryDir)
-
-        if hasDictation {
-            CaptureDictation.transcribe(memoID: memoID, repository: repository)
-        }
         return memoID
     }
 }

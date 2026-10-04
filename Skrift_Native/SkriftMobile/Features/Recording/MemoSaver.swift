@@ -820,10 +820,10 @@ struct MemoSaver {
     /// to re-run. Called once per launch from `SkriftApp`.
     ///
     /// Scoped to PLAIN audio memos (recordings + audio/video imports) — exactly
-    /// what `runTranscription` owns. Capture *dictations* (empty `audioFilename`,
-    /// audio in the pending dir) are recovered by `CaptureDictation.resumePending`;
-    /// audiobook *captures* (`isBookCapture`) transcribe at creation and resume
-    /// via `BookTranscriptionJob` — both excluded so this never clobbers them.
+    /// what `runTranscription` owns. Memos with an empty `audioFilename` (capture
+    /// items) and audiobook *captures* (`isBookCapture`, which transcribe at
+    /// creation and resume via `BookTranscriptionJob`) are excluded so this never
+    /// clobbers them.
     /// Runs sequentially: one model-bound transcription at a time.
     /// Whether THIS device should recover a stuck memo: only ones it recorded
     /// (`recordingDeviceID == current`) or legacy/local memos with no id. A memo that
