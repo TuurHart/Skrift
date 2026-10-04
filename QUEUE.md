@@ -2126,7 +2126,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D168): delete the Unsynced filter chip (nothing sets syncStatus=.synced outside seeders) and the dead `MemoFilter.hasPhotosOnly` / `.place` on the phone; supersedes D148's chip line. Keep the Mac status pills (D135 platform difference, no change). Phone test `FilterChipsPrunedTests` asserts the chip row no longer offers Unsynced. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh FilterChipsPrunedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q284 [auto] (doing) keyboard shortcuts: ⌘N new note, ⇧⌘N Record everywhere; Mac ⌘F, ⌘1/⌘2, Record menu
+### Q284 [auto] (done) keyboard shortcuts: ⌘N new note, ⇧⌘N Record everywhere; Mac ⌘F, ⌘1/⌘2, Record menu
 spec: C112 C114 D169
 needs: -
 gate+: yes
@@ -2140,7 +2140,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D170): the no-bubbles rule covers the shared TEXT quote only. On the Mac, a text capture renders as the phone's borderless italic accent-bar quote; link, file and photo captures keep their cards on both apps. Reuse the phone's quote style via a Shared view/style struct if one exists. Prove it with a Mac headless -snapshot-capture PNG of a text capture (look at it) committed under plan/reads/Q-no-bubbles/. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q286 [auto] (todo) .md import becomes a typed note on phone and Mac
+### Q286 [auto] (doing) .md import becomes a typed note on phone and Mac
 spec: C76 C77 D171
 needs: -
 gate+: yes
@@ -2189,7 +2189,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D175): a note is a conversation for name linking when its transcript parses with two or more speaker headers (named or 'Speaker N'), on both apps. Today the phone uses headers and the Mac two distinct named speakers (Q207). One Shared predicate. Desktop test `ConversationRuleTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class ConversationRuleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q293 [auto] (todo) an import with a real file name shows the name until it has words, on both apps
+### Q293 [auto] (doing) an import with a real file name shows the name until it has words, on both apps
 spec: C25 D176
 needs: -
 gate+: yes
@@ -3239,3 +3239,6 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:35 Q301 -> doing — dispatched (sonnet)
 - 2026-10-04 10:38 Q218 -> done — hand-merged (D163: call-site ports in 12 phone test files)
 - 2026-10-04 10:47 Q301 -> done — hand-merged (D163: deleted FeedbackStoreTests (test of deleted code))
+- 2026-10-04 10:49 Q286 -> doing — dispatched (sonnet)
+- 2026-10-04 10:49 Q293 -> doing — dispatched (sonnet)
+- 2026-10-04 10:51 Q284 -> done — gate pass @0d6b3c55
