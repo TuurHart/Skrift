@@ -1657,7 +1657,7 @@ do: (1) `SkriftDesktop/Features/Journal/JournalView.swift:584-587` formats a not
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c27 DAU-c20 SPL-c24 MLJ-c08 (cleanup-audit P30)
 
-### Q218 [auto] (todo) phone recording and quick note: unread state, forwarders, doc fixes
+### Q218 [auto] (doing) phone recording and quick note: unread state, forwarders, doc fixes
 spec: C240
 needs: Q173
 gate+: no
@@ -2168,7 +2168,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac recorder gets pause / resume and a discard that asks first (the phone has both; its X discards without confirm, R71/C262). Mock first (locked process for new UI): draw the Mac record bar from SOURCE (Features/Recording/), with pause, resume and discard + confirm states. Publish the artifact; the build item follows sign-off.
 check: Mac recorder mock (claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW): after × asks 'Discard this recording?', should the take keep recording until you answer, or pause? Go to build?
 
-### Q290 [auto] (doing) Mac: add a recording to an existing note
+### Q290 [auto] (done) Mac: add a recording to an existing note
 spec: C220 D173
 needs: -
 gate+: yes
@@ -3219,3 +3219,5 @@ check: `./gate.sh`
 - 2026-10-04 10:04 Q303 added
 - 2026-10-04 10:04 Q300 -> doing — dispatched (sonnet)
 - 2026-10-04 10:04 Q209 -> doing — dispatched (sonnet)
+- 2026-10-04 10:08 Q218 -> doing — dispatched (opus; recording code)
+- 2026-10-04 10:15 Q290 -> done — gate pass @4b74344c
