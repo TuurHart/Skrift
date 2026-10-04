@@ -13,21 +13,19 @@ final class MemoSpineTests: XCTestCase {
     private func input(days: Int, keptDaysAgo: Int? = nil, deletedDaysAgo: Int? = nil,
                        seenDaysAgo: Int? = nil,
                        rated: Bool = false, hold: MemoSpine.HoldReason? = nil,
-                       transcriptDone: Bool = true, queue: MemoSpine.QueuePhase? = nil,
-                       macLocal: Bool = false) -> MemoSpine.Input {
+                       transcriptDone: Bool = true) -> MemoSpine.Input {
         MemoSpine.Input(recordedAt: daysAgo(days),
                         keptAt: keptDaysAgo.map { daysAgo($0) },
                         deletedAt: deletedDaysAgo.map { daysAgo($0) },
                         trashSeenAt: seenDaysAgo.map { daysAgo($0) },
-                        rated: rated, holdReason: hold, transcriptDone: transcriptDone,
-                        queue: queue, macLocalFile: macLocal)
+                        rated: rated, holdReason: hold, transcriptDone: transcriptDone)
     }
 
     // MARK: the chain — first match wins, one label per note
 
     func testDeletedBeatsEverything() {
         let st = MemoSpine.station(for: input(days: 100, deletedDaysAgo: 5, seenDaysAgo: 5, rated: true,
-                                              hold: .locked, queue: .exported), now: now)
+                                              hold: .locked), now: now)
         XCTAssertEqual(st, .deleted(goneAt: daysAgo(5).addingTimeInterval(TrashPolicy.retention)))
         XCTAssertEqual(MemoSpine.oneLiner(for: st, now: now), "gone for good in ~9d")
     }
@@ -49,15 +47,6 @@ final class MemoSpineTests: XCTestCase {
         let st = MemoSpine.station(for: input(days: 1, rated: true), now: now)
         XCTAssertEqual(st, .toProcess)
         XCTAssertEqual(MemoSpine.oneLiner(for: st, now: now), "processes on next run")
-    }
-
-    func testActiveTrackFollowsTheQueuePhase() {
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .queued), now: now), .toProcess)
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .transcribing), now: now), .processing)
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .enhancing), now: now), .processing)
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .error), now: now), .stuck)
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .ready), now: now), .ready)
-        XCTAssertEqual(MemoSpine.station(for: input(days: 1, rated: true, queue: .exported), now: now), .exported)
     }
 
     func testTouchRestartsTheClockInsteadOfParking() {
@@ -93,13 +82,6 @@ final class MemoSpineTests: XCTestCase {
         // "A phone note still transcribing is New (the river's slim row)."
         let st = MemoSpine.station(for: input(days: 40, transcriptDone: false), now: now)
         if case .new = st {} else { XCTFail("transcribing note must stay New, got \(st)") }
-    }
-
-    func testMacLocalFileRidesTheActiveTrackAndNeverFades() {
-        XCTAssertEqual(MemoSpine.station(for: input(days: 200, queue: .ready, macLocal: true), now: now), .ready)
-        // …but a deleted Mac-local file still lands in Recently Deleted.
-        let st = MemoSpine.station(for: input(days: 200, deletedDaysAgo: 2, queue: .ready, macLocal: true), now: now)
-        if case .deleted = st {} else { XCTFail("deleted Mac-local file must be Deleted, got \(st)") }
     }
 
     // MARK: the signed copy trio (Q7) — verbatim, every surface reuses these

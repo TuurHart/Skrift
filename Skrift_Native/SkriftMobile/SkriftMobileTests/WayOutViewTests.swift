@@ -87,7 +87,7 @@ final class WayOutViewTests: XCTestCase {
 
     func testOneLinerForAStillFadingRowMovesToDeleted() {
         let memo = bareMemo(days: 31)   // untouched, past day 30, not yet deleted
-        let expected = MemoSpine.oneLiner(for: .fading(deletedAt: MemoLifecycle.fadesAt(memo)), now: now)
+        let expected = MemoSpine.oneLiner(for: .fading(deletedAt: MemoLifecycle.trashesAt(memo)), now: now)
         XCTAssertEqual(WayOutView.oneLiner(for: memo, now: now), expected)
         XCTAssertTrue(expected.hasPrefix("moves to Recently Deleted"), "got: \(expected)")
     }
