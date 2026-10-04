@@ -57,9 +57,23 @@ enum ChipLineBreaker {
     }
 }
 
+/// One chip inside `ChipFlowLayout`: its natural size, or 0×0 when proposed zero (the layout's
+/// "hidden" signal). Wrap it in `.clipped()` so a collapsed chip draws nothing.
+struct ChipSlot: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        if proposal.width == 0 || proposal.height == 0 { return .zero }
+        return subviews.first?.sizeThatFits(proposal) ?? .zero
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(bounds.size))
+    }
+}
+
 /// Lays out `chipCount` chips followed by `chipCount - 1` candidate "+k" chips (k = 1...n-1,
-/// at index `chipCount + k - 1`). Only the chosen "+N" candidate is placed on-screen; unchosen
-/// chips and candidates are parked off-screen (the row clips). Subviews must be in that order.
+/// at index `chipCount + k - 1`). Only the chosen "+N" candidate is shown; unchosen chips and
+/// candidates are proposed 0×0 at the origin, so each subview must be a clipped `ChipSlot`.
+/// Subviews must be in that order.
 struct ChipFlowLayout: Layout {
     var chipCount: Int
     var spacing: CGFloat = 4
@@ -116,9 +130,11 @@ struct ChipFlowLayout: Layout {
             }
             y += rowH + lineSpacing
         }
+        // Q312: unchosen chips and candidates collapse to 0×0 at the origin (each is a clipped
+        // `ChipSlot`, so it draws nothing). Parking them 10 000 pt off-screen made a phone List
+        // cell grow ~10 000 pt tall for any card with 2+ chips.
         for i in 0..<subviews.count where !shown.contains(i) {
-            subviews[i].place(at: CGPoint(x: bounds.minX - 10_000, y: bounds.minY - 10_000),
-                              anchor: .topLeading, proposal: .unspecified)
+            subviews[i].place(at: bounds.origin, anchor: .topLeading, proposal: .zero)
         }
     }
 

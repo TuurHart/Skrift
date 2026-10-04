@@ -225,10 +225,10 @@ struct NoteCardView: View {
         let chips = model.chips
         return ChipFlowLayout(chipCount: chips.count) {
             ForEach(Array(chips.enumerated()), id: \.offset) { _, chip in
-                chipView(chip)
+                ChipSlot { chipView(chip) }.clipped()
             }
             ForEach(1..<max(chips.count, 1), id: \.self) { k in
-                chipView(NoteCardModel.Chip(text: "+\(k)", systemImage: nil))
+                ChipSlot { chipView(NoteCardModel.Chip(text: "+\(k)", systemImage: nil)) }.clipped()
                     .accessibilityHidden(true)
             }
         }
