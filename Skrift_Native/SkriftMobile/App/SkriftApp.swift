@@ -105,31 +105,31 @@ struct SkriftApp: App {
         }
         // Hardware-keyboard shortcuts (iPad / Mac Catalyst). Inert on the phone
         // (no hardware keyboard), so the phone is unchanged. Each just nudges a
-        // bridge singleton the views already observe — ⌘N/⌘F also hop to Notes
+        // bridge singleton the views already observe (chords: Shared/UI/AppShortcuts) — ⇧⌘N/⌘F also hop to Notes
         // first so the recorder/search land in view.
         .commands {
             CommandGroup(after: .newItem) {
-                Button("New Recording") {
+                Button("Record") {
                     TabSelectionBridge.shared.select(.notes)
                     RecordingIntentBridge.shared.requestStart()
                 }
-                .keyboardShortcut("n", modifiers: .command)
+                .keyboardShortcut(AppShortcuts.record)
             }
             CommandMenu("View") {
                 Button("Search Notes") {
                     TabSelectionBridge.shared.select(.notes)
                     SearchFocusBridge.shared.requestFocus()
                 }
-                .keyboardShortcut("f", modifiers: .command)
+                .keyboardShortcut(AppShortcuts.search)
                 Divider()
                 Button("Notes")    { TabSelectionBridge.shared.select(.notes) }
-                    .keyboardShortcut("1", modifiers: .command)
+                    .keyboardShortcut(AppShortcuts.tabNotes)
                 Button("Books")    { TabSelectionBridge.shared.select(.books) }
-                    .keyboardShortcut("2", modifiers: .command)
+                    .keyboardShortcut(AppShortcuts.tabBooks)
                 Button("Review")   { TabSelectionBridge.shared.select(.journal) }
-                    .keyboardShortcut("3", modifiers: .command)
+                    .keyboardShortcut(AppShortcuts.tabReview)
                 Button("Settings") { TabSelectionBridge.shared.select(.settings) }
-                    .keyboardShortcut("4", modifiers: .command)
+                    .keyboardShortcut(AppShortcuts.tabSettings)
             }
         }
     }

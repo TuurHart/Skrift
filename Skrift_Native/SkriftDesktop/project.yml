@@ -214,6 +214,8 @@ targets:
       # Not all of Shared/UI: FlowLayout beside it is SwiftUI and would drag the app in,
       # same reason NoteMeasure is pulled file-by-file above.
       - path: ../Shared/UI/Palette.swift
+      # Q284: the keyboard table, Foundation only so AppShortcutsTests can assert it.
+      - path: ../Shared/UI/AppShortcuts.swift
       # Q68 (Q65 finding): pulled in for `NoteCardModel.tagChips(for:)`, the ONE shared
       # tag→chip builder both card models route through (C115). SwiftUI-only (no app
       # frameworks), same file-by-file discipline as Palette/NoteMeasure above.

@@ -24,6 +24,14 @@ enum NoteFindBar {
         }
     }
 
+    /// True while a NOTE's text view (not a one-line field's editor) has the keyboard: the
+    /// only time Cmd+F means "find in this note"; everywhere else it means "search the list" (D169).
+    @MainActor
+    static var noteTextHasFocus: Bool {
+        guard let tv = NSApp.keyWindow?.firstResponder as? NSTextView else { return false }
+        return tv.usesFindBar && !tv.isFieldEditor
+    }
+
     /// Turn the find bar on for a note text view (call once at creation).
     static func enable(on tv: NSTextView) {
         tv.usesFindBar = true

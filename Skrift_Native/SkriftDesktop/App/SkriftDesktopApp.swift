@@ -109,15 +109,34 @@ struct SkriftDesktopApp: App {
                 }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             }
-            // Q125 (D125): find in the open note. Routed down the responder chain, so it only
-            // lands while a note's text view has focus.
+            // Q125 (D125) + Q284 (D169): Cmd+F finds in the open note while a note's text view has
+            // focus (the responder chain answers), and focuses the list search everywhere else.
             CommandGroup(after: .textEditing) {
-                Button(NoteFindBar.Verb.show.title) { NoteFindBar.send(.show) }
-                    .keyboardShortcut("f", modifiers: .command)
+                Button(NoteFindBar.Verb.show.title) {
+                    if NoteFindBar.noteTextHasFocus { NoteFindBar.send(.show) } else { MacShortcutAction.search.post() }
+                }
+                .keyboardShortcut(AppShortcuts.search)
                 Button(NoteFindBar.Verb.next.title) { NoteFindBar.send(.next) }
                     .keyboardShortcut("g", modifiers: .command)
                 Button(NoteFindBar.Verb.previous.title) { NoteFindBar.send(.previous) }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
+            }
+            // D169: New note replaces the WindowGroup's "New Window" (single-window app) so Cmd+N
+            // is ONE binding, working from Review too; Record is its Shift sibling.
+            CommandGroup(replacing: .newItem) {
+                Button("New Note") { MacShortcutAction.newNote.post() }
+                    .keyboardShortcut(AppShortcuts.newNote)
+            }
+            CommandMenu("Record") {
+                Button("Start / Stop Recording") { MacShortcutAction.record.post() }
+                    .keyboardShortcut(AppShortcuts.record)
+            }
+            CommandGroup(before: .toolbar) {
+                Button("Notes") { MacShortcutAction.notes.post() }
+                    .keyboardShortcut(AppShortcuts.macNotes)
+                Button("Review") { MacShortcutAction.review.post() }
+                    .keyboardShortcut(AppShortcuts.macReview)
+                Divider()
             }
         }
     }
