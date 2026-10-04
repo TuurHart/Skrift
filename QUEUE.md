@@ -2182,7 +2182,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D175): Q112 made any Mac note opening with '> ' read-only; gate it on the capture flag (an audiobook/text capture) so a hand-typed blockquote stays editable. Desktop test `QuoteReadOnlyGateTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class QuoteReadOnlyGateTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q292 [auto] (doing) one shared 'conversation' rule: two or more speaker headers
+### Q292 [auto] (done) one shared 'conversation' rule: two or more speaker headers
 spec: D175
 needs: -
 gate+: yes
@@ -3181,3 +3181,4 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:48 Q285 -> doing — dispatched (sonnet)
 - 2026-10-04 09:48 Q290 -> doing — dispatched (sonnet)
 - 2026-10-04 09:49 Q210 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166); retry after a load-timing flake)
+- 2026-10-04 09:51 Q292 -> done — hand-merged (D178: one conversation rule, audio only; call-site ports + fixture audioFilename)
