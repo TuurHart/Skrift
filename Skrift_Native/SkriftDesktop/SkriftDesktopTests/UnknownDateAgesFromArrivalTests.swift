@@ -26,8 +26,7 @@ final class UnknownDateAgesFromArrivalTests: XCTestCase {
         let m = undated(arrivedDaysAgo: 0)
         XCTAssertFalse(MemoLifecycle.isFading(m, backlinked: [], now: now), "not 1970-old")
         XCTAssertFalse(MemoLifecycle.sweepDue(m, backlinked: [], now: now))
-        XCTAssertEqual(MemoLifecycle.daysUntilSweep(m, now: now), 60, "full clock from arrival")
-        XCTAssertGreaterThan(MemoLifecycle.fadesAt(m), now)
+        XCTAssertGreaterThan(MemoLifecycle.trashesAt(m), now)
     }
 
     func testUndatedNoteAgesFromArrivalLikeAnyOther() {

@@ -554,14 +554,6 @@ struct NoteBodyView: UIViewRepresentable {
             }
         }
 
-        /// Map a RAW-text range to the DISPLAYED range — every `[[img_NNN]]`
-        /// marker AND task prefix before it collapses to one glyph (the shared
-        /// BodyTransform, so this can never drift from the attributed builder).
-        private func displayRange(forRaw raw: NSRange, transcript: String) -> NSRange? {
-            guard !transcript.isEmpty else { return raw }
-            return BodyTransform.displayRange(forRaw: raw, in: transcript)
-        }
-
         // MARK: tap routing
 
         /// PLAYING-mode word-seek. (While editable, the system text interaction

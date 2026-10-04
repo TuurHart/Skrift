@@ -60,7 +60,7 @@ enum MemoLifecycle {
     }
 
     /// When this note will auto-move to Recently Deleted (the countdown label).
-    static func fadesAt(_ memo: Memo) -> Date {
+    static func trashesAt(_ memo: Memo) -> Date {
         clockStart(of: memo).addingTimeInterval(days(trashAfterDays))
     }
 
@@ -69,11 +69,6 @@ enum MemoLifecycle {
     /// visit, dark otherwise (an always-on light is no signal).
     static func fadeEntersAt(_ memo: Memo) -> Date {
         clockStart(of: memo).addingTimeInterval(days(fadeAfterDays))
-    }
-
-    /// Whole days until the auto-move (0 = "fades today"; never negative).
-    static func daysUntilSweep(_ memo: Memo, now: Date = Date()) -> Int {
-        max(0, Int(ceil(fadesAt(memo).timeIntervalSince(now) / 86_400)))
     }
 
     /// Every memo id referenced by a `[[memo:UUID|…]]` link in another note's
@@ -204,5 +199,6 @@ enum MemoLifecycle {
     private static func age(of memo: Memo, at now: Date) -> TimeInterval {
         now.timeIntervalSince(clockStart(of: memo))
     }
-    private static func days(_ n: Int) -> TimeInterval { TimeInterval(n) * 86_400 }
+    /// `n` whole days as a time interval — the one day-length both clocks use (`MemoSpine` too).
+    static func days(_ n: Int) -> TimeInterval { TimeInterval(n) * 86_400 }
 }

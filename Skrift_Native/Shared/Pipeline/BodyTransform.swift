@@ -71,42 +71,18 @@ enum BodyTransform {
     /// The raw syntax an attachment reconstructs to.
     static func rawTask(checked: Bool) -> String { checked ? "- [x]" : "- [ ]" }
 
-    /// Display length of a piece's glyph(s): 1 for every attachment. A picture
-    /// is its own paragraph in the stored body (C10, body v2), so no display-only
-    /// breaks are needed here any more (C17 deleted the render-time snap that
-    /// used to insert them for a mid-sentence marker).
-    private static func displayLength(of piece: Piece, in raw: String) -> Int {
-        if case .text = piece.segment { return piece.rawRange.length }
-        return 1
-    }
-
-    /// Map a RAW range to the DISPLAYED range: every non-text piece before it
-    /// collapses to one glyph (images additionally gain their display-only
-    /// block breaks). nil when the range straddles a piece (name spans never
-    /// do).
+    /// Map a RAW range to the DISPLAYED range — the single-range form of
+    /// `displayRanges(forRaw:in:)`.
     static func displayRange(forRaw raw: NSRange, in text: String) -> NSRange? {
-        var delta = 0
-        for piece in pieces(of: text) {
-            if case .text = piece.segment { continue }
-            let r = piece.rawRange
-            // A task prefix keeps its leading indent in rawRange? No — rawRange
-            // includes the indent for tasks; the glyph replaces the WHOLE match.
-            if r.location + r.length <= raw.location {
-                delta += r.length - displayLength(of: piece, in: text)
-            } else if r.location < raw.location + raw.length {
-                return nil
-            } else {
-                break
-            }
-        }
-        let loc = raw.location - delta
-        return loc >= 0 ? NSRange(location: loc, length: raw.length) : nil
+        displayRanges(forRaw: [raw], in: text)[0]
     }
 
-    /// Batch form of `displayRange(forRaw:in:)`: ONE `pieces` pass shared by all
-    /// ranges — the per-span form re-ran the full regex scan per call (S+1 whole-
-    /// document passes for S name spans). Result order mirrors the input; nil
-    /// entries mean exactly what the single-range form's nil means.
+    /// Map RAW ranges to DISPLAYED ranges in ONE `pieces` pass: every non-text
+    /// piece (image marker, memo link, task prefix) before a range collapses to
+    /// one glyph, so it shifts the range left by `rawRange.length - 1`. A
+    /// picture is its own paragraph in the stored body (C10), so no display-only
+    /// breaks are added. Result order mirrors the input; a nil entry means the
+    /// range straddles a piece (name spans never do).
     static func displayRanges(forRaw raws: [NSRange], in text: String) -> [NSRange?] {
         guard !raws.isEmpty else { return [] }
         var cumulative: [(end: Int, delta: Int, start: Int)] = []
@@ -114,7 +90,7 @@ enum BodyTransform {
         for piece in pieces(of: text) {
             if case .text = piece.segment { continue }
             let r = piece.rawRange
-            delta += r.length - displayLength(of: piece, in: text)
+            delta += r.length - 1
             cumulative.append((end: r.location + r.length, delta: delta, start: r.location))
         }
         return raws.map { raw in

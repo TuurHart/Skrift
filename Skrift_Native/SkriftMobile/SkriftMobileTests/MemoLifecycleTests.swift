@@ -31,11 +31,6 @@ final class MemoLifecycleTests: XCTestCase {
         let m = bareMemo(days: 61)
         XCTAssertTrue(MemoLifecycle.isFading(m, backlinked: [], now: now), "still shows on the conveyor")
         XCTAssertTrue(MemoLifecycle.sweepDue(m, backlinked: [], now: now))
-        XCTAssertEqual(MemoLifecycle.daysUntilSweep(m, now: now), 0, "\"fades today\"")
-    }
-
-    func testCountdownDays() {
-        XCTAssertEqual(MemoLifecycle.daysUntilSweep(bareMemo(days: 56), now: now), 4)
     }
 
     func testFadeEntersAtIsThe30DayLine() {
@@ -50,8 +45,7 @@ final class MemoLifecycleTests: XCTestCase {
         let m = bareMemo(days: 90)
         m.keptAt = daysAgo(3)
         XCTAssertFalse(MemoLifecycle.isFading(m, backlinked: [], now: now), "3-day-old touch = fresh clock")
-        XCTAssertEqual(MemoLifecycle.fadesAt(m), daysAgo(3).addingTimeInterval(60 * 86_400))
-        XCTAssertEqual(MemoLifecycle.daysUntilSweep(m, now: now), 57)
+        XCTAssertEqual(MemoLifecycle.trashesAt(m), daysAgo(3).addingTimeInterval(60 * 86_400))
 
         let stale = bareMemo(days: 90)
         stale.keptAt = daysAgo(31)

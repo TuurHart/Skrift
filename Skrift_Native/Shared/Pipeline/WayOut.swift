@@ -29,7 +29,7 @@ enum WayOut {
 
     /// Fading rows, soonest-to-move-to-Recently-Deleted first.
     static func fadingOrdered(_ memos: [Memo]) -> [Memo] {
-        memos.sorted { MemoLifecycle.fadesAt($0) < MemoLifecycle.fadesAt($1) }
+        memos.sorted { MemoLifecycle.trashesAt($0) < MemoLifecycle.trashesAt($1) }
     }
 
     /// Deleted rows, soonest-to-be-purged-for-good first (a row without a date sorts last).
@@ -51,9 +51,8 @@ enum WayOut {
     /// Red inside the countdown's last `urgentDays`, for both the fading and the deleted row.
     static func isUrgent(_ station: MemoSpine.Station, now: Date = Date()) -> Bool {
         switch station {
-        case .fading(let deletedAt): return daysLeft(until: deletedAt, now: now) <= urgentDays
-        case .deleted(let goneAt):   return daysLeft(until: goneAt, now: now) <= urgentDays
-        default:                     return false
+        case .fading(let d), .deleted(let d): return daysLeft(until: d, now: now) <= urgentDays
+        default:                              return false
         }
     }
 
