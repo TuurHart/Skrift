@@ -58,29 +58,3 @@ final class BPEMergeTests: XCTestCase {
         XCTAssertFalse(BPEMerge.shouldDropAsPhantom(rms: nil, wordCount: 1, isEmpty: false))   // unknown energy = keep
     }
 }
-
-final class ImageMarkersTests: XCTestCase {
-
-    func testInsertsMarkerNearestWord() {
-        let transcript = "hello world foo"
-        let words = [
-            TimedWord(text: "hello", start: 0.0, end: 0.4),
-            TimedWord(text: "world", start: 1.0, end: 1.4),
-            TimedWord(text: "foo", start: 2.0, end: 2.4),
-        ]
-        let manifest = [ImageManifestEntry(filename: "p1.jpg", offsetSeconds: 1.0)]  // nearest "world"
-        let out = ImageMarkers.insert(transcript: transcript, words: words, manifest: manifest)
-
-        XCTAssertTrue(out.contains("[[img_001]]"))
-        let marker = out.range(of: "[[img_001]]")!
-        let world = out.range(of: "world")!
-        let foo = out.range(of: "foo")!
-        XCTAssertTrue(world.upperBound <= marker.lowerBound)   // after "world"
-        XCTAssertTrue(marker.upperBound <= foo.lowerBound)     // before "foo"
-    }
-
-    func testEmptyManifestLeavesTranscriptUntouched() {
-        let words = [TimedWord(text: "hi", start: 0, end: 0.2)]
-        XCTAssertEqual(ImageMarkers.insert(transcript: "hi", words: words, manifest: []), "hi")
-    }
-}

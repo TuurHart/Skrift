@@ -144,7 +144,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       259-268` retries once, then only `DevLog`s — no rating/delete/restore/name-link/Mac-polish
       write reaches the UI as an error on persistent failure. SPEC R89.
 
-- [ ] **`ImageMarkers.insert` reverses marker order on a position tie.**
+- [x] **`ImageMarkers.insert` reverses marker order on a position tie.** (moot: function deleted in Q197; real transcription uses `BodyV2.committed`)
       `Shared/Pipeline/ImageMarkers.swift:40-60` — two photos in one pause, or a fast burst, land
       in reversed manifest order. Violates C13. SPEC R74.
 

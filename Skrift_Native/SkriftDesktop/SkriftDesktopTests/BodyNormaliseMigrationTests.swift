@@ -45,8 +45,8 @@ final class BodyNormaliseMigrationTests: XCTestCase {
             timings = try JSONDecoder().decode([WordTiming].self, from: Data(contentsOf: folder.appendingPathComponent(wt)))
         }
         let words = timings.map { TimedWord(text: $0.word, start: $0.start, end: $0.end) }
-        let withMarkers = ImageMarkers.insert(transcript: bare, words: words, manifest: manifest(n))
-        return timings.isEmpty ? withMarkers : Paragrapher.paragraphed(transcript: withMarkers, words: timings)
+        let withMarkers = V1BodyFixture.insertMarkers(transcript: bare, words: words, manifest: manifest(n))
+        return timings.isEmpty ? withMarkers : V1BodyFixture.paragraphed(transcript: withMarkers, words: timings)
     }
 
     private func legacyBodies() throws -> [Legacy] {
@@ -286,5 +286,104 @@ final class BodyNormaliseMigrationTests: XCTestCase {
         XCTAssertEqual(pf.sanitised, legacy)
         XCTAssertEqual(pf.ambiguousNames?.first?.offset, 56)
         XCTAssertNil(pf.normaliseBodyOnce(ledger: ledger), "an undone note is never migrated again")
+    }
+}
+
+/// The two v1 body writers, kept ONLY as the fixture that regenerates "what v1 stored" for
+/// the migration test above (Q197: moved here from `ImageMarkers.insert` and
+/// `Paragrapher.paragraphed`, which had no production caller left). Logic is verbatim.
+private enum V1BodyFixture {
+
+    /// v1 marker inserter: a marker at the word whose start is closest to each photo's offset
+    /// (numbering ascends by offset). UTF-16 (NSString) indices throughout.
+    static func insertMarkers(transcript: String, words: [TimedWord], manifest: [ImageManifestEntry]) -> String {
+        guard !words.isEmpty, !manifest.isEmpty else { return transcript }
+
+        var charEnd = [Int](repeating: 0, count: words.count)
+        let nsTranscript = transcript as NSString
+        var scanPos = 0
+        let totalLen = nsTranscript.length
+        let totalDuration = max(1.0, words.last?.end ?? 1.0)
+
+        for i in words.indices {
+            let needle = words[i].text as NSString
+            var found = -1
+            if scanPos < totalLen {
+                let range = NSRange(location: scanPos, length: totalLen - scanPos)
+                let r = nsTranscript.range(of: needle as String, options: [], range: range)
+                if r.location != NSNotFound {
+                    found = r.location
+                    charEnd[i] = found + needle.length
+                    scanPos = found + needle.length
+                }
+            }
+            if found == -1 {
+                let estimated = Int(Double(totalLen) * words[i].start / totalDuration)
+                charEnd[i] = min(max(0, estimated), totalLen)
+            }
+        }
+
+        let sorted = manifest.sorted { $0.offsetSeconds < $1.offsetSeconds }
+        var insertions: [(pos: Int, marker: String)] = []
+        for (i, entry) in sorted.enumerated() {
+            var bestIdx = 0
+            var bestDiff = abs(words[0].start - entry.offsetSeconds)
+            for (wi, w) in words.enumerated() {
+                let diff = abs(w.start - entry.offsetSeconds)
+                if diff < bestDiff {
+                    bestDiff = diff
+                    bestIdx = wi
+                }
+            }
+            insertions.append((charEnd[bestIdx], "\n\n[[img_\(String(format: "%03d", i + 1))]]\n\n"))
+        }
+
+        var result = transcript
+        for (pos, marker) in insertions.sorted(by: { $0.pos > $1.pos }) {
+            let nsResult = result as NSString
+            let safePos = min(max(0, pos), nsResult.length)
+            result = nsResult.substring(to: safePos) + marker + nsResult.substring(from: safePos)
+        }
+        return result
+    }
+
+    /// v1 stored-transcript paragrapher: `\n\n` after a sentence-ending word followed by a
+    /// >=0.65 s pause (or 4 sentences); markers and overflow tokens pass through; already
+    /// structured text (any newline) is returned untouched.
+    static func paragraphed(transcript: String, words: [WordTiming],
+                            gapThreshold: TimeInterval = 0.65, maxSentences: Int = 4) -> String {
+        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !words.isEmpty else { return trimmed }
+        guard !trimmed.contains("\n") else { return trimmed }
+        let tokens = trimmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        guard !tokens.isEmpty else { return trimmed }
+
+        var paragraphs: [[String]] = [[]]
+        var wordIndex = 0
+        var sentencesInParagraph = 0
+        var prevWord: WordTiming?
+        var prevEndedSentence = false
+        for token in tokens {
+            let isMarker = token.hasPrefix("[[")    // image markers ([[img_NNN]])
+            if !isMarker, wordIndex < words.count {
+                let w = words[wordIndex]
+                if prevEndedSentence, let prev = prevWord {
+                    let longPause = (w.start - prev.end) >= gapThreshold
+                    let capReached = maxSentences > 0 && sentencesInParagraph >= maxSentences
+                    if longPause || capReached { paragraphs.append([]); sentencesInParagraph = 0 }
+                }
+                paragraphs[paragraphs.count - 1].append(token)
+                prevWord = w
+                wordIndex += 1
+                prevEndedSentence = Paragrapher.endsSentence(token)
+                if prevEndedSentence { sentencesInParagraph += 1 }
+            } else {
+                paragraphs[paragraphs.count - 1].append(token)   // marker / overflow: pass through
+            }
+        }
+        return paragraphs
+            .map { $0.joined(separator: " ") }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
     }
 }

@@ -5,7 +5,7 @@ import Foundation
 /// `[[img_NNN]]` markers.
 ///
 /// **Why this exists.** The engine itself (FluidAudio/Parakeet) and every individual
-/// rule here were already single-sourced — `BPEMerge`, `AudioRMS`, `ImageMarkers`,
+/// rule here were already single-sourced — `BPEMerge`, `AudioRMS`, `BodyV2`,
 /// `TranscribingContract`. What was still twinned was the ORCHESTRATION: the same
 /// ~35 lines, in the same order, in each app's `TranscriptionService`. That's the
 /// drift-prone part, because the ORDER is load-bearing and invisible: the vocab
