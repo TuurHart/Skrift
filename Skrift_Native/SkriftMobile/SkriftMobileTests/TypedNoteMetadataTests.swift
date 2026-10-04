@@ -47,7 +47,8 @@ final class TypedNoteMetadataTests: XCTestCase {
         let provider = GatedProvider(metadata: captured)
         let draft = QuickNoteDraft(metadataProvider: provider)
 
-        let memo = draft.edited(title: "", body: "T", context: repo.context)
+        draft.edited(title: "", body: "T", context: repo.context)
+        let memo = draft.memo
         await draft.captureTask?.value
 
         XCTAssertEqual(provider.calls, 1)
@@ -63,7 +64,8 @@ final class TypedNoteMetadataTests: XCTestCase {
         let provider = GatedProvider(gated: true, metadata: captured)
         let draft = QuickNoteDraft(metadataProvider: provider)
 
-        let memo = draft.edited(title: "", body: "T", context: repo.context)
+        draft.edited(title: "", body: "T", context: repo.context)
+        let memo = draft.memo
         XCTAssertNotNil(memo, "the note exists before the capture returns")
         XCTAssertNil(memo?.metadata?.location, "no place yet, the capture is still in flight")
 

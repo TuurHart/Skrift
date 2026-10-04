@@ -41,24 +41,22 @@ final class QuickNoteDraft {
     /// row (D91 stays literal — "the first keystroke"), but whatever the
     /// user had already picked before typing a word rides along onto the
     /// row the instant it's born, instead of silently resetting to nothing.
-    @discardableResult
     func edited(title: String, body: String, context: ModelContext,
                 seedTags: [String] = [], seedSignificance: Double = 0,
-                seedDestination: NoteDestination = .personal) -> Memo? {
+                seedDestination: NoteDestination = .personal) {
         if memo == nil {
-            guard !title.isEmpty || !body.isEmpty else { return nil }
+            guard !title.isEmpty || !body.isEmpty else { return }
             memo = try? Memo.newTyped(into: context, id: id ?? UUID())
             memo?.tags = seedTags
             memo?.significance = seedSignificance
             memo?.destination = seedDestination
             if let memo { startCapture(for: memo) }
         }
-        guard let memo else { return nil }
+        guard let memo else { return }
         memo.title = title.isEmpty ? nil : title
         memo.transcript = body.isEmpty ? nil : body
         memo.markEdited()
         try? context.save()
-        return memo
     }
 
     /// Fire-and-forget: the note and its keyboard exist first, the place lands a moment

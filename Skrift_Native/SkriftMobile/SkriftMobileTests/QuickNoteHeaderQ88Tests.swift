@@ -11,9 +11,10 @@ final class QuickNoteHeaderQ88Tests: XCTestCase {
     func testFirstKeystrokeCarriesRatingAndDestinationOntoTheRow() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        let memo = draft.edited(title: "", body: "T", context: repo.context,
-                                seedTags: ["a"], seedSignificance: 0.5,
-                                seedDestination: .idea)
+        draft.edited(title: "", body: "T", context: repo.context,
+                     seedTags: ["a"], seedSignificance: 0.5,
+                     seedDestination: .idea)
+        let memo = draft.memo
         XCTAssertEqual(memo?.significance, 0.5)
         XCTAssertEqual(memo?.destination, .idea)
         XCTAssertEqual(memo?.tags, ["a"])
@@ -22,7 +23,8 @@ final class QuickNoteHeaderQ88Tests: XCTestCase {
     func testUntouchedHeaderStaysUnratedAndPersonal() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        let memo = draft.edited(title: "", body: "T", context: repo.context)
+        draft.edited(title: "", body: "T", context: repo.context)
+        let memo = draft.memo
         XCTAssertEqual(memo?.significance, 0, "an unrated draft stores 0 (never rated)")
         XCTAssertEqual(memo?.destination, .personal)
     }

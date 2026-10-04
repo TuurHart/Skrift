@@ -109,7 +109,7 @@ final class MemoSaverTests: XCTestCase {
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("add_\(UUID().uuidString).m4a")
         FileManager.default.createFile(atPath: temp.path, contents: Data("MORE".utf8))
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "first part\n\nsecond part")
@@ -132,7 +132,7 @@ final class MemoSaverTests: XCTestCase {
                                     retryDelays: [0, 0, 0])
         let temp = makeTempClip()
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "first part\n\nsecond part")
@@ -154,7 +154,7 @@ final class MemoSaverTests: XCTestCase {
                                     retryDelays: [0, 0])
         let temp = makeTempClip()
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "first part", "a failed append must not alter the transcript")
@@ -174,7 +174,7 @@ final class MemoSaverTests: XCTestCase {
         let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: "appended bit"))
         let temp = makeTempClip()
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "edited by hand\n\nappended bit")
@@ -198,7 +198,7 @@ final class MemoSaverTests: XCTestCase {
 
         let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: "the appended recording"))
         let temp = makeTempClip()
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertNotNil(memo, "the memo must still exist after appending to a cleared body")
@@ -216,7 +216,7 @@ final class MemoSaverTests: XCTestCase {
         let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: ""))
         let temp = makeTempClip()
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "first part")
@@ -232,7 +232,7 @@ final class MemoSaverTests: XCTestCase {
         let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: ""))
         let temp = makeTempClip()
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2, liveCaption: "caption words")
+        await saver.appendRecordingAsync(to: id, tempURL: temp, liveCaption: "caption words")
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.transcript, "first part\n\ncaption words")

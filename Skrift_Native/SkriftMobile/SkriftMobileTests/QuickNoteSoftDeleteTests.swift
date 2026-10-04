@@ -10,7 +10,8 @@ final class QuickNoteSoftDeleteTests: XCTestCase {
     func testDeleteOfWrittenNoteIsSoft() throws {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        let memo = try XCTUnwrap(draft.edited(title: "Idea", body: "Tram 28", context: repo.context))
+        draft.edited(title: "Idea", body: "Tram 28", context: repo.context)
+        let memo = try XCTUnwrap(draft.memo)
         let id = memo.id
         let when = Date(timeIntervalSince1970: 1_800_000_000)
         draft.discard(context: repo.context, at: when)
@@ -26,7 +27,8 @@ final class QuickNoteSoftDeleteTests: XCTestCase {
     func testDeletedQuickNoteCanBeRestored() throws {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        let memo = try XCTUnwrap(draft.edited(title: "", body: "keep me", context: repo.context))
+        draft.edited(title: "", body: "keep me", context: repo.context)
+        let memo = try XCTUnwrap(draft.memo)
         draft.discard(context: repo.context)
         repo.restore(memo)
         XCTAssertNil(memo.deletedAt)
@@ -36,8 +38,8 @@ final class QuickNoteSoftDeleteTests: XCTestCase {
     func testBlankDraftStillVanishesSilently() throws {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        _ = draft.edited(title: "", body: "x", context: repo.context)
-        _ = draft.edited(title: "", body: "", context: repo.context)
+        draft.edited(title: "", body: "x", context: repo.context)
+        draft.edited(title: "", body: "", context: repo.context)
         draft.discard(context: repo.context)
         XCTAssertEqual(try repo.context.fetch(FetchDescriptor<Memo>()).count, 0,
                        "an empty draft is never a note: no trash row")

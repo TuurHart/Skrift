@@ -207,8 +207,8 @@ struct MemosListView: View {
                 notesRoot
                     .navigationDestination(for: NoteRoute.self) { route in
                         switch route {
-                        case .draft(let id):
-                            QuickNoteView(draftID: id) {
+                        case .draft:
+                            QuickNoteView {
                                 if !path.isEmpty { path.removeLast() }
                             }
                         case .memo(let id):
@@ -306,9 +306,6 @@ struct MemosListView: View {
             // record" and a shared video not opening on a cold launch.
             .onAppear {
                 handleStartRequest(); handleOpenRequest(); handleQuickNoteRequest()
-                // Round-2 evidence for the invisible doc-scan button: was the
-                // capability gate the culprit, or the iOS-26 toolbar?
-                DevLog.log("docScan: isSupported=\(DocScanView.isSupported)")
             }
             // Round-3 evidence for "photo search finds nothing": per query,
             // how many memos match at all, and how many via photo OCR text —
@@ -327,8 +324,8 @@ struct MemosListView: View {
                 DevLog.log("search '\(query)' → \(derived.groups.reduce(0) { $0 + $1.memos.count })/\(memos.count) hits, \(photoHits) via photoText")
             }
             #endif
-            // A sheet rather than a push: the stack's path is typed [UUID] for
-            // memo detail, which a non-memo destination can't join. (Settings +
+            // A sheet rather than a push: the stack's path is typed [NoteRoute]
+            // (draft or memo), which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)
             // D8: Files import (audio + video) — routes through the same
             // AppURLHandler path as open-in/AirDrop: video → strip audio +
@@ -363,7 +360,7 @@ struct MemosListView: View {
             if let route = selectedRoute {
                 switch route {
                 case .draft(let id):
-                    QuickNoteView(draftID: id) {
+                    QuickNoteView {
                         selectedRoute = nil
                     }
                     .id(id)

@@ -13,7 +13,6 @@ import UIKit
 @MainActor
 final class PhotoCaptureService: NSObject, ObservableObject {
     @Published private(set) var capturedCount = 0
-    @Published private(set) var isReady = false
     /// Which camera feeds the session (CameraSheet's flip button toggles it).
     /// Reverted if a switch fails so the UI stays truthful.
     @Published private(set) var position: AVCaptureDevice.Position = .back
@@ -42,10 +41,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     /// battery cost on an older phone, for a feature most recordings never
     /// touch. Idempotent and safe after `stop()` (the session just restarts).
     func configure() {
-        guard !mock else {
-            isReady = true
-            return
-        }
+        guard !mock else { return }
         sessionQueue.async { [weak self] in
             guard let self else { return }
             if !self.configured {
@@ -65,7 +61,6 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                 self.session.commitConfiguration()
             }
             if !self.session.isRunning { self.session.startRunning() }
-            Task { @MainActor in self.isReady = true }
         }
     }
 

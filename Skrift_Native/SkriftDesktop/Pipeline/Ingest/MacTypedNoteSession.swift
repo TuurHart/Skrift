@@ -53,8 +53,9 @@ final class MacTypedNoteSession {
     func edited(title: String, body: String, tags: [String] = [], significance: Double = 0,
                 context: ModelContext) -> Memo? {
         guard let draft else { return nil }
-        guard let memo = draft.edited(title: title, body: body, context: context,
-                                      seedTags: tags, seedSignificance: significance) else { return nil }
+        draft.edited(title: title, body: body, context: context,
+                     seedTags: tags, seedSignificance: significance)
+        guard let memo = draft.memo else { return nil }
         if !body.isEmpty, !memo.transcriptUserEdited {
             memo.transcriptUserEdited = true
             try? context.save()

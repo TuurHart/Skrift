@@ -181,7 +181,7 @@ final class ImportDateLadderTests: XCTestCase {
         let id = UUID()
         repo.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a",
                          recordedAt: Date(), transcriptStatus: .transcribing))
-        let ok = await saver(repo).importVideoAsync(id: id, source: try file(Self.whatsAppVideo), fallbackDate: nil)
+        let ok = await saver(repo).processVideo(id: id, source: try file(Self.whatsAppVideo), fallbackDate: nil)
         XCTAssertFalse(ok, "junk bytes are no video")
         XCTAssertEqual(repo.memo(id: id)?.recordedAt, Self.local(2025, 12, 18, 18, 30, 44))
     }
@@ -193,7 +193,7 @@ final class ImportDateLadderTests: XCTestCase {
         repo.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a",
                          recordedAt: Date(), transcriptStatus: .transcribing))
         let library = Self.local(2023, 5, 6, 7, 8, 9)
-        _ = await saver(repo).importVideoAsync(id: id, source: try file(Self.whatsAppVideo), fallbackDate: library)
+        _ = await saver(repo).processVideo(id: id, source: try file(Self.whatsAppVideo), fallbackDate: library)
         XCTAssertEqual(repo.memo(id: id)?.recordedAt, library)
     }
 

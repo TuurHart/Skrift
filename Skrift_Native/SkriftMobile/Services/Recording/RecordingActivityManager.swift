@@ -66,8 +66,6 @@ final class RecordingActivityManager {
         }
     }
 
-    var isRunning: Bool { activity != nil }
-
     /// End any activities that don't belong to the live recording — orphans left
     /// when the app was killed mid-recording (iOS keeps the banner alive after
     /// the process dies). Safe to call at any time: the current activity, if one

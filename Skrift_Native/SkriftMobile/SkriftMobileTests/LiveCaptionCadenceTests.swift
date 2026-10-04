@@ -10,34 +10,34 @@ final class LiveCaptionCadenceTests: XCTestCase {
     // MARK: - Poll pacing
 
     func testCheapSnapshotKeepsTheNominalCadence() {
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 0.1, thermal: .nominal), 0.6)
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 0, thermal: .nominal), 0.6)
     }
 
     func testExpensiveSnapshotSlowsThePoll() {
         // 1 s of inference → 1.5 s breather (~40% duty), not another instant poll.
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 1.0, thermal: .nominal), 1.5)
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 2.0, thermal: .nominal), 3.0)
     }
 
     func testDelayIsCappedSoCaptionsStayAlive() {
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 30, thermal: .nominal), 6)
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 30, thermal: .critical), 6)
     }
 
     func testThermalPressureRaisesTheFloor() {
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 0.1, thermal: .serious), 2.5)
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 0.1, thermal: .critical), 6)
         // An already-slow pace stays cost-driven, not floored down.
-        XCTAssertEqual(LiveRecordingService.captionPollDelay(
+        XCTAssertEqual(LiveCaptionEngine.pollDelay(
             afterSnapshotCost: 2.0, thermal: .serious), 3.0)
     }
 

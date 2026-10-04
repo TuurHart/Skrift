@@ -37,7 +37,9 @@ final class QuickNoteRouteTests: XCTestCase {
         // The ✎ tap always mints a fresh route.
         let route = NoteRoute.newDraft()
 
-        XCTAssertTrue(route.isDraft, "✎ must route to a draft, never straight to an existing memo")
+        guard case .draft = route else {
+            return XCTFail("✎ must route to a draft, never straight to an existing memo")
+        }
         XCTAssertFalse(existingIDs.contains(route.id),
                         "a fresh draft id must never collide with (or be mistaken for) an existing memo's id")
         XCTAssertNotEqual(route.id, recoveredID,

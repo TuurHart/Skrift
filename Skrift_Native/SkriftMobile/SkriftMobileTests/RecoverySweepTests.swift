@@ -206,7 +206,7 @@ final class RecoverySweepTests: XCTestCase {
     // MARK: D131 — low memory saves the recording first
 
     func testMemoryWarningSavesTheRecordingBeforeUnloadingTheTranscriber() {
-        XCTAssertEqual(LiveRecordingService.memoryWarningOrder,
+        XCTAssertEqual(LiveRecordingService.MemoryWarningStep.allCases,
                        [.flushAudio, .writeCheckpoint, .stopCaptions, .unloadTranscriber])
     }
 

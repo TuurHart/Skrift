@@ -588,8 +588,7 @@ struct RecordView: View {
         }
         // Append mode: fold the new clip into an existing memo, stay on it.
         if let appendTo {
-            saver.appendRecording(to: appendTo, tempURL: result.url,
-                                  duration: result.duration, liveCaption: result.liveCaption)
+            saver.appendRecording(to: appendTo, tempURL: result.url, liveCaption: result.liveCaption)
             Haptics.success()
             onSaved(appendTo)
             dismiss()
@@ -619,9 +618,6 @@ struct RecordView: View {
 // MARK: - Pieces
 
 /// m:ss for the record timer (shared by the waveform row + camera header).
-private enum RecordClock {
-    static func string(_ elapsed: TimeInterval) -> String { RecordingCore.elapsedLabel(elapsed) }
-}
 
 /// Reads the hot caption state (`liveCaption` + committed count, ~1.7 Hz) in
 /// its OWN body so caption updates re-render only this pane — the shell above
@@ -649,7 +645,7 @@ private struct WaveformTimerRow: View {
         HStack(spacing: 14) {
             RecordWaveform(samples: service.waveform)
                 .frame(height: 52)
-            Text(RecordClock.string(service.elapsed))
+            Text(RecordingCore.elapsedLabel(service.elapsed))
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(Color.skTextDim)
@@ -666,7 +662,7 @@ private struct RecordingTimeHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             Circle().fill(Color.skRed).frame(width: 9, height: 9).shadow(color: .skRed, radius: 5)
-            Text("Recording · \(RecordClock.string(service.elapsed))")
+            Text("Recording · \(RecordingCore.elapsedLabel(service.elapsed))")
             Text("— still listening").foregroundStyle(Color.skTextFaint)
         }
         .font(.system(size: 13, weight: .semibold))
@@ -860,7 +856,7 @@ enum LiveCaptionLayout {
 /// the unused package was dropped 2026-07-26.)
 struct RecordWaveform: View {
     let samples: [Float]
-    private let barCount = 40
+    private let barCount = LiveRecordingService.waveformBars
 
     var body: some View {
         GeometryReader { geo in

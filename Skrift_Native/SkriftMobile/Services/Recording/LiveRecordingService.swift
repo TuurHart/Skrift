@@ -25,12 +25,10 @@ final class LiveRecordingService {
     private(set) var isRecording = false
     private(set) var isPaused = false
     private(set) var elapsed: TimeInterval = 0
-    /// Smoothed input level, 0...1.
-    private(set) var level: Float = 0
     /// Rolling level history (newest last) for the live waveform bars.
     private(set) var waveform: [Float] = []
     /// The shared rolling level window (`RecordingCore.Meter`) behind `waveform`.
-    @ObservationIgnored private var meter = RecordingCore.Meter(width: 40)
+    @ObservationIgnored private var meter = RecordingCore.Meter(width: LiveRecordingService.waveformBars)
     /// Best-effort live transcript shown caption-first while recording.
     private(set) var liveCaption: String = ""
     /// How many leading caption words are FINAL (rotated/committed chunks never
@@ -85,7 +83,8 @@ final class LiveRecordingService {
     }
 
     private let mock: Bool
-    private static let waveformBars = 40
+    /// Bars in the live waveform: the service's meter window and RecordView's static bars.
+    static let waveformBars = 40
 
     // Internal state below is @ObservationIgnored: none of it is UI-facing,
     // and the tap mirrors especially must NOT go through the observation
@@ -229,14 +228,6 @@ final class LiveRecordingService {
         return session.categoryOptions == recordingCategoryOptions(avoidBluetoothMic: avoidBluetoothMicNow(session))
     }
 
-    /// Configure + activate the recording session and WAIT for the hardware to
-    /// be ready — off the main actor, polling every 50 ms. The classic ladder
-    /// waits out a settling route in 300 ms bites and pays a full re-setup per
-    /// bite; this is the same wait at 6× finer grain, costing nothing per poll,
-    /// while the main thread stays free for the recorder's present animation.
-    /// Sets the warm stamp on success so `startEngine` skips its two
-    /// mediaserverd round-trips. Best-effort: `false` just means the caller
-    /// falls through to the classic path.
     // MARK: - Bluetooth mic policy (Tuur decisions 2026-07-26, two device rounds)
 
     /// b115 trace: the ~1 s cold-AirPods start is the A2DP→HFP flip INSIDE
@@ -279,6 +270,14 @@ final class LiveRecordingService {
             availableInputPortTypes: (session.availableInputs ?? []).map(\.portType))
     }
 
+    /// Configure + activate the recording session and WAIT for the hardware to
+    /// be ready — off the main actor, polling every 50 ms. The classic ladder
+    /// waits out a settling route in 300 ms bites and pays a full re-setup per
+    /// bite; this is the same wait at 6× finer grain, costing nothing per poll,
+    /// while the main thread stays free for the recorder's present animation.
+    /// Sets the warm stamp on success so `startEngine` skips its two
+    /// mediaserverd round-trips. Best-effort: `false` just means the caller
+    /// falls through to the classic path.
     nonisolated static func settleSession(timeout: TimeInterval = 1.5) async -> Bool {
         await Task.detached(priority: .userInitiated) {
             let t = Date()
@@ -478,7 +477,6 @@ final class LiveRecordingService {
         liveTranscription = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true
         accumulated = 0
         elapsed = 0
-        level = 0
         waveform = []
         meter = RecordingCore.Meter(width: Self.waveformBars)
         liveCaption = ""
@@ -677,7 +675,6 @@ final class LiveRecordingService {
         isPaused = false
         if Self.activeService === self { Self.activeService = nil }
         elapsed = 0
-        level = 0
         waveform = []
         meter = RecordingCore.Meter(width: Self.waveformBars)
         liveCaption = ""
@@ -776,15 +773,15 @@ final class LiveRecordingService {
         RecordingLifecycleLog.log("captions-resumed", "reason=foreground")
     }
 
-    /// D131, in this order: the recording is saved first, then the memory goes.
+    /// D131, in this order (declaration order; `handleMemoryWarning` walks `allCases`):
+    /// the recording is saved first, then the memory goes.
     enum MemoryWarningStep: String, CaseIterable {
         case flushAudio, writeCheckpoint, stopCaptions, unloadTranscriber
     }
-    static let memoryWarningOrder: [MemoryWarningStep] = [.flushAudio, .writeCheckpoint, .stopCaptions, .unloadTranscriber]
 
     func handleMemoryWarning() {
         guard isRecording, !mock else { return }
-        for step in Self.memoryWarningOrder {
+        for step in MemoryWarningStep.allCases {
             switch step {
             case .flushAudio:
                 writerQueue.sync {}
@@ -1066,7 +1063,6 @@ final class LiveRecordingService {
                 if lvl > 0 { self?.sawSignal = true }
                 Task { @MainActor [weak self] in
                     guard let self, self.isRecording, !self.isPaused else { return }
-                    self.level = lvl
                     self.pushWaveform(lvl)
                 }
                 // Feed the stream the WRITE-format buffer, not the raw tap copy:
@@ -1214,7 +1210,7 @@ final class LiveRecordingService {
         let currentInput = session.currentRoute.inputs.first
         let nodeIn = engine.map { Self.describe($0.inputNode.inputFormat(forBus: 0)) } ?? "-"
         let vended = engine.map { Self.describe($0.inputNode.outputFormat(forBus: 0)) } ?? "-"
-        DevLog.log("route change — reason=\(Self.name(reason))"
+        DevLog.log("route change — reason=\(reason.map { String(describing: $0) } ?? "nil")"
                    + " prev=\(Self.describe(previous)) now=\(Self.describe(session.currentRoute))"
                    + " sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
                    + " nodeIn=\(nodeIn) vended=\(vended) engineRunning=\(engine?.isRunning == true)")
@@ -1240,7 +1236,7 @@ final class LiveRecordingService {
                    sessionHwChannels: AVAudioChannelCount(max(0, session.inputNumberOfChannels)),
                    vendedRate: engine.inputNode.inputFormat(forBus: 0).sampleRate,
                    vendedChannels: engine.inputNode.inputFormat(forBus: 0).channelCount) {
-                DevLog.log("route change ignored — input unchanged + format live (\(Self.name(reason)))")
+                DevLog.log("route change ignored — input unchanged + format live (\(reason.map { String(describing: $0) } ?? "nil"))")
                 return
             }
             // The input device changed (AirPods pulled / re-inserted, headset
@@ -1258,7 +1254,7 @@ final class LiveRecordingService {
             // exhausted sits with a stopped engine, so ANY later route
             // notification lands here and tries again.
             if !isPaused, let engine, !engine.isRunning {
-                DevLog.log("engine stalled by \(Self.name(reason)) — rebuilding")
+                DevLog.log("engine stalled by \(reason.map { String(describing: $0) } ?? "nil") — rebuilding")
                 rebuildTapForCurrentRoute()
             }
         }
@@ -1535,21 +1531,6 @@ final class LiveRecordingService {
         return "in[\(ins.isEmpty ? "-" : ins)] out[\(outs.isEmpty ? "-" : outs)]"
     }
 
-    nonisolated private static func name(_ reason: AVAudioSession.RouteChangeReason?) -> String {
-        switch reason {
-        case .newDeviceAvailable: return "newDeviceAvailable"
-        case .oldDeviceUnavailable: return "oldDeviceUnavailable"
-        case .categoryChange: return "categoryChange"
-        case .override: return "override"
-        case .wakeFromSleep: return "wakeFromSleep"
-        case .noSuitableRouteForCategory: return "noSuitableRouteForCategory"
-        case .routeConfigurationChange: return "routeConfigurationChange"
-        case .unknown: return "unknown"
-        case nil: return "nil"
-        @unknown default: return "raw(\(reason.map { String($0.rawValue) } ?? "?"))"
-        }
-    }
-
     // MARK: - Format conversion (pure; unit-tested)
 
     /// Whether buffers tapped in `tap` format must be converted before writing
@@ -1611,7 +1592,7 @@ final class LiveRecordingService {
     /// cost GROWS with the chunk — on a warm A15 the fixed cadence ran the
     /// ANE/CPU flat-out for the entire recording (heat → throttle → frozen
     /// UI). Pacing the next poll off the last snapshot's cost bounds the duty
-    /// cycle, and thermal pressure stretches it further (`captionPollDelay`).
+    /// cycle, and thermal pressure stretches it further (`LiveCaptionEngine.pollDelay`).
     private func startCaptionPolling() {
         captionTask?.cancel()
         captionTask = Task { @MainActor [weak self] in
@@ -1633,21 +1614,12 @@ final class LiveRecordingService {
                         .split(whereSeparator: { $0.isWhitespace }).count
                     RecordingActivityManager.shared.update(caption: parts.full)
                 }
-                let delay = Self.captionPollDelay(
+                let delay = LiveCaptionEngine.pollDelay(
                     afterSnapshotCost: cost,
                     thermal: ProcessInfo.processInfo.thermalState)
                 try? await Task.sleep(for: .seconds(delay))
             }
         }
-    }
-
-    /// Next-poll delay after a snapshot that took `cost` seconds. The MATH moved to the
-    /// shared `LiveCaptionEngine.pollDelay` (2026-07-28 — the Mac's live surface paces off
-    /// the same rule; a cool M4 settles at the 0.6 s floor with no platform case). This
-    /// forwarder keeps the phone's call sites and tests on their existing seam.
-    nonisolated static func captionPollDelay(afterSnapshotCost cost: TimeInterval,
-                                             thermal: ProcessInfo.ThermalState) -> TimeInterval {
-        LiveCaptionEngine.pollDelay(afterSnapshotCost: cost, thermal: thermal)
     }
 
     // MARK: - Timers / shared
@@ -1715,9 +1687,8 @@ final class LiveRecordingService {
     /// Fake level + progressive caption reveal so the caption-first UI is
     /// testable without a mic or the Neural Engine.
     private func mockTick() {
-        guard !isPaused else { level = 0; return }
-        level = Float(0.35 + 0.3 * abs(sin(elapsed * 5)))
-        pushWaveform(level)
+        guard !isPaused else { return }
+        pushWaveform(Float(0.35 + 0.3 * abs(sin(elapsed * 5))))
         // Reveal ~1 word every 0.3s of elapsed time.
         let shouldReveal = min(mockWords.count, Int(elapsed / 0.3) + 1)
         if shouldReveal > mockRevealed {
