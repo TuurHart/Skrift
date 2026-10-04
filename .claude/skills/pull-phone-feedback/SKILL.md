@@ -1,7 +1,7 @@
 ---
 name: pull-phone-feedback
 description: >-
-  Pull the user's recorded feedback (voice-memo transcripts + in-app feedback items +
+  Pull the user's recorded feedback (voice-memo transcripts + in-app FeedbackKit outbox notes (voice + typed + screenshots) +
   crash logs) off the iPhone's Skrift Dev app over USB, parse it into discrete items,
   verify nothing was missed, and triage into backlog.md. Use whenever the user says
   they recorded feedback/test results in the Skrift (Dev) app and wants it read,
@@ -27,7 +27,11 @@ Pull it over USB, parse, verify, triage. Proven 2026-06-10; live-store path corr
   need the **CoreDevice service tunnel up** (`devicectl` prints "Acquired tunnel connection");
   if it's down (error 1011), see the AFC fallback gotcha.
 - In-app feedback: since Q301 (2026-10-04) it goes through FeedbackKit to the feedback server (app id `skrift`),
-  no longer to `Documents/Feedback/`. Older builds left `Documents/Feedback/<uuid>/metadata.json`
+  no longer to `Documents/Feedback/`. **Until the server is deployed (or while a note is still waiting on the phone)
+  the notes sit in the per-app `appDataContainer` at `Library/Application Support/FeedbackKit/outbox/`**:
+  `<id>.json` (record; its `meta` field is a JSON string with `screen`, `app_version`, `build`, `question_id`, `device`, `os`)
+  + `<id>.m4a` voice + `<id>.png` / `<id>.2.png` screenshots. A sent note is removed from the outbox, so once the server
+  works use `~/Hackerman/netcup-server/tools/feedback.sh pull skrift` instead. Older builds left `Documents/Feedback/<uuid>/metadata.json`
   (text in the `note` field), per-app `appDataContainer`, AFC-readable.
 
 ## Steps
@@ -36,6 +40,15 @@ Pull it over USB, parse, verify, triage. Proven 2026-06-10; live-store path corr
    `xcrun devicectl device info files --device <UDID> --domain-type appGroupDataContainer --domain-identifier group.com.skrift.mobile.dev --subdirectory "Library/Application Support" --no-recurse`.
    Confirm `default.store`'s **modification date is recent** (today/this session) — if it's
    frozen at an old date you're looking at a dead store.
+2a. **Pull the FeedbackKit outbox** (voice/typed in-app feedback, with screen, app version and answered
+   question id): `.claude/skills/pull-phone-feedback/pull_outbox.sh [dest-dir]` runs
+   `xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier com.skrift.mobile.dev --source "Library/Application Support/FeedbackKit/outbox" --destination <dest>/outbox`
+   and then `outbox_digest.py`, which transcribes each `.m4a` with `parakeet-mlx` (same call as netcup-server's
+   `feedback.sh`; override with `ASR_CMD="<cmd>"`, which prints the transcript of its last argument), caches it as `<id>.txt`,
+   and writes `<dest>/DIGEST.md` newest first: transcript, typed text, screen, app version (build), answered question id,
+   device, outbox state (`failed`/`pending` + last HTTP status), audio and screenshot paths. Read the screenshots with
+   vision. Fold the digest into the parse/verify/triage steps below as if each note were a memo. Parser self-test
+   (fixture, no phone): `python3 .claude/skills/pull-phone-feedback/outbox_digest.py --self-test`.
 2. **Pull** the three store files from the **app group** container (+ any feedback
    metadata.json from the per-app `appDataContainer`):
    `xcrun devicectl device copy from --device <UDID> --domain-type appGroupDataContainer --domain-identifier group.com.skrift.mobile.dev --source "Library/Application Support/<file>" --destination <tmp>`.
@@ -72,6 +85,9 @@ Pull it over USB, parse, verify, triage. Proven 2026-06-10; live-store path corr
   there too. This recovered the 06-17 bug report when the tunnel was down.
 - `devicectl ... info files` lists recursively; grep, don't dump. Use `--subdirectory` (not
   `--source`) for `info files`; `--source` is for `copy from`.
+- Outbox pull empty or "no such file": nothing is waiting (already sent, or the build has no FeedbackKit yet).
+  The `.json` files are the only record of a note; if only `.m4a`/`.png` came down the copy was cut short, pull again.
+  `pull_outbox.sh` was not run against a real phone when written (Q308 had no device); the parser was, on a fixture.
 - Copy the store to a tmp dir before opening — never sqlite3 a live container path.
 - Crash `.ips` files: first line is a metadata header, JSON body starts line 2.
 - If the phone is locked, devicectl fails — ask the user to unlock it.
