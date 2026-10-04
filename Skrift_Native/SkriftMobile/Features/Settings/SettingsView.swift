@@ -20,7 +20,6 @@ struct SettingsView: View {
     // Opt-in deterministic hesitation strip (um/uh/hmm…) for voice memos —
     // applied at save by MemoSaver via FillerFilter; audiobook quotes never.
     @AppStorage(FillerFilter.settingKey) private var stripFillerWords = false
-    @State private var showFeedback = false
     /// Global CloudKit (device↔device) sync activity → the honest "iCloud" status row.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
 
@@ -182,7 +181,7 @@ struct SettingsView: View {
                 }
 
                 Section("Feedback") {
-                    Button { showFeedback = true } label: {
+                    Button { FeedbackKitWiring.openFeedback() } label: {
                         Label("Send feedback", systemImage: "paperplane")
                     }
                     .accessibilityIdentifier("send-feedback-button")
@@ -209,7 +208,6 @@ struct SettingsView: View {
             .toolbar(.hidden, for: .navigationBar)   // root only; pushes keep bars
             // No "Done": Settings is a root tab now (AppTabView), not a presented
             // sheet — there's nothing to dismiss.
-            .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }
         }
     }
 
