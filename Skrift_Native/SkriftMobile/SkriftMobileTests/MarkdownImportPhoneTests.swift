@@ -8,7 +8,7 @@ final class MarkdownImportPhoneTests: XCTestCase {
 
     // MARK: - the note a .md becomes
 
-    func testTypedNoteShape() {
+    @MainActor func testTypedNoteShape() {
         let id = UUID()
         let memo = CaptureInboxDrainer.typedNoteMemo(
             id: id, markdown: "# Plan for Friday\n\nBook the table.", fileName: "friday.md",
@@ -24,7 +24,7 @@ final class MarkdownImportPhoneTests: XCTestCase {
         XCTAssertTrue(MemoDate.isUnknown(memo.recordedAt), "no date in the file: date-unknown, not the import moment")
     }
 
-    func testTitleFallsBackToTheFileNameAndAThoughtLeadsTheBody() {
+    @MainActor func testTitleFallsBackToTheFileNameAndAThoughtLeadsTheBody() {
         let memo = CaptureInboxDrainer.typedNoteMemo(
             id: UUID(), markdown: "just words", fileName: "Groceries.md",
             thought: "  for tonight ", significance: 0.4)
@@ -33,7 +33,7 @@ final class MarkdownImportPhoneTests: XCTestCase {
         XCTAssertEqual(memo.significance, 0.4, accuracy: 0.001)
     }
 
-    func testACreationDateInsideTheFileDatesTheNote() {
+    @MainActor func testACreationDateInsideTheFileDatesTheNote() {
         let memo = CaptureInboxDrainer.typedNoteMemo(
             id: UUID(), markdown: "---\ncreated: 2026-05-06\n---\n# T\n\nbody", fileName: "t.md",
             thought: nil, significance: 0)
@@ -52,9 +52,8 @@ final class MarkdownImportPhoneTests: XCTestCase {
     }
 
     @MainActor
-    private func drainFile(named display: String, body: String) async throws -> Memo {
+    private func drainFile(named display: String, body: String, into repo: NotesRepository) async throws -> Memo {
         try cleanInbox()
-        let repo = NotesRepository(inMemory: true)
         let id = UUID()
         let ext = (display as NSString).pathExtension
         let entry = CaptureInboxEntry(
@@ -76,7 +75,8 @@ final class MarkdownImportPhoneTests: XCTestCase {
 
     @MainActor
     func testASharedMarkdownFileDrainsToATypedNote() async throws {
-        let memo = try await drainFile(named: "Friday.md", body: "# Plan for Friday\n\nBook the table.")
+        let repo = NotesRepository(inMemory: true)   // must outlive the memo: a freed context traps
+        let memo = try await drainFile(named: "Friday.md", body: "# Plan for Friday\n\nBook the table.", into: repo)
         XCTAssertEqual(SourceKind.of(memo), .typedNote)
         XCTAssertNil(memo.sharedContent, "no Text capture card")
         XCTAssertEqual(memo.title, "Plan for Friday")
@@ -85,7 +85,8 @@ final class MarkdownImportPhoneTests: XCTestCase {
 
     @MainActor
     func testASharedTxtFileStaysATextCapture() async throws {
-        let memo = try await drainFile(named: "idea.txt", body: "just words")
+        let repo = NotesRepository(inMemory: true)
+        let memo = try await drainFile(named: "idea.txt", body: "just words", into: repo)
         XCTAssertEqual(SourceKind.of(memo), .captureText, "D22 stays")
         XCTAssertEqual(memo.sharedContent?.type, .text)
         XCTAssertTrue((memo.annotationText ?? "").contains("just words"))
