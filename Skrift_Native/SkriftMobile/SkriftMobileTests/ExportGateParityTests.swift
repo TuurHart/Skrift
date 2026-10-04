@@ -25,9 +25,8 @@ final class ExportGateParityTests: XCTestCase {
                                           ledgerOverride: ledger)
         return PublishCoordinator(
             memosProvider: { [] }, publisher: publisher,
-            isMacPaired: { false }, obsidianEnabled: { vault },
+            obsidianEnabled: { vault },
             portfolioConfigured: { portfolio },
-            publishWhenPaired: { false }, policy: { .importantOnly },
             enhancementProvider: { id in
                 processed ? MemoEnhancement(memoID: id, copyedit: "P.", title: "T", summary: "S") : nil
             })
