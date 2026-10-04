@@ -80,6 +80,45 @@ enum AudioClipMerge {
         }
         guard wroteFrames else { throw MergeError.noAudio }
     }
+
+    enum AppendError: Error, Equatable {
+        /// The note's own audio can't be opened. Never merged past: `merge` skips an unreadable
+        /// source, so the note's audio would be silently replaced by the new clip alone.
+        case unreadableBase
+        case unreadableAddition
+        /// The merged file came out shorter than base + clip; the base was left as it was.
+        case shortMerge
+    }
+
+    /// "Add recording" (D173, Q290): splice `addition` after `base`, replacing `base` IN PLACE
+    /// (same name, so every reference to the file stays valid). Returns the merged duration and
+    /// the base's PRECISE duration (frames / rate), the splice offset the caller shifts the clip's
+    /// word timings by. The base is touched only once a merged file that holds at least
+    /// base + clip exists; every failure throws and leaves `base` byte-for-byte as it was.
+    /// Synchronous and CPU-heavy: call it OFF the main actor.
+    static func append(base: URL, addition: URL,
+                       log: (String) -> Void = { _ in }) throws -> (merged: TimeInterval, base: TimeInterval) {
+        func seconds(_ url: URL) -> TimeInterval? {
+            guard let f = try? AVAudioFile(forReading: url), f.length > 0,
+                  f.processingFormat.sampleRate > 0 else { return nil }
+            return Double(f.length) / f.processingFormat.sampleRate
+        }
+        guard let baseSeconds = seconds(base) else { throw AppendError.unreadableBase }
+        guard let addSeconds = seconds(addition) else { throw AppendError.unreadableAddition }
+
+        let tmp = base.deletingLastPathComponent()
+            .appendingPathComponent("append_\(UUID().uuidString).m4a")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        try merge(sources: [base, addition], to: tmp, log: log)
+        // AAC frames round a little; a merge that lost a real piece of either side is refused.
+        guard let merged = seconds(tmp), merged + 0.1 >= baseSeconds + addSeconds else {
+            log("appendAudio: merged file short (base \(baseSeconds)s + clip \(addSeconds)s); base kept")
+            throw AppendError.shortMerge
+        }
+        // Atomic swap: a failed replace or a kill mid-move never leaves the note without audio.
+        _ = try FileManager.default.replaceItemAt(base, withItemAt: tmp)
+        return (merged: merged, base: baseSeconds)
+    }
 }
 
 /// What to do with several voice notes that arrive together (C68): ONE note (default — the
