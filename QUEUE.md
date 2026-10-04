@@ -2255,7 +2255,7 @@ check: `./gate.sh`
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt on the phone. Do all three arrive on the Mac, and does a note you delete on the phone disappear from the Mac?
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
