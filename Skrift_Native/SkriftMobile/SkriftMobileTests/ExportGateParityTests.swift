@@ -24,7 +24,7 @@ final class ExportGateParityTests: XCTestCase {
                                           author: "T", peopleProvider: { [] },
                                           ledgerOverride: ledger)
         return PublishCoordinator(
-            memosProvider: { [] }, publisher: publisher,
+            publisher: publisher,
             obsidianEnabled: { vault },
             portfolioConfigured: { portfolio },
             enhancementProvider: { id in

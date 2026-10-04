@@ -21,14 +21,14 @@ final class PublishCoordinatorTests: XCTestCase {
     /// `processed` = the memos that have a polish. A vault note is a PROCESSED note, so
     /// by default every fixture here is treated as processed and each gate test isolates
     /// the ONE rule it's about.
-    private func coordinator(memos: [Memo] = [], enabled: Bool = true,
+    private func coordinator(enabled: Bool = true,
                              unprocessed: Set<UUID> = [],
                              enhancement: ((UUID) -> MemoEnhancement?)? = nil) -> PublishCoordinator {
         let publisher = ObsidianPublisher(vaultProvider: { self.vaultRoot }, manageScope: false,
                                           author: "T", peopleProvider: { [] },
                                           ledgerOverride: ledger)
         return PublishCoordinator(
-            memosProvider: { memos }, publisher: publisher,
+            publisher: publisher,
             obsidianEnabled: { enabled },
             enhancementProvider: { id in
                 if let enhancement { return enhancement(id) }
@@ -55,7 +55,7 @@ final class PublishCoordinatorTests: XCTestCase {
     func testEmptyPassPublishes() {
         let m = Memo(title: "T", transcript: "Hm.", significance: 0.5)
         let ran = MemoEnhancement(memoID: m.id, processedAt: Date())
-        let c = coordinator(memos: [m], enhancement: { _ in ran })
+        let c = coordinator(enhancement: { _ in ran })
         XCTAssertFalse(ran.hasContent, "nothing to prefer over the raw text")
         XCTAssertTrue(c.shouldPublish(m), "…but it HAS been processed")
         XCTAssertNil(c.exportRefusal(m))
@@ -66,7 +66,7 @@ final class PublishCoordinatorTests: XCTestCase {
     func testMerelyRetitledLegacyRowDoesNotPublish() {
         let m = Memo(title: "T", transcript: "A raw ramble.", significance: 0.5)
         let titleOnly = MemoEnhancement(memoID: m.id, title: "A title I typed")
-        let c = coordinator(memos: [m], enhancement: { _ in titleOnly })
+        let c = coordinator(enhancement: { _ in titleOnly })
         XCTAssertFalse(c.shouldPublish(m))
         XCTAssertEqual(c.exportRefusal(m),
                        "Process this note first — the vault gets the polished note, not the raw one.")
@@ -77,7 +77,7 @@ final class PublishCoordinatorTests: XCTestCase {
         let m = Memo(title: "T", transcript: "A raw ramble.", significance: 0.5)
         let legacy = MemoEnhancement(memoID: m.id, copyedit: "Polished.", title: "T", summary: "S")
         XCTAssertNil(legacy.processedAt)
-        XCTAssertTrue(coordinator(memos: [m], enhancement: { _ in legacy }).shouldPublish(m))
+        XCTAssertTrue(coordinator(enhancement: { _ in legacy }).shouldPublish(m))
     }
 
     func testGateDisabled() {

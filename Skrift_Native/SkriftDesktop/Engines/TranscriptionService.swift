@@ -189,7 +189,7 @@ actor TranscriptionService: Transcribing {
         await live.captionParts()
     }
 
-    /// `finish`, keeping only the ownership-boundary tail (`LiveCaptionEngine.finishParts`
+    /// Close the live take, keeping only the ownership-boundary tail (`LiveCaptionEngine.finishParts`
     /// `.finalTail`): the Mac's edited-take finalize is the one reader. The phone's stop
     /// always re-ASRs the whole file, so it never calls this.
     func finishStreamTail() async -> String {

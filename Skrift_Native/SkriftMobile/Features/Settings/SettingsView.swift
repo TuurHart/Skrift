@@ -13,7 +13,7 @@ struct SettingsView: View {
     @AppStorage(PrefKey.karaokeTapToSeek) private var karaokeTapToSeek = PrefKey.karaokeTapToSeekDefault
     // Key is PrefKey.autoCopyTranscript (default OFF — user-locked).
     @AppStorage(PrefKey.autoCopyTranscript) private var autoCopyTranscript = PrefKey.autoCopyTranscriptDefault
-    // Key = TranscriptionService.multilingualKey. false = English (v3 default, cleanest
+    // Key = ASRLanguageMode.settingKey. false = English (v3 default, cleanest
     // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
     // rebuilds the model when this flips.
     @AppStorage(ASRLanguageMode.settingKey) private var transcriptionMultilingual = false

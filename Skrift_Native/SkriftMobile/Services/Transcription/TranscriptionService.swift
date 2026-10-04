@@ -26,11 +26,6 @@ actor TranscriptionService: Transcribing {
     /// The language mode (`transcriptionMultilingual`) the loaded manager was built
     /// with, so `ensureLoaded` rebuilds when the user flips the Settings toggle.
     private var loadedMultilingual = false
-    /// @AppStorage key for the English ↔ Multilingual transcription toggle. Default
-    /// false = English (the v3 default). Read here; written by Settings.
-    /// Kept as an alias — the name now lives on the shared `ASRLanguageMode` so both
-    /// apps read one key.
-    static var multilingualKey: String { ASRLanguageMode.settingKey }
 
     // Live streaming session state now lives in the shared `LiveCaptionEngine`
     // (see the "Live streaming" section below). This flag is the service's own
@@ -39,8 +34,6 @@ actor TranscriptionService: Transcribing {
     private var streaming = false
 
     private init() {}
-
-    var isModelReady: Bool { asr != nil }
 
     // MARK: - Model lifecycle
 
@@ -63,8 +56,7 @@ actor TranscriptionService: Transcribing {
         let task = Task<Void, Error> {
             await MainActor.run { ModelLoadStatus.shared.set(.preparing(nil)) }
             let mlConfig = MLModelConfiguration()
-            let useANE = UserDefaults.standard.object(forKey: "useANE") as? Bool ?? true
-            mlConfig.computeUnits = useANE ? .cpuAndNeuralEngine : .cpuOnly
+            mlConfig.computeUnits = .cpuAndNeuralEngine
             // v3 = multilingual (English + Dutch + 23 more). First call downloads
             // ~600MB from HuggingFace, cached locally thereafter.
             let loaded = try await AsrModels.downloadAndLoad(
@@ -244,25 +236,11 @@ actor TranscriptionService: Transcribing {
         await live.feed(ownedBuffer)
     }
 
-    /// Best-effort full transcript right now: committed chunks + a live
-    /// re-transcribe of the accumulated buffer. Overlapping calls short-circuit.
-    func liveCaption() async -> String {
-        await live.caption()
-    }
-
     /// The caption split at its REAL finalized boundary — see
     /// `LiveCaptionEngine.captionParts` (the 2026-06-10 device finding lives on
     /// its doc comment now).
     func liveCaptionParts() async -> (full: String, committed: String) {
         await live.captionParts()
-    }
-
-    /// Stitched transcribe of the remaining buffer + committed chunks. Provided
-    /// for completeness; the authoritative transcript is the one-shot file pass,
-    /// so the record flow calls `endStream()` instead.
-    func finishStream() async -> String {
-        streaming = false
-        return await live.finish()
     }
 
     /// Drop all live state (called on stop/cancel).
@@ -285,12 +263,6 @@ actor TranscriptionService: Transcribing {
         guard let asr else { throw ASRError.notInitialized }
         var state = TdtDecoderState.make()
         return try await asr.transcribe(merged, decoderState: &state).text
-    }
-
-    /// Forwarder — the rule lives on the shared engine; phone tests keep their seam.
-    nonisolated static func shouldRotate(sinceRotation: TimeInterval,
-                                         lastSnapshotCost: TimeInterval) -> Bool {
-        LiveCaptionEngine.shouldRotate(sinceRotation: sinceRotation, lastSnapshotCost: lastSnapshotCost)
     }
 }
 

@@ -116,7 +116,7 @@ final class NotesRepository {
 
     /// A compact slice of the call stack above a delete, to pinpoint WHO triggered it
     /// during the 2026-06-21 "note vanished after append" hunt. If a memo disappears
-    /// on device with NO `softDelete`/`delete`/`permanentlyDelete` line in devlog, the
+    /// on device with NO `softDelete`/`permanentlyDelete` line in devlog, the
     /// delete came from CloudKit's remote-change import, not our code. DEBUG/devlog-only.
     private static func callerFrames() -> String {
         Thread.callStackSymbols
@@ -135,7 +135,7 @@ final class NotesRepository {
     /// The full-delete path: removes the memo's audio, its photos, and the
     /// word-timings + diarization sidecars, then the row itself. Used by
     /// Delete-Now in Recently Deleted and the startup purge. (MemoDetailView's
-    /// delete mirrors the same cleanup inline.)
+    /// delete calls `softDelete`; the purge lands here.)
     func permanentlyDelete(_ memo: Memo) {
         DevLog.log("permanentlyDelete memo \(memo.id) status=\(memo.transcriptStatus)")
         if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
@@ -153,11 +153,6 @@ final class NotesRepository {
     }
 
     // MARK: - Media assets (CloudKit blobs — Phase 1c)
-
-    /// Every `MemoAsset` row (audio + photo blobs across all memos).
-    func allAssets() -> [MemoAsset] {
-        (try? context.fetch(FetchDescriptor<MemoAsset>())) ?? []
-    }
 
     /// The asset rows owned by one memo.
     func assets(forMemo id: UUID) -> [MemoAsset] {
@@ -183,9 +178,6 @@ final class NotesRepository {
         for asset in assets(forMemo: id) { context.delete(asset) }
     }
 
-    /// True when a synced `MemoAsset` exists for `filename` — i.e. the media is
-    /// expected (downloading / pending materialization) even if its file isn't on
-    /// disk yet. Drives the "Downloading from iCloud…" placeholder.
     /// Every tag across live memos, most-used first (the tag editor's
     /// autocomplete source). Was a full re-fetch + re-sort of every memo on
     /// EVERY call — it's constructed inline in a view initializer
@@ -203,6 +195,9 @@ final class NotesRepository {
         }
     }
 
+    /// True when a synced `MemoAsset` exists for `filename` — i.e. the media is
+    /// expected (downloading / pending materialization) even if its file isn't on
+    /// disk yet. Drives the "Downloading from iCloud…" placeholder.
     func hasAsset(filename: String) -> Bool {
         guard !filename.isEmpty else { return false }
         var d = FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.filename == filename })
@@ -279,15 +274,6 @@ final class NotesRepository {
         let expired = deletedMemos().filter { MemoLifecycle.purgeDue($0, now: now) }
         for memo in expired { permanentlyDelete(memo) }
         return expired.count
-    }
-
-    /// Immediate hard delete of the SwiftData row only (callers clean up files
-    /// themselves — MemoDetailView's delete path). Prefer `softDelete` for user
-    /// deletes and `permanentlyDelete` when files should go too.
-    func delete(_ memo: Memo) {
-        DevLog.log("delete(row) memo \(memo.id) status=\(memo.transcriptStatus)")
-        context.delete(memo)
-        save()
     }
 
     func save() {

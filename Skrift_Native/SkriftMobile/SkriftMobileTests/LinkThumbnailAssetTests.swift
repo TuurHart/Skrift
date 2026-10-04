@@ -11,6 +11,7 @@ final class LinkThumbnailAssetTests: XCTestCase {
 
     private let fm = FileManager.default
     private func url(_ name: String) -> URL { AppPaths.recordingsDirectory.appendingPathComponent(name) }
+    private func allAssets(_ repo: NotesRepository) -> [MemoAsset] { (try? repo.context.fetch(FetchDescriptor<MemoAsset>())) ?? [] }
 
     private func linkMemo(id: UUID, thumb: String?) -> Memo {
         let memo = Memo(id: id, audioFilename: "")
@@ -48,7 +49,7 @@ final class LinkThumbnailAssetTests: XCTestCase {
 
         AssetMaterializer.captureMissing(repo)
 
-        XCTAssertTrue(repo.allAssets().isEmpty)
+        XCTAssertTrue(allAssets(repo).isEmpty)
     }
 
     func testThumbnailRoundTripsToAnotherDevice() {

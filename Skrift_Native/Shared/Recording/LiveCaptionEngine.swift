@@ -176,12 +176,6 @@ actor LiveCaptionEngine {
 
     // MARK: - Caption
 
-    /// Best-effort full transcript right now: committed chunks + a live re-transcribe of the
-    /// accumulated buffer. Overlapping calls short-circuit.
-    func caption() async -> String {
-        await captionParts().full
-    }
-
     /// The caption split at its REAL finalized boundary: `committed` = rotated chunks that
     /// will NEVER change again; everything after is the live chunk, re-transcribed wholesale
     /// each poll (volatile). This is the true signal solid-vs-volatile rendering needs — and
@@ -263,13 +257,7 @@ actor LiveCaptionEngine {
         stableTailPolls = 0
     }
 
-    /// Stitched transcribe of the remaining buffer + committed chunks, then teardown.
-    /// The authoritative transcript is still the one-shot pass over the finished file.
-    func finish() async -> String {
-        await finishParts().stitched
-    }
-
-    /// `finish`, split at the ownership boundary — for the Mac's m2 surface, where the user
+    /// Stitched transcribe of the remaining buffer + committed chunks, then teardown, split at the ownership boundary — for the Mac's m2 surface, where the user
     /// may have EDITED the settled text mid-take: `finalTail` is a final-quality transcribe of
     /// ONLY the un-rotated live window (the engine's own wet ink), so the caller can finalize
     /// the engine's region without touching a word the user owns. `stitched` remains the whole
@@ -293,7 +281,7 @@ actor LiveCaptionEngine {
 
     /// Chunk rotation: transcribe the live buffer into a committed chunk and clear it — at
     /// the `rotationInterval` hard cap (bounds memory), or EARLY once snapshots have grown
-    /// expensive for this device (bounds per-poll inference cost — see `shouldRotate`).
+    /// expensive for this device (bounds per-poll inference cost — see `rotationTrigger`).
     private func rotateIfNeeded() async {
         guard !rotating, let transcribe, !streamBuffers.isEmpty else { return }
         let started = lastRotationAt ?? streamStartedAt ?? Date()
@@ -356,14 +344,6 @@ actor LiveCaptionEngine {
         // hardware); with a short cap it simply never fires first.
         if sinceRotation > 10, lastSnapshotCost > 1.2 { return .cost }
         return nil
-    }
-
-    /// Whether the live chunk should rotate now — `rotationTrigger`'s yes/no face.
-    nonisolated static func shouldRotate(sinceRotation: TimeInterval,
-                                         lastSnapshotCost: TimeInterval,
-                                         interval: TimeInterval = defaultRotationInterval) -> Bool {
-        rotationTrigger(sinceRotation: sinceRotation, lastSnapshotCost: lastSnapshotCost,
-                        interval: interval) != nil
     }
 
     /// Whether a live window whose decode has survived `stablePolls` consecutive polls

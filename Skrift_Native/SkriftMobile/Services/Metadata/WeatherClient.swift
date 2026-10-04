@@ -27,16 +27,6 @@ enum WeatherClient {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    static func setAPIKey(_ key: String?) {
-        let trimmed = key?.trimmingCharacters(in: .whitespaces)
-        if let trimmed, !trimmed.isEmpty {
-            UserDefaults.standard.set(trimmed, forKey: apiKeyDefaultsKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: apiKeyDefaultsKey)
-            UserDefaults.standard.removeObject(forKey: legacyAPIKeyDefaultsKey)
-        }
-    }
-
     static func fetch(latitude: Double, longitude: Double, session: URLSession = .shared) async -> WeatherReading {
         guard let key = apiKey,
               let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&units=metric&appid=\(key)") else {

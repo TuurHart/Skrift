@@ -24,11 +24,9 @@ actor DiarizationService: Diarizing {
     private let embedder = SpeakerEmbedder.shared
     private init() {}
 
-    var isModelReady: Bool { diarizer != nil }
-
     /// Download + load the Sortformer CoreML bundle once (≈12 files; first compile is
     /// slow, then cached). Device-only in practice (ANE).
-    func ensureLoaded() async throws {
+    private func ensureLoaded() async throws {
         guard diarizer == nil else { return }
         // Distinguish a genuine first-time download from a cached reload (each app launch
         // reloads into memory — that's "Preparing", not "Downloading"). Flag set once below.

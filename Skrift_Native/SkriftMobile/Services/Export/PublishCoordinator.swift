@@ -18,7 +18,6 @@ import Foundation
 ///   double-write from another device harmless.
 @MainActor
 struct PublishCoordinator {
-    var memosProvider: () -> [Memo]
     var publisher: ObsidianPublisher
     var obsidianEnabled: () -> Bool
     /// Is a PORTFOLIO root configured on this device? A note bound for the portfolio needs that
@@ -32,7 +31,6 @@ struct PublishCoordinator {
     /// Production coordinator over the live store, settings, and pairing state.
     static func live(author: String) -> PublishCoordinator {
         PublishCoordinator(
-            memosProvider: { NotesRepository.shared.allMemos() },
             publisher: .live(author: author),
             // The picked folder IS the consent — no separate on/off (2026-08-18; the
             // old `skrift.publish.obsidianEnabled` key is dead and deliberately unread,

@@ -45,8 +45,6 @@ enum PortfolioVault {
     /// The root's display name for Settings ("portfolio", not a whole path).
     static var displayName: String? { resolveRoot()?.lastPathComponent }
 
-    static func clear() { UserDefaults.standard.removeObject(forKey: DestinationSettings.portfolioRootKey) }
-
     /// `-seedPortfolioFolder` — the screenshot/UI rig. Makes a real folder in the app's own
     /// container and bookmarks it, so a run can show the CONFIGURED Destinations settings
     /// without driving the system document picker. Never runs without the flag.
