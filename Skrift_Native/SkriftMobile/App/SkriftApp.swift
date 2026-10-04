@@ -43,25 +43,6 @@ struct SkriftApp: App {
         // Shared/RetrievalEngine and can't see DevLog directly).
         GemmaEmbedder.log = { DevLog.log($0) }
 
-        #if DEBUG
-        // P0 recovery hook (2026-07-10): restore a clobbered enhancement copy-edit
-        // passed as a launch argument. Newest `enhancedAt` wins everywhere, so the
-        // restored text supersedes the clobber on every synced device.
-        if let restore = LaunchFlags.restoreEnhancement {
-            let enhancement = repo.enhancement(forMemo: restore.memoID)
-                ?? {
-                    let fresh = MemoEnhancement(memoID: restore.memoID)
-                    repo.context.insert(fresh)
-                    return fresh
-                }()
-            enhancement.copyedit = restore.copyedit
-            enhancement.enhancedByDeviceID = DeviceID.current()
-            enhancement.enhancedAt = Date()
-            repo.save()
-            DevLog.log("P0 restore: memo \(restore.memoID) copyedit ← \(restore.copyedit.count) chars")
-        }
-        #endif
-
         // Trash retention: permanently remove memos whose purge clock ran out
         // (audio + photo + sidecar files included) before any UI shows them.
         // v3-gated (2026-07-23): the clock is `trashSeenAt` — days the user

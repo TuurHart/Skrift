@@ -14,9 +14,8 @@ private enum SK {
     static let recordURL = URL(string: "skrift://record")
 }
 
-/// Recording Live Activity (Lock Screen banner + Dynamic Island). Display-only in
-/// 8a — the whole surface deep-links to `skrift://record` to bring the app
-/// forward; the interactive Stop button (a `StopRecordingIntent`) arrives in 8b.
+/// Recording Live Activity (Lock Screen banner + Dynamic Island). The surface
+/// deep-links to `skrift://record` to bring the app forward; Stop is a `StopRecordingIntent`.
 ///
 /// STALE state: the app refreshes the activity's `staleDate` while it's really
 /// recording (RecordingActivityManager keep-alive). When the process dies

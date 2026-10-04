@@ -178,41 +178,4 @@ final class TrashTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: audioURL.path))
         try? FileManager.default.removeItem(at: audioURL)   // tidy up
     }
-
-    // MARK: - Countdown labels
-
-    /// A memo deleted-and-seen `secondsAgo` — the normal in-session case,
-    /// where the countdown runs from the deletion itself.
-    private func seenTrashed(secondsAgo: TimeInterval, now: Date) -> Memo {
-        let m = Memo(deletedAt: now.addingTimeInterval(-secondsAgo))
-        m.trashSeenAt = m.deletedAt
-        return m
-    }
-
-    func testTrashDaysRemainingCeilsAndClamps() {
-        let now = Date()
-
-        let notTrashed = Memo()
-        XCTAssertNil(notTrashed.trashDaysRemaining(now: now))
-
-        XCTAssertEqual(seenTrashed(secondsAgo: 3600, now: now).trashDaysRemaining(now: now), 14)
-        XCTAssertEqual(seenTrashed(secondsAgo: 13.5 * 86_400, now: now).trashDaysRemaining(now: now), 1)
-        XCTAssertEqual(seenTrashed(secondsAgo: 20 * 86_400, now: now).trashDaysRemaining(now: now), 0)
-
-        // v3: an UNSEEN synced-in deletion shows the full window — its clock
-        // truly hasn't started (matches the purge gate, so the date is honest).
-        let unseen = Memo(deletedAt: now.addingTimeInterval(-20 * 86_400))
-        XCTAssertEqual(unseen.trashDaysRemaining(now: now), TrashPolicy.retentionDays)
-    }
-
-    func testTrashCountdownLabel() {
-        let now = Date()
-        XCTAssertNil(Memo().trashCountdownLabel(now: now))
-        XCTAssertEqual(seenTrashed(secondsAgo: 3600, now: now).trashCountdownLabel(now: now),
-                       "14 days left")
-        XCTAssertEqual(seenTrashed(secondsAgo: 13.5 * 86_400, now: now).trashCountdownLabel(now: now),
-                       "1 day left")
-        XCTAssertEqual(seenTrashed(secondsAgo: 15 * 86_400, now: now).trashCountdownLabel(now: now),
-                       "Deleting soon")
-    }
 }

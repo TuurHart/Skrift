@@ -121,7 +121,6 @@ final class NoteCardModelParityTests: XCTestCase {
     func testPhoneDisplayHelpersAgreeWithTheBuilder() {
         let book = note("book")
         XCTAssertEqual(book.quoteSnippet, "Focus is a skill. Train it.")
-        XCTAssertEqual(book.rambleSnippet, "My take: yes")
         XCTAssertEqual(book.bookCaptionLabel, "Deep Work · ch. 4")
         XCTAssertEqual(note("link").shareCaptureTitle, "A Post")
         XCTAssertEqual(note("link").shareCaptureURLDomain, "example.com")

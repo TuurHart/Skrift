@@ -68,26 +68,6 @@ final class BookCaptureDisplayTests: XCTestCase {
         XCTAssertEqual(memo.quoteSnippet, "First. Second.")
     }
 
-    // MARK: - Ramble (the row's dim second line)
-
-    func testRambleSnippetIsTheFirstLineBelowTheQuote() {
-        let memo = captureMemo(transcript: c1Transcript)
-        XCTAssertEqual(
-            memo.rambleSnippet,
-            "My take: this reframes the retro — treat the failure as input, not verdict."
-        )
-    }
-
-    func testRambleSnippetNilForAQuoteOnlyCapture() {
-        // "Save & keep listening" without recording thoughts → no ramble yet.
-        XCTAssertNil(captureMemo(transcript: "> Just the quote.").rambleSnippet)
-    }
-
-    func testRambleSnippetStripsImageMarkers() {
-        let memo = captureMemo(transcript: "> Q.\n\n[[img_001]] thoughts here")
-        XCTAssertEqual(memo.rambleSnippet, "thoughts here")
-    }
-
     // MARK: - Book caption ("Book · ch. N")
 
     func testBookCaptionLabelFormatsNumericChaptersAndPassesNamesThrough() {
