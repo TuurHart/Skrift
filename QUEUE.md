@@ -142,7 +142,7 @@ spec: C99
 needs: Q16
 node: AuditFix2
 do: Install the Dev build on the iPhone 13. Take 1: record, take a phone call mid-take, hang up. Take 2: record, force-quit mid-take. Relaunch after each; pull `Documents/devlog.txt`.
-check: Both notes are present after relaunch with all audio up to the event, and Tuur says so.
+check: On the phone, start a recording, take a call (or force-quit Skrift) mid-take, then reopen. Are both notes there with all the audio up to the interruption?
 
 ### Q18 [auto] (done) a corrupt local file is never loaded as empty
 spec: C50 C265 C218
@@ -477,13 +477,13 @@ spec: C277 R90
 needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live.
 Also, in the same Dev window: does the sidebar's left edge cut the first letter of every row and day header ("ODAY", "AT 19 SEP")? The headless snapshot always shows it (Q35, Q37, Q65); a real window has never been checked.
-check: Tuur typed on the Mac and said the flash is fine, or it became an item.
+check: On the Mac, type a heading and a link in a note. Does the brief flash while typing feel fine, or should it go?
 
 ### Q64 [tuur] (tuur) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
 spec: C112 C114
 needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
-check: Tuur tapped ✎ on the iPhone 13 and said it opened a new note with the toolbar up, or it became an item.
+check: On the phone, open a quick note full screen and tap ✎. Does it open a new note with the toolbar still up?
 
 ### Q65 [auto] (done) Mac sidebar looks like the phone list: grey background, white card rows (D135 miss)
 spec: C115 C240
@@ -947,14 +947,14 @@ source: plan/reads/parity-audit.md P28
 spec: C119 D126 C113
 needs: -
 do: One clickable page: the Mac note with a photo added at the caret (open panel / paste / drop), a tapped photo opening the zoom + markup viewer, and a `[[img_NNN]]` whose file has not arrived yet (today it shows raw marker text; the phone shows a grey card and 'Downloading from iCloud…'). Draw today's Mac note and the phone's viewer from source (C117). Covers note-body-16, -17, -18, capture-import-41.
-check: Tuur clicked through it and said go.
+check: Mac photos mock (claude.ai/artifact/Li25ppmZmB5fVXHYCdHZxa): should one click on a photo select it like Apple Notes (double-click opens), or open the viewer straight away? Anything else to change before it gets built?
 source: plan/reads/parity-audit.md P29
 
 ### Q129 [tuur] (tuur) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
 spec: D122 C162
 needs: -
 do: One clickable page: the Mac note header chip becoming tappable (today a static chip with year), the picker (the phone's `ReminderSheet` drawn from source), 'Remind me…' in the list and note menus, and the notification the Mac shows when a synced reminder fires; first acknowledgement clears the other devices (C162). Covers note-header-06, note-menu-09, note-remind-01, list-sidebar-86.
-check: Tuur clicked through it and said go.
+check: Mac reminders mock (claude.ai/artifact/9SVbKnUhn2Re1wyUWcjiD5): when you close the Mac reminder banner with ✕, should that silence the iPhone and iPad too? Go to build?
 source: plan/reads/parity-audit.md P30
 
 ### Q130 [tuur] (done) decide: boxed capture cards on the Mac against the no-bubbles rule
@@ -1073,7 +1073,7 @@ source: plan/reads/parity-audit.md P44
 spec: C237 D92 R36
 needs: -
 do: A Mac recording or typed note carries place only: no weather, no daypart, no steps, no chips (recsj-024, setexp-37, capture-quick-14; R36 lists it as required). The Mac has no weather key row and no `weatherAPIKey`. One page: the Mac Settings row for the key (draw the phone's from source) and the chips on a Mac note header. Needs his key typed by him; nothing is entered by the agent.
-check: Tuur clicked through it, added his key, and said go.
+check: Mac weather mock (claude.ai/artifact/43NTAjUbFrB6C8vHw1NL3m): should the Mac take the OpenWeatherMap key from the phone over iCloud, or have its own field? Go to build?
 source: plan/reads/parity-audit.md P45
 
 ### Q145 [tuur] (done) decide: a plain .md file — Apple Note on the Mac, Text capture on the phone
@@ -1136,7 +1136,7 @@ source: plan/reads/parity-audit.md P52
 spec: D50 C160 C172
 needs: -
 do: D50/C160 decide the user can correct a misheard word in a captured quote; the quote block is read-only on the phone and (after the Mac read-only item) on the Mac, and no 'Fix quote' verb exists anywhere (books-118). One page: the verb in the note menu, the edit state of the quote, and how the corrected text stays attached to the audio window.
-check: Tuur clicked through it and said go.
+check: Fix-quote mock (claude.ai/artifact/Xoe9ccY5K7yHysRUMyBxrP): is fixing one word at a time plus 'Include next word' enough for real mishearings, or do you want to free-type over the whole quote?
 source: plan/reads/parity-audit.md P53
 
 ### Q153 [auto] (done) export: file name, title, link stems and date: phone and Mac produce the same file for one note
@@ -1215,7 +1215,7 @@ source: plan/reads/parity-audit.md P62
 spec: D119 C217
 needs: -
 do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-list 'Syncing with iCloud…' capsule; the Mac observes CloudKit events only to trigger sweeps and shows no state, and BUGS.md:184 notes the old pill reads dead Bonjour state; a failed Mac container (`MemoCloudContainer`) silently disables sync, and neither app tells the user note sync is off when signed out (setexp-12, -14, -16, -18, -130). One page: the Mac Settings sync row, the capsule above the sidebar list, and the signed-out / failed state on both apps; the Mac's 'CloudKit sync with the Mac' switch (default on) shown with what it gates.
-check: Tuur clicked through it and said go.
+check: Mac iCloud mock (claude.ai/artifact/7wi8J65uDFC1oCu3d6H8AL): when sync is broken or off, should the note list show a capsule until it's fixed, or only Settings say so?
 source: plan/reads/parity-audit.md P63
 
 ### Q163 [auto] (done) Mac recorder survives a kill: segments + launch sweep, and a disk-full stop saves what landed
@@ -1929,7 +1929,7 @@ check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 spec: -
 needs: -
 do: -
-check: Tuur decided or approved; follow-up item added if needed.
+check: Before the next prod promotion: OK to test the Mac name-store column rename on a COPY of your prod Mac store (never the real one)?
 
 ### Q253 [tuur] (done) decide: merged-clip and import dating is filename, then file date, never the embedded date (Q134, because AVAudioFile stamps the write moment) — confirm as a SPEC Decision superseding C70's embedded-first order, or say otherwise
 spec: -
@@ -2049,13 +2049,13 @@ check: Tuur decided or approved; follow-up item added if needed.
 spec: -
 needs: -
 do: -
-check: Tuur decided or approved; follow-up item added if needed.
+check: Undated Apple Note imports now carry a 1970 date. An older installed build would fade them at once. Promote phone and Mac together before importing Apple Notes, agreed?
 
 ### Q272 [tuur] (tuur) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
 spec: -
 needs: -
 do: -
-check: Tuur decided; follow-up item added if he changes it.
+check: Look on Dev: the phone memo-link chip now looks like the Mac's ('🗒 Title', bordered), Mac inline photos fill the column (320 pt cap), and the record waveform has a quiet-bar floor. Keep all of it?
 
 ### Q273 [auto] (done) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
 spec: D127
@@ -2068,7 +2068,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookJumpBackPlaceTests && 
 spec: -
 needs: -
 do: -
-check: Tuur decided; follow-up item added if needed.
+check: On the phone: deny the mic in Settings, tap Record. Do you get one alert with Open Settings and no loop? And does a silent take (mic covered) get treated as a dead take?
 
 ### Q275 [tuur] (done) Q151 picks to settle: the compact phone Library row got an invented trailing '❝ N' capsule (the Q6 mock only draws the tile grid) — keep? Should the jump-back also appear on non-book notes (PDF/podcast)?
 spec: -
@@ -2092,25 +2092,25 @@ check: (fill in)
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: Before promoting only one app: OK if I test whether an older build survives a synced link thumbnail (new asset kind), or do we always promote phone and Mac together?
 
 ### Q279 [tuur] (tuur) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: SPEC fixes to match the code: the Mac rotates live captions at 20 s (SPEC says 7 s); Open-in now routes via ImportKinds (C199 says 'silently ignored'); C145 gains the Files chooser and the long-audio offer. OK to update the SPEC wording?
 
 ### Q280 [tuur] (tuur) look (Q171): phone list header Import/Record/New-note row + filter date picker after the shared VerbRow/ChipRowStyle move — compile-checked only, never seen on a sim or device
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: Look on the phone: the list header's Import / Record / New-note row and the filter date picker moved to shared code. Do they look the same as before?
 
 ### Q281 [tuur] (tuur) look (Q245): share a voice memo, a video, a URL and a photo into Skrift on the phone and check the share sheet cards look unchanged after the shared card-chrome refactor — compile-checked only
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: On the phone, share a voice memo, a video, a link and a photo into Skrift. Do the share-sheet cards look unchanged?
 
 ### Q282 [auto] (done) Done means processed on every device: one shared QueueFilter predicate
 spec: C61 C115 D167
@@ -2166,7 +2166,7 @@ spec: C220 C262 D173
 needs: -
 gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac recorder gets pause / resume and a discard that asks first (the phone has both; its X discards without confirm, R71/C262). Mock first (locked process for new UI): draw the Mac record bar from SOURCE (Features/Recording/), with pause, resume and discard + confirm states. Publish the artifact; the build item follows sign-off.
-check: Tuur signed the mock off.
+check: Mac recorder mock (claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW): after × asks 'Discard this recording?', should the take keep recording until you answer, or pause? Go to build?
 
 ### Q290 [auto] (todo) Mac: add a recording to an existing note
 spec: C220 D173
@@ -2215,7 +2215,7 @@ spec: D177
 needs: -
 gate+: yes
 do: Tuur 2026-10-03 (D177): add an on-screen checklist button next to the Mac's Format > Checklist (⇧⌘L). Mock first: draw the current Mac editor toolbar from SOURCE, add the button and its on-state. Publish the artifact; the build follows sign-off.
-check: Tuur signed the mock off.
+check: Mac checklist button mock (claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5): left next to the notes-list toggle (A) or right before Process (B)? A multi-line selection would become a checklist on both apps, OK?
 
 ### Q297 [auto] (todo) jump-back on PDF and podcast notes too
 spec: D177
@@ -2228,7 +2228,7 @@ check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./
 spec: -
 needs: -
 do: (fill in)
-check: (fill in)
+check: Before promoting the new build: OK to deploy the CloudKit prod schema for the new synced export-audio setting (and the video asset once it lands)? It needs you in the CloudKit console.
 
 ### Q299 [auto] (doing) in-app feedback button on phone and iPad (FeedbackKit, app id skrift)
 spec: D179
