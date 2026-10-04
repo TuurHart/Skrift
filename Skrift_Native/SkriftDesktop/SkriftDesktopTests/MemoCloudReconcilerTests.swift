@@ -264,8 +264,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                     DiarizedSegment(speaker: 1, start: 1.2, end: 2.5)]
         cloud.insert(MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.diarization,
                                filename: "diar_\(memo.id.uuidString).json",
-                               blob: try JSONEncoder().encode(
-                                   DiarizationData(segments: segs, slotNames: ["0": "Tuur"]))))
+                               blob: try PhoneDiarizationFixture.blob(segments: segs, slotNames: ["0": "Tuur"])))
         try cloud.save()
 
         let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false, upload: upload)

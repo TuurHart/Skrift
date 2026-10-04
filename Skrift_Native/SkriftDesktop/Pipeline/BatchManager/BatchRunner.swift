@@ -116,14 +116,11 @@ struct BatchRunner {
             }
             // The ASR succeeded — the new transcript EXISTS now. Only at this point does a
             // re-transcribe drop every derivative of the OLD one (C51): word timings,
-            // diarization (+ its sidecar), sanitised body, ambiguous names, copy-edit,
+            // diarization, sanitised body, ambiguous names, copy-edit,
             // summary, suggested title, compiled draft — so the run below can't mix stale
             // state with the fresh transcript.
             if retranscribe {
                 pf.diarizationSegments = []
-                if !pf.path.isEmpty {
-                    DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
-                }
                 pf.sanitised = nil
                 pf.ambiguousNames = nil
                 pf.enhancedCopyedit = nil
@@ -167,14 +164,8 @@ struct BatchRunner {
             }
             // Retain the diarization so a speaker's voice can be enrolled later from the
             // review screen (slice their audio by these segments → embedSpeaker) without
-            // re-diarizing. Persist BOTH on the PipelineFile (survives SwiftData) AND as a
-            // `diar_<id>.json` sidecar next to the audio (byte-mirrors the phone, keeps the
-            // segments with the recording for portability). Was discarded before.
+            // re-diarizing. Persisted on the PipelineFile (SwiftData) only.
             pf.diarizationSegments = out.segments
-            if !pf.path.isEmpty {
-                DiarizationSidecar().write(DiarizationData(out),
-                                           in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
-            }
         }
 
         // Capture ends here for a recording: it has its words (and its speaker turns), and

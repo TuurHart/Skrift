@@ -54,9 +54,6 @@ enum SplitSpeakers {
               let flat = SpeakerTranscript.flattened(pf.transcript) else { return false }
         pf.transcript = flat
         pf.diarizationSegments = []
-        if !pf.path.isEmpty {
-            DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
-        }
         pf.sanitised = nil
         pf.ambiguousNames = nil
         pf.enhancedCopyedit = nil

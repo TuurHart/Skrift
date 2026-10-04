@@ -111,11 +111,10 @@ final class PipelineFile {
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?
-    /// `[DiarizedSegment]` stored as a JSON blob (the per-file `diar_<id>.json`
-    /// sidecar equivalent). Persisted by the conversation-mode diarize step so a
+    /// `[DiarizedSegment]` stored as a JSON blob. Persisted by the conversation-mode diarize step so a
     /// speaker's audio can be re-extracted later — to ENROLL their voice from the Mac
     /// review screen — WITHOUT re-diarizing. Empty for monologues / phone-attributed
-    /// memos the Mac never split. (Set alongside the `diar_<id>.json` sidecar.)
+    /// memos the Mac never split.
     var diarizationSegmentsJSON: Data?
 
     // Enhancement (review-time fields)

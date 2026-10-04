@@ -198,9 +198,7 @@ final class MemoCloudIngestTests: XCTestCase {
                         transcript: "one two", transcriptStatus: .done, transcriptConfidence: 0.9, significance: 0.6)
         let timings = [WordTiming(word: "one", start: 0, end: 0.5), WordTiming(word: "two", start: 0.5, end: 1)]
         let wtBlob = try JSONEncoder().encode(timings)
-        let diar = DiarizationData(segments: [DiarizedSegment(speaker: 0, start: 0, end: 1)],
-                                   slotNames: [:], turnSlots: nil)
-        let diarBlob = try JSONEncoder().encode(diar)
+        let diarBlob = try PhoneDiarizationFixture.blob(segments: [DiarizedSegment(speaker: 0, start: 0, end: 1)])
         let assets = [
             audioAsset(memo),
             MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.wordTimings, filename: "wt.json", blob: wtBlob),

@@ -593,7 +593,7 @@ final class ProcessingCoordinator {
 
     /// Re-run the whole pipeline on one file (re-transcribe → re-enhance). Clears
     /// every derivative of the OLD transcript first — word timings, diarization
-    /// segments (+ the `diar_<id>.json` sidecar), sanitised body, ambiguous names,
+    /// segments, sanitised body, ambiguous names,
     /// copy-edit/summary/suggested-title, compiled draft — so a re-run can't mix
     /// stale state with the fresh transcript. (Stale diarization segments fed wrong
     /// voice-enrollment slices; a stale sanitised body kept showing the OLD text

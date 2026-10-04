@@ -50,11 +50,9 @@ final class UploadServiceTests: XCTestCase {
         let pf = try XCTUnwrap(svc.ingest(memo: memo, assets: assets, into: ctx))
         // Word-timings drive Mac karaoke on a trusted memo it never re-transcribes.
         XCTAssertEqual(pf.wordTimings.map(\.word), ["hi", "there"])
-        // Diarization segments retained for voice enrollment + mirrored to the sidecar.
+        // Diarization segments retained for voice enrollment (SwiftData only; no sidecar file).
         XCTAssertEqual(Set(pf.diarizationSegments.map(\.speaker)), [0, 1])
-        let folder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
-        let loaded = try XCTUnwrap(DiarizationSidecar().load(in: folder, id: pf.id))
-        XCTAssertEqual(loaded.slotNames["0"], "Tiuri Hartog")
+        XCTAssertEqual(pf.diarizationSegments.last?.start, 1.0)
     }
 
     func testIngestWithoutSidecarsStaysByteCompatible() throws {
