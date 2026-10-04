@@ -2304,6 +2304,13 @@ needs: -
 do: (fill in)
 check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F in a note and outside one, ⌘1/⌘2. Do they all do what you expect? Note the Mac's File > New Window is gone (⌘N is New Note now) — OK?
 
+### Q310 [auto] (todo) fix the flaky photo-OCR test MemoSaverTests.testSavedPhotoBecomesSearchableWithoutRelaunch
+spec: -
+needs: -
+gate+: yes
+do: It fails intermittently on the iPhone 17 sim (Vision OCR returns text: nil within the 10 s poll on a freshly erased or loaded simulator) — RUN.md Q13 finding; it blocked Q219's accept on 2026-10-04 though Q219 touched no OCR code. Make the test deterministic: inject a fake OCR recogniser for the save->searchable contract (the real Vision call belongs in a separate, tolerant test), or wait on the index notification instead of a fixed 10 s poll. This edits a protected test: report 'needs hand-merge' with the exact diff; do not weaken what the test proves (a saved photo's text is searchable without relaunch). Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3298,3 +3305,4 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 12:04 Q219 -> stuck — check failed — .queue/Q219.check.log
 - 2026-10-04 12:06 Q305 -> done — hand-merged (D163: FeedbackPaletteTests replaced tests of deleted workaround code)
 - 2026-10-04 12:11 Q219 -> done — gate pass @843830f7
+- 2026-10-04 12:11 Q310 added
