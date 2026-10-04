@@ -33,12 +33,6 @@ struct IngestService: Sendable {
     /// GET is retried up to three times. The backoff sleep is a seam so a test never waits.
     var linkRetrySleep: @Sendable (TimeInterval) async -> Void = RetryingLinkFetcher.realSleep
 
-    /// Whether a dropped PDF becomes a file capture. Off by default ONLY because the protected
-    /// `IngestServiceTests.testUnsupportedTypeSkipped` still pins "a PDF yields no note"; the app's
-    /// arrival path turns it on (`ArrivalPath.run`). Delete this flag, and make the answer
-    /// unconditional, in the same change that updates that test (hand-merge).
-    var acceptsDocuments: Bool = false
-
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
 
     /// The kind a file URL resolves to - the one the phone's `AppURLHandler.importKind(of:)`
@@ -206,8 +200,8 @@ struct IngestService: Sendable {
                 report.add(pf)
             } else {
                 report.skipped.append(url)
-                // With the document door open a PDF only lands here when it could not be read.
-                if acceptsDocuments, Self.importKind(of: url) == .document { report.reasons[url] = ImportReport.unreadable }
+                // A PDF only lands here when it could not be read.
+                if Self.importKind(of: url) == .document { report.reasons[url] = ImportReport.unreadable }
             }
         }
         try context.save()
@@ -529,7 +523,7 @@ struct IngestService: Sendable {
             return ext == "txt" ? try await ingestTextCapture(url, into: context)
                                 : try await ingestNote(url, into: context)
         case .document:
-            return acceptsDocuments ? try await ingestDocumentCapture(url, into: context) : nil
+            return try await ingestDocumentCapture(url, into: context)
         // Pictures are bundled before this point; a book has no Mac ingest here (the drop
         // reports it as skipped, never silently).
         case .image, .book, .none: return nil

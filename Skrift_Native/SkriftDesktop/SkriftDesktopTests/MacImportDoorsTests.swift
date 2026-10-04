@@ -44,7 +44,6 @@ final class MacImportDoorsTests: XCTestCase {
         var s = IngestService(outputDir: work.appendingPathComponent("out"))
         s.linkFetcher = fetcher
         s.pdfExtractor = StubPDFText(text: pdfText)
-        s.acceptsDocuments = true
         return s
     }
 

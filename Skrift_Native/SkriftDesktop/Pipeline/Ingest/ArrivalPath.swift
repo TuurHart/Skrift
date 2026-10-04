@@ -82,8 +82,6 @@ enum ArrivalPath {
         // real takes before this moved (2026-07-28). Everything below can then take its time.
         var service = service
         service.isLocalRecording = asRecording
-        // Q136 (C77, D19): the app's doors take what the phone's share takes, a PDF included.
-        service.acceptsDocuments = true
         let report = try await service.ingestReport(localURLs: urls, combineAudio: combineAudio, into: context)
         let created = report.created
         onCreated(created)

@@ -46,6 +46,7 @@ final class IngestServiceTests: XCTestCase {
     }
 
     func testUnsupportedTypeSkipped() async throws {
+        // Q136 / D163: a dropped PDF is no longer skipped - it becomes a file capture.
         let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let pdf = work.appendingPathComponent("doc.pdf")
         try Data([0x25, 0x50, 0x44, 0x46]).write(to: pdf)   // %PDF
@@ -54,7 +55,8 @@ final class IngestServiceTests: XCTestCase {
         let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [pdf], into: ctx)
 
-        XCTAssertTrue(created.isEmpty)
+        XCTAssertEqual(created.count, 1)
+        XCTAssertEqual(created.first?.sourceType, .capture, "a PDF becomes a file capture")
     }
 
     func testIngestFolderOfNotes() async throws {
