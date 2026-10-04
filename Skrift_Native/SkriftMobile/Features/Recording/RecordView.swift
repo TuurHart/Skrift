@@ -53,7 +53,7 @@ struct RecordView: View {
     /// recording AND remembers it (sticky), so a run of long battery-saving
     /// recordings doesn't need re-toggling each time. The engine reads this at
     /// `start()`; the toggle also applies it mid-recording via `setLiveTranscription`.
-    @AppStorage("liveTranscription") private var liveTranscription = true
+    @AppStorage(PrefKey.liveTranscription) private var liveTranscription = PrefKey.liveTranscriptionDefault
     // (The live-caption auto-off — Settings → Recording, default 1 min — is
     // owned by the service's own clock now: watching `service.elapsed` from a
     // view `.onChange` re-rendered the whole screen every tick.)

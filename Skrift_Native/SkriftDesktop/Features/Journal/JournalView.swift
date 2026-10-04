@@ -37,7 +37,7 @@ struct JournalView: View {
     @Environment(\.modelContext) private var localCtx
     @State private var macLocalTrash: [PipelineFile] = []
     /// Same key the phone uses: the amber dot lights for fade-entries newer than the last shelf visit.
-    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
+    @AppStorage(PrefKey.fadingLastSeenAt) private var fadingLastSeenTs: Double = PrefKey.fadingLastSeenAtDefault
     @State private var month: Date = Date()
     @State private var selectedDay: Date = JournalCalendarGrid.firstSelectedDay()
     /// The column beside the rail: the Looking-back river, the map, or the ONE trash /

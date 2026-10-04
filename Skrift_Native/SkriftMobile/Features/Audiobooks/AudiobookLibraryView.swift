@@ -175,28 +175,21 @@ struct AudiobookLibraryView: View {
                            onOpen: openNote)
                 .presentationDetents([.medium, .large])
         }
-        .alert("Import failed", isPresented: .init(
-            get: { importError != nil },
-            set: { if !$0 { importError = nil } }
-        )) {
+        .alert("Import failed", isPresented: $importError.isPresent) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importError ?? "")
         }
         // Partial import: the book landed, but some parts couldn't be decoded and
         // were skipped — say so, never a silent gap (device finding 2026-07-05).
-        .alert("Imported with skipped parts", isPresented: .init(
-            get: { importNotice != nil },
-            set: { if !$0 { importNotice = nil } }
-        )) {
+        .alert("Imported with skipped parts", isPresented: $importNotice.isPresent) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importNotice ?? "")
         }
         .confirmationDialog(
             pendingDelete.map { "Remove \u{201C}\($0.title)\u{201D}?" } ?? "",
-            isPresented: Binding(get: { pendingDelete != nil },
-                                 set: { if !$0 { pendingDelete = nil } }),
+            isPresented: $pendingDelete.isPresent,
             titleVisibility: .visible,
             presenting: pendingDelete
         ) { book in

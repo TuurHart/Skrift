@@ -184,7 +184,7 @@ final class LiveRecordingService {
     @ObservationIgnored private var mockRevealed = 0
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil,
-         liveTranscription: Bool = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true) {
+         liveTranscription: Bool = UserDefaults.standard.object(forKey: PrefKey.liveTranscription) as? Bool ?? PrefKey.liveTranscriptionDefault) {
         self.mock = mock
         self.liveTranscription = liveTranscription
     }
@@ -474,7 +474,7 @@ final class LiveRecordingService {
         // Reflect the CURRENT "Live transcription" preference, and reset any transient
         // auto-off (the timer) left on a reused service from a prior recording — so a
         // long recording's auto-off never silences the NEXT one (2026-06-22).
-        liveTranscription = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true
+        liveTranscription = UserDefaults.standard.object(forKey: PrefKey.liveTranscription) as? Bool ?? PrefKey.liveTranscriptionDefault
         accumulated = 0
         elapsed = 0
         waveform = []
@@ -497,7 +497,7 @@ final class LiveRecordingService {
         stallSince = nil
         lastRebuildAttemptAt = nil
         autoOffFired = false
-        autoOffSeconds = UserDefaults.standard.object(forKey: "liveCaptionAutoOffSeconds") as? Int ?? 60
+        autoOffSeconds = UserDefaults.standard.object(forKey: PrefKey.liveCaptionAutoOffSeconds) as? Int ?? PrefKey.liveCaptionAutoOffSecondsDefault
 
         if mock {
             FileManager.default.createFile(atPath: url.path, contents: Data())

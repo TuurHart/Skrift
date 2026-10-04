@@ -11,7 +11,7 @@ struct SettingsView: View {
     /// Snapshot/test injection of the names list (default nil → the shared store).
     var peopleOverride: [Person]? = nil
 
-    @AppStorage(AppTheme.key) private var appTheme = "dark"
+    @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     @State private var settings = SettingsStore.shared.load()
     /// What this sheet last loaded or saved. The CloudKit runners write vocab/language/prompts
     /// to disk behind an open sheet, so a save persists only the diff from this (Q241 bug 6).

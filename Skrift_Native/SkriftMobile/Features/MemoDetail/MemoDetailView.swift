@@ -498,9 +498,7 @@ struct MemoDetailView: View {
         }
         // The chrome Export button's refusals/back-offs — every tap answers
         // (the no-vault iPad silence, 2026-08-18).
-        .alert("Can't export", isPresented: Binding(
-            get: { exportNotice != nil },
-            set: { if !$0 { exportNotice = nil } })) {
+        .alert("Can't export", isPresented: $exportNotice.isPresent) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(exportNotice ?? "")

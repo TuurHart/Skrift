@@ -109,18 +109,12 @@ extension View {
     func bookTextAlerts(outcome: Binding<String?>, attachError: Binding<String?>,
                         rejected: Binding<(book: Audiobook, filename: String)?>) -> some View {
         self
-            .alert("Book text attached", isPresented: .init(
-                get: { outcome.wrappedValue != nil },
-                set: { if !$0 { outcome.wrappedValue = nil } }
-            )) {
+            .alert("Book text attached", isPresented: outcome.isPresent) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(outcome.wrappedValue ?? "")
             }
-            .alert("Couldn\u{2019}t attach book text", isPresented: .init(
-                get: { attachError.wrappedValue != nil },
-                set: { if !$0 { attachError.wrappedValue = nil } }
-            )) {
+            .alert("Couldn\u{2019}t attach book text", isPresented: attachError.isPresent) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(attachError.wrappedValue ?? "")
@@ -128,10 +122,7 @@ extension View {
             // "Keep anyway" (.cancel role → the alert's default/bold treatment) leaves it
             // attached in case a later re-transcribe changes the picture; "Remove" detaches
             // exactly THIS text via `removeText` (other attached texts untouched).
-            .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: .init(
-                get: { rejected.wrappedValue != nil },
-                set: { if !$0 { rejected.wrappedValue = nil } }
-            ), presenting: rejected.wrappedValue.map(\.book)) { _ in
+            .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: rejected.isPresent, presenting: rejected.wrappedValue.map(\.book)) { _ in
                 Button("Keep anyway", role: .cancel) {}
                 Button("Remove", role: .destructive) {
                     if let r = rejected.wrappedValue {

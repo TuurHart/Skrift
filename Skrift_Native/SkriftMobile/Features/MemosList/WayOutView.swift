@@ -51,7 +51,7 @@ struct WayOutView: View {
             .navigationTitle("Fading · \(total)")
             .navigationBarTitleDisplayMode(.inline)
             // Opening the shelf clears the Review row's unread dot (`fadingLastSeenAt`).
-            .onAppear { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "fadingLastSeenAt") }
+            .onAppear { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: PrefKey.fadingLastSeenAt) }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
@@ -83,10 +83,7 @@ struct WayOutView: View {
             }
             .confirmationDialog(
                 "Delete this note permanently? Its audio and photos will be gone for good.",
-                isPresented: Binding(
-                    get: { confirmDelete != nil },
-                    set: { if !$0 { confirmDelete = nil } }
-                ),
+                isPresented: $confirmDelete.isPresent,
                 titleVisibility: .visible
             ) {
                 Button("Delete Now", role: .destructive) {

@@ -11,7 +11,7 @@ struct NotesBottomChrome: View {
     /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
     /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
     /// this view stays mounted while the card's List row comes and goes.
-    @AppStorage("continueCardDismissedDay") var cardDismissedDay = ""
+    @AppStorage(PrefKey.continueCardDismissedDay) var cardDismissedDay = PrefKey.continueCardDismissedDayDefault
 
     var body: some View {
         HStack(spacing: 16) {

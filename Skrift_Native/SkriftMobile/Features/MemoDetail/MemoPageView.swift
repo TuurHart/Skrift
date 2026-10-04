@@ -35,7 +35,7 @@ struct MemoPageView: View {
     }
     @ObservedObject var diarStatus = DiarizationStatus.shared
     @State var timings: [WordTiming] = []   // for karaoke highlight in the turn view
-    @AppStorage("karaokeTapToSeek") var tapToSeek = true   // default ON — must match TranscriptBodyView
+    @AppStorage(PrefKey.karaokeTapToSeek) var tapToSeek = PrefKey.karaokeTapToSeekDefault
 
     // Name-linking (mocks/phone-name-linking.html): the live names roster, the tapped
     // span's resolve sheet, the unlink-undo toast, and the person-card / new-person editor.
@@ -227,8 +227,7 @@ struct MemoPageView: View {
                 }
             )
         }
-        .alert(knownNameNotice ?? "", isPresented: Binding(get: { knownNameNotice != nil },
-                                                           set: { if !$0 { knownNameNotice = nil } })) {
+        .alert(knownNameNotice ?? "", isPresented: $knownNameNotice.isPresent) {
             Button("OK", role: .cancel) {}
         }
         // People-in-this-note chip surface (mock state 4) — link / re-link via chips.
@@ -1068,7 +1067,7 @@ struct MemoPageView: View {
     // MARK: - Name resolution (the tapped-name sheet)
 
     var resolveDialogPresented: Binding<Bool> {
-        Binding(get: { resolveTarget != nil }, set: { if !$0 { resolveTarget = nil } })
+        $resolveTarget.isPresent
     }
 
     var resolveDialogTitle: String {

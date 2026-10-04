@@ -14,9 +14,9 @@ struct WeatherReading: Sendable {
 /// "openweathermap_api_key" slot is read as a legacy fallback. The `parse` step
 /// is pure + unit-tested; the network call is device/network-owed.
 enum WeatherClient {
-    /// Must match SettingsView's `@AppStorage("weatherAPIKey")` — Settings is the
+    /// Is `PrefKey.weatherAPIKey`, the slot Settings writes — Settings is the
     /// only writer of the key.
-    static let apiKeyDefaultsKey = "weatherAPIKey"
+    static let apiKeyDefaultsKey = PrefKey.weatherAPIKey
     static let legacyAPIKeyDefaultsKey = "openweathermap_api_key"
 
     static var apiKey: String? {

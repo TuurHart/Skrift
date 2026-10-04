@@ -65,7 +65,7 @@ struct NoteDisplayView: View {
     /// Notes-list (sidebar) visibility — the iPad's arrangement brought back here,
     /// same persistence idiom as the panel above. RootView reads it to drop the
     /// column out of the HSplitView.
-    @AppStorage("macSidebarVisible") private var sidebarVisible = true
+    @AppStorage(PrefKey.macSidebarVisible) private var sidebarVisible = PrefKey.macSidebarVisibleDefault
 
     /// What a note in this pane can DO — the honest difference between a pipelined
     /// note and an unrated one. Everything that makes a note LOOK like a note (header,

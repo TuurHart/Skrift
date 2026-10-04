@@ -128,7 +128,7 @@ struct BookTextSheet: View {
         }
         .confirmationDialog(
             pendingRemove.map { "Remove \u{201C}\($0.title ?? $0.filename)\u{201D}?" } ?? "",
-            isPresented: Binding(get: { pendingRemove != nil }, set: { if !$0 { pendingRemove = nil } }),
+            isPresented: $pendingRemove.isPresent,
             titleVisibility: .visible,
             presenting: pendingRemove
         ) { text in
