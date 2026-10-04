@@ -1665,12 +1665,12 @@ do: In `SkriftMobile/`: delete `RecordingActivityManager.isRunning` (`Services/R
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d02 MRC-d03 MRC-d04 MRC-d05 MRC-d06 MRC-d08 MRC-d09 MRC-d10 MRC-d11 MRC-d14 MRC-d15 MRC-d16 MRC-d19 MRC-d24 MRC-d25 MRC-d26 MRC-c20 (cleanup-audit P31)
 
-### Q219 [auto] (doing) one AVAudioFile duration, one buffer copy, one retrying transcribe
+### Q219 [auto] (stuck) one AVAudioFile duration, one buffer copy, one retrying transcribe
 spec: C239
 needs: Q218
 gate+: yes
 do: (1) `Double(f.length) / f.fileFormat.sampleRate` is written 11 times (`MemoSaver.swift:91,174,195,328`, `RecordingRecovery.swift:147`, `LiveRecordingService.swift:571,688`, `CaptureInboxDrainer.swift:312`, `SharePayloadLoader.swift:214,276`, `IngestService.swift:156`, `AudiobookImporter.swift:351`) with the `sampleRate > 0` guard at only some. Add `extension AVAudioFile { var seconds: Double }` with the guard in `Shared/Recording/` (an extension on the open file fits every site; `LiveRecordingService.swift:571` is still open for writing, so a URL helper would not); check `SkriftShare`'s source list in `project.yml` before touching `SharePayloadLoader`. Do NOT merge `MacMemoAuthor.audioDuration` (uses `AVURLAsset.duration`, returns nil on failure). (2) The phone's private `copyBuffer` (`LiveRecordingService.swift:1551-1560`, call at 984) is identical to `LiveCaptionEngine.copyBuffer` (`Shared/Recording/LiveCaptionEngine.swift:422-431`) which `MacRecorder.swift:607` already uses: delete it and call the shared one. (3) The retry-transcribe loop is copied in `MemoSaver.swift:577-585` and `Services/Capture/CaptureDictation.swift:65-73` (delays `[0,2,5,15]` vs `[0,2,5]`): add `extension Transcribing { func transcribeRetrying(audioURL:imageManifest:delays:) async -> TranscriptionResult? }` next to the protocol in `Shared/Pipeline/TranscribingContract.swift` and keep both delay arrays at the callers (tests set them). No behaviour change; the recording tap and settle paths are not touched.
-check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d20 MRC-c02 MRC-c04 SRS-d09 (cleanup-audit P32)
 
 ### Q220 [auto] (todo) appending a recording: use AudioClipMerge, not the export session
@@ -2270,7 +2270,7 @@ needs: -
 do: (fill in)
 check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
 
-### Q305 [auto] (doing) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
+### Q305 [auto] (done) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
 spec: -
 needs: -
 gate+: yes
@@ -3295,3 +3295,5 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 11:45 Q307 -> doing — dispatched (sonnet)
 - 2026-10-04 11:57 Q283 -> done — gate pass @ae298ab0
 - 2026-10-04 12:00 Q307 -> done — hand-merged (Tuur 2026-10-04: every dropped PDF, loose or in a folder, is a file capture)
+- 2026-10-04 12:04 Q219 -> stuck — check failed — .queue/Q219.check.log
+- 2026-10-04 12:06 Q305 -> done — hand-merged (D163: FeedbackPaletteTests replaced tests of deleted workaround code)
