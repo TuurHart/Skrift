@@ -1593,7 +1593,7 @@ do: `RunFile.swift` has 17 `...IfRequested` entry points; 16 define their own `l
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-c10 DSH-c09 DSH-c12 DSH-d10 DAU-c21 PER-c02 (cleanup-audit P22)
 
-### Q210 [auto] (doing) Mac settings: delete the dead toggles and the old wire DTOs
+### Q210 [auto] (done) Mac settings: delete the dead toggles and the old wire DTOs
 spec: C240
 needs: -
 gate+: no
@@ -2133,7 +2133,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D169): on every device ⌘N = new note and ⇧⌘N = Record. iPad binds ⌘N twice today (SkriftApp.swift:243-248 'New Recording' and MemosListView+Header.swift:116 'New note'): make the app menu Record ⇧⌘N. Mac: add a Record menu command (⇧⌘N), ⌘F focuses search, ⌘1 Notes / ⌘2 Review. One `.commands` block per app; the key table lives in Shared (`AppShortcuts`) so both read one source. Update FEATURES.md:61/:126. Desktop test `AppShortcutsTests` asserts the table. Never run SkriftDesktopUITests.
 check: `grep -rqE "class AppShortcutsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q285 [auto] (todo) Mac shared-text capture draws the accent-bar quote, not a SHARED CONTENT box
+### Q285 [auto] (doing) Mac shared-text capture draws the accent-bar quote, not a SHARED CONTENT box
 spec: C240 D170
 needs: -
 gate+: yes
@@ -2168,7 +2168,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac recorder gets pause / resume and a discard that asks first (the phone has both; its X discards without confirm, R71/C262). Mock first (locked process for new UI): draw the Mac record bar from SOURCE (Features/Recording/), with pause, resume and discard + confirm states. Publish the artifact; the build item follows sign-off.
 check: Mac recorder mock (claude.ai/artifact/QztPhoVwuVYKVouVVHBeUW): after × asks 'Discard this recording?', should the take keep recording until you answer, or pause? Go to build?
 
-### Q290 [auto] (todo) Mac: add a recording to an existing note
+### Q290 [auto] (doing) Mac: add a recording to an existing note
 spec: C220 D173
 needs: -
 gate+: yes
@@ -3178,3 +3178,6 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:33 Q210 -> doing — dispatched (sonnet)
 - 2026-10-04 09:41 Q242 -> doing — dispatched (sonnet)
 - 2026-10-04 09:43 Q213 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166))
+- 2026-10-04 09:48 Q285 -> doing — dispatched (sonnet)
+- 2026-10-04 09:48 Q290 -> doing — dispatched (sonnet)
+- 2026-10-04 09:49 Q210 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166); retry after a load-timing flake)
