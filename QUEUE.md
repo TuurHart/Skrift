@@ -2291,7 +2291,7 @@ gate+: yes
 do: Q267 made a loose dropped PDF a file capture, but IngestService.ingestFolder still skips a PDF with ImportReport.pdfNotOnMac (ImportReportTests.testFolderOfPicturesIsReportedNotIgnored ~121 pins it). Make the folder path use the same rule as a loose drop (one decision in ImportKinds / skipReason(onMac:)), port that protected test's PDF expectation (it encodes the old, now-inconsistent rule), and fix plan/parity.md:28/64/97 mentions of acceptsDocuments. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
-### Q308 [auto] (todo) pull-phone-feedback can read FeedbackKit's outbox over USB
+### Q308 [auto] (done) pull-phone-feedback can read FeedbackKit's outbox over USB
 spec: -
 needs: -
 gate+: yes
@@ -3289,3 +3289,5 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 11:25 Q308 added
 - 2026-10-04 11:25 Q309 added
 - 2026-10-04 11:25 Q309 -> tuur — parked: Dev check
+- 2026-10-04 11:25 Q308 -> doing — dispatched (sonnet)
+- 2026-10-04 11:30 Q308 -> done — gate pass @36465845
