@@ -85,7 +85,13 @@ enum MemoLifecycle {
     /// Convenience: the corpus split once — (main surfaces, fading conveyor).
     static func partition(_ memos: [Memo], copyedits: [UUID: String] = [:],
                           now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
-        let backlinked = backlinkedIDs(in: memos, copyedits: copyedits)
+        partition(memos, backlinked: backlinkedIDs(in: memos, copyedits: copyedits), now: now)
+    }
+
+    /// The same split over a backlink set the caller already scanned (one scan per render,
+    /// R92/C278). The ONE place the live/fading rule is applied to a list.
+    static func partition(_ memos: [Memo], backlinked: Set<UUID>,
+                          now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
         var live: [Memo] = [], fading: [Memo] = []
         for m in memos where m.deletedAt == nil {
             if isFading(m, backlinked: backlinked, now: now) { fading.append(m) } else { live.append(m) }
