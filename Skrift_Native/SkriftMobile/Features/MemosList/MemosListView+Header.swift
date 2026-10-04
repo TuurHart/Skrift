@@ -3,11 +3,6 @@ import SwiftUI
 extension MemosListView {
     // MARK: - Toolbar
 
-    /// ONE header line: "Notes" 30pt + Select · scan · filter inline right
-    /// (mock notes-compact-header.html — the stock toolbar row above the large
-    /// title was pure cost). The iOS-26 "second trailing toolbar item gets
-    /// eaten" gotcha (build-35 probe) doesn't apply to a hand-rolled HStack,
-    /// so doc-scan rejoins the actions cluster.
     /// iPad-regular header — the MAC's construction (signed mock A, section 0;
     /// Tuur: the Mac "just looks way better"): a compact identity line instead of
     /// the 30pt wordmark that sat too low, then the Mac sidebar's verb rows
@@ -131,12 +126,13 @@ extension MemosListView {
                     .accessibilityIdentifier("ipad-process-pile-running")
                     .accessibilityLabel("\(run.line). Tap to stop.")
                 } else {
-                    Button { PolishCenter.shared.processPile(processPile) } label: {
+                    let pile = processPile
+                    Button { PolishCenter.shared.processPile(pile) } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
                             Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
-                            if !processPile.isEmpty {
-                                Text("\(processPile.count)")
+                            if !pile.isEmpty {
+                                Text("\(pile.count)")
                                     .font(.system(size: 12, weight: .bold).monospacedDigit())
                                     .opacity(0.8)
                             }
@@ -145,11 +141,11 @@ extension MemosListView {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
-                        .background(Color.skAccent.opacity(processPile.isEmpty ? 0.4 : 1),
+                        .background(Color.skAccent.opacity(pile.isEmpty ? 0.4 : 1),
                                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .disabled(processPile.isEmpty)
+                    .disabled(pile.isEmpty)
                     .accessibilityIdentifier("ipad-process-pile-button")
                 }
             }
@@ -255,9 +251,8 @@ extension MemosListView {
         }, uniquingKeysWith: { a, _ in a })
     }
 
-    /// D135/D136: the phone's header simplifies to JUST Notes + Select — Import,
-    /// Scan and Filter all leave it (Import/Scan fold into the shared `verbRow`'s
-    /// Import menu below; Filter moves into the chip bar's icon-only button).
+    /// D135/D136: the phone's header is JUST Notes + Select — Import and Scan live in the
+    /// shared `verbRow`'s Import menu below, and the chip row carries Date (Q66).
     var headerRow: some View {
         HStack(spacing: 18) {
             ScreenTitle(SharedCopy.notesTitle)

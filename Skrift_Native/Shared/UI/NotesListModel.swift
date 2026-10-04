@@ -7,10 +7,9 @@ import Foundation
 /// can never mean something different on one device than another.
 /// Which date a date-range filter applies to (the Recorded / Added picker on both apps'
 /// `DateRangeStrip`, Q105 / C115).
-enum MemoDateField: String, CaseIterable, Identifiable {
+enum MemoDateField: String, CaseIterable {
     case recorded = "Recorded"
     case added = "Added"
-    var id: String { rawValue }
 }
 
 enum NotesListModel {

@@ -37,7 +37,7 @@ struct SpeakerAssignSheet: View {
                                 ForEach(people, id: \.canonical) { person in
                                     Button { choose { onAssignPerson(person) } } label: { personRow(person) }
                                         .buttonStyle(.plain)
-                                        .accessibilityIdentifier("assign-person-\(NamesDisplay.name(person))")
+                                        .accessibilityIdentifier("assign-person-\(person.displayName)")
                                 }
                             }
                         }
@@ -89,11 +89,11 @@ struct SpeakerAssignSheet: View {
 
     private func personRow(_ person: Person) -> some View {
         HStack(spacing: 12) {
-            Avatar(name: NamesDisplay.name(person), size: 38)
-            Text(NamesDisplay.name(person))
+            Avatar(name: person.displayName, size: 38)
+            Text(person.displayName)
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.skText)
             Spacer()
-            if NamesDisplay.isEnrolled(person) { VoiceBars() }
+            if PersonEditCore.isEnrolled(person) { VoiceBars() }
         }
         .padding(.vertical, 9).padding(.horizontal, 6)
         .overlay(Divider().overlay(Color.skBorder), alignment: .bottom)

@@ -15,8 +15,6 @@ struct MemoRow: View {
     var clockLine: String? = nil
     /// Unrated-live fade (every width — see MemoCard.quiet).
     var quiet: Bool = false
-    /// The always-on spine line, triage surfaces (iPad regular) only.
-    var quietLine: String? = nil
     /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
     /// Always false on the phone (`selectedMemoID` is nil there).
     var selected: Bool = false
@@ -24,11 +22,14 @@ struct MemoRow: View {
     @Environment(\.editMode) var editMode
 
     var body: some View {
-        if editMode?.wrappedValue.isEditing == true {
-            // Multi-select uses the List's own selection chrome — no detail-pane
-            // highlight while editing.
-            MemoCard(memo: memo, enhancedTitle: enhancedTitle, fading: fading, clockLine: clockLine,
-                     quiet: quiet, quietLine: quietLine)
+        // Multi-select uses the List's own selection chrome — no detail-pane
+        // highlight while editing.
+        let editing = editMode?.wrappedValue.isEditing == true
+        let card = MemoCard(memo: memo, enhancedTitle: enhancedTitle, fading: fading,
+                            clockLine: clockLine, quiet: quiet,
+                            selected: editing ? false : selected)
+        if editing {
+            card
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
             // the context-menu lift on iOS 26 — a long-press just started the
@@ -36,9 +37,7 @@ struct MemoRow: View {
             // round 1). The system resolves Button-tap vs long-press-menu vs
             // scroll natively.
             Button(action: onTap) {
-                MemoCard(memo: memo, enhancedTitle: enhancedTitle, fading: fading, clockLine: clockLine,
-                         quiet: quiet, quietLine: quietLine, selected: selected)
-                    .contentShape(Rectangle())
+                card.contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
@@ -63,11 +62,6 @@ struct MemoCard: View {
     /// wears the hollow ○ (the unfilled significance circles' own idiom).
     /// Rating the note IS the flag — no Flag verb anywhere.
     var quiet: Bool = false
-    /// The spine one-liner a quiet row carries on TRIAGE surfaces only (iPad
-    /// regular; the Mac list has its own) — the phone notebook keeps its
-    /// urgency-only amber `clockLine` instead. Faint, not amber: quiet ≠
-    /// urgent; a present status pill outranks it in the slot.
-    var quietLine: String? = nil
     /// iPad split view (m1): the selected row (its note is in the detail pane)
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
@@ -87,7 +81,6 @@ struct MemoCard: View {
     var cardModel: NoteCardModel {
         var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
         m.fadingLine = clockLine ?? (fading ? "fading" : nil)
-        m.quietLine = quietLine
         m.quiet = quiet
         m.selected = selected
         m.locked = memo.locked

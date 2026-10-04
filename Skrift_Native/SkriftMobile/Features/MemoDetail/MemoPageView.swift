@@ -196,7 +196,7 @@ struct MemoPageView: View {
                 otherSpeakers: SpeakerNaming.otherSpeakers(than: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 turnCount: SpeakerNaming.turnCount(of: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 people: NamesStore.shared.livePeople(),
-                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), slot: target.slot, turnSlots: target.turnSlots) },
+                onAssignPerson: { assign(target.speaker, to: $0.displayName, slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
                 onNewName: { assign(target.speaker, to: $0, slot: target.slot, turnSlots: target.turnSlots) }
             )

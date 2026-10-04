@@ -57,7 +57,7 @@ struct NamesListView: View {
                             PersonRow(person: person)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier("person-\(NamesDisplay.name(person))")
+                        .accessibilityIdentifier("person-\(person.displayName)")
                     }
                 }
                 .padding(.horizontal, 16).padding(.top, 8)
@@ -79,9 +79,9 @@ private struct PersonRow: View {
 
     var body: some View {
         HStack(spacing: NameRowLook.rowSpacing) {
-            Avatar(name: NamesDisplay.name(person), size: NameRowLook.avatarSize)
+            Avatar(name: person.displayName, size: NameRowLook.avatarSize)
             VStack(alignment: .leading, spacing: NameRowLook.textSpacing) {
-                Text(NamesDisplay.name(person))
+                Text(person.displayName)
                     .font(.system(size: NameRowLook.nameSize, weight: .semibold))
                     .foregroundStyle(Color.skText)
                 voiceStatus
@@ -97,7 +97,7 @@ private struct PersonRow: View {
     }
 
     @ViewBuilder private var voiceStatus: some View {
-        if NamesDisplay.isEnrolled(person) {
+        if PersonEditCore.isEnrolled(person) {
             HStack(spacing: 6) {
                 VoiceBars()
                 Text(NamesCopy.voiceEnrolled)
@@ -150,12 +150,6 @@ struct VoiceBars: View {
             }
         }
     }
-}
-
-/// Name/enrollment helpers.
-enum NamesDisplay {
-    static func name(_ person: Person) -> String { person.displayName }
-    static func isEnrolled(_ person: Person) -> Bool { PersonEditCore.isEnrolled(person) }
 }
 
 // MARK: - Add person (full name + optional short; aliases default to [full, first])

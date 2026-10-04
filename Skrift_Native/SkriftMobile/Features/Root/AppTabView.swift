@@ -8,7 +8,7 @@ import SwiftUI
 ///   swipe-down-to-dismiss stole pull-to-refresh, device feedback 2026-06-19),
 ///   renamed **Books** (`mocks/books-tab-and-resume.html`).
 /// - **Journal** took the reserved Highlights slot (signed
-///   `mocks/journal-retrieval.html`); P6's Highlights feed + Daily Review later
+///   `mocks/`-openTab books|journal|settings` (screenshot/UITest routing), else Notes.-retrieval.html`); P6's Highlights feed + Daily Review later
 ///   land as sections INSIDE Journal, not a fifth tab.
 ///
 /// Audiobook chrome scope (2026-07-07 bottom-chrome redesign,
@@ -33,8 +33,6 @@ struct AppTabView: View {
         case "settings": return .settings
         default: break
         }
-        if LaunchFlags.openJournal { return .journal }
-        if LaunchFlags.openSettings { return .settings }
         return .notes
     }
 

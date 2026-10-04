@@ -11,15 +11,6 @@ enum LaunchFlags {
     /// survive across runs and the idempotent seeder would skip).
     static var inMemoryStore: Bool { args.boolFlag("-inMemoryStore") }
     static var seedDemoMemos: Bool { args.boolFlag("-seedDemoMemos") }
-    /// Force the four-destination row on for a screenshot/UI run, without waiting for
-    /// the Settings switch (chunk 3) or writing the real per-device default.
-    static var destinationsOn: Bool { args.boolFlag("-destinationsOn") }
-    /// Seed a REAL portfolio root inside the app's own container, so a UI run can show the
-    /// configured Destinations settings without driving the system document picker.
-    static var seedPortfolioFolder: Bool { args.boolFlag("-seedPortfolioFolder") }
-    /// iPad screenshot rig: at regular width, select the first Notes row at
-    /// launch so the split view's detail pane renders deterministically.
-    static var selectFirstMemo: Bool { args.boolFlag("-selectFirstMemo") }
     /// Seed a memo whose photo contains rendered text but is NOT yet OCR'd —
     /// the photo-search end-to-end fixture (launch sweep must index it).
     static var seedPhotoTextMemo: Bool { args.boolFlag("-seedPhotoTextMemo") }
@@ -36,9 +27,6 @@ enum LaunchFlags {
     /// Seed back-dated memos with locations for the Journal tab (Looking-back
     /// cards, calendar dot density, place clusters) — screenshot verification.
     static var seedJournal: Bool { args.boolFlag("-seedJournal") }
-    /// Open the Journal tab on launch (screenshot/UITest routing, like the
-    /// seed-and-open flags above).
-    static var openJournal: Bool { args.boolFlag("-openJournal") }
     /// Open a specific root tab on launch: "notes" / "books" / "journal" /
     /// "settings" — per-tab screenshot verification of the global mini-player.
     static var openTab: String? { args.stringValue("-openTab") }
@@ -72,8 +60,6 @@ enum LaunchFlags {
     static var showBookTileGallery: Bool { args.boolFlag("-showBookTileGallery") }
     /// DEBUG render hook: also present the D127 "notes from this book" sheet over the gallery.
     static var showBookNotesSheet: Bool { args.boolFlag("-showBookNotesSheet") }
-    /// Open the Settings tab on launch (screenshot routing).
-    static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model
     /// assets) so search-Related/threads are demoable on the sim / UI tests.
     static var mockJournalIndex: Bool { args.boolFlag("-mockJournalIndex") }
