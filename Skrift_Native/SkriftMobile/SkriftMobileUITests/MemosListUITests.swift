@@ -35,8 +35,10 @@ final class MemosListUITests: XCTestCase {
 
         // The word exists ONLY inside the photo. The row may appear a beat
         // later (the Vision pass writes back → the list re-filters live).
+        // Q312: 45 s, not 12 — real Vision cold-starts slowly on a freshly erased sim (Q310);
+        // the 12 s wait passed once and failed once on the same build.
         let photoMemoRow = app.staticTexts["Snapped the tram stop sign on the way home."]
-        XCTAssertTrue(photoMemoRow.waitForExistence(timeout: 12),
+        XCTAssertTrue(photoMemoRow.waitForExistence(timeout: 45),
                       "a memo must be findable by the text INSIDE its photo")
         XCTAssertFalse(app.staticTexts[harbor].exists, "non-matching memos filter out")
     }
