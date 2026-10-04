@@ -778,7 +778,11 @@ enum RunFile {
             let local = SharedStore.container.mainContext
             let body = "Mats was tien jaar.\n\nHij keek naar de zee en zei niets."
 
-            let memo = try MacMemoAuthor.typedNote(into: cloudCtx)
+            // A throw from `typedNote` or `save` used to vanish inside this Task: `exit()` was
+            // never reached and the process carried on as a GUI app. Catch, print, exit 1.
+            let memo: Memo
+            do { memo = try MacMemoAuthor.typedNote(into: cloudCtx) }
+            catch { log(">>> ERROR: typedNote threw: \(error)"); exit(1) }
             memo.transcript = body
             memo.transcriptUserEdited = true
             log(">>> typed note \(memo.id) — unrated, no row yet")
@@ -786,15 +790,17 @@ enum RunFile {
 
             // The rating, exactly as the circles write it (MemoNoteProjection.writeBack).
             memo.significance = 0.1
-            try cloudCtx.save()
+            do { try cloudCtx.save() } catch { log(">>> ERROR: save threw: \(error)"); exit(1) }
 
             // The REAL sweep — same call the launch/foreground/import triggers make.
             let created = MemoCloudReconciler.reconcile()
             log(">>> reconcile ingested \(created)")
 
             let id = memo.id.uuidString
-            let row = try local.fetch(FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == id })).first
-            guard let row else {
+            let found: PipelineFile?
+            do { found = try local.fetch(FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == id })).first }
+            catch { log(">>> ERROR: row fetch threw: \(error)"); exit(1) }
+            guard let row = found else {
                 log(">>> ❌ STRANDED — rated memo has NO PipelineFile (invisible in every list section)")
                 exit(1)
             }
