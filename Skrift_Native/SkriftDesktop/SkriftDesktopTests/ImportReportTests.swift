@@ -42,7 +42,8 @@ final class ImportReportTests: XCTestCase {
         XCTAssertEqual(ImportReport.skipReason(forName: "x", onMac: true),
                        "Skrift does not take files without an extension")
         XCTAssertEqual(ImportReport.skipReason(forName: "x.epub", onMac: true), ImportReport.book)
-        XCTAssertEqual(ImportReport.skipReason(forName: "x.pdf", onMac: true), ImportReport.pdfNotOnMac)
+        XCTAssertEqual(ImportReport.skipReason(forName: "x.pdf", onMac: true), ImportReport.unreadable,
+                       "a PDF is a file capture on both apps (Q307); one that lands here could not be read")
     }
 
     func testMergeAddsEverything() {
@@ -114,12 +115,12 @@ final class ImportReportTests: XCTestCase {
         let report = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingestReport(localURLs: [folder], into: try makeContext())
 
-        XCTAssertEqual(report.created.count, 1, "the .md note is made")
+        XCTAssertEqual(report.created.count, 2, "the .md note and the PDF file capture are made (Q307)")
+        XCTAssertEqual(report.created.filter { $0.sourceType == .capture }.count, 1, "the PDF is a file capture, like a loose drop")
         let shown = report.importReport
-        XCTAssertEqual(shown.created, 1)
-        XCTAssertEqual(Set(shown.skipped.map(\.name)), ["photo1.jpg", "photo2.png", "scan.pdf", "stray.txt"])
+        XCTAssertEqual(shown.created, 2)
+        XCTAssertEqual(Set(shown.skipped.map(\.name)), ["photo1.jpg", "photo2.png", "stray.txt"])
         XCTAssertEqual(shown.skipped.first { $0.name == "photo1.jpg" }?.reason, ImportReport.pictureInFolder)
-        XCTAssertEqual(shown.skipped.first { $0.name == "scan.pdf" }?.reason, ImportReport.pdfNotOnMac)
         XCTAssertEqual(shown.skipped.first { $0.name == "stray.txt" }?.reason, ImportReport.textInFolder)
     }
 
