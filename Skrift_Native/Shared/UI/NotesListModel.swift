@@ -62,7 +62,7 @@ enum NotesListModel {
 
     /// Rule 1 — the filter sheet every row passes: the active chip and the date range.
     /// `inChip` is the caller's chip answer for this row; `extra` carries any further
-    /// filter terms one app offers (the phone's Unsynced / Photos / Place).
+    /// filter terms one app offers (none today: D168 removed the phone's Unsynced / Photos / Place).
     static func passesFilter(inChip: Bool, date: Date, from: Date?, to: Date?, extra: Bool = true) -> Bool {
         inChip && extra && DateRangeFilter.contains(date, from: from, to: to)
     }

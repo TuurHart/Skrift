@@ -179,13 +179,9 @@ extension MemosListView {
     /// The phone's chip + filter-sheet answer for one memo, through the shared rule
     /// (`NotesListModel.passesFilter`, Q104). D136: the chip bar filters on every width.
     static func passesFilter(_ memo: Memo, chip: QueueFilter, filter: MemoFilter, enhanced: Set<UUID>) -> Bool {
-        var extra = true
-        if filter.unsyncedOnly && memo.syncStatus == .synced { extra = false }
-        if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { extra = false }
-        if let place = filter.place, memo.metadata?.location?.placeName != place { extra = false }
         let d = NotesListModel.filterDate(field: filter.dateField, recordedAt: memo.recordedAt, addedAt: memo.addedAt)
         return NotesListModel.passesFilter(inChip: chip.admits(memo, enhancedIDs: enhanced),
-                                           date: d, from: filter.from, to: filter.to, extra: extra)
+                                           date: d, from: filter.from, to: filter.to)
     }
 
     func sortComparator(_ a: Memo, _ b: Memo) -> Bool {
