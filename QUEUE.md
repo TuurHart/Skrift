@@ -1593,7 +1593,7 @@ do: `RunFile.swift` has 17 `...IfRequested` entry points; 16 define their own `l
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-c10 DSH-c09 DSH-c12 DSH-d10 DAU-c21 PER-c02 (cleanup-audit P22)
 
-### Q210 [auto] (todo) Mac settings: delete the dead toggles and the old wire DTOs
+### Q210 [auto] (doing) Mac settings: delete the dead toggles and the old wire DTOs
 spec: C240
 needs: -
 gate+: no
@@ -1617,7 +1617,7 @@ do: In `SkriftDesktop/`: delete the four pure forwarders in `Pipeline/WayOutRule
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d15 DPE-d17 DPE-d18 SMU-d08 DPE-c10 DPE-c30 DPE-c28 (cleanup-audit P25)
 
-### Q213 [auto] (todo) drop the write-only Mac diarization sidecar
+### Q213 [auto] (done) drop the write-only Mac diarization sidecar
 spec: C182 C240
 needs: -
 gate+: yes
@@ -1849,7 +1849,7 @@ do: Each is a reading, not a run. One commit per bug; write the failing test fir
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SourceTaxonomyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c25 SMU-c13 MAM-c01 DPE-m1 (ingestNote, missed) DAU-c05 DAU-c15 (cleanup-audit P54)
 
-### Q242 [auto] (todo) Mac cloud adapters: one sync gate, one logger, one batch write helper
+### Q242 [auto] (doing) Mac cloud adapters: one sync gate, one logger, one batch write helper
 spec: C239
 needs: Q216
 gate+: yes
@@ -3174,3 +3174,7 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:28 Q299 -> doing — dispatched (opus)
 - 2026-10-04 09:28 Q175 -> done — gate.sh runs plan/twin-check.sh (baseline 22 twins); gate GREEN 1480
 - 2026-10-04 09:32 Q282 -> done — hand-merged (D163 ports + D167 Done = processed)
+- 2026-10-04 09:33 Q213 -> doing — dispatched (sonnet)
+- 2026-10-04 09:33 Q210 -> doing — dispatched (sonnet)
+- 2026-10-04 09:41 Q242 -> doing — dispatched (sonnet)
+- 2026-10-04 09:43 Q213 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166))
