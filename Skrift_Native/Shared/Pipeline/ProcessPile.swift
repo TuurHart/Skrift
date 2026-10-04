@@ -37,20 +37,4 @@ enum ProcessPile {
         NoteConsent.isRated(memo) && memo.deletedAt == nil
             && enhancedIDs.contains(memo.id)
     }
-
-    // MARK: - The triage chips (shared QueueFilter, matched against a Memo)
-
-    /// Does a memo belong under `filter`'s chip? The iPad's answer to the Mac's
-    /// `AppModel.matchesFilter` — same four words, memo semantics. `.needsWork`
-    /// here is the broad "rated but not done yet" set (may include a note still
-    /// transcribing); the to-process COUNT is the actionable subset `waiting`,
-    /// exactly as the Mac's "Needs Work" chip is broader than its Process count.
-    static func matches(_ filter: QueueFilter, _ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
-        switch filter {
-        case .all:      return true
-        case .needsWork: return NoteConsent.isRated(memo) && !enhancedIDs.contains(memo.id)
-        case .done:     return NoteConsent.isRated(memo) && enhancedIDs.contains(memo.id)
-        case .notRated: return !NoteConsent.isRated(memo) && !memo.locked
-        }
-    }
 }

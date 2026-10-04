@@ -40,7 +40,7 @@ final class ChipCountParityTests: XCTestCase {
         // processed yet — its `@Query` already excludes trashed memos, mirrored here
         // with the identical predicate before applying the shared match rule.
         let ipadMemos = memos.filter { $0.deletedAt == nil }
-        let ipadNeedsWork = ipadMemos.filter { ProcessPile.matches(.needsWork, $0, enhancedIDs: []) }.count
+        let ipadNeedsWork = ipadMemos.filter { QueueFilter.needsWork.admits($0, enhancedIDs: []) }.count
         let ipadNotRated = ProcessPile.unrated(memos: ipadMemos).count
 
         XCTAssertEqual(macNeedsWork, ipadNeedsWork,

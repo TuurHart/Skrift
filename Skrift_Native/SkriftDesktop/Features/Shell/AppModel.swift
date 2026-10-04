@@ -32,6 +32,9 @@ final class AppModel {
     var dateField: MemoDateField = .recorded
     /// `Memo.addedAt` per note id, set by the sidebar next to its memo fetch (Newest sorts on it).
     var addedAtByID: [String: Date] = [:]
+    /// Memo ids a polish pass ran for on any device (`MacListFilter.processedIDs`), set by the
+    /// sidebar beside its memo fetch. The Done chip reads it (D167).
+    var processedIDs: Set<UUID> = []
     var dateFilterActive: Bool { dateFrom != nil || dateTo != nil }
 
     /// Multi-selection built with ⌘/⇧-click (native macOS list semantics).
@@ -67,15 +70,13 @@ final class AppModel {
         select(id)
     }
 
-    func isComplete(_ f: PipelineFile) -> Bool { MacListFilter.isComplete(f) }
-
     /// The list's filter state as the Mac adapter onto the shared list rules (Q104): chip,
     /// search, date range — applied to EVERY row kind (pipeline rows, unrated, stranded,
     /// locked-quiet, fading search hits, Related rows), not just pipeline rows.
     var listFilter: MacListFilter {
         MacListFilter(chip: filter, query: searchText, from: dateFrom, to: dateTo,
                       dateField: dateField, addedAtByID: addedAtByID,
-                      isUnlocked: { LockGate.shared.isUnlocked($0) })
+                      isUnlocked: { LockGate.shared.isUnlocked($0) }, processedIDs: processedIDs)
     }
 
     /// The queue as displayed: filter → search → sort (Newest = the note's added date, Q105).
