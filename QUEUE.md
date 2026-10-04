@@ -2021,7 +2021,7 @@ gate+: yes
 do: Left by Q136: (1) the Mac's link capture (IngestService+Captures.swift, LinkFetching seam) does not retry a failed fetch — C72 says up to 3 retries; add a bounded retry with backoff behind the seam (testable with a stub fetcher). (2) The phone still shows 'Capture' for a link with no page title, while the Mac uses the host per C72 — make the phone use the same shared rule (Shared/Pipeline/ImportDoors.swift / LinkCard). Desktop test `LinkFetchRetryTests`, phone test `LinkUntitledHostTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LinkUntitledHostTests && ./gate.sh`
 
-### Q267 [auto] (doing) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
+### Q267 [auto] (done) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
 spec: -
 needs: -
 do: Q136 made a dropped PDF become a file capture; two protected tests still encode the old 'documents are skipped' rule. Under SPEC D163: update IngestServiceTests.testUnsupportedTypeSkipped and MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped so a PDF is expected to become a file capture (matching shipped behaviour, no new behaviour), then delete IngestService.acceptsDocuments and its ArrivalPath line (the Q136 workaround). Never run SkriftDesktopUITests.
@@ -3245,3 +3245,4 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 11:04 Q277 -> done — hand-merged (D163: test ports, Q247 shim deleted)
 - 2026-10-04 11:16 Q293 -> done — gate pass @e2de0aea
 - 2026-10-04 11:18 Q303 -> done — gate pass @16c975cd
+- 2026-10-04 11:20 Q267 -> done — hand-merged (D163: PDF expectation follows shipped Q136 behaviour)
