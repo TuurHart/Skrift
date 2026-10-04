@@ -20,7 +20,7 @@ enum AudiobookSeeder {
     /// Seeded launches define a KNOWN state: any continue-card dismissal left
     /// in the sim container by earlier runs is cleared (hermetic UI tests).
     private static func resetCardState() {
-        UserDefaults.standard.removeObject(forKey: "continueCardDismissedDay")
+        UserDefaults.standard.removeObject(forKey: PrefKey.continueCardDismissedDay)
     }
 
     /// Seed the book with a played history but NO session — the Notes

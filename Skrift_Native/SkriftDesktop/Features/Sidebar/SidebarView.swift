@@ -152,10 +152,7 @@ struct SidebarView: View {
         // never prompts again, so "grant it in System Settings" is a scavenger hunt at the
         // exact moment the app looks broken — and this is not hypothetical: it is what took
         // Record out on 2026-07-28 (`-miccheck` read DENIED long after capture had worked).
-        .alert("Can't record", isPresented: Binding(
-            get: { micProblem != nil },
-            set: { if !$0 { micProblem = nil } }
-        )) {
+        .alert("Can't record", isPresented: $micProblem.isPresent) {
             if micProblem?.fixedInPrivacySettings == true {
                 Button("Open Settings") {
                     if let url = URL(string: MacRecorder.Refusal.privacySettingsURL) {

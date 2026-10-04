@@ -4,15 +4,15 @@ import SwiftUI
 /// (Names & voices, weather key), theme, version. A root tab (AppTabView);
 /// Names pushes within its own stack.
 struct SettingsView: View {
-    @AppStorage("liveTranscription") private var liveTranscription = true
+    @AppStorage(PrefKey.liveTranscription) private var liveTranscription = PrefKey.liveTranscriptionDefault
     // Auto-stop live captions after N seconds of recording (0 = never) — long
     // battery-saving recordings drop live captioning and transcribe once at stop.
-    @AppStorage("liveCaptionAutoOffSeconds") private var liveCaptionAutoOffSeconds = 60
-    @AppStorage("appTheme") private var appTheme = "dark"
-    @AppStorage("weatherAPIKey") private var weatherKey = ""
-    @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = true
-    // Key mirrored by MemoSaver.autoCopySettingKey (default OFF — user-locked).
-    @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
+    @AppStorage(PrefKey.liveCaptionAutoOffSeconds) private var liveCaptionAutoOffSeconds = PrefKey.liveCaptionAutoOffSecondsDefault
+    @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
+    @AppStorage(PrefKey.weatherAPIKey) private var weatherKey = PrefKey.weatherAPIKeyDefault
+    @AppStorage(PrefKey.karaokeTapToSeek) private var karaokeTapToSeek = PrefKey.karaokeTapToSeekDefault
+    // Key is PrefKey.autoCopyTranscript (default OFF — user-locked).
+    @AppStorage(PrefKey.autoCopyTranscript) private var autoCopyTranscript = PrefKey.autoCopyTranscriptDefault
     // Key = TranscriptionService.multilingualKey. false = English (v3 default, cleanest
     // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
     // rebuilds the model when this flips.

@@ -24,7 +24,7 @@ struct ContinueListeningCard: View {
     /// "yyyy-MM-dd" of the last ×-dismissal — the card stays gone for that day.
     /// (The play-again VOIDS-dismissal rule lives in `NotesBottomChrome`, which
     /// stays mounted while this row comes and goes.)
-    @AppStorage("continueCardDismissedDay") private var dismissedDay = ""
+    @AppStorage(PrefKey.continueCardDismissedDay) private var dismissedDay = PrefKey.continueCardDismissedDayDefault
 
     var body: some View {
         if !session.isActive,

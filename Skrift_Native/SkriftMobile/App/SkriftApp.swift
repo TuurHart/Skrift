@@ -9,7 +9,7 @@ struct SkriftApp: App {
     // Registers for remote notifications so CloudKit's silent pushes wake the app and
     // NSPersistentCloudKitContainer syncs in seconds (even backgrounded) — see AppDelegate.
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @AppStorage("appTheme") private var appTheme = "dark"
+    @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     /// 📦 Holds a `.skriftbook` that arrived over AirDrop / Files / Messages until
     /// the user says yes to it.
     @StateObject private var bookImport = BookImportBridge.shared
@@ -155,8 +155,7 @@ struct SkriftApp: App {
                 // the offer is hosted at the root rather than in the library.
                 .sheet(item: $bookImport.pending) { BookImportSheet(pending: $0) }
                 .alert("Couldn't open that book",
-                       isPresented: Binding(get: { bookImport.failure != nil },
-                                            set: { if !$0 { bookImport.failure = nil } })) {
+                       isPresented: $bookImport.failure.isPresent) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(bookImport.failure ?? "")

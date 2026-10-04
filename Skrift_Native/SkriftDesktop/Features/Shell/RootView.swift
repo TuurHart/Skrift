@@ -24,9 +24,9 @@ struct RootView: View {
     /// river card points at a memo with no queue row (mocks/lifecycle-ia-explorations.html
     /// #m2, kills the old RootView:34 dead-end flash).
     @State private var unpipelinedSheetID: String?
-    @AppStorage(AppTheme.key) private var appTheme = "dark"
+    @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     /// Written by the note bar's ◧ toggle (NoteDisplayView.sidebarToggle).
-    @AppStorage("macSidebarVisible") private var sidebarVisible = true
+    @AppStorage(PrefKey.macSidebarVisible) private var sidebarVisible = PrefKey.macSidebarVisibleDefault
     // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
     // sidebar, selection, and active note; Review's conveyor lists them (its Mac-local tail).
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
@@ -128,10 +128,7 @@ struct RootView: View {
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
         }
-        .sheet(isPresented: Binding(
-            get: { unpipelinedSheetID != nil },
-            set: { if !$0 { unpipelinedSheetID = nil } }
-        )) {
+        .sheet(isPresented: $unpipelinedSheetID.isPresent) {
             UnpipelinedMemoSheet(
                 memoID: unpipelinedSheetID ?? "",
                 onClose: { unpipelinedSheetID = nil },
@@ -249,10 +246,7 @@ struct RootView: View {
                 if case .failed(let why) = liveSession.phase { appendMicProblem = why }
             }
         }
-        .alert("Can't record", isPresented: Binding(
-            get: { appendMicProblem != nil },
-            set: { if !$0 { appendMicProblem = nil } }
-        )) {
+        .alert("Can't record", isPresented: $appendMicProblem.isPresent) {
             if appendMicProblem?.fixedInPrivacySettings == true {
                 Button("Open Settings") {
                     if let url = URL(string: MacRecorder.Refusal.privacySettingsURL) {

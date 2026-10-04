@@ -17,7 +17,7 @@ struct JournalHomeView: View {
     @State private var wayOutFading: [Memo] = []
     @State private var wayOutDeletedCount = 0
     @State private var showWayOut = false
-    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
+    @AppStorage(PrefKey.fadingLastSeenAt) private var fadingLastSeenTs: Double = PrefKey.fadingLastSeenAtDefault
     /// Layout law (iPad wave, `LANES-2026-07-22-ipad/BASE.md`): branch on the
     /// size class, never device idiom — Split View/Stage Manager can make an
     /// iPad compact, and compact must stay pixel-identical to the phone.

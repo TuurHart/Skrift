@@ -27,7 +27,7 @@ struct MemoSaver {
 
     /// UserDefaults key for the auto-copy opt-in (mirrored by `SettingsView`'s
     /// `@AppStorage`). Default OFF — user-locked decision.
-    nonisolated static let autoCopySettingKey = "autoCopyTranscript"
+    nonisolated static let autoCopySettingKey = PrefKey.autoCopyTranscript
 
     /// A captured photo handed off from the recorder: temp file + recording-time offset.
     typealias CapturedPhoto = (url: URL, offset: Double)

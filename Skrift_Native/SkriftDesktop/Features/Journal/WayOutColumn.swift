@@ -91,7 +91,7 @@ struct WayOutColumn: View {
         .frame(maxWidth: 820, alignment: .leading)
         .frame(maxWidth: .infinity)
         .alert("Delete permanently?",
-               isPresented: Binding(get: { confirmDeleteMacLocal != nil }, set: { if !$0 { confirmDeleteMacLocal = nil } })) {
+               isPresented: $confirmDeleteMacLocal.isPresent) {
             Button("Delete Now", role: .destructive) {
                 if let pf = confirmDeleteMacLocal { onDeleteMacLocal(pf) }
                 confirmDeleteMacLocal = nil

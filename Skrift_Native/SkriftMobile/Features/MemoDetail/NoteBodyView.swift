@@ -83,7 +83,7 @@ struct NoteBodyView: UIViewRepresentable {
     /// ONLY — no scroll/selection behaviour changes.
     var readingWidthCap: CGFloat? = nil
 
-    @AppStorage("karaokeTapToSeek") private var tapToSeek = true
+    @AppStorage(PrefKey.karaokeTapToSeek) private var tapToSeek = PrefKey.karaokeTapToSeekDefault
 
     /// Observed so the body flips read-only the moment a split starts and editable when it ends.
     @ObservedObject private var diarStatus = DiarizationStatus.shared
