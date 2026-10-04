@@ -132,9 +132,7 @@ enum MixedBundle {
 
     /// The body of a note made of pictures alone: each one its own paragraph (C12/C13).
     static func pictureOnlyBody(count: Int) -> String {
-        (0..<max(0, count)).map { $0 + 1 }
-            .map { "[[img_\(String(format: "%03d", $0))]]" }
-            .joined(separator: "\n\n")
+        BodyV2Marker.block(Array(stride(from: 1, through: max(0, count), by: 1)))
     }
 
     /// File extensions the import layer treats as pictures (C238).

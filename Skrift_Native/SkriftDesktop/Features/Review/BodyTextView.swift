@@ -1200,7 +1200,7 @@ struct BodyTextView: NSViewRepresentable {
             var out = ""
             storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
                 if let att = value as? ImageMarkerAttachment {
-                    out += String(format: "[[img_%03d]]", att.imgNumber)
+                    out += BodyV2Marker.literal(att.imgNumber)
                 } else if let chip = value as? MemoLinkChipAttachment {
                     out += chip.literal
                 } else if let gutter = value as? SpeakerGutterAttachment {

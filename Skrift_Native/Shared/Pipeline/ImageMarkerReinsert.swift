@@ -9,14 +9,13 @@ import Foundation
 enum ImageMarkerReinsert {
     struct Anchors: Equatable, Sendable { let before: String; let after: String }
 
-    private static let markerRegex = try! NSRegularExpression(pattern: #"\[\[img_(\d{3})\]\]"#)
     private static let sentenceEndRegex = try! NSRegularExpression(pattern: #"[.!?]\s"#)
 
     /// Returns the marker-stripped text, the img numbers in order, and the saved
     /// anchors (≤6 words before, ≤6 after each marker).
     static func extractAnchors(_ input: String) -> (stripped: String, imgNums: [Int], anchors: [Int: Anchors]) {
         let ns = input as NSString
-        let matches = markerRegex.matches(in: input, range: NSRange(location: 0, length: ns.length))
+        let matches = BodyV2Marker.regex.matches(in: input, range: NSRange(location: 0, length: ns.length))
         guard !matches.isEmpty else { return (tidyWhitespace(input), [], [:]) }
 
         var imgNums: [Int] = []
@@ -34,7 +33,7 @@ enum ImageMarkerReinsert {
             anchors[img] = Anchors(before: String(beforeWords), after: String(afterWords))
             imgNums.append(img)
         }
-        let stripped = markerRegex.stringByReplacingMatches(
+        let stripped = BodyV2Marker.regex.stringByReplacingMatches(
             in: input, range: NSRange(location: 0, length: ns.length), withTemplate: " ")
         return (tidyWhitespace(stripped), imgNums, anchors)
     }
@@ -112,7 +111,7 @@ enum ImageMarkerReinsert {
         for t in targets.sorted(by: { ($0.pos, $0.img) > ($1.pos, $1.img) }) {
             let r = result as NSString
             let pos = min(max(0, t.pos), r.length)
-            result = r.substring(to: pos) + "\n\n[[img_\(String(format: "%03d", t.img))]]\n\n" + r.substring(from: pos)
+            result = r.substring(to: pos) + "\n\n" + BodyV2Marker.literal(t.img) + "\n\n" + r.substring(from: pos)
         }
         return result
     }

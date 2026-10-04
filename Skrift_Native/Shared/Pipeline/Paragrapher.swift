@@ -16,10 +16,8 @@ enum Paragrapher {
     /// Mac a paragraph needs a DELIBERATE stop, not a breath.
     static let longFormGap: TimeInterval = 2.0
 
-    /// True if `word` ends a sentence — last non-quote/paren character is `. ? !`.
+    /// True if `word` ends a sentence — `BodyV2Text.endsSentence`, the one closer set.
     static func endsSentence(_ word: String) -> Bool {
-        let closers: Set<Character> = ["\"", "”", "'", "’", ")", "]", "»"]
-        guard let last = word.reversed().first(where: { !closers.contains($0) }) else { return false }
-        return last == "." || last == "?" || last == "!"
+        BodyV2Text.endsSentence(Substring(word))
     }
 }

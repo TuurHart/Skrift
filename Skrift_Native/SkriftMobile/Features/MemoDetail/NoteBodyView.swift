@@ -1228,7 +1228,7 @@ struct NoteBodyView: UIViewRepresentable {
                 if let marker = attrs[Self.markerKey] as? Int, run == "\u{FFFC}" {
                     // Match the writer's zero-padded format (`BodyV2Marker` %03d) —
                     // the old editor re-emitted "[[img_1]]" and drifted the format.
-                    out.append("[[img_\(String(format: "%03d", marker))]]")
+                    out.append(BodyV2Marker.literal(marker))
                 } else if let checked = attrs[Self.taskKey] as? Bool, run == "\u{FFFC}" {
                     out.append(BodyTransform.rawTask(checked: checked))
                 } else if let payload = attrs[Self.memoLinkKey] as? String, run == "\u{FFFC}" {
