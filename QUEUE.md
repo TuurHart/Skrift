@@ -1937,7 +1937,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q254 [auto] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
+### Q254 [auto] (done) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
 spec: -
 needs: -
 do: Under SPEC D163 (deleting tests of code being deleted): delete the 0.7/0.8 importance assertions in protected SkriftMobileTests/IPadDetailConnectionsTests.swift that pin ConnectionsPanelLogic.importanceText and isRefineImportance, then delete those two now-unused members (left by Q119). Never run SkriftDesktopUITests.
@@ -3314,3 +3314,4 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 12:57 Q199 -> done — hand-merged (D163: ports + deletions of tests of deleted lifecycle states)
 - 2026-10-04 12:57 Q196 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 13:12 Q196 -> done — hand-merged (D163: call-site ports (onCommit closure arity))
+- 2026-10-04 13:26 Q254 -> done — hand-merged (D163: deleted tests of the deleted helpers)
