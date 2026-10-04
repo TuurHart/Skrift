@@ -146,6 +146,19 @@ enum DemoSeed {
             "source": "mobile",
         ])
 
-        return [f1, f2, f3, f4, f5, f6, f7, f8]
+        // 9 — Text capture (Q285, D170): shared TEXT draws as the borderless accent-bar quote.
+        let f9 = PipelineFile(id: "demo-capture-text", filename: "capture_2026-07-14",
+                              sourceType: .capture, uploadedAt: date(2026, 7, 14, 9))
+        f9.transcribeStatus = .done; f9.sanitiseStatus = .done; f9.enhanceStatus = .done
+        f9.enhancedTitle = "A line worth keeping"
+        f9.sanitised = "Saved this from a newsletter because it describes the cloud-sync problem better than I managed to."
+        f9.audioMetadataJSON = meta([
+            "sharedContent": ["type": "text",
+                              "text": "A sync engine is only finished when two devices that were offline for a week can meet again and agree, without anyone being asked which copy to keep."],
+            "annotationText": "Saved this from a newsletter because it describes the cloud-sync problem better than I managed to.",
+            "source": "mobile",
+        ])
+
+        return [f1, f2, f3, f4, f5, f6, f7, f8, f9]
     }
 }

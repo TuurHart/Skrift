@@ -98,7 +98,7 @@ struct CaptureBanner: View {
 /// The shared-content card pinned above the annotation body (mock state 3
 /// `sharedblock`): bordered, blue-tinted left edge, a "SHARED CONTENT" kicker,
 /// then the content per type — url: glyph + bold title + monospaced URL;
-/// text: the snippet as an italic quote; image: the file reference (the pixels
+/// text: NO card — the phone's italic accent-bar quote (D170, `SharedTextQuote`); image: the file reference (the pixels
 /// live in the working folder and export as an `![[embed]]`). This mirrors in
 /// the REVIEW what `Compiler.captureSharedBlock` pins in the EXPORT.
 struct CaptureSharedContentBlock: View {
@@ -334,7 +334,10 @@ struct CaptureSharedContentBlock: View {
     }
 
     var body: some View {
-        if let sc {
+        if let sc, sc.type == .text {
+            // Q285 (D170): shared text is the borderless accent-bar quote, no card, no kicker.
+            SharedTextQuote(text: sc.text ?? "", style: .mac)
+        } else if let sc {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 6) {
                     Image(systemName: file.sourceSymbol)
@@ -349,11 +352,7 @@ struct CaptureSharedContentBlock: View {
                 case .url:
                     linkCard(sc)
                 case .text:
-                    Text(sc.text ?? "")
-                        .font(.system(size: 13.5))
-                        .italic()
-                        .foregroundStyle(Theme.textPrimary.opacity(0.85))
-                        .fixedSize(horizontal: false, vertical: true)
+                    EmptyView()  // drawn above as the quote (D170)
                 case .image:
                     imageBlock(sc)
                 case .file:
