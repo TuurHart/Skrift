@@ -264,9 +264,8 @@ final class MemoSaverTests: XCTestCase {
         try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(filename))
     }
 
-    /// The sweep is scoped to PLAIN recordings: capture dictations (empty
-    /// `audioFilename` — `CaptureDictation.resumePending` owns those) and
-    /// audiobook captures (`isBookCapture`, own transcribe-at-create path) must
+    /// The sweep is scoped to PLAIN recordings: capture items (empty
+    /// `audioFilename`) and audiobook captures (`isBookCapture`, own transcribe-at-create path) must
     /// be left untouched even when stuck, while a plain stuck memo IS recovered.
     @MainActor
     func testRecoverSkipsCaptureDictationsAndBookCaptures() async {
@@ -298,7 +297,7 @@ final class MemoSaverTests: XCTestCase {
 
         await makeRecoverySaver(repo: repo, text: "plain recovered").recoverStuckTranscriptions()
 
-        XCTAssertEqual(repo.memo(id: dictationID)?.transcriptStatus, .transcribing, "capture dictation left for CaptureDictation.resumePending")
+        XCTAssertEqual(repo.memo(id: dictationID)?.transcriptStatus, .transcribing, "capture item (empty audioFilename) left untouched")
         XCTAssertEqual(repo.memo(id: bookID)?.transcriptStatus, .transcribing, "audiobook capture left for its own path")
         XCTAssertEqual(repo.memo(id: plainID)?.transcriptStatus, .done, "plain stuck recording recovered")
         XCTAssertEqual(repo.memo(id: plainID)?.transcript, "plain recovered")

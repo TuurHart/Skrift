@@ -31,12 +31,6 @@ struct CaptureInboxEntry: Codable {
     let significance: Double
     /// ISO8601 timestamp when the share action completed.
     let sharedAt: String
-    /// Filename (relative to the entry folder) of a dictated voice note, when the
-    /// user recorded one in the sheet. The EXTENSION only records — Parakeet can't
-    /// fit in the extension's memory ceiling, so the MAIN APP transcribes it on
-    /// drain and appends the text to `annotationText` (audio discarded after).
-    /// Optional so entries written by older builds keep decoding.
-    var dictationFileName: String? = nil
     /// Filename (relative to the entry folder) of a shared VIDEO (a movie shared
     /// from Photos/Files). The MAIN APP imports it on drain via
     /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
@@ -154,14 +148,13 @@ enum CaptureInbox {
     // MARK: - Write (called by the share extension)
 
     /// Write a capture entry to the inbox.  Images go in via `imageDatas` (names
-    /// aligned to `entry.imageFileNames`); `dictationData` is legacy-only (the share
-    /// sheet no longer records; kept for pending-entry tests).
+    /// aligned to `entry.imageFileNames`).
     ///
     /// Crash-safe: the file is written atomically (write to a tmp file, then
     /// rename) — a crash mid-write leaves the old entry intact or no entry at all,
     /// never a half-written JSON.
     @discardableResult
-    static func write(_ entry: CaptureInboxEntry, dictationData: Data? = nil,
+    static func write(_ entry: CaptureInboxEntry,
                       videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
                       audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
@@ -175,10 +168,6 @@ enum CaptureInbox {
                 for (data, name) in zip(imageDatas, names) {
                     try data.write(to: entryDir.appendingPathComponent(name), options: .atomic)
                 }
-            }
-            if let dictationData, let name = entry.dictationFileName {
-                let audioURL = entryDir.appendingPathComponent(name)
-                try dictationData.write(to: audioURL, options: .atomic)
             }
             // Shared video: COPY the movie file (never load it into memory — a
             // video can be hundreds of MB, well past the extension's memory ceiling).
@@ -242,12 +231,6 @@ enum CaptureInbox {
     /// Resolve the on-disk URL of the image for an image-type entry.
     static func imageURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.imageFileName else { return nil }
-        return entryDir.appendingPathComponent(name)
-    }
-
-    /// Resolve the on-disk URL of the dictated voice note, when present.
-    static func dictationURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
-        guard let name = entry.dictationFileName else { return nil }
         return entryDir.appendingPathComponent(name)
     }
 
