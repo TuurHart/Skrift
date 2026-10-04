@@ -1713,7 +1713,7 @@ do: Found by reading; each gets a failing test first where one can be written, o
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-c09 MLJ-c26 MLJ-c01 (cleanup-audit P37)
 
-### Q225 [auto] (doing) phone services: unread members, unused overloads and test-only helpers
+### Q225 [auto] (done) phone services: unread members, unused overloads and test-only helpers
 spec: C240
 needs: Q211
 gate+: no
@@ -3344,3 +3344,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 19:57 Q211 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 20:10 Q211 -> done — hand-merged (D163: call-site ports to the column properties)
 - 2026-10-04 20:10 Q225 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 20:27 Q225 -> done — hand-merged (D163: ports + deletion of tests of deleted members)
