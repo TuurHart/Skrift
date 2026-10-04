@@ -179,9 +179,9 @@ final class BodyNormaliseMigrationTests: XCTestCase {
     func testC203ShapesAreLeftAlone() {
         let old = Date(timeIntervalSince1970: 1_780_000_000)      // 2026-05-28
         let new = Date(timeIntervalSince1970: 1_790_000_000)      // 2026-09-21
-        let image: [String: Any] = ["type": "image"]
-        let pdf: [String: Any] = ["type": "file", "fileName": "Report.pdf", "mimeType": "application/pdf"]
-        let txt: [String: Any] = ["type": "file", "fileName": "notes.txt", "mimeType": "text/plain"]
+        let image = SharedContent(type: .image)
+        let pdf = SharedContent(type: .file, fileName: "Report.pdf", mimeType: "application/pdf")
+        let txt = SharedContent(type: .file, fileName: "notes.txt", mimeType: "text/plain")
         XCTAssertTrue(BodyNormaliseMigration.isC203Legacy(sharedContent: image, madeAt: old))
         XCTAssertFalse(BodyNormaliseMigration.isC203Legacy(sharedContent: image, madeAt: new))
         XCTAssertTrue(BodyNormaliseMigration.isC203Legacy(sharedContent: pdf, madeAt: old))

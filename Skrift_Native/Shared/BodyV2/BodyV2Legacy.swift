@@ -12,17 +12,11 @@ import Foundation
 /// its only offset remap is marker → one glyph (C17). Nothing here writes.
 enum BodyV2Legacy {
 
-    /// True when some picture marker is not its own paragraph in v2's shape: at the top or
-    /// after a blank line, markers `\n\n`-separated, then a blank line straight into the next
-    /// paragraph (v1's wrap leaves a space there) or the end.
-    static func isUnnormalised(_ body: String) -> Bool {
-        BodyNormaliseMigration.needsNormalise(body)
-    }
-
     /// The text to show / export for a stored body, and the map from a stored (raw) range
-    /// to a range in that text. Identity for a v2-shaped body.
+    /// to a range in that text. Identity for a v2-shaped body (`needsNormalise`: no picture
+    /// marker sits outside its own paragraph).
     static func shown(_ body: String) -> (text: String, map: (NSRange) -> NSRange) {
-        guard isUnnormalised(body) else { return (body, { $0 }) }
+        guard BodyNormaliseMigration.needsNormalise(body) else { return (body, { $0 }) }
         let reflow = Self.reflowMidSentencePictures(body)
         return (reflow.text, { reflow.mapped(rawRange: $0) })
     }
@@ -85,9 +79,6 @@ enum BodyV2Legacy {
     private static func isReflowSentenceTerminator(_ c: unichar) -> Bool {
         c == 46 || c == 33 || c == 63 || c == 0x2026 || c == 10   // . ! ? … \n
     }
-
-    /// A raw image marker literal, zero-padded to match the injector (`%03d`).
-    private static func reflowMarkerLiteral(_ n: Int) -> String { "[[img_\(String(format: "%03d", n))]]" }
 
     /// Move every MID-SENTENCE `[[img_NNN]]` photo marker to the end of the sentence it
     /// interrupts, rendered as its own `\n\n[[img_NNN]]\n\n` block, so the sentence reads
@@ -164,7 +155,7 @@ enum BodyV2Legacy {
         func flushDeferred() {
             guard !deferred.isEmpty else { return }
             trimTrailingWhitespace()
-            appendInsert("\n\n" + deferred.map(reflowMarkerLiteral).joined(separator: "\n\n") + "\n\n")
+            appendInsert("\n\n" + BodyV2Marker.block(deferred) + "\n\n")
             deferred.removeAll()
             suppressLeadingNewlines = true
             tailStarted = false
@@ -212,7 +203,7 @@ enum BodyV2Legacy {
                 if deferred.isEmpty, justPlacedBlock || isReflowBoundaryChar(trimmedLastChar()) {
                     // Already at a boundary (or right after another photo) → block in place.
                     trimTrailingWhitespace()
-                    appendInsert((out.length == 0 ? "" : "\n\n") + reflowMarkerLiteral(n) + "\n\n")
+                    appendInsert((out.length == 0 ? "" : "\n\n") + BodyV2Marker.literal(n) + "\n\n")
                     suppressLeadingNewlines = true
                     justPlacedBlock = true
                 } else {

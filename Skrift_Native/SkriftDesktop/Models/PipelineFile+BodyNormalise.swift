@@ -49,7 +49,7 @@ extension PipelineFile {
     private var bodyNormaliseLegacyShape: Bool {
         let meta = bodyNormaliseMetadata
         let madeAt = ((meta["capturedAt"] ?? meta["recordedAt"]) as? String).flatMap { ISO8601.lenientDate(from: $0) }
-        return BodyNormaliseMigration.isC203Legacy(sharedContent: meta["sharedContent"] as? [String: Any], madeAt: madeAt)
+        return BodyNormaliseMigration.isC203Legacy(sharedContent: sharedContent, madeAt: madeAt)
     }
 
     /// The synced polish row for this note in `cloud`, if any (newest `enhancedAt` first).

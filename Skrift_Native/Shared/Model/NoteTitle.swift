@@ -21,7 +21,7 @@ enum NoteTitle {
 
     /// Clip `line` to `limit` on a word boundary, appending "…". Returned unchanged
     /// when it already fits.
-    static func clip(_ line: String, limit: Int = NoteTitle.limit) -> String {
+    static func clip(_ line: String) -> String {
         guard line.count > limit else { return line }
         let head = line.prefix(limit)
         // Break at the last space so a word is never sliced in half. A single word
