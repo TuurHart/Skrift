@@ -1745,7 +1745,7 @@ do: Share-sheet dictation is gone (`SkriftMobile/project.yml:448-450`; iOS block
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d14 PER-d05 (cleanup-audit P41)
 
-### Q229 [auto] (todo) delete the drain-side half of the retired share dictation
+### Q229 [auto] (doing) delete the drain-side half of the retired share dictation
 spec: C240
 needs: Q228
 gate+: no
@@ -3317,3 +3317,4 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 13:26 Q254 -> done — hand-merged (D163: deleted tests of the deleted helpers)
 - 2026-10-04 13:26 Q250 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 13:33 Q250 -> done — hand-merged (Tuur-approved (D163 sitting): test seeds the shape the phone writes)
+- 2026-10-04 13:33 Q229 -> doing — dispatched (sonnet; one-at-a-time)
