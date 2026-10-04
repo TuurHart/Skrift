@@ -686,10 +686,8 @@ final class AudiobookSession {
                 // (AirPods handing back to a competing app, `.categoryChange` from
                 // our own recorder claiming .playAndRecord, `.routeConfigurationChange`).
                 if session.isActive {
-                    // rawValue, not the case name: an imported NS_ENUM has no
-                    // guaranteed readable description. 2=oldDeviceUnavailable,
-                    // 3=categoryChange, 6=routeConfigurationChange.
-                    DevLog.log("audiobook route change — reasonRaw=\(reason?.rawValue.description ?? "?")"
+                    DevLog.log("audiobook route change — reason=\(RouteChangeName.reason(rawValue: reason?.rawValue))"
+                               + " cat=\(RouteChangeName.category(AVAudioSession.sharedInstance().category))/\(RouteChangeName.mode(AVAudioSession.sharedInstance().mode))"
                                + " playing=\(session.isPlaying) route=\(AudiobookSession.describeRoute())")
                 }
                 guard reason == .oldDeviceUnavailable else { return }
