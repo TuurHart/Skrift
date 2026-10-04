@@ -340,8 +340,7 @@ final class ProcessingCoordinator {
     /// transcript, so a paired Mac auto-upgrades its export.
     private func writeBackEnhancement(_ pf: PipelineFile) {
         guard pf.enhanceStatus == .done,
-              SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return }
+              let container = MemoCloudStore.syncContainer else { return }
         // Don't swallow CloudKit failures silently — a lost write-back means the phone
         // never sees the polish. Log it so it's diagnosable (a durable retry queue is the
         // documented Phase-2 follow-up). A `nil` return is an intentional skip (not a synced
@@ -352,7 +351,7 @@ final class ProcessingCoordinator {
             try MacCloudWriteBack.upsert(for: pf, into: container.mainContext,
                                          deviceID: DeviceID.current(), passRan: true)
         } catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .error("write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
@@ -470,8 +469,7 @@ final class ProcessingCoordinator {
     /// The split/flatten is a deliberate change of the note's words: put it on the synced Memo,
     /// or the next reflect sweep puts the old flat transcript back (`SplitSpeakers.reflectTranscript`).
     private func reflectSplitToMemo(_ pf: PipelineFile) {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let cloud = MemoCloudStore.container?.mainContext else { return }
+        guard let cloud = MemoCloudStore.syncContainer?.mainContext else { return }
         SplitSpeakers.reflectTranscript(of: pf, into: cloud)
     }
 
@@ -535,7 +533,7 @@ final class ProcessingCoordinator {
         let settings = SettingsStore.shared.load()
         // The SAME predicate the iPad asks (`ExportGate`, Q156): the first failing gate is
         // named, in the shared words, and stays until dismissed (C194).
-        let cloud = settings.cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
+        let cloud = MemoCloudStore.syncContainer?.mainContext
         if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
             lastError = ExportOutcomeCopy.refusal(failure, device: .mac).text
             return

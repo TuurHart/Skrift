@@ -57,7 +57,7 @@ struct NoteActions: View {
 
     /// The cloud store the tidy-up ledger lives behind; nil when Mac sync is off.
     private var cloudContext: ModelContext? {
-        SettingsStore.shared.load().cloudKitMacSyncEnabled ? MemoCloudStore.container?.mainContext : nil
+        MemoCloudStore.syncContainer?.mainContext
     }
 
     /// Q14/Q40: the one-time body tidy-up of an old note keeps its pre-tidy copy in a local

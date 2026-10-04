@@ -110,8 +110,7 @@ struct NoteDisplayView: View {
                     .onChange(of: file.id, initial: true) { _, _ in
                         namingUndo = nil
                         // C10/D4 + Q40: old body + polish (local and the synced row) → v2 once, at first open
-                        file.normaliseBodyOnce(cloud: SettingsStore.shared.load().cloudKitMacSyncEnabled
-                                                   ? MemoCloudStore.container?.mainContext : nil)
+                        file.normaliseBodyOnce(cloud: MemoCloudStore.syncContainer?.mainContext)
                     }
                     .sheet(item: $editorRequest) { req in
                         PersonEditor(request: req,

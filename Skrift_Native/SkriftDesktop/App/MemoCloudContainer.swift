@@ -41,6 +41,14 @@ enum MemoCloudStore {
     /// The CloudKit-backed container, or `nil` when CloudKit is unavailable/disabled.
     static let container: ModelContainer? = makeContainer()
 
+    /// The one sync gate every Mac cloud adapter shares: `container` when Mac CloudKit sync is
+    /// switched on (loads settings.json afresh, like the old inline gates), nil when it is off
+    /// or there is no container. Checks the switch first, so a sync-off Mac never builds the
+    /// CloudKit container.
+    static var syncContainer: ModelContainer? {
+        SettingsStore.shared.load().cloudKitMacSyncEnabled ? container : nil
+    }
+
     /// The synced `Memo` with this id (predicate fetch, limit 1), or nil.
     static func memo(id: UUID, context: ModelContext) -> Memo? {
         var d = FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })

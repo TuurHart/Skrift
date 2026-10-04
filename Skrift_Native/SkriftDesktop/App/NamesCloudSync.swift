@@ -22,8 +22,7 @@ enum NamesCloudSync {
     /// The reconcile (fold carriers → NamesMerge → collapse to one row) is SHARED with the
     /// phone — `NamesSyncCore`. This adapter owns the sync gate + the live-refresh notification.
     static func run(store: NamesStore = .shared) {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return }
+        guard let container = MemoCloudStore.syncContainer else { return }
         // Fresh context: `mainContext` doesn't refresh registered rows after a CloudKit import,
         // so a phone names edit (a NamesRecord blob update) would read stale (same trap as the
         // memo sweep). A new context reads the latest import.
@@ -43,12 +42,12 @@ enum NamesCloudSync {
         // when it actually drops a row.
         let pruned = store.pruneOldTombstones()
         if pruned > 0 {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .info("names: pruned \(pruned) old tombstone(s)")
         }
         do { try context.save() }
         catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .error("names sync save FAILED — carrier not persisted: \(error)")
         }
         // Live-refresh any open Settings names list (the reconcile runs in the background

@@ -16,30 +16,20 @@ import os
 /// cloud copy purges only on the phone's v3 `trashSeenAt` clock (14 SEEN days — never away-time).
 @MainActor
 enum MacCloudDeleteSync {
-    private static let log = Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
 
     /// Mirror each file's local trash state onto its synced `Memo`. Safe to call for any files —
     /// non-synced / non-memo rows are skipped, and a memo already at the same state isn't churned.
     static func mirror(_ files: [PipelineFile]) {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return }
-        let ctx = container.mainContext
-        var wrote = false
-        for pf in files {
-            guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx) else { continue }
-            if memo.deletedAt != pf.deletedAt {
-                memo.deletedAt = pf.deletedAt
-                // A Mac trash gesture happens with the user right here — the
-                // purge clock (v3 `trashSeenAt`) starts at the same stamp, like
-                // the phone's own softDelete. Restores (nil) leave the old
-                // stamp; the validity guard treats it as stale either way.
-                if let deletedAt = pf.deletedAt { memo.trashSeenAt = deletedAt }
-                wrote = true
-            }
-        }
-        if wrote {
-            do { try ctx.save() }
-            catch { log.error("delete-sync write failed: \(String(describing: error), privacy: .public)") }
+        // No words change here, so no edit stamp (`recordEdits: false`).
+        MacCloudMetaSync.writeBatch(files, "delete-sync", recordEdits: false) { pf, memo in
+            guard memo.deletedAt != pf.deletedAt else { return false }
+            memo.deletedAt = pf.deletedAt
+            // A Mac trash gesture happens with the user right here — the
+            // purge clock (v3 `trashSeenAt`) starts at the same stamp, like
+            // the phone's own softDelete. Restores (nil) leave the old
+            // stamp; the validity guard treats it as stale either way.
+            if let deletedAt = pf.deletedAt { memo.trashSeenAt = deletedAt }
+            return true
         }
     }
 }
