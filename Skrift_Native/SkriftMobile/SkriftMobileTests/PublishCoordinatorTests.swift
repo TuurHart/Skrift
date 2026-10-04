@@ -2,7 +2,7 @@ import XCTest
 @testable import SkriftMobile
 
 /// PublishCoordinator (standalone Phase 2) — the Obsidian-sink fan-out: which memos publish,
-/// policy gating, and paired-mode deferral. Deps injected; writes go to a temp vault.
+/// and the rated-only rule. Deps injected; writes go to a temp vault.
 @MainActor
 final class PublishCoordinatorTests: XCTestCase {
     private var sandbox: URL!
@@ -21,9 +21,7 @@ final class PublishCoordinatorTests: XCTestCase {
     /// `processed` = the memos that have a polish. A vault note is a PROCESSED note, so
     /// by default every fixture here is treated as processed and each gate test isolates
     /// the ONE rule it's about.
-    private func coordinator(memos: [Memo] = [], enabled: Bool = true, paired: Bool = false,
-                             whenPaired: Bool = false,
-                             policy: PublishCoordinator.Policy = .all,
+    private func coordinator(memos: [Memo] = [], enabled: Bool = true,
                              unprocessed: Set<UUID> = [],
                              enhancement: ((UUID) -> MemoEnhancement?)? = nil) -> PublishCoordinator {
         let publisher = ObsidianPublisher(vaultProvider: { self.vaultRoot }, manageScope: false,
@@ -31,8 +29,7 @@ final class PublishCoordinatorTests: XCTestCase {
                                           ledgerOverride: ledger)
         return PublishCoordinator(
             memosProvider: { memos }, publisher: publisher,
-            isMacPaired: { paired }, obsidianEnabled: { enabled },
-            publishWhenPaired: { whenPaired }, policy: { policy },
+            obsidianEnabled: { enabled },
             enhancementProvider: { id in
                 if let enhancement { return enhancement(id) }
                 return unprocessed.contains(id) ? nil
@@ -92,12 +89,6 @@ final class PublishCoordinatorTests: XCTestCase {
         XCTAssertFalse(coordinator().shouldPublish(m))
     }
 
-    func testGatePairedDefersToMacUnlessOverridden() {
-        let m = Memo(title: "T", transcript: "x")
-        XCTAssertFalse(coordinator(paired: true, whenPaired: false).shouldPublish(m), "Mac owns export when paired")
-        XCTAssertTrue(coordinator(paired: true, whenPaired: true).shouldPublish(m), "override re-enables phone publish")
-    }
-
     func testGateLocked() {
         let m = Memo(title: "T", transcript: "x")
         m.significance = 0.5
@@ -121,7 +112,7 @@ final class PublishCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator(enabled: false).exportRefusal(good),
                        "No vault folder is set on this device yet. Pick one in Settings → Obsidian.")
 
-        let unrated = coordinator(policy: .importantOnly)
+        let unrated = coordinator()
         let raw = Memo(title: "T", transcript: "x")   // significance 0
         XCTAssertTrue(unrated.exportRefusal(raw)!.contains("Rate this note first"))
 
@@ -135,9 +126,8 @@ final class PublishCoordinatorTests: XCTestCase {
     func testGatePolicy() {
         let unrated = Memo(title: "T", transcript: "x", significance: 0)
         let rated = Memo(title: "T", transcript: "x", significance: 0.5)
-        XCTAssertFalse(coordinator(policy: .importantOnly).shouldPublish(unrated))
-        XCTAssertTrue(coordinator(policy: .importantOnly).shouldPublish(rated))
-        XCTAssertTrue(coordinator(policy: .all).shouldPublish(unrated), "all-policy publishes unrated too")
+        XCTAssertFalse(coordinator().shouldPublish(unrated))
+        XCTAssertTrue(coordinator().shouldPublish(rated))
     }
 
     func testGateEmptyContent() {

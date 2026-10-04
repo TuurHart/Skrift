@@ -44,14 +44,15 @@ final class UnratedConsentTests: XCTestCase {
     // ── export is rated-only, everywhere ──
 
     /// The "All notes" option is gone from Settings, but a device that had STORED it
-    /// must not keep publishing unrated notes — so `live` hard-codes the policy rather
-    /// than reading the old key.
+    /// must not keep publishing unrated notes — the gate asks `NoteConsent.isRated`
+    /// unconditionally and never reads the old key.
     func testLivePublishPolicyIsRatedOnlyRegardlessOfStoredSetting() {
         UserDefaults.standard.set("all", forKey: "skrift.publish.policy")
         defer { UserDefaults.standard.removeObject(forKey: "skrift.publish.policy") }
 
         let coordinator = PublishCoordinator.live(author: "T")
-        XCTAssertEqual(coordinator.policy(), .importantOnly,
+        let unrated = Memo(title: "T", transcript: "x", significance: 0)
+        XCTAssertFalse(coordinator.shouldPublish(unrated),
                        "a stale stored 'all' must not resurrect unrated export")
     }
 

@@ -11,25 +11,20 @@ import Foundation
 /// - **Processed only:** a vault note is a POLISHED note. A memo with no enhancement has
 ///   nothing to export — which is why the export controls only appear on a device that
 ///   can process (`PolishCenter.isAvailable`; see `ObsidianSettingsSection`).
-/// - **Policy:** `.all` or `.importantOnly` (significance > 0 — mirrors the Mac flag-to-send).
-/// - **Paired mode:** `isMacPaired` lets a deployment defer Obsidian export to a Mac that owns
-///   the *enhanced* text. There's no LAN pairing under CloudKit-only, so the live wiring reports
-///   unpaired (the phone publishes per policy); per-memo file ownership + content-hash idempotency
-///   (in `ObsidianPublisher`) make a stray double-write harmless anyway.
+/// - **Rated only:** one rule, no setting and no paired mode (SPEC D166). An unrated note
+///   never publishes (`NoteConsent.isRated`, mirrors the Mac flag-to-send); the old stored
+///   `skrift.publish.policy` / `skrift.publish.whenPaired` keys are dead and deliberately unread.
+///   Per-memo file ownership + content-hash idempotency (in `ObsidianPublisher`) make a stray
+///   double-write from another device harmless.
 @MainActor
 struct PublishCoordinator {
-    enum Policy: String { case all, importantOnly }
-
     var memosProvider: () -> [Memo]
     var publisher: ObsidianPublisher
-    var isMacPaired: () -> Bool
     var obsidianEnabled: () -> Bool
     /// Is a PORTFOLIO root configured on this device? A note bound for the portfolio needs that
     /// folder, not the vault — and the two are separate picks, so a device can legitimately
     /// have one and not the other.
     var portfolioConfigured: () -> Bool = { false }
-    var publishWhenPaired: () -> Bool
-    var policy: () -> Policy
     /// The device's polish for a memo, if it has one. A vault note is a PROCESSED note
     /// (see `shouldPublish`), so this is what decides whether there's anything to send.
     var enhancementProvider: (UUID) -> MemoEnhancement? = { _ in nil }
@@ -39,19 +34,15 @@ struct PublishCoordinator {
         PublishCoordinator(
             memosProvider: { NotesRepository.shared.allMemos() },
             publisher: .live(author: author),
-            isMacPaired: { false },   // no LAN pairing under CloudKit-only; the phone publishes per policy
             // The picked folder IS the consent — no separate on/off (2026-08-18; the
             // old `skrift.publish.obsidianEnabled` key is dead and deliberately unread,
             // so devices that had it false don't stay silently off).
             obsidianEnabled: { ObsidianVault.isConfigured },
             portfolioConfigured: { PortfolioVault.isConfigured },
-            publishWhenPaired: { UserDefaults.standard.bool(forKey: "skrift.publish.whenPaired") },
             // RATED-ONLY, always — not a setting (Tuur, 2026-07-26: unrated notes
-            // "cant export either"). Deliberately hard-coded rather than read from
-            // the old `skrift.publish.policy` key: a device that had stored "all"
-            // would otherwise keep publishing unrated notes after the option was
-            // removed from Settings. `.all` survives only for the gate's tests.
-            policy: { .importantOnly },
+            // "cant export either"). The gate asks `NoteConsent.isRated` unconditionally;
+            // a device that stored "all" under the old `skrift.publish.policy` key is never
+            // consulted, so it cannot resurrect unrated export.
             enhancementProvider: { NotesRepository.shared.enhancement(forMemo: $0) }
         )
     }
@@ -62,7 +53,7 @@ struct PublishCoordinator {
     ///
     /// Locked notes stay inside Skrift (the vault is plaintext .md on disk; locking never
     /// deletes an already-published file, the lock flow tells the user it's still there).
-    /// Rated-only unless the (test-only) `.all` policy says otherwise.
+    /// Rated-only (`NoteConsent.isRated`), unconditionally.
     ///
     /// PROCESSED ONLY (Tuur, 2026-08-11): "only the iPad and the Mac can do that AFTER they
     /// processed the note." A vault note is a polished note — the raw ramble stays inside
@@ -75,19 +66,15 @@ struct PublishCoordinator {
     /// The Mac's two-versions hold (`EditConflictHold`) is deliberately NOT asked here: it is
     /// Mac-only (D139 does not require it on the iPad) — see the `ExportGate` table.
     func gateFailure(_ memo: Memo) -> ExportGate.Failure? {
-        var facts = ExportGate.Facts(
+        let facts = ExportGate.Facts(
             memo: memo,
             folderConfigured: memo.destination.isPortfolio ? portfolioConfigured() : obsidianEnabled(),
             processed: enhancementProvider(memo.id)?.isProcessed == true)
-        if policy() == .all { facts.rated = true }
         return ExportGate.check(facts, device: .ipad)
     }
 
     /// Whether this memo should publish to Obsidian right now.
-    func shouldPublish(_ memo: Memo) -> Bool {
-        if isMacPaired() && !publishWhenPaired() { return false }   // Mac owns export when paired
-        return gateFailure(memo) == nil
-    }
+    func shouldPublish(_ memo: Memo) -> Bool { exportRefusal(memo) == nil }
 
     /// Why `shouldPublish` would refuse this memo right now, in the user's words — nil
     /// when it would publish. The predicate is `gateFailure` (`ExportGate`, shared with the
@@ -96,7 +83,6 @@ struct PublishCoordinator {
     /// the export to obsidian button on ipad. nothing happened" — no vault was configured
     /// on that device, and nothing said so).
     func exportRefusal(_ memo: Memo) -> String? {
-        if isMacPaired() && !publishWhenPaired() { return "The Mac owns Obsidian export while paired." }
         return gateFailure(memo).map { ExportOutcomeCopy.refusal($0, device: .ipad).text }
     }
 
