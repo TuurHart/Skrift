@@ -2277,7 +2277,7 @@ gate+: yes
 do: WAIT until ~/Hackerman/netcup-server main contains the dark-host change (commit 14cb39a or later: FeedbackAppearance.interfaceStyle + onAccent) — check with git -C ~/Hackerman/netcup-server log main --oneline 
 check:  grep -i dark. Then in Features/Feedback/FeedbackKitWiring.swift pass interfaceStyle: .unspecified (Skrift follows its own appTheme) and onAccent: white (Skrift's own on-accent token), drop the UIColor-provider FeedbackPalette workaround from Q300 where the kit now handles it, and re-screenshot sheet-dark/sheet-light (LOOK: the 'What gets sent' chevron and the mic glyph must be legible). Update FeedbackPaletteTests to match (it is a NEW-ish file from Q300; if protected now, keep edits to ports). Never run SkriftDesktopUITests.|`ls plan/reads/feedback-kit/sheet-dark.png >/dev/null && ./gate.sh`
 
-### Q306 [auto] (todo) phone devlog prints audio route-change reasons by name
+### Q306 [auto] (done) phone devlog prints audio route-change reasons by name
 spec: -
 needs: -
 gate+: yes
@@ -3306,3 +3306,5 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 12:06 Q305 -> done — hand-merged (D163: FeedbackPaletteTests replaced tests of deleted workaround code)
 - 2026-10-04 12:11 Q219 -> done — gate pass @843830f7
 - 2026-10-04 12:11 Q310 added
+- 2026-10-04 12:11 Q306 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 12:22 Q306 -> done — gate pass @bfea17c9
