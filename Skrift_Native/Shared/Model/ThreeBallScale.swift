@@ -50,12 +50,6 @@ enum ThreeBallScale {
         return stops[step - 1]
     }
 
-    /// Tap-to-set / tap-to-clear: tapping the already-set ball clears to 0 (Not
-    /// rated); tapping any other ball sets that stop.
-    static func toggling(_ value: Double?, tappedStep: Int) -> Double {
-        step(for: value) == tappedStep ? 0 : self.value(forStep: tappedStep)
-    }
-
     /// Tier word for a set ball (1...3). Out of range reads "Not rated" — callers
     /// that need the raw word for a hovered/previewed ball pass 1...3 only.
     static func name(forStep step: Int) -> String {
@@ -67,12 +61,6 @@ enum ThreeBallScale {
     /// readout" was the signed pick; the numeric variant lost).
     static func label(forStep step: Int) -> String {
         step > 0 ? name(forStep: step) : "Not rated"
-    }
-
-    /// What the rating means for processing. No refine-pass branch — amber and
-    /// the refine wall left the control entirely (D52, D107).
-    static func syncCopy(forStep step: Int) -> String {
-        step == 0 ? "Not rated — left alone" : "Rated — ready to process"
     }
 
     // ── The header pill (Q85, signed mock Q75-note-header-final, behaviour A) ──
