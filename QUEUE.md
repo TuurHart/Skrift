@@ -1505,7 +1505,7 @@ do: In `Shared/Pipeline/` (all compiled into both apps; re-grep each symbol by N
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh KaraokeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d04 SPL-d05 SPL-d06 SPL-d08 SPL-d10 SPL-d15 SPL-d16 SPL-d17 SPL-d18 SPL-c02 SPL-c07 SPL-c17 SPL-c18 SPL-c20 (cleanup-audit P11)
 
-### Q199 [auto] (todo) lifecycle and spine: delete the unbuilt queue states, one ceil-days, one displayRange
+### Q199 [auto] (done) lifecycle and spine: delete the unbuilt queue states, one ceil-days, one displayRange
 spec: C240
 needs: Q102
 gate+: yes
@@ -3310,3 +3310,5 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 12:22 Q306 -> done — gate pass @bfea17c9
 - 2026-10-04 12:22 Q294 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 12:37 Q294 -> done — hand-merged (D163: deleted the test of the deleted label)
+- 2026-10-04 12:37 Q199 -> doing — dispatched (opus; lifecycle; one-at-a-time)
+- 2026-10-04 12:57 Q199 -> done — hand-merged (D163: ports + deletions of tests of deleted lifecycle states)
