@@ -1665,7 +1665,7 @@ do: In `SkriftMobile/`: delete `RecordingActivityManager.isRunning` (`Services/R
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d02 MRC-d03 MRC-d04 MRC-d05 MRC-d06 MRC-d08 MRC-d09 MRC-d10 MRC-d11 MRC-d14 MRC-d15 MRC-d16 MRC-d19 MRC-d24 MRC-d25 MRC-d26 MRC-c20 (cleanup-audit P31)
 
-### Q219 [auto] (todo) one AVAudioFile duration, one buffer copy, one retrying transcribe
+### Q219 [auto] (doing) one AVAudioFile duration, one buffer copy, one retrying transcribe
 spec: C239
 needs: Q218
 gate+: yes
@@ -2119,7 +2119,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D167): a note is Done once processed, on phone, iPad and Mac; 'exported' is the destination row's own state, never the filter. Today phone ProcessPile.matches (ProcessPile.swift:50-51) and Mac AppModel.matchesFilter disagree, and the Mac Done list can hold stranded notes. Add one Shared `QueueFilter` (Needs Work / Done) both apps call; delete the two local predicates. Desktop test `QueueFilterSharedTests`, phone test `QueueFilterPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class QueueFilterSharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QueueFilterPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q283 [auto] (todo) remove the Unsynced chip and the dead photo/place filters
+### Q283 [auto] (doing) remove the Unsynced chip and the dead photo/place filters
 spec: D68 D148 D168
 needs: -
 gate+: yes
@@ -2140,7 +2140,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D170): the no-bubbles rule covers the shared TEXT quote only. On the Mac, a text capture renders as the phone's borderless italic accent-bar quote; link, file and photo captures keep their cards on both apps. Reuse the phone's quote style via a Shared view/style struct if one exists. Prove it with a Mac headless -snapshot-capture PNG of a text capture (look at it) committed under plan/reads/Q-no-bubbles/. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q286 [auto] (doing) .md import becomes a typed note on phone and Mac
+### Q286 [auto] (done) .md import becomes a typed note on phone and Mac
 spec: C76 C77 D171
 needs: -
 gate+: yes
@@ -3246,3 +3246,6 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 11:16 Q293 -> done — gate pass @e2de0aea
 - 2026-10-04 11:18 Q303 -> done — gate pass @16c975cd
 - 2026-10-04 11:20 Q267 -> done — hand-merged (D163: PDF expectation follows shipped Q136 behaviour)
+- 2026-10-04 11:20 Q283 -> doing — dispatched
+- 2026-10-04 11:20 Q219 -> doing — dispatched
+- 2026-10-04 11:24 Q286 -> done — gate pass @a19ad28a
