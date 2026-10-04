@@ -34,7 +34,7 @@ final class NotesRepository {
         #else
         let cloudContainer = "iCloud.com.skrift.mobile"
         #endif
-        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let isTesting = LaunchArgs.isXCTest
         let cloudKit: ModelConfiguration.CloudKitDatabase = (inMemory || isTesting)
             ? .none : .private(cloudContainer)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,

@@ -189,7 +189,7 @@ struct RootView: View {
             // the real Dev recordings folder / names.json on disk, matching the isolated
             // MemoCloudStore/SharedStore containers above.
             if let corpus = CorpusSeed.launchPath, let cloudCtx = MemoCloudStore.container?.mainContext {
-                let isolated = args.contains("-isolatedRun")
+                let isolated = LaunchArgs.isolatedRun
                 let recordingsDir = isolated
                     ? FileManager.default.temporaryDirectory.appendingPathComponent("isolated-run-recordings-\(UUID().uuidString)", isDirectory: true)
                     : AppPaths.recordingsDirectory

@@ -22,10 +22,7 @@ import AVFoundation
 enum Snapshot {
     nonisolated static func renderIfRequested() {
         let args = ProcessInfo.processInfo.arguments
-        func path(_ flag: String) -> String? {
-            guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
-            return args[i + 1]
-        }
+        func path(_ flag: String) -> String? { LaunchArgs.value(after: flag, in: args) }
         if let p = path("-snapshot-destinations") {
             let w = CGFloat(path("-noteWidth").flatMap { Double($0) } ?? 900)
             MainActor.assumeIsolated { renderDestinations(to: p, width: w); exit(0) }

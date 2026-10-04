@@ -51,7 +51,7 @@ enum PortfolioVault {
     /// container and bookmarks it, so a run can show the CONFIGURED Destinations settings
     /// without driving the system document picker. Never runs without the flag.
     static func seedIfRequested() {
-        guard ProcessInfo.processInfo.arguments.contains("-seedPortfolioFolder") else { return }
+        guard LaunchArgs.has("-seedPortfolioFolder") else { return }
         let root = URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent("Documents/portfolio", isDirectory: true)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

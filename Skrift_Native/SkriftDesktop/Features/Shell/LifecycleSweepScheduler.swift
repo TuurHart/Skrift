@@ -61,9 +61,7 @@ enum LifecycleSweepScheduler {
         // `-sweepHeartbeatSeconds` — the unattended triggers they exercised are
         // gone; the activation observer is verified live with a real cmd-tab,
         // which posting a synthetic didBecomeActive would only fake anyway.)
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-poke-sweep"), i + 1 < args.count,
-           let delay = Double(args[i + 1]) {
+        if let delay = LaunchArgs.value(after: "-poke-sweep").flatMap(Double.init) {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(delay))
                 log.log("poke: running the sweep on request")

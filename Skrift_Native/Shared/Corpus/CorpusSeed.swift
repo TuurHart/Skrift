@@ -248,9 +248,8 @@ enum CorpusSeed {
 
     /// The `-corpus <path>` launch argument, if given.
     static var launchPath: URL? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-corpus"), i + 1 < args.count else { return nil }
-        return URL(fileURLWithPath: (args[i + 1] as NSString).expandingTildeInPath, isDirectory: true)
+        guard let path = LaunchArgs.value(after: "-corpus") else { return nil }
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
     }
 }
 #endif
