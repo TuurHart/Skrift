@@ -200,8 +200,12 @@ final class MacMixedDropTests: XCTestCase {
             let report = try await IngestService(outputDir: out)
                 .ingestReport(localURLs: all, combineAudio: combine, into: ctx)
 
-            XCTAssertEqual(Set(report.skipped.map(\.lastPathComponent)), ["contract.pdf", "vanished.m4a"],
-                           "an unsupported file and a vanished one are REPORTED (combine=\(combine))")
+            XCTAssertEqual(Set(report.skipped.map(\.lastPathComponent)), ["vanished.m4a"],
+                           "a vanished file is REPORTED; the PDF becomes a file capture (combine=\(combine))")
+            let pdfCaptures = report.created.filter {
+                $0.sourceType == .capture && $0.sharedContent?.mimeType == "application/pdf"
+            }
+            XCTAssertEqual(pdfCaptures.count, 1, "the PDF landed in a file capture (combine=\(combine))")
             // The six importable files are all inside rows: the picture in a manifest, the clips
             // as merged/separate audio.
             let rows = report.created
