@@ -2257,7 +2257,7 @@ needs: -
 do: (fill in)
 check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt on the phone. Do all three arrive on the Mac, and does a note you delete on the phone disappear from the Mac?
 
-### Q303 [auto] (doing) Mac -snapshot modes never read the live Dev store
+### Q303 [auto] (done) Mac -snapshot modes never read the live Dev store
 spec: -
 needs: -
 gate+: yes
@@ -3244,3 +3244,4 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:51 Q284 -> done — gate pass @0d6b3c55
 - 2026-10-04 11:04 Q277 -> done — hand-merged (D163: test ports, Q247 shim deleted)
 - 2026-10-04 11:16 Q293 -> done — gate pass @e2de0aea
+- 2026-10-04 11:18 Q303 -> done — gate pass @16c975cd
