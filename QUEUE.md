@@ -1481,7 +1481,7 @@ do: In `DesignSystem/Components.swift` add `ThinProgressBar(fraction:height:fill
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookShareCopyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d09 MAU-d14 MAU-d15 MAU-c11 MAU-c12 (cleanup-audit P8)
 
-### Q196 [auto] (todo) memo detail: dead conversation mock, unused state, imports, stale comments
+### Q196 [auto] (done) memo detail: dead conversation mock, unused state, imports, stale comments
 spec: C240
 needs: Q199
 gate+: no
@@ -3312,3 +3312,5 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 12:37 Q294 -> done — hand-merged (D163: deleted the test of the deleted label)
 - 2026-10-04 12:37 Q199 -> doing — dispatched (opus; lifecycle; one-at-a-time)
 - 2026-10-04 12:57 Q199 -> done — hand-merged (D163: ports + deletions of tests of deleted lifecycle states)
+- 2026-10-04 12:57 Q196 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 13:12 Q196 -> done — hand-merged (D163: call-site ports (onCommit closure arity))
