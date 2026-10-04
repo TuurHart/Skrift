@@ -27,11 +27,11 @@ struct WayOutView: View {
     @State private var peek: Memo?
 
     private var fading: [Memo] {
-        Self.orderedByImminence(fading: MemoLifecycle.partition(
+        WayOut.fadingOrdered(MemoLifecycle.partition(
             liveMemos, copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements())).fading)
     }
-    private var deleted: [Memo] { Self.orderedByImminence(deleted: deletedMemos) }
-    private var total: Int { Self.total(fading: fading, deleted: deleted) }
+    private var deleted: [Memo] { WayOut.deletedOrdered(deletedMemos) }
+    private var total: Int { WayOut.entryCount(fading: fading.count, deleted: deleted.count) }
 
     var body: some View {
         NavigationStack {
@@ -61,7 +61,7 @@ struct WayOutView: View {
             }
             .sheet(item: $peek) { memo in
                 WayOutPeekSheet(memo: memo,
-                                oneLiner: Self.oneLiner(for: memo),
+                                oneLiner: WayOut.oneLiner(for: memo),
                                 isDeleted: memo.deletedAt != nil,
                                 onBringBack: {
                                     Self.bringBack(memo, repository: repository)
@@ -199,7 +199,7 @@ private struct WayOutRow: View {
             // so the countdown gets room to wrap to two lines above the button
             // instead of clipping or squeezing the title.
             VStack(alignment: .trailing, spacing: 6) {
-                Text(WayOutView.oneLiner(for: memo))
+                Text(WayOut.oneLiner(for: memo))
                     .font(.system(size: 11))
                     .foregroundStyle(urgencyColor)
                     .multilineTextAlignment(.trailing)
@@ -284,28 +284,6 @@ extension WayOutView {
         repository.save()
     }
 
-    /// Fading rows, soonest-to-move-to-Recently-Deleted first.
-    static func orderedByImminence(fading: [Memo]) -> [Memo] {
-        WayOut.fadingOrdered(fading)
-    }
-
-    /// Deleted rows, soonest-to-be-purged-for-good first.
-    static func orderedByImminence(deleted: [Memo]) -> [Memo] {
-        WayOut.deletedOrdered(deleted)
-    }
-
-    /// The merged shelf count shown in both the nav title and the ⋯ menu label.
-    static func total(fading: [Memo], deleted: [Memo]) -> Int {
-        fading.count + deleted.count
-    }
-
-    /// The spine's one-liner for a way-out row — "moves to Recently Deleted in Nd"
-    /// while still visible, "gone for good in ~Nd" once deleted. `MemoSpine`'s chain
-    /// picks the right branch on its own (`deletedAt` beats everything), so this is
-    /// the ONE place either row kind reads its countdown from.
-    static func oneLiner(for memo: Memo, now: Date = Date()) -> String {
-        WayOut.oneLiner(for: memo, now: now)
-    }
 }
 
 

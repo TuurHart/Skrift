@@ -80,7 +80,7 @@ final class NotesListFilterParityTests: XCTestCase {
 
     private func phoneRows(_ lib: Library, _ chip: QueueFilter, _ w: Window, _ q: String) -> [Memo] {
         let all = Array(lib.memos.values)
-        let split = MemosListView.lifecycle(all, backlinked: MemoLifecycle.backlinkedIDs(in: all), now: now)
+        let split = MemoLifecycle.partition(all, backlinked: MemoLifecycle.backlinkedIDs(in: all), now: now)
         return MemosListView.listRows(lifecycle: split, search: q, chip: chip, filter: filter(w),
                                       enhanced: lib.enhanced, isUnlocked: { _ in false })
     }

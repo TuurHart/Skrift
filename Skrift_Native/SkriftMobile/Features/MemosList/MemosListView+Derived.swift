@@ -22,26 +22,6 @@ extension MemosListView {
         MemoSpine.rowClockLine(for: memo, backlinked: backlinked, now: now)
     }
 
-    /// The lifecycle split (MemoLifecycle, 2026-07-17): fading notes leave the
-    /// main LIST — but not SEARCH (no-bad-info, 2026-07-21): "no results" about
-    /// a note that exists-and-is-recoverable is the worst possible answer to
-    /// "where did my note go?". A fading search hit wears an amber tag.
-    /// Takes the backlink set as a parameter (R92/C278) — the caller computes
-    /// `MemoLifecycle.backlinkedIDs(in:)` ONCE per render and threads it through,
-    /// instead of `MemoLifecycle.partition` re-running that corpus scan itself.
-    func lifecycle(backlinked: Set<UUID>) -> (live: [Memo], fading: [Memo]) {
-        Self.lifecycle(memos, backlinked: backlinked)
-    }
-
-    /// Pure form of `lifecycle(backlinked:)` (Q104: the parity test feeds it a synthetic library).
-    static func lifecycle(_ memos: [Memo], backlinked: Set<UUID>, now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
-        var live: [Memo] = [], fading: [Memo] = []
-        for m in memos where m.deletedAt == nil {
-            if MemoLifecycle.isFading(m, backlinked: backlinked, now: now) { fading.append(m) } else { live.append(m) }
-        }
-        return (live, fading)
-    }
-
     var searchingNow: Bool { NotesListModel.isSearching(search) }
 
     func filtered(lifecycle: (live: [Memo], fading: [Memo]), enhanced: Set<UUID>) -> [Memo] {
@@ -92,7 +72,7 @@ extension MemosListView {
     var derived: Derived {
         let backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
         let enhanced = enhancedMemoIDs
-        let split = lifecycle(backlinked: backlinked)
+        let split = MemoLifecycle.partition(memos, backlinked: backlinked)  // one backlink scan per render (R92/C278)
         let f = filtered(lifecycle: split, enhanced: enhanced)
         let fadingIDs: Set<UUID> = searchingNow ? Set(split.fading.map(\.id)) : []
         return Derived(
