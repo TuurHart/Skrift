@@ -1465,7 +1465,7 @@ do: In `SkriftMobile/Features/Audiobooks/` and the files named: delete the unuse
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d04 MAU-d05 MAU-d06 MAU-d07 MAU-d08 MAU-d10 MAU-d13 MAU-d16 MAU-d17 MAU-c14 MAU-c18 MAU-c21 MAU-c23 MAU-c29 (cleanup-audit P6)
 
-### Q194 [tuur] (todo) retire TranscribeBookView: the read-along nudge opens the Text sheet
+### Q194 [auto] (todo) retire TranscribeBookView: the read-along nudge opens the Text sheet
 spec: C240 C115
 needs: Q193
 gate+: no
@@ -1521,7 +1521,7 @@ do: `AlignmentCore.swift:286-340` and `SkriftMobile/Services/Audiobooks/ChapterD
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ChapterDetectorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c01 (cleanup-audit P13)
 
-### Q201 [tuur] (todo) delete the one-clock migration once every device has run it
+### Q201 [auto] (todo) delete the one-clock migration once every device has run it
 spec: C240
 needs: -
 gate+: no
@@ -1617,7 +1617,7 @@ do: In `SkriftDesktop/`: delete the four pure forwarders in `Pipeline/WayOutRule
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d15 DPE-d17 DPE-d18 SMU-d08 DPE-c10 DPE-c30 DPE-c28 (cleanup-audit P25)
 
-### Q213 [tuur] (todo) drop the write-only Mac diarization sidecar
+### Q213 [auto] (todo) drop the write-only Mac diarization sidecar
 spec: C182 C240
 needs: -
 gate+: yes
@@ -1673,7 +1673,7 @@ do: (1) `Double(f.length) / f.fileFormat.sampleRate` is written 11 times (`MemoS
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d20 MRC-c02 MRC-c04 SRS-d09 (cleanup-audit P32)
 
-### Q220 [tuur] (todo) appending a recording: use AudioClipMerge, not the export session
+### Q220 [auto] (todo) appending a recording: use AudioClipMerge, not the export session
 spec: C240
 needs: Q219
 gate+: no
@@ -1681,7 +1681,7 @@ do: `MemoSaver.appendAudio` (`SkriftMobile/Features/Recording/MemoSaver.swift:65
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-c01 MRC-d17 (cleanup-audit P33)
 
-### Q221 [tuur] (todo) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
+### Q221 [auto] (todo) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
 spec: C115
 needs: -
 gate+: no
@@ -1721,7 +1721,7 @@ do: In `SkriftMobile/Services/` (re-grep each symbol by NAME in both apps and te
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-d01 MSV-d04 MSV-d05 MSV-d06 MSV-d07 MSV-d08 MSV-d09 MSV-d10 MSV-d11 MSV-d12 MSV-d13 MSV-d14 MSV-d15 MSV-d18 MSV-d20 MSV-d-m1 MSV-c29 SRS-d06 SRS-d08 (cleanup-audit P38)
 
-### Q226 [tuur] (todo) the phone export gate has one rule and no paired mode
+### Q226 [auto] (todo) the phone export gate has one rule and no paired mode
 spec: C240 C65
 needs: Q156
 gate+: no
@@ -1745,7 +1745,7 @@ do: Share-sheet dictation is gone (`SkriftMobile/project.yml:448-450`; iOS block
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d14 PER-d05 (cleanup-audit P41)
 
-### Q229 [tuur] (todo) delete the drain-side half of the retired share dictation
+### Q229 [auto] (todo) delete the drain-side half of the retired share dictation
 spec: C240
 needs: Q228
 gate+: no
@@ -1769,7 +1769,7 @@ do: `SkriftWidget/RecordWidget.swift` and `NewNoteWidget.swift` differ only in n
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SharedContentParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d17 MAM-d19 MAM-c10 (cleanup-audit P44)
 
-### Q232 [tuur] (todo) remove the SkriftShared framework target
+### Q232 [auto] (todo) remove the SkriftShared framework target
 spec: C240
 needs: Q231
 gate+: no
@@ -1905,7 +1905,7 @@ do: Test-only. `tempDir()` is defined 17 times in 15 desktop test files (some wi
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-c13 (cleanup-audit P61)
 
-### Q249 [tuur] (todo) accept.sh learns --approve-protected and hand-merge.sh goes
+### Q249 [auto] (todo) accept.sh learns --approve-protected and hand-merge.sh goes
 spec: C239
 needs: -
 gate+: no
@@ -1913,7 +1913,7 @@ do: `plan/hand-merge.sh` re-implements `plan/accept.sh` steps 2-5 with drift: it
 check: `./gate.sh`
 source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 
-### Q250 [tuur] (todo) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
+### Q250 [auto] (todo) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
 spec: C78 C239
 needs: Q138
 do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
@@ -1937,7 +1937,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q254 [tuur] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
+### Q254 [auto] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
 spec: -
 needs: -
 do: -
@@ -2021,7 +2021,7 @@ gate+: yes
 do: Left by Q136: (1) the Mac's link capture (IngestService+Captures.swift, LinkFetching seam) does not retry a failed fetch — C72 says up to 3 retries; add a bounded retry with backoff behind the seam (testable with a stub fetcher). (2) The phone still shows 'Capture' for a link with no page title, while the Mac uses the host per C72 — make the phone use the same shared rule (Shared/Pipeline/ImportDoors.swift / LinkCard). Desktop test `LinkFetchRetryTests`, phone test `LinkUntitledHostTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LinkUntitledHostTests && ./gate.sh`
 
-### Q267 [tuur] (todo) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
+### Q267 [auto] (todo) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
 spec: -
 needs: -
 do: -
@@ -2082,7 +2082,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q277 [tuur] (todo) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
+### Q277 [auto] (todo) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
 spec: -
 needs: -
 do: (fill in)
