@@ -1777,7 +1777,7 @@ do: A framework target exists only to share one 41-line `ActivityAttributes` fil
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecordingActivityCaptionTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-c12 MAM-d18 (cleanup-audit P45)
 
-### Q233 [auto] (todo) shared model: unused helpers, one marker vocabulary, false comments
+### Q233 [auto] (doing) shared model: unused helpers, one marker vocabulary, false comments
 spec: C240 C239
 needs: Q197 Q154
 gate+: no
@@ -3347,3 +3347,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 20:27 Q225 -> done — hand-merged (D163: ports + deletion of tests of deleted members)
 - 2026-10-04 20:27 Q197 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 20:40 Q197 -> done — hand-merged (D163: v1 fixtures moved into the tests; deleted tests of deleted ImageMarkers/paragraphed)
+- 2026-10-04 20:40 Q233 -> doing — dispatched (sonnet; one-at-a-time)
