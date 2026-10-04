@@ -16,10 +16,22 @@ import ZIPFoundation
 /// We schedule a detached Task, let `init` return so the run loop spins, and
 /// `exit(0)` when finished.
 enum RunFile {
-    /// Unique-word-anchor drift of `cand` vs the reference `whole` transcribe.
-    /// Anchors = words appearing exactly once in both, ≥5 chars (unambiguous).
-    nonisolated static func anchorDrift(_ cand: [WordTiming], vs whole: [WordTiming])
-        -> (n: Int, median: Double, mean: Double, startAvg: Double, midAvg: Double, endAvg: Double) {
+    /// One matched anchor: `d` = candidate start minus reference start, at reference time `t`.
+    struct DriftRow {
+        let d: Double, t: Double, word: String, candStart: Double
+    }
+
+    /// Unique-word-anchor drift of `cand` vs the reference `whole` transcribe, with the rows and
+    /// percentiles `-readalongcheck` prints. Anchors = words appearing exactly once in both,
+    /// >=5 chars (unambiguous). The summary numbers are 0 when there are 6 anchors or fewer.
+    struct Drift {
+        var rows: [DriftRow] = []
+        var median = 0.0, mean = 0.0, p10 = 0.0, p90 = 0.0, min = 0.0, max = 0.0
+        var startAvg = 0.0, midAvg = 0.0, endAvg = 0.0
+        var n: Int { rows.count }
+    }
+
+    nonisolated static func anchorDrift(_ cand: [WordTiming], vs whole: [WordTiming]) -> Drift {
         func norm(_ s: String) -> String {
             String(s.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
         }
@@ -30,15 +42,23 @@ enum RunFile {
         var cAt: [String: Int] = [:], wAt: [String: Int] = [:]
         for (k, w) in cN.enumerated() where cF[w] == 1 && w.count >= 5 { cAt[w] = k }
         for (k, w) in wN.enumerated() where wF[w] == 1 && w.count >= 5 { wAt[w] = k }
-        var rows: [(d: Double, t: Double)] = []
-        for (w, wi) in wAt { if let ci = cAt[w] { rows.append((cand[ci].start - whole[wi].start, whole[wi].start)) } }
-        rows.sort { $0.t < $1.t }
-        guard rows.count > 6 else { return (rows.count, 0, 0, 0, 0, 0) }
-        let d = rows.map(\.d), s = d.sorted()
-        let t = max(1, rows.count / 3)
+        var out = Drift()
+        for (w, wi) in wAt { if let ci = cAt[w] {
+            out.rows.append(DriftRow(d: cand[ci].start - whole[wi].start, t: whole[wi].start,
+                                     word: whole[wi].word, candStart: cand[ci].start))
+        } }
+        out.rows.sort { $0.t < $1.t }
+        guard out.rows.count > 6 else { return out }
+        let d = out.rows.map(\.d), s = d.sorted()
+        func pct(_ p: Double) -> Double { s[Swift.min(s.count - 1, Swift.max(0, Int(p * Double(s.count))))] }
+        let t = Swift.max(1, d.count / 3)
         func avg(_ x: ArraySlice<Double>) -> Double { x.isEmpty ? 0 : x.reduce(0, +) / Double(x.count) }
-        return (rows.count, s[s.count / 2], d.reduce(0, +) / Double(d.count),
-                avg(d[0..<t]), avg(d[t..<2 * t]), avg(d[(2 * t)...]))
+        out.median = s[s.count / 2]
+        out.mean = d.reduce(0, +) / Double(d.count)
+        out.p10 = pct(0.1); out.p90 = pct(0.9)
+        out.min = s.first!; out.max = s.last!
+        out.startAvg = avg(d[0..<t]); out.midAvg = avg(d[t..<2 * t]); out.endAvg = avg(d[(2 * t)...])
+        return out
     }
 
     /// `-chunksim <audio>` → reproduce the read-along drift headlessly + prove the
@@ -48,11 +68,10 @@ enum RunFile {
     /// each one's drift vs whole. If A drifts and B doesn't, the per-chunk
     /// compressed-seek is the bug and B is the fix. DEBUG only.
     nonisolated static func runChunkSimIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-chunksim"), i + 1 < args.count else { return }
-        let url = URL(fileURLWithPath: args[i + 1])
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let path = Harness.value("-chunksim") else { return }
+        let url = URL(fileURLWithPath: path)
+        Harness.background {
+            let log = Harness.log
             log("== CHUNKSIM \(url.lastPathComponent) ==")
             let svc = TranscriptionService.shared
             guard let whole = try? await svc.transcribe(audioURL: url) else { log("whole transcribe failed"); exit(1) }
@@ -109,7 +128,6 @@ enum RunFile {
                        a.count, da.n, da.median, da.startAvg, da.midAvg, da.endAvg))
             log(String(format: "(B) AVAudioFile PCM:      words=%d anchors=%d  median=%+.3f  thirds %+.2f/%+.2f/%+.2f",
                        b.count, db.n, db.median, db.startAvg, db.midAvg, db.endAvg))
-            exit(0)
         }
     }
 
@@ -121,11 +139,10 @@ enum RunFile {
     /// chunker is accurate (any device trailing is playback latency → tune the
     /// lead); a non-zero/growing offset ⇒ a chunker bug to fix. DEBUG only.
     nonisolated static func runReadAlongCheckIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-readalongcheck"), i + 2 < args.count else { return }
-        let audioPath = args[i + 1], sidecarPath = args[i + 2]
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let a = Harness.values("-readalongcheck", count: 2) else { return }
+        let audioPath = a[0], sidecarPath = a[1]
+        Harness.background {
+            let log = Harness.log
             struct SW: Codable { let word: String; let start: Double; let end: Double }
             struct Sidecar: Codable { let words: [SW]; let coveredUpTo: Double }
             log("== READALONGCHECK \(URL(fileURLWithPath: audioPath).lastPathComponent) ==")
@@ -138,43 +155,21 @@ enum RunFile {
             let mac = r.wordTimings
             log("mac whole-transcribe: \(mac.count) words")
 
-            func norm(_ s: String) -> String {
-                String(s.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
-            }
-            let macN = mac.map { norm($0.word) }
-            let sideN = side.words.map { norm($0.word) }
-            // Align ONLY on words that appear EXACTLY ONCE in both transcripts and
-            // are ≥5 chars — unambiguous anchors. Greedy matching slips on repeated
-            // common words ("to"/"you") in a long transcript and fabricates offsets.
-            var macFreq: [String: Int] = [:], sideFreq: [String: Int] = [:]
-            for w in macN where !w.isEmpty { macFreq[w, default: 0] += 1 }
-            for w in sideN where !w.isEmpty { sideFreq[w, default: 0] += 1 }
-            var macAt: [String: Int] = [:], sideAt: [String: Int] = [:]
-            for (k, w) in macN.enumerated() where macFreq[w] == 1 && w.count >= 5 { macAt[w] = k }
-            for (k, w) in sideN.enumerated() where sideFreq[w] == 1 && w.count >= 5 { sideAt[w] = k }
-            // (Δ, macStart, word)
-            var rows: [(d: Double, t: Double, word: String, ps: Double)] = []
-            for (w, mi) in macAt { if let si = sideAt[w] {
-                rows.append((side.words[si].start - mac[mi].start, mac[mi].start, mac[mi].word, side.words[si].start))
-            } }
-            rows.sort { $0.t < $1.t }
+            // Same anchors the chunk sim uses (words that appear EXACTLY ONCE in both, >=5 chars):
+            // greedy matching slips on repeated common words and fabricates offsets.
+            let sideWords = side.words.map { WordTiming(word: $0.word, start: $0.start, end: $0.end) }
+            let drift = anchorDrift(sideWords, vs: mac)
+            let rows = drift.rows
             guard rows.count > 10 else { log("too few unique anchors (\(rows.count))"); exit(1) }
-            let diffs = rows.map(\.d)
-            let sorted = diffs.sorted()
-            func pct(_ p: Double) -> Double { sorted[min(sorted.count - 1, max(0, Int(p * Double(sorted.count)))) ] }
-            let mean = diffs.reduce(0, +) / Double(diffs.count)
             log(String(format: "unique-word anchors: %d", rows.count))
             log(String(format: "phone.start − mac.start (s):  median=%+.3f  mean=%+.3f  p10=%+.3f  p90=%+.3f  min=%+.3f  max=%+.3f",
-                       pct(0.5), mean, pct(0.1), pct(0.9), sorted.first!, sorted.last!))
-            let t = max(1, rows.count / 3)
-            func avg(_ s: ArraySlice<Double>) -> Double { s.isEmpty ? 0 : s.reduce(0, +) / Double(s.count) }
+                       drift.median, drift.mean, drift.p10, drift.p90, drift.min, drift.max))
             log(String(format: "drift (avg Δ by third):  start=%+.3f  mid=%+.3f  end=%+.3f",
-                       avg(diffs[0..<t]), avg(diffs[t..<2 * t]), avg(diffs[(2 * t)...])))
+                       drift.startAvg, drift.midAvg, drift.endAvg))
             log("anchors across the file:")
             for (k, r) in rows.enumerated() where k % max(1, rows.count / 12) == 0 {
-                log(String(format: "    %6.1fs  '%@'  mac=%.2f  phone=%.2f  Δ=%+.2f", r.t, r.word, r.t, r.ps, r.d))
+                log(String(format: "    %6.1fs  '%@'  mac=%.2f  phone=%.2f  Δ=%+.2f", r.t, r.word, r.t, r.candStart, r.d))
             }
-            exit(0)
         }
     }
 
@@ -185,11 +180,9 @@ enum RunFile {
     /// phone (A15) — this measures the SHAPE (load vs inference ratio), which
     /// transfers; the phone's absolute number needs the same timing via devlog.
     nonisolated static func runAsrBenchIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-asrbench"), i + 1 < args.count else { return }
-        let path = args[i + 1]
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let path = Harness.value("-asrbench") else { return }
+        Harness.background {
+            let log = Harness.log
             let url = URL(fileURLWithPath: path)
             guard FileManager.default.fileExists(atPath: path) else { log("ASRBENCH: file not found"); exit(1) }
 
@@ -208,7 +201,6 @@ enum RunFile {
             let inf2 = Int(Date().timeIntervalSince(t2) * 1000)
             log("ASRBENCH inference#2(steady)   = \(inf2) ms")
             log("ASRBENCH audio length ~= read the file; ratio load:inf = \(loadMs):\(inf1)")
-            exit(0)
         }
     }
 
@@ -219,11 +211,9 @@ enum RunFile {
     /// again (backedOff / suffixed create / movedAway). Prints outcomes + the tree.
     /// DEBUG; writes only inside the given dir.
     nonisolated static func runVaultExportIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-vaultexport"), i + 1 < args.count else { return }
-        let dir = args[i + 1]
+        guard let dir = Harness.value("-vaultexport") else { return }
         MainActor.assumeIsolated {
-            func log(_ s: String) { FileHandle.standardOutput.write(Data((s + "\n").utf8)) }
+            let log = Harness.logOut
             do {
                 let root = URL(fileURLWithPath: dir)
                 try? FileManager.default.removeItem(at: root)
@@ -297,15 +287,11 @@ enum RunFile {
     /// it's a faithful proxy. Optional `-truth <txt>` adds a word-error-rate vs the
     /// book text; otherwise we just read the outputs. DEBUG only.
     nonisolated static func runAsrSweepIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-asrsweep"), i + 1 < args.count else { return }
-        let url = URL(fileURLWithPath: args[i + 1])
-        var truth: String?
-        if let ti = args.firstIndex(of: "-truth"), ti + 1 < args.count {
-            truth = try? String(contentsOfFile: args[ti + 1], encoding: .utf8)
-        }
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let path = Harness.value("-asrsweep") else { return }
+        let url = URL(fileURLWithPath: path)
+        let truth = Harness.value("-truth").flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
+        Harness.background {
+            let log = Harness.log
             log("== ASRSWEEP \(url.lastPathComponent) ==")
             guard FileManager.default.fileExists(atPath: url.path) else { log("audio not found"); exit(1) }
 
@@ -351,7 +337,6 @@ enum RunFile {
                     log(String(format: "  %@ : %.1f%% words differ from A", String(o.name.prefix(1)), 100 * wer(ref: base.text, hyp: o.text)))
                 }
             }
-            exit(0)
         }
     }
 
@@ -380,12 +365,10 @@ enum RunFile {
     }
 
     nonisolated static func runIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-runfile"), i + 1 < args.count else { return }
-        let path = args[i + 1]
+        guard let path = Harness.value("-runfile") else { return }
 
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        Harness.background {
+            let log = Harness.log
 
             log("== RUNFILE \(path) ==")
             guard FileManager.default.fileExists(atPath: path) else { log("audio not found"); exit(1) }
@@ -401,8 +384,7 @@ enum RunFile {
             // for export). Without it, this stays a normal raw-audio run.
             var trustedMobile = false
             var inputTranscript: String?
-            if let ti = args.firstIndex(of: "-transcript"), ti + 1 < args.count,
-               let text = try? String(contentsOfFile: args[ti + 1], encoding: .utf8) {
+            if let text = Harness.value("-transcript").flatMap({ try? String(contentsOfFile: $0, encoding: .utf8) }) {
                 pf.transcript = text
                 pf.transcribeStatus = .done
                 trustedMobile = true
@@ -421,9 +403,9 @@ enum RunFile {
             // once, so without a synchronous prewarm the boost would never run.
             // We `prewarm` (await) here so this single transcribe IS boosted —
             // exactly what the device gets once the booster is warm.
-            if let vi = args.firstIndex(of: "-vocab"), vi + 1 < args.count {
+            if let vocab = Harness.value("-vocab") {
                 var s = SettingsStore.shared.load()
-                s.customVocabulary = args[vi + 1].split(separator: ";").map {
+                s.customVocabulary = vocab.split(separator: ";").map {
                     $0.trimmingCharacters(in: .whitespaces)
                 }.filter { !$0.isEmpty }
                 SettingsStore.shared.save(s)
@@ -463,9 +445,9 @@ enum RunFile {
                 log(">>> COMPILED (\((pf.compiledText ?? "").count) chars):\n\(pf.compiledText ?? "(nil)")")
 
                 // Optional: -vault <path> exports to a real (test) vault.
-                if let vi = args.firstIndex(of: "-vault"), vi + 1 < args.count {
+                if let vault = Harness.value("-vault") {
                     var s = settings
-                    s.noteFolder = args[vi + 1]
+                    s.noteFolder = vault
                     let r = try VaultExporter.export(pf, settings: s)
                     log(">>> EXPORT OUTCOME: \(r.outcome)")
                     log(">>> EXPORTED md: \(r.markdownURL.path)")
@@ -474,7 +456,6 @@ enum RunFile {
             } catch {
                 log(">>> ERROR: \(error)")
             }
-            exit(0)
         }
     }
 
@@ -486,12 +467,13 @@ enum RunFile {
     /// unmatched spans each side. Raw paths only — the desktop still doesn't learn what an
     /// "Audiobook" is. Exits when done.
     nonisolated static func runAlignCheckIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
+        // Everything after the epub path, flags dropped: `-aligncheck <epub> <t1.json> <t2.json>…`.
+        let args = Harness.args
         guard let i = args.firstIndex(of: "-aligncheck"), i + 2 < args.count else { return }
         let epubPath = args[i + 1]
         let transcriptPaths = Array(args[(i + 2)...]).filter { !$0.hasPrefix("-") }
-        Task.detached(priority: .userInitiated) {
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        Harness.background {
+            let log = Harness.log
             do {
                 let archive = try Archive(url: URL(fileURLWithPath: epubPath), accessMode: .read)
                 var entries: [String: Data] = [:]
@@ -535,7 +517,6 @@ enum RunFile {
                     }
                 }
             } catch { log(">>> ERROR: \(error)"); exit(1) }
-            exit(0)
         }
     }
 
@@ -547,11 +528,9 @@ enum RunFile {
     /// the id and relaunch again for the transcript reflect. QUIT the GUI app first — a
     /// second instance races the shared store.
     nonisolated static func runIngestFileIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-ingestfile"), i + 1 < args.count else { return }
-        let path = args[i + 1]
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let path = Harness.value("-ingestfile") else { return }
+        Harness.main {
+            let log = Harness.log
             guard FileManager.default.fileExists(atPath: path) else {
                 log(">>> file not found: \(path)"); exit(1)
             }
@@ -574,7 +553,6 @@ enum RunFile {
             } catch {
                 log(">>> ERROR: \(error)"); exit(1)
             }
-            exit(0)
         }
     }
 
@@ -592,11 +570,9 @@ enum RunFile {
     /// Runs the real ASR engine, so give it a minute on a cold model.
     /// QUIT the GUI app first — a second instance races the shared store.
     nonisolated static func runRecordIngestIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-recordingest"), i + 1 < args.count else { return }
-        let path = args[i + 1]
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let path = Harness.value("-recordingest") else { return }
+        Harness.main {
+            let log = Harness.log
             guard FileManager.default.fileExists(atPath: path) else {
                 log(">>> file not found: \(path)"); exit(1)
             }
@@ -698,11 +674,10 @@ enum RunFile {
     /// this takes the same route the user's own delete does.
     /// QUIT the GUI app first — a second instance races the shared store.
     nonisolated static func runTrashFileIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-trashfile"), i + 1 < args.count else { return }
-        let ids = Set(args[i + 1].split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let idList = Harness.value("-trashfile") else { return }
+        let ids = Set(idList.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
+        Harness.main {
+            let log = Harness.log
             let ctx = SharedStore.container.mainContext
             let all = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
             // Already-trashed rows stay in the target list on purpose: `mirror` is idempotent
@@ -720,7 +695,6 @@ enum RunFile {
             MacCloudDeleteSync.mirror(targets)
             log(">>> trashed \(targets.count) — holding 20s for the CloudKit export…")
             try? await Task.sleep(for: .seconds(20))
-            exit(0)
         }
     }
 
@@ -733,12 +707,11 @@ enum RunFile {
     /// the phone would sync it straight back.
     /// QUIT the GUI app first — a second instance races the shared store.
     nonisolated static func runRateFileIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-ratefile"), i + 2 < args.count else { return }
-        let ids = Set(args[i + 1].split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
-        let raw = args[i + 2]
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let a = Harness.values("-ratefile", count: 2) else { return }
+        let ids = Set(a[0].split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
+        let raw = a[1]
+        Harness.main {
+            let log = Harness.log
             let value: Double?
             if raw == "none" { value = nil }
             else if let d = Double(raw), d > 0, d <= 1 { value = d }
@@ -756,7 +729,6 @@ enum RunFile {
             try? ctx.save()
             log(">>> holding 20s for the CloudKit export…")
             try? await Task.sleep(for: .seconds(20))
-            exit(0)
         }
     }
 
@@ -769,15 +741,18 @@ enum RunFile {
     /// Add `-keep` to leave the note behind for an eyeball in the GUI.
     /// QUIT the GUI app first — a second instance races the shared store.
     nonisolated static func runRateToRowIfRequested() {
-        guard ProcessInfo.processInfo.arguments.contains("-ratetorow") else { return }
-        let keep = ProcessInfo.processInfo.arguments.contains("-keep")
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard Harness.has("-ratetorow") else { return }
+        let keep = Harness.has("-keep")
+        Harness.main {
+            let log = Harness.log
             guard let cloud = MemoCloudStore.container else { log(">>> no cloud container"); exit(1) }
             let cloudCtx = cloud.mainContext
             let local = SharedStore.container.mainContext
             let body = "Mats was tien jaar.\n\nHij keek naar de zee en zei niets."
 
+            // A throw here (`typedNote`, `save`, the fetch) used to vanish inside the Task: `exit()`
+            // was never reached and the process carried on as a GUI app. `Harness.main` catches,
+            // prints `>>> ERROR: …` and exits 1.
             let memo = try MacMemoAuthor.typedNote(into: cloudCtx)
             memo.transcript = body
             memo.transcriptUserEdited = true
@@ -827,7 +802,6 @@ enum RunFile {
                 try? cloudCtx.save()
                 log(">>> cleaned up")
             }
-            exit(0)
         }
     }
 
@@ -837,11 +811,9 @@ enum RunFile {
     /// export queue also persists, so a relaunch finishes any remainder). QUIT the GUI app
     /// first — a second instance races the shared store.
     nonisolated static func runFlagMemoIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-flagmemo"), i + 1 < args.count else { return }
-        let idString = args[i + 1]
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let idString = Harness.value("-flagmemo") else { return }
+        Harness.main {
+            let log = Harness.log
             guard let uuid = UUID(uuidString: idString) else { log(">>> not a UUID: \(idString)"); exit(1) }
             guard let cloud = MemoCloudStore.container else { log(">>> no cloud container"); exit(1) }
             let ctx = cloud.mainContext
@@ -855,7 +827,6 @@ enum RunFile {
             MemoCloudReconciler.reconcileSoon()
             log(">>> flagged 0.1 — holding 25s for the CloudKit export…")
             try? await Task.sleep(for: .seconds(25))
-            exit(0)
         }
     }
 
@@ -866,12 +837,10 @@ enum RunFile {
     /// phone-synced uploads (e.g. C3 captures) without GUI automation.
     /// QUIT the GUI app first — a second instance races the shared store.
     nonisolated static func runProcessFileIfRequested() {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-processfile"), i + 1 < args.count else { return }
-        let id = args[i + 1]
-        let doExport = args.contains("-exportafter")
-        Task { @MainActor in
-            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+        guard let id = Harness.value("-processfile") else { return }
+        let doExport = Harness.has("-exportafter")
+        Harness.main {
+            let log = Harness.log
             let ctx = SharedStore.container.mainContext
             func fetch() -> PipelineFile? {
                 ((try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []).first { $0.id == id }
@@ -893,7 +862,6 @@ enum RunFile {
                 if let exportErr = coordinator.lastError { log(">>> EXPORT ERROR: \(exportErr)") }
                 log(">>> EXPORTED: \(pf.exported ?? "(nil)")  status=\(pf.exportStatus.rawValue)")
             }
-            exit(0)
         }
     }
 }

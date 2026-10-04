@@ -10,7 +10,7 @@ enum SharedStore {
         // Q37: `-isolatedRun` — see MemoCloudStore's twin flag — keeps the local
         // pipeline store in memory too, so a corpus-seeded eyeball run never writes
         // into the real Dev pipeline store on disk.
-        if ProcessInfo.processInfo.arguments.contains("-isolatedRun") {
+        if LaunchArgs.isolatedRun {
             let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
             do { return try ModelContainer(for: PipelineFile.self, configurations: config) }
             catch { fatalError("Failed to create isolated ModelContainer: \(error)") }
@@ -59,7 +59,7 @@ struct SkriftDesktopApp: App {
         // only: headless modes pass arguments and XCTest sets its env; both keep
         // their own lifecycle. The existing instance is activated instead.
         if ProcessInfo.processInfo.arguments.count == 1,
-           ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+           !LaunchArgs.isXCTest {
             let others = NSRunningApplication.runningApplications(
                 withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
                 .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }

@@ -142,7 +142,7 @@ enum DestinationSettings {
     /// `-destinationsOn` — the screenshot/UI rig's override. Read straight from the
     /// process arguments so this type stays app-agnostic (the Mac has no `LaunchFlags`).
     private static var forcedOn: Bool {
-        ProcessInfo.processInfo.arguments.contains("-destinationsOn")
+        LaunchArgs.has("-destinationsOn")
     }
 
     /// `-resetDestinations` — put this device back to the shipped default. A UI run must
@@ -150,7 +150,7 @@ enum DestinationSettings {
     /// SwiftData and nothing else, which is how a "switch is off" test started finding the
     /// switch already on.
     static func resetIfRequested() {
-        guard ProcessInfo.processInfo.arguments.contains("-resetDestinations") else { return }
+        guard LaunchArgs.has("-resetDestinations") else { return }
         UserDefaults.standard.removeObject(forKey: key)
         UserDefaults.standard.removeObject(forKey: stampKey)
         UserDefaults.standard.removeObject(forKey: portfolioRootKey)

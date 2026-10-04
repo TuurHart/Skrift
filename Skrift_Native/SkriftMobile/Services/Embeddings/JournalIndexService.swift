@@ -54,7 +54,7 @@ final class JournalIndexService {
     /// `sweeping` flag; hash-diffing makes a redundant sweep nearly free.
     func sweepSoon(_ repository: NotesRepository) {
         guard isActive, !sweeping else { return }
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        guard !LaunchArgs.isXCTest else { return }
 
         let snapshots = Self.snapshots(from: repository)
         let index = resolvedIndex()

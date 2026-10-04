@@ -59,7 +59,7 @@ enum MemoCloudStore {
     private static func makeContainer() -> ModelContainer? {
         // Never touch CloudKit under tests — hosted UI tests run offline + deterministic,
         // exactly like the phone's `NotesRepository` (XCTest detection).
-        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let isTesting = LaunchArgs.isXCTest
         guard !isTesting else { return nil }
 
         #if DEBUG
@@ -67,7 +67,7 @@ enum MemoCloudStore {
         // instead of the real `memo_cloud.store` (which mirrors Tuur's actual synced
         // Dev notes) — so a real-window eyeball/screenshot with `-corpus` never opens
         // the live Dev CloudKit store. DEBUG-only; prod never reads this argument.
-        if ProcessInfo.processInfo.arguments.contains("-isolatedRun") {
+        if LaunchArgs.isolatedRun {
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
             return try? ModelContainer(for: schema, configurations: config)
         }

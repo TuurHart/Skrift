@@ -121,7 +121,7 @@ final class ConnectionsIndexService {
     /// call is nearly free (hash matches skip).
     func sweepSoon(_ context: ModelContext) {
         guard isActive, !sweeping else { return }
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        guard !LaunchArgs.isXCTest else { return }
 
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         // Consent-gated membership (NoteConsent.joinsConnectionsIndex): live +

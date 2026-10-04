@@ -294,7 +294,7 @@ final class Memo {
     /// so stamping inline would snapshot the words before the edit. Skipped under XCTest
     /// (tests call `recordEdit` directly) and when the note has no context.
     private func scheduleEditStamp() {
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+        guard !LaunchArgs.isXCTest,
               modelContext != nil else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, !self.isDeleted, let ctx = self.modelContext else { return }
