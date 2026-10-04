@@ -2264,6 +2264,12 @@ gate+: yes
 do: PRIVACY (found by Q285, same slip as Q33): the Mac -snapshot-capture sidebar renders from Tuur's live Dev SwiftData store, so real note titles land in PNGs workers save. Make every headless -snapshot* mode run against an in-memory store seeded by DemoSeed (never the on-disk Dev container), and assert it in a test that the snapshot path's ModelContainer is in-memory. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
+### Q304 [tuur] (tuur) On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
+spec: -
+needs: -
+do: (fill in)
+check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3221,3 +3227,5 @@ check: `./gate.sh`
 - 2026-10-04 10:04 Q209 -> doing — dispatched (sonnet)
 - 2026-10-04 10:08 Q218 -> doing — dispatched (opus; recording code)
 - 2026-10-04 10:15 Q290 -> done — gate pass @4b74344c
+- 2026-10-04 10:15 Q304 added
+- 2026-10-04 10:15 Q304 -> tuur — parked: Dev check
