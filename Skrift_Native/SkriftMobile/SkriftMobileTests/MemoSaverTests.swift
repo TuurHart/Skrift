@@ -52,7 +52,7 @@ final class MemoSaverTests: XCTestCase {
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("rec_\(UUID().uuidString).m4a")
         FileManager.default.createFile(atPath: temp.path, contents: Data())
 
-        // Render a photo with unambiguous text for the REAL Vision pass.
+        // Render a photo with unambiguous text.
         let size = CGSize(width: 600, height: 200)
         let image = UIGraphicsImageRenderer(size: size).image { ctx in
             UIColor.white.setFill()
@@ -64,7 +64,19 @@ final class MemoSaverTests: XCTestCase {
         }
         let photoTemp = FileManager.default.temporaryDirectory
             .appendingPathComponent("photo-\(UUID().uuidString).jpg")
-        try image.jpegData(compressionQuality: 0.9)!.write(to: photoTemp)
+        let jpeg = image.jpegData(compressionQuality: 0.9)!
+        try jpeg.write(to: photoTemp)
+
+        // Q310: a fake recognizer, so this test proves the save -> index ->
+        // searchable contract without Vision's cold start (it returned nil
+        // inside 10 s on a freshly erased sim). It reads only the bytes of THIS
+        // photo, at the path the save moved it to. Real Vision OCR is proven
+        // by NoteBodyTests and PhotoTextIndexerTests.
+        let original = PhotoTextIndexer.recognizer
+        addTeardownBlock { await MainActor.run { PhotoTextIndexer.recognizer = original } }
+        PhotoTextIndexer.recognizer = { url in
+            (try? Data(contentsOf: url)) == jpeg ? "GATE B7 LISBOA" : ""
+        }
 
         let id = await saver.saveAndTranscribe(tempURL: temp, duration: 3,
                                                photos: [(url: photoTemp, offset: 1.0)])
