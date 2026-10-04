@@ -71,22 +71,6 @@ final class MemosListUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts[plumber].exists, "plumber memo should be filtered out by search")
     }
 
-    func testFilterUnsyncedHidesSynced() throws {
-        let app = launch()
-        // demo2 (plumber) is seeded Synced; the others are Waiting.
-        XCTAssertTrue(app.staticTexts[plumber].waitForExistence(timeout: 10))
-
-        // Q66/D148: the Unsynced chip lives in the chip row (the Filter button/sheet is gone).
-        let unsynced = app.descendants(matching: .any).matching(identifier: "chip-unsynced").firstMatch
-        XCTAssertTrue(unsynced.waitForExistence(timeout: 5), "Unsynced chip missing")
-        unsynced.tap()
-
-        // Wait for the list to re-filter after the chip tap.
-        XCTAssertTrue(app.staticTexts[plumber].waitForNonExistence(timeout: 4),
-                      "synced memo should be hidden by 'unsynced only'")
-        XCTAssertTrue(app.staticTexts[harbor].exists, "waiting memo should remain")
-    }
-
     func testStatusPillsShowTranscribingAndError() throws {
         let app = launch()
         XCTAssertTrue(app.staticTexts["Synced"].waitForExistence(timeout: 10))   // demo2

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Q66/D148 (option A of `mocks/Q49-one-filter.html`, Tuur 2026-09-26: "one
 /// filter bar I pick A"): the chip row carries everything — the four status
-/// chips, then Date (and, phone-only, Unsynced) past them, then a sort word
+/// chips, then Date past them, then a sort word
 /// that steps to the next order on tap. No Filter icon, no sheet/popover
 /// beyond what Date itself opens. Two colors is all either app's chip needs
 /// (accent for "on", dim for idle) — construct from each app's own palette,
@@ -43,7 +43,7 @@ struct StatusChip: View {
 
 /// A chip past the four status ones — dashed outline when idle (it "stacks",
 /// per the mock's own admission, rather than picking one of a set), solid
-/// accent wash + hairline when active. Date and Unsynced both use this.
+/// accent wash + hairline when active. Date uses this.
 struct ExtraFilterChip: View {
     let label: String
     let active: Bool

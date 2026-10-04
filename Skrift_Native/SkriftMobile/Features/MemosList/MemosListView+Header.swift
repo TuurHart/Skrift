@@ -159,9 +159,9 @@ extension MemosListView {
 
     /// Q66/D148 (option A, `mocks/Q49-one-filter.html`): the chip row carries
     /// EVERYTHING now. All / Needs Work / Done / Unrated (verbatim, one shared
-    /// `QueueFilter`) come first, then Date and Unsynced past them, then a
+    /// `QueueFilter`) come first, then Date past them (D168: Unsynced is gone), then a
     /// sort word ending the row (`MemoSort.short`/`.next`). The Filter icon,
-    /// the Sort & Filter sheet's Sort/Unsynced sections and the sheet's
+    /// the Sort & Filter sheet's Sort section and the sheet's
     /// separate "Not rated" toggle are gone — the toggle was the SAME set as
     /// the Unrated chip (BUGS §2: the phone filtered Unrated twice, together
     /// they emptied the list). The whole row scrolls sideways when it doesn't
@@ -196,9 +196,6 @@ extension MemosListView {
                                 active: filter.dateActive || showDateStrip, style: chipStyle)
                     .onTapGesture { showDateStrip.toggle() }
                     .accessibilityIdentifier("chip-date")
-                ExtraFilterChip(label: "Unsynced", active: filter.unsyncedOnly, style: chipStyle)
-                    .onTapGesture { filter.unsyncedOnly.toggle() }
-                    .accessibilityIdentifier("chip-unsynced")
             }
             // Scoped to this row ONLY — the highlight pill still gets one quick,
             // consistent motion on every chip switch. It does not reach the List

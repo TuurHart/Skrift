@@ -31,16 +31,13 @@ enum MemoSort: String, CaseIterable, Identifiable {
 }
 
 struct MemoFilter: Equatable {
-    var unsyncedOnly = false
-    var hasPhotosOnly = false
-    var place: String?
     /// Optional date-range filter, applied to either the recorded or added date.
     var dateField: MemoDateField = .recorded
     var from: Date?
     var to: Date?
-    var isActive: Bool { unsyncedOnly || hasPhotosOnly || place != nil || from != nil || to != nil }
+    var isActive: Bool { from != nil || to != nil }
     /// Just the date half — drives the Date chip's own "on" state (Q66: the
-    /// chip lights for a live range, Unsynced is its own separate chip now).
+    /// chip lights for a live range). D168: the Unsynced / Photos / Place filters are gone.
     var dateActive: Bool { from != nil || to != nil }
 }
 
