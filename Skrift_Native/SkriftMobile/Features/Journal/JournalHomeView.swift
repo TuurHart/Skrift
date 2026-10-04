@@ -13,7 +13,7 @@ struct JournalHomeView: View {
     @State private var thenNow: (then: Memo, now: Memo)?
     /// The conveyor's Review-feed row (Q-placement B, 2026-07-21 —
     /// mocks/wayout-phone-placement.html): fading + deleted feed its count;
-    /// the amber dot keeps the ⋯ button's unread semantics, moved here.
+    /// the amber dot marks fade-entries newer than the last shelf visit.
     @State private var wayOutFading: [Memo] = []
     @State private var wayOutDeletedCount = 0
     @State private var showWayOut = false
@@ -145,8 +145,8 @@ struct JournalHomeView: View {
     }
 
     private func reload() {
-        // Fading notes leave Review too (MemoLifecycle) — the ⋯ shelf in Notes
-        // is their only surface.
+        // Fading notes leave the live river (MemoLifecycle); the way-out row below is
+        // their only surface.
         let split = ReviewNotes.split(repository.canonicalMemos())
         memos = split.live
         wayOutFading = split.fading

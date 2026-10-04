@@ -3,8 +3,8 @@ import SwiftData
 
 /// The merged lifecycle shelf (mocks/lifecycle-ia-explorations.html #m3, Q4 locked
 /// 2026-07-20): Fading + Recently Deleted collapse into ONE conveyor with ONE verb,
-/// **Bring back** — absorbing `FadingShelfView` + `RecentlyDeletedView`. Reached from
-/// the Notes header ⋯ (now a single item, not two).
+/// **Bring back** — replacing the old fading shelf and Recently Deleted screens. Reached from
+/// the Review feed's way-out row (`JournalHomeView`).
 ///
 /// Every countdown comes from `MemoSpine.oneLiner` (Shared, read-only) — nothing here
 /// hand-writes a day count. "Bring back" carries the pinned cross-app semantics (same
@@ -50,8 +50,7 @@ struct WayOutView: View {
             }
             .navigationTitle("Fading · \(total)")
             .navigationBarTitleDisplayMode(.inline)
-            // Opening the merged shelf clears the ⋯ dot — same stamp + key
-            // FadingShelfView used (the dot's unread semantics are untouched).
+            // Opening the shelf clears the Review row's unread dot (`fadingLastSeenAt`).
             .onAppear { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "fadingLastSeenAt") }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

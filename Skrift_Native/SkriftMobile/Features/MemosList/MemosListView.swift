@@ -3,13 +3,12 @@ import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 
-enum MemoSort: String, CaseIterable, Identifiable {
+enum MemoSort: String, CaseIterable {
     case added = "Recently added"
     case edited = "Recently edited"
     case recent = "Recently recorded"
     case oldest = "Oldest first"
     case longest = "Longest first"
-    var id: String { rawValue }
 
     /// Compact label for the iPad's inline sort control (the Mac's `SidebarSort`
     /// idiom). `.added` → "Newest", matching the Mac's default word.
@@ -42,12 +41,12 @@ struct MemoFilter: Equatable {
 }
 
 /// The memos surface (mockup3): full-text search, day-group cards with honest
-/// status pills, multi-select, a single funnel = Sort & Filter sheet, and the
-/// record FAB. Tapping a card opens Memo detail; the FAB opens the recorder
-/// (which on Stop pushes detail — the save-now flow).
+/// status pills, multi-select, and one chip row (All / Needs Work / Done / Unrated,
+/// Date, sort). Tapping a card opens Memo detail; Record lives in the header verb row
+/// (D136) and pushes detail on Stop — the save-now flow.
 struct MemosListView: View {
-    // Trashed memos (deletedAt != nil) are excluded here and live in the
-    // Recently Deleted screen until restored or purged.
+    // Trashed memos (deletedAt != nil) are excluded here and live in
+    // WayOutView (Review) until restored or purged.
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
            sort: \Memo.recordedAt, order: .reverse) var rawMemos: [Memo]
     /// One row per id, the Mac's rule (`MemoDuplicates.canonicalRows`): a CloudKit re-sync can
@@ -86,9 +85,6 @@ struct MemosListView: View {
     @State var showVideoImporter = false
     /// Q66: the strip the Date chip opens under the chip row (no sheet).
     @State var showDateStrip = false
-    /// Presents WayOutView — the merged Fading + Recently Deleted shelf (Q4,
-    /// 2026-07-20). One sheet now instead of two (`showTrash` retired).
-    /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject var cloudSync = CloudSyncMonitor.shared
@@ -304,23 +300,6 @@ struct MemosListView: View {
             .onAppear {
                 handleStartRequest(); handleOpenRequest(); handleQuickNoteRequest()
             }
-            // Round-3 evidence for "photo search finds nothing": per query,
-            // how many memos match at all, and how many via photo OCR text —
-            // separates 'Vision read nothing' from 'search doesn't match'.
-            // DEBUG-only: the photoHits corpus scan fed a log line that never
-            // prints in Release, but the scan itself ran there per keystroke.
-            #if DEBUG
-            .onChange(of: search) { _, q in
-                let query = q.trimmingCharacters(in: .whitespaces).lowercased()
-                guard !query.isEmpty else { return }
-                let photoHits = memos.filter {
-                    $0.metadata?.imageManifest?.contains {
-                        $0.text?.lowercased().contains(query) == true
-                    } == true
-                }.count
-                DevLog.log("search '\(query)' → \(derived.groups.reduce(0) { $0 + $1.memos.count })/\(memos.count) hits, \(photoHits) via photoText")
-            }
-            #endif
             // A sheet rather than a push: the stack's path is typed [NoteRoute]
             // (draft or memo), which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)

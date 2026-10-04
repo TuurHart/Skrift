@@ -2,10 +2,8 @@ import SwiftUI
 import FluidAudio
 
 /// A single person: avatar + name + voice-enrollment status + delete. Aliases are
-/// NOT editable here (the Mac owns them; the phone syncs silently). Voice
-/// enrollment runs on-device and ships with Conversation mode (the speaker-
-/// embedding extraction is the later diarization track), so "Add voice" surfaces
-/// that rather than faking an embedding into the synced DB.
+/// editable only in the full editor (Edit); voice enrollment runs on-device
+/// (`VoiceEnrollView`) and syncs with the person.
 struct PersonDetailView: View {
     let canonical: String
     let onChange: () -> Void
@@ -22,9 +20,9 @@ struct PersonDetailView: View {
             Color.skBg.ignoresSafeArea()
             if let person {
                 VStack(spacing: 0) {
-                    Avatar(name: NamesDisplay.name(person), size: 84)
+                    Avatar(name: person.displayName, size: 84)
                         .padding(.top, 24)
-                    Text(NamesDisplay.name(person))
+                    Text(person.displayName)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Color.skText)
                         .padding(.top, 14)
@@ -65,7 +63,7 @@ struct PersonDetailView: View {
         .deleteConfirmation($deleteConfirm) { deletePerson($0) }
         .sheet(isPresented: $showEnroll) {
             VoiceEnrollView(canonical: canonical,
-                            displayName: person.map(NamesDisplay.name) ?? canonical) {
+                            displayName: person?.displayName ?? canonical) {
                 load(); onChange()   // refresh the card (flips to the enrolled state)
             }
         }
@@ -80,7 +78,7 @@ struct PersonDetailView: View {
     @ViewBuilder private func voiceCard(_ person: Person) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionLabel("VOICE")
-            if NamesDisplay.isEnrolled(person) {
+            if PersonEditCore.isEnrolled(person) {
                 HStack(spacing: 8) {
                     VoiceBars()
                     Text(NamesCopy.voiceEnrolled)
@@ -88,7 +86,7 @@ struct PersonDetailView: View {
                         .foregroundStyle(Color.skGreen)
                     Spacer()
                 }
-                Text(NamesCopy.voiceEnrolledHelp(name: NamesDisplay.name(person)))
+                Text(NamesCopy.voiceEnrolledHelp(name: person.displayName))
                     .font(.footnote).foregroundStyle(Color.skTextDim)
             } else {
                 Button { showEnroll = true } label: {

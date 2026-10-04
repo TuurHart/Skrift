@@ -99,9 +99,6 @@ extension MemosListView {
         newTypedNote()
     }
 
-    // (recordFAB moved into NotesBottomChrome — the Option-A split row at the
-    // bottom of this file.)
-
     var selectionBar: some View {
         HStack {
             Text("\(selected.count) selected").font(.subheadline.weight(.semibold)).foregroundStyle(Color.skTextDim)
@@ -128,9 +125,6 @@ extension MemosListView {
         editMode = .inactive
     }
 
-    /// Quick copy straight from the list: transcript (fallback: title) → pasteboard,
-    /// with a light haptic + the same top banner as sync. An empty memo says so
-    /// instead of silently copying nothing.
     /// Lock (instant; honesty copy lives on the detail page too) / remove lock
     /// (requires auth — Apple Notes idiom). Locking an already-published memo
     /// surfaces the vault notice; Skrift never deletes vault files.
