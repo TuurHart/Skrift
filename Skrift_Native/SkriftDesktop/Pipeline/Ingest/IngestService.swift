@@ -524,10 +524,18 @@ struct IngestService: Sendable {
             return Self.supportedAudio.contains(ext) ? try await ingestAudio(url, into: context) : nil
         case .text:
             // C73 / D22: a `.txt` shared on the phone becomes a text capture whose BODY is the
-            // file's text; the same file dropped here does the same. `.md` stays an Apple-Note
-            // style note (its own decision).
-            return ext == "txt" ? try await ingestTextCapture(url, into: context)
-                                : try await ingestNote(url, into: context)
+            // file's text; the same file dropped here does the same. D171: a plain `.md` is a
+            // TYPED note (the phone does the same); one beside an `Attachments/` folder is an
+            // Apple Notes export and stays an Apple Note (C76). The rule is `ImportKinds.textRole`.
+            var isDir: ObjCBool = false
+            let beside = FileManager.default.fileExists(
+                atPath: url.deletingLastPathComponent().appendingPathComponent("Attachments").path,
+                isDirectory: &isDir)
+            switch ImportKinds.textRole(forExtension: ext, hasAttachmentsFolder: beside && isDir.boolValue) {
+            case .textCapture: return try await ingestTextCapture(url, into: context)
+            case .typedNote: return try await ingestNote(url, typed: true, into: context)
+            case .appleNote, .none: return try await ingestNote(url, typed: false, into: context)
+            }
         case .document:
             return acceptsDocuments ? try await ingestDocumentCapture(url, into: context) : nil
         // Pictures are bundled before this point; a book has no Mac ingest here (the drop
@@ -652,7 +660,7 @@ struct IngestService: Sendable {
         pf.sourceType == .note && pf.mediaSource == "video" && pf.transcribeStatus == .error
     }
 
-    private func ingestNote(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
+    private func ingestNote(_ url: URL, typed: Bool, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let folder = try makeFolder(id: id, filename: filename)
@@ -688,6 +696,9 @@ struct IngestService: Sendable {
         pf.transcribeStatus = .done
         // BatchRunner won't clobber this; the LLM title becomes the suggestion.
         pf.enhancedTitle = title
+        // D171: a plain `.md` is a typed note: the marker the phone's `Memo.newTyped` writes, so the
+        // row reads "Note", not "Apple Note" (`SourceKind.classify`). The author carries it to the Memo.
+        if typed { pf.mediaSource = "typed" }
         // Q241 (4): like every other Mac import (D159) it arrives UNRATED. An inserted row with
         // neither flag reads as a legacy RATED row (`NoteConsent.isRated`).
         pf.isLocalRecording = isLocalRecording
@@ -859,65 +870,14 @@ struct IngestService: Sendable {
         return CGImageDestinationFinalize(dest)
     }
 
-    /// C76 / D18: the creation date an Apple Notes export may carry INSIDE the file: a YAML front
-    /// matter key (`created`, `creation date`, `date created`, `created_at`, `date`) or one of the
-    /// first lines written as `Created: <date>`. nil when there is none (the built-in Markdown
-    /// export has none): the caller marks the note date-unknown.
-    static func appleNoteCreationDate(_ content: String) -> Date? {
-        let keys: Set<String> = ["created", "creation date", "creation_date", "date created", "created_at",
-                                 "created at", "date"]
-        func value(of line: Substring) -> String? {
-            guard let colon = line.firstIndex(of: ":") else { return nil }
-            let key = line[..<colon].trimmingCharacters(in: CharacterSet(charactersIn: " *_>-\t")).lowercased()
-            guard keys.contains(key) else { return nil }
-            let v = line[line.index(after: colon)...]
-                .trimmingCharacters(in: CharacterSet(charactersIn: " *_\"'\t"))
-            return v.isEmpty ? nil : v
-        }
-        let lines = content.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\r")) }
-        var candidates: [Substring] = []
-        if lines.first?.trimmingCharacters(in: .whitespaces) == "---",
-           let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) {
-            candidates = lines[1..<end].map { Substring($0) }
-        } else {
-            candidates = lines.prefix(8).map { Substring($0) }
-        }
-        for line in candidates {
-            if let v = value(of: line), let d = parseNoteDate(v) { return d }
-        }
-        return nil
-    }
+    /// C76 / D18 / D171: the shared reader (`MarkdownImport`) — the phone reads the same file the same way.
+    static func appleNoteCreationDate(_ content: String) -> Date? { MarkdownImport.creationDate(content) }
 
-    /// ISO 8601 (with or without zone / fraction), `yyyy-MM-dd[ HH:mm[:ss]]`, or the AppleScript
-    /// long form ("Monday, 14 September 2026 at 10:00:00"). Local time when no zone is given.
-    static func parseNoteDate(_ s: String) -> Date? {
-        if let d = ISO8601.date(from: s) { return d }
-        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime]
-        if let d = iso.date(from: s) { return d }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = .current
-        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm",
-                       "yyyy-MM-dd", "EEEE, d MMMM yyyy 'at' HH:mm:ss", "d MMMM yyyy 'at' HH:mm:ss"] {
-            f.dateFormat = format
-            if let d = f.date(from: s) { return d }
-        }
-        return nil
-    }
+    static func parseNoteDate(_ s: String) -> Date? { MarkdownImport.parseDate(s) }
 
-    /// First `# ` heading (trailing dots trimmed), else the fallback. Mirrors
-    /// `apple_notes_importer.parse_markdown_note`.
+    /// First `# ` heading, else the fallback (`MarkdownImport.title`).
     static func appleNoteTitle(_ content: String, fallback: String) -> String {
-        for line in content.split(separator: "\n", omittingEmptySubsequences: false) {
-            let s = line.trimmingCharacters(in: .whitespaces)
-            if s.hasPrefix("# ") {
-                let t = String(s.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "."))
-                if !t.isEmpty { return t }
-            }
-        }
-        return fallback
+        MarkdownImport.title(content, fallback: fallback)
     }
 
     /// A picked folder → ingest its top-level supported files: Apple-Note `.md`

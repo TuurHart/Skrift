@@ -197,6 +197,27 @@ enum CaptureInboxDrainer {
         CaptureDrainState.shared.end()
     }
 
+    /// D171 (Q286): the typed note a shared `.md` becomes. Body = the file (a typed thought from
+    /// the share sheet leads it, as for a text file), title = the first heading else the file
+    /// name, `mediaSource: "typed"` (what `Memo.newTyped` writes, so the row reads "Note"), no
+    /// `sharedContent`. Dated by a creation date inside the file, else date-unknown, never the
+    /// import moment (C76) — the Mac does the same (`IngestService.ingestNote`).
+    static func typedNoteMemo(id: UUID, markdown: String, fileName: String,
+                              thought: String?, significance: Double) -> Memo {
+        let stem = ((fileName as NSString).lastPathComponent as NSString).deletingPathExtension
+        let lead = thought?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let body = lead.isEmpty ? markdown : lead + "\n\n" + markdown
+        let marker = try? JSONSerialization.data(withJSONObject: ["mediaSource": "typed"], options: [.sortedKeys])
+        return Memo(id: id,
+                    recordedAt: MarkdownImport.creationDate(markdown) ?? MemoDate.unknown,
+                    title: MarkdownImport.title(markdown, fallback: stem.isEmpty ? "Note" : stem),
+                    transcript: body,
+                    transcriptStatus: .done,
+                    significance: significance,
+                    createdAt: Date(),
+                    metadataData: marker)
+    }
+
     /// Handle ONE inbox entry. Returns the created memo's id when the user should
     /// land on it (every share jumps to its note), nil when the entry was discarded.
     private static func process(entry: CaptureInboxEntry, entryDir: URL,
@@ -474,6 +495,7 @@ enum CaptureInboxDrainer {
         // blob is kept. Oversized or non-UTF-8 files stay documents (a novel-length
         // txt isn't a note).
         var textFileBody: String?
+        var markdownBody: String?
         if contentType == .file,
            let displayName = (entry.fileDisplayName ?? entry.fileName)?.lowercased(),
            displayName.hasSuffix(".md") || displayName.hasSuffix(".markdown") || displayName.hasSuffix(".txt"),
@@ -485,11 +507,29 @@ enum CaptureInboxDrainer {
                 return SharedTextFile.body(of: data)
             }
             if let trimmed = text {
-                textFileBody = trimmed
-                sharedContent = SharedContent(type: .text,
-                                              fileName: entry.fileDisplayName ?? entry.fileName)
-                DevLog.log("drain: text file \(entry.id) → note body (\(trimmed.count) chars)")
+                // D171 (Q286): a `.md` is a TYPED note (no capture card); a `.txt` stays a text
+                // capture (D22). One rule, `ImportKinds.textRole`, shared with the Mac. A `.md`
+                // that carries a dictated voice note keeps the capture path (the dictation rides it).
+                let role = ImportKinds.textRole(forExtension: (displayName as NSString).pathExtension)
+                if role == .typedNote, entry.dictationFileName == nil {
+                    markdownBody = trimmed
+                    DevLog.log("drain: markdown file \(entry.id) → typed note (\(trimmed.count) chars)")
+                } else {
+                    textFileBody = trimmed
+                    sharedContent = SharedContent(type: .text,
+                                                  fileName: entry.fileDisplayName ?? entry.fileName)
+                    DevLog.log("drain: text file \(entry.id) → note body (\(trimmed.count) chars)")
+                }
             }
+        }
+
+        if let markdownBody {
+            let memo = typedNoteMemo(id: memoID, markdown: markdownBody,
+                                     fileName: entry.fileDisplayName ?? entry.fileName ?? "",
+                                     thought: entry.annotationText, significance: entry.significance)
+            repository.insert(memo)
+            CaptureInbox.delete(entryDir: entryDir)
+            return memoID
         }
 
         // File capture (e.g. a shared PDF): copy the document from the inbox into

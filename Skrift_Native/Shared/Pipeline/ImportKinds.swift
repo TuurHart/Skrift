@@ -37,6 +37,24 @@ enum ImportKinds {
 
     static let textExtensions: Set<String> = ["md", "markdown", "txt"]
 
+    static let markdownExtensions: Set<String> = ["md", "markdown"]
+
+    /// What a lone text file becomes (D171, D22) — ONE rule for the phone's share drain and the
+    /// Mac's drop / +Upload:
+    /// - `.typedNote`: a plain `.md`. Body = the file, title = its first heading, no capture card.
+    /// - `.appleNote`: a `.md` that sits beside an `Attachments/` folder — an Apple Notes export
+    ///   (C76), dated by its own creation date, glyph "Apple Note". Only the Mac can see the folder.
+    /// - `.textCapture`: a `.txt` (D22). A bundle's `.txt` / `.md` is the annotation instead
+    ///   (`MixedBundle.annotation`), decided before this rule is asked.
+    enum TextRole: Sendable { case typedNote, appleNote, textCapture }
+
+    /// nil for an extension that is not a text file.
+    static func textRole(forExtension ext: String, hasAttachmentsFolder: Bool = false) -> TextRole? {
+        let e = ext.lowercased()
+        if markdownExtensions.contains(e) { return hasAttachmentsFolder ? .appleNote : .typedNote }
+        return textExtensions.contains(e) ? .textCapture : nil
+    }
+
     static let documentExtensions: Set<String> = ["pdf"]
 
     static let bookExtensions: Set<String> = ["epub", "m4b", "skriftbook"]
