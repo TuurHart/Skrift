@@ -2317,7 +2317,7 @@ needs: -
 do: (fill in)
 check: On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 
-### Q312 [auto] (todo) phone MemosListUITests fail at the first seeded-memo wait
+### Q312 [auto] (doing) phone MemosListUITests fail at the first seeded-memo wait
 spec: -
 needs: -
 gate+: yes
@@ -3359,3 +3359,4 @@ check: `perl -e 'alarm 1800; exec @ARGV' xcodebuild test -project Skrift_Native/
 - 2026-10-04 20:55 Q230 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 21:19 Q230 -> done — hand-merged (D163: deleted tests of deleted members)
 - 2026-10-04 21:19 Q312 added
+- 2026-10-04 21:20 Q312 -> doing — dispatched (opus; bisect; one-at-a-time)
