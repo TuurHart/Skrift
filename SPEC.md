@@ -1031,7 +1031,7 @@ Copy-edit:
 - C182 [auto] Interrupted runs reset to pending at launch. THE process queue, stated once for
   both apps: RATED (any ball) ∧ not trashed ∧ not done — a LOCKED note is included, because
   lock is about eyes, not the pipeline (D10) — oldest first, one at a time; models unload
-  after 60 s idle; re-transcribe also clears diarization + its sidecar and keeps the title; "Flatten to monologue"
+  after 60 s idle; re-transcribe also clears diarization and keeps the title; "Flatten to monologue"
   drops headers, clears diarization, re-polishes as monologue, no re-ASR. || check:
   `RunReconciler`, `ProcessingCoordinator` tests. — A30, A34, A35
 - C183 [tuur] The refine pass is REMOVED (D52: "it is me going over it before I am allowed to
