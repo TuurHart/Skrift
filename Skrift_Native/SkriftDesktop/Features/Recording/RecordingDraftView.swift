@@ -18,7 +18,8 @@ struct RecordingDraftView: View {
             wetText: session.wetText,
             elapsedLabel: session.elapsedLabel,
             notice: session.notice,
-            modelState: session.modelState
+            modelState: session.modelState,
+            appendingTo: session.appendTarget?.title
         )
     }
 }
@@ -60,6 +61,9 @@ struct RecordingDraftBody: View {
     /// the signed m1/m2/m4 look is unchanged once the model is up; anything else adds the
     /// phone's status line, and an empty draft shows the loading placeholder.
     var modelState: RecordingModelState = .ready
+    /// "Add recording" (Q290): the title of the note this take will be appended to. nil = a
+    /// new note (the signed m1/m2/m4 look, unchanged).
+    var appendingTo: String? = nil
 
     @State private var pulse = false
 
@@ -93,7 +97,7 @@ struct RecordingDraftBody: View {
             if let notice { noticeBanner(notice) }
             titleLine
             metaChipsRow
-            notRatedLine
+            if appendingTo != nil { appendingLine } else { notRatedLine }
             if modelState != .ready { modelStatusLine }
         }
         .padding(.bottom, 18)
@@ -118,7 +122,13 @@ struct RecordingDraftBody: View {
     }
 
     @ViewBuilder private var titleLine: some View {
-        if isSettling, let derived = LiveTakeTitle.derive(from: settledText) {
+        if let appendingTo {
+            // An append keeps the note's own title: these words join it, they don't name it.
+            Text(appendingTo)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(2)
+        } else if isSettling, let derived = LiveTakeTitle.derive(from: settledText) {
             Text(derived)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
@@ -150,6 +160,19 @@ struct RecordingDraftBody: View {
                 .font(.system(size: 11.5))
                 .foregroundStyle(Theme.textMuted)
         }
+    }
+
+    /// Said in place of the not-rated line when the take joins an existing note (Q290).
+    private var appendingLine: some View {
+        HStack(spacing: 8) {
+            Image(systemName: NoteMenuItem.addRecording.systemImage)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+            Text("Adding a recording to this note")
+                .font(.system(size: 11.5))
+                .foregroundStyle(Theme.textMuted)
+        }
+        .accessibilityIdentifier("recording-draft.appending")
     }
 
     /// The phone's model line (dot + "Downloading model · 12%" / "Preparing model…" /
