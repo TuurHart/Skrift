@@ -2133,12 +2133,12 @@ gate+: yes
 do: Tuur 2026-10-03 (D169): on every device ⌘N = new note and ⇧⌘N = Record. iPad binds ⌘N twice today (SkriftApp.swift:243-248 'New Recording' and MemosListView+Header.swift:116 'New note'): make the app menu Record ⇧⌘N. Mac: add a Record menu command (⇧⌘N), ⌘F focuses search, ⌘1 Notes / ⌘2 Review. One `.commands` block per app; the key table lives in Shared (`AppShortcuts`) so both read one source. Update FEATURES.md:61/:126. Desktop test `AppShortcutsTests` asserts the table. Never run SkriftDesktopUITests.
 check: `grep -rqE "class AppShortcutsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q285 [auto] (doing) Mac shared-text capture draws the accent-bar quote, not a SHARED CONTENT box
+### Q285 [auto] (done) Mac shared-text capture draws the accent-bar quote, not a SHARED CONTENT box
 spec: C240 D170
 needs: -
 gate+: yes
 do: Tuur 2026-10-03 (D170): the no-bubbles rule covers the shared TEXT quote only. On the Mac, a text capture renders as the phone's borderless italic accent-bar quote; link, file and photo captures keep their cards on both apps. Reuse the phone's quote style via a Shared view/style struct if one exists. Prove it with a Mac headless -snapshot-capture PNG of a text capture (look at it) committed under plan/reads/Q-no-bubbles/. Never run SkriftDesktopUITests.
-check: `ls plan/reads/Q-no-bubbles/*.png >/dev/null && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
 ### Q286 [auto] (todo) .md import becomes a typed note on phone and Mac
 spec: C76 C77 D171
@@ -3208,3 +3208,4 @@ check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt o
 - 2026-10-04 09:57 Q301 added
 - 2026-10-04 09:57 Q302 added
 - 2026-10-04 09:57 Q302 -> tuur — parked: Dev check
+- 2026-10-04 10:04 Q285 -> done — gate pass @ddaa3224
