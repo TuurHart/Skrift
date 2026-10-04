@@ -18,10 +18,6 @@ import SwiftData
 /// stay gone until `MemoDetailView` takes over (reopening from the list uses
 /// the full editor like any other typed note).
 struct QuickNoteView: View {
-    /// Navigation token only — never a real `Memo.id` until `QuickNoteDraft`
-    /// creates one. Lets `MemosListView` route THIS screen instead of
-    /// `MemoDetailView` for the id it pushed/selected.
-    let draftID: UUID
     /// Tapping back: the caller decides what "leaving" means for its own
     /// navigation (pop the compact path / clear the iPad selected pane). The
     /// save-or-discard decision itself happens in `onDisappear`, below, so it

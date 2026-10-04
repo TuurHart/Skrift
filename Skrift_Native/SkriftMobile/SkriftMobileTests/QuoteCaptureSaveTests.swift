@@ -91,7 +91,7 @@ final class QuoteCaptureSaveTests: XCTestCase {
         let ramble = FileManager.default.temporaryDirectory
             .appendingPathComponent("ramble_\(UUID().uuidString).m4a")
         FileManager.default.createFile(atPath: ramble.path, contents: Data("RAMBLE".utf8))
-        await saver.appendRecordingAsync(to: id, tempURL: ramble, duration: 12)
+        await saver.appendRecordingAsync(to: id, tempURL: ramble)
 
         let memo = try XCTUnwrap(repo.memo(id: id))
         XCTAssertEqual(

@@ -46,7 +46,7 @@ final class VideoImportTests: XCTestCase {
         FileManager.default.createFile(atPath: fake.path, contents: Data([0x00, 0x01, 0x02]))
         let fallback = Date(timeIntervalSince1970: 1_600_000_000)   // a fixed past date
 
-        let ok = await saver.importVideoAsync(id: id, source: fake, fallbackDate: fallback)
+        let ok = await saver.processVideo(id: id, source: fake, fallbackDate: fallback)
 
         XCTAssertFalse(ok, "extraction should fail for a non-media file")
         let memo = repo.memo(id: id)
@@ -72,7 +72,7 @@ final class VideoImportTests: XCTestCase {
         let fake = FileManager.default.temporaryDirectory.appendingPathComponent("fake_\(UUID().uuidString).avi")
         FileManager.default.createFile(atPath: fake.path, contents: Data([0x00, 0x01, 0x02]))
 
-        let ok = await saver.importVideoAsync(id: id, source: fake, fallbackDate: nil)
+        let ok = await saver.processVideo(id: id, source: fake, fallbackDate: nil)
 
         XCTAssertFalse(ok)
         let memo = repo.memo(id: id)
@@ -98,7 +98,7 @@ final class VideoImportTests: XCTestCase {
         let videoURL = FileManager.default.temporaryDirectory.appendingPathComponent("silent_\(UUID().uuidString).mov")
         try makeVideoFile(at: videoURL, seconds: 0.5, withAudio: false)
 
-        let ok = await saver.importVideoAsync(id: id, source: videoURL, fallbackDate: nil)
+        let ok = await saver.processVideo(id: id, source: videoURL, fallbackDate: nil)
 
         XCTAssertFalse(ok)
         XCTAssertEqual(repo.memo(id: id)?.title, "Video had no audio track")
@@ -124,7 +124,7 @@ final class VideoImportTests: XCTestCase {
         let videoURL = FileManager.default.temporaryDirectory.appendingPathComponent("clip_\(UUID().uuidString).mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: embedded)
 
-        let ok = await saver.importVideoAsync(id: id, source: videoURL, fallbackDate: nil)
+        let ok = await saver.processVideo(id: id, source: videoURL, fallbackDate: nil)
         XCTAssertTrue(ok)
 
         let memo = repo.memo(id: id)

@@ -112,7 +112,7 @@ final class AutoCopyAndCameraFlipTests: XCTestCase {
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("add_\(UUID().uuidString).m4a")
         FileManager.default.createFile(atPath: temp.path, contents: Data("MORE".utf8))
 
-        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+        await saver.appendRecordingAsync(to: id, tempURL: temp)
 
         XCTAssertEqual(clipboard.copies, ["first part\n\nsecond part"],
                        "append must copy the COMBINED transcript")

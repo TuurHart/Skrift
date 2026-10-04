@@ -21,11 +21,6 @@ enum NoteRoute: Hashable, Identifiable {
         }
     }
 
-    var isDraft: Bool {
-        if case .draft = self { return true }
-        return false
-    }
-
     /// Mint a route for a brand-new quick note (✎ / widget / Siri / Control
     /// Center). Always a fresh `UUID` — nothing in the store can ever hold
     /// it, so it can never collide with, or be mistaken for, an existing

@@ -275,12 +275,7 @@ struct MemoSaver {
     /// grab a frame thumbnail, set the embedded recording date, then transcribe.
     /// Returns true when audio extraction succeeded.
     @discardableResult
-    func importVideoAsync(id: UUID, source: URL, fallbackDate: Date? = nil) async -> Bool {
-        await processVideo(id: id, source: source, fallbackDate: fallbackDate)
-    }
-
-    @discardableResult
-    private func processVideo(id: UUID, source: URL, fallbackDate: Date?) async -> Bool {
+    func processVideo(id: UUID, source: URL, fallbackDate: Date? = nil) async -> Bool {
         let filename = RecordingCore.filename(id: id)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
 
@@ -301,17 +296,13 @@ struct MemoSaver {
         // Error pill on an empty memo read as a mystery (2026-06-09 audit). An
         // unreadable container gets its own honest title (A9 — .avi/.mpg used to
         // claim "no audio track").
-        let extracted: Bool
-        var failTitle = "Video had no audio track"
-        do { extracted = try await Self.extractAudio(from: asset, to: dest) }
+        do { try await Self.extractAudio(from: asset, to: dest) }
         catch {
             DevLog.log("processVideo[\(id)] extractAudio threw: \(error)")
+            var failTitle = "Video had no audio track"
             if case VideoImportError.unreadableContainer = error {
                 failTitle = "Video format not supported"
             }
-            extracted = false
-        }
-        guard extracted else {
             DevLog.log("processVideo[\(id)] extract failed → .failed; memo present=\(repository.memo(id: id) != nil)")
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
@@ -411,7 +402,7 @@ struct MemoSaver {
 
     /// Strip the audio track of `asset` into a standalone .m4a at `dest`. Throws when
     /// the asset has no audio or the export fails (caller marks the memo failed).
-    private static func extractAudio(from asset: AVAsset, to dest: URL) async throws -> Bool {
+    private static func extractAudio(from asset: AVAsset, to dest: URL) async throws {
         // A container AVFoundation can't demux (.avi/.mpg arrive via the public.movie
         // doc type) must fail as "format not supported", not "no audio track" (A9).
         guard (try? await asset.load(.isReadable)) == true else {
@@ -430,7 +421,6 @@ struct MemoSaver {
         }
         try? FileManager.default.removeItem(at: dest)
         try await export.export(to: dest, as: .m4a)
-        return true
     }
 
     /// Grab one representative frame (near the start, tolerant) as JPEG data. nil when
@@ -533,8 +523,8 @@ struct MemoSaver {
     /// the memo's file, append the new text (+ word timings shifted past the prior
     /// duration), and mark the transcript user-edited so the Mac trusts the combined
     /// result (no re-transcription). The memo updates in place.
-    func appendRecording(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) {
-        Task { await appendRecordingAsync(to: memoID, tempURL: tempURL, duration: duration, liveCaption: liveCaption) }
+    func appendRecording(to memoID: UUID, tempURL: URL, liveCaption: String? = nil) {
+        Task { await appendRecordingAsync(to: memoID, tempURL: tempURL, liveCaption: liveCaption) }
     }
 
     /// Awaitable core of `appendRecording` (used directly by tests).
@@ -546,14 +536,14 @@ struct MemoSaver {
     /// up front destroyed the only retry source), a cold engine is awaited +
     /// retried instead of `try?`-swallowed, and a terminal failure surfaces as
     /// `.failed` (the memos list shows an Error pill) — never a silent no-op.
-    func appendRecordingAsync(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) async {
+    func appendRecordingAsync(to memoID: UUID, tempURL: URL, liveCaption: String? = nil) async {
         guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
             DevLog.log("append BAILED — memo missing or no audioURL (memoID \(memoID)); clip discarded")
             try? FileManager.default.removeItem(at: tempURL); return
         }
         let priorDuration = memo.duration
         let priorStatus = memo.transcriptStatus
-        DevLog.log("append start memo \(memoID) clipDur=\(String(format: "%.1f", duration))s priorStatus=\(priorStatus) priorBodyLen=\((memo.transcript ?? "").count)")
+        DevLog.log("append start memo \(memoID) priorStatus=\(priorStatus) priorBodyLen=\((memo.transcript ?? "").count)")
 
         // Make the append visible immediately — a cold model can take a while.
         memo.transcriptStatus = .transcribing

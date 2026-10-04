@@ -82,7 +82,7 @@ enum RecordingSweep {
             guard !sources.isEmpty else {
                 quarantine(take: take, files: files, in: directory)
                 report.cleaned.append(take)
-                RecordingLifecycleLog.log("rec quarantined", "take=\(take) no readable audio — quarantined \(files.count) file(s)")
+                RecordingLifecycleLog.log("quarantined", "take=\(take) no readable audio — quarantined \(files.count) file(s)")
                 continue
             }
             let startedAt = marker?.startedAt ?? creationDate(take: take, in: directory)
@@ -104,7 +104,7 @@ enum RecordingSweep {
             let unmerged = files.filter { $0 != markerName && !mergedNames.contains($0) }
             if !unmerged.isEmpty {
                 quarantine(take: take, files: unmerged, in: directory)
-                RecordingLifecycleLog.log("rec quarantined", "take=\(take) unmerged \(unmerged.count) file(s) alongside the rebuilt note")
+                RecordingLifecycleLog.log("quarantined", "take=\(take) unmerged \(unmerged.count) file(s) alongside the rebuilt note")
             }
             RecordingCheckpoint.discardTakeFiles(take: take, in: directory)
             report.recovered.append(id)
@@ -174,7 +174,7 @@ enum RecordingSweep {
             do {
                 try fm.moveItem(at: src, to: dstURL)
             } catch {
-                RecordingLifecycleLog.log("rec quarantine-failed", "take=\(take) file=\(f) \(error.localizedDescription)")
+                RecordingLifecycleLog.log("quarantine-failed", "take=\(take) file=\(f) \(error.localizedDescription)")
             }
         }
         let sidecar = QuarantinedTakeSidecar(take: take, firstSeen: firstSeen, fileSizes: sizes)

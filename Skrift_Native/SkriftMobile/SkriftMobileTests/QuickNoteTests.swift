@@ -39,7 +39,8 @@ final class QuickNoteTests: XCTestCase {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
         let countBefore = try? repo.context.fetch(FetchDescriptor<Memo>()).count
-        let memo = draft.edited(title: "", body: "T", context: repo.context)
+        draft.edited(title: "", body: "T", context: repo.context)
+        let memo = draft.memo
         XCTAssertNotNil(memo)
         XCTAssertEqual(memo?.transcript, "T")
         XCTAssertEqual(SourceKind.of(memo!), .typedNote)
@@ -50,8 +51,10 @@ final class QuickNoteTests: XCTestCase {
     func testSubsequentEditsUpdateTheSameMemo() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        let first = draft.edited(title: "", body: "H", context: repo.context)
-        let second = draft.edited(title: "", body: "Hi", context: repo.context)
+        draft.edited(title: "", body: "H", context: repo.context)
+        let first = draft.memo
+        draft.edited(title: "", body: "Hi", context: repo.context)
+        let second = draft.memo
         XCTAssertEqual(first?.id, second?.id)
         XCTAssertEqual(second?.transcript, "Hi")
     }
@@ -69,8 +72,8 @@ final class QuickNoteTests: XCTestCase {
     func testEmptyMemoIsDeletedOnLeave() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        _ = draft.edited(title: "", body: "x", context: repo.context)
-        _ = draft.edited(title: "", body: "", context: repo.context)   // typed then deleted it all
+        draft.edited(title: "", body: "x", context: repo.context)
+        draft.edited(title: "", body: "", context: repo.context)   // typed then deleted it all
         draft.leave(context: repo.context)
         let count = try? repo.context.fetch(FetchDescriptor<Memo>()).count
         XCTAssertEqual(count, 0, "typing then deleting everything must still count as empty")
@@ -80,7 +83,7 @@ final class QuickNoteTests: XCTestCase {
     func testNonEmptyMemoSurvivesLeave() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        _ = draft.edited(title: "", body: "Tram 28 idea", context: repo.context)
+        draft.edited(title: "", body: "Tram 28 idea", context: repo.context)
         draft.leave(context: repo.context)
         let count = try? repo.context.fetch(FetchDescriptor<Memo>()).count
         XCTAssertEqual(count, 1)
@@ -89,7 +92,7 @@ final class QuickNoteTests: XCTestCase {
     func testTitleOnlyCountsAsNotEmpty() {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
-        _ = draft.edited(title: "Groceries", body: "", context: repo.context)
+        draft.edited(title: "Groceries", body: "", context: repo.context)
         draft.leave(context: repo.context)
         let count = try? repo.context.fetch(FetchDescriptor<Memo>()).count
         XCTAssertEqual(count, 1)
