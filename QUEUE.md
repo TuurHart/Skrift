@@ -2230,7 +2230,7 @@ needs: -
 do: (fill in)
 check: Before promoting the new build: OK to deploy the CloudKit prod schema for the new synced export-audio setting (and the video asset once it lands)? It needs you in the CloudKit console.
 
-### Q299 [auto] (doing) in-app feedback button on phone and iPad (FeedbackKit, app id skrift)
+### Q299 [auto] (done) in-app feedback button on phone and iPad (FeedbackKit, app id skrift)
 spec: D179
 needs: -
 gate+: yes
@@ -3182,3 +3182,4 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:48 Q290 -> doing — dispatched (sonnet)
 - 2026-10-04 09:49 Q210 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166); retry after a load-timing flake)
 - 2026-10-04 09:51 Q292 -> done — hand-merged (D178: one conversation rule, audio only; call-site ports + fixture audioFilename)
+- 2026-10-04 09:54 Q299 -> done — gate pass @549011fc
