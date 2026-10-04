@@ -2304,7 +2304,7 @@ needs: -
 do: (fill in)
 check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F in a note and outside one, ⌘1/⌘2. Do they all do what you expect? Note the Mac's File > New Window is gone (⌘N is New Note now) — OK?
 
-### Q310 [auto] (todo) fix the flaky photo-OCR test MemoSaverTests.testSavedPhotoBecomesSearchableWithoutRelaunch
+### Q310 [auto] (doing) fix the flaky photo-OCR test MemoSaverTests.testSavedPhotoBecomesSearchableWithoutRelaunch
 spec: -
 needs: -
 gate+: yes
@@ -3319,3 +3319,4 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 13:33 Q250 -> done — hand-merged (Tuur-approved (D163 sitting): test seeds the shape the phone writes)
 - 2026-10-04 13:33 Q229 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 14:07 Q229 -> done — hand-merged (D163/D166: deleted tests of the deleted dictation drain)
+- 2026-10-04 14:07 Q310 -> doing — dispatched (opus; flaky OCR test; one-at-a-time)
