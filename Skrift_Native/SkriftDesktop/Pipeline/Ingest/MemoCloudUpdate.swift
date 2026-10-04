@@ -150,7 +150,7 @@ enum MemoCloudUpdate {
         // writes "") falls through to the transcript, as on the phone.
         let working = CompilerInput.workingBody(raw: pf.transcript, copyedit: pf.enhancedCopyedit).text
         guard !working.isEmpty else { return }
-        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
+        let isConversation = SpeakerTranscript.isConversation(working, source: pf.noteSource)
         pf.relinkNames(working: working, isConversation: isConversation, people: people)
         pf.sanitiseStatus = .done
         pf.compiledText = Compiler.compile(file: pf, author: author, knownPeople: people)

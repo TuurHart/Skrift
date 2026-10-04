@@ -48,13 +48,13 @@ final class DiarizationTests: XCTestCase {
         XCTAssertNil(VoiceMatcher.bestMatch(embedding: [0.45, 0.89, 0], people: [tiuri], threshold: 0.5))
     }
 
-    // MARK: isAttributed
+    // MARK: isConversation
 
     func testIsAttributed() {
-        XCTAssertTrue(SpeakerTranscript.isAttributed("**Tiuri:** hi\n\n**Speaker 2:** yo"))
-        XCTAssertFalse(SpeakerTranscript.isAttributed("just a plain monologue transcript"))
-        XCTAssertFalse(SpeakerTranscript.isAttributed("**Only one:** turn"))   // needs ≥2
-        XCTAssertFalse(SpeakerTranscript.isAttributed(nil))
+        XCTAssertTrue(SpeakerTranscript.isConversation("**Tiuri:** hi\n\n**Speaker 2:** yo", source: .audio))
+        XCTAssertFalse(SpeakerTranscript.isConversation("just a plain monologue transcript", source: .audio))
+        XCTAssertFalse(SpeakerTranscript.isConversation("**Only one:** turn", source: .audio))   // needs ≥2
+        XCTAssertFalse(SpeakerTranscript.isConversation(nil, source: .audio))
     }
 
     // MARK: flatten (undo a wrong speaker split → monologue prose)
@@ -345,12 +345,14 @@ final class DiarizationTests: XCTestCase {
                        "**Tiuri:** But what we're actually doing is\n\n**Roksana:** ok")
     }
 
-    /// isAttributed must NOT fire on a hand-formatted body with bold inline labels.
+    /// isConversation must NOT fire on a hand-formatted body with bold inline labels.
+    /// Ported by Q292 / D178: the repeated-label case is now guarded by the SOURCE (a typed note is
+    /// never a conversation) rather than by distinct names; `ConversationRuleTests` pins the rule.
     func testIsAttributedIgnoresInlineBoldLabels() {
-        XCTAssertFalse(SpeakerTranscript.isAttributed("Here are my notes. **Pros:** fast. **Cons:** pricey."),
+        XCTAssertFalse(SpeakerTranscript.isConversation("Here are my notes. **Pros:** fast. **Cons:** pricey.", source: .audio),
                        "inline **Pros:**/**Cons:** is not a conversation")
-        XCTAssertFalse(SpeakerTranscript.isAttributed("**Pros:** a\n\n**Pros:** b"),
-                       "repeated identical labels are not ≥2 distinct speakers")
+        XCTAssertFalse(SpeakerTranscript.isConversation("**Pros:** a\n\n**Pros:** b", source: .note),
+                       "repeated identical labels in a typed note are not a conversation")
     }
 
     /// Pipe-display alias links stay resolvable for unlink/relink/highlight.

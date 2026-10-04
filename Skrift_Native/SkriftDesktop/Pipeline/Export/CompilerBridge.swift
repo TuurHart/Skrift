@@ -42,7 +42,7 @@ extension PipelineFile {
             summary: enhancedSummary,
             tags: tags,
             significance: significance,
-            sourceType: NoteSourceType(rawValue: sourceType.rawValue) ?? .audio,
+            sourceType: noteSource,
             mediaSource: mediaSource,
             metadata: meta.map { m in
                 CompilerMetadata(

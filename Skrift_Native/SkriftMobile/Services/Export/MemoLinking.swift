@@ -16,8 +16,8 @@ enum MemoLinking {
     /// The name-linked form of `rawTranscript` — the shared export linker
     /// (`CompilerInput.linkBody`, Q155), so the phone and the Mac route and link one way.
     /// Returns the input unchanged when there's nothing to link (empty text, or no live people).
-    static func linkedTranscript(_ rawTranscript: String?, people: [Person],
+    static func linkedTranscript(_ rawTranscript: String?, source: NoteSourceType = .audio, people: [Person],
                                  resolutions: NameResolutions = NameResolutions()) -> String {
-        CompilerInput.linkBody(rawTranscript ?? "", people: people, resolutions: resolutions)
+        CompilerInput.linkBody(rawTranscript ?? "", source: source, people: people, resolutions: resolutions)
     }
 }

@@ -915,13 +915,13 @@ struct MemoSaver {
     /// The change is stamped as a deliberate phone edit, so the Mac re-links it as one voice.
     @discardableResult
     func flattenToMonologue(id: UUID) -> Bool {
-        guard let memo = repository.memo(id: id), SpeakerTranscript.isAttributed(memo.transcript),
+        guard let memo = repository.memo(id: id), SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource),
               let flat = SpeakerTranscript.flattened(memo.transcript) else { return false }
         memo.transcript = flat
         memo.transcriptUserEdited = true
         memo.pendingDiarizationTarget = nil
         memo.markEdited()
-        if let e = repository.enhancement(forMemo: id), SpeakerTranscript.isAttributed(e.copyedit) {
+        if let e = repository.enhancement(forMemo: id), SpeakerTranscript.isConversation(e.copyedit, source: memo.linkSource) {
             e.copyedit = SpeakerTranscript.flattened(e.copyedit) ?? e.copyedit
             e.enhancedByDeviceID = DeviceID.current()
             e.enhancedAt = Date()

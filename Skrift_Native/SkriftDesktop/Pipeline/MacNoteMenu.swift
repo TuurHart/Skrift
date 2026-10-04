@@ -7,7 +7,7 @@ import Foundation
 enum MacNoteMenu {
     /// A speaker-attributed (conversation) transcript. Only an audio memo can be one.
     static func isConversation(_ file: PipelineFile) -> Bool {
-        file.sourceType == .audio && SpeakerTranscript.isAttributed(file.transcript)
+        SpeakerTranscript.isConversation(file.transcript, source: file.noteSource)
     }
 
     /// A polish really ran on this note (D176, Q295): a summary, a copy-edit, tags, or a title

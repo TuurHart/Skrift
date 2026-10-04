@@ -427,6 +427,9 @@ extension PipelineFile {
 }
 
 extension PipelineFile {
+    /// The shared rules' source type for this note (`SpeakerTranscript.isConversation(_:source:)`).
+    var noteSource: NoteSourceType { NoteSourceType(rawValue: sourceType.rawValue) ?? .audio }
+
     /// The body as shown and as exported: the name-linked `sanitised`, then the copy-edit, then
     /// the raw transcript. ONE rule for the editor, the split-speakers switch, the Connections
     /// panel and the cloud write-back (it lives here, not in Features, so the host-less test
@@ -441,9 +444,7 @@ extension PipelineFile {
     /// reuses it for tags + copy-edit; the others derive it from `working`), and owns
     /// `sanitiseStatus` and the compile step. Host-less on purpose: no coordinator, no container.
     ///
-    /// Phone difference, recorded not unified: `MemoLinking` routes on a looser predicate
-    /// (`SpeakerTranscript.parse != nil`, two headers) than the Mac's `isAttributed` (two
-    /// DISTINCT names). Left as is; Tuur to decide.
+    /// Both apps decide `isConversation` with `SpeakerTranscript.isConversation` (D175).
     func relinkNames(working: String, isConversation: Bool, people: [Person]) {
         let neverLink = Set(unlinkedNames)
         let result = isConversation
