@@ -309,9 +309,7 @@ struct RootView: View {
     @State private var needsOnboarding = RootView.shouldOnboard()
 
     var body: some View {
-        if LaunchFlags.conversationMock {
-            ConversationMockView()           // design mock (screenshot only)
-        } else if LaunchFlags.seedNameLinking {
+        if LaunchFlags.seedNameLinking {
             // Screenshot route: open the seeded "Studio afternoon" memo straight into the
             // in-place name-linking surface.
             NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) }

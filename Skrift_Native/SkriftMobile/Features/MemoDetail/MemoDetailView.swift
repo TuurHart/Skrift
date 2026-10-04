@@ -1,18 +1,16 @@
 import FeedbackKit
 import SwiftUI
 import SwiftData
-import UIKit
-import QuickLook
-import PhotosUI
 import FluidAudio
 
-/// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
-/// horizontal paging `ScrollView` — NOT `TabView(.page)`, whose UIKit page host
-/// broke `.glassEffect` refraction, the significance drag, and word tap-to-seek on
-/// device), each page = editable title + RAW transcript (with inline `[[img_NNN]]`
-/// embeds) + context/tags. A single playback bar is pinned at the bottom and
-/// re-targets as you swipe. Title, tags, and the transcript are hand-editable
-/// (save-now post-record flow); copy + delete live in the ⋯ menu.
+/// The "note" screen (mockup2). A SwiftUI-native horizontal paging `ScrollView` (NOT
+/// `TabView(.page)`, whose UIKit page host broke `.glassEffect` refraction, the
+/// significance drag, and word tap-to-seek on device). The swipe gesture is OFF
+/// (2026-07-16); memo-link hops and the opening jump still move `selection`. Each page =
+/// editable title + RAW transcript (with inline `[[img_NNN]]` embeds) + context/tags. A
+/// single playback bar is pinned at the bottom and re-targets when the page changes.
+/// Title, tags, and the transcript are hand-editable (save-now post-record flow); copy +
+/// delete live in the ⋯ menu.
 struct MemoDetailView: View {
     let initialID: UUID
 
@@ -35,8 +33,8 @@ struct MemoDetailView: View {
     @State var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
     @State var reminderMemo: Memo?
-    /// Transient "n / total" that ghosts in while swiping between memos —
-    /// replaces the permanent page-dots row (compact-player spec).
+    /// Transient "n / total" that ghosts in when the pager moves to another memo (a
+    /// memo-link hop) — replaces the permanent page-dots row (compact-player spec).
     @State var pageFlash = false
     @StateObject var player = AudioPlayerModel()
     @ObservedObject var lockGate = LockGate.shared
@@ -55,10 +53,6 @@ struct MemoDetailView: View {
     /// 2026-07-24: a 13" screen can't afford a standing 300pt column). Transient
     /// @State, auto-closed when the pager settles on a different memo.
     @State var showConnections = false
-    /// Bumped on each chrome-bar export so `processControl` re-reads the export
-    /// ledger (`hasPublished` is a disk fact, not a model field — without this
-    /// the label would stay "Export to Obsidian" until the next page turn).
-    @State var exportedBump = 0
     /// Why the export didn't happen — shown as an alert. A primary button that
     /// silently does nothing is how the no-vault iPad read as broken (2026-08-18).
     @State var exportNotice: String?
@@ -262,7 +256,7 @@ struct MemoDetailView: View {
                 // Polished — offer the vault verb, same spot as the Mac's primary.
                 // Gate = isAvailable (it can process, so it may export); the label
                 // flips to Re-export via the ledger read in `workState`, re-run when
-                // `exportedBump` changes after the success flash clears.
+                // the success flash clears (`exportFlash = nil`).
                 if let flash = exportFlash {
                     Text(flash)
                         .font(.system(size: 12.5, weight: .semibold))
@@ -835,7 +829,6 @@ struct MemoDetailView: View {
         Task {
             try? await Task.sleep(for: .seconds(2.2))
             withAnimation(Theme.Motion.snappy) { exportFlash = nil }
-            exportedBump += 1
         }
     }
 

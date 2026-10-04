@@ -10,17 +10,6 @@ final class ConversationMockUITests: XCTestCase {
         shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
 
-    func testConversationMock() throws {
-        for theme in ["dark", "light"] {
-            let app = XCUIApplication()
-            app.launchArguments = ["-conversationMock", "-appTheme", theme]
-            app.launch()
-            Thread.sleep(forTimeInterval: 0.6)
-            snap("conversation-mock-\(theme)")
-            app.terminate()
-        }
-    }
-
     /// The REAL detail view rendering a seeded `**Name:**` conversation transcript via
     /// SpeakerTurnsView (not the static mock).
     func testRealConversationMemoRendersTurns() throws {

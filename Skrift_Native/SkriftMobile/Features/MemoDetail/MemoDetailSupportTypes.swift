@@ -1,9 +1,4 @@
 import SwiftUI
-import SwiftData
-import UIKit
-import QuickLook
-import PhotosUI
-import FluidAudio
 
 // MARK: - Capture annotation editor
 

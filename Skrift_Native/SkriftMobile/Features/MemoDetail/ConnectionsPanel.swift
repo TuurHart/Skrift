@@ -6,8 +6,9 @@ import SwiftData
 // `Features/Review/ConnectionsPanel.swift` is the source anatomy):
 // ONE list · Date⇄Closest pill · Date mode = the thread RAIL (oldest first, the
 // arc, THIS NOTE highlighted) · why-chips per row (SHARED derivation —
-// `ConnectionWhyDerivation`; person chips from `linkedNames`, Q181) · importance decimal ONLY when rated · NO closeness %
-// (the Mac keeps it behind hover; touch shows none) · long-press = the Mac's
+// `ConnectionWhyDerivation`; person chips from `linkedNames`, Q181) · importance
+// decimal ONLY when rated · NO closeness % (the Mac keeps it behind hover; touch
+// shows none) · long-press = the Mac's
 // hover-✕ "not related" hide (same defaults key) · "Show all N" past the
 // relatedKMac cap · in-panel consent gate. Open/close lives in the NOTE'S
 // header (the collapse toggle was removed 2026-07-23 — on a 13" iPad the note
@@ -89,7 +90,6 @@ enum ConnectionsPanelLogic {
     //    `IPadDetailConnectionsTests` pins its old 0.7/0.8 literals; delete both
     //    together at a hand-merge. ──
 
-    /// The owner-set importance as a one-decimal readout of the RAW stored value.
     /// Is this importance past the old 0.8 boundary? The COLOUR half of `importanceText`, which
     /// the iPad had been missing: the Mac painted 0.8+ amber (the same language the circles
     /// and the flame tag speak) while the iPad painted every value one colour, so a 1.0
@@ -102,6 +102,7 @@ enum ConnectionsPanelLogic {
         return step >= 8
     }
 
+    /// The owner-set importance as a one-decimal readout of the RAW stored value.
     static func importanceText(_ significance: Double) -> String? {
         guard significance.isFinite else { return nil }
         let step = Int(min(10, max(0, (significance * 10).rounded())))
