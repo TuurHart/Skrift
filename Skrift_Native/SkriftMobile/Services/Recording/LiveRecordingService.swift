@@ -773,7 +773,8 @@ final class LiveRecordingService {
         RecordingLifecycleLog.log("captions-resumed", "reason=foreground")
     }
 
-    /// D131, in this order: the recording is saved first, then the memory goes.
+    /// D131, in this order (declaration order; `handleMemoryWarning` walks `allCases`):
+    /// the recording is saved first, then the memory goes.
     enum MemoryWarningStep: String, CaseIterable {
         case flushAudio, writeCheckpoint, stopCaptions, unloadTranscriber
     }
