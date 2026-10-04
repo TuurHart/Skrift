@@ -2112,7 +2112,7 @@ needs: -
 do: (fill in)
 check: (fill in)
 
-### Q282 [auto] (doing) Done means processed on every device: one shared QueueFilter predicate
+### Q282 [auto] (done) Done means processed on every device: one shared QueueFilter predicate
 spec: C61 C115 D167
 needs: -
 gate+: yes
@@ -3173,3 +3173,4 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:28 Q299 added
 - 2026-10-04 09:28 Q299 -> doing — dispatched (opus)
 - 2026-10-04 09:28 Q175 -> done — gate.sh runs plan/twin-check.sh (baseline 22 twins); gate GREEN 1480
+- 2026-10-04 09:32 Q282 -> done — hand-merged (D163 ports + D167 Done = processed)
