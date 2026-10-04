@@ -45,15 +45,32 @@ final class UnratedConsentTests: XCTestCase {
 
     /// The "All notes" option is gone from Settings, but a device that had STORED it
     /// must not keep publishing unrated notes — the gate asks `NoteConsent.isRated`
-    /// unconditionally and never reads the old key.
-    func testLivePublishPolicyIsRatedOnlyRegardlessOfStoredSetting() {
+    /// unconditionally and never reads the old key. A vault folder is configured so `.live`
+    /// gets past the folder gate: the refusal must be the UNRATED gate itself, and a rated
+    /// control must get past it.
+    func testLivePublishPolicyIsRatedOnlyRegardlessOfStoredSetting() throws {
+        let bookmarkKey = "skrift.obsidian.vaultBookmark"
+        let savedBookmark = UserDefaults.standard.data(forKey: bookmarkKey)
         UserDefaults.standard.set("all", forKey: "skrift.publish.policy")
-        defer { UserDefaults.standard.removeObject(forKey: "skrift.publish.policy") }
+        UserDefaults.standard.set(true, forKey: "skrift.publish.whenPaired")
+        defer {
+            UserDefaults.standard.removeObject(forKey: "skrift.publish.policy")
+            UserDefaults.standard.removeObject(forKey: "skrift.publish.whenPaired")
+            if let savedBookmark { UserDefaults.standard.set(savedBookmark, forKey: bookmarkKey) }
+            else { UserDefaults.standard.removeObject(forKey: bookmarkKey) }
+        }
+        try ObsidianVault.setVault(makeTempDir())
+        XCTAssertTrue(ObsidianVault.isConfigured, "the folder gate must be passed for this test to mean anything")
 
         let coordinator = PublishCoordinator.live(author: "T")
         let unrated = Memo(title: "T", transcript: "x", significance: 0)
-        XCTAssertFalse(coordinator.shouldPublish(unrated),
+        XCTAssertEqual(coordinator.gateFailure(unrated), .unrated,
                        "a stale stored 'all' must not resurrect unrated export")
+        XCTAssertFalse(coordinator.shouldPublish(unrated))
+
+        let rated = Memo(title: "T", transcript: "x", significance: 0.5)
+        XCTAssertNotEqual(coordinator.gateFailure(rated), .unrated,
+                          "control: a rated note passes the rated gate (it may still await processing)")
     }
 
     // ── the panel surface is consent-gated too (round 5: "own panel NO") ──
