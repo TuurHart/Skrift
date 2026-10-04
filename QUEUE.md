@@ -1753,7 +1753,7 @@ do: `Services/Capture/CaptureDictation.swift` (120 lines), `CaptureDictationTest
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh CaptureDictationTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-d06 (cleanup-audit P42)
 
-### Q230 [auto] (doing) phone app: dead launch hook, status enums, unused tokens, seeders out of Release
+### Q230 [auto] (done) phone app: dead launch hook, status enums, unused tokens, seeders out of Release
 spec: C240
 needs: Q222 Q233
 gate+: no
@@ -3350,3 +3350,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 20:40 Q233 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 20:55 Q233 -> done — hand-merged (D163: ports + deletion of assertions on the deleted Fold)
 - 2026-10-04 20:55 Q230 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 21:19 Q230 -> done — hand-merged (D163: deleted tests of deleted members)
