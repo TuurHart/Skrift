@@ -607,7 +607,7 @@ final class LiveRecordingService {
             // captured audio (e.g. a fast start→stop, or an unavailable mic/session);
             // the caller treats that as an empty recording instead of a silent memo.
             if let file = audioFile, file.length > 0 {
-                duration = Double(file.length) / file.fileFormat.sampleRate
+                duration = file.seconds
             } else {
                 duration = 0
             }
@@ -728,7 +728,7 @@ final class LiveRecordingService {
             let f = try AVAudioFile(forReading: main)
             cp.discard()
             RecordingLifecycleLog.log("finalize", "rebuilt main file from \(segments.count) segment(s)")
-            return Double(f.length) / f.fileFormat.sampleRate
+            return f.seconds
         } catch {
             RecordingLifecycleLog.log("finalize", "rebuild from segments FAILED (\(error)) — marker kept for the launch sweep")
             return nil
@@ -1024,7 +1024,7 @@ final class LiveRecordingService {
                    + (converter == nil ? " (no conversion)" : " (converting)"))
         input.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
             guard let self, !self.tapPaused, !self.tapStopped,
-                  let copy = Self.copyBuffer(buffer) else { return }
+                  let copy = LiveCaptionEngine.copyBuffer(buffer) else { return }
             let live = self.tapLive
             self.writerQueue.async { [weak self] in
                 if self?.writeFailed == true { return }
@@ -1574,17 +1574,6 @@ final class LiveRecordingService {
         }
         guard status != .error, out.frameLength > 0 else { return nil }
         return out
-    }
-
-    nonisolated private static func copyBuffer(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-        guard let dst = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
-        dst.frameLength = buffer.frameLength
-        let channels = Int(buffer.format.channelCount)
-        let frames = Int(buffer.frameLength)
-        if let src = buffer.floatChannelData, let out = dst.floatChannelData {
-            for ch in 0..<channels { memcpy(out[ch], src[ch], frames * MemoryLayout<Float>.size) }
-        }
-        return dst
     }
 
     /// Poll the live caption on a SELF-PACING loop (was a fixed 0.6 s timer):

@@ -88,7 +88,7 @@ struct MemoSaver {
 
         var duration: TimeInterval = 0
         if let f = try? AVAudioFile(forReading: dest) {
-            duration = Double(f.length) / f.fileFormat.sampleRate
+            duration = f.seconds
         }
 
         // C70 ladder (Q134): embedded asset date (below, async) > the supplied date (a share's
@@ -176,8 +176,7 @@ struct MemoSaver {
             MixedBundle.clipManifest(
                 clips: sources, dates: { dateOf[$0] },
                 clipDuration: { u in
-                    guard let f = try? AVAudioFile(forReading: u), f.fileFormat.sampleRate > 0 else { return 0 }
-                    return Double(f.length) / f.fileFormat.sampleRate
+                    (try? AVAudioFile(forReading: u))?.seconds ?? 0
                 })
         }.value
         do {
@@ -198,7 +197,7 @@ struct MemoSaver {
 
         var duration: TimeInterval = 0
         if let f = try? AVAudioFile(forReading: dest) {
-            duration = Double(f.length) / f.fileFormat.sampleRate
+            duration = f.seconds
         }
         DevLog.log("importAudioClips[\(id)] merged ok; duration=\(String(format: "%.1f", duration))s")
         guard let memo = repository.memo(id: id) else { return true }
@@ -323,7 +322,7 @@ struct MemoSaver {
 
         var duration: TimeInterval = 0
         if let f = try? AVAudioFile(forReading: dest) {
-            duration = Double(f.length) / f.fileFormat.sampleRate
+            duration = f.seconds
         }
         DevLog.log("processVideo[\(id)] duration=\(duration); grabbing frame")
 
@@ -578,15 +577,8 @@ struct MemoSaver {
         // Transcribe the clip (no image markers on an append). `transcribe` itself
         // awaits the model load, so stopping the append before the model was ready
         // QUEUES here instead of failing; the retry loop covers real errors.
-        var result: TranscriptionResult?
-        let delays = appendRetryDelays.isEmpty ? [0] : appendRetryDelays
-        for delay in delays {
-            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
-            if let attempt = try? await transcriber.transcribe(audioURL: clip, imageManifest: []) {
-                result = attempt
-                break
-            }
-        }
+        let result = await transcriber.transcribeRetrying(audioURL: clip, imageManifest: [],
+                                                          delays: appendRetryDelays)
 
         // Prefer the engine text; fall back to the live caption when the engine
         // ran but heard nothing (e.g. its silence guard).

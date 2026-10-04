@@ -211,7 +211,7 @@ enum SharePayloadLoader {
         if ImportKinds.audioExtensions.contains(ext) {
             var duration: TimeInterval?
             if let f = try? AVAudioFile(forReading: result.url) {
-                duration = Double(f.length) / f.fileFormat.sampleRate
+                duration = f.seconds
             }
             let date = (try? FileManager.default.attributesOfItem(atPath: result.url.path))?[.modificationDate] as? Date
             return SharePayload(type: .file, isAudio: true,
@@ -274,7 +274,7 @@ enum SharePayloadLoader {
                     guard let copied else { return (i, nil) }
                     var duration: TimeInterval?
                     if let f = try? AVAudioFile(forReading: copied.url) {
-                        duration = Double(f.length) / f.fileFormat.sampleRate
+                        duration = f.seconds
                     }
                     return (i, SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date,
                                                originalName: copied.name,

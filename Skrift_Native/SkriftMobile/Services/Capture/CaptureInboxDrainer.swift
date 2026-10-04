@@ -310,7 +310,7 @@ enum CaptureInboxDrainer {
                         var out: [URL: Double] = [:]
                         for u in tempPairs.map(\.url) {
                             if let f = try? AVAudioFile(forReading: u), f.fileFormat.sampleRate > 0 {
-                                out[u] = Double(f.length) / f.fileFormat.sampleRate
+                                out[u] = f.seconds
                             }
                         }
                         return out

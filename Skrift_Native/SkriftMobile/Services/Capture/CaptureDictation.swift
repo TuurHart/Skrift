@@ -62,15 +62,8 @@ enum CaptureDictation {
         memo.transcriptStatus = .transcribing
         repository.save()
 
-        var result: TranscriptionResult?
-        let delays = retryDelays.isEmpty ? [0] : retryDelays
-        for delay in delays {
-            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
-            if let attempt = try? await transcriber.transcribe(audioURL: audioURL, imageManifest: []) {
-                result = attempt
-                break
-            }
-        }
+        let result = await transcriber.transcribeRetrying(audioURL: audioURL, imageManifest: [],
+                                                          delays: retryDelays)
 
         guard let memo = repository.memo(id: memoID) else {
             try? FileManager.default.removeItem(at: audioURL)

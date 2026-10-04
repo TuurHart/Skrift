@@ -46,7 +46,7 @@ extension MemoSaver {
             RecordingCheckpoint.discardIfExists(dest)
             return nil
         }
-        let duration = Double(f.length) / f.fileFormat.sampleRate
+        let duration = f.seconds
         repository.insert(Memo.make(
             id: id,
             audioFilename: filename,
