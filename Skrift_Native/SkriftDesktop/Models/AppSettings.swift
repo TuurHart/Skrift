@@ -3,10 +3,8 @@ import Foundation
 /// User-configurable settings, persisted to `AppPaths.settingsFile`. Mirrors the
 /// subset of `backend/config/settings.py` the native app needs.
 struct AppSettings: Codable, Equatable, Sendable {
-    // Export → Obsidian vault
+    // Export → Obsidian vault. Subfolders are fixed (`VaultLayout`), not settings; an old settings.json that still carries `audioFolder`/`attachmentsFolder` decodes fine (unknown keys are ignored).
     var noteFolder: String = ""          // vault root
-    var audioFolder: String = ""         // vault subfolder for voice memos
-    var attachmentsFolder: String = ""   // vault subfolder for images (falls back to root)
     /// The PORTFOLIO root — the folder `_projects` / `_ideas` / `_inspiration` live inside
     /// (`NoteDestination.portfolioFolder`). One pick, not three: they are siblings, so asking
     /// three times would just be three chances to answer the same question wrong. Stored as
@@ -39,19 +37,6 @@ struct AppSettings: Codable, Equatable, Sendable {
     // equivalent, so it's intentionally not offered — see A4.)
     var highpassFreqHz: Int = 80         // high-pass cutoff in Hz; 0 = off
 
-    // Conversation mode: when on, the Mac diarizes a recording it transcribes itself (an
-    // import, or a phone upload that wasn't already split), re-emitting multi-speaker
-    // transcripts as `**[[Person]]:**` / `**Speaker N:**` turns (matched against synced
-    // voiceprints). A single-speaker recording is left as plain prose. Optional so an
-    // existing settings.json (written before this field) still decodes.
-    // ⚠️ DEFAULT OFF (user call 2026-06-15): an always-on global auto-diarize ran Sortformer
-    // over EVERY Mac transcription and over-split monologues into "Speaker 1/2". Diarization
-    // is now a deliberate PER-NOTE action ("Split speakers" in the review menu); this global
-    // flag only matters for the unattended batch run, and stays off unless explicitly enabled.
-    var conversationMode: Bool? = nil
-    /// Effective flag (nil → OFF; auto-diarize on batch-process only when explicitly on).
-    var conversationModeEnabled: Bool { conversationMode ?? false }
-
     /// Skip the Gemma summary for notes shorter than this many words (user 2026-06-15 —
     /// short memos don't need one). Optional for legacy decode; nil → 75.
     var summaryMinWords: Int? = nil
@@ -59,7 +44,7 @@ struct AppSettings: Codable, Equatable, Sendable {
 
     // Custom-vocabulary boost (CTC spot + rescore after ASR — `VocabularyBooster`):
     // words Parakeet routinely mis-hears, spelled as they should be written.
-    // Optional for the same legacy-decode reason as conversationMode.
+    // Optional for legacy decode: a synthesized Codable THROWS on a missing key.
     var customVocabulary: [String]? = []
     /// Effective list (nil legacy → empty).
     var customWords: [String] { customVocabulary ?? [] }
@@ -76,7 +61,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// .default)`, i.e. permanently English-tuned, while the phone/iPad could choose —
     /// so the same audio transcribed differently depending on the device, and Dutch was
     /// measurably worse on the Mac. Syncs via `LanguageSyncCore`.
-    /// OPTIONAL for the legacy-decode reason `conversationMode` documents: a
+    /// OPTIONAL for legacy decode (a missing key THROWS in a synthesized Codable): a
     /// non-optional Bool makes `AppSettings` fail to decode from any settings file
     /// written before this field existed — i.e. every real install. (An existing test,
     /// `testLegacySettingsDecodeWithoutCustomVocabulary`, caught exactly that.)
@@ -107,13 +92,6 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// so a nil default meant a fresh Mac install silently synced NOTHING and simply looked
     /// broken. nil → ON; an explicit user `false` is still honoured.
     var cloudKitMacSyncEnabled: Bool { cloudKitMacSync ?? true }
-
-    /// When on, the Mac processes EVERY synced memo, ignoring the phone's significance>0
-    /// flag-to-send gate (the `MemoCloudIngest` `processEverything` override). OFF by default
-    /// → honor the phone's intent (significance 0 is synced but skipped). Optional for legacy-decode.
-    /// DEAD since 2026-07-21 — the Queue band's "Process all N" replaced it as the one
-    /// visible control (Q6, mocks/lifecycle-ia-explorations.html); field kept for legacy decode.
-    var processAllSyncedMemos: Bool? = nil
 
     static let `default` = AppSettings()
 
@@ -162,12 +140,10 @@ final class SettingsStore {
     /// same as before.
     func load() -> AppSettings {
         let outcome = SafeJSONStore.load(AppSettings.self, from: fileURL, decoder: decoder)
-        var s = outcome.value ?? Self.freshDefault
-        // C102: diarization is opt-in PER NOTE. An older build persisted `conversationMode`
-        // = true (its stored default), which made every Mac import diarize (Tuur 2026-09-27).
-        // A saved value is never honoured; the flag is an in-memory (test/headless) knob only.
-        s.conversationMode = nil
-        return s
+        // C102: diarization is opt-in PER NOTE (`PipelineFile.diarizeRequested`). An older build
+        // persisted a global `conversationMode` = true; the key is gone from this struct, so an
+        // old settings.json still decodes (unknown keys are ignored) and can never diarize.
+        return outcome.value ?? Self.freshDefault
     }
 
     /// Defaults for a fresh install (no settings file yet). The Debug ("Skrift Dev")

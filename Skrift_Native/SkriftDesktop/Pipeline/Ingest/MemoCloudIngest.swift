@@ -19,20 +19,17 @@ enum MemoCloudIngest {
     /// Returns the new `PipelineFile`, or `nil` when skipped (trashed, gated out by
     /// significance, or already ingested).
     ///
-    /// `processEverything` is the 8d opt-in override for the "process every synced memo,
-    /// not just significance > 0" Mac setting; the default preserves the phone's
-    /// flag-to-process intent (`significance > 0` only — `0` is synced but skipped).
+    /// Only a rated memo (`NoteConsent.isRated`) enters the queue: significance 0 is synced
+    /// but skipped. The Queue band's "Process all N" rates first, then ingests.
     @discardableResult
     static func ingest(memo: Memo, assets: [MemoAsset],
                        upload: UploadService = UploadService(),
                        into context: ModelContext,
-                       processEverything: Bool = false,
                        allowFilenameMatch: Bool = true) throws -> PipelineFile? {
         // Trashed memos never process (the phone hid them; mirror the HTTP list filter).
         guard memo.deletedAt == nil else { return nil }
-        // Flag-to-process: significance 0 is synced but never enters the queue
-        // (unless the Mac opts into all).
-        guard processEverything || NoteConsent.isRated(memo) else { return nil }
+        // Flag-to-process: significance 0 is synced but never enters the queue.
+        guard NoteConsent.isRated(memo) else { return nil }
 
         let id = memo.id.uuidString
         let filename = audioFilename(for: memo)

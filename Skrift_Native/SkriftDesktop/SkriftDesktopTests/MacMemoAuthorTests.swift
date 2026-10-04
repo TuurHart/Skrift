@@ -282,7 +282,7 @@ final class MacMemoAuthorTests: XCTestCase {
         // The EXISTING (untouched) reconciler sweep over the SAME two contexts — the authored
         // memo's id matches the pf's id exactly, so it must hit the REFLECT branch, not create
         // a second row.
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false)
+        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local)
 
         XCTAssertEqual(outcome.created, 0, "the memo we just authored must dedup against the pf it was authored FROM")
         XCTAssertEqual(try local.fetchCount(FetchDescriptor<PipelineFile>()), 1)

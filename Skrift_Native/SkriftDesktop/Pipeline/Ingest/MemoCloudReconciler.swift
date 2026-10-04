@@ -46,7 +46,6 @@ enum MemoCloudReconciler {
     /// live Dev data folder (1987 of them by 2026-08-20). Tests pass a temp dir.
     @discardableResult
     static func sweep(from cloudContext: ModelContext, into localContext: ModelContext,
-                      processEverything: Bool,
                       people: [Person] = [], author: String = "", thisDeviceID: String = "",
                       now: Date = Date(),
                       upload: UploadService = UploadService()) -> SweepOutcome {
@@ -136,7 +135,6 @@ enum MemoCloudReconciler {
                     if let created = try MemoCloudIngest.ingest(memo: memo, assets: fetchAssets(),
                                                                 upload: upload,
                                                                 into: localContext,
-                                                                processEverything: processEverything,
                                                                 // …so this memo gets its OWN row
                                                                 // instead of being silently dropped.
                                                                 allowFilenameMatch: !filenameRowIsAnothersMemo) {

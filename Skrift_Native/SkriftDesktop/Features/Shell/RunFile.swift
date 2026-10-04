@@ -466,8 +466,6 @@ enum RunFile {
                 if let vi = args.firstIndex(of: "-vault"), vi + 1 < args.count {
                     var s = settings
                     s.noteFolder = args[vi + 1]
-                    if s.audioFolder.isEmpty { s.audioFolder = "Voice Memos" }
-                    if s.attachmentsFolder.isEmpty { s.attachmentsFolder = "Attachments" }
                     let r = try VaultExporter.export(pf, settings: s)
                     log(">>> EXPORT OUTCOME: \(r.outcome)")
                     log(">>> EXPORTED md: \(r.markdownURL.path)")
