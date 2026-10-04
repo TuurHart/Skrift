@@ -95,7 +95,7 @@ extension MemosListView {
                 NewNoteVerbLabel(style: .phone)
             }
             .buttonStyle(.plain)
-            .keyboardShortcut("n", modifiers: .command)
+            .keyboardShortcut(AppShortcuts.newNote)
             .accessibilityIdentifier("ipad-new-note-button")
             .accessibilityLabel(SharedCopy.newNoteLabel)
             .help(SharedCopy.newNoteTooltip)

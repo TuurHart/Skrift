@@ -22,6 +22,10 @@ final class AppModel {
     var filter: QueueFilter = .all
     /// Free-text query over the queue (title + transcript + summary). Empty = no filter.
     var searchText: String = ""
+    /// One-shot requests from the app menu (`MacShortcutAction`), consumed by `SidebarView`:
+    /// ⇧⌘N starts/stops a take, ⌘F focuses the search field.
+    var pendingRecordToggle = false
+    var pendingSearchFocus = false
     /// Queue ordering (default newest-first).
     var sort: SidebarSort = .newest
     /// Date-range filter over the row's uploaded date — the Mac half of the

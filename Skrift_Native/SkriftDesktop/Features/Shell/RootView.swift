@@ -225,6 +225,25 @@ struct RootView: View {
         .onChange(of: liveSession.phase) { _, new in
             if new == .idle, let id = liveSession.noteID { model.select(id) }
         }
+        // The app menu's keyboard commands (D169): ⌘N, ⇧⌘N, ⌘F, ⌘1, ⌘2.
+        .onReceive(NotificationCenter.default.publisher(for: .macShortcut)) { note in
+            guard let raw = note.object as? String, let action = MacShortcutAction(rawValue: raw) else { return }
+            switch action {
+            case .notes:   model.surface = .queue
+            case .review:  model.surface = .journal
+            case .newNote:
+                model.surface = .queue
+                model.beginTypedNote()
+            case .record:
+                model.surface = .queue
+                sidebarVisible = true
+                model.pendingRecordToggle = true
+            case .search:
+                model.surface = .queue
+                sidebarVisible = true
+                model.pendingSearchFocus = true
+            }
+        }
         // "Add recording" from a note's ⋯ (D173, Q290): the take's transport and stop live in
         // the sidebar, so it is shown first.
         .onReceive(NotificationCenter.default.publisher(for: .macAddRecordingRequested)) { note in

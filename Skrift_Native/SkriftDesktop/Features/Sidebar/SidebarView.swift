@@ -24,6 +24,8 @@ struct SidebarView: View {
     @State private var pulse = false
     /// Why a take couldn't start — drives the alert. nil = nothing to say.
     @State private var micProblem: MacRecorder.Refusal?
+    /// ⌘F (D169): the search field takes focus.
+    @FocusState private var searchFocused: Bool
     /// Files waiting on the "One note / N notes" chooser (Q74). nil = nothing pending.
     @State private var pendingAudioImport: PendingAudioImport?
     /// Locking a note this machine already exported (Q100 / C161): the plaintext file stays.
@@ -128,6 +130,19 @@ struct SidebarView: View {
         // D135/D136 (one-notes-list): the sidebar ground turns from white to the
         // phone's grey — rows become white cards, matching the phone/iPad.
         .background(Theme.sidebarGround)
+        // The `.commands` menu cannot reach this view's state, so Record (⇧⌘N) and Search (⌘F)
+        // leave a flag on the model; `initial: true` catches one set before this view mounted
+        // (Review → Notes, or the list was hidden). Consumed here, so each fires once.
+        .onChange(of: model.pendingRecordToggle, initial: true) { _, pending in
+            guard pending else { return }
+            model.pendingRecordToggle = false
+            if isLive { stopRecording() } else { Task { await startRecording() } }
+        }
+        .onChange(of: model.pendingSearchFocus, initial: true) { _, pending in
+            guard pending else { return }
+            model.pendingSearchFocus = false
+            searchFocused = true
+        }
         // Why a take couldn't start (no mic, refused permission, engine wouldn't come up).
         // An alert rather than a dimmed button: the check that decides this is a synchronous
         // CoreAudio call, and running it while DRAWING made the button visibly slow to
@@ -380,7 +395,8 @@ struct SidebarView: View {
             NewNoteVerbLabel(style: .mac)
         }
         .buttonStyle(.plain)
-        .keyboardShortcut("n", modifiers: .command)
+        // ⌘N itself lives in the app's `.commands` (`AppShortcuts.newNote`) so it also works
+        // from Review, where this sidebar is not on screen.
         .help(SharedCopy.newNoteTooltip)
         .accessibilityLabel(SharedCopy.newNoteLabel)
         .accessibilityIdentifier("sidebar.new-note")
@@ -531,6 +547,7 @@ struct SidebarView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textPrimary)
+                .focused($searchFocused)
                 .accessibilityIdentifier("sidebar.search")
             if !model.searchText.isEmpty {
                 Button { model.searchText = "" } label: {
