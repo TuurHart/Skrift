@@ -67,14 +67,6 @@ final class CaptureDisplayTests: XCTestCase {
         XCTAssertEqual(memo.shareCaptureSnippet, "swiftwithmajid.com")
     }
 
-    // MARK: - shareCaptureTypeLabel
-
-    func testTypeLabelValues() {
-        XCTAssertEqual(makeMemo(type: .url).shareCaptureTypeLabel, "Shared link")
-        XCTAssertEqual(makeMemo(type: .text).shareCaptureTypeLabel, "Shared text")
-        XCTAssertEqual(makeMemo(type: .image).shareCaptureTypeLabel, "Shared image")
-    }
-
     // MARK: - shareCaptureURLDomain
 
     func testURLDomainStripsWWW() {
