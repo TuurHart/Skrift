@@ -429,6 +429,8 @@ targets:
       - path: ../Shared/Pipeline/AudioClipMerge.swift
       # C74 / D17 (Q135): the ONE image normaliser (PNG stays PNG, GIF kept, <= 2048 px).
       - path: ../Shared/Pipeline/ImageNormalise.swift
+      # Q219 / C239: the ONE AVAudioFile duration (`seconds`) - the loader's shared-clip lengths.
+      - path: ../Shared/Recording/AudioFileSeconds.swift
       # The rating pill + its dependencies (the SHARED ThreeBallScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the pill without importing the app target. Both halves

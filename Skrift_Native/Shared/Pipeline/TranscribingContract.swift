@@ -32,6 +32,21 @@ extension Transcribing {
         try await transcribe(audioURL: audioURL, imageManifest: [])
     }
 
+    /// Q219 / C239: the ONE retrying file transcribe (append-to-memo and capture dictation).
+    /// Waits `delays[i]` seconds before attempt i (a 0 skips the wait) and returns the first
+    /// success, or nil once every attempt threw. An empty `delays` means one immediate try.
+    /// The callers own their delay arrays (tests zero them).
+    func transcribeRetrying(audioURL: URL, imageManifest: [ImageManifestEntry] = [],
+                            delays: [TimeInterval]) async -> TranscriptionResult? {
+        for delay in (delays.isEmpty ? [0] : delays) {
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            if let attempt = try? await transcribe(audioURL: audioURL, imageManifest: imageManifest) {
+                return attempt
+            }
+        }
+        return nil
+    }
+
     /// Default: spill to a temp WAV and take the file path — for conformers
     /// without a native buffer path (stubs, seeded/test transcribers, the Mac).
     func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {

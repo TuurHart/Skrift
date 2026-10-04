@@ -340,8 +340,7 @@ enum AudiobookImporter {
         // AVURLAsset gave no usable duration — decode via AVAudioFile instead.
         do {
             let file = try AVAudioFile(forReading: url)
-            let sr = file.processingFormat.sampleRate
-            let d = sr > 0 ? Double(file.length) / sr : 0
+            let d = file.seconds
             DevLog.log("duration fallback (AVAudioFile) \(url.lastPathComponent) → \(String(format: "%.1f", d))s")
             return d
         } catch {

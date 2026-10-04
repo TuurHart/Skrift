@@ -334,8 +334,7 @@ struct IngestService: Sendable {
     }
 
     static func audioSeconds(of url: URL) -> Double {
-        guard let f = try? AVAudioFile(forReading: url), f.fileFormat.sampleRate > 0 else { return 0 }
-        return Double(f.length) / f.fileFormat.sampleRate
+        (try? AVAudioFile(forReading: url))?.seconds ?? 0
     }
 
     static func isPicture(_ url: URL) -> Bool {

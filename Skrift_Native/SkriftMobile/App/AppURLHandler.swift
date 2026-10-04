@@ -51,7 +51,7 @@ enum AppURLHandler {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let file = try? AVAudioFile(forReading: url), file.fileFormat.sampleRate > 0 else { return nil }
-        return Double(file.length) / file.fileFormat.sampleRate
+        return file.seconds
     }
 
     // Open-in / AirDrop deliver one `onOpenURL` per file, back to back. Voice notes are held for
