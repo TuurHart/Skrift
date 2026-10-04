@@ -2270,6 +2270,40 @@ needs: -
 do: (fill in)
 check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
 
+### Q305 [auto] (todo) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
+spec: -
+needs: -
+gate+: yes
+do: WAIT until ~/Hackerman/netcup-server main contains the dark-host change (commit 14cb39a or later: FeedbackAppearance.interfaceStyle + onAccent) — check with git -C ~/Hackerman/netcup-server log main --oneline 
+check:  grep -i dark. Then in Features/Feedback/FeedbackKitWiring.swift pass interfaceStyle: .unspecified (Skrift follows its own appTheme) and onAccent: white (Skrift's own on-accent token), drop the UIColor-provider FeedbackPalette workaround from Q300 where the kit now handles it, and re-screenshot sheet-dark/sheet-light (LOOK: the 'What gets sent' chevron and the mic glyph must be legible). Update FeedbackPaletteTests to match (it is a NEW-ish file from Q300; if protected now, keep edits to ports). Never run SkriftDesktopUITests.|`ls plan/reads/feedback-kit/sheet-dark.png >/dev/null && ./gate.sh`
+
+### Q306 [auto] (todo) phone devlog prints audio route-change reasons by name
+spec: -
+needs: -
+gate+: yes
+do: Q218 made the DEV devlog route-change line print 'AVAudioSessionRouteChangeReason(rawValue: N)'. That trace is the first tool for hardware audio bugs (CLAUDE.md), so map the reason (and the category/mode where logged) to readable names (newDeviceAvailable, oldDeviceUnavailable, categoryChange, override, wakeFromSleep, noSuitableRouteForCategory, routeConfigurationChange, unknown) in one small helper with a phone test RouteChangeNameTests. Log-only, no audio-session behaviour change. Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh RouteChangeNameTests && ./gate.sh`
+
+### Q307 [auto] (todo) a PDF inside a dropped folder becomes a file capture, like a loose PDF
+spec: -
+needs: -
+gate+: yes
+do: Q267 made a loose dropped PDF a file capture, but IngestService.ingestFolder still skips a PDF with ImportReport.pdfNotOnMac (ImportReportTests.testFolderOfPicturesIsReportedNotIgnored ~121 pins it). Make the folder path use the same rule as a loose drop (one decision in ImportKinds / skipReason(onMac:)), port that protected test's PDF expectation (it encodes the old, now-inconsistent rule), and fix plan/parity.md:28/64/97 mentions of acceptsDocuments. Never run SkriftDesktopUITests.
+check: `./gate.sh`
+
+### Q308 [auto] (todo) pull-phone-feedback can read FeedbackKit's outbox over USB
+spec: -
+needs: -
+gate+: yes
+do: Until the feedback server is deployed, notes sit in the phone app's container at Library/Application Support/FeedbackKit/outbox/ (<id>.json + .m4a + .png). Extend .claude/skills/pull-phone-feedback/ so it copies that folder with xcrun devicectl device copy from --domain-type appDataContainer --domain-identifier com.skrift.mobile.dev, transcribes the .m4a with the same ASR the skill already uses (or ~/Hackerman/netcup-server/tools/feedback.sh's parakeet path), and folds them into the digest with screen, app version and answered-question id. Docs/tooling only; no app code. Test on a fixture outbox folder, never on the vault.
+check: `test -f .claude/skills/pull-phone-feedback/SKILL.md && grep -q 'FeedbackKit/outbox' .claude/skills/pull-phone-feedback/SKILL.md`
+
+### Q309 [tuur] (tuur) On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F in a note and outside one, ⌘1/⌘2. Do they all do what you expect? Note the Mac's File > New Window is gone (⌘N is New Note now) — OK?
+spec: -
+needs: -
+do: (fill in)
+check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F in a note and outside one, ⌘1/⌘2. Do they all do what you expect? Note the Mac's File > New Window is gone (⌘N is New Note now) — OK?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3249,3 +3283,9 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 11:20 Q283 -> doing — dispatched
 - 2026-10-04 11:20 Q219 -> doing — dispatched
 - 2026-10-04 11:24 Q286 -> done — gate pass @a19ad28a
+- 2026-10-04 11:25 Q305 added
+- 2026-10-04 11:25 Q306 added
+- 2026-10-04 11:25 Q307 added
+- 2026-10-04 11:25 Q308 added
+- 2026-10-04 11:25 Q309 added
+- 2026-10-04 11:25 Q309 -> tuur — parked: Dev check
