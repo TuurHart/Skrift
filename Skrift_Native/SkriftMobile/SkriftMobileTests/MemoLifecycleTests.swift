@@ -153,35 +153,4 @@ final class MemoLifecycleTests: XCTestCase {
         XCTAssertEqual(Set(split.fading.map(\.id)), [junk.id])
         XCTAssertEqual(Set(split.live.map(\.id)), [old.id, linker.id])
     }
-
-    // MARK: the one-clock migration (2026-07-22)
-
-    func testMigrationGivesOldParkedNotesAFreshClock() {
-        let edited = bareMemo(days: 90);    edited.transcriptUserEdited = true
-        let titled = bareMemo(days: 90);    titled.title = "Named"
-        let tagged = bareMemo(days: 90);    tagged.tags = ["idea"]
-        let annotated = bareMemo(days: 90); annotated.annotationText = "typed thought"
-
-        let blank = bareMemo(days: 90);     blank.title = "  "; blank.annotationText = " \n"
-        let rated = bareMemo(days: 90);     rated.significance = 0.5; rated.transcriptUserEdited = true
-        let kept = bareMemo(days: 90);      kept.transcriptUserEdited = true; kept.keptAt = daysAgo(10)
-        let trashed = bareMemo(days: 90);   trashed.transcriptUserEdited = true; trashed.deletedAt = now
-        let bare = bareMemo(days: 90)
-
-        let all = [edited, titled, tagged, annotated, blank, rated, kept, trashed, bare]
-        let bumped = MemoLifecycle.migrateParkedToOneClock(all, now: now)
-
-        XCTAssertEqual(bumped, 4, "exactly the four old-doctrine parked notes")
-        for m in [edited, titled, tagged, annotated] {
-            XCTAssertEqual(m.keptAt, now, "parked note gets a fresh clock")
-            XCTAssertFalse(MemoLifecycle.isFading(m, backlinked: [], now: now))
-        }
-        XCTAssertNil(blank.keptAt, "whitespace was never a touch")
-        XCTAssertNil(rated.keptAt, "rated notes ride the active track")
-        XCTAssertEqual(kept.keptAt, daysAgo(10), "an existing keptAt is never moved")
-        XCTAssertNil(trashed.keptAt, "trash is left alone")
-        XCTAssertNil(bare.keptAt)
-
-        XCTAssertEqual(MemoLifecycle.migrateParkedToOneClock(all, now: now), 0, "idempotent")
-    }
 }

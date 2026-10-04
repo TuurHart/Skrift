@@ -146,7 +146,7 @@ final class MemoSpineTests: XCTestCase {
         if case .fading = MemoSpine.station(for: .from(memo, backlinked: []), now: now) {} else {
             XCTFail("legacy tagged memo must be on the clock")
         }
-        MemoLifecycle.migrateParkedToOneClock([memo], now: now)
+        memo.keptAt = now
         XCTAssertEqual(MemoSpine.station(for: .from(memo, backlinked: []), now: now),
                        .new(fadesAt: now.addingTimeInterval(30 * 86_400)))
     }
