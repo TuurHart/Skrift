@@ -1913,7 +1913,7 @@ do: `plan/hand-merge.sh` re-implements `plan/accept.sh` steps 2-5 with drift: it
 check: `./gate.sh`
 source: plan/reads/cleanup-audit.md PER-c18 (cleanup-audit P62)
 
-### Q250 [auto] (doing) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
+### Q250 [auto] (done) approve: rewrite protected SourceTaxonomyTests.testCaptureSubtypes to seed sharedContentData, then drop the SourceKind.of metadataData fallback
 spec: C78 C239
 needs: Q138
 do: Q138 left a legacy `?? SharedContent.decode(from: memo.metadataData)` fallback in `SourceKind.of` because the protected `SourceTaxonomyTests.testCaptureSubtypes` seeds the `{"sharedContent":…}` wrapper inside metadataData, a shape the phone never writes. On Tuur's yes: rewrite that test to seed `memo.sharedContentData`, delete the fallback, and land it with plan/hand-merge.sh. Never run SkriftDesktopUITests.
@@ -3316,3 +3316,4 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 13:12 Q196 -> done — hand-merged (D163: call-site ports (onCommit closure arity))
 - 2026-10-04 13:26 Q254 -> done — hand-merged (D163: deleted tests of the deleted helpers)
 - 2026-10-04 13:26 Q250 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 13:33 Q250 -> done — hand-merged (Tuur-approved (D163 sitting): test seeds the shape the phone writes)
