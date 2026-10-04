@@ -14,8 +14,6 @@ protocol SpeakerEmbedding: Sendable {
     /// A 256-dim embedding for a clip of a single speaker (16kHz mono). The caller passes
     /// ≥2s and the impl caps at 10s (the model's fixed window). Throws if too short.
     func embed(samples: [Float]) async throws -> [Float]
-    /// Preload the model so a caller can surface the (slow, first-time) download up front.
-    func ensureLoaded() async throws
 }
 
 enum SpeakerEmbedderError: Error { case notReady, clipTooShort }
@@ -37,9 +35,7 @@ actor SpeakerEmbedder: SpeakerEmbedding {
     private var manager: DiarizerManager?
     private init() {}
 
-    var isModelReady: Bool { manager != nil }
-
-    func ensureLoaded() async throws {
+    private func ensureLoaded() async throws {
         guard manager == nil else { return }
         let firstTime = !UserDefaults.standard.bool(forKey: "voiceModelReady")
         await MainActor.run { DiarizationStatus.shared.set(firstTime ? .downloadingVoiceModel(nil) : .preparingVoiceModel) }
@@ -74,7 +70,6 @@ enum EmbedderFactory {
 /// wireable in the sim; the SeededDiarizer fakes the actual match. Real matching is
 /// device-tested.
 struct SeededEmbedder: SpeakerEmbedding {
-    func ensureLoaded() async throws {}
     func embed(samples: [Float]) async throws -> [Float] {
         // A stable, clip-DEPENDENT 256-dim vector (fold the clip's leading samples into a
         // scalar fingerprint, then spread it across the dims). Distinct clips → distinct

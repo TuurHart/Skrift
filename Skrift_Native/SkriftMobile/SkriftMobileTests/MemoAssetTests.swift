@@ -15,6 +15,7 @@ final class MemoAssetTests: XCTestCase {
     private func url(_ name: String) -> URL { AppPaths.recordingsDirectory.appendingPathComponent(name) }
     private func write(_ name: String, _ contents: Data) { fm.createFile(atPath: url(name).path, contents: contents) }
     private func cleanup(_ names: [String]) { names.forEach { try? fm.removeItem(at: url($0)) } }
+    private func allAssets(_ repo: NotesRepository) -> [MemoAsset] { (try? repo.context.fetch(FetchDescriptor<MemoAsset>())) ?? [] }
 
     // MARK: - Capture (disk → asset)
 
@@ -49,7 +50,7 @@ final class MemoAssetTests: XCTestCase {
 
         AssetMaterializer.captureMissing(repo)
 
-        XCTAssertTrue(repo.allAssets().isEmpty)
+        XCTAssertTrue(allAssets(repo).isEmpty)
     }
 
     func testCaptureIsIdempotent() {
@@ -63,7 +64,7 @@ final class MemoAssetTests: XCTestCase {
         AssetMaterializer.captureMissing(repo)
         AssetMaterializer.captureMissing(repo)   // second pass must not duplicate
 
-        XCTAssertEqual(repo.allAssets().count, 1)
+        XCTAssertEqual(allAssets(repo).count, 1)
     }
 
     func testCaptureRefreshesStaleAssetWhenFileGrows() {
@@ -81,7 +82,7 @@ final class MemoAssetTests: XCTestCase {
         AssetMaterializer.captureMissing(repo)
 
         let asset = repo.assets(forMemo: id).first
-        XCTAssertEqual(repo.allAssets().count, 1, "refresh must update in place, not duplicate")
+        XCTAssertEqual(allAssets(repo).count, 1, "refresh must update in place, not duplicate")
         XCTAssertEqual(asset?.blob, Data("MUCH-LONGER-AUDIO".utf8))
         XCTAssertEqual(asset?.byteCount, Data("MUCH-LONGER-AUDIO".utf8).count)
     }
@@ -151,7 +152,7 @@ final class MemoAssetTests: XCTestCase {
         repo.insert(Memo.make(id: id, audioFilename: audio,
                               metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photo, offsetSeconds: 0)])))
         AssetMaterializer.captureMissing(repo)        // device A
-        XCTAssertEqual(repo.allAssets().count, 2)
+        XCTAssertEqual(allAssets(repo).count, 2)
 
         // Device B: assets present, files gone.
         try? fm.removeItem(at: url(audio))
@@ -174,12 +175,12 @@ final class MemoAssetTests: XCTestCase {
         let memo = Memo(id: id, audioFilename: audio)
         repo.insert(memo)
         AssetMaterializer.captureMissing(repo)
-        XCTAssertEqual(repo.allAssets().count, 1)
+        XCTAssertEqual(allAssets(repo).count, 1)
 
         repo.permanentlyDelete(memo)
 
         XCTAssertTrue(repo.assets(forMemo: id).isEmpty)
-        XCTAssertTrue(repo.allAssets().isEmpty)
+        XCTAssertTrue(allAssets(repo).isEmpty)
     }
 
     // MARK: - Sidecars (word-timings + diarization — Phase 1d)

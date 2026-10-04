@@ -51,9 +51,9 @@ final class LiveCaptionSettleTests: XCTestCase {
     // ── phone-mode (timer only) is untouched ──
 
     func testTimerOnlyModeStillRotatesOnTheDefaultInterval() {
-        XCTAssertFalse(LiveCaptionEngine.shouldRotate(sinceRotation: 20, lastSnapshotCost: 0.2),
+        XCTAssertFalse((LiveCaptionEngine.rotationTrigger(sinceRotation: 20, lastSnapshotCost: 0.2) != nil),
             "the phone's 25s default: 20s in, still accumulating")
-        XCTAssertTrue(LiveCaptionEngine.shouldRotate(sinceRotation: 25.1, lastSnapshotCost: 0.2))
+        XCTAssertTrue((LiveCaptionEngine.rotationTrigger(sinceRotation: 25.1, lastSnapshotCost: 0.2) != nil))
     }
 
     // ── paragraph joins (want at the boundary, resolve at resumption — ROUND 11) ──

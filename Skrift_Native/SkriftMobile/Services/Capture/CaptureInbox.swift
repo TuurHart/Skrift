@@ -228,12 +228,6 @@ enum CaptureInbox {
         }
     }
 
-    /// Resolve the on-disk URL of the image for an image-type entry.
-    static func imageURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
-        guard let name = entry.imageFileName else { return nil }
-        return entryDir.appendingPathComponent(name)
-    }
-
     /// Resolve the on-disk URL of a shared video, when present.
     static func videoURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.videoFileName else { return nil }

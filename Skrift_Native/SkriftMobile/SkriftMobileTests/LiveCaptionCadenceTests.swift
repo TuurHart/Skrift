@@ -44,23 +44,23 @@ final class LiveCaptionCadenceTests: XCTestCase {
     // MARK: - Rotation policy
 
     func testHardCapAlwaysRotates() {
-        XCTAssertTrue(TranscriptionService.shouldRotate(
-            sinceRotation: 26, lastSnapshotCost: 0))
+        XCTAssertTrue(LiveCaptionEngine.rotationTrigger(
+            sinceRotation: 26, lastSnapshotCost: 0) != nil)
     }
 
     func testYoungCheapWindowDoesNotRotate() {
-        XCTAssertFalse(TranscriptionService.shouldRotate(
-            sinceRotation: 5, lastSnapshotCost: 0.2))
-        XCTAssertFalse(TranscriptionService.shouldRotate(
-            sinceRotation: 24, lastSnapshotCost: 0.9))
+        XCTAssertFalse(LiveCaptionEngine.rotationTrigger(
+            sinceRotation: 5, lastSnapshotCost: 0.2) != nil)
+        XCTAssertFalse(LiveCaptionEngine.rotationTrigger(
+            sinceRotation: 24, lastSnapshotCost: 0.9) != nil)
     }
 
     func testExpensiveWindowRotatesEarly() {
         // Snapshots past ~1.2 s on this device: commit at 10 s+ instead of
         // letting the per-poll cost climb toward the 25 s cap.
-        XCTAssertTrue(TranscriptionService.shouldRotate(
-            sinceRotation: 12, lastSnapshotCost: 1.5))
-        XCTAssertFalse(TranscriptionService.shouldRotate(
-            sinceRotation: 9, lastSnapshotCost: 1.5))   // too young even if pricey
+        XCTAssertTrue(LiveCaptionEngine.rotationTrigger(
+            sinceRotation: 12, lastSnapshotCost: 1.5) != nil)
+        XCTAssertFalse(LiveCaptionEngine.rotationTrigger(
+            sinceRotation: 9, lastSnapshotCost: 1.5) != nil)   // too young even if pricey
     }
 }

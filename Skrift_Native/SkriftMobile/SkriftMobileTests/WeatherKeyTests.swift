@@ -40,11 +40,4 @@ final class WeatherKeyTests: XCTestCase {
         defaults.set("fresh7", forKey: WeatherClient.apiKeyDefaultsKey)
         XCTAssertEqual(WeatherClient.apiKey, "fresh7")
     }
-
-    func testSetAPIKeyRoundTrip() {
-        WeatherClient.setAPIKey("  zz9  ")
-        XCTAssertEqual(WeatherClient.apiKey, "zz9")
-        WeatherClient.setAPIKey(nil)
-        XCTAssertNil(WeatherClient.apiKey)
-    }
 }

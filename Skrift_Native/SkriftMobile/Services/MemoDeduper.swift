@@ -39,9 +39,4 @@ enum MemoDeduper {
         }
         repository.save()
     }
-
-    /// Kept as a pass-through so existing call sites/tests read the same.
-    static func isContentClone(_ a: Memo, of b: Memo) -> Bool {
-        MemoDuplicates.isContentClone(a, of: b)
-    }
 }

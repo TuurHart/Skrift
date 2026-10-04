@@ -62,7 +62,8 @@ final class MemoModelTests: XCTestCase {
         repo.insert(memo)
         let id = memo.id
         XCTAssertNotNil(repo.memo(id: id))
-        repo.delete(memo)
+        repo.context.delete(memo)
+        repo.save()
         XCTAssertNil(repo.memo(id: id))
     }
 

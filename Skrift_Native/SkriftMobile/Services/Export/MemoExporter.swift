@@ -5,8 +5,8 @@ import Foundation
 /// `MemoLinking`, so the phone's markdown matches what the Mac would produce for the same
 /// memo (no drift). Plain text, PDF and quote-card export were removed 2026-09-30 (Q80, D154).
 ///
-/// `author` is the note's author (the user). The phone has no "your name" setting yet — that's
-/// a Phase-3 Settings field; until then callers pass "" and the frontmatter `author:` is blank.
+/// `author` is the note's author (the user): the synced Settings → Obsidian "Author" field
+/// (`AuthorSettings.name()`); "" leaves the frontmatter `author:` blank.
 enum MemoExporter {
 
     // MARK: - Markdown (Obsidian)

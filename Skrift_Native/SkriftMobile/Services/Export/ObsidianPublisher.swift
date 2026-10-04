@@ -28,8 +28,6 @@ enum ObsidianVault {
 
     /// The picked folder's display name for Settings ("Skrift", not a whole path).
     static var displayName: String? { resolveVault()?.lastPathComponent }
-
-    static func clear() { UserDefaults.standard.removeObject(forKey: bookmarkKey) }
 }
 
 /// The result of publishing one memo — the shared engine's outcomes in the
