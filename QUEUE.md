@@ -2196,7 +2196,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): amend C25 — an imported audio with a real file name (not a generic 'New Recording N' / 'Audio N' default) shows that name until it has words, on phone and Mac; generic names fall back to 'Voice note'. One rule in the Shared NoteTitle ladder. Desktop test `ImportFileNameTitleTests`, phone `ImportFileNameTitlePhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class ImportFileNameTitleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ImportFileNameTitlePhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q294 [auto] (todo) delete the unused MemoDisplay.shareCaptureTypeLabel
+### Q294 [auto] (done) delete the unused MemoDisplay.shareCaptureTypeLabel
 spec: D176
 needs: -
 gate+: yes
@@ -3308,3 +3308,5 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 12:11 Q310 added
 - 2026-10-04 12:11 Q306 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 12:22 Q306 -> done — gate pass @bfea17c9
+- 2026-10-04 12:22 Q294 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 12:37 Q294 -> done — hand-merged (D163: deleted the test of the deleted label)
