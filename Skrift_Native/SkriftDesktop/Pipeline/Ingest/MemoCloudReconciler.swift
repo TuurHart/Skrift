@@ -164,12 +164,12 @@ enum MemoCloudReconciler {
                         // blob hasn't synced yet — so name it rather than let the next one be
                         // silent for a day.
                         outcome.stranded += 1
-                        Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                        AppLog.cloudkit
                             .error("STRANDED: rated memo \(memo.id, privacy: .public) has no row after ingest — invisible in every list section")
                     }
                 } catch {
                     outcome.ingestFailures += 1
-                    Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                    AppLog.cloudkit
                         .error("ingest FAILED memo \(memo.id, privacy: .public): \(error)")
                 }
             }

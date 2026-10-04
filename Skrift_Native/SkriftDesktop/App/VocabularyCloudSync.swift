@@ -12,8 +12,12 @@ import os
 @MainActor
 enum VocabularyCloudSync {
     static func run() {
+        guard let container = MemoCloudStore.syncContainer else { return }
         var settings = SettingsStore.shared.load()
-        guard settings.cloudKitMacSyncEnabled, let container = MemoCloudStore.container else { return }
+        // Every adopt below edits `settings` in memory and sets `dirty`; ONE save at the end.
+        // `prewarm` re-warms the booster once, with the final word list, if the words changed.
+        var dirty = false
+        var prewarm = false
         // Fresh context — mainContext reads stale after a CloudKit import (same trap as the memo
         // sweep); a phone vocab edit lands in a VocabularyRecord blob the Mac must read fresh.
         let context = ModelContext(container)
@@ -30,9 +34,8 @@ enum VocabularyCloudSync {
             for w in settings.customWords where seen.insert(w.lowercased()).inserted { union.append(w) }
             settings.customVocabulary = union
             settings.customVocabularyModifiedAt = Date()
-            SettingsStore.shared.save(settings)
-            let words = union
-            Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: words) }
+            dirty = true
+            prewarm = true
         }
 
         let localWords = settings.customWords
@@ -54,7 +57,7 @@ enum VocabularyCloudSync {
         case .adoptRemote(let multilingual, let ts):
             settings.transcriptionMultilingual = multilingual
             settings.transcriptionLanguageModifiedAt = ts
-            SettingsStore.shared.save(settings)
+            dirty = true
             Task { await TranscriptionService.shared.unload() }
         case .pushedLocal, .noop:
             break
@@ -64,12 +67,12 @@ enum VocabularyCloudSync {
         case .adoptRemote(let words, let ts):
             settings.customVocabulary = words
             settings.customVocabularyModifiedAt = ts
-            SettingsStore.shared.save(settings)
+            dirty = true
             // Re-warm the booster so the newly-synced words boost the NEXT transcription.
-            Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: words) }
+            prewarm = true
         case .pushedLocal(let ts, seededLocalStamp: true):
             settings.customVocabularyModifiedAt = ts
-            SettingsStore.shared.save(settings)
+            dirty = true
         case .pushedLocal, .noop:
             break
         }
@@ -90,7 +93,7 @@ enum VocabularyCloudSync {
         // this synced has no stamp: date it now so it reaches the iPad instead of losing to a blank.
         if settings.authorModifiedAt == nil, !settings.authorName.isEmpty {
             settings.authorModifiedAt = Date()
-            SettingsStore.shared.save(settings)
+            dirty = true
         }
         switch AuthorSyncCore.reconcile(
             localName: settings.authorName,
@@ -100,13 +103,18 @@ enum VocabularyCloudSync {
         case .adoptRemote(let name, let ts):
             settings.authorName = name
             settings.authorModifiedAt = ts
-            SettingsStore.shared.save(settings)
+            dirty = true
         case .pushedLocal, .noop:
             break
         }
+        if dirty { SettingsStore.shared.save(settings) }
+        if prewarm {
+            let words = settings.customWords
+            Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: words) }
+        }
         do { try context.save() }
         catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .error("vocab sync save FAILED — carrier not persisted: \(error)")
         }
     }

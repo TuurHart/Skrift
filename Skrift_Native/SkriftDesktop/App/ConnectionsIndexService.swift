@@ -45,9 +45,8 @@ final class ConnectionsIndexService {
 
     private init() {
         // The shared embedder's app-wired seam (it can't see the app's logger).
-        GemmaEmbedder.log = { msg in
-            Logger(subsystem: "com.skrift.desktop", category: "connections")
-                .log("\(msg, privacy: .public)")
+        GemmaEmbedder.log = { [logger] msg in
+            logger.log("\(msg, privacy: .public)")
         }
     }
 

@@ -80,8 +80,7 @@ enum LifecycleSweepScheduler {
     /// the same `cloudKitMacSyncEnabled` gate, so a sweep never mutates the
     /// user's memos while they've explicitly left Mac sync off.
     private static func runNow() {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let cloud = MemoCloudStore.container else { return }
+        guard let cloud = MemoCloudStore.syncContainer else { return }
         let ctx = ModelContext(cloud)
         let all = (try? ctx.fetch(FetchDescriptor<Memo>())) ?? []
         MacFadingSweep.run(memos: all, context: ctx)

@@ -15,7 +15,6 @@ import os
 /// direction with a plain value compare, so a Mac write converges it (no clobber loop).
 @MainActor
 enum MacCloudMetaSync {
-    private static let log = Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
 
     /// The gate every writer here shares: sync on, a container, and a synced `Memo` behind
     /// this file. `mutate` returns whether it actually changed anything, so an unchanged
@@ -23,13 +22,27 @@ enum MacCloudMetaSync {
     @discardableResult
     private static func write(_ pf: PipelineFile, _ what: String,
                               _ mutate: (Memo) -> Bool) -> Bool {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return false }
-        let ctx = container.mainContext
-        guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx), mutate(memo) else { return false }
-        EditConflicts.recordEdit(memo, in: ctx)   // C98: no-op unless the words changed
+        writeBatch([pf], what) { _, memo in mutate(memo) }
+    }
+
+    /// The batch form of `write`: ONE gate, then each file's synced `Memo` is handed to
+    /// `mutate` (true = it changed something), and the context saves ONCE for the whole
+    /// batch, only if anything changed. `recordEdits` stamps a words edit per changed memo
+    /// (C98, a no-op unless the words changed); a caller that never touches words
+    /// (`MacCloudDeleteSync`) passes false.
+    @discardableResult
+    static func writeBatch(_ files: [PipelineFile], _ what: String, recordEdits: Bool = true,
+                           _ mutate: (PipelineFile, Memo) -> Bool) -> Bool {
+        guard let ctx = MemoCloudStore.syncContainer?.mainContext else { return false }
+        var wrote = false
+        for pf in files {
+            guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx), mutate(pf, memo) else { continue }
+            if recordEdits { EditConflicts.recordEdit(memo, in: ctx) }
+            wrote = true
+        }
+        guard wrote else { return false }
         do { try ctx.save() }
-        catch { log.error("\(what, privacy: .public) write failed: \(String(describing: error), privacy: .public)") }
+        catch { AppLog.cloudkit.error("\(what, privacy: .public) write failed: \(String(describing: error), privacy: .public)") }
         return true
     }
 
@@ -38,21 +51,12 @@ enum MacCloudMetaSync {
     /// how importance keeps its "nil is ambiguous" rule). Safe for any files: non-synced /
     /// non-memo rows are skipped, and a memo already at the same values isn't churned.
     static func mirror(_ files: [PipelineFile]) {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return }
-        let ctx = container.mainContext
-        var wrote = false
-        for pf in files {
-            guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx) else { continue }
+        writeBatch(files, "meta-sync") { pf, memo in
             var pushed = false
             for field in MirroredNoteFields.pushable where field.push!(pf, memo) { pushed = true }
             // Pre-2026-10 Mac-only name decisions go out once (fills an EMPTY memo only).
             if NameResolutionsMirror.migrateLegacy(pf, to: memo) { pushed = true }
-            if pushed { wrote = true; EditConflicts.recordEdit(memo, in: ctx) }   // C98: words only
-        }
-        if wrote {
-            do { try ctx.save() }
-            catch { log.error("meta-sync write failed: \(String(describing: error), privacy: .public)") }
+            return pushed
         }
     }
 

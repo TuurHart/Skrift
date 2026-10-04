@@ -79,10 +79,8 @@ extension MemoCloudReconciler {
         // hash-diffed ⇒ a redundant fire is nearly free. Runs even when cloud
         // sync is off: locally-ingested files need indexing too.
         defer { ConnectionsIndexService.shared.sweepSoon(SharedStore.container.mainContext) }
+        guard let cloud = MemoCloudStore.syncContainer else { return 0 }
         let settings = SettingsStore.shared.load()
-        guard settings.cloudKitMacSyncEnabled, let cloud = MemoCloudStore.container else {
-            return 0
-        }
         // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the
         // Bonjour /api/names path). Both are guarded + idempotent, so running them on every
         // sweep is cheap; they converge with the phone through the shared merge.
@@ -100,7 +98,7 @@ extension MemoCloudReconciler {
         let outcome = sweep(from: cloudContext, into: local,
                             people: NamesStore.shared.livePeople(), author: settings.authorName,
                             thisDeviceID: DeviceID.current())
-        Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
+        AppLog.cloudkit.log(
             "reconcile: ingested \(outcome.created, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
         // UNRATED memos never become a `PipelineFile`, so nothing about them changes
         // `files.count` — the one thing the sidebar watched. A phone memo you hadn't
@@ -114,7 +112,7 @@ extension MemoCloudReconciler {
         if !outcome.updatedIDs.isEmpty {
             do { try local.save() }
             catch {
-                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                AppLog.cloudkit
                     .error("reconcile: reflect save FAILED — phone edits not persisted: \(error)")
             }
             reexportEdited(outcome.updatedIDs, in: local, cloud: cloudContext, settings: settings)
@@ -130,11 +128,11 @@ extension MemoCloudReconciler {
             let authored = try MacMemoAuthor.backfill(files: localFiles, into: cloudContext)
             let reflected = try MacMemoAuthor.reflectTranscripts(files: localFiles, into: cloudContext)
             if authored > 0 || reflected > 0 {
-                Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
+                AppLog.cloudkit.log(
                     "reconcile: authored \(authored, privacy: .public), reflected-transcripts \(reflected, privacy: .public)")
             }
         } catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .error("reconcile: author/reflect FAILED: \(error)")
         }
 
@@ -155,7 +153,7 @@ extension MemoCloudReconciler {
         // re-written; a restore clears `deletedAt`), unrated, held with two versions.
         for pf in files where pf.exportStatus == .done {
             if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
-                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                AppLog.cloudkit
                     .info("re-export skipped \(pf.id, privacy: .public): gate \(String(describing: failure), privacy: .public)")
                 continue
             }
@@ -168,17 +166,17 @@ extension MemoCloudReconciler {
                     pf.exported = result.markdownURL.path
                     pf.lastActivityAt = Date()
                 } else {
-                    Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                    AppLog.cloudkit
                         .info("re-export skipped \(pf.id, privacy: .public): \(String(describing: result.outcome), privacy: .public)")
                 }
             } catch {
-                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                AppLog.cloudkit
                     .error("re-export FAILED \(pf.id, privacy: .public) — vault now stale for this note: \(error)")
             }
         }
         do { try context.save() }
         catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+            AppLog.cloudkit
                 .error("re-export save FAILED: \(error)")
         }
     }

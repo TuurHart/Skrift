@@ -21,7 +21,6 @@ final class MacCloudEditSync {
     let debounce: Duration = .seconds(1.5)
 
     private var pending: [String: Task<Void, Never>] = [:]   // keyed by pf.id, latest reschedule wins
-    private let log = Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
 
     private init() {}
 
@@ -34,7 +33,7 @@ final class MacCloudEditSync {
     /// `MemoNoteProjection.writeBack` puts them on the memo's own fields instead.
     func note(_ pf: PipelineFile) {
         guard pf.modelContext != nil else { return }
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled, MemoCloudStore.container != nil else { return }
+        guard MemoCloudStore.syncContainer != nil else { return }
         let id = pf.id
         pending[id]?.cancel()
         pending[id] = Task { [weak self, weak pf] in
@@ -73,7 +72,7 @@ final class MacCloudEditSync {
                 try ctx.save()
             }
         } catch {
-            log.error("edit write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
+            AppLog.cloudkit.error("edit write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
 }

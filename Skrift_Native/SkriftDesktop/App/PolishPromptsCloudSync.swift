@@ -11,8 +11,8 @@ import os
 @MainActor
 enum PolishPromptsCloudSync {
     static func run() {
+        guard let container = MemoCloudStore.syncContainer else { return }
         var settings = SettingsStore.shared.load()
-        guard settings.cloudKitMacSyncEnabled, let container = MemoCloudStore.container else { return }
         // Fresh context — mainContext reads stale after a CloudKit import (the memo-sweep
         // trap); an iPad prompt edit lands in a carrier blob the Mac must read fresh.
         let context = ModelContext(container)
