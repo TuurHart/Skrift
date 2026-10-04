@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 45
-updated: 2026-09-30T23:00:00.000Z
+version: 46
+updated: 2026-10-04T00:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -2670,5 +2670,17 @@ ideas:
     source: voice
     ts: 2026-09-08T00:00:00.000Z
     nodeHint: P3
+  - id: i24
+    text: "HOME-SERVER VIDEO TRANSCRIPTS for Immich (Tuur, 2026-10-04; belongs in
+      own-my-data / the home server, parked here). Immich has OCR for text in
+      photos (2.2, mobile in 3.0) but no speech-to-text for video audio. Build a
+      nightly low-priority job: Immich API -> videos without a transcript ->
+      ffmpeg audio + VAD (skip silent clips) -> faster-whisper / whisper.cpp
+      (NL+EN mix) -> write the text to the asset description via
+      PUT /api/assets/{id} so Immich search finds it. Plus a SQLite FTS index of
+      timestamped segments so a hit jumps to the moment you said it. ~150 lines
+      Python. Open: server CPU/GPU decides the model size + backlog time."
+    source: voice
+    ts: 2026-10-04T00:00:00.000Z
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved
