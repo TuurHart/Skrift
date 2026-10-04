@@ -1849,7 +1849,7 @@ do: Each is a reading, not a run. One commit per bug; write the failing test fir
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SourceTaxonomyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c25 SMU-c13 MAM-c01 DPE-m1 (ingestNote, missed) DAU-c05 DAU-c15 (cleanup-audit P54)
 
-### Q242 [auto] (doing) Mac cloud adapters: one sync gate, one logger, one batch write helper
+### Q242 [auto] (done) Mac cloud adapters: one sync gate, one logger, one batch write helper
 spec: C239
 needs: Q216
 gate+: yes
@@ -3183,3 +3183,4 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:49 Q210 -> done — hand-merged (D163: ports + deletions of tests of deleted code (D166); retry after a load-timing flake)
 - 2026-10-04 09:51 Q292 -> done — hand-merged (D178: one conversation rule, audio only; call-site ports + fixture audioFilename)
 - 2026-10-04 09:54 Q299 -> done — gate pass @549011fc
+- 2026-10-04 09:57 Q242 -> done — gate pass @1a538aa9
