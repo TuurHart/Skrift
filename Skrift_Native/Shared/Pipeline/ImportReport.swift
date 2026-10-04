@@ -83,12 +83,12 @@ struct ImportReport: Equatable, Sendable {
     static let pictureInFolder = "Pictures inside a folder are not imported; drop them directly"
     static let textInFolder = "A .txt inside a folder is not a note; drop it directly"
     static let book = "Audiobooks and ePubs are added from the Books tab on the phone"
-    static let pdfNotOnMac = "PDFs are not imported on the Mac yet"
     /// Q136: a dragged-in URL the Mac cannot make a link card of (mailto:, ftp:, ...).
     static let notAWebLink = "Skrift takes web links (http or https) only"
 
-    /// Why `name` was skipped, from the kind it resolves to (`ImportKinds`) and the app that
-    /// refused it. `onMac`: the Mac has no PDF door yet.
+    /// Why `name` was skipped, from the kind it resolves to (`ImportKinds`). A PDF is a file
+    /// capture on both apps (Q267, Q307), so one that lands here could not be read; `onMac` no
+    /// longer changes any reason but stays for the callers.
     static func skipReason(forName name: String, onMac: Bool) -> String {
         let ext = (name as NSString).pathExtension
         guard let kind = ImportKinds.kind(forExtension: ext) else {
@@ -97,7 +97,7 @@ struct ImportReport: Equatable, Sendable {
         }
         switch kind {
         case .book: return book
-        case .document: return onMac ? pdfNotOnMac : unreadable
+        case .document: return unreadable
         case .image: return pictureNotCopied
         case .audio, .video, .text: return unreadable
         }

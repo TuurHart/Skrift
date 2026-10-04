@@ -889,8 +889,8 @@ struct IngestService: Sendable {
             let isDir = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             if isDir { continue }   // an Apple Notes export's `Attachments/` is not a note
             let ext = item.pathExtension.lowercased()
-            guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video].contains(kind) else {
-                // Said, never dropped: a picture / PDF / book / unknown file in a folder.
+            guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video, .document].contains(kind) else {
+                // Said, never dropped: a picture / book / unknown file in a folder.
                 skipped.append((item, ImportKinds.kind(forExtension: ext) == .image
                                 ? ImportReport.pictureInFolder
                                 : ImportReport.skipReason(forName: item.lastPathComponent, onMac: true)))
