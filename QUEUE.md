@@ -1817,7 +1817,7 @@ do: Move, never delete (repo rule): `Skrift_Native/GlassLab/` to `archive/spikes
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-d01 PER-d02 PER-d04 PER-d17 PER-d18 PER-c21 (cleanup-audit P50)
 
-### Q238 [auto] (doing) one place for preference keys, the isXCTest check and the optional-binding shim
+### Q238 [auto] (done) one place for preference keys, the isXCTest check and the optional-binding shim
 spec: C239
 needs: Q222
 gate+: no
@@ -3340,3 +3340,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 19:29 Q222 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 19:44 Q222 -> done — gate pass @7ca0ae08
 - 2026-10-04 19:44 Q238 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 19:56 Q238 -> done — gate pass @c18dcb69
