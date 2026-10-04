@@ -1721,7 +1721,7 @@ do: In `SkriftMobile/Services/` (re-grep each symbol by NAME in both apps and te
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PublishCoordinatorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MSV-d01 MSV-d04 MSV-d05 MSV-d06 MSV-d07 MSV-d08 MSV-d09 MSV-d10 MSV-d11 MSV-d12 MSV-d13 MSV-d14 MSV-d15 MSV-d18 MSV-d20 MSV-d-m1 MSV-c29 SRS-d06 SRS-d08 (cleanup-audit P38)
 
-### Q226 [auto] (todo) the phone export gate has one rule and no paired mode
+### Q226 [auto] (doing) the phone export gate has one rule and no paired mode
 spec: C240 C65
 needs: Q156
 gate+: no
@@ -3331,3 +3331,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 18:44 Q220 -> done — gate pass @cd1676d3
 - 2026-10-04 18:44 Q311 added
 - 2026-10-04 18:44 Q311 -> tuur — parked: device check
+- 2026-10-04 18:44 Q226 -> doing — dispatched (sonnet; one-at-a-time)
