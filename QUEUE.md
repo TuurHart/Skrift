@@ -2317,6 +2317,13 @@ needs: -
 do: (fill in)
 check: On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 
+### Q312 [auto] (todo) phone MemosListUITests fail at the first seeded-memo wait
+spec: -
+needs: -
+gate+: yes
+do: Found by Q230 on 2026-10-04: SkriftMobileUITests/MemosListUITests fails 6/6 at the first wait for a seeded memo (testSearchFiltersMemos line ~62), already on head 5b576277 before Q230. The gate does not run phone UI tests, so a recent merge broke the UI-test seeding unnoticed — suspects: Q222 (LaunchFlags accessors removed; UITests read raw -seed args), Q230 (seeders now #if DEBUG — UI tests run Debug, should be fine), Q282/Q283 (list filters/chips changed). Bisect over the session's merges with the one class, find the cause, fix the app or the UI test's seed/launch args (UI test files are not protected). Run ONLY this phone UI class on the iPhone 17 sim; never run SkriftDesktopUITests or any Mac UI test.
+check: `perl -e 'alarm 1800; exec @ARGV' xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath Skrift_Native/SkriftMobile/build -only-testing:SkriftMobileUITests/MemosListUITests -quiet && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3351,3 +3358,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 20:55 Q233 -> done — hand-merged (D163: ports + deletion of assertions on the deleted Fold)
 - 2026-10-04 20:55 Q230 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 21:19 Q230 -> done — hand-merged (D163: deleted tests of deleted members)
+- 2026-10-04 21:19 Q312 added
