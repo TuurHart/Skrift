@@ -19,7 +19,6 @@ actor TranscriptionService: Transcribing {
     static let shared = TranscriptionService()
 
     private var asr: AsrManager?
-    private var models: AsrModels?
     private var loadTask: Task<Void, Error>?
     private var isTranscribing = false
     /// Which language mode the LOADED manager was built for — flipping the setting has
@@ -33,13 +32,7 @@ actor TranscriptionService: Transcribing {
     // to drop the model mid-stream (mirrors the phone's `TranscriptionService`).
     private var streaming = false
 
-    /// Nonisolated, thread-safe mirror of `isModelReady` so the synchronous /health
-    /// handler can read it without hopping onto the actor. Kept in sync with `asr`.
-    private let ready = OSAllocatedUnfairLock(initialState: false)
-
     private init() {}
-
-    var isModelReady: Bool { asr != nil }
 
     /// Load Parakeet v3 (multilingual incl. EN+NL). First call downloads from HF.
     func ensureLoaded(onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
@@ -49,8 +42,7 @@ actor TranscriptionService: Transcribing {
             multilingual: SettingsStore.shared.load().transcriptionIsMultilingual)
         if asr != nil, loadedMultilingual == mode.isMultilingual { return }
         if asr != nil {
-            asr = nil; models = nil
-            ready.withLock { $0 = false }
+            asr = nil
         }
         if let loadTask { try await loadTask.value; return }
         let task = Task<Void, Error> {
@@ -75,10 +67,8 @@ actor TranscriptionService: Transcribing {
             // `.default` (English-tuned) with no way to change it, which garbled Dutch.
             let manager = AsrManager(config: ASRConfig(melChunkContext: mode.melChunkContext))
             try await manager.loadModels(loaded)
-            self.models = loaded
             self.asr = manager
             self.loadedMultilingual = mode.isMultilingual
-            self.ready.withLock { $0 = true }
             // A caption stream that began before a slow load recovers the moment the model
             // lands — mirrors the phone's `ensureLoaded` (2026-07-28).
             if self.streaming { await self.live.setTranscriber(self.makeCaptionTranscriber()) }
@@ -97,9 +87,7 @@ actor TranscriptionService: Transcribing {
         guard !isTranscribing, !streaming, loadTask == nil else { return }
         let manager = asr
         asr = nil
-        models = nil
         loadedMultilingual = nil
-        ready.withLock { $0 = false }
         Task { @MainActor in ASRModelStatus.shared.setUnloaded() }
         // The engine must stop asking a manager that's gone — the closure's own `guard let
         // asr` is the backstop for the brief in-flight window (mirrors the phone).
@@ -139,7 +127,7 @@ actor TranscriptionService: Transcribing {
                 guard !customWords.isEmpty else { return nil }
                 return await VocabularyBooster.shared.boost(
                     text: text, tokenTimings: result.tokenTimings ?? [],
-                    audioURL: audioURL, words: customWords)?.text
+                    audioURL: audioURL, words: customWords)
             })
     }
 
@@ -195,25 +183,18 @@ actor TranscriptionService: Transcribing {
         await live.feed(ownedBuffer)
     }
 
-    /// Best-effort full transcript right now: committed chunks + a live re-transcribe of
-    /// the accumulated buffer. Overlapping calls short-circuit.
-    func liveCaption() async -> String {
-        await live.caption()
-    }
-
     /// The caption split at its REAL finalized boundary — see
     /// `LiveCaptionEngine.captionParts`.
     func liveCaptionParts() async -> (full: String, committed: String) {
         await live.captionParts()
     }
 
-    /// `finish`, split at the ownership boundary — see `LiveCaptionEngine.finishParts`.
-    /// Named (not a plain `finishStream`) because the Mac's edited-take finalize needs the
-    /// split `finalTail`; the phone never uses either — its stop always re-ASRs the whole
-    /// file, so it only keeps a plain `finishStream()` for completeness.
-    func finishStreamParts() async -> (stitched: String, finalTail: String) {
+    /// `finish`, keeping only the ownership-boundary tail (`LiveCaptionEngine.finishParts`
+    /// `.finalTail`): the Mac's edited-take finalize is the one reader. The phone's stop
+    /// always re-ASRs the whole file, so it never calls this.
+    func finishStreamTail() async -> String {
         streaming = false
-        return await live.finishParts()
+        return await live.finishParts().finalTail
     }
 
     /// Drop all live state (called on stop/cancel).

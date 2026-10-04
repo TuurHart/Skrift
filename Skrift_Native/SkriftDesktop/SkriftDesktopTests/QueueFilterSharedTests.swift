@@ -18,7 +18,7 @@ final class QueueFilterSharedTests: XCTestCase {
         let f = PipelineFile(id: id, filename: "x.m4a", sourceType: .audio, uploadedAt: Date())
         f.significance = 0.5
         f.transcript = "some words"
-        f.steps = ProcessingSteps(transcribe: .done, sanitise: .done, enhance: enhance, export: export)
+        f.transcribeStatus = .done; f.sanitiseStatus = .done; f.enhanceStatus = enhance; f.exportStatus = export
         return f
     }
 

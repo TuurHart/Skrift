@@ -42,7 +42,7 @@ final class NotesListFilterTests: XCTestCase {
             f.significance = 0.5
             f.transcript = m.transcript
             if complete {
-                f.steps = ProcessingSteps(transcribe: .done, sanitise: .done, enhance: .done, export: .done)
+                f.transcribeStatus = .done; f.sanitiseStatus = .done; f.enhanceStatus = .done; f.exportStatus = .done
             }
             lib.files.append(f)
         }

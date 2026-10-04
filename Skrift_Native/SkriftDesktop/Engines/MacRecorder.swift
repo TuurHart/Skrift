@@ -55,7 +55,6 @@ final class MacRecorder {
     private(set) var elapsed: TimeInterval = 0
     private(set) var meter = RecordingCore.Meter()
 
-    var isRecording: Bool { state == .recording }
     var elapsedLabel: String { RecordingCore.elapsedLabel(elapsed) }
 
     /// A second consumer, beside the file writer — the live-caption engine's feed
@@ -71,7 +70,6 @@ final class MacRecorder {
     // MARK: - capture plumbing
 
     private var session: AVCaptureSession?
-    private var deviceInput: AVCaptureDeviceInput?
     private var audioOutput: AVCaptureAudioDataOutput?
     private var sampleSink: SampleSink?
     /// `startRunning`/`stopRunning` both block — never touched from Main. One dedicated queue
@@ -253,7 +251,6 @@ final class MacRecorder {
         output.setSampleBufferDelegate(sink, queue: callbackQueue)
 
         self.session = session
-        self.deviceInput = input
         self.audioOutput = output
         self.sampleSink = sink
         self.url = dest
@@ -402,7 +399,6 @@ final class MacRecorder {
         audioOutput?.setSampleBufferDelegate(nil, queue: nil)
         let sessionToStop = session
         session = nil
-        deviceInput = nil
         audioOutput = nil
         configQueue.async { sessionToStop?.stopRunning() }
         sealWriter()

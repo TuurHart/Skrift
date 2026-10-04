@@ -89,7 +89,7 @@ enum MemoCloudReconciler {
                     FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
             }
 
-            // Same match rule as `alreadyIngested`/`existingFile` (id OR embedded
+            // Same match rule as `alreadyIngested` (id OR embedded
             // filename), minus the empty-filename cross-match those allowed.
             // The filename arm may claim a row only if that row is not ALREADY another
             // memo's. A legacy Bonjour row (random id, nobody's memo uuid) is still claimed,
@@ -175,16 +175,5 @@ enum MemoCloudReconciler {
             }
         }
         return outcome
-    }
-
-    /// The existing `PipelineFile` for a memo — by memo-UUID id, else by embedded filename
-    /// (a Bonjour-era row). Mirrors `MemoCloudIngest.alreadyIngested`'s match.
-    static func existingFile(id: String, filename: String, in context: ModelContext) -> PipelineFile? {
-        let hits = (try? context.fetch(FetchDescriptor<PipelineFile>(
-            predicate: #Predicate { $0.id == id || $0.filename == filename }))) ?? []
-        // Prefer the id match — a filename hit is the legacy-row fallback. (Ownership by
-        // ANOTHER memo can't be judged here without the memo list; the sweep, which has it,
-        // applies that rule before this is ever reached.)
-        return hits.first { $0.id == id } ?? hits.first
     }
 }

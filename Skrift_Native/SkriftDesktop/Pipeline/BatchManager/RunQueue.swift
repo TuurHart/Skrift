@@ -66,8 +66,6 @@ struct RunQueue {
         return jobs.count != before
     }
 
-    func isWaitingSplit(id: String) -> Bool { jobs.contains(.split(id: id)) }
-
     /// The next job to run, oldest first.
     mutating func next() -> Job? {
         jobs.isEmpty ? nil : jobs.removeFirst()

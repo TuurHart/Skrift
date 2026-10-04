@@ -174,7 +174,7 @@ actor TranscriptionService: Transcribing {
                 // the booster reads itself.
                 await VocabularyBooster.shared.boost(
                     text: text, tokenTimings: result.tokenTimings ?? [],
-                    audioURL: audioURL)?.text
+                    audioURL: audioURL)
             })
     }
 

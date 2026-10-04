@@ -62,11 +62,6 @@ actor VocabularyBooster {
     private var rescorer: VocabularyRescorer?
     private var loadedWords: [String] = []
 
-    struct Boosted {
-        let text: String
-        let replacementCount: Int
-    }
-
     private var preparing = false
 
     /// Run the rescore pass. nil = no custom words / model not loaded yet /
@@ -79,7 +74,7 @@ actor VocabularyBooster {
     /// is resident). A blocking `await prepare` here jammed the whole serialized
     /// transcription queue when the download was slow/failing — every memo stuck
     /// "Transcribing" (2026-06-13).
-    func boost(text: String, tokenTimings: [TokenTiming], audioURL: URL) async -> Boosted? {
+    func boost(text: String, tokenTimings: [TokenTiming], audioURL: URL) async -> String? {
         let words = CustomVocabularyStore.words()
         guard !words.isEmpty, !tokenTimings.isEmpty, !text.isEmpty else { return nil }
         // Capture local copies — safe across the spot await (actor reentrancy).
@@ -126,8 +121,7 @@ actor VocabularyBooster {
                 DevLog.log("vocab: not every applied replacement trusted → dropped, unboosted (applied=\(applied.map { "\($0.original)→\($0.canonical)" }))")
                 return nil
             }
-            return Boosted(text: out.text,
-                           replacementCount: out.replacements.filter(\.shouldReplace).count)
+            return out.text
         } catch {
             DevLog.log("vocab: error \(error)")
             return nil

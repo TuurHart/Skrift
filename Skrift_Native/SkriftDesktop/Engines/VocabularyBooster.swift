@@ -26,11 +26,6 @@ actor VocabularyBooster {
     private var rescorer: VocabularyRescorer?
     private var loadedWords: [String] = []
 
-    struct Boosted {
-        let text: String
-        let replacementCount: Int
-    }
-
     private var preparing = false
 
     /// Run the rescore pass. nil = no custom words / model not loaded yet /
@@ -41,7 +36,7 @@ actor VocabularyBooster {
     /// background load and skips. (A blocking `await prepare` jammed the
     /// serialized transcription queue — see the mobile booster's 2026-06-13 fix.)
     func boost(text: String, tokenTimings: [TokenTiming], audioURL: URL,
-               words: [String]) async -> Boosted? {
+               words: [String]) async -> String? {
         guard !words.isEmpty, !tokenTimings.isEmpty, !text.isEmpty else { return nil }
         guard let spotter, let vocab, let rescorer, loadedWords == words else {
             VocabLog.log("vocab: not ready (loaded=\(loadedWords), want=\(words)) → bg prepare, unboosted")
@@ -92,8 +87,7 @@ actor VocabularyBooster {
                 VocabLog.log("vocab: not every applied replacement trusted → dropped, unboosted")
                 return nil
             }
-            return Boosted(text: out.text,
-                           replacementCount: out.replacements.filter(\.shouldReplace).count)
+            return out.text
         } catch {
             // Offline / first-download failed / spot error → unboosted transcript.
             VocabLog.log("vocab: error \(error)")

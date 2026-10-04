@@ -224,18 +224,10 @@ final class PipelineFile {
         self.uploadedAt = uploadedAt
     }
 
-    /// Convenience view over the four step columns.
+    /// Read-only view over the four step columns (write the columns directly).
     var steps: ProcessingSteps {
-        get {
-            ProcessingSteps(transcribe: transcribeStatus, sanitise: sanitiseStatus,
-                            enhance: enhanceStatus, export: exportStatus)
-        }
-        set {
-            transcribeStatus = newValue.transcribe
-            sanitiseStatus = newValue.sanitise
-            enhanceStatus = newValue.enhance
-            exportStatus = newValue.export
-        }
+        ProcessingSteps(transcribe: transcribeStatus, sanitise: sanitiseStatus,
+                        enhance: enhanceStatus, export: exportStatus)
     }
 
     /// Decoded ambiguous-name occurrences (backed by `ambiguousNamesJSON`). In the OPT-OUT
