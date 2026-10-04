@@ -1585,7 +1585,7 @@ do: Bug found by reading, not run: `ProcessingCoordinator.redo` sets `isRunning`
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d12 DSH-d21 DSH-c02 DSH-c17 (cleanup-audit P21)
 
-### Q209 [auto] (todo) Mac headless harnesses: one arg parser, one runner, and a swallowed error fixed
+### Q209 [auto] (doing) Mac headless harnesses: one arg parser, one runner, and a swallowed error fixed
 spec: C240
 needs: Q206
 gate+: no
@@ -2237,7 +2237,7 @@ gate+: yes
 do: Tuur 2026-10-04: adopt the shared FeedbackKit (~/Hackerman/feedback-kit, read its ADOPTING.md first and follow it) in SkriftMobile only (iOS + iPad; the Mac app is untouched). Approved design: https://claude.ai/artifact/JyZDsYr7HaEjsBoWTepjo6. Skrift deviations from ADOPTING, on purpose: (a) package path is ABSOLUTE `/Users/tiurihartog/Hackerman/feedback-kit` in Skrift_Native/SkriftMobile/project.yml (relative paths break in .claude/worktrees); (b) tracked `Skrift_Native/SkriftMobile/Config/Feedback.xcconfig` = `FEEDBACK_KEY =` then `#include? "/Users/tiurihartog/.config/feedback-kit/skrift.xcconfig"` (the key already exists there, mode 600, outside git — NEVER print, copy or commit it); set it as the SkriftMobile target's configFiles for Debug and Release. Info.plist (project.yml info properties): FeedbackAppID = skrift, FeedbackKey = $(FEEDBACK_KEY); keep Skrift's existing NSMicrophoneUsageDescription. Start it in the App init with Skrift's own accent token (Shared/UI/Palette) and privacy line 'Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed.' Tag every top-level screen and sheet with .feedbackScreen("Name"): Notes list, note detail, Record, Books library, Player, Journal/Review, Settings, and the iPad split equivalents. AUDIO (hard rule, hardware-flavoured): FeedbackKit's recorder sets .playAndRecord and deactivates the session afterwards, which would cut Skrift's own audio. Call FeedbackKit.setVoicePaused("Voice notes are off while Skrift is recording or playing.") whenever Skrift is recording, running live caption, playing an audiobook or a memo, or capturing a quote, and setVoicePaused(nil) when all of those stop — drive it from the one place that already knows (find the recorder/player state owners), not per view. Prove it: a phone test FeedbackWiringTests (Info.plist FeedbackAppID == 'skrift', FeedbackKey non-literal; the voice-pause rule as a pure function over the audio states); then build Debug on the iPhone 17 sim, launch, tap the feedback button, and save a screenshot of the sheet reading 'From the Notes screen' to plan/reads/feedback-kit/sheet.png (LOOK at it). Device behaviour (audio interplay) stays UNVERIFIED — say so. Update FEATURES.md. Never run SkriftDesktopUITests.
 check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && ls plan/reads/feedback-kit/sheet.png >/dev/null && perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh FeedbackWiringTests && ./gate.sh`
 
-### Q300 [auto] (todo) feedback sheet + button use Skrift's own palette and follow dark mode
+### Q300 [auto] (doing) feedback sheet + button use Skrift's own palette and follow dark mode
 spec: D179
 needs: -
 gate+: yes
@@ -2256,6 +2256,13 @@ spec: -
 needs: -
 do: (fill in)
 check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt on the phone. Do all three arrive on the Mac, and does a note you delete on the phone disappear from the Mac?
+
+### Q303 [auto] (todo) Mac -snapshot modes never read the live Dev store
+spec: -
+needs: -
+gate+: yes
+do: PRIVACY (found by Q285, same slip as Q33): the Mac -snapshot-capture sidebar renders from Tuur's live Dev SwiftData store, so real note titles land in PNGs workers save. Make every headless -snapshot* mode run against an in-memory store seeded by DemoSeed (never the on-disk Dev container), and assert it in a test that the snapshot path's ModelContainer is in-memory. Never run SkriftDesktopUITests.
+check: `./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3209,3 +3216,6 @@ check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt o
 - 2026-10-04 09:57 Q302 added
 - 2026-10-04 09:57 Q302 -> tuur — parked: Dev check
 - 2026-10-04 10:04 Q285 -> done — gate pass @ddaa3224
+- 2026-10-04 10:04 Q303 added
+- 2026-10-04 10:04 Q300 -> doing — dispatched (sonnet)
+- 2026-10-04 10:04 Q209 -> doing — dispatched (sonnet)
