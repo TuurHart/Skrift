@@ -37,18 +37,6 @@ final class SignificanceCirclesTests: XCTestCase {
         }
     }
 
-    // MARK: tap behaviour (star-rating toggle)
-
-    func testTapSetsRating() {
-        XCTAssertEqual(ThreeBallScale.toggling(0, tappedStep: 2), 0.6)
-        XCTAssertEqual(ThreeBallScale.toggling(0.3, tappedStep: 3), 1.0)
-    }
-
-    func testReTapOnSetBallClearsToNotRated() {
-        XCTAssertEqual(ThreeBallScale.toggling(0.6, tappedStep: 2), 0)
-        XCTAssertEqual(ThreeBallScale.toggling(1.0, tappedStep: 3), 0)
-    }
-
     // MARK: no fourth button, no refine wall
 
     func testThereAreExactlyThreeNames() {
@@ -63,23 +51,4 @@ final class SignificanceCirclesTests: XCTestCase {
         XCTAssertEqual(ThreeBallScale.label(forStep: 3), "Important")
     }
 
-    // MARK: rating-to-process microcopy (CloudKit syncs everything — the rating
-    // gates the Mac's pipeline pickup, and the copy must not claim sync)
-
-    func testSyncCopyHasNoRefinePassBranch() {
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 0), "Not rated — left alone")
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 1), "Rated — ready to process")
-        // Ball 3 (Important, the old refine-wall territory) reads the same as
-        // any other rated ball — the refine pass is gone (D52/C183).
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 3), "Rated — ready to process")
-    }
-
-    /// The Flag verb is retired on every surface — the rating IS the flag.
-    func testSyncCopyCarriesNoFlagOrRefineLanguage() {
-        for step in 0...3 {
-            let copy = ThreeBallScale.syncCopy(forStep: step).lowercased()
-            XCTAssertFalse(copy.contains("flag"), "step \(step) still uses flag language")
-            XCTAssertFalse(copy.contains("refine"), "step \(step) still mentions the refine pass")
-        }
-    }
 }

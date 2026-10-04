@@ -4,8 +4,8 @@ import Foundation
 /// typed text becomes a tag, shared by the phone, iPad and Mac editors so the three
 /// devices can never disagree on the same input again. Fixes three source bugs found
 /// by the mock (BUGS §4): Mac `commitOne` lowercasing a picked/created tag while
-/// Return kept case, no case-fold anywhere, and `Memo.splitTagInput` stripping every
-/// `#` instead of one.
+/// Return kept case, no case-fold anywhere, and the old `splitTagInput` stripping
+/// every `#` instead of one (that function is gone; `split` below is the only one).
 enum TagRules {
 
     /// One raw entry-field string, split on comma/newline (a tag itself may contain
@@ -44,39 +44,22 @@ enum TagRules {
         return typed
     }
 
-    /// One newly-typed/picked tag folded onto an existing spelling, if any.
-    struct Fold: Equatable { let typed: String; let kept: String }
-
     /// Fold + de-dupe a batch of already-`split` tags against what's on the note
-    /// (`existing`) and the wider `library`, in order. Returns tags to actually
-    /// append plus, for any that already exist (on the note or in the library under
-    /// a different case), the fold record (typed spelling → the spelling kept).
-    static func fold(_ accepted: [String], existing: [String], library: [String]) -> (toAdd: [String], folds: [Fold]) {
+    /// (`existing`) and the wider `library`, in order. Returns the tags to actually
+    /// append: new to the note, in the spelling `resolveSpelling` picks. A second
+    /// same-batch variant (`["Wood", "wood"]`) is dropped, so the FIRST spelling wins.
+    static func fold(_ accepted: [String], existing: [String], library: [String]) -> [String] {
         var have = Set(existing.map { $0.lowercased() })
-        // The spelling actually kept for each case-folded key so far — seeded from
-        // `existing`, then updated as this batch adds its own tags, so a SECOND
-        // same-batch variant (`fold(["Wood", "wood"], …)`) folds onto the FIRST
-        // spelling in the batch, not just onto what was already on the note.
-        var keptSpelling: [String: String] = Dictionary(uniqueKeysWithValues: existing.map { ($0.lowercased(), $0) })
         var toAdd: [String] = []
-        var folds: [Fold] = []
         let widerLibrary = library + existing
         for typed in accepted {
             let resolved = resolveSpelling(typed, library: widerLibrary)
             let key = resolved.lowercased()
-            if have.contains(key) {
-                let kept = keptSpelling[key] ?? resolved
-                if kept != typed { folds.append(Fold(typed: typed, kept: kept)) }
-                continue
-            }
+            if have.contains(key) { continue }
             have.insert(key)
-            keptSpelling[key] = resolved
             toAdd.append(resolved)
-            // Still added (new to the note) but under a library-wide spelling other
-            // than what was typed — worth a fold record so the caller can say so.
-            if resolved != typed { folds.append(Fold(typed: typed, kept: resolved)) }
         }
-        return (toAdd, folds)
+        return toAdd
     }
 
     /// The "already on this note as #x" line (mock `tag-ui-revamp.html`, `addNew`): the

@@ -59,17 +59,24 @@ struct EditConflictPrompt: View {
             }
             Divider()
             VStack(spacing: 7) {
-                pillButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
-                    .accessibilityIdentifier("conflict-keep-both")
-                pillButton("Keep \(thisName(hereKind))'s",
-                           sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
-                    .accessibilityIdentifier("conflict-keep-this")
-                pillButton("Keep \(otherName(there.deviceKind))'s",
-                           sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
-                    .accessibilityIdentifier("conflict-keep-other")
+                choiceButtons
             }
             .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 20)
         }
+    }
+
+    /// The three pills, identical on both looks; only the Mac's first carries the Return
+    /// (default-action) shortcut.
+    @ViewBuilder private var choiceButtons: some View {
+        pillButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
+            .keyboardShortcut(look == .mac ? .defaultAction : nil)
+            .accessibilityIdentifier("conflict-keep-both")
+        pillButton("Keep \(thisName(hereKind))'s",
+                   sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
+            .accessibilityIdentifier("conflict-keep-this")
+        pillButton("Keep \(otherName(there.deviceKind))'s",
+                   sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
+            .accessibilityIdentifier("conflict-keep-other")
     }
 
     /// Custom-drawn (never system `.bordered`/`.borderedProminent` chrome): the headless
@@ -100,15 +107,7 @@ struct EditConflictPrompt: View {
             versionCard(there, isHere: false)
             sameLine
             VStack(spacing: 7) {
-                pillButton("Keep both", sub: "two notes, nothing is lost", primary: true) { onPick(.keepBoth) }
-                    .keyboardShortcut(.defaultAction)
-                    .accessibilityIdentifier("conflict-keep-both")
-                pillButton("Keep \(thisName(hereKind))'s",
-                           sub: "\(otherName(there.deviceKind))'s goes to Recently Deleted for 14 days") { onPick(.keepThis) }
-                    .accessibilityIdentifier("conflict-keep-this")
-                pillButton("Keep \(otherName(there.deviceKind))'s",
-                           sub: "\(thisName(hereKind))'s goes to Recently Deleted for 14 days") { onPick(.keepOther) }
-                    .accessibilityIdentifier("conflict-keep-other")
+                choiceButtons
                 Button("Later", action: onLater)
                     .buttonStyle(.plain)
                     .foregroundStyle(style.textDim)
@@ -262,7 +261,6 @@ struct EditConflictGate: ViewModifier {
             if let conflict {
                 EditConflictPrompt(conflict: conflict, look: look, style: style,
                                    onPick: { pick($0) }, onLater: { showPrompt = false })
-                    .interactiveDismissDisabled(false)
             }
         }
     }

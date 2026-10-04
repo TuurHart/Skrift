@@ -374,7 +374,7 @@ Leads. Check them against source before you act — section 5 is why.
       Breaks C93 (case kept). Found reading source for the Q3 tag mock, 2026-09-24.
 - [ ] **No case-variant fold on either app.** Both apps check exact-match only, so `LISBON` lands
       beside `Lisbon` (C93: fold to the FIRST spelling). Found for Q3, 2026-09-24.
-- [ ] **`Memo.splitTagInput` strips every `#`, not one** (`Memo.swift:284`; C93: `#` stripped
+- [x] **`Memo.splitTagInput` strips every `#`, not one** — FIXED: the function is deleted (Q233), `TagRules.split` is the only splitter (`Memo.swift:284`; C93: `#` stripped
       once). Found for Q3, 2026-09-24.
 
 - [ ] **Phone never re-warms the custom-vocab booster after a synced word arrives** — `SkriftMobile/Services/VocabularyCloudSync.swift:21-24` (the Mac does, `SkriftDesktop/App/VocabularyCloudSync.swift:63-69`). Same shape as the 2026-06-13 "custom vocab never corrected" bug. Sweep E, 2026-09-25, source only.

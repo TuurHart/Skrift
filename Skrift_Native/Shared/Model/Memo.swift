@@ -33,12 +33,11 @@ enum TrashPolicy {
 /// Fork A). It carries NO iOS couplings. The designated init is **blob-based**
 /// (`metadataData` / `sharedContentData` as `Data?`) because SwiftData traps decoding a
 /// nested-optional Codable @Model attribute (see below), NOT because the types are
-/// unavailable — `MemoMetadata` is shared too (Shared/Model/MemoMetadata.swift) and the
-/// typed `metadata` accessor lives here for both apps. `SharedContent` stays
-/// mobile-typed (the desktop keeps a lenient legacy decoder of the same JSON under the
-/// same name — CompilerBridge.swift), so its accessor, the on-disk path helpers
-/// (`audioURL` / `sharedFileURL`), and the typed factory (`Memo.make(…)`) live in the
-/// mobile-only `SkriftMobile/Models/Memo+Mobile.swift` extension.
+/// unavailable — `MemoMetadata` and `SharedContent` are shared too
+/// (Shared/Model/MemoMetadata.swift, Shared/Model/SharedContent.swift) and the typed
+/// `metadata` / `sharedContent` accessors live here for both apps. Only the on-disk path
+/// helpers (`audioURL` / `sharedFileURL`) and the typed factory (`Memo.make(…)`) live in
+/// the mobile-only `SkriftMobile/Models/Memo+Mobile.swift` extension.
 @Model
 final class Memo {
     /// Stable identity. Audio filenames embed it (`memo_{uuid}.m4a`) and the Mac
@@ -95,9 +94,9 @@ final class Memo {
     var transcriptMarkersInjected: Bool = false
 
     /// Manual importance rating (0–1, snapped to 0.1), mirroring the desktop review
-    /// slider. **Gates sync (flag-to-send): 0 = the memo STAYS on the phone; > 0 =
-    /// eligible to upload to the Mac.** Sent in the upload metadata when > 0 so the
-    /// Mac pre-fills its own significance slider. Default 0 (unrated → not synced).
+    /// slider. **Gates processing, not sync: CloudKit mirrors every memo; 0 = unrated, the
+    /// Mac leaves it alone; > 0 = the Mac picks it up and processes it** (see
+    /// `ThreeBallScale`). Default 0 (unrated).
     var significance: Double = 0
 
     /// Soft-delete marker (Recently Deleted). Non-nil = in the trash: hidden from
@@ -300,31 +299,6 @@ final class Memo {
             guard let self, !self.isDeleted, let ctx = self.modelContext else { return }
             if EditConflicts.recordEdit(self, in: ctx), ctx.hasChanges { try? ctx.save() }
         }
-    }
-
-    /// Tag input, split into tags and the DESTINATION words among them.
-    ///
-    /// **The words are ACCEPTED (reversed 2026-08-27.)** They were refused for a day, on Tuur's
-    /// own instruction — *"if I select idea and type in inspiration, that should probably not be
-    /// possible"* — and then his real workflow turned out to need exactly that: *"if I see a cool
-    /// thing that inspires me… it's just an idea with a hashtag inspiration as well."* Seeing
-    /// someone else's object and taking an idea from it is, in his words, how it always happens.
-    ///
-    /// The refusal was also protecting nothing. The destination is a stored FIELD, so a tag can
-    /// never re-route a note; the guard only stopped a label he had a real use for. What the
-    /// words still do is `reserved`, which the exporter reads: an `inspiration` tag raises
-    /// `needs: - credit` the same way the folder does, so an Idea sparked by someone else's work
-    /// does not quietly lose the prompt to go and credit them.
-    static func splitTagInput(_ raw: String) -> (accepted: [String], reserved: [NoteDestination]) {
-        // Splitting/refusal is single-sourced in `TagRules` (Q28/C241) — this used to
-        // strip EVERY `#` instead of one (BUGS §4); `TagRules.split` strips just the
-        // leading one and keeps case.
-        let split = TagRules.split(raw)
-        var reserved: [NoteDestination] = []
-        for word in split.accepted {
-            if let d = NoteDestination.reserved(word), !reserved.contains(d) { reserved.append(d) }
-        }
-        return (split.accepted, reserved)
     }
 
     /// This note's destination, one of four. Unknown/corrupt raw values read as `.personal`

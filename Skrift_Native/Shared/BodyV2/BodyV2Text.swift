@@ -17,19 +17,31 @@ enum BodyV2Text {
     static func normalised(_ s: String) -> String {
         var t = s.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
         let lines = t.components(separatedBy: "\n").map { line -> String in
-            guard let leadingRange = line.range(of: #"^[\t\p{Zs}]*"#, options: .regularExpression) else { return line }
-            let leading = line[leadingRange]
-            let rest = String(line[leadingRange.upperBound...])
-            let isListItem = listItemLine.firstMatch(in: rest, range: NSRange(location: 0, length: (rest as NSString).length)) != nil
-            let collapsedRest = rest.replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
-            return isListItem ? leading + collapsedRest
-                : line.replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
+            let ns = line as NSString
+            let leadingLength = leadingRun.firstMatch(in: line, range: NSRange(location: 0, length: ns.length))?.range.length ?? 0
+            if leadingLength > 0 {
+                let rest = ns.substring(from: leadingLength)
+                if listItemLine.firstMatch(in: rest, range: NSRange(location: 0, length: (rest as NSString).length)) != nil {
+                    return ns.substring(to: leadingLength) + collapseHorizontal(rest)
+                }
+            }
+            return collapseHorizontal(line)
         }
         t = lines.joined(separator: "\n")
-        t = t.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+        t = blankLines.stringByReplacingMatches(
+            in: t, range: NSRange(location: 0, length: (t as NSString).length), withTemplate: "\n\n")
         t = afterPicture.stringByReplacingMatches(
             in: t, range: NSRange(location: 0, length: (t as NSString).length), withTemplate: "$1")
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static let leadingRun = try! NSRegularExpression(pattern: #"^[\t\p{Zs}]*"#)
+    private static let horizontalRun = try! NSRegularExpression(pattern: #"[\t\p{Zs}]+"#)
+    private static let blankLines = try! NSRegularExpression(pattern: #"\n{3,}"#)
+
+    private static func collapseHorizontal(_ s: String) -> String {
+        horizontalRun.stringByReplacingMatches(
+            in: s, range: NSRange(location: 0, length: (s as NSString).length), withTemplate: " ")
     }
 
     /// A picture paragraph (a line of only `[[img_NNN]]`), its blank line, then the next

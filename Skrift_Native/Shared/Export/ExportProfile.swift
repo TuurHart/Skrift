@@ -135,13 +135,10 @@ extension ExportProfile {
     func convertPictureMarkers(_ markdown: String, manifest: [String], stem: String,
                                place: (_ source: String, _ preferredName: String) -> String? = { _, name in name })
         -> (markdown: String, placed: [PlacedPicture]) {
-        guard let rx = try? NSRegularExpression(pattern: "\\[\\[img_(\\d{3})\\]\\]") else {
-            return (markdown, [])
-        }
         let ns = markdown as NSString
         var replacements: [(NSRange, String)] = []
         var placed: [PlacedPicture] = []
-        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
+        for m in BodyV2Marker.regex.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
             let nnn = ns.substring(with: m.range(at: 1))
             guard let n = Int(nnn), n >= 1, n <= manifest.count, !manifest[n - 1].isEmpty else {
                 replacements.append((m.range, ""))   // dangling marker → drop
@@ -149,7 +146,7 @@ extension ExportProfile {
             }
             let source = manifest[n - 1]
             let ext = (source as NSString).pathExtension
-            let preferred = "\(stem)_\(nnn).\(ext.isEmpty ? "jpg" : ext)"
+            let preferred = "\(stem)_\(String(format: "%03d", n)).\(ext.isEmpty ? "jpg" : ext)"
             guard let written = place(source, preferred) else {
                 replacements.append((m.range, ""))   // picture could not be placed → drop
                 continue

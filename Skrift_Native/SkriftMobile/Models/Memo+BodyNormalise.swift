@@ -25,7 +25,7 @@ extension Memo {
     }
 
     private var bodyNormaliseLegacyShape: Bool {
-        BodyNormaliseMigration.isC203Legacy(sharedContentData: sharedContentData, madeAt: createdAt ?? recordedAt)
+        BodyNormaliseMigration.isC203Legacy(sharedContent: sharedContent, madeAt: createdAt ?? recordedAt)
     }
 
     /// Normalises this note's stored body once, if it breaks C10, and its polished copy-edit

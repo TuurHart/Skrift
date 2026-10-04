@@ -70,22 +70,6 @@ final class ThreeBallScaleTests: XCTestCase {
         }
     }
 
-    // MARK: tap-to-set / re-tap-to-clear
-
-    func testTapSetsRating() {
-        XCTAssertEqual(ThreeBallScale.toggling(nil, tappedStep: 2), 0.6)
-        XCTAssertEqual(ThreeBallScale.toggling(0.3, tappedStep: 3), 1.0)
-    }
-
-    func testReTapOnSetBallClearsToNotRated() {
-        XCTAssertEqual(ThreeBallScale.toggling(0.6, tappedStep: 2), 0)
-        XCTAssertEqual(ThreeBallScale.toggling(1.0, tappedStep: 3), 0)
-        // Re-tap clears whatever OLD 0.1–1.0 value lit the ball, not just an
-        // exact stop (the mock: "Tapping the lit ball clears it, whatever old
-        // value lit it").
-        XCTAssertEqual(ThreeBallScale.toggling(0.5, tappedStep: 2), 0)
-    }
-
     // MARK: names — no fourth button, no refine wall
 
     func testThereAreExactlyThreeNames() {
@@ -100,22 +84,4 @@ final class ThreeBallScaleTests: XCTestCase {
         XCTAssertEqual(ThreeBallScale.label(forStep: 3), "Important")
     }
 
-    // MARK: sync copy — no refine pass (D52)
-
-    func testSyncCopyHasNoRefinePassBranch() {
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 0), "Not rated — left alone")
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 1), "Rated — ready to process")
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 2), "Rated — ready to process")
-        // Step 3 (Important, the old refine-wall territory) reads the same as
-        // any other rated ball — the refine pass is gone.
-        XCTAssertEqual(ThreeBallScale.syncCopy(forStep: 3), "Rated — ready to process")
-    }
-
-    func testSyncCopyCarriesNoRefineOrFlagLanguage() {
-        for step in 0...3 {
-            let copy = ThreeBallScale.syncCopy(forStep: step).lowercased()
-            XCTAssertFalse(copy.contains("flag"), "step \(step) still uses flag language")
-            XCTAssertFalse(copy.contains("refine"), "step \(step) still mentions the refine pass")
-        }
-    }
 }

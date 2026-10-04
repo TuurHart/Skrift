@@ -107,21 +107,25 @@ enum EditConflicts {
 
     static func hash(title: String?, body: String?, tags: [String]) -> String {
         let s = [title ?? "\u{0}", body ?? "\u{0}", tags.joined(separator: "\u{1}")].joined(separator: "\u{2}")
-        return SHA256.hash(data: Data(s.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
+        return digest(s)
+    }
+
+    /// The first 12 bytes of SHA256 as hex — the one hash expression every head uses.
+    private static func digest(_ s: String) -> String {
+        SHA256.hash(data: Data(s.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
     }
     static func hash(_ memo: Memo) -> String { hash(title: memo.title, body: memo.transcript, tags: memo.tags) }
 
     /// Hash of a polished body alone (`Memo.polishStampHash`).
     static func polishHash(_ polished: String?) -> String? {
-        polished.map { SHA256.hash(data: Data($0.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined() }
+        polished.map(digest)
     }
 
     /// Words hash with the polished body folded in. nil polish = exactly the three-part hash,
     /// so heads written before Q38 keep their hash.
     static func combine(_ words: String?, _ polish: String?) -> String? {
         guard let polish else { return words }
-        let s = (words ?? "\u{0}") + "\u{3}" + polish
-        return SHA256.hash(data: Data(s.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
+        return digest((words ?? "\u{0}") + "\u{3}" + polish)
     }
 
     static func hash(title: String?, body: String?, tags: [String], polished: String?) -> String {

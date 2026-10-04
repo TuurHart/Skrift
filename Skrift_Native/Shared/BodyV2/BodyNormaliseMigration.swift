@@ -50,23 +50,21 @@ enum BodyNormaliseMigration {
     static let pdfCaptureCutoff = Date(timeIntervalSince1970: 1_784_130_860)
 
     /// True for a C203 legacy capture: an image capture made before round 3, or a PDF capture
-    /// made before build 76. `sharedContent` is the C3 capture object (`type`, `mimeType`,
-    /// `fileName`); an unknown date counts as old.
-    static func isC203Legacy(sharedContent: [String: Any]?, madeAt: Date?) -> Bool {
-        guard let sc = sharedContent, let type = sc["type"] as? String else { return false }
+    /// made before build 76. `sharedContent` is the C3 capture object (`Memo.sharedContent` on
+    /// the phone, `PipelineFile.sharedContent` on the Mac); an unknown date counts as old.
+    static func isC203Legacy(sharedContent: SharedContent?, madeAt: Date?) -> Bool {
+        guard let sc = sharedContent else { return false }
         let at = madeAt ?? .distantPast
-        if type == "image" { return at < imageCaptureCutoff }
-        if type == "file" {
-            let mime = (sc["mimeType"] as? String ?? "").lowercased()
-            let name = (sc["fileName"] as? String ?? sc["filePath"] as? String ?? "").lowercased()
+        switch sc.type {
+        case .image:
+            return at < imageCaptureCutoff
+        case .file:
+            let mime = (sc.mimeType ?? "").lowercased()
+            let name = (sc.fileName ?? sc.filePath ?? "").lowercased()
             return (mime.contains("pdf") || name.hasSuffix(".pdf")) && at < pdfCaptureCutoff
+        case .url, .text:
+            return false
         }
-        return false
-    }
-
-    static func isC203Legacy(sharedContentData: Data?, madeAt: Date?) -> Bool {
-        let sc = sharedContentData.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
-        return isC203Legacy(sharedContent: sc, madeAt: madeAt)
     }
 
     // MARK: - the rewrite (pure)
@@ -145,10 +143,6 @@ enum BodyNormaliseMigration {
     }
 
     /// A stored range (UTF-16) in `old`, re-derived in `new`; nil when it has no counterpart.
-    static func remap(_ range: NSRange, from old: String, to new: String) -> NSRange? {
-        remap(range, map: offsetMap(from: old, to: new))
-    }
-
     static func remap(_ range: NSRange, map: [Int: Int]) -> NSRange? {
         guard range.length > 0, let s = map[range.location],
               let e = map[range.location + range.length - 1] else { return nil }

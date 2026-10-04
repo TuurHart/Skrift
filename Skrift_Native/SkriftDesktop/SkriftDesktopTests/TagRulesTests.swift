@@ -49,28 +49,24 @@ final class TagRulesTests: XCTestCase {
     // ── fold (batch add against note + library) ────────────
     func testFoldAddsNewTagsAsTyped() {
         let r = TagRules.fold(["Lisbon", "market"], existing: [], library: ["furniture"])
-        XCTAssertEqual(r.toAdd, ["Lisbon", "market"])
-        XCTAssertTrue(r.folds.isEmpty)
+        XCTAssertEqual(r, ["Lisbon", "market"])
     }
 
     func testFoldReusesLibrarySpellingWhenAddingANewNoteTag() {
         // Not yet on THIS note, so it's still added — under the library's existing
         // spelling rather than what was typed (D139).
         let r = TagRules.fold(["LISBON"], existing: [], library: ["Lisbon", "furniture"])
-        XCTAssertEqual(r.toAdd, ["Lisbon"])
-        XCTAssertEqual(r.folds, [TagRules.Fold(typed: "LISBON", kept: "Lisbon")])
+        XCTAssertEqual(r, ["Lisbon"])
     }
 
     func testFoldSkipsACaseVariantAlreadyOnTheNote() {
         let r = TagRules.fold(["LISBON"], existing: ["Lisbon"], library: [])
-        XCTAssertTrue(r.toAdd.isEmpty, "already on this note, just under a different case")
-        XCTAssertEqual(r.folds, [TagRules.Fold(typed: "LISBON", kept: "Lisbon")])
+        XCTAssertTrue(r.isEmpty, "already on this note, just under a different case")
     }
 
     func testFoldSkipsWhatsAlreadyOnTheNoteExactly() {
         let r = TagRules.fold(["furniture"], existing: ["furniture"], library: [])
-        XCTAssertTrue(r.toAdd.isEmpty)
-        XCTAssertTrue(r.folds.isEmpty, "no fold record for an exact repeat, just a no-op")
+        XCTAssertTrue(r.isEmpty)
     }
 
     func testFoldNeverRewritesTagsAlreadyOnTheNote() {
@@ -78,13 +74,12 @@ final class TagRulesTests: XCTestCase {
         // never touched by this call (the caller's `existing` array is read, not mutated).
         let existing = ["Wood"]
         let r = TagRules.fold(["wood"], existing: existing, library: [])
-        XCTAssertTrue(r.toAdd.isEmpty)
+        XCTAssertTrue(r.isEmpty)
         XCTAssertEqual(existing, ["Wood"], "existing array untouched")
     }
 
     func testFoldWithinOneBatchDedupesToFirstSpelling() {
         let r = TagRules.fold(["Wood", "wood"], existing: [], library: [])
-        XCTAssertEqual(r.toAdd, ["Wood"], "first spelling in the batch wins for the rest of the batch")
-        XCTAssertEqual(r.folds, [TagRules.Fold(typed: "wood", kept: "Wood")])
+        XCTAssertEqual(r, ["Wood"], "first spelling in the batch wins for the rest of the batch")
     }
 }

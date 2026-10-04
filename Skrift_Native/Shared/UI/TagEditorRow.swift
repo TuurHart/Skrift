@@ -319,7 +319,7 @@ struct TagEditorRow: View {
     private func commit(_ accepted: [String]) {
         guard !accepted.isEmpty else { return }
         let dup = TagRules.alreadyOnNote(accepted, existing: tags, library: library)
-        let result = TagRules.fold(accepted, existing: tags, library: library)
+        let toAdd = TagRules.fold(accepted, existing: tags, library: library)
         if let dup {
             let line = "Already on this note as #\(dup)."
             dupHint = line
@@ -328,8 +328,8 @@ struct TagEditorRow: View {
                 if dupHint == line { dupHint = nil }
             }
         } else { dupHint = nil }
-        if !result.toAdd.isEmpty {
-            tags.append(contentsOf: result.toAdd)
+        if !toAdd.isEmpty {
+            tags.append(contentsOf: toAdd)
             onChanged()
         }
         // Adding a tag dismisses any live removal toast — a stale Undo shouldn't

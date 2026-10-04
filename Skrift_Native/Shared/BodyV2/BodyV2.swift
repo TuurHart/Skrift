@@ -2,8 +2,8 @@ import Foundation
 
 /// Body v2 (rewrite target 1): the text a note STORES, built once at commit. A picture is its
 /// own paragraph, always (`\n\n[[img_NNN]]\n\n`, C10); the renderers and the export read it
-/// as-is, so there is no render-time snap. Lives beside v1 (C2): nothing in the app calls it
-/// until the swap item.
+/// as-is, so there is no render-time snap. Every write site stores through `committed` (the
+/// capture drainer, the recorder, the Mac ingest, the editors).
 ///
 /// Placement:
 /// - speech the user never edited, with word times: every manifest picture is placed from
