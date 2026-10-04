@@ -85,31 +85,6 @@ enum ConnectionsPanelLogic {
         ThreeBallScale.isTopStop(significance)
     }
 
-    // ── Superseded (Q119): the raw-value readout below no longer drives any view
-    //    (`importanceReadout` does). It stays only because the protected
-    //    `IPadDetailConnectionsTests` pins its old 0.7/0.8 literals; delete both
-    //    together at a hand-merge. ──
-
-    /// Is this importance past the old 0.8 boundary? The COLOUR half of `importanceText`, which
-    /// the iPad had been missing: the Mac painted 0.8+ amber (the same language the circles
-    /// and the flame tag speak) while the iPad painted every value one colour, so a 1.0
-    /// connection looked exactly like a 0.2 one and the number carried nothing (Tuur spotted
-    /// it comparing the two panels, 2026-08-14). Sharing the string but not the rule is how
-    /// that happened — they live together now.
-    static func isRefineImportance(_ significance: Double) -> Bool {
-        guard significance.isFinite else { return false }
-        let step = Int(min(10, max(0, (significance * 10).rounded())))
-        return step >= 8
-    }
-
-    /// The owner-set importance as a one-decimal readout of the RAW stored value.
-    static func importanceText(_ significance: Double) -> String? {
-        guard significance.isFinite else { return nil }
-        let step = Int(min(10, max(0, (significance * 10).rounded())))
-        guard step > 0 else { return nil }
-        return step == 10 ? "1.0" : "0.\(step)"
-    }
-
     /// Closest = score DESC (best match first). Date mode renders the RAIL
     /// (oldest first — the arc), so this only ever orders the flat list.
     static func ordered(_ rows: [ConnectionRowVM], byDate: Bool) -> [ConnectionRowVM] {

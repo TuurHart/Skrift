@@ -14,22 +14,6 @@ final class IPadDetailConnectionsTests: XCTestCase {
                                score: score, significance: significance)
     }
 
-    // MARK: importance decimal (unrated → nil)
-
-    func testImportanceTextOneDecimal() {
-        XCTAssertEqual(ConnectionsPanelLogic.importanceText(0.8), "0.8")
-        XCTAssertEqual(ConnectionsPanelLogic.importanceText(0.7), "0.7")
-    }
-
-    func testImportanceTextTopStepIsOnePointZero() {
-        XCTAssertEqual(ConnectionsPanelLogic.importanceText(1.0), "1.0")
-    }
-
-    func testImportanceTextUnratedIsNil() {
-        // No fake "0.0" — unrated shows nothing (no-bad-info; matches the Mac panel).
-        XCTAssertNil(ConnectionsPanelLogic.importanceText(0.0))
-    }
-
     // MARK: ordering — Closest = score DESC; Date mode feeds the rail OLDEST first
 
     func testClosestOrdersByScoreDescending() {
@@ -81,16 +65,5 @@ final class IPadDetailConnectionsTests: XCTestCase {
         XCTAssertEqual(chips.count, 4)   // 2 people + 2 tags fill the cap; no terms
         XCTAssertEqual(chips.filter { $0.kind == .person }.count, 2)
         XCTAssertEqual(chips.filter { $0.kind == .tag }.count, 2)
-    }
-
-    /// The COLOUR half of the importance readout, which the iPad had been missing: 0.8+ is
-    /// past the refine wall and must read differently, or the number says nothing.
-    func testImportanceGoesAmberPastTheRefineWall() {
-        XCTAssertFalse(ConnectionsPanelLogic.isRefineImportance(0.2))
-        XCTAssertFalse(ConnectionsPanelLogic.isRefineImportance(0.7))
-        XCTAssertTrue(ConnectionsPanelLogic.isRefineImportance(0.8))
-        XCTAssertTrue(ConnectionsPanelLogic.isRefineImportance(1.0))
-        // Unrated shows no number at all, so the flag is irrelevant but must not claim refine.
-        XCTAssertFalse(ConnectionsPanelLogic.isRefineImportance(0))
     }
 }
