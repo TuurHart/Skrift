@@ -1210,7 +1210,8 @@ final class LiveRecordingService {
         let currentInput = session.currentRoute.inputs.first
         let nodeIn = engine.map { Self.describe($0.inputNode.inputFormat(forBus: 0)) } ?? "-"
         let vended = engine.map { Self.describe($0.inputNode.outputFormat(forBus: 0)) } ?? "-"
-        DevLog.log("route change — reason=\(reason.map { String(describing: $0) } ?? "nil")"
+        DevLog.log("route change — reason=\(RouteChangeName.reason(rawValue: reasonValue))"
+                   + " cat=\(RouteChangeName.category(session.category))/\(RouteChangeName.mode(session.mode))"
                    + " prev=\(Self.describe(previous)) now=\(Self.describe(session.currentRoute))"
                    + " sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
                    + " nodeIn=\(nodeIn) vended=\(vended) engineRunning=\(engine?.isRunning == true)")
@@ -1236,7 +1237,7 @@ final class LiveRecordingService {
                    sessionHwChannels: AVAudioChannelCount(max(0, session.inputNumberOfChannels)),
                    vendedRate: engine.inputNode.inputFormat(forBus: 0).sampleRate,
                    vendedChannels: engine.inputNode.inputFormat(forBus: 0).channelCount) {
-                DevLog.log("route change ignored — input unchanged + format live (\(reason.map { String(describing: $0) } ?? "nil"))")
+                DevLog.log("route change ignored — input unchanged + format live (\(RouteChangeName.reason(rawValue: reasonValue)))")
                 return
             }
             // The input device changed (AirPods pulled / re-inserted, headset
@@ -1254,7 +1255,7 @@ final class LiveRecordingService {
             // exhausted sits with a stopped engine, so ANY later route
             // notification lands here and tries again.
             if !isPaused, let engine, !engine.isRunning {
-                DevLog.log("engine stalled by \(reason.map { String(describing: $0) } ?? "nil") — rebuilding")
+                DevLog.log("engine stalled by \(RouteChangeName.reason(rawValue: reasonValue)) — rebuilding")
                 rebuildTapForCurrentRoute()
             }
         }
