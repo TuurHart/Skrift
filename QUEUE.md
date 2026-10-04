@@ -1657,7 +1657,7 @@ do: (1) `SkriftDesktop/Features/Journal/JournalView.swift:584-587` formats a not
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh WallPrinterTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DAU-c27 DAU-c20 SPL-c24 MLJ-c08 (cleanup-audit P30)
 
-### Q218 [auto] (doing) phone recording and quick note: unread state, forwarders, doc fixes
+### Q218 [auto] (done) phone recording and quick note: unread state, forwarders, doc fixes
 spec: C240
 needs: Q173
 gate+: no
@@ -2126,7 +2126,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D168): delete the Unsynced filter chip (nothing sets syncStatus=.synced outside seeders) and the dead `MemoFilter.hasPhotosOnly` / `.place` on the phone; supersedes D148's chip line. Keep the Mac status pills (D135 platform difference, no change). Phone test `FilterChipsPrunedTests` asserts the chip row no longer offers Unsynced. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh FilterChipsPrunedTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q284 [auto] (todo) keyboard shortcuts: ⌘N new note, ⇧⌘N Record everywhere; Mac ⌘F, ⌘1/⌘2, Record menu
+### Q284 [auto] (doing) keyboard shortcuts: ⌘N new note, ⇧⌘N Record everywhere; Mac ⌘F, ⌘1/⌘2, Record menu
 spec: C112 C114 D169
 needs: -
 gate+: yes
@@ -2244,7 +2244,7 @@ gate+: yes
 do: Q299 shipped FeedbackKit with Pike's default light cream palette (plan/reads/feedback-kit/sheet.png) on a dark Skrift. Pass Skrift's tokens from Shared/UI/Palette into every FeedbackAppearance colour (background, surface, ink, muted, line, gold label, recording) for light AND dark, in Features/Feedback/FeedbackKitWiring.swift; if FeedbackAppearance can't switch with the colour scheme, pass dynamic UIColor-backed Colors. Re-screenshot the sheet + button in dark and light to plan/reads/feedback-kit/ and LOOK. Never run SkriftDesktopUITests.
 check: `ls plan/reads/feedback-kit/sheet-dark.png >/dev/null && ./gate.sh`
 
-### Q301 [auto] (todo) remove the old Mail-based feedback screen now that FeedbackKit is in
+### Q301 [auto] (doing) remove the old Mail-based feedback screen now that FeedbackKit is in
 spec: D179
 needs: -
 gate+: yes
@@ -3235,3 +3235,6 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:32 Q277 -> doing — dispatched (sonnet)
 - 2026-10-04 10:32 Q267 -> doing — dispatched (sonnet)
 - 2026-10-04 10:33 Q209 -> done — gate pass @bc9cd66a
+- 2026-10-04 10:35 Q284 -> doing — dispatched (sonnet)
+- 2026-10-04 10:35 Q301 -> doing — dispatched (sonnet)
+- 2026-10-04 10:38 Q218 -> done — hand-merged (D163: call-site ports in 12 phone test files)
