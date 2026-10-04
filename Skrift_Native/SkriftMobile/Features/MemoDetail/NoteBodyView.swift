@@ -1226,7 +1226,7 @@ struct NoteBodyView: UIViewRepresentable {
             attr.enumerateAttributes(in: NSRange(location: 0, length: attr.length)) { attrs, range, _ in
                 let run = full.substring(with: range)
                 if let marker = attrs[Self.markerKey] as? Int, run == "\u{FFFC}" {
-                    // Match the writer's zero-padded format (ImageMarkers %03d) —
+                    // Match the writer's zero-padded format (`BodyV2Marker` %03d) —
                     // the old editor re-emitted "[[img_1]]" and drifted the format.
                     out.append("[[img_\(String(format: "%03d", marker))]]")
                 } else if let checked = attrs[Self.taskKey] as? Bool, run == "\u{FFFC}" {

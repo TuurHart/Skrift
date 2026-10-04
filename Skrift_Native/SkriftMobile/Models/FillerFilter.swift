@@ -30,7 +30,7 @@ enum FillerFilter {
 
     /// Strip fillers from a transcript + its word timings (positionally
     /// paired, `[[img_NNN]]` marker tokens pass through consuming no timing —
-    /// the same walk as `Paragrapher.paragraphed(transcript:words:)`). When a
+    /// the same positional walk the v1 paragrapher used). When a
     /// dropped filler carried the sentence terminator ("we stop hmm. Then"),
     /// the punctuation transfers to the previous kept word so the sentence
     /// still ends. Returns the input unchanged when nothing matched or when

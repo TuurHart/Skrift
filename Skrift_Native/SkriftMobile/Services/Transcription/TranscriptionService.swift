@@ -277,13 +277,15 @@ struct SeededTranscriber: Transcribing {
         let timedWords = pieces.enumerated().map { index, word in
             TimedWord(text: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
         }
+        let wordTimings = timedWords.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
         var outText = text
         var markersInjected = false
         if !imageManifest.isEmpty, !timedWords.isEmpty {
-            outText = ImageMarkers.insert(transcript: text, words: timedWords, manifest: imageManifest)
+            // Same placement as the real engine (`ASRPostProcess`): body v2, committed once.
+            outText = BodyV2.committed(BodyV2.Input(text: text, words: wordTimings, manifest: imageManifest,
+                                                    source: .speech))
             markersInjected = true
         }
-        let wordTimings = timedWords.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
         return TranscriptionResult(text: outText, confidence: 1.0, durationMs: 0,
                                    wordTimings: wordTimings, markersInjected: markersInjected)
     }

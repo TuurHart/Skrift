@@ -13,7 +13,7 @@ enum ASRError: LocalizedError {
 /// HuggingFace on first use (~600 MB) and cache locally — matching the app's
 /// HF-download distribution. Lives in `Engines/` (app target only) so FluidAudio
 /// stays out of the host-less logic test target; the deterministic post-processing
-/// (BPEMerge / ImageMarkers) is tested separately. Mirrors Shhhcribble + the phone's
+/// (BPEMerge / BodyV2) is tested separately. Mirrors Shhhcribble + the phone's
 /// TranscriptionService on FluidAudio `main`.
 actor TranscriptionService: Transcribing {
     static let shared = TranscriptionService()
