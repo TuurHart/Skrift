@@ -1689,7 +1689,7 @@ do: Two hardware-flavoured defects found by reading; neither run on a device. (1
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LiveRecordingRouteChangeTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-c28 MRC-c11 MRC-d18 (cleanup-audit P34)
 
-### Q222 [auto] (doing) phone list, journal and settings: unused chrome, filters, launch flags, comments
+### Q222 [auto] (done) phone list, journal and settings: unused chrome, filters, launch flags, comments
 spec: C240
 needs: Q173 Q110
 gate+: no
@@ -3338,3 +3338,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 19:13 Q239 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 19:29 Q239 -> done — hand-merged (D163: ports + deletion of duplicate WayOut cases covered by WayOutSharedTests)
 - 2026-10-04 19:29 Q222 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 19:44 Q222 -> done — gate pass @7ca0ae08
