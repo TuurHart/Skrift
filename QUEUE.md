@@ -1585,10 +1585,10 @@ do: Bug found by reading, not run: `ProcessingCoordinator.redo` sets `isRunning`
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-d12 DSH-d21 DSH-c02 DSH-c17 (cleanup-audit P21)
 
-### Q209 [auto] (doing) Mac headless harnesses: one arg parser, one runner, and a swallowed error fixed
+### Q209 [auto] (done) Mac headless harnesses: one arg parser, one runner, and a swallowed error fixed
 spec: C240
 needs: Q206
-gate+: no
+gate+: yes
 do: `RunFile.swift` has 17 `...IfRequested` entry points; 16 define their own `log()` (two to stdout, `runVaultExportIfRequested` at 226 and `runVaultPreviewIfRequested` at 309, the rest to stderr: keep both) and each parses its argument with `firstIndex(of: "-flag"), i + 1 < count` (19 sites). Add `LaunchArgs.value(after:)` (move the phone's `[String].boolFlag/stringValue` from `SkriftMobile/App/LaunchArgs.swift` into `Shared/Model` so both apps and `Snapshot.swift:26`, `CorpusSeed.swift:242`, `ProcessingCoordinator.swift:50`, `LifecycleSweepScheduler.swift:68`, `NoteDestination.swift:145,153`, `PortfolioVault.swift:54` use it; the phone helper also accepts `-key=value`, harmless) and a small `Harness` helper (arg lookup, log, `main(body)` that catches, prints and exits 0 or 1). Bug first: `runRateToRowIfRequested` (`RunFile.swift:863-923`) uses `try` inside `Task { @MainActor in }` with no catch, so a throw from `typedNote` (878) or `cloudCtx.save()` (887) is swallowed, `exit()` is never reached and the process carries on as a GUI app; fix it before the refactor. `-readalongcheck` (`RunFile.swift:141-172`) calls `anchorDrift` after extending it to return its rows and percentiles (it prints p10/p90/min/max and a per-anchor listing; the harness stays, `SPEC.md:1218`, `CLAUDE.md:190`). `fixtureStore(full:)` in `Snapshot.swift` for the ten in-memory containers (eight seed `DemoSeed.snapshotFiles()`; schemas differ, so the schema is a parameter). One constant for `-isolatedRun` (`SkriftDesktopApp.swift:14`, `MemoCloudContainer.swift:55`, `RootView.swift:192`) and one `isXCTest` for the six `XCTestConfigurationFilePath` sites. Flag names and output formats must not change (plan/*.sh and RUN.md use them). Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DSH-c10 DSH-c09 DSH-c12 DSH-d10 DAU-c21 PER-c02 (cleanup-audit P22)
@@ -2021,11 +2021,11 @@ gate+: yes
 do: Left by Q136: (1) the Mac's link capture (IngestService+Captures.swift, LinkFetching seam) does not retry a failed fetch — C72 says up to 3 retries; add a bounded retry with backoff behind the seam (testable with a stub fetcher). (2) The phone still shows 'Capture' for a link with no page title, while the Mac uses the host per C72 — make the phone use the same shared rule (Shared/Pipeline/ImportDoors.swift / LinkCard). Desktop test `LinkFetchRetryTests`, phone test `LinkUntitledHostTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LinkFetchRetryTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh LinkUntitledHostTests && ./gate.sh`
 
-### Q267 [auto] (todo) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
+### Q267 [auto] (doing) hand-merge: update protected IngestServiceTests.testUnsupportedTypeSkipped + MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped to 'a PDF becomes a file capture', then delete IngestService.acceptsDocuments and its ArrivalPath line (Q136 workaround)
 spec: -
 needs: -
-do: -
-check: Tuur approved; done via plan/hand-merge.sh.
+do: Q136 made a dropped PDF become a file capture; two protected tests still encode the old 'documents are skipped' rule. Under SPEC D163: update IngestServiceTests.testUnsupportedTypeSkipped and MacMixedDropTests.testNoDroppedFileIsEverSilentlySkipped so a PDF is expected to become a file capture (matching shipped behaviour, no new behaviour), then delete IngestService.acceptsDocuments and its ArrivalPath line (the Q136 workaround). Never run SkriftDesktopUITests.
+check: `! grep -rq 'acceptsDocuments' Skrift_Native/SkriftDesktop --include=*.swift && ./gate.sh`
 
 ### Q268 [tuur] (done) review Q176/Q159 picks (in the Q176 commit message): person editor 'Person'/'New person' + Done on both (Mac was Edit person/Save); Mac names filter always shown when the list has people
 spec: -
@@ -2082,11 +2082,11 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q277 [auto] (todo) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
+### Q277 [auto] (doing) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
 spec: -
 needs: -
-do: (fill in)
-check: (fill in)
+do: Under SPEC D163 (ports of tests of deleted code): rewrite the constructors in protected SkriftDesktopTests/CompilerTests.swift (~325-354) to build SharedContent(type: .url/.text/.image/.image/.file, ...) directly — the old unknown-type case becomes .file = 'a .file capture pins nothing' — then delete the Q247 temporary shim SkriftDesktopTests/CompilerSharedContentShim.swift. Assertions keep their meaning. Never run SkriftDesktopUITests.
+check: `! test -f Skrift_Native/SkriftDesktop/SkriftDesktopTests/CompilerSharedContentShim.swift && ./gate.sh`
 
 ### Q278 [tuur] (tuur) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
 spec: -
@@ -3231,3 +3231,7 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:15 Q304 -> tuur — parked: Dev check
 - 2026-10-04 10:24 Q303 -> doing — dispatched (sonnet; privacy)
 - 2026-10-04 10:27 Q300 -> done — gate pass @83ca3b43
+- 2026-10-04 10:29 Q209 -> stuck — touched protected: Skrift_Native/SkriftDesktop/SkriftDesktopTests/LaunchArgsTests.swift 
+- 2026-10-04 10:32 Q277 -> doing — dispatched (sonnet)
+- 2026-10-04 10:32 Q267 -> doing — dispatched (sonnet)
+- 2026-10-04 10:33 Q209 -> done — gate pass @bc9cd66a
