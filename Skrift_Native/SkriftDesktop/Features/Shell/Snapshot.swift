@@ -1457,7 +1457,7 @@ enum Snapshot {
                 for o in old { ctx.delete(o) }
             }
             guard let pf = try? MemoCloudIngest.ingest(memo: memo, assets: assets, upload: upload,
-                                                       into: ctx, processEverything: true) else {
+                                                       into: ctx) else {
                 print("renderCaptureCorpus: \(w.name) — ingest returned nil"); continue
             }
             if !w.rated { pf.significance = 0 }

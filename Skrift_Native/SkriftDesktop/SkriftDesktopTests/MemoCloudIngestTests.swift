@@ -108,16 +108,6 @@ final class MemoCloudIngestTests: XCTestCase {
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 0)
     }
 
-    func testProcessEverythingOverridesSignificanceGate() throws {
-        let memo = Memo(id: UUID(), audioFilename: "memo_z2.m4a", recordedAt: Date(),
-                        transcriptStatus: .done, significance: 0)
-        let ctx = try memoryContext()
-        let pf = try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
-                                            upload: UploadService(outputDir: makeTempDir()), into: ctx,
-                                            processEverything: true)
-        XCTAssertNotNil(pf, "the 8d 'process everything' override ingests significance-0 memos")
-    }
-
     func testTrashedMemoIsSkipped() throws {
         let memo = Memo(id: UUID(), audioFilename: "memo_t.m4a", recordedAt: Date(),
                         transcriptStatus: .done, significance: 0.6, deletedAt: Date())

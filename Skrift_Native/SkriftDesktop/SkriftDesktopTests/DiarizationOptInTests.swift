@@ -29,10 +29,10 @@ final class DiarizationOptInTests: XCTestCase {
 
     /// A settings.json exactly as the OLD prod build wrote it: `conversationMode: true`.
     private func legacySettingsFile() throws -> URL {
-        var s = AppSettings.default
-        s.conversationMode = true
+        // Raw JSON: the typed field no longer exists, the legacy key must still load and stay inert.
+        let legacy = #"{"noteFolder":"/tmp/v","audioFolder":"","attachmentsFolder":"","authorName":"T","enhancementModelRepo":"r","prompts":{"copyEdit":"c","summary":"s","title":"t"},"highpassFreqHz":80,"conversationMode":true}"#
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("optin-\(UUID().uuidString).json")
-        try JSONEncoder().encode(s).write(to: url)
+        try Data(legacy.utf8).write(to: url)
         return url
     }
 

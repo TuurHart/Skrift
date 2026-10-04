@@ -98,9 +98,6 @@ extension MemoCloudReconciler {
         // the store and reads the latest import.
         let cloudContext = ModelContext(cloud)
         let outcome = sweep(from: cloudContext, into: local,
-                            // toggle retired 2026-07-21 — the Queue band's Process all N is
-                            // the visible override now (Q6).
-                            processEverything: false,
                             people: NamesStore.shared.livePeople(), author: settings.authorName,
                             thisDeviceID: DeviceID.current())
         Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(

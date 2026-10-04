@@ -143,7 +143,7 @@ struct BatchRunner {
         // is left as plain prose. The Sanitiser then links any remaining plain aliases;
         // matched speakers already carry the canonical `[[ ]]` so they're skipped.
         var diarOut = splitOutput
-        if diarOut == nil, let diarizer, pf.diarizeRequested || settings.conversationModeEnabled, let audioURL, didTranscribe,
+        if diarOut == nil, let diarizer, pf.diarizeRequested, let audioURL, didTranscribe,
            !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
            !SpeakerTranscript.isAttributed(pf.transcript) {
             diarOut = try? await diarizer.diarize(audioURL: audioURL)

@@ -116,8 +116,8 @@ final class DiarizationTests: XCTestCase {
 
     func testRunDiarizesMatchedAndUnmatchedSpeakers() async throws {
         let pf = PipelineFile(id: "c1", filename: "m.m4a", path: "/tmp/c1", size: 0, sourceType: .audio)
-        var settings = AppSettings.default; settings.conversationMode = true   // auto-diarize is opt-in now
-        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: settings,
+        pf.diarizeRequested = true   // auto-diarize is opt-in per note
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
                                  people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c1.m4a"))
         let t = try XCTUnwrap(pf.transcript)
@@ -129,9 +129,8 @@ final class DiarizationTests: XCTestCase {
     }
 
     func testRunSkipsDiarizationWhenConversationModeOff() async throws {
-        var settings = AppSettings.default; settings.conversationMode = false
         let pf = PipelineFile(id: "c2", filename: "m.m4a", path: "/tmp/c2", size: 0, sourceType: .audio)
-        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: settings,
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
                                  people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c2.m4a"))
         XCTAssertEqual(pf.transcript, "one two three four")   // untouched
@@ -172,8 +171,8 @@ final class DiarizationTests: XCTestCase {
         // otherwise the **Speaker N:**/**[[Person]]:** turns vanish from the exported note.
         let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog"], short: "Tiuri", lastModifiedAt: "x")
         let pf = PipelineFile(id: "c5", filename: "m.m4a", path: "/tmp/c5", size: 0, sourceType: .audio)
-        var settings = AppSettings.default; settings.conversationMode = true   // auto-diarize is opt-in now
-        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: StrippingEnhancer(), settings: settings,
+        pf.diarizeRequested = true   // auto-diarize is opt-in per note
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: StrippingEnhancer(), settings: .default,
                                  people: [tiuri], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c5.m4a"))
         XCTAssertEqual(pf.enhancedCopyedit, pf.transcript, "copy-edit must be skipped for a conversation")
@@ -470,8 +469,8 @@ final class DiarizationTests: XCTestCase {
         let audioURL = folder.appendingPathComponent("original.m4a")
 
         let pf = PipelineFile(id: "persist1", filename: "m.m4a", path: audioURL.path, size: 0, sourceType: .audio)
-        var settings = AppSettings.default; settings.conversationMode = true   // auto-diarize is opt-in now
-        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: settings,
+        pf.diarizeRequested = true   // auto-diarize is opt-in per note
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
                                  people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: audioURL)
 
