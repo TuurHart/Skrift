@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 /// The app shell — a resizable 2-pane layout (Sidebar | review surface),
 /// mirroring the Electron app's `Group`/`Panel` split.
@@ -15,6 +16,9 @@ struct RootView: View {
     /// thread through the sidebar and the pane switch below.
     @State private var liveSession: LiveRecordingSession
     @State private var settingsOpen = false
+    /// A refused start of an "Add recording" take (Q290) — the sidebar's own alert only
+    /// covers takes its Record button started.
+    @State private var appendMicProblem: MacRecorder.Refusal?
     @State private var showWizard = false
     /// The memo id behind the "not processed yet" peek sheet — set when a Journal
     /// river card points at a memo with no queue row (mocks/lifecycle-ia-explorations.html
@@ -220,6 +224,32 @@ struct RootView: View {
         // only on an actual settling→idle transition, never on launch's starting `.idle`.
         .onChange(of: liveSession.phase) { _, new in
             if new == .idle, let id = liveSession.noteID { model.select(id) }
+        }
+        // "Add recording" from a note's ⋯ (D173, Q290): the take's transport and stop live in
+        // the sidebar, so it is shown first.
+        .onReceive(NotificationCenter.default.publisher(for: .macAddRecordingRequested)) { note in
+            guard let id = note.object as? String, let file = files.first(where: { $0.id == id }) else { return }
+            sidebarVisible = true
+            Task {
+                await liveSession.start(appendingTo: file)
+                if case .failed(let why) = liveSession.phase { appendMicProblem = why }
+            }
+        }
+        .alert("Can't record", isPresented: Binding(
+            get: { appendMicProblem != nil },
+            set: { if !$0 { appendMicProblem = nil } }
+        )) {
+            if appendMicProblem?.fixedInPrivacySettings == true {
+                Button("Open Settings") {
+                    if let url = URL(string: MacRecorder.Refusal.privacySettingsURL) {
+                        NSWorkspace.shared.open(url)
+                    }
+                    appendMicProblem = nil
+                }
+            }
+            Button("OK", role: .cancel) { appendMicProblem = nil }
+        } message: {
+            Text(appendMicProblem?.message ?? "")
         }
     }
 

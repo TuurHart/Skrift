@@ -70,6 +70,14 @@ final class LiveRecordingSession {
     /// After a completed stop: the created `PipelineFile` id, so the UI can select it.
     private(set) var noteID: String?
 
+    /// "Add recording" (D173, Q290): the existing note this take lands on, set by
+    /// `start(appendingTo:)`. nil = an ordinary take that becomes a new note.
+    struct AppendTarget: Equatable {
+        let id: String
+        let title: String
+    }
+    private(set) var appendTarget: AppendTarget?
+
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "liverecord")
 
     private let coordinator: ProcessingCoordinator
@@ -94,10 +102,16 @@ final class LiveRecordingSession {
     /// (A fail-fast death with zero buffers ever arriving leaves `phase` at `.starting`, same
     /// as a mid-take device loss leaves it at `.live` — either way the very next `stop()`/
     /// `cancel()` picks up `recorder.state`'s `.failed` honestly, same as today.)
-    func start() async {
+    func start(appendingTo file: PipelineFile? = nil) async {
+        // One mic, one take: a second start while a take is in flight is ignored.
+        switch phase {
+        case .starting, .live, .settling: return
+        default: break
+        }
         phase = .starting
         draft = LiveRecordingDraft()
         noteID = nil
+        appendTarget = file.map { AppendTarget(id: $0.id, title: $0.displayTitle) }
         // R46: the recorder ends the take itself when the disk refuses a write — stop + SAVE
         // what landed, the note titled with the reason.
         recorder.onTakeEnded = { [weak self] reason in
@@ -141,6 +155,19 @@ final class LiveRecordingSession {
 
         let cloudContext = MemoCloudStore.container?.mainContext
         var createdRow: PipelineFile?
+
+        // "Add recording": land the take on its note. Only a take that could NOT be added
+        // (the note is gone, or its audio can't be spliced) falls through to the new-note
+        // path below, so the take is never lost.
+        if let target = appendTarget {
+            appendTarget = nil
+            if await finishAppend(clip: url, to: target, cloudContext: cloudContext) {
+                phase = .idle
+                draft = LiveRecordingDraft()
+                return
+            }
+            coordinator.flash("Couldn't add it to that note, so it's saved as a new note")
+        }
 
         if draft.everEdited {
             // Edited → the person's settled text is FINAL for its region; only the engine's
@@ -217,7 +244,73 @@ final class LiveRecordingSession {
         Task { await TranscriptionService.shared.endStream() }
         draft = LiveRecordingDraft()
         noteID = nil
+        appendTarget = nil
         phase = .idle
+    }
+
+    /// Land a stopped take on an existing note (`MacAppendRecording`, the phone's
+    /// `appendRecordingAsync` shape). Returns false — with the note untouched and the take's
+    /// files kept — when the take could not be added; the caller then saves it as a new note.
+    ///
+    /// The words: an EDITED take keeps the person's settled text plus the engine's final tail
+    /// (the new-note rule); an unedited one takes the full-quality file pass, falling back to
+    /// the live text when that pass hears nothing or fails. The file pass's word timings ride
+    /// along either way (`KaraokeTrack` aligns them to the shown words).
+    private func finishAppend(clip url: URL, to target: AppendTarget, cloudContext: ModelContext?) async -> Bool {
+        let targetID = target.id
+        guard let pf = try? context.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { $0.id == targetID })).first, pf.deletedAt == nil else {
+            Self.log.error("append: note \(targetID, privacy: .public) is gone; saving the take as a new note")
+            return false
+        }
+        var text: String
+        let edited = draft.everEdited
+        if edited {
+            let tail = await TranscriptionService.shared.finishStreamParts().finalTail
+            text = LiveRecordingFinalize.transcript(settledText: draft.settledText, finalTail: tail)
+        } else {
+            text = LiveRecordingFinalize.transcript(settledText: draft.settledText, finalTail: draft.wetText)
+            await TranscriptionService.shared.endStream()
+        }
+        var timings: [WordTiming] = []
+        if let result = try? await TranscriptionService.shared.transcribe(audioURL: url),
+           !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if !edited { text = result.text }
+            timings = result.wordTimings
+        }
+
+        // Audio first, off the main actor. A throw leaves the note's audio as it was.
+        let path = pf.path
+        let splice: (merged: TimeInterval, base: TimeInterval)
+        do {
+            splice = try await Task.detached(priority: .userInitiated) {
+                try MacAppendRecording.spliceAudio(path: path, clip: url) { msg in
+                    Logger(subsystem: "com.skrift.desktop", category: "liverecord").error("\(msg, privacy: .public)")
+                }
+            }.value
+        } catch {
+            Self.log.error("append: splice failed — \(String(describing: error), privacy: .public); note untouched")
+            return false
+        }
+
+        let settings = SettingsStore.shared.load()
+        let memo = cloudContext.flatMap { MacCloudWriteBack.resolve(for: pf, in: $0) }
+        do {
+            try MacAppendRecording.land(text: text, timings: timings, splice: splice,
+                                        on: pf, memo: memo, cloud: cloudContext,
+                                        people: NamesStore.shared.livePeople(),
+                                        author: settings.authorName)
+        } catch {
+            // The audio is already in the note; only the cloud save failed. Never re-save the
+            // take as a second note — the row holds everything and the next edit re-syncs.
+            Self.log.error("append: cloud write failed — \(String(describing: error), privacy: .public)")
+        }
+        try? context.save()
+        recorder.discardFinishedTake()
+        noteID = pf.id
+        coordinator.flash(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                          ? "Recording added — no words heard" : "Recording added")
+        return true
     }
 
     /// The take is stored as a note: title it with why it ended early (R46), then — and only

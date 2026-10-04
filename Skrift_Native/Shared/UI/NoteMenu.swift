@@ -134,8 +134,10 @@ extension NoteMenuItem {
             }
         case .macList:
             switch self {
-            case .addRecording, .splitSpeakers:
-                return "not built on the Mac (the recorder and the split live on the phone)"
+            case .addRecording:
+                return "acts on the OPEN note: it lives in its ⋯ (NoteActions, Q290)"
+            case .splitSpeakers:
+                return "not built on the Mac (the split lives on the phone)"
             case .undoTidyUp:
                 return "lives in the open note's ⋯ (NoteActions)"
             case .remind:
