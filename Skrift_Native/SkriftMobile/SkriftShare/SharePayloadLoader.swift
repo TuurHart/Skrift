@@ -73,8 +73,7 @@ struct SharePayload {
 
 /// Loads a `SharePayload` from the extension context's input items.
 ///
-/// Priority: URL > image > text. The extension handles one item at a time
-/// (activation rule: max 1 of each type), so the first matching provider wins.
+/// The branch order (audio first, so a voice note never becomes a link) is in `load`.
 ///
 /// **No network fetch** — `urlTitle` comes only from the item's `attributedContentText`
 /// (Safari/Chrome supply the page title there). If unavailable, we show the domain.

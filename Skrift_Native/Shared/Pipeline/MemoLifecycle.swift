@@ -142,13 +142,6 @@ enum MemoLifecycle {
         return now.timeIntervalSince(start) >= TrashPolicy.retention
     }
 
-    /// When a trashed note is gone for good (the countdown label). An unseen
-    /// note reads as a full window from `now` — the truth under the gate: its
-    /// clock starts the moment you're looking at it.
-    static func goneAt(_ memo: Memo, now: Date = Date()) -> Date {
-        (trashClockStart(memo) ?? now).addingTimeInterval(TrashPolicy.retention)
-    }
-
     /// The at-open stamp: start the clock for every trashed note that has no
     /// valid sighting (deletions that synced in, or that pre-date v3). Both
     /// apps call this ONLY on a human open (phone launch/foreground; Mac

@@ -108,9 +108,6 @@ final class MemoLifecycleTests: XCTestCase {
         XCTAssertNil(MemoLifecycle.trashClockStart(unseen))
         XCTAssertFalse(MemoLifecycle.purgeDue(unseen, now: now),
                        "no sighting — a month in the trash burns nothing")
-        XCTAssertEqual(MemoLifecycle.goneAt(unseen, now: now),
-                       now.addingTimeInterval(TrashPolicy.retention),
-                       "the label promises a full window from now — the truth")
 
         let stale = bareMemo(days: 90)
         stale.deletedAt = daysAgo(20)

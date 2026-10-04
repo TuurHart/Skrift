@@ -85,9 +85,6 @@ extension Color {
 /// spacing scale, continuous corners, and one spring for everything.
 enum Theme {
     enum Space {
-        static let sm: CGFloat = 8
-        static let md: CGFloat = 16
-        static let lg: CGFloat = 24
         /// Card inner padding + inter-card gap from the mockups.
         static let cardPadding: CGFloat = 13
         /// Screen side margins.
@@ -97,9 +94,6 @@ enum Theme {
     enum Radius {
         static let card: CGFloat = 16
         static let field: CGFloat = 11
-        static let chip: CGFloat = 8
-        static let sheet: CGFloat = 24
-        static let group: CGFloat = 16
     }
 
     /// Cross-app curves — defined in `Shared/UI/Motion.swift` so the Mac moves on

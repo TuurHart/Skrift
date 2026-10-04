@@ -1,6 +1,5 @@
 import UIKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// UIKit host for the SwiftUI share sheet. Share extensions MUST subclass
 /// UIViewController (the UIKit lifecycle); SwiftUI is hosted via UIHostingController.
@@ -208,11 +207,6 @@ final class ShareViewController: UIViewController {
         case .file: return payload.fileName.map { "\($0) saved" } ?? "Document saved"
         }
     }
-
-    // completeVideo/completeFile RETIRED 2026-07-12 (E1, mock share-ingest-wave2
-    // m1/m2): video + documents present the slim sheet like everything else —
-    // their entries come back through `complete` with the typed thought +
-    // significance attached, and the temp copies ride `payload.videoURL`/`fileURL`.
 
     private func cancel() {
         extensionContext?.cancelRequest(withError: CocoaError(.userCancelled))

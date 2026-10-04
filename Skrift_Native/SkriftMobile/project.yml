@@ -317,8 +317,8 @@ targets:
       - target: SkriftShare
         embed: true
 
-  # Shared framework: Live Activity ActivityAttributes (and, in 8b, the App
-  # Intents) — visible to both the app and the widget extension.
+  # Shared framework: Live Activity ActivityAttributes and the App
+  # Intents — visible to both the app and the widget extension.
   SkriftShared:
     type: framework
     platform: iOS
@@ -344,8 +344,8 @@ targets:
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.shared
 
-  # WidgetKit extension: the recording Live Activity (8a); Control Center +
-  # Home/Lock widgets land in 8b.
+  # WidgetKit extension: the recording Live Activity, Control Center
+  # and Home/Lock widgets.
   SkriftWidget:
     type: app-extension
     platform: iOS

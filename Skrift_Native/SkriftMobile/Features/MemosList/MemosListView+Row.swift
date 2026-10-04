@@ -87,8 +87,6 @@ struct MemoCard: View {
         m.balls = memo.locked ? nil : ThreeBallScale.step(for: memo.significance)
         if let kind = memo.statusKind {
             let pillKind: NoteCardModel.Pill.Kind = switch kind {
-            case .synced: .done
-            case .waiting: .amber
             case .transcribing: .progress
             case .error: .error
             }

@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import SwiftData
 import UIKit
@@ -349,3 +350,4 @@ enum DemoDataSeeder {
         ]
     }
 }
+#endif

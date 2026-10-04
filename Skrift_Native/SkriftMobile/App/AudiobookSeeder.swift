@@ -1,3 +1,4 @@
+#if DEBUG
 import AVFoundation
 import Foundation
 
@@ -82,3 +83,4 @@ enum AudiobookSeeder {
         try file.write(from: buffer)
     }
 }
+#endif

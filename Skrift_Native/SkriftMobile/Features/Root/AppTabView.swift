@@ -92,13 +92,16 @@ struct AppTabView: View {
         // replaced the phantom paused session — cards for starting, chrome for
         // controlling; a session exists only once you actually play.
         .task {
-            if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen() }
-            else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly() }
+            var seeded = false
+            #if DEBUG
+            if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen(); seeded = true }
+            else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly(); seeded = true }
+            #endif
             // `-resumeBook`: open the last-played REAL book paused — the same
             // book-open path a library tap runs (incl. `alignIfNeeded`), for
             // headless device verification over devicectl.
-            else if LaunchFlags.resumeBook,
-                    let recent = AudiobookLibraryStore.shared.sortedByRecent.first {
+            if !seeded, LaunchFlags.resumeBook,
+               let recent = AudiobookLibraryStore.shared.sortedByRecent.first {
                 _ = AudiobookSession.shared.open(recent, autoplay: false)
             }
             if LaunchFlags.showTOCSheet { showSeededTOC = true }

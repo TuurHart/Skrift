@@ -36,26 +36,6 @@ extension Memo {
         SourceKind.of(self) == .video
     }
 
-    /// Whole days until the startup purge permanently removes this trashed memo
-    /// (ceiling — a memo deleted an hour ago shows the full 14). 0 = expires on
-    /// the next purge. Nil when the memo isn't in the trash. v3 (2026-07-23):
-    /// counts from the trash SIGHTING (`MemoLifecycle.goneAt`), matching the
-    /// purge gate — an unseen synced-in deletion shows the full window, because
-    /// that's what it truly has. `now` injectable for tests.
-    func trashDaysRemaining(now: Date = Date()) -> Int? {
-        guard deletedAt != nil else { return nil }
-        let remaining = MemoLifecycle.goneAt(self, now: now).timeIntervalSince(now)
-        return max(0, Int(ceil(remaining / 86_400)))
-    }
-
-    /// Countdown caption for Recently Deleted rows: "13 days left" / "1 day left"
-    /// / "Deleting soon" (already past retention, gone at next launch).
-    func trashCountdownLabel(now: Date = Date()) -> String? {
-        guard let days = trashDaysRemaining(now: now) else { return nil }
-        if days <= 0 { return "Deleting soon" }
-        return days == 1 ? "1 day left" : "\(days) days left"
-    }
-
     /// Full-text search — the ONE shared matcher (`NoteSearch`, Q103/C236): title, generated
     /// title, transcript, summary, tags, place, annotation, shared-capture text, photo OCR.
     /// `enhancedTitle` / `summary` are the note's `MemoEnhancement` fields when the caller has
@@ -148,11 +128,6 @@ extension Memo {
     /// Q106: the one shared builder (`NoteCardBuilder.quoteLine`, over `CaptureQuote.split`).
     var quoteSnippet: String? { NoteCardBuilder.quoteLine(in: transcript) }
 
-    /// First line of the ramble below the C1 quote block (markers stripped) —
-    /// the capture row's secondary text. Nil while the capture has no ramble
-    /// yet ("Save & keep listening" without recording thoughts).
-    var rambleSnippet: String? { NoteCardBuilder.rambleLine(in: transcript) }
-
     /// The leading `> ` quote block split for the DETAIL screen. Nil when the body doesn't
     /// open with one.
     ///
@@ -222,26 +197,13 @@ extension Memo {
     }
 }
 
-// `CaptureQuote` (the leading `> ` block split + the attribution caption) moved to
-// Shared/Model/CaptureQuote.swift on 2026-07-27 — the Mac had a second copy of the same
-// rule, and a quote has to look identical on every app.
-
 enum MemoStatusKind: Equatable {
-    case synced, waiting, transcribing, error
+    case transcribing, error
 
     var label: String {
         switch self {
-        case .synced: return "Synced"
-        case .waiting: return "Waiting"
         case .transcribing: return "Transcribing"
         case .error: return "Error"
         }
     }
 }
-
-// `MemoDate` moved to `Shared/Model/MemoDate.swift` (Q26, D135/D136 — the unified
-// notes list): the Mac's queue rows now stamp with the same clock word + day group.
-
-/// Map a captured `DayPeriod` to an SF Symbol for the context chips.
-// DayPeriod.symbol / .label moved to the SHARED model (Shared/Model/MemoMetadata.swift)
-// so the phone header and the Mac properties share one definition.

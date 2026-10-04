@@ -30,35 +30,26 @@ extension View {
 /// Uppercase section label (`TITLE`, `TRANSCRIPT`, `TAGS`, `CONTEXT`, `ON YOUR NETWORK`).
 struct SectionLabel: View {
     let text: String
-    var trailing: String?
 
-    init(_ text: String, trailing: String? = nil) {
+    init(_ text: String) {
         self.text = text
-        self.trailing = trailing
     }
 
     var body: some View {
-        HStack(spacing: 5) {
-            Text(text)
-            if let trailing {
-                Text(trailing).foregroundStyle(Color.skTextFaint)
-            }
-        }
-        .font(.system(size: 11.5, weight: .bold))
-        .kerning(0.5)
-        .foregroundStyle(Color.skTextDim)
+        Text(text)
+            .font(.system(size: 11.5, weight: .bold))
+            .kerning(0.5)
+            .foregroundStyle(Color.skTextDim)
     }
 }
 
 // MARK: - Status pill
 
 enum PillStyle {
-    case synced, waiting, working, error
+    case working, error
 
     var fg: Color {
         switch self {
-        case .synced: return .skGreen
-        case .waiting: return .skTextDim
         case .working: return .skAmber
         case .error: return .skRed
         }
@@ -66,15 +57,13 @@ enum PillStyle {
 
     var bg: Color {
         switch self {
-        case .synced: return Color.skGreen.opacity(0.13)
-        case .waiting: return Color.white.opacity(0.06)
         case .working: return Color.skAmber.opacity(0.14)
         case .error: return Color.skRed.opacity(0.14)
         }
     }
 }
 
-/// Honest status chip (Synced / Waiting / Transcribing / Retry). `working` pulses;
+/// Honest status chip (Transcribing / Transcription failed). `working` pulses;
 /// `error` shows a retry affordance when given an action.
 struct StatusPill: View {
     let style: PillStyle
@@ -88,7 +77,7 @@ struct StatusPill: View {
                     .fill(Color.skAmber)
                     .frame(width: 7, height: 7)
                     .shadow(color: .skAmber, radius: 4)
-                    .symbolEffectPulseFallback()
+                    .modifier(PulseOpacity())
             } else if let systemImage {
                 Image(systemName: systemImage).font(.system(size: 10, weight: .bold))
             }
@@ -106,14 +95,7 @@ struct StatusPill: View {
     }
 }
 
-private extension View {
-    /// `.symbolEffect(.pulse)` only applies to symbols; for the plain dot we just
-    /// breathe the opacity so "transcribing" reads as alive.
-    @ViewBuilder func symbolEffectPulseFallback() -> some View {
-        self.modifier(PulseOpacity())
-    }
-}
-
+/// The plain dot breathes its opacity so "transcribing" reads as alive.
 private struct PulseOpacity: ViewModifier {
     @State private var on = false
     func body(content: Content) -> some View {
@@ -167,8 +149,6 @@ struct SearchField: View {
         if let focus { tf.focused(focus) } else { tf }
     }
 }
-
-enum TagChipStyle { case applied, suggestion, add }
 
 /// `UIActivityViewController` in SwiftUI clothing: the system share sheet (the one wrapper
 /// the memo "Share note…" and the book "Share book…" sheets both present).
