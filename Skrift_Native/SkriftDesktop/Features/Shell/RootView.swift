@@ -162,11 +162,6 @@ struct RootView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: coordinator.toast)
         .task {
-            // One-clock doctrine switch (2026-07-22): old parked notes get a
-            // fresh clock once, so nothing fades out from under the user.
-            if let cloudCtx = MemoCloudStore.container?.mainContext {
-                MemoLifecycle.runOneClockMigrationOnce(context: cloudCtx)
-            }
             // C99 / Q163: a take an earlier run never finished (kill, crash, dead battery)
             // becomes a note now. Its own Task: the rebuilt take is transcribed, which can
             // run for a while, and nothing else here should wait on it.

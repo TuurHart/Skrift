@@ -157,45 +157,6 @@ enum MemoLifecycle {
         return stamped
     }
 
-    // MARK: - one-clock migration (2026-07-22, run once per device)
-
-    /// Old-doctrine parked notes — touched-but-unrated, where edit/title/tag/
-    /// annotation used to BE immortality and never wrote `keptAt` — get a fresh
-    /// clock once, so the doctrine switch can't fade anything out from under the
-    /// user. Idempotent per note (`keptAt == nil` guard); the caller gates the
-    /// pass with a defaults flag and saves the context.
-    @discardableResult
-    static func migrateParkedToOneClock(_ memos: [Memo], now: Date = Date()) -> Int {
-        var bumped = 0
-        for m in memos where m.deletedAt == nil && !NoteConsent.isRated(m) && m.keptAt == nil {
-            let wasParked = m.transcriptUserEdited
-                || !(m.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || !m.tags.isEmpty
-                || !(m.annotationText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            if wasParked {
-                m.keptAt = now
-                bumped += 1
-            }
-        }
-        return bumped
-    }
-
-    /// Once-per-device runner for the migration above — both apps call it at
-    /// launch against their cloud store. The flag is per-device on purpose:
-    /// `keptAt = now` twice (two devices racing) converges to near-identical
-    /// values, so re-running elsewhere is harmless.
-    static func runOneClockMigrationOnce(context: ModelContext,
-                                         defaults: UserDefaults = .standard,
-                                         now: Date = Date()) {
-        let key = "oneClockMigrated.v1"
-        guard !defaults.bool(forKey: key) else { return }
-        guard let memos = try? context.fetch(FetchDescriptor<Memo>()) else { return }
-        if migrateParkedToOneClock(memos, now: now) > 0 {
-            try? context.save()
-        }
-        defaults.set(true, forKey: key)
-    }
-
     private static func age(of memo: Memo, at now: Date) -> TimeInterval {
         now.timeIntervalSince(clockStart(of: memo))
     }
