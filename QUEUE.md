@@ -1601,7 +1601,7 @@ do: In `SkriftDesktop/`: delete `Models/FileDTO.swift` (`StepsDTO`, `FileDTO`, `
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md DPE-d01 DPE-d02 DPE-d03 DPE-d04 DAU-d11 DAU-d12 DAU-d13 (cleanup-audit P23)
 
-### Q211 [auto] (doing) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
+### Q211 [auto] (done) Mac and phone engines: unread fields, a one-field wrapper, one unused sweep helper
 spec: C240
 needs: -
 gate+: no
@@ -3342,3 +3342,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 19:44 Q238 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 19:56 Q238 -> done — gate pass @c18dcb69
 - 2026-10-04 19:57 Q211 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 20:10 Q211 -> done — hand-merged (D163: call-site ports to the column properties)
