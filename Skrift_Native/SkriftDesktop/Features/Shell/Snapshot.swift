@@ -198,16 +198,24 @@ enum Snapshot {
         hostPNG(view, size: NSSize(width: 348, height: 340), to: path)
     }
 
+    /// The in-memory, non-CloudKit store every snapshot renders against. `full` adds the synced
+    /// `Memo` family (rated/unrated notes with no PipelineFile row, enhancements, assets); the
+    /// default is the local `PipelineFile` store alone.
+    @MainActor private static func fixtureStore(full: Bool = false) -> ModelContainer? {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let schema = full
+            ? Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self])
+            : Schema([PipelineFile.self])
+        return try? ModelContainer(for: schema, configurations: config)
+    }
+
     /// Memo-link chips + the LINKED FROM strip need the LIVE editor path (NSTextView) —
     /// ImageRenderer draws a placeholder for NSViewRepresentable, so this render is
     /// HOSTED: an offscreen `NSHostingView` (real AppKit) + `cacheDisplay`, with an
     /// in-memory store so the backlinks fetch works. Triggered by:
     /// `-snapshot-memolinks <path>` (the tool for any future NSTextView-backed surface).
     @MainActor private static func renderMemoLinks(to path: String) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
         for f in DemoSeed.snapshotFiles() { ctx.insert(f) }
         try? ctx.save()
@@ -250,10 +258,7 @@ enum Snapshot {
     @MainActor private static func renderShell(to path: String, width: CGFloat, height: CGFloat = 900, sidebar: CGFloat,
                                                 corpusPath: String? = nil, scheme: ColorScheme = .dark,
                                                 filterDone: Bool = false, selectRows: Int = 1) {
-        guard let container = try? ModelContainer(
-            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
         for f in files { ctx.insert(f) }
@@ -300,10 +305,7 @@ enum Snapshot {
     /// the two lines can be compared at a glance.
     /// `-snapshot-stranded <path>` · add `-light` for the light theme.
     @MainActor private static func renderStrandedRow(to path: String, scheme: ColorScheme) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
         for f in files { ctx.insert(f) }
@@ -414,10 +416,7 @@ enum Snapshot {
     /// (The synthetic corpus carries no book metadata, so a book capture only shows up here.)
     /// `-snapshot-card-kinds <path>` · add `-light` for the light theme.
     @MainActor private static func renderCardKinds(to path: String, scheme: ColorScheme) {
-        guard let container = try? ModelContainer(
-            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         func enc<T: Encodable>(_ v: T) -> Data { (try? JSONEncoder().encode(v)) ?? Data() }
         func memos(rated: Bool) -> [Memo] {
@@ -485,10 +484,7 @@ enum Snapshot {
     /// opened and the render is deterministic. HOSTED (search field, ScrollView).
     /// `-snapshot-sidebar-selection <path>` · add `-light` for the light theme.
     @MainActor private static func renderSidebarSelection(to path: String, scheme: ColorScheme) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
         for f in files { ctx.insert(f) }
@@ -538,10 +534,7 @@ enum Snapshot {
     /// out. Pass `-snapshot-inspector <path>`; the panel shows its consent gate (no
     /// embedding engine here) — this render is about geometry, not rows.
     @MainActor private static func renderInspector(to path: String) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
         for f in DemoSeed.snapshotFiles() { ctx.insert(f) }
         try? ctx.save()
@@ -566,10 +559,7 @@ enum Snapshot {
     /// `ImageRenderer` path draws as placeholders — that blindness hid two defects on
     /// 2026-07-25. Triggered by: `-snapshot-unrated <path>`.
     @MainActor private static func renderUnrated(to path: String) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
 
         // Same words, same ambient context, same day — so ANY visible difference is the
@@ -647,9 +637,7 @@ enum Snapshot {
     /// exercise recording — the sidebar needs SOME session. Its `phase` stays `.idle` (nothing
     /// here calls `start()`), so these renders show no live take.
     @MainActor private static func fixtureSession(coordinator: ProcessingCoordinator) -> LiveRecordingSession {
-        let container = try! ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        let container = fixtureStore()!
         return LiveRecordingSession(coordinator: coordinator, context: container.mainContext)
     }
 
@@ -699,10 +687,7 @@ enum Snapshot {
     /// so the dropdown of matching library tags + the "Create #x" row renders. HOSTED
     /// (real AppKit TextField). Triggered by: `-snapshot-tags <path>`.
     @MainActor private static func renderTags(to path: String) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
         // A small library of tagged notes so the typeahead has real matches.
         let libraries: [[String]] = [
@@ -782,10 +767,7 @@ enum Snapshot {
     /// (real NSTextView) with a real on-disk image so the thumbnail actually decodes.
     /// Triggered by: `-snapshot-photoblock <path>`.
     @MainActor private static func renderPhotoBlock(to path: String) {
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         let ctx = container.mainContext
 
         // A working folder with a stand-in photo + manifest, so `imageURL` resolves.
@@ -1197,7 +1179,7 @@ enum Snapshot {
     /// unrated · turns · named · flatten confirm. Names come from a synthetic roster (the
     /// `SKRIFT_NAMES_FILE` override), never the dev data. `-light` renders the light variant.
     @MainActor private static func renderSplit(to dir: String) {
-        let light = ProcessInfo.processInfo.arguments.contains("-light")
+        let light = LaunchArgs.has("-light")
         let scheme: ColorScheme = light ? .light : .dark
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         // Synthetic roster, written BEFORE anything touches NamesStore.shared.
@@ -1208,9 +1190,7 @@ enum Snapshot {
         seedStore.upsert(canonical: "Hendrik Vos", aliases: ["Hendrik Vos", "Hendrik"], short: "Hendrik")
         seedStore.upsert(canonical: "Ana Ribeiro", aliases: ["Ana Ribeiro", "Ana"], short: "Ana")
 
-        guard let container = try? ModelContainer(
-            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)) else { return }
+        guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         let coordinator = ProcessingCoordinator()
 
@@ -1305,10 +1285,7 @@ enum Snapshot {
     /// Triggered by: `-snapshot-noterun <path>`.
     @MainActor private static func renderNoteRun(to path: String) {
         // In a store and RATED: an unsaved/unrated file gets the copy-only menu and no verb at all.
-        guard let container = try? ModelContainer(
-            for: PipelineFile.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore() else { return }
         func note(_ id: String, _ title: String) -> PipelineFile {
             let f = PipelineFile(id: id, filename: "Voice Memo \(id).m4a", sourceType: .audio, uploadedAt: Date())
             container.mainContext.insert(f)
@@ -1413,10 +1390,7 @@ enum Snapshot {
     /// UNRATED link (honest banner, placeholder), and a video with a typed thought (annotation
     /// lead). Writes `<dir>/<name>.png`. Triggered by: `-snapshot-capture-corpus <dir> -corpus <corpus>`.
     @MainActor private static func renderCaptureCorpus(to dir: String, corpusPath: String, scheme: ColorScheme = .dark) {
-        guard let container = try? ModelContainer(
-            for: Schema([PipelineFile.self, Memo.self, MemoAsset.self, MemoEnhancement.self]),
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
-        else { return }
+        guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("capture-corpus-\(UUID().uuidString)")
         let corpusURL = URL(fileURLWithPath: (corpusPath as NSString).expandingTildeInPath, isDirectory: true)
