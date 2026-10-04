@@ -127,12 +127,9 @@ enum MemoCloudIngest {
     /// late leaves the Mac unable to enroll a speaker's voice from it (the enroll slice
     /// needs the segments) and the review screen with no turns to show.
     ///
-    /// Writes the `diar_<id>.json` sidecar too, not just the SwiftData copy — ingest does
-    /// both, and voice enrollment reads the sidecar. Skipped when the working folder can't
-    /// be derived (a capture row with an empty `path`); the SwiftData copy still lands.
+    /// Lands in `pf.diarizationSegments`, which is what voice enrollment reads.
     static func adoptLateDiarization(memo: Memo, pf: PipelineFile,
-                                     fetchAssets: () -> [MemoAsset],
-                                     sidecar: DiarizationSidecar = DiarizationSidecar()) -> Bool {
+                                     fetchAssets: () -> [MemoAsset]) -> Bool {
         guard memo.deletedAt == nil,
               pf.diarizationSegmentsJSON?.isEmpty ?? true,
               pf.transcribeStatus == .done,
@@ -140,13 +137,10 @@ enum MemoCloudIngest {
         else { return false }
         guard let dz = fetchAssets().first(where: { $0.kind == MemoAsset.Kind.diarization }),
               !dz.blob.isEmpty,
-              let data = try? JSONDecoder().decode(DiarizationData.self, from: dz.blob),
+              let data = try? JSONDecoder().decode(PhoneDiarizationBlob.self, from: dz.blob),
               !data.segments.isEmpty
         else { return false }
         pf.diarizationSegments = data.segments
-        if !pf.path.isEmpty {
-            sidecar.write(data, in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
-        }
         return true
     }
 

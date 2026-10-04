@@ -121,9 +121,8 @@ struct UploadService: Sendable {
                     prepared.wordTimings = decoded
                 }
                 if let dz = assets.first(where: { $0.kind == MemoAsset.Kind.diarization }), !dz.blob.isEmpty,
-                   let data = try? JSONDecoder().decode(DiarizationData.self, from: dz.blob) {
+                   let data = try? JSONDecoder().decode(PhoneDiarizationBlob.self, from: dz.blob) {
                     prepared.diarizationSegments = data.segments
-                    DiarizationSidecar().write(data, in: folder, id: id)   // portable + enroll copy
                 }
             }
 
