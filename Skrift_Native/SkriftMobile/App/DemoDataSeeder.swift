@@ -293,6 +293,8 @@ enum DemoDataSeeder {
 
     static func demoMemos() -> [Memo] {
         let now = Date()
+        // Q312: createdAt = recordedAt, so the list's default "Recently added" sort shows
+        // demo1 (harbor) as row 0 — not whichever memo happened to be constructed last.
         return [
             Memo.make(
                 audioFilename: "memo_demo1.m4a",
@@ -304,6 +306,7 @@ enum DemoDataSeeder {
                 transcriptStatus: .done,
                 transcriptConfidence: 0.92,
                 significance: 0.5,
+                createdAt: now.addingTimeInterval(-3_600),
                 metadata: MemoMetadata(
                     capturedAt: ISO8601.string(from: now.addingTimeInterval(-3_600)),
                     location: LocationInfo(latitude: 38.71, longitude: -9.14, placeName: "Alfama, Lisbon"),
@@ -321,7 +324,8 @@ enum DemoDataSeeder {
                 transcript: "Second seeded memo, a quick reminder to call the plumber.",
                 transcriptStatus: .done,
                 transcriptConfidence: 0.81,
-                significance: 0.5
+                significance: 0.5,
+                createdAt: now.addingTimeInterval(-7_200)
             ),
             Memo(
                 audioFilename: "memo_demo3.m4a",
@@ -329,7 +333,8 @@ enum DemoDataSeeder {
                 recordedAt: now.addingTimeInterval(-90_000),
                 tags: ["todo", "house"],
                 syncStatus: .waiting,
-                transcriptStatus: .pending
+                transcriptStatus: .pending,
+                createdAt: now.addingTimeInterval(-90_000)
             ),
             // Status-pill coverage: a transcribing one and a failed one (oldest,
             // so the row-0 assertions in other tests stay stable).
@@ -338,14 +343,16 @@ enum DemoDataSeeder {
                 duration: 33,
                 recordedAt: now.addingTimeInterval(-100_000),
                 syncStatus: .waiting,
-                transcriptStatus: .transcribing
+                transcriptStatus: .transcribing,
+                createdAt: now.addingTimeInterval(-100_000)
             ),
             Memo(
                 audioFilename: "memo_demo5.m4a",
                 duration: 18,
                 recordedAt: now.addingTimeInterval(-110_000),
                 syncStatus: .waiting,
-                transcriptStatus: .failed
+                transcriptStatus: .failed,
+                createdAt: now.addingTimeInterval(-110_000)
             ),
         ]
     }
