@@ -1825,7 +1825,7 @@ do: (1) A `PrefKey` enum with each key and its default beside it in `Shared/Mode
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoModelTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d21 MLJ-d17 MMD-c20 MSV-c35 MAU-c07 (cleanup-audit P51)
 
-### Q239 [auto] (todo) phone WayOut: call the Shared WayOut directly, one partition
+### Q239 [auto] (doing) phone WayOut: call the Shared WayOut directly, one partition
 spec: C239
 needs: Q178
 gate+: no
@@ -3335,3 +3335,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 19:00 Q226 -> done — hand-merged (D163/D166: ports + deletion of the paired-mode test; unrated assertion kept and strengthened)
 - 2026-10-04 19:00 Q201 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 19:13 Q201 -> done — hand-merged (Tuur confirmed all prod ran the migration (D166); deleted its test, ported setup helpers)
+- 2026-10-04 19:13 Q239 -> doing — dispatched (sonnet; one-at-a-time)
