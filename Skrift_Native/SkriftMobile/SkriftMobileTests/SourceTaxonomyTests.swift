@@ -28,8 +28,8 @@ final class SourceTaxonomyTests: XCTestCase {
 
     func testCaptureSubtypes() throws {
         let m = memo()
-        m.metadataData = try JSONSerialization.data(withJSONObject:
-            ["sharedContent": ["type": "url", "url": "https://example.com"]])
+        m.sharedContentData = try JSONSerialization.data(withJSONObject:
+            ["type": "url", "url": "https://example.com"])
         XCTAssertEqual(SourceKind.of(m), .captureURL)
         XCTAssertEqual(SourceKind.captureURL.glyph, "link")
     }
