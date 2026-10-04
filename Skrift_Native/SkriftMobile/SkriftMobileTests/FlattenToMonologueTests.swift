@@ -17,7 +17,7 @@ final class FlattenToMonologueTests: XCTestCase {
     @MainActor
     func testFlattenKeepsTheWordsAndDropsTheTurns() {
         let repo = NotesRepository(inMemory: true)
-        let memo = Memo(title: "T",
+        let memo = Memo(audioFilename: "a.m4a", title: "T",
                         transcript: "**Tiuri Hartog:** So the stall is Saturday.\n\n**Speaker 2:** Nine is early, i think.",
                         significance: 0.5)
         memo.pendingDiarizationTarget = 0
@@ -35,7 +35,7 @@ final class FlattenToMonologueTests: XCTestCase {
     @MainActor
     func testFlattenAlsoFlattensAMacPolishThatIsTurns() throws {
         let repo = NotesRepository(inMemory: true)
-        let memo = Memo(title: "T", transcript: "**A:** one\n\n**B:** two", significance: 0.5)
+        let memo = Memo(audioFilename: "a.m4a", title: "T", transcript: "**A:** one\n\n**B:** two", significance: 0.5)
         repo.insert(memo)
         let enh = MemoEnhancement(memoID: memo.id, copyedit: "**A:** one\n\n**B:** two", title: "T", summary: "S")
         repo.context.insert(enh)
@@ -51,7 +51,7 @@ final class FlattenToMonologueTests: XCTestCase {
     @MainActor
     func testFlattenOnAPlainNoteIsANoOp() {
         let repo = NotesRepository(inMemory: true)
-        let memo = Memo(title: "T", transcript: "just one voice talking", significance: 0.5)
+        let memo = Memo(audioFilename: "a.m4a", title: "T", transcript: "just one voice talking", significance: 0.5)
         repo.insert(memo)
         XCTAssertFalse(saver(repo).flattenToMonologue(id: memo.id))
         XCTAssertEqual(memo.transcript, "just one voice talking")
