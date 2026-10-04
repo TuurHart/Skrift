@@ -1489,7 +1489,7 @@ do: In `SkriftMobile/Features/MemoDetail/` and the files named: delete `Conversa
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteBodyTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MMD-d01 MMD-d02 MMD-d03 MMD-d05 MMD-d07 MMD-d13 MMD-d14 MMD-d15 MMD-d16 MMD-c08 (cleanup-audit P9)
 
-### Q197 [auto] (doing) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
+### Q197 [auto] (done) move the v1 body fixtures into the tests: Paragrapher.paragraphed and ImageMarkers.insert
 spec: C240
 needs: -
 gate+: no
@@ -3346,3 +3346,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 20:10 Q225 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 20:27 Q225 -> done — hand-merged (D163: ports + deletion of tests of deleted members)
 - 2026-10-04 20:27 Q197 -> doing — dispatched (sonnet; one-at-a-time)
+- 2026-10-04 20:40 Q197 -> done — hand-merged (D163: v1 fixtures moved into the tests; deleted tests of deleted ImageMarkers/paragraphed)
