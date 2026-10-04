@@ -17,9 +17,18 @@ import Vision
 @MainActor
 enum PhotoTextIndexer {
     private static var running = false
+    /// A trigger that arrived while a sweep was running (a save landing photos
+    /// mid-sweep). It used to be dropped, leaving those photos unindexed until the
+    /// next trigger; the running sweep now re-runs once for it when it ends.
+    private static var pending: NotesRepository?
+
+    /// The OCR call the sweep makes: real Vision in the app. Tests swap in a fake
+    /// so the save -> searchable contract does not hang on Vision's cold start on
+    /// a freshly erased simulator (Q310). `recognize` has its own real-Vision tests.
+    static var recognizer: @Sendable (URL) async -> String = { await recognize(at: $0) }
 
     static func run(_ repository: NotesRepository) {
-        guard !running else { return }
+        guard !running else { pending = repository; return }
         struct Job { let memoID: UUID; let index: Int; let url: URL }
         var jobs: [Job] = []
         for memo in repository.allMemos() {
@@ -33,11 +42,15 @@ enum PhotoTextIndexer {
         }
         guard !jobs.isEmpty else { return }
         running = true
+        let recognize = recognizer
         Task {
-            defer { running = false }
+            defer {
+                running = false
+                if let next = pending { pending = nil; run(next) }
+            }
             var indexed = 0
             for job in jobs {
-                let text = await Self.recognize(at: job.url)
+                let text = await recognize(job.url)
                 // Round-3 evidence: "indexed N" hid empty results — the user's
                 // photos may OCR to "" (angle/handwriting) while the count
                 // looks healthy. Log what Vision actually read, per photo.
