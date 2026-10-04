@@ -2189,7 +2189,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D175): a note is a conversation for name linking when its transcript parses with two or more speaker headers (named or 'Speaker N'), on both apps. Today the phone uses headers and the Mac two distinct named speakers (Q207). One Shared predicate. Desktop test `ConversationRuleTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class ConversationRuleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q293 [auto] (doing) an import with a real file name shows the name until it has words, on both apps
+### Q293 [auto] (done) an import with a real file name shows the name until it has words, on both apps
 spec: C25 D176
 needs: -
 gate+: yes
@@ -3243,3 +3243,4 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:49 Q293 -> doing — dispatched (sonnet)
 - 2026-10-04 10:51 Q284 -> done — gate pass @0d6b3c55
 - 2026-10-04 11:04 Q277 -> done — hand-merged (D163: test ports, Q247 shim deleted)
+- 2026-10-04 11:16 Q293 -> done — gate pass @e2de0aea
