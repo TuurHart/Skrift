@@ -203,8 +203,7 @@ final class MacMixedDropTests: XCTestCase {
             XCTAssertEqual(Set(report.skipped.map(\.lastPathComponent)), ["vanished.m4a"],
                            "a vanished file is REPORTED; the PDF becomes a file capture (combine=\(combine))")
             let pdfCaptures = report.created.filter {
-                $0.sourceType == .capture
-                    && ($0.audioMetadataJSON.flatMap { String(data: $0, encoding: .utf8) } ?? "").contains("application/pdf")
+                $0.sourceType == .capture && $0.sharedContent?.mimeType == "application/pdf"
             }
             XCTAssertEqual(pdfCaptures.count, 1, "the PDF landed in a file capture (combine=\(combine))")
             // The six importable files are all inside rows: the picture in a manifest, the clips

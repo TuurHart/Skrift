@@ -91,9 +91,10 @@ final class ImportReportTests: XCTestCase {
         let report = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingestReport(localURLs: [zip, pdf, gone], into: try makeContext())
         let shown = report.importReport
-        XCTAssertEqual(shown.skipped.map(\.name), ["archive.zip", "contract.pdf", "vanished.m4a"])
-        XCTAssertEqual(shown.skipped.map(\.reason), ["Skrift does not take .zip files",
-                                                     ImportReport.pdfNotOnMac, ImportReport.vanished])
+        // Q136 / D163: the dropped PDF becomes a file capture, so it is no longer skipped.
+        XCTAssertEqual(shown.skipped.map(\.name), ["archive.zip", "vanished.m4a"])
+        XCTAssertEqual(shown.skipped.map(\.reason), ["Skrift does not take .zip files", ImportReport.vanished])
+        XCTAssertEqual(report.created.first?.sourceType, .capture, "the PDF is a file capture")
     }
 
     /// A dropped folder: the pictures (and a stray .txt) inside it are REPORTED, the notes and
