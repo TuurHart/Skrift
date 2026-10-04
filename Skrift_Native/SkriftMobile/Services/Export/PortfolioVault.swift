@@ -48,6 +48,7 @@ enum PortfolioVault {
     /// `-seedPortfolioFolder` — the screenshot/UI rig. Makes a real folder in the app's own
     /// container and bookmarks it, so a run can show the CONFIGURED Destinations settings
     /// without driving the system document picker. Never runs without the flag.
+    #if DEBUG
     static func seedIfRequested() {
         guard LaunchArgs.has("-seedPortfolioFolder") else { return }
         let root = URL(fileURLWithPath: NSHomeDirectory())
@@ -55,4 +56,5 @@ enum PortfolioVault {
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try? setRoot(root)
     }
+    #endif
 }

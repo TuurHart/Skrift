@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 
 /// Test-only names seeder. On `-seedDemoNames` it OVERWRITES the local names.json
@@ -30,3 +31,4 @@ enum NamesSeeder {
         ]))
     }
 }
+#endif

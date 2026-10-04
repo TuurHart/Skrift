@@ -18,10 +18,14 @@ struct SkriftApp: App {
 
     init() {
         let repo = NotesRepository.shared
+        #if DEBUG
+        // Test/screenshot seeders: compiled out of Release, so a production launch never
+        // fetches the memo list or reads a seed flag.
         DemoDataSeeder.seedIfRequested(repo)
         NamesSeeder.seedIfRequested()
         DestinationSettings.resetIfRequested()
         PortfolioVault.seedIfRequested()
+        #endif
         repository = repo
         #if DEBUG
         // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into THIS
@@ -278,18 +282,27 @@ struct SkriftApp: App {
 struct RootView: View {
     @State private var needsOnboarding = RootView.shouldOnboard()
 
-    var body: some View {
+    /// Screenshot routes (Debug only): open a seeded memo straight into its detail.
+    private static var seededRoute: AnyView? {
+        #if DEBUG
         if LaunchFlags.seedNameLinking {
-            // Screenshot route: open the seeded "Studio afternoon" memo straight into the
-            // in-place name-linking surface.
-            NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) }
+            // The seeded "Studio afternoon" memo, into the in-place name-linking surface.
+            return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) })
         } else if LaunchFlags.seedPolished {
-            // Screenshot route: open the seeded polished memo (Phase 4 display).
-            NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) }
+            // The seeded polished memo (Phase 4 display).
+            return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) })
         } else if LaunchFlags.journalMemoDemo {
-            // Screenshot route: the seeded pricing memo's detail — the P8
-            // Related card in the footer (combine with -seedJournal -mockJournalIndex).
-            NavigationStack { MemoDetailView(initialID: DemoDataSeeder.journalPricingMemoID) }
+            // The seeded pricing memo's detail — the P8 Related card in the footer
+            // (combine with -seedJournal -mockJournalIndex).
+            return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.journalPricingMemoID) })
+        }
+        #endif
+        return nil
+    }
+
+    var body: some View {
+        if let seeded = Self.seededRoute {
+            seeded
         } else if needsOnboarding {
             OnboardingView {
                 UserDefaults.standard.set(true, forKey: "onboardingComplete")

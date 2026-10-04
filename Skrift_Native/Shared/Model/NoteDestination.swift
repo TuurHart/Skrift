@@ -149,10 +149,12 @@ enum DestinationSettings {
     /// not inherit what a previous run left in UserDefaults: `-inMemoryStore` resets
     /// SwiftData and nothing else, which is how a "switch is off" test started finding the
     /// switch already on.
+    #if DEBUG
     static func resetIfRequested() {
         guard LaunchArgs.has("-resetDestinations") else { return }
         UserDefaults.standard.removeObject(forKey: key)
         UserDefaults.standard.removeObject(forKey: stampKey)
         UserDefaults.standard.removeObject(forKey: portfolioRootKey)
     }
+    #endif
 }
