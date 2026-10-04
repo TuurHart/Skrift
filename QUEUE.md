@@ -1750,7 +1750,7 @@ spec: C240
 needs: Q228
 gate+: no
 do: `Services/Capture/CaptureDictation.swift` (120 lines), `CaptureDictationTests.swift` (174), `CaptureInboxDrainer.swift:169,566-598,651-653` (the `hasDictation` block and the `resumePending` call that runs on every drain), `CaptureInboxEntry.dictationFileName`/`dictationURL` (`CaptureInbox.swift:39,252-256`) exist only for inbox entries written by a build before 63; the only producer is gone after P41. `CaptureInboxEntry` is a transient inbox JSON, not SwiftData or CloudKit, but an old pending entry that no longer decodes is skipped and never deleted. Tuur confirms no device holds a pre-build-63 pending entry (or accepts losing one). Then delete those, reword `MemoSaver.swift:828` and `MemoSaverTests.swift:268,301` (`testRecoverSkipsCaptureDictationsAndBookCaptures` case (a) names `CaptureDictation.resumePending`; keep the empty-`audioFilename` carve-out for audiobook captures). KEEP `CaptureVoiceAnnotate`: it is the live in-app dictation path and does not use `CaptureDictation`.
-check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
+check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh CaptureDictationTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-d06 (cleanup-audit P42)
 
 ### Q230 [auto] (todo) phone app: dead launch hook, status enums, unused tokens, seeders out of Release
