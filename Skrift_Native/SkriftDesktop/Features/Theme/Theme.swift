@@ -107,6 +107,10 @@ extension VerbButtonStyle {
                                      fill: Theme.hairline.opacity(0.06), verticalPadding: 7,
                                      newNoteWidth: 34, importIconSize: 11, continuousCorners: false)
 }
+extension SharedTextQuoteStyle {
+    /// The phone's quote with Mac colours; a touch smaller for the Mac's denser column.
+    static let mac = SharedTextQuoteStyle(text: Theme.textPrimary, bar: Theme.accent.opacity(0.6), fontSize: 14)
+}
 extension ChipRowStyle {
     static let mac = ChipRowStyle(accent: Theme.accent, dim: Theme.textSecondary) { picker in
         AnyView(picker.datePickerStyle(.field).controlSize(.small))

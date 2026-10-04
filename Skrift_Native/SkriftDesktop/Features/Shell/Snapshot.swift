@@ -1482,6 +1482,7 @@ enum Snapshot {
         // renders the PDF file-capture card instead (A3).
         var wanted = "demo-capture-url", out = path
         if path.hasPrefix("pdf:") { wanted = "demo-capture-pdf"; out = String(path.dropFirst(4)) }
+        if path.hasPrefix("text:") { wanted = "demo-capture-text"; out = String(path.dropFirst(5)) }
         let path = out
         let captureFile = files.first { $0.id == wanted } ?? files.first
         let model = AppModel()

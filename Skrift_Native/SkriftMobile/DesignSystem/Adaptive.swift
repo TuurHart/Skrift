@@ -53,6 +53,9 @@ extension BarGlassStyle {
 extension PanelToggleStyle {
     static let phone = PanelToggleStyle(glass: .phone, onText: .skAccentText, offText: .skTextDim)
 }
+extension SharedTextQuoteStyle {
+    static let phone = SharedTextQuoteStyle(text: .skText, bar: Color.skAccent.opacity(0.6))
+}
 extension VerbButtonStyle {
     /// Tap-sized row: 44pt HIG floor, continuous corners, 44-wide square compose chip.
     static let phone = VerbButtonStyle(text: .skText, record: .skRed, fill: .skElev, minHeight: 44,

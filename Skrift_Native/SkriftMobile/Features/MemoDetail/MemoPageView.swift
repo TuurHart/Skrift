@@ -1540,17 +1540,7 @@ struct MemoPageView: View {
     /// shared inputs NEVER get bubble/box chrome): accent left bar, italic quote
     /// at note-body size, borderless — it flows in the note, not in a card.
     func captureTextQuote(text: String) -> some View {
-        Text(text)
-            .font(.system(size: 15).italic())
-            .lineSpacing(4)
-            .foregroundStyle(Color.skText)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 14)
-            .overlay(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 1.25)
-                    .fill(Color.skAccent.opacity(0.6))
-                    .frame(width: 2.5)
-            }
+        SharedTextQuote(text: text, style: .phone)
             .accessibilityIdentifier("capture-text-quote")
     }
 
