@@ -645,48 +645,17 @@ struct MemoSaver {
         copyToClipboard(transcript)
     }
 
-    /// Errors that make the audio merge fall back to keeping the base file.
-    private enum AppendError: Error { case composition, noBaseTrack }
-
-    /// Concatenate `addition` after `base` into one .m4a, replacing `base` in place.
-    /// Returns the merged duration AND the precise `base` duration — the exact splice
-    /// offset, which the caller uses to shift the appended clip's word-timings (memo
-    /// `duration` can be an estimate for imported VBR audio and would drift karaoke).
-    /// Throws on non-audio inputs (the caller then keeps the base audio).
+    /// Splice `addition` after `base` with the shared `AudioClipMerge.append` (Q220): it opens
+    /// the base with `AVAudioFile` FIRST and throws when it can't (so an unreadable base is never
+    /// silently replaced by the clip alone), merges sample-accurately to a temp file, and swaps it
+    /// in with `replaceItemAt`. Returns the merged duration and the PRECISE base duration
+    /// (frames / rate, right for an imported VBR `.mp3` too), the splice offset the caller shifts
+    /// the clip's word timings by. Any throw leaves `base` untouched (the caller keeps it).
+    /// The AVMutableComposition + export path it replaces could write a phantom silent tail.
     private static func appendAudio(base: URL, addition: URL) async throws -> (merged: TimeInterval, base: TimeInterval) {
-        let comp = AVMutableComposition()
-        guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            throw AppendError.composition
-        }
-        // Precise timing: `base` can be an imported MP3 (importAudio preserves
-        // the .mp3 extension). Without the key a VBR MP3 reports an estimated
-        // duration, which would misplace the splice offset (`at: baseDur`) and
-        // write a wrong merged duration. The addition is always the app's own
-        // AAC clip, so it doesn't need it.
-        let baseAsset = AVURLAsset(url: base, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
-        let baseDur = try await baseAsset.load(.duration)
-        guard let baseTrack = try await baseAsset.loadTracks(withMediaType: .audio).first else { throw AppendError.noBaseTrack }
-        try track.insertTimeRange(CMTimeRange(start: .zero, duration: baseDur), of: baseTrack, at: .zero)
-
-        let addAsset = AVURLAsset(url: addition)
-        var addSeconds = 0.0
-        if let addTrack = try? await addAsset.loadTracks(withMediaType: .audio).first,
-           let addDur = try? await addAsset.load(.duration) {
-            try track.insertTimeRange(CMTimeRange(start: .zero, duration: addDur), of: addTrack, at: baseDur)
-            addSeconds = CMTimeGetSeconds(addDur)
-        }
-
-        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
-            throw AppendError.composition
-        }
-        let tmpOut = base.deletingLastPathComponent().appendingPathComponent("merge_\(UUID().uuidString).m4a")
-        try? FileManager.default.removeItem(at: tmpOut)
-        try await export.export(to: tmpOut, as: .m4a)
-        // Atomic replace — a failed swap or a kill mid-move can NEVER leave the memo
-        // with no audio file (the old remove-then-move had that data-loss window).
-        _ = try FileManager.default.replaceItemAt(base, withItemAt: tmpOut)
-        let baseSeconds = CMTimeGetSeconds(baseDur)
-        return (merged: baseSeconds + addSeconds, base: baseSeconds)
+        try await Task.detached(priority: .userInitiated) {
+            try AudioClipMerge.append(base: base, addition: addition, log: { DevLog.log($0) })
+        }.value
     }
 
     /// Merge contextual metadata onto the memo, preserving the photo
