@@ -481,12 +481,6 @@ struct MemosListView: View {
                                     fading: d.searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
                                     quiet: isUnratedLive(memo),
-                                    // D136 (one-notes-list, Q33 visual check): the iPad's
-                                    // always-on "starts fading …" spine line is retired —
-                                    // unrated rows show the amber `clockLine` only within
-                                    // `fadeWarningDays`, same as the phone, never a standing
-                                    // quiet line. Was `quietTriageLine(for:backlinked:)`.
-                                    quietLine: nil,
                                     selected: memo.id == selectedMemoID) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched

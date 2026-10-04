@@ -37,25 +37,6 @@ struct NotesBottomChrome: View {
 
 // MARK: - iPad shell helpers
 
-/// A memo card's background. Identical to `.skCard()` when unselected (so the
-/// phone — where `selected` is never true — is byte-for-byte unchanged); an
-/// accent-soft fill + accent hairline when it backs the split-view detail pane
-/// (m1). Kept local (not folded into `.skCard()`) because that shared helper is
-/// read-only this wave.
-struct SelectableCard: ViewModifier {
-    let selected: Bool
-    func body(content: Content) -> some View {
-        content
-            .padding(Theme.Space.cardPadding)
-            .background(selected ? Color.skAccentSoft : Color.skSurface,
-                        in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
-            .overlay(
-                RoundedRectangle.sk(Theme.Radius.card)
-                    .stroke(selected ? Color.skAccent.opacity(0.5) : Color.skBorder, lineWidth: 1)
-            )
-    }
-}
-
 /// Record presentation, per BASE's idiom rule: a centered card **sheet** on iPad
 /// (m7 — `.presentationSizing(.form)`, the room stays dimmed-but-visible behind
 /// it), a full-screen **cover** on the phone. Swapping the modifier type needs a
