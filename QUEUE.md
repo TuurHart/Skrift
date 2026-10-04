@@ -2082,7 +2082,7 @@ needs: -
 do: -
 check: Tuur decided; follow-up item added if needed.
 
-### Q277 [auto] (doing) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
+### Q277 [auto] (done) hand-merge: rewrite protected CompilerTests.swift:325-354 constructors to SharedContent(type: .url/.text/.image/.image/.file, …) (the unknown-type case becomes .file = 'a .file capture pins nothing'), then delete the Q247 shim SkriftDesktopTests/CompilerSharedContentShim.swift
 spec: -
 needs: -
 do: Under SPEC D163 (ports of tests of deleted code): rewrite the constructors in protected SkriftDesktopTests/CompilerTests.swift (~325-354) to build SharedContent(type: .url/.text/.image/.image/.file, ...) directly — the old unknown-type case becomes .file = 'a .file capture pins nothing' — then delete the Q247 temporary shim SkriftDesktopTests/CompilerSharedContentShim.swift. Assertions keep their meaning. Never run SkriftDesktopUITests.
@@ -3242,3 +3242,4 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:49 Q286 -> doing — dispatched (sonnet)
 - 2026-10-04 10:49 Q293 -> doing — dispatched (sonnet)
 - 2026-10-04 10:51 Q284 -> done — gate pass @0d6b3c55
+- 2026-10-04 11:04 Q277 -> done — hand-merged (D163: test ports, Q247 shim deleted)
