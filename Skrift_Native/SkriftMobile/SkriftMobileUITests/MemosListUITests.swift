@@ -73,7 +73,8 @@ final class MemosListUITests: XCTestCase {
 
     func testStatusPillsShowTranscribingAndError() throws {
         let app = launch()
-        XCTAssertTrue(app.staticTexts["Synced"].waitForExistence(timeout: 10))   // demo2
+        // Q230 deleted the "Synced" pill; wait on demo2's text instead.
+        XCTAssertTrue(app.staticTexts[plumber].waitForExistence(timeout: 10))
 
         // demo4 (.transcribing) + demo5 (.failed) are the oldest, so scroll the
         // LazyVStack until the Error pill materializes. (Re-transcribe was removed;
