@@ -336,7 +336,7 @@ struct NoteBodyView: UIViewRepresentable {
             }
             // Body v2 stores every picture as its own paragraph (C10), so the display IS
             // the stored text. A body stored before v2 still goes through the Q13
-            // read-only fallback (`BodyV2Legacy`, Q14 removes it).
+            // read-only fallback (`BodyV2Legacy`, which Q14 kept).
             let display = BodyV2Legacy.shown(protectedQuote?.ramble ?? t).text
             if !force, display == reconstruct(tv.attributedText) { loaded = t; return }
             // Carry the (clamped) selection across the rebuild so the caret —
@@ -519,7 +519,7 @@ struct NoteBodyView: UIViewRepresentable {
             var built: [(NSRange, NameSpan)] = []
             // Name spans carry stored offsets; the ONE remap is marker → one glyph (C17).
             // (`shown.map` is the identity for a v2 body; only a pre-v2 body goes through
-            // the Q13 fallback's snap map — Q14 removes it.)
+            // the Q13 fallback's snap map, which Q14 kept.)
             let shown = BodyV2Legacy.shown(protectedQuote?.ramble ?? bodyText)
             // ONE pieces() pass for all spans (the per-span displayRange re-scanned
             // the whole document each call — S+1 full regex passes for S names).

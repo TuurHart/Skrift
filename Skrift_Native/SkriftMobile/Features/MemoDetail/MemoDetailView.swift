@@ -1,18 +1,16 @@
 import FeedbackKit
 import SwiftUI
 import SwiftData
-import UIKit
-import QuickLook
-import PhotosUI
 import FluidAudio
 
-/// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
-/// horizontal paging `ScrollView` — NOT `TabView(.page)`, whose UIKit page host
-/// broke `.glassEffect` refraction, the significance drag, and word tap-to-seek on
-/// device), each page = editable title + RAW transcript (with inline `[[img_NNN]]`
-/// embeds) + context/tags. A single playback bar is pinned at the bottom and
-/// re-targets as you swipe. Title, tags, and the transcript are hand-editable
-/// (save-now post-record flow); copy + delete live in the ⋯ menu.
+/// The "note" screen (mockup2). A SwiftUI-native horizontal paging `ScrollView` (NOT
+/// `TabView(.page)`, whose UIKit page host broke `.glassEffect` refraction, the
+/// significance drag, and word tap-to-seek on device). The swipe gesture is OFF
+/// (2026-07-16); memo-link hops and the opening jump still move `selection`. Each page =
+/// editable title + RAW transcript (with inline `[[img_NNN]]` embeds) + context/tags. A
+/// single playback bar is pinned at the bottom and re-targets when the page changes.
+/// Title, tags, and the transcript are hand-editable (save-now post-record flow); copy +
+/// delete live in the ⋯ menu.
 struct MemoDetailView: View {
     let initialID: UUID
 
@@ -35,8 +33,8 @@ struct MemoDetailView: View {
     @State var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
     @State var reminderMemo: Memo?
-    /// Transient "n / total" that ghosts in while swiping between memos —
-    /// replaces the permanent page-dots row (compact-player spec).
+    /// Transient "n / total" that ghosts in when the pager moves to another memo (a
+    /// memo-link hop) — replaces the permanent page-dots row (compact-player spec).
     @State var pageFlash = false
     @StateObject var player = AudioPlayerModel()
     @ObservedObject var lockGate = LockGate.shared

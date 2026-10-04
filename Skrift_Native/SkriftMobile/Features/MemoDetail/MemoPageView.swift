@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 import UIKit
-import QuickLook
 import PhotosUI
 import FluidAudio
 
@@ -13,8 +12,9 @@ struct MemoPageView: View {
     /// Whether this page is the pager's current page — off-screen neighbours
     /// hide their UIKit editor subtree from accessibility (see NoteBodyView).
     var isCurrent: Bool = true
-    /// iPad: at regular width the Connections panel stands beside the page, so the
-    /// inline footer omits related/backlinks and the body caps to the reading measure.
+    /// iPad: at regular width Connections is a sheet over the note
+    /// (`MemoDetailView.showConnections`), so the inline footer omits related/backlinks and
+    /// the body caps to the reading measure.
     @Environment(\.horizontalSizeClass) var hSize
     let repository = NotesRepository.shared
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
@@ -115,7 +115,7 @@ struct MemoPageView: View {
         // title above every page kind; monologue memos (incl. audiobook captures +
         // polished bodies) get the re-founded scrolling editor page — the text view
         // owns the scroll, the metadata header scrolls inside it. Conversations and
-        // C3 share-captures keep their legacy scroll layout for now (phase 2).
+        // C3 share-captures keep their legacy outer-scroll layout.
         Group {
             if lockGate.isLocked(memo) {
                 lockedPlaceholder
@@ -154,12 +154,10 @@ struct MemoPageView: View {
         .sheet(isPresented: $showReminderSheet) {
             ReminderSheet(memo: memo) { repository.save() }
         }
-        // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
-        // and the editor's inline photos (tap a photo → viewer).
-        // The photo/file viewer is UIKit-presented (MarkupQuickLook, P2#12) —
-        // no SwiftUI cover here: the zoom transition needs transitionViewFor,
-        // which a cover can't provide. Markup + the dismissal-deferred edit
-        // chain live in the presenter.
+        // The viewer for a shared-document (.file) capture and for the editor's inline
+        // photos is UIKit-presented (`MarkupQuickLook`, P2#12) — no SwiftUI cover here:
+        // the zoom transition needs transitionViewFor, which a cover can't provide. Markup
+        // + the dismissal-deferred edit chain live in the presenter.
         // "[[" typed → pick a note to link; the chip lands at the trigger.
         .sheet(isPresented: $showMemoLinkPicker) {
             MemoLinkPickerSheet(candidates: memoLinkCandidates()) { id, title in
