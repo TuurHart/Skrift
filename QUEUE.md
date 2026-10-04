@@ -2244,7 +2244,7 @@ gate+: yes
 do: Q299 shipped FeedbackKit with Pike's default light cream palette (plan/reads/feedback-kit/sheet.png) on a dark Skrift. Pass Skrift's tokens from Shared/UI/Palette into every FeedbackAppearance colour (background, surface, ink, muted, line, gold label, recording) for light AND dark, in Features/Feedback/FeedbackKitWiring.swift; if FeedbackAppearance can't switch with the colour scheme, pass dynamic UIColor-backed Colors. Re-screenshot the sheet + button in dark and light to plan/reads/feedback-kit/ and LOOK. Never run SkriftDesktopUITests.
 check: `ls plan/reads/feedback-kit/sheet-dark.png >/dev/null && ./gate.sh`
 
-### Q301 [auto] (doing) remove the old Mail-based feedback screen now that FeedbackKit is in
+### Q301 [auto] (done) remove the old Mail-based feedback screen now that FeedbackKit is in
 spec: D179
 needs: -
 gate+: yes
@@ -3238,3 +3238,4 @@ check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a se
 - 2026-10-04 10:35 Q284 -> doing — dispatched (sonnet)
 - 2026-10-04 10:35 Q301 -> doing — dispatched (sonnet)
 - 2026-10-04 10:38 Q218 -> done — hand-merged (D163: call-site ports in 12 phone test files)
+- 2026-10-04 10:47 Q301 -> done — hand-merged (D163: deleted FeedbackStoreTests (test of deleted code))
