@@ -111,7 +111,7 @@ Rules:
 
 - **`SPEC.md`** — ⭐ THE constitution, confirmed by Tuur 2026-09-22: Point, done-means, 298
   marked clauses, R1–R94 required differences (bugs v2 must fix), every decision with its verdict.
-  `./gate.sh` is the gate. Live state = `SPEC.md` + `QUEUE.md` (from `/2-plan`) + `roadmap/`.
+  `./gate.sh` is the gate. Live state = `SPEC.md` + `QUEUE.md` (from `/2-plan`).
   **Work = `QUEUE.md` (wave 1, 21 items, 2026-09-24) → every session runs `/3-session`.** `plan/queue.sh` is its only state writer; `plan/accept.sh` merges. Subagents run on Sonnet (his budget); Fable conducts.
   Sources: `plan/extraction/*.md`. Corpus: `test-fixtures/corpus/` (synthetic, `-corpus <path>`).
   The old state docs (`backlog.md`, SSOT, STANDALONE_PLAN, NAMING_MODEL, AUDIT_*, …) are frozen
@@ -144,17 +144,9 @@ Rules:
   MANDATORY second-agent verify → triage into BUGS.md (bugs) and SPEC.md Decisions (verdicts). Crash logs via `idevicecrashreport`.
 - **Direction:** the standalone App Store push ($0.69, no IAP, CloudKit sync, one-way publish) is
   in `SPEC.md` (Point, Not doing, Decisions); the old `STANDALONE_PLAN.md` is archived.
-- **`roadmap/`** — ⭐ the roadmap **data** (new chats: start at **`roadmap/README.md`**).
-  **`roadmap/roadmap.yaml`** is the single source of truth for the plan: the node graph (spine
-  `nodes`, `detours`, the 5 `history` eras with dated `shipped` logs, `ideas`). Layout auto-computes
-  from each node's `lane` (vertical) + `order` (horizontal) — to move a node, change those two numbers.
-  It's rendered by the **Tiuri Command Center hub**, a *separate* project in its own repo
-  (`OsamaBinBallZak/Tiuri-Command-Center`); this repo only holds the data. **UPDATE CONTRACT (so it
-  can't drift):** when a phase/detour/idea changes, edit `roadmap.yaml` AND `SPEC.md` (a Decision
-  line, or the clause) in the **same pass**, and bump `updated:`. **History note (2026-06-29):** the old in-repo viz `roadmap/ROADMAP.html` (a
-  self-contained metro-tree with its *own hardcoded* plan copy) was **deleted** — it was a second source
-  that drifted from `roadmap.yaml`. Recover it from git history if ever needed; the A/B/C/D
-  design-exploration mocks remain in `roadmap/mocks/`.
+- **Roadmap retired 2026-10-04** with the Tiuri Command Center: `roadmap.yaml` (nodes, shipped logs,
+  the ideas inbox i1–i24) is frozen at `archive/roadmap-2026-10/`. Don't update it; plans live in
+  `SPEC.md` + `QUEUE.md`.
 - **History:** `archive/state-2026-09/SKRIFT_SOURCE_OF_TRUTH.md` (the pre-spec canonical record, indexes the deep docs by `file:line`) — for the why of a clause.
 - **`archive/handoffs/`** — the native-rewrite deep tier (the SSOT's cited sources, moved out of root 2026-07-01): `MOBILE_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (iOS), `DESKTOP_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (macOS), `CONVERSATION_MODE_HANDOFF.md` (diarization + voice identity — Sortformer + wespeaker-cosine), `MAC_CLOUDKIT_PLAN.md`, `OBSIDIAN_EXPORT_ALTERNATIVES.md`, `WALKTHROUGH_BUGS.md`. Read on demand via the SSOT's citations.
 - Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
@@ -202,27 +194,6 @@ branches (`mobile-native`, `desktop-native`, `feature/photo-capture`, …) are s
   iterations on `CaptureMomentView` until an interaction design/mock session happens.
 - **Unified source taxonomy** — voice memo / URL / PDF / video / audiobook quote /
   Apple Note: consistent glyphs + labels across both apps (folds into capture items).
-
-## How this project is run (Tiuri Command Center)
-
-This repo is a project in my Tiuri Command Center — a hub where I manage all my side projects.
-
-- Each project has one `roadmap/roadmap.yaml`: the single source of truth for the plan —
-  what's done, what I'm on now, what's next. The Command Center reads it from the repo and
-  renders it as a visual map I can see and talk to.
-- You (Claude Code) plan AND build: do the work in this repo and edit roadmap.yaml
-  directly, per `.claude/rules/roadmap-authoring.md`. The Command Center only reads it —
-  there is no agent on the other side.
-- The habit every session: when you finish a chunk of work, update roadmap.yaml in the SAME
-  change — flip that node to `done`, move the one `now` node to what's next. Live state, not a notepad.
-- No `roadmap.yaml` yet? Ask before creating one — a new project is registered in the hub's `projects.yaml` too.
-
-Editing rules:
-- A node is a chunk of work with a done-state. `status: done|now|inprogress|planned|deferred`, exactly one `now`.
-- `id` is permanent — edit the title, not the id.
-- Layout = `lane` (kind of work) + `order` (left→right) — set those, never position by pixel; a fractional lane is fine to draw a convergence.
-- The past is just nodes to the left: `done` at negative `order`.
-- Keep it lean — few nodes, short notes.
 
 ## How to talk to me
 
