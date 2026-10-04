@@ -7,9 +7,7 @@ struct SpeakerTurnsView: View {
     let turns: [SpeakerTranscript.Turn]
     /// Hue slot per turn, from the SHARED rule (`SpeakerTurnStyle.slots`) — computed by the
     /// host, which holds the names roster, so this view never touches disk mid-playback.
-    /// Empty (a preview / a caller that has no roster) → fall back to first-appearance order
-    /// of the header text, which is what this view used to do on its own.
-    var speakerSlots: [Int] = []
+    let speakerSlots: [Int]
     /// Tap a turn's NAME → (turn index, speaker label). The index lets the parent merge
     /// just THIS line (per-line) while naming relabels the whole speaker.
     var onTag: (Int, String) -> Void = { _, _ in }
@@ -29,20 +27,6 @@ struct SpeakerTurnsView: View {
     @State private var draft = ""
     @FocusState private var editingFocused: Bool
 
-    /// The colour of each turn's speaker — the SHARED hue table keyed by the SHARED slot rule
-    /// (`Palette.speakerHues` · `SpeakerTurnStyle`), so a speaker wears the same colour here
-    /// and in the Mac's turn gutter. This used to be a private 4-colour table keyed on
-    /// `turn.name`, which coloured one voice twice: conversation naming writes a speaker's
-    /// first header as the full `[[Tiuri Hartog]]` and every later one as the short `Tiuri`.
-    private var slotForTurn: [Int] {
-        guard speakerSlots.count != turns.count else { return speakerSlots }
-        var map: [String: Int] = [:]
-        return turns.map { t in
-            if let s = map[t.name] { return s }
-            let s = map.count; map[t.name] = s; return s
-        }
-    }
-
     /// Cumulative SPOKEN-word count before each turn — maps the global active word index to
     /// a position within a turn. Excludes `[[img_NNN]]` markers (not spoken words) so the
     /// karaoke highlight doesn't drift past an inline photo.
@@ -55,12 +39,11 @@ struct SpeakerTurnsView: View {
     static func spokenWordCount(_ text: String) -> Int { ConversationKaraoke.spokenWords(text).count }
 
     var body: some View {
-        let slots = slotForTurn
         let offsets = wordOffsets
         VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(turns.enumerated()), id: \.offset) { index, turn in
                 turnRow(turn, index: index,
-                        color: .skSpeakerHue(slot: slots[index]), wordOffset: offsets[index])
+                        color: .skSpeakerHue(slot: speakerSlots[index]), wordOffset: offsets[index])
             }
         }
     }
@@ -145,7 +128,6 @@ struct SpeakerTurnsView: View {
     /// each (photos don't advance the word index — so karaoke stays aligned across images).
     private func segmentItems(_ text: String, base: Int) -> [SegItem] {
         let ns = text as NSString
-        let regex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
         var out: [SegItem] = []
         var last = 0, wordIdx = base, sid = 0
         func addText(_ chunk: String) {
@@ -154,8 +136,7 @@ struct SpeakerTurnsView: View {
             out.append(SegItem(id: sid, seg: .text(trimmed), offset: wordIdx)); sid += 1
             wordIdx += Self.spokenWordCount(trimmed)
         }
-        regex?.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { m, _, _ in
-            guard let m else { return }
+        for m in BodyV2Marker.regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
             if m.range.location > last {
                 addText(ns.substring(with: NSRange(location: last, length: m.range.location - last)))
             }

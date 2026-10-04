@@ -20,13 +20,6 @@ struct MemoPageView: View {
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
     /// touch check (backlinked notes never fade).
     @State var detailBacklinkedIDs: Set<UUID> = []
-    /// What the QuickLook viewer is showing: an inline photo (marker set — an
-    /// edit re-mirrors + re-OCRs it) or a shared-document capture (marker nil).
-    struct QuickLookTarget: Identifiable {
-        let url: URL
-        var marker: Int?
-        var id: String { url.path }
-    }
     /// UIKit-presented viewer (P2#12): zoom transition off the tapped photo +
     /// markup save-back; edits are reported on dismissal only (erase-crash fix).
     @State var markupQuickLook = MarkupQuickLook()
@@ -205,9 +198,9 @@ struct MemoPageView: View {
                 otherSpeakers: SpeakerNaming.otherSpeakers(than: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 turnCount: SpeakerNaming.turnCount(of: target.speaker, in: memo.transcript, people: NamesStore.shared.livePeople()),
                 people: NamesStore.shared.livePeople(),
-                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot, turnSlots: target.turnSlots) },
+                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
-                onNewName: { assign(target.speaker, to: $0, enroll: true, slot: target.slot, turnSlots: target.turnSlots) }
+                onNewName: { assign(target.speaker, to: $0, slot: target.slot, turnSlots: target.turnSlots) }
             )
         }
         // Tap a name in the transcript → resolve it (the native confirmationDialog idiom,
@@ -434,9 +427,8 @@ struct MemoPageView: View {
                 a11yHidden: !isCurrent,
                 onTapImage: { n in
                     guard let url = memo.imageURL(markerIndex: n) else { return }
-                    let target = QuickLookTarget(url: url, marker: n)
                     markupQuickLook.present(url: url, anchor: bodyProxy.photoAnchor(marker: n)) { edited in
-                        if edited { photoWasEdited(target) }
+                        if edited { photoWasEdited(marker: n) }
                     }
                 },
                 onTapMemoLink: { id in onOpenMemo(id) },
@@ -803,8 +795,8 @@ struct MemoPageView: View {
     /// size-change capture), re-OCR an inline photo (its manifest text resets
     /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
     /// decodes fresh).
-    func photoWasEdited(_ target: QuickLookTarget) {
-        if let n = target.marker,
+    func photoWasEdited(marker: Int?) {
+        if let n = marker,
            var meta = memo.metadata, var manifest = meta.imageManifest,
            n >= 1, n <= manifest.count {
             manifest[n - 1].text = nil
@@ -956,7 +948,7 @@ struct MemoPageView: View {
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
     /// assigning to a real person (not merging into another Speaker N) — learn the
     /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
-    func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?, turnSlots: [Int]) {
+    func assign(_ old: String, to newName: String, slot: Int?, turnSlots: [Int]) {
         let new = newName.trimmingCharacters(in: .whitespaces)
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
         // The shared naming rule (`SpeakerNaming`, the Mac's too): slot-aware while the per-turn
@@ -966,16 +958,14 @@ struct MemoPageView: View {
         memo.transcriptUserEdited = true
         memo.markEdited()
         repository.save()
-        if enroll {
-            // The person exists BEFORE enrolment is attempted (R12/C83): a clip too short to
-            // embed, or a missing diarization sidecar, must not leave a named speaker with no
-            // person. Born through the shared door, so aliases are `[full, first]`.
-            if PersonEditCore.createIfNeeded(fullName: new, in: NamesStore.shared) != nil {
-                NamesCloudSync.run(NotesRepository.shared)
-                people = NamesStore.shared.livePeople()
-            }
-            Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new, slot: slot) }
+        // The person exists BEFORE enrolment is attempted (R12/C83): a clip too short to
+        // embed, or a missing diarization sidecar, must not leave a named speaker with no
+        // person. Born through the shared door, so aliases are `[full, first]`.
+        if PersonEditCore.createIfNeeded(fullName: new, in: NamesStore.shared) != nil {
+            NamesCloudSync.run(NotesRepository.shared)
+            people = NamesStore.shared.livePeople()
         }
+        Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new, slot: slot) }
     }
 
     /// Extract `old`'s audio from the diar sidecar, embed it, and store the voiceprint
@@ -1380,9 +1370,8 @@ struct MemoPageView: View {
                    let entry = PDFThumbnailLoader.firstPage(
                        at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
                     CapturePDFInlineBlock(entry: entry) {
-                        let target = QuickLookTarget(url: url, marker: nil)
                         markupQuickLook.present(url: url, anchor: nil) { edited in
-                            if edited { photoWasEdited(target) }
+                            if edited { photoWasEdited(marker: nil) }
                         }
                     }
                     // Track B (wave-2 mock m3): the A6-extracted text, in the
@@ -1432,9 +1421,8 @@ struct MemoPageView: View {
             if memo.sharedFileURL != nil {
                 Button {
                     guard let url = memo.sharedFileURL else { return }
-                    let target = QuickLookTarget(url: url, marker: nil)
                     markupQuickLook.present(url: url, anchor: nil) { edited in
-                        if edited { photoWasEdited(target) }
+                        if edited { photoWasEdited(marker: nil) }
                     }
                 } label: {
                     Text("Open")

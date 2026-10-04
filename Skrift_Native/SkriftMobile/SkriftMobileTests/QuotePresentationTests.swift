@@ -174,7 +174,7 @@ final class QuotePresentationTests: XCTestCase {
 
     @MainActor
     private func makeEditor(memo: Memo) -> (NoteBodyView.Coordinator, UITextView) {
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv

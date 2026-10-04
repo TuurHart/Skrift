@@ -13,7 +13,7 @@ final class NoteBodyTests: XCTestCase {
     @MainActor
     private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
         let memo = Memo(audioFilename: "memo_edit.m4a", transcript: transcript)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -120,7 +120,7 @@ final class NoteBodyTests: XCTestCase {
         meta.bookAuthor = "Somebody"
         let memo = Memo.make(transcript: c1, metadata: meta)   // captureQuote is C2-gated
         XCTAssertNotNil(memo.captureQuote, "fixture must parse as a capture")
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -198,7 +198,7 @@ final class BodyTransformTests: XCTestCase {
     func testChecklistRoundTripsThroughTheEditor() {
         let raw = "- [ ] buy milk\n- [x] call Jack"
         let memo = Memo(audioFilename: "memo_t.m4a", transcript: raw)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -210,7 +210,7 @@ final class BodyTransformTests: XCTestCase {
     @MainActor
     func testToggleFlipsTheRawSyntax() {
         let memo = Memo(audioFilename: "memo_t2.m4a", transcript: "- [ ] buy milk")
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -266,7 +266,7 @@ final class MemoLinkTests: XCTestCase {
     func testMemoLinkRoundTripsThroughTheEditor() {
         let raw = "Start [[memo:\(idA.uuidString)|Harbor]] end"
         let memo = Memo(audioFilename: "memo_l.m4a", transcript: raw)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -310,7 +310,7 @@ final class MemoLinkTests: XCTestCase {
     @MainActor
     func testInsertMemoLinkReplacesTheTypedTrigger() {
         let memo = Memo(audioFilename: "memo_l2.m4a", transcript: "Hello ")
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -524,7 +524,7 @@ final class TierStylingChurnTests: XCTestCase {
     @MainActor
     private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
         let memo = Memo(audioFilename: "memo_churn.m4a", transcript: transcript)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -582,7 +582,7 @@ final class AttachmentHitTests: XCTestCase {
 
     @MainActor
     private func makeLaidOutEditor(memo: Memo) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
@@ -681,7 +681,7 @@ final class SearchHitFlashTests: XCTestCase {
 
     @MainActor
     private func makeEditor(memo: Memo) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
@@ -746,7 +746,7 @@ final class PhotoBlockDisplayTests: XCTestCase {
     @MainActor
     private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
         let memo = Memo(audioFilename: "memo_block.m4a", transcript: transcript)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv
@@ -809,7 +809,7 @@ final class ChecklistContinuationTests: XCTestCase {
     @MainActor
     private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
         let memo = Memo(audioFilename: "memo_check.m4a", transcript: transcript)
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv

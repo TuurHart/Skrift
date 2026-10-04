@@ -18,7 +18,7 @@ final class PhoneEndOfEditNormaliseTests: XCTestCase {
     @MainActor
     private func phoneStores(audioFilename: String) -> String? {
         let memo = Memo(audioFilename: audioFilename, transcript: "seed")
-        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
         coordinator.textView = tv

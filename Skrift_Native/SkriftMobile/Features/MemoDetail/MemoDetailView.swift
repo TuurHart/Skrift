@@ -55,10 +55,6 @@ struct MemoDetailView: View {
     /// 2026-07-24: a 13" screen can't afford a standing 300pt column). Transient
     /// @State, auto-closed when the pager settles on a different memo.
     @State var showConnections = false
-    /// Bumped on each chrome-bar export so `processControl` re-reads the export
-    /// ledger (`hasPublished` is a disk fact, not a model field — without this
-    /// the label would stay "Export to Obsidian" until the next page turn).
-    @State var exportedBump = 0
     /// Why the export didn't happen — shown as an alert. A primary button that
     /// silently does nothing is how the no-vault iPad read as broken (2026-08-18).
     @State var exportNotice: String?
@@ -262,7 +258,7 @@ struct MemoDetailView: View {
                 // Polished — offer the vault verb, same spot as the Mac's primary.
                 // Gate = isAvailable (it can process, so it may export); the label
                 // flips to Re-export via the ledger read in `workState`, re-run when
-                // `exportedBump` changes after the success flash clears.
+                // the success flash clears (`exportFlash = nil`).
                 if let flash = exportFlash {
                     Text(flash)
                         .font(.system(size: 12.5, weight: .semibold))
@@ -835,7 +831,6 @@ struct MemoDetailView: View {
         Task {
             try? await Task.sleep(for: .seconds(2.2))
             withAnimation(Theme.Motion.snappy) { exportFlash = nil }
-            exportedBump += 1
         }
     }
 
