@@ -104,7 +104,7 @@ final class SplitSpeakersTests: XCTestCase {
         q.enqueue(.split(id: "a"))
         q.enqueue(.split(id: "b"))
         XCTAssertEqual(q.jobs, [.split(id: "a"), .split(id: "b")])
-        XCTAssertTrue(q.isWaitingSplit(id: "a"))
+        XCTAssertTrue(q.jobs.contains(.split(id: "a")))
         XCTAssertTrue(q.removeSplit(id: "a"))
         XCTAssertFalse(q.removeSplit(id: "a"))
         XCTAssertEqual(q.next(), .split(id: "b"))

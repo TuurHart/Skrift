@@ -26,8 +26,6 @@ actor EnhancementService: Enhancing {
 
     private init() {}
 
-    var isModelReady: Bool { container != nil }
-
     func ensureLoaded(modelRepo: String,
                       onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
         if container != nil, loadedRepo == modelRepo { return }

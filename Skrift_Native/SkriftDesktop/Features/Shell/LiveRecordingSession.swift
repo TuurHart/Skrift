@@ -173,7 +173,7 @@ final class LiveRecordingSession {
             // Edited → the person's settled text is FINAL for its region; only the engine's
             // own un-rotated tail needs a final-quality close (`finishParts`, not `endStream`
             // — the whole point is a partial re-ASR that never touches a settled word).
-            let finalTail = await TranscriptionService.shared.finishStreamParts().finalTail
+            let finalTail = await TranscriptionService.shared.finishStreamTail()
             let finalTranscript = LiveRecordingFinalize.transcript(
                 settledText: draft.settledText, finalTail: finalTail)
             var hooks = ArrivalPath.Hooks.live(coordinator: coordinator, context: context)
@@ -266,7 +266,7 @@ final class LiveRecordingSession {
         var text: String
         let edited = draft.everEdited
         if edited {
-            let tail = await TranscriptionService.shared.finishStreamParts().finalTail
+            let tail = await TranscriptionService.shared.finishStreamTail()
             text = LiveRecordingFinalize.transcript(settledText: draft.settledText, finalTail: tail)
         } else {
             text = LiveRecordingFinalize.transcript(settledText: draft.settledText, finalTail: draft.wetText)

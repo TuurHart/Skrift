@@ -122,7 +122,7 @@ final class ExportGateParityTests: XCTestCase {
     func testMacFullGateChecksWhatTheIpadChecks() {
         let s = settings(vault: "/tmp/skrift-q156-vault")
         // Processed locally: a pass ran.
-        func processed(_ pf: PipelineFile) -> PipelineFile { pf.steps.enhance = .done; return pf }
+        func processed(_ pf: PipelineFile) -> PipelineFile { pf.enhanceStatus = .done; return pf }
 
         XCTAssertNil(VaultExporter.fullGateFailure(for: processed(row()), cloud: nil, settings: s))
         XCTAssertEqual(VaultExporter.fullGateFailure(for: row(), cloud: nil, settings: s), .unprocessed)
@@ -146,7 +146,7 @@ final class ExportGateParityTests: XCTestCase {
 
     private func processedHeldRow() -> PipelineFile {
         let pf = row()
-        pf.steps.enhance = .done
+        pf.enhanceStatus = .done
         EditConflictHold.ids.insert(pf.id)
         return pf
     }

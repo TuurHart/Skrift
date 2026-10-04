@@ -14,8 +14,8 @@ final class PipelineFileTests: XCTestCase {
 
         let f = PipelineFile(id: "memo-1", filename: "memo.m4a", path: "/tmp/memo.m4a", size: 42, sourceType: .audio)
         f.transcript = "hello world"
-        f.steps.transcribe = .done
-        f.steps.enhance = .processing
+        f.transcribeStatus = .done
+        f.enhanceStatus = .processing
         f.ambiguousNames = [
             AmbiguousOccurrence(
                 alias: "Nick", offset: 0, length: 4, contextBefore: "", contextAfter: " said",
