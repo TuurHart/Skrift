@@ -1673,7 +1673,7 @@ do: (1) `Double(f.length) / f.fileFormat.sampleRate` is written 11 times (`MemoS
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d20 MRC-c02 MRC-c04 SRS-d09 (cleanup-audit P32)
 
-### Q220 [auto] (doing) appending a recording: use AudioClipMerge, not the export session
+### Q220 [auto] (done) appending a recording: use AudioClipMerge, not the export session
 spec: C240
 needs: Q219
 gate+: no
@@ -3322,3 +3322,4 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 14:07 Q310 -> doing — dispatched (opus; flaky OCR test; one-at-a-time)
 - 2026-10-04 18:29 Q310 -> done — hand-merged (Tuur 2026-10-04: fake OCR in MemoSaverTests, real Vision in PhotoTextIndexerTests)
 - 2026-10-04 18:29 Q220 -> doing — dispatched (opus; audio append; one-at-a-time)
+- 2026-10-04 18:44 Q220 -> done — gate pass @cd1676d3
