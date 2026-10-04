@@ -2237,6 +2237,26 @@ gate+: yes
 do: Tuur 2026-10-04: adopt the shared FeedbackKit (~/Hackerman/feedback-kit, read its ADOPTING.md first and follow it) in SkriftMobile only (iOS + iPad; the Mac app is untouched). Approved design: https://claude.ai/artifact/JyZDsYr7HaEjsBoWTepjo6. Skrift deviations from ADOPTING, on purpose: (a) package path is ABSOLUTE `/Users/tiurihartog/Hackerman/feedback-kit` in Skrift_Native/SkriftMobile/project.yml (relative paths break in .claude/worktrees); (b) tracked `Skrift_Native/SkriftMobile/Config/Feedback.xcconfig` = `FEEDBACK_KEY =` then `#include? "/Users/tiurihartog/.config/feedback-kit/skrift.xcconfig"` (the key already exists there, mode 600, outside git — NEVER print, copy or commit it); set it as the SkriftMobile target's configFiles for Debug and Release. Info.plist (project.yml info properties): FeedbackAppID = skrift, FeedbackKey = $(FEEDBACK_KEY); keep Skrift's existing NSMicrophoneUsageDescription. Start it in the App init with Skrift's own accent token (Shared/UI/Palette) and privacy line 'Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed.' Tag every top-level screen and sheet with .feedbackScreen("Name"): Notes list, note detail, Record, Books library, Player, Journal/Review, Settings, and the iPad split equivalents. AUDIO (hard rule, hardware-flavoured): FeedbackKit's recorder sets .playAndRecord and deactivates the session afterwards, which would cut Skrift's own audio. Call FeedbackKit.setVoicePaused("Voice notes are off while Skrift is recording or playing.") whenever Skrift is recording, running live caption, playing an audiobook or a memo, or capturing a quote, and setVoicePaused(nil) when all of those stop — drive it from the one place that already knows (find the recorder/player state owners), not per view. Prove it: a phone test FeedbackWiringTests (Info.plist FeedbackAppID == 'skrift', FeedbackKey non-literal; the voice-pause rule as a pure function over the audio states); then build Debug on the iPhone 17 sim, launch, tap the feedback button, and save a screenshot of the sheet reading 'From the Notes screen' to plan/reads/feedback-kit/sheet.png (LOOK at it). Device behaviour (audio interplay) stays UNVERIFIED — say so. Update FEATURES.md. Never run SkriftDesktopUITests.
 check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && ls plan/reads/feedback-kit/sheet.png >/dev/null && perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh FeedbackWiringTests && ./gate.sh`
 
+### Q300 [auto] (todo) feedback sheet + button use Skrift's own palette and follow dark mode
+spec: D179
+needs: -
+gate+: yes
+do: Q299 shipped FeedbackKit with Pike's default light cream palette (plan/reads/feedback-kit/sheet.png) on a dark Skrift. Pass Skrift's tokens from Shared/UI/Palette into every FeedbackAppearance colour (background, surface, ink, muted, line, gold label, recording) for light AND dark, in Features/Feedback/FeedbackKitWiring.swift; if FeedbackAppearance can't switch with the colour scheme, pass dynamic UIColor-backed Colors. Re-screenshot the sheet + button in dark and light to plan/reads/feedback-kit/ and LOOK. Never run SkriftDesktopUITests.
+check: `ls plan/reads/feedback-kit/sheet-dark.png >/dev/null && ./gate.sh`
+
+### Q301 [auto] (todo) remove the old Mail-based feedback screen now that FeedbackKit is in
+spec: D179
+needs: -
+gate+: yes
+do: Q299 left Features/Feedback/FeedbackCaptureView.swift (the Mail-based feedback screen) in place. Find its entry points; replace them with FeedbackKit.present() (e.g. the Settings row) and delete the old view and its helpers. Phone test that the Settings feedback row calls the kit. Never run SkriftDesktopUITests.
+check: `./gate.sh`
+
+### Q302 [tuur] (tuur) check on Skrift Dev Mac (Q242): add a custom word, a person and edit a polish prompt on the phone — do all three arrive on the Mac, and does a deleted note disappear from the Mac? (cloud adapters were refactored, gate-only)
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3184,3 +3204,7 @@ check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/Skrif
 - 2026-10-04 09:51 Q292 -> done — hand-merged (D178: one conversation rule, audio only; call-site ports + fixture audioFilename)
 - 2026-10-04 09:54 Q299 -> done — gate pass @549011fc
 - 2026-10-04 09:57 Q242 -> done — gate pass @1a538aa9
+- 2026-10-04 09:57 Q300 added
+- 2026-10-04 09:57 Q301 added
+- 2026-10-04 09:57 Q302 added
+- 2026-10-04 09:57 Q302 -> tuur — parked: Dev check
