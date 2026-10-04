@@ -1940,8 +1940,8 @@ check: Tuur decided or approved; follow-up item added if needed.
 ### Q254 [auto] (todo) hand-merge: delete IPadDetailConnectionsTests' 0.7/0.8 importance assertions, then the unused ConnectionsPanelLogic.importanceText and isRefineImportance (left by Q119)
 spec: -
 needs: -
-do: -
-check: Tuur decided or approved; follow-up item added if needed.
+do: Under SPEC D163 (deleting tests of code being deleted): delete the 0.7/0.8 importance assertions in protected SkriftMobileTests/IPadDetailConnectionsTests.swift that pin ConnectionsPanelLogic.importanceText and isRefineImportance, then delete those two now-unused members (left by Q119). Never run SkriftDesktopUITests.
+check: `! grep -rq --include='*.swift' 'isRefineImportance' Skrift_Native && perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh IPadDetailConnectionsTests && ./gate.sh`
 
 ### Q255 [auto] (done) phone Open-in of .m4b and .epub opens the Books import (ImportKinds .book -> the Books library door via AppURLHandler), finishing C199's .m4b clause left open by Q133
 spec: C199
