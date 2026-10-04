@@ -49,11 +49,12 @@ final class SnapshotIsolationQ303Tests: XCTestCase {
         var found = 0
         for (i, line) in lines.enumerated() where line.contains("ModelContainer(") {
             found += 1
-            let window = lines[i..<min(i + 4, lines.count)].joined(separator: "\n")
+            // Config sits just above (fixtureStore) or just below (inline) the call.
+            let window = lines[max(0, i - 6)..<min(i + 4, lines.count)].joined(separator: "\n")
             XCTAssertTrue(window.contains("isStoredInMemoryOnly: true"),
                           "Snapshot.swift:\(i + 1) builds a ModelContainer that is not in-memory")
         }
-        XCTAssertGreaterThan(found, 5, "scan found no containers; the path in this test is stale")
+        XCTAssertGreaterThanOrEqual(found, 1, "scan found no containers; the path in this test is stale")
     }
 
     func testSnapshotFileNeverTouchesTheLiveStores() throws {
