@@ -683,11 +683,15 @@ enum Snapshot {
                 phase: .settling, settledText: .constant(settledSoFar),
                 wetText: "nicer than what the shop quoted — worth keeping him close for the autumn list.",
                 elapsedLabel: "1:12"))
+            pane("ADD RECORDING — the take joins an existing note (Q290)", RecordingDraftBody(
+                phase: .live, settledText: .constant("One more thing about the frames:"),
+                wetText: "the corners need a second coat ",
+                elapsedLabel: "0:09", appendingTo: "Planter frames with Jacques"))
         }
-        .frame(width: 920, height: 900)
+        .frame(width: 920, height: 1340)
         .background(Theme.hairline.opacity(0.25))
         .preferredColorScheme(.dark)
-        hostPNG(view, size: NSSize(width: 920, height: 900), to: path)
+        hostPNG(view, size: NSSize(width: 920, height: 1340), to: path)
     }
 
     /// A throwaway audio file for the comparison fixture — `showsTransport` wants a

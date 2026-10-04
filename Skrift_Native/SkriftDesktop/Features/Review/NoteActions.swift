@@ -167,6 +167,13 @@ struct NoteActions: View {
     }
 
     @ViewBuilder private var fullOverflowItems: some View {
+        // D173 (Q290): record a take onto THIS note. The shell owns the one live session, so
+        // the ⋯ asks it (`RootView`) rather than holding a recorder of its own.
+        if MacAppendRecording.isOffered(file, locked: LockGate.shared.isLocked(file)) {
+            Button(NoteMenuItem.addRecording.label) {
+                NotificationCenter.default.post(name: .macAddRecordingRequested, object: file.id)
+            }
+        }
         if isConversation {
             Button(NoteMenuItem.flattenToMonologue.label) {
                 Task { await coordinator.flattenToMonologue(file, context: ctx) }
@@ -313,4 +320,10 @@ struct NoteActions: View {
         }
     }
 
+}
+
+extension Notification.Name {
+    /// "Add recording" from an open note's ⋯ (Q290). `object` is the `PipelineFile` id;
+    /// `RootView` starts the live session in append mode for it.
+    static let macAddRecordingRequested = Notification.Name("skrift.mac.addRecordingRequested")
 }
