@@ -9,15 +9,17 @@ extension PipelineFile {
     /// The note's DISPLAY name (header · queue list · link chips): the C25 ladder
     /// (`NoteTitle.display`) over the same inputs as `exportTitle` — `enhancedTitle` carries
     /// the user's / suggested title, the body is the RAW text. The last rung is "Note" /
-    /// "Voice note"; a Mac-local import with a real file name keeps that name until it has
-    /// words, but a synthetic `memo_<UUID>` name never shows.
+    /// "Voice note"; an import with a real file name keeps that name until it has words (D176).
     var displayTitle: String {
         let isVoice = sourceType == .audio && mediaSource != "typed"
-        var fallback = isVoice ? "Voice note" : "Note"
-        let name = SkriftFormat.cleanFilename(filename)
-        if sourceType != .capture, !name.isEmpty, !name.lowercased().hasPrefix("memo_") { fallback = name }
+        // D176: a real file name shows until the note has words (a phone import's name rides the
+        // metadata; a Mac-local import's is its own file name); a generic default or a synthetic
+        // `memo_<UUID>` falls back to "Voice note" (`NoteTitle.importName`).
         return NoteTitle.display(userTitle: nil, suggestedTitle: enhancedTitle, body: transcript,
-                                 shared: ladderShared, emptyFallback: fallback)
+                                 shared: ladderShared,
+                                 importFileName: NoteTitle.importFileName(metadataJSON: audioMetadataJSON, workingFilename: filename,
+                                                                          isCapture: sourceType == .capture),
+                                 emptyFallback: isVoice ? "Voice note" : "Note")
     }
 
     /// What the header's empty title field ghosts (C25 + Q177): the ladder's derived title,

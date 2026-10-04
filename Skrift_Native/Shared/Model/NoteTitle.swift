@@ -54,12 +54,34 @@ enum NoteTitle {
         return nil
     }
 
-    /// `derived`, never empty: the last rung is `emptyFallback` ("Note" for a typed note,
-    /// "Voice note" otherwise — `SourceKind.emptyTitleFallback`).
+    /// `derived`, never empty: then the import's real file name (D176: shown until the note
+    /// has words), last `emptyFallback` ("Note" for a typed note, "Voice note" otherwise —
+    /// `SourceKind.emptyTitleFallback`). `importName` is a RAW file name; the generic-name
+    /// filter (`importName(_:)`) runs here so every caller gets the same rule.
     static func display(userTitle: String?, suggestedTitle: String?, body: String?,
-                        shared: SharedContent?, emptyFallback: String) -> String {
+                        shared: SharedContent?, importFileName: String? = nil,
+                        emptyFallback: String) -> String {
         derived(userTitle: userTitle, suggestedTitle: suggestedTitle, body: body, shared: shared)
+            ?? importName(importFileName)
             ?? emptyFallback
+    }
+
+    /// D176 (amends C25): an imported audio's REAL file name, extension stripped, or nil when
+    /// the name is no name: empty, a synthetic `memo_<uuid>`, a bare UUID, or a generic
+    /// default ("New Recording 22", "Audio 3", "Recording", "Voice Memo 4", "Untitled").
+    /// Those fall back to "Voice note". Shown only until the note has words (the rung sits
+    /// below the first body line). One rule for the phone (stored `importFileName`) and the
+    /// Mac (the working file's own name).
+    static func importName(_ fileName: String?) -> String? {
+        guard var name = fileName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+        if let dot = name.lastIndex(of: "."), !name[name.index(after: dot)...].contains("/"),
+           name[name.index(after: dot)...].count <= 5, dot != name.startIndex {
+            name = String(name[..<dot]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard !name.isEmpty, !name.lowercased().hasPrefix("memo_"), UUID(uuidString: name) == nil else { return nil }
+        let generic = #"^(new recording|recording|audio|audio file|voice memo|voice note|untitled|new audio)[\s_-]*\d*$"#
+        if name.range(of: generic, options: [.regularExpression, .caseInsensitive]) != nil { return nil }
+        return name
     }
 
     /// The capture rung: urlTitle → (a link) its host → first 8 words of the shared text → file
@@ -83,6 +105,15 @@ enum NoteTitle {
               let raw = sc?.url?.trimmingCharacters(in: .whitespacesAndNewlines),
               let url = URL(string: raw) else { return nil }
         return LinkCard.hostTitle(url)
+    }
+
+    /// The raw file name a Mac row offers the ladder (D176): a phone import's stored
+    /// `importFileName` (its working file is `memo_<uuid>.m4a`, never the name), else the
+    /// working file's own name (a Mac-local import keeps the user's name). `importName(_:)`
+    /// then rejects anything generic. nil for a capture (its name is the capture rung's).
+    static func importFileName(metadataJSON: Data?, workingFilename: String, isCapture: Bool) -> String? {
+        guard !isCapture else { return nil }
+        return MemoMetadata.lenient(from: metadataJSON)?.importFileName ?? workingFilename
     }
 
     /// The first non-empty line of `body` with markers stripped (`[[img_NNN]]`, name and
@@ -141,6 +172,7 @@ extension Memo {
         NoteTitle.display(userTitle: title, suggestedTitle: suggestedTitle,
                           body: ladderIsCapture ? annotationText : transcript,
                           shared: ladderIsCapture ? sharedContent : nil,
+                          importFileName: ladderIsCapture ? nil : metadata?.importFileName,
                           emptyFallback: SourceKind.of(self).emptyTitleFallback)
     }
 
