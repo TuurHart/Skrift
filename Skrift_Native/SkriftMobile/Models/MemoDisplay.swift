@@ -216,18 +216,6 @@ extension Memo {
         return NoteCardBuilder.captureSnippet(shared: sc, annotation: annotationText)
     }
 
-    /// LEGACY wording ("Shared link"), kept only because CaptureDisplayTests pins it. The header
-    /// chip and file card now read `SourceKind.of(memo).label` (Q122); delete this + its test.
-    var shareCaptureTypeLabel: String {
-        switch sharedContent?.type {
-        case .url:   return "Shared link"
-        case .text:  return "Shared text"
-        case .image: return "Shared image"
-        case .file:  return "Shared file"
-        case nil:    return "Capture"
-        }
-    }
-
     /// Domain label for URL captures, e.g. "swiftwithmajid.com".
     var shareCaptureURLDomain: String? {
         sharedContent.flatMap { NoteCardBuilder.domain(of: $0) }
