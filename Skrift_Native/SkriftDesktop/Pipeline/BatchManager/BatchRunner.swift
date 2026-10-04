@@ -145,11 +145,11 @@ struct BatchRunner {
         var diarOut = splitOutput
         if diarOut == nil, let diarizer, pf.diarizeRequested || settings.conversationModeEnabled, let audioURL, didTranscribe,
            !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
-           !SpeakerTranscript.isConversation(pf.transcript) {
+           !SpeakerTranscript.isConversation(pf.transcript, source: pf.noteSource) {
             diarOut = try? await diarizer.diarize(audioURL: audioURL)
         }
         if didTranscribe, !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
-           !SpeakerTranscript.isConversation(pf.transcript),
+           !SpeakerTranscript.isConversation(pf.transcript, source: pf.noteSource),
            let out = diarOut, Set(out.segments.map(\.speaker)).count >= 2 {
             // Emit PLAIN speaker labels (matched person's name or "Speaker N"), like the
             // phone — `processConversation` (below) owns all `[[ ]]` linking + the
@@ -213,7 +213,7 @@ struct BatchRunner {
         // to contain ≥2 line-start bold headings (**Introduction:** / **Conclusion:**)
         // must NOT be routed to the turn linker (it would drop the note's preamble and
         // skip copy-edit). Notes/captures always take the monologue path.
-        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isConversation(transcript)
+        let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
         var copyedit = isConversation
             ? transcript
             : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)

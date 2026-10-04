@@ -123,12 +123,13 @@ enum SpeakerTranscript {
         return out
     }
 
-    /// THE conversation rule (D175, Q292), one for both apps: a transcript is a conversation
-    /// when it parses with two or more line-anchored speaker headers, named or `Speaker N`.
-    /// Distinct names are NOT required (Tuur 2026-10-03). Callers that also need "is an audio
-    /// memo" (the Mac) add that themselves; the text rule lives only here.
-    static func isConversation(_ transcript: String?) -> Bool {
-        parse(transcript) != nil
+    /// THE conversation rule (D175 + D178, Q292), one for both apps: a RECORDING (`source ==
+    /// .audio`) whose transcript parses with two or more line-anchored speaker headers, named or
+    /// `Speaker N`. Distinct names are NOT required (Tuur 2026-10-03). A typed note or a capture
+    /// is never a conversation, so bold labels in typed text (`**Pros:** a` / `**Cons:** b`)
+    /// stay ordinary prose. The source is a required argument so no caller can forget the guard.
+    static func isConversation(_ transcript: String?, source: NoteSourceType) -> Bool {
+        source == .audio && parse(transcript) != nil
     }
 
     /// FLATTEN a speaker-attributed transcript back to plain monologue prose: drop every

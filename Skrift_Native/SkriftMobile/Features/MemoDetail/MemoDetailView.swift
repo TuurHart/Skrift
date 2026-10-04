@@ -94,7 +94,7 @@ struct MemoDetailView: View {
     }
 
     func redoIsConversation(_ memo: Memo) -> Bool {
-        !memo.audioFilename.isEmpty && SpeakerTranscript.isConversation(memo.transcript)
+        SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource)
     }
 
     @ViewBuilder func noteOverflowItems(_ memo: Memo) -> some View {
@@ -109,7 +109,7 @@ struct MemoDetailView: View {
         if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil, !memo.isShareCapture {
             Button { showSplitOptions = true } label: { menuLabel(.splitSpeakers) }
         }
-        if !memo.isShareCapture, SpeakerTranscript.isConversation(memo.transcript) {
+        if !memo.isShareCapture, SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource) {
             Button { showFlattenConfirm = true } label: { menuLabel(.flattenToMonologue) }
         }
         // Redo ▸ Title / Copy-edit / Summary — the Mac's submenu, same shared
@@ -458,7 +458,7 @@ struct MemoDetailView: View {
             // shared slot (`NoteMenuItem` order: Add recording, Split, Flatten). A split note
             // offers the way back; the bar icon still re-splits.
             if let memo = currentMemo, !memo.isShareCapture {
-                if SpeakerTranscript.isConversation(memo.transcript) {
+                if SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource) {
                     Button(NoteMenuItem.flattenToMonologue.label, action: { showFlattenConfirm = true })
                 } else if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
                     Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })

@@ -40,7 +40,7 @@ final class SplitMergedNoteClipParagraphsTests: XCTestCase {
                         ClipManifestEntry(filename: "b.m4a", startSeconds: 2, recordedAt: nil),
                         ClipManifestEntry(filename: "c.m4a", startSeconds: 4, recordedAt: nil)]
         let body = try await splitMergedNote(clipManifest: manifest)
-        XCTAssertTrue(SpeakerTranscript.isConversation(body), body)
+        XCTAssertTrue(SpeakerTranscript.isConversation(body, source: .audio), body)
         let paras = body.components(separatedBy: "\n\n")
         XCTAssertEqual(paras.count, 4, "two turns, each broken once at a clip start: \(body)")
         XCTAssertTrue(paras[0].hasPrefix("**Speaker 1:** w1 "), body)

@@ -74,7 +74,7 @@ enum MemoExporter {
     /// The on-device name-linked body (transcript for audio, annotation for a share-capture).
     static func linkedBody(for memo: Memo, people: [Person]) -> String {
         let raw = memo.isShareCapture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
-        return CompilerInput.linkBody(raw, people: people, resolutions: memo.nameResolutions)
+        return CompilerInput.linkBody(raw, source: memo.linkSource, people: people, resolutions: memo.nameResolutions)
     }
 
     /// Flatten `[[Canonical|spoken]]` → "spoken", `[[Name]]` → "Name", and drop `[[img_NNN]]`

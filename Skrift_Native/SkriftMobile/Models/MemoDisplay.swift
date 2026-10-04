@@ -186,6 +186,12 @@ extension Memo {
         audioFilename.isEmpty && sharedContent != nil
     }
 
+    /// The source type the shared rules read (`SpeakerTranscript.isConversation(_:source:)`, D178):
+    /// a recording has audio; a typed note has none; a share capture has a payload instead.
+    var linkSource: NoteSourceType {
+        isShareCapture ? .capture : audioFilename.isEmpty ? .note : .audio
+    }
+
     /// Body v2's source for this note (C10, C170): a share capture, a typed note (no
     /// audio), or speech.
     var bodyV2Source: BodyV2.Source {

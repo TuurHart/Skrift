@@ -40,7 +40,7 @@ final class SplitMergedNoteClipParagraphsTests: XCTestCase {
                              clipStarts: [2, 4], retranscribe: true, requireSplit: true)
 
         let body = try XCTUnwrap(pf.transcript)
-        XCTAssertTrue(SpeakerTranscript.isConversation(body), body)
+        XCTAssertTrue(SpeakerTranscript.isConversation(body, source: .audio), body)
         let paras = body.components(separatedBy: "\n\n")
         XCTAssertEqual(paras.count, 4, "two turns, each broken once at a clip start: \(body)")
         XCTAssertTrue(paras[0].hasPrefix("**Speaker 1:** w1 "), body)

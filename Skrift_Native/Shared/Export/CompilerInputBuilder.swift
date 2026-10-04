@@ -22,15 +22,16 @@ extension CompilerInput {
     }
 
     /// The name-linked form of `text` — the shared `Sanitiser`, the same routing the Mac's
-    /// `BatchRunner` uses (≥2 speaker headers → the conversation linker), deleted people
-    /// excluded, the note's unlink / pick decisions applied.
-    static func linkBody(_ text: String, people: [Person],
+    /// `BatchRunner` uses (a recording with ≥2 speaker headers → the conversation linker, D178),
+    /// deleted people excluded, the note's unlink / pick decisions applied. `source` is the
+    /// note's source type; a typed note or capture never takes the conversation linker.
+    static func linkBody(_ text: String, source: NoteSourceType, people: [Person],
                          resolutions: NameResolutions = NameResolutions()) -> String {
         guard !text.isEmpty else { return text }
         let live = people.filter { !$0.isDeleted }
         guard !live.isEmpty else { return text }
         let never = Set(resolutions.unlinkedNames)
-        if SpeakerTranscript.isConversation(text) {
+        if SpeakerTranscript.isConversation(text, source: source) {
             return Sanitiser.processConversation(text: text, people: live, neverLink: never,
                                                  namePicks: resolutions.namePicks).sanitised
         }
@@ -64,7 +65,10 @@ extension CompilerInput {
         let work = workingBody(raw: raw, copyedit: copyedit)
         let sanitised: String? = {
             if let given = linked { return given }
-            let l = linkBody(work.text, people: people, resolutions: resolutions)
+            // Only words that were SPOKEN can be a conversation: a phone typed note passes
+            // `sourceType: .audio` with `spoken: false`, which must not route as one.
+            let l = linkBody(work.text, source: spoken ? sourceType : .note,
+                             people: people, resolutions: resolutions)
             return l.isEmpty ? nil : l
         }()
         var input = CompilerInput(

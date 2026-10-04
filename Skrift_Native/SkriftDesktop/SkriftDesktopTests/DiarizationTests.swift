@@ -51,10 +51,10 @@ final class DiarizationTests: XCTestCase {
     // MARK: isConversation
 
     func testIsAttributed() {
-        XCTAssertTrue(SpeakerTranscript.isConversation("**Tiuri:** hi\n\n**Speaker 2:** yo"))
-        XCTAssertFalse(SpeakerTranscript.isConversation("just a plain monologue transcript"))
-        XCTAssertFalse(SpeakerTranscript.isConversation("**Only one:** turn"))   // needs ≥2
-        XCTAssertFalse(SpeakerTranscript.isConversation(nil))
+        XCTAssertTrue(SpeakerTranscript.isConversation("**Tiuri:** hi\n\n**Speaker 2:** yo", source: .audio))
+        XCTAssertFalse(SpeakerTranscript.isConversation("just a plain monologue transcript", source: .audio))
+        XCTAssertFalse(SpeakerTranscript.isConversation("**Only one:** turn", source: .audio))   // needs ≥2
+        XCTAssertFalse(SpeakerTranscript.isConversation(nil, source: .audio))
     }
 
     // MARK: flatten (undo a wrong speaker split → monologue prose)
@@ -347,11 +347,13 @@ final class DiarizationTests: XCTestCase {
     }
 
     /// isConversation must NOT fire on a hand-formatted body with bold inline labels.
-    /// (The old second assertion, "repeated identical labels are not a conversation", is gone:
-    /// D175 / Q292 dropped the distinct-names requirement; `ConversationRuleTests` pins the new rule.)
+    /// Ported by Q292 / D178: the repeated-label case is now guarded by the SOURCE (a typed note is
+    /// never a conversation) rather than by distinct names; `ConversationRuleTests` pins the rule.
     func testIsAttributedIgnoresInlineBoldLabels() {
-        XCTAssertFalse(SpeakerTranscript.isConversation("Here are my notes. **Pros:** fast. **Cons:** pricey."),
+        XCTAssertFalse(SpeakerTranscript.isConversation("Here are my notes. **Pros:** fast. **Cons:** pricey.", source: .audio),
                        "inline **Pros:**/**Cons:** is not a conversation")
+        XCTAssertFalse(SpeakerTranscript.isConversation("**Pros:** a\n\n**Pros:** b", source: .note),
+                       "repeated identical labels in a typed note are not a conversation")
     }
 
     /// Pipe-display alias links stay resolvable for unlink/relink/highlight.

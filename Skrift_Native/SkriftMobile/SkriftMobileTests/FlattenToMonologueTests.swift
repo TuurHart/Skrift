@@ -27,7 +27,7 @@ final class FlattenToMonologueTests: XCTestCase {
 
         XCTAssertEqual(memo.transcript, "So the stall is Saturday.\n\nNine is early, i think.",
                        "the words stay, with the user's fix; no re-transcribe")
-        XCTAssertFalse(SpeakerTranscript.isConversation(memo.transcript))
+        XCTAssertFalse(SpeakerTranscript.isConversation(memo.transcript, source: .audio))
         XCTAssertTrue(memo.transcriptUserEdited, "a deliberate edit: trusted, so the Mac never re-transcribes it")
         XCTAssertNil(memo.pendingDiarizationTarget, "no split is left waiting to be re-run at launch")
     }

@@ -60,10 +60,10 @@ enum ConnectionsPanelLogic {
 
     /// The `[[Name]]` people a body links to, derived with the shared linker over the local
     /// names DB (the phone stores no `sanitised`). Feeds `ConnectionWhyDerivation.chips`.
-    static func linkedNames(body: String, people: [Person]) -> Set<String> {
+    static func linkedNames(body: String, source: NoteSourceType = .audio, people: [Person]) -> Set<String> {
         guard !people.isEmpty, !body.isEmpty else { return [] }
         return ConnectionWhyDerivation.wikiNames(
-            inSanitised: MemoLinking.linkedTranscript(body, people: people))
+            inSanitised: MemoLinking.linkedTranscript(body, source: source, people: people))
     }
 
     /// The rows the panel lists: the Mac's cap (`relatedKMac`, earliest kept)
@@ -631,7 +631,7 @@ struct ConnectionsPanel: View {
         // Q181: the real name lists (the Mac's `wikiNames` of its sanitised body), derived
         // on demand with the same shared linker — so a shared person shows a person chip.
         let people = NamesStore.shared.livePeople()
-        let currentNames = ConnectionsPanelLogic.linkedNames(body: currentBody, people: people)
+        let currentNames = ConnectionsPanelLogic.linkedNames(body: currentBody, source: memo.linkSource, people: people)
         related = scores
             .filter { $0.score >= RetrievalTuning.relatedFloor && $0.memoID != target
                       && !hidden.contains($0.memoID.uuidString) }
@@ -647,7 +647,7 @@ struct ConnectionsPanel: View {
                         score: hit.score, significance: m.significance,
                         why: ConnectionWhyDerivation.chips(
                             currentNames: currentNames, currentTags: currentTags, currentBody: currentBody,
-                            otherNames: ConnectionsPanelLogic.linkedNames(body: bodyOf(m), people: people),
+                            otherNames: ConnectionsPanelLogic.linkedNames(body: bodyOf(m), source: m.linkSource, people: people),
                             otherTags: m.tags, otherBody: bodyOf(m)))
                 }
             }
