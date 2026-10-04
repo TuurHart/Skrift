@@ -1942,3 +1942,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      Q262 (Mac unrated banner), Q268 ('Person' / 'New person' + Done); typed notes export as 'Typed-note' (Q269); the
      Mac editor gets an on-screen checklist button, mock first (Q263); the phone Library keeps its '❝ N' capsule and
      jump-back extends to PDF and podcast notes (Q275).
+178. **D178 Only recordings become conversations.** ✅ 2026-10-03 (Q292): the one shared rule — a transcript with two
+     or more speaker headers — applies to audio notes only, on both apps; a typed note is never a conversation, so
+     bold labels in typed text ('**Pros:**' twice) never trigger conversation name-linking.
+179. **D179 In-app feedback.** ✅ 2026-10-04: SkriftMobile (phone + iPad) adopts the shared FeedbackKit
+     (~/Hackerman/feedback-kit, design https://claude.ai/artifact/JyZDsYr7HaEjsBoWTepjo6), app id `skrift`; the key
+     lives outside git in ~/.config/feedback-kit/skrift.xcconfig; voice feedback pauses while Skrift records or
+     plays; Tuur's open questions get published to the app instead of artifacts (Q299).

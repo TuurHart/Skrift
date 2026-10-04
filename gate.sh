@@ -11,6 +11,7 @@ cd "$(dirname "$0")"
 LOG=${TMPDIR:-/tmp}/skrift-gate-$$.log
 FLAGS=(-skipPackagePluginValidation -skipMacroValidation)
 
+./plan/twin-check.sh || { echo "GATE: RED (new phone/Mac twin — see above)"; exit 1; }
 (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null) || { echo "GATE: xcodegen (desktop) failed"; exit 1; }
 if ! xcodebuild test -project Skrift_Native/SkriftDesktop/SkriftDesktop.xcodeproj -scheme UnitTests \
      -destination 'platform=macOS' "${FLAGS[@]}" >"$LOG" 2>&1; then

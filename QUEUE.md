@@ -1313,7 +1313,7 @@ do: Stale rows found by the audit: FEATURES.md:119 (iPad list '320-420 draggable
 check: `./gate.sh`
 source: plan/reads/parity-audit.md P75
 
-### Q175 [tuur] (todo) approve the twin gate: add plan/twin-check.sh to gate.sh
+### Q175 [tuur] (done) approve the twin gate: add plan/twin-check.sh to gate.sh
 spec: C239 C240
 needs: -
 do: -
@@ -2229,6 +2229,13 @@ spec: -
 needs: -
 do: (fill in)
 check: (fill in)
+
+### Q299 [auto] (doing) in-app feedback button on phone and iPad (FeedbackKit, app id skrift)
+spec: D179
+needs: -
+gate+: yes
+do: Tuur 2026-10-04: adopt the shared FeedbackKit (~/Hackerman/feedback-kit, read its ADOPTING.md first and follow it) in SkriftMobile only (iOS + iPad; the Mac app is untouched). Approved design: https://claude.ai/artifact/JyZDsYr7HaEjsBoWTepjo6. Skrift deviations from ADOPTING, on purpose: (a) package path is ABSOLUTE `/Users/tiurihartog/Hackerman/feedback-kit` in Skrift_Native/SkriftMobile/project.yml (relative paths break in .claude/worktrees); (b) tracked `Skrift_Native/SkriftMobile/Config/Feedback.xcconfig` = `FEEDBACK_KEY =` then `#include? "/Users/tiurihartog/.config/feedback-kit/skrift.xcconfig"` (the key already exists there, mode 600, outside git — NEVER print, copy or commit it); set it as the SkriftMobile target's configFiles for Debug and Release. Info.plist (project.yml info properties): FeedbackAppID = skrift, FeedbackKey = $(FEEDBACK_KEY); keep Skrift's existing NSMicrophoneUsageDescription. Start it in the App init with Skrift's own accent token (Shared/UI/Palette) and privacy line 'Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed.' Tag every top-level screen and sheet with .feedbackScreen("Name"): Notes list, note detail, Record, Books library, Player, Journal/Review, Settings, and the iPad split equivalents. AUDIO (hard rule, hardware-flavoured): FeedbackKit's recorder sets .playAndRecord and deactivates the session afterwards, which would cut Skrift's own audio. Call FeedbackKit.setVoicePaused("Voice notes are off while Skrift is recording or playing.") whenever Skrift is recording, running live caption, playing an audiobook or a memo, or capturing a quote, and setVoicePaused(nil) when all of those stop — drive it from the one place that already knows (find the recorder/player state owners), not per view. Prove it: a phone test FeedbackWiringTests (Info.plist FeedbackAppID == 'skrift', FeedbackKey non-literal; the voice-pause rule as a pure function over the audio states); then build Debug on the iPhone 17 sim, launch, tap the feedback button, and save a screenshot of the sheet reading 'From the Notes screen' to plan/reads/feedback-kit/sheet.png (LOOK at it). Device behaviour (audio interplay) stays UNVERIFIED — say so. Update FEATURES.md. Never run SkriftDesktopUITests.
+check: `grep -rqE "class FeedbackWiringTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && ls plan/reads/feedback-kit/sheet.png >/dev/null && perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh FeedbackWiringTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3163,3 +3170,6 @@ check: (fill in)
 - 2026-10-03 10:02 Q258 -> done — hand-merged (D174: phone export test expectations follow C25)
 - 2026-10-03 10:04 Q291 -> done — gate pass @458c2286
 - 2026-10-03 10:05 Q295 -> done — gate pass @7114ba58
+- 2026-10-04 09:28 Q299 added
+- 2026-10-04 09:28 Q299 -> doing — dispatched (opus)
+- 2026-10-04 09:28 Q175 -> done — gate.sh runs plan/twin-check.sh (baseline 22 twins); gate GREEN 1480

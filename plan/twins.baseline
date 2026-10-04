@@ -1,0 +1,22 @@
+string-twin	"Building the index — N of M"
+string-twin	"I like the gray of the iPhone better"
+string-twin	"Locked notes stay hidden here too — unlock to see them."
+string-twin	"This note was published to Obsidian before you locked it. Skrift never deletes vault files — remove it there if you want it gone. New publishes will skip it."
+string-twin	"Transcription model not downloaded"
+string-twin	"custom vocab never corrected"
+string-twin	"filed out of your Skrift folder"
+string-twin	"keep the apps looking the same"
+string-twin	"moves to Recently Deleted in Nd"
+string-twin	"starts fading … — rate it to keep it"
+type-twin	ConnectionsPanel
+type-twin	DiarizationData
+type-twin	DiarizationService
+type-twin	ImportReportBanner
+type-twin	NamesCloudSync
+type-twin	NoteBody
+type-twin	PolishPromptsCloudSync
+type-twin	RootView
+type-twin	SettingsView
+type-twin	TranscriptionService
+type-twin	VocabularyBooster
+type-twin	VocabularyCloudSync
