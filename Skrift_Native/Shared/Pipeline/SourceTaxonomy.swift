@@ -96,11 +96,9 @@ enum SourceKind: Equatable {
 
     /// Kind of a synced `Memo`. A capture is the phone's bare `Memo.sharedContentData`
     /// (`CaptureInboxDrainer`); a video is `sourceType` OR `mediaSource` in `metadataData`.
-    /// The `{"sharedContent":...}` wrapper inside `metadataData` is still tolerated (the shape
-    /// the pre-Q138 `SourceTaxonomyTests` seeds); the bare blob wins.
     static func of(_ memo: Memo) -> SourceKind {
         let meta = memo.metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-        let shared = memo.sharedContent ?? SharedContent.decode(from: memo.metadataData)
+        let shared = memo.sharedContent
         return classify(hasBook: memo.metadata?.bookTitle.map { !$0.isEmpty } ?? false,
                         media: mediaMarker(in: meta),
                         sharedType: shared?.type.rawValue,
