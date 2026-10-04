@@ -2119,7 +2119,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D167): a note is Done once processed, on phone, iPad and Mac; 'exported' is the destination row's own state, never the filter. Today phone ProcessPile.matches (ProcessPile.swift:50-51) and Mac AppModel.matchesFilter disagree, and the Mac Done list can hold stranded notes. Add one Shared `QueueFilter` (Needs Work / Done) both apps call; delete the two local predicates. Desktop test `QueueFilterSharedTests`, phone test `QueueFilterPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class QueueFilterSharedTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QueueFilterPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q283 [auto] (doing) remove the Unsynced chip and the dead photo/place filters
+### Q283 [auto] (done) remove the Unsynced chip and the dead photo/place filters
 spec: D68 D148 D168
 needs: -
 gate+: yes
@@ -2270,7 +2270,7 @@ needs: -
 do: (fill in)
 check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
 
-### Q305 [auto] (todo) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
+### Q305 [auto] (doing) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
 spec: -
 needs: -
 gate+: yes
@@ -2284,7 +2284,7 @@ gate+: yes
 do: Q218 made the DEV devlog route-change line print 'AVAudioSessionRouteChangeReason(rawValue: N)'. That trace is the first tool for hardware audio bugs (CLAUDE.md), so map the reason (and the category/mode where logged) to readable names (newDeviceAvailable, oldDeviceUnavailable, categoryChange, override, wakeFromSleep, noSuitableRouteForCategory, routeConfigurationChange, unknown) in one small helper with a phone test RouteChangeNameTests. Log-only, no audio-session behaviour change. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh RouteChangeNameTests && ./gate.sh`
 
-### Q307 [auto] (todo) a PDF inside a dropped folder becomes a file capture, like a loose PDF
+### Q307 [auto] (doing) a PDF inside a dropped folder becomes a file capture, like a loose PDF
 spec: -
 needs: -
 gate+: yes
@@ -3291,3 +3291,6 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 11:25 Q309 -> tuur — parked: Dev check
 - 2026-10-04 11:25 Q308 -> doing — dispatched (sonnet)
 - 2026-10-04 11:30 Q308 -> done — gate pass @36465845
+- 2026-10-04 11:37 Q305 -> doing — dispatched (sonnet); kit a15b4bb on main
+- 2026-10-04 11:45 Q307 -> doing — dispatched (sonnet)
+- 2026-10-04 11:57 Q283 -> done — gate pass @ae298ab0
