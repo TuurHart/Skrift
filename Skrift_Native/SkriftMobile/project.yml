@@ -55,7 +55,7 @@ packages:
   # In-app feedback (Q299/D179): the shared FeedbackKit, a LOCAL package. ABSOLUTE
   # path on purpose: a relative one breaks inside .claude/worktrees. App target only.
   FeedbackKit:
-    path: /Users/tiurihartog/Hackerman/feedback-kit
+    path: /Users/tiurihartog/Hackerman/netcup-server
 
 # Signing: bake the dev team into the project so `xcodegen generate` never drops it.
 # Without this, every regeneration reset DEVELOPMENT_TEAM to None and the app + its
