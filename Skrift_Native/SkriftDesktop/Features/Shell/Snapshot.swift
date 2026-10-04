@@ -1144,7 +1144,8 @@ enum Snapshot {
         let coordinator = ProcessingCoordinator()
 
         let view = HStack(spacing: 0) {
-            SidebarView(model: model, files: files, coordinator: coordinator, session: fixtureSession(coordinator: coordinator), scrollable: false).frame(width: 228)
+            SidebarView(model: model, files: files, coordinator: coordinator, session: fixtureSession(coordinator: coordinator), scrollable: false,
+                        fixtureCloudMemos: []).frame(width: 228)   // Q303: never the live store
             NoteDisplayView(file: files.first, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
         }
         .frame(width: 1180, height: 780)
@@ -1468,7 +1469,8 @@ enum Snapshot {
         // HOSTED render (real AppKit): the sidebar's drop-catcher makes ImageRenderer
         // paint the yellow 🚫 placeholder over the whole left pane — hostPNG doesn't.
         let view = HStack(spacing: 0) {
-            SidebarView(model: model, files: files, coordinator: coordinator, session: fixtureSession(coordinator: coordinator), scrollable: false).frame(width: 228)
+            SidebarView(model: model, files: files, coordinator: coordinator, session: fixtureSession(coordinator: coordinator), scrollable: false,
+                        fixtureCloudMemos: []).frame(width: 228)   // Q303: never the live store
             NoteDisplayView(file: captureFile, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
         }
         .frame(width: 1180, height: 780)
