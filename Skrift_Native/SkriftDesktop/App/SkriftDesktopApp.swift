@@ -10,7 +10,7 @@ enum SharedStore {
         // Q37: `-isolatedRun` — see MemoCloudStore's twin flag — keeps the local
         // pipeline store in memory too, so a corpus-seeded eyeball run never writes
         // into the real Dev pipeline store on disk.
-        if ProcessInfo.processInfo.arguments.contains("-isolatedRun") {
+        if HeadlessIsolation.isRequested() {   // `-isolatedRun` or any `-snapshot*` (Q303)
             let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
             do { return try ModelContainer(for: PipelineFile.self, configurations: config) }
             catch { fatalError("Failed to create isolated ModelContainer: \(error)") }
