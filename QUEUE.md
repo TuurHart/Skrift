@@ -2311,6 +2311,12 @@ gate+: yes
 do: It fails intermittently on the iPhone 17 sim (Vision OCR returns text: nil within the 10 s poll on a freshly erased or loaded simulator) — RUN.md Q13 finding; it blocked Q219's accept on 2026-10-04 though Q219 touched no OCR code. Make the test deterministic: inject a fake OCR recogniser for the save->searchable contract (the real Vision call belongs in a separate, tolerant test), or wait on the index notification instead of a fixed 10 s poll. This edits a protected test: report 'needs hand-merge' with the exact diff; do not weaken what the test proves (a saved photo's text is searchable without relaunch). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh`
 
+### Q311 [tuur] (tuur) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
+spec: -
+needs: -
+do: (fill in)
+check: On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3323,3 +3329,5 @@ check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.
 - 2026-10-04 18:29 Q310 -> done — hand-merged (Tuur 2026-10-04: fake OCR in MemoSaverTests, real Vision in PhotoTextIndexerTests)
 - 2026-10-04 18:29 Q220 -> doing — dispatched (opus; audio append; one-at-a-time)
 - 2026-10-04 18:44 Q220 -> done — gate pass @cd1676d3
+- 2026-10-04 18:44 Q311 added
+- 2026-10-04 18:44 Q311 -> tuur — parked: device check
