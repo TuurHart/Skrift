@@ -2284,7 +2284,7 @@ gate+: yes
 do: Q218 made the DEV devlog route-change line print 'AVAudioSessionRouteChangeReason(rawValue: N)'. That trace is the first tool for hardware audio bugs (CLAUDE.md), so map the reason (and the category/mode where logged) to readable names (newDeviceAvailable, oldDeviceUnavailable, categoryChange, override, wakeFromSleep, noSuitableRouteForCategory, routeConfigurationChange, unknown) in one small helper with a phone test RouteChangeNameTests. Log-only, no audio-session behaviour change. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh RouteChangeNameTests && ./gate.sh`
 
-### Q307 [auto] (doing) a PDF inside a dropped folder becomes a file capture, like a loose PDF
+### Q307 [auto] (done) a PDF inside a dropped folder becomes a file capture, like a loose PDF
 spec: -
 needs: -
 gate+: yes
@@ -3294,3 +3294,4 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 11:37 Q305 -> doing — dispatched (sonnet); kit a15b4bb on main
 - 2026-10-04 11:45 Q307 -> doing — dispatched (sonnet)
 - 2026-10-04 11:57 Q283 -> done — gate pass @ae298ab0
+- 2026-10-04 12:00 Q307 -> done — hand-merged (Tuur 2026-10-04: every dropped PDF, loose or in a folder, is a file capture)
