@@ -26,8 +26,9 @@ Pull it over USB, parse, verify, triage. Proven 2026-06-10; live-store path corr
   do NOT triage from it** (it bit the 06-12 *and* 06-17 *and* 06-21 pulls). App-group reads
   need the **CoreDevice service tunnel up** (`devicectl` prints "Acquired tunnel connection");
   if it's down (error 1011), see the AFC fallback gotcha.
-- In-app feedback: `Documents/Feedback/<uuid>/metadata.json` (text in the `note` field) —
-  per-app `appDataContainer`, AFC-readable.
+- In-app feedback: since Q301 (2026-10-04) it goes through FeedbackKit to the feedback server (app id `skrift`),
+  no longer to `Documents/Feedback/`. Older builds left `Documents/Feedback/<uuid>/metadata.json`
+  (text in the `note` field), per-app `appDataContainer`, AFC-readable.
 
 ## Steps
 1. **Check device + locate the LIVE store**: `xcrun devicectl list devices`, then list the

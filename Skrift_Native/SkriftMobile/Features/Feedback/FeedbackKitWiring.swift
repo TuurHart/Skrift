@@ -14,6 +14,13 @@ enum FeedbackKitWiring {
     static func start() {
         FeedbackKit.start(appearance: FeedbackPalette.appearance(privacyLine: privacyLine))
     }
+
+    /// What the Settings "Send feedback" row calls (Q301). A seam so a test can see the
+    /// row reach the kit without presenting a sheet.
+    @MainActor static var presenter: () -> Void = { FeedbackKit.present() }
+
+    @MainActor
+    static func openFeedback() { presenter() }
 }
 
 /// Skrift's own tokens (Shared/UI/Palette) for every FeedbackAppearance colour (Q300 / D179).
