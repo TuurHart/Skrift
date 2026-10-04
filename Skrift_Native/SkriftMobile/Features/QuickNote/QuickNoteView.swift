@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 import SwiftData
 
@@ -55,7 +56,8 @@ struct QuickNoteView: View {
     /// every keystroke after that is debounced.
     @State private var commitDebouncer = CommitDebouncer()
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Quick note") }   // Q299
+    @ViewBuilder private var screenBody: some View {
         // NOT a SwiftUI `ScrollView` around the body: `QuickNoteBodyTextView`
         // is its own natively-scrolling `UITextView` (same reasoning as the
         // real editor, `NoteBodyView` — "the text view owns its scrolling"),

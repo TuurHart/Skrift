@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 import UIKit
 
@@ -59,7 +60,8 @@ struct RecordView: View {
 
     private struct PhotoMark: Equatable { let wordIndex: Int; let anchor: [String]; let number: Int }
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Record") }   // Q299
+    @ViewBuilder private var screenBody: some View {
         ZStack {
             Color.skBg.ignoresSafeArea()
 
@@ -869,7 +871,7 @@ struct RecordWaveform: View {
             HStack(alignment: .center, spacing: 3) {
                 ForEach(0..<meter.width, id: \.self) { i in
                     Capsule()
-                        .fill(LinearGradient(colors: [.skAccent, Color(hex: 0xa99cff)],
+                        .fill(LinearGradient(colors: [.skAccent, Color(hex: 0xa99cff, alpha: 1)],
                                              startPoint: .bottom, endPoint: .top))
                         .frame(height: CGFloat(meter.height(at: i)) * geo.size.height)
                         .opacity(0.45 + Double(meter.bars[i]) * 0.55)
