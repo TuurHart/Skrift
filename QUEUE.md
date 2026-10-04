@@ -1665,7 +1665,7 @@ do: In `SkriftMobile/`: delete `RecordingActivityManager.isRunning` (`Services/R
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-d02 MRC-d03 MRC-d04 MRC-d05 MRC-d06 MRC-d08 MRC-d09 MRC-d10 MRC-d11 MRC-d14 MRC-d15 MRC-d16 MRC-d19 MRC-d24 MRC-d25 MRC-d26 MRC-c20 (cleanup-audit P31)
 
-### Q219 [auto] (stuck) one AVAudioFile duration, one buffer copy, one retrying transcribe
+### Q219 [auto] (done) one AVAudioFile duration, one buffer copy, one retrying transcribe
 spec: C239
 needs: Q218
 gate+: yes
@@ -3297,3 +3297,4 @@ check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F 
 - 2026-10-04 12:00 Q307 -> done — hand-merged (Tuur 2026-10-04: every dropped PDF, loose or in a folder, is a file capture)
 - 2026-10-04 12:04 Q219 -> stuck — check failed — .queue/Q219.check.log
 - 2026-10-04 12:06 Q305 -> done — hand-merged (D163: FeedbackPaletteTests replaced tests of deleted workaround code)
+- 2026-10-04 12:11 Q219 -> done — gate pass @843830f7
