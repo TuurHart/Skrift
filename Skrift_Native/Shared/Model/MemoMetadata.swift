@@ -55,6 +55,12 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// by an older decoder). The body never shows the times, only the paragraph break each start forces.
     var clipManifest: [ClipManifestEntry]?
 
+    /// D176 / C25: the real file name of an imported audio ("Interview with Jan.m4a"), shown as
+    /// the title until the note has words. Written by the phone's single-clip import (only when
+    /// the name is a real one, not "New Recording N"); read by both apps' title ladder
+    /// (`NoteTitle.importName`). ADDITIVE + optional — nil on every other memo.
+    var importFileName: String?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -72,7 +78,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         bookID: UUID? = nil,
         bookPosition: Double? = nil,
         sourceType: String? = nil,
-        clipManifest: [ClipManifestEntry]? = nil
+        clipManifest: [ClipManifestEntry]? = nil,
+        importFileName: String? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -91,6 +98,7 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.bookPosition = bookPosition
         self.sourceType = sourceType
         self.clipManifest = clipManifest
+        self.importFileName = importFileName
     }
 
     /// Known `sourceType` values — the first entries of the deferred unified
@@ -128,6 +136,7 @@ extension MemoMetadata {
         var bookTitle: String?
         var bookAuthor: String?
         var bookChapter: String?
+        var importFileName: String?   // D176
     }
 
     /// The ONE lenient decode of a metadata blob: nil for no blob or unreadable JSON.

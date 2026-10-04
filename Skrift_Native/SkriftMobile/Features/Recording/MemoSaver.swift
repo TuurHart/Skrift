@@ -96,13 +96,17 @@ struct MemoSaver {
         // Open-in pass no date, so a Signal / WhatsApp file dates from its name, as on the Mac.
         // Device round 1: a WhatsApp voice note landed dated to the UPLOAD moment.
         let seed = recordedAt ?? FilenameDate.ladder(embedded: nil, fileAt: source) ?? Date()
-        repository.insert(Memo(
+        // D176 / C25: a REAL file name ("Interview with Jan") shows as the title until the note
+        // has words; a generic default ("New Recording 22", "Audio 3") is not kept (→ "Voice note").
+        let keptName = NoteTitle.importName(source.lastPathComponent)
+        repository.insert(Memo.make(
             id: id,
             audioFilename: filename,
             duration: duration,
             recordedAt: seed,
             syncStatus: .waiting,
-            transcriptStatus: .transcribing
+            transcriptStatus: .transcribing,
+            metadata: keptName.map { MemoMetadata(importFileName: $0) }
         ))
         Task {
             // Background-task claim (Scribbel pattern): a share-launched import
