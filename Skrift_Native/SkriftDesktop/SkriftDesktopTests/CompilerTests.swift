@@ -322,7 +322,7 @@ final class CaptureCompilerTests: XCTestCase {
     // MARK: captureSharedBlock unit tests
 
     func testCaptureSharedBlockUrl() {
-        let sc = CompilerSharedContent(type: "url",
+        let sc = SharedContent(type: .url,
                                url: "https://example.com",
                                urlTitle: "Example Page")
         let block = Compiler.captureSharedBlock(sc)
@@ -331,19 +331,19 @@ final class CaptureCompilerTests: XCTestCase {
     }
 
     func testCaptureSharedBlockText() {
-        let sc = CompilerSharedContent(type: "text", text: "A quoted snippet.")
+        let sc = SharedContent(type: .text, text: "A quoted snippet.")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.hasPrefix("> A quoted snippet."))
     }
 
     func testCaptureSharedBlockImage() {
-        let sc = CompilerSharedContent(type: "image", fileName: "photo.jpg")
+        let sc = SharedContent(type: .image, fileName: "photo.jpg")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.contains("![[photo.jpg]]"))
     }
 
     func testCaptureSharedBlockImageSkippedWhenBodyHasMarkers() {
-        let sc = CompilerSharedContent(type: "image", fileName: "photo.jpg")
+        let sc = SharedContent(type: .image, fileName: "photo.jpg")
         XCTAssertTrue(Compiler.captureSharedBlock(sc, body: "hi [[img_001]]").isEmpty,
                       "markers in the body own the photo placement")
         XCTAssertTrue(Compiler.captureSharedBlock(sc, body: "plain ramble").contains("![[photo.jpg]]"),
@@ -351,8 +351,8 @@ final class CaptureCompilerTests: XCTestCase {
     }
 
     func testCaptureSharedBlockUnknownTypeIsEmpty() {
-        let sc = CompilerSharedContent(type: "file")
+        let sc = SharedContent(type: .file)
         let block = Compiler.captureSharedBlock(sc)
-        XCTAssertTrue(block.isEmpty, "unknown type → no pinned block")
+        XCTAssertTrue(block.isEmpty, "a .file capture pins nothing")
     }
 }
