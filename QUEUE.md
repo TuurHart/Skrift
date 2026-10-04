@@ -1521,7 +1521,7 @@ do: `AlignmentCore.swift:286-340` and `SkriftMobile/Services/Audiobooks/ChapterD
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh ChapterDetectorTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-c01 (cleanup-audit P13)
 
-### Q201 [auto] (todo) delete the one-clock migration once every device has run it
+### Q201 [auto] (doing) delete the one-clock migration once every device has run it
 spec: C240
 needs: -
 gate+: no
@@ -3333,3 +3333,4 @@ check: On the phone (Dev 177+): open a voice note, add a recording to it, then p
 - 2026-10-04 18:44 Q311 -> tuur — parked: device check
 - 2026-10-04 18:44 Q226 -> doing — dispatched (sonnet; one-at-a-time)
 - 2026-10-04 19:00 Q226 -> done — hand-merged (D163/D166: ports + deletion of the paired-mode test; unrated assertion kept and strengthened)
+- 2026-10-04 19:00 Q201 -> doing — dispatched (sonnet; one-at-a-time)
