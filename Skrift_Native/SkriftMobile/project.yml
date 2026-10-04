@@ -52,6 +52,10 @@ packages:
   swift-collections:
     url: https://github.com/apple/swift-collections
     exactVersion: 1.6.0
+  # In-app feedback (Q299/D179): the shared FeedbackKit, a LOCAL package. ABSOLUTE
+  # path on purpose: a relative one breaks inside .claude/worktrees. App target only.
+  FeedbackKit:
+    path: /Users/tiurihartog/Hackerman/feedback-kit
 
 # Signing: bake the dev team into the project so `xcodegen generate` never drops it.
 # Without this, every regeneration reset DEVELOPMENT_TEAM to None and the app + its
@@ -75,6 +79,10 @@ targets:
   SkriftMobile:
     type: application
     platform: iOS
+    # FEEDBACK_KEY comes from an untracked file outside git (see the xcconfig).
+    configFiles:
+      Debug: Config/Feedback.xcconfig
+      Release: Config/Feedback.xcconfig
     sources:
       - path: App
       - path: Models
@@ -138,6 +146,9 @@ targets:
         NSFaceIDUsageDescription: "Skrift uses Face ID to open your locked notes."
         NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it (place name, daylight, weather)."
         NSMotionUsageDescription: "Skrift records your step count alongside a memo for context."
+        # FeedbackKit (Q299): app id + the key resolved from Config/Feedback.xcconfig.
+        FeedbackAppID: skrift
+        FeedbackKey: $(FEEDBACK_KEY)
         # NO local-network keys. Bonjour/HTTP LAN sync was retired 2026-07-06 —
         # CloudKit is the only phone↔Mac transport and no Swift file references
         # NetService. NSBonjourServices + NSLocalNetworkUsageDescription + the
@@ -297,6 +308,8 @@ targets:
         product: HuggingFace
       - package: swift-transformers
         product: Tokenizers
+      - package: FeedbackKit
+        product: FeedbackKit
       - target: SkriftShared
         embed: true
       - target: SkriftWidget

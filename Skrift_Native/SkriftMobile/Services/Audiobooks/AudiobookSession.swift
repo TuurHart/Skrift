@@ -217,7 +217,7 @@ final class AudiobookSession {
         AudioPlayerModel.nowPlaying?.pause()
         activateAudioSession()
         player.playImmediately(atRate: Float(rate))
-        isPlaying = true
+        isPlaying = true;  FeedbackAudioGate.playingBook = isPlaying   // Q299
         stalled = false
         DevLog.log("audiobook play — at=\(String(format: "%.1f", currentTime))s rate=\(rate)")
         cancelIdleEnd()
@@ -231,7 +231,7 @@ final class AudiobookSession {
         DevLog.log("audiobook pause — at=\(String(format: "%.1f", currentTime))s"
                    + " of \(String(format: "%.1f", duration))s")
         player.pause()
-        isPlaying = false
+        isPlaying = false;  FeedbackAudioGate.playingBook = isPlaying   // Q299
         stalled = false
         scheduleIdleEnd()
         persistProgress(force: true)
@@ -525,7 +525,7 @@ final class AudiobookSession {
         player?.pause()
         player = nil
         currentFileIndex = 0
-        isPlaying = false
+        isPlaying = false;  FeedbackAudioGate.playingBook = isPlaying   // Q299
     }
 
     // MARK: - Audio session

@@ -56,7 +56,9 @@ final class LiveRecordingService {
     /// The instance whose recording session is currently live. Weak, so an
     /// abnormally-dismissed recorder (deinit without stop/cancel) can never
     /// leave the flag stuck on.
-    private static weak var activeService: LiveRecordingService?
+    private static weak var activeService: LiveRecordingService? {
+        didSet { FeedbackAudioGate.refresh() }   // Q299: voice notes off while recording
+    }
 
     /// CROSS-LANE CONTRACT — do not rename. True while a recording session is
     /// live: from `start()` until `stop()`/`cancel()`, **including while

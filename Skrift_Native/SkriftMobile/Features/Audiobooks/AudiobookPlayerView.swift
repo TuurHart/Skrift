@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 import UIKit
 
@@ -48,7 +49,8 @@ struct AudiobookPlayerView: View {
     private let transcripts = BookTranscriptStore()
     private let bookmarks = BookmarkStore()
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Player") }   // Q299
+    @ViewBuilder private var screenBody: some View {
         ZStack {
             bodyBackground.ignoresSafeArea()
             if let book = session.book {

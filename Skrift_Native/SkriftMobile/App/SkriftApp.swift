@@ -86,6 +86,9 @@ struct SkriftApp: App {
         // pads; a no-op everywhere else (PolishCenter stays unavailable and no
         // polish UI appears).
         PolishBootstrap.installEngineIfSupported()
+
+        // In-app feedback (Q299): the floating button + sheet (FeedbackKit, app id skrift).
+        FeedbackKitWiring.start()
     }
 
     var body: some Scene {

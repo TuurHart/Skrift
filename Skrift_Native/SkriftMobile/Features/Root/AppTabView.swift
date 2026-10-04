@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 
 /// Root tab bar: **Notes · Books · Journal · Settings** (audiobook reading-mode
@@ -50,14 +51,17 @@ struct AppTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             MemosListView()
+                .feedbackScreen("Notes")   // Q299: newest visible tag wins (a pushed note/sheet)
                 .tabItem { Label(SharedCopy.notesTitle, systemImage: "note.text") }
                 .tag(Tab.notes)
 
             AudiobookLibraryView()
+                .feedbackScreen("Books")
                 .tabItem { Label("Books", systemImage: "book") }
                 .tag(Tab.books)
 
             JournalHomeView()
+                .feedbackScreen(SharedCopy.reviewTitle)
                 // Display name = SharedCopy.reviewTitle (Tuur, 2026-07-07) — internal
                 // ids stay `journal` (the `-openTab journal` flag + file names are
                 // shared API across lanes; renaming code churns for zero user value).
@@ -65,6 +69,7 @@ struct AppTabView: View {
                 .tag(Tab.journal)
 
             SettingsView()
+                .feedbackScreen("Settings")
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }

@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 import SwiftData
 import UIKit
@@ -324,7 +325,8 @@ struct MemoDetailView: View {
         }
     }
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Note") }   // Q299
+    @ViewBuilder private var screenBody: some View {
         Group {
             if hSize == .regular {
                 // The WORKBENCH (signed mock ipad-note-chrome-belongs.html): a

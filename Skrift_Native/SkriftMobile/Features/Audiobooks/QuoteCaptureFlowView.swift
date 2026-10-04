@@ -1,3 +1,4 @@
+import FeedbackKit
 import SwiftUI
 
 /// Hosts the audiobook quote-capture flow, presented full-screen over the player
@@ -55,7 +56,13 @@ struct QuoteCaptureFlowView: View {
                 Task { try? await TranscriptionService.shared.ensureLoaded() }
             }
         }
-        .onDisappear { BookTranscriptionJob.shared.resumeAfterCapture() }
+        // Q299: voice notes are off while the capture flow is open.
+        .onAppear { FeedbackAudioGate.capturingQuote = true }
+        .onDisappear {
+            BookTranscriptionJob.shared.resumeAfterCapture()
+            FeedbackAudioGate.capturingQuote = false
+        }
+        .feedbackScreen("Quote capture")
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("quote-capture-flow")
     }

@@ -37,7 +37,9 @@ final class AudioPlayerModel: NSObject, ObservableObject {
     /// The instance currently playing memo audio, if any (weak — instances are
     /// owned by their views). Lets `AudiobookSession.play()` pause memo playback
     /// when the book starts: the REVERSE of the exclusion in `play()` below.
-    private(set) static weak var nowPlaying: AudioPlayerModel?
+    private(set) static weak var nowPlaying: AudioPlayerModel? {
+        didSet { FeedbackAudioGate.refresh() }   // Q299: voice notes off while a memo plays
+    }
 
     /// Point the player at a memo's audio (or clear it). No-op if it's already
     /// loaded, so swiping back to a page doesn't restart it.
