@@ -2386,6 +2386,20 @@ gate+: yes
 do: Tuur 2026-10-05 on the iPhone 13: opening a note from a search result highlights the hit too faintly and scrolls it to the BOTTOM of the screen. Want: a bright yellow highlight (like a highlighter; readable in light and dark mode — dark text on yellow) on every occurrence of the term, and the first hit scrolled to the vertical middle of the visible editor area (above the keyboard/player bar). Code: Skrift_Native/SkriftMobile/Services/SearchHitBridge.swift, Features/MemoDetail/NoteBodyView.swift (search-hit path), MemosListView.swift (sets the hit). Check whether the Mac and iPad have the same search-hit path; if so single-source the highlight colour and centring rule in Shared/ (feedback_shared_code_first) and apply it there too. Render it and look: sim screenshot of a note opened from a search for a word near the end of a long note, light and dark. Test: `SearchHitCenteringTests` (phone target) — the computed scroll offset puts the hit's rect centre at the visible area's centre (clamped at the top/bottom of the text).
 check: `plan/mtest.sh SearchHitCenteringTests && ./gate.sh`
 
+### Q322 [auto] (todo) perf: a save with no changes is a no-op, and a note edit does not rebuild the list or the hidden Books tab
+spec: -
+needs: -
+gate+: yes
+do: From plan/perf2/MEASURED.md (b179 flow re-run): NotesRepository.save() bumps memoSetVersion even when the context has no changes; MemoDetailView's onDisappear save therefore makes every note CLOSE rebuild the Notes list base (allMemos ~1.0 s + ListDerivedCache.base ~1.0 s over 5 closes) — Tuur feels a stutter on open/close; each typing commit's save also re-runs the list base and the hidden AudiobookLibraryView.body behind the editor (Tuur: lag after a space). Fix: save() returns early (no save, no bump) when !context.hasChanges; split the version so a body-text edit of ONE memo updates that memo's row/search text incrementally instead of rebuilding the whole base (keep results identical to a full rebuild — ListDerivedCacheTests' equality corpus); AudiobookLibraryView must not re-evaluate on memo edits when its counts are unchanged (Q317's BookNotesCountCache already keys counts). Tests: `SaveNoopTests` (phone target) — save with no changes leaves memoSetVersion unchanged; extend ListDerivedCacheTests — editing one memo's transcript rebuilds one row, not the base; results equal a full rebuild.
+check: `plan/mtest.sh SaveNoopTests && plan/mtest.sh ListDerivedCacheTests && plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
+
+### Q323 [auto] (todo) perf: the phone notes list scrolls and filters without re-measuring and re-diffing every row
+spec: -
+needs: -
+gate+: yes
+do: From plan/perf2/MEASURED.md (b179 flow re-run, iPhone 13, 2,000 notes): fast scrolling keeps the main thread ~75% busy (self-sizing cells: ListCollectionViewCellBase.preferredLayoutAttributesFitting → hostSizeThatFits 3.9 s, cell creation 4.5 s per 20 s), and typing in search still diffs the whole sectioned List (ListDiffable.sectionIndex 1.9 s). Investigate with the trace first (scratchpad scripts in plan/perf2/MEASURED.md header), then fix the biggest: candidates — give NoteCardView a cheap, stable size (no ChipFlowLayout measure pass per sizing; keep the Q312 ChipSlot clipping rule), stable row identity and Equatable row values so SwiftUI skips unchanged rows, fewer/cheaper section headers during search. Do NOT change how a card looks: render before/after sim screenshots of the list (cards with 0, 2 and 5+ chips, photo, quote) and compare by eye. Test: `ListRowEquatableTests` (rows with unchanged inputs compare equal; section identity stable across a search keystroke).
+check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3448,3 +3462,5 @@ check: `plan/mtest.sh SearchHitCenteringTests && ./gate.sh`
 - 2026-10-05 21:49 Q320 -> doing — worker out
 - 2026-10-05 22:06 Q318 -> done — gate pass @820268c1
 - 2026-10-05 22:14 Q321 added
+- 2026-10-05 22:18 Q322 added
+- 2026-10-05 22:18 Q323 added

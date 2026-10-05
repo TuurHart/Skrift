@@ -30,3 +30,14 @@ Recording itself (140-165 s) kept the main thread quiet. Mac not measured yet.
 
 Left in the 1.5 s: UIKit first commit of the Notes list (UpdateCollectionViewListCoordinator, MemosListView.body ~0.5 s).
 Note open, related-note hop, Done after typing, search, return from home, Stop and Books need Tuur's flow again (Q319).
+
+### Flow re-run on b179 (Tuur, 2026-10-05 22:05, `.queue/perf/b179/2-flow.trace`)
+
+| moment | b178 | b179 | what is left |
+|---|---|---|---|
+| open 5 notes (+ back) | ~4,700 ms in MemoPageView over the opens; 1-3 s per open | ~1,330 ms MemoPageView over 5 opens; ~8.7 s main total incl. the list behind | closing a note calls `repository.save()` (MemoDetailView onDisappear), and `save()` bumps `memoSetVersion` even with no changes, so every close rebuilds the list base (allMemos 1,008 ms, ListDerivedCache.base 967 ms). Tuur: "small stutter when I open and close" |
+| type, Done | 2.9 s | ~2.0 s | each commit's save bumps the version: list base + hidden AudiobookLibraryView.body re-run behind the editor. Tuur: "lags a little after a space" |
+| search 'morning' + clear | ~10 s | ~3 s ("seems faster") | typing more in search still costs list diffing: ListDiffable.sectionIndex 1,894 ms + row closures over 120-155 s |
+| scroll fast 20 s | not isolated | 15.4 s main busy in 20 s | self-sizing list cells: preferredLayoutAttributesFitting → hostSizeThatFits 3.9 s, cell creation 4.5 s (Tuur: felt fine) |
+| Stop a recording | 6.4 s | ~4.3 s | list + page + Books body re-run after the save |
+| record start | freeze at start in the past | no freeze (Tuur) | — |
