@@ -2324,7 +2324,7 @@ gate+: yes
 do: Found by Q230 on 2026-10-04: SkriftMobileUITests/MemosListUITests fails 6/6 at the first wait for a seeded memo (testSearchFiltersMemos line ~62), already on head 5b576277 before Q230. The gate does not run phone UI tests, so a recent merge broke the UI-test seeding unnoticed — suspects: Q222 (LaunchFlags accessors removed; UITests read raw -seed args), Q230 (seeders now #if DEBUG — UI tests run Debug, should be fine), Q282/Q283 (list filters/chips changed). Bisect over the session's merges with the one class, find the cause, fix the app or the UI test's seed/launch args (UI test files are not protected). Run ONLY this phone UI class on the iPhone 17 sim; never run SkriftDesktopUITests or any Mac UI test.
 check: `perl -e 'alarm 1800; exec @ARGV' xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath Skrift_Native/SkriftMobile/build -skipMacroValidation -skipPackagePluginValidation -only-testing:SkriftMobileUITests/MemosListUITests -quiet && ./gate.sh`
 
-### Q313 [auto] (doing) perf library: a separate, never-synced Dev store seeded with ~2,000 realistic notes on phone and Mac
+### Q313 [auto] (done) perf library: a separate, never-synced Dev store seeded with ~2,000 realistic notes on phone and Mac
 spec: -
 needs: -
 gate+: yes
@@ -3371,3 +3371,4 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PerfLibrarySeederTests &&
 - 2026-10-04 22:04 Q312 -> done — gate pass @8127ebcc
 - 2026-10-05 10:06 Q313 added
 - 2026-10-05 10:06 Q313 -> doing — worker out
+- 2026-10-05 10:38 Q313 -> done — gate pass @713e5a74
