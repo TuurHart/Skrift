@@ -2366,6 +2366,12 @@ gate+: yes
 do: Run 2026-10-05 after Q314: MemoDetailUITests 5/7 pass (open non-first memo, delete-to-next, edit, split speakers, open). Two stale failures, both older than Q314: testSwipeBetweenMemos (swipe-between-notes OFF since 2026-07-16, pager removed by Q314) — delete it; testAddTagInDetail taps 'tag-editor-done', which Q28 (0c2a90fa, shared TagEditorRow: own row, no sheet) removed — rewrite it to add a tag through TagEditorRow and assert the chip appears. Also add testRelatedNoteHopOpensInPlace if the seeded memos can link (seed a [[memo:]] link if needed). UI test files are not protected. Run ONLY this phone UI class on the iPhone 17 sim; never run any Mac UI test.
 check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath Skrift_Native/SkriftMobile/build -skipMacroValidation -skipPackagePluginValidation -only-testing:SkriftMobileUITests/MemoDetailUITests -quiet && ./gate.sh`
 
+### Q319 [tuur] (tuur) re-run the 7-minute speed flow on the iPhone 13 (Dev 179, perf library) to measure Q314-Q317
+spec: -
+needs: -
+do: Same flow as plan/perf2/MEASURED.md: the orchestrator launches the app under Instruments with -perfLibrary (xctrace --launch, time in SECONDS), Tuur scrolls, opens 5 long notes and taps a related note, types and presses Done, searches 'morning' and clears it, goes home 5 s and back, records 15 s and stops, opens Books and a book. Compare each moment against the b178 column.
+check: `test -d .queue/perf/b179/2-flow.trace`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3421,3 +3427,5 @@ check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skr
 - 2026-10-05 18:48 Q317 -> done — hand-merged @9a381dee (memoSetVersion conflict, kept Q314); BookNotesCountCacheTests + NoteOpenWorkTests exit 0, gate green
 - 2026-10-05 21:30 Q315 -> done — hand-merged @8c58dd07 (one sync bump kept); ListDerivedCache/LaunchWork/NoteOpenWork/BookNotesCountCache tests + MemosListUITests 6/6 exit 0, gate green
 - 2026-10-05 21:35 Q316 -> done — gate pass @798b3a3c
+- 2026-10-05 21:48 Q319 added
+- 2026-10-05 21:48 Q319 -> tuur — waiting on Tuur

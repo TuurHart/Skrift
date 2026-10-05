@@ -20,3 +20,13 @@ Numbers are main-thread busy time of SkriftMobile (1 ms samples). Analysis scrip
 Caveat: the perf seed gives ~1,540 voice notes an audioFilename with no file on disk; AssetMaterializer's per-launch
 stat cost may differ when files exist. The fix item must re-measure with files present.
 Recording itself (140-165 s) kept the main thread quiet. Mac not measured yet.
+
+## After Q314-Q317 (build 179, same phone, same perf library)
+
+| moment | before (b178) | after (b179) | how |
+|---|---|---|---|
+| cold launch, first frame | 4.11 s | 1.73 / 1.52 / 1.67 s (3 runs) | App Launch template, `.queue/perf/b179/1-cold-launch-{1,2,3}.trace` |
+| main thread after first frame (launch sweeps) | ~1.4 s AssetMaterializer + FadingSweep + recover* on main | 24 ms on main in the 12 s after first frame | Time Profiler in the same traces |
+
+Left in the 1.5 s: UIKit first commit of the Notes list (UpdateCollectionViewListCoordinator, MemosListView.body ~0.5 s).
+Note open, related-note hop, Done after typing, search, return from home, Stop and Books need Tuur's flow again (Q319).
