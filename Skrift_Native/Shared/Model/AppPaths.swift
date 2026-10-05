@@ -20,13 +20,22 @@ enum AppPaths {
     /// creating ONCE per process. 99 call sites across the repo read this; a
     /// computed `var` ran `createDirectory` (mkdir+stat) on every single one.
     static let recordingsDirectory: URL = {
-        let dir = documentsDirectory.appendingPathComponent("recordings", isDirectory: true)
+        #if DEBUG
+        // Q313: `-perfLibrary` keeps its generated photos/audio out of the real library's folder.
+        let folder = PerfLibrary.isActive ? "recordings_perf" : "recordings"
+        #else
+        let folder = "recordings"
+        #endif
+        let dir = documentsDirectory.appendingPathComponent(folder, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }()
 
     static var namesFile: URL {
-        documentsDirectory.appendingPathComponent(namesFileName)
+        #if DEBUG
+        if PerfLibrary.isActive { return documentsDirectory.appendingPathComponent("names.perf.json") }   // Q313: fake people never reach the real roster
+        #endif
+        return documentsDirectory.appendingPathComponent(namesFileName)
     }
     #endif
 
@@ -52,6 +61,7 @@ enum AppPaths {
         #if DEBUG
         // Headless snapshots use a synthetic roster (`-snapshot-split`), never the dev data.
         if let o = ProcessInfo.processInfo.environment["SKRIFT_NAMES_FILE"], !o.isEmpty { return URL(fileURLWithPath: o) }
+        if PerfLibrary.isActive { return appSupportDirectory.appendingPathComponent("names.perf.json") }   // Q313
         #endif
         return appSupportDirectory.appendingPathComponent(namesFileName)
     }
@@ -60,14 +70,24 @@ enum AppPaths {
     /// SwiftData store — explicit path inside appSupportDirectory so it's isolated
     /// per build (the default store location is NOT bundle-id-namespaced for a
     /// non-sandboxed macOS app, which would share dev + prod data).
-    static var storeFile: URL { appSupportDirectory.appendingPathComponent("skrift.store") }
+    static var storeFile: URL {
+        #if DEBUG
+        if PerfLibrary.isActive { return appSupportDirectory.appendingPathComponent("perf_skrift.store") }   // Q313
+        #endif
+        return appSupportDirectory.appendingPathComponent("skrift.store")
+    }
 
     /// LOCAL mirror store for the CloudKit-backed Memo container (MAC_CLOUDKIT_PLAN.md
     /// 8a-iii). SEPARATE file from `storeFile` (the two SwiftData containers must not
     /// share a store), and explicit + dev/prod-suffixed for the same reason as
     /// `storeFile`: dev (syncing iCloud.com.skrift.mobile.dev) and prod (…mobile)
     /// would otherwise collide their CloudKit-mirror metadata in one file.
-    static var memoCloudStoreFile: URL { appSupportDirectory.appendingPathComponent("memo_cloud.store") }
+    static var memoCloudStoreFile: URL {
+        #if DEBUG
+        if PerfLibrary.isActive { return PerfLibrary.storeURL }   // Q313: perf.store, CloudKit off
+        #endif
+        return appSupportDirectory.appendingPathComponent("memo_cloud.store")
+    }
 
     /// Where a Mac RECORDING is written before it is ingested (2026-07-28, the Mac grew a
     /// record button). Same member name as the iOS side on purpose — `RecordingCore` and
@@ -76,14 +96,24 @@ enum AppPaths {
     /// land in the real library. The file leaves here the moment `IngestService` copies it
     /// into its working folder, so this stays a staging area, not a second library.
     static var recordingsDirectory: URL {
-        let dir = appSupportDirectory.appendingPathComponent("recordings", isDirectory: true)
+        #if DEBUG
+        let folder = PerfLibrary.isActive ? "recordings_perf" : "recordings"   // Q313
+        #else
+        let folder = "recordings"
+        #endif
+        let dir = appSupportDirectory.appendingPathComponent(folder, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 
     static var audioOutputDirectory: URL {
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let dir = base.appendingPathComponent("Voice Transcription Pipeline Audio Output\(dataSuffix)", isDirectory: true)
+        #if DEBUG
+        let perfSuffix = PerfLibrary.isActive ? " Perf" : ""   // Q313: perf working folders stay apart from the Dev ones
+        #else
+        let perfSuffix = ""
+        #endif
+        let dir = base.appendingPathComponent("Voice Transcription Pipeline Audio Output\(dataSuffix)\(perfSuffix)", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

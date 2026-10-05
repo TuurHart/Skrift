@@ -79,7 +79,13 @@ struct SkriftDesktopApp: App {
         // reconcile triggers + run the launch sweep. A no-op when the user switched
         // `cloudKitMacSync` off (it defaults ON). CloudKit is the ONLY phone↔Mac transport
         // (the Bonjour/HTTP server is retired) — it carries memos, names, and vocabulary.
+        #if DEBUG
+        // Q313: `-perfLibrary` seeds its own CloudKit-off store first, THEN starts the reconcile
+        // that ingests the rated notes into PipelineFile rows (the same path a synced memo takes).
+        if PerfLibrary.isActive { PerfLibraryMacLaunch.seedThenStartReconciler() } else { MemoCloudReconciler.start() }
+        #else
         MemoCloudReconciler.start()
+        #endif
 
         // Pre-warm the custom-vocabulary booster at launch when the user has
         // custom words. The booster is NON-BLOCKING (it skips the first,
@@ -150,6 +156,9 @@ struct SkriftDesktopApp: App {
 /// system delivers its silent pushes and the container imports — no manual push handling needed.
 final class MacAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if PerfLibrary.isActive { return }   // Q313: the perf library takes no CloudKit pushes
+        #endif
         NSApplication.shared.registerForRemoteNotifications()
     }
 

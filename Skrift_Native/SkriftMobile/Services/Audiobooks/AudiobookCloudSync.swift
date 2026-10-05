@@ -187,6 +187,9 @@ enum AudiobookCloudSync {
 
     static func reconcile(library: AudiobookLibraryStore = .shared, repository: NotesRepository = .shared,
                           defaults: UserDefaults = .standard, transport: AudiobookAudioTransport? = nil) async {
+        #if DEBUG
+        if PerfLibrary.isActive { return }   // Q313: raw CloudKit audiobook transfer stays off
+        #endif
         if isReconciling { rerunRequested = true; return }
         isReconciling = true
         defer { isReconciling = false }

@@ -19,6 +19,9 @@ import SwiftData
 enum NamesCloudSync {
 
     static func run(_ repository: NotesRepository, store: NamesStore = .shared) {
+        #if DEBUG
+        guard !PerfLibrary.isActive else { return }   // Q313: the perf library never syncs names
+        #endif
         let local = store.load()
         // The reconcile (fold carriers → NamesMerge → collapse to one row) is SHARED
         // with the Mac — `NamesSyncCore`. This adapter owns the store + logging.

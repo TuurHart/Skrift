@@ -155,6 +155,9 @@ enum CaptureInboxDrainer {
     /// of grace to finish the copies + imports instead of suspending mid-drain. The
     /// crash-safe inbox (delete-after-save) remains the backstop if even that expires.
     static func drain(into repository: NotesRepository) async {
+        #if DEBUG
+        if PerfLibrary.isActive { return }   // Q313: a real share-inbox entry must never land in the perf store
+        #endif
         guard repository.isUsable else { return }   // store failed to open: never consume inbox entries into the placeholder
         guard !isDraining else { return }
         isDraining = true

@@ -11,6 +11,10 @@ enum LaunchFlags {
     /// survive across runs and the idempotent seeder would skip).
     static var inMemoryStore: Bool { args.boolFlag("-inMemoryStore") }
     static var seedDemoMemos: Bool { args.boolFlag("-seedDemoMemos") }
+    /// Q313 (DEBUG): open the SEPARATE never-synced `perf.store` (CloudKit off) seeded once with
+    /// ~2,000 generated notes, with its own names/vocab/recordings. Every CloudKit side channel is
+    /// inert under it. See `PerfLibrary` (Shared/Model) and `PerfLibraryLaunch`.
+    static var perfLibrary: Bool { args.boolFlag("-perfLibrary") }
     /// Seed a memo whose photo contains rendered text but is NOT yet OCR'd —
     /// the photo-search end-to-end fixture (launch sweep must index it).
     static var seedPhotoTextMemo: Bool { args.boolFlag("-seedPhotoTextMemo") }

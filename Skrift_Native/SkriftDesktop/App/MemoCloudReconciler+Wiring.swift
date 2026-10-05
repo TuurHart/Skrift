@@ -84,9 +84,16 @@ extension MemoCloudReconciler {
         // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the
         // Bonjour /api/names path). Both are guarded + idempotent, so running them on every
         // sweep is cheap; they converge with the phone through the shared merge.
-        NamesCloudSync.run()
-        VocabularyCloudSync.run()
-        PolishPromptsCloudSync.run()
+        #if DEBUG
+        let perfLibrary = PerfLibrary.isActive   // Q313: the perf library never runs the CloudKit carrier syncs
+        #else
+        let perfLibrary = false
+        #endif
+        if !perfLibrary {
+            NamesCloudSync.run()
+            VocabularyCloudSync.run()
+            PolishPromptsCloudSync.run()
+        }
         let local = SharedStore.container.mainContext
         // READ THROUGH A FRESH CONTEXT. A CloudKit import writes to the persistent STORE but does
         // NOT refresh `mainContext`'s already-registered `Memo` objects — so `cloud.mainContext`
