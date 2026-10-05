@@ -2359,7 +2359,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes, 5 books): opening Books + a book = 2.7 s main thread: AudiobookLibraryView.row → BookNotesJoin.counts (decodes Memo.metadata for every memo, per row) and ReadAlongModel.reloadIfNeeded → FileTranscript / BookAlignmentStore sidecar decodes on main. Compute per-book note counts once per memo-set version (one pass, cached, off main); decode transcript/alignment sidecars off the main actor once per open (no isFresh re-decode); downsample covers to display size (ImageIO thumbnail) and cache. Readers: d-books.md D-B1a-d D-B2a-c D-B3, i-images-memory-energy.md I5. Behaviour identical. Tests: new `BookNotesCountCacheTests` (phone target) — counts computed once for N rows and equal to the old per-row counts; sidecar decode happens off the main actor.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests && ./gate.sh`
 
-### Q318 [auto] (todo) phone MemoDetailUITests: drop the swipe test, rewrite the tag test for TagEditorRow
+### Q318 [auto] (doing) phone MemoDetailUITests: drop the swipe test, rewrite the tag test for TagEditorRow
 spec: -
 needs: -
 gate+: yes
@@ -2371,6 +2371,13 @@ spec: -
 needs: -
 do: Same flow as plan/perf2/MEASURED.md: the orchestrator launches the app under Instruments with -perfLibrary (xctrace --launch, time in SECONDS), Tuur scrolls, opens 5 long notes and taps a related note, types and presses Done, searches 'morning' and clears it, goes home 5 s and back, records 15 s and stops, opens Books and a book. Compare each moment against the b178 column.
 check: `test -d .queue/perf/b179/2-flow.trace`
+
+### Q320 [auto] (doing) perf: the list rebuild and the [[ link picker reuse the shared backlink index and title cache
+spec: -
+needs: -
+gate+: yes
+do: Leftovers named by Q314 and Q315 (plan/RUN.md findings, plan/perf2/MEASURED.md: Stop = 6.4 s main incl. MemoLifecycle.backlinkedIDs 774 ms). (1) ListDerivedCache's base rebuild still rescans every transcript for backlinks: read `repository.backlinkIndex()` (Shared/Pipeline/BacklinkIndex.swift, keyed on memoSetVersion) instead of MemoLifecycle.backlinkedIDs over allMemos, keeping the result identical (fading/way-out rules that depend on 'is linked to'). (2) The '[[' link picker builds a title for every note on its first open after a save, on main: make NoteTitle's emptyFallback lazy (autoclosure) in Shared/Model/NoteTitle.swift and cache SourceKind.of per memo version so building picker rows does no per-note JSON parse; build the picker titles off main once per memoSetVersion. Shared code: keep the Mac callers compiling and identical. Tests: extend `ListDerivedCacheTests` (rebuild uses the index: results equal MemoLifecycle.backlinkedIDs on a fixed corpus incl. copy-edit-only links and trashed linkers) and `NoteOpenWorkTests` (picker titles built once per version, equal to the old builder).
+check: `plan/mtest.sh ListDerivedCacheTests && plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3429,3 +3436,6 @@ check: `test -d .queue/perf/b179/2-flow.trace`
 - 2026-10-05 21:35 Q316 -> done — gate pass @798b3a3c
 - 2026-10-05 21:48 Q319 added
 - 2026-10-05 21:48 Q319 -> tuur — waiting on Tuur
+- 2026-10-05 21:49 Q320 added
+- 2026-10-05 21:49 Q318 -> doing — worker out
+- 2026-10-05 21:49 Q320 -> doing — worker out
