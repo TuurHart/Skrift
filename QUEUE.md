@@ -2338,7 +2338,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): each note open costs 1-3 s of main thread in MemoPageView's .task/body — recomputeBacklinks (full allMemos + Backlinks.targets over every transcript) and ladderTitle()/NoteTitle.firstLine/NoteSnippet.plain for EVERY note, repeated for each page the horizontal pager realises; tapping a related note animates the pager across the LazyHStack and stalls halfway (Tuur saw it). Swipe-between-notes has been OFF since 2026-07-16 (MemoDetailView.swift scrollDisabled), so: replace the pager with ONE MemoPageView for the current selection (memo-link / related-note hops swap the note, no sideways slide; keep the edit-conflict gate, the player bar, back navigation, iPad column layout). Build backlinks and link-picker titles from ONE shared cache (Shared/) keyed on a memo-set version that bumps on save/insert/delete/sync import, computed off the main actor, titles built only for notes that link here. Readers: plan/perf2/b-phone-note-editor.md N1 N2 N11, e-search-review.md E7 E8, h-shared-data.md P2. Update FEATURES.md if the note-hop behaviour line changes. Tests: new `NoteOpenWorkTests` (phone target) — opening a note with 2,000 in-memory memos does not call a full-corpus title build, the backlink cache is reused across two opens with no save between and rebuilt after a save.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
 
-### Q315 [auto] (doing) perf: the phone notes list and search do work per change, not per redraw over the whole library
+### Q315 [auto] (done) perf: the phone notes list and search do work per change, not per redraw over the whole library
 spec: -
 needs: -
 gate+: yes
@@ -3419,3 +3419,4 @@ check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skr
 - 2026-10-05 18:27 Q317 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
 - 2026-10-05 18:39 Q318 added
 - 2026-10-05 18:48 Q317 -> done — hand-merged @9a381dee (memoSetVersion conflict, kept Q314); BookNotesCountCacheTests + NoteOpenWorkTests exit 0, gate green
+- 2026-10-05 21:30 Q315 -> done — hand-merged @8c58dd07 (one sync bump kept); ListDerivedCache/LaunchWork/NoteOpenWork/BookNotesCountCache tests + MemosListUITests 6/6 exit 0, gate green
