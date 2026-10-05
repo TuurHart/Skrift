@@ -2352,12 +2352,19 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): cold launch = 4.11 s to first frame; returning from the home screen = ~4 s main thread ('froze for a second'). Main cost: AssetMaterializer.captureMissing/captureFiles/fileSize (1.4 s at launch, lstat-heavy), allMemos, FadingSweep, MemoSaver.recoverStuck*, PhotoTextIndexer, MemoDeduper — all on the main actor, and LaunchWorkGate is never marked at launch so the first foreground repeats the sweeps. Keep the recording-recovery sweep FIRST (C99) and correct; move the rest off the main actor (background ModelContext / ModelActor), first frame must not wait on them; mark LaunchWorkGate at launch; captureMissing checks only memos changed since its last run (persisted checkpoint) instead of stat-ing every file. CAVEAT: the perf seed gives ~1,540 voice notes an audioFilename with no file on disk — measure and test with files PRESENT too. Readers: a-phone-list-launch.md A5 A6 A7, c-phone-record-capture.md C2, i-images-memory-energy.md. Tests: extend `LaunchWorkTests` — launch then first foreground runs each sweep once; captureMissing with an unchanged store stats no files; add `LaunchOffMainTests` asserting the sweeps run off the main actor.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchWorkTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchOffMainTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh`
 
-### Q317 [auto] (doing) perf: the Books tab and the player stop decoding the library and the sidecars on the main thread
+### Q317 [auto] (done) perf: the Books tab and the player stop decoding the library and the sidecars on the main thread
 spec: -
 needs: -
 gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes, 5 books): opening Books + a book = 2.7 s main thread: AudiobookLibraryView.row → BookNotesJoin.counts (decodes Memo.metadata for every memo, per row) and ReadAlongModel.reloadIfNeeded → FileTranscript / BookAlignmentStore sidecar decodes on main. Compute per-book note counts once per memo-set version (one pass, cached, off main); decode transcript/alignment sidecars off the main actor once per open (no isFresh re-decode); downsample covers to display size (ImageIO thumbnail) and cache. Readers: d-books.md D-B1a-d D-B2a-c D-B3, i-images-memory-energy.md I5. Behaviour identical. Tests: new `BookNotesCountCacheTests` (phone target) — counts computed once for N rows and equal to the old per-row counts; sidecar decode happens off the main actor.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests && ./gate.sh`
+
+### Q318 [auto] (todo) phone MemoDetailUITests: drop the swipe test, rewrite the tag test for TagEditorRow
+spec: -
+needs: -
+gate+: yes
+do: Run 2026-10-05 after Q314: MemoDetailUITests 5/7 pass (open non-first memo, delete-to-next, edit, split speakers, open). Two stale failures, both older than Q314: testSwipeBetweenMemos (swipe-between-notes OFF since 2026-07-16, pager removed by Q314) — delete it; testAddTagInDetail taps 'tag-editor-done', which Q28 (0c2a90fa, shared TagEditorRow: own row, no sheet) removed — rewrite it to add a tag through TagEditorRow and assert the chip appears. Also add testRelatedNoteHopOpensInPlace if the seeded memos can link (seed a [[memo:]] link if needed). UI test files are not protected. Run ONLY this phone UI class on the iPhone 17 sim; never run any Mac UI test.
+check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath Skrift_Native/SkriftMobile/build -skipMacroValidation -skipPackagePluginValidation -only-testing:SkriftMobileUITests/MemoDetailUITests -quiet && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3409,3 +3416,6 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests 
 - 2026-10-05 17:47 Q316 -> doing — worker out
 - 2026-10-05 17:47 Q317 -> doing — worker out
 - 2026-10-05 18:10 Q314 -> done — gate pass @be142476
+- 2026-10-05 18:27 Q317 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-05 18:39 Q318 added
+- 2026-10-05 18:48 Q317 -> done — hand-merged @9a381dee (memoSetVersion conflict, kept Q314); BookNotesCountCacheTests + NoteOpenWorkTests exit 0, gate green
