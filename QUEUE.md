@@ -2372,7 +2372,7 @@ needs: -
 do: Same flow as plan/perf2/MEASURED.md: the orchestrator launches the app under Instruments with -perfLibrary (xctrace --launch, time in SECONDS), Tuur scrolls, opens 5 long notes and taps a related note, types and presses Done, searches 'morning' and clears it, goes home 5 s and back, records 15 s and stops, opens Books and a book. Compare each moment against the b178 column.
 check: `test -d .queue/perf/b179/2-flow.trace`
 
-### Q320 [auto] (doing) perf: the list rebuild and the [[ link picker reuse the shared backlink index and title cache
+### Q320 [auto] (done) perf: the list rebuild and the [[ link picker reuse the shared backlink index and title cache
 spec: -
 needs: -
 gate+: yes
@@ -3465,3 +3465,4 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-05 22:18 Q322 added
 - 2026-10-05 22:18 Q323 added
 - 2026-10-05 22:18 Q321 -> doing — worker out
+- 2026-10-05 22:30 Q320 -> done — gate pass @7d7325ec
