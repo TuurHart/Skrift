@@ -2359,7 +2359,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes, 5 books): opening Books + a book = 2.7 s main thread: AudiobookLibraryView.row → BookNotesJoin.counts (decodes Memo.metadata for every memo, per row) and ReadAlongModel.reloadIfNeeded → FileTranscript / BookAlignmentStore sidecar decodes on main. Compute per-book note counts once per memo-set version (one pass, cached, off main); decode transcript/alignment sidecars off the main actor once per open (no isFresh re-decode); downsample covers to display size (ImageIO thumbnail) and cache. Readers: d-books.md D-B1a-d D-B2a-c D-B3, i-images-memory-energy.md I5. Behaviour identical. Tests: new `BookNotesCountCacheTests` (phone target) — counts computed once for N rows and equal to the old per-row counts; sidecar decode happens off the main actor.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests && ./gate.sh`
 
-### Q318 [auto] (doing) phone MemoDetailUITests: drop the swipe test, rewrite the tag test for TagEditorRow
+### Q318 [auto] (done) phone MemoDetailUITests: drop the swipe test, rewrite the tag test for TagEditorRow
 spec: -
 needs: -
 gate+: yes
@@ -3439,3 +3439,4 @@ check: `plan/mtest.sh ListDerivedCacheTests && plan/mtest.sh NoteOpenWorkTests &
 - 2026-10-05 21:49 Q320 added
 - 2026-10-05 21:49 Q318 -> doing — worker out
 - 2026-10-05 21:49 Q320 -> doing — worker out
+- 2026-10-05 22:06 Q318 -> done — gate pass @820268c1
