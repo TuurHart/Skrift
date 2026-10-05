@@ -142,6 +142,7 @@ extension LaunchWorkTests {
 
         // an append grew one file and the note was edited: only that note is examined
         let edited = notes[1]
+        let editedID = edited.id
         let url = AppPaths.recordingsDirectory.appendingPathComponent(edited.audioFilename)
         try Data(repeating: 0x43, count: 4096).write(to: url)
         edited.markEdited(t0.addingTimeInterval(90))
@@ -151,7 +152,7 @@ extension LaunchWorkTests {
         XCTAssertTrue(wroteAfterEdit)
         XCTAssertLessThanOrEqual(AssetMaterializer.fileStatCount, 8, "one note's files (<= 7 candidates), not the library's")
         let asset = try XCTUnwrap(ModelContext(repo.container).fetch(FetchDescriptor<MemoAsset>(
-            predicate: #Predicate { $0.memoID == edited.id })).first(where: { $0.kind == MemoAsset.Kind.audio }))
+            predicate: #Predicate { $0.memoID == editedID })).first(where: { $0.kind == MemoAsset.Kind.audio }))
         XCTAssertEqual(asset.byteCount, 4096, "the refreshed blob is the grown file")
     }
 

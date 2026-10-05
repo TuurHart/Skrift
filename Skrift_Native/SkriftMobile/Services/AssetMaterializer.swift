@@ -132,10 +132,11 @@ enum AssetMaterializer {
                 sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
         }
         let since = changedSince.addingTimeInterval(-changedWindow)
+        let never = Date.distantPast
         let descriptor = FetchDescriptor<Memo>(predicate: #Predicate<Memo> {
             $0.recordedAt > since
-                || ($0.editedAt ?? Date.distantPast) > since
-                || ($0.createdAt ?? Date.distantPast) > since
+                || ($0.editedAt ?? never) > since
+                || ($0.createdAt ?? never) > since
         })
         return (try? context.fetch(descriptor)) ?? []
     }
