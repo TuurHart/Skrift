@@ -2379,7 +2379,7 @@ gate+: yes
 do: Leftovers named by Q314 and Q315 (plan/RUN.md findings, plan/perf2/MEASURED.md: Stop = 6.4 s main incl. MemoLifecycle.backlinkedIDs 774 ms). (1) ListDerivedCache's base rebuild still rescans every transcript for backlinks: read `repository.backlinkIndex()` (Shared/Pipeline/BacklinkIndex.swift, keyed on memoSetVersion) instead of MemoLifecycle.backlinkedIDs over allMemos, keeping the result identical (fading/way-out rules that depend on 'is linked to'). (2) The '[[' link picker builds a title for every note on its first open after a save, on main: make NoteTitle's emptyFallback lazy (autoclosure) in Shared/Model/NoteTitle.swift and cache SourceKind.of per memo version so building picker rows does no per-note JSON parse; build the picker titles off main once per memoSetVersion. Shared code: keep the Mac callers compiling and identical. Tests: extend `ListDerivedCacheTests` (rebuild uses the index: results equal MemoLifecycle.backlinkedIDs on a fixed corpus incl. copy-edit-only links and trashed linkers) and `NoteOpenWorkTests` (picker titles built once per version, equal to the old builder).
 check: `plan/mtest.sh ListDerivedCacheTests && plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
 
-### Q321 [auto] (doing) search hit in a note: bright yellow highlight, the hit scrolled to the middle of the screen
+### Q321 [auto] (done) search hit in a note: bright yellow highlight, the hit scrolled to the middle of the screen
 spec: -
 needs: -
 gate+: yes
@@ -3467,3 +3467,4 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-05 22:18 Q321 -> doing — worker out
 - 2026-10-05 22:30 Q320 -> done — gate pass @7d7325ec
 - 2026-10-05 22:38 Q322 -> doing — worker out
+- 2026-10-05 23:21 Q321 -> done — gate pass @7cba30df
