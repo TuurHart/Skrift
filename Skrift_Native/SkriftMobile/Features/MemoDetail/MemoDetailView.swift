@@ -3,27 +3,27 @@ import SwiftUI
 import SwiftData
 import FluidAudio
 
-/// The "note" screen (mockup2). A SwiftUI-native horizontal paging `ScrollView` (NOT
-/// `TabView(.page)`, whose UIKit page host broke `.glassEffect` refraction, the
-/// significance drag, and word tap-to-seek on device). The swipe gesture is OFF
-/// (2026-07-16); memo-link hops and the opening jump still move `selection`. Each page =
-/// editable title + RAW transcript (with inline `[[img_NNN]]` embeds) + context/tags. A
-/// single playback bar is pinned at the bottom and re-targets when the page changes.
+/// The "note" screen (mockup2). ONE `MemoPageView` for the current selection (Q314): there
+/// used to be a horizontal paging `ScrollView` over every memo, but swiping between notes has
+/// been OFF since 2026-07-16 and the all-notes pager made every open fetch the whole library,
+/// realise neighbour pages, and animate (and stall) across the lazy stack on a related-note
+/// hop. A memo-link / related-note hop now swaps the note in place. The page = editable title +
+/// RAW transcript (with inline `[[img_NNN]]` embeds) + context/tags. A single playback bar is
+/// pinned at the bottom and re-targets when the note changes.
 /// Title, tags, and the transcript are hand-editable (save-now post-record flow); copy +
 /// delete live in the ⋯ menu.
 struct MemoDetailView: View {
     let initialID: UUID
 
-    // Trashed memos (deletedAt != nil) are excluded so a soft-deleted memo
-    // drops out of the pager immediately (same filter as MemosListView).
-    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
-           sort: \Memo.recordedAt, order: .reverse) var memos: [Memo]
     @Environment(\.dismiss) var dismiss
     /// iPad wave: the note becomes list|detail at regular width — the Connections
     /// panel stands beside the page, the reading measure + player bar cap the note
     /// column. Compact (phone / iPad multitasking-compact) stays the phone layout.
     @Environment(\.horizontalSizeClass) var hSize
-    @State var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
+    @State var selection: UUID?   // the open note's id; only `open(_:)` changes it (with `pageMemo`)
+    /// The open note, fetched by id (Q314) — never an all-notes `@Query`. Set together with
+    /// `selection` in `open(_:)`; `currentMemo` guards against it being deleted underneath us.
+    @State var pageMemo: Memo?
     @State var showActions = false
     @State var showSplitOptions = false
     /// Q87: the Flatten to monologue confirm, and the one-voice toast after a split that found nobody else.
@@ -33,9 +33,11 @@ struct MemoDetailView: View {
     @State var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
     @State var reminderMemo: Memo?
-    /// Transient "n / total" that ghosts in when the pager moves to another memo (a
-    /// memo-link hop) — replaces the permanent page-dots row (compact-player spec).
+    /// Transient "n / total" that ghosts in when a memo-link hop opens another note
+    /// (compact-player spec). `pageFlashText` is counted at hop time with two COUNT queries,
+    /// never from a loaded list.
     @State var pageFlash = false
+    @State var pageFlashText = ""
     @StateObject var player = AudioPlayerModel()
     @ObservedObject var lockGate = LockGate.shared
     @State var lockVaultNotice = false
@@ -63,9 +65,34 @@ struct MemoDetailView: View {
         self.initialID = initialID
         self.listVisible = listVisible
         _selection = State(initialValue: initialID)
+        let opened = NotesRepository.shared.memo(id: initialID)
+        _pageMemo = State(initialValue: opened?.deletedAt == nil ? opened : nil)
     }
 
-    var currentMemo: Memo? { memos.first { $0.id == selection } }
+    /// The open note — nil once it is trashed or deleted underneath the screen (the old pager's
+    /// live-only `@Query` dropped such a page the same way).
+    var currentMemo: Memo? {
+        guard let m = pageMemo, m.modelContext != nil, m.deletedAt == nil, m.id == selection else { return nil }
+        return m
+    }
+
+    /// Open `id` in place (a memo-link / related-note hop, or the delete-then-neighbour move): no
+    /// sideways slide, one page. Ignored when the target is not a live note.
+    func open(_ id: UUID) {
+        guard id != selection, let next = repository.memo(id: id), next.deletedAt == nil else { return }
+        pageMemo = next
+        selection = id
+    }
+
+    /// "n / total" for the hop flash: position in the newest-first live list, by COUNT queries.
+    func flashText(for memo: Memo) -> String? {
+        let at = memo.recordedAt
+        let live = FetchDescriptor<Memo>(predicate: #Predicate { $0.deletedAt == nil })
+        let newer = FetchDescriptor<Memo>(predicate: #Predicate { $0.deletedAt == nil && $0.recordedAt > at })
+        guard let total = try? repository.context.fetchCount(live), total > 1,
+              let before = try? repository.context.fetchCount(newer) else { return nil }
+        return "\(before + 1) / \(total)"
+    }
 
     /// List hidden = focus mode — the note takes the freed width. (Connections
     /// no longer occupies a column, so only the list gates focus now.)
@@ -208,10 +235,7 @@ struct MemoDetailView: View {
            ConnectionsPanelLogic.canSummon(memo, isLocked: lockGate.isLocked(memo)) {
             ConnectionsPanel(
                 memo: memo,
-                onOpenMemo: { id in
-                    guard memos.contains(where: { $0.id == id }) else { return }
-                    withAnimation(Theme.Motion.snappy) { selection = id }
-                },
+                onOpenMemo: { id in open(id) },
                 onClose: { withAnimation(Theme.Motion.snappy) { showConnections = false } })
                 .frame(maxHeight: .infinity)
                 .background(Color.skSurface)
@@ -521,16 +545,22 @@ struct MemoDetailView: View {
             RecordView(appendTo: selection)
         }
         .onAppear {
+            // A note that landed in the store after this screen was built (the old @Query saw it late).
+            if pageMemo == nil, let id = selection, let late = repository.memo(id: id), late.deletedAt == nil {
+                pageMemo = late
+            }
             normaliseCurrentOnce()   // C10/D4: old body + polish → v2 once, at first open
             loadCurrentAudio()
         }
         .onChange(of: selection) { old, newID in
-            // Re-target the bar when paging settles; ignore the transient nil the
-            // paging scroll reports between snap points (don't stop audio mid-swipe).
+            // Re-target the bar when the open note changes (`open(_:)`).
             guard let newID else { return }
             normaliseCurrentOnce()
             loadCurrentAudio()
-            if old != nil, old != newID, memos.count > 1 { pageFlash = true }
+            if old != nil, old != newID, let memo = currentMemo, let text = flashText(for: memo) {
+                pageFlashText = text
+                pageFlash = true
+            }
             // Connections is PER NOTE (signed 2026-07-24): switching notes
             // (a memo-link hop, a related-row tap) dismisses the visitor sheet.
             if old != newID, showConnections {
@@ -555,46 +585,22 @@ struct MemoDetailView: View {
     /// At regular width this is the note COLUMN (reading-measure-capped, beside the
     /// Connections panel); at compact it's the whole screen — byte-for-byte today.
     var notePager: some View {
-        ScrollViewReader { proxy in
-            // SwiftUI-native horizontal pager. `.scrollPosition(id:)` tracks the page;
-            // the ScrollViewReader does the initial jump (the binding's initial value
-            // isn't reliably honoured on first layout).
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    ForEach(memos) { memo in
-                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection,
-                                     onOpenMemo: { id in
-                                         guard memos.contains(where: { $0.id == id }) else { return }
-                                         withAnimation(Theme.Motion.snappy) { selection = id }
-                                     })
-                            // C98/D139: two versions → prompt on open, banner after
-                            // "Later", read-only until picked. Only the CURRENT page
-                            // gates, so an adjacent realised page never raises a sheet.
-                            .editConflictGate(memoID: memo.id == selection ? memo.id : nil,
-                                              context: repository.context, look: .phone, style: .skrift)
-                            .containerRelativeFrame(.horizontal)
-                            // The LazyHStack realises adjacent pages; hide the
-                            // off-screen ones from VoiceOver (and XCUITest) so
-                            // their controls/text aren't duplicate matches.
-                            .accessibilityHidden(memo.id != selection)
-                            .id(memo.id)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $selection)
-            .scrollIndicators(.hidden)
-            // Swipe-between-notes OFF (Tuur, 2026-07-16): horizontal drags fought
-            // text editing (caret drags / selection ate page swipes). The pager
-            // structure stays — memo-link hops + the initial jump still drive
-            // `selection` programmatically; only the drag gesture is disabled.
-            .scrollDisabled(true)
-            .onAppear {
-                guard let selection else { return }
-                DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
+        // ONE page for the open note (Q314). `.id(memo.id)` gives each note fresh page state, as
+        // each pager page had; a hop swaps it in place with no slide.
+        Group {
+            if let memo = currentMemo {
+                MemoPageView(memo: memo, player: player, isCurrent: true,
+                             onOpenMemo: { id in open(id) })
+                    // C98/D139: two versions → prompt on open, banner after
+                    // "Later", read-only until picked.
+                    .editConflictGate(memoID: memo.id,
+                                      context: repository.context, look: .phone, style: .skrift)
+                    .id(memo.id)
+            } else {
+                Color.clear
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         // The floating glass player bar lives in the bottom safe-area inset, NOT a
         // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
         // only samples the flat background behind everything, so Liquid Glass had no
@@ -669,8 +675,8 @@ struct MemoDetailView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .overlay(alignment: .top) {
-                if pageFlash, let idx = memos.firstIndex(where: { $0.id == selection }) {
-                    Text("\(idx + 1) / \(memos.count)")
+                if pageFlash {
+                    Text(pageFlashText)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.skTextDim)
                         .padding(.horizontal, 9).padding(.vertical, 4)
@@ -858,12 +864,14 @@ struct MemoDetailView: View {
     /// Soft-delete: move the memo to Recently Deleted, same as every list delete
     /// path (MemosListView.deleteMemo). Audio, photos, and sidecars stay on disk
     /// so Restore is lossless; the startup purge removes them after the retention
-    /// window. The pager's @Query excludes trashed memos, so the page disappears
-    /// and we move to the next one (or dismiss when it was the last).
+    /// window. The deleted note leaves the live list, so we move to the next one (or dismiss
+    /// when it was the last).
     func deleteCurrent() {
+        // One fetch, on this user action only (never on open).
+        let memos = repository.allMemos()
         guard let memo = currentMemo,
               let idx = memos.firstIndex(where: { $0.id == memo.id }) else { return }
-        // Land on the ADJACENT page after delete — the next memo, else the previous
+        // Land on the ADJACENT note after delete — the next memo, else the previous
         // — not the top of the list. Dismiss when it was the only one.
         let neighbor: UUID?
         if idx + 1 < memos.count { neighbor = memos[idx + 1].id }
@@ -871,6 +879,6 @@ struct MemoDetailView: View {
         else { neighbor = nil }
         player.stopAndClear()
         repository.softDelete(memo)
-        if let neighbor { selection = neighbor } else { dismiss() }
+        if let neighbor { open(neighbor) } else { dismiss() }
     }
 }

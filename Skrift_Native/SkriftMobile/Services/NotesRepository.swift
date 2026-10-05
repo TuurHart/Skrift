@@ -200,7 +200,29 @@ final class NotesRepository {
     /// `memoSetVersion` — bumped once per `save()`, i.e. once per debounced
     /// commit, not once per keystroke.
     private let tagsCache = CommitOnceCache<Int, [String]>()
-    private var memoSetVersion = 0
+    /// The memo-set version: bumped on every `save()` (so every insert, edit, delete and restore)
+    /// and on every finished CloudKit import (`noteStoreDidChangeBySync()`). Every whole-library
+    /// derived value (the tag library, the backlink index) is keyed on it.
+    private(set) var memoSetVersion = 0
+
+    /// Q314: who-links-to-whom for the whole library, rebuilt once per `memoSetVersion` off the
+    /// main actor (`BacklinkIndexCache`). Opening a note reads this instead of rescanning every
+    /// transcript and copy-edit.
+    let backlinkCache = BacklinkIndexCache()
+
+    func backlinkIndex() async -> BacklinkIndex {
+        await backlinkCache.index(version: memoSetVersion) {
+            // Cheap value copies only (strings), taken once per version; the scan runs detached.
+            let copyeditByID = Backlinks.copyeditsByMemoID(allEnhancements())
+            return allMemos().map {
+                Backlinks.Row(id: $0.id, transcript: $0.transcript, copyedit: copyeditByID[$0.id])
+            }
+        }
+    }
+
+    /// A CloudKit import merged rows into the context WITHOUT a `save()` here; the sync monitor
+    /// calls this so version-keyed caches rebuild.
+    func noteStoreDidChangeBySync() { memoSetVersion += 1 }
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {
