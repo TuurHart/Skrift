@@ -136,7 +136,7 @@ final class AudiobookSession {
         book = startBook
         rate = startBook.playbackRate
         currentTime = resume
-        coverImage = store.coverURL(of: newBook).flatMap { UIImage(contentsOfFile: $0.path) }
+        coverImage = BookCoverCache.image(for: newBook)   // Q317: downsampled + shared, not a full decode
         seek(to: currentTime)
 
         installTimeObserver(on: avPlayer)
@@ -496,7 +496,7 @@ final class AudiobookSession {
     func refreshFromStore() {
         guard let current = book, let refreshed = store.book(id: current.id) else { return }
         book = refreshed
-        coverImage = store.coverURL(of: refreshed).flatMap { UIImage(contentsOfFile: $0.path) }
+        coverImage = BookCoverCache.image(for: refreshed)
         updateNowPlaying()
     }
 

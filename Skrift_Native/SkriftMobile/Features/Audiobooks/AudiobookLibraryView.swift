@@ -60,7 +60,13 @@ struct AudiobookLibraryView: View {
            sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
     /// The pill's target: the book whose notes sheet is open.
     @State private var notesSheetBook: Audiobook?
-    private var noteCounts: [UUID: Int] { BookNotesJoin.counts(in: liveMemos) }
+    /// Q317: per-book counts, computed once per memo-set version off the main actor
+    /// (`BookNotesCountCache`) — NOT per row per render. Seeded from the last pass so
+    /// re-opening the tab shows the pills at once.
+    @State private var noteCounts: [UUID: Int] = BookNotesCountCache.shared.counts
+    private var noteCountsKey: BookNotesCountCache.Key {
+        .init(version: NotesRepository.shared.memoSetVersion, count: liveMemos.count)
+    }
 
     /// A row of the notes sheet opens the note in Notes (they live there).
     private func openNote(_ memo: Memo) {
@@ -114,6 +120,9 @@ struct AudiobookLibraryView: View {
         // Q255: an `.m4b` opened from Files / another app runs the SAME import the Add
         // button runs; one book at a time, the next waits for the confirm sheet.
         .onAppear { takeOpenIn() }
+        .task(id: noteCountsKey) {
+            noteCounts = await BookNotesCountCache.shared.counts(for: liveMemos, key: noteCountsKey)
+        }
         .onChange(of: openInBridge.requestID) { _, _ in takeOpenIn() }
         .onChange(of: pendingImport?.id) { _, id in if id == nil { startNextOpenIn() } }
         .sheet(item: $pendingImport, onDismiss: {

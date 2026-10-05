@@ -36,20 +36,30 @@ enum SentenceSnap {
         guard !words.isEmpty else { return [] }
         // Reconstruct the spoken text + each word's UTF-16 offset (matches NLTokenizer's
         // NSRange coordinates).
+        // Q317: a running UTF-16 count, not `(text as NSString).length` per word (O(n) each
+        // on non-ASCII text, so O(n^2) over a whole book).
         var text = ""
         var wordCharStart: [Int] = []
+        wordCharStart.reserveCapacity(words.count)
+        var utf16Count = 0
         for (i, w) in words.enumerated() {
-            if i > 0 { text += " " }
-            wordCharStart.append((text as NSString).length)
+            if i > 0 { text += " "; utf16Count += 1 }
+            wordCharStart.append(utf16Count)
             text += w.word
+            utf16Count += w.word.utf16.count
         }
         let tokenizer = NLTokenizer(unit: .sentence)
         tokenizer.string = text
         var starts: Set<Int> = [0]
+        // Q317: tokens arrive in ascending offset order and `wordCharStart` is ascending, so
+        // one forward cursor finds "the first word at/after the offset" (was a `firstIndex`
+        // from 0 per sentence: O(sentences x words), ~5e8 compares on a 12 h book).
+        var cursor = 0
         tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
             let off = NSRange(range, in: text).location
             // The sentence begins at the first word at/after its char offset.
-            if let idx = wordCharStart.firstIndex(where: { $0 >= off }) { starts.insert(idx) }
+            while cursor < wordCharStart.count && wordCharStart[cursor] < off { cursor += 1 }
+            if cursor < wordCharStart.count { starts.insert(cursor) }
             return true
         }
         return starts.sorted()
