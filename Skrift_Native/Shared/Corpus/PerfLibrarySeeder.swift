@@ -276,7 +276,7 @@ enum PerfLibrarySeeder {
                 createdAt: recordedAt,
                 editedAt: nil,
                 metadataData: metadataData,
-                sharedContentData: Memo.encodeJSON(sharedContent),
+                sharedContentData: sortedJSON(sharedContent),
                 annotationText: annotation,
                 nameResolutionsData: nil,
                 recordingDeviceID: "perf-phone-0001")
@@ -427,8 +427,14 @@ enum PerfLibrarySeeder {
     }
 
     /// The metadata JSON blob; typed notes also carry the `mediaSource` marker `Memo.newTyped` writes.
+    private static func sortedJSON<T: Encodable>(_ v: T?) -> Data? {
+        guard let v else { return nil }
+        let e = JSONEncoder(); e.outputFormatting = [.sortedKeys]   // deterministic bytes, run to run
+        return try? e.encode(v)
+    }
+
     private static func blob(_ m: MemoMetadata, mediaSource: String?) -> Data? {
-        guard let data = Memo.encodeJSON(m) else { return nil }
+        guard let data = sortedJSON(m) else { return nil }
         guard let mediaSource,
               var obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return data }
         obj["mediaSource"] = mediaSource

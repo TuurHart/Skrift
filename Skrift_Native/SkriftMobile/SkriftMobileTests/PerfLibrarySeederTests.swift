@@ -25,8 +25,12 @@ final class PerfLibrarySeederTests: XCTestCase {
     func testPerfStoreConfigurationHasNoCloudKitAndASeparateURL() throws {
         let schema = Schema([Memo.self, MemoAsset.self])
         let perf = PerfLibrary.storeConfiguration(schema: schema)
-        XCTAssertEqual(perf.cloudKitDatabase, ModelConfiguration.CloudKitDatabase.none,
-                       "the perf store must never be CloudKit-backed")
+        // `CloudKitDatabase` is not Equatable: compare its description against `.none`, and
+        // check it differs from the real container and from `.automatic` (which resolves to CloudKit).
+        func d(_ c: ModelConfiguration.CloudKitDatabase) -> String { String(describing: c) }
+        XCTAssertEqual(d(perf.cloudKitDatabase), d(.none), "the perf store must never be CloudKit-backed")
+        XCTAssertNotEqual(d(perf.cloudKitDatabase), d(.private("iCloud.com.skrift.mobile.dev")))
+        XCTAssertNotEqual(d(perf.cloudKitDatabase), d(.automatic))
         XCTAssertEqual(perf.url.lastPathComponent, "perf.store")
         XCTAssertNotEqual(perf.url, ModelConfiguration(schema: schema).url, "must not be SwiftData's default store")
         XCTAssertNotEqual(perf.url, PerfLibrary.defaultStoreURL)
