@@ -13,6 +13,9 @@ enum DemoDataSeeder {
     static let polishedMemoID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
     /// Fixed id for the journal-seed pricing memo (the thread-demo seed).
     static let journalPricingMemoID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+    /// Fixed id for demo memo 1 (harbor) — demo memo 2 carries a `[[memo:]]` link to it, so
+    /// the harbor note shows a LINKED FROM row (the in-place hop UI test).
+    static let demoHarborMemoID = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
 
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
@@ -297,6 +300,7 @@ enum DemoDataSeeder {
         // demo1 (harbor) as row 0 — not whichever memo happened to be constructed last.
         return [
             Memo.make(
+                id: demoHarborMemoID,
                 audioFilename: "memo_demo1.m4a",
                 duration: 134,
                 recordedAt: now.addingTimeInterval(-3_600),
@@ -321,7 +325,8 @@ enum DemoDataSeeder {
                 recordedAt: now.addingTimeInterval(-7_200),
                 tags: [],
                 syncStatus: .synced,
-                transcript: "Second seeded memo, a quick reminder to call the plumber.",
+                transcript: "Second seeded memo, a quick reminder to call the plumber. "
+                    + MemoLinkSyntax.link(id: demoHarborMemoID, title: "harbor at dawn"),
                 transcriptStatus: .done,
                 transcriptConfidence: 0.81,
                 significance: 0.5,
