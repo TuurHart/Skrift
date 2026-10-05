@@ -54,19 +54,16 @@ struct AudiobookLibraryView: View {
 
     // MARK: - D127: per-book "❝ N" notes (Q6 mock)
 
-    /// Live memos, for the per-book note count. One query here; `BookNotesJoin` counts them
-    /// once per render (never one fetch per tile — the frozen-library trap).
-    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
-           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+    /// Per-book note counts. The live-memo `@Query` lives in `BookNoteCountsFeed` (a zero-size
+    /// background view), NOT here: a query on this view re-evaluated the whole Books body (hidden
+    /// behind the editor) on every note save (Q322). `BookNotesJoin` counts them once per memo-set
+    /// version, never one fetch per tile — the frozen-library trap.
     /// The pill's target: the book whose notes sheet is open.
     @State private var notesSheetBook: Audiobook?
     /// Q317: per-book counts, computed once per memo-set version off the main actor
     /// (`BookNotesCountCache`) — NOT per row per render. Seeded from the last pass so
-    /// re-opening the tab shows the pills at once.
+    /// re-opening the tab shows the pills at once. Written only when the counts differ (Q322).
     @State private var noteCounts: [UUID: Int] = BookNotesCountCache.shared.counts
-    private var noteCountsKey: BookNotesCountCache.Key {
-        .init(version: NotesRepository.shared.memoSetVersion, count: liveMemos.count)
-    }
 
     /// A row of the notes sheet opens the note in Notes (they live there).
     private func openNote(_ memo: Memo) {
@@ -120,9 +117,7 @@ struct AudiobookLibraryView: View {
         // Q255: an `.m4b` opened from Files / another app runs the SAME import the Add
         // button runs; one book at a time, the next waits for the confirm sheet.
         .onAppear { takeOpenIn() }
-        .task(id: noteCountsKey) {
-            noteCounts = await BookNotesCountCache.shared.counts(for: liveMemos, key: noteCountsKey)
-        }
+        .background { BookNoteCountsFeed(counts: $noteCounts) }
         .onChange(of: openInBridge.requestID) { _, _ in takeOpenIn() }
         .onChange(of: pendingImport?.id) { _, id in if id == nil { startNextOpenIn() } }
         .sheet(item: $pendingImport, onDismiss: {
@@ -180,8 +175,7 @@ struct AudiobookLibraryView: View {
         .bookTextFlow(book: $bookTextSheetBook)
         // ❝ N: the book's capture notes (D127).
         .sheet(item: $notesSheetBook) { book in
-            BookNotesSheet(book: book, notes: BookNotesJoin.notes(forBook: book.id, in: liveMemos),
-                           onOpen: openNote)
+            BookNotesSheetHost(book: book, onOpen: openNote)
                 .presentationDetents([.medium, .large])
         }
         .alert("Import failed", isPresented: $importError.isPresent) {

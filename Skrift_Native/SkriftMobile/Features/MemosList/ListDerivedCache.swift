@@ -18,9 +18,14 @@ import SwiftUI
 ///   those parameters change. A search that EXTENDS the previous query narrows from the previous
 ///   hits, and matches against each note's lowercased search text, built once per note version.
 ///
-/// Dirtiness is Observation, not a guess: the base build runs inside `withObservationTracking`,
-/// so the first change to any `Memo` / `MemoEnhancement` property it read marks the cache dirty
-/// (the same reads the old body made, so the same changes). Not itself synchronized: MainActor.
+/// Dirtiness is Observation, not a guess: the base build runs inside `withObservationTracking`.
+/// Q322: the tracking is PER NOTE. Each note's list facts (live/fading/trashed, rated, locked,
+/// waiting for a polish) are read inside that note's own tracked region, so a change to one note
+/// marks only that note dirty and the next pass PATCHES that one row's facts and reassembles the base
+/// from the stored facts (no property reads for the other notes), instead of re-reading all of them.
+/// Anything the per-note facts cannot answer (membership, a sync import, the clock hour, an
+/// enhancement change, a backlink-set change, duplicate rows) rebuilds the whole base as before.
+/// Not itself synchronized: MainActor.
 @MainActor
 final class ListDerivedCache: ObservableObject {
 
@@ -43,6 +48,30 @@ final class ListDerivedCache: ObservableObject {
         let fading: [Memo]
         let chipCounts: [QueueFilter: Int]
         let processPile: [Memo]
+        /// Q322: set when this base is a one-row-at-a-time patch of generation `patchedFrom`: the ids
+        /// whose facts were re-read. nil for a full build.
+        var changedIDs: Set<UUID>? = nil
+        var patchedFrom: Int? = nil
+    }
+
+    /// Everything the base needs to know about ONE note, read once (inside that note's tracked region).
+    struct RowFacts: Equatable {
+        enum Bucket { case trashed, live, fading }
+        var bucket: Bucket
+        var rated: Bool
+        var locked: Bool
+        var deleted: Bool
+        /// `ProcessPile.isWaiting` with no polish pass yet: the final answer also needs `!enhanced`.
+        var waitingUnlessEnhanced: Bool
+    }
+
+    /// How the build tracks what it read. `none` (tests, benchmark) reads untracked.
+    struct Tracking {
+        /// Whole-base reads (canonical rows, enhancements, a backlink scan): any change = full rebuild.
+        var full: (() -> Void) -> Void
+        /// One note's reads: a change marks only that note dirty.
+        var row: (UUID, () -> Void) -> Void
+        static let none = Tracking(full: { $0() }, row: { $1() })
     }
 
     struct Params: Equatable {
@@ -56,7 +85,13 @@ final class ListDerivedCache: ObservableObject {
 
     // MARK: - Counters (read by tests: "does not rebuild" / "does not re-lowercase")
 
+    /// Bases produced: full builds plus one-row patches (`fullBuilds` + `rowPatches`).
     private(set) var baseBuilds = 0
+    private(set) var fullBuilds = 0
+    /// Q322: one-row patches (a note's facts re-read; the other notes' facts reused).
+    private(set) var rowPatches = 0
+    /// Q322: note facts re-read by patches (1 per edited note).
+    private(set) var rowsRebuilt = 0
     private(set) var derivedBuilds = 0
     /// How many notes had their search text lowercased (one per note per note-version).
     private(set) var preparedBuilds = 0
@@ -68,6 +103,10 @@ final class ListDerivedCache: ObservableObject {
     private var baseKey: BaseKey?
     private var baseBucket = 0
     private var baseExternalVersion = 0
+    private var baseNow = Date()
+    private var facts: [RowFacts] = []
+    private var indexByID: [UUID: Int] = [:]
+    private var hasDuplicateRows = false
     private var generation = 0
     private let dirtyBox = DirtyBox()
 
@@ -99,22 +138,43 @@ final class ListDerivedCache: ObservableObject {
 
     // MARK: - Dirtiness
 
-    /// A tracked property changed (any thread that mutates a model — in practice main).
+    /// A tracked property changed (any thread that mutates a model, in practice main). `full` = the
+    /// whole base is stale; `rows` = only these notes' facts are.
     private final class DirtyBox: @unchecked Sendable {
         private let lock = NSLock()
-        private var value = true
-        var isDirty: Bool { lock.lock(); defer { lock.unlock() }; return value }
-        func set(_ v: Bool) { lock.lock(); value = v; lock.unlock() }
+        private var full = true
+        private var rows = Set<UUID>()
+        var isDirty: Bool { lock.lock(); defer { lock.unlock() }; return full || !rows.isEmpty }
+        var isFull: Bool { lock.lock(); defer { lock.unlock() }; return full }
+        var dirtyRows: Set<UUID> { lock.lock(); defer { lock.unlock() }; return rows }
+        func markFull() { lock.lock(); full = true; lock.unlock() }
+        func markRow(_ id: UUID) { lock.lock(); rows.insert(id); lock.unlock() }
+        func clearAll() { lock.lock(); full = false; rows.removeAll(); lock.unlock() }
+        func clearRows() { lock.lock(); rows.removeAll(); lock.unlock() }
     }
 
-    /// Run `body` and arrange for the first change to anything it read to dirty the cache and
+    /// Run `body` and arrange for the first change to anything it read to dirty the whole base and
     /// re-evaluate the view that owns it.
     private func tracked<T>(_ body: () -> T) -> T {
         let box = dirtyBox
         return withObservationTracking(body, onChange: { [weak self] in
-            box.set(true)   // synchronous: the next body pass must see it
+            box.markFull()   // synchronous: the next body pass must see it
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.scheduleTick() } }
         })
+    }
+
+    /// Like `tracked`, but the first change marks only note `id` dirty.
+    private func trackedRow(_ id: UUID, _ body: () -> Void) {
+        let box = dirtyBox
+        withObservationTracking(body, onChange: { [weak self] in
+            box.markRow(id)
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.scheduleTick() } }
+        })
+    }
+
+    private var tracking: Tracking {
+        Tracking(full: { [unowned self] body in _ = self.tracked(body) },
+                 row: { [unowned self] id, body in self.trackedRow(id, body) })
     }
 
     private func scheduleTick() {
@@ -132,7 +192,7 @@ final class ListDerivedCache: ObservableObject {
 
     /// Forget everything (tests; and the next call rebuilds).
     func invalidate() {
-        dirtyBox.set(true)
+        dirtyBox.markFull()
         base = nil
         derivedCache = nil
         lastSearch = nil
@@ -143,8 +203,8 @@ final class ListDerivedCache: ObservableObject {
     // MARK: - Level 1: the memo-set model
 
     /// The memo-set model for the current query results. `rawMemos` / `enhancements` are the
-    /// view's `@Query` arrays. `externalVersion` is `NotesRepository.memoSetVersion` (bumped per
-    /// save and per CloudKit import). `allowStale`: the list is covered by a pushed note (compact
+    /// view's `@Query` arrays. `externalVersion` is `NotesRepository.memoStructureVersion` (bumped per
+    /// CloudKit import and per save that inserted or deleted rows; a plain edit patches its row). `allowStale`: the list is covered by a pushed note (compact
     /// width), so a pure property change may wait for the pop; a membership change never waits
     /// (a deleted model must not be rendered).
     ///
@@ -163,23 +223,36 @@ final class ListDerivedCache: ObservableObject {
                           enhancements: enhHasher.finalize() &+ enhancements.count)
         let bucket = Int(now.timeIntervalSinceReferenceDate / 3600)   // the fading clock moves hourly
 
+        var patchRows: Set<UUID>?
         if let b = base, key == baseKey {
-            let propertiesChanged = dirtyBox.isDirty || externalVersion != baseExternalVersion
+            let wholeStale = dirtyBox.isFull || externalVersion != baseExternalVersion || bucket != baseBucket
+            let rows = dirtyBox.dirtyRows
             if allowStale { return b }
-            if !propertiesChanged && bucket == baseBucket { return b }
+            if !wholeStale && rows.isEmpty { return b }
+            // Q322: a note-level change patches that note's facts when nothing else moved. The index
+            // in hand must agree with the one the base used (a backlink-set change re-buckets other
+            // notes, so it rebuilds), and rows must be one per id (a duplicate group's keeper can move).
+            if !wholeStale, !hasDuplicateRows, let index = backlinks, b.backlinkedFromIndex,
+               index.linkedIDs == b.backlinked {
+                patchRows = rows
+            }
+            if let rows = patchRows { return patchBase(b, rows: rows) }
         }
 
-        dirtyBox.set(false)
+        dirtyBox.clearAll()
         generation += 1
         baseBuilds += 1
-        let built = tracked {
-            Self.buildBase(rawMemos: rawMemos, enhancements: enhancements, now: now, generation: generation,
-                           backlinks: backlinks)
-        }
+        fullBuilds += 1
+        let built = Self.buildBase(rawMemos: rawMemos, enhancements: enhancements, now: now, generation: generation,
+                                   backlinks: backlinks, tracking: tracking, facts: &facts)
         base = built
         baseKey = key
         baseBucket = bucket
+        baseNow = now
         baseExternalVersion = externalVersion
+        hasDuplicateRows = rawMemos.count != built.memos.count
+        indexByID = Dictionary(built.memos.enumerated().map { ($0.element.id, $0.offset) },
+                               uniquingKeysWith: { a, _ in a })
         if prepared.count > built.memos.count {
             let ids = Set(built.memos.map(\.id))
             prepared = prepared.filter { ids.contains($0.key) }
@@ -187,43 +260,120 @@ final class ListDerivedCache: ObservableObject {
         return built
     }
 
+    /// Q322: re-read the facts of `rows` only (re-tracking each), then reassemble from the stored
+    /// facts. Everything else (enhanced ids, titles, polish, the backlink set) carries over.
+    private func patchBase(_ b: ListBase, rows: Set<UUID>) -> ListBase {
+        dirtyBox.clearRows()
+        let t = tracking
+        var changed = Set<UUID>()
+        for id in rows {
+            guard let i = indexByID[id] else { continue }
+            let m = b.memos[i]
+            t.row(id) { facts[i] = Self.rowFacts(of: m, backlinked: b.backlinked, now: baseNow) }
+            changed.insert(id)
+        }
+        generation += 1
+        baseBuilds += 1
+        rowPatches += 1
+        rowsRebuilt += changed.count
+        let parts = Self.assemble(memos: b.memos, facts: facts, enhanced: b.enhanced)
+        let patched = ListBase(generation: generation, memos: b.memos, enhanced: b.enhanced,
+                               enhancedTitleByMemoID: b.enhancedTitleByMemoID, polish: b.polish,
+                               backlinked: b.backlinked, backlinkedFromIndex: b.backlinkedFromIndex,
+                               live: parts.live, fading: parts.fading, chipCounts: parts.chipCounts,
+                               processPile: parts.processPile,
+                               changedIDs: changed, patchedFrom: b.generation)
+        base = patched
+        return patched
+    }
+
+    /// One note's list facts. The reads here are the reads the old whole-base build made, plus the
+    /// properties the filter / sort / day-grouping read per row (recordedAt, createdAt, editedAt,
+    /// duration, locked), so a change to any of them dirties the note.
+    static func rowFacts(of m: Memo, backlinked: Set<UUID>, now: Date) -> RowFacts {
+        _ = m.recordedAt; _ = m.createdAt; _ = m.editedAt; _ = m.duration
+        let deleted = m.deletedAt != nil
+        let bucket: RowFacts.Bucket = deleted ? .trashed
+            : (MemoLifecycle.isFading(m, backlinked: backlinked, now: now) ? .fading : .live)
+        return RowFacts(bucket: bucket, rated: NoteConsent.isRated(m), locked: m.locked, deleted: deleted,
+                        waitingUnlessEnhanced: ProcessPile.isWaiting(m, enhancedIDs: []))
+    }
+
+    /// The base's live / fading split, chip counts and process pile from stored facts, in `memos`
+    /// order. Same rules as `MemoLifecycle.partition`, `QueueFilter.admits`, `ProcessPile`.
+    static func assemble(memos: [Memo], facts: [RowFacts], enhanced: Set<UUID>)
+        -> (live: [Memo], fading: [Memo], chipCounts: [QueueFilter: Int], processPile: [Memo]) {
+        var live: [Memo] = [], fading: [Memo] = [], pile: [Memo] = []
+        var needsWork = 0, done = 0, notRated = 0
+        for (i, m) in memos.enumerated() {
+            let f = facts[i]
+            switch f.bucket {
+            case .live: live.append(m)
+            case .fading: fading.append(m)
+            case .trashed: break
+            }
+            let processed = enhanced.contains(m.id)
+            if QueueFilter.needsWork.admits(rated: f.rated, processed: processed, locked: f.locked) { needsWork += 1 }
+            if QueueFilter.done.admits(rated: f.rated, processed: processed, locked: f.locked) { done += 1 }
+            if !f.rated && !f.deleted && !f.locked { notRated += 1 }
+            if f.waitingUnlessEnhanced && !processed { pile.append(m) }
+        }
+        return (live, fading, NotesListModel.chipCounts(needsWork: needsWork, done: done, notRated: notRated), pile)
+    }
+
     /// The pure build (static so tests and the benchmark can call it without a cache).
     static func buildBase(rawMemos: [Memo], enhancements: [MemoEnhancement], now: Date,
                           generation: Int, backlinks: BacklinkIndex? = nil) -> ListBase {
-        let memos = MemoDuplicates.canonicalRows(rawMemos)
-        let backlinked = backlinks?.linkedIDs
-            ?? MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
-        let enhanced = Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
-        let split = MemoLifecycle.partition(memos, backlinked: backlinked, now: now)
+        var scratch: [RowFacts] = []
+        return buildBase(rawMemos: rawMemos, enhancements: enhancements, now: now, generation: generation,
+                         backlinks: backlinks, tracking: .none, facts: &scratch)
+    }
+
+    /// The build proper. `facts` receives one entry per canonical row, aligned with `ListBase.memos`.
+    static func buildBase(rawMemos: [Memo], enhancements: [MemoEnhancement], now: Date,
+                          generation: Int, backlinks: BacklinkIndex?, tracking: Tracking,
+                          facts: inout [RowFacts]) -> ListBase {
+        var memos: [Memo] = []
+        tracking.full { memos = MemoDuplicates.canonicalRows(rawMemos) }
+        var backlinked: Set<UUID> = backlinks?.linkedIDs ?? []
+        if backlinks == nil {
+            // No index built yet: scan every transcript (and copy-edit) once. Any change to one of
+            // them stales the whole set, so it is one whole-base region.
+            tracking.full {
+                backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
+            }
+        }
+        var enhanced = Set<UUID>()
         var titles: [UUID: String] = [:]
         var polish: [UUID: (title: String, summary: String)] = [:]
-        for e in enhancements {
-            let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !t.isEmpty, titles[e.memoID] == nil { titles[e.memoID] = t }
-            if polish[e.memoID] == nil { polish[e.memoID] = (e.title, e.summary) }
+        tracking.full {
+            enhanced = Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
+            for e in enhancements {
+                let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !t.isEmpty, titles[e.memoID] == nil { titles[e.memoID] = t }
+                if polish[e.memoID] == nil { polish[e.memoID] = (e.title, e.summary) }
+            }
         }
-        // Properties the filter / sort / day-grouping read per row. Read here, inside the base's
-        // tracking, so a change to one of them dirties the cache (the derived pass reads them
-        // again but is not itself tracked).
+        facts = []
+        facts.reserveCapacity(memos.count)
         for m in memos {
-            _ = m.recordedAt; _ = m.createdAt; _ = m.editedAt; _ = m.duration; _ = m.locked
+            var f = RowFacts(bucket: .live, rated: false, locked: false, deleted: false, waitingUnlessEnhanced: false)
+            tracking.row(m.id) { f = rowFacts(of: m, backlinked: backlinked, now: now) }
+            facts.append(f)
         }
-        let counts = NotesListModel.chipCounts(
-            needsWork: memos.filter { QueueFilter.needsWork.admits($0, enhancedIDs: enhanced) }.count,
-            done: memos.filter { QueueFilter.done.admits($0, enhancedIDs: enhanced) }.count,
-            notRated: ProcessPile.unrated(memos: memos).count)
+        let parts = assemble(memos: memos, facts: facts, enhanced: enhanced)
         return ListBase(generation: generation, memos: memos, enhanced: enhanced,
                         enhancedTitleByMemoID: titles, polish: polish, backlinked: backlinked,
                         backlinkedFromIndex: backlinks != nil,
-                        live: split.live, fading: split.fading, chipCounts: counts,
-                        processPile: ProcessPile.waiting(memos: memos, enhancedIDs: enhanced))
+                        live: parts.live, fading: parts.fading, chipCounts: parts.chipCounts,
+                        processPile: parts.processPile)
     }
 
     /// The current version's backlink index just landed (Q320). If the base was built from an
     /// older index (or from a scan) and the linked set differs, rebuild once from the right one.
     func backlinksArrived(_ index: BacklinkIndex) {
         guard let base, base.backlinked != index.linkedIDs else { return }
-        dirtyBox.set(true)
+        dirtyBox.markFull()
         scheduleTick()
     }
 
@@ -240,7 +390,7 @@ final class ListDerivedCache: ObservableObject {
         var rows: [Memo]
         if searching {
             let q = NoteVisibility.normalizedQuery(params.search)
-            let hit = tracked { matchedPool(base: base, params: params, query: q) }
+            let hit = matchedPool(base: base, params: params, query: q)   // reads are tracked per note, in preparedSearch
             lastSearch = (base.generation, q, params.unlocked, Set(hit.live.lazy.map(\.id)).union(hit.fading.lazy.map(\.id)))
             rows = NotesListModel.listRows(
                 live: hit.live, fading: hit.fading, searching: true,
@@ -302,22 +452,36 @@ final class ListDerivedCache: ObservableObject {
     /// The note's lowercased search text; rebuilt only when the note's search sources changed.
     private func preparedSearch(for m: Memo, base: ListBase) -> PreparedNoteSearch {
         if let e = prepared[m.id], e.generation == base.generation { return e.prepared }
-        let p = base.polish[m.id]
-        let f = Fingerprint(
-            lastEditedAt: m.lastEditedAt, transcriptCount: m.transcript?.utf8.count, title: m.title,
-            tags: m.tags, annotationCount: m.annotationText?.utf8.count, metadataCount: m.metadataData?.count,
-            sharedCount: m.sharedContentData?.count, locked: m.locked,
-            polishTitle: p?.title, polishSummary: p?.summary)
-        if var e = prepared[m.id], e.fingerprint == f {
+        // Q322: across a one-row patch every note the patch did not touch keeps its search text.
+        if var e = prepared[m.id], let from = base.patchedFrom, e.generation == from,
+           let changed = base.changedIDs, !changed.contains(m.id) {
             e.generation = base.generation
             prepared[m.id] = e
             return e.prepared
         }
-        preparedBuilds += 1
-        let snap = m.noteSearchSnapshot(unlockedThisSession: false, enhancedTitle: p?.title, summary: p?.summary)
-        let prep = PreparedNoteSearch(snap)
-        prepared[m.id] = PreparedEntry(fingerprint: f, generation: base.generation, prepared: prep)
-        return prep
+        let p = base.polish[m.id]
+        // The reads below (fingerprint + snapshot) are this note's own tracked region: a change to a
+        // search source marks just this note dirty (Q322), so the next pass patches its row.
+        var result: PreparedNoteSearch?
+        trackedRow(m.id) {
+            let f = Fingerprint(
+                lastEditedAt: m.lastEditedAt, transcriptCount: m.transcript?.utf8.count, title: m.title,
+                tags: m.tags, annotationCount: m.annotationText?.utf8.count, metadataCount: m.metadataData?.count,
+                sharedCount: m.sharedContentData?.count, locked: m.locked,
+                polishTitle: p?.title, polishSummary: p?.summary)
+            if var e = prepared[m.id], e.fingerprint == f {
+                e.generation = base.generation
+                prepared[m.id] = e
+                result = e.prepared
+                return
+            }
+            preparedBuilds += 1
+            let snap = m.noteSearchSnapshot(unlockedThisSession: false, enhancedTitle: p?.title, summary: p?.summary)
+            let prep = PreparedNoteSearch(snap)
+            prepared[m.id] = PreparedEntry(fingerprint: f, generation: base.generation, prepared: prep)
+            result = prep
+        }
+        return result!
     }
 }
 

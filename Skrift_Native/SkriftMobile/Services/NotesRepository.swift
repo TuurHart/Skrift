@@ -204,6 +204,11 @@ final class NotesRepository {
     /// and on every finished CloudKit import (`noteStoreDidChangeBySync()`). Every whole-library
     /// derived value (the tag library, the backlink index) is keyed on it.
     private(set) var memoSetVersion = 0
+    /// Q322: the coarser version the Notes list base keys on: bumped by CloudKit imports and by saves
+    /// that inserted or deleted rows, NOT by a plain edit. An edit reaches the list through
+    /// per-note Observation (`ListDerivedCache` patches that one row), so it must not rebuild all.
+    private(set) var memoStructureVersion = 0
+    private let externalSaves = SaveWitness()
 
     /// Q314: who-links-to-whom for the whole library, rebuilt once per `memoSetVersion` off the
     /// main actor (`BacklinkIndexCache`). Opening a note reads this instead of rescanning every
@@ -227,7 +232,7 @@ final class NotesRepository {
 
     /// A CloudKit import merged rows into the context WITHOUT a `save()` here; the sync monitor
     /// calls this so version-keyed caches rebuild.
-    func noteStoreDidChangeBySync() { memoSetVersion += 1 }
+    func noteStoreDidChangeBySync() { memoSetVersion += 1; memoStructureVersion += 1 }
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {
@@ -317,6 +322,18 @@ final class NotesRepository {
     }
 
     func save() {
+        // Q322: a save with nothing to save is a no-op. Closing a note calls `save()`, and each
+        // no-change close used to bump `memoSetVersion` and so rebuild the whole list base (~1 s on
+        // 2,000 notes). "Nothing to save" needs two facts, because the main context AUTOSAVES:
+        // `hasChanges` is false once autosave has already written an edit, so a save the context
+        // made behind our back (seen by `externalSaves`, any `ModelContext.didSave`) still counts as
+        // a change and still bumps. Dropping a real change is the one thing this must never do.
+        let hadChanges = context.hasChanges
+        let savedElsewhere = externalSaves.takeFlag()
+        guard hadChanges || savedElsewhere else { return }
+        // Membership edits (rows inserted / deleted) also move the list's structure version.
+        let structural = !context.insertedModelsArray.isEmpty || !context.deletedModelsArray.isEmpty
+
         // The single persistence chokepoint for the notes store: a swallowed failure
         // here is indistinguishable from success, so retry once, then log loudly.
         do { try context.save() }
@@ -325,8 +342,31 @@ final class NotesRepository {
             do { try context.save() }
             catch { DevLog.log("save FAILED after retry — pending changes NOT persisted: \(error)") }
         }
+        externalSaves.clear()   // our own save posted didSave too
         // Any save can change tag membership (a tag added/removed/a memo added or
         // deleted) — bump so the next `allTags()` recomputes once, lazily.
         memoSetVersion += 1
+        if structural { memoStructureVersion += 1 }
     }
+}
+
+/// Q322: sees every `ModelContext.didSave` (any context, any thread) so `NotesRepository.save()` can
+/// tell "no changes" from "autosave already wrote them". The flag is conservative: a stray didSave
+/// only costs one extra version bump, never a dropped one.
+final class SaveWitness: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = false
+    private var token: NSObjectProtocol?
+
+    init() {
+        token = NotificationCenter.default.addObserver(forName: ModelContext.didSave, object: nil, queue: nil) { [weak self] _ in
+            self?.set(true)
+        }
+    }
+    deinit { if let token { NotificationCenter.default.removeObserver(token) } }
+
+    private func set(_ v: Bool) { lock.lock(); flag = v; lock.unlock() }
+    func clear() { set(false) }
+    /// True when a save happened since the last `takeFlag()` / `clear()`; resets it.
+    func takeFlag() -> Bool { lock.lock(); defer { lock.unlock() }; let v = flag; flag = false; return v }
 }

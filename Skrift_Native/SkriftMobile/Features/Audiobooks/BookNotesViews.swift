@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// D127 / Q6 mock (`mocks/Q6-library-tab.html`, `.npill` + `notesSheet`): the per-book
 /// "❝ N" pill and the sheet it opens. The pill is its own button, separate from the tile's
@@ -138,5 +139,40 @@ struct BookJumpBackButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("book-jump-back")
+    }
+}
+
+// MARK: - Q322: the live-memo query, kept off the Books tab body
+
+/// Owns the live-memo `@Query` for the Books tab. It re-evaluates on every note save (cheap: a
+/// zero-size clear view) and writes `counts` only when they actually changed, so the Books body
+/// behind the note editor does not re-run per keystroke commit.
+struct BookNoteCountsFeed: View {
+    @Binding var counts: [UUID: Int]
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+
+    private var key: BookNotesCountCache.Key {
+        .init(version: NotesRepository.shared.memoSetVersion, count: liveMemos.count)
+    }
+
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            .task(id: key) {
+                let fresh = await BookNotesCountCache.shared.counts(for: liveMemos, key: key)
+                if fresh != counts { counts = fresh }
+            }
+    }
+}
+
+/// The notes sheet with its own live-memo query (see `BookNoteCountsFeed`).
+struct BookNotesSheetHost: View {
+    let book: Audiobook
+    let onOpen: (Memo) -> Void
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+
+    var body: some View {
+        BookNotesSheet(book: book, notes: BookNotesJoin.notes(forBook: book.id, in: liveMemos), onOpen: onOpen)
     }
 }
