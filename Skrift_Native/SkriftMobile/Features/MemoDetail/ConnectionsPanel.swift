@@ -634,19 +634,16 @@ struct ConnectionsPanel: View {
     /// the raw transcript OR the Mac's polished copyedit, so scan both.
     private func scanBacklinks() async -> [BacklinkVM] {
         let mine = memo.id
-        let copyeditByID = Backlinks.copyeditsByMemoID(repository.allEnhancements())
-        let memos = repository.allMemos().filter { $0.id != mine }
-        let rows = memos.map { Backlinks.Row(id: $0.id, transcript: $0.transcript, copyedit: copyeditByID[$0.id]) }
-        let meta: [UUID: (title: String, date: Date)] = Dictionary(
-            memos.map { ($0.id, ($0.ladderTitle(), LookbackProvider.journalDate($0))) },   // C25 ladder
-            uniquingKeysWith: { a, _ in a })
-        return await Task.detached(priority: .utility) {
-            let found: [BacklinkVM] = Backlinks.scan(for: mine, in: rows).compactMap { id in
-                guard let m = meta[id] else { return nil }
-                return BacklinkVM(id: id, title: String(m.title.prefix(60)), date: m.date)
-            }
-            return Array(found.sorted { $0.date > $1.date }.prefix(6))
-        }.value
+        // Q314: the shared per-version index (`BacklinkIndexCache`); dates for the notes that link
+        // here, the C25 title ladder only for the six that are shown.
+        let index = await repository.backlinkIndex()
+        let linkers = index.linkers(of: mine).compactMap { id -> (memo: Memo, date: Date)? in
+            guard let m = repository.memo(id: id), m.deletedAt == nil else { return nil }
+            return (m, LookbackProvider.journalDate(m))
+        }
+        return linkers.sorted { $0.date > $1.date }.prefix(6).map {
+            BacklinkVM(id: $0.memo.id, title: String($0.memo.ladderTitle().prefix(60)), date: $0.date)
+        }
     }
 
     private static func day(_ date: Date?) -> String { ConnectionsPanelSpec.day(date) }

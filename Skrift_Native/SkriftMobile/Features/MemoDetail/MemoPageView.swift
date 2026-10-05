@@ -131,11 +131,14 @@ struct MemoPageView: View {
             timings = WordTimingsStore().load(for: memo.id) ?? []
             people = NamesStore.shared.livePeople()
             recomputeSpans()
-            recomputeBacklinks()
-            // One corpus scan for the lifecycle line's touch check.
-            detailBacklinkedIDs = MemoLifecycle.backlinkedIDs(
-                in: repository.allMemos(),
-                copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements()))
+            // Q314: the library-wide part is ONE shared backlink index (rebuilt once per memo-set
+            // version, off the main actor); titles are built only for the notes that link here.
+            let opened = memo.id
+            let work = await NoteOpenWork.load(for: opened, wantsBacklinks: footerConnectionsAllowed,
+                                               repository: repository)
+            guard !Task.isCancelled, memo.id == opened else { return }
+            backlinks = work.backlinks
+            detailBacklinkedIDs = work.linkedIDs
             await loadRelated()
         }
         // Rating or unlocking the open note opens its footer connections (and
@@ -754,7 +757,11 @@ struct MemoPageView: View {
         guard footerConnectionsAllowed else { relatedMemos = []; return }
         guard JournalIndexService.shared.isActive else { return }
         let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
-        let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        // Fetch only the few notes that clear the floor, not the whole library (Q314).
+        let picked = SemanticSearch.results(scores: scores, excluding: [memo.id],
+                                            floor: RetrievalTuning.relatedFloor, limit: RetrievalTuning.relatedK)
+        var byID: [UUID: Memo] = [:]
+        for id in picked { if let m = repository.memo(id: id), m.deletedAt == nil { byID[id] = m } }
         relatedMemos = JournalIndexService.relatedResults(
             scores: scores, excluding: [memo.id], memosByID: byID,
             floor: RetrievalTuning.relatedFloor, limit: RetrievalTuning.relatedK)
@@ -765,18 +772,13 @@ struct MemoPageView: View {
     func recomputeBacklinks() {
         guard footerConnectionsAllowed else { backlinks = []; return }
         let myID = memo.id
-        // A memo-link can live in the raw transcript OR the Mac's polished copyedit — a Mac-made
-        // link syncs into the enhancement, not the transcript (2026-07-15 device finding: the Mac
-        // showed the backlink, the phone didn't because it only scanned transcripts). Scan BOTH.
-        let copyeditByID = Backlinks.copyeditsByMemoID(repository.allEnhancements())
-        let memos = repository.allMemos().filter { $0.id != myID }
-        let rows = memos.map { Backlinks.Row(id: $0.id, transcript: $0.transcript, copyedit: copyeditByID[$0.id]) }
-        let titles = Dictionary(memos.map { ($0.id, $0.ladderTitle()) }, uniquingKeysWith: { a, _ in a })  // C25
-        Task.detached(priority: .utility) {
-            let found: [(id: UUID, title: String)] = Backlinks.scan(for: myID, in: rows).map {
-                (id: $0, title: String((titles[$0] ?? "Note").prefix(60)))
-            }
-            await MainActor.run { backlinks = Array(found.prefix(6)) }
+        // A memo-link can live in the raw transcript OR the Mac's polished copyedit — the shared
+        // index scans BOTH (`Backlinks`), once per memo-set version (Q314).
+        Task {
+            let work = await NoteOpenWork.load(for: myID, wantsBacklinks: true, repository: repository)
+            guard memo.id == myID else { return }
+            backlinks = work.backlinks
+            detailBacklinkedIDs = work.linkedIDs
         }
     }
 
@@ -810,8 +812,8 @@ struct MemoPageView: View {
     /// title instead of the snapshot frozen at creation. nil when the target isn't in the
     /// library → the chip keeps its snapshot. Called on display rebuild, not per keystroke.
     func liveLinkTitle(_ id: UUID) -> String? {
-        // allMemos() is live-only, so a trashed target keeps its snapshot too.
-        guard let m = repository.allMemos().first(where: { $0.id == id }) else { return nil }
+        // Live-only, so a trashed target keeps its snapshot too. One id lookup, not the whole library (Q314).
+        guard let m = repository.memo(id: id), m.deletedAt == nil else { return nil }
         // Only a REAL title overrides the chip's snapshot. A capture / Maps note with no title +
         // no transcript would otherwise resolve to "Untitled" and CLOBBER the good snapshot the
         // link was made with (2026-07-15 device finding) — return nil so the snapshot stays.
@@ -820,13 +822,7 @@ struct MemoPageView: View {
 
     /// Everything linkable from here: most recent first, self excluded.
     func memoLinkCandidates() -> [(id: UUID, title: String, subtitle: String)] {
-        repository.allMemos()
-            .filter { $0.id != memo.id }
-            .map { m in
-                (id: m.id,
-                 title: m.ladderTitle(),   // C25: never "Untitled", never a raw file name
-                 subtitle: MemoDate.label(m.recordedAt))
-            }
+        NoteOpenWork.linkCandidates(excluding: memo.id, repository: repository)   // Q314: cached per memo-set version
     }
 
     /// Conversation body — speaker-attributed turns. The per-tick karaoke state
