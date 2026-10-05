@@ -2345,7 +2345,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): searching 'morning' + clearing = ~10 s main thread (letters appear ~5x slower than typed); stopping a recording = 6.4 s; Done after typing = 2.9 s; all in MemosListView.body → derived → filtered/listRows/matchesSearch and MemoLifecycle.backlinkedIDs. Make the list's derived data (rows, sections, chip counts, backlinkedIDs, enhanced titles, fading set) a cached model rebuilt only when the memo set version changes, not on every body pass; precompute each memo's lowercased search text once per memo version (shared matcher in Shared/ stays the one matcher for phone, iPad, Mac — Q103); debounce search input ~150 ms and narrow from the previous result when the query extends; stop MemosListView observing all of CloudSyncMonitor (observe only the fields it shows). Readers: a-phone-list-launch.md A1 A2 A3 A9, e-search-review.md E1 E2 E4, h-shared-data.md S1 L1. Keep every list behaviour identical (filters, sort, sections, fading, locked, search fields per C236). Tests: new `ListDerivedCacheTests` (phone target) — a body pass with an unchanged memo set does not rebuild rows; a search keystroke does not re-lowercase unchanged memos; results identical to the uncached path for a fixed corpus.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchWorkTests && ./gate.sh`
 
-### Q316 [auto] (doing) perf: phone launch and return-to-app sweeps leave the main thread and run once
+### Q316 [auto] (done) perf: phone launch and return-to-app sweeps leave the main thread and run once
 spec: -
 needs: -
 gate+: yes
@@ -3420,3 +3420,4 @@ check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skr
 - 2026-10-05 18:39 Q318 added
 - 2026-10-05 18:48 Q317 -> done — hand-merged @9a381dee (memoSetVersion conflict, kept Q314); BookNotesCountCacheTests + NoteOpenWorkTests exit 0, gate green
 - 2026-10-05 21:30 Q315 -> done — hand-merged @8c58dd07 (one sync bump kept); ListDerivedCache/LaunchWork/NoteOpenWork/BookNotesCountCache tests + MemosListUITests 6/6 exit 0, gate green
+- 2026-10-05 21:35 Q316 -> done — gate pass @798b3a3c
