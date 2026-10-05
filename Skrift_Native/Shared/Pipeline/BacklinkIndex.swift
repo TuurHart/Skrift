@@ -58,5 +58,13 @@ final class BacklinkIndexCache {
         return built
     }
 
+    /// The built index without waiting or building (Q320): the CURRENT version's when it exists,
+    /// else the newest one built so far (`isCurrent == false`), else nil. The Notes list reads this
+    /// on the main actor and corrects itself when `index(version:)` lands.
+    func peek(version: Int) -> (index: BacklinkIndex, isCurrent: Bool)? {
+        guard let cached else { return nil }
+        return (cached.index, cached.version == version)
+    }
+
     func invalidate() { cached = nil; inflight = nil }
 }

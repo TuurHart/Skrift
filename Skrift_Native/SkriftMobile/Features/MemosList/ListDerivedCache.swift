@@ -36,6 +36,9 @@ final class ListDerivedCache: ObservableObject {
         /// memoID → (generated title, summary) for the shared matcher (Q103/C236).
         let polish: [UUID: (title: String, summary: String)]
         let backlinked: Set<UUID>
+        /// True when `backlinked` came from the shared `BacklinkIndex` (Q320), false when the base
+        /// scanned every transcript itself (no index built yet).
+        let backlinkedFromIndex: Bool
         let live: [Memo]
         let fading: [Memo]
         let chipCounts: [QueueFilter: Int]
@@ -144,8 +147,14 @@ final class ListDerivedCache: ObservableObject {
     /// save and per CloudKit import). `allowStale`: the list is covered by a pushed note (compact
     /// width), so a pure property change may wait for the pop; a membership change never waits
     /// (a deleted model must not be rendered).
+    ///
+    /// `backlinks` (Q320): the repository's shared backlink index, the current version's or the last
+    /// built one. With it the rebuild never rescans transcripts (that scan was 774 ms of main on the
+    /// 2,000-note library, per save). nil (nothing built yet) scans, exactly as before. When the
+    /// index in hand was an older version's, `backlinksArrived` corrects the list once the current
+    /// one lands, so only a link made a moment ago can show for one async build.
     func base(rawMemos: [Memo], enhancements: [MemoEnhancement], externalVersion: Int,
-              now: Date = Date(), allowStale: Bool = false) -> ListBase {
+              now: Date = Date(), allowStale: Bool = false, backlinks: BacklinkIndex? = nil) -> ListBase {
         var memoHasher = Hasher()
         for m in rawMemos { memoHasher.combine(ObjectIdentifier(m)) }
         var enhHasher = Hasher()
@@ -164,7 +173,8 @@ final class ListDerivedCache: ObservableObject {
         generation += 1
         baseBuilds += 1
         let built = tracked {
-            Self.buildBase(rawMemos: rawMemos, enhancements: enhancements, now: now, generation: generation)
+            Self.buildBase(rawMemos: rawMemos, enhancements: enhancements, now: now, generation: generation,
+                           backlinks: backlinks)
         }
         base = built
         baseKey = key
@@ -179,9 +189,10 @@ final class ListDerivedCache: ObservableObject {
 
     /// The pure build (static so tests and the benchmark can call it without a cache).
     static func buildBase(rawMemos: [Memo], enhancements: [MemoEnhancement], now: Date,
-                          generation: Int) -> ListBase {
+                          generation: Int, backlinks: BacklinkIndex? = nil) -> ListBase {
         let memos = MemoDuplicates.canonicalRows(rawMemos)
-        let backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
+        let backlinked = backlinks?.linkedIDs
+            ?? MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
         let enhanced = Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
         let split = MemoLifecycle.partition(memos, backlinked: backlinked, now: now)
         var titles: [UUID: String] = [:]
@@ -203,8 +214,17 @@ final class ListDerivedCache: ObservableObject {
             notRated: ProcessPile.unrated(memos: memos).count)
         return ListBase(generation: generation, memos: memos, enhanced: enhanced,
                         enhancedTitleByMemoID: titles, polish: polish, backlinked: backlinked,
+                        backlinkedFromIndex: backlinks != nil,
                         live: split.live, fading: split.fading, chipCounts: counts,
                         processPile: ProcessPile.waiting(memos: memos, enhancedIDs: enhanced))
+    }
+
+    /// The current version's backlink index just landed (Q320). If the base was built from an
+    /// older index (or from a scan) and the linked set differs, rebuild once from the right one.
+    func backlinksArrived(_ index: BacklinkIndex) {
+        guard let base, base.backlinked != index.linkedIDs else { return }
+        dirtyBox.set(true)
+        scheduleTick()
     }
 
     // MARK: - Level 2: what this query / chip / sort / filter shows

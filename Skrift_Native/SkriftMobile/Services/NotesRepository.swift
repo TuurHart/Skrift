@@ -220,6 +220,11 @@ final class NotesRepository {
         }
     }
 
+    /// Q320: the backlink index without waiting (see `BacklinkIndexCache.peek`).
+    func backlinkIndexNow() -> (index: BacklinkIndex, isCurrent: Bool)? {
+        backlinkCache.peek(version: memoSetVersion)
+    }
+
     /// A CloudKit import merged rows into the context WITHOUT a `save()` here; the sync monitor
     /// calls this so version-keyed caches rebuild.
     func noteStoreDidChangeBySync() { memoSetVersion += 1 }

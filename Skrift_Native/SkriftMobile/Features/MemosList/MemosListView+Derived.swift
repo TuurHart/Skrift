@@ -55,7 +55,8 @@ extension MemosListView {
     var listBase: ListDerivedCache.ListBase {
         listCache.base(rawMemos: rawMemos, enhancements: enhancements,
                        externalVersion: repository.memoSetVersion,
-                       allowStale: !isRegular && !path.isEmpty)
+                       allowStale: !isRegular && !path.isEmpty,
+                       backlinks: repository.backlinkIndexNow()?.index)   // Q320: no per-rebuild transcript scan
     }
 
     /// Everything the list body shows for the current query / chip / sort / filter (R92/C278).

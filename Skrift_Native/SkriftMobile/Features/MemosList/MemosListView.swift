@@ -572,6 +572,11 @@ struct MemosListView: View {
                 scheduleRelated()
             }
             .task { scheduleRelated() } // initial (-initialSearch route)
+            // Q320: build the shared backlink index for this memo-set version off the main actor,
+            // then let the list correct itself if it was built from an older one.
+            .task(id: repository.memoSetVersion) {
+                listCache.backlinksArrived(await repository.backlinkIndex())
+            }
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
             // Pull-to-refresh: a manual nudge for "show me what synced" — runs the

@@ -30,6 +30,12 @@ final class CommitOnceCache<Key: Equatable, Value> {
         return value
     }
 
+    /// The cached value for `key` without computing (nil on a different key or no value).
+    func peek(for key: Key) -> Value? {
+        if let lastKey, lastKey == key { return lastValue }
+        return nil
+    }
+
     /// Forces the next `value(for:compute:)` call to recompute regardless of key.
     func invalidate() {
         lastKey = nil
