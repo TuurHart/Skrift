@@ -2331,28 +2331,28 @@ gate+: yes
 do: For the speed sweep (Tuur 2026-10-05). Add a DEBUG-only launch flag `-perfLibrary` on the phone (LaunchArgs.swift) and the Mac. With the flag, the app opens a SEPARATE on-disk SwiftData store file (e.g. `perf.store` next to the normal one) with CloudKit OFF (`cloudKitDatabase: .none`), and on first launch seeds it once; without the flag the normal Dev store and its sync are untouched, and the perf store can never upload. Also use a separate names.json/vocab path under the flag so fake people never reach the real names DB or NamesRecord sync. Seeder lives in Shared/ (one generator both apps call), deterministic (fixed RNG seed): 2,000 memos spread over 3 years — ~70% voice notes with transcripts (lengths: most 50-400 words, 5% 2,000-6,000 words), 10% conversations (**Name:** turns), 10% typed notes, 5% link captures, 5% audiobook quotes; ~300 with 1-4 photos (generated images ~2000 px, real JPEG bytes as MemoAssets), ~60 with a short generated audio file (AAC, few seconds, real bytes), tags from a pool of 80, 150 people with aliases in the perf names file, memo links between ~200 notes, a mix of ratings incl. unrated, ~100 fading and ~50 in trash, some locked. Seeding must be fast enough (<2 min on an iPhone 13) and run off the main thread with a progress line. Mac: same flag on Skrift Dev, PipelineFile rows as the Mac ingest would make them. Do NOT touch Release behaviour (all of it #if DEBUG). Unit test `PerfLibrarySeederTests` (phone target): the generator is deterministic, produces the counts above into an in-memory store, and the perf store configuration has no CloudKit database and a different URL from the default store.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PerfLibrarySeederTests && ./gate.sh`
 
-### Q314 [auto] (todo) perf: opening a note does no whole-library work; the hidden neighbour pages go
+### Q314 [auto] (doing) perf: opening a note does no whole-library work; the hidden neighbour pages go
 spec: -
 needs: -
 gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): each note open costs 1-3 s of main thread in MemoPageView's .task/body — recomputeBacklinks (full allMemos + Backlinks.targets over every transcript) and ladderTitle()/NoteTitle.firstLine/NoteSnippet.plain for EVERY note, repeated for each page the horizontal pager realises; tapping a related note animates the pager across the LazyHStack and stalls halfway (Tuur saw it). Swipe-between-notes has been OFF since 2026-07-16 (MemoDetailView.swift scrollDisabled), so: replace the pager with ONE MemoPageView for the current selection (memo-link / related-note hops swap the note, no sideways slide; keep the edit-conflict gate, the player bar, back navigation, iPad column layout). Build backlinks and link-picker titles from ONE shared cache (Shared/) keyed on a memo-set version that bumps on save/insert/delete/sync import, computed off the main actor, titles built only for notes that link here. Readers: plan/perf2/b-phone-note-editor.md N1 N2 N11, e-search-review.md E7 E8, h-shared-data.md P2. Update FEATURES.md if the note-hop behaviour line changes. Tests: new `NoteOpenWorkTests` (phone target) — opening a note with 2,000 in-memory memos does not call a full-corpus title build, the backlink cache is reused across two opens with no save between and rebuilt after a save.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
 
-### Q315 [auto] (todo) perf: the phone notes list and search do work per change, not per redraw over the whole library
+### Q315 [auto] (doing) perf: the phone notes list and search do work per change, not per redraw over the whole library
 spec: -
 needs: -
 gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): searching 'morning' + clearing = ~10 s main thread (letters appear ~5x slower than typed); stopping a recording = 6.4 s; Done after typing = 2.9 s; all in MemosListView.body → derived → filtered/listRows/matchesSearch and MemoLifecycle.backlinkedIDs. Make the list's derived data (rows, sections, chip counts, backlinkedIDs, enhanced titles, fading set) a cached model rebuilt only when the memo set version changes, not on every body pass; precompute each memo's lowercased search text once per memo version (shared matcher in Shared/ stays the one matcher for phone, iPad, Mac — Q103); debounce search input ~150 ms and narrow from the previous result when the query extends; stop MemosListView observing all of CloudSyncMonitor (observe only the fields it shows). Readers: a-phone-list-launch.md A1 A2 A3 A9, e-search-review.md E1 E2 E4, h-shared-data.md S1 L1. Keep every list behaviour identical (filters, sort, sections, fading, locked, search fields per C236). Tests: new `ListDerivedCacheTests` (phone target) — a body pass with an unchanged memo set does not rebuild rows; a search keystroke does not re-lowercase unchanged memos; results identical to the uncached path for a fixed corpus.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchWorkTests && ./gate.sh`
 
-### Q316 [auto] (todo) perf: phone launch and return-to-app sweeps leave the main thread and run once
+### Q316 [auto] (doing) perf: phone launch and return-to-app sweeps leave the main thread and run once
 spec: -
 needs: -
 gate+: yes
 do: From plan/perf2/MEASURED.md (iPhone 13, 2,000 notes): cold launch = 4.11 s to first frame; returning from the home screen = ~4 s main thread ('froze for a second'). Main cost: AssetMaterializer.captureMissing/captureFiles/fileSize (1.4 s at launch, lstat-heavy), allMemos, FadingSweep, MemoSaver.recoverStuck*, PhotoTextIndexer, MemoDeduper — all on the main actor, and LaunchWorkGate is never marked at launch so the first foreground repeats the sweeps. Keep the recording-recovery sweep FIRST (C99) and correct; move the rest off the main actor (background ModelContext / ModelActor), first frame must not wait on them; mark LaunchWorkGate at launch; captureMissing checks only memos changed since its last run (persisted checkpoint) instead of stat-ing every file. CAVEAT: the perf seed gives ~1,540 voice notes an audioFilename with no file on disk — measure and test with files PRESENT too. Readers: a-phone-list-launch.md A5 A6 A7, c-phone-record-capture.md C2, i-images-memory-energy.md. Tests: extend `LaunchWorkTests` — launch then first foreground runs each sweep once; captureMissing with an unchanged store stats no files; add `LaunchOffMainTests` asserting the sweeps run off the main actor.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchWorkTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LaunchOffMainTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh RecoverySweepTests && ./gate.sh`
 
-### Q317 [auto] (todo) perf: the Books tab and the player stop decoding the library and the sidecars on the main thread
+### Q317 [auto] (doing) perf: the Books tab and the player stop decoding the library and the sidecars on the main thread
 spec: -
 needs: -
 gate+: yes
@@ -3404,3 +3404,7 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests 
 - 2026-10-05 17:47 Q315 added
 - 2026-10-05 17:47 Q316 added
 - 2026-10-05 17:47 Q317 added
+- 2026-10-05 17:47 Q314 -> doing — worker out
+- 2026-10-05 17:47 Q315 -> doing — worker out
+- 2026-10-05 17:47 Q316 -> doing — worker out
+- 2026-10-05 17:47 Q317 -> doing — worker out
