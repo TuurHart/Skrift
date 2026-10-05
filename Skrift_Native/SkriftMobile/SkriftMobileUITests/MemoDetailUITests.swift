@@ -1,8 +1,8 @@
 import XCTest
 
 /// Phase 7.3: memo detail. Seeds demo memos, opens one, and checks the transcript
-/// + playback controls render, tags can be added, and delete works. Swipe paging
-/// + real playback are exercised on device; here the seeded memos have no audio
+/// + playback controls render, tags can be added, and delete works. Real playback
+/// is exercised on device; here the seeded memos have no audio
 /// file so the player loads disabled (still present).
 final class MemoDetailUITests: XCTestCase {
 
@@ -34,21 +34,6 @@ final class MemoDetailUITests: XCTestCase {
         shot.name = "memo-detail"; shot.lifetime = .keepAlways; add(shot)
     }
 
-    func testSwipeBetweenMemos() throws {
-        let app = launch()
-        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10))
-        row.tap()
-
-        let firstEditor = app.textViews["transcript-editor"]
-        XCTAssertTrue(firstEditor.waitForExistence(timeout: 5))
-        XCTAssertTrue((firstEditor.value as? String ?? "").contains("First seeded memo"))
-        app.swipeLeft()
-        // Off-screen pages are accessibilityHidden, so the visible editor now holds memo 2.
-        let secondShown = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Second seeded memo")).firstMatch
-        XCTAssertTrue(secondShown.waitForExistence(timeout: 5), "swipe didn't page to the next memo")
-    }
-
     /// Opening a non-first memo must land ON that memo, not page 0. This guards the
     /// paging ScrollView's initial scroll (the `.scrollPosition(id:)` initial value
     /// isn't reliably honoured on first layout — a ScrollViewReader does the jump).
@@ -68,6 +53,9 @@ final class MemoDetailUITests: XCTestCase {
                        "page 0 is on-screen — detail opened on the wrong page")
     }
 
+    /// Q28: tags are edited by the shared `TagEditorRow` (own row, no sheet). Tap + opens the
+    /// inline field, Return commits, Return on the empty field closes; the chip is a
+    /// `tag-chip-<tag>` static text (an `.onTapGesture` HStack, not a Button).
     func testAddTagInDetail() throws {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
@@ -78,16 +66,38 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(addTag.waitForExistence(timeout: 5))
         addTag.tap()
 
-        // The tag CHIP editor sheet (chunk 3) — type, Done commits + closes.
         let field = app.textFields["tag-input"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "the inline tag field did not open")
         field.tap()
-        field.typeText("harbor")
-        app.buttons["tag-editor-done"].tap()
+        field.typeText("harbor\n")   // commits; the field stays open + empty
+        // Return can drop simulator keyboard focus before SwiftUI re-focuses — re-tap, then
+        // Return on the empty field closes it.
+        if field.exists { field.tap(); field.typeText("\n") }
 
-        // The applied tag chip is a tappable (opens the editor) button.
-        XCTAssertTrue(app.buttons["#harbor"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["tag-chip-harbor"].waitForExistence(timeout: 5),
                       "added tag chip didn't appear")
+    }
+
+    /// Q314: a link hop swaps the note in place (no pager). Demo memo 2 links to memo 1, so
+    /// memo 1's LINKED FROM row opens memo 2 — the editor now holds memo 2's text.
+    func testRelatedNoteHopOpensInPlace() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let first = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "First seeded memo")).firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+
+        let backlink = app.buttons["backlink-row"]
+        for _ in 0..<4 where !backlink.exists { app.swipeUp() }   // the footer sits under the transcript
+        XCTAssertTrue(backlink.waitForExistence(timeout: 10), "LINKED FROM row missing on the linked note")
+        backlink.tap()
+
+        let second = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Second seeded memo")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 5), "the hop didn't open the linking note")
+        XCTAssertFalse(app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "First seeded memo")).firstMatch.exists,
+                       "the previous note is still on screen after the hop")
     }
 
     func testEditTranscriptInDetail() throws {
