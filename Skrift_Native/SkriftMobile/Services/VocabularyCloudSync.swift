@@ -9,6 +9,9 @@ import SwiftData
 enum VocabularyCloudSync {
 
     static func run(_ repository: NotesRepository, defaults: UserDefaults = .standard) {
+        #if DEBUG
+        guard !PerfLibrary.isActive else { return }   // Q313
+        #endif
         let localWords = CustomVocabularyStore.words(defaults: defaults)
         let records = repository.allVocabularyRecords()
         let outcome = VocabularySyncCore.reconcile(

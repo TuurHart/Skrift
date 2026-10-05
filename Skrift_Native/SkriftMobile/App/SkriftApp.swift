@@ -15,6 +15,10 @@ struct SkriftApp: App {
     @StateObject private var bookImport = BookImportBridge.shared
     /// Holds 2+ voice notes (Files pick / AirDrop burst) until the user answers One note / N notes.
     @StateObject private var audioPick = AudioPickBridge.shared
+    #if DEBUG
+    /// Q313: holds the app root back while `-perfLibrary` seeds its store (first launch only).
+    @StateObject private var perfLibrary = PerfLibraryLaunch.shared
+    #endif
 
     init() {
         let repo = NotesRepository.shared
@@ -28,6 +32,8 @@ struct SkriftApp: App {
         #endif
         repository = repo
         #if DEBUG
+        // Q313: `-perfLibrary` seeds its separate store off the main thread (a no-op otherwise).
+        PerfLibraryLaunch.shared.begin(container: repo.container, isUsable: repo.isUsable)
         // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into THIS
         // store — the v2 rewrite's change detector. Idempotent by memo id.
         if let corpus = CorpusSeed.launchPath {
@@ -85,7 +91,7 @@ struct SkriftApp: App {
                     .preferredColorScheme(colorScheme)
                     .tint(.skAccent)
             } else {
-                appRoot
+                launchContent
             }
         }
         // Hardware-keyboard shortcuts (iPad / Mac Catalyst). Inert on the phone
@@ -117,6 +123,18 @@ struct SkriftApp: App {
                     .keyboardShortcut(AppShortcuts.tabSettings)
             }
         }
+    }
+
+    @ViewBuilder private var launchContent: some View {
+        #if DEBUG
+        if perfLibrary.isSeeding {
+            PerfSeedingView(launch: perfLibrary)
+        } else {
+            appRoot
+        }
+        #else
+        appRoot
+        #endif
     }
 
     @ViewBuilder private var appRoot: some View {
@@ -333,7 +351,12 @@ struct RootView: View {
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if DEBUG
+        // Q313: the perf library never registers for CloudKit's silent pushes.
+        if !PerfLibrary.isActive { UIApplication.shared.registerForRemoteNotifications() }
+        #else
         UIApplication.shared.registerForRemoteNotifications()
+        #endif
         // Reminder taps → open the memo; foreground reminders still banner.
         UNUserNotificationCenter.current().delegate = ReminderScheduler.delegate
         return true

@@ -59,6 +59,9 @@ enum ReminderScheduler {
     /// Idempotent reconcile — call on launch, foreground, sync-settle, and
     /// after set/clear (the same cadence as the other sweeps).
     static func run(_ repository: NotesRepository) {
+        #if DEBUG
+        guard !PerfLibrary.isActive else { return }   // Q313: no notifications scheduled for generated notes
+        #endif
         let memos = repository.allMemosIncludingTrashed().map {
             (id: $0.id, remindAt: $0.remindAt, deleted: $0.deletedAt != nil)
         }

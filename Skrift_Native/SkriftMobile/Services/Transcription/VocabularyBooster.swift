@@ -9,8 +9,14 @@ import FluidAudio
 /// reads; `VocabularyCloudSync` syncs it across the user's devices (Phase 1f) via a
 /// CloudKit carrier, LWW by `modifiedAt` so a delete on one device propagates.
 enum CustomVocabularyStore {
+    #if DEBUG
+    // Q313: the perf library keeps its own (empty) word list, never the real one.
+    static var defaultsKey: String { PerfLibrary.isActive ? "perf.customVocabularyWords" : "customVocabularyWords" }
+    static var modifiedAtKey: String { PerfLibrary.isActive ? "perf.customVocabularyWordsModifiedAt" : "customVocabularyWordsModifiedAt" }
+    #else
     static let defaultsKey = "customVocabularyWords"
     static let modifiedAtKey = "customVocabularyWordsModifiedAt"
+    #endif
 
     static func words(defaults: UserDefaults = .standard) -> [String] {
         (defaults.array(forKey: defaultsKey) as? [String]) ?? []

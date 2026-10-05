@@ -37,8 +37,21 @@ final class NotesRepository {
         let isTesting = LaunchArgs.isXCTest
         let cloudKit: ModelConfiguration.CloudKitDatabase = (inMemory || isTesting)
             ? .none : .private(cloudContainer)
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,
+        let config: ModelConfiguration
+        #if DEBUG
+        if PerfLibrary.isActive && !inMemory && !isTesting {
+            // Q313 `-perfLibrary`: a SEPARATE on-disk store (perf.store), CloudKit OFF, so the
+            // generated library can never upload and the real Dev store is never opened.
+            PerfLibrary.resetIfUnseeded()
+            config = PerfLibrary.storeConfiguration(schema: schema)
+        } else {
+            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,
                                         cloudKitDatabase: cloudKit)
+        }
+        #else
+        config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,
+                                    cloudKitDatabase: cloudKit)
+        #endif
         do {
             container = try containerFactory(schema, config)
             startFailure = nil

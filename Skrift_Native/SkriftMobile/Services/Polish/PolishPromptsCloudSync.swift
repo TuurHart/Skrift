@@ -11,6 +11,9 @@ import SwiftData
 enum PolishPromptsCloudSync {
 
     static func run(_ repository: NotesRepository, defaults: UserDefaults = .standard) {
+        #if DEBUG
+        guard !PerfLibrary.isActive else { return }   // Q313
+        #endif
         let localBlob = PolishPromptsStore.blob(defaults: defaults)
         let records = repository.allPolishPromptsRecords()
         let outcome = PolishPromptsSyncCore.reconcile(

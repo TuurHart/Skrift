@@ -47,6 +47,8 @@ enum PerfLibrary {
         ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none)
     }
 
+    private static var didReset = false
+
     static var isSeeded: Bool { FileManager.default.fileExists(atPath: seededMarkerURL.path) }
 
     /// A launch with the flag but no seeded marker: remove any half-written perf store (and its
@@ -54,11 +56,19 @@ enum PerfLibrary {
     /// the perf files; the normal store is never named here. Returns true when seeding is due.
     @discardableResult
     static func resetIfUnseeded() -> Bool {
-        guard isActive, !isSeeded else { return false }
+        guard isActive, !isSeeded, !didReset else { return false }
+        didReset = true   // once per process: never delete a store this process may already have open
         let fm = FileManager.default
         for suffix in ["", "-wal", "-shm"] {
             try? fm.removeItem(at: directory.appendingPathComponent(storeFileName + suffix))
+            #if os(macOS)
+            try? fm.removeItem(at: AppPaths.storeFile.deletingLastPathComponent()
+                .appendingPathComponent(AppPaths.storeFile.lastPathComponent + suffix))   // perf_skrift.store (the pipeline rows)
+            #endif
         }
+        #if os(macOS)
+        try? fm.removeItem(at: AppPaths.audioOutputDirectory)   // the " Perf" working folders, perf-only under the flag
+        #endif
         try? fm.removeItem(at: AppPaths.recordingsDirectory)   // already the perf folder under the flag
         try? fm.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)
         return true

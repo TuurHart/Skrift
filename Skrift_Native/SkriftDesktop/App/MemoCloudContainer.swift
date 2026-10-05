@@ -46,7 +46,12 @@ enum MemoCloudStore {
     /// or there is no container. Checks the switch first, so a sync-off Mac never builds the
     /// CloudKit container.
     static var syncContainer: ModelContainer? {
-        SettingsStore.shared.load().cloudKitMacSyncEnabled ? container : nil
+        #if DEBUG
+        // Q313: under `-perfLibrary` the container IS the local, CloudKit-off perf store, so the
+        // reconcile sweep that ingests it into PipelineFile rows runs regardless of the sync switch.
+        if PerfLibrary.isActive { return container }
+        #endif
+        return SettingsStore.shared.load().cloudKitMacSyncEnabled ? container : nil
     }
 
     /// The synced `Memo` with this id (predicate fetch, limit 1), or nil.
@@ -63,6 +68,12 @@ enum MemoCloudStore {
         guard !isTesting else { return nil }
 
         #if DEBUG
+        // Q313: `-perfLibrary` opens perf.store: its own file, CloudKit OFF, never the real store.
+        if PerfLibrary.isActive {
+            PerfLibrary.resetIfUnseeded()
+            return try? ModelContainer(for: schema,
+                                       configurations: PerfLibrary.storeConfiguration(schema: schema, url: AppPaths.memoCloudStoreFile))
+        }
         // Q37: `-isolatedRun` points the DEV app at an in-memory, non-CloudKit store
         // instead of the real `memo_cloud.store` (which mirrors Tuur's actual synced
         // Dev notes) — so a real-window eyeball/screenshot with `-corpus` never opens

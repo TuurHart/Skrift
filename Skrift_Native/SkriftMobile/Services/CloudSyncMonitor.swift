@@ -93,6 +93,9 @@ final class CloudSyncMonitor: ObservableObject {
     }
 
     private init() {
+        #if DEBUG
+        if PerfLibrary.isActive { return }   // Q313: no CloudKit event observer under the perf library
+        #endif
         NotificationCenter.default.addObserver(
             forName: NSPersistentCloudKitContainer.eventChangedNotification,
             object: nil, queue: .main
