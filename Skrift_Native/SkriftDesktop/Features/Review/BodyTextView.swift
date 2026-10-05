@@ -223,30 +223,54 @@ struct BodyTextView: NSViewRepresentable {
            context.coordinator.lastSearchJumpToken != token {
             context.coordinator.lastSearchJumpToken = token
             let query = token.components(separatedBy: "\u{1}").last ?? ""
-            if !query.isEmpty {
-                let hay = tv.string as NSString
-                let r = hay.range(of: query, options: [.caseInsensitive, .diacriticInsensitive])
-                if r.location != NSNotFound {
-                    DispatchQueue.main.async {
-                        tv.scrollRangeToVisible(r)
-                        tv.showFindIndicator(for: r)
-                        // The system indicator blooms for ~a second and vanishes
-                        // (device feedback: "super fast") — ALSO tint the match for
-                        // a couple of seconds so the eye can land, phone-style.
-                        tv.textStorage?.addAttribute(
-                            .backgroundColor,
-                            value: NSColor(Theme.accent).withAlphaComponent(0.30), range: r)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak tv] in
-                            // Length guard: an edit inside the window may shift offsets —
-                            // worst case a stray tint survives until the next restyle.
-                            guard let tv, let storage = tv.textStorage,
-                                  NSMaxRange(r) <= storage.length else { return }
-                            storage.removeAttribute(.backgroundColor, range: r)
-                        }
+            // Q321: every occurrence in highlighter yellow + dark text, the first one
+            // centred in the visible area — the rule lives in `SearchHitLook` (shared
+            // with the phone).
+            let hits = SearchHitLook.matchRanges(of: query, in: tv.string)
+            if let first = hits.first {
+                let coordinator = context.coordinator
+                coordinator.searchHits = hits
+                coordinator.searchHitsUntil = Date().addingTimeInterval(SearchHitLook.holdSeconds)
+                DispatchQueue.main.async { [weak tv] in
+                    guard let tv else { return }
+                    coordinator.paintSearchHits(tv)
+                    Self.centerHit(first, in: tv)
+                    tv.showFindIndicator(for: first)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + SearchHitLook.holdSeconds) { [weak tv] in
+                        // restyle repaints the canonical colours and drops the pen.
+                        guard let tv else { return }
+                        coordinator.searchHits = []
+                        coordinator.restyle(tv)
                     }
                 }
             }
         }
+        // Any re-style above (a SwiftUI update, a playback tick) wipes backgrounds —
+        // keep the pen on for its hold time.
+        context.coordinator.paintSearchHits(tv)
+    }
+
+    fileprivate static func hexColor(_ hex: UInt32) -> NSColor {
+        NSColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+
+    /// Scroll the enclosing scroll view so the hit sits at the vertical middle of the
+    /// visible area (shared rule: `SearchHitLook.centeredOffsetY`).
+    fileprivate static func centerHit(_ range: NSRange, in tv: SelfSizingTextView) {
+        guard let lm = tv.layoutManager, let tc = tv.textContainer,
+              let scroll = tv.enclosingScrollView else { tv.scrollRangeToVisible(range); return }
+        lm.ensureLayout(for: tc)
+        let glyphs = lm.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        var rect = lm.boundingRect(forGlyphRange: glyphs, in: tc)
+        rect.origin.y += tv.textContainerOrigin.y
+        let inDoc = tv.convert(rect, to: scroll.documentView)
+        guard let doc = scroll.documentView else { return }
+        let clip = scroll.contentView
+        let y = SearchHitLook.centeredOffsetY(
+            hitMidY: inDoc.midY, contentHeight: doc.frame.height, viewportHeight: clip.bounds.height)
+        clip.scroll(to: NSPoint(x: clip.bounds.origin.x, y: y))
+        scroll.reflectScrolledClipView(clip)
     }
 
     /// The view may not be in a window yet on the first update, so retry briefly.
@@ -267,6 +291,18 @@ struct BodyTextView: NSViewRepresentable {
         var lastFocusToken: String?
         /// The (note, query) pair already jumped to — one flash per open, not per render.
         var lastSearchJumpToken: String?
+        /// Q321: the search-hit ranges currently highlighted, and until when. Re-painted
+        /// after every restyle inside the hold window; cleared by the first edit.
+        var searchHits: [NSRange] = []
+        var searchHitsUntil: Date = .distantPast
+        func paintSearchHits(_ tv: SelfSizingTextView) {
+            guard !searchHits.isEmpty, Date() < searchHitsUntil, let storage = tv.textStorage else { return }
+            let fill = BodyTextView.hexColor(SearchHitLook.fillHex)
+            let ink = BodyTextView.hexColor(SearchHitLook.textHex)
+            for r in searchHits where NSMaxRange(r) <= storage.length {
+                storage.addAttributes([.backgroundColor: fill, .foregroundColor: ink], range: r)
+            }
+        }
         private var activePopover: NSPopover?
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).
@@ -287,6 +323,7 @@ struct BodyTextView: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? SelfSizingTextView else { return }
+            searchHits = []    // offsets drift while typing — the pen comes off at the first edit
             // In-place, LOCAL recolor only — see `restyle`'s doc. The model write and
             // the full (regex) restyle pass are debounced below.
             restyle(tv, scope: tv.selectedRange())

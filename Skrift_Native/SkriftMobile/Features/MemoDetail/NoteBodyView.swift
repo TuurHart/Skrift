@@ -913,14 +913,18 @@ struct NoteBodyView: UIViewRepresentable {
             guard let tv = textView, !painting else { return }
             let q = query.trimmingCharacters(in: .whitespaces)
             guard !q.isEmpty else { return }
-            let ns = tv.textStorage.string as NSString
-            let r = ns.range(of: q, options: [.caseInsensitive, .diacriticInsensitive])
-            if r.location != NSNotFound {
-                tv.scrollRangeToVisible(r)
-                tv.textStorage.addAttribute(.backgroundColor,
-                                            value: UIColor(Color.skAccent).withAlphaComponent(0.35),
-                                            range: r)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
+            // Q321: EVERY occurrence in highlighter yellow with dark text (readable in
+            // both modes), the FIRST one centred in the visible area. The colours and
+            // the centring rule are `SearchHitLook` (shared with the Mac).
+            let hits = SearchHitLook.matchRanges(of: q, in: tv.textStorage.string)
+            if let first = hits.first {
+                let fill = Self.hexColor(SearchHitLook.fillHex)
+                let ink = Self.hexColor(SearchHitLook.textHex)
+                for r in hits {
+                    tv.textStorage.addAttributes([.backgroundColor: fill, .foregroundColor: ink], range: r)
+                }
+                centerHit(first, in: tv)
+                DispatchQueue.main.asyncAfter(deadline: .now() + SearchHitLook.holdSeconds) { [weak self] in
                     self?.applyTierStyling()
                 }
                 return
@@ -930,9 +934,39 @@ struct NoteBodyView: UIViewRepresentable {
             for (i, entry) in manifest.enumerated()
             where entry.text?.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil {
                 guard let attRange = attachmentRange(forMarker: i + 1) else { return }
-                tv.scrollRangeToVisible(attRange)
+                centerHit(attRange, in: tv)
                 flashOverlay(on: tv, around: attRange)
                 return
+            }
+        }
+
+        static func hexColor(_ hex: UInt32) -> UIColor {
+            UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        }
+
+        /// Scroll so the hit's rect sits at the vertical middle of the VISIBLE area
+        /// (bounds minus the adjusted insets: safe area, player bar, keyboard). The
+        /// text is laid out lazily, so a far-away hit's rect and the content height
+        /// can both shift once it is scrolled into place — re-aim until it settles.
+        func centerHit(_ range: NSRange, in tv: NoteBodyTextView, pass: Int = 0) {
+            tv.layoutIfNeeded()
+            let rects = tv.rects(forCharacterRange: range)
+            guard let union = rects.dropFirst().reduce(rects.first, { $0?.union($1) }) else {
+                tv.scrollRangeToVisible(range)
+                return
+            }
+            let inset = tv.adjustedContentInset
+            let y = SearchHitLook.centeredOffsetY(
+                hitMidY: union.midY, contentHeight: tv.contentSize.height,
+                viewportHeight: tv.bounds.height, topInset: inset.top, bottomInset: inset.bottom)
+            let moved = abs(tv.contentOffset.y - y) > 1
+            if moved { tv.setContentOffset(CGPoint(x: tv.contentOffset.x, y: y), animated: false) }
+            if pass < 3 {
+                DispatchQueue.main.async { [weak self, weak tv] in
+                    guard let self, let tv else { return }
+                    self.centerHit(range, in: tv, pass: pass + 1)
+                }
             }
         }
 
