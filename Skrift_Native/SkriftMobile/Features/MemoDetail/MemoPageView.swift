@@ -432,7 +432,14 @@ struct MemoPageView: View {
                     }
                 },
                 onTapMemoLink: { id in onOpenMemo(id) },
-                onRequestMemoLink: { showMemoLinkPicker = true },
+                onRequestMemoLink: {
+                    // Q320: the titles are built off the main actor first (instant when this
+                    // version is already built), then the sheet opens on the cached list.
+                    Task {
+                        await NoteOpenWork.warmLinkCandidates(repository: repository)
+                        showMemoLinkPicker = true
+                    }
+                },
                 linkTitle: { liveLinkTitle($0) },
                 onRequestPhoto: {
                     if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }

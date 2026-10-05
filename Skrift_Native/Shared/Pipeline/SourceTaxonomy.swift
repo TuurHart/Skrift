@@ -97,11 +97,55 @@ enum SourceKind: Equatable {
     /// Kind of a synced `Memo`. A capture is the phone's bare `Memo.sharedContentData`
     /// (`CaptureInboxDrainer`); a video is `sourceType` OR `mediaSource` in `metadataData`.
     static func of(_ memo: Memo) -> SourceKind {
-        let meta = memo.metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-        let shared = memo.sharedContent
-        return classify(hasBook: memo.metadata?.bookTitle.map { !$0.isEmpty } ?? false,
-                        media: mediaMarker(in: meta),
-                        sharedType: shared?.type.rawValue,
-                        hasAudio: !memo.audioFilename.isEmpty)
+        of(metadataData: memo.metadataData, sharedContentData: memo.sharedContentData,
+           hasAudio: !memo.audioFilename.isEmpty)
     }
+
+    /// The classifier over a memo's raw facts (Q320). Content-keyed cache: the three inputs are the
+    /// whole answer, so any edit (local or CloudKit merge) is a new key and nothing goes stale.
+    /// Building a list of titles used to JSON-parse two blobs per note per call. Callable off the
+    /// main actor (NSCache is thread-safe).
+    static func of(metadataData: Data?, sharedContentData: Data?, hasAudio: Bool) -> SourceKind {
+        let key = KindKey(metadataData, sharedContentData, hasAudio)
+        if let hit = kindCache.object(forKey: key) { return hit.kind }
+        kindMisses.add()
+        let meta = metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        let shared: SharedContent? = Memo.decodeJSON(sharedContentData)
+        let kind = classify(hasBook: Memo.metadata(from: metadataData)?.bookTitle.map { !$0.isEmpty } ?? false,
+                            media: mediaMarker(in: meta),
+                            sharedType: shared?.type.rawValue,
+                            hasAudio: hasAudio)
+        kindCache.setObject(KindBox(kind), forKey: key)
+        return kind
+    }
+
+    /// How many times the classifier actually ran (tests read this; harmless in production).
+    static var classifyRuns: Int { kindMisses.value }
+
+    private final class KindBox { let kind: SourceKind; init(_ k: SourceKind) { kind = k } }
+    private final class KindKey: NSObject {
+        let metadata: Data?, shared: Data?, hasAudio: Bool
+        init(_ m: Data?, _ s: Data?, _ a: Bool) { metadata = m; shared = s; hasAudio = a }
+        override var hash: Int {
+            var h = Hasher()
+            h.combine(metadata); h.combine(shared); h.combine(hasAudio)
+            return h.finalize()
+        }
+        override func isEqual(_ object: Any?) -> Bool {
+            guard let o = object as? KindKey else { return false }
+            return metadata == o.metadata && shared == o.shared && hasAudio == o.hasAudio
+        }
+    }
+    private static let kindCache: NSCache<KindKey, KindBox> = {
+        let c = NSCache<KindKey, KindBox>()
+        c.countLimit = 4096
+        return c
+    }()
+    private final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var n = 0
+        func add() { lock.lock(); n += 1; lock.unlock() }
+        var value: Int { lock.lock(); defer { lock.unlock() }; return n }
+    }
+    private static let kindMisses = Counter()
 }

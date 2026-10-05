@@ -59,11 +59,13 @@ enum NoteTitle {
     /// `SourceKind.emptyTitleFallback`). `importName` is a RAW file name; the generic-name
     /// filter (`importName(_:)`) runs here so every caller gets the same rule.
     static func display(userTitle: String?, suggestedTitle: String?, body: String?,
-                        shared: SharedContent?, importFileName: String? = nil,
-                        emptyFallback: String) -> String {
+                        shared: SharedContent?, importFileName: @autoclosure () -> String? = nil,
+                        emptyFallback: @autoclosure () -> String) -> String {
+        // Q320: both lower rungs are lazy. A note with words never reads its import name or its
+        // source kind (`SourceKind.of` parses two blobs), which is every note in the "[[" picker.
         derived(userTitle: userTitle, suggestedTitle: suggestedTitle, body: body, shared: shared)
-            ?? importName(importFileName)
-            ?? emptyFallback
+            ?? importName(importFileName())
+            ?? emptyFallback()
     }
 
     /// D176 (amends C25): an imported audio's REAL file name, extension stripped, or nil when
@@ -161,6 +163,40 @@ enum NoteTitle {
     }
 }
 
+/// A note's title inputs as plain values (Q320): everything `Memo.ladderTitle` reads, copied on the
+/// main actor so the title itself can be built off it. `title(suggestedTitle:)` IS the C25 ladder
+/// for a memo; `Memo.ladderTitle` calls it, so the two cannot drift.
+struct LadderSnapshot: Sendable {
+    let userTitle: String?
+    let transcript: String?
+    let annotationText: String?
+    let metadataData: Data?
+    let sharedContentData: Data?
+    let hasAudio: Bool
+
+    init(_ memo: Memo) {
+        userTitle = memo.title
+        transcript = memo.transcript
+        annotationText = memo.annotationText
+        metadataData = memo.metadataData
+        sharedContentData = memo.sharedContentData
+        hasAudio = !memo.audioFilename.isEmpty
+    }
+
+    func title(suggestedTitle: String? = nil) -> String {
+        // A share capture: no audio, a shared thing. Its body for the ladder is the annotation.
+        let shared: SharedContent? = sharedContentData == nil ? nil : Memo.decodeJSON(sharedContentData)
+        let isCapture = !hasAudio && shared != nil
+        return NoteTitle.display(userTitle: userTitle, suggestedTitle: suggestedTitle,
+                                 body: isCapture ? annotationText : transcript,
+                                 shared: isCapture ? shared : nil,
+                                 importFileName: isCapture ? nil : Memo.metadata(from: metadataData)?.importFileName,
+                                 emptyFallback: SourceKind.of(metadataData: metadataData,
+                                                              sharedContentData: sharedContentData,
+                                                              hasAudio: hasAudio).emptyTitleFallback)
+    }
+}
+
 extension Memo {
     /// A share capture: no audio, a shared thing. Its body for the ladder is the annotation.
     private var ladderIsCapture: Bool { audioFilename.isEmpty && sharedContent != nil }
@@ -169,11 +205,7 @@ extension Memo {
     /// Mac's `MemoEnhancement.title` when the caller has it. Display-only: never writes
     /// `title` (choosing stays the user's).
     func ladderTitle(suggestedTitle: String? = nil) -> String {
-        NoteTitle.display(userTitle: title, suggestedTitle: suggestedTitle,
-                          body: ladderIsCapture ? annotationText : transcript,
-                          shared: ladderIsCapture ? sharedContent : nil,
-                          importFileName: ladderIsCapture ? nil : metadata?.importFileName,
-                          emptyFallback: SourceKind.of(self).emptyTitleFallback)
+        LadderSnapshot(self).title(suggestedTitle: suggestedTitle)
     }
 
     /// What the header's empty title field ghosts: the ladder minus the user's own title.

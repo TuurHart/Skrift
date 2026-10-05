@@ -337,14 +337,17 @@ final class Memo {
         let value: MemoMetadata?
         init(_ value: MemoMetadata?) { self.value = value }
     }
+    /// The cached decode of a metadata blob (Q320: also callable off the main actor, from a value
+    /// snapshot — `LadderSnapshot`).
+    static func metadata(from data: Data?) -> MemoMetadata? {
+        guard let data else { return nil }
+        if let hit = metadataCache.object(forKey: data as NSData) { return hit.value }
+        let value: MemoMetadata? = decodeJSON(data)
+        metadataCache.setObject(MetadataBox(value), forKey: data as NSData)
+        return value
+    }
     var metadata: MemoMetadata? {
-        get {
-            guard let data = metadataData else { return nil }
-            if let hit = Self.metadataCache.object(forKey: data as NSData) { return hit.value }
-            let value: MemoMetadata? = Self.decodeJSON(data)
-            Self.metadataCache.setObject(MetadataBox(value), forKey: data as NSData)
-            return value
-        }
+        get { Self.metadata(from: metadataData) }
         set {
             var data = Self.encodeJSON(newValue)
             // Q241 (2): `MemoMetadata` does not model the `mediaSource` marker ("typed" from
