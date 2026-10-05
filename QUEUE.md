@@ -2331,7 +2331,7 @@ gate+: yes
 do: For the speed sweep (Tuur 2026-10-05). Add a DEBUG-only launch flag `-perfLibrary` on the phone (LaunchArgs.swift) and the Mac. With the flag, the app opens a SEPARATE on-disk SwiftData store file (e.g. `perf.store` next to the normal one) with CloudKit OFF (`cloudKitDatabase: .none`), and on first launch seeds it once; without the flag the normal Dev store and its sync are untouched, and the perf store can never upload. Also use a separate names.json/vocab path under the flag so fake people never reach the real names DB or NamesRecord sync. Seeder lives in Shared/ (one generator both apps call), deterministic (fixed RNG seed): 2,000 memos spread over 3 years — ~70% voice notes with transcripts (lengths: most 50-400 words, 5% 2,000-6,000 words), 10% conversations (**Name:** turns), 10% typed notes, 5% link captures, 5% audiobook quotes; ~300 with 1-4 photos (generated images ~2000 px, real JPEG bytes as MemoAssets), ~60 with a short generated audio file (AAC, few seconds, real bytes), tags from a pool of 80, 150 people with aliases in the perf names file, memo links between ~200 notes, a mix of ratings incl. unrated, ~100 fading and ~50 in trash, some locked. Seeding must be fast enough (<2 min on an iPhone 13) and run off the main thread with a progress line. Mac: same flag on Skrift Dev, PipelineFile rows as the Mac ingest would make them. Do NOT touch Release behaviour (all of it #if DEBUG). Unit test `PerfLibrarySeederTests` (phone target): the generator is deterministic, produces the counts above into an in-memory store, and the perf store configuration has no CloudKit database and a different URL from the default store.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PerfLibrarySeederTests && ./gate.sh`
 
-### Q314 [auto] (doing) perf: opening a note does no whole-library work; the hidden neighbour pages go
+### Q314 [auto] (done) perf: opening a note does no whole-library work; the hidden neighbour pages go
 spec: -
 needs: -
 gate+: yes
@@ -3408,3 +3408,4 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh BookNotesCountCacheTests 
 - 2026-10-05 17:47 Q315 -> doing — worker out
 - 2026-10-05 17:47 Q316 -> doing — worker out
 - 2026-10-05 17:47 Q317 -> doing — worker out
+- 2026-10-05 18:10 Q314 -> done — gate pass @be142476
