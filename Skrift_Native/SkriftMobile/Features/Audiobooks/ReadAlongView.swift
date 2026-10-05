@@ -21,16 +21,31 @@ final class ReadAlongModel: ObservableObject {
     @Published private(set) var sentences: [BufferSentence] = []   // ALL covered, file-local
     @Published private(set) var currentIndex = 0
 
-    private let store = BookTranscriptStore()
-    /// 📖 True-text source (spike 6): the same audiobooks root `store` reads,
-    /// scoped to the alignment sidecars — `AlignedSentenceSource` reads
-    /// through this before falling back to the ASR-only builder below.
-    private let alignmentStore = BookAlignmentStore(directory: AudiobookLibraryStore.shared.directory)
+    /// The audiobooks root every sidecar lives under (injectable for tests).
+    private let directory: URL
+    private let store: BookTranscriptStore
     private var loadedFileIndex = -1
     private var loadedUpTo: TimeInterval = -1
     private var removalObserver: NSObjectProtocol?
+    /// Q317: the sidecar decode runs OFF the main actor. `loadingFileIndex` is the file a
+    /// decode is in flight for (ticks while it runs must not start another); `generation`
+    /// discards a result that a file change / transcript removal has since outdated.
+    private var loadingFileIndex: Int?
+    private var generation = 0
+    private var loadTask: Task<Void, Never>?
+    /// The newest playhead `reloadIfNeeded` saw, so a finished load lights the right line
+    /// at once (no scroll from line 0).
+    private var latestFileLocal: TimeInterval = 0
+    /// True only while the FIRST decode for a file runs (the view shows neither the
+    /// read-along nor the "transcribe" nudge for that beat).
+    @Published private(set) var isLoading = false
 
-    init() {
+    /// How far before the current line's audio END to flip to the next line (see the view).
+    static let lead: TimeInterval = 0.1
+
+    init(directory: URL = AudiobookLibraryStore.shared.directory) {
+        self.directory = directory
+        self.store = BookTranscriptStore(directory: directory)
         // The transcript can be deleted out from under a loaded page (Text sheet →
         // ⋯ → Remove transcript). `reloadIfNeeded` short-circuits while `covered`
         // is true, so without this the deleted text stays on screen until the
@@ -45,12 +60,17 @@ final class ReadAlongModel: ObservableObject {
 
     deinit {
         if let removalObserver { NotificationCenter.default.removeObserver(removalObserver) }
+        loadTask?.cancel()
     }
 
     /// Forget everything decoded from the sidecar and re-arm the reload, so the
     /// next tick reads the (now absent) transcript and falls back to the
     /// "transcribe to read along" nudge.
     private func dropLoadedSentences() {
+        generation += 1
+        loadTask?.cancel()
+        loadingFileIndex = nil
+        isLoading = false
         sentences = []
         covered = false
         currentIndex = 0
@@ -60,8 +80,13 @@ final class ReadAlongModel: ObservableObject {
 
     /// Reload the sentence list if needed (file changed / playhead crossed the
     /// coverage frontier). Does NOT touch `currentIndex` — that's driven finely
-    /// by `setCurrent`.
+    /// by `setCurrent` (except once, when a load lands, so the lit line is right at once).
+    /// The decode runs off the main actor; the result is published when it lands.
     func reloadIfNeeded(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
+        latestFileLocal = fileLocal
+        // A decode for this file is already running: the tick that landed mid-decode
+        // waits for it instead of starting a second one.
+        if loadingFileIndex == fileIndex { return }
         // Re-run on a file change, when the playhead crosses the loaded frontier,
         // OR whenever we're NOT covered — so a transcribe that finishes while the
         // player sits paused on the nudge flips to read-along on the next re-check
@@ -80,22 +105,49 @@ final class ReadAlongModel: ObservableObject {
                 return
             }
         }
+        let fileChanged = fileIndex != loadedFileIndex
         loadedFileIndex = fileIndex
-        if let audioURL,
-           let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
-           ft.isCovered(upTo: fileLocal) {
-            // 📖 True text where the ePub aligned trustworthily; nil (missing /
-            // stale / not `.aligned`) falls straight back to the ASR-only line
-            // this replaced — same coverage/frontier logic either way.
-            sentences = alignmentStore.alignedSentences(
-                bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, transcriptWords: ft.words
-            ) ?? QuoteCaptureProcessor.buildSentences(from: ft.words)
-            covered = !sentences.isEmpty
-            loadedUpTo = ft.coveredUpTo
-        } else {
+        guard let audioURL else {
             sentences = []; covered = false
             loadedUpTo = fileLocal + 2
+            return
         }
+        if fileChanged {
+            // The old file's sentences are wrong for the new file: blank them for the beat
+            // the decode takes (the view shows nothing, not the nudge).
+            sentences = []; covered = false; currentIndex = 0
+            isLoading = true
+        }
+        generation += 1
+        let gen = generation
+        loadingFileIndex = fileIndex
+        let directory = self.directory, bookID = book.id
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            let result = await BookSidecarLoader.readAlong(
+                directory: directory, bookID: bookID, fileIndex: fileIndex,
+                audioURL: audioURL, fileLocal: fileLocal)
+            guard let self, !Task.isCancelled, gen == self.generation else { return }
+            self.loadingFileIndex = nil
+            self.isLoading = false
+            // True text where the ePub aligned trustworthily; the ASR-only builder
+            // otherwise — same coverage/frontier logic either way (BookSidecarLoader).
+            if let result {
+                self.sentences = result.sentences
+                self.covered = !result.sentences.isEmpty
+                self.loadedUpTo = result.coveredUpTo
+                self.currentIndex = self.index(at: self.latestFileLocal + Self.lead)
+            } else {
+                self.sentences = []; self.covered = false
+                self.loadedUpTo = self.latestFileLocal + 2
+            }
+        }
+    }
+
+    /// The first sentence that hasn't finished by `fileLocal` (the last one past the end).
+    private func index(at fileLocal: TimeInterval) -> Int {
+        guard !sentences.isEmpty else { return 0 }
+        return sentences.firstIndex(where: { fileLocal < $0.end }) ?? (sentences.count - 1)
     }
 
     /// Set the lit line. Advance at the END of the current sentence rather than
@@ -105,7 +157,7 @@ final class ReadAlongModel: ObservableObject {
     /// slightly-late next-start time (the "trails the voice" fix, 2026-06-13).
     func setCurrent(fileLocal: TimeInterval) {
         guard !sentences.isEmpty else { return }
-        let idx = sentences.firstIndex(where: { fileLocal < $0.end }) ?? (sentences.count - 1)
+        let idx = index(at: fileLocal)
         if idx != currentIndex { currentIndex = idx }
     }
 
@@ -170,13 +222,13 @@ struct ReadAlongView: View {
     /// How far before the current line's audio END to flip to the next line. Small
     /// now that the timings are drift-free + interpolated — just covers the render
     /// beat. 0.3 read "a bit too early" on device; 0.1 sits in-sync. Tunable.
-    private let lead: TimeInterval = 0.1
+    private let lead: TimeInterval = ReadAlongModel.lead
 
     private let tick = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Group {
-            if model.covered { lyrics } else { nudge }
+            if model.covered { lyrics } else if model.isLoading { Color.clear } else { nudge }
         }
         // Fill the vertical space the player hands us (the read-along is the hero,
         // 2026-06-13) instead of a fixed 234pt panel that left dead space below the

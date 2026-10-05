@@ -367,32 +367,15 @@ struct MergedCaptureView: View {
         // Transcribed book: load the covered file (file-local times); the tapped
         // line sits in the middle. Show the ~90 s before it + up to 8 lines after
         // (the rest stay hidden — no infinite scroll). Sidecar = instant.
-        if let ft = transcripts.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
-           ft.isCovered(upTo: winEnd) {
-            // 📖 True text first (spike 6): the aligned sentence list is keyed
-            // off the FULL file transcript (its wordStart/wordEnd splice
-            // indices are into `ft.words`, not a windowed slice — matching
-            // ReadAlongView's usage), then trimmed to the same ±window the
-            // un-aligned path below transcribes/displays so the capIdx/
-            // displayLo/displayHi math (incl. its rare empty-window fallback)
-            // behaves identically either way. This never re-runs NLTokenizer
-            // over the whole book — the aligned branch does no per-load
-            // sentence-splitting at all (LANE_CORE split once, into the
-            // sidecar); only a low-confidence sentence's own small ASR splice
-            // ever calls buildSentences here.
-            let all: [BufferSentence]
-            if let aligned = alignmentStore.alignedSentences(
-                bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, transcriptWords: ft.words
-            ) {
-                all = aligned.filter { $0.end > winStart - 30 && $0.start < winEnd + 150 }
-            } else {
-                // Window the words BEFORE sentence-building — this used to run
-                // the NLTokenizer over the entire covered book to display
-                // ~90s. Pads keep the sentences spanning the window edges
-                // intact (display range below never reaches past them).
-                let windowed = ft.words(inWindow: winStart - 30, end: winEnd + 150)
-                all = QuoteCaptureProcessor.buildSentences(from: windowed)
-            }
+        // Q317: the sidecar decode (transcript + alignment, ONE transcript decode) runs off
+        // the main actor; the spinner stays smooth while it does.
+        if let all = await BookSidecarLoader.captureSentences(
+            directory: transcripts.directory, bookID: book.id, fileIndex: fileIndex,
+            audioURL: audioURL, winStart: winStart, winEnd: winEnd) {
+            // True text first (spike 6): the aligned sentence list is keyed off the FULL
+            // file transcript, trimmed to the same +-window the un-aligned path displays so
+            // the capIdx/displayLo/displayHi math (incl. its rare empty-window fallback)
+            // behaves identically either way (see `BookSidecarLoader.captureSentences`).
             guard !all.isEmpty else { state = .empty; return }
             let capIdx = all.lastIndex(where: { $0.start <= winEnd }) ?? (all.count - 1)
             sel = TextCaptureSelection(lo: capIdx, hi: capIdx)

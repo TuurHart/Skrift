@@ -528,9 +528,10 @@ struct AudiobookPlayerView: View {
     }
 
     private func loadCoverTint() {
+        // Q317: the tint reads a 128 px thumbnail from the shared cover cache, not a second
+        // full-resolution decode of the file.
         guard let book = session.book,
-              let url = AudiobookLibraryStore.shared.coverURL(of: book),
-              let img = UIImage(contentsOfFile: url.path),
+              let img = BookCoverCache.image(for: book, maxPixel: BookCoverCache.tiers[0]),
               let avg = img.averageColor else { coverTint = nil; return }
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         avg.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
@@ -548,8 +549,11 @@ struct AudiobookPlayerView: View {
         let fileIndex = book.fileIndex(at: global)
         let window = CaptureSpan.captureWindow(pausedAt: global, fileBounds: book.fileBounds(at: global))
         let audioURL = session.store.audioURL(of: book, fileIndex: fileIndex)
-        let chunked = transcripts.coveredWindowWords(
-            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: window.start, end: window.end) != nil
+        // Q317: the cached frontier answers "is this spot chunked?" (a cold cache decodes
+        // once, off the main actor) — not a full words decode on every open.
+        let chunked = await BookSidecarLoader.sidecarCovers(
+            directory: transcripts.directory, bookID: book.id, fileIndex: fileIndex,
+            audioURL: audioURL, end: window.end)
         guard !chunked else { return }
         Task { try? await TranscriptionService.shared.ensureLoaded() }
     }
@@ -557,6 +561,9 @@ struct AudiobookPlayerView: View {
 
 private extension UIImage {
     /// Average color of the image (1×1 CIAreaAverage render). nil if unrenderable.
+    /// One shared context (Q317): a new `CIContext` per call is a GPU/pipeline setup each time.
+    static let tintContext = CIContext(options: [.workingColorSpace: NSNull()])
+
     var averageColor: UIColor? {
         guard let cg = cgImage else { return nil }
         let ci = CIImage(cgImage: cg)
@@ -564,7 +571,7 @@ private extension UIImage {
             kCIInputImageKey: ci, kCIInputExtentKey: CIVector(cgRect: ci.extent)
         ]), let out = filter.outputImage else { return nil }
         var px = [UInt8](repeating: 0, count: 4)
-        CIContext(options: [.workingColorSpace: NSNull()]).render(
+        Self.tintContext.render(
             out, toBitmap: &px, rowBytes: 4,
             bounds: CGRect(x: 0, y: 0, width: 1, height: 1), format: .RGBA8, colorSpace: nil)
         return UIColor(red: CGFloat(px[0]) / 255, green: CGFloat(px[1]) / 255, blue: CGFloat(px[2]) / 255, alpha: 1)

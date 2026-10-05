@@ -200,7 +200,7 @@ final class NotesRepository {
     /// `memoSetVersion` — bumped once per `save()`, i.e. once per debounced
     /// commit, not once per keystroke.
     private let tagsCache = CommitOnceCache<Int, [String]>()
-    private var memoSetVersion = 0
+    private(set) var memoSetVersion = 0
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {

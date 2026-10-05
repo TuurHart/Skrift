@@ -295,6 +295,22 @@ final class BookAlignmentStore: Sendable {
         return fa.transcriptSignature == FileAlignment.signature(forTranscript: ft)
     }
 
+    /// Q317: `isFresh` against an ALREADY-DECODED transcript. The URL form re-loads and
+    /// re-decodes the whole transcript sidecar (a second multi-MB decode) just to read two
+    /// scalars; a caller that holds the `FileTranscript` it just loaded passes it here.
+    func isFresh(_ fa: FileAlignment, against ft: FileTranscript) -> Bool {
+        fa.transcriptSignature == FileAlignment.signature(forTranscript: ft)
+    }
+
+    /// `alignedSentences(bookID:fileIndex:audioURL:transcriptWords:)` for a caller that
+    /// already holds the decoded, staleness-checked transcript: one transcript decode, not two.
+    func alignedSentences(bookID: UUID, fileIndex: Int, transcript ft: FileTranscript) -> [BufferSentence]? {
+        let fa = fileAlignment(bookID: bookID, fileIndex: fileIndex)
+        let fresh = fa.map { isFresh($0, against: ft) } ?? false
+        return AlignedSentenceSource.sentences(
+            alignment: fa, isFresh: fresh, transcriptWords: ft.words)
+    }
+
     /// The true-text sentence list for one file, or nil when there is no usable alignment
     /// (missing, stale, or not `.aligned`) — the caller then builds its own ASR-only list.
     /// Shared by the read-along and the capture screen.
