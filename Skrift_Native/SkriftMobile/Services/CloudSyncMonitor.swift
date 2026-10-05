@@ -157,7 +157,9 @@ final class CloudSyncMonitor: ObservableObject {
     /// audiobook receive. Guarded + idempotent throughout, so one coalesced run
     /// after a burst does exactly what N per-event runs did.
     private func runImportSweeps() {
-        Self.runMemoSweeps(.shared)
+        // Q316: the same four memo sweeps, but their bodies run off the main thread
+        // (`runMemoSweeps` above stays the main-context form, for the tests).
+        LaunchSweeps.importBurst(.shared)
         NamesCloudSync.run(.shared)
         VocabularyCloudSync.run(.shared)
         // A synced audiobook that just arrived materializes here too (hands-off

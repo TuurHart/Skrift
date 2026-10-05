@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// Trashes EXACT-clone memo rows that CloudKit sync can materialize (same UUID,
 /// same content — 2026-07-12: a device re-sync duplicated 16 June memos and the
@@ -16,11 +17,26 @@ import Foundation
 @MainActor
 enum MemoDeduper {
     static func run(_ repository: NotesRepository) {
-        // allMemos() is trash-filtered and NOT de-duplicated, so every row here is alive
-        // and the clones are visible.
-        let groups = Dictionary(grouping: repository.allMemos(), by: \.id)
+        if dedupe(in: repository.context) { repository.save() }
+    }
+
+    /// The sweep core on any context (Q316: `SweepActor` runs it off the main thread).
+    /// Mutates only; the CALLER saves. Returns true if it trashed a clone.
+    nonisolated static func dedupe(in context: ModelContext) -> Bool {
+        // Live memos only (trash-filtered, same as `allMemos()`) and NOT de-duplicated,
+        // so every row here is alive and the clones are visible.
+        let live = (try? context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
+        // Cheap pre-check: a unique-id library (the normal case) builds a Set, not a
+        // dictionary of arrays.
+        var seen = Set<UUID>()
+        var anyDuplicate = false
+        for m in live where !seen.insert(m.id).inserted { anyDuplicate = true; break }
+        guard anyDuplicate else { return false }
+        let groups = Dictionary(grouping: live, by: \.id)
             .filter { $0.value.count > 1 }
-        guard !groups.isEmpty else { return }
+        guard !groups.isEmpty else { return false }
         for (id, rows) in groups {
             guard let keeper = MemoDuplicates.keeper(of: rows) else { continue }
             for clone in rows where clone !== keeper {
@@ -37,6 +53,6 @@ enum MemoDeduper {
                 DevLog.log("dedupe: trashed clone row of \(id)")
             }
         }
-        repository.save()
+        return true
     }
 }

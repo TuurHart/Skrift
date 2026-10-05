@@ -1,4 +1,5 @@
 import AVFoundation
+import SwiftData
 import Foundation
 import UIKit
 
@@ -802,37 +803,72 @@ struct MemoSaver {
         recordingDeviceID == nil || recordingDeviceID == thisDevice
     }
 
-    func recoverStuckTranscriptions() async {
+    /// What the launch transcription recovery will do, as plain ids (no model object crosses
+    /// an actor, Q316): `release` = stuck AND user-edited (C263: never re-transcribed, only
+    /// released from the spinner), `rerun` = stuck plain audio whose file is on disk.
+    struct StuckTranscriptionPlan: Sendable, Equatable {
+        var release: [UUID] = []
+        var rerun: [UUID] = []
+    }
+
+    /// Read-only discovery for `recoverStuckTranscriptions`, on any context. Live memos only
+    /// (the old `allMemos()`); `transcriptStatus` is checked first so the metadata decode
+    /// behind `isBookCapture` only runs for the few `.transcribing` rows.
+    nonisolated static func stuckTranscriptionPlan(in context: ModelContext) -> StuckTranscriptionPlan {
+        var plan = StuckTranscriptionPlan()
+        let live = (try? context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
+        for memo in live where memo.transcriptStatus == .transcribing {
+            if isStuckButUserEdited(memo) {
+                plan.release.append(memo.id)
+            } else if !memo.transcriptUserEdited
+                        && !memo.audioFilename.isEmpty
+                        && !memo.isBookCapture
+                        && ownsForRecovery(memo.recordingDeviceID)
+                        && FileManager.default.fileExists(
+                            atPath: AppPaths.recordingsDirectory
+                                .appendingPathComponent(memo.audioFilename).path) {
+                plan.rerun.append(memo.id)
+            }
+        }
+        return plan
+    }
+
+    /// `sweeps`: run the discovery on that actor (launch path, off the main thread). nil =
+    /// discover on the main context (tests, any other caller).
+    func recoverStuckTranscriptions(sweeps: SweepActor? = nil) async {
+        let plan: StuckTranscriptionPlan
+        if let sweeps {
+            plan = await sweeps.stuckTranscriptionPlan()
+        } else {
+            plan = Self.stuckTranscriptionPlan(in: repository.context)
+        }
         // C263: a memo the user edited (an append that died mid-way, a hand-fixed
         // transcript) is NEVER re-transcribed — that would run over their words.
         // Release it from the spinner with its text untouched instead.
-        for memo in repository.allMemos() where Self.isStuckButUserEdited(memo) {
+        for id in plan.release {
+            guard let memo = repository.memo(id: id), Self.isStuckButUserEdited(memo) else { continue }
             let hasText = !(memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             memo.transcriptStatus = hasText ? .done : .failed
             RecordingLifecycleLog.log("recover-skip", "memo=\(memo.id) transcriptUserEdited — not re-transcribed")
         }
         repository.save()
-        let stuck = repository.allMemos().filter { memo in
-            memo.transcriptStatus == .transcribing
-                && !memo.transcriptUserEdited
-                && !memo.audioFilename.isEmpty
-                && !memo.isBookCapture
-                && Self.ownsForRecovery(memo.recordingDeviceID)
-                && FileManager.default.fileExists(
-                    atPath: AppPaths.recordingsDirectory
-                        .appendingPathComponent(memo.audioFilename).path)
-        }
-        guard !stuck.isEmpty else { return }
-        DevLog.log("recover: \(stuck.count) memo(s) stuck in .transcribing — re-running")
-        for memo in stuck {
-            DevLog.log("recover stuck transcription — memo \(memo.id)")
-            await runTranscription(id: memo.id)
+        guard !plan.rerun.isEmpty else { return }
+        DevLog.log("recover: \(plan.rerun.count) memo(s) stuck in .transcribing — re-running")
+        for id in plan.rerun {
+            // Re-check against the live memo: the plan was made off-main a moment ago, and a
+            // transcription that finished (or a user edit) since must not be run over.
+            guard let memo = repository.memo(id: id), memo.transcriptStatus == .transcribing,
+                  !memo.transcriptUserEdited else { continue }
+            DevLog.log("recover stuck transcription — memo \(id)")
+            await runTranscription(id: id)
         }
     }
 
     /// A memo the launch transcription recovery would pick up, except the user
     /// edited its transcript (C263).
-    static func isStuckButUserEdited(_ memo: Memo) -> Bool {
+    nonisolated static func isStuckButUserEdited(_ memo: Memo) -> Bool {
         memo.transcriptStatus == .transcribing && memo.transcriptUserEdited
             && !memo.audioFilename.isEmpty && !memo.isBookCapture
             && ownsForRecovery(memo.recordingDeviceID)
@@ -895,7 +931,11 @@ struct MemoSaver {
     /// sweep: this device's own memos (`ownsForRecovery`), audio + word-timings present
     /// (diarization needs both). Called once per launch from `SkriftApp`.
     func recoverStuckDiarizations() async {
-        let stuck = repository.allMemos().filter { memo in
+        // Q316: only the few rows with a pending marker (a stored column), not the whole library.
+        let pending = (try? repository.context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt == nil && $0.pendingDiarizationTarget != nil },
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
+        let stuck = pending.filter { memo in
             memo.pendingDiarizationTarget != nil
                 && !memo.audioFilename.isEmpty
                 && Self.ownsForRecovery(memo.recordingDeviceID)
