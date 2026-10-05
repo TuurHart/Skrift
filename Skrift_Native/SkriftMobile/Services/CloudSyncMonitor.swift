@@ -128,6 +128,8 @@ final class CloudSyncMonitor: ObservableObject {
             isSyncing = true
         }
         if importDone {
+            // The import merged rows into the context without a `save()`: tell the list cache (Q315).
+            NotesRepository.shared.noteExternalChange()
             // COALESCED, like the hide above: import events land in bursts, and
             // this used to run five full-library sweeps synchronously PER EVENT —
             // an initial device sync meant dozens of back-to-back main-actor

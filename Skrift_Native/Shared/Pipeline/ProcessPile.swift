@@ -25,7 +25,10 @@ enum ProcessPile {
     static func isWaiting(_ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
         guard NoteConsent.isRated(memo), memo.deletedAt == nil else { return false }
         guard !enhancedIDs.contains(memo.id) else { return false }
-        return !(memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        // Any non-whitespace character: stops at the first one instead of copying and trimming the
+        // whole transcript (Q315). `Character.isWhitespace` is the same Unicode set as
+        // `CharacterSet.whitespacesAndNewlines`.
+        return memo.transcript?.contains { !$0.isWhitespace } ?? false
     }
 
     /// Notes carrying no rating — the pile waiting on a human, not a model.

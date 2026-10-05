@@ -200,7 +200,12 @@ final class NotesRepository {
     /// `memoSetVersion` — bumped once per `save()`, i.e. once per debounced
     /// commit, not once per keystroke.
     private let tagsCache = CommitOnceCache<Int, [String]>()
-    private var memoSetVersion = 0
+    /// Bumped by every `save()` and by a completed CloudKit import (`noteExternalChange`);
+    /// the Notes list keys its derived-data cache on it too (Q315).
+    private(set) var memoSetVersion = 0
+
+    /// A change that bypassed `save()` — a CloudKit import merged into the context.
+    func noteExternalChange() { memoSetVersion += 1 }
 
     func allTags() -> [String] {
         tagsCache.value(for: memoSetVersion) {

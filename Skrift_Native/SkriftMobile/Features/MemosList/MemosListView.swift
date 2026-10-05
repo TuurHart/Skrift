@@ -51,7 +51,13 @@ struct MemosListView: View {
            sort: \Memo.recordedAt, order: .reverse) var rawMemos: [Memo]
     /// One row per id, the Mac's rule (`MemoDuplicates.canonicalRows`): a CloudKit re-sync can
     /// leave exact clones until `MemoDeduper` heals them, and the list must not show two.
-    var memos: [Memo] { MemoDuplicates.canonicalRows(rawMemos) }
+    /// Cached with the rest of the memo-set model (`listBase`, Q315): was rebuilt ~7 times per body pass.
+    var memos: [Memo] { listBase.memos }
+    /// The Notes list's derived data, rebuilt only when the memo set changes (Q315).
+    @StateObject var listCache = ListDerivedCache()
+    /// The search text the list filters by: `search` settled ~150 ms after the last keystroke.
+    @State var appliedSearch = LaunchFlags.initialSearch ?? ""
+    @State var applyTask: Task<Void, Never>?
     /// ONE query behind the header's "Process N" — which notes already carry
     /// polished content. Per-memo enhancement fetches inside a body are the
     /// frozen-library trap (2026-07-23), so the set is built once here.
@@ -85,9 +91,6 @@ struct MemosListView: View {
     @State var showVideoImporter = false
     /// Q66: the strip the Date chip opens under the chip row (no sheet).
     @State var showDateStrip = false
-    /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
-    /// strip below the search field. Distinct from the Mac `syncBanner` above.
-    @ObservedObject var cloudSync = CloudSyncMonitor.shared
     /// Share-imports being copied out of the inbox (A14) — drives the top pill so
     /// a big shared movie doesn't look like nothing happened until the drain ends.
     @ObservedObject var drainState = CaptureDrainState.shared
@@ -287,7 +290,7 @@ struct MemosListView: View {
             .fullScreenCover(isPresented: $showBookPlayer) {
                 AudiobookPlayerView()
             }
-            .onChange(of: editHeads.map { "\($0.memoID)\($0.editedAt.timeIntervalSince1970)" }, initial: true) {
+            .onChange(of: editHeadsStamp, initial: true) {
                 EditConflictWatch.shared.refresh(in: context)
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
@@ -509,7 +512,7 @@ struct MemosListView: View {
                 }
                 if d.groups.isEmpty && d.related.isEmpty {
                     Text(SharedCopy.noMatchesTitle
-                         + (search.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\n" + SharedCopy.noMatchesBody(search)))
+                         + (appliedSearch.trimmingCharacters(in: .whitespaces).isEmpty ? "" : "\n" + SharedCopy.noMatchesBody(appliedSearch)))
                         .multilineTextAlignment(.center)
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
@@ -564,7 +567,10 @@ struct MemosListView: View {
             // the task ~15×/40ms and cancelling every debounce sleep before
             // the query could run (devlog 11:51:17.934–.976). An @State-held
             // Task survives view-identity churn; only a NEW query cancels it.
-            .onChange(of: search) { _, _ in scheduleRelated() }
+            .onChange(of: search) { _, new in
+                applySearchDebounced(new)   // Q315: filter ~150 ms after the last keystroke
+                scheduleRelated()
+            }
             .task { scheduleRelated() } // initial (-initialSearch route)
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
@@ -583,23 +589,10 @@ struct MemosListView: View {
             // the list's empty tail, never over the notes at the top — the earlier
             // top-overlay covered the first row), fading in/out. The monitor debounces
             // the signal so it doesn't flicker during CloudKit's event bursts.
-            .overlay(alignment: .bottom) {
-                if cloudSync.isSyncing {
-                    HStack(spacing: 7) {
-                        ProgressView().controlSize(.mini)
-                        Text("Syncing with iCloud…").font(.caption)
-                    }
-                    .foregroundStyle(Color.skTextDim)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(Color.skElev))
-                    .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
-                    .padding(.bottom, 14)
-                    .transition(.opacity)
-                    .accessibilityIdentifier("cloud-sync-indicator")
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
+            // The capsule is its own view so ONLY it observes `CloudSyncMonitor` (Q315): the
+            // monitor also publishes audiobook-transfer fractions, and observing it here
+            // re-ran the whole list body on every one.
+            .overlay(alignment: .bottom) { SyncingCapsule() }
         }
     }
 
