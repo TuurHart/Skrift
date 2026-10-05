@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// The Fading lifecycle's at-open half (design 2026-07-17, `MemoLifecycle`; v3
 /// "no note dies unseen" 2026-07-23): move sweep-due notes (untouched, 60+
@@ -36,6 +37,29 @@ enum FadingSweep {
             copyedits: Backlinks.copyeditsByMemoID(repository.allEnhancements()),
             now: now) { repository.softDelete($0, at: now) }
         if swept > 0 { DevLog.log("FadingSweep: \(swept) note(s) → Recently Deleted") }
+        return swept
+    }
+
+    /// The same sweep on any context (Q316: `SweepActor` runs it off the main thread at
+    /// launch / foreground). Same rules, same order (stamp sightings, then sweep what is due);
+    /// the difference is ONE save at the end instead of one per note. Returns the count moved.
+    @discardableResult
+    nonisolated static func run(in context: ModelContext, now: Date = Date()) -> Int {
+        let trashed = (try? context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt != nil }))) ?? []
+        let stamped = MemoLifecycle.stampTrashSightings(trashed, now: now)
+        if stamped > 0 {
+            DevLog.log("FadingSweep: purge clock started for \(stamped) synced-in trashed note(s)")
+        }
+        let live = (try? context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt == nil }))) ?? []
+        let enhancements = (try? context.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+        let swept = MemoLifecycle.sweepFading(
+            live: live, copyedits: Backlinks.copyeditsByMemoID(enhancements), now: now) {
+            WayOut.softDelete($0, now: now)
+        }
+        if swept > 0 { DevLog.log("FadingSweep: \(swept) note(s) → Recently Deleted") }
+        if stamped > 0 || swept > 0 { try? context.save() }
         return swept
     }
 }

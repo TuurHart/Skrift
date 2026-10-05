@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import SwiftData
 
 /// Note reminders (note feature wave, chunk 7 — design signed off 2026-07-06):
 /// the reminder is DATA (`Memo.remindAt`, a shared-model field that syncs over
@@ -62,11 +63,16 @@ enum ReminderScheduler {
         #if DEBUG
         guard !PerfLibrary.isActive else { return }   // Q313: no notifications scheduled for generated notes
         #endif
-        let memos = repository.allMemosIncludingTrashed().map {
+        // Q316: only memos that HAVE a reminder (a stored column) — the plan never looks at
+        // any other, and this ran two whole-library fetches on main at every foreground.
+        let withReminder = (try? repository.context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.remindAt != nil }))) ?? []
+        let memos = withReminder.map {
             (id: $0.id, remindAt: $0.remindAt, deleted: $0.deletedAt != nil)
         }
         let titles: [UUID: String] = Dictionary(
-            repository.allMemos().map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "A note") },
+            withReminder.filter { $0.deletedAt == nil }
+                .map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "A note") },
             uniquingKeysWith: { a, _ in a })
         Task {
             let center = UNUserNotificationCenter.current()

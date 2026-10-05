@@ -177,21 +177,9 @@ struct SkriftApp: App {
                 // capture any local audio/photos that have no asset yet (incl.
                 // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
                 // launch + foreground cadence below.
-                .task {
-                    // FIRST: trash exact-clone rows CloudKit sync can materialize
-                    // (2026-07-12 crash loop — duplicate memo UUIDs trapped the
-                    // list's id-keyed dictionaries).
-                    MemoDeduper.run(repository)
-                    AssetMaterializer.run(repository)
-                    PhotoTextIndexer.run(repository)
-                    ReminderScheduler.run(repository)
-                    // Fading lifecycle (one clock 2026-07-22, v3 open-gated
-                    // 2026-07-23): stamp purge clocks for synced-in trash, then
-                    // move notes whose clock ran out 60 days ago into Recently
-                    // Deleted. This task IS the open-gate — it only runs with
-                    // the UI scene attached, i.e. a human open.
-                    FadingSweep.run(repository: repository)
-                }
+                // (The corpus sweeps — dedupe, asset capture, photo OCR discovery, Fading,
+                // reminders — start from the recovery task below, once the recording-recovery
+                // sweep has finished, and run OFF the main thread: Q316, `LaunchSweeps`.)
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
                 // CloudKit-synced carrier with the local names.json via the same
                 // NamesMerge the Mac sync uses. Idempotent; launch + foreground.
@@ -215,10 +203,20 @@ struct SkriftApp: App {
                 // C99: rebuild any take a kill/force-quit left behind as a
                 // note FIRST (it lands `.transcribing`), then the transcription
                 // recovery below transcribes it — one task, so they never race.
+                //
+                // Q316: this task also owns the order. Recording recovery runs FIRST and
+                // alone; only then do the corpus sweeps start (off the main thread, they
+                // do not block this task), and the transcription recovery's discovery runs
+                // off-main too. FadingSweep is the v3 open-gate: this task only runs with
+                // the UI scene attached, i.e. a human open.
                 .task {
                     if LaunchFlags.seedTranscript == nil {
                         await MemoSaver().recoverInterruptedRecordings()
-                        await MemoSaver().recoverStuckTranscriptions()
+                    }
+                    LaunchSweeps.launch(repository)
+                    if LaunchFlags.seedTranscript == nil {
+                        await MemoSaver().recoverStuckTranscriptions(
+                            sweeps: LaunchSweeps.sweepActor(for: repository))
                     }
                 }
                 // Recover any diarization orphaned mid-identify: "Split speakers" runs
@@ -257,23 +255,23 @@ struct SkriftApp: App {
                         // just from time elapsing, and the inbox drainer is what
                         // TURNS a pending capture into a memo — gating it on "did
                         // the memo count change" would never let a new capture in.
-                        FadingSweep.run(repository: repository)
+                        //
+                        // Q316: `LaunchSweeps.foreground` runs FadingSweep + reminders
+                        // every time and the corpus sweeps only when the gate says the
+                        // corpus moved, all off the main thread. The gate was marked at
+                        // launch, so the first foreground no longer repeats the launch pass.
                         Task { await CaptureInboxDrainer.drain(into: repository) }
-                        ReminderScheduler.run(repository)
                         // P8 retrieval index — inert until the Journal UI's consent
                         // flow enables it AND the model is on disk (no surprise 295 MB).
                         JournalIndexService.shared.sweepSoon(repository)
 
-                        // R94/C281: the rest are pure re-derivations of the memo
-                        // corpus (dupes, on-disk↔CloudKit asset capture, photo-text
-                        // index, names/vocab/audiobook cloud reconcile) — safe to
-                        // skip on a foreground where nothing changed since the last
-                        // check. LaunchWorkGate's mark advances on this ONE call, so
-                        // it must stay a single call per foreground, not one per sweep.
-                        if LaunchWorkGate.shouldRunSweeps(repository: repository) {
-                            MemoDeduper.run(repository)   // CloudKit dupes can land mid-session
-                            AssetMaterializer.run(repository)
-                            PhotoTextIndexer.run(repository)
+                        // R94/C281: dupes, on-disk↔CloudKit asset capture and the photo-text
+                        // index are pure re-derivations of the memo corpus, and so are the
+                        // names/vocab/audiobook cloud reconciles below — safe to skip on a
+                        // foreground where nothing changed since the last check.
+                        // LaunchWorkGate's mark advances on this ONE call (inside
+                        // `foreground`), so it stays a single call per foreground.
+                        if LaunchSweeps.foreground(repository).gated {
                             NamesCloudSync.run(repository)
                             VocabularyCloudSync.run(repository)
                             Task { await AudiobookCloudSync.reconcile(repository: repository) }

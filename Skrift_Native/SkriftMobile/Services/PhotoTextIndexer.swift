@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Vision
+import SwiftData
 
 /// On-device OCR for memo photos (note feature wave, chunk 6): each photo's
 /// recognized text lands on its `ImageManifestEntry.text` — INSIDE the synced
@@ -27,27 +28,68 @@ enum PhotoTextIndexer {
     /// a freshly erased simulator (Q310). `recognize` has its own real-Vision tests.
     static var recognizer: @Sendable (URL) async -> String = { await recognize(at: $0) }
 
-    static func run(_ repository: NotesRepository) {
-        guard !running else { pending = repository; return }
-        struct Job { let memoID: UUID; let index: Int; let url: URL }
+    /// One photo waiting for OCR. Plain values, so the off-main discovery can hand them
+    /// to the main actor without a SwiftData object crossing.
+    struct Job: Sendable, Equatable {
+        let memoID: UUID
+        let index: Int
+        let filename: String
+        var url: URL { AppPaths.recordingsDirectory.appendingPathComponent(filename) }
+    }
+
+    /// Photos whose `text == nil` and whose file is on disk. Decodes every memo's metadata
+    /// and stats each un-OCR'd photo, so launch/foreground run it on `SweepActor` (Q316).
+    nonisolated static func discoverJobs(in context: ModelContext) -> [Job] {
         var jobs: [Job] = []
-        for memo in repository.allMemos() {
+        let live = (try? context.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
+        for memo in live {
             guard let manifest = memo.metadata?.imageManifest else { continue }
             for (i, entry) in manifest.enumerated() where entry.text == nil {
                 let url = AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
                 if FileManager.default.fileExists(atPath: url.path) {
-                    jobs.append(Job(memoID: memo.id, index: i, url: url))
+                    jobs.append(Job(memoID: memo.id, index: i, filename: entry.filename))
                 }
             }
         }
+        return jobs
+    }
+
+    /// Main-context discovery + OCR (the recording / editor save paths).
+    static func run(_ repository: NotesRepository) {
+        guard !running else { pending = repository; return }
+        let jobs = discoverJobs(in: repository.context)
         guard !jobs.isEmpty else { return }
         running = true
+        process(jobs, repository)
+    }
+
+    /// Launch / foreground / import burst: discovery runs on `sweeps` (off the main thread),
+    /// the OCR was already off-main, and the per-photo write-back stays on the main context
+    /// (it re-validates against the live memo). Same re-entrancy rule as `run`.
+    static func runOffMain(_ repository: NotesRepository, sweeps: SweepActor) async {
+        guard !running else { pending = repository; return }
+        running = true   // reserve BEFORE the await so a second trigger queues instead of racing
+        let jobs = await sweeps.photoJobs()
+        guard !jobs.isEmpty else { finishSweep(); return }
+        process(jobs, repository)
+    }
+
+    private static func finishSweep() {
+        running = false
+        // A trigger that arrived mid-sweep: re-discover for it OFF the main thread.
+        if let next = pending {
+            pending = nil
+            Task { await runOffMain(next, sweeps: LaunchSweeps.sweepActor(for: next)) }
+        }
+    }
+
+    /// OCR each job and write the text back. The caller has set `running`.
+    private static func process(_ jobs: [Job], _ repository: NotesRepository) {
         let recognize = recognizer
         Task {
-            defer {
-                running = false
-                if let next = pending { pending = nil; run(next) }
-            }
+            defer { finishSweep() }
             var indexed = 0
             for job in jobs {
                 let text = await recognize(job.url)
