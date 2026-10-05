@@ -21,6 +21,7 @@ enum PerfLibrary {
     static let storeFileName = "perf.store"
     /// Written once seeding has finished; a perf store without it is a half-seeded leftover.
     static let seededMarkerName = "perf.store.seeded"
+    static let alreadySeededLine = "perf library already seeded, opening it as is"
 
     /// Folder the perf store lives in: next to the app's normal store (iOS Application Support;
     /// the Mac's per-build "Skrift Dev" folder).

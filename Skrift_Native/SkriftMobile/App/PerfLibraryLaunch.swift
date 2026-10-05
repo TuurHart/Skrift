@@ -21,7 +21,7 @@ final class PerfLibraryLaunch: ObservableObject {
         guard PerfLibrary.isActive, !started else { return }
         started = true
         guard isUsable, !PerfLibrary.isSeeded else {
-            PerfLibrary.logProgress("perf library already seeded — opening it as is")
+            PerfLibrary.logProgress(PerfLibrary.alreadySeededLine)
             return
         }
         isSeeding = true
