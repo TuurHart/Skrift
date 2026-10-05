@@ -8,9 +8,9 @@ final class MemoDetailUITests: XCTestCase {
 
     override func setUpWithError() throws { continueAfterFailure = false }
 
-    private func launch() -> XCUIApplication {
+    private func launch(_ extra: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos"]
+        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos"] + extra
         app.launch()
         return app
     }
@@ -81,7 +81,7 @@ final class MemoDetailUITests: XCTestCase {
     /// Q314: a link hop swaps the note in place (no pager). Demo memo 2 links to memo 1, so
     /// memo 1's LINKED FROM row opens memo 2 — the editor now holds memo 2's text.
     func testRelatedNoteHopOpensInPlace() throws {
-        let app = launch()
+        let app = launch(["-seedLinkedPair"])
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()

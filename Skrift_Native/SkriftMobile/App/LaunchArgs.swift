@@ -24,6 +24,8 @@ enum LaunchFlags {
     /// Seed ONE memo whose transcript is a `**Name:**` conversation, to verify the real
     /// detail view renders speaker turns (`SpeakerTurnsView`).
     static var seedConversationMemo: Bool { args.boolFlag("-seedConversationMemo") }
+    /// With -seedDemoMemos: demo memo 2 links to demo memo 1, so the harbor note has a LINKED FROM row.
+    static var seedLinkedPair: Bool { args.boolFlag("-seedLinkedPair") }
     /// Seed ONE video-import memo with a real LANDSCAPE (16:9) frame thumbnail (a
     /// centered circle — distorts to an ellipse if the thumbnail squishes aspect),
     /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.

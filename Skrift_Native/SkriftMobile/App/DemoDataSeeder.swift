@@ -325,8 +325,10 @@ enum DemoDataSeeder {
                 recordedAt: now.addingTimeInterval(-7_200),
                 tags: [],
                 syncStatus: .synced,
-                transcript: "Second seeded memo, a quick reminder to call the plumber. "
-                    + MemoLinkSyntax.link(id: demoHarborMemoID, title: "harbor at dawn"),
+                // The [[memo:]] link back to demo1 only under -seedLinkedPair (the in-place hop
+                // UI test): other classes match this transcript exactly and search for "harbor".
+                transcript: "Second seeded memo, a quick reminder to call the plumber."
+                    + (LaunchFlags.seedLinkedPair ? " " + MemoLinkSyntax.link(id: demoHarborMemoID, title: "dawn note") : ""),
                 transcriptStatus: .done,
                 transcriptConfidence: 0.81,
                 significance: 0.5,
