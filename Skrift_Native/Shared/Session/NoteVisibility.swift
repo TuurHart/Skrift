@@ -38,10 +38,26 @@ enum NoteVisibility {
     /// note's words are never even read.
     static func matches(query: String, locked: Bool, unlockedThisSession: Bool,
                         title: String?, bodyFields: () -> [String?]) -> Bool {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let q = normalizedQuery(query)
         guard !q.isEmpty else { return true }
         if title?.lowercased().contains(q) == true { return true }
         guard contentVisible(locked: locked, unlockedThisSession: unlockedThisSession) else { return false }
         return bodyFields().contains { $0?.lowercased().contains(q) == true }
+    }
+
+    /// The query as every matcher compares it: trimmed of spaces, lowercased.
+    static func normalizedQuery(_ query: String) -> String {
+        query.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
+    /// `matches` over fields a caller has ALREADY lowercased once (the phone list keeps a
+    /// per-note lowercased copy instead of re-lowercasing every transcript per keystroke).
+    /// Same lock rule, same substring test; `normalizedQuery` comes from `normalizedQuery(_:)`.
+    static func matchesLowered(normalizedQuery q: String, locked: Bool, unlockedThisSession: Bool,
+                               titleLowered: String?, bodyLowered: [String]) -> Bool {
+        guard !q.isEmpty else { return true }
+        if titleLowered?.contains(q) == true { return true }
+        guard contentVisible(locked: locked, unlockedThisSession: unlockedThisSession) else { return false }
+        return bodyLowered.contains { $0.contains(q) }
     }
 }

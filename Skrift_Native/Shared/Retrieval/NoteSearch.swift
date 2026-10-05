@@ -51,6 +51,34 @@ enum NoteSearch {
     }
 }
 
+/// A note's search fields, lowercased ONCE (Q315): the phone list matches a query against
+/// this instead of re-lowercasing every transcript on every keystroke. Same field set and
+/// same lock rule as `NoteSearch.matches` (both route through `NoteVisibility`), so a
+/// prepared note and a fresh snapshot always give the same answer.
+struct PreparedNoteSearch: Sendable, Equatable {
+    let locked: Bool
+    let titleLowered: String?
+    let bodyLowered: [String]
+
+    init(_ s: NoteSearchSnapshot) {
+        locked = s.locked
+        titleLowered = s.title?.lowercased()
+        var f: [String?] = [s.generatedTitle, s.derivedTitle, s.transcript, s.summary,
+                            s.place, s.annotation]
+        f.append(contentsOf: s.tags.map { Optional($0) })
+        f.append(contentsOf: s.shared)
+        f.append(contentsOf: s.ocr)
+        bodyLowered = f.compactMap { $0?.lowercased() }.filter { !$0.isEmpty }
+    }
+
+    /// `normalizedQuery` = `NoteVisibility.normalizedQuery(query)`, computed once per query.
+    func matches(normalizedQuery q: String, unlockedThisSession: Bool) -> Bool {
+        NoteVisibility.matchesLowered(normalizedQuery: q, locked: locked,
+                                      unlockedThisSession: unlockedThisSession,
+                                      titleLowered: titleLowered, bodyLowered: bodyLowered)
+    }
+}
+
 extension Memo {
     /// The search snapshot of a synced `Memo` — used by the phone/iPad list and the Mac's
     /// quiet rows. `enhancedTitle` / `summary` come from the memo's `MemoEnhancement` when

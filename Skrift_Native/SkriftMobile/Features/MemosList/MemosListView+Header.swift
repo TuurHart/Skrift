@@ -221,35 +221,15 @@ extension MemosListView {
 
     /// D135: "each chip counts its own notes" — over ALL live notes (not the
     /// filtered view), like the Mac's sidebar. `.all` carries no number.
-    var chipCounts: [QueueFilter: Int] {
-        let enhanced = enhancedMemoIDs
-        return NotesListModel.chipCounts(
-            needsWork: memos.filter { QueueFilter.needsWork.admits($0, enhancedIDs: enhanced) }.count,
-            done: memos.filter { QueueFilter.done.admits($0, enhancedIDs: enhanced) }.count,
-            notRated: ProcessPile.unrated(memos: memos).count)
-    }
+    /// Part of the cached memo-set model (`ListDerivedCache.ListBase`, Q315).
+    var chipCounts: [QueueFilter: Int] { listBase.chipCounts }
 
-    /// The pile a polisher would pick up, by the shared rule. Built off ONE
-    /// enhancements query rather than a fetch per memo (body-safe).
-    var processPile: [Memo] {
-        ProcessPile.waiting(memos: memos, enhancedIDs: enhancedMemoIDs)
-    }
+    /// The pile a polisher would pick up, by the shared rule — from the cached model
+    /// (built off ONE enhancements query, never a fetch per memo).
+    var processPile: [Memo] { listBase.processPile }
 
-    var enhancedMemoIDs: Set<UUID> {
-        Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
-    }
-
-    /// memoID → the Mac's GENERATED title, off the same one query (never a fetch per row).
-    /// Lets a row show a real title where the user hasn't chosen one, instead of falling
-    /// through to the body — which is what made the list disagree with the detail screen.
-    /// Built ONCE per render inside `derived` now (R92/C278) — was a computed
-    /// property read per-row inside `ForEach`, rebuilding the whole dictionary N times.
-    func enhancedTitleByMemoID() -> [UUID: String] {
-        Dictionary(enhancements.lazy.compactMap { e -> (UUID, String)? in
-            let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            return t.isEmpty ? nil : (e.memoID, t)
-        }, uniquingKeysWith: { a, _ in a })
-    }
+    // memoID → the Mac's generated title (so a row shows a real title where the user hasn't
+    // chosen one, not the body) is `ListBase.enhancedTitleByMemoID`, built with the model.
 
     /// D135/D136: the phone's header is JUST Notes + Select — Import and Scan live in the
     /// shared `verbRow`'s Import menu below, and the chip row carries Date (Q66).

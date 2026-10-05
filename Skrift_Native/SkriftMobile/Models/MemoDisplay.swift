@@ -42,7 +42,9 @@ extension Memo {
     /// them. A locked note's body stays out until unlocked this session (Q101).
     func matches(query: String, unlockedThisSession: Bool = false,
                  enhancedTitle: String? = nil, summary: String? = nil) -> Bool {
-        NoteSearch.matches(query: query, noteSearchSnapshot(unlockedThisSession: unlockedThisSession,
+        // No query matches everything: don't decode a snapshot just to say yes (Q315).
+        guard NotesListModel.isSearching(query) else { return true }
+        return NoteSearch.matches(query: query, noteSearchSnapshot(unlockedThisSession: unlockedThisSession,
                                                             enhancedTitle: enhancedTitle, summary: summary))
     }
 

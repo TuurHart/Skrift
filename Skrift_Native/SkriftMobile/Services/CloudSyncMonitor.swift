@@ -128,7 +128,7 @@ final class CloudSyncMonitor: ObservableObject {
             isSyncing = true
         }
         if importDone {
-            NotesRepository.shared.noteStoreDidChangeBySync()   // Q314: version-keyed caches rebuild
+            NotesRepository.shared.noteStoreDidChangeBySync()   // Q314/Q315: version-keyed caches (backlinks, list) rebuild
             // COALESCED, like the hide above: import events land in bursts, and
             // this used to run five full-library sweeps synchronously PER EVENT —
             // an initial device sync meant dozens of back-to-back main-actor

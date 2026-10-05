@@ -22,23 +22,15 @@ extension MemosListView {
         MemoSpine.rowClockLine(for: memo, backlinked: backlinked, now: now)
     }
 
-    var searchingNow: Bool { NotesListModel.isSearching(search) }
-
-    func filtered(lifecycle: (live: [Memo], fading: [Memo]), enhanced: Set<UUID>) -> [Memo] {
-        // The generated title + summary live on MemoEnhancement; index them once per pass
-        // (only while searching) so the shared matcher sees them (Q103/C236).
-        let polish: [UUID: (title: String, summary: String)] = searchingNow
-            ? Dictionary(enhancements.map { ($0.memoID, ($0.title, $0.summary)) }, uniquingKeysWith: { a, _ in a })
-            : [:]
-        return Self.listRows(lifecycle: lifecycle, search: search, chip: listChip, filter: filter,
-                             enhanced: enhanced, polish: polish,
-                             isUnlocked: { LockGate.shared.isUnlocked($0) })
-            .sorted(by: sortComparator)
-    }
+    /// The query the list is filtered by: the search field's text, settled ~150 ms after the
+    /// last keystroke (Q315) so a burst of typing filters once, not per letter.
+    var searchingNow: Bool { NotesListModel.isSearching(appliedSearch) }
 
     /// The phone's adapter onto the shared list rule (`NotesListModel.listRows`, Q104): live
     /// rows plus, while searching, fading rows, both through the same search + chip + filter
-    /// sheet. Unsorted; pure so `NotesListFilterParityTests` drives it.
+    /// sheet. Unsorted; pure so `NotesListFilterParityTests` drives it. The list itself runs the
+    /// same rule through `ListDerivedCache` (prepared search text, narrowing, cached per memo
+    /// set); `ListDerivedCacheTests` proves both paths agree.
     static func listRows(lifecycle: (live: [Memo], fading: [Memo]), search: String, chip: QueueFilter,
                          filter: MemoFilter, enhanced: Set<UUID>,
                          polish: [UUID: (title: String, summary: String)] = [:],
@@ -53,63 +45,30 @@ extension MemosListView {
             passesFilter: { passesFilter($0, chip: chip, filter: filter, enhanced: enhanced) })
     }
 
-    struct Group { let title: String; let memos: [Memo] }
+    typealias Group = NotesListGroup
+    typealias Derived = NotesListDerived
 
-    /// Everything the list body derives from ONE filter+sort pass (R92/C278):
-    /// `flatIndex`, `enhancedTitleByMemoID` and `searchFadingIDs` used to be
-    /// separate computed properties read per visible ROW inside `ForEach`, each
-    /// re-running its own full corpus scan N times. Now built once here and
-    /// read by index/lookup in the row loop — O(1) scans per render, not O(N).
-    struct Derived {
-        let groups: [Group]
-        let flatIndex: [UUID: Int]
-        let related: [Memo]
-        let enhancedTitleByMemoID: [UUID: String]
-        let searchFadingIDs: Set<UUID>
-        let backlinked: Set<UUID>
+    /// The memo-set model (`ListDerivedCache.ListBase`): canonical rows, enhanced ids, backlink set,
+    /// live/fading split, chip counts, process pile. Cached; rebuilt only when the memo set or a
+    /// property it read changes. While a note is pushed over the list (compact width) a pure
+    /// property change waits for the pop; membership changes never wait.
+    var listBase: ListDerivedCache.ListBase {
+        listCache.base(rawMemos: rawMemos, enhancements: enhancements,
+                       externalVersion: repository.memoSetVersion,
+                       allowStale: !isRegular && !path.isEmpty)
     }
 
+    /// Everything the list body shows for the current query / chip / sort / filter (R92/C278).
     var derived: Derived {
-        let backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
-        let enhanced = enhancedMemoIDs
-        let split = MemoLifecycle.partition(memos, backlinked: backlinked)  // one backlink scan per render (R92/C278)
-        let f = filtered(lifecycle: split, enhanced: enhanced)
-        let fadingIDs: Set<UUID> = searchingNow ? Set(split.fading.map(\.id)) : []
-        return Derived(
-            groups: groups(from: f),
-            flatIndex: Dictionary(f.enumerated().map { ($0.element.id, $0.offset) },
-                                  uniquingKeysWith: { a, _ in a }),
-            related: relatedDisplay(excluding: Set(f.map(\.id)), enhanced: enhanced),
-            enhancedTitleByMemoID: enhancedTitleByMemoID(),
-            searchFadingIDs: fadingIDs,
-            backlinked: backlinked)
+        listCache.derived(
+            base: listBase,
+            params: ListDerivedCache.Params(search: appliedSearch, chip: listChip, filter: filter, sort: sort,
+                                            unlocked: LockGate.shared.unlockedIDs),
+            related: related)
     }
 
-    func groups(from filtered: [Memo]) -> [Group] {
-        if sort == .longest {
-            return filtered.isEmpty ? [] : [Group(title: "Longest first", memos: filtered)]
-        }
-        // Shared cross-app grouping pass (NotesListModel.dayGroups) instead of
-        // a hand-rolled order-array + bucket-dict loop duplicating the exact
-        // same logic (sweep-b finding #9).
-        return NotesListModel.dayGroups(filtered) { MemoDate.group(groupDate($0)) }
-            .map { Group(title: $0.title, memos: $0.items) }
-    }
-
-
-    func matchesSearch(_ memo: Memo, polish: (title: String, summary: String)? = nil) -> Bool {
-        memo.matches(query: search, unlockedThisSession: LockGate.shared.isUnlocked(memo.id.uuidString),
-                     enhancedTitle: polish?.title, summary: polish?.summary)
-    }
-
-    /// The rendered Related section: raw semantic hits minus exact matches,
-    /// passed through the same filter sheet as everything else. `enhanced` is
-    /// threaded in from `derived`'s one-per-render `enhancedMemoIDs` build.
-    func relatedDisplay(excluding exact: Set<UUID>, enhanced: Set<UUID>) -> [Memo] {
-        guard !related.isEmpty else { return [] }
-        return Self.relatedRows(related, shown: exact, chip: listChip, filter: filter, enhanced: enhanced,
-                                isLocked: { LockGate.shared.isLocked($0) })
-    }
+    /// The rendered Related section is built inside `derived` (hits minus exact matches, through
+    /// the same filter sheet as everything else).
 
     /// The phone's adapter onto the shared Related rule (`NotesListModel.relatedRows`, Q104).
     /// Q101 (C91/C161): a semantic hit is the note's words too — a hidden locked note never surfaces.
@@ -117,6 +76,20 @@ extension MemosListView {
                             enhanced: Set<UUID>, isLocked: (Memo) -> Bool) -> [Memo] {
         NotesListModel.relatedRows(hits, shown: shown, id: \.id, hidden: isLocked,
                                    passesFilter: { passesFilter($0, chip: chip, filter: filter, enhanced: enhanced) })
+    }
+
+    /// Settle the list's query ~150 ms after the last keystroke (Q315). Clearing applies at once.
+    func applySearchDebounced(_ text: String) {
+        applyTask?.cancel()
+        if !NotesListModel.isSearching(text) {
+            appliedSearch = text
+            return
+        }
+        applyTask = Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !Task.isCancelled else { return }
+            appliedSearch = text
+        }
     }
 
     /// Debounced semantic lookup for the current query (P8). Exact matches
@@ -146,10 +119,6 @@ extension MemosListView {
         related = JournalIndexService.relatedResults(scores: scores, excluding: [], memosByID: byID)
     }
 
-    func matchesFilter(_ memo: Memo, enhanced: Set<UUID>) -> Bool {
-        Self.passesFilter(memo, chip: listChip, filter: filter, enhanced: enhanced)
-    }
-
     /// The phone's chip + filter-sheet answer for one memo, through the shared rule
     /// (`NotesListModel.passesFilter`, Q104). D136: the chip bar filters on every width.
     static func passesFilter(_ memo: Memo, chip: QueueFilter, filter: MemoFilter, enhanced: Set<UUID>) -> Bool {
@@ -158,7 +127,16 @@ extension MemosListView {
                                            date: d, from: filter.from, to: filter.to)
     }
 
-    func sortComparator(_ a: Memo, _ b: Memo) -> Bool {
+    /// Changes when any device's edit head changes (C98): drives the conflict re-check. One hash,
+    /// not a string per head per body pass.
+    var editHeadsStamp: Int {
+        var h = Hasher()
+        for head in editHeads { h.combine(head.memoID); h.combine(head.editedAt.timeIntervalSince1970) }
+        return h.finalize()
+    }
+
+    /// The list order for a sort (a strict "a before b").
+    static func isOrdered(_ a: Memo, _ b: Memo, by sort: MemoSort) -> Bool {
         switch sort {
         case .added:  return a.addedAt > b.addedAt
         case .edited: return a.lastEditedAt > b.lastEditedAt
@@ -167,12 +145,30 @@ extension MemosListView {
         case .longest: return a.duration > b.duration
         }
     }
+}
 
-    /// The date a memo is grouped under (day-headers): the note's real date via the shared
-    /// rule (`NotesListModel.groupDate`) — NOT `addedAt`, even when the list is ordered by
-    /// "Recently added" (Q97: arrival time is not a day the note happened).
-    func groupDate(_ memo: Memo) -> Date {
-        NotesListModel.groupDate(recordedAt: memo.recordedAt, lastEditedAt: memo.lastEditedAt,
-                                 byEditTime: sort == .edited)
+/// The "Syncing with iCloud…" capsule (a floating pill at the bottom of the list). Its own view so
+/// the Notes list does not observe all of `CloudSyncMonitor` — only `isSyncing` is shown here (Q315).
+struct SyncingCapsule: View {
+    @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+
+    var body: some View {
+        Group {
+            if cloudSync.isSyncing {
+                HStack(spacing: 7) {
+                    ProgressView().controlSize(.mini)
+                    Text("Syncing with iCloud…").font(.caption)
+                }
+                .foregroundStyle(Color.skTextDim)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Color.skElev))
+                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+                .padding(.bottom, 14)
+                .transition(.opacity)
+                .accessibilityIdentifier("cloud-sync-indicator")
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
     }
 }
