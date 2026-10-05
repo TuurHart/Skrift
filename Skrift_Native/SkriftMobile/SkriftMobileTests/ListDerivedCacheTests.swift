@@ -160,11 +160,11 @@ final class ListDerivedCacheTests: XCTestCase {
 
     func testNarrowingStartsFromThePreviousHitsAndBackspaceWidensAgain() {
         let k = corpus(), c = cache()
-        let wide = ids(c.derived(base: base(c, k), params: params("mor"), related: []))
-        let narrow = ids(c.derived(base: base(c, k), params: params("morning"), related: []))
+        let wide = ids(c.derived(base: base(c, k), params: params("i"), related: []))
+        let narrow = ids(c.derived(base: base(c, k), params: params("irrigation"), related: []))
         XCTAssertTrue(Set(narrow).isSubset(of: Set(wide)))
         XCTAssertLessThan(narrow.count, wide.count)
-        let widened = ids(c.derived(base: base(c, k), params: params("mor"), related: []))
+        let widened = ids(c.derived(base: base(c, k), params: params("i"), related: []))
         XCTAssertEqual(widened, wide, "backspacing must bring the wider hit set back")
     }
 
