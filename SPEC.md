@@ -1972,3 +1972,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 184. **D184 New person from any word.** ✅ 2026-10-06, Tuur: long-pressing/selecting a name the app
      does not know offers "New person…" in the text menu (phone and Mac), opening the existing person
      editor prefilled with the selection.
+185. **D185 Reminders removed.** ✅ 2026-10-06, Tuur: what he wanted from reminders is "read this
+     later", and the place for that is the Sunday-morning pass through the Review tab. Note reminders
+     go on phone, iPad and Mac (UI, scheduler, notifications). Supersedes D51, D122, C92, C162.
+     The synced `remindAt` field stays in the model, unused, so CloudKit and older builds keep working.

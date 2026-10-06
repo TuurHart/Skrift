@@ -950,7 +950,7 @@ do: One clickable page: the Mac note with a photo added at the caret (open panel
 check: Mac photos mock (claude.ai/artifact/Li25ppmZmB5fVXHYCdHZxa): should one click on a photo select it like Apple Notes (double-click opens), or open the viewer straight away? Anything else to change before it gets built?
 source: plan/reads/parity-audit.md P29
 
-### Q129 [tuur] (tuur) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
+### Q129 [tuur] (done) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
 spec: D122 C162
 needs: -
 do: One clickable page: the Mac note header chip becoming tappable (today a static chip with year), the picker (the phone's `ReminderSheet` drawn from source), 'Remind me…' in the list and note menus, and the notification the Mac shows when a synced reminder fires; first acknowledgement clears the other devices (C162). Covers note-header-06, note-menu-09, note-remind-01, list-sidebar-86.
@@ -2449,6 +2449,13 @@ gate+: yes
 do: SPEC D184 (Tuur 2026-10-06): selecting/long-pressing a word the app does not know as a name offers 'New person…' in the system text menu (UIEditMenu on the phone's NoteBodyView, the NSTextView context menu on the Mac's BodyTextView); it opens the existing person editor (phone PersonEditorView via PersonEditCore.materialise, Q113; the Mac's new-person-from-a-name flow, Q184) prefilled with the selection, and after saving, that mention links like any known name. Hide the item for empty/whitespace selections and for text already linked. Test: `NewPersonFromSelectionTests` (phone target: the menu offers the item for a plain word, not for a linked name; materialise gets the trimmed selection). Phone sim screenshot of the menu, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 
+### Q331 [auto] (todo) remove note reminders on phone, iPad and Mac (D185)
+spec: -
+needs: -
+gate+: yes
+do: SPEC D185 (Tuur 2026-10-06): remove note reminders everywhere. Phone/iPad: the bell chip, '⋯ > Remind me…', the list long-press 'Remind me…' (context-remind-button), ReminderSheet, ReminderScheduler/ReminderPlan and every launch/foreground/sync call into it, and any reminder filter or count. Mac: the reminder row/chip (2d685e56) and any alarm code. On first launch after the update, each device removes the app's pending/delivered reminder notifications (UNUserNotificationCenter, the reminder identifiers only — keep FeedbackKit's and any other notifications). KEEP the synced `Memo.remindAt` property in the SwiftData model, unused, with a comment pointing at D185 (CloudKit schema + older installed builds). Lifecycle: a reminder no longer holds a note off the fading clock (MemoLifecycle touch/held lists) — update the shared rule and its tests; export already skips the reminder. Update FEATURES.md (Note reminders row → removed, D185) and the SPEC clauses C92/C162 wording to 'removed by D185'. Fix or delete every test that only pins reminders (UI tests are not protected; protected unit tests that only pin removed behaviour: list them in your report, do not edit them). Tests: `RemindersRemovedTests` (phone target: no code path schedules a notification for remindAt; the launch cleanup removes only reminder identifiers; a note with remindAt set fades like any other). Run SkriftMobileUITests/MemosListUITests. Never run any Mac UI test; Mac proof = full build + headless -snapshot you look at.
+check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3540,3 +3547,5 @@ check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 - 2026-10-06 18:02 Q326 -> doing — worker out
 - 2026-10-06 18:02 Q327 -> doing — worker out
 - 2026-10-06 18:02 Q328 -> doing — worker out
+- 2026-10-06 18:06 Q331 added
+- 2026-10-06 18:06 Q129 -> done — dropped 2026-10-06 (SPEC D185): reminders removed everywhere
