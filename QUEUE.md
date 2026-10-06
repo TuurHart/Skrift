@@ -2229,7 +2229,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D177): add an on-screen checklist button next to the Mac's Format > Checklist (⇧⌘L). Mock first: draw the current Mac editor toolbar from SOURCE, add the button and its on-state. Publish the artifact; the build follows sign-off.
 check: Mac checklist button mock (claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5): left next to the notes-list toggle (A) or right before Process (B)? A multi-line selection would become a checklist on both apps, OK?
 
-### Q297 [auto] (doing) jump-back on PDF and podcast notes too
+### Q297 [auto] (stuck) jump-back on PDF and podcast notes too
 spec: D177
 needs: -
 gate+: yes
@@ -3600,3 +3600,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:56 Q194 -> doing — worker out
 - 2026-10-06 21:56 Q297 -> doing — worker out
 - 2026-10-06 22:07 Q244 -> done — gate 79s @799248ff
+- 2026-10-06 22:07 Q297 -> stuck — parked 2026-10-06: nothing writes a PDF page or podcast position yet (podcasts unbuilt), and the branch adds an unmocked PDF reader view — fold into the Library tab plan; branch wt/Q297 @86e8a062 kept
