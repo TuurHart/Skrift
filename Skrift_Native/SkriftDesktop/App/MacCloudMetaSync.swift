@@ -84,6 +84,8 @@ enum MacCloudMetaSync {
         write(pf, "destination") { memo in
             guard memo.destination != d else { return false }
             memo.destination = d
+            // C63 / C148 / D172: the movie follows the destination (synced only when filed to the portfolio).
+            if let ctx = memo.modelContext { MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx, destination: d) }
             return true
         }
     }

@@ -565,8 +565,8 @@ struct IngestService: Sendable {
     /// PipelineFile so the rest of the pipeline (transcribe/enhance/export) is
     /// unchanged. The recording date comes from the VIDEO's embedded creation date
     /// (survives the copy) or a date in the filename, NOT the import time. The movie
-    /// itself is kept in the working folder as `source.<ext>` (local disk only, never a
-    /// `MemoAsset`), for the portfolio export.
+    /// itself is kept in the working folder as `source.<ext>` (<= ~200 MB), and syncs as a
+    /// `MemoAsset` only while the note is filed Inspiration / Idea / Project (C63/C148).
     /// `writeFrame: false` when the video is one note of a bundle: the bundle writes its frame
     /// at its place among the bundle's pictures instead.
     private func ingestVideo(_ url: URL, writeFrame: Bool = true, into context: ModelContext) async throws -> PipelineFile {
@@ -584,19 +584,24 @@ struct IngestService: Sendable {
         // Claude can take parts from it for my website."* You cannot pull a snippet from a
         // file nobody kept.
         //
-        // It lives in the WORKING FOLDER beside `original.m4a`, which is local disk — NOT a
-        // `MemoAsset`, so it never enters SwiftData or CloudKit and never syncs. That is the
-        // line Tuur drew when he cut video storage ("no dont store videos, just skip them"):
-        // the objection was hundreds of MB per clip in his iCloud account, not a file on the
-        // machine that already has it. Only the PORTFOLIO export copies it out; the vault
-        // never sees it.
+        // It lives in the WORKING FOLDER beside `original.m4a` (local disk). It becomes a synced
+        // `MemoAsset` (`Kind.video`, C63/C148/D172) ONLY while the note is filed Inspiration /
+        // Idea / Project - `MacMemoAuthor` writes it then, and again when the destination
+        // changes - so a Personal video never reaches iCloud (the objection when Tuur cut video
+        // storage was hundreds of MB per clip in his account). A movie over `VideoKeep.maxBytes`
+        // (~200 MB) is not kept at all. Only the PORTFOLIO export copies it out; the vault never
+        // sees it.
         let sourceExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
         let kept = folder.appendingPathComponent("source." + sourceExt)
-        do {
-            try await Self.offMain { try FileManager.default.copyItem(at: url, to: kept) }
-        } catch {
-            // A missing movie costs a snippet, never the note — the audio is already extracted.
-            Self.log.error("keeping the source video failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
+        if let bytes = VideoKeep.byteCount(of: url), !VideoKeep.fits(byteCount: bytes) {
+            Self.log.error("source video over the keep cap for \(filename, privacy: .public): \(bytes) bytes; the note imports, the movie is not kept")
+        } else {
+            do {
+                try await Self.offMain { try FileManager.default.copyItem(at: url, to: kept) }
+            } catch {
+                // A missing movie costs a snippet, never the note — the audio is already extracted.
+                Self.log.error("keeping the source video failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
+            }
         }
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
 
