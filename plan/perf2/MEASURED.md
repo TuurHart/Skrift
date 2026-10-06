@@ -41,3 +41,15 @@ Note open, related-note hop, Done after typing, search, return from home, Stop a
 | scroll fast 20 s | not isolated | 15.4 s main busy in 20 s | self-sizing list cells: preferredLayoutAttributesFitting → hostSizeThatFits 3.9 s, cell creation 4.5 s (Tuur: felt fine) |
 | Stop a recording | 6.4 s | ~4.3 s | list + page + Books body re-run after the save |
 | record start | freeze at start in the past | no freeze (Tuur) | — |
+
+### Flow on b181 (Q314-Q324, Tuur 2026-10-06, `.queue/perf/b181/2-flow.trace`, tool `plan/perf2/tools/flow.py`)
+
+Total main-thread busy over the 7-min recording: b178 50.1 s, b179 67.6 s (longer flow), **b181 22.9 s**.
+
+| moment | b178 | b179 | b181 | Tuur |
+|---|---|---|---|---|
+| scroll fast | — | ~15.4 s / 20 s | ~4.1 s / 10 s (cell self-sizing left) | "pretty smooth, pretty impressive" |
+| open notes | 1-3 s each | ~0.3 s each + list rebuild on close | ~0.2 s each, no close rebuild | "opens quick" |
+| type + Done | 2.9 s | ~2.0 s | ~1.8 s | "works" |
+| search + clear | ~10 s | ~3 s | ~3 s (list derive + batch updates) | "quick; short lag removing letters" |
+| Stop a recording | 6.4 s | ~4.3 s | ~2.8 s (full rebuild after the insert) | "way faster" |
