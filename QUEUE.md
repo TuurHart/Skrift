@@ -3611,3 +3611,5 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 22:26 Q232 -> doing — Mac shut down 2026-10-06 mid-run; branch wt/Q232 pushed — accept it if its check passes, else redispatch
 - 2026-10-06 22:26 Q234 -> doing — accept was running at shutdown 2026-10-06; branch wt/Q234 pushed — re-run plan/accept-chain.sh Q234 agent-ab384018a72622595
 - 2026-10-06 22:26 Q234 -> done — gate 117s @eb8f5bc0
+- 2026-10-06 22:27 Q198 -> doing — done-candidate, wt/Q198 pushed — accept next session
+- 2026-10-06 22:27 Q232 -> doing — done-candidate, wt/Q232 pushed — accept next session; Live Activity device check owed
