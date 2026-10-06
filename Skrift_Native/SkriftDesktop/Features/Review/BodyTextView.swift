@@ -582,12 +582,23 @@ struct BodyTextView: NSViewRepresentable {
             let sel = ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !sel.isEmpty, sel.count <= 60 else { return menu }
 
+            // D184: a word the app does not know offers "New person…" right in the menu (the shared
+            // rule: not blank, not a name this note already shows, not a known person).
+            let offer = newPersonOffer(for: r, in: view)
+
             let parentItem = NSMenuItem(title: "Add “\(sel)” as…", action: nil, keyEquivalent: "")
             let sub = NSMenu()
 
-            let newItem = NSMenuItem(title: "A new person…", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
-            newItem.target = self; newItem.representedObject = sel
-            sub.addItem(newItem)
+            if let name = offer {
+                let top = NSMenuItem(title: NameActionLabel.newPerson, action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+                top.target = self; top.representedObject = name
+                top.image = NSImage(systemSymbolName: "person.badge.plus", accessibilityDescription: nil)
+                menu.insertItem(top, at: 0)
+            } else {
+                let newItem = NSMenuItem(title: "A new person…", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+                newItem.target = self; newItem.representedObject = sel
+                sub.addItem(newItem)
+            }
 
             let people = NamesStore.shared.livePeople().sorted {
                 NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(NamesMerge.keyName($1.canonical)) == .orderedAscending
@@ -605,9 +616,21 @@ struct BodyTextView: NSViewRepresentable {
                 }
             }
             parentItem.submenu = sub
-            menu.insertItem(parentItem, at: 0)
-            menu.insertItem(.separator(), at: 1)
+            let at = offer == nil ? 0 : 1
+            menu.insertItem(parentItem, at: at)
+            menu.insertItem(.separator(), at: at + 1)
             return menu
+        }
+
+        /// The trimmed selection "New person…" prefills with, or nil when the item is hidden.
+        func newPersonOffer(for range: NSRange, in tv: NSTextView) -> String? {
+            let ns = tv.string as NSString
+            guard range.length > 0, NSMaxRange(range) <= ns.length, let storage = tv.textStorage else { return nil }
+            let known = Sanitiser.linkOccurrences(in: storage.string).map(\.range)
+                + suggestedRanges(in: storage).map(\.range)
+            return NewPersonFromName.selectionOffer(
+                text: ns.substring(with: range), selection: range,
+                knownRanges: known, people: NamesStore.shared.livePeople())
         }
 
         @objc private func addNewNameAction(_ sender: NSMenuItem) {
