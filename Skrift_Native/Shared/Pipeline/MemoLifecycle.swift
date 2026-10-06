@@ -6,7 +6,7 @@ import SwiftData
 /// 2026-07-17 "anything you touched stays until you say otherwise"):
 ///
 ///   **every unrated note is on one fade clock; touching it restarts the clock,
-///   rating it keeps it forever. Only locks, reminders and backlinks hold a
+///   rating it keeps it forever. Only locks and backlinks hold a
 ///   note off the clock.**
 ///
 /// The clock runs from `clockStart` = max(recordedAt, keptAt): any investment
@@ -35,12 +35,11 @@ enum MemoLifecycle {
         max(memo.ageDate, memo.keptAt ?? .distantPast)
     }
 
-    /// Held OFF the clock entirely: rated (the active track), locked, pending
-    /// reminder, or backlinked from a living note. Everything else fades.
+    /// Held OFF the clock entirely: rated (the active track), locked, or
+    /// backlinked from a living note (D185: a reminder no longer holds). Everything else fades.
     static func neverFades(_ memo: Memo, backlinked: Set<UUID>) -> Bool {
         if NoteConsent.isRated(memo) { return true }
         if memo.locked { return true }
-        if memo.remindAt != nil { return true }
         if backlinked.contains(memo.id) { return true }
         return false
     }

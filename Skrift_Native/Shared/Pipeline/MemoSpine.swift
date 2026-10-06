@@ -10,7 +10,7 @@ import Foundation
 ///
 /// v2 changes: the Parked siding is GONE — a touched-but-unrated note is just a
 /// clock-run note with a fresher anchor (`MemoLifecycle.clockStart`). The only
-/// notes off the clock are `held` ones: locked, pending reminder, or backlinked.
+/// notes off the clock are `held` ones: locked or backlinked.
 enum MemoSpine {
 
     // ── stations ──
@@ -29,7 +29,7 @@ enum MemoSpine {
     /// Why a note sits off the clock — the only exemptions (rating is not one:
     /// a rated note is on the active track).
     enum HoldReason: String, Equatable {
-        case locked, reminder, linked
+        case locked, linked
     }
 
     // ── input (app-neutral; built from Memo on both apps) ──
@@ -62,7 +62,6 @@ enum MemoSpine {
     /// nil = the note is on the clock.
     static func holdReason(of memo: Memo, backlinked: Set<UUID>) -> HoldReason? {
         if memo.locked { return .locked }
-        if memo.remindAt != nil { return .reminder }
         if backlinked.contains(memo.id) { return .linked }
         return nil
     }
@@ -81,7 +80,7 @@ enum MemoSpine {
         }
         // 2 · the active track: rated (the gate).
         if input.rated { return .toProcess }
-        // 3 · held off the clock: locked / reminder / backlinked.
+        // 3 · held off the clock: locked / backlinked.
         if let reason = input.holdReason { return .held(reason: reason) }
         // 4 · the clock. Still transcribing = New (never Fading).
         let anchor = max(input.recordedAt, input.keptAt ?? .distantPast)
@@ -108,7 +107,6 @@ enum MemoSpine {
         case .held(let reason):
             switch reason {
             case .locked:   return "locked — won't fade"
-            case .reminder: return "reminder set — won't fade"
             case .linked:   return "linked — won't fade"
             }
         case .toProcess: return "processes on next run"
@@ -134,7 +132,6 @@ enum MemoSpine {
             let why: String
             switch reason {
             case .locked:   why = "Locked, so it never fades"
-            case .reminder: why = "Has a reminder, so it won't fade"
             case .linked:   why = "Linked from another note, so it won't fade"
             }
             return "\(why) — but it's not rated, so the Mac won't polish it."
