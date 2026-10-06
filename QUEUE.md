@@ -1437,7 +1437,7 @@ do: Delete in `SkriftMobile/Services/Audiobooks/`: the single-URL `importBook(fr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookLibraryStoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d04 MAS-d05 MAS-d06 MAS-d07 MAS-d08 MAS-d09 MAS-d11 MAS-d13 MAS-d15 MAS-d-m1..m4 MAS-c29 (cleanup-audit P2)
 
-### Q190 [auto] (todo) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
+### Q190 [auto] (doing) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
 spec: C239
 needs: Q189
 gate+: no
@@ -2159,7 +2159,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D171): a plain .md file imports as a typed note on both apps — body is the file, title from the first heading, no capture card. Today the Mac makes an 'Apple Note' (IngestService.ingestNote) and the phone a 'Text' capture (CaptureInboxDrainer). One rule in Shared ImportKinds. Desktop test `MarkdownImportTests`, phone test `MarkdownImportPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class MarkdownImportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MarkdownImportPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q287 [auto] (todo) a video filed Inspiration/Idea/Project keeps its movie as a synced asset
+### Q287 [auto] (doing) a video filed Inspiration/Idea/Project keeps its movie as a synced asset
 spec: C63 C148 D172
 needs: -
 gate+: yes
@@ -2452,7 +2452,7 @@ gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q289-mac-recorder-pause.html as signed in SPEC D182: pause/resume on the Mac recorder; × asks 'Discard this recording?' in a POPOVER anchored to ×, not a window alert; the take pauses while it asks, Discard throws it away, Keep resumes recording. Recording safety first (C99: segments + launch sweep must still recover a killed take). Test: `MacRecorderDiscardTests` (desktop UnitTests on the recorder model: ask pauses, keep resumes, discard deletes the segments). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q329 [auto] (todo) captured quotes edit like normal text on phone and Mac; tapping a quote word seeks the audio everywhere (D183)
+### Q329 [auto] (doing) captured quotes edit like normal text on phone and Mac; tapping a quote word seeks the audio everywhere (D183)
 spec: -
 needs: -
 gate+: yes
@@ -3575,3 +3575,6 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:24 Q331 -> doing — worker out
 - 2026-10-06 20:46 Q330 -> done — gate 46s @2971e6bc
 - 2026-10-06 20:50 Q331 -> done — hand-merged (Tuur approved 2026-10-06: protected tests that only pinned reminders go with D185)
+- 2026-10-06 20:52 Q329 -> doing — worker out
+- 2026-10-06 20:52 Q287 -> doing — worker out
+- 2026-10-06 20:52 Q190 -> doing — worker out
