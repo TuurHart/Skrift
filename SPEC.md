@@ -1976,3 +1976,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      later", and the place for that is the Sunday-morning pass through the Review tab. Note reminders
      go on phone, iPad and Mac (UI, scheduler, notifications). Supersedes D51, D122, C92, C162.
      The synced `remindAt` field stays in the model, unused, so CloudKit and older builds keep working.
+186. **D186 Speed is kept, not re-won.** ✅ 2026-10-06, Tuur: "make sure we don't lose that. Make sure
+     it's fast on Mac and on phone." Budgets on the perf library (Q313, 2,000 notes), optimised Dev build:
+     iPhone 13 cold launch to first frame ≤ 2.0 s (b181: 1.5-1.7 s); main-thread busy over the
+     7-minute flow ≤ 30 s (b181: 22.9 s). The work-counter tests (ListDerivedCache, NoteOpenWork,
+     SaveNoop, ListRowEquatable, LaunchWork, BookNotesCountCache) stay in the item checks and must
+     never be loosened to pass. Before any prod promotion: re-run `plan/perf2/tools/` on the phone
+     and the Mac; a miss blocks promotion. The Mac gets the same treatment: measured first, then fixed.
