@@ -2366,7 +2366,7 @@ gate+: yes
 do: Run 2026-10-05 after Q314: MemoDetailUITests 5/7 pass (open non-first memo, delete-to-next, edit, split speakers, open). Two stale failures, both older than Q314: testSwipeBetweenMemos (swipe-between-notes OFF since 2026-07-16, pager removed by Q314) — delete it; testAddTagInDetail taps 'tag-editor-done', which Q28 (0c2a90fa, shared TagEditorRow: own row, no sheet) removed — rewrite it to add a tag through TagEditorRow and assert the chip appears. Also add testRelatedNoteHopOpensInPlace if the seeded memos can link (seed a [[memo:]] link if needed). UI test files are not protected. Run ONLY this phone UI class on the iPhone 17 sim; never run any Mac UI test.
 check: `/usr/bin/lockf -t 3600 /tmp/skrift-sim.lock xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath Skrift_Native/SkriftMobile/build -skipMacroValidation -skipPackagePluginValidation -only-testing:SkriftMobileUITests/MemoDetailUITests -quiet && ./gate.sh`
 
-### Q319 [tuur] (tuur) re-run the 7-minute speed flow on the iPhone 13 (Dev 179, perf library) to measure Q314-Q317
+### Q319 [tuur] (done) re-run the 7-minute speed flow on the iPhone 13 (Dev 179, perf library) to measure Q314-Q317
 spec: -
 needs: -
 do: Same flow as plan/perf2/MEASURED.md: the orchestrator launches the app under Instruments with -perfLibrary (xctrace --launch, time in SECONDS), Tuur scrolls, opens 5 long notes and taps a related note, types and presses Done, searches 'morning' and clears it, goes home 5 s and back, records 15 s and stops, opens Books and a book. Compare each moment against the b178 column.
@@ -3468,3 +3468,4 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-05 22:30 Q320 -> done — gate pass @7d7325ec
 - 2026-10-05 22:38 Q322 -> doing — worker out
 - 2026-10-05 23:21 Q321 -> done — gate pass @7cba30df
+- 2026-10-06 08:22 Q319 -> done — Tuur ran it 2026-10-05 22:05; results in plan/perf2/MEASURED.md (b179 re-run)
