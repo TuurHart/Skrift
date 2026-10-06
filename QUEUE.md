@@ -2473,7 +2473,7 @@ gate+: yes
 do: SPEC D185 (Tuur 2026-10-06): remove note reminders everywhere. Phone/iPad: the bell chip, '⋯ > Remind me…', the list long-press 'Remind me…' (context-remind-button), ReminderSheet, ReminderScheduler/ReminderPlan and every launch/foreground/sync call into it, and any reminder filter or count. Mac: the reminder row/chip (2d685e56) and any alarm code. On first launch after the update, each device removes the app's pending/delivered reminder notifications (UNUserNotificationCenter, the reminder identifiers only — keep FeedbackKit's and any other notifications). KEEP the synced `Memo.remindAt` property in the SwiftData model, unused, with a comment pointing at D185 (CloudKit schema + older installed builds). Lifecycle: a reminder no longer holds a note off the fading clock (MemoLifecycle touch/held lists) — update the shared rule and its tests; export already skips the reminder. Update FEATURES.md (Note reminders row → removed, D185) and the SPEC clauses C92/C162 wording to 'removed by D185'. Fix or delete every test that only pins reminders (UI tests are not protected; protected unit tests that only pin removed behaviour: list them in your report, do not edit them). Tests: `RemindersRemovedTests` (phone target: no code path schedules a notification for remindAt; the launch cleanup removes only reminder identifiers; a note with remindAt set fades like any other). Run SkriftMobileUITests/MemosListUITests. Never run any Mac UI test; Mac proof = full build + headless -snapshot you look at.
 check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 
-### Q332 [auto] (todo) Personal videos keep and sync their movie like every other video (D188)
+### Q332 [auto] (doing) Personal videos keep and sync their movie like every other video (D188)
 spec: -
 needs: -
 gate+: yes
@@ -3589,3 +3589,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:21 Q191 -> doing — worker out
 - 2026-10-06 21:26 Q287 -> done — gate 114s @212d1a78
 - 2026-10-06 21:26 Q332 added
+- 2026-10-06 21:27 Q332 -> doing — worker out
