@@ -2459,7 +2459,7 @@ gate+: yes
 do: SPEC D183 (Tuur 2026-10-06): no 'Fix quote' verb; a captured audiobook/shared-text quote is editable like the rest of the note on phone and Mac — undo Q112's read-only quote (C172) and the phone's equivalent; karaoke keeps highlighting the words that still line up after an edit (word index alignment via the existing KaraokeMap; no crash or wrong-word highlight when the edit changes the word count — degrade to no highlight for unmatched words). Tapping a word in a quote during playback seeks the quote audio there: the phone already has QuoteWordSeek (CaptureQuoteViews.swift:61, Q83) — check it actually fires in the current note screen (Q314 rebuilt it) and add the same on the Mac (shared seek lookup). Update FEATURES.md + C172 wording. Tests: `QuoteEditKaraokeTests` (phone target: edited quote keeps highlighting matched words, no out-of-range) + desktop UnitTests for the Mac seek. Phone: sim screenshot of an edited quote during playback, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `plan/mtest.sh QuoteEditKaraokeTests && ./gate.sh`
 
-### Q330 [auto] (doing) 'New person…' in the text menu for any selected word, phone and Mac (D184)
+### Q330 [auto] (done) 'New person…' in the text menu for any selected word, phone and Mac (D184)
 spec: -
 needs: -
 gate+: yes
@@ -3573,3 +3573,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:24 Q326 -> done — hand-merged @bf857303 (Q327 SettingsView/Snapshot conflict, both kept); gate green 1574 tests; full Mac build ok
 - 2026-10-06 20:24 Q330 -> doing — worker out
 - 2026-10-06 20:24 Q331 -> doing — worker out
+- 2026-10-06 20:46 Q330 -> done — gate 46s @2971e6bc
