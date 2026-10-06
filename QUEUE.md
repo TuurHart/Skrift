@@ -2423,7 +2423,7 @@ gate+: yes
 do: D180 (Tuur 2026-10-06): the phone/iPad notes list's day-section headers stop pinning; they scroll with the rows. Measured cost of pinning: UIKit's pinned-supplementary solve (_UICollectionCompositionalLayoutSolver updatePinnedSectionSupplementaryItemsForVisibleBounds) = ~27% of main-thread scroll work at 2,000 notes on the iPhone 13 (plan/perf2/MEASURED.md, Q323 finding in plan/RUN.md). Keep the header's look identical (text, spacing, colour) — only the pinning goes; keep sections for search/filter grouping. Check whether the Mac sidebar pins its day headers too: if it shares the code, change both; if not, leave the Mac alone and say so. Render and look: iPhone 17 sim screenshots (UDID 4962056D-2AE0-46AD-A04F-3663AE7698CF, -perfLibrary) before and after, mid-scroll, light and dark — the header must no longer sit over the rows at the top. Run SkriftMobileUITests/MemosListUITests. Test: `ListHeadersScrollTests` (the list's section header style/config is the non-pinned one).
 check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
 
-### Q325 [auto] (doing) build: Mac note photos — add at the caret, zoom + markup viewer, 'Downloading from iCloud…' (Q128 mock, D182)
+### Q325 [auto] (done) build: Mac note photos — add at the caret, zoom + markup viewer, 'Downloading from iCloud…' (Q128 mock, D182)
 spec: -
 needs: -
 gate+: yes
@@ -3567,3 +3567,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 18:06 Q129 -> done — dropped 2026-10-06 (SPEC D185): reminders removed everywhere
 - 2026-10-06 20:16 Q328 -> done — gate pass @944c30bd
 - 2026-10-06 20:17 Q327 -> done — gate pass @8a544cf8
+- 2026-10-06 20:19 Q325 -> done — gate pass @04ddd331
