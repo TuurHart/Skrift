@@ -1453,7 +1453,7 @@ do: In `AudiobookCloudSync.swift` the transcript and alignment sidecar sets (`tr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookCloudSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d12 MAS-c26 MAS-c27 (cleanup-audit P4)
 
-### Q192 [auto] (doing) BookAlignment: one align-one-text helper, single-text mergeSentences
+### Q192 [auto] (done) BookAlignment: one align-one-text helper, single-text mergeSentences
 spec: C239
 needs: Q190
 gate+: no
@@ -3596,3 +3596,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:42 Q191 -> done — gate 46s @098066e5
 - 2026-10-06 21:42 Q192 -> doing — worker out
 - 2026-10-06 21:42 Q244 -> doing — worker out
+- 2026-10-06 21:56 Q192 -> done — gate 103s @b4b27a38
