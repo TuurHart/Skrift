@@ -86,7 +86,10 @@ struct PublishReport: Equatable {
 
     /// The engine's outcome in the shared type, nil for `.noVault`.
     var vaultOutcome: VaultWriteOutcome? { outcome.vaultOutcome(path: relativePath) }
+}
 
+/// In an extension so the struct keeps its memberwise `init(outcome:relativePath:assetCount:)`.
+extension PublishReport {
     /// The report for one engine result. A write and an unchanged result name `relativePath`
     /// (the file decided on); only a write counts `assetCount`; a refusal names its own file.
     init(_ result: VaultWriteOutcome, relativePath: String, assetCount: Int = 0) {
