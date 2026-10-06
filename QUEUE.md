@@ -1437,7 +1437,7 @@ do: Delete in `SkriftMobile/Services/Audiobooks/`: the single-URL `importBook(fr
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookLibraryStoreTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d04 MAS-d05 MAS-d06 MAS-d07 MAS-d08 MAS-d09 MAS-d11 MAS-d13 MAS-d15 MAS-d-m1..m4 MAS-c29 (cleanup-audit P2)
 
-### Q190 [auto] (doing) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
+### Q190 [auto] (done) audiobook plumbing: stop hashing the ePub, one attached-text setter, one folder-path owner
 spec: C239
 needs: Q189
 gate+: no
@@ -3578,3 +3578,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:52 Q329 -> doing — worker out
 - 2026-10-06 20:52 Q287 -> doing — worker out
 - 2026-10-06 20:52 Q190 -> doing — worker out
+- 2026-10-06 21:21 Q190 -> done — gate 136s @a1b33b3c
