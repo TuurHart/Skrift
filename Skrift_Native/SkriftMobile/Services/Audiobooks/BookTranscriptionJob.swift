@@ -91,15 +91,6 @@ final class BookTranscriptionJob: ObservableObject {
         enableBatteryMonitoring()
     }
 
-    /// Estimated wall-seconds to finish `book` from the current coverage, using
-    /// the measured throughput. nil until a per-device rate exists. The screen
-    /// turns this into "≈ N min left" — a real number, not a placeholder.
-    func estimatedRemainingSeconds(for book: Audiobook) -> TimeInterval? {
-        guard let rtf = measuredRTF, rtf > 0 else { return nil }
-        let remainingAudio = max(0, book.duration * (1 - progress))
-        return remainingAudio / rtf
-    }
-
     var isRunningOrPaused: Bool {
         switch phase { case .running, .pausedUnplugged, .pausedByUser: return true; default: return false }
     }
@@ -131,14 +122,6 @@ final class BookTranscriptionJob: ObservableObject {
     /// moment it opens — before Start — instead of 0.
     func savedProgress(for book: Audiobook) -> Double {
         publishValue(book: book)
-    }
-
-    /// Reflect `book`'s saved progress when idle so the sheet bar/label/estimate
-    /// are correct on open (the resume state was always preserved on disk; this
-    /// just shows it). No-op while a job is live — it owns `progress`.
-    func reflectSavedProgress(for book: Audiobook) {
-        guard !isRunningOrPaused else { return }
-        progress = savedProgress(for: book)
     }
 
     func pauseByUser() {

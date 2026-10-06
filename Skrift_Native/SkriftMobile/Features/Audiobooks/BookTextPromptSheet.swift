@@ -101,7 +101,7 @@ struct BookTextPromptSheet: View {
     private var transcribeMeta: String {
         var line = "Works for every book, fully on-device. Read-along, captures and chapters come from this"
         if let eta = BookTextDisplay.estimateSeconds(duration: book.duration, progress: 0, rtf: job.measuredRTF) {
-            line += ". ≈ \(TranscribeBookView.shortDuration(eta)) for this book"
+            line += ". ≈ \(BookTextDisplay.shortDuration(eta)) for this book"
         }
         return line + "."
     }

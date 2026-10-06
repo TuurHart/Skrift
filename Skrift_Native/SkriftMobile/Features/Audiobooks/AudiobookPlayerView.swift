@@ -20,7 +20,6 @@ struct AudiobookPlayerView: View {
 
     @State private var showCapture = false
     @State private var showEditBook = false
-    @State private var showTranscribe = false
     @State private var showSyncSheet = false
     /// ⋯ → "Book text…" (device finding 2026-07-22: the verb only lived on the
     /// library's long-press; the player is where you actually are). Same shared
@@ -72,9 +71,6 @@ struct AudiobookPlayerView: View {
         .fullScreenCover(isPresented: $showCapture) { QuoteCaptureFlowView() }
         .sheet(isPresented: $showEditBook) {
             if let book = session.book { EditBookDetailsView(book: book).presentationDetents([.medium]) }
-        }
-        .sheet(isPresented: $showTranscribe) {
-            if let book = session.book { TranscribeBookView(book: book) }
         }
         .sheet(isPresented: $showSyncSheet) {
             if let book = session.book { AudiobookSyncSheet(book: book) }
@@ -164,7 +160,7 @@ struct AudiobookPlayerView: View {
                     fileLocal: location.offset,
                     audioURL: session.store.audioURL(of: book, fileIndex: location.index),
                     bookmarks: currentBookmarks,
-                    onTranscribe: { showTranscribe = true },
+                    onTranscribe: { bookTextBook = book },
                     onUserScroll: { recedeOnScroll() },
                     onToggleBookmarkInSpan: { start, end in toggleBookmark(inSpan: start, end) }
                 )
@@ -283,7 +279,7 @@ struct AudiobookPlayerView: View {
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off 2026-07-23):
             // the unified sheet carries transcribe (Level 1) + book text (Level 2).
-            // `showTranscribe`/TranscribeBookView stays — the read-along nudge's sheet.
+            // The read-along nudge opens this same sheet (Q194).
             Button { bookTextBook = book } label: { Label("Text\u{2026}", systemImage: "text.book.closed") }
             // 📦 Share this book with someone — same sheet as the library long-press.
             Button { shareBook = book } label: {
