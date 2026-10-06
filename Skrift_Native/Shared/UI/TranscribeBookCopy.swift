@@ -1,8 +1,8 @@
 import Foundation
 
-/// ONE copy set for "transcribe this book" (Q187, row books-75). TranscribeBookView,
-/// BookTextSheet and ReadAlongView each carried their own wording for the same job
-/// (four start labels, two battery sentences). All three read these.
+/// ONE copy set for "transcribe this book" (Q187, row books-75). the old
+/// TranscribeBookView, BookTextSheet and ReadAlongView each carried their own wording for the
+/// same job (four start labels, two battery sentences). The remaining screens read these.
 enum TranscribeBookCopy {
     static let start = "Start transcribing"
     static let resume = "Resume transcribing"

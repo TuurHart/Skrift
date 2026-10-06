@@ -6,8 +6,7 @@ import SwiftUI
 /// `BookTranscriptionJob` inline) stacked above **Level 2 · Book text** (the ceiling:
 /// the 2026-07-22 signed-off variant-B timeline sheet, UNCHANGED — bar, legend, per-text
 /// rows, Add). Replaces the separate "Transcribe book" + "Book text…" menu entries
-/// (library long-press AND player ⋯). `TranscribeBookView` survives solely as the
-/// read-along nudge's detail sheet.
+/// (library long-press AND player ⋯); the read-along "Transcribe" nudge opens it too.
 ///
 /// Level-2 notes: the bar's segments are the REAL aligned spans in book-time order,
 /// colored per attached text; rows carry the per-text verbs (Re-check / Remove); an
@@ -265,6 +264,7 @@ struct BookTextSheet: View {
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
                 transcribeButton(TranscribeBookCopy.start)
             }
+            failureLine
         }
         .textCard()
         .accessibilityIdentifier("text-sheet-transcript-card")
@@ -304,7 +304,7 @@ struct BookTextSheet: View {
         var parts = ["\(Int((thisBookProgress * 100).rounded()))%"]
         if !paused, let eta = BookTextDisplay.estimateSeconds(
             duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
-            parts.append("≈ \(TranscribeBookView.shortDuration(eta)) left")
+            parts.append("≈ \(BookTextDisplay.shortDuration(eta)) left")
         }
         parts.append(job.phase == .pausedUnplugged
                      ? TranscribeBookCopy.pausedLowBattery
@@ -312,14 +312,26 @@ struct BookTextSheet: View {
         return parts.joined(separator: " · ")
     }
 
+    /// A failed run on THIS book (the job keeps `activeBookID` on failure) — without this
+    /// line a failed transcribe would read as an ordinary "Not transcribed" card.
+    @ViewBuilder
+    private var failureLine: some View {
+        if job.activeBookID == book.id, let line = BookTextDisplay.failureLine(phase: job.phase) {
+            Label(line, systemImage: "exclamationmark.triangle")
+                .font(.system(size: 11.5)).foregroundStyle(Color.skAmber)
+                .padding(.top, 4)
+                .accessibilityIdentifier("text-sheet-transcript-failed")
+        }
+    }
+
     /// "Runs on-device, ≈ 24 min for this book." — the estimate uses the job's real
     /// measured per-device throughput; omitted entirely until one exists (never a
-    /// fabricated figure — TranscribeBookView's standing rule).
+    /// fabricated figure — the standing rule).
     private var freshMeta: String {
         var line = "Transcribing gives read-along, quote captures and chapter detection. Runs on-device"
         if let eta = BookTextDisplay.estimateSeconds(
             duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
-            line += ", ≈ \(TranscribeBookView.shortDuration(eta)) for this book"
+            line += ", ≈ \(BookTextDisplay.shortDuration(eta)) for this book"
         }
         return line + "."
     }
@@ -631,6 +643,21 @@ enum BookTextDisplay {
         let remaining = max(0, duration * (1 - min(1, max(0, progress))))
         let eta = remaining / rtf
         return eta > 1 ? eta : nil
+    }
+
+    /// "Stopped: <why>" while the job's phase is `.failed`; nil otherwise.
+    static func failureLine(phase: BookTranscriptionJob.Phase) -> String? {
+        if case .failed(let why) = phase { return "Stopped: \(why)" }
+        return nil
+    }
+
+    /// "12 min" / "1 h 20 min" / "45 s".
+    static func shortDuration(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds.rounded())
+        if s < 60 { return "\(s) s" }
+        let m = s / 60, h = m / 60
+        if h > 0 { return "\(h) h \(m % 60) min" }
+        return "\(m) min"
     }
 
     /// The sheet footer (mock A1/A2/A3).
