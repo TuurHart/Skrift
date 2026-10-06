@@ -2452,7 +2452,7 @@ gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q289-mac-recorder-pause.html as signed in SPEC D182: pause/resume on the Mac recorder; × asks 'Discard this recording?' in a POPOVER anchored to ×, not a window alert; the take pauses while it asks, Discard throws it away, Keep resumes recording. Recording safety first (C99: segments + launch sweep must still recover a killed take). Test: `MacRecorderDiscardTests` (desktop UnitTests on the recorder model: ask pauses, keep resumes, discard deletes the segments). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q329 [auto] (doing) captured quotes edit like normal text on phone and Mac; tapping a quote word seeks the audio everywhere (D183)
+### Q329 [auto] (done) captured quotes edit like normal text on phone and Mac; tapping a quote word seeks the audio everywhere (D183)
 spec: -
 needs: -
 gate+: yes
@@ -3590,3 +3590,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:26 Q287 -> done — gate 114s @212d1a78
 - 2026-10-06 21:26 Q332 added
 - 2026-10-06 21:27 Q332 -> doing — worker out
+- 2026-10-06 21:30 Q329 -> done — gate 89s @36026484
