@@ -1,6 +1,5 @@
 import ActivityKit
 import Foundation
-import SkriftShared
 import UIKit
 
 /// Owns the recording Live Activity: starts it when recording begins, pushes the
@@ -89,7 +88,7 @@ final class RecordingActivityManager {
         lastPushAt = nil
         do {
             activity = try Activity.request(
-                attributes: RecordingActivityAttributes(startedAt: startedAt),
+                attributes: RecordingActivityAttributes(),
                 content: .init(state: makeState(), staleDate: Date().addingTimeInterval(Self.staleAfter)),
                 pushType: nil
             )
