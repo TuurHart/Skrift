@@ -1984,3 +1984,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      SaveNoop, ListRowEquatable, LaunchWork, BookNotesCountCache) stay in the item checks and must
      never be loosened to pass. Before any prod promotion: re-run `plan/perf2/tools/` on the phone
      and the Mac; a miss blocks promotion. The Mac gets the same treatment: measured first, then fixed.
+187. **D187 Tests run, in the right place.** ✅ 2026-10-06, Tuur: "we still do tests, we just do them in
+     batches later, and if something goes wrong we go back and fix it." Per item: the tests nearest the
+     change plus the Mac gate (~40 s), and the gate only when app code changed (accept.sh `code:`).
+     Slow phone simulator classes run once per batch at session end. Workers never run the full gate.
+     The phone test script uses two simulators (`plan/mtest.sh`: whichever iPhone 17 is free).
