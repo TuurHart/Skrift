@@ -2386,7 +2386,7 @@ gate+: yes
 do: Tuur 2026-10-05 on the iPhone 13: opening a note from a search result highlights the hit too faintly and scrolls it to the BOTTOM of the screen. Want: a bright yellow highlight (like a highlighter; readable in light and dark mode — dark text on yellow) on every occurrence of the term, and the first hit scrolled to the vertical middle of the visible editor area (above the keyboard/player bar). Code: Skrift_Native/SkriftMobile/Services/SearchHitBridge.swift, Features/MemoDetail/NoteBodyView.swift (search-hit path), MemosListView.swift (sets the hit). Check whether the Mac and iPad have the same search-hit path; if so single-source the highlight colour and centring rule in Shared/ (feedback_shared_code_first) and apply it there too. Render it and look: sim screenshot of a note opened from a search for a word near the end of a long note, light and dark. Test: `SearchHitCenteringTests` (phone target) — the computed scroll offset puts the hit's rect centre at the visible area's centre (clamped at the top/bottom of the text).
 check: `plan/mtest.sh SearchHitCenteringTests && ./gate.sh`
 
-### Q322 [auto] (doing) perf: a save with no changes is a no-op, and a note edit does not rebuild the list or the hidden Books tab
+### Q322 [auto] (done) perf: a save with no changes is a no-op, and a note edit does not rebuild the list or the hidden Books tab
 spec: -
 needs: -
 gate+: yes
@@ -3469,3 +3469,4 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-05 22:38 Q322 -> doing — worker out
 - 2026-10-05 23:21 Q321 -> done — gate pass @7cba30df
 - 2026-10-06 08:22 Q319 -> done — Tuur ran it 2026-10-05 22:05; results in plan/perf2/MEASURED.md (b179 re-run)
+- 2026-10-06 08:28 Q322 -> done — hand-merged (Tuur approved 2026-10-06: NoteOpenWorkTests saves now change a field first (no-op save no longer bumps); classifier test nonce)
