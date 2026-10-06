@@ -2437,7 +2437,7 @@ gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q144-mac-weather-daypart.html as signed in SPEC D182: a Mac recording gets weather + daypart metadata like the phone (same shared MemoMetadata types); the OpenWeatherMap key syncs from the phone over iCloud (no separate Mac field unless none ever synced — then the Settings row the mock shows); a file dragged into the Mac gets no place and no weather. Never log or commit the key. Test: `MacWeatherMetadataTests` (desktop UnitTests: a Mac take with a synced key + stubbed fetch writes weather/daypart; a dropped file writes none). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q327 [auto] (doing) build: Mac shows iCloud sync trouble — Settings row, in-list capsule only when broken, signed-out message (Q162 mock, D182)
+### Q327 [auto] (done) build: Mac shows iCloud sync trouble — Settings row, in-list capsule only when broken, signed-out message (Q162 mock, D182)
 spec: -
 needs: -
 gate+: yes
@@ -3566,3 +3566,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 18:06 Q331 added
 - 2026-10-06 18:06 Q129 -> done — dropped 2026-10-06 (SPEC D185): reminders removed everywhere
 - 2026-10-06 20:16 Q328 -> done — gate pass @944c30bd
+- 2026-10-06 20:17 Q327 -> done — gate pass @8a544cf8
