@@ -2400,6 +2400,13 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (b179 flow re-run, iPhone 13, 2,000 notes): fast scrolling keeps the main thread ~75% busy (self-sizing cells: ListCollectionViewCellBase.preferredLayoutAttributesFitting → hostSizeThatFits 3.9 s, cell creation 4.5 s per 20 s), and typing in search still diffs the whole sectioned List (ListDiffable.sectionIndex 1.9 s). Investigate with the trace first (scratchpad scripts in plan/perf2/MEASURED.md header), then fix the biggest: candidates — give NoteCardView a cheap, stable size (no ChipFlowLayout measure pass per sizing; keep the Q312 ChipSlot clipping rule), stable row identity and Equatable row values so SwiftUI skips unchanged rows, fewer/cheaper section headers during search. Do NOT change how a card looks: render before/after sim screenshots of the list (cards with 0, 2 and 5+ chips, photo, quote) and compare by eye. Test: `ListRowEquatableTests` (rows with unchanged inputs compare equal; section identity stable across a search keystroke).
 check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTests && ./gate.sh`
 
+### Q324 [auto] (doing) phone notes list: day headers scroll away with the notes (D180)
+spec: -
+needs: -
+gate+: yes
+do: D180 (Tuur 2026-10-06): the phone/iPad notes list's day-section headers stop pinning; they scroll with the rows. Measured cost of pinning: UIKit's pinned-supplementary solve (_UICollectionCompositionalLayoutSolver updatePinnedSectionSupplementaryItemsForVisibleBounds) = ~27% of main-thread scroll work at 2,000 notes on the iPhone 13 (plan/perf2/MEASURED.md, Q323 finding in plan/RUN.md). Keep the header's look identical (text, spacing, colour) — only the pinning goes; keep sections for search/filter grouping. Check whether the Mac sidebar pins its day headers too: if it shares the code, change both; if not, leave the Mac alone and say so. Render and look: iPhone 17 sim screenshots (UDID 4962056D-2AE0-46AD-A04F-3663AE7698CF, -perfLibrary) before and after, mid-scroll, light and dark — the header must no longer sit over the rows at the top. Run SkriftMobileUITests/MemosListUITests. Test: `ListHeadersScrollTests` (the list's section header style/config is the non-pinned one).
+check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3472,3 +3479,5 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-06 08:28 Q322 -> done — hand-merged (Tuur approved 2026-10-06: NoteOpenWorkTests saves now change a field first (no-op save no longer bumps); classifier test nonce)
 - 2026-10-06 08:29 Q323 -> doing — worker out
 - 2026-10-06 08:53 Q323 -> done — gate pass @c92c3bb4
+- 2026-10-06 12:11 Q324 added
+- 2026-10-06 12:11 Q324 -> doing — worker out

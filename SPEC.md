@@ -1950,3 +1950,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      (~/Hackerman/feedback-kit, design https://claude.ai/artifact/JyZDsYr7HaEjsBoWTepjo6), app id `skrift`; the key
      lives outside git in ~/.config/feedback-kit/skrift.xcconfig; voice feedback pauses while Skrift records or
      plays; Tuur's open questions get published to the app instead of artifacts (Q299).
+180. **D180 Day headers scroll away.** ✅ 2026-10-06, Tuur: the phone notes list's day headers
+     ("Today", "Yesterday", dates) scroll with the notes instead of pinning to the top — "smooth on
+     old phones". Pinned headers were ~27% of main-thread scroll work at 2,000 notes on the iPhone 13
+     (Q323 finding, plan/perf2/MEASURED.md).
