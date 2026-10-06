@@ -47,7 +47,7 @@ enum EPubParse {
         for item in manifestNode.children where item.localName == "item" {
             guard let id = item.attributes["id"], let href = item.attributes["href"] else { continue }
             manifest[id] = ManifestItem(
-                id: id, href: href,
+                href: href,
                 mediaType: item.attributes["media-type"] ?? "",
                 properties: item.attributes["properties"] ?? "")
         }
@@ -86,7 +86,6 @@ enum EPubParse {
     // MARK: - Manifest item
 
     private struct ManifestItem {
-        let id: String
         let href: String
         let mediaType: String
         let properties: String
@@ -153,10 +152,7 @@ enum EPubParse {
             guard child.name != "#text" else { continue }
             if shouldSkip(child) { continue }
             let ln = child.localName
-            if blockTags.contains(ln) {
-                let text = collapseWhitespace(flattenText(child))
-                if !text.isEmpty { blocks.append(EPubBlock(text: text, sourceFile: sourceFile)) }
-            } else if ln == "div", !hasBlockDescendant(child) {
+            if blockTags.contains(ln) || (ln == "div" && !hasBlockDescendant(child)) {
                 let text = collapseWhitespace(flattenText(child))
                 if !text.isEmpty { blocks.append(EPubBlock(text: text, sourceFile: sourceFile)) }
             } else {

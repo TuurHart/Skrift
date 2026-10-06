@@ -60,10 +60,6 @@ enum ASRLanguageStore {
         defaults.bool(forKey: ASRLanguageMode.settingKey)
     }
 
-    static func mode(defaults: UserDefaults = .standard) -> ASRLanguageMode {
-        .from(multilingual: isMultilingual(defaults: defaults))
-    }
-
     /// `.distantPast` until the user actually picks — so a device that never chose can't
     /// push its default over another device's real choice.
     static func modifiedAt(defaults: UserDefaults = .standard) -> Date {

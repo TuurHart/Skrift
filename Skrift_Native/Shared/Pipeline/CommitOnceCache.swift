@@ -35,10 +35,4 @@ final class CommitOnceCache<Key: Equatable, Value> {
         if let lastKey, lastKey == key { return lastValue }
         return nil
     }
-
-    /// Forces the next `value(for:compute:)` call to recompute regardless of key.
-    func invalidate() {
-        lastKey = nil
-        lastValue = nil
-    }
 }

@@ -54,18 +54,14 @@ enum BPEMerge {
             let e = max(s, token.endTime)
 
             if isNewWord {
-                if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-                    words.append(TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
-                }
+                if let p = pending { words.append(TimedWord(text: p.text, start: p.start, end: p.end)) }
                 pending = (text: clean, start: s, end: e)
             } else {
                 pending?.text.append(clean)
                 pending?.end = e
             }
         }
-        if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-            words.append(TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
-        }
+        if let p = pending { words.append(TimedWord(text: p.text, start: p.start, end: p.end)) }
         return words
     }
 

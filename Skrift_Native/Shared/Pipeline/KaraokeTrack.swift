@@ -84,9 +84,6 @@ enum KaraokeRole: Equatable {
 /// Holds the track for the body being played so a 20 Hz caller does not re-align the note
 /// on every tick. Rebuilds only when the words, the timings or the duration change.
 final class KaraokeTrackCache {
-    private var key: Key?
-    private var track: KaraokeTrack?
-
     private struct Key: Equatable {
         let words: [String]
         let timingCount: Int
@@ -94,17 +91,15 @@ final class KaraokeTrackCache {
         let duration: Double
     }
 
+    private let memo = CommitOnceCache<Key, KaraokeTrack>()
+
     init() {}
 
     func track(displayedWords: [String], timings: [WordTiming], duration: Double) -> KaraokeTrack {
-        let k = Key(words: displayedWords, timingCount: timings.count,
-                    lastStart: timings.last?.start ?? 0, duration: duration)
-        if let track, key == k { return track }
-        let fresh = KaraokeTrack(displayedWords: displayedWords, timings: timings, duration: duration)
-        key = k
-        track = fresh
-        return fresh
+        let key = Key(words: displayedWords, timingCount: timings.count,
+                      lastStart: timings.last?.start ?? 0, duration: duration)
+        return memo.value(for: key) {
+            KaraokeTrack(displayedWords: displayedWords, timings: timings, duration: duration)
+        }
     }
-
-    func invalidate() { key = nil; track = nil }
 }

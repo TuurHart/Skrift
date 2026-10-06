@@ -1,16 +1,15 @@
 import Foundation
 
-/// The spine (v2 "one clock" — mocks/lifecycle-triage-peek.html #m5/#m6, signed
-/// 2026-07-22; v1 direction locked 2026-07-20): ONE status per note, computed as
-/// a priority chain — first match wins, so no note can ever carry two labels.
-/// Not a new stored state: `keptAt` stays the only stored lifecycle bit;
-/// everything here is derived. Both apps compute this from the synced `Memo`
-/// alone (`Input.from(memo, backlinked:)`) and reuse the one-liners verbatim — the copy trio "starts fading / moves to Recently
-/// Deleted / gone for good" is signed and pinned by the twin test tables.
+/// The spine (mocks/lifecycle-triage-peek.html #m5/#m6): ONE status per note, computed
+/// as a priority chain, first match wins, so no note carries two labels. Nothing new is
+/// stored: `keptAt` is the only stored lifecycle bit, everything here is derived. Both
+/// apps compute it from the synced `Memo` alone (`Input.from(memo, backlinked:)`) and
+/// reuse the one-liners verbatim; the copy trio "starts fading / moves to Recently
+/// Deleted / gone for good" is pinned by the twin test tables.
 ///
-/// v2 changes: the Parked siding is GONE — a touched-but-unrated note is just a
-/// clock-run note with a fresher anchor (`MemoLifecycle.clockStart`). The only
-/// notes off the clock are `held` ones: locked or backlinked.
+/// A touched-but-unrated note is just a clock-run note with a fresher anchor
+/// (`MemoLifecycle.clockStart`). The only notes off the clock are `held` ones: locked or
+/// backlinked.
 enum MemoSpine {
 
     // ── stations ──

@@ -31,12 +31,8 @@ enum LanguageSyncCore {
             // row's lifecycle); if this device has a real choice it lands on the next run.
             return .noop
         }
-        // Never broadcast a default nobody picked.
-        guard localModifiedAt != .distantPast else {
-            return newest.languageModifiedAt == .distantPast
-                ? .noop
-                : .adoptRemote(multilingual: newest.multilingual, modifiedAt: newest.languageModifiedAt)
-        }
+        // Never broadcast a default nobody picked: an unset local stamp is `.distantPast`,
+        // so it can only adopt a newer remote and never wins the push branch below.
         if newest.languageModifiedAt > localModifiedAt {
             return .adoptRemote(multilingual: newest.multilingual, modifiedAt: newest.languageModifiedAt)
         }

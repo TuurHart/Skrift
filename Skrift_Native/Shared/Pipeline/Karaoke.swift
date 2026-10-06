@@ -1,15 +1,13 @@
 import Foundation
 
-/// Karaoke / read-along highlight math — pure, host-tested, and SHARED. The phone
-/// and Mac each drove read-along with a DIFFERENT function (the phone a simple
-/// active-word lookup over raw timings; the Mac a displayed-word→time alignment
-/// that survives copy-edit / name-linking / header word-count changes). They were
-/// never duplicated code, but they belong in ONE home so the read-along math has a
-/// single source of truth. `WordTiming` is the shared wire-contract struct
-/// (Shared/Model/WordTiming.swift).
+/// Karaoke / read-along highlight math — pure, host-tested, and SHARED. `KaraokeTrack`
+/// is the one rule both apps use to answer "which word is playing"; it builds on
+/// `wordTimes` (displayed-word → time alignment that survives copy-edit / name-linking /
+/// header word-count changes) and `activeCount`. `WordTiming` is the shared wire-contract
+/// struct (Shared/Model/WordTiming.swift).
 enum Karaoke {
 
-    // MARK: - Active-word lookup (phone read-along / capture-quote highlight)
+    // MARK: - Active-word lookup over raw timings (no production caller; pinned by tests)
 
     /// Index of the word being spoken at `time` — the last word whose `start` is at
     /// or before `time`. nil before the first word starts (no highlight yet).
@@ -37,38 +35,23 @@ enum Karaoke {
         return idx
     }
 
-    // MARK: - Displayed-word alignment (Mac review-body read-along)
+    // MARK: - Displayed-word alignment (review-body read-along, both apps)
 
-    /// One playback time (seconds) per displayed word, monotonic non-decreasing.
-    /// Content words (≥4 chars) that match a timed word IN ORDER become anchors with
-    /// their real start time; everything else (short words, rephrasings, headers,
-    /// `[[img]]` markers) is interpolated by position between anchors. Exact when the
-    /// body equals the transcript; graceful under heavy edits. Empty when there are no
-    /// words/timings — the caller then falls back to a pure time proportion.
-    /// CONSOLIDATED into `AlignmentCore` (2026-07-27) — the fold this file's sibling
-    /// always planned ("the consolidation point, not a fourth copy … the conductor folds
-    /// them together later"). One aligner now serves both read-alongs: the book's and
-    /// the note's.
+    /// One playback time (seconds) per displayed word, monotonic non-decreasing, from
+    /// `AlignmentCore` (the one aligner behind both the book's and the note's read-along).
+    /// Words the aligner matched carry their real spoken start; untimed ones (non-spoken
+    /// tokens like a `**Name:**` turn header) take the previous time, a leading run the
+    /// first known time. Short words anchor too: uniqueness on both sides, not length,
+    /// makes an anchor safe, so "the" lands where it is spoken, not interpolated.
     ///
-    /// What changed, and why it's more accurate: the old local pass anchored only on
-    /// words ≥4 characters and LINEARLY REDISTRIBUTED everything between anchors — the
-    /// exact move the ePub round proved wrong when the highlight trailed the narrator by
-    /// seconds across natural pauses. `AlignmentCore` matches short words too (uniqueness,
-    /// not length, is what makes an anchor safe) and carries EXACT per-word times.
-    /// Concretely, on the copy-edit fixture the old code put "the" at 0.0 — which is when
-    /// "um" was spoken — because "the" is 3 characters and got interpolated back to the
-    /// start. It is really spoken at 1.0, and that is what this returns now.
+    /// `anchorN: 1`, not the ePub default of 4: a displayed body is a *subsequence* of the
+    /// spoken words (copy-edit deletes fillers mid-phrase), so contiguous 4-grams mostly
+    /// don't survive and the aligner would reject an ordinary edited note outright.
+    /// Single-word anchors are safe because only n-grams unique on BOTH sides anchor.
     ///
-    /// `anchorN: 1`, not the ePub default of 4: a displayed body is a *subsequence* of
-    /// the spoken words (copy-edit deletes fillers mid-phrase), so contiguous 4-grams
-    /// mostly don't survive — at n=4 the aligner REJECTS an ordinary edited note outright
-    /// (measured). Single-word anchors are safe here because `AlignmentCore` only anchors
-    /// n-grams unique on BOTH sides, so a repeated word is never an anchor.
-    ///
-    /// Returns `[]` when the two don't align at all (`verdict == .rejected`) — the caller
-    /// then falls back to a pure time proportion. That is a capability the old pass never
-    /// had: it always produced *something*, so a body that didn't match its audio was
-    /// highlighted confidently and wrongly.
+    /// Returns `[]` when there are no words/timings or the two don't align at all
+    /// (`verdict == .rejected`); the caller then falls back to a pure time proportion
+    /// rather than highlighting a body that doesn't match its audio.
     static func wordTimes(displayedWords: [String], timings: [WordTiming]) -> [Double] {
         guard !displayedWords.isEmpty, !timings.isEmpty else { return [] }
 
@@ -90,19 +73,15 @@ enum Karaoke {
                 if i >= 0, i < out.count { out[i] = wt.start }
             }
         }
-        guard out.contains(where: { $0 != nil }) else { return [] }
+        guard let firstKnown = out.lazy.compactMap({ $0 }).first else { return [] }
 
-        // Fill what the aligner left untimed — non-spoken tokens like a `**Name:**` turn
-        // header, which consume no audio. Carry the previous time forward (and backfill a
-        // leading run from the first known time), so a header sits with the word it
-        // introduces and the sequence stays monotonic non-decreasing, which is the whole
-        // contract `activeCount` counts against.
-        let firstKnown = out.compactMap { $0 }.first ?? timings[0].start
+        // Fill what the aligner left untimed (see above); keeps the sequence monotonic
+        // non-decreasing, which is the whole contract `activeCount` counts against.
         var last = firstKnown
-        for i in out.indices {
-            if let t = out[i] { last = t } else { out[i] = last }
+        return out.map { t in
+            if let t { last = t }
+            return last
         }
-        return out.map { $0 ?? firstKnown }
     }
 
     // MARK: - Tap-a-word → seek (voice notes, audiobook quote captures; both apps)
