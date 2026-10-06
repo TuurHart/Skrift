@@ -171,6 +171,18 @@ enum AssetMaterializer {
         }
         // A shared `.file` capture's document (e.g. a PDF) → a document asset, so the actual
         // file reaches the Mac (3b), not just the text A6 already put in `sharedContent.text`.
+        // C63 / C148 / D172: a video's source movie syncs ONLY while the note is filed
+        // Inspiration / Idea / Project. Filed back to Personal, the synced blob is dropped
+        // (the file stays on this device; nothing sends or exports it).
+        if let movie = memo.metadata?.videoFilename, !movie.isEmpty {
+            if memo.destination.isPortfolio {
+                if captureFile(movie, kind: MemoAsset.Kind.video, memoID: memo.id,
+                               existing: existing, context: context) { dirty = true }
+            } else if let stale = existing[movie] {
+                context.delete(stale)
+                dirty = true
+            }
+        }
         if let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty,
            captureFile(rel, kind: MemoAsset.Kind.document, memoID: memo.id,
                        existing: existing, context: context) { dirty = true }

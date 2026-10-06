@@ -23,7 +23,9 @@ enum MemoPhotoMaterializer {
     @discardableResult
     static func materializeMissing(memo: Memo, pf: PipelineFile,
                                    fetchAssets: () -> [MemoAsset]) -> Bool {
-        let thumbWrote = materializeLinkThumbnail(memo: memo, pf: pf, fetchAssets: fetchAssets)
+        let linkThumbWrote = materializeLinkThumbnail(memo: memo, pf: pf, fetchAssets: fetchAssets)
+        let videoWrote = materializeVideo(memo: memo, pf: pf, fetchAssets: fetchAssets)
+        let thumbWrote = linkThumbWrote || videoWrote
         let manifest = memo.metadata?.imageManifest ?? []
         guard !manifest.isEmpty, let folder = pf.workingFolder else { return thumbWrote }
 
@@ -68,6 +70,25 @@ enum MemoPhotoMaterializer {
             }
         }
         return wrote || thumbWrote
+    }
+
+    /// C63 / C148 / D172: a video's source-movie asset that synced AFTER first ingest (the note
+    /// was filed Inspiration / Idea / Project later, or CloudKit delivered the asset after the
+    /// Memo). Written as `source.<ext>` beside `original.<ext>`, where the portfolio export
+    /// looks (`VaultExporter.keptSourceVideo`). Assets are fetched only while no movie is there.
+    /// (The caller runs it with the thumbnail heal, both unconditionally.)
+    @discardableResult
+    static func materializeVideo(memo: Memo, pf: PipelineFile,
+                                 fetchAssets: () -> [MemoAsset]) -> Bool {
+        guard let name = memo.metadata?.videoFilename, !name.isEmpty,
+              let folder = pf.workingFolder,
+              VaultExporter.keptSourceVideo(in: folder) == nil,
+              let movie = fetchAssets().first(where: {
+                  $0.kind == MemoAsset.Kind.video && $0.filename == name
+              }), !movie.blob.isEmpty else { return false }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return (try? movie.blob.write(
+            to: folder.appendingPathComponent(VideoKeep.macSourceName(forAssetFilename: name)))) != nil
     }
 
     /// Q260: a link capture's thumbnail asset that synced AFTER first ingest (CloudKit delivers

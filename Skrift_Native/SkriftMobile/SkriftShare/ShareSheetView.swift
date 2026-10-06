@@ -227,7 +227,7 @@ struct ShareSheetView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .shareCardChrome()
-            honestyLine("Transcribes on-device · the video file itself isn't kept")
+            honestyLine(VideoKeep.shareCardLine(byteCount: payload.videoBytes))
         }
         .accessibilityIdentifier("capture-video-card")
     }

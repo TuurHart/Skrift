@@ -99,6 +99,12 @@ struct UploadService: Sendable {
             if ext.isEmpty { ext = "m4a" }
             let original = folder.appendingPathComponent("original.\(ext)")
             try audio.blob.write(to: original)
+            // C63 / C148 / D172: a video filed Inspiration / Idea / Project brings its movie
+            // (a synced `video` asset). Written as `source.<ext>`, where `VaultExporter` looks.
+            if let movie = assets.first(where: { $0.kind == MemoAsset.Kind.video }), !movie.blob.isEmpty {
+                try? movie.blob.write(to: folder.appendingPathComponent(
+                    VideoKeep.macSourceName(forAssetFilename: movie.filename)))
+            }
             let size = ((try? FileManager.default.attributesOfItem(atPath: original.path))?[.size] as? Int)
                 ?? audio.blob.count
             prepared = PreparedUpload(id: id, filename: filename, path: original.path,

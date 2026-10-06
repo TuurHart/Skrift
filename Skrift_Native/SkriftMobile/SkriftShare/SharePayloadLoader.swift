@@ -53,6 +53,8 @@ struct SharePayload {
     var videoURL: URL?
     var videoDuration: TimeInterval?
     var videoFilmedAt: Date?
+    /// The shared movie's size, for the C63/C148 "over 200 MB, the movie is not kept" line.
+    var videoBytes: Int64?
     /// A shared document (e.g. a PDF) was detected. E1 (mock m2): gets the slim
     /// sheet too. `fileURL` is the extension-temp copy; `fileName` the display
     /// name; pages/size feed the preview card (pages nil for non-PDFs).
@@ -336,7 +338,8 @@ enum SharePayloadLoader {
             }
         }
         return SharePayload(type: .file, isVideo: true, videoURL: tempURL,
-                            videoDuration: duration, videoFilmedAt: filmedAt)
+                            videoDuration: duration, videoFilmedAt: filmedAt,
+                            videoBytes: tempURL.flatMap { VideoKeep.byteCount(of: $0) })
     }
 
     // MARK: - URL

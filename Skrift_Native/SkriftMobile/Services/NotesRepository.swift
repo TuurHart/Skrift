@@ -156,6 +156,10 @@ final class NotesRepository {
         memo.metadata?.imageManifest?.forEach {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
         }
+        // C63 / C148: a kept source movie is a file of its own (up to ~200 MB).
+        if let name = memo.metadata?.videoFilename, !name.isEmpty {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(name))
+        }
         WordTimingsStore().delete(for: memo.id)
         DiarizationStore().delete(for: memo.id)
         // Drop the CloudKit-mirrored media blobs too (Phase 1c) — otherwise the

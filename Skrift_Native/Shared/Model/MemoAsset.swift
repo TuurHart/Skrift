@@ -75,6 +75,10 @@ final class MemoAsset {
         /// tile (Q260). Its own kind, NOT `photo`: a photo asset feeds the image manifest and the
         /// `[[img_NNN]]` markers, which a card thumbnail must never join. Additive.
         static let thumbnail = "thumbnail"
+        /// The source movie of a video filed Inspiration / Idea / Project (C63 / C148 / D172,
+        /// <= ~200 MB, `VideoKeep`) so the portfolio export can copy it from whichever device
+        /// exports. Named by `MemoMetadata.videoFilename`; absent on every other memo. Additive.
+        static let video = "video"
         /// The relative filename a link capture's thumbnail travels under, or nil when the
         /// field is empty or a legacy remote URL (never fetched — the offline rule).
         static func linkThumbnailFilename(_ shared: SharedContent?) -> String? {
