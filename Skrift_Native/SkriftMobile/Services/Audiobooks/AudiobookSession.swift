@@ -158,7 +158,7 @@ final class AudiobookSession {
     /// caller decides whether to write it back. nil if absent / not newer.
     private func newerSyncedBook(than local: Audiobook) -> Audiobook? {
         guard let rec = NotesRepository.shared.audiobookRecord(bookID: local.id),
-              let synced = try? JSONDecoder().decode(Audiobook.self, from: rec.blob),
+              let synced = rec.book,
               synced.modifiedAt > local.modifiedAt else { return nil }
         return synced
     }

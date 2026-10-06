@@ -142,22 +142,10 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
             }
         }
 
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            op.fetchRecordsResultBlock = { result in
-                switch result {
-                case .success:
-                    cont.resume()
-                case .failure(let error):
-                    // Records that DID arrive were already copied per-record above. If
-                    // the only failures are absent records (a part the source never
-                    // uploaded / unshared), treat it as done rather than throwing away
-                    // the successful copies + retrying forever.
-                    if Self.isOnlyUnknownItem(error) { cont.resume() }
-                    else { cont.resume(throwing: error) }
-                }
-            }
-            database.add(op)
-        }
+        // Records that DID arrive were already copied per-record above. If the only
+        // failures are absent records (a part the source never uploaded / unshared),
+        // treat it as done rather than throwing away the successful copies + retrying forever.
+        try await runTolerantOfUnknownItem(op) { op, done in op.fetchRecordsResultBlock = done }
         progress(1)
     }
 
@@ -170,13 +158,21 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
         op.configuration = configuration()
         op.isAtomic = false   // deleting an already-absent record shouldn't fail the batch
 
+        // Treat "the record was already gone" as success (idempotent unshare).
+        try await runTolerantOfUnknownItem(op) { op, done in op.modifyRecordsResultBlock = done }
+    }
+
+    /// Run `op` to completion, treating an every-target-was-absent failure (`unknownItem`)
+    /// as success. Shared by download and delete; upload stays strict.
+    private func runTolerantOfUnknownItem<Op: CKDatabaseOperation>(
+        _ op: Op, setResultBlock: (Op, @escaping @Sendable (Result<Void, Error>) -> Void) -> Void
+    ) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            op.modifyRecordsResultBlock = { result in
+            setResultBlock(op) { result in
                 switch result {
                 case .success:
                     cont.resume()
                 case .failure(let error):
-                    // Treat "the record was already gone" as success (idempotent unshare).
                     if Self.isOnlyUnknownItem(error) { cont.resume() }
                     else { cont.resume(throwing: error) }
                 }

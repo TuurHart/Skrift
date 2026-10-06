@@ -22,11 +22,7 @@ import SwiftData
 enum MemoCloudStore {
     /// The CloudKit container identifier — MUST match the phone's so both clients share the
     /// user's private zone (compile-time gated, like the phone's `NotesRepository`).
-    #if DEBUG
-    static let cloudContainerID = "iCloud.com.skrift.mobile.dev"
-    #else
-    static let cloudContainerID = "iCloud.com.skrift.mobile"
-    #endif
+    static let cloudContainerID = SkriftCloudContainer.id
 
     /// The shared CloudKit schema — the `@Model`s the phone registers that the Mac also needs:
     /// the note rows it reads (`Memo`/`MemoAsset`), the enhancement it writes (`MemoEnhancement`),

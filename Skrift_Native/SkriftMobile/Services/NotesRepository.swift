@@ -29,11 +29,7 @@ final class NotesRepository {
         //
         // CloudKit is forced OFF for the in-memory path AND under XCTest, so the UI/unit
         // suites stay offline + deterministic and never touch a CloudKit container.
-        #if DEBUG
-        let cloudContainer = "iCloud.com.skrift.mobile.dev"
-        #else
-        let cloudContainer = "iCloud.com.skrift.mobile"
-        #endif
+        let cloudContainer = SkriftCloudContainer.id
         let isTesting = LaunchArgs.isXCTest
         let cloudKit: ModelConfiguration.CloudKitDatabase = (inMemory || isTesting)
             ? .none : .private(cloudContainer)
