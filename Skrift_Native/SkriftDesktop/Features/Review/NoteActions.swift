@@ -81,7 +81,7 @@ struct NoteActions: View {
     /// right-click — Tuur, 2026-07-25: the iPad's ⋯ "has way more stuff". The Mac
     /// now renders every note-scoped verb it can genuinely perform, here, where
     /// the note is. Absent on purpose (no Mac implementation, not an oversight):
-    /// Remind me / Share note / Split speakers, and Lock — the Mac's lock lives
+    /// Share note / Split speakers, and Lock — the Mac's lock lives
     /// only on the Review side's unrated `Memo` rows, and reaching it for an open
     /// `PipelineFile` needs a cloud write-back (its own chunk, see backlog).
     @ViewBuilder private var overflowItems: some View {
