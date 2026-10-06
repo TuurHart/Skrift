@@ -2407,28 +2407,28 @@ gate+: yes
 do: D180 (Tuur 2026-10-06): the phone/iPad notes list's day-section headers stop pinning; they scroll with the rows. Measured cost of pinning: UIKit's pinned-supplementary solve (_UICollectionCompositionalLayoutSolver updatePinnedSectionSupplementaryItemsForVisibleBounds) = ~27% of main-thread scroll work at 2,000 notes on the iPhone 13 (plan/perf2/MEASURED.md, Q323 finding in plan/RUN.md). Keep the header's look identical (text, spacing, colour) — only the pinning goes; keep sections for search/filter grouping. Check whether the Mac sidebar pins its day headers too: if it shares the code, change both; if not, leave the Mac alone and say so. Render and look: iPhone 17 sim screenshots (UDID 4962056D-2AE0-46AD-A04F-3663AE7698CF, -perfLibrary) before and after, mid-scroll, light and dark — the header must no longer sit over the rows at the top. Run SkriftMobileUITests/MemosListUITests. Test: `ListHeadersScrollTests` (the list's section header style/config is the non-pinned one).
 check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
 
-### Q325 [auto] (todo) build: Mac note photos — add at the caret, zoom + markup viewer, 'Downloading from iCloud…' (Q128 mock, D182)
+### Q325 [auto] (doing) build: Mac note photos — add at the caret, zoom + markup viewer, 'Downloading from iCloud…' (Q128 mock, D182)
 spec: -
 needs: -
 gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q128-mac-note-photos.html as signed in SPEC D182, WITHOUT the toolbar photo button (D181): a photo is added at the caret by paste, drag-drop and an Edit/Insert-menu item; one click selects a photo, double-click opens the zoom + markup viewer (reuse the phone's markup model where shared); an `[[img_NNN]]` whose file has not arrived shows the grey card + 'Downloading from iCloud…' like the phone instead of raw marker text. Shared code first (C117 / feedback_shared_code_first). Test: `MacNotePhotoTests` (desktop UnitTests: insert at caret writes the marker at the caret offset; missing-file marker renders the placeholder state). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q326 [auto] (todo) build: Mac records weather and daypart; the OpenWeatherMap key comes from the phone (Q144 mock, D182)
+### Q326 [auto] (doing) build: Mac records weather and daypart; the OpenWeatherMap key comes from the phone (Q144 mock, D182)
 spec: -
 needs: -
 gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q144-mac-weather-daypart.html as signed in SPEC D182: a Mac recording gets weather + daypart metadata like the phone (same shared MemoMetadata types); the OpenWeatherMap key syncs from the phone over iCloud (no separate Mac field unless none ever synced — then the Settings row the mock shows); a file dragged into the Mac gets no place and no weather. Never log or commit the key. Test: `MacWeatherMetadataTests` (desktop UnitTests: a Mac take with a synced key + stubbed fetch writes weather/daypart; a dropped file writes none). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q327 [auto] (todo) build: Mac shows iCloud sync trouble — Settings row, in-list capsule only when broken, signed-out message (Q162 mock, D182)
+### Q327 [auto] (doing) build: Mac shows iCloud sync trouble — Settings row, in-list capsule only when broken, signed-out message (Q162 mock, D182)
 spec: -
 needs: -
 gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q162-mac-icloud-state.html as signed in SPEC D182: a Settings row with the sync state; the note list shows the capsule ONLY when sync is broken, turned off or signed out (never during normal syncing); the signed-out message per the mock. Read state from the existing CloudKit account/monitor APIs. Test: `MacSyncStateTests` (desktop UnitTests: each account/monitor state maps to the right row text and capsule visibility). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q328 [auto] (todo) build: Mac recorder pause/resume and a discard popover that pauses while it asks (Q289 mock, D182)
+### Q328 [auto] (doing) build: Mac recorder pause/resume and a discard popover that pauses while it asks (Q289 mock, D182)
 spec: -
 needs: -
 gate+: yes
@@ -3536,3 +3536,7 @@ check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 - 2026-10-06 18:02 Q289 -> done — signed 2026-10-06 (SPEC D182) — build queued
 - 2026-10-06 18:02 Q152 -> done — dropped 2026-10-06 (SPEC D183): no Fix-quote verb, quote edits as text
 - 2026-10-06 18:02 Q296 -> done — dropped 2026-10-06 (SPEC D181): no checklist button
+- 2026-10-06 18:02 Q325 -> doing — worker out
+- 2026-10-06 18:02 Q326 -> doing — worker out
+- 2026-10-06 18:02 Q327 -> doing — worker out
+- 2026-10-06 18:02 Q328 -> doing — worker out
