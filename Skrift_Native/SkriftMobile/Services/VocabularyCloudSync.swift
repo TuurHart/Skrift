@@ -83,8 +83,25 @@ enum VocabularyCloudSync {
         case .noop:
             break
         }
+        // The OpenWeatherMap key rides it on a FIFTH stamp (Q326 / D182), so the Mac can tag its
+        // own recordings with weather. The key is never logged.
+        WeatherKeySettings.seedStampIfNeeded(defaults: defaults)
+        var weatherKeyTouched = false
+        switch WeatherKeySyncCore.reconcile(
+            localKey: WeatherKeySettings.value(defaults: defaults),
+            localModifiedAt: WeatherKeySettings.modifiedAt(defaults: defaults),
+            records: repository.allVocabularyRecords(),
+            insert: { repository.context.insert($0) }) {
+        case .adoptRemote(let key, let ts):
+            WeatherKeySettings.adoptSynced(key, modifiedAt: ts, defaults: defaults)
+            DevLog.log("vocab: adopted synced weather key")
+        case .pushedLocal:
+            weatherKeyTouched = true
+        case .noop:
+            break
+        }
         // Fresh device with nothing anywhere: no carrier was touched, nothing to save.
-        if records.isEmpty, outcome == .noop, !destinationsTouched, !authorTouched { return }
+        if records.isEmpty, outcome == .noop, !destinationsTouched, !authorTouched, !weatherKeyTouched { return }
         repository.save()
     }
 }

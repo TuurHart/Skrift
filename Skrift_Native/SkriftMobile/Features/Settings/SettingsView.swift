@@ -234,5 +234,9 @@ private struct WeatherKeyView: View {
         .background(Color.skBg.ignoresSafeArea())
         .navigationTitle("Weather API key")
         .navigationBarTitleDisplayMode(.inline)
+        // A typed key is a dated LWW write (Q326): the Mac takes it from iCloud. A key that
+        // ARRIVED from the Mac is not re-stamped (`noteEdit` ignores the value the stamp covers).
+        .onChange(of: key) { _, new in WeatherKeySettings.noteEdit(new) }
+        .onDisappear { VocabularyCloudSync.run(NotesRepository.shared) }
     }
 }

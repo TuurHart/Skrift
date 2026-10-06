@@ -28,6 +28,18 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// iPad's export author. nil = never edited on this Mac (optional for legacy decode).
     var authorModifiedAt: Date? = nil
 
+    /// The OpenWeatherMap key (Q326 / D182) — normally ADOPTED from the phone over iCloud
+    /// (`WeatherKeySyncCore`), typed here only when none ever synced. Optional + defaulted for
+    /// legacy decode (a missing key THROWS in a synthesized Codable). Never logged.
+    var weatherAPIKey: String? = nil
+    /// LWW stamp for `weatherAPIKey` ALONE. nil = never set on this Mac.
+    var weatherKeyModifiedAt: Date? = nil
+    /// True once the key arrived from another device (the Settings row then says "Synced from
+    /// your iPhone"); a key typed on this Mac clears it.
+    var weatherKeyFromPhone: Bool? = nil
+    /// Effective key (nil legacy → blank).
+    var weatherKey: String { weatherAPIKey ?? "" }
+
     // Enhancement model (shipped default = the tuned 8bit; downloaded from HF on first run)
     var enhancementModelRepo: String = PolishPrompts.defaultModelRepo
     var prompts: Prompts = .init()

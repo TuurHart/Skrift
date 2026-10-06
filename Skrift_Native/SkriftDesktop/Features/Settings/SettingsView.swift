@@ -10,6 +10,9 @@ struct SettingsView: View {
     var interactive = true
     /// Snapshot/test injection of the names list (default nil → the shared store).
     var peopleOverride: [Person]? = nil
+    /// Snapshot injection of the Weather row's state (Q326): the key text and whether it came
+    /// from the phone. Default nil → the stored settings.
+    var weatherPreview: (key: String, fromPhone: Bool)? = nil
 
     @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     @State private var settings = SettingsStore.shared.load()
@@ -21,6 +24,10 @@ struct SettingsView: View {
     @State private var destinationsOn = DestinationSettings.isEnabled
     /// The author changed while this sheet was open → push it to the carrier on close (Q158).
     @State private var authorEdited = false
+    /// The weather key was typed here while the sheet was open → push it on close (Q326).
+    @State private var weatherKeyEdited = false
+    /// "Change…" on the synced key row reveals the field (mock Q144).
+    @State private var changingWeatherKey = false
     @State private var people: [Person] = NamesStore.shared.livePeople()
     @State private var nameQuery = ""
     @State private var newCustomWord = ""
@@ -48,6 +55,12 @@ struct SettingsView: View {
                 settings.authorModifiedAt = Date()
                 authorEdited = true
             }
+            // A key typed here is a dated LWW write too (Q326) — pushed to the phone on close.
+            if new.weatherKey != savedBaseline.weatherKey {
+                settings.weatherKeyModifiedAt = Date()
+                settings.weatherKeyFromPhone = false
+                weatherKeyEdited = true
+            }
             persist()
         }
         // Prompt edits push to the synced carrier once, when the window goes away
@@ -60,7 +73,7 @@ struct SettingsView: View {
                 persist()
             }
             PolishPromptsCloudSync.run()
-            if authorEdited { VocabularyCloudSync.run() }   // push the author (Q158)
+            if authorEdited || weatherKeyEdited { VocabularyCloudSync.run() }   // push the author (Q158) / weather key (Q326)
         }
         .task { reloadNames() }
         // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,
@@ -197,6 +210,7 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
+            section("Weather") { weatherSection }
             section("Sync") {
                 toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync, defaultOn: true,
                           help: "\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) The Mac processes the memos your phone synced and sends its polished title, summary and copy-edit back. This is the only phone↔Mac transport: with it off, neither happens.")
@@ -258,6 +272,65 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
+    }
+
+    // ── Weather key (Q326, mock Q144-mac-weather-daypart.html) ─────
+    /// The OpenWeatherMap key. It normally arrives from the phone over iCloud (D182), shown
+    /// masked with a Change… button; when none ever synced this is the one field to type it in.
+    @ViewBuilder private var weatherSection: some View {
+        let key = weatherPreview?.key ?? settings.weatherKey
+        let fromPhone = weatherPreview?.fromPhone ?? (settings.weatherKeyFromPhone ?? false)
+        let has = !key.trimmingCharacters(in: .whitespaces).isEmpty
+        VStack(alignment: .leading, spacing: 10) {
+            if has && fromPhone && !changingWeatherKey {
+                HStack {
+                    Text("OpenWeatherMap key").font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(WeatherKeySyncCore.masked(key))
+                        .font(.system(size: 12, design: .monospaced)).foregroundStyle(Theme.textSecondary)
+                }
+                weatherStatus("Synced from your iPhone. Changing it here changes it on every device.", on: true)
+                Button { changingWeatherKey = true } label: {
+                    Text("Change…").font(.system(size: 12)).foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Theme.chip, in: RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+                .disabled(!interactive)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("OpenWeatherMap key").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                    if interactive {
+                        RingedField(placeholder: "Paste your key", text: weatherKeyBinding)
+                    } else {
+                        fieldBox {
+                            Text(has ? key : "Paste your key")
+                                .foregroundStyle(has ? Theme.textPrimary : Theme.textMuted)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                weatherStatus(has ? "Saved on this Mac. The next note you record or type here gets weather."
+                                  : "Not set. Notes made on this Mac get place and daypart, no weather.",
+                              on: has)
+            }
+            Text("Used to tag notes with weather + pressure. Get a free key at openweathermap.org.")
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func weatherStatus(_ text: String, on: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Circle().fill(on ? Theme.green : Theme.textMuted).frame(width: 7, height: 7)
+            Text(text).font(.system(size: 11)).foregroundStyle(on ? Theme.green : Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var weatherKeyBinding: Binding<String> {
+        Binding(get: { settings.weatherKey },
+                set: { settings.weatherAPIKey = $0.trimmingCharacters(in: .whitespacesAndNewlines) })
     }
 
     // ── Connections consent (Q161) ─────────────────────────

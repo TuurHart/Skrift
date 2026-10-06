@@ -107,6 +107,26 @@ enum VocabularyCloudSync {
         case .pushedLocal, .noop:
             break
         }
+        // The OpenWeatherMap key rides it on a FIFTH stamp (Q326 / D182): typed once on the phone,
+        // used here to tag the Mac's own recordings. A key set before this synced has no stamp.
+        // Never logged.
+        if settings.weatherKeyModifiedAt == nil, !settings.weatherKey.isEmpty {
+            settings.weatherKeyModifiedAt = Date()
+            dirty = true
+        }
+        switch WeatherKeySyncCore.reconcile(
+            localKey: settings.weatherKey,
+            localModifiedAt: settings.weatherKeyModifiedAt ?? .distantPast,
+            records: (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? [],
+            insert: { context.insert($0) }) {
+        case .adoptRemote(let key, let ts):
+            settings.weatherAPIKey = key
+            settings.weatherKeyModifiedAt = ts
+            settings.weatherKeyFromPhone = !key.isEmpty
+            dirty = true
+        case .pushedLocal, .noop:
+            break
+        }
         if dirty { SettingsStore.shared.save(settings) }
         if prewarm {
             let words = settings.customWords

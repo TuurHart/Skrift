@@ -37,26 +37,33 @@ enum MacLocationStamp {
     /// granted the permission, and still got an empty `location:`. It is exactly the
     /// PipelineFile⇄Memo seam `MirroredNoteFields` exists for: a value written to one side is
     /// invisible on the other until someone says so.
-    static func stamp(memo: Memo, file pf: PipelineFile, in ctx: ModelContext) {
+    ///
+    /// Q326 (D182): the stamp is no longer place-only. `capture` is the context source —
+    /// `MacMetadataService` in the app (place, daypart, daylight, and weather when the phone's
+    /// key has synced), a stub in tests. With no fix the daypart still lands; weather needs the
+    /// coordinates. The returned task completes when the stamp has landed (the app ignores it,
+    /// a test awaits it).
+    @discardableResult
+    static func stamp(memo: Memo, file pf: PipelineFile, in ctx: ModelContext,
+                      capture: @escaping @MainActor () async -> MemoMetadata = { await MacMetadataService().capture() }) -> Task<Void, Never> {
         let memoID = memo.id
-        Task { @MainActor in
-            // One instance PER CALL: a shared one has a single continuation slot, so a second
-            // `current()` before the first fix returned would strand the first caller forever.
-            let oneShot = LocationOneShot()
-            guard let place = await oneShot.current() else {
-                log.debug("no location fix — leaving the note without one")
-                return
-            }
+        return Task { @MainActor in
+            // A fresh `MacMetadataService` PER CALL (the default above): its `LocationOneShot`
+            // has a single continuation slot, so a shared one would strand a first caller whose
+            // fix had not yet returned when a second began.
+            var context = await capture()
+            // The recording's date stays what the file says; this is only the ambient context.
+            context.capturedAt = nil
             // Q139: `MacMemoAuthor` may already have written a blob (picture or clip
             // manifest, media marker), so "never overwrites" means never overwrite a PLACE;
             // the other keys survive the merge.
             guard memo.metadata?.location == nil else { return }
-            memo.mergeCapturedMetadata(MemoMetadata(location: place))
+            memo.mergeCapturedMetadata(context)
             try? ctx.save()
             // The Mac's editing model, which is what its exporter actually reads.
             pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: memo)
             try? pf.modelContext?.save()
-            log.debug("stamped \(memoID, privacy: .public) with a place, both models")
+            log.debug("stamped \(memoID, privacy: .public): place \(context.location != nil, privacy: .public), weather \(context.weather != nil, privacy: .public), both models")
         }
     }
 }
