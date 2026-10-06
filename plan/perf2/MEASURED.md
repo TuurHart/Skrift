@@ -53,3 +53,8 @@ Total main-thread busy over the 7-min recording: b178 50.1 s, b179 67.6 s (longe
 | type + Done | 2.9 s | ~2.0 s | ~1.8 s | "works" |
 | search + clear | ~10 s | ~3 s | ~3 s (list derive + batch updates) | "quick; short lag removing letters" |
 | Stop a recording | 6.4 s | ~4.3 s | ~2.8 s (full rebuild after the insert) | "way faster" |
+
+## Mac (2026-10-06, optimised Dev build, -perfLibrary, `.queue/perf/mac1/2-launch.trace`)
+Launch with the library already seeded: main thread busy ~2.8 s in the first 8 s (MemoCloudReconciler.reconcile 651 ms,
+sweep 430 ms), then idle (6 ms in the next 80 s). Interactive moments (sidebar clicks, typing, search, playback)
+need Tuur driving — the Mac UI may not be automated (feedback_no_mac_ui_tests).

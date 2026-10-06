@@ -29,7 +29,7 @@ for a in range(0,int(max([t for t,_ in S]+[0]))+5,5):
     if len(W)<250: continue
     c={k:sum(1 for f in W if any(p.search(x) for x in f)) for k,p in P.items()}
     print(f"{a:3d}-{a+5:3d} busy {len(W):4d} "+" ".join(f"{k}:{v}" for k,v in c.items() if v>30))
-KEY=re.compile(r'(Memo|Note|Repository|Sweep|Lifecycle|Search|Names|Asset|Index|Snippet|Cloud|Library|Book|Derived|Card|Skrift|Recording|Transcri|Body|Chip|Title|Backlink|Photo|Image|Player|Saver|Conflict|Row|List|UICollection|preferredLayout)')
+KEY=re.compile(r'(Sidebar|PipelineFile|Reconcil|Ingest|Author|Enhancement|Vault|Export|Process|Memo|Note|Repository|Sweep|Lifecycle|Search|Names|Asset|Index|Snippet|Cloud|Library|Book|Derived|Card|Skrift|Recording|Transcri|Body|Chip|Title|Backlink|Photo|Image|Player|Saver|Conflict|Row|List|UICollection|preferredLayout)')
 SKIP=re.compile(r'^(closure #\d+ in SkriftApp|partial apply|protocol witness|thunk|reabstraction)|ViewGraphRootValueUpdater|DynamicBody|ViewBodyAccessor|applyNodes|DynamicViewList|ForEachList|ViewList')
 for w in sys.argv[2:]:
     a,b=map(float,w.split('-')); W=[f for t,f in S if a<=t<b]; inc=Counter()
