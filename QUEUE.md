@@ -2159,7 +2159,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D171): a plain .md file imports as a typed note on both apps — body is the file, title from the first heading, no capture card. Today the Mac makes an 'Apple Note' (IngestService.ingestNote) and the phone a 'Text' capture (CaptureInboxDrainer). One rule in Shared ImportKinds. Desktop test `MarkdownImportTests`, phone test `MarkdownImportPhoneTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class MarkdownImportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MarkdownImportPhoneTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q287 [auto] (doing) a video filed Inspiration/Idea/Project keeps its movie as a synced asset
+### Q287 [auto] (done) a video filed Inspiration/Idea/Project keeps its movie as a synced asset
 spec: C63 C148 D172
 needs: -
 gate+: yes
@@ -3580,3 +3580,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:52 Q190 -> doing — worker out
 - 2026-10-06 21:21 Q190 -> done — gate 136s @a1b33b3c
 - 2026-10-06 21:21 Q191 -> doing — worker out
+- 2026-10-06 21:26 Q287 -> done — gate 114s @212d1a78
