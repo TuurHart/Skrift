@@ -86,6 +86,4 @@ enum MacSyncState: Equatable, CaseIterable {
         (.both, "Custom words, language, the destinations switch"),
         (.both, "Polish prompts"),
     ]
-
-    static let accountHelp = "Needs this Mac signed in to the same iCloud account as your phone."
 }

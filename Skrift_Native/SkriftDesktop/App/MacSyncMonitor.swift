@@ -18,7 +18,7 @@ final class MacSyncMonitor {
     static let shared = MacSyncMonitor()
 
     private(set) var state: MacSyncState = .upToDate
-    private(set) var failureDetail = ""
+    private(set) var failureDetail = MacSyncState.failureDetail(account: .unknown)
 
     private var switchOn = true
     private var account: MacSyncAccount = .unknown

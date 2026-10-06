@@ -25,7 +25,7 @@ struct MacSyncCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             gateList
-            Text(MacSyncState.accountHelp)
+            Text(SharedCopy.syncSameAccount)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }

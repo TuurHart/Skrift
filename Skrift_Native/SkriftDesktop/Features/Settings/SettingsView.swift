@@ -14,6 +14,8 @@ struct SettingsView: View {
     var scrollToSync = false
     /// Snapshot injection of the sync state (nil = the live `MacSyncMonitor`).
     var syncStateOverride: MacSyncState? = nil
+    /// Snapshot only: draw just the Sync card (`-snapshot-sync`).
+    var onlySync = false
 
     @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     @State private var settings = SettingsStore.shared.load()
@@ -113,6 +115,23 @@ struct SettingsView: View {
 
     private var sections: some View {
         VStack(alignment: .leading, spacing: 22) {
+            if onlySync { syncSection } else { allSections }
+        }
+        .padding(20)
+    }
+
+    private var syncSection: some View {
+        section("Sync") {
+            MacSyncCard(state: syncStateOverride ?? MacSyncMonitor.shared.state,
+                        failureDetail: MacSyncMonitor.shared.failureDetail,
+                        switchOn: Binding(get: { syncStateOverride.map { $0 != .off } ?? (settings.cloudKitMacSync ?? true) },
+                                          set: { settings.cloudKitMacSync = $0 }),
+                        interactive: interactive)
+        }
+        .id(Self.syncSectionID)
+    }
+
+    @ViewBuilder private var allSections: some View {
             section("Appearance") {
                 if interactive {
                     Picker("", selection: $appTheme) {
@@ -213,14 +232,7 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
-            section("Sync") {
-                MacSyncCard(state: syncStateOverride ?? MacSyncMonitor.shared.state,
-                            failureDetail: MacSyncMonitor.shared.failureDetail,
-                            switchOn: Binding(get: { settings.cloudKitMacSync ?? true },
-                                              set: { settings.cloudKitMacSync = $0 }),
-                            interactive: interactive)
-            }
-            .id(Self.syncSectionID)
+            syncSection
             section(RetrievalGate.Copy.settingTitle) { connectionsSection }
             section("Names · \(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
@@ -260,8 +272,6 @@ struct SettingsView: View {
                 }
                 .disabled(!interactive)   // rendered in snapshots too, only live taps act
             }
-        }
-        .padding(20)
     }
 
     private var header: some View {
