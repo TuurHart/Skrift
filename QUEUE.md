@@ -1789,7 +1789,7 @@ do: In `Shared/` (compiled into both apps; re-grep each symbol by NAME in both a
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteDestinationTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SMU-d04 SMU-d05 SMU-d06 SMU-d07 SMU-d09 SMU-d11 SMU-d-m1 SMU-c03 SMU-c04 SMU-c06 SMU-c07 SMU-c11 SMU-c14 SPL-c15 (cleanup-audit P46)
 
-### Q234 [auto] (doing) shared naming, export and corpus: unread members and unused overloads
+### Q234 [auto] (done) shared naming, export and corpus: unread members and unused overloads
 spec: C240
 needs: Q225
 gate+: no
@@ -3610,3 +3610,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 22:26 Q198 -> doing — Mac shut down 2026-10-06 mid-run; branch wt/Q198 pushed — accept it if its check passes, else redispatch
 - 2026-10-06 22:26 Q232 -> doing — Mac shut down 2026-10-06 mid-run; branch wt/Q232 pushed — accept it if its check passes, else redispatch
 - 2026-10-06 22:26 Q234 -> doing — accept was running at shutdown 2026-10-06; branch wt/Q234 pushed — re-run plan/accept-chain.sh Q234 agent-ab384018a72622595
+- 2026-10-06 22:26 Q234 -> done — gate 117s @eb8f5bc0
