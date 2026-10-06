@@ -416,9 +416,9 @@ enum BookAlignmentRunner {
         let dest = folder.appendingPathComponent(filename)
 
         // Bare closure (no explicit `() throws -> T in` signature) so the compiler infers the
-        // async+throws effects from the `let outcome: AttachOutcome =` context — matches
+        // async+throws effects from the `let outcome: TextAlignOutcome =` context — matches
         // `AudiobookImporter.importSingleFile`'s exact "copy + parse off main" shape.
-        let outcome: AttachOutcome = try await Task.detached(priority: .userInitiated) {
+        let outcome: TextAlignOutcome = try await Task.detached(priority: .userInitiated) {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             progress?("Copying the file in…")
@@ -434,28 +434,15 @@ enum BookAlignmentRunner {
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
 
             let transcriptStore = BookTranscriptStore()
-            var perFile: [Int: FileAlignResult] = [:]
-            var transcriptSigs: [Int: String] = [:]
-            var aligned = 0, total = 0
-            if !deferring {
-                for i in book.files.indices {
-                    let audioURL = folder.appendingPathComponent(book.files[i])
-                    let sig = transcriptStore.signature(forFileAt: audioURL)
-                    guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
-                          !ft.words.isEmpty else { continue }
-                    total += 1
-                    progress?(book.files.count > 1
-                        ? "Matching the text… (file \(i + 1) of \(book.files.count))"
-                        : "Matching the text against the transcript…")
-                    let fileResult = alignFile(ft: ft, against: alignBlocks, textFilename: filename)
-                    perFile[i] = fileResult
-                    transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
-                    if fileResult.verdict == .aligned { aligned += 1 }
-                }
-            }
-            return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title,
-                                 transcriptSigs: transcriptSigs, aligned: aligned, total: total,
-                                 drm: epubBook.drm)
+            let indices = deferring ? [] : Array(book.files.indices)
+            let perFile = await alignText(named: filename, blocks: alignBlocks, book: book, bookID: bookID,
+                                          folder: folder, indices: indices, store: transcriptStore,
+                                          progress: { progress?($0) })
+            return TextAlignOutcome(
+                perFile: perFile, toc: epubBook.toc, title: epubBook.title,
+                transcriptSigs: transcriptSignatures(for: Array(perFile.keys), book: book, bookID: bookID,
+                                                     folder: folder, store: transcriptStore),
+                drm: epubBook.drm)
         }.value
         progress?("Placing chapters…")
 
@@ -474,16 +461,6 @@ enum BookAlignmentRunner {
         return AttachSummary(alignedFiles: outcome.aligned,
                              totalFiles: outcome.total, deferredWhileTranscribing: deferring,
                              drm: outcome.drm)
-    }
-
-    private struct AttachOutcome: Sendable {
-        var perFile: [Int: FileAlignResult]
-        var toc: [EPubTOCEntry]
-        var title: String?
-        var transcriptSigs: [Int: String]
-        var aligned: Int
-        var total: Int
-        var drm: EPubDRMVerdict = .none
     }
 
     // MARK: Incremental re-align
@@ -591,20 +568,10 @@ enum BookAlignmentRunner {
                     continue
                 }
                 let alignBlocks = mergeBlocksByFile(epubBook.blocks)
-                var perFile: [Int: FileAlignResult] = [:]
-                for i in staleIndices {
-                    let audioURL = folder.appendingPathComponent(book.files[i])
-                    let sig = transcriptStore.signature(forFileAt: audioURL)
-                    guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
-                          !ft.words.isEmpty else { continue }
-                    await MainActor.run {
-                        BookTextActivity.shared.update(book.files.count > 1
-                            ? "Matching the text… (file \(i + 1) of \(book.files.count))"
-                            : "Matching the text against the transcript…")
-                    }
-                    perFile[i] = alignFile(ft: ft, against: alignBlocks, textFilename: textName)
-                    await Task.yield()
-                }
+                let perFile = await alignText(
+                    named: textName, blocks: alignBlocks, book: book, bookID: bookID, folder: folder,
+                    indices: staleIndices, store: transcriptStore, yieldBetweenFiles: true,
+                    progress: { stage in await MainActor.run { BookTextActivity.shared.update(stage) } })
                 out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title)
             }
             return out
@@ -613,14 +580,8 @@ enum BookAlignmentRunner {
         guard !realigned.isEmpty else { return }
         await MainActor.run { BookTextActivity.shared.update("Placing chapters…") }
 
-        var transcriptSigs: [Int: String] = [:]
-        for i in staleIndices {
-            let audioURL = folder.appendingPathComponent(book.files[i])
-            let sig = transcriptStore.signature(forFileAt: audioURL)
-            if let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig) {
-                transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
-            }
-        }
+        let transcriptSigs = transcriptSignatures(for: staleIndices, book: book, bookID: bookID,
+                                                  folder: folder, store: transcriptStore)
 
         await mergeAndFinish(
             bookID: bookID,
@@ -632,10 +593,63 @@ enum BookAlignmentRunner {
         )
     }
 
+    /// One text's alignment pass: per-file results + the text's TOC/title. `attach` also fills
+    /// `transcriptSigs` and `drm`; `alignIfNeeded` computes its signatures once for all texts.
     private struct TextAlignOutcome: Sendable {
         var perFile: [Int: FileAlignResult]
         var toc: [EPubTOCEntry]
         var title: String?
+        var transcriptSigs: [Int: String] = [:]
+        var drm: EPubDRMVerdict = .none
+
+        /// Files with a covered transcript that were aligned against this text.
+        var total: Int { perFile.count }
+        var aligned: Int { perFile.values.filter { $0.verdict == .aligned }.count }
+    }
+
+    /// Fresh, non-empty transcript sidecar for file `i` (nil when missing, stale or empty).
+    private static func loadTranscript(index i: Int, book: Audiobook, bookID: UUID, folder: URL,
+                                       store: BookTranscriptStore) -> FileTranscript? {
+        let audioURL = folder.appendingPathComponent(book.files[i])
+        let sig = store.signature(forFileAt: audioURL)
+        guard let ft = store.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
+              !ft.words.isEmpty else { return nil }
+        return ft
+    }
+
+    /// The align-one-text pass shared by `attach` and `alignIfNeeded`: for each of `indices`
+    /// with a usable transcript, report the stage to `progress`, then align it against
+    /// `blocks` (one text's merged blocks). `yieldBetweenFiles` lets the background heal give
+    /// way between files.
+    private static func alignText(
+        named textName: String, blocks: [AlignmentCore.Block], book: Audiobook, bookID: UUID,
+        folder: URL, indices: [Int], store: BookTranscriptStore, yieldBetweenFiles: Bool = false,
+        progress: (String) async -> Void
+    ) async -> [Int: FileAlignResult] {
+        var perFile: [Int: FileAlignResult] = [:]
+        for i in indices {
+            guard let ft = loadTranscript(index: i, book: book, bookID: bookID, folder: folder,
+                                          store: store) else { continue }
+            await progress(book.files.count > 1
+                ? "Matching the text… (file \(i + 1) of \(book.files.count))"
+                : "Matching the text against the transcript…")
+            perFile[i] = alignFile(ft: ft, against: blocks, textFilename: textName)
+            if yieldBetweenFiles { await Task.yield() }
+        }
+        return perFile
+    }
+
+    /// `FileAlignment.signature(forTranscript:)` for each of `indices` that has a transcript.
+    private static func transcriptSignatures(for indices: [Int], book: Audiobook, bookID: UUID, folder: URL,
+                                             store: BookTranscriptStore) -> [Int: String] {
+        var sigs: [Int: String] = [:]
+        for i in indices {
+            let sig = store.signature(forFileAt: folder.appendingPathComponent(book.files[i]))
+            if let ft = store.load(bookID: bookID, fileIndex: i, expectedSignature: sig) {
+                sigs[i] = FileAlignment.signature(forTranscript: ft)
+            }
+        }
+        return sigs
     }
 
     // MARK: - Text summary + removal (📖 multi-text, schema 3 — LANES-2026-07-22D/BASE.md)
@@ -779,27 +793,23 @@ enum BookAlignmentRunner {
     static func mergeSentences(into keep: [AlignedSentence], adding incoming: [AlignedSentence],
                                textRank: [String: Int]) -> [AlignedSentence] {
         guard !incoming.isEmpty else { return keep }
+        // One text per batch (every caller: `mergedFileAlignment` passes one attached text's own
+        // fresh sentences). Contests happen only between DIFFERENT texts, so incoming sentences
+        // never contest each other and only `keep` needs scanning.
+        assert(Set(incoming.map(\.textFile)).count == 1, "mergeSentences: incoming must share one textFile")
 
         // Q57/C218: `keep` is already internally non-overlapping (the class invariant on
         // `FileAlignment.sentences`), so sorting it ONCE by `start` also sorts it by `end` —
         // every incoming sentence's overlap set is then a CONTIGUOUS run inside that sorted
-        // order, found by binary search instead of a full scan. Was O(keep.count *
-        // incoming.count) (every ns re-scanned the whole growing `result`); now
-        // O((keep.count + incoming.count) * log keep.count) in the real single-text-per-call
-        // shape (every real caller's `incoming` shares one `textFile` — `mergedFileAlignment`
-        // passes one attached text's own fresh batch). Output is the SAME array shape the old
-        // scan produced: surviving `keep` entries in their original relative order, followed by
-        // every entry `incoming` contributed, in incoming's order — because the old code only
-        // ever removed-in-place (never reordered survivors) and only ever appended at the tail.
+        // order, found by binary search instead of a full scan: O((keep.count + incoming.count)
+        // * log keep.count). Output: surviving `keep` entries in their original relative order,
+        // followed by every incoming sentence that landed or won, in incoming's order.
         let order = keep.indices.sorted { keep[$0].start < keep[$1].start }
         var keepRemoved = Array(repeating: false, count: keep.count)
         var appended: [AlignedSentence] = []
-        var appendedRemoved: [Bool] = []
-        var appendedTextFiles: Set<String> = []
 
         for ns in incoming {
-            let nsText = ns.textFile ?? ""
-            var conflicts: [(inKeep: Bool, idx: Int)] = []
+            var conflicts: [Int] = []
 
             // First `keep` entry (by sorted start) whose end reaches past `ns.start`.
             var lo = 0, hi = order.count
@@ -816,41 +826,24 @@ enum BookAlignmentRunner {
                 // tie rule made the later same-text sentence vanish — 196 of the Odyssey's
                 // 7506 direct-matched sentences, including both user-reported holes.
                 if !keepRemoved[idx], keep[idx].textFile != ns.textFile {
-                    conflicts.append((true, idx))
+                    conflicts.append(idx)
                 }
                 cursor += 1
             }
-            // `appended` only ever needs scanning when it holds a text OTHER than `ns`'s own —
-            // the degenerate case (this call's `incoming` mixes texts, which no real caller
-            // does). The common case (one shared textFile) skips this in O(1).
-            if !(appendedTextFiles.isEmpty || appendedTextFiles == [nsText]) {
-                for i in appended.indices where !appendedRemoved[i] && appended[i].textFile != ns.textFile
-                                              && appended[i].start < ns.end && ns.start < appended[i].end {
-                    conflicts.append((false, i))
-                }
-            }
 
-            func appendNs() {
-                appended.append(ns); appendedRemoved.append(false)
-                appendedTextFiles.insert(nsText)
-            }
-            guard !conflicts.isEmpty else { appendNs(); continue }
-            let maxConfidence = conflicts.map { $0.inKeep ? keep[$0.idx].confidence : appended[$0.idx].confidence }.max()!
-            let tiedAtMax = conflicts.filter { ($0.inKeep ? keep[$0.idx].confidence : appended[$0.idx].confidence) == maxConfidence }
-            let toughestRank = tiedAtMax.map {
-                textRank[($0.inKeep ? keep[$0.idx].textFile : appended[$0.idx].textFile) ?? ""] ?? Int.max
-            }.min()!
-            let nsRank = textRank[nsText] ?? Int.max
+            guard !conflicts.isEmpty else { appended.append(ns); continue }
+            let maxConfidence = conflicts.map { keep[$0].confidence }.max()!
+            let toughestRank = conflicts.filter { keep[$0].confidence == maxConfidence }
+                .map { textRank[keep[$0].textFile ?? ""] ?? Int.max }.min()!
+            let nsRank = textRank[ns.textFile ?? ""] ?? Int.max
             let nsWins = ns.confidence > maxConfidence || (ns.confidence == maxConfidence && nsRank < toughestRank)
             guard nsWins else { continue }
-            for c in conflicts {
-                if c.inKeep { keepRemoved[c.idx] = true } else { appendedRemoved[c.idx] = true }
-            }
-            appendNs()
+            for idx in conflicts { keepRemoved[idx] = true }
+            appended.append(ns)
         }
 
         var result = keep.indices.filter { !keepRemoved[$0] }.map { keep[$0] }
-        result.append(contentsOf: appended.indices.filter { !appendedRemoved[$0] }.map { appended[$0] })
+        result.append(contentsOf: appended)
         return result
     }
 
