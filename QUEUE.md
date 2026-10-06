@@ -1448,7 +1448,7 @@ source: plan/reads/cleanup-audit.md MAS-d10 MAS-d14 MAS-c02 MAS-c17 MAS-c18 MAS-
 ### Q191 [auto] (doing) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
 spec: C239
 needs: Q190
-gate+: no
+gate+: yes
 do: In `AudiobookCloudSync.swift` the transcript and alignment sidecar sets (`transcriptRecordName/Filename/RecordNames/Parts/Refs`, `sendTranscripts`; lines 410-467 vs 602-657) are the same code. Add a small `SidecarKind` (record-name infix, filename format, signature closure, key path to the carrier signature) and one generic `parts/refs/recordNames/send`. The record-name infixes `_t`, `_al`, `_txt` and the sidecar file names are CloudKit wire names and must stay byte-identical; keep both receive functions separate (transcripts restamp, alignments verdict-gate and derive chapters) and leave the ePub manifest block alone. In `CloudKitAudiobookTransport.swift:145-185` one async helper for the tolerant continuation (`unknownItem` counts as success) shared by download and delete; upload stays strict. `setDownloadRemoved(_:_:defaults:)` for the three `removedDownloads` read-modify-writes, an `AudiobookSyncRecord.book` accessor for the five `JSONDecoder().decode(Audiobook.self, ...)` calls, and one iCloud container-id constant used by `AudiobookCloudSync` and `NotesRepository` (the Mac copy `SkriftDesktop/App/MemoCloudContainer.swift:25-27` may import it if Shared; if not, leave it). Existing `AudiobookCloudSyncTests` and `CloudSignaturePartTests` must stay green unchanged.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudiobookCloudSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d12 MAS-c26 MAS-c27 (cleanup-audit P4)
@@ -3591,3 +3591,5 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:26 Q332 added
 - 2026-10-06 21:27 Q332 -> doing — worker out
 - 2026-10-06 21:30 Q329 -> done — gate 89s @36026484
+- 2026-10-06 21:38 Q191 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/AudiobookSyncSidecarKindTests.swift 
+- 2026-10-06 21:38 Q191 -> doing — re-accept: gate+ yes for the new wire-name test (additive)
