@@ -1469,7 +1469,7 @@ do: In `SkriftMobile/Features/Audiobooks/` and the files named: delete the unuse
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d04 MAU-d05 MAU-d06 MAU-d07 MAU-d08 MAU-d10 MAU-d13 MAU-d16 MAU-d17 MAU-c14 MAU-c18 MAU-c21 MAU-c23 MAU-c29 (cleanup-audit P6)
 
-### Q194 [auto] (todo) retire TranscribeBookView: the read-along nudge opens the Text sheet
+### Q194 [auto] (doing) retire TranscribeBookView: the read-along nudge opens the Text sheet
 spec: C240 C115
 needs: Q193
 gate+: no
@@ -2229,7 +2229,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D177): add an on-screen checklist button next to the Mac's Format > Checklist (⇧⌘L). Mock first: draw the current Mac editor toolbar from SOURCE, add the button and its on-state. Publish the artifact; the build follows sign-off.
 check: Mac checklist button mock (claude.ai/artifact/QyS5vmkXQKAhSdK1QU1Cv5): left next to the notes-list toggle (A) or right before Process (B)? A multi-line selection would become a checklist on both apps, OK?
 
-### Q297 [auto] (todo) jump-back on PDF and podcast notes too
+### Q297 [auto] (doing) jump-back on PDF and podcast notes too
 spec: D177
 needs: -
 gate+: yes
@@ -3597,3 +3597,5 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:42 Q192 -> doing — worker out
 - 2026-10-06 21:42 Q244 -> doing — worker out
 - 2026-10-06 21:56 Q192 -> done — gate 103s @b4b27a38
+- 2026-10-06 21:56 Q194 -> doing — worker out
+- 2026-10-06 21:56 Q297 -> doing — worker out
