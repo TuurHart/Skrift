@@ -23,7 +23,7 @@ struct BookImportSheet: View {
 
     init(pending: BookImportBridge.Pending) {
         self.pending = pending
-        bundleBytes = (try? FileManager.default.attributesOfItem(atPath: pending.url.path)[.size] as? Int64) as? Int64 ?? 0
+        bundleBytes = AudiobookPaths.fileSize(at: pending.url) ?? 0
     }
 
     var body: some View {

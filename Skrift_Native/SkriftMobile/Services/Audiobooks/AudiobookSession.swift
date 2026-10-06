@@ -416,8 +416,7 @@ final class AudiobookSession {
     /// (file start + item time).
     private func tick(itemTime: TimeInterval) {
         guard itemTime.isFinite else { return }
-        let starts = book?.fileStartTimes ?? []
-        let base = starts.indices.contains(currentFileIndex) ? starts[currentFileIndex] : 0
+        let base = book?.fileStart(currentFileIndex) ?? 0
         let time = base + itemTime
         currentTime = time
 

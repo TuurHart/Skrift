@@ -196,7 +196,6 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
     }
 
     private func fileSize(_ url: URL) -> Int {
-        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
-        return (attrs?[.size] as? Int) ?? 0
+        Int(AudiobookPaths.fileSize(at: url) ?? 0)
     }
 }

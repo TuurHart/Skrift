@@ -477,7 +477,7 @@ struct BookTextSheet: View {
         let duration = BookTextDisplay.durationText(text.coveredSeconds)
         let alignedDuration = text.fileNumbers.reduce(TimeInterval(0)) { sum, n in
             let idx = n - 1
-            return sum + (book.fileDurations.indices.contains(idx) ? book.fileDurations[idx] : 0)
+            return sum + (book.fileDuration(idx))
         }
         let wording = BookTextDisplay.matchWording(coveredSeconds: text.coveredSeconds, alignedFilesDuration: alignedDuration)
         return "\(duration) · \(wording)"

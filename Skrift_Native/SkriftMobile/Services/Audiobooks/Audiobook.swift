@@ -96,6 +96,14 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         return epubFilename.map { [$0] } ?? []
     }
 
+    /// THE write accessor for attached texts: sets the multi-text array AND the legacy single
+    /// slot (always the FIRST text, so older decoders keep working). An empty list clears both
+    /// to nil. Both fields stay Codable.
+    mutating func setAttachedTexts(_ names: [String]) {
+        epubFilenames = names.isEmpty ? nil : names
+        epubFilename = names.first
+    }
+
     /// LOCAL-ONLY fields (device finding 2026-07-22: the attach fields VANISHED —
     /// a whole-blob LWW write from any device running an older build re-encodes the
     /// record without additive fields and erases them; SECOND cause found on the
@@ -283,6 +291,17 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
             acc += max(0, d)
         }
         return starts
+    }
+
+    /// Global start of file `i`; 0 when `i` is out of range.
+    func fileStart(_ i: Int) -> TimeInterval {
+        guard fileDurations.indices.contains(i) else { return 0 }
+        return fileDurations[..<i].reduce(0) { $0 + max(0, $1) }
+    }
+
+    /// Duration of file `i`; 0 when `i` is out of range.
+    func fileDuration(_ i: Int) -> TimeInterval {
+        fileDurations.indices.contains(i) ? fileDurations[i] : 0
     }
 
     /// Index of the file playing at global `time` (the last file starting at
@@ -510,7 +529,7 @@ final class AudiobookLibraryStore: ObservableObject {
 
     let directory: URL
 
-    init(directory: URL = AppPaths.documentsDirectory.appendingPathComponent("audiobooks", isDirectory: true)) {
+    init(directory: URL = AudiobookPaths.root) {
         self.directory = directory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let indexURL = directory.appendingPathComponent("library.json")
@@ -528,7 +547,7 @@ final class AudiobookLibraryStore: ObservableObject {
     // MARK: - Paths
 
     func folder(for id: UUID) -> URL {
-        directory.appendingPathComponent(id.uuidString, isDirectory: true)
+        AudiobookPaths.folder(for: id, in: directory)
     }
 
     /// One part of a multi-file book (out-of-range indices clamp to the first

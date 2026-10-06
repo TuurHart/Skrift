@@ -145,8 +145,7 @@ enum BookBundleRules {
         var book = manifest.book
         book.importedAt = now
         book.modifiedAt = now
-        book.epubFilenames = manifest.textFilenames.isEmpty ? nil : manifest.textFilenames
-        book.epubFilename = manifest.textFilenames.first
+        book.setAttachedTexts(manifest.textFilenames)
         return book
     }
 }
