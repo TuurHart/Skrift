@@ -185,7 +185,7 @@ final class BookTranscriptionJob: ObservableObject {
 
         for fileIndex in book.files.indices {
             if Task.isCancelled { return }
-            let fileDuration = book.fileDurations.indices.contains(fileIndex) ? book.fileDurations[fileIndex] : 0
+            let fileDuration = book.fileDuration(fileIndex)
             guard fileDuration > 0 else { continue }
             let audioURL = library.audioURL(of: book, fileIndex: fileIndex)
             guard FileManager.default.fileExists(atPath: audioURL.path) else { continue }
@@ -304,7 +304,7 @@ final class BookTranscriptionJob: ObservableObject {
         let store = BookTranscriptStore()
         var fileWords: [[WordTiming]] = []
         for (i, url) in audioURLs.enumerated() {
-            let dur = book.fileDurations.indices.contains(i) ? book.fileDurations[i] : 0
+            let dur = book.fileDuration(i)
             guard dur > 0 else { fileWords.append([]); continue }
             let sig = store.signature(forFileAt: url)
             guard let ft = store.load(bookID: book.id, fileIndex: i, expectedSignature: sig),
@@ -407,7 +407,7 @@ final class BookTranscriptionJob: ObservableObject {
         guard total > 0 else { return 0 }
         var covered: TimeInterval = 0
         for fileIndex in book.files.indices {
-            let dur = book.fileDurations.indices.contains(fileIndex) ? book.fileDurations[fileIndex] : 0
+            let dur = book.fileDuration(fileIndex)
             guard dur > 0 else { continue }
             let url = library.audioURL(of: book, fileIndex: fileIndex)
             let sig = store.signature(forFileAt: url)

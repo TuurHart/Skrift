@@ -31,12 +31,12 @@ struct BookmarkStore: Sendable {
 
     let directory: URL
 
-    init(directory: URL = AppPaths.documentsDirectory.appendingPathComponent("audiobooks", isDirectory: true)) {
+    init(directory: URL = AudiobookPaths.root) {
         self.directory = directory
     }
 
     private func folder(forBookID id: UUID) -> URL {
-        directory.appendingPathComponent(id.uuidString, isDirectory: true)
+        AudiobookPaths.folder(for: id, in: directory)
     }
     func fileURL(bookID: UUID) -> URL {
         folder(forBookID: bookID).appendingPathComponent("bookmarks.json")

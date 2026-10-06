@@ -400,7 +400,7 @@ struct ReadAlongView: View {
     /// Tap the text → seek there (resumes follow).
     private func seek(to i: Int) {
         guard let local = model.startOf(i) else { return }
-        let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
+        let origin = book.fileStart(fileIndex)
         AudiobookSession.shared.seek(to: local + origin)
         following = true
         Haptics.tap()
@@ -412,7 +412,7 @@ struct ReadAlongView: View {
     private func toggleBookmark(at i: Int) {
         guard model.sentences.indices.contains(i) else { return }
         let s = model.sentences[i]
-        let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
+        let origin = book.fileStart(fileIndex)
         onToggleBookmarkInSpan(s.start + origin, s.end + origin)
     }
 

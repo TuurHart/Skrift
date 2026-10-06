@@ -293,6 +293,17 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         return starts
     }
 
+    /// Global start of file `i`; 0 when `i` is out of range.
+    func fileStart(_ i: Int) -> TimeInterval {
+        guard fileDurations.indices.contains(i) else { return 0 }
+        return fileDurations[..<i].reduce(0) { $0 + max(0, $1) }
+    }
+
+    /// Duration of file `i`; 0 when `i` is out of range.
+    func fileDuration(_ i: Int) -> TimeInterval {
+        fileDurations.indices.contains(i) ? fileDurations[i] : 0
+    }
+
     /// Index of the file playing at global `time` (the last file starting at
     /// or before it). 0 for single-file books and degenerate tables.
     func fileIndex(at time: TimeInterval) -> Int {
@@ -518,7 +529,7 @@ final class AudiobookLibraryStore: ObservableObject {
 
     let directory: URL
 
-    init(directory: URL = AppPaths.documentsDirectory.appendingPathComponent("audiobooks", isDirectory: true)) {
+    init(directory: URL = AudiobookPaths.root) {
         self.directory = directory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let indexURL = directory.appendingPathComponent("library.json")
@@ -536,7 +547,7 @@ final class AudiobookLibraryStore: ObservableObject {
     // MARK: - Paths
 
     func folder(for id: UUID) -> URL {
-        directory.appendingPathComponent(id.uuidString, isDirectory: true)
+        AudiobookPaths.folder(for: id, in: directory)
     }
 
     /// One part of a multi-file book (out-of-range indices clamp to the first

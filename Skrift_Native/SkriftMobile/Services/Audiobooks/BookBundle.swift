@@ -238,7 +238,7 @@ enum BookBundle {
     }
 
     private static func fileSize(at url: URL) -> Int64? {
-        (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? nil
+        AudiobookPaths.fileSize(at: url)
     }
 
     /// The attached texts actually sitting in the folder. The disk is the durable

@@ -309,7 +309,7 @@ enum AudiobookImporter {
     /// on an `.unreadable` reject means the source was an un-downloaded cloud
     /// placeholder; a real size means a codec AVFoundation couldn't decode.
     static func copiedByteString(_ url: URL) -> String {
-        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int).map(String.init) ?? "?"
+        AudiobookPaths.fileSize(at: url).map(String.init) ?? "?"
     }
 
     // MARK: - Asset construction

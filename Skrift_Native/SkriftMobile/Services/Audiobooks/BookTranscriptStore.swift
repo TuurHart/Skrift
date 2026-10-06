@@ -12,14 +12,14 @@ struct BookTranscriptStore: Sendable {
     /// The audiobooks root (`Documents/audiobooks`), same as `AudiobookLibraryStore.directory`.
     let directory: URL
 
-    init(directory: URL = AppPaths.documentsDirectory.appendingPathComponent("audiobooks", isDirectory: true)) {
+    init(directory: URL = AudiobookPaths.root) {
         self.directory = directory
     }
 
     // MARK: - Paths
 
     func folder(forBookID id: UUID) -> URL {
-        directory.appendingPathComponent(id.uuidString, isDirectory: true)
+        AudiobookPaths.folder(for: id, in: directory)
     }
 
     func sidecarURL(bookID: UUID, fileIndex: Int) -> URL {
@@ -32,10 +32,7 @@ struct BookTranscriptStore: Sendable {
     /// sidecar. A re-import (new bytes → new size/mtime) invalidates the
     /// transcript so we never serve a stale one. Empty when the file is missing.
     func signature(forFileAt url: URL) -> String {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) else { return "" }
-        let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
-        let mtime = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
-        return "\(size):\(Int(mtime))"
+        AudiobookPaths.signature(forFileAt: url)
     }
 
     // MARK: - Frontier cache (cheap reads)

@@ -363,8 +363,7 @@ enum AudiobookCloudSync {
     static func localSize(of book: Audiobook, library: AudiobookLibraryStore = .shared) -> Int {
         let folder = library.folder(for: book.id)
         return syncedFilenames(book).reduce(0) { acc, name in
-            let attrs = try? FileManager.default.attributesOfItem(atPath: folder.appendingPathComponent(name).path)
-            return acc + ((attrs?[.size] as? Int) ?? 0)
+            acc + Int(AudiobookPaths.fileSize(at: folder.appendingPathComponent(name)) ?? 0)
         }
     }
 
@@ -539,8 +538,7 @@ enum AudiobookCloudSync {
     private static func localEpubManifest(_ book: Audiobook, folder: URL) -> String {
         let names = book.attachedTextFilenames
         let sizes = names.map { name -> Int in
-            let attrs = try? FileManager.default.attributesOfItem(atPath: folder.appendingPathComponent(name).path)
-            return (attrs?[.size] as? Int) ?? 0
+            Int(AudiobookPaths.fileSize(at: folder.appendingPathComponent(name)) ?? 0)
         }
         // A name whose file is gone (size 0) still lists — the receiver just won't
         // get bytes for it, and `landed` below keeps the record honest.

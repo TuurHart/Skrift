@@ -201,12 +201,12 @@ struct BookTextSummary: Equatable, Sendable {
 final class BookAlignmentStore: Sendable {
     let directory: URL
 
-    init(directory: URL = AppPaths.documentsDirectory.appendingPathComponent("audiobooks", isDirectory: true)) {
+    init(directory: URL = AudiobookPaths.root) {
         self.directory = directory
     }
 
     func folder(forBookID id: UUID) -> URL {
-        directory.appendingPathComponent(id.uuidString, isDirectory: true)
+        AudiobookPaths.folder(for: id, in: directory)
     }
 
     func sidecarURL(bookID: UUID, fileIndex: Int) -> URL {
@@ -250,11 +250,7 @@ final class BookAlignmentStore: Sendable {
     /// (a receiver's download, a re-align, a strip) changes this even when this `store` instance
     /// never touched it, so a stale cache entry always misses.
     private func sidecarSignature(bookID: UUID, fileIndex: Int) -> String {
-        guard let attrs = try? FileManager.default.attributesOfItem(
-            atPath: sidecarURL(bookID: bookID, fileIndex: fileIndex).path) else { return "" }
-        let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
-        let mtime = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
-        return "\(size):\(Int(mtime))"
+        AudiobookPaths.signature(forFileAt: sidecarURL(bookID: bookID, fileIndex: fileIndex))
     }
 
     /// This file's `FileAlignment.cloudSignaturePart()` — cache-served off the sidecar's own
@@ -415,7 +411,7 @@ enum BookAlignmentRunner {
         // look like this audiobook" on a barely-covered file). The job's finish call
         // to `alignIfNeeded` runs the real pass over the full transcript.
         let deferring = await isTranscribing(bookID)
-        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        let folder = AudiobookPaths.folder(for: bookID)
         let filename = url.lastPathComponent
         let dest = folder.appendingPathComponent(filename)
 
@@ -508,7 +504,7 @@ enum BookAlignmentRunner {
         // so the full-transcript pass is never skipped.
         let transcribing = await isTranscribing(bookID)
         guard !transcribing else { return }
-        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        let folder = AudiobookPaths.folder(for: bookID)
         var names = book.attachedTextFilenames
         if names.isEmpty {
             // RE-ADOPT (2026-07-22 Odyssey device report): builds before the Codable
@@ -658,7 +654,6 @@ enum BookAlignmentRunner {
 
         let store = BookAlignmentStore(directory: directory)
         let fileAlignments: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
-        let fileStarts = book.fileStartTimes
 
         var perText: [BookTextSummary.PerText] = []
         for name in names {
@@ -677,7 +672,7 @@ enum BookAlignmentRunner {
                 // matched sentences — without this gate the bar sprinkled confetti
                 // across the whole book and read 37% instead of ~21%).
                 guard src?.verdict == AlignmentCore.Verdict.aligned.rawValue else { continue }
-                let base = fileStarts.indices.contains(i) ? fileStarts[i] : 0
+                let base = book.fileStart(i)
                 for s in fa.sentences where s.textFile == name {
                     let lo = base + min(s.start, s.end), hi = base + max(s.start, s.end)
                     intervals.append(lo...hi)
@@ -702,7 +697,7 @@ enum BookAlignmentRunner {
     /// ONLY source was the removed text would look "fresh" forever with nothing in it.
     static func removeText(filename: String, bookID: UUID) async {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
-        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        let folder = AudiobookPaths.folder(for: bookID)
         let store = BookAlignmentStore()
 
         var current: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
@@ -958,7 +953,7 @@ enum BookAlignmentRunner {
     ) async {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
         let store = BookAlignmentStore()
-        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        let folder = AudiobookPaths.folder(for: bookID)
         // Built by hand (not `Dictionary(uniqueKeysWithValues:)`) — `attachOrder` SHOULD be
         // unique by construction (`attach`'s append is duplicate-guarded), but a rank lookup
         // used only to break sentence-collision ties is never worth a crash over; first
