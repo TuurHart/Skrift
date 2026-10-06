@@ -120,25 +120,21 @@ struct BookNotesSheet: View {
 }
 
 /// The note page's jump-back (mock `.back`): "▶ Back to it at 1:12:05 in Library", under the
-/// quote's attribution. 12.5pt semibold, accent text on the accent wash, 32pt tall.
-struct BookJumpBackButton: View {
-    let position: TimeInterval
-    let action: () -> Void
+/// quote's attribution. 12.5pt semibold, accent text on the accent wash, 32pt tall. Q297: the
+/// same pill reads "Back to it on page 12" for a PDF note (`SourceJump.label`).
+struct SourceJumpLabel: View {
+    let text: String
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: "play.fill").font(.system(size: 10))
-                Text(BookNotesJoin.jumpLabel(position: position))
-                    .font(.system(size: 12.5, weight: .semibold))
-            }
-            .foregroundStyle(Color.skAccentText)
-            .padding(.horizontal, 11).padding(.vertical, 7)
-            .frame(minHeight: 32)
-            .background(Color.skAccentSoft, in: .capsule)
+        HStack(spacing: 6) {
+            Image(systemName: "play.fill").font(.system(size: 10))
+            Text(text)
+                .font(.system(size: 12.5, weight: .semibold))
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("book-jump-back")
+        .foregroundStyle(Color.skAccentText)
+        .padding(.horizontal, 11).padding(.vertical, 7)
+        .frame(minHeight: 32)
+        .background(Color.skAccentSoft, in: .capsule)
     }
 }
 

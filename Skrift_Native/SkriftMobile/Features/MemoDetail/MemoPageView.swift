@@ -60,6 +60,8 @@ struct MemoPageView: View {
     /// D127: the quote block's jump-back opens the player at the note's book position.
     @State var showBookPlayerFromNote = false
     @State var bookJumpFailed = false
+    /// Q297: a PDF note's jump-back presents its own file at the stored page.
+    @State var pdfJump: PDFJumpRequest?
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
     // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
@@ -602,25 +604,45 @@ struct MemoPageView: View {
                                      onCommit: commitQuoteEdit)
                 }
                 .padding(.top, 18)
-
-                // D127 / Q6 mock: "Back to it at 1:12:05 in Library". Only while the book is
-                // still in the library and the note stored where in it the quote came from.
-                if let target = BookNotesJoin.jumpTarget(for: memo),
-                   AudiobookLibraryStore.shared.book(id: target.bookID) != nil {
-                    BookJumpBackButton(position: target.position) {
-                        if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
-                        else { bookJumpFailed = true }
-                    }
-                    .padding(.top, 10)
-                    .padding(.leading, 14)
-                    .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
-                    .alert("Audio isn’t on this device", isPresented: $bookJumpFailed) {
-                        Button("OK", role: .cancel) {}
-                    } message: {
-                        Text("This book’s audio was removed from this device. Re-download it in Books, then jump back.")
-                    }
-                }
             }
+
+            jumpBackRow
+        }
+    }
+
+    /// D127 / Q6 mock + Q297 / D177: "Back to it at 1:12:05 in Library" for a note that stored where in
+    /// its audio source it came from (a book quote, a podcast clip), "Back to it on page 12" for a PDF
+    /// capture that stored its page. Only while the source is still here: the library item for audio,
+    /// the PDF file on disk. The book's own resume place is not moved (Q273).
+    @ViewBuilder var jumpBackRow: some View {
+        if let target = SourceJump.target(for: memo), jumpSourceIsHere(target) {
+            Button {
+                switch SourceJump.perform(target, for: memo) {
+                case .openedPlayer: showBookPlayerFromNote = true
+                case .openPDF(let url, let page): pdfJump = PDFJumpRequest(url: url, page: page)
+                case .audioUnavailable, .pdfUnavailable: bookJumpFailed = true
+                }
+            } label: {
+                SourceJumpLabel(text: SourceJump.label(for: target))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("book-jump-back")
+            .padding(.top, memo.captureQuote == nil ? 14 : 10)
+            .padding(.leading, memo.captureQuote == nil ? 0 : 14)
+            .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
+            .fullScreenCover(item: $pdfJump) { PDFPageJumpView(request: $0) }
+            .alert("Source isn’t on this device", isPresented: $bookJumpFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("The audio or document this note came from was removed from this device. Re-download it, then jump back.")
+            }
+        }
+    }
+
+    private func jumpSourceIsHere(_ target: SourceJump.Target) -> Bool {
+        switch target {
+        case .audio(let t): return AudiobookLibraryStore.shared.book(id: t.bookID) != nil
+        case .pdf: return memo.sharedFileURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
         }
     }
 

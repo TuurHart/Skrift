@@ -67,6 +67,11 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// Idea / Project. ADDITIVE + optional - nil on every other memo.
     var videoFilename: String?
 
+    /// Q297 / D177: the 1-based page of a PDF capture the note points back to (the jump-back's
+    /// source position for a document, the way `bookPosition` is for audio). ADDITIVE + optional -
+    /// nil on every other memo; an older decoder ignores the key.
+    var sourcePage: Int?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -86,7 +91,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         sourceType: String? = nil,
         clipManifest: [ClipManifestEntry]? = nil,
         importFileName: String? = nil,
-        videoFilename: String? = nil
+        videoFilename: String? = nil,
+        sourcePage: Int? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -107,6 +113,7 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.clipManifest = clipManifest
         self.importFileName = importFileName
         self.videoFilename = videoFilename
+        self.sourcePage = sourcePage
     }
 
     /// Known `sourceType` values — the first entries of the deferred unified
