@@ -92,9 +92,6 @@ struct BodyTextView: NSViewRepresentable {
     /// Q124 (C173): the note's transcription (or a split) is in flight — the text stays
     /// readable but not editable until the result lands (`MacBodyEditableState`).
     var readOnly: Bool = false
-    /// D175/C172: true only for a real captured quote (audiobook / text capture, see
-    /// `PipelineFile.hasLockedQuote`); a hand-typed leading `> ` stays editable.
-    var quoteLocked: Bool = false
     /// Q325: what a marker stands for when its photo file is NOT here: a "downloading" or
     /// "missing" answer draws the phone's card instead of the raw `[[img_NNN]]` text. nil = the
     /// host does not know (markers stay text, as before).
@@ -455,38 +452,25 @@ struct BodyTextView: NSViewRepresentable {
             tagSessionCandidates = nil
         }
 
-        /// ↑ ↓ Return Esc drive the tag menu while it's up; everything else —
-        /// including Backspace — stays native. (Esc arrives as `complete:`, the
-        /// NSTextView default binding; intercepting it also keeps the system
-        /// completion list from opening over ours.)
-        /// C172: the leading quote block of a capture is read-only; only the ramble below it
-        /// edits. The verdict is the shared `CaptureQuote.editVerdict` (the one splitter), so
-        /// the Mac refuses exactly the edits the phone's ramble-only editor can't make.
+        /// D183: a captured quote is text — it edits like the rest of the note (Q112's
+        /// read-only block is gone). Click-to-seek on its words rides the same karaoke
+        /// track as every other word.
         func textView(_ view: NSTextView, shouldChangeTextIn range: NSRange,
                       replacementString: String?) -> Bool {
             // Marked (IME) text is mid-composition: judge it when it commits.
             if view.hasMarkedText() { return true }
-            switch CaptureQuote.editVerdict(body: view.string, range: range,
-                                            replacement: replacementString,
-                                            locked: parent.quoteLocked) {
-            case .allow:
-                // Q126: Return on a checklist line continues the list (the shared rule).
-                if replacementString == "\n", range.length == 0,
-                   let tv = view as? SelfSizingTextView, tv.continueTaskLine(at: range.location) {
-                    return false
-                }
-                return true
-            case .reject:
-                NSSound.beep()
-                return false
-            case .allowAfterSeparator(let separator):
-                // Re-enter with the separator in front; the second pass sees a blank line
-                // already there and allows it.
-                view.insertText(separator + (replacementString ?? ""), replacementRange: range)
+            // Q126: Return on a checklist line continues the list (the shared rule).
+            if replacementString == "\n", range.length == 0,
+               let tv = view as? SelfSizingTextView, tv.continueTaskLine(at: range.location) {
                 return false
             }
+            return true
         }
 
+        /// ↑ ↓ Return Esc drive the tag menu while it's up; everything else —
+        /// including Backspace — stays native. (Esc arrives as `complete:`, the
+        /// NSTextView default binding; intercepting it also keeps the system
+        /// completion list from opening over ours.)
         func textView(_ view: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             guard tagSuggest.isVisible, let tv = view as? SelfSizingTextView else { return false }
             switch commandSelector {
