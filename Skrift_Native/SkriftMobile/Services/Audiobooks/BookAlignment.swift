@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import NaturalLanguage
 import ZIPFoundation
@@ -133,11 +132,10 @@ struct FileAlignment: Codable, Equatable, Sendable {
     /// contribution to this file (a property of the audio file's transcript, not of a text) — a
     /// transcript change re-aligns EVERY attached text against this file, not just one.
     var transcriptSignature: String
-    /// SHA-256 hex of the MOST RECENTLY (re)aligned text's bytes for this file (diagnostic /
-    /// future invalidation hook — not currently compared anywhere; text files themselves never
-    /// sync). Schema 3: with multiple texts this is no longer "the" ePub's signature, just
-    /// whichever text's pass touched this file last — harmless given it's unused.
-    var epubSignature: String
+    /// Retired: nothing computes or compares it any more (it was a SHA-256 of the text's bytes,
+    /// read nowhere). Kept only so sidecars written by older builds still decode and re-encode
+    /// byte-for-byte; new sidecars carry "".
+    var epubSignature: String = ""
     /// File-level verdict — the BEST across `sources` (aligned > partial > rejected), schema 3.
     /// One poorly-matching attached text must never regress what another, better-matching text
     /// already achieved for this file: `AlignedSentenceSource`/`epubChapters` both gate on this
@@ -438,7 +436,6 @@ enum BookAlignmentRunner {
             progress?("Reading the text…")
             let epubBook = try parseBookFile(at: dest)
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
-            let epubSig = (try? Data(contentsOf: dest)).map(sha256Hex) ?? ""
 
             let transcriptStore = BookTranscriptStore()
             var perFile: [Int: FileAlignResult] = [:]
@@ -460,7 +457,7 @@ enum BookAlignmentRunner {
                     if fileResult.verdict == .aligned { aligned += 1 }
                 }
             }
-            return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig,
+            return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title,
                                  transcriptSigs: transcriptSigs, aligned: aligned, total: total,
                                  drm: epubBook.drm)
         }.value
@@ -473,7 +470,6 @@ enum BookAlignmentRunner {
             bookID: bookID,
             results: [filename: outcome.perFile],
             titles: [filename: outcome.title],
-            epubSignatures: [filename: outcome.epubSig],
             transcriptSignatures: outcome.transcriptSigs,
             attachOrder: order,
             precomputedTOC: [filename: outcome.toc],
@@ -488,7 +484,6 @@ enum BookAlignmentRunner {
         var perFile: [Int: FileAlignResult]
         var toc: [EPubTOCEntry]
         var title: String?
-        var epubSig: String
         var transcriptSigs: [Int: String]
         var aligned: Int
         var total: Int
@@ -530,8 +525,7 @@ enum BookAlignmentRunner {
             let adopted = names
             await MainActor.run {
                 guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
-                fresh.epubFilenames = adopted
-                fresh.epubFilename = adopted.first
+                fresh.setAttachedTexts(adopted)
                 fresh.modifiedAt = Date()
                 AudiobookLibraryStore.shared.update(fresh)
             }
@@ -601,7 +595,6 @@ enum BookAlignmentRunner {
                     continue
                 }
                 let alignBlocks = mergeBlocksByFile(epubBook.blocks)
-                let epubSig = (try? Data(contentsOf: url)).map(sha256Hex) ?? ""
                 var perFile: [Int: FileAlignResult] = [:]
                 for i in staleIndices {
                     let audioURL = folder.appendingPathComponent(book.files[i])
@@ -616,7 +609,7 @@ enum BookAlignmentRunner {
                     perFile[i] = alignFile(ft: ft, against: alignBlocks, textFilename: textName)
                     await Task.yield()
                 }
-                out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig)
+                out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title)
             }
             return out
         }.value
@@ -637,7 +630,6 @@ enum BookAlignmentRunner {
             bookID: bookID,
             results: realigned.mapValues(\.perFile),
             titles: realigned.mapValues(\.title),
-            epubSignatures: realigned.mapValues(\.epubSig),
             transcriptSignatures: transcriptSigs,
             attachOrder: names,
             precomputedTOC: realigned.mapValues(\.toc)
@@ -648,7 +640,6 @@ enum BookAlignmentRunner {
         var perFile: [Int: FileAlignResult]
         var toc: [EPubTOCEntry]
         var title: String?
-        var epubSig: String
     }
 
     // MARK: - Text summary + removal (📖 multi-text, schema 3 — LANES-2026-07-22D/BASE.md)
@@ -734,8 +725,7 @@ enum BookAlignmentRunner {
                                     fileDurations: book.fileDurations)
         await MainActor.run {
             guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
-            fresh.epubFilenames = fields.epubFilenames
-            fresh.epubFilename = fields.epubFilename
+            fresh.setAttachedTexts(fields.epubFilenames ?? [])
             fresh.epubChapters = chapters
             fresh.modifiedAt = Date()
             AudiobookLibraryStore.shared.update(fresh)
@@ -879,7 +869,7 @@ enum BookAlignmentRunner {
     static func mergedFileAlignment(
         existing: FileAlignment?, fileIndex: Int, textFilename: String, title: String?,
         verdict: AlignmentCore.Verdict, coverage: Double, sentences: [AlignedSentence],
-        transcriptSignature: String, epubSignature: String, textRank: [String: Int]
+        transcriptSignature: String, epubSignature: String = "", textRank: [String: Int]
     ) -> FileAlignment {
         var fa = existing ?? FileAlignment(fileIndex: fileIndex, transcriptSignature: transcriptSignature,
                                            epubSignature: epubSignature,
@@ -891,7 +881,6 @@ enum BookAlignmentRunner {
                                           verdict: verdict.rawValue, coverage: coverage))
         fa.verdict = bestVerdict(fa.sources.map(\.verdict))
         fa.transcriptSignature = transcriptSignature
-        fa.epubSignature = epubSignature
         return fa
     }
 
@@ -955,14 +944,13 @@ enum BookAlignmentRunner {
     /// dictionary iteration order), saves whichever changed, reconciles chapter marks book-wide
     /// (`reconcileChapters`), rebuilds + persists `book.epubChapters`, optionally stamps the
     /// book's attached-text list (`attach` only — `newlyAttachedFilename`), bumps `modifiedAt`,
-    /// and refreshes the live session. `results`/`titles`/`epubSignatures` are keyed by TEXT
+    /// and refreshes the live session. `results`/`titles` are keyed by TEXT
     /// FILENAME (not file index); `transcriptSignatures` by file index (one value per file,
     /// shared by every text touching it — a property of the audio file's transcript).
     private static func mergeAndFinish(
         bookID: UUID,
         results: [String: [Int: FileAlignResult]],
         titles: [String: String?],
-        epubSignatures: [String: String],
         transcriptSignatures: [Int: String],
         attachOrder: [String],
         precomputedTOC: [String: [EPubTOCEntry]] = [:],
@@ -990,7 +978,6 @@ enum BookAlignmentRunner {
                     title: titles[textName] ?? nil, verdict: result.verdict, coverage: result.coverage,
                     sentences: result.sentences,
                     transcriptSignature: transcriptSignatures[i] ?? current[i]?.transcriptSignature ?? "",
-                    epubSignature: epubSignatures[textName] ?? current[i]?.epubSignature ?? "",
                     textRank: textRank)
             }
         }
@@ -1014,8 +1001,7 @@ enum BookAlignmentRunner {
             if let newlyAttachedFilename {
                 var names = fresh.attachedTextFilenames
                 if !names.contains(newlyAttachedFilename) { names.append(newlyAttachedFilename) }
-                fresh.epubFilenames = names
-                fresh.epubFilename = names.first
+                fresh.setAttachedTexts(names)
             }
             fresh.epubChapters = chapters
             fresh.modifiedAt = Date()
@@ -1466,9 +1452,4 @@ enum BookAlignmentRunner {
             .fillingDurations(bookDuration: bookDuration)
     }
 
-    // MARK: - Misc
-
-    private static func sha256Hex(_ data: Data) -> String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
 }

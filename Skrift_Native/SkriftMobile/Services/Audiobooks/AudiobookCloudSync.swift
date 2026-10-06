@@ -595,8 +595,7 @@ enum AudiobookCloudSync {
         let landed = expected.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
         DevLog.log("epubSync \(book.id): expected=\(expected.count) landed=\(landed.count)")
         guard !landed.isEmpty, var fresh = library.book(id: book.id) else { return }
-        fresh.epubFilenames = landed
-        fresh.epubFilename = landed.first          // legacy single slot stays written
+        fresh.setAttachedTexts(landed)             // legacy single slot stays written
         library.update(fresh)
         guard library.book(id: book.id)?.attachedTextFilenames.isEmpty == false else { return }
         defaults.set(record.epubSignature, forKey: epubAppliedKey(book.id))

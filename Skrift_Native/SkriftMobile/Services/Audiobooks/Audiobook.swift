@@ -96,6 +96,14 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         return epubFilename.map { [$0] } ?? []
     }
 
+    /// THE write accessor for attached texts: sets the multi-text array AND the legacy single
+    /// slot (always the FIRST text, so older decoders keep working). An empty list clears both
+    /// to nil. Both fields stay Codable.
+    mutating func setAttachedTexts(_ names: [String]) {
+        epubFilenames = names.isEmpty ? nil : names
+        epubFilename = names.first
+    }
+
     /// LOCAL-ONLY fields (device finding 2026-07-22: the attach fields VANISHED —
     /// a whole-blob LWW write from any device running an older build re-encodes the
     /// record without additive fields and erases them; SECOND cause found on the
