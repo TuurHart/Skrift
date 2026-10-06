@@ -6,6 +6,9 @@ import Foundation
 /// callers' arguments (the device name, whether the device can process).
 enum SettingsCopy {
 
+    // ── Weather key (Q326) ──
+    static let weatherKeyHelp = "Used to tag notes with weather + pressure. Get a free key at openweathermap.org."
+
     // ── Custom words (setexp-29, -30) ──
     static let customWordPlaceholder = "Add a word or name…"
     static let customWordsHelp = "The transcriber listens for these words and corrects near-misses (“skrift” → “Skrift”). Spelled exactly as you want them written. The first transcription after adding words downloads a \(ModelSizes.spotter) model."

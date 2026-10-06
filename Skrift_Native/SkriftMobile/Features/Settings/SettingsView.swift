@@ -227,7 +227,7 @@ private struct WeatherKeyView: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("weather-key-field")
             } footer: {
-                Text("Used to tag notes with weather + pressure. Get a free key at openweathermap.org.")
+                Text(SettingsCopy.weatherKeyHelp)
             }
         }
         .scrollContentBackground(.hidden)

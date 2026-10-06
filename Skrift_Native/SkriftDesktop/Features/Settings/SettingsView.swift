@@ -314,7 +314,7 @@ struct SettingsView: View {
                                   : "Not set. Notes made on this Mac get place and daypart, no weather.",
                               on: has)
             }
-            Text("Used to tag notes with weather + pressure. Get a free key at openweathermap.org.")
+            Text(SettingsCopy.weatherKeyHelp)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
