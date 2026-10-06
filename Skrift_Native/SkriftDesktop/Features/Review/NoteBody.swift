@@ -167,7 +167,6 @@ struct NoteBody: View {
             searchJumpToken: searchJumpToken,
             focusToken: focusToken,
             readOnly: editState == .reading,
-            quoteLocked: file.hasLockedQuote,
             photoSlot: photoSlot,
             onAddPhoto: addPhoto,
             onPhotoMarkup: photoMarkedUp,

@@ -107,6 +107,25 @@ struct CaptureQuote: Equatable, Sendable {
         return rawBlock + separator + newRamble
     }
 
+    /// Reassemble the stored body from an EDITED quote (D183: a quote is text): each shown
+    /// line gets its `> ` marker back (a blank line becomes a bare `>`), then the ramble
+    /// verbatim. Unchanged text returns the stored body byte for byte. A quote cleared to
+    /// nothing drops the block, leaving just the ramble (empty = an empty body, the caller
+    /// stores nil).
+    func body(withQuote newQuote: String) -> String {
+        let trimmed = newQuote.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed == displayText { return body(withRamble: ramble) }
+        guard !trimmed.isEmpty else { return ramble }
+        let block = trimmed.components(separatedBy: "\n")
+            .map { line -> String in
+                let t = line.trimmingCharacters(in: .whitespaces)
+                return t.isEmpty ? ">" : "> " + t
+            }
+            .joined(separator: "\n")
+        guard !ramble.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return block }
+        return block + "\n\n" + ramble
+    }
+
     /// The plain-text attribution caption — "— Author, Book · ch. N", with the author and
     /// chapter omitted when absent. A purely numeric chapter gets the "ch. " prefix; anything
     /// else (an m4b chapter *name*) shows as-is. nil without a book title, which is what
