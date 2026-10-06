@@ -62,7 +62,6 @@ final class MemoSpineTests: XCTestCase {
 
     func testHeldNotesSitOffTheClockAtAnyAge() {
         for (reason, line) in [(MemoSpine.HoldReason.locked, "locked — won't fade"),
-                               (.reminder, "reminder set — won't fade"),
                                (.linked, "linked — won't fade")] {
             let st = MemoSpine.station(for: input(days: 400, hold: reason), now: now)
             XCTAssertEqual(st, .held(reason: reason))
@@ -154,8 +153,7 @@ final class MemoSpineTests: XCTestCase {
         let memo = Memo(audioFilename: "m.m4a", recordedAt: daysAgo(3),
                         transcript: "just words", transcriptStatus: .done)
         memo.locked = true
-        memo.remindAt = now
-        // locked outranks reminder (neverFades order, minus rating).
+        memo.remindAt = now   // D185: a reminder holds nothing
         XCTAssertEqual(MemoSpine.holdReason(of: memo, backlinked: []), .locked)
         // Rated + locked = active track, not held (rating is THE track switch).
         memo.significance = 0.1

@@ -74,7 +74,6 @@ final class MemoLifecycleTests: XCTestCase {
         let holds: [(String, (Memo) -> Void)] = [
             ("rated", { $0.significance = 0.1 }),
             ("locked", { $0.locked = true }),
-            ("reminder", { $0.remindAt = self.now }),
             ("fresh keptAt", { $0.keptAt = self.now }),
         ]
         for (name, apply) in holds {
