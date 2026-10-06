@@ -34,7 +34,7 @@ final class QuoteEditKaraokeTests: XCTestCase {
         XCTAssertEqual(m.seekTime(forWord: 0), timings[0].start)
         XCTAssertEqual(m.seekTime(forWord: 1), timings[2].start, "charlie keeps charlie's time")
         XCTAssertEqual(m.seekTime(forWord: 3), timings[4].start)
-        XCTAssertEqual(m.activeWord(at: 2.3), 1, "charlie, not the word at index 2")
+        XCTAssertEqual(m.activeWord(at: 1.9), 1, "charlie (1.5–2.0), not the word at index 2")
     }
 
     func testInsertedWordDoesNotLightAndDoesNotShiftTheOthers() {
