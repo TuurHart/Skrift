@@ -15,7 +15,7 @@ grep -rqE "class $CLS\b" Skrift_Native/SkriftMobile/SkriftMobileTests || { echo 
 # Both are iPhone 17s, so layout-sensitive tests see the same screen. Erase INSIDE the lock.
 SIMS=("4962056D-2AE0-46AD-A04F-3663AE7698CF" "B7B7068C-FC3A-4A7B-B29A-EC049A86A16D")
 run_on() { # run_on UDID LOCK WAIT
-  /usr/bin/lockf -t "$3" "$2" bash -c 'xcrun simctl shutdown "$0" >/dev/null 2>&1; xcrun simctl erase "$0" >/dev/null 2>&1; shift; exec "$@"' "$1" \
+  /usr/bin/lockf -t "$3" "$2" bash -c 'xcrun simctl shutdown "$0" >/dev/null 2>&1; xcrun simctl erase "$0" >/dev/null 2>&1; exec "$@"' "$1" \
     xcodebuild test -project Skrift_Native/SkriftMobile/SkriftMobile.xcodeproj -scheme SkriftMobile \
     -destination "platform=iOS Simulator,id=$1" -derivedDataPath Skrift_Native/SkriftMobile/build \
     -skipPackagePluginValidation -skipMacroValidation -only-testing:"SkriftMobileTests/$CLS" -quiet
