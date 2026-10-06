@@ -1013,7 +1013,7 @@ enum BookAlignmentRunner {
     /// text-owned sentence). When a text's file ISN'T present locally (attached-text files never
     /// sync — only the sidecars do, so a receiver device can be missing some), its TOC can't be
     /// re-derived; that text's EXISTING on-disk marks are preserved unchanged rather than
-    /// dropped, so a partial local re-align can never wipe-and-resync (`sendAlignments` is
+    /// dropped, so a partial local re-align can never wipe-and-resync (`AudiobookCloudSync.send(alignmentSidecars)` is
     /// ungated) another device's chapters away. Saves whichever sidecars' marks changed.
     private static func reconcileChapters(
         bookID: UUID, folder: URL, textFilenames: [String], current: [FileAlignment?],

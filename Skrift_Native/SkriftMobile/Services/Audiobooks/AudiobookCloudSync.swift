@@ -20,13 +20,7 @@ import SwiftData
 enum AudiobookCloudSync {
 
     /// Per-config private CloudKit container (matches the entitlement + the Memo store).
-    static var containerID: String {
-        #if DEBUG
-        "iCloud.com.skrift.mobile.dev"
-        #else
-        "iCloud.com.skrift.mobile"
-        #endif
-    }
+    static var containerID: String { SkriftCloudContainer.id }
 
     private static func makeTransport() -> AudiobookAudioTransport {
         CloudKitAudiobookTransport(containerID: containerID)
@@ -96,14 +90,14 @@ enum AudiobookCloudSync {
                             transport: AudiobookAudioTransport? = nil) async {
         let names: [String]
         if let record = repository.audiobookRecord(bookID: bookID),
-           let book = try? JSONDecoder().decode(Audiobook.self, from: record.blob) {
-            names = audioRecordNames(for: book) + transcriptRecordNames(for: book) + alignmentRecordNames(for: book)
+           let book = record.book {
+            names = audioRecordNames(for: book) + recordNames(transcriptSidecars, for: book)
+                + recordNames(alignmentSidecars, for: book)
         } else {
             names = []
         }
         repository.deleteAudiobookSync(bookID: bookID)   // drops carrier (+ any legacy AudiobookAsset rows)
-        var s = removedDownloads(defaults); s.remove(bookID.uuidString)
-        defaults.set(Array(s), forKey: removedDownloadsKey)
+        setDownloadRemoved(bookID, false, defaults: defaults)
         defaults.removeObject(forKey: transcriptAppliedKey(bookID))   // re-pull transcripts if re-synced later
         defaults.removeObject(forKey: alignmentAppliedKey(bookID))    // 📖 re-pull alignment if re-synced later
         CloudSyncMonitor.shared.cancelBookTransfer(bookID)   // supersede any in-flight transfer's late callbacks
@@ -129,6 +123,13 @@ enum AudiobookCloudSync {
         Set((defaults.array(forKey: removedDownloadsKey) as? [String]) ?? [])
     }
 
+    /// The one read-modify-write of the per-device removed set (insert when `removed`, else drop).
+    static func setDownloadRemoved(_ bookID: UUID, _ removed: Bool, defaults: UserDefaults = .standard) {
+        var s = removedDownloads(defaults)
+        if removed { s.insert(bookID.uuidString) } else { s.remove(bookID.uuidString) }
+        defaults.set(Array(s), forKey: removedDownloadsKey)
+    }
+
     static func isDownloadRemoved(bookID: UUID, defaults: UserDefaults = .standard) -> Bool {
         removedDownloads(defaults).contains(bookID.uuidString)
     }
@@ -148,18 +149,16 @@ enum AudiobookCloudSync {
                 try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
             }
         }
-        var s = removedDownloads(defaults); s.insert(bookID.uuidString)
-        defaults.set(Array(s), forKey: removedDownloadsKey)
+        setDownloadRemoved(bookID, true, defaults: defaults)
     }
 
     /// Re-download a freed book on this device: clear the marker + fetch the audio now.
     static func restoreDownload(bookID: UUID, library: AudiobookLibraryStore = .shared,
                                 repository: NotesRepository = .shared, defaults: UserDefaults = .standard,
                                 transport: AudiobookAudioTransport? = nil) async {
-        var s = removedDownloads(defaults); s.remove(bookID.uuidString)
-        defaults.set(Array(s), forKey: removedDownloadsKey)
+        setDownloadRemoved(bookID, false, defaults: defaults)
         guard let record = repository.audiobookRecord(bookID: bookID),
-              let book = try? JSONDecoder().decode(Audiobook.self, from: record.blob) else { return }
+              let book = record.book else { return }
         let t = transport ?? makeTransport()
         let folder = library.folder(for: bookID)
         let refs = audioRefs(for: book).filter {
@@ -210,7 +209,7 @@ enum AudiobookCloudSync {
         // before audio lands), and pull its audio (unless its download was freed here)
         // once the source has stamped `audioUploadedAt`.
         for record in records {
-            guard let remote = try? JSONDecoder().decode(Audiobook.self, from: record.blob) else { continue }
+            guard let remote = record.book else { continue }
             if let local = library.book(id: remote.id) {
                 // LWW by modifiedAt — adopt the remote position/rate/etc. if newer.
                 // (modifiedAt, not lastPlayedAt, so a speed-only change also wins.)
@@ -252,7 +251,7 @@ enum AudiobookCloudSync {
         // upload because its files aren't on disk.
         for record in records {
             guard let local = library.book(id: record.bookID) else { continue }
-            let recorded = try? JSONDecoder().decode(Audiobook.self, from: record.blob)
+            let recorded = record.book
             if local.modifiedAt > (recorded?.modifiedAt ?? .distantPast),
                let blob = try? JSONEncoder().encode(local.sanitizedForSync()) {
                 record.blob = blob
@@ -270,9 +269,9 @@ enum AudiobookCloudSync {
             // Upload the read-along transcript sidecars when they exist + changed (so a
             // book transcribed AFTER it was synced still propagates — not gated by the
             // audio upload-once).
-            await sendTranscripts(local, record: record, library: library, transport: transport)
+            await send(transcriptSidecars, local, record: record, library: library, transport: transport)
             // 📖 spike 6: same for alignment sidecars — also ungated by the audio upload-once.
-            await sendAlignments(local, record: record, library: library, transport: transport)
+            await send(alignmentSidecars, local, record: record, library: library, transport: transport)
             // 📖 the attached text files themselves (same cadence, ~1 MB each).
             await sendEpubs(local, record: record, library: library, transport: transport)
         }
@@ -411,16 +410,71 @@ enum AudiobookCloudSync {
 
     // MARK: - Read-along transcript sidecars (synced separately from the audio)
 
-    private static func transcriptRecordName(bookID: UUID, index: Int) -> String { "ab_\(bookID.uuidString)_t\(index)" }
-    private static func transcriptFilename(_ index: Int) -> String { "transcript_f\(index).json" }
-    private static func transcriptRecordNames(for book: Audiobook) -> [String] {
-        book.files.indices.map { transcriptRecordName(bookID: book.id, index: $0) }
+    /// One sidecar set (transcripts, alignments): what differs between them is the
+    /// CloudKit record-name infix, the sidecar filename, how the local content
+    /// signature is computed, and which carrier field records the uploaded signature.
+    /// The infixes (`_t`, `_al`) and filename formats are CloudKit wire names — never
+    /// change them. (The ePub manifest block below keeps its own `_txt` shape.)
+    struct SidecarKind {
+        let recordInfix: String
+        let filenamePrefix: String
+        let label: String
+        let signature: @MainActor (Audiobook, AudiobookLibraryStore) -> String
+        let carrierSignature: ReferenceWritableKeyPath<AudiobookSyncRecord, String>
+
+        func recordName(bookID: UUID, index: Int) -> String { "ab_\(bookID.uuidString)_\(recordInfix)\(index)" }
+        func filename(_ index: Int) -> String { "\(filenamePrefix)\(index).json" }
+    }
+
+    static let transcriptSidecars = SidecarKind(
+        recordInfix: "t", filenamePrefix: "transcript_f", label: "transcript",
+        signature: { localTranscriptSignature($0, library: $1) },
+        carrierSignature: \.transcriptSignature)
+    static let alignmentSidecars = SidecarKind(
+        recordInfix: "al", filenamePrefix: "alignment_f", label: "alignment",
+        signature: { localAlignmentSignature($0, library: $1) },
+        carrierSignature: \.alignmentSignature)
+
+    static func recordNames(_ kind: SidecarKind, for book: Audiobook) -> [String] {
+        book.files.indices.map { kind.recordName(bookID: book.id, index: $0) }
+    }
+
+    private static func parts(_ kind: SidecarKind, for book: Audiobook, folder: URL) -> [AudiobookAudioPart] {
+        book.files.indices.compactMap { i in
+            let url = folder.appendingPathComponent(kind.filename(i))
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return AudiobookAudioPart(recordName: kind.recordName(bookID: book.id, index: i),
+                                      filename: kind.filename(i), fileURL: url)
+        }
+    }
+
+    static func refs(_ kind: SidecarKind, for book: Audiobook) -> [AudiobookAudioRef] {
+        book.files.indices.map { i in
+            AudiobookAudioRef(recordName: kind.recordName(bookID: book.id, index: i), filename: kind.filename(i))
+        }
+    }
+
+    /// SOURCE: upload the sidecars when they exist + changed since the carrier's
+    /// recorded signature (tiny JSON → no progress UI).
+    private static func send(_ kind: SidecarKind, _ book: Audiobook, record: AudiobookSyncRecord,
+                             library: AudiobookLibraryStore, transport: AudiobookAudioTransport) async {
+        let sig = kind.signature(book, library)
+        guard !sig.isEmpty, sig != record[keyPath: kind.carrierSignature] else { return }
+        let folder = library.folder(for: book.id)
+        let parts = parts(kind, for: book, folder: folder)
+        guard !parts.isEmpty else { return }
+        do {
+            try await transport.upload(parts) { _ in }
+            record[keyPath: kind.carrierSignature] = sig
+        } catch {
+            DevLog.log("audiobook \(kind.label) upload failed \(book.id): \(error)")
+        }
     }
 
     /// Content signature of the local (staleness-valid) transcript sidecars —
     /// `"<i>:<coveredUpTo>:<wordCount>"` joined. Excludes the per-file staleness key so
     /// the source and a re-stamped receiver compute the SAME value (no upload churn).
-    private static func localTranscriptSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
+    static func localTranscriptSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
         let store = BookTranscriptStore(directory: library.directory)
         let folder = library.folder(for: book.id)
         var parts: [String] = []
@@ -433,39 +487,6 @@ enum AudiobookCloudSync {
             }
         }
         return parts.joined(separator: "|")
-    }
-
-    private static func transcriptParts(for book: Audiobook, folder: URL) -> [AudiobookAudioPart] {
-        book.files.indices.compactMap { i in
-            let url = folder.appendingPathComponent(transcriptFilename(i))
-            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-            return AudiobookAudioPart(recordName: transcriptRecordName(bookID: book.id, index: i),
-                                      filename: transcriptFilename(i), fileURL: url)
-        }
-    }
-
-    private static func transcriptRefs(for book: Audiobook) -> [AudiobookAudioRef] {
-        book.files.indices.map { i in
-            AudiobookAudioRef(recordName: transcriptRecordName(bookID: book.id, index: i),
-                              filename: transcriptFilename(i))
-        }
-    }
-
-    /// SOURCE: upload the transcript sidecars when they exist + changed since the
-    /// carrier's recorded signature (tiny JSON → no progress UI).
-    private static func sendTranscripts(_ book: Audiobook, record: AudiobookSyncRecord,
-                                        library: AudiobookLibraryStore, transport: AudiobookAudioTransport) async {
-        let sig = localTranscriptSignature(book, library: library)
-        guard !sig.isEmpty, sig != record.transcriptSignature else { return }
-        let folder = library.folder(for: book.id)
-        let parts = transcriptParts(for: book, folder: folder)
-        guard !parts.isEmpty else { return }
-        do {
-            try await transport.upload(parts) { _ in }
-            record.transcriptSignature = sig
-        } catch {
-            DevLog.log("audiobook transcript upload failed \(book.id): \(error)")
-        }
     }
 
     /// RECEIVER: pull the transcript sidecars when the carrier's signature is new to
@@ -482,13 +503,13 @@ enum AudiobookCloudSync {
         guard audioPresent else { return }
         let appliedKey = transcriptAppliedKey(book.id)
         guard defaults.string(forKey: appliedKey) != record.transcriptSignature else { return }
-        try? await transport.download(transcriptRefs(for: book), into: folder) { _ in }
+        try? await transport.download(refs(transcriptSidecars, for: book), into: folder) { _ in }
         // Q18/C218/R59: verify the sidecars actually LANDED on disk (like
         // `receiveEpubs`'s `landed` check) before restamping/marking applied —
         // a partial/failed download must not be latched as done, which would
         // strand this device on a stale or absent transcript forever.
         let landed = book.files.indices.allSatisfy {
-            FileManager.default.fileExists(atPath: folder.appendingPathComponent(transcriptFilename($0)).path)
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent(transcriptSidecars.filename($0)).path)
         }
         guard landed else { return }
         restampTranscripts(book, library: library)
@@ -601,18 +622,12 @@ enum AudiobookCloudSync {
 
     // MARK: - Alignment sidecars (📖 spike 6 — synced like transcripts, never restamped)
 
-    private static func alignmentRecordName(bookID: UUID, index: Int) -> String { "ab_\(bookID.uuidString)_al\(index)" }
-    private static func alignmentFilename(_ index: Int) -> String { "alignment_f\(index).json" }
-    private static func alignmentRecordNames(for book: Audiobook) -> [String] {
-        book.files.indices.map { alignmentRecordName(bookID: book.id, index: $0) }
-    }
-
     /// Content signature of the local alignment sidecars — `FileAlignment.cloudSignaturePart()`
     /// joined with "|", mirroring `localTranscriptSignature`'s shape exactly. Q57/C218:
     /// cache-served off each sidecar's own file stats (`BookAlignmentStore.cloudSignaturePart`)
     /// like the transcript twin above — this used to full-decode every alignment sidecar on
     /// @MainActor on every reconcile, fired by each bookmark tap.
-    private static func localAlignmentSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
+    static func localAlignmentSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
         let store = BookAlignmentStore(directory: library.directory)
         var parts: [String] = []
         for i in book.files.indices {
@@ -621,39 +636,6 @@ enum AudiobookCloudSync {
             }
         }
         return parts.joined(separator: "|")
-    }
-
-    private static func alignmentParts(for book: Audiobook, folder: URL) -> [AudiobookAudioPart] {
-        book.files.indices.compactMap { i in
-            let url = folder.appendingPathComponent(alignmentFilename(i))
-            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-            return AudiobookAudioPart(recordName: alignmentRecordName(bookID: book.id, index: i),
-                                      filename: alignmentFilename(i), fileURL: url)
-        }
-    }
-
-    private static func alignmentRefs(for book: Audiobook) -> [AudiobookAudioRef] {
-        book.files.indices.map { i in
-            AudiobookAudioRef(recordName: alignmentRecordName(bookID: book.id, index: i),
-                              filename: alignmentFilename(i))
-        }
-    }
-
-    /// SOURCE: upload the alignment sidecars when they exist + changed since the carrier's
-    /// recorded signature (tiny JSON → no progress UI) — mirrors `sendTranscripts`.
-    private static func sendAlignments(_ book: Audiobook, record: AudiobookSyncRecord,
-                                       library: AudiobookLibraryStore, transport: AudiobookAudioTransport) async {
-        let sig = localAlignmentSignature(book, library: library)
-        guard !sig.isEmpty, sig != record.alignmentSignature else { return }
-        let folder = library.folder(for: book.id)
-        let parts = alignmentParts(for: book, folder: folder)
-        guard !parts.isEmpty else { return }
-        do {
-            try await transport.upload(parts) { _ in }
-            record.alignmentSignature = sig
-        } catch {
-            DevLog.log("audiobook alignment upload failed \(book.id): \(error)")
-        }
     }
 
     private static func alignmentAppliedKey(_ bookID: UUID) -> String {
@@ -699,7 +681,7 @@ enum AudiobookCloudSync {
         DevLog.log("alignSync \(book.id): step=\(step) sig=\(record.alignmentSignature) marker=\(defaults.string(forKey: appliedKey) ?? "nil")")
         guard step != .skip else { return }
         if step == .downloadAndApply {
-            try? await transport.download(alignmentRefs(for: book), into: folder) { _ in }
+            try? await transport.download(refs(alignmentSidecars, for: book), into: folder) { _ in }
         }
 
         let store = BookAlignmentStore(directory: library.directory)

@@ -47,6 +47,9 @@ final class AudiobookSyncRecord {
     /// 2026-07-22 local-only doctrine keeps its teeth). Empty = nothing attached.
     var epubSignature: String = ""
 
+    /// The decoded synced `Audiobook` state (nil when the blob doesn't decode).
+    var book: Audiobook? { try? JSONDecoder().decode(Audiobook.self, from: blob) }
+
     init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil,
          transcriptSignature: String = "", alignmentSignature: String = "") {
         self.bookID = bookID
