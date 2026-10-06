@@ -238,8 +238,10 @@ struct MemoSaver {
 
     /// Import a VIDEO shared into Skrift / picked from Photos (e.g. a self-recorded
     /// "life advice to myself" clip). Strips the audio track to a `memo_<id>.m4a` and
-    /// transcribes it on-device exactly like an audio import — the original video is
-    /// NOT kept (audio + one representative frame is the captured decision). One frame
+    /// transcribes it on-device exactly like an audio import. The movie itself is kept next to
+    /// the memo (`video_<id>.<ext>`, <= ~200 MB, C63/C148/D172) and only SYNCS and exports when
+    /// the note is filed Inspiration / Idea / Project (`AssetMaterializer`); a Personal note
+    /// never sends it anywhere. One frame
     /// is grabbed (`AVAssetImageGenerator`) and attached as a `[[img_001]]` via the
     /// existing image-manifest mechanism, landing at the start of the transcript.
     ///
@@ -351,6 +353,10 @@ struct MemoSaver {
         var meta = memo.metadata ?? MemoMetadata()
         meta.sourceType = MemoMetadata.Source.video
         if !manifest.isEmpty { meta.imageManifest = manifest }
+        // C63 / C148 / D172: keep the movie beside the memo (a copy: the user's own file is
+        // never touched). Over the cap it is refused - the note and transcript stay, the movie
+        // does not (the share card said so before the import, `VideoKeep.tooLargeMessage`).
+        meta.videoFilename = await Self.keepMovie(source: source, memoID: id)
         memo.metadata = meta
         repository.save()
         DevLog.log("processVideo[\(id)] memo updated; recordedAt=\(recorded) now=\(Date()) → transcribe")
@@ -362,6 +368,24 @@ struct MemoSaver {
     }
 
     // MARK: - Video helpers (pure AVFoundation — host-less testable)
+
+    /// Copy a video import's source movie to `recordings/video_<id>.<ext>` and return that name,
+    /// or nil when the movie is over `VideoKeep.maxBytes` or the copy fails (a missing movie
+    /// costs the portfolio its video, never the note). Off the main actor: up to ~200 MB.
+    nonisolated static func keepMovie(source: URL, memoID: UUID) async -> String? {
+        await Task.detached(priority: .utility) { () -> String? in
+            guard let size = VideoKeep.byteCount(of: source), VideoKeep.fits(byteCount: size) else {
+                DevLog.log("keepMovie[\(memoID)] refused: over \(VideoKeep.maxBytes) bytes or unreadable")
+                return nil
+            }
+            let name = VideoKeep.filename(memoID: memoID, sourceExtension: source.pathExtension)
+            let dest = AppPaths.recordingsDirectory.appendingPathComponent(name)
+            try? FileManager.default.removeItem(at: dest)
+            do { try FileManager.default.copyItem(at: source, to: dest) }
+            catch { DevLog.log("keepMovie[\(memoID)] copy failed: \(error)"); return nil }
+            return name
+        }.value
+    }
 
     /// Video container UTIs/extensions Skrift accepts for import. `avi`/`mpg`/`mpeg`
     /// stay listed even though iOS AVFoundation can't demux them: the `public.movie`

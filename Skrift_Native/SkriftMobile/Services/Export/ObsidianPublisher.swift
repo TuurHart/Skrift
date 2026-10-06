@@ -121,6 +121,14 @@ struct ObsidianPublisher {
     var photosProvider: (UUID) -> [String: Data] = { _ in [:] }
     /// The original audio blob (fetched only when a write actually happens).
     var audioProvider: (UUID) -> Data? = { _ in nil }
+    /// C63 / C136: the kept source movie of a video note (the file `MemoSaver.keepMovie` wrote,
+    /// or the iPad's materialized copy of the synced `video` asset). Only a PORTFOLIO export
+    /// asks; nil when the note has none or the file is not on this device.
+    var movieProvider: (Memo) -> URL? = { memo in
+        guard let name = memo.metadata?.videoFilename, !name.isEmpty else { return nil }
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
     /// Test hook — nil uses the per-root default ledger.
     var ledgerOverride: ExportLedger? = nil
 
@@ -244,8 +252,16 @@ struct ObsidianPublisher {
             audio = VaultAsset(name: stem + "." + (ext.isEmpty ? "m4a" : ext), source: .data(blob))
         }
 
+        // C63 / C136 / D172: a video filed Inspiration / Idea / Project brings its movie, beside
+        // the note like the picture. The Obsidian vault never gets it (a 200 MB clip has no
+        // business in a notes folder), and a Personal note never reaches this branch.
+        var documents: [VaultAsset] = []
+        if profile == .portfolio, memo.destination.isPortfolio, let movie = movieProvider(memo) {
+            documents.append(VaultAsset(name: stem + "." + movie.pathExtension, source: .file(movie)))
+        }
+
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
-                                  attachments: attachments, audio: audio)
+                                  attachments: attachments, audio: audio, documents: documents)
         switch r.outcome {
         case .created, .updated:
             return PublishReport(outcome: .written(relativePath: relPath), relativePath: relPath,

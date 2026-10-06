@@ -61,6 +61,12 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// (`NoteTitle.importName`). ADDITIVE + optional — nil on every other memo.
     var importFileName: String?
 
+    /// C63 / C148 / D172: the file name of this video note's kept source movie (the synced
+    /// `MemoAsset.Kind.video` asset, `VideoKeep.filename`). Set when the import kept a movie
+    /// (<= ~200 MB); the movie syncs and exports only while the note is filed Inspiration /
+    /// Idea / Project. ADDITIVE + optional - nil on every other memo.
+    var videoFilename: String?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -79,7 +85,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         bookPosition: Double? = nil,
         sourceType: String? = nil,
         clipManifest: [ClipManifestEntry]? = nil,
-        importFileName: String? = nil
+        importFileName: String? = nil,
+        videoFilename: String? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -99,6 +106,7 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.sourceType = sourceType
         self.clipManifest = clipManifest
         self.importFileName = importFileName
+        self.videoFilename = videoFilename
     }
 
     /// Known `sourceType` values — the first entries of the deferred unified
