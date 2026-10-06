@@ -28,6 +28,8 @@ enum AppShortcuts {
     static let record = Chord(key: "n", modifiers: [.command, .shift])
     /// Focus the notes search field.
     static let search = cmd("f")
+    /// Mac: Edit > Insert Photo… (Q325, D181: a photo is added without a toolbar button).
+    static let insertPhoto = Chord(key: "i", modifiers: [.command, .shift])
 
     // ── Mac: two surfaces ───────────────────────────────────────────────────
     static let macNotes = cmd("1")
@@ -40,6 +42,6 @@ enum AppShortcuts {
     static let tabSettings = cmd("4")
 
     /// Everything bound on the Mac / on the phone+iPad, for the "no chord twice" check.
-    static let mac: [Chord] = [newNote, record, search, macNotes, macReview]
+    static let mac: [Chord] = [newNote, record, search, macNotes, macReview, insertPhoto]
     static let phone: [Chord] = [newNote, record, search, tabNotes, tabBooks, tabReview, tabSettings]
 }

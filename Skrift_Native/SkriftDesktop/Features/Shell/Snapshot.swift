@@ -44,6 +44,7 @@ enum Snapshot {
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
         if let p = path("-snapshot-photoblock")     { MainActor.assumeIsolated { renderPhotoBlock(to: p); exit(0) } }
+        if let p = path("-snapshot-notephotos")     { MainActor.assumeIsolated { renderNotePhotos(to: p, scheme: args.contains("-light") ? .light : .dark); exit(0) } }
         if let p = path("-snapshot-turns")          { MainActor.assumeIsolated { renderTurns(to: p); exit(0) } }
         if let p = path("-snapshot-turns-light")    { MainActor.assumeIsolated { renderTurns(to: p, scheme: .light); exit(0) } }
         if args.contains("-turncheck")              { MainActor.assumeIsolated { checkTurns(); exit(0) } }
@@ -807,6 +808,57 @@ enum Snapshot {
         hostPNG(view, size: NSSize(width: 820, height: 1150), to: path)
     }
 
+    /// Q325 (mock Q128-mac-note-photos): a selected photo (accent outline + the open hint), and the
+    /// two cards for a photo whose file has not arrived (spinner + "Downloading from iCloud…",
+    /// and the plain photo card). Real NSTextView, hosted. `-snapshot-notephotos <png> [-light]`.
+    @MainActor private static func renderNotePhotos(to path: String, scheme: ColorScheme) {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("snap-notephotos")
+        try? FileManager.default.removeItem(at: work)
+        let images = work.appendingPathComponent("images")
+        try? FileManager.default.createDirectory(at: images, withIntermediateDirectories: true)
+        writeSamplePhoto(to: images.appendingPathComponent("photo_001.jpg"), size: NSSize(width: 800, height: 600))
+        let photo = images.appendingPathComponent("photo_001.jpg")
+
+        let selected = "Cable tray has to move about twenty centimetres to the left. Anything else clears the arm.\n\n[[img_001]]\n\nThe vise stays where it is."
+        let waiting = "The second angle of the bench is still on its way.\n\n[[img_002]]\n\nThen the plain card, when no file is coming:\n\n[[img_003]]\n\nText below moves down when a photo lands."
+        func pane(_ title: String, _ text: String) -> some View {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title).font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.accentText).textCase(.uppercase).kerning(1.1)
+                BodyTextView(text: .constant(text),
+                             imageURL: { $0 == 1 ? photo : nil },
+                             photoSlot: { $0 == 2 ? .downloading : .missing },
+                             onAddPhoto: { _ in nil })
+                    .frame(width: 700)
+            }
+            .padding(.horizontal, 26).padding(.vertical, 18)
+            .frame(width: 760, alignment: .leading)
+            .background(Theme.surface)
+        }
+        let view = VStack(alignment: .leading, spacing: 14) {
+            pane("Open · one click selects the photo", selected)
+            pane("Not here yet · downloading, then no file coming", waiting)
+        }
+        .padding(20)
+        .background(Theme.bg)
+        .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 800, height: 1160), to: path, prepare: { host in
+            // The click that selects: the first photo attachment in the first text view.
+            for tv in textViews(in: host) {
+                guard let storage = tv.textStorage else { continue }
+                var found: Int?
+                storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { v, r, stop in
+                    if let att = v as? ImageMarkerAttachment, !att.isCard { found = r.location; stop.pointee = true }
+                }
+                if let found { tv.selectedPhotoLoc = found; break }
+            }
+        })
+    }
+
+    @MainActor private static func textViews(in view: NSView) -> [SelfSizingTextView] {
+        (view as? SelfSizingTextView).map { [$0] } ?? view.subviews.flatMap { textViews(in: $0) }
+    }
+
     /// Drive the REAL `MacRecorder` for 3 seconds and report (`-recordcheck`). This is the
     /// path the Record button takes, so it answers "does the engine work" separately from
     /// "does the button reach it". Unlike `-miccheck` this WILL prompt for the mic the first
@@ -1121,7 +1173,8 @@ enum Snapshot {
     /// Offscreen HOSTED render (real AppKit — NSHostingView + cacheDisplay): the tool
     /// for surfaces ImageRenderer can't draw (NSTextView bodies, MapKit views). Runs
     /// the main runloop briefly so .task loads land before capture.
-    @MainActor private static func hostPNG<V: View>(_ view: V, size: NSSize, to path: String) {
+    @MainActor private static func hostPNG<V: View>(_ view: V, size: NSSize, to path: String,
+                                                    prepare: ((NSView) -> Void)? = nil) {
         let host = NSHostingView(rootView: view)
         host.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: host.frame, styleMask: [.borderless],
@@ -1130,6 +1183,11 @@ enum Snapshot {
         host.layoutSubtreeIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(1.2))
         host.layoutSubtreeIfNeeded()
+        if let prepare {
+            prepare(host)
+            RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+            host.layoutSubtreeIfNeeded()
+        }
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
         try? rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:])?
