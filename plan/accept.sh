@@ -2,34 +2,66 @@
 # accept.sh REPO WORKTREE ID — the only road from a worker branch into the session branch.
 # Checks protected paths, merges, runs the gate (plus the item check when it is a
 # backticked command), flips queue state, cleans the worktree.
+# accept.sh REPO --full — runs the slow `gate-full:` once (session end / overnight).
 # Prints at most 6 lines; everything bulky goes to .queue/.
+# The gate runs here once per item, and only when the merge touched a `code:` path.
 set -euo pipefail
-REPO="${1:?repo path}"; WT="${2:?worktree path}"; ID="${3:?item id}"
+REPO="${1:?repo path}"; WT="${2:?worktree path or --full}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 QS="$HERE/queue.sh"
 cd "$REPO"
 Q="QUEUE.md"
 [ -f "$Q" ] || { echo "no QUEUE.md in $REPO"; exit 1; }
 GATE="$(sed -n 's/^gate:[[:space:]]*//p' "$Q" | head -1)"
+GATEFULL="$(sed -n 's/^gate-full:[[:space:]]*//p' "$Q" | head -1)"
 PROT="$(sed -n 's/^protected:[[:space:]]*//p' "$Q" | head -1)"
+CODE="$(sed -n 's/^code:[[:space:]]*//p' "$Q" | head -1)"
 [ -n "$GATE" ] || { echo "no gate: line in $Q"; exit 1; }
 mkdir -p .queue; printf '*\n' > .queue/.gitignore
 TARGET="$(git branch --show-current)"
 
+# every gate run is timed into .queue/gate-times.tsv, so "how long do gates cost" has an answer
+timed(){ # timed LABEL LOG CMD — runs CMD, sets SECS, returns its exit code
+  local t0=$SECONDS rc=0
+  bash -c "$3" >"$2" 2>&1 || rc=$?
+  SECS=$((SECONDS-t0))
+  printf '%s\t%s\t%ss\t%s\n' "$(date '+%F %T')" "$1" "$SECS" "$([ $rc = 0 ] && echo pass || echo fail)" >> .queue/gate-times.tsv
+  return $rc
+}
+
+if [ "$WT" = "--full" ]; then
+  [ -n "$GATEFULL" ] || { echo "no gate-full: line in $Q — nothing to run"; exit 0; }
+  if timed full .queue/full.gate.log "$GATEFULL"; then
+    echo "FULL GATE GREEN @$(git rev-parse --short HEAD) (${SECS}s)"; exit 0
+  else
+    echo "FULL GATE RED @$(git rev-parse --short HEAD) (${SECS}s). tail:"; tail -3 .queue/full.gate.log; exit 4
+  fi
+fi
+ID="${3:?item id}"
+
+run_check(){ # the item check, only when it is a backticked command; 0 = pass or none
+  local CHECK CCMD
+  CHECK="$("$QS" -f "$Q" get "$ID" | sed -n 's/^check:[[:space:]]*//p' | head -1)"
+  case "$CHECK" in
+    \`*\`)
+      CCMD="${CHECK#\`}"; CCMD="${CCMD%\`}"
+      bash -c "$CCMD" >".queue/$ID.check.log" 2>&1 ;;
+  esac
+}
+
 # a harness auto-cleans a worktree with no changes; a verify-only item ends up here.
-# nothing to merge: run gate on the current branch and flip the state.
+# nothing changed, so the gate would only repeat the last accept: run the check alone.
 if [ ! -d "$WT" ]; then
-  GLOG=".queue/$ID.gate.log"
-  if bash -c "$GATE" >"$GLOG" 2>&1; then
+  if run_check; then
     LANE="$("$QS" -f "$Q" get "$ID" | sed -nE 's/^### Q[0-9]+ \[(auto|tuur)\].*/\1/p' | head -1)"
     ST=done; [ "$LANE" = "tuur" ] && ST=tuur
-    "$QS" -f "$Q" set "$ID" "$ST" "no changes; gate pass @$(git rev-parse --short HEAD)" >/dev/null
-    echo "DONE $ID (no changes) @$(git rev-parse --short HEAD)"
+    "$QS" -f "$Q" set "$ID" "$ST" "no changes; check pass @$(git rev-parse --short HEAD)" >/dev/null
+    echo "DONE $ID (no changes, no gate) @$(git rev-parse --short HEAD)"
     git add "$Q"; git commit -qm "queue: $ID" || true
     "$QS" -f "$Q" counts; exit 0
   else
-    "$QS" -f "$Q" set "$ID" stuck "worktree gone and gate red — $GLOG" >/dev/null
-    echo "GATE FAIL $ID (no worktree). tail:"; tail -3 "$GLOG"; exit 4
+    "$QS" -f "$Q" set "$ID" stuck "worktree gone and check red — .queue/$ID.check.log" >/dev/null
+    echo "CHECK FAIL $ID (no worktree). tail:"; tail -3 ".queue/$ID.check.log"; exit 5
   fi
 fi
 
@@ -95,40 +127,39 @@ undo_merge(){ # keep uncommitted queue state across the reset
   cp .queue/queue.bak "$Q"
 }
 
-# 3. gate
+# 3. gate — skipped when `code:` is set and the merge touched none of those paths
+# (docs, measurements, mockups, plan/ files cannot break what the gate tests)
 GLOG=".queue/$ID.gate.log"
-if ! bash -c "$GATE" >"$GLOG" 2>&1; then
+# shellcheck disable=SC2086
+if [ -n "$CODE" ] && [ -z "$(git diff --name-only "$PRE" HEAD -- $CODE)" ]; then
+  GNOTE="gate skipped, no code: path touched"
+elif timed "$ID" "$GLOG" "$GATE"; then
+  GNOTE="gate ${SECS}s"
+else
   undo_merge
   "$QS" -f "$Q" set "$ID" stuck "gate failed — $GLOG" >/dev/null
-  echo "GATE FAIL $ID — merge undone. tail:"
+  echo "GATE FAIL $ID (${SECS}s) — merge undone. tail:"
   tail -3 "$GLOG"
   exit 4
 fi
 
 # 4. item check, only when it is a backticked command
-CHECK="$("$QS" -f "$Q" get "$ID" | sed -n 's/^check:[[:space:]]*//p' | head -1)"
-case "$CHECK" in
-  \`*\`)
-    CCMD="${CHECK#\`}"; CCMD="${CCMD%\`}"
-    CLOG=".queue/$ID.check.log"
-    if ! bash -c "$CCMD" >"$CLOG" 2>&1; then
-      undo_merge
-      "$QS" -f "$Q" set "$ID" stuck "check failed — $CLOG" >/dev/null
-      echo "CHECK FAIL $ID — merge undone. tail:"
-      tail -3 "$CLOG"
-      exit 5
-    fi
-    ;;
-esac
+if ! run_check; then
+  undo_merge
+  "$QS" -f "$Q" set "$ID" stuck "check failed — .queue/$ID.check.log" >/dev/null
+  echo "CHECK FAIL $ID — merge undone. tail:"
+  tail -3 ".queue/$ID.check.log"
+  exit 5
+fi
 
 # 5. flip state (tuur-lane items park for the sitting; auto items are done)
 LANE="$("$QS" -f "$Q" get "$ID" | sed -nE 's/^### Q[0-9]+ \[(auto|tuur)\].*/\1/p' | head -1)"
 if [ "$LANE" = "tuur" ]; then
-  "$QS" -f "$Q" set "$ID" tuur "built @$SHA — awaiting sitting" >/dev/null
-  echo "PARKED $ID @$SHA (sitting)"
+  "$QS" -f "$Q" set "$ID" tuur "built @$SHA, $GNOTE — awaiting sitting" >/dev/null
+  echo "PARKED $ID @$SHA ($GNOTE, sitting)"
 else
-  "$QS" -f "$Q" set "$ID" done "gate pass @$SHA" >/dev/null
-  echo "DONE $ID @$SHA"
+  "$QS" -f "$Q" set "$ID" done "$GNOTE @$SHA" >/dev/null
+  echo "DONE $ID @$SHA ($GNOTE)"
 fi
 
 # commit queue state so a crash cannot orphan it (explicit path on purpose)

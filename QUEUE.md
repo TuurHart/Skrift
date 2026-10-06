@@ -1,5 +1,6 @@
 # QUEUE — Skrift
 gate: ./gate.sh
+code: Skrift_Native/ gate.sh
 protected: SPEC.md QUEUE.md gate.sh plan/mtest.sh test-fixtures/corpus Skrift_Native/SkriftDesktop/SkriftDesktopTests Skrift_Native/SkriftMobile/SkriftMobileTests
 
 Wave 1 of the v2 rewrite (2026-09-24): the mocks, rewrite target 1 (body/image) end to end,
