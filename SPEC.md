@@ -320,9 +320,9 @@ suite is retired; the unit suite IS the gate (D85).
   chips and says it cannot export until one is picked. || check:
   `PortfolioExportTests`; corpus `dest-*`. — ledgers:144-155
 - C63 [auto] No video goes to the Obsidian vault: a video note exports markdown + audio + the
-  frame there. A video filed Inspiration / Idea / Project keeps its source movie as a SYNCED asset
+  frame there. Every video keeps its source movie as a SYNCED asset (D188)
   (cap ~200 MB, D44, C148), so the portfolio export copies it from whichever device exports
-  (Tuur 2026-08-28, "that is gold"); a Personal video discards the movie. || check: corpus
+  (Tuur 2026-08-28, "that is gold") for Inspiration / Idea / Project; a Personal video's movie syncs but is never exported (D188). || check: corpus
   `video-*`; `video-project-portfolio` (owed). — ledgers:153, code-core K:248, D44
 - C64 [auto] `date:` = the RECORDING'S LOCAL DAY on every device — one timezone rule, no
   per-device reinterpretation (D13).
@@ -356,8 +356,8 @@ suite is retired; the unit suite IS the gate (D85).
   filename today) — ingress P1, ledgers:205-206
 - C71 [auto] Video: audio stripped to m4a, one frame as a picture paragraph at the video's own
   place in the note (C12, C68 — the top for a lone video); the original movie is kept as a
-  SYNCED `source.<ext>` asset when the destination is Inspiration / Idea / Project (cap ~200 MB,
-  D44, C63, C148) and discarded for Personal; `recordedAt` =
+  SYNCED `source.<ext>` asset whatever the destination (cap ~200 MB,
+  D44, C63, C148, D188); `recordedAt` =
   filming date, `sourceType = "video"` read by the list glyph. || check: corpus `video-*`;
   ingress P8. ⚠ required difference (glyph key drift `sourceType` vs `mediaSource`) — ingress P8
 - C72 [auto] URL capture: title/description/thumbnail fetched on drain (one GET, no JS, local
@@ -679,7 +679,7 @@ Ingress:
   is idempotent (memo id from the entry). || check: drainer test that throws after the delete.
   ⚠ required difference (a kill in that window loses the clips today) — scenarios #19
 - C148 [tuur] A video filed Inspiration / Idea / Project keeps the source movie as a synced asset so
-  the portfolio gets it (cap ~200 MB); Personal videos keep discarding it. — scenarios #18, D44
+  the portfolio gets it (cap ~200 MB); Personal videos keep and sync it too, never exported (D188). — scenarios #18, D44
 
 Recording and copy-edit:
 - C149 [auto] An interruption (call, Siri, alarm) is a pause: the recording clock stops and photo
@@ -1989,3 +1989,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      change plus the Mac gate (~40 s), and the gate only when app code changed (accept.sh `code:`).
      Slow phone simulator classes run once per batch at session end. Workers never run the full gate.
      The phone test script uses two simulators (`plan/mtest.sh`: whichever iPhone 17 is free).
+188. **D188 Personal never goes to Claude; it syncs like everything else.** ✅ 2026-10-06, Tuur: "personal
+     never goes to Claude." The Personal boundary is about AI and outside services, never about iCloud: Personal
+     notes and their media sync between his devices through his own iCloud like every other note. Every video
+     keeps its movie (≤ ~200 MB) as a synced asset whatever its destination; the portfolio export still copies
+     the movie only for Inspiration / Idea / Project, and no movie goes into the Obsidian vault. Supersedes the
+     "Personal discards the movie" half of C63, C71, C148 and D172.

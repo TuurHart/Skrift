@@ -2473,6 +2473,13 @@ gate+: yes
 do: SPEC D185 (Tuur 2026-10-06): remove note reminders everywhere. Phone/iPad: the bell chip, '⋯ > Remind me…', the list long-press 'Remind me…' (context-remind-button), ReminderSheet, ReminderScheduler/ReminderPlan and every launch/foreground/sync call into it, and any reminder filter or count. Mac: the reminder row/chip (2d685e56) and any alarm code. On first launch after the update, each device removes the app's pending/delivered reminder notifications (UNUserNotificationCenter, the reminder identifiers only — keep FeedbackKit's and any other notifications). KEEP the synced `Memo.remindAt` property in the SwiftData model, unused, with a comment pointing at D185 (CloudKit schema + older installed builds). Lifecycle: a reminder no longer holds a note off the fading clock (MemoLifecycle touch/held lists) — update the shared rule and its tests; export already skips the reminder. Update FEATURES.md (Note reminders row → removed, D185) and the SPEC clauses C92/C162 wording to 'removed by D185'. Fix or delete every test that only pins reminders (UI tests are not protected; protected unit tests that only pin removed behaviour: list them in your report, do not edit them). Tests: `RemindersRemovedTests` (phone target: no code path schedules a notification for remindAt; the launch cleanup removes only reminder identifiers; a note with remindAt set fades like any other). Run SkriftMobileUITests/MemosListUITests. Never run any Mac UI test; Mac proof = full build + headless -snapshot you look at.
 check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 
+### Q332 [auto] (todo) Personal videos keep and sync their movie like every other video (D188)
+spec: -
+needs: -
+gate+: yes
+do: SPEC D188 (Tuur 2026-10-06): the Personal boundary is 'never goes to Claude', not 'never to iCloud'. Q287 (merged @212d1a78, finding in plan/RUN.md) syncs a video's movie as MemoAsset kind 'video' only while filed Inspiration/Idea/Project and withdraws the synced blob when filed Personal. Change it: every video keeps its movie (<= the 200,000,000-byte cap in Shared/Pipeline/VideoKeep.swift) as a synced asset whatever its destination, on phone and Mac (MacMemoAuthor.syncVideoAsset / MacCloudMetaSync.setDestination, phone MemoSaver.keepMovie / AssetMaterializer); filing to Personal no longer deletes the synced blob. The portfolio export (ObsidianPublisher.movieProvider, VaultExporter) still copies the movie only for Inspiration/Idea/Project; no movie ever goes into the Obsidian vault. Make sure no Personal note content reaches any AI/Claude path (grep the polish/enhancement and semantic-index entry points for a destination check and say what you found). Update FEATURES.md rows 'Four export destinations' and 'Video import'. Tests: update the Q287 tests you own (VideoAssetSyncTests, VideoAssetPhoneTests are new from Q287 — if the gate marks them protected, list the change instead) and add `PersonalVideoSyncsTests` (a Personal video keeps its synced asset; refiling Personal↔Project never deletes it; the Personal export copies no movie).
+check: `plan/mtest.sh PersonalVideoSyncsTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3581,3 +3588,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 21:21 Q190 -> done — gate 136s @a1b33b3c
 - 2026-10-06 21:21 Q191 -> doing — worker out
 - 2026-10-06 21:26 Q287 -> done — gate 114s @212d1a78
+- 2026-10-06 21:26 Q332 added
