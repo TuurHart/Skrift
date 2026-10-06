@@ -4,30 +4,21 @@ import Foundation
 /// The Settings picker calls `setVault`; the publisher resolves it. Mirrors the
 /// security-scoped pattern in `AudiobookImporter`/`MemoSaver`.
 enum ObsidianVault {
-    private static let bookmarkKey = "skrift.obsidian.vaultBookmark"
+    private static let bookmark = ScopedFolderBookmark(key: "skrift.obsidian.vaultBookmark")
 
     /// True once the user has chosen a folder.
-    static var isConfigured: Bool { UserDefaults.standard.data(forKey: bookmarkKey) != nil }
+    static var isConfigured: Bool { bookmark.isConfigured }
 
     /// Persist a bookmark to the chosen folder (call from the picker with the picked URL).
-    static func setVault(_ url: URL) throws {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let data = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
-        UserDefaults.standard.set(data, forKey: bookmarkKey)
-    }
+    static func setVault(_ url: URL) throws { try bookmark.set(url) }
 
     /// Resolve the saved bookmark to a (security-scoped) folder URL — the publisher
     /// starts/stops the scope around the write. nil if unset or unresolvable (stale →
     /// re-prompt in the UI).
-    static func resolveVault() -> URL? {
-        guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
-        var stale = false
-        return try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
-    }
+    static func resolveVault() -> URL? { bookmark.resolve() }
 
     /// The picked folder's display name for Settings ("Skrift", not a whole path).
-    static var displayName: String? { resolveVault()?.lastPathComponent }
+    static var displayName: String? { bookmark.displayName }
 }
 
 /// The result of publishing one memo — the shared engine's outcomes in the
@@ -46,6 +37,25 @@ enum PublishOutcome: Equatable {
     /// before, so the note said "isn't Skrift's" about a file that is).
     case blockedLegacy(relativePath: String)
     case noVault
+
+    /// The engine's outcome in the coordinator's vocabulary. `relativePath` is the file the
+    /// engine decided on (what a write names); a refusal names its own, and legacy stays
+    /// apart from foreign (different sentences, different remedies).
+    init(_ outcome: VaultWriteOutcome, relativePath: String) {
+        switch outcome {
+        case .created, .updated:            self = .written(relativePath: relativePath)
+        case .unchanged:                    self = .skippedUnchanged
+        case .backedOffUserEdited(let rel): self = .userEdited(relativePath: rel)
+        case .movedAway(let rel):           self = .movedAway(relativePath: rel)
+        case .blockedLegacy(let rel):       self = .blockedLegacy(relativePath: rel)
+        case .blockedForeign(let rel):      self = .blocked(relativePath: rel)
+        }
+    }
+
+    /// The export stem of a vault-relative path: its file name without the extension.
+    static func stem(ofRelativePath path: String) -> String {
+        ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+    }
 
     /// The engine's own outcome for the shared words (`ExportOutcomeCopy`); nil for
     /// `.noVault`, which has no engine decision behind it. `path` is the file the engine
@@ -76,6 +86,23 @@ struct PublishReport: Equatable {
 
     /// The engine's outcome in the shared type, nil for `.noVault`.
     var vaultOutcome: VaultWriteOutcome? { outcome.vaultOutcome(path: relativePath) }
+}
+
+/// In an extension so the struct keeps its memberwise `init(outcome:relativePath:assetCount:)`.
+extension PublishReport {
+    /// The report for one engine result. A write and an unchanged result name `relativePath`
+    /// (the file decided on); only a write counts `assetCount`; a refusal names its own file.
+    init(_ result: VaultWriteOutcome, relativePath: String, assetCount: Int = 0) {
+        let mapped = PublishOutcome(result, relativePath: relativePath)
+        switch mapped {
+        case .written:
+            self.init(outcome: mapped, relativePath: relativePath, assetCount: assetCount)
+        case .skippedUnchanged:
+            self.init(outcome: mapped, relativePath: relativePath, assetCount: 0)
+        default:
+            self.init(outcome: mapped, relativePath: result.relativePath, assetCount: 0)
+        }
+    }
 }
 
 /// The iPhone/iPad's Obsidian export, over the SHARED `VaultWriter` (2026-07-26).
@@ -169,18 +196,17 @@ struct ObsidianPublisher {
         // WHERE and HOW both follow the note's destination. `.personal` is the Obsidian vault
         // and today's layout, unchanged; a portfolio destination is its folder inside the
         // portfolio root, written flat (see `ExportProfile`).
-        let profile = ExportProfile.of(memo.destination)
-        let pickedRoot: URL? = memo.destination.isPortfolio
-            ? portfolioFolderProvider(memo.destination)
-            : vaultProvider()
-        guard let vaultRoot = pickedRoot else {
+        guard let destination = ExportDestinationRoot.resolve(
+            for: memo.destination, vault: vaultProvider,
+            portfolioFolder: portfolioFolderProvider, portfolioScopeRoot: portfolioScopeRoot) else {
             return PublishReport(outcome: .noVault, relativePath: "", assetCount: 0)
         }
+        let profile = destination.profile
+        let vaultRoot = destination.picked
         // Scope the ROOT the bookmark was made against — for the portfolio that is the portfolio
         // root, not the per-destination subfolder we write into.
-        let scopeRoot = memo.destination.isPortfolio ? (portfolioScopeRoot() ?? vaultRoot) : vaultRoot
-        let scoped = manageScope && scopeRoot.startAccessingSecurityScopedResource()
-        defer { if scoped { scopeRoot.stopAccessingSecurityScopedResource() } }
+        let scope = destination.openScope(manage: manageScope)
+        defer { scope.close() }
 
         // Resolve the PICK into the folder Skrift owns — the same call the Mac makes, or the
         // two apps would write to different places in one vault again (iOS at the picked
@@ -200,19 +226,18 @@ struct ObsidianPublisher {
         switch writer.assess(id: memo.id, title: title, filenameFallback: fallback,
                              recordedAt: MemoDate.isUnknown(memo.recordedAt) ? nil : memo.recordedAt) {
         case .refused(let outcome):
-            return PublishReport(outcome: Self.refusal(outcome),
-                                 relativePath: outcome.relativePath, assetCount: 0)
+            return PublishReport(outcome, relativePath: outcome.relativePath)
         case .proceed(let rel, _):
             relPath = rel
         }
-        let stem = ((relPath as NSString).lastPathComponent as NSString).deletingPathExtension
+        let stem = PublishOutcome.stem(ofRelativePath: relPath)
 
         // Memo-link stems: the ledger's sticky filename first (rename-safe), else the
         // target's derived one — same precedence as the Mac.
         var stems: [UUID: String] = [:]
         for id in MemoLinkSyntax.targets(in: memo.transcript ?? "") {
             if let rel = writer.ledger.relativePath(for: id) {
-                stems[id] = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
+                stems[id] = PublishOutcome.stem(ofRelativePath: rel)
             } else if let target = memoProvider(id) {
                 stems[id] = ExportNaming.stem(title: MemoExporter.exportTitle(for: target, people: people,
                                                                               enhancement: enhancementProvider(id)),
@@ -262,27 +287,7 @@ struct ObsidianPublisher {
 
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
                                   attachments: attachments, audio: audio, documents: documents)
-        switch r.outcome {
-        case .created, .updated:
-            return PublishReport(outcome: .written(relativePath: relPath), relativePath: relPath,
-                                 assetCount: attachments.count)
-        case .unchanged:
-            return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
-        default:
-            return PublishReport(outcome: Self.refusal(r.outcome),
-                                 relativePath: r.outcome.relativePath, assetCount: 0)
-        }
-    }
-
-    /// The engine's refusal in the coordinator's vocabulary, KEEPING legacy apart from foreign
-    /// (they have different sentences and different remedies).
-    private static func refusal(_ outcome: VaultWriteOutcome) -> PublishOutcome {
-        switch outcome {
-        case .backedOffUserEdited(let rel): return .userEdited(relativePath: rel)
-        case .movedAway(let rel):           return .movedAway(relativePath: rel)
-        case .blockedLegacy(let rel):       return .blockedLegacy(relativePath: rel)
-        default:                            return .blocked(relativePath: outcome.relativePath)
-        }
+        return PublishReport(r.outcome, relativePath: relPath, assetCount: attachments.count)
     }
 
     /// Replace `[[img_NNN]]` markers with this profile's embeds of `<stem>_NNN.ext`, through
