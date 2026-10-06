@@ -75,8 +75,10 @@ final class MacWeatherMetadataTests: XCTestCase {
     }
 
     func testTheMacKeyDefaultsToBlankForALegacySettingsFile() throws {
-        let legacy = Data(#"{"authorName":"Tuur"}"#.utf8)
-        let s = try JSONDecoder().decode(AppSettings.self, from: legacy)
+        // A settings.json written before this field existed: today's file minus the weather keys.
+        var obj = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as? [String: Any])
+        for k in ["weatherAPIKey", "weatherKeyModifiedAt", "weatherKeyFromPhone"] { obj[k] = nil }
+        let s = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: obj))
         XCTAssertEqual(s.weatherKey, "")
         XCTAssertNil(s.weatherKeyModifiedAt)
     }
