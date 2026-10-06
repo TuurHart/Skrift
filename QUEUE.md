@@ -2400,7 +2400,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (b179 flow re-run, iPhone 13, 2,000 notes): fast scrolling keeps the main thread ~75% busy (self-sizing cells: ListCollectionViewCellBase.preferredLayoutAttributesFitting → hostSizeThatFits 3.9 s, cell creation 4.5 s per 20 s), and typing in search still diffs the whole sectioned List (ListDiffable.sectionIndex 1.9 s). Investigate with the trace first (scratchpad scripts in plan/perf2/MEASURED.md header), then fix the biggest: candidates — give NoteCardView a cheap, stable size (no ChipFlowLayout measure pass per sizing; keep the Q312 ChipSlot clipping rule), stable row identity and Equatable row values so SwiftUI skips unchanged rows, fewer/cheaper section headers during search. Do NOT change how a card looks: render before/after sim screenshots of the list (cards with 0, 2 and 5+ chips, photo, quote) and compare by eye. Test: `ListRowEquatableTests` (rows with unchanged inputs compare equal; section identity stable across a search keystroke).
 check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTests && ./gate.sh`
 
-### Q324 [auto] (doing) phone notes list: day headers scroll away with the notes (D180)
+### Q324 [auto] (done) phone notes list: day headers scroll away with the notes (D180)
 spec: -
 needs: -
 gate+: yes
@@ -3481,3 +3481,4 @@ check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
 - 2026-10-06 08:53 Q323 -> done — gate pass @c92c3bb4
 - 2026-10-06 12:11 Q324 added
 - 2026-10-06 12:11 Q324 -> doing — worker out
+- 2026-10-06 12:46 Q324 -> done — gate pass @ab1e6888
