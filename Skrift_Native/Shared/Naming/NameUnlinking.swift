@@ -57,18 +57,6 @@ extension Sanitiser {
             .trimmingCharacters(in: .whitespaces)
     }
 
-    /// True when `text` already carries a `[[canonKey]]` OR `[[canonKey|display]]` link
-    /// (case-insensitive) — the pipe-tolerant replacement for a literal `[[Canonical]]`
-    /// substring search, so the alias-display form is recognised as an existing mention.
-    static func hasCanonicalLink(_ canonKey: String, in text: String) -> Bool {
-        let key = NamesMerge.bareName(canonKey)
-        guard !key.isEmpty,
-              let rx = try? NSRegularExpression(
-                pattern: "\\[\\[\(NSRegularExpression.escapedPattern(for: key))(\\|[^\\]]*)?\\]\\]",
-                options: [.caseInsensitive]) else { return false }
-        return rx.firstMatch(in: text, range: fullRange(text)) != nil
-    }
-
     /// "Unlink this mention": the `index`-th `[[canonical]]` link (reading order)
     /// becomes the plain `alias` as spoken. Order-based, so the UI's storage offsets
     /// (image attachments collapse `[[img_NNN]]` markers to one character) can't

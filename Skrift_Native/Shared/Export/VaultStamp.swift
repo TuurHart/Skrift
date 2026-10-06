@@ -121,11 +121,6 @@ enum VaultStamp {
         return stripped(a) == stripped(b)
     }
 
-    /// Does this look like a PRE-STAMP Skrift export? The tell is the `lastTouched` key —
-    /// Skrift has emitted it (empty) in every exported note since the Compiler existed,
-    /// and nothing else writes that key — while carrying no `skriftID`. These are the
-    /// user's REAL already-exported notes (they may have edited them, and with no hash
-    /// there is no way to know), so the writer refuses them rather than guessing.
     /// Find the note `id` ANYWHERE under `root`, by its stamp. This is what the stamp is for
     /// — "which note, wherever it lives" — and it answers the one question the export ledger
     /// cannot: a file missing from where Skrift wrote it was either MOVED (filed out of the
@@ -142,8 +137,7 @@ enum VaultStamp {
         for case let url as URL in en where url.pathExtension.lowercased() == "md" {
             guard let handle = try? FileHandle(forReadingFrom: url) else { continue }
             defer { try? handle.close() }
-            let head = (try? handle.read(upToCount: 2048)) ?? Data()
-            guard let text = String(data: head, encoding: .utf8),
+            guard let text = head(of: handle),
                   let fm2 = frontmatter(text),
                   let raw = value(of: idKey, in: fm2) else { continue }
             if raw.trimmingCharacters(in: .whitespaces).lowercased() == needle { return url }
@@ -151,6 +145,18 @@ enum VaultStamp {
         return nil
     }
 
+    /// The first 2048 bytes of an open file as text — enough for frontmatter without pulling
+    /// a long note into memory. nil when the head is not UTF-8. The caller closes the handle.
+    static func head(of handle: FileHandle) -> String? {
+        let bytes = (try? handle.read(upToCount: 2048)) ?? Data()
+        return String(data: bytes, encoding: .utf8)
+    }
+
+    /// Does this look like a PRE-STAMP Skrift export? The tell is the `lastTouched` key —
+    /// Skrift has emitted it (empty) in every exported note since the Compiler existed,
+    /// and nothing else writes that key — while carrying no `skriftID`. These are the
+    /// user's REAL already-exported notes (they may have edited them, and with no hash
+    /// there is no way to know), so the writer refuses them rather than guessing.
     static func looksLegacySkrift(_ text: String) -> Bool {
         guard read(text) == nil, let fm = frontmatter(text) else { return false }
         return value(of: touchedKey, in: fm) != nil

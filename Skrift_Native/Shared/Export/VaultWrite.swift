@@ -102,11 +102,6 @@ enum VaultIdentity {
 /// Filename derivation — ONE rule for both apps (they disagreed: the Mac wrote
 /// `<title>.md`, the phone `<title>-<id8>.md` into forced subfolders).
 enum VaultName {
-    /// The note's filename stem: title → filename stem, sanitized for Obsidian.
-    /// Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync) and
-    /// # ^ [ ] break its link syntax; path separators become "-" (keeps word
-    /// boundaries). Capped well past the 80-char derived-title clip so a cap never
-    /// bites a real title, but a pasted-in monster can't become a 500-char filename.
     /// Profile-aware stem. The portfolio names an entry by WHEN it was captured
     /// (`2026-08-26-142312`); a vault names it by what it is called.
     static func stem(title: String?, filename: String,
@@ -117,6 +112,11 @@ enum VaultName {
         return stem(title: title, filename: filename)
     }
 
+    /// The note's filename stem: title → filename stem, sanitized for Obsidian.
+    /// Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync) and
+    /// # ^ [ ] break its link syntax; path separators become "-" (keeps word
+    /// boundaries). Capped well past the 80-char derived-title clip so a cap never
+    /// bites a real title, but a pasted-in monster can't become a 500-char filename.
     static func stem(title: String?, filename: String) -> String {
         let fallback = (filename as NSString).deletingPathExtension
         let base = (title?.isEmpty == false) ? title! : fallback
@@ -209,16 +209,16 @@ struct VaultWriter {
     /// `vault-folder-model.html`): they were two free-text settings on the Mac and hardcoded
     /// defaults on iOS, so the same vault got `1 Recordings`/`0 Images` from one device and
     /// `Voice Memos`/`Attachments` from another. Skrift owns its own house now.
-    var attachmentsFolder = VaultLayout.images
-    var audioFolder = VaultLayout.audio
+    let attachmentsFolder = VaultLayout.images
+    let audioFolder = VaultLayout.audio
     /// PDFs and other shared documents. `MemoAsset.Kind.document` has reached the Mac since
     /// the 3b capture work and the exporter simply never wrote it to the vault.
-    var documentsFolder = VaultLayout.documents
+    let documentsFolder = VaultLayout.documents
     var ledger: ExportLedger
     /// HOW to lay this note out — see `ExportProfile`. Defaults to today's behaviour, so a
     /// caller that has not been taught about destinations writes exactly what it always did.
     var profile: ExportProfile = .obsidian
-    var now: () -> Date = Date.init
+    let now: () -> Date = Date.init
 
     // ── Phase 1: where would this note go, and may we write there? ──
 

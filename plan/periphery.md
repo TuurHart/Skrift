@@ -223,3 +223,7 @@ Skrift_Native/SkriftMobile/Services (47)
 
 Skrift_Native/SkriftMobile/SkriftShare (1)
   SharePayloadLoader.swift: mimeType
+
+## Q234 correction: these Periphery findings are LIVE (do not delete)
+
+`LockGate`, `ConnectionWhy.wikiNames`, `EmbeddingIndex.gistPairScores`, `NamesStore.writeWithSmartBumps`, `NamesStore.seedRoster`, `NamesStore.pruneOldTombstones` have callers. Q234 removed `Sanitiser.hasCanonicalLink`, `Sanitiser.prunedKeys`, the `wholeWord`/`avoidInside`/`preservePossessive` flags and `CorpusSeed.Note.expect`; `LiveCaptionEngine.caption()` was already gone. `unlinkOccurrence`, `relinkOccurrence`, `PersonEditCore.materialise`'s `renamedFrom`, `ExportLedger.Entry.exportedAt`, `Assessment.proceed(creates:)` and `Standing.absent` stay: protected tests read them (removal needs the hand-merge with Tuur's yes).
