@@ -129,12 +129,9 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight migration.
     var editedAt: Date? = nil
 
-    /// Note reminder (feature wave chunk 7): WHEN to surface this memo. The
-    /// reminder is DATA — it syncs like every field; each device derives its
-    /// local notification from it (`ReminderScheduler`), so it rings whichever
-    /// device you're holding and clears everywhere at once. A PAST date is
-    /// inert history (never scheduled). ADDITIVE, nil default → lightweight
-    /// migration; needs the prod CloudKit schema deploy at promotion.
+    // D185: unused, kept for CloudKit + older builds. Note reminders were removed (phone, iPad,
+    // Mac); nothing reads or writes this any more, and it no longer holds a note off the fading
+    // clock. The property stays so the CloudKit schema and older installed builds keep working.
     var remindAt: Date? = nil
 
     /// Locked note (feature wave chunk 8): opening requires device-owner auth
@@ -197,7 +194,7 @@ final class Memo {
     var editVectorData: Data? = nil
 
     /// Hash of the words at the last vector bump, so a `markEdited` that changed no words
-    /// (reminder, audio trim) does not count as a words edit. ADDITIVE, nil default.
+    /// (audio trim) does not count as a words edit. ADDITIVE, nil default.
     var editStampHash: String? = nil
 
     /// Hash of the POLISHED body (`MemoEnhancement.copyedit`) at the last vector bump (Q38),
@@ -281,7 +278,7 @@ final class Memo {
     /// reads; edits stopped being immortality when Parked died). Every caller
     /// is a genuine user investment (audited 2026-07-22), so the coupling is
     /// safe — system writes never call this.
-    /// `stampWords: false` for a touch that changes no words (reminder) — it must never count
+    /// `stampWords: false` for a touch that changes no words (audio trim, lock, rating) — it must never count
     /// as a words edit for conflict detection (C98: only body, title and tags conflict).
     func markEdited(_ date: Date = Date(), stampWords: Bool = true) {
         editedAt = date; keptAt = date

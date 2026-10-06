@@ -54,7 +54,7 @@ enum LaunchSweeps {
 
     /// A return to the app. `gated` is true when the memo corpus moved since the last mark
     /// (`LaunchWorkGate`); the caller then also runs its own cheap cloud-sync steps. The
-    /// time-gated sweeps (Fading purge clocks, reminders) run on EVERY foreground.
+    /// time-gated sweep (Fading purge clocks) runs on EVERY foreground.
     @discardableResult
     static func foreground(_ repository: NotesRepository,
                            checkpoint: AssetCaptureCheckpoint = .standard)
@@ -63,9 +63,8 @@ enum LaunchSweeps {
         let task = enqueue {
             let sweeps = sweepActor(for: repository)
             await fadingPass(repository, sweeps: sweeps)
-            ReminderScheduler.run(repository)
             if gated {
-                await memoCorpusPass(repository, sweeps: sweeps, checkpoint: checkpoint, reminders: false)
+                await memoCorpusPass(repository, sweeps: sweeps, checkpoint: checkpoint)
             }
         }
         return (task, gated)
@@ -80,15 +79,14 @@ enum LaunchSweeps {
         }
     }
 
-    /// Dedupe, then asset sync, then photo OCR discovery, then reminders: the old main-actor order.
+    /// Dedupe, then asset sync, then photo OCR discovery: the old main-actor order.
     private static func memoCorpusPass(_ repository: NotesRepository, sweeps: SweepActor,
-                                       checkpoint: AssetCaptureCheckpoint, reminders: Bool = true) async {
+                                       checkpoint: AssetCaptureCheckpoint) async {
         let deduped = await sweeps.dedupe()
         let wroteAssets = await sweeps.syncAssets(checkpoint: checkpoint)
         // The main context saw none of these writes through its own save(); bump its caches.
         if deduped || wroteAssets { repository.save() }
         await PhotoTextIndexer.runOffMain(repository, sweeps: sweeps)
-        if reminders { ReminderScheduler.run(repository) }
     }
 
     private static func fadingPass(_ repository: NotesRepository, sweeps: SweepActor) async {
