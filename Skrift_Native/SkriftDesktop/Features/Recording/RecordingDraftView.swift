@@ -19,7 +19,8 @@ struct RecordingDraftView: View {
             elapsedLabel: session.elapsedLabel,
             notice: session.notice,
             modelState: session.modelState,
-            appendingTo: session.appendTarget?.title
+            appendingTo: session.appendTarget?.title,
+            isPaused: session.isPaused
         )
     }
 }
@@ -64,6 +65,8 @@ struct RecordingDraftBody: View {
     /// "Add recording" (Q290): the title of the note this take will be appended to. nil = a
     /// new note (the signed m1/m2/m4 look, unchanged).
     var appendingTo: String? = nil
+    /// Q328: the take is paused — the caret goes quiet (still, dimmed), as in the signed mock.
+    var isPaused: Bool = false
 
     @State private var pulse = false
 
@@ -249,8 +252,8 @@ struct RecordingDraftBody: View {
                             in: RoundedRectangle(cornerRadius: 3))
             if !isSettling {
                 Rectangle().fill(Theme.accent).frame(width: 2, height: 17)
-                    .opacity(pulse ? 0.3 : 1)
-                    .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: pulse)
+                    .opacity(isPaused ? 0.3 : (pulse ? 0.3 : 1))
+                    .animation(isPaused ? nil : .easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: pulse)
             }
         }
         .accessibilityIdentifier("recording-draft.wet-tail")
@@ -264,6 +267,8 @@ struct LiveTakeRow: View {
     var phase: LiveRecordingSession.Phase
     var elapsedLabel: String
     var settledText: String
+    /// Q328: paused takes show a hollow, still dot and "· paused" (signed mock).
+    var isPaused: Bool = false
 
     private var title: String {
         guard phase == .settling, let derived = LiveTakeTitle.derive(from: settledText) else {
@@ -280,7 +285,7 @@ struct LiveTakeRow: View {
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Text("today · \(elapsedLabel)").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
+                Text("today · \(elapsedLabel)\(isPaused && phase != .settling ? " · paused" : "")").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
             }
             Spacer(minLength: 6)
             if phase == .settling {
@@ -290,8 +295,12 @@ struct LiveTakeRow: View {
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Theme.chip, in: Capsule())
             } else {
-                Circle().fill(Theme.destructive).frame(width: 7, height: 7)
-                    .opacity(0.85)
+                if isPaused {
+                    Circle().strokeBorder(Theme.textMuted, lineWidth: 1.5).frame(width: 7, height: 7)
+                } else {
+                    Circle().fill(Theme.destructive).frame(width: 7, height: 7)
+                        .opacity(0.85)
+                }
             }
         }
         .padding(.horizontal, 9).padding(.vertical, 6)

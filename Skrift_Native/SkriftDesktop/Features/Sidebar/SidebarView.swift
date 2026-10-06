@@ -21,7 +21,6 @@ struct SidebarView: View {
     /// never leak the dev machine's real memos into a committed harness image).
     var fixtureCloudMemos: [Memo]? = nil
     @Environment(\.modelContext) private var ctx
-    @State private var pulse = false
     /// Why a take couldn't start — drives the alert. nil = nothing to say.
     @State private var micProblem: MacRecorder.Refusal?
     /// ⌘F (D169): the search field takes focus.
@@ -410,36 +409,20 @@ struct SidebarView: View {
     /// the header doesn't change height when a recording starts (a jumping sidebar while
     /// you're talking is exactly the wrong feedback).
     private var recordingTransport: some View {
-        HStack(spacing: 10) {
-            Circle().fill(Theme.destructive).frame(width: 9, height: 9)
-                .opacity(pulse ? 0.35 : 1)
-                .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulse)
-            Text(session.elapsedLabel)
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Theme.destructive)
-                .monospacedDigit()
-            HStack(alignment: .center, spacing: 2) {
-                ForEach(0..<session.meter.width, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(Theme.destructive.opacity(0.55))
-                        .frame(height: 16 * session.meter.height(at: i))
-                }
-            }
-            .frame(height: 16)
-            Button { stopRecording() } label: {
-                RoundedRectangle(cornerRadius: 1.5).fill(.white).frame(width: 8, height: 8)
-                    .frame(width: 22, height: 22)
-                    .background(Theme.destructive, in: RoundedRectangle(cornerRadius: 5))
-            }
-            .buttonStyle(.plain)
-            .help("Stop and save")
-            .accessibilityIdentifier("sidebar.record.stop")
-        }
-        .padding(.horizontal, 11).padding(.vertical, 9)
-        .background(Theme.destructive.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.destructive.opacity(0.3), lineWidth: 1))
-        .onAppear { pulse = true }
-        .onDisappear { pulse = false }
+        RecorderTransport(
+            elapsedLabel: session.elapsedLabel,
+            meter: session.meter,
+            isPaused: session.isPaused,
+            controlsEnabled: session.phase == .live,
+            isAsking: Binding(
+                get: { session.discardAsk.isAsking },
+                // Dismissing the popover any other way (click outside, Esc) is Keep.
+                set: { if !$0 { session.discardAsk.keep() } }),
+            onAskDiscard: { session.discardAsk.ask() },
+            onKeep: { session.discardAsk.keep() },
+            onDiscard: { session.discardAsk.discard() },
+            onTogglePause: { session.isPaused ? session.resume() : session.pause() },
+            onStop: { stopRecording() })
     }
 
     /// The transport shows for `.starting`/`.live` only — see the header's comment.
@@ -631,7 +614,7 @@ struct SidebarView: View {
                 // pinned above every real row, purely presentational from `session`.
                 if sessionBusy {
                     LiveTakeRow(phase: session.phase, elapsedLabel: session.elapsedLabel,
-                                settledText: session.settledText)
+                                settledText: session.settledText, isPaused: session.isPaused)
                 }
                 // Title sort scrambles chronological order, so day headers would
                 // repeat non-contiguously (the phone's `.longest` bypass, mirrored):
