@@ -2466,7 +2466,7 @@ gate+: yes
 do: SPEC D184 (Tuur 2026-10-06): selecting/long-pressing a word the app does not know as a name offers 'New person…' in the system text menu (UIEditMenu on the phone's NoteBodyView, the NSTextView context menu on the Mac's BodyTextView); it opens the existing person editor (phone PersonEditorView via PersonEditCore.materialise, Q113; the Mac's new-person-from-a-name flow, Q184) prefilled with the selection, and after saving, that mention links like any known name. Hide the item for empty/whitespace selections and for text already linked. Test: `NewPersonFromSelectionTests` (phone target: the menu offers the item for a plain word, not for a linked name; materialise gets the trimmed selection). Phone sim screenshot of the menu, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 
-### Q331 [auto] (doing) remove note reminders on phone, iPad and Mac (D185)
+### Q331 [auto] (done) remove note reminders on phone, iPad and Mac (D185)
 spec: -
 needs: -
 gate+: yes
@@ -3574,3 +3574,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:24 Q330 -> doing — worker out
 - 2026-10-06 20:24 Q331 -> doing — worker out
 - 2026-10-06 20:46 Q330 -> done — gate 46s @2971e6bc
+- 2026-10-06 20:50 Q331 -> done — hand-merged (Tuur approved 2026-10-06: protected tests that only pinned reminders go with D185)
