@@ -1869,7 +1869,7 @@ do: `PolishPromptsStore.swift` has three parallel switches over `PolishPromptKin
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh PolishPromptsSyncTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MLJ-c27 MSV-c14 MSV-c15 MSV-c16 (cleanup-audit P56)
 
-### Q244 [auto] (doing) export services: one scoped-folder bookmark, one destination root, one outcome mapping
+### Q244 [auto] (done) export services: one scoped-folder bookmark, one destination root, one outcome mapping
 spec: C239
 needs: Q225 Q154
 gate+: no
@@ -3599,3 +3599,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:56 Q192 -> done — gate 103s @b4b27a38
 - 2026-10-06 21:56 Q194 -> doing — worker out
 - 2026-10-06 21:56 Q297 -> doing — worker out
+- 2026-10-06 22:07 Q244 -> done — gate 79s @799248ff
