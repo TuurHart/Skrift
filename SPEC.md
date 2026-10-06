@@ -1954,3 +1954,21 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      ("Today", "Yesterday", dates) scroll with the notes instead of pinning to the top — "smooth on
      old phones". Pinned headers were ~27% of main-thread scroll work at 2,000 notes on the iPhone 13
      (Q323 finding, plan/perf2/MEASURED.md).
+181. **D181 No new toolbar buttons.** ✅ 2026-10-06, Tuur (mock review with Rox): "We don't need more
+     buttons unless they're really important buttons." Q128 photos are built WITHOUT the toolbar photo
+     button (paste, drop and the Edit/Insert menu add a photo at the caret); Q296's checklist button is
+     dropped (the phone's Apple-Notes-style formatting list covers checklists).
+182. **D182 Mac mockups signed 2026-10-06.** Q128 Mac photos: go (one click selects, double-click opens
+     the zoom/markup viewer; missing file shows "Downloading from iCloud…"), minus the toolbar button
+     (D181). Q144 Mac weather/daypart: go; the Mac takes the OpenWeatherMap key from the phone over
+     iCloud; a file dragged into the Mac gets no place and no weather. Q162 Mac iCloud state: go; the list
+     capsule shows only when sync is broken, off or signed out. Q289 Mac recorder: go; discard asks in a
+     POPOVER (not a window alert), the take pauses while it asks and resumes on Keep. Q296: dropped.
+183. **D183 No 'Fix quote'; a quote is text.** ✅ 2026-10-06, Tuur: the Q152 'Fix quote' flow is "super
+     overkill… it's just text, just fix it as normal text". Supersedes D50/C160's verb: a captured
+     quote edits like the rest of the note on phone and Mac (reverses Q112's read-only quote, C172);
+     karaoke keeps working on the words that still line up. What he actually missed: tapping a word in a
+     quote during playback should jump the audio there, on every device.
+184. **D184 New person from any word.** ✅ 2026-10-06, Tuur: long-pressing/selecting a name the app
+     does not know offers "New person…" in the text menu (phone and Mac), opening the existing person
+     editor prefilled with the selection.

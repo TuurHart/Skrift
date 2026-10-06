@@ -943,7 +943,7 @@ do: Mac unrated note menu is copy-only: no Process, no Lock, no Delete. C40/D159
 check: `grep -rqE "class MacUnratedMenuTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P28
 
-### Q128 [tuur] (tuur) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
+### Q128 [tuur] (done) mockup: photos in a Mac note — add at the caret, tap to zoom and mark up, the picture with no file yet
 spec: C119 D126 C113
 needs: -
 do: One clickable page: the Mac note with a photo added at the caret (open panel / paste / drop), a tapped photo opening the zoom + markup viewer, and a `[[img_NNN]]` whose file has not arrived yet (today it shows raw marker text; the phone shows a grey card and 'Downloading from iCloud…'). Draw today's Mac note and the phone's viewer from source (C117). Covers note-body-16, -17, -18, capture-import-41.
@@ -1069,7 +1069,7 @@ do: Mac review of an image capture draws a glyph and a file name, no pixels, tho
 check: `test $(ls plan/reads/capture-p-mac/*.png | wc -l) -ge 3 && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P44
 
-### Q144 [tuur] (tuur) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
+### Q144 [tuur] (done) mockup + key: Mac records weather and daypart (the OpenWeatherMap key row on the Mac)
 spec: C237 D92 R36
 needs: -
 do: A Mac recording or typed note carries place only: no weather, no daypart, no steps, no chips (recsj-024, setexp-37, capture-quick-14; R36 lists it as required). The Mac has no weather key row and no `weatherAPIKey`. One page: the Mac Settings row for the key (draw the phone's from source) and the chips on a Mac note header. Needs his key typed by him; nothing is entered by the agent.
@@ -1132,7 +1132,7 @@ do: The Q6 mock signed a '❝ N' pill opening a book's notes and a jump-back to 
 check: `test $(ls plan/reads/books-p-notes/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookNotesJoinTests && ./gate.sh`
 source: plan/reads/parity-audit.md P52
 
-### Q152 [tuur] (tuur) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
+### Q152 [tuur] (done) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
 spec: D50 C160 C172
 needs: -
 do: D50/C160 decide the user can correct a misheard word in a captured quote; the quote block is read-only on the phone and (after the Mac read-only item) on the Mac, and no 'Fix quote' verb exists anywhere (books-118). One page: the verb in the note menu, the edit state of the quote, and how the corrected text stays attached to the audio window.
@@ -1211,7 +1211,7 @@ do: The Mac only ever sets `isEnabled = true` (ConnectionsIndexService.swift:61)
 check: `grep -rqE "class MacIndexConsentTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/parity-audit.md P62
 
-### Q162 [tuur] (tuur) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
+### Q162 [tuur] (done) mockup: the Mac shows iCloud sync state — a Settings row, the in-list capsule, a signed-out message
 spec: D119 C217
 needs: -
 do: The phone has an iCloud status row ('Syncing… / Up to date') and an in-list 'Syncing with iCloud…' capsule; the Mac observes CloudKit events only to trigger sweeps and shows no state, and BUGS.md:184 notes the old pill reads dead Bonjour state; a failed Mac container (`MemoCloudContainer`) silently disables sync, and neither app tells the user note sync is off when signed out (setexp-12, -14, -16, -18, -130). One page: the Mac Settings sync row, the capsule above the sidebar list, and the signed-out / failed state on both apps; the Mac's 'CloudKit sync with the Mac' switch (default on) shown with what it gates.
@@ -2161,7 +2161,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D173): the Mac `river(for:now: selectedDay)` re-anchors Looking back on the selected calendar day; anchor on today like the phone, iPad and the signed journal-desktop mock. Desktop test `LookbackAnchorTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class LookbackAnchorTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q289 [tuur] (tuur) mockup: Mac recorder pause/resume and a confirmed discard
+### Q289 [tuur] (done) mockup: Mac recorder pause/resume and a confirmed discard
 spec: C220 C262 D173
 needs: -
 gate+: yes
@@ -2210,7 +2210,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): Q180 shows Redo when ANY polish part exists, including a title Tuur chose himself (Mac enhancedTitle stores chosen titles). Redo only when a real polish ran (summary, tags or a generated title); a chosen-title-only note offers Polish. Desktop test `RedoOfferTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class RedoOfferTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q296 [tuur] (tuur) mockup: a checklist button in the Mac editor toolbar
+### Q296 [tuur] (done) mockup: a checklist button in the Mac editor toolbar
 spec: D177
 needs: -
 gate+: yes
@@ -2406,6 +2406,48 @@ needs: -
 gate+: yes
 do: D180 (Tuur 2026-10-06): the phone/iPad notes list's day-section headers stop pinning; they scroll with the rows. Measured cost of pinning: UIKit's pinned-supplementary solve (_UICollectionCompositionalLayoutSolver updatePinnedSectionSupplementaryItemsForVisibleBounds) = ~27% of main-thread scroll work at 2,000 notes on the iPhone 13 (plan/perf2/MEASURED.md, Q323 finding in plan/RUN.md). Keep the header's look identical (text, spacing, colour) — only the pinning goes; keep sections for search/filter grouping. Check whether the Mac sidebar pins its day headers too: if it shares the code, change both; if not, leave the Mac alone and say so. Render and look: iPhone 17 sim screenshots (UDID 4962056D-2AE0-46AD-A04F-3663AE7698CF, -perfLibrary) before and after, mid-scroll, light and dark — the header must no longer sit over the rows at the top. Run SkriftMobileUITests/MemosListUITests. Test: `ListHeadersScrollTests` (the list's section header style/config is the non-pinned one).
 check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
+
+### Q325 [auto] (todo) build: Mac note photos — add at the caret, zoom + markup viewer, 'Downloading from iCloud…' (Q128 mock, D182)
+spec: -
+needs: -
+gate+: yes
+do: Build Skrift_Native/SkriftDesktop/mocks/Q128-mac-note-photos.html as signed in SPEC D182, WITHOUT the toolbar photo button (D181): a photo is added at the caret by paste, drag-drop and an Edit/Insert-menu item; one click selects a photo, double-click opens the zoom + markup viewer (reuse the phone's markup model where shared); an `[[img_NNN]]` whose file has not arrived shows the grey card + 'Downloading from iCloud…' like the phone instead of raw marker text. Shared code first (C117 / feedback_shared_code_first). Test: `MacNotePhotoTests` (desktop UnitTests: insert at caret writes the marker at the caret offset; missing-file marker renders the placeholder state). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `./gate.sh`
+
+### Q326 [auto] (todo) build: Mac records weather and daypart; the OpenWeatherMap key comes from the phone (Q144 mock, D182)
+spec: -
+needs: -
+gate+: yes
+do: Build Skrift_Native/SkriftDesktop/mocks/Q144-mac-weather-daypart.html as signed in SPEC D182: a Mac recording gets weather + daypart metadata like the phone (same shared MemoMetadata types); the OpenWeatherMap key syncs from the phone over iCloud (no separate Mac field unless none ever synced — then the Settings row the mock shows); a file dragged into the Mac gets no place and no weather. Never log or commit the key. Test: `MacWeatherMetadataTests` (desktop UnitTests: a Mac take with a synced key + stubbed fetch writes weather/daypart; a dropped file writes none). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `./gate.sh`
+
+### Q327 [auto] (todo) build: Mac shows iCloud sync trouble — Settings row, in-list capsule only when broken, signed-out message (Q162 mock, D182)
+spec: -
+needs: -
+gate+: yes
+do: Build Skrift_Native/SkriftDesktop/mocks/Q162-mac-icloud-state.html as signed in SPEC D182: a Settings row with the sync state; the note list shows the capsule ONLY when sync is broken, turned off or signed out (never during normal syncing); the signed-out message per the mock. Read state from the existing CloudKit account/monitor APIs. Test: `MacSyncStateTests` (desktop UnitTests: each account/monitor state maps to the right row text and capsule visibility). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `./gate.sh`
+
+### Q328 [auto] (todo) build: Mac recorder pause/resume and a discard popover that pauses while it asks (Q289 mock, D182)
+spec: -
+needs: -
+gate+: yes
+do: Build Skrift_Native/SkriftDesktop/mocks/Q289-mac-recorder-pause.html as signed in SPEC D182: pause/resume on the Mac recorder; × asks 'Discard this recording?' in a POPOVER anchored to ×, not a window alert; the take pauses while it asks, Discard throws it away, Keep resumes recording. Recording safety first (C99: segments + launch sweep must still recover a killed take). Test: `MacRecorderDiscardTests` (desktop UnitTests on the recorder model: ask pauses, keep resumes, discard deletes the segments). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `./gate.sh`
+
+### Q329 [auto] (todo) captured quotes edit like normal text on phone and Mac; tapping a quote word seeks the audio everywhere (D183)
+spec: -
+needs: -
+gate+: yes
+do: SPEC D183 (Tuur 2026-10-06): no 'Fix quote' verb; a captured audiobook/shared-text quote is editable like the rest of the note on phone and Mac — undo Q112's read-only quote (C172) and the phone's equivalent; karaoke keeps highlighting the words that still line up after an edit (word index alignment via the existing KaraokeMap; no crash or wrong-word highlight when the edit changes the word count — degrade to no highlight for unmatched words). Tapping a word in a quote during playback seeks the quote audio there: the phone already has QuoteWordSeek (CaptureQuoteViews.swift:61, Q83) — check it actually fires in the current note screen (Q314 rebuilt it) and add the same on the Mac (shared seek lookup). Update FEATURES.md + C172 wording. Tests: `QuoteEditKaraokeTests` (phone target: edited quote keeps highlighting matched words, no out-of-range) + desktop UnitTests for the Mac seek. Phone: sim screenshot of an edited quote during playback, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `plan/mtest.sh QuoteEditKaraokeTests && ./gate.sh`
+
+### Q330 [auto] (todo) 'New person…' in the text menu for any selected word, phone and Mac (D184)
+spec: -
+needs: -
+gate+: yes
+do: SPEC D184 (Tuur 2026-10-06): selecting/long-pressing a word the app does not know as a name offers 'New person…' in the system text menu (UIEditMenu on the phone's NoteBodyView, the NSTextView context menu on the Mac's BodyTextView); it opens the existing person editor (phone PersonEditorView via PersonEditCore.materialise, Q113; the Mac's new-person-from-a-name flow, Q184) prefilled with the selection, and after saving, that mention links like any known name. Hide the item for empty/whitespace selections and for text already linked. Test: `NewPersonFromSelectionTests` (phone target: the menu offers the item for a plain word, not for a linked name; materialise gets the trimmed selection). Phone sim screenshot of the menu, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
+check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3482,3 +3524,15 @@ check: `plan/mtest.sh ListHeadersScrollTests && ./gate.sh`
 - 2026-10-06 12:11 Q324 added
 - 2026-10-06 12:11 Q324 -> doing — worker out
 - 2026-10-06 12:46 Q324 -> done — gate pass @ab1e6888
+- 2026-10-06 18:02 Q325 added
+- 2026-10-06 18:02 Q326 added
+- 2026-10-06 18:02 Q327 added
+- 2026-10-06 18:02 Q328 added
+- 2026-10-06 18:02 Q329 added
+- 2026-10-06 18:02 Q330 added
+- 2026-10-06 18:02 Q128 -> done — signed 2026-10-06 (SPEC D182) — build queued
+- 2026-10-06 18:02 Q144 -> done — signed 2026-10-06 (SPEC D182) — build queued
+- 2026-10-06 18:02 Q162 -> done — signed 2026-10-06 (SPEC D182) — build queued
+- 2026-10-06 18:02 Q289 -> done — signed 2026-10-06 (SPEC D182) — build queued
+- 2026-10-06 18:02 Q152 -> done — dropped 2026-10-06 (SPEC D183): no Fix-quote verb, quote edits as text
+- 2026-10-06 18:02 Q296 -> done — dropped 2026-10-06 (SPEC D181): no checklist button
