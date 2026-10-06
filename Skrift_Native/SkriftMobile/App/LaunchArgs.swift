@@ -21,6 +21,9 @@ enum LaunchFlags {
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
+    /// Q329 (DEBUG): seed ONE audiobook quote capture whose quote has been EDITED (a word
+    /// deleted, one inserted) and open its detail — the D183 "a quote is text" screenshot route.
+    static var seedQuoteMemo: Bool { args.boolFlag("-seedQuoteMemo") }
     /// Seed ONE memo whose transcript is a `**Name:**` conversation, to verify the real
     /// detail view renders speaker turns (`SpeakerTurnsView`).
     static var seedConversationMemo: Bool { args.boolFlag("-seedConversationMemo") }

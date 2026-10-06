@@ -17,8 +17,12 @@ enum DemoDataSeeder {
     /// the harbor note shows a LINKED FROM row (the in-place hop UI test).
     static let demoHarborMemoID = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
 
+    /// Fixed id for the edited-quote capture (Q329) so the screenshot route can open it.
+    static let editedQuoteMemoID = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
+
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
+        if LaunchFlags.seedQuoteMemo { repo.insert(editedQuoteMemo()); return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
@@ -194,6 +198,29 @@ enum DemoDataSeeder {
             transcriptConfidence: 0.95,
             significance: 0.5,
             metadata: MemoMetadata(capturedAt: ISO8601.string(from: now), dayPeriod: .afternoon)
+        )
+    }
+
+    /// Q329 / D183: an audiobook quote capture whose quote was edited by hand — "slowly" was
+    /// inserted and "really" deleted from the spoken "We are what we repeatedly do" — above a
+    /// ramble. The body is the stored shape (`> ` lines, blank line, ramble).
+    static func editedQuoteMemo() -> Memo {
+        let now = Date()
+        let body = "> We are, slowly, what we repeatedly do. Excellence, then, is not an act but a habit.\n\nThis one is worth rereading before the Friday talk."
+        return Memo.make(
+            id: editedQuoteMemoID,
+            audioFilename: "memo_\(editedQuoteMemoID.uuidString).m4a",
+            duration: 24,
+            recordedAt: now,
+            syncStatus: .waiting,
+            title: "Excellence is a habit",
+            transcript: body,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.95,
+            transcriptUserEdited: true,
+            significance: 0.5,
+            metadata: MemoMetadata(capturedAt: ISO8601.string(from: now), dayPeriod: .afternoon,
+                                   bookTitle: "The Story of Philosophy", bookAuthor: "Will Durant", bookChapter: "2")
         )
     }
 
