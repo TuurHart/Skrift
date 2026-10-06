@@ -50,6 +50,8 @@ struct NoteBodyView: UIViewRepresentable {
     @ObservedObject var player: AudioPlayerModel   // rare state (isPlaying/duration); ticks stay in the coordinator
     var nameSpans: [NameSpan] = []
     var onTapName: (NameSpan) -> Void = { _ in }
+    /// The text menu's "New person…" (D184): the trimmed selection to prefill the person editor.
+    var onNewPersonFromSelection: (String) -> Void = { _ in }
     var polishedBinding: Binding<String>? = nil
     /// `wordsChanged`: true only when this commit wrote `memo.transcript` (the `.raw`
     /// target) — a `.polished` commit already stamps its own edit via
@@ -117,6 +119,7 @@ struct NoteBodyView: UIViewRepresentable {
         context.coordinator.player = player
         context.coordinator.nameSpans = nameSpans
         context.coordinator.onTapName = onTapName
+        context.coordinator.onNewPersonFromSelection = onNewPersonFromSelection
         context.coordinator.linkTitle = linkTitle   // before load(), which builds the display
         context.coordinator.polishedBinding = polishedBinding
         context.coordinator.tapToSeek = tapToSeek
@@ -141,6 +144,7 @@ struct NoteBodyView: UIViewRepresentable {
         c.memo = memo
         c.player = player
         c.onTapName = onTapName
+        c.onNewPersonFromSelection = onNewPersonFromSelection
         c.onTapImage = onTapImage
         c.onTapMemoLink = onTapMemoLink
         c.onRequestPhoto = onRequestPhoto
@@ -195,6 +199,7 @@ struct NoteBodyView: UIViewRepresentable {
         var polishedBinding: Binding<String>?
         var nameSpans: [NameSpan] = []
         var onTapName: (NameSpan) -> Void = { _ in }
+        var onNewPersonFromSelection: (String) -> Void = { _ in }
         var onTapImage: (Int) -> Void = { _ in }
         var onTapMemoLink: (UUID) -> Void = { _ in }
         var onRequestPhoto: () -> Void = {}
@@ -803,6 +808,31 @@ struct NoteBodyView: UIViewRepresentable {
             tv.resignFirstResponder()
             Haptics.tap(.light)
             onTapName(hit.span)
+        }
+
+        // MARK: "New person…" in the text menu (D184)
+
+        /// The trimmed selection to prefill the person editor with, or nil when the menu item
+        /// is hidden (blank run, a name the note already shows, a known person, an attachment).
+        func newPersonOffer(for range: NSRange, in tv: UITextView) -> String? {
+            let ns = tv.textStorage.string as NSString
+            guard range.length > 0, NSMaxRange(range) <= ns.length else { return nil }
+            return NewPersonFromName.selectionOffer(
+                text: ns.substring(with: range), selection: range,
+                knownRanges: displaySpans.map(\.range),
+                people: NamesStore.shared.livePeople())
+        }
+
+        /// Adds "New person…" ahead of the system actions when the selection qualifies.
+        func textView(_ tv: UITextView, editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard let name = newPersonOffer(for: range, in: tv) else { return nil }
+            let item = UIAction(title: NameActionLabel.newPerson,
+                                image: UIImage(systemName: "person.badge.plus")) { [weak self] _ in
+                tv.resignFirstResponder()
+                self?.onNewPersonFromSelection(name)
+            }
+            return UIMenu(children: [item] + suggestedActions)
         }
 
         /// What a focus-gaining tap on an attachment should do.

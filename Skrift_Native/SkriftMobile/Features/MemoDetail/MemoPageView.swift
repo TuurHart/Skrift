@@ -391,6 +391,7 @@ struct MemoPageView: View {
                 player: player,
                 nameSpans: spans,
                 onTapName: { resolveTarget = NameResolveTarget(span: $0) },
+                onNewPersonFromSelection: { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: $0) },
                 polishedBinding: isInlineImageCapture ? captureAnnotationBinding : polishedBinding,
                 onCommit: { wordsChanged in
                     // C98: a `.polished` commit already stamped itself via
