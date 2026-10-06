@@ -15,25 +15,16 @@ import Foundation
 /// overwriting your edits possible.
 enum PortfolioVault {
 
-    /// True once a portfolio root has been chosen on this device.
-    static var isConfigured: Bool {
-        UserDefaults.standard.data(forKey: DestinationSettings.portfolioRootKey) != nil
-    }
+    private static let bookmark = ScopedFolderBookmark(key: DestinationSettings.portfolioRootKey)
 
-    static func setRoot(_ url: URL) throws {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let data = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
-        UserDefaults.standard.set(data, forKey: DestinationSettings.portfolioRootKey)
-    }
+    /// True once a portfolio root has been chosen on this device.
+    static var isConfigured: Bool { bookmark.isConfigured }
+
+    static func setRoot(_ url: URL) throws { try bookmark.set(url) }
 
     /// The portfolio root, or nil when unset / the bookmark no longer resolves (re-prompt).
     /// The caller owns `start`/`stopAccessingSecurityScopedResource` around any write.
-    static func resolveRoot() -> URL? {
-        guard let data = UserDefaults.standard.data(forKey: DestinationSettings.portfolioRootKey) else { return nil }
-        var stale = false
-        return try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
-    }
+    static func resolveRoot() -> URL? { bookmark.resolve() }
 
     /// The folder a given destination writes into — the root plus its subfolder. nil for
     /// `.personal` (that is the Obsidian vault, not the portfolio) and nil when no root is set.
@@ -43,7 +34,7 @@ enum PortfolioVault {
     }
 
     /// The root's display name for Settings ("portfolio", not a whole path).
-    static var displayName: String? { resolveRoot()?.lastPathComponent }
+    static var displayName: String? { bookmark.displayName }
 
     /// `-seedPortfolioFolder` — the screenshot/UI rig. Makes a real folder in the app's own
     /// container and bookmarks it, so a run can show the CONFIGURED Destinations settings

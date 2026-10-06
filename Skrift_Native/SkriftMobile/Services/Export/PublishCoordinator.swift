@@ -116,13 +116,12 @@ struct PublishCoordinator {
     /// portfolio folder is configured. Per DESTINATION: the ledger is keyed on the folder
     /// written to, so "has this been exported" is asked of the folder the note would go to.
     static func ledger(for memo: Memo) -> ExportLedger? {
-        let profile = ExportProfile.of(memo.destination)
-        guard let root = memo.destination.isPortfolio
-                ? PortfolioVault.folder(for: memo.destination)
-                : ObsidianVault.resolveVault() else { return nil }
-        let scopeRoot = memo.destination.isPortfolio ? (PortfolioVault.resolveRoot() ?? root) : root
-        let needsStop = scopeRoot.startAccessingSecurityScopedResource()
-        defer { if needsStop { scopeRoot.stopAccessingSecurityScopedResource() } }
-        return ExportLedger.default(for: VaultLayout.home(forPicked: root, profile: profile))
+        guard let destination = ExportDestinationRoot.resolve(
+            for: memo.destination, vault: { ObsidianVault.resolveVault() },
+            portfolioFolder: { PortfolioVault.folder(for: $0) },
+            portfolioScopeRoot: { PortfolioVault.resolveRoot() }) else { return nil }
+        let scope = destination.openScope()
+        defer { scope.close() }
+        return ExportLedger.default(for: VaultLayout.home(forPicked: destination.picked, profile: destination.profile))
     }
 }
