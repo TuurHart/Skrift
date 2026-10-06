@@ -70,6 +70,10 @@ enum Snapshot {
         if let p = path("-snapshot-connections")    { MainActor.assumeIsolated { renderConnections(to: p); exit(0) } }
         if let p = path("-snapshot-inspector")      { MainActor.assumeIsolated { renderInspector(to: p); exit(0) } }
         if let p = path("-snapshot-unrated")        { MainActor.assumeIsolated { renderUnrated(to: p); exit(0) } }
+        if let p = path("-snapshot-recorder")       {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderRecorder(to: p, scheme: light ? .light : .dark); exit(0) }
+        }
         if let p = path("-snapshot-livedraft")      { MainActor.assumeIsolated { renderLiveDraft(to: p); exit(0) } }
         if let p = path("-snapshot-stranded") {
             let light = args.contains("-light")
@@ -677,6 +681,49 @@ enum Snapshot {
         .background(Theme.hairline.opacity(0.25))
         .preferredColorScheme(.dark)
         hostPNG(view, size: NSSize(width: 920, height: 1340), to: path)
+    }
+
+    /// Q328 (mocks/Q289-mac-recorder-pause.html): the sidebar transport in its four signed
+    /// states, the discard question, the paused "Recording…" row and the paused pane caret.
+    /// The popover is drawn as its own card under the x — a popover window does not render in
+    /// a headless image. Triggered by: `-snapshot-recorder <path>` [+ `-light`].
+    @MainActor private static func renderRecorder(to path: String, scheme: ColorScheme) {
+        var meter = RecordingCore.Meter()
+        for l in [0.2, 0.5, 0.8, 0.4, 0.9, 0.6, 0.3, 0.7, 0.5, 0.2, 0.4, 0.6] as [Float] { meter.push(l) }
+        func transport(_ elapsed: String, paused: Bool, asking: Bool = false) -> some View {
+            RecorderTransport(elapsedLabel: elapsed, meter: meter, isPaused: paused,
+                              isAsking: .constant(false), onAskDiscard: {}, onKeep: {}, onDiscard: {},
+                              onTogglePause: {}, onStop: {})
+                .frame(width: 268)
+        }
+        func label(_ t: String) -> some View {
+            Text(t).font(.system(size: 10, weight: .semibold)).tracking(0.8).foregroundStyle(Theme.textMuted)
+        }
+        let view = VStack(alignment: .leading, spacing: 14) {
+            label("1  RECORDING")
+            transport("1:04", paused: false)
+            label("2  PAUSED")
+            transport("1:12", paused: true)
+            label("3  DISCARD? (the take is paused while this is up; the popover points at the x)")
+            transport("1:12", paused: true)
+            RecorderDiscardPopover(elapsedLabel: "1:12", onKeep: {}, onDiscard: {})
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                .padding(.leading, 4)
+            label("SIDEBAR ROW — recording, then paused")
+            LiveTakeRow(phase: .live, elapsedLabel: "1:04", settledText: "").frame(width: 268)
+            LiveTakeRow(phase: .live, elapsedLabel: "1:12", settledText: "", isPaused: true).frame(width: 268)
+            label("PANE — paused: the caret is still and dim")
+            RecordingDraftBody(phase: .live, settledText: .constant("Pick up the bike from Rui's on Thursday, and ask him whether the"),
+                               wetText: "rear brake pads can wait until after the weekend ", elapsedLabel: "1:12",
+                               isPaused: true)
+                .frame(width: 520, height: 230)
+        }
+        .padding(20)
+        .frame(width: 560, height: 880, alignment: .topLeading)
+        .background(Theme.bg)
+        .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 560, height: 880), to: path)
     }
 
     /// A throwaway audio file for the comparison fixture — `showsTransport` wants a

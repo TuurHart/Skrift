@@ -60,6 +60,8 @@ final class LiveRecordingSession {
     var elapsed: TimeInterval { recorder.elapsed }
     var elapsedLabel: String { RecordingCore.elapsedLabel(elapsed) }
     var meter: RecordingCore.Meter { recorder.meter }
+    /// Q328: the take is paused (the transport shows "Paused" and a resume button).
+    var isPaused: Bool { recorder.isPaused }
     /// Said in the draft pane when the input died mid-take but the words so far are saved
     /// (recsj-029). nil in every other state.
     var notice: String? { recorder.lossNotice }
@@ -83,12 +85,15 @@ final class LiveRecordingSession {
     private let coordinator: ProcessingCoordinator
     private let context: ModelContext
     private let recorder = MacRecorder()
+    /// The "Discard this recording?" question (D182, Q328): pauses the take while it is up.
+    let discardAsk = RecorderDiscardAsk()
     private var draft = LiveRecordingDraft()
     private var captionTask: Task<Void, Never>?
 
     init(coordinator: ProcessingCoordinator, context: ModelContext) {
         self.coordinator = coordinator
         self.context = context
+        discardAsk.take = self
     }
 
     /// Mic up, engine on, poll loop running. A refusal lands in `.failed` — the caller
@@ -142,6 +147,7 @@ final class LiveRecordingSession {
     func stop(reason: String? = nil) async {
         guard phase != .settling else { return }   // the recorder's own stop (write failure) and a click can race
         phase = .settling
+        discardAsk.reset()
         captionTask?.cancel(); captionTask = nil
 
         // Why the take ended on its own (a write failure), if it did — titles the note (R46).
@@ -239,6 +245,7 @@ final class LiveRecordingSession {
 
     /// Abandon the take: mic stopped, engine cleared, file deleted, draft discarded.
     func cancel() {
+        discardAsk.reset()
         captionTask?.cancel(); captionTask = nil
         recorder.cancel()
         Task { await TranscriptionService.shared.endStream() }
@@ -247,6 +254,10 @@ final class LiveRecordingSession {
         appendTarget = nil
         phase = .idle
     }
+
+    /// Pause / resume the take (Q328). Only while live: a take still `.starting` has no file yet.
+    func pause() { if phase == .live { recorder.pause() } }
+    func resume() { if phase == .live { recorder.resume() } }
 
     /// Land a stopped take on an existing note (`MacAppendRecording`, the phone's
     /// `appendRecordingAsync` shape). Returns false — with the note untouched and the take's
@@ -381,4 +392,10 @@ final class LiveRecordingSession {
             }
         }
     }
+}
+
+extension LiveRecordingSession: DiscardableTake {
+    func pauseTake() { pause() }
+    func resumeTake() { resume() }
+    func discardTake() { cancel() }
 }

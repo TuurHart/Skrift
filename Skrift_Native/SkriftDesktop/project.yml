@@ -196,6 +196,8 @@ targets:
       # REFUSAL mapping — the part that decides whether a user who can't record is offered a
       # way out — which needs no microphone to exercise.
       - path: Engines/MacRecorder.swift
+      # Q328: the discard question's pause/keep/discard rule (Foundation-only), MacRecorderDiscardTests.
+      - path: Engines/RecorderDiscardAsk.swift
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export

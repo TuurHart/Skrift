@@ -57,6 +57,15 @@ final class MacRecorder {
 
     var elapsedLabel: String { RecordingCore.elapsedLabel(elapsed) }
 
+    /// Q328 (D182): the take is paused. The capture session keeps running and the files stay
+    /// open (resume is gapless and re-negotiates nothing); the sink just stops writing,
+    /// metering and feeding captions, so the paused stretch never reaches the file, the 60 s
+    /// segments or the live caption. `elapsed` freezes. A killed paused take recovers from its
+    /// segments exactly like a killed recording one (C99).
+    private(set) var isPaused = false
+    private var pausedAt: Date?
+    private var pausedTotal: TimeInterval = 0
+
     /// A second consumer, beside the file writer — the live-caption engine's feed
     /// (`LiveRecordingSession`). Invoked on the sink's own callback queue (never Main, never
     /// blocking it) with an OWNED copy (`LiveCaptionEngine.copyBuffer`): the same discipline
@@ -218,6 +227,7 @@ final class MacRecorder {
 
         takeGeneration += 1
         let generation = takeGeneration
+        resetPause()
         receivedFirstBuffer = false
         sawSignal = false
         lossNotice = nil
@@ -285,6 +295,7 @@ final class MacRecorder {
         // Drains the writer queue, closes the main file, closes the open segment and writes
         // the marker (C224: "writer queue drained on stop") — BEFORE anything reads the file.
         teardownSession()
+        resetPause()
         let main = url
         let take = takeID
         url = nil
@@ -365,9 +376,43 @@ final class MacRecorder {
     /// "nothing was captured" complaint about it would be noise.
     func cancel() {
         guard state == .recording else { clearFailure(); return }
+        // Remember the take BEFORE stop(): a stop that could not hand the take over keeps its
+        // files for the launch sweep (`rebuildFailed`), and a discard must still remove them —
+        // a thrown-away take must never come back as a "recovered" note.
+        let take = takeID
+        let directory = url?.deletingLastPathComponent()
         _ = stop()
         clearFailure()
         discardFinishedTake()
+        if let take, let directory { RecordingCheckpoint.discardTakeFiles(take: take, in: directory) }
+    }
+
+    /// Pause (D182). No-op unless a take is recording. After this returns the sink has
+    /// written nothing more: the writer queue is synchronised with the flag.
+    func pause() {
+        guard state == .recording, !isPaused else { return }
+        sampleSink?.setPaused(true)
+        if let started = startedAt { elapsed = Date().timeIntervalSince(started) - pausedTotal }
+        isPaused = true
+        pausedAt = Date()
+        meter = RecordingCore.Meter()
+        RecordingLifecycleLog.log("pause", "take=\(takeID ?? "?") at=\(RecordingCore.elapsedLabel(elapsed))")
+    }
+
+    /// Resume after `pause()`. No-op otherwise.
+    func resume() {
+        guard state == .recording, isPaused else { return }
+        if let at = pausedAt { pausedTotal += Date().timeIntervalSince(at) }
+        pausedAt = nil
+        isPaused = false
+        sampleSink?.setPaused(false)
+        RecordingLifecycleLog.log("resume", "take=\(takeID ?? "?")")
+    }
+
+    private func resetPause() {
+        isPaused = false
+        pausedAt = nil
+        pausedTotal = 0
     }
 
     func clearFailure() { if case .failed = state { state = .idle } }
@@ -377,8 +422,8 @@ final class MacRecorder {
         // 4 Hz: the label has 1s resolution and the meter is pushed by the sink, not by this.
         ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self, let started = self.startedAt else { return }
-                self.elapsed = Date().timeIntervalSince(started)
+                guard let self, let started = self.startedAt, !self.isPaused else { return }
+                self.elapsed = Date().timeIntervalSince(started) - self.pausedTotal
             }
         }
     }
@@ -489,6 +534,7 @@ final class MacRecorder {
             return
         }
         let name = activeInputName
+        resetPause()
         discardAllTakeFiles()
         url = nil
         startedAt = nil
@@ -521,6 +567,7 @@ final class MacRecorder {
             let name = self.activeInputName
             self.teardownSession()
             self.ticker?.invalidate(); self.ticker = nil
+            self.resetPause()
             self.discardAllTakeFiles()
             self.url = nil
             self.startedAt = nil
@@ -688,6 +735,8 @@ private final class SampleSink: NSObject, AVCaptureAudioDataOutputSampleBufferDe
     private var checkpoint: RecordingCheckpoint?
     private var failed = false
     private var closed = false
+    /// Q328: while true, buffers are dropped after the file is open (see `captureOutput`).
+    private var paused = false
 
     init(destination: URL,
          takeID: String,
@@ -715,6 +764,12 @@ private final class SampleSink: NSObject, AVCaptureAudioDataOutputSampleBufferDe
             checkpoint?.rotate(reason: "close")
             return checkpoint
         }
+    }
+
+    /// Flip pause on the writer queue: once this returns, no callback is mid-write and none
+    /// will write until it is flipped back. Never called from the writer queue itself.
+    func setPaused(_ value: Bool) {
+        queue.sync { paused = value }
     }
 
     /// Close the open segment and rewrite the marker now (the Mac is about to sleep).
@@ -751,6 +806,10 @@ private final class SampleSink: NSObject, AVCaptureAudioDataOutputSampleBufferDe
                 return
             }
         }
+        // Paused (D182): the first buffer still opens the file and announces itself above (the
+        // 1.5 s fail-fast must not kill a take paused in its first second); after that the
+        // paused stretch is dropped, not written, not metered, not captioned.
+        if paused { return }
         // R46: a failed write (disk full) used to be logged and ignored — the timer kept
         // counting over a file that stopped growing. The first failure now ends the take.
         do {
