@@ -16,6 +16,8 @@ struct RootView: View {
     /// thread through the sidebar and the pane switch below.
     @State private var liveSession: LiveRecordingSession
     @State private var settingsOpen = false
+    /// The iCloud capsule opens Settings scrolled to the Sync card (Q327).
+    @State private var settingsAtSync = false
     /// A refused start of an "Add recording" take (Q290) — the sidebar's own alert only
     /// covers takes its Record button started.
     @State private var appendMicProblem: MacRecorder.Refusal?
@@ -60,7 +62,8 @@ struct RootView: View {
                     // toggle writes.
                     if sidebarVisible {
                         SidebarView(model: model, files: files, coordinator: coordinator,
-                                    session: liveSession, onOpenSettings: { settingsOpen = true })
+                                    session: liveSession, onOpenSettings: { settingsAtSync = false; settingsOpen = true },
+                                    onOpenSyncSettings: { settingsAtSync = true; settingsOpen = true })
                             // 240 is the MEASURED floor for the header row (identity +
                             // gear, Import + Process, the four filter chips) — at the
                             // old ideal 228 that content overflowed and clipped on BOTH
@@ -126,7 +129,7 @@ struct RootView: View {
         // SwiftUI colorScheme when the user switches theme.
         .onChange(of: appTheme) { _, new in AppTheme.applyToApp(new) }
         .sheet(isPresented: $settingsOpen) {
-            SettingsView(onClose: { settingsOpen = false })
+            SettingsView(onClose: { settingsOpen = false; settingsAtSync = false }, scrollToSync: settingsAtSync)
         }
         .sheet(isPresented: $unpipelinedSheetID.isPresent) {
             UnpipelinedMemoSheet(
