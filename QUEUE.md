@@ -2393,7 +2393,7 @@ gate+: yes
 do: From plan/perf2/MEASURED.md (b179 flow re-run): NotesRepository.save() bumps memoSetVersion even when the context has no changes; MemoDetailView's onDisappear save therefore makes every note CLOSE rebuild the Notes list base (allMemos ~1.0 s + ListDerivedCache.base ~1.0 s over 5 closes) — Tuur feels a stutter on open/close; each typing commit's save also re-runs the list base and the hidden AudiobookLibraryView.body behind the editor (Tuur: lag after a space). Fix: save() returns early (no save, no bump) when !context.hasChanges; split the version so a body-text edit of ONE memo updates that memo's row/search text incrementally instead of rebuilding the whole base (keep results identical to a full rebuild — ListDerivedCacheTests' equality corpus); AudiobookLibraryView must not re-evaluate on memo edits when its counts are unchanged (Q317's BookNotesCountCache already keys counts). Tests: `SaveNoopTests` (phone target) — save with no changes leaves memoSetVersion unchanged; extend ListDerivedCacheTests — editing one memo's transcript rebuilds one row, not the base; results equal a full rebuild.
 check: `plan/mtest.sh SaveNoopTests && plan/mtest.sh ListDerivedCacheTests && plan/mtest.sh NoteOpenWorkTests && ./gate.sh`
 
-### Q323 [auto] (doing) perf: the phone notes list scrolls and filters without re-measuring and re-diffing every row
+### Q323 [auto] (done) perf: the phone notes list scrolls and filters without re-measuring and re-diffing every row
 spec: -
 needs: -
 gate+: yes
@@ -3471,3 +3471,4 @@ check: `plan/mtest.sh ListRowEquatableTests && plan/mtest.sh ListDerivedCacheTes
 - 2026-10-06 08:22 Q319 -> done — Tuur ran it 2026-10-05 22:05; results in plan/perf2/MEASURED.md (b179 re-run)
 - 2026-10-06 08:28 Q322 -> done — hand-merged (Tuur approved 2026-10-06: NoteOpenWorkTests saves now change a field first (no-op save no longer bumps); classifier test nonce)
 - 2026-10-06 08:29 Q323 -> doing — worker out
+- 2026-10-06 08:53 Q323 -> done — gate pass @c92c3bb4
