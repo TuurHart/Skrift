@@ -26,7 +26,6 @@ enum NoteMenuItem: CaseIterable {
     // ── with the note ──
     // No `viewThread`: retired from BOTH apps 2026-07-25 — Connections' Date mode
     // is the arc on every platform (Tuur: "keep the apps looking the same").
-    case remind
     case printCard
     case lock
     case unlock
@@ -46,7 +45,6 @@ enum NoteMenuItem: CaseIterable {
         case .retranscribe:       return "Re-transcribe"
         case .redo:               return "Redo"
         case .undoTidyUp:         return "Undo tidy-up"
-        case .remind:             return "Remind me…"
         case .printCard:          return "Print card"
         case .lock:               return "Lock note"
         case .unlock:             return "Remove lock"
@@ -70,7 +68,6 @@ enum NoteMenuItem: CaseIterable {
         case .retranscribe:       return "waveform"
         case .redo:               return "arrow.clockwise"
         case .undoTidyUp:         return "arrow.uturn.backward"
-        case .remind:             return "bell"
         case .printCard:          return "printer"
         case .lock:               return "lock"
         case .unlock:             return "lock.open"
@@ -140,8 +137,6 @@ extension NoteMenuItem {
                 return "not built on the Mac (the split lives on the phone)"
             case .undoTidyUp:
                 return "lives in the open note's ⋯ (NoteActions)"
-            case .remind:
-                return "no Mac set/clear verb or alarm yet (D122 decided, not built)"
             case .printCard:
                 return "the wall printer is the phone's (FEATURES.md Desktop ➖)"
             case .lock, .unlock:
@@ -153,7 +148,7 @@ extension NoteMenuItem {
         case .macQuietList:
             switch self {
             case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .redo,
-                 .undoTidyUp, .remind, .printCard, .share:
+                 .undoTidyUp, .printCard, .share:
                 return "an unrated note has no pipeline row to act on; open it for the rest"
             case .copyMarkdown:
                 return "a bare unrated row cannot compile Markdown; the open note's ⋯ offers it"

@@ -73,7 +73,7 @@ struct NoteProperties: View {
         VStack(alignment: .leading, spacing: 13) {
             titleSection
             // Facts row — date · place · weather · daypart · source · duration ·
-            // reminder/lock. Signed mock `mocks/mac-note-header.html` (Tuur
+            // lock. Signed mock `mocks/mac-note-header.html` (Tuur
             // 2026-07-25, at the iPad's weight): this replaces the four-row
             // properties table, which repeated what the chips, the player and the
             // sidebar glyph already said.
@@ -132,7 +132,7 @@ struct NoteProperties: View {
 
     /// Everything the old properties table listed, as chips: the note's date, the
     /// ambient context the phone captured (place · weather · daypart), what kind of
-    /// thing this is, how long it runs, and the conditional reminder / lock / url
+    /// thing this is, how long it runs, and the conditional lock / url
     /// facts. `author` is GONE — `NoteDisplayView` passes the Settings author, so it
     /// was the same name on every note and is written into the exported frontmatter
     /// regardless.
@@ -150,10 +150,6 @@ struct NoteProperties: View {
         }
         if let urlVal = captureURLDisplayValue {
             chips.append(MacChip(text: urlVal, symbol: "link", tint: .link))
-        }
-        if let remind = file.remindAt {
-            chips.append(MacChip(text: remind.formatted(date: .abbreviated, time: .shortened),
-                                 symbol: "bell"))
         }
         // m5 of the live-recording surface: the ONLY trace a mid-take edit leaves on the
         // resting note. The flag also means the transcript is user-trusted pipeline-wide.

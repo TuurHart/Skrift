@@ -31,8 +31,6 @@ struct MemoDetailView: View {
     @State var splitToast: String?
     @State var showAppendRecorder = false
     @State var showShare = false
-    /// ⋯ → "Remind me…" for the current page (chunk 7).
-    @State var reminderMemo: Memo?
     /// Transient "n / total" that ghosts in when a memo-link hop opens another note
     /// (compact-player spec). `pageFlashText` is counted at hop time with two COUNT queries,
     /// never from a loaded list.
@@ -150,7 +148,6 @@ struct MemoDetailView: View {
         if memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
             Button { undoTidyUp(memo) } label: { menuLabel(.undoTidyUp) }
         }
-        Button { reminderMemo = memo } label: { menuLabel(.remind) }
         if WallPrinter.shared.hasPrinter {
             Button { WallPrinter.shared.printCard(memo, repository: repository) } label: { menuLabel(.printCard) }
         }
@@ -495,7 +492,6 @@ struct MemoDetailView: View {
                memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
                 Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
             }
-            Button(NoteMenuItem.remind.label, action: { reminderMemo = currentMemo })
             if WallPrinter.shared.hasPrinter, let memo = currentMemo, !lockGate.isLocked(memo) {
                 Button(NoteMenuItem.printCard.label, action: {
                     WallPrinter.shared.printCard(memo, repository: repository)
@@ -516,9 +512,6 @@ struct MemoDetailView: View {
             Button(NoteMenuItem.copyTranscript.label, action: copyTranscript)
             Button(NoteMenuItem.delete.label, role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
-        }
-        .sheet(item: $reminderMemo) { memo in
-            ReminderSheet(memo: memo) { repository.save() }
         }
         // The chrome Export button's refusals/back-offs — every tap answers
         // (the no-vault iPad silence, 2026-08-18).

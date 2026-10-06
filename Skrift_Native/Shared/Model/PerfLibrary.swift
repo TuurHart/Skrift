@@ -10,7 +10,7 @@ import SwiftData
 ///
 /// "Inert under the flag" is enforced twice: the store has `cloudKitDatabase: .none`, and every
 /// launch-time CloudKit side channel (names/vocab/prompts/audiobook sync, the sync monitor,
-/// reminders, remote-notification registration, the share-inbox drain) returns early when
+/// remote-notification registration, the share-inbox drain) returns early when
 /// `isActive` is true. Each gate is a `guard !PerfLibrary.isActive` inside `#if DEBUG`.
 enum PerfLibrary {
     static let flag = "-perfLibrary"

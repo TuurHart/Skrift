@@ -42,9 +42,6 @@ extension MemosListView {
         let items = NoteMenuLayout.listItems(.phoneList, state: NoteMenuState(locked: memo.locked))
         ForEach(items, id: \.self) { item in
             switch item {
-            case .remind:
-                Button { reminderMemo = memo } label: { Label(item.label, systemImage: item.systemImage) }
-                    .accessibilityIdentifier("context-remind-button")
             case .lock, .unlock:
                 Button { toggleLock(memo) } label: { Label(item.label, systemImage: item.systemImage) }
                     .accessibilityIdentifier("context-lock-button")

@@ -434,9 +434,9 @@ suite is retired; the unit suite IS the gate (D85).
   so the Mac polishes an unrated note — C87 and the old C88 contradicted each other)
   — decisions:146, scenarios #31
 - C89 [auto] ONE clock: `clockStart = max(recordedAt, keptAt)`; touch restarts 30 days;
-  fading at 30, Recently Deleted at 60, gone 14 seen-days later; rated / locked / reminder /
-  backlinked notes never fade (a backlink from ANY live memo counts, D-B33); final doors move
-  only at an app-open. A TOUCH = edit / title / tags / lock / reminder / annotation / keep /
+  fading at 30, Recently Deleted at 60, gone 14 seen-days later; rated / locked /
+  backlinked notes never fade (a reminder no longer holds, D185) (a backlink from ANY live memo counts, D-B33); final doors move
+  only at an app-open. A TOUCH = edit / title / tags / lock / annotation / keep /
   bring-back (`markEdited` is the tracepoint); photos, bare captures, rating changes and
   Mac→phone meta writes are NOT touches. Fading is derived, never stored; sweeps run from
   install with no arming gate. || check:
@@ -447,8 +447,9 @@ suite is retired; the unit suite IS the gate (D85).
 - C91 [auto] Locked notes sync, never export, show title + 🔒 only, unlock per session.
   || check: corpus `typed-locked`. Processing continues on a locked note (Tuur 2026-09-22:
   "no one should see it" — lock is about eyes, not the pipeline) — D10 decided as today.
-- C92 [auto] Reminders are synced data; each device derives its own alarm. || check: corpus
-  `typed-reminder`. ⚠ unverified: Mac reconciler owed — ledgers:53 (lifecycle)
+- C92 [auto] ~~Reminders are synced data; each device derives its own alarm.~~ Removed by D185
+  (2026-10-06): no reminder UI, scheduler or notification on any device; `remindAt` stays in the
+  model, unused. || check: `RemindersRemovedTests`.
 - C93 [auto] Tags: split on comma/newline, need a letter or digit (`[]` refused), `#`
   stripped once, case kept; all four destination words are accepted as tags (code 2026-08-27;
   the ledger's "reserved" line is stale) and `inspiration` raises `needs: - credit`; inline
@@ -732,8 +733,8 @@ Audiobooks, locks, reminders, export:
   without auth; locking an exported note says the plaintext file still exists and offers to
   remove it when ours and untouched. || check: corpus `typed-locked` + a ledger entry.
   — scenarios #46, D10
-- C162 [tuur] A reminder set on any device rings on the device he is holding; the first
-  acknowledgement clears the others. — scenarios #47, D51
+- C162 [tuur] ~~A reminder set on any device rings on the device he is holding; the first
+  acknowledgement clears the others.~~ Removed by D185 (2026-10-06). — scenarios #47, D51
 - C163 [auto] Changing an exported note's destination removes the old file when ours and
   untouched, then writes the new one; if the old file was edited or moved, the change is refused
   with the file named. A Personal note never remains in the portfolio. DECIDED 2026-09-22.

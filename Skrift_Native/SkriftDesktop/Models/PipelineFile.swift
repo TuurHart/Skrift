@@ -82,9 +82,9 @@ final class PipelineFile {
     /// kept fresh by `MemoCloudUpdate`. ADDITIVE default → lightweight migration.
     var locked: Bool = false
 
-    /// Mirror of the synced `Memo.remindAt` — shown in the properties card. The ALARM is
-    /// per-device by design (the phone/iPad schedule notifications); the Mac just surfaces
-    /// the date. ADDITIVE, nil default → lightweight migration.
+    /// Mirror of the synced `Memo.remindAt`. D185: unused, kept for CloudKit + older builds —
+    /// reminders were removed on every device, nothing shows or schedules this any more.
+    /// ADDITIVE, nil default → lightweight migration.
     var remindAt: Date? = nil
 
     /// Flat OCR text of the memo's photos (phone-authored Vision text riding the synced

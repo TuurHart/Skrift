@@ -177,8 +177,8 @@ struct SkriftApp: App {
                 // capture any local audio/photos that have no asset yet (incl.
                 // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
                 // launch + foreground cadence below.
-                // (The corpus sweeps — dedupe, asset capture, photo OCR discovery, Fading,
-                // reminders — start from the recovery task below, once the recording-recovery
+                // (The corpus sweeps — dedupe, asset capture, photo OCR discovery, Fading —
+                // start from the recovery task below, once the recording-recovery
                 // sweep has finished, and run OFF the main thread: Q316, `LaunchSweeps`.)
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
                 // CloudKit-synced carrier with the local names.json via the same
@@ -251,12 +251,11 @@ struct SkriftApp: App {
                         // foreground regardless of the R94 gate below: FadingSweep
                         // stamps trash-seen purge clocks purely by wall-clock time
                         // (a note trashed without any other edit must still get
-                        // seen), ReminderScheduler reconciles due dates that pass
-                        // just from time elapsing, and the inbox drainer is what
+                        // seen), and the inbox drainer is what
                         // TURNS a pending capture into a memo — gating it on "did
                         // the memo count change" would never let a new capture in.
                         //
-                        // Q316: `LaunchSweeps.foreground` runs FadingSweep + reminders
+                        // Q316: `LaunchSweeps.foreground` runs FadingSweep
                         // every time and the corpus sweeps only when the gate says the
                         // corpus moved, all off the main thread. The gate was marked at
                         // launch, so the first foreground no longer repeats the launch pass.
@@ -355,8 +354,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         #else
         UIApplication.shared.registerForRemoteNotifications()
         #endif
-        // Reminder taps → open the memo; foreground reminders still banner.
-        UNUserNotificationCenter.current().delegate = ReminderScheduler.delegate
+        // D185: reminders are gone. The delegate stays only so the wall-queue notice still
+        // banners while the app is open; the one-time cleanup removes the old reminder
+        // notifications (pending + delivered) and nothing else.
+        UNUserNotificationCenter.current().delegate = ForegroundBanner.shared
+        ReminderCleanup.runOnce()
         return true
     }
 }

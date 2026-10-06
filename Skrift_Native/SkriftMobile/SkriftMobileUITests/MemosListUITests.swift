@@ -52,7 +52,7 @@ final class MemosListUITests: XCTestCase {
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.press(forDuration: 0.9)
-        XCTAssertTrue(app.buttons["context-remind-button"].waitForExistence(timeout: 4),
+        XCTAssertTrue(app.buttons["context-copy-button"].waitForExistence(timeout: 4),
                       "long-press must open the row's context menu")
         // Dismiss without acting; the list must still be intact.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()

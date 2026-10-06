@@ -6,11 +6,11 @@ final class NoteMenuParityTests: XCTestCase {
 
     // ── list menus build from NoteMenuItem; absences are declared with a reason ──
 
-    func testPhoneListIsRemindLockCopyDeleteInSharedOrder() {
+    func testPhoneListIsLockCopyDeleteInSharedOrder() {
         XCTAssertEqual(NoteMenuLayout.listItems(.phoneList, state: NoteMenuState()),
-                       [.remind, .lock, .copyTranscript, .delete])
+                       [.lock, .copyTranscript, .delete])
         XCTAssertEqual(NoteMenuLayout.listItems(.phoneList, state: NoteMenuState(locked: true)),
-                       [.remind, .unlock, .copyTranscript, .delete])
+                       [.unlock, .copyTranscript, .delete])
     }
 
     func testQuietMacListIsLockCopyDeleteLikeThePhone() {

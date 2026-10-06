@@ -151,7 +151,6 @@ final class CloudSyncMonitor: ObservableObject {
         MemoDeduper.run(repository)
         AssetMaterializer.run(repository)
         PhotoTextIndexer.run(repository)
-        ReminderScheduler.run(repository)
     }
 
     /// The post-import convergence pass: blobs to disk, names/vocab merge,

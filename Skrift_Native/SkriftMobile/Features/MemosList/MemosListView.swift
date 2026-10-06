@@ -78,8 +78,6 @@ struct MemosListView: View {
     @ObservedObject var intentBridge = RecordingIntentBridge.shared
     @ObservedObject var memoOpen = MemoOpenBridge.shared
     @ObservedObject var quickNoteBridge = QuickNoteBridge.shared
-    /// Long-press → "Remind me…" (chunk 7).
-    @State var reminderMemo: Memo?
     /// Locking a memo that's already published → honest notice (chunk 8).
     @State var lockVaultNotice = false
     /// In-app document scan (chunk 9) — device-only entry.
@@ -406,9 +404,6 @@ struct MemosListView: View {
     var listContent: some View {
         VStack(spacing: 0) {
             searchField
-                .sheet(item: $reminderMemo) { memo in
-                    ReminderSheet(memo: memo) { NotesRepository.shared.save() }
-                }
                 .fullScreenCover(isPresented: $showDocScanner) {
                     DocScanView(
                         onScan: { pages in

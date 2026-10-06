@@ -87,8 +87,6 @@ struct MemoPageView: View {
     @State var showMemoLinkPicker = false
     /// Track B: the full extracted-PDF-text reader (wave-2 mock m3).
     @State var showPDFTextReader = false
-    /// Reminder chip → the sheet (chunk 7).
-    @State var showReminderSheet = false
     @State var backlinks: [(id: UUID, title: String)] = []
     /// P8 Related card (chunk 7): semantic neighbours — loaded only while the
     /// journal index is active; the card is HIDDEN when nothing clears the floor
@@ -154,9 +152,6 @@ struct MemoPageView: View {
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
         .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
-        .sheet(isPresented: $showReminderSheet) {
-            ReminderSheet(memo: memo) { repository.save() }
-        }
         // The viewer for a shared-document (.file) capture and for the editor's inline
         // photos is UIKit-presented (`MarkupQuickLook`, P2#12) — no SwiftUI cover here:
         // the zoom transition needs transitionViewFor, which a cover can't provide. Markup
@@ -487,23 +482,6 @@ struct MemoPageView: View {
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 ForEach(metaChips) { chip in
                     ContextChip(text: chip.text, systemImage: chip.symbol)
-                }
-                // Reminder chip — visible whenever a reminder is set (future =
-                // accent bell, past = faint); tap to change/remove.
-                if let at = memo.remindAt {
-                    Button { showReminderSheet = true } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: at > Date() ? "bell.fill" : "bell")
-                                .font(.system(size: 9, weight: .semibold))
-                            Text(at.formatted(.dateTime.day().month().hour().minute()))
-                                .font(.system(size: 11))
-                        }
-                        .foregroundStyle(at > Date() ? Color.skAccentText : Color.skTextFaint)
-                        .padding(.horizontal, 7).padding(.vertical, 2)
-                        .background(at > Date() ? Color.skAccentSoft : Color.skElev,
-                                    in: .rect(cornerRadius: 7, style: .continuous))
-                    }
-                    .accessibilityIdentifier("reminder-chip")
                 }
             }
 
