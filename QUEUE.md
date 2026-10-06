@@ -1469,7 +1469,7 @@ do: In `SkriftMobile/Features/Audiobooks/` and the files named: delete the unuse
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookTextSummaryDisplayTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAU-d04 MAU-d05 MAU-d06 MAU-d07 MAU-d08 MAU-d10 MAU-d13 MAU-d16 MAU-d17 MAU-c14 MAU-c18 MAU-c21 MAU-c23 MAU-c29 (cleanup-audit P6)
 
-### Q194 [auto] (doing) retire TranscribeBookView: the read-along nudge opens the Text sheet
+### Q194 [auto] (done) retire TranscribeBookView: the read-along nudge opens the Text sheet
 spec: C240 C115
 needs: Q193
 gate+: no
@@ -3601,3 +3601,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 21:56 Q297 -> doing — worker out
 - 2026-10-06 22:07 Q244 -> done — gate 79s @799248ff
 - 2026-10-06 22:07 Q297 -> stuck — parked 2026-10-06: nothing writes a PDF page or podcast position yet (podcasts unbuilt), and the branch adds an unmocked PDF reader view — fold into the Library tab plan; branch wt/Q297 @86e8a062 kept
+- 2026-10-06 22:10 Q194 -> done — gate 40s @a51f183c
