@@ -13,6 +13,10 @@ struct SidebarView: View {
     /// synthetic queue row read/drive it; the pane (RootView) renders the same session's draft.
     @Bindable var session: LiveRecordingSession
     var onOpenSettings: () -> Void = {}
+    /// Q327: the iCloud capsule's tap opens Settings scrolled to the Sync card.
+    var onOpenSyncSettings: () -> Void = {}
+    /// Snapshot injection of the sync state (nil = the live `MacSyncMonitor`).
+    var syncStateOverride: MacSyncState? = nil
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
@@ -116,6 +120,8 @@ struct SidebarView: View {
                     .padding(.horizontal, 10).padding(.top, 8)
             }
             header
+            // Q327 (D182): the iCloud capsule exists only while sync is broken, off or signed out.
+            MacSyncCapsule(state: syncStateOverride ?? MacSyncMonitor.shared.state, action: onOpenSyncSettings)
             queue
             bottomBar
         }

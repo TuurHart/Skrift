@@ -150,6 +150,10 @@ enum SharedCopy {
     static let syncWhatSyncs = "Your notes, names, custom words, language, destinations and polish prompts sync across your devices via iCloud."
     /// Only the Mac said this; every device needs it.
     static let syncSameAccount = "Every device needs to be signed into the same iCloud account."
+    /// Q327 (D182): the signed-out wording, once for both apps. The Mac's Settings row and list
+    /// capsule read it today; the phone's iCloud row and list take the same two when it gains the check.
+    static let syncSignedOutRow = "Not signed in"
+    static let syncSignedOutCapsule = "Not signed in to iCloud"
 
     // ── Q171: the orange line beside the rating pill (capture-quick-12) ──
 

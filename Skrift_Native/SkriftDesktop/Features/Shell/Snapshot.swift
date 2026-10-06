@@ -95,6 +95,10 @@ enum Snapshot {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderSidebarSelection(to: p, scheme: light ? .light : .dark); exit(0) }
         }
+        if let p = path("-snapshot-sync") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderSyncCards(prefix: p, scheme: light ? .light : .dark); exit(0) }
+        }
         if let p = path("-snapshot-shell") {
             let w = CGFloat(path("-shellWidth").flatMap { Double($0) } ?? 1180)
             // RootView's real sidebar column is minWidth 240 / idealWidth 292 (Features/Shell/
@@ -113,9 +117,12 @@ enum Snapshot {
             // Q106: `-shellHeight <n>` draws a taller frame so rows further down the corpus list
             // (book quote, video, link) are in the picture. Additive; default stays 900.
             let shellHeight = CGFloat(path("-shellHeight").flatMap { Double($0) } ?? 900)
+            // Q327: `-syncState syncing|upToDate|off|signedOut|failed` forces the list's iCloud capsule.
+            let syncState = path("-syncState").flatMap { name in MacSyncState.allCases.first { "\($0)" == name } }
             MainActor.assumeIsolated {
                 renderShell(to: p, width: w, height: shellHeight, sidebar: sb, corpusPath: path("-corpus"),
-                            scheme: light ? .light : .dark, filterDone: filterDone, selectRows: selectRows)
+                            scheme: light ? .light : .dark, filterDone: filterDone, selectRows: selectRows,
+                            syncState: syncState)
                 exit(0)
             }
         }
@@ -261,7 +268,8 @@ enum Snapshot {
     /// `-corpus` is given, or an empty array otherwise — the real store is never touched.
     @MainActor private static func renderShell(to path: String, width: CGFloat, height: CGFloat = 900, sidebar: CGFloat,
                                                 corpusPath: String? = nil, scheme: ColorScheme = .dark,
-                                                filterDone: Bool = false, selectRows: Int = 1) {
+                                                filterDone: Bool = false, selectRows: Int = 1,
+                                                syncState: MacSyncState? = nil) {
         guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
@@ -288,6 +296,7 @@ enum Snapshot {
         let view = HStack(spacing: 0) {
             SidebarView(model: model, files: files, coordinator: coordinator,
                         session: fixtureSession(coordinator: coordinator),
+                        syncStateOverride: syncState ?? .upToDate,
                         fixtureCloudMemos: quietMemos)
                 .frame(width: sidebar)
             NoteDisplayView(file: files.first, coordinator: coordinator, onOpenMemo: { _ in })
@@ -1309,6 +1318,17 @@ enum Snapshot {
         coordinator.nameSpeaker(split, displayed: "Speaker 2", as: "Hendrik Vos", context: ctx)
         shot("6-named", split)
         shot("7-flatten-confirm", split, confirm: .off)
+    }
+
+    /// Q327: the Settings Sync card in each of the five states, one PNG per state
+    /// (`<prefix>-syncing.png` …). `-snapshot-sync <prefix>` · add `-light`.
+    @MainActor private static func renderSyncCards(prefix: String, scheme: ColorScheme) {
+        for s in MacSyncState.allCases {
+            let view = SettingsView(interactive: false, syncStateOverride: s, onlySync: true)
+                .frame(width: 560)
+                .background(Theme.bg)
+            writePNG(view, to: "\(prefix)-\(s).png", scheme: scheme)
+        }
     }
 
     @MainActor private static func renderSettings(to path: String, scheme: ColorScheme = .dark) {

@@ -10,6 +10,12 @@ struct SettingsView: View {
     var interactive = true
     /// Snapshot/test injection of the names list (default nil → the shared store).
     var peopleOverride: [Person]? = nil
+    /// Q327: open scrolled to the Sync card (the list's iCloud capsule taps through to it).
+    var scrollToSync = false
+    /// Snapshot injection of the sync state (nil = the live `MacSyncMonitor`).
+    var syncStateOverride: MacSyncState? = nil
+    /// Snapshot only: draw just the Sync card (`-snapshot-sync`).
+    var onlySync = false
 
     @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     @State private var settings = SettingsStore.shared.load()
@@ -34,7 +40,12 @@ struct SettingsView: View {
             // No ScrollView in snapshot mode (ImageRenderer can't lay out scroll
             // contents); the live app scrolls.
             if interactive {
-                ScrollView { sections }
+                ScrollViewReader { proxy in
+                    ScrollView { sections }
+                        .onAppear {
+                            if scrollToSync { proxy.scrollTo(Self.syncSectionID, anchor: .center) }
+                        }
+                }
             } else {
                 sections
                 Spacer(minLength: 0)
@@ -42,6 +53,11 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
+        // Q327: the Sync card's row + the list capsule follow the switch the moment it moves.
+        .onChange(of: settings.cloudKitMacSync) { _, new in
+            guard syncStateOverride == nil else { return }
+            MacSyncMonitor.shared.refresh(switchOn: new ?? true)
+        }
         .onChange(of: settings) { _, new in
             // An author edit is a dated LWW write (Q158); pushed once when the sheet closes.
             if new.authorName != savedBaseline.authorName {
@@ -95,8 +111,27 @@ struct SettingsView: View {
         NamesFilter.apply(displayPeople, query: nameQuery)
     }
 
+    private static let syncSectionID = "settings.sync.section"
+
     private var sections: some View {
         VStack(alignment: .leading, spacing: 22) {
+            if onlySync { syncSection } else { allSections }
+        }
+        .padding(20)
+    }
+
+    private var syncSection: some View {
+        section("Sync") {
+            MacSyncCard(state: syncStateOverride ?? MacSyncMonitor.shared.state,
+                        failureDetail: MacSyncMonitor.shared.failureDetail,
+                        switchOn: Binding(get: { syncStateOverride.map { $0 != .off } ?? (settings.cloudKitMacSync ?? true) },
+                                          set: { settings.cloudKitMacSync = $0 }),
+                        interactive: interactive)
+        }
+        .id(Self.syncSectionID)
+    }
+
+    @ViewBuilder private var allSections: some View {
             section("Appearance") {
                 if interactive {
                     Picker("", selection: $appTheme) {
@@ -197,10 +232,7 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
-            section("Sync") {
-                toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync, defaultOn: true,
-                          help: "\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) The Mac processes the memos your phone synced and sends its polished title, summary and copy-edit back. This is the only phone↔Mac transport: with it off, neither happens.")
-            }
+            syncSection
             section(RetrievalGate.Copy.settingTitle) { connectionsSection }
             section("Names · \(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
@@ -240,8 +272,6 @@ struct SettingsView: View {
                 }
                 .disabled(!interactive)   // rendered in snapshots too, only live taps act
             }
-        }
-        .padding(20)
     }
 
     private var header: some View {
