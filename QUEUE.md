@@ -1445,7 +1445,7 @@ do: (1) `FileAlignment.epubSignature` is documented as compared nowhere and read
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh TextDetachTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAS-d10 MAS-d14 MAS-c02 MAS-c17 MAS-c18 MAS-c24 (cleanup-audit P3)
 
-### Q191 [auto] (todo) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
+### Q191 [auto] (doing) audiobook CloudKit sync: one sidecar helper, one tolerant continuation, shared decode
 spec: C239
 needs: Q190
 gate+: no
@@ -3579,3 +3579,4 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:52 Q287 -> doing — worker out
 - 2026-10-06 20:52 Q190 -> doing — worker out
 - 2026-10-06 21:21 Q190 -> done — gate 136s @a1b33b3c
+- 2026-10-06 21:21 Q191 -> doing — worker out
