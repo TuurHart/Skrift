@@ -997,8 +997,8 @@ Body/image model:
   caption), drops token + timing together; an all-filler input is unchanged. || check:
   `FillerFilterTests`. — A12
 - C172 [auto] ONE quote splitter for display, copy-edit and export (indent tolerance decided
-  once); the quote block of a capture is read-only in the editor, only the ramble edits; a
-  quote capture is born `transcriptUserEdited` with no location. || check: no second splitter.
+  once); the quote block of a capture edits like the rest of the note (D183, Q329) and only
+  polish treats it as protected text; a quote capture is born `transcriptUserEdited` with no location. || check: no second splitter.
   — A13, A14, A15
 - C173 [auto] The edit target is pinned at the first keystroke of a burst; an arriving polish
   never receives a raw-born draft (P0 2026-07-10). || check: `NoteBodyTests` markDraftDirty. — A17
