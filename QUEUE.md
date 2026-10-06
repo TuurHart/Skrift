@@ -1501,7 +1501,7 @@ do: `Paragrapher.paragraphed` and `defaultGap` have no production caller (`Share
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d01 SPL-d02 (cleanup-audit P10)
 
-### Q198 [auto] (todo) shared pipeline: unused overloads, always-default parameters, stale headers
+### Q198 [auto] (doing) shared pipeline: unused overloads, always-default parameters, stale headers
 spec: C240
 needs: -
 gate+: no
@@ -1773,7 +1773,7 @@ do: `SkriftWidget/RecordWidget.swift` and `NewNoteWidget.swift` differ only in n
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SharedContentParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d17 MAM-d19 MAM-c10 (cleanup-audit P44)
 
-### Q232 [auto] (todo) remove the SkriftShared framework target
+### Q232 [auto] (doing) remove the SkriftShared framework target
 spec: C240
 needs: Q231
 gate+: no
@@ -1789,7 +1789,7 @@ do: In `Shared/` (compiled into both apps; re-grep each symbol by NAME in both a
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh NoteDestinationTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SMU-d04 SMU-d05 SMU-d06 SMU-d07 SMU-d09 SMU-d11 SMU-d-m1 SMU-c03 SMU-c04 SMU-c06 SMU-c07 SMU-c11 SMU-c14 SPL-c15 (cleanup-audit P46)
 
-### Q234 [auto] (todo) shared naming, export and corpus: unread members and unused overloads
+### Q234 [auto] (doing) shared naming, export and corpus: unread members and unused overloads
 spec: C240
 needs: Q225
 gate+: no
@@ -1909,7 +1909,7 @@ do: Test-only. `tempDir()` is defined 17 times in 15 desktop test files (some wi
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md PER-c13 (cleanup-audit P61)
 
-### Q249 [auto] (todo) accept.sh learns --approve-protected and hand-merge.sh goes
+### Q249 [auto] (dead) accept.sh learns --approve-protected and hand-merge.sh goes
 spec: C239
 needs: -
 gate+: no
@@ -3602,3 +3602,7 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 22:07 Q244 -> done — gate 79s @799248ff
 - 2026-10-06 22:07 Q297 -> stuck — parked 2026-10-06: nothing writes a PDF page or podcast position yet (podcasts unbuilt), and the branch adds an unmocked PDF reader view — fold into the Library tab plan; branch wt/Q297 @86e8a062 kept
 - 2026-10-06 22:10 Q194 -> done — gate 40s @a51f183c
+- 2026-10-06 22:11 Q249 -> dead — obsolete 2026-10-06: plan/accept.sh is now the claude-skills copy (201ad0ff); protected approvals stay with hand-merge.sh
+- 2026-10-06 22:11 Q198 -> doing — worker out
+- 2026-10-06 22:11 Q234 -> doing — worker out
+- 2026-10-06 22:11 Q232 -> doing — worker out
