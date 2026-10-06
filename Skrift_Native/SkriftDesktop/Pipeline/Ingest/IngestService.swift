@@ -585,12 +585,10 @@ struct IngestService: Sendable {
         // file nobody kept.
         //
         // It lives in the WORKING FOLDER beside `original.m4a` (local disk). It becomes a synced
-        // `MemoAsset` (`Kind.video`, C63/C148/D172) ONLY while the note is filed Inspiration /
-        // Idea / Project - `MacMemoAuthor` writes it then, and again when the destination
-        // changes - so a Personal video never reaches iCloud (the objection when Tuur cut video
-        // storage was hundreds of MB per clip in his account). A movie over `VideoKeep.maxBytes`
-        // (~200 MB) is not kept at all. Only the PORTFOLIO export copies it out; the vault never
-        // sees it.
+        // `MemoAsset` (`Kind.video`, C63/C148/D188) whatever the destination - `MacMemoAuthor`
+        // writes it - because Personal means "never goes to Claude", not "never to iCloud". A
+        // movie over `VideoKeep.maxBytes` (~200 MB) is not kept at all. Only the PORTFOLIO
+        // export copies it out (Inspiration / Idea / Project); the vault never sees it.
         let sourceExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
         let kept = folder.appendingPathComponent("source." + sourceExt)
         if let bytes = VideoKeep.byteCount(of: url), !VideoKeep.fits(byteCount: bytes) {

@@ -109,32 +109,26 @@ enum MacMemoAuthor {
            let blob = try? Data(contentsOf: folder.appendingPathComponent("files").appendingPathComponent(name)) {
             ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.document, filename: name, blob: blob))
         }
-        // C63 / C148 / D172: a video already filed Inspiration / Idea / Project brings its movie.
+        // C63 / C148 / D188: a video brings its movie, whatever its destination.
         syncVideoAsset(for: pf, memo: memo, in: ctx)
 
         try ctx.save()
         return memo
     }
 
-    /// C63 / C148 / D172: make the synced `video` asset match the note's destination. Filed
-    /// Inspiration / Idea / Project, a video row whose movie this Mac kept (`source.<ext>` in
-    /// its working folder, <= `VideoKeep.maxBytes`) gets ONE `MemoAsset` named by
-    /// `MemoMetadata.videoFilename`, so the phone can export it too. Filed Personal, any such
-    /// asset is deleted (the local file stays; nothing syncs it). Idempotent. Does NOT save:
-    /// `author` and `MacCloudMetaSync.setDestination` save once after. Returns true when it
-    /// inserted or deleted an asset.
+    /// C63 / C148 / D188: a video row whose movie this Mac kept (`source.<ext>` in its working
+    /// folder, <= `VideoKeep.maxBytes`) gets ONE `MemoAsset` named by `MemoMetadata.videoFilename`,
+    /// whatever its destination (Personal never goes to Claude; it still syncs through his own
+    /// iCloud), so the phone can export it too. Filing never deletes it. Idempotent. Does NOT
+    /// save: `author` and `MacCloudMetaSync.setDestination` save once after. Returns true when
+    /// it inserted an asset.
     @discardableResult
-    static func syncVideoAsset(for pf: PipelineFile, memo: Memo, in ctx: ModelContext,
-                                destination: NoteDestination? = nil) -> Bool {
+    static func syncVideoAsset(for pf: PipelineFile, memo: Memo, in ctx: ModelContext) -> Bool {
         guard let name = memo.metadata?.videoFilename, !name.isEmpty else { return false }
         let id = memo.id
         let kind = MemoAsset.Kind.video
         let existing = (try? ctx.fetch(FetchDescriptor<MemoAsset>(
             predicate: #Predicate { $0.memoID == id && $0.kind == kind }))) ?? []
-        guard (destination ?? pf.destination).isPortfolio else {
-            existing.forEach { ctx.delete($0) }
-            return !existing.isEmpty
-        }
         guard existing.isEmpty, let folder = pf.workingFolder,
               let movie = VaultExporter.keptSourceVideo(in: folder),
               let bytes = VideoKeep.byteCount(of: movie), VideoKeep.fits(byteCount: bytes),
@@ -278,8 +272,8 @@ enum MacMemoAuthor {
         if isVideo {
             meta.sourceType = MemoMetadata.Source.video
             // C63 / C148: name the movie this Mac kept (`source.<ext>`, <= the cap) so the
-            // phone knows which synced asset is it. The asset itself exists only while the note
-            // is filed Inspiration / Idea / Project (`syncVideoAsset`).
+            // phone knows which synced asset is it. The asset itself is `syncVideoAsset`'s
+            // (every destination, D188).
             if let folder = pf.workingFolder, let movie = VaultExporter.keptSourceVideo(in: folder),
                let bytes = VideoKeep.byteCount(of: movie), VideoKeep.fits(byteCount: bytes) {
                 meta.videoFilename = VideoKeep.filename(memoID: memoID, sourceExtension: movie.pathExtension)

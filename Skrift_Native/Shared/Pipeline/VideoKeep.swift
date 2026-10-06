@@ -1,9 +1,10 @@
 import Foundation
 
-/// C63 / C148 / D44 / D172: a video filed Inspiration / Idea / Project keeps its movie as a
-/// synced `MemoAsset` (`Kind.video`), so the portfolio export can copy it from whichever device
-/// exports. A Personal video never syncs and is never exported. ONE rule for both apps and the
-/// share extension, so the cap, the file name and the wording cannot drift.
+/// C63 / C148 / D44 / D188: every video keeps its movie (<= the cap) as a synced `MemoAsset`
+/// (`Kind.video`) whatever its destination (Personal never goes to Claude; it still syncs through
+/// his own iCloud). Only the portfolio export (Inspiration / Idea / Project) copies the movie
+/// out; no movie goes into the Obsidian vault. ONE rule for both apps and the share extension,
+/// so the cap, the file name and the wording cannot drift.
 /// Foundation only: the share extension compiles this file.
 enum VideoKeep {
 
@@ -37,7 +38,7 @@ enum VideoKeep {
 
     /// The share card's honest line (replaces "the video file itself isn't kept").
     static let shareCardLine =
-        "Transcribes on-device · the movie is kept only if you file the note Inspiration, Idea or Project"
+        "Transcribes on-device · the movie is kept with the note and syncs through your iCloud"
 
     /// The share card's line for a movie over the cap.
     static let tooLargeMessage =
