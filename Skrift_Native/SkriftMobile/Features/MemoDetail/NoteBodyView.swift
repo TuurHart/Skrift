@@ -434,8 +434,10 @@ struct NoteBodyView: UIViewRepresentable {
             guard let tv = textView, !wordRanges.isEmpty else { return nil }
             let text = tv.textStorage.string as NSString
             let displayed = wordRanges.map { text.substring(with: $0) }
-            let sidecar = sidecarOffset
-            let spoken = sidecar > 0 && sidecar < timings.count ? Array(timings[sidecar...]) : timings
+            // D183: the quote may have been edited, so its shown count is no longer the sidecar's.
+            let sidecar = QuoteKaraokeMap.rambleTimingsStart(
+                quoteWordCount: sidecarOffset, rambleWordCount: displayed.count, timingCount: timings.count)
+            let spoken = sidecar > 0 ? Array(timings[sidecar...]) : timings
             let built = KaraokeTrack(displayedWords: displayed, timings: spoken,
                                      duration: player?.duration ?? 0)
             track = built

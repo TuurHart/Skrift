@@ -589,19 +589,17 @@ struct MemoPageView: View {
                     .padding(.top, 14)
             }
 
-            // Audiobook capture: the styled, QUOTE-PROTECTED block above the
-            // editable ramble — with live karaoke through the quote's words
-            // during playback (they run from sidecar index 0).
+            // Audiobook capture: the styled quote block above the editable ramble — with
+            // live karaoke through the quote's words during playback (they run from
+            // sidecar index 0).
             if let quote = memo.captureQuote {
-                Group {
-                    if player.isPlaying, !timings.isEmpty {
-                        CaptureQuoteFrame(attribution: memo.quoteAttributionLabel) {
-                            QuoteKaraokeText(text: quote.displayText, timings: timings,
-                                             player: player, clock: player.clock)
-                        }
-                    } else {
-                        CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
-                    }
+                // D183: the quote edits like the rest of the note; karaoke + tap-to-seek ride
+                // on the words that still line up with the audio.
+                CaptureQuoteFrame(attribution: memo.quoteAttributionLabel) {
+                    CaptureQuoteText(text: quote.displayText,
+                                     rambleWordCount: QuoteKaraokeMap.spokenWordCount(ofRamble: quote.ramble),
+                                     timings: timings, player: player, clock: player.clock,
+                                     onCommit: commitQuoteEdit)
                 }
                 .padding(.top, 18)
 
@@ -624,6 +622,19 @@ struct MemoPageView: View {
                 }
             }
         }
+    }
+
+    /// D183: persist an edited quote — the same stamps a ramble commit makes (`NoteBodyView.commitDraft`).
+    /// The ramble below it is re-read from the stored body, so an unsaved ramble draft is never clobbered.
+    func commitQuoteEdit(_ edited: String) {
+        guard let quote = memo.captureQuote else { return }
+        let body = quote.body(withQuote: edited)
+        guard body != memo.transcript else { return }
+        memo.transcript = body.isEmpty ? nil : body
+        memo.transcriptStatus = .done
+        memo.transcriptUserEdited = true
+        memo.markEdited(stampWords: true)
+        repository.save()
     }
 
     /// The orange "starts fading … — rate it to keep it" line (Q85: beside the pill,
