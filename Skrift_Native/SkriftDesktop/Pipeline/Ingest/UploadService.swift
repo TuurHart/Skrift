@@ -105,7 +105,7 @@ struct UploadService: Sendable {
                 try? movie.blob.write(to: folder.appendingPathComponent(
                     VideoKeep.macSourceName(forAssetFilename: movie.filename)))
             }
-            let size =((try? FileManager.default.attributesOfItem(atPath: original.path))?[.size] as? Int)
+            let size = ((try? FileManager.default.attributesOfItem(atPath: original.path))?[.size] as? Int)
                 ?? audio.blob.count
             prepared = PreparedUpload(id: id, filename: filename, path: original.path,
                                       size: size, sourceType: .audio)
