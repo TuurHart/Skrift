@@ -115,6 +115,14 @@ struct SkriftDesktopApp: App {
                 }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             }
+            // Q325 (D181/D182): a photo is added at the caret by paste, drop or this item, with no
+            // toolbar button. Only the focused note's text view answers.
+            CommandGroup(after: .pasteboard) {
+                Button("Insert Photo…") {
+                    NSApp.sendAction(#selector(SelfSizingTextView.insertPhoto(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut(AppShortcuts.insertPhoto)
+            }
             // Q125 (D125) + Q284 (D169): Cmd+F finds in the open note while a note's text view has
             // focus (the responder chain answers), and focuses the list search everywhere else.
             CommandGroup(after: .textEditing) {

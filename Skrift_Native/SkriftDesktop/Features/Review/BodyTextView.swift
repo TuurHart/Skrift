@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ImageIO
+import QuickLookUI
 
 /// What the gutter's naming popover needs from its host (Q87, mock Q86-split-speakers.html).
 struct SpeakerAssign {
@@ -94,6 +95,18 @@ struct BodyTextView: NSViewRepresentable {
     /// D175/C172: true only for a real captured quote (audiobook / text capture, see
     /// `PipelineFile.hasLockedQuote`); a hand-typed leading `> ` stays editable.
     var quoteLocked: Bool = false
+    /// Q325: what a marker stands for when its photo file is NOT here: a "downloading" or
+    /// "missing" answer draws the phone's card instead of the raw `[[img_NNN]]` text. nil = the
+    /// host does not know (markers stay text, as before).
+    var photoSlot: ((Int) -> NotePhoto.Slot)? = nil
+    /// Q325: add a photo (bytes) to the note. The host stores the file and the manifest and
+    /// returns the new marker's number. nil = this host takes no photos (paste/drop/menu ignore them).
+    var onAddPhoto: ((Data) -> MacNotePhotos.Added?)? = nil
+    /// Q325: Quick Look's Markup rewrote this photo file, so re-mirror it to the phone.
+    var onPhotoMarkup: ((URL) -> Void)? = nil
+    /// Q325: changes when a photo file may have landed (the reconcile sweep nudges the row), so a
+    /// card can become its photo without a text change.
+    var photoToken: Date? = nil
 
     /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
     /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
@@ -172,7 +185,16 @@ struct BodyTextView: NSViewRepresentable {
             return coordinator.handleClick(idx, tv)
         }
         tv.quoteAttribution = quoteAttribution
-        context.coordinator.render(tv, model: text)
+        let coordinator = context.coordinator
+        tv.onAddPhotoData = { [weak coordinator, weak tv] data, loc in
+            guard let coordinator, let tv else { return }
+            coordinator.addPhoto(data, at: loc, in: tv)
+        }
+        tv.onOpenPhotoAt = { [weak coordinator, weak tv] loc in
+            guard let coordinator, let tv else { return }
+            coordinator.openPhoto(at: loc, in: tv)
+        }
+        coordinator.render(tv, model: text)
         return tv
     }
 
@@ -181,6 +203,7 @@ struct BodyTextView: NSViewRepresentable {
         // parent — otherwise its `text` binding write-back + `imageURL` resolver + `onUnlink`
         // callback stay bound to the first note shown.
         context.coordinator.parent = self
+        tv.takesPhotos = onAddPhoto != nil
         if tv.quoteAttribution != quoteAttribution {
             tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
             tv.invalidateIntrinsicContentSize()
@@ -200,6 +223,15 @@ struct BodyTextView: NSViewRepresentable {
         if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()
+        }
+        // Q325: a photo that was a card may have landed (the sweep nudged the row). Re-render only
+        // when a waiting card now resolves, never on an ordinary update (the flash-while-typing bug).
+        if photoToken != context.coordinator.lastPhotoToken {
+            context.coordinator.lastPhotoToken = photoToken
+            if !textChanged, context.coordinator.waitingPhotoArrived() {
+                context.coordinator.render(tv, model: context.coordinator.modelString(tv))
+                tv.invalidateIntrinsicContentSize()
+            }
         }
         if let k = karaoke {
             // Playing: lock editing and recolor in place (bright up to the current
@@ -250,7 +282,7 @@ struct BodyTextView: NSViewRepresentable {
         context.coordinator.paintSearchHits(tv)
     }
 
-    fileprivate static func hexColor(_ hex: UInt32) -> NSColor {
+    static func hexColor(_ hex: UInt32) -> NSColor {
         NSColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
                 blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
     }
@@ -291,6 +323,9 @@ struct BodyTextView: NSViewRepresentable {
         var lastFocusToken: String?
         /// The (note, query) pair already jumped to — one flash per open, not per render.
         var lastSearchJumpToken: String?
+        /// Q325: the last `photoToken` seen, and the markers currently drawn as cards.
+        var lastPhotoToken: Date?
+        private var waitingPhotos: Set<Int> = []
         /// Q321: the search-hit ranges currently highlighted, and until when. Re-painted
         /// after every restyle inside the hold window; cleared by the first edit.
         var searchHits: [NSRange] = []
@@ -324,6 +359,7 @@ struct BodyTextView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? SelfSizingTextView else { return }
             searchHits = []    // offsets drift while typing — the pen comes off at the first edit
+            tv.selectedPhotoLoc = nil
             // In-place, LOCAL recolor only — see `restyle`'s doc. The model write and
             // the full (regex) restyle pass are debounced below.
             restyle(tv, scope: tv.selectedRange())
@@ -476,6 +512,7 @@ struct BodyTextView: NSViewRepresentable {
         /// leaves the `#word` run — a click elsewhere, arrowing out). Never OPENS it:
         /// opening happens only from typing.
         func textViewDidChangeSelection(_ notification: Notification) {
+            (notification.object as? SelfSizingTextView)?.selectedPhotoLoc = nil   // the caret moved off the photo
             guard tagSuggest.isVisible,
                   let tv = notification.object as? SelfSizingTextView else { return }
             updateTagSuggest(tv)
@@ -604,6 +641,7 @@ struct BodyTextView: NSViewRepresentable {
             // for snapshots, else the live names DB). Per-render, not per-keystroke.
             peopleCache = parent.people.isEmpty ? NamesStore.shared.livePeople() : parent.people
             spliceSpeakerGutters(tv)  // `**Name:**` → the gutter name (needs peopleCache)
+            spliceWaitingPhotos(tv)   // a marker whose file hasn't arrived → the phone's card (Q325)
             restyle(tv)
             tv.typingAttributes = [.font: BodyTextView.bodyFont, .foregroundColor: primary]
             loadThumbnails(into: tv, model: model)
@@ -775,14 +813,138 @@ struct BodyTextView: NSViewRepresentable {
             storage.endEditing()
         }
 
+        // MARK: photos (Q325, mock Q128-mac-note-photos)
+
+        private func columnWidth(_ tv: SelfSizingTextView) -> CGFloat {
+            let pad = tv.textContainer?.lineFragmentPadding ?? 0
+            var column = (tv.textContainer?.size.width ?? 0) - 2 * pad
+            if column <= 0 || column > 4000 { column = tv.bounds.width - 2 * pad }   // untracked container
+            return max(100, column)
+        }
+
+        /// A marker the manifest knows whose photo file is not on disk → the phone's card
+        /// ("Downloading from iCloud…", or the plain photo card when no file is coming) in
+        /// place of the raw `[[img_NNN]]` text. A present photo is left to `loadThumbnails`;
+        /// a marker with no manifest entry stays the author's text (C169).
+        private func spliceWaitingPhotos(_ tv: SelfSizingTextView) {
+            waitingPhotos = []
+            guard let slotOf = parent.photoSlot, let storage = tv.textStorage,
+                  let rx = BodyTextView.markerRegex else { return }
+            let full = storage.string as NSString
+            // The column is unknown on the first render (the view has no width yet): a card then
+            // takes the mock's 360pt, never a squeezed fallback.
+            let pad = tv.textContainer?.lineFragmentPadding ?? 0
+            var known = (tv.textContainer?.size.width ?? 0) - 2 * pad
+            if known <= 0 || known > 4000 { known = tv.bounds.width - 2 * pad }
+            let width = NotePhotoCard.width(column: known >= 200 ? known : 0)
+            for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
+                let num = Int(full.substring(with: m.range(at: 1))) ?? 0
+                if parent.imageURL(num) != nil { continue }
+                let slot = slotOf(num)
+                guard slot == .downloading || slot == .missing else { continue }
+                let att = ImageMarkerAttachment(imgNumber: num)
+                att.isCard = true
+                att.image = NotePhotoCard.image(slot, width: width)
+                att.bounds = CGRect(x: 0, y: 0, width: width, height: NotePhoto.cardHeight)
+                storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+                waitingPhotos.insert(num)
+            }
+        }
+
+        /// True when a marker drawn as a card now has its file.
+        func waitingPhotoArrived() -> Bool {
+            waitingPhotos.contains { parent.imageURL($0) != nil }
+        }
+
+        /// The model offset of a storage location (attachments count as their literal syntax).
+        private func modelOffset(ofStorage loc: Int, in tv: SelfSizingTextView) -> Int {
+            guard let storage = tv.textStorage else { return loc }
+            let end = max(0, min(loc, storage.length))
+            return (modelText(storage, in: NSRange(location: 0, length: end)) as NSString).length
+        }
+
+        /// Add a photo at `loc` (a storage location: the caret, or where a file was dropped). The
+        /// host stores the file; the marker goes in as its own paragraph after the sentence
+        /// (shared rule, C10), the same place the phone's save step puts it.
+        func addPhoto(_ data: Data, at loc: Int, in tv: SelfSizingTextView) {
+            guard let add = parent.onAddPhoto, tv.isEditable else { return }
+            let before = flushModelCommit(tv)
+            guard let added = add(data) else { NSSound.beep(); return }
+            let caret = modelOffset(ofStorage: loc, in: tv)
+            let stored = NotePhoto.inserting(number: added.number, into: before, atOffset: caret,
+                                             manifestCount: added.manifestCount)
+            show(model: stored.text, in: tv)
+            if let url = parent.imageURL(added.number), let img = Coordinator.loadThumbnail(url: url) {
+                splice([added.number: img], into: tv)   // now, so the caret can sit right after it
+            }
+            if let photo = photoLocation(added.number, in: tv), let storage = tv.textStorage {
+                var after = photo + 1
+                let ns = storage.string as NSString
+                while after < ns.length, after < photo + 3, ns.character(at: after) == 10 { after += 1 }
+                tv.setSelectedRange(NSRange(location: after, length: 0))
+                tv.scrollRangeToVisible(NSRange(location: photo, length: 1))
+            }
+            tv.undoManager?.registerUndo(withTarget: self) { [weak tv] target in
+                guard let tv else { return }
+                target.restore(model: before, redo: stored.text, in: tv)
+            }
+            tv.undoManager?.setActionName("Insert Photo")
+        }
+
+        /// Put `model` on screen AND in the note (the binding writes it to the file and the
+        /// Mac→phone edit sync), as one decisive act.
+        private func show(model: String, in tv: SelfSizingTextView) {
+            parent.text = model
+            render(tv, model: model)
+            tv.invalidateIntrinsicContentSize()
+        }
+
+        /// Undo / redo of an inserted photo: the text goes back; the photo file and its manifest
+        /// entry stay (the manifest keeps every picture, C14), so Redo finds them.
+        private func restore(model: String, redo: String, in tv: SelfSizingTextView) {
+            show(model: model, in: tv)
+            tv.undoManager?.registerUndo(withTarget: self) { [weak tv] target in
+                guard let tv else { return }
+                target.restore(model: redo, redo: model, in: tv)
+            }
+            tv.undoManager?.setActionName("Insert Photo")
+        }
+
+        private func photoLocation(_ number: Int, in tv: SelfSizingTextView) -> Int? {
+            guard let storage = tv.textStorage else { return nil }
+            var found: Int?
+            storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { v, r, stop in
+                if let att = v as? ImageMarkerAttachment, att.imgNumber == number { found = r.location; stop.pointee = true }
+            }
+            return found
+        }
+
+        /// Open Quick Look on the photo at storage location `loc`. A card (file not here) opens
+        /// nothing; Markup saves into the file, and a changed file is re-mirrored on close.
+        func openPhoto(at loc: Int, in tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage, loc < storage.length,
+                  let att = storage.attribute(.attachment, at: loc, effectiveRange: nil) as? ImageMarkerAttachment,
+                  !att.isCard, let url = parent.imageURL(att.imgNumber) else { return }
+            let image = att.image
+            MainActor.assumeIsolated {      // AppKit delegate callbacks arrive on the main thread
+                NotePhotoViewer.shared.show(
+                    url: url,
+                    sourceFrame: { [weak tv] in tv?.screenRect(ofCharacterAt: loc) ?? .zero },
+                    sourceImage: image
+                ) { [weak self, weak tv] edited in
+                    self?.parent.onPhotoMarkup?(edited)
+                    guard let self, let tv else { return }
+                    self.render(tv, model: self.modelString(tv))   // the marked-up file replaces the thumbnail
+                    tv.invalidateIntrinsicContentSize()
+                }
+            }
+        }
+
         private func splice(_ thumbs: [Int: NSImage], into tv: SelfSizingTextView) {
             guard let storage = tv.textStorage, let rx = BodyTextView.markerRegex else { return }
             let full = storage.string as NSString
             let sel = tv.selectedRanges
-            let pad = tv.textContainer?.lineFragmentPadding ?? 0
-            var column = (tv.textContainer?.size.width ?? 0) - 2 * pad
-            if column <= 0 || column > 4000 { column = tv.bounds.width - 2 * pad }   // untracked container
-            column = max(100, column)
+            let column = columnWidth(tv)
             storage.beginEditing()
             for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
                 let num = Int(full.substring(with: m.range(at: 1))) ?? 0
@@ -1086,6 +1248,15 @@ struct BodyTextView: NSViewRepresentable {
                 return false
             }
             guard let storage = tv.textStorage else { return false }
+            // A photo: one click selects it (the Finder / Apple Notes habit); double-click or Space
+            // opens it (`SelfSizingTextView`). A card (file not here yet) stays inert.
+            if idx < storage.length,
+               let att = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? ImageMarkerAttachment {
+                guard !att.isCard else { return true }
+                tv.window?.makeFirstResponder(tv)
+                tv.selectedPhotoLoc = idx
+                return true
+            }
             // Memo-link chip → open that memo in the detail pane (read-only v1).
             if let open = parent.onOpenMemoLink, idx < storage.length,
                let chip = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? MemoLinkChipAttachment {
@@ -1234,8 +1405,13 @@ struct BodyTextView: NSViewRepresentable {
         /// chips → their literal `[[memo:UUID|Title]]`, rest verbatim.
         func modelString(_ tv: SelfSizingTextView) -> String {
             guard let storage = tv.textStorage else { return tv.string }
+            return modelText(storage, in: NSRange(location: 0, length: storage.length))
+        }
+
+        /// The model text for part of the storage (attachments → their literal syntax).
+        func modelText(_ storage: NSTextStorage, in span: NSRange) -> String {
             var out = ""
-            storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+            storage.enumerateAttribute(.attachment, in: span) { value, range, _ in
                 if let att = value as? ImageMarkerAttachment {
                     out += BodyV2Marker.literal(att.imgNumber)
                 } else if let chip = value as? MemoLinkChipAttachment {
@@ -1480,6 +1656,8 @@ private final class AliasTarget {
 /// so the editor can reconstruct the literal marker for the model/export.
 final class ImageMarkerAttachment: NSTextAttachment {
     let imgNumber: Int
+    /// Q325: this attachment is the "not here yet" card, not the photo (inert to clicks).
+    var isCard = false
     init(imgNumber: Int) { self.imgNumber = imgNumber; super.init(data: nil, ofType: nil) }
     required init?(coder: NSCoder) { self.imgNumber = 0; super.init(coder: coder) }
 }
@@ -1651,6 +1829,19 @@ final class SelfSizingTextView: NSTextView {
     /// Returns true if the click at the given character index was handled (a resolver
     /// popover opened) → the default cursor placement is suppressed.
     var onSingleClickAt: ((Int) -> Bool)?
+
+    // MARK: photos (Q325, mock Q128-mac-note-photos): paste, drop, Edit > Insert Photo…, select, open
+
+    /// The host takes photos (a paste, a drop or the Insert Photo… item adds one at the caret).
+    var takesPhotos = false
+    /// Photo bytes + the storage location they go at → the coordinator stores and inserts.
+    var onAddPhotoData: ((Data, Int) -> Void)?
+    /// Open the photo at this storage location (double-click, Space).
+    var onOpenPhotoAt: ((Int) -> Void)?
+    /// The photo a click selected (nil = none). Drawn as an accent outline + the open hint.
+    var selectedPhotoLoc: Int? { didSet { if oldValue != selectedPhotoLoc { needsDisplay = true } } }
+
+    private var canTakePhotos: Bool { takesPhotos && isEditable && onAddPhotoData != nil }
     /// Audiobook capture: the attribution caption drawn under the leading C1 quote
     /// block (plus the accent bar beside it). nil = no quote decoration.
     var quoteAttribution: String? {
@@ -1688,6 +1879,153 @@ final class SelfSizingTextView: NSTextView {
         super.draw(dirtyRect)
         drawQuoteDecoration()
         drawSpeakerSpines()
+        drawSelectedPhoto()
+    }
+
+    /// Where the photo glyph at `loc` is drawn, in view coordinates.
+    private func photoRect(at loc: Int) -> NSRect? {
+        guard let lm = layoutManager, let tc = textContainer, let storage = textStorage, loc < storage.length,
+              storage.attribute(.attachment, at: loc, effectiveRange: nil) is ImageMarkerAttachment else { return nil }
+        let glyph = lm.glyphIndexForCharacter(at: loc)
+        var r = lm.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: tc)
+        r.origin.x += textContainerOrigin.x
+        r.origin.y += textContainerOrigin.y
+        return r
+    }
+
+    /// The photo's rect on screen, for Quick Look's zoom to lift off the photo itself.
+    func screenRect(ofCharacterAt loc: Int) -> NSRect? {
+        guard let r = photoRect(at: loc), let window else { return nil }
+        return window.convertToScreen(convert(r, to: nil))
+    }
+
+    /// A selected photo: 3pt accent outline 3pt outside it, and the hint on its lower left
+    /// (the mock's `.photo.sel` + `.hint`).
+    private func drawSelectedPhoto() {
+        guard let loc = selectedPhotoLoc, let r = photoRect(at: loc) else { return }
+        let ring = NSBezierPath(roundedRect: r.insetBy(dx: -4.5, dy: -4.5), xRadius: 11, yRadius: 11)
+        NSColor(Theme.accent).setStroke()
+        ring.lineWidth = 3
+        ring.stroke()
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold), .foregroundColor: NSColor.white,
+        ]
+        let text = "Double-click or Space to open" as NSString
+        let size = text.size(withAttributes: attrs)
+        let pill = NSRect(x: r.minX + 8, y: r.maxY - 8 - size.height - 10, width: size.width + 16, height: size.height + 10)
+        NSColor(red: 20 / 255, green: 20 / 255, blue: 30 / 255, alpha: 0.78).setFill()
+        NSBezierPath(roundedRect: pill, xRadius: 7, yRadius: 7).fill()
+        text.draw(at: NSPoint(x: pill.minX + 8, y: pill.minY + 5), withAttributes: attrs)
+    }
+
+    // MARK: photos — keys, paste, drop, menu
+
+    override func keyDown(with event: NSEvent) {
+        if let loc = selectedPhotoLoc {
+            switch event.keyCode {
+            case 49:                                  // Space opens the selected photo
+                onOpenPhotoAt?(loc)
+                return
+            case 51, 117:                             // Delete / forward delete removes it
+                if isEditable {
+                    selectedPhotoLoc = nil
+                    insertText("", replacementRange: NSRange(location: loc, length: 1))
+                    return
+                }
+            default:
+                selectedPhotoLoc = nil
+            }
+        }
+        super.keyDown(with: event)
+    }
+
+    /// Paste an image (or a copied image file) as a photo at the caret; text pastes as text.
+    override func paste(_ sender: Any?) {
+        if canTakePhotos {
+            let photos = NotePhotoPayload.photos(NSPasteboard.general)
+            if !photos.isEmpty {
+                for data in photos { onAddPhotoData?(data, selectedRange().location) }
+                return
+            }
+        }
+        super.paste(sender)
+    }
+
+    /// An image-only pasteboard must still enable Edit > Paste (and ⌘V).
+    override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
+        var types = super.readablePasteboardTypes
+        if canTakePhotos { types += [.png, .tiff, .fileURL].filter { !types.contains($0) } }
+        return types
+    }
+
+    /// NSTextView registers string types only (plain text); add pictures and files for drops.
+    override func updateDragTypeRegistration() {
+        super.updateDragTypeRegistration()
+        if takesPhotos { registerForDraggedTypes(registeredDraggedTypes + [.fileURL, .png, .tiff]) }
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if canTakePhotos, !NotePhotoPayload.photos(sender.draggingPasteboard).isEmpty { return .copy }
+        return super.draggingEntered(sender)
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if canTakePhotos, !NotePhotoPayload.photos(sender.draggingPasteboard).isEmpty {
+            // The photo lands where the pointer is: show the caret there while dragging.
+            setSelectedRange(NSRange(location: characterIndexForInsertion(at: convert(sender.draggingLocation, from: nil)),
+                                     length: 0))
+            return .copy
+        }
+        return super.draggingUpdated(sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if canTakePhotos {
+            let photos = NotePhotoPayload.photos(sender.draggingPasteboard)
+            if !photos.isEmpty {
+                let at = characterIndexForInsertion(at: convert(sender.draggingLocation, from: nil))
+                setSelectedRange(NSRange(location: at, length: 0))
+                for data in photos { onAddPhotoData?(data, selectedRange().location) }
+                return true
+            }
+        }
+        return super.performDragOperation(sender)
+    }
+
+    /// Edit > Insert Photo… (⇧⌘I): choose picture files; each lands at the caret (D181: no toolbar button).
+    @objc func insertPhoto(_ sender: Any?) {
+        guard canTakePhotos, let window else { NSSound.beep(); return }
+        let panel = NSOpenPanel()
+        panel.title = "Add Photo"
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        let at = selectedRange().location
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let self else { return }
+            var loc = at
+            for url in panel.urls {
+                guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
+                self.setSelectedRange(NSRange(location: loc, length: 0))
+                self.onAddPhotoData?(data, loc)
+                loc = self.selectedRange().location
+            }
+        }
+    }
+
+    // MARK: photos — Quick Look takes the panel from the responder chain
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        NotePhotoViewer.shared.url != nil
+    }
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = NotePhotoViewer.shared
+        panel.delegate = NotePhotoViewer.shared
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        NotePhotoViewer.shared.finished()
     }
 
     /// The playing wash (mock E1 · b) goes UNDER the glyphs — this is the hook that runs
@@ -1849,6 +2187,14 @@ final class SelfSizingTextView: NSTextView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // Double-click on a photo opens it (the first click already selected it).
+        if event.clickCount == 2, let idx = charIndex(at: convert(event.locationInWindow, from: nil)),
+           let storage = textStorage, idx < storage.length,
+           let att = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? ImageMarkerAttachment,
+           !att.isCard {
+            onOpenPhotoAt?(idx)
+            return
+        }
         if event.clickCount == 1, let handler = onSingleClickAt,
            let idx = charIndex(at: convert(event.locationInWindow, from: nil)), handler(idx) {
             return   // resolver handled it; don't move the caret

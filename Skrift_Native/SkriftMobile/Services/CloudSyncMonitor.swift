@@ -176,16 +176,3 @@ final class CloudSyncMonitor: ObservableObject {
         }
     }
 }
-
-/// Whether a memo's media file is on disk, still arriving over CloudKit, or truly
-/// gone — pure so the image embed's three states are unit-testable.
-enum MediaSyncState {
-    case present       // file is on disk → show it
-    case downloading   // file missing but a synced asset exists → it's on its way
-    case missing       // no file, no asset → genuinely gone (e.g. a seeded demo memo)
-
-    static func of(filePresent: Bool, hasAsset: Bool) -> MediaSyncState {
-        if filePresent { return .present }
-        return hasAsset ? .downloading : .missing
-    }
-}

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The note body. Three states sharing the same typography so swapping never
 /// reflows (the web's karaoke-jump fix):
@@ -166,7 +167,11 @@ struct NoteBody: View {
             searchJumpToken: searchJumpToken,
             focusToken: focusToken,
             readOnly: editState == .reading,
-            quoteLocked: file.hasLockedQuote
+            quoteLocked: file.hasLockedQuote,
+            photoSlot: photoSlot,
+            onAddPhoto: addPhoto,
+            onPhotoMarkup: photoMarkedUp,
+            photoToken: file.lastActivityAt
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -206,13 +211,34 @@ struct NoteBody: View {
     /// file's `image_manifest.json`, under the working folder's `images/` (the ONE
     /// `pf.workingFolder` derivation — captures → path; audio/notes → its parent).
     private func imageURL(_ num: Int) -> URL? {
-        guard let folder = file.workingFolder,
-              let data = try? Data(contentsOf: folder.appendingPathComponent("image_manifest.json")),
-              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-              num >= 1, num <= arr.count,
-              let filename = arr[num - 1]["filename"] as? String else { return nil }
-        let imageFile = folder.appendingPathComponent("images").appendingPathComponent(filename)
-        return FileManager.default.fileExists(atPath: imageFile.path) ? imageFile : nil
+        guard let folder = file.workingFolder else { return nil }
+        return MacNotePhotos.fileURL(number: num, folder: folder)
+    }
+
+    // MARK: photos (Q325)
+
+    /// The synced store's context, when Mac CloudKit is on (nil otherwise: a local-only note).
+    private var cloudContext: ModelContext? { MemoCloudStore.container?.mainContext }
+
+    /// What a marker whose photo is not on disk stands for: the phone's three states.
+    private func photoSlot(_ num: Int) -> NotePhoto.Slot {
+        MacNotePhotos.slot(number: num, folder: file.workingFolder,
+                           hasAsset: { MacNotePhotos.hasAsset(filename: $0, in: cloudContext) })
+    }
+
+    /// A photo added at the caret (paste, drop, Edit > Insert Photo…): its file + manifest, and
+    /// the owning memo's manifest + photo row so the phone gets it.
+    private func addPhoto(_ data: Data) -> MacNotePhotos.Added? {
+        let ctx = cloudContext
+        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+        return MacNotePhotos.add(imageData: data, to: file, memo: memo, context: ctx)
+    }
+
+    /// Quick Look's Markup saved into a photo: the phone gets the marked-up file.
+    private func photoMarkedUp(_ url: URL) {
+        let ctx = cloudContext
+        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+        MacNotePhotos.markupSaved(fileURL: url, memo: memo, context: ctx)
     }
 
     private var karaoke: some View {
