@@ -831,7 +831,12 @@ struct BodyTextView: NSViewRepresentable {
             guard let slotOf = parent.photoSlot, let storage = tv.textStorage,
                   let rx = BodyTextView.markerRegex else { return }
             let full = storage.string as NSString
-            let width = NotePhotoCard.width(column: columnWidth(tv))
+            // The column is unknown on the first render (the view has no width yet): a card then
+            // takes the mock's 360pt, never a squeezed fallback.
+            let pad = tv.textContainer?.lineFragmentPadding ?? 0
+            var known = (tv.textContainer?.size.width ?? 0) - 2 * pad
+            if known <= 0 || known > 4000 { known = tv.bounds.width - 2 * pad }
+            let width = NotePhotoCard.width(column: known >= 200 ? known : 0)
             for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
                 let num = Int(full.substring(with: m.range(at: 1))) ?? 0
                 if parent.imageURL(num) != nil { continue }
@@ -920,15 +925,18 @@ struct BodyTextView: NSViewRepresentable {
             guard let storage = tv.textStorage, loc < storage.length,
                   let att = storage.attribute(.attachment, at: loc, effectiveRange: nil) as? ImageMarkerAttachment,
                   !att.isCard, let url = parent.imageURL(att.imgNumber) else { return }
-            NotePhotoViewer.shared.show(
-                url: url,
-                sourceFrame: { [weak tv] in tv?.screenRect(ofCharacterAt: loc) ?? .zero },
-                sourceImage: att.image
-            ) { [weak self, weak tv] edited in
-                self?.parent.onPhotoMarkup?(edited)
-                guard let self, let tv else { return }
-                self.render(tv, model: self.modelString(tv))   // the marked-up file replaces the thumbnail
-                tv.invalidateIntrinsicContentSize()
+            let image = att.image
+            MainActor.assumeIsolated {      // AppKit delegate callbacks arrive on the main thread
+                NotePhotoViewer.shared.show(
+                    url: url,
+                    sourceFrame: { [weak tv] in tv?.screenRect(ofCharacterAt: loc) ?? .zero },
+                    sourceImage: image
+                ) { [weak self, weak tv] edited in
+                    self?.parent.onPhotoMarkup?(edited)
+                    guard let self, let tv else { return }
+                    self.render(tv, model: self.modelString(tv))   // the marked-up file replaces the thumbnail
+                    tv.invalidateIntrinsicContentSize()
+                }
             }
         }
 
