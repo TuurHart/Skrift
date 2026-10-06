@@ -38,16 +38,13 @@ enum VaultLayout {
     /// carries a `skriftID` stamp. The stamp is already the public contract for "is this
     /// ours" (`VaultStamp`), so a folder someone renamed is still recognised — and a folder
     /// simply NAMED `Skrift` counts too, which is what saves the pre-stamp case.
-    /// Profile-aware overload. `.portfolio` returns the pick UNCHANGED: the portfolio already
-    /// has a home and its folders are named by the portfolio, not by Skrift. Only the Obsidian
-    /// profile creates and adopts a `Skrift/` folder.
-    static func home(forPicked picked: URL, profile: ExportProfile,
+    ///
+    /// `.portfolio` returns the pick UNCHANGED: the portfolio already has a home and its
+    /// folders are named by the portfolio, not by Skrift. Only the Obsidian profile creates
+    /// and adopts a `Skrift/` folder.
+    static func home(forPicked picked: URL, profile: ExportProfile = .obsidian,
                      fileManager fm: FileManager = .default) -> URL {
         guard profile.ownsHomeFolder else { return picked }
-        return home(forPicked: picked, fileManager: fm)
-    }
-
-    static func home(forPicked picked: URL, fileManager fm: FileManager = .default) -> URL {
         // Named for us, or holding our notes — either is enough. The NAME check is not
         // cosmetic: the `skriftID` stamp only arrived 2026-07-26, so a folder full of
         // older exports carries no stamp at all, and without this a long-standing
@@ -56,13 +53,10 @@ enum VaultLayout {
         if picked.lastPathComponent == homeFolderName { return picked }
         if holdsSkriftNotes(picked, fileManager: fm) { return picked }
 
-        let nested = picked.appendingPathComponent(homeFolderName, isDirectory: true)
-        var isDir: ObjCBool = false
-        if fm.fileExists(atPath: nested.path, isDirectory: &isDir), isDir.boolValue { return nested }
-
-        // Nothing to adopt: name it, don't create it — the writer makes directories as it
-        // needs them, so merely LOOKING at a folder never leaves a mark in the vault.
-        return nested
+        // An existing `Skrift/` is adopted; otherwise name it, don't create it — the writer
+        // makes directories as it needs them, so merely LOOKING at a folder never leaves a
+        // mark in the vault.
+        return picked.appendingPathComponent(homeFolderName, isDirectory: true)
     }
 
     /// True when this folder already contains at least one Skrift-stamped markdown file.
@@ -75,8 +69,7 @@ enum VaultLayout {
             let url = folder.appendingPathComponent(name)
             guard let handle = try? FileHandle(forReadingFrom: url) else { continue }
             defer { try? handle.close() }
-            let head = (try? handle.read(upToCount: 2048)) ?? Data()
-            if let text = String(data: head, encoding: .utf8), text.contains(VaultStamp.idKey) {
+            if let text = VaultStamp.head(of: handle), text.contains(VaultStamp.idKey) {
                 return true
             }
         }
