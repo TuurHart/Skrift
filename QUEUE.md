@@ -2430,7 +2430,7 @@ gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q128-mac-note-photos.html as signed in SPEC D182, WITHOUT the toolbar photo button (D181): a photo is added at the caret by paste, drag-drop and an Edit/Insert-menu item; one click selects a photo, double-click opens the zoom + markup viewer (reuse the phone's markup model where shared); an `[[img_NNN]]` whose file has not arrived shows the grey card + 'Downloading from iCloud…' like the phone instead of raw marker text. Shared code first (C117 / feedback_shared_code_first). Test: `MacNotePhotoTests` (desktop UnitTests: insert at caret writes the marker at the caret offset; missing-file marker renders the placeholder state). Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `./gate.sh`
 
-### Q326 [auto] (doing) build: Mac records weather and daypart; the OpenWeatherMap key comes from the phone (Q144 mock, D182)
+### Q326 [auto] (done) build: Mac records weather and daypart; the OpenWeatherMap key comes from the phone (Q144 mock, D182)
 spec: -
 needs: -
 gate+: yes
@@ -2458,14 +2458,14 @@ gate+: yes
 do: SPEC D183 (Tuur 2026-10-06): no 'Fix quote' verb; a captured audiobook/shared-text quote is editable like the rest of the note on phone and Mac — undo Q112's read-only quote (C172) and the phone's equivalent; karaoke keeps highlighting the words that still line up after an edit (word index alignment via the existing KaraokeMap; no crash or wrong-word highlight when the edit changes the word count — degrade to no highlight for unmatched words). Tapping a word in a quote during playback seeks the quote audio there: the phone already has QuoteWordSeek (CaptureQuoteViews.swift:61, Q83) — check it actually fires in the current note screen (Q314 rebuilt it) and add the same on the Mac (shared seek lookup). Update FEATURES.md + C172 wording. Tests: `QuoteEditKaraokeTests` (phone target: edited quote keeps highlighting matched words, no out-of-range) + desktop UnitTests for the Mac seek. Phone: sim screenshot of an edited quote during playback, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `plan/mtest.sh QuoteEditKaraokeTests && ./gate.sh`
 
-### Q330 [auto] (todo) 'New person…' in the text menu for any selected word, phone and Mac (D184)
+### Q330 [auto] (doing) 'New person…' in the text menu for any selected word, phone and Mac (D184)
 spec: -
 needs: -
 gate+: yes
 do: SPEC D184 (Tuur 2026-10-06): selecting/long-pressing a word the app does not know as a name offers 'New person…' in the system text menu (UIEditMenu on the phone's NoteBodyView, the NSTextView context menu on the Mac's BodyTextView); it opens the existing person editor (phone PersonEditorView via PersonEditCore.materialise, Q113; the Mac's new-person-from-a-name flow, Q184) prefilled with the selection, and after saving, that mention links like any known name. Hide the item for empty/whitespace selections and for text already linked. Test: `NewPersonFromSelectionTests` (phone target: the menu offers the item for a plain word, not for a linked name; materialise gets the trimmed selection). Phone sim screenshot of the menu, LOOK at it. Mac proof = headless -snapshot PNGs you LOOK at + full SkriftDesktop build (-skipMacroValidation); never run any Mac UI test. Build to the signed mock; draw nothing the mock doesn't show.
 check: `plan/mtest.sh NewPersonFromSelectionTests && ./gate.sh`
 
-### Q331 [auto] (todo) remove note reminders on phone, iPad and Mac (D185)
+### Q331 [auto] (doing) remove note reminders on phone, iPad and Mac (D185)
 spec: -
 needs: -
 gate+: yes
@@ -3568,3 +3568,7 @@ check: `plan/mtest.sh RemindersRemovedTests && ./gate.sh`
 - 2026-10-06 20:16 Q328 -> done — gate pass @944c30bd
 - 2026-10-06 20:17 Q327 -> done — gate pass @8a544cf8
 - 2026-10-06 20:19 Q325 -> done — gate pass @04ddd331
+- 2026-10-06 20:20 Q326 -> stuck — merge conflict onto claude/skrift-parity-audit-133898
+- 2026-10-06 20:24 Q326 -> done — hand-merged @bf857303 (Q327 SettingsView/Snapshot conflict, both kept); gate green 1574 tests; full Mac build ok
+- 2026-10-06 20:24 Q330 -> doing — worker out
+- 2026-10-06 20:24 Q331 -> doing — worker out
