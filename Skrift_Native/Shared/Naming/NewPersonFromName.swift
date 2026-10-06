@@ -46,3 +46,26 @@ enum NewPersonFromName {
         return r.person.canonical
     }
 }
+
+// MARK: - New person from any selected word (D184)
+
+extension NewPersonFromName {
+    /// What the text menu's "New person…" item offers for a selection: the trimmed text to prefill
+    /// the person editor with, or nil when the item is hidden. Hidden for empty/whitespace runs,
+    /// runs spanning a line break or an inline attachment (photo / checkbox / memo-link chip), and
+    /// any run that touches a name span the note already shows (linked, suggested, ambiguous or
+    /// plain: those have their own tap flow) or that is already a person's name or alias.
+    /// `knownRanges` are the name spans' display ranges in the same coordinate space as `selection`.
+    static func selectionOffer(text: String, selection: NSRange, knownRanges: [NSRange],
+                               people: [Person]) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, selection.length > 0 else { return nil }
+        guard !trimmed.contains(where: { $0.isNewline || $0 == "\u{FFFC}" }) else { return nil }
+        let selEnd = selection.location + selection.length
+        for r in knownRanges where r.location < selEnd && selection.location < r.location + r.length {
+            return nil
+        }
+        guard case .prefill(let name, _) = start(trimmed, people: people) else { return nil }
+        return name
+    }
+}
