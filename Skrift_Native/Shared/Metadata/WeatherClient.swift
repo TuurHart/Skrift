@@ -10,7 +10,7 @@ struct WeatherReading: Sendable {
 /// OpenWeatherMap current-weather fetch + parse, ported from the RN
 /// `captureWeather`. Pressure comes from the same response (`main.pressure`),
 /// matching the shipped RN behavior. The API key lives in UserDefaults under the
-/// key Settings' `@AppStorage` writes ("weatherAPIKey"); the RN-era
+/// key Settings' `@AppStorage` writes (shared with the Mac since Q326, which passes its own key) ("weatherAPIKey"); the RN-era
 /// "openweathermap_api_key" slot is read as a legacy fallback. The `parse` step
 /// is pure + unit-tested; the network call is device/network-owed.
 enum WeatherClient {
@@ -27,8 +27,16 @@ enum WeatherClient {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    /// The phone's fetch: the key from this device's UserDefaults.
     static func fetch(latitude: Double, longitude: Double, session: URLSession = .shared) async -> WeatherReading {
-        guard let key = apiKey,
+        await fetch(latitude: latitude, longitude: longitude, apiKey: apiKey, session: session)
+    }
+
+    /// The fetch with an explicit key (the Mac keeps its key in `AppSettings`, Q326). A nil or
+    /// blank key returns `.empty` without touching the network. The key is never logged.
+    static func fetch(latitude: Double, longitude: Double, apiKey: String?,
+                      session: URLSession = .shared) async -> WeatherReading {
+        guard let key = apiKey?.trimmingCharacters(in: .whitespaces), !key.isEmpty,
               let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&units=metric&appid=\(key)") else {
             return .empty
         }

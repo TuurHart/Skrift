@@ -40,6 +40,9 @@ enum ArrivalPath {
         /// `transcribe` so a capture's contract (words on stop) and an import's stay
         /// independently pinned.
         var transcribeImport: ([String]) async -> Void
+        /// The ambient context (place · daypart · weather) a RECORDING is stamped with (Q326).
+        /// A test stubs it; an import never calls it.
+        var captureContext: @MainActor () async -> MemoMetadata = { await MacMetadataService().capture() }
 
         /// Wires nothing — for tests that only care about the store, and for callers with no
         /// engines at all.
@@ -112,7 +115,7 @@ enum ArrivalPath {
                 // A note this Mac RECORDED gets a place, like a phone one (2026-08-27). Only a
                 // recording: where the Mac is standing says nothing true about an imported file.
                 // Fire-and-forget — no recording waits on a location fix.
-                if let memo { MacLocationStamp.stamp(memo: memo, file: pf, in: cloudContext) }
+                if let memo { MacLocationStamp.stamp(memo: memo, file: pf, in: cloudContext, capture: hooks.captureContext) }
             }
             try? cloudContext.save()
         }

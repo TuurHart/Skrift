@@ -45,10 +45,18 @@ final class VocabularyRecord {
     var authorName: String = ""
     var authorModifiedAt: Date = Date.distantPast
 
+    /// The OpenWeatherMap key (`WeatherKeySyncCore`, Q326 / D182) — a fifth setting on this row
+    /// with its OWN stamp, so the Mac records weather with the key typed once on the phone.
+    /// Travels through the user's own private iCloud database only; never logged or exported.
+    /// `.distantPast` = no device ever set it.
+    var weatherKey: String = ""
+    var weatherKeyModifiedAt: Date = Date.distantPast
+
     init(words: [String], modifiedAt: Date = Date(),
          multilingual: Bool = false, languageModifiedAt: Date = Date.distantPast,
          destinationsEnabled: Bool = false, destinationsModifiedAt: Date = Date.distantPast,
-         authorName: String = "", authorModifiedAt: Date = Date.distantPast) {
+         authorName: String = "", authorModifiedAt: Date = Date.distantPast,
+         weatherKey: String = "", weatherKeyModifiedAt: Date = Date.distantPast) {
         self.words = words
         self.modifiedAt = modifiedAt
         self.multilingual = multilingual
@@ -57,5 +65,7 @@ final class VocabularyRecord {
         self.destinationsModifiedAt = destinationsModifiedAt
         self.authorName = authorName
         self.authorModifiedAt = authorModifiedAt
+        self.weatherKey = weatherKey
+        self.weatherKeyModifiedAt = weatherKeyModifiedAt
     }
 }

@@ -1389,8 +1389,18 @@ enum Snapshot {
         }
     }
 
+    /// `-weatherPreview none|typed|synced` forces the Weather row's state in a Settings snapshot (Q326).
+    @MainActor private static func weatherPreview() -> (key: String, fromPhone: Bool)? {
+        switch LaunchArgs.value(after: "-weatherPreview") {
+        case "none": return ("", false)
+        case "typed": return ("fake-key-0042", false)
+        case "synced": return ("fake-key-00a7", true)
+        default: return nil
+        }
+    }
+
     @MainActor private static func renderSettings(to path: String, scheme: ColorScheme = .dark) {
-        let view = SettingsView(interactive: false)   // sizes to full content (no 660 cap)
+        let view = SettingsView(interactive: false, weatherPreview: weatherPreview())   // sizes to full content (no 660 cap)
             .background(Theme.bg)
         writePNG(view, to: path, scheme: scheme)
     }
@@ -1403,7 +1413,7 @@ enum Snapshot {
     @MainActor private static func renderSettingsHosted(to path: String, width: CGFloat) {
         // `interactive: false` only drops the 660 height CAP (it does not swap controls
         // for text), so the whole panel lays out AND its real AppKit controls draw.
-        let view = SettingsView(interactive: false)
+        let view = SettingsView(interactive: false, weatherPreview: weatherPreview())
             .frame(width: width, height: 2600, alignment: .top)
             .background(Theme.bg)
             .preferredColorScheme(.dark)
