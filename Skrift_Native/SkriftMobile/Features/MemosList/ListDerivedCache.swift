@@ -485,7 +485,13 @@ final class ListDerivedCache: ObservableObject {
     }
 }
 
-struct NotesListGroup { let title: String; let memos: [Memo] }
+/// One day (or "Longest first") section. Identity is the title: a search keystroke that narrows the rows
+/// keeps every surviving section's id, so the List diffs rows inside sections, not whole sections (Q323).
+struct NotesListGroup: Identifiable {
+    let title: String
+    let memos: [Memo]
+    var id: String { title }
+}
 
 /// Everything the list body derives from ONE filter + sort pass (R92/C278).
 struct NotesListDerived {

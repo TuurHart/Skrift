@@ -18,8 +18,28 @@ struct MemoRow: View {
     /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
     /// Always false on the phone (`selectedMemoID` is nil there).
     var selected: Bool = false
+    /// Regular width (the tap drives the detail pane instead of pushing). Only here so a row whose
+    /// tap closure was built for the other width is not reused after a rotation.
+    var regularWidth: Bool = false
     let onTap: () -> Void
     @Environment(\.editMode) var editMode
+
+    /// Q323: everything the parent hands this row besides the closure. Two rows with equal inputs
+    /// draw the same card; whatever the note itself changes (title, tags, photos, rating) reaches the
+    /// card through Observation inside `MemoCard`, not through the parent re-running.
+    struct Inputs: Equatable {
+        var memo: ObjectIdentifier
+        var enhancedTitle: String?
+        var fading: Bool
+        var clockLine: String?
+        var quiet: Bool
+        var selected: Bool
+        var regularWidth: Bool
+    }
+    var inputs: Inputs {
+        Inputs(memo: ObjectIdentifier(memo), enhancedTitle: enhancedTitle, fading: fading,
+               clockLine: clockLine, quiet: quiet, selected: selected, regularWidth: regularWidth)
+    }
 
     var body: some View {
         // Multi-select uses the List's own selection chrome — no detail-pane
@@ -42,6 +62,13 @@ struct MemoRow: View {
             .buttonStyle(.plain)
         }
     }
+}
+
+/// Q323: the list applies `.equatable()` to each row, so a parent pass that changes nothing about this
+/// row (a search keystroke that keeps it, a sync batch, a patch to another note) skips its body, the
+/// card-model build and the self-sizing pass. The tap closure is not compared (it only reads state).
+extension MemoRow: Equatable {
+    static func == (a: MemoRow, b: MemoRow) -> Bool { a.inputs == b.inputs }
 }
 
 // MARK: - Card

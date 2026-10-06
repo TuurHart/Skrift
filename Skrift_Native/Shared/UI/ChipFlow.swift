@@ -80,27 +80,60 @@ struct ChipFlowLayout: Layout {
     var lineSpacing: CGFloat = 4
     var maxLines: Int = 2
 
-    private func plan(_ subviews: Subviews, maxWidth: CGFloat) -> ChipLineBreaker.Plan {
-        let widths = (0..<chipCount).map { subviews[$0].sizeThatFits(.unspecified).width }
-        return ChipLineBreaker.plan(
+    /// Q323: the natural sizes of the subviews and the plan per width, kept for the layout's cache
+    /// lifetime. A self-sizing List cell asks `sizeThatFits` repeatedly while scrolling (b179 trace:
+    /// `ChipFlowLayout.plan` measured every chip subview on each ask, ~5% of main during a fast
+    /// scroll); a subview's natural size never depends on the proposal, so each is measured once.
+    /// SwiftUI rebuilds the cache (`updateCache`) whenever the subviews or the environment change.
+    struct Cache {
+        var natural: [Int: CGSize] = [:]
+        var planWidth: CGFloat?
+        var plan: ChipLineBreaker.Plan?
+        /// How many subviews were measured (tests and the benchmark read it).
+        var measured = 0
+    }
+
+    func makeCache(subviews: Subviews) -> Cache { Cache() }
+    func updateCache(_ cache: inout Cache, subviews: Subviews) { cache = Cache() }
+
+    private func natural(_ i: Int, _ subviews: Subviews, _ cache: inout Cache) -> CGSize {
+        if let s = cache.natural[i] { return s }
+        let s = subviews[i].sizeThatFits(.unspecified)
+        cache.natural[i] = s
+        cache.measured += 1
+        return s
+    }
+
+    private func plan(_ subviews: Subviews, maxWidth: CGFloat, cache: inout Cache) -> ChipLineBreaker.Plan {
+        if let p = cache.plan, cache.planWidth == maxWidth { return p }
+        let widths = (0..<chipCount).map { natural($0, subviews, &cache).width }
+        var overflow: [Int: CGFloat] = [:]
+        let p = ChipLineBreaker.plan(
             widths: widths,
             overflowWidth: { k in
                 let i = chipCount + k - 1
-                return i < subviews.count ? subviews[i].sizeThatFits(.unspecified).width : 0
+                guard i < subviews.count else { return 0 }
+                if let w = overflow[k] { return w }
+                let w = natural(i, subviews, &cache).width
+                overflow[k] = w
+                return w
             },
             maxWidth: maxWidth, spacing: spacing, maxLines: maxLines)
+        cache.plan = p
+        cache.planWidth = maxWidth
+        return p
     }
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
         guard chipCount > 0 else { return .zero }
         let maxWidth = proposal.width ?? .infinity
-        let p = plan(subviews, maxWidth: maxWidth)
+        let p = plan(subviews, maxWidth: maxWidth, cache: &cache)
         var widest: CGFloat = 0, height: CGFloat = 0
         var item = 0
         for (line, count) in p.lineCounts.enumerated() {
             var x: CGFloat = 0, rowH: CGFloat = 0
             for _ in 0..<count {
-                let s = size(of: item, plan: p, subviews: subviews, maxWidth: maxWidth)
+                let s = size(of: item, plan: p, subviews: subviews, maxWidth: maxWidth, cache: &cache)
                 x += (x > 0 ? spacing : 0) + s.width
                 rowH = max(rowH, s.height)
                 item += 1
@@ -111,16 +144,16 @@ struct ChipFlowLayout: Layout {
         return CGSize(width: min(maxWidth, widest), height: height)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
         guard chipCount > 0 else { return }
-        let p = plan(subviews, maxWidth: bounds.width)
+        let p = plan(subviews, maxWidth: bounds.width, cache: &cache)
         var shown = Set<Int>()
         var item = 0, y = bounds.minY
         for (line, count) in p.lineCounts.enumerated() {
             var x = bounds.minX, rowH: CGFloat = 0
             for _ in 0..<count {
                 let idx = index(of: item, plan: p)
-                let s = size(of: item, plan: p, subviews: subviews, maxWidth: bounds.width)
+                let s = size(of: item, plan: p, subviews: subviews, maxWidth: bounds.width, cache: &cache)
                 subviews[idx].place(at: CGPoint(x: x, y: y), anchor: .topLeading,
                                     proposal: ProposedViewSize(width: s.width, height: s.height))
                 shown.insert(idx)
@@ -144,8 +177,8 @@ struct ChipFlowLayout: Layout {
     }
 
     private func size(of item: Int, plan p: ChipLineBreaker.Plan, subviews: Subviews,
-                      maxWidth: CGFloat) -> CGSize {
-        let s = subviews[index(of: item, plan: p)].sizeThatFits(.unspecified)
+                      maxWidth: CGFloat, cache: inout Cache) -> CGSize {
+        let s = natural(index(of: item, plan: p), subviews, &cache)
         return CGSize(width: min(s.width, maxWidth), height: s.height)
     }
 }

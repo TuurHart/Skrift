@@ -456,14 +456,15 @@ struct MemosListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
-                ForEach(d.groups, id: \.title) { group in
+                ForEach(d.groups) { group in
                     Section {
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     fading: d.searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
                                     quiet: isUnratedLive(memo),
-                                    selected: memo.id == selectedMemoID) {
+                                    selected: memo.id == selectedMemoID,
+                                    regularWidth: isRegular) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
                                 // (text range, or the photo whose OCR hit).
@@ -474,6 +475,7 @@ struct MemosListView: View {
                                 if isRegular { selectedRoute = .existing(memo.id) }
                                 else { path.append(.existing(memo.id)) }
                             }
+                                .equatable()   // Q323: unchanged inputs skip the row body + sizing
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -528,10 +530,12 @@ struct MemosListView: View {
                     Section {
                         ForEach(d.related) { memo in
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
-                                    selected: memo.id == selectedMemoID) {
+                                    selected: memo.id == selectedMemoID,
+                                    regularWidth: isRegular) {
                                 if isRegular { selectedRoute = .existing(memo.id) }
                                 else { path.append(.existing(memo.id)) }
                             }
+                                .equatable()
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
