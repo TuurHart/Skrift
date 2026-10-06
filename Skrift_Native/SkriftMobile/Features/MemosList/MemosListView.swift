@@ -458,6 +458,7 @@ struct MemosListView: View {
                     .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
                 ForEach(d.groups) { group in
                     Section {
+                        DayHeaderRow(title: group.title)   // D180: scrolls with the notes, never pins
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     fading: d.searchFadingIDs.contains(memo.id),
@@ -505,11 +506,6 @@ struct MemosListView: View {
                                     }
                                 }
                         }
-                    } header: {
-                        Text(group.title.uppercased())
-                            .font(.system(size: ListChrome.headerSize, weight: .bold))
-                            .kerning(ListChrome.headerKerning)
-                            .foregroundStyle(Color.skTextDim)
                     }
                 }
                 if d.groups.isEmpty && d.related.isEmpty {
@@ -528,6 +524,18 @@ struct MemosListView: View {
                 // something clears the floor; passes the same filter sheet.
                 if !d.related.isEmpty {
                     Section {
+                        ListSectionHeaderRow {
+                            HStack(spacing: 6) {
+                                Text(ListChrome.relatedHeader)
+                                    .font(.system(size: ListChrome.headerSize, weight: .bold))
+                                    .kerning(ListChrome.headerKerning)
+                                    .foregroundStyle(Color.skTextDim)
+                                Text(ListChrome.relatedSubtitle)
+                                    .font(.system(size: ListChrome.subtitleSize))
+                                    .foregroundStyle(Color.skTextFaint)
+                            }
+                            .accessibilityIdentifier("related-section-header")
+                        }
                         ForEach(d.related) { memo in
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     selected: memo.id == selectedMemoID,
@@ -540,17 +548,6 @@ struct MemosListView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                         }
-                    } header: {
-                        HStack(spacing: 6) {
-                            Text(ListChrome.relatedHeader)
-                                .font(.system(size: ListChrome.headerSize, weight: .bold))
-                                .kerning(ListChrome.headerKerning)
-                                .foregroundStyle(Color.skTextDim)
-                            Text(ListChrome.relatedSubtitle)
-                                .font(.system(size: ListChrome.subtitleSize))
-                                .foregroundStyle(Color.skTextFaint)
-                        }
-                        .accessibilityIdentifier("related-section-header")
                     }
                 }
                 Color.clear.frame(height: 80)
