@@ -63,7 +63,7 @@ final class NoteOpenWorkTests: XCTestCase {
         XCTAssertEqual(first.backlinks.count, linkerIDs.count)
         XCTAssertTrue(second.backlinks.isEmpty)
 
-        repo.save()   // a commit bumps the memo-set version
+        repo.allMemos().first?.duration += 1; repo.save()   // a commit with a change bumps the memo-set version
         _ = await NoteOpenWork.load(for: target, wantsBacklinks: true, repository: repo)
         XCTAssertEqual(repo.backlinkCache.buildCount, 2, "rebuilt after a save")
 
@@ -133,7 +133,7 @@ final class NoteOpenWorkTests: XCTestCase {
         XCTAssertEqual(NoteOpenWork.candidateBuilds, builds + 1, "reopening the picker reuses the titles")
         XCTAssertEqual(a.count, 50)
         XCTAssertEqual(a.map(\.id), b.map(\.id))
-        repo.save()
+        repo.allMemos().first?.duration += 1; repo.save()
         _ = NoteOpenWork.linkCandidates(excluding: target, repository: repo)
         XCTAssertEqual(NoteOpenWork.candidateBuilds, builds + 2, "rebuilt after a save")
     }

@@ -54,7 +54,7 @@ extension MemosListView {
     /// property change waits for the pop; membership changes never wait.
     var listBase: ListDerivedCache.ListBase {
         listCache.base(rawMemos: rawMemos, enhancements: enhancements,
-                       externalVersion: repository.memoSetVersion,
+                       externalVersion: repository.memoStructureVersion,   // Q322: edits patch per note; only sync + insert/delete rebuild all
                        allowStale: !isRegular && !path.isEmpty,
                        backlinks: repository.backlinkIndexNow()?.index)   // Q320: no per-rebuild transcript scan
     }
