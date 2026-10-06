@@ -34,7 +34,7 @@ extension NoteOpenWorkTests {
         add(Memo(audioFilename: "e.m4a", transcriptStatus: .done))
         add(Memo(audioFilename: "f.m4a", transcriptStatus: .done,
                  metadataData: json(["bookTitle": "Some Book", "tags": [String]()])))
-        repo.save()
+        repo.allMemos().first?.duration += 1; repo.save()
         return repo
     }
 
@@ -57,7 +57,7 @@ extension NoteOpenWorkTests {
         XCTAssertTrue(a.map(\.title).contains("Voice note"))
 
         // A concurrent pair shares one build.
-        repo.save()
+        repo.allMemos().first?.duration += 1; repo.save()
         async let w1: Void = NoteOpenWork.warmLinkCandidates(repository: repo)
         async let w2: Void = NoteOpenWork.warmLinkCandidates(repository: repo)
         _ = await (w1, w2)
@@ -84,7 +84,9 @@ extension NoteOpenWorkTests {
     }
 
     func testTheSourceKindClassifierRunsOncePerNoteContent() {
-        let blob = try! JSONSerialization.data(withJSONObject: ["mediaSource": "typed", "tags": [String]()])
+        // A per-run nonce keeps the bytes unique: the content-keyed cache is process-global, so a
+        // fixed blob may already be cached by an earlier test (order-dependent "4 vs 5").
+        let blob = try! JSONSerialization.data(withJSONObject: ["mediaSource": "typed", "tags": [String](), "nonce": UUID().uuidString])
         let m = Memo(audioFilename: "", transcriptStatus: .done, metadataData: blob)
         let before = SourceKind.classifyRuns
         XCTAssertEqual(SourceKind.of(m), .typedNote)
@@ -92,7 +94,7 @@ extension NoteOpenWorkTests {
         XCTAssertEqual(SourceKind.of(metadataData: blob, sharedContentData: nil, hasAudio: false), .typedNote)
         XCTAssertEqual(SourceKind.classifyRuns, before + 1, "same bytes, same answer, one parse")
         // An edit is a new key, never a stale answer.
-        m.metadataData = try! JSONSerialization.data(withJSONObject: ["mediaSource": "video", "tags": [String]()])
+        m.metadataData = try! JSONSerialization.data(withJSONObject: ["mediaSource": "video", "tags": [String](), "nonce": UUID().uuidString])
         XCTAssertEqual(SourceKind.of(m), .video)
         XCTAssertEqual(SourceKind.classifyRuns, before + 2)
     }
