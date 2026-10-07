@@ -1888,7 +1888,7 @@ source: plan/reads/cleanup-audit.md MAM-c02 MAM-c04 MAM-c08 (cleanup-audit P58)
 ### Q246 [auto] (doing) VaultWriter: one ownedName and one place-bytes step for URL and Data attachments
 spec: C239
 needs: Q234
-gate+: no
+gate+: yes
 do: `Shared/Export/VaultWrite.swift:330-524`: `ownedName` exists for URL (478-484) and Data (489-495) differing only in the equality test; `resolvedName` (384-394) and `writeAsset` (425-442) are two switch-on-`Source` wrappers; `writeAtomic` and `copyOwned` repeat the `NSFileCoordinator` dance. Collapse to one `ownedName(preferred:in:id:isIdentical:)` and one place-bytes step on `VaultAsset.Source`; keep `copyOwned` and `writeOwned` as thin public wrappers (Mac `VaultExporter.swift:238,274,308`, `AttachmentOwnershipTests`, `DataAttachmentOwnershipTests` call them). Keep the second resolve inside `writeOwned`/`copyOwned`: it is the only guard against a clobber when the id-suffixed name is itself taken. Test first (found by reading): `resolvedName` returns `disambiguated(preferred)` without checking that name is free, so if `X id8.png` is occupied by different bytes the embed is patched to `X id8.png` but `writeOwned` writes `X id8 id8.png` and the embed points at the wrong file. Write that test; fix by resolving the id8 name in the same pass that patches the embed. `AttachmentOwnershipTests` and `DataAttachmentOwnershipTests` stay green unedited. Never run SkriftDesktopUITests.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SRS-c01 SRS-m2 (cleanup-audit P59)
