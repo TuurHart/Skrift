@@ -17,11 +17,6 @@ enum SpeakerTranscript {
         let name: String
         let text: String
 
-        init(name: String, text: String) {
-            self.name = name
-            self.text = text
-        }
-
         static func == (l: Turn, r: Turn) -> Bool { l.name == r.name && l.text == r.text }
 
         /// The turn as written in a body: `**name:** text`.

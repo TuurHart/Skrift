@@ -7,12 +7,9 @@ import Foundation
 /// increasing subsequence (patience-diff trick) for monotonicity → a small banded DP in
 /// each gap between surviving anchors (never a global N×M matrix — see `align`).
 ///
-/// In-repo ancestor / consolidation note: `Karaoke.wordTimes` (this directory) solves
-/// the miniature displayed-word case, and `RunFile.anchorDrift`
-/// (SkriftDesktop/Features/Shell/RunFile.swift) does unique-SINGLE-WORD anchor diffing.
-/// This is the generalization (n-gram anchors + real DP, not a scaled fraction) — the
-/// consolidation point, not a fourth copy. Left as siblings for now (Tuur-approved
-/// duplication, BASE.md); the conductor folds them together later.
+/// One aligner serves both read-alongs: the audiobook's (ePub text ↔ transcript) and
+/// the note's (`Karaoke.wordTimes`, displayed body ↔ transcript). `RunFile.anchorDrift`
+/// (SkriftDesktop/Features/Shell/RunFile.swift) is a separate unique-single-word diff.
 enum AlignmentCore {
 
     // MARK: - Wire types (pinned names — LANES-2026-07-21B/BASE.md cross-lane seam)
@@ -55,20 +52,6 @@ enum AlignmentCore {
         /// `rejected` if coverageBook < this OR monotonicFraction < the other.
         var rejectedCoverageThreshold: Double = 0.05
         var rejectedMonotonicThreshold: Double = 0.3
-
-        init(anchorN: Int = 4, maxInterpolateWords: Int = 8, maxGapProduct: Int = 250_000,
-             topSpanCount: Int = 10, alignedCoverageThreshold: Double = 0.35,
-             alignedMonotonicThreshold: Double = 0.8, rejectedCoverageThreshold: Double = 0.05,
-             rejectedMonotonicThreshold: Double = 0.3) {
-            self.anchorN = anchorN
-            self.maxInterpolateWords = maxInterpolateWords
-            self.maxGapProduct = maxGapProduct
-            self.topSpanCount = topSpanCount
-            self.alignedCoverageThreshold = alignedCoverageThreshold
-            self.alignedMonotonicThreshold = alignedMonotonicThreshold
-            self.rejectedCoverageThreshold = rejectedCoverageThreshold
-            self.rejectedMonotonicThreshold = rejectedMonotonicThreshold
-        }
     }
 
     enum Verdict: String, Sendable, Equatable {
