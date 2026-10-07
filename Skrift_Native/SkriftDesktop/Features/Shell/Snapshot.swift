@@ -65,6 +65,7 @@ enum Snapshot {
         }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
         if let p = path("-snapshot-conflict")       { MainActor.assumeIsolated { renderConflict(to: p); exit(0) } }
+        if let p = path("-snapshot-applenotes")     { MainActor.assumeIsolated { renderAppleNotes(to: p); exit(0) } }
         if let p = path("-snapshot-audiochoice-light") { MainActor.assumeIsolated { renderAudioChoice(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-audiochoice")    { MainActor.assumeIsolated { renderAudioChoice(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
@@ -815,6 +816,21 @@ enum Snapshot {
     /// Q74: the Mac "One note / N notes" chooser (C68/C145) — the phone's two cards in a small
     /// native sheet. Renders the sheet body directly (a real `.sheet` can't be snapshotted).
     /// Triggered by: `-snapshot-audiochoice <path>` · `-snapshot-audiochoice-light <path>`.
+    /// Q333: every state of the Apple Notes triage sheet (mocks/Q71-apple-notes-triage-v3.html) from the
+    /// mock's own 412 made-up notes. `-snapshot-applenotes <dir>` writes Q71-mac-<state>[-light].png into <dir>.
+    @MainActor private static func renderAppleNotes(to dir: String) {
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let both: [AppleNotesTriageFixture.Stage] = [.start, .triageLocked, .triageUnlocked, .reportEnd]
+        for stage in AppleNotesTriageFixture.Stage.allCases {
+            for scheme in [ColorScheme.dark, .light] where scheme == .dark || both.contains(stage) {
+                let view = AppleNotesTriageView(model: AppleNotesTriageFixture.model(stage))
+                    .preferredColorScheme(scheme)
+                hostPNG(view, size: NSSize(width: 720, height: 600),
+                        to: "\(dir)/Q71-mac-\(stage.rawValue)\(scheme == .light ? "-light" : "").png")
+            }
+        }
+    }
+
     @MainActor private static func renderAudioChoice(to path: String, scheme: ColorScheme = .dark) {
         let view = AudioImportChoiceSheet(clipCount: 3, onConfirm: { _ in }, onCancel: {})
             .preferredColorScheme(scheme)
