@@ -1885,7 +1885,7 @@ do: `SkriftShare/ShareSheetView.swift` draws its card chrome (skSurface fill plu
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-c02 MAM-c04 MAM-c08 (cleanup-audit P58)
 
-### Q246 [auto] (todo) VaultWriter: one ownedName and one place-bytes step for URL and Data attachments
+### Q246 [auto] (doing) VaultWriter: one ownedName and one place-bytes step for URL and Data attachments
 spec: C239
 needs: Q234
 gate+: no
@@ -2480,7 +2480,7 @@ gate+: yes
 do: SPEC D188 (Tuur 2026-10-06): the Personal boundary is 'never goes to Claude', not 'never to iCloud'. Q287 (merged @212d1a78, finding in plan/RUN.md) syncs a video's movie as MemoAsset kind 'video' only while filed Inspiration/Idea/Project and withdraws the synced blob when filed Personal. Change it: every video keeps its movie (<= the 200,000,000-byte cap in Shared/Pipeline/VideoKeep.swift) as a synced asset whatever its destination, on phone and Mac (MacMemoAuthor.syncVideoAsset / MacCloudMetaSync.setDestination, phone MemoSaver.keepMovie / AssetMaterializer); filing to Personal no longer deletes the synced blob. The portfolio export (ObsidianPublisher.movieProvider, VaultExporter) still copies the movie only for Inspiration/Idea/Project; no movie ever goes into the Obsidian vault. Make sure no Personal note content reaches any AI/Claude path (grep the polish/enhancement and semantic-index entry points for a destination check and say what you found). Update FEATURES.md rows 'Four export destinations' and 'Video import'. Tests: update the Q287 tests you own (VideoAssetSyncTests, VideoAssetPhoneTests are new from Q287 — if the gate marks them protected, list the change instead) and add `PersonalVideoSyncsTests` (a Personal video keeps its synced asset; refiling Personal↔Project never deletes it; the Personal export copies no movie).
 check: `plan/mtest.sh PersonalVideoSyncsTests`
 
-### Q333 [auto] (todo) build the Apple Notes import triage per the Q71 mock (Mac reads the Notes database)
+### Q333 [auto] (doing) build the Apple Notes import triage per the Q71 mock (Mac reads the Notes database)
 spec: C117 C238
 needs: Q71
 gate+: yes
@@ -3627,3 +3627,5 @@ check: `./gate.sh`
 - 2026-10-07 08:43 Q152 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
 - 2026-10-07 08:43 Q296 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
 - 2026-10-07 08:45 Q333 added
+- 2026-10-07 08:46 Q333 -> doing — worker out
+- 2026-10-07 08:46 Q246 -> doing — worker out
