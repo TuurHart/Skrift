@@ -108,8 +108,8 @@ final class NotesStoreReader {
     func listNotes() throws -> [AppleNoteSummary] {
         let created = ["ZCREATIONDATE3", "ZCREATIONDATE1", "ZCREATIONDATE2", "ZCREATIONDATE"].filter { objCols.contains($0) }
         let modified = ["ZMODIFICATIONDATE1", "ZMODIFICATIONDATE"].filter { objCols.contains($0) }
-        let createdExpr = created.isEmpty ? "NULL" : "COALESCE(" + created.map { "o.\($0)" }.joined(separator: ",") + ")"
-        let modifiedExpr = modified.isEmpty ? "NULL" : "COALESCE(" + modified.map { "o.\($0)" }.joined(separator: ",") + ")"
+        let createdExpr = Self.firstOf(created.map { "o.\($0)" })
+        let modifiedExpr = Self.firstOf(modified.map { "o.\($0)" })
         let titleExpr = objCols.contains("ZTITLE1") ? "o.ZTITLE1" : "NULL"
         let snippetExpr = objCols.contains("ZSNIPPET") ? "o.ZSNIPPET" : "NULL"
         let lockedExpr = objCols.contains("ZISPASSWORDPROTECTED") ? "COALESCE(o.ZISPASSWORDPROTECTED,0)" : "0"
@@ -161,7 +161,7 @@ final class NotesStoreReader {
         if objCols.contains("ZTOKENCONTENTIDENTIFIER") { textParts.append("'#' || ZTOKENCONTENTIDENTIFIER") }
         guard !textParts.isEmpty else { return [:] }
         let sql = """
-            SELECT ZIDENTIFIER, COALESCE(\(textParts.joined(separator: ","))) FROM ZICCLOUDSYNCINGOBJECT
+            SELECT ZIDENTIFIER, \(Self.firstOf(textParts)) FROM ZICCLOUDSYNCINGOBJECT
             WHERE (\(noteCols.map { "\($0) = \(pk)" }.joined(separator: " OR ")))
               AND (\(utiCols.map { "\($0) LIKE 'com.apple.notes.inlinetextattachment.%'" }.joined(separator: " OR ")))
             """
@@ -173,6 +173,15 @@ final class NotesStoreReader {
     }
 
     // MARK: - SQLite plumbing
+
+    /// `COALESCE(a, b, …)`, or just `a` when there is one (SQLite rejects a one-argument COALESCE).
+    private static func firstOf(_ exprs: [String]) -> String {
+        switch exprs.count {
+        case 0: return "NULL"
+        case 1: return exprs[0]
+        default: return "COALESCE(" + exprs.joined(separator: ",") + ")"
+        }
+    }
 
     private func columns(of table: String) -> Set<String> {
         var out: Set<String> = []

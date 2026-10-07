@@ -164,17 +164,14 @@ struct AppleNotesTriage {
     mutating func decide(_ note: AppleNoteSummary, kind: TriageDecision.Kind, rating: Int? = nil,
                          now: Date = Date()) -> DecideOutcome {
         let existing = state.decisions[note.id].flatMap { isDecided(note.id) ? $0 : nil }
-        if let existing, existing.skriftID != nil, kind != .rated { return .alreadyInSkrift }
+        // Once a note is in Skrift its rating and its fate are changed THERE, not here.
+        if let existing, existing.skriftID != nil { return .alreadyInSkrift }
         if let existing, existing.kind == kind, existing.rating == rating {
-            if existing.skriftID != nil { return .alreadyInSkrift }
             state.decisions[note.id] = nil
             return .cleared
         }
-        var d = TriageDecision(kind: kind, rating: kind == .rated ? rating : nil, title: note.title,
+        let d = TriageDecision(kind: kind, rating: kind == .rated ? rating : nil, title: note.title,
                                created: note.created, decidedAt: now, session: state.session)
-        if let existing, existing.kind == .rated, kind == .rated {   // re-rating keeps the import link
-            d.skriftID = existing.skriftID; d.importedAt = existing.importedAt
-        }
         state.decisions[note.id] = d
         return .changed
     }

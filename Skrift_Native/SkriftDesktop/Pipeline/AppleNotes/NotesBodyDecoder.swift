@@ -228,7 +228,8 @@ enum NotesBodyDecoder {
             }
             let parts = piece.components(separatedBy: "\n")
             for (k, part) in parts.enumerated() {
-                if currentRun == nil { currentRun = run }
+                // A trailing empty piece (after a newline) belongs to the NEXT paragraph, whose run comes next.
+                if currentRun == nil, !part.isEmpty || k < parts.count - 1 { currentRun = run }
                 current += part
                 if k < parts.count - 1 {
                     paragraphs.append((currentRun ?? run, current))

@@ -161,7 +161,8 @@ final class AppleNotesTriageTests: XCTestCase {
         edited[i].title = "Something else entirely"; edited[i].modified = Date()
         again.beginSession(notes: edited)
         XCTAssertFalse(again.queue(from: edited).contains { $0.id == target.id })
-        XCTAssertFalse(again.state.batch.contains(target.id))
+        XCTAssertTrue(again.isDecided(target.id), "it stays in its batch as a decided (×) note, not as an open one")
+        XCTAssertEqual(again.openCount, again.state.batch.count - 1)
         XCTAssertEqual(again.decision(target.id)?.kind, .never)
     }
 
@@ -237,9 +238,10 @@ final class AppleNotesTriageTests: XCTestCase {
         XCTAssertEqual(triage.pendingImports(), [ids[2]])
         // an imported note cannot be flipped to Never import from here
         XCTAssertEqual(triage.decide(byID[ids[0]]!, kind: .never), .alreadyInSkrift)
-        // but its rating can change, and the import link survives
-        XCTAssertEqual(triage.decide(byID[ids[0]]!, kind: .rated, rating: 1), .changed)
+        // nor re-rated from here: that happens on the note itself, and the import link survives
+        XCTAssertEqual(triage.decide(byID[ids[0]]!, kind: .rated, rating: 1), .alreadyInSkrift)
         XCTAssertEqual(triage.state.decisions[ids[0]]?.skriftID, "pf-1")
+        XCTAssertEqual(triage.state.decisions[ids[0]]?.rating, 3)
     }
 
     func testSameTapAgainClearsAnUnimportedDecision() throws {
@@ -261,9 +263,10 @@ final class AppleNotesTriageTests: XCTestCase {
         triage.beginSession(notes: summaries)
         let byID = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0) })
         let ids = triage.state.batch
-        triage.decide(byID[ids[0]]!, kind: .rated, rating: 3)
-        triage.decide(byID[ids[1]]!, kind: .never)
-        triage.decide(byID[ids[2]]!, kind: .skipped)
+        let t0 = Date(timeIntervalSince1970: 1_790_000_000)   // whole seconds: the file stores ISO 8601
+        triage.decide(byID[ids[0]]!, kind: .rated, rating: 3, now: t0)
+        triage.decide(byID[ids[1]]!, kind: .never, now: t0)
+        triage.decide(byID[ids[2]]!, kind: .skipped, now: t0)
         file.save(triage.state)
 
         var back = AppleNotesTriage(state: file.load())
