@@ -1501,7 +1501,7 @@ do: `Paragrapher.paragraphed` and `defaultGap` have no production caller (`Share
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md SPL-d01 SPL-d02 (cleanup-audit P10)
 
-### Q198 [auto] (doing) shared pipeline: unused overloads, always-default parameters, stale headers
+### Q198 [auto] (done) shared pipeline: unused overloads, always-default parameters, stale headers
 spec: C240
 needs: -
 gate+: no
@@ -3629,3 +3629,4 @@ check: `./gate.sh`
 - 2026-10-07 08:45 Q333 added
 - 2026-10-07 08:46 Q333 -> doing — worker out
 - 2026-10-07 08:46 Q246 -> doing — worker out
+- 2026-10-07 08:48 Q198 -> done — gate 52s @b957c27b
