@@ -27,6 +27,16 @@ block(){ # block ID — print that item block only
     inb' "$Q"
 }
 
+unbuilt(){ # done mockup items that no live build item needs or names — a signed mock reads as built
+  for id in $(rows | awk -F'|' '$3=="done" && $4 ~ /^mockup:/{print $1}'); do
+    used=0
+    for u in $(rows | awk -F'|' '$3!="dead" && $4 !~ /^mockup:/{print $1}'); do
+      block "$u" | grep -qE "(^|[^0-9A-Za-z])$id([^0-9]|$)" && { used=1; break; }
+    done
+    [ "$used" = 1 ] || printf ' %s' "$id"
+  done
+}
+
 counts(){
   rows | awk -F'|' '{c[$3]++}
     END{o=""; n=split("todo doing tuur stuck done dead",S," ");
@@ -58,6 +68,8 @@ check)
   done
   # an uncommitted queue is one branch-hop from silently losing state, and the
   # loss passes every grammar check, so prevention is the only defence
+  # a signed mock with nothing building it shows (done) and gets read as built
+  UNBUILT="$(unbuilt)"; [ -z "$UNBUILT" ] || echo "WARN signed, not built:$UNBUILT — add the build item (needs: the mock) or set the mock dead"
   if git rev-parse --git-dir >/dev/null 2>&1; then
     git diff --quiet -- "$Q" 2>/dev/null || { echo "WARN $Q has uncommitted changes — commit it with its evidence"; }
   fi
@@ -68,6 +80,7 @@ table)
   rows | awk -F'|' '{printf "%-5s %-4s %-6s %s\n",$1,$2,$3,$4}'
   counts
   BAD="$(malformed)"; [ -z "$BAD" ] || { echo "WARN unparseable item lines:"; echo "$BAD"; }
+  UNBUILT="$(unbuilt)"; [ -z "$UNBUILT" ] || echo "WARN signed, not built:$UNBUILT — add the build item (needs: the mock) or set the mock dead"
   ;;
 counts) counts ;;
 get) block "${1:?usage: queue.sh get ID}" ;;
