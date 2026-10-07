@@ -2480,6 +2480,13 @@ gate+: yes
 do: SPEC D188 (Tuur 2026-10-06): the Personal boundary is 'never goes to Claude', not 'never to iCloud'. Q287 (merged @212d1a78, finding in plan/RUN.md) syncs a video's movie as MemoAsset kind 'video' only while filed Inspiration/Idea/Project and withdraws the synced blob when filed Personal. Change it: every video keeps its movie (<= the 200,000,000-byte cap in Shared/Pipeline/VideoKeep.swift) as a synced asset whatever its destination, on phone and Mac (MacMemoAuthor.syncVideoAsset / MacCloudMetaSync.setDestination, phone MemoSaver.keepMovie / AssetMaterializer); filing to Personal no longer deletes the synced blob. The portfolio export (ObsidianPublisher.movieProvider, VaultExporter) still copies the movie only for Inspiration/Idea/Project; no movie ever goes into the Obsidian vault. Make sure no Personal note content reaches any AI/Claude path (grep the polish/enhancement and semantic-index entry points for a destination check and say what you found). Update FEATURES.md rows 'Four export destinations' and 'Video import'. Tests: update the Q287 tests you own (VideoAssetSyncTests, VideoAssetPhoneTests are new from Q287 — if the gate marks them protected, list the change instead) and add `PersonalVideoSyncsTests` (a Personal video keeps its synced asset; refiling Personal↔Project never deletes it; the Personal export copies no movie).
 check: `plan/mtest.sh PersonalVideoSyncsTests`
 
+### Q333 [auto] (todo) build the Apple Notes import triage per the Q71 mock (Mac reads the Notes database)
+spec: C117 C238
+needs: Q71
+gate+: yes
+do: Build Skrift_Native/SkriftDesktop/mocks/Q71-apple-notes-triage-v3.html (artifact https://claude.ai/artifact/LhvR3Dimcr6H5JpCQPFzqA), signed with Tuur's picks: route 1 = the Mac reads the Apple Notes database (NoteStore.sqlite, Full Disk Access is fine) and keys every note on ZICCLOUDSYNCINGOBJECT.ZIDENTIFIER (Q72 finding), so a declined note is never offered again even if renamed; locked notes stay behind; batches of 10, 'Next 10' locked until all ten are decided; 'Never import' (not 'Delete'); 'Skip for now' kept; resumable over days with a clear 'continue where you left off'; 'import what I've decided so far' at any point; Apple Notes tags become Skrift tags; no folder step when the export has no folders; dates per Q141 (creation date or 'date unknown'). Moving imported notes into an Apple Notes folder is OUT (Q76: needs an unsandboxed non-App-Store build). FIRST step, before any UI: prove the Mac app can open a read-only COPY of ~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite under its current sandbox/entitlements with Full Disk Access granted; if it cannot, stop and report (file:line of the entitlement, the exact error) — do not change signing or sandbox settings. Never read Tuur's real notes content beyond a schema/count probe; tests use a fixture database you generate. Screen proof: headless -snapshot PNGs of each triage state put next to the mock file, every difference in colour, type and spacing listed. Never run any Mac UI test. Tests: `AppleNotesTriageTests` (desktop UnitTests: declined UUID never re-offered, renamed note still recognised, batch lock, resume state persists, tags mapped, locked notes skipped).
+check: `./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3619,3 +3626,4 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-07 08:43 Q129 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
 - 2026-10-07 08:43 Q152 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
 - 2026-10-07 08:43 Q296 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
+- 2026-10-07 08:45 Q333 added
