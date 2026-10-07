@@ -2480,7 +2480,7 @@ gate+: yes
 do: SPEC D188 (Tuur 2026-10-06): the Personal boundary is 'never goes to Claude', not 'never to iCloud'. Q287 (merged @212d1a78, finding in plan/RUN.md) syncs a video's movie as MemoAsset kind 'video' only while filed Inspiration/Idea/Project and withdraws the synced blob when filed Personal. Change it: every video keeps its movie (<= the 200,000,000-byte cap in Shared/Pipeline/VideoKeep.swift) as a synced asset whatever its destination, on phone and Mac (MacMemoAuthor.syncVideoAsset / MacCloudMetaSync.setDestination, phone MemoSaver.keepMovie / AssetMaterializer); filing to Personal no longer deletes the synced blob. The portfolio export (ObsidianPublisher.movieProvider, VaultExporter) still copies the movie only for Inspiration/Idea/Project; no movie ever goes into the Obsidian vault. Make sure no Personal note content reaches any AI/Claude path (grep the polish/enhancement and semantic-index entry points for a destination check and say what you found). Update FEATURES.md rows 'Four export destinations' and 'Video import'. Tests: update the Q287 tests you own (VideoAssetSyncTests, VideoAssetPhoneTests are new from Q287 — if the gate marks them protected, list the change instead) and add `PersonalVideoSyncsTests` (a Personal video keeps its synced asset; refiling Personal↔Project never deletes it; the Personal export copies no movie).
 check: `plan/mtest.sh PersonalVideoSyncsTests`
 
-### Q333 [auto] (doing) build the Apple Notes import triage per the Q71 mock (Mac reads the Notes database)
+### Q333 [auto] (done) build the Apple Notes import triage per the Q71 mock (Mac reads the Notes database)
 spec: C117 C238
 needs: Q71
 gate+: yes
@@ -3642,3 +3642,4 @@ ask: Start a recording on your phone and look at the Lock Screen and Dynamic Isl
 - 2026-10-07 08:59 Q246 -> done — gate 40s @9722b809
 - 2026-10-07 09:00 Q334 added
 - 2026-10-07 09:00 Q334 -> tuur — awaiting sitting
+- 2026-10-07 09:06 Q333 -> done — gate 44s @f960a37a
