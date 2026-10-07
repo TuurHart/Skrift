@@ -340,7 +340,7 @@ struct VaultWriter {
         var markdown = markdown
         var resolvedAttachments: [VaultAsset] = []
         for asset in attachments {
-            let owned = Self.resolvedName(for: asset, into: folder(attachmentsFolder), id: id)
+            let owned = VaultAttachmentOwnership.settledName(for: asset, into: folder(attachmentsFolder), id: id)
             if owned != asset.name {
                 markdown = markdown
                     .replacingOccurrences(of: "[[\(asset.name)]]", with: "[[\(owned)]]")
@@ -378,21 +378,6 @@ struct VaultWriter {
                       markdownURL: dest, audioURL: audioURL)
     }
 
-    /// The OWNED name an attachment will actually land under, resolved against `dir` —
-    /// the same rule `writeAsset` applies when it writes, exposed here so the markdown
-    /// embed can be patched to match BEFORE the stamp is applied (see `commit`).
-    private static func resolvedName(for asset: VaultAsset, into dir: URL, id: UUID,
-                                     fileManager fm: FileManager = .default) -> String {
-        switch asset.source {
-        case .data(let data):
-            return VaultAttachmentOwnership.ownedName(preferredName: asset.name, matching: data,
-                                                      in: dir, id: id, fileManager: fm)
-        case .file(let src):
-            return VaultAttachmentOwnership.ownedName(preferredName: asset.name, matching: src,
-                                                      in: dir, id: id, fileManager: fm)
-        }
-    }
-
     // ── IO (coordinated: the vault lives in iCloud) ──
 
     /// Atomic + NSFileCoordinator'd, so Obsidian/iCloud never observe a half-written
@@ -400,12 +385,18 @@ struct VaultWriter {
     /// bare `Data.write`, which is exactly the kind of writer that seeds iCloud's
     /// documented duplicate/conflict behavior.)
     static func writeAtomic(_ data: Data, to dest: URL) throws {
+        try coordinatedWrite(to: dest) { try data.write(to: $0, options: .atomic) }
+    }
+
+    /// The one `NSFileCoordinator` write dance: make the parent folder, coordinate a
+    /// `.forReplacing` write at `dest`, run `body` on the coordinated URL, rethrow either error.
+    static func coordinatedWrite(to dest: URL, _ body: (URL) throws -> Void) throws {
         try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         var coordError: NSError?
         var writeError: Error?
         NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &coordError) { url in
-            do { try data.write(to: url, options: .atomic) } catch { writeError = error }
+            do { try body(url) } catch { writeError = error }
         }
         if let coordError { throw coordError }
         if let writeError { throw writeError }
@@ -422,22 +413,32 @@ struct VaultWriter {
     }
 
     /// `id` disambiguates a foreign collision (C58) — see `VaultAttachmentOwnership`.
+    /// R7/R77: neither source kind may clobber an existing vault attachment we don't own.
     private static func writeAsset(_ asset: VaultAsset, into dir: URL, id: UUID) -> Bool {
-        switch asset.source {
+        VaultAttachmentOwnership.place(asset.source, preferredName: asset.name, into: dir, id: id) != nil
+    }
+}
+
+extension VaultAsset.Source {
+    /// Is the file already at `url` byte-identical to this source (so ours, a safe no-op)?
+    fileprivate func isIdentical(to url: URL, fm: FileManager) -> Bool {
+        switch self {
         case .data(let data):
-            // R7/R77 for the phone lane: this used to `writeAtomic` blind under
-            // `asset.name`, clobbering an existing vault attachment we don't own — the
-            // same hole the `.file` branch had before C54/C58. Same ownership rule,
-            // in-memory bytes instead of a source file to compare against.
-            return VaultAttachmentOwnership.writeOwned(data, preferredName: asset.name,
-                                                       into: dir, id: id) != nil
+            return (try? Data(contentsOf: url)) == data
         case .file(let src):
-            // R77: this used to unconditionally `removeItem` then `copyItem` under the
-            // ORIGINAL name — an existing vault attachment we don't own got clobbered with
-            // no check at all. Route through the same "provably ours and untouched" rule
-            // the markdown lane already applies (C54/C58).
-            return VaultAttachmentOwnership.copyOwned(from: src, preferredName: asset.name,
-                                                      into: dir, id: id) != nil
+            guard let sizeA = (try? fm.attributesOfItem(atPath: url.path))?[.size] as? Int,
+                  let sizeB = (try? fm.attributesOfItem(atPath: src.path))?[.size] as? Int,
+                  sizeA == sizeB else { return false }
+            guard let da = try? Data(contentsOf: url), let db = try? Data(contentsOf: src) else { return false }
+            return da == db
+        }
+    }
+
+    /// Put these bytes at `dest` through the coordinated write path.
+    fileprivate func write(to dest: URL) throws {
+        switch self {
+        case .data(let data): try VaultWriter.writeAtomic(data, to: dest)
+        case .file(let src):  try VaultWriter.coordinatedWrite(to: dest) { try FileManager.default.copyItem(at: src, to: $0) }
         }
     }
 }
@@ -445,66 +446,70 @@ struct VaultWriter {
 /// The ownership rule attachments must obey too (C58): never remove or clobber a vault
 /// file this device doesn't own. There's no text stamp to read for a binary attachment
 /// (unlike `VaultStamp` for markdown), so ownership is judged the only way it can be:
-/// byte-identical to what we're about to write ⇒ ours already, safe no-op; anything
+/// byte-identical to what we're about to write means ours already, a safe no-op; anything
 /// else already sitting at the target name is untouched, and the incoming file is
 /// written under a disambiguated name instead (the same twin-on-collision answer C54
-/// gives a foreign markdown file) — so no attachment lane ever deletes a file it
+/// gives a foreign markdown file) so no attachment lane ever deletes a file it
 /// doesn't own.
 enum VaultAttachmentOwnership {
     /// Copies `src` into `dir`, choosing an ownership-safe name first. Returns the URL
-    /// actually written (existing untouched file → same URL, nothing copied), or nil on
+    /// actually written (existing untouched file gives the same URL, nothing copied), or nil on
     /// a genuine I/O failure.
     @discardableResult
     static func copyOwned(from src: URL, preferredName: String, into dir: URL, id: UUID,
                           fileManager fm: FileManager = .default) -> URL? {
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let name = ownedName(preferredName: preferredName, matching: src, in: dir, id: id, fileManager: fm)
-        let dest = dir.appendingPathComponent(name)
-        guard !fm.fileExists(atPath: dest.path) else { return dest }   // already correct — no-op
-
-        var coordError: NSError?
-        var copyError: Error?
-        NSFileCoordinator().coordinate(writingItemAt: dest, options: .forReplacing, error: &coordError) { url in
-            do { try FileManager.default.copyItem(at: src, to: url) } catch { copyError = error }
-        }
-        if coordError != nil || copyError != nil { return nil }
-        return dest
+        place(.file(src), preferredName: preferredName, into: dir, id: id, fileManager: fm)
     }
 
-    /// `preferredName` when nothing occupies it yet, or when what's there is
-    /// byte-identical to `src` (ours already, unchanged). Otherwise the name is left
-    /// completely alone and a disambiguated one (` <id8>` suffix, before the extension)
-    /// is returned instead.
-    static func ownedName(preferredName: String, matching src: URL, in dir: URL, id: UUID,
-                          fileManager fm: FileManager = .default) -> String {
-        let dest = dir.appendingPathComponent(preferredName)
-        guard fm.fileExists(atPath: dest.path) else { return preferredName }
-        if filesAreIdentical(dest, src, fm: fm) { return preferredName }
-        return disambiguated(preferredName, id: id)
-    }
-
-    /// Same rule for in-memory bytes (the phone's `MemoAsset` blobs — no source file on
-    /// disk to hand `copyOwned`): `preferredName` when free or byte-identical to `data`,
-    /// else the id8-disambiguated name, and the untouched-foreign-file guarantee holds.
-    static func ownedName(preferredName: String, matching data: Data, in dir: URL, id: UUID,
-                          fileManager fm: FileManager = .default) -> String {
-        let dest = dir.appendingPathComponent(preferredName)
-        guard fm.fileExists(atPath: dest.path) else { return preferredName }
-        if let existing = try? Data(contentsOf: dest), existing == data { return preferredName }
-        return disambiguated(preferredName, id: id)
-    }
-
-    /// Writes `data` into `dir` under an ownership-safe name (see `ownedName(preferredName:matching data:…)`).
-    /// Returns the URL actually written (existing untouched file → same URL, nothing
-    /// rewritten), or nil on a genuine I/O failure. Never removes an existing file.
+    /// Same rule for in-memory bytes (the phone's `MemoAsset` blobs, no source file on
+    /// disk to hand `copyOwned`). Never removes an existing file.
     @discardableResult
     static func writeOwned(_ data: Data, preferredName: String, into dir: URL, id: UUID,
                            fileManager fm: FileManager = .default) -> URL? {
+        place(.data(data), preferredName: preferredName, into: dir, id: id, fileManager: fm)
+    }
+
+    /// The one place-bytes step: resolve an ownership-safe name, then write unless that
+    /// name already holds identical bytes. This resolve is NOT redundant with `settledName`
+    /// (commit's pre-stamp pass): it is the only guard against a clobber if the settled
+    /// name was taken between the two.
+    static func place(_ source: VaultAsset.Source, preferredName: String, into dir: URL, id: UUID,
+                      fileManager fm: FileManager = .default) -> URL? {
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let name = ownedName(preferredName: preferredName, matching: data, in: dir, id: id, fileManager: fm)
+        let name = ownedName(preferred: preferredName, in: dir, id: id, fileManager: fm) {
+            source.isIdentical(to: $0, fm: fm)
+        }
         let dest = dir.appendingPathComponent(name)
-        guard !fm.fileExists(atPath: dest.path) else { return dest }   // already correct — no-op
-        do { try VaultWriter.writeAtomic(data, to: dest); return dest } catch { return nil }
+        guard !fm.fileExists(atPath: dest.path) else { return dest }   // already correct, no-op
+        do { try source.write(to: dest); return dest } catch { return nil }
+    }
+
+    /// `preferred` when nothing occupies it yet, or when what's there `isIdentical` (ours
+    /// already, unchanged). Otherwise the name is left completely alone and a disambiguated
+    /// one (` <id8>` suffix, before the extension) is returned instead.
+    static func ownedName(preferred: String, in dir: URL, id: UUID,
+                          fileManager fm: FileManager = .default,
+                          isIdentical: (URL) -> Bool) -> String {
+        let dest = dir.appendingPathComponent(preferred)
+        guard fm.fileExists(atPath: dest.path) else { return preferred }
+        return isIdentical(dest) ? preferred : disambiguated(preferred, id: id)
+    }
+
+    /// The name an attachment will actually land under, for `commit` to patch the embed
+    /// BEFORE the stamp. Iterates `ownedName` to a fixed point so it agrees with `place`'s
+    /// own resolve even when the id8 name is itself occupied by different bytes (it used to
+    /// stop at one step, so the embed said `X id8.png` while `place` wrote `X id8 id8.png`).
+    static func settledName(for asset: VaultAsset, into dir: URL, id: UUID,
+                            fileManager fm: FileManager = .default) -> String {
+        var name = asset.name
+        for _ in 0..<4 {
+            let next = ownedName(preferred: name, in: dir, id: id, fileManager: fm) {
+                asset.source.isIdentical(to: $0, fm: fm)
+            }
+            if next == name { break }
+            name = next
+        }
+        return name
     }
 
     private static func disambiguated(_ preferredName: String, id: UUID) -> String {
@@ -512,13 +517,5 @@ enum VaultAttachmentOwnership {
         let ext = (preferredName as NSString).pathExtension
         let short = id.uuidString.prefix(8)
         return ext.isEmpty ? "\(stem) \(short)" : "\(stem) \(short).\(ext)"
-    }
-
-    private static func filesAreIdentical(_ a: URL, _ b: URL, fm: FileManager) -> Bool {
-        guard let sizeA = (try? fm.attributesOfItem(atPath: a.path))?[.size] as? Int,
-              let sizeB = (try? fm.attributesOfItem(atPath: b.path))?[.size] as? Int,
-              sizeA == sizeB else { return false }
-        guard let da = try? Data(contentsOf: a), let db = try? Data(contentsOf: b) else { return false }
-        return da == db
     }
 }
