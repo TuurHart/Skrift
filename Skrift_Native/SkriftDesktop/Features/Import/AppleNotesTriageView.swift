@@ -485,7 +485,8 @@ struct AppleNotesTriageView: View {
                 Text(model.openCount > 0 ? "Next 10 unlocks when all ten are decided."
                                          : "All ten decided. Next 10 imports the \(model.ratedPending) rated.")
                     .font(.system(size: 12)).foregroundStyle(Theme.textSecondary).monospacedDigit()
-                Spacer()
+                    .lineLimit(2).minimumScaleFactor(0.9)
+                Spacer(minLength: 4)
                 ghost("Finish later") { model.finishLater() }
                 ghost("Import what I've decided so far") { Task { await model.importSoFar() } }
                 nextButton
@@ -520,6 +521,7 @@ struct AppleNotesTriageView: View {
             .padding(.horizontal, 16).padding(.vertical, 7)
             .foregroundStyle(locked ? Theme.textSecondary : .white)
             .background(locked ? Theme.chip : Theme.accent, in: RoundedRectangle(cornerRadius: 7))
+            .fixedSize()
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("applenotes.next")
@@ -534,7 +536,7 @@ struct AppleNotesTriageView: View {
     }
 
     private func ghost(_ t: String, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) { Text(t).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent) }.buttonStyle(.plain)
+        Button(action: action) { Text(t).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent).fixedSize() }.buttonStyle(.plain)
     }
 
     // MARK: - pieces
