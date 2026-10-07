@@ -2494,6 +2494,13 @@ do: -
 check: Live Activity after Q232 (SkriftShared framework removed): Lock Screen + Dynamic Island show the recording and end cleanly.
 ask: Start a recording on your phone and look at the Lock Screen and Dynamic Island. Does the recording show there, and does it go away when you stop?
 
+### Q335 [tuur] (tuur) Mac (Skrift Dev): grant Full Disk Access, open Import > Apple Notes…, report the start screen (Q333's first real read)
+spec: -
+needs: -
+do: -
+check: The Q333 triage opens your real Notes database (row count, first batch shows real titles), or the start screen names the exact error.
+ask: Give Skrift Dev Full Disk Access (System Settings > Privacy & Security), then on the Mac open Import > Apple Notes…. Does it show your notes in batches of 10, or what does the start screen say?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3643,3 +3650,5 @@ ask: Start a recording on your phone and look at the Lock Screen and Dynamic Isl
 - 2026-10-07 09:00 Q334 added
 - 2026-10-07 09:00 Q334 -> tuur — awaiting sitting
 - 2026-10-07 09:06 Q333 -> done — gate 44s @f960a37a
+- 2026-10-07 09:07 Q335 added
+- 2026-10-07 09:07 Q335 -> tuur — awaiting sitting
