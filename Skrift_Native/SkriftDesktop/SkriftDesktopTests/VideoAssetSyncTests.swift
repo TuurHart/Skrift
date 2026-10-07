@@ -2,11 +2,11 @@ import XCTest
 import SwiftData
 import Foundation
 
-/// Q287 (C63, C148, D172): a video filed Inspiration / Idea / Project keeps its movie as a
-/// synced `MemoAsset` of kind `video`. On the Mac that means: a phone video's asset lands as
+/// Q287 (C63, C148, D172, D188): a video keeps its movie as a synced `MemoAsset` of kind
+/// `video` whatever its destination. On the Mac that means: a phone video's asset lands as
 /// `source.<ext>` in the note's working folder (where the portfolio export looks), also when it
-/// syncs after the first ingest; a Mac-imported video writes its own asset when it is filed to
-/// the portfolio, removes it when filed back to Personal, and never keeps a movie over the cap.
+/// syncs after the first ingest; a Mac-imported video writes its own asset (Personal too),
+/// keeps it when refiled, and never keeps a movie over the cap.
 @MainActor
 final class VideoAssetSyncTests: XCTestCase {
 
@@ -138,27 +138,25 @@ final class VideoAssetSyncTests: XCTestCase {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .personal)
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
-        XCTAssertTrue(try videoAssets(ctx, memo.id).isEmpty, "a Personal video never reaches iCloud")
+        XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "D188: a Personal video syncs like every other note")
     }
 
     func testFilingLaterWritesTheMovieAndFilingBackRemovesIt() throws {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .personal)
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
-        XCTAssertTrue(try videoAssets(ctx, memo.id).isEmpty)
+        XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "D188: authored Personal, the movie already syncs")
 
         pf.destination = .project
-        XCTAssertTrue(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
-        try ctx.save()
-        XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1)
-        // Idempotent: a second pass inserts nothing.
+        // Idempotent: the asset is already there, so a pass inserts nothing.
         XCTAssertFalse(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
+        try ctx.save()
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1)
 
         pf.destination = .personal
-        XCTAssertTrue(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
+        XCTAssertFalse(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
         try ctx.save()
-        XCTAssertTrue(try videoAssets(ctx, memo.id).isEmpty)
+        XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "filed back to Personal: the synced blob stays (D188)")
         XCTAssertNotNil(VaultExporter.keptSourceVideo(in: try XCTUnwrap(pf.workingFolder)),
                         "the local file stays on this Mac")
     }
