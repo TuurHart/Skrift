@@ -6,7 +6,7 @@ import AppKit
 /// Mac layout from Q67). The rules live in `AppleNotesTriage` (host-less, tested); this owns the
 /// database copy, the decoded-body cache, the JSON file every tap is saved to, and the import hook.
 @MainActor @Observable
-final class AppleNotesTriageModel {
+final class AppleNotesTriageModel: Identifiable {
 
     enum Phase: Equatable {
         case loading
@@ -29,7 +29,7 @@ final class AppleNotesTriageModel {
     private var reader: NotesStoreReader?
     private let store: AppleNotesTriageStore
     /// Puts one rated note into Skrift; returns the new note's id. nil in snapshots.
-    var importer: ((AppleNoteSummary, NotesBodyDecoder.Decoded, Int) throws -> (id: String, unmapped: NotesBodyDecoder.Media))?
+    var importer: (@MainActor (AppleNoteSummary, NotesBodyDecoder.Decoded, Int) throws -> (id: String, unmapped: NotesBodyDecoder.Media))?
     var libraryTags: () -> [String] = { [] }
 
     init(store: AppleNotesTriageStore = .standard) {
@@ -39,13 +39,15 @@ final class AppleNotesTriageModel {
 
     /// Snapshot fixture: no database, no file.
     init(fixtureNotes: [AppleNoteSummary], decoded: [String: NotesBodyDecoder.Decoded],
-         state: TriageState, phase: Phase) {
+         state: TriageState, phase: Phase,
+         unmapped: [String: NotesBodyDecoder.Media] = [:]) {
         self.store = AppleNotesTriageStore(url: FileManager.default.temporaryDirectory.appendingPathComponent("q333-fixture.json"))
         self.triage = AppleNotesTriage(state: state)
         self.notes = fixtureNotes
         self.decoded = decoded.mapValues { Optional($0) }
         self.phase = phase
         self.readAt = Date()
+        self.unmapped = unmapped
     }
 
     // MARK: - reading Notes

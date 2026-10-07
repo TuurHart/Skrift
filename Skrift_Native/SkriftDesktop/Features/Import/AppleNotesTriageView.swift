@@ -236,7 +236,7 @@ struct AppleNotesTriageView: View {
                 Text(l).font(.system(size: 14.5)).fixedSize(horizontal: false, vertical: true)
             }
             if let m = body?.media, !m.isEmpty {
-                HStack(spacing: 6) { ForEach(mediaChips(m), id: \.self) { chip($0.0, $0.1) } }
+                HStack(spacing: 6) { ForEach(Array(mediaChips(m).enumerated()), id: \.offset) { chip($0.element.0, $0.element.1) } }
             }
             if body != nil, !(body?.tags.isEmpty ?? true) { Text("Notes tags become Skrift tags.").font(.system(size: 12)).foregroundStyle(Theme.textSecondary) }
         }
@@ -492,7 +492,7 @@ struct AppleNotesTriageView: View {
             case .start:
                 ghost("What can I delete in Apple Notes?") { model.phase = .report(end: false) }
                 Spacer()
-                ghost("Close", action: onClose)
+                ghost("Close", onClose)
                 primary("Continue · note \(model.firstOpenNumber) of \(model.counts.total)") { model.resume() }
             case .report(let end):
                 Spacer()
@@ -502,7 +502,7 @@ struct AppleNotesTriageView: View {
                     primary("Continue · note \(model.firstOpenNumber) of \(model.counts.total)") { model.resume() }
                 }
             case .loading, .denied, .failed:
-                Spacer(); ghost("Close", action: onClose)
+                Spacer(); ghost("Close", onClose)
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)

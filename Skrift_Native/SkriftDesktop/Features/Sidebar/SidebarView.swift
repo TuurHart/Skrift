@@ -31,6 +31,8 @@ struct SidebarView: View {
     @FocusState private var searchFocused: Bool
     /// Files waiting on the "One note / N notes" chooser (Q74). nil = nothing pending.
     @State private var pendingAudioImport: PendingAudioImport?
+    /// Q333: the Apple Notes triage sheet (nil = closed). Built fresh on each open so it re-reads Notes.
+    @State private var appleNotes: AppleNotesTriageModel?
     /// Locking a note this machine already exported (Q100 / C161): the plaintext file stays.
     @State private var lockVaultNotice = false
 
@@ -174,6 +176,9 @@ struct SidebarView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(LockVaultNotice.message)
+        }
+        .sheet(item: $appleNotes) { model in
+            AppleNotesTriageView(model: model, onClose: { appleNotes = nil })
         }
         .sheet(item: $pendingAudioImport) { pending in
             AudioImportChoiceSheet(
@@ -351,7 +356,7 @@ struct SidebarView: View {
                 recordingTransport
             } else {
                 HStack(spacing: 7) {
-                    importButton { openUploadPanel() }
+                    importMenu
                     recordButton
                     newNoteButton
                 }
@@ -509,6 +514,34 @@ struct SidebarView: View {
             ImportVerbLabel(style: .mac)
         }
         .buttonStyle(.plain)
+    }
+
+    /// Q333: Import is a menu of doors (the phone's Import menu has the same shape): files, and
+    /// the Apple Notes triage, which says "continue" while a triage is half done.
+    private var importMenu: some View {
+        Menu {
+            Button("Audio, video or files…") { openUploadPanel() }
+            Button(AppleNotesTriageStore.standard.load().decisions.isEmpty ? "Apple Notes…" : "Apple Notes · continue") { openAppleNotes() }
+        } label: {
+            ImportVerbLabel(style: .mac)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .accessibilityIdentifier("sidebar.import")
+    }
+
+    private func openAppleNotes() {
+        let model = AppleNotesTriageModel()
+        let tagLibrary: () -> [String] = { Array(Set(files.flatMap(\.tags))).sorted() }
+        model.libraryTags = tagLibrary
+        let context = ctx
+        model.importer = { note, body, rating in
+            let r = try AppleNotesImporter.importNote(note, decoded: body, rating: rating, libraryTags: tagLibrary(),
+                                                      context: context,
+                                                      cloudContext: MemoCloudStore.container?.mainContext)
+            return (r.file.id, r.droppedMedia)
+        }
+        appleNotes = model
     }
 
     private func iconButton(_ system: String, action: @escaping () -> Void) -> some View {
