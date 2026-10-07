@@ -65,13 +65,8 @@ packages:
 settings:
   base:
     DEVELOPMENT_TEAM: 9W82X49JZS
-    # VERSION — bump HERE, once. Every bundle takes its version from these two:
-    # the app + SkriftWidget + SkriftShare through $(SKRIFT_BUILD) in their
-    # Info.plist properties, and the SkriftShared framework through
-    # CURRENT_PROJECT_VERSION (it generates its plist). Until 2026-08-30 the
-    # framework carried its own literals and had drifted to 28 while the app
-    # shipped 167 — Apple only validates version parity for extensions/App
-    # Clips/watch apps, so nothing ever failed and nothing ever caught it.
+    # VERSION — bump HERE, once. The app + SkriftWidget + SkriftShare take their
+    # version from these two through $(SKRIFT_BUILD) in their Info.plist properties.
     SKRIFT_MARKETING_VERSION: "0.2.0"
     SKRIFT_BUILD: "181"
 
@@ -310,39 +305,10 @@ targets:
         product: Tokenizers
       - package: FeedbackKit
         product: FeedbackKit
-      - target: SkriftShared
-        embed: true
       - target: SkriftWidget
         embed: true
       - target: SkriftShare
         embed: true
-
-  # Shared framework: Live Activity ActivityAttributes and the App
-  # Intents — visible to both the app and the widget extension.
-  SkriftShared:
-    type: framework
-    platform: iOS
-    sources:
-      - path: SkriftShared
-    settings:
-      base:
-        SWIFT_VERSION: "5.9"
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-        CODE_SIGN_STYLE: Automatic
-        GENERATE_INFOPLIST_FILE: YES
-        # GENERATE_INFOPLIST_FILE is YES here, so these two ARE the framework's
-        # CFBundleShortVersionString/CFBundleVersion. Driven from the project-level
-        # variables so it cannot drift from the app again.
-        MARKETING_VERSION: $(SKRIFT_MARKETING_VERSION)
-        CURRENT_PROJECT_VERSION: $(SKRIFT_BUILD)
-        SKIP_INSTALL: YES
-        DEFINES_MODULE: YES
-        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
-      configs:
-        Debug:
-          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.shared
-        Release:
-          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.shared
 
   # WidgetKit extension: the recording Live Activity, Control Center
   # and Home/Lock widgets.
@@ -359,6 +325,9 @@ targets:
       - path: App/Intents/StartRecordingIntent.swift
       - path: App/Intents/StopRecordingIntent.swift
       - path: App/Intents/NewNoteIntent.swift
+      # Live Activity ActivityAttributes: the app starts the activity, the widget renders
+      # it, so both compile this one file (was the SkriftShared framework, removed Q232).
+      - path: Services/Recording/RecordingActivityAttributes.swift
       # Foundation-only hex table: the widgets + Live Activity read their dark colours from it.
       - path: ../Shared/UI/Palette.swift
     info:
@@ -400,9 +369,6 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.widget
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.widget
-    dependencies:
-      - target: SkriftShared
-        embed: false
 
   # Share extension: save a URL / text / image into Skrift from any app.
   # The UI is hosted in a UIHostingController (ShareViewController.swift).
@@ -561,7 +527,6 @@ schemes:
   SkriftMobile:
     build:
       targets:
-        SkriftShared: all
         SkriftWidget: all
         SkriftShare: all
         SkriftMobile: all

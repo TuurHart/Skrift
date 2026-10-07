@@ -1,6 +1,5 @@
 import ActivityKit
 import AppIntents
-import SkriftShared
 import SwiftUI
 import WidgetKit
 
