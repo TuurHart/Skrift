@@ -222,7 +222,7 @@ check: `plan/mtest.sh RecoveryQuarantineTests && ! grep -rnE "removeItem" Skrift
 
 ### Q28 [auto] (done) build the tag editor on phone, iPad and Mac
 spec: C241 C93 C240
-needs: Q26
+needs: Q26 Q3
 gate+: yes
 do: Build the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139 picks: inline field in the tag row, no sheet; tap-twice remove + 4 s Undo, Mac ✕ on hover; own row under the title, 14 pt / 30 pt) as ONE shared view in `Shared/UI/` with a per-app style (C240). Tag rules single-sourced in Shared: comma/newline split, `#` stripped ONCE, case kept on first use, and a new tag whose case-folded form exists ANYWHERE in the library reuses that spelling (D139). Fix the three BUGS §4 tag leads on the way (Mac `NoteProperties.swift:460` lowercases on pick; no case fold; `Memo.splitTagInput` strips every `#`). Test in a new `TagRulesTests` (desktop target).
 check: `grep -rqE "class TagRulesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
@@ -379,7 +379,7 @@ needs: -
 do: D145: "two types of filters… difficult or tricky". One page showing today's chip bar + Filter icon (drawn from source) and 2–3 ways to make it ONE mechanism (e.g. chips carry everything, or one Filter menu with the chips inside), phone + Mac.
 check: Tuur clicked through it and said go.
 
-### Q50 [tuur] (done) mockup: one compact note header (date + place, tags, importance)
+### Q50 [tuur] (dead) mockup: one compact note header (date + place, tags, importance)
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-25 on build 172: the importance card takes a lot of vertical space, tags sit above it, the date above that "with time but without location for some reason". Mock the note header drawn from source today, then 2–3 compact options that fold date + place + tags + importance into one top area ("not sure if that will look good" — show it honestly), phone + iPad + Mac. Also check why the location is missing on the date chip.
@@ -501,7 +501,7 @@ needs: Q65
 do: Build option A of the signed mock `Skrift_Native/SkriftDesktop/mocks/Q49-one-filter.html` (Tuur 2026-09-26: "one filter bar I pick A"): the chip row carries everything — after the four status chips come Date and Unsynced chips; the Filter icon and sheet go; sort becomes a word at the end of the row (`Newest ↓`) that steps to the next sort on each tap; the row scrolls sideways when it does not fit. Removes the duplicate Unrated toggle (BUGS §2 "The phone filters Unrated twice"). Phone, iPad and Mac through shared code where the list already is. Take ONLY the chip row from the mock: its Mac panel draws the rows transparent, which is wrong — the app's Mac rows are already white cards on the phone's grey (Q65). Screenshots phone + Mac, LOOK, commit under `plan/reads/filter-q66/`.
 check: `test $(ls plan/reads/filter-q66/*.png | wc -l) -ge 2 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh QuickNoteRouteTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q67 [tuur] (done) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
+### Q67 [tuur] (dead) mockup: Apple Notes import as a triage, 10 notes at a time (rate / skip / delete)
 spec: C117 C238
 needs: -
 do: Revise `Skrift_Native/SkriftDesktop/mocks/Q51-apple-notes-import.html` to Tuur's 2026-09-26 answer: "it should happen in groups of 10, where you can go through them and rate them as they come in, or skip import / delete them". Replace the quiet-vs-rated question with a triage: the import brings 10 notes at a time; each shows its preview and three actions (rate with the three balls / skip = don't import / delete); next batch after the ten. Keep the today panel, the drawings marker and the end report. Phone + Mac. The A/B/C and option buttons must actually work on tap in the artifact viewer (storage wrapped in try/catch). Publish, one numbered question at the top.
@@ -521,7 +521,7 @@ gate+: yes
 do: Tuur 2026-09-27 on the prod Mac: videos dragged in from Photos came out diarized ("the automatically did diarization. no good"); C102 = diarization is opt-in per note. First check the CURRENT branch (prod is older): find the path that diarizes a Mac import without the user's toggle (IngestService / BatchRunner / DiarizationSidecar / MemoCloudIngest) and write a failing desktop test (a Mac-imported video with no opt-in comes out as a monologue). Fix. On the same screen one person showed as both "Tiuri Hartog" and "Tiuri", and list snippets showed raw `**Speaker 1:**` / `[[Tiuri Hartog]]` markup — fix both if they reproduce from the synthetic corpus, else log what you found. NEVER run SkriftDesktopUITests (they take the real mouse); Mac proof = unit tests + full build + headless `-snapshot-shell`.
 check: `./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q70 [tuur] (done) mockup: compact note header, two versions — B refined, and today's layout squeezed
+### Q70 [tuur] (dead) mockup: compact note header, two versions — B refined, and today's layout squeezed
 spec: C117 C94
 needs: -
 do: Tuur 2026-09-27 on `mocks/Q50-compact-note-header.html`: A no ("the balls carrying [no] label, nobody will know what to do with them"), C no ("I don't like it to take part of the title"), B "probably the best one" — Not rated + the orange "starts fading on 25 Oct · Rate it to keep it" line, one tap to Passing. "Either we're going with B or we just go with what is today but then have it take up way less vertical space… so make two versions." Version 1 = B refined; version 2 = today's header (date chip row, tags, importance card with labels and the sync line) squeezed: cut the gaps between Not rated / Importance / the balls / the sync line. Phone + iPad + Mac, voice note AND typed note, each frame showing its height in pt against today's 243 pt. Every control must respond on tap in the artifact viewer. Publish; one numbered question: "1 or 2?"
@@ -954,7 +954,7 @@ do: One clickable page: the Mac note with a photo added at the caret (open panel
 check: Mac photos mock (claude.ai/artifact/Li25ppmZmB5fVXHYCdHZxa): should one click on a photo select it like Apple Notes (double-click opens), or open the viewer straight away? Anything else to change before it gets built?
 source: plan/reads/parity-audit.md P29
 
-### Q129 [tuur] (done) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
+### Q129 [tuur] (dead) mockup: Mac reminders — set and clear from the note, the chip is tappable, the synced alarm rings on the Mac (D122)
 spec: D122 C162
 needs: -
 do: One clickable page: the Mac note header chip becoming tappable (today a static chip with year), the picker (the phone's `ReminderSheet` drawn from source), 'Remind me…' in the list and note menus, and the notification the Mac shows when a synced reminder fires; first acknowledgement clears the other devices (C162). Covers note-header-06, note-menu-09, note-remind-01, list-sidebar-86.
@@ -1136,7 +1136,7 @@ do: The Q6 mock signed a '❝ N' pill opening a book's notes and a jump-back to 
 check: `test $(ls plan/reads/books-p-notes/*.png | wc -l) -ge 1 && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh BookNotesJoinTests && ./gate.sh`
 source: plan/reads/parity-audit.md P52
 
-### Q152 [tuur] (done) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
+### Q152 [tuur] (dead) mockup: 'Fix quote' — correct a misheard word inside a captured quote (D50)
 spec: D50 C160 C172
 needs: -
 do: D50/C160 decide the user can correct a misheard word in a captured quote; the quote block is read-only on the phone and (after the Mac read-only item) on the Mac, and no 'Fix quote' verb exists anywhere (books-118). One page: the verb in the note menu, the edit state of the quote, and how the corrected text stays attached to the audio window.
@@ -2222,7 +2222,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D176): Q180 shows Redo when ANY polish part exists, including a title Tuur chose himself (Mac enhancedTitle stores chosen titles). Redo only when a real polish ran (summary, tags or a generated title); a chosen-title-only note offers Polish. Desktop test `RedoOfferTests`. Never run SkriftDesktopUITests.
 check: `grep -rqE "class RedoOfferTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 
-### Q296 [tuur] (done) mockup: a checklist button in the Mac editor toolbar
+### Q296 [tuur] (dead) mockup: a checklist button in the Mac editor toolbar
 spec: D177
 needs: -
 gate+: yes
@@ -3613,3 +3613,9 @@ check: `plan/mtest.sh PersonalVideoSyncsTests`
 - 2026-10-06 22:26 Q234 -> done — gate 117s @eb8f5bc0
 - 2026-10-06 22:27 Q198 -> doing — done-candidate, wt/Q198 pushed — accept next session
 - 2026-10-06 22:27 Q232 -> doing — done-candidate, wt/Q232 pushed — accept next session; Live Activity device check owed
+- 2026-10-07 08:43 Q50 -> dead — replaced by the Q75 note-header mock, built by Q85
+- 2026-10-07 08:43 Q70 -> dead — replaced by the Q75 note-header mock, built by Q85
+- 2026-10-07 08:43 Q67 -> dead — replaced by the Q71 triage v3 mock
+- 2026-10-07 08:43 Q129 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
+- 2026-10-07 08:43 Q152 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
+- 2026-10-07 08:43 Q296 -> dead — dropped by Tuur 2026-10-06 (SPEC D181/D183/D185)
