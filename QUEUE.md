@@ -1773,7 +1773,7 @@ do: `SkriftWidget/RecordWidget.swift` and `NewNoteWidget.swift` differ only in n
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh SharedContentParityTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-d17 MAM-d19 MAM-c10 (cleanup-audit P44)
 
-### Q232 [auto] (doing) remove the SkriftShared framework target
+### Q232 [auto] (done) remove the SkriftShared framework target
 spec: C240
 needs: Q231
 gate+: no
@@ -3630,3 +3630,4 @@ check: `./gate.sh`
 - 2026-10-07 08:46 Q333 -> doing — worker out
 - 2026-10-07 08:46 Q246 -> doing — worker out
 - 2026-10-07 08:48 Q198 -> done — gate 52s @b957c27b
+- 2026-10-07 08:52 Q232 -> done — gate 39s @b6e76c5d
