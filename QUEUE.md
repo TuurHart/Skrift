@@ -1885,7 +1885,7 @@ do: `SkriftShare/ShareSheetView.swift` draws its card chrome (skSurface fill plu
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh AudioShareDrainTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MAM-c02 MAM-c04 MAM-c08 (cleanup-audit P58)
 
-### Q246 [auto] (doing) VaultWriter: one ownedName and one place-bytes step for URL and Data attachments
+### Q246 [auto] (done) VaultWriter: one ownedName and one place-bytes step for URL and Data attachments
 spec: C239
 needs: Q234
 gate+: yes
@@ -3632,3 +3632,4 @@ check: `./gate.sh`
 - 2026-10-07 08:48 Q198 -> done — gate 52s @b957c27b
 - 2026-10-07 08:52 Q232 -> done — gate 39s @b6e76c5d
 - 2026-10-07 08:54 Q332 -> done — hand-merged (Tuur approved 2026-10-07: Q287's protected video tests flip to D188 (a Personal movie stays synced))
+- 2026-10-07 08:59 Q246 -> done — gate 40s @9722b809
