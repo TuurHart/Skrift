@@ -5,10 +5,10 @@ import CoreMedia
 import CoreVideo
 @testable import SkriftMobile
 
-/// Q287 (C63, C148, D172): a video filed Inspiration / Idea / Project keeps its movie as a
-/// synced `MemoAsset` (`video`), and whichever device exports copies it beside the portfolio
-/// note. A Personal video's movie never syncs and the Obsidian vault never gets one; a movie
-/// over ~200 MB is refused; deleting the note deletes the movie.
+/// Q287 (C63, C148, D172, D188): a video keeps its movie as a synced `MemoAsset` (`video`)
+/// whatever its destination (Personal syncs too, D188), and whichever device exports copies it
+/// beside the portfolio note when it is filed Inspiration / Idea / Project. The Obsidian vault
+/// never gets one; a movie over ~200 MB is refused; deleting the note deletes the movie.
 @MainActor
 final class VideoAssetPhoneTests: XCTestCase {
 
@@ -90,7 +90,7 @@ final class VideoAssetPhoneTests: XCTestCase {
         let (memo, name) = keptVideoMemo(repo)
 
         AssetMaterializer.captureMissing(repo)
-        XCTAssertTrue(videoAssets(repo, memo.id).isEmpty, "a Personal video never reaches iCloud")
+        XCTAssertEqual(videoAssets(repo, memo.id).count, 1, "D188: a Personal video syncs like every other note")
 
         memo.destination = .idea
         AssetMaterializer.captureMissing(repo)
@@ -106,7 +106,7 @@ final class VideoAssetPhoneTests: XCTestCase {
 
         memo.destination = .personal
         AssetMaterializer.captureMissing(repo)
-        XCTAssertTrue(videoAssets(repo, memo.id).isEmpty, "filed back to Personal: the synced blob goes")
+        XCTAssertEqual(videoAssets(repo, memo.id).count, 1, "filed back to Personal: the synced blob stays (D188)")
         XCTAssertTrue(fm.fileExists(atPath: recordings(name).path), "the file stays on this device")
     }
 
