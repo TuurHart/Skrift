@@ -2487,6 +2487,13 @@ gate+: yes
 do: Build Skrift_Native/SkriftDesktop/mocks/Q71-apple-notes-triage-v3.html (artifact https://claude.ai/artifact/LhvR3Dimcr6H5JpCQPFzqA), signed with Tuur's picks: route 1 = the Mac reads the Apple Notes database (NoteStore.sqlite, Full Disk Access is fine) and keys every note on ZICCLOUDSYNCINGOBJECT.ZIDENTIFIER (Q72 finding), so a declined note is never offered again even if renamed; locked notes stay behind; batches of 10, 'Next 10' locked until all ten are decided; 'Never import' (not 'Delete'); 'Skip for now' kept; resumable over days with a clear 'continue where you left off'; 'import what I've decided so far' at any point; Apple Notes tags become Skrift tags; no folder step when the export has no folders; dates per Q141 (creation date or 'date unknown'). Moving imported notes into an Apple Notes folder is OUT (Q76: needs an unsandboxed non-App-Store build). FIRST step, before any UI: prove the Mac app can open a read-only COPY of ~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite under its current sandbox/entitlements with Full Disk Access granted; if it cannot, stop and report (file:line of the entitlement, the exact error) — do not change signing or sandbox settings. Never read Tuur's real notes content beyond a schema/count probe; tests use a fixture database you generate. Screen proof: headless -snapshot PNGs of each triage state put next to the mock file, every difference in colour, type and spacing listed. Never run any Mac UI test. Tests: `AppleNotesTriageTests` (desktop UnitTests: declined UUID never re-offered, renamed note still recognised, batch lock, resume state persists, tags mapped, locked notes skipped).
 check: `./gate.sh`
 
+### Q334 [tuur] (tuur) On the iPhone 17 Pro (Dev, after Q232): start a recording, look at the Lock Screen and Dynamic Island Live Activity, end it
+spec: -
+needs: -
+do: -
+check: Live Activity after Q232 (SkriftShared framework removed): Lock Screen + Dynamic Island show the recording and end cleanly.
+ask: Start a recording on your phone and look at the Lock Screen and Dynamic Island. Does the recording show there, and does it go away when you stop?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3633,3 +3640,5 @@ check: `./gate.sh`
 - 2026-10-07 08:52 Q232 -> done — gate 39s @b6e76c5d
 - 2026-10-07 08:54 Q332 -> done — hand-merged (Tuur approved 2026-10-07: Q287's protected video tests flip to D188 (a Personal movie stays synced))
 - 2026-10-07 08:59 Q246 -> done — gate 40s @9722b809
+- 2026-10-07 09:00 Q334 added
+- 2026-10-07 09:00 Q334 -> tuur — awaiting sitting
