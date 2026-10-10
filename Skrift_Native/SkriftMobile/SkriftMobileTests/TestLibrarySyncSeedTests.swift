@@ -145,7 +145,8 @@ final class TestLibrarySyncSeedTests: XCTestCase {
     }
 
     func testTheSeederFilesAreEntirelyDebugOnly() throws {
-        for file in ["Shared/Corpus/TestLibrarySync.swift", "Shared/Corpus/PerfLibrarySeeder.swift",
+        for file in ["Shared/Corpus/TestLibrarySync.swift", "Shared/Corpus/TestLibraryRunner.swift",
+                     "Shared/Corpus/PerfLibrarySeeder.swift",
                      "SkriftMobile/Features/Settings/TestLibrarySettingsSection.swift",
                      "SkriftDesktop/Features/Settings/TestLibraryMacSection.swift"] {
             let text = try source(file).trimmingCharacters(in: .whitespacesAndNewlines)

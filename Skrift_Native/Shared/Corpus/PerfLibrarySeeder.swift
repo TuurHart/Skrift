@@ -32,6 +32,11 @@ enum PerfLibrarySeeder {
         /// The phone leaves the other ~1,540 recordings without a file (3 minutes of audio each
         /// is not what a speed sweep measures).
         var tinyAudioForEveryRecording = false
+        /// Q336: stamp every note's metadata with `testLibrary: true` (the removable-test-notes marker).
+        var markAsTestLibrary = false
+        /// Q336: ids already in the store. Their notes (and assets) are generated, so every random
+        /// draw stays in step, but not inserted again: seeding twice never duplicates.
+        var skipIDs: Set<UUID> = []
 
         var voice: Int { total * 70 / 100 }
         var conversations: Int { total * 10 / 100 }
@@ -255,6 +260,7 @@ enum PerfLibrarySeeder {
             if kind == .link || kind == .typed { transcriptStatus = .done }
 
             metadata.tags = pickTags(rng: &rng)
+            if plan.markAsTestLibrary { metadata.testLibrary = true }
             let metadataData = blob(metadata, mediaSource: mediaSource)
             let transcript: String? = (kind == .link) ? nil : paragraphs.joined(separator: "\n\n")
 
@@ -349,6 +355,7 @@ enum PerfLibrarySeeder {
         var summary = Summary()
         summary.linkSources = linkSources
         for (i, e) in entries.enumerated() {
+            if plan.skipIDs.contains(e.memo.id) { continue }
             context.insert(e.memo)
             for a in e.assets {
                 context.insert(a)
