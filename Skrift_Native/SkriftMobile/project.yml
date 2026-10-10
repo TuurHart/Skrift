@@ -68,7 +68,7 @@ settings:
     # VERSION — bump HERE, once. The app + SkriftWidget + SkriftShare take their
     # version from these two through $(SKRIFT_BUILD) in their Info.plist properties.
     SKRIFT_MARKETING_VERSION: "0.2.0"
-    SKRIFT_BUILD: "181"
+    SKRIFT_BUILD: "182"
 
 targets:
   SkriftMobile:
