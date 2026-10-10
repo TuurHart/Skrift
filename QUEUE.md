@@ -2501,7 +2501,7 @@ do: -
 check: The Q333 triage opens your real Notes database (row count, first batch shows real titles), or the start screen names the exact error.
 ask: Give Skrift Dev Full Disk Access (System Settings > Privacy & Security), then on the Mac open Import > Apple Notes…. Does it show your notes in batches of 10, or what does the start screen say?
 
-### Q336 [auto] (doing) Skrift Dev fills its own synced store with the fake test library, on phone and Mac, and can remove it again
+### Q336 [auto] (done) Skrift Dev fills its own synced store with the fake test library, on phone and Mac, and can remove it again
 spec: -
 needs: -
 gate+: yes
@@ -3661,3 +3661,4 @@ check: `plan/mtest.sh TestLibrarySyncSeedTests`
 - 2026-10-07 09:07 Q335 -> tuur — awaiting sitting
 - 2026-10-10 20:37 Q336 added
 - 2026-10-10 20:37 Q336 -> doing — worker out
+- 2026-10-10 20:59 Q336 -> done — gate 53s @87fe9d71
