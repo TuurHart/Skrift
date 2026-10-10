@@ -248,7 +248,10 @@ struct SettingsView: View {
             section("Weather") { weatherSection }
             syncSection
             section(RetrievalGate.Copy.settingTitle) { connectionsSection }
-            section("Names · \(displayPeople.count)") {
+            #if DEBUG
+            section(TestLibraryRunner.Copy.sectionTitle) { TestLibraryMacSection(interactive: interactive) }
+            #endif
+            section("Names ·\(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)

@@ -171,6 +171,10 @@ struct SettingsView: View {
                     }
                 }
 
+                #if DEBUG
+                TestLibrarySettingsSection()
+                #endif
+
                 Section("Appearance") {
                     Picker("Theme", selection: $appTheme) {
                         Text("Light").tag("light")

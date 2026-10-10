@@ -67,6 +67,11 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// Idea / Project. ADDITIVE + optional - nil on every other memo.
     var videoFilename: String?
 
+    /// Q336: set to true on every note the DEBUG "Fill with test notes" action creates, so
+    /// "Remove test notes" can delete exactly those on every device. ADDITIVE + optional - nil on
+    /// every real note; an older decoder ignores the key.
+    var testLibrary: Bool?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
