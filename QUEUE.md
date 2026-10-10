@@ -2501,6 +2501,13 @@ do: -
 check: The Q333 triage opens your real Notes database (row count, first batch shows real titles), or the start screen names the exact error.
 ask: Give Skrift Dev Full Disk Access (System Settings > Privacy & Security), then on the Mac open Import > Apple Notes…. Does it show your notes in batches of 10, or what does the start screen say?
 
+### Q336 [auto] (doing) Skrift Dev fills its own synced store with the fake test library, on phone and Mac, and can remove it again
+spec: -
+needs: -
+gate+: yes
+do: Tuur 2026-10-10: Skrift Dev is the test environment and should carry the fake notes everywhere; his real notes (incl. the Apple Notes import) go in the real Skrift only. Today the Q313 perf library (Shared/Corpus/PerfLibrarySeeder.swift, `-perfLibrary`) seeds a SEPARATE never-synced store, so the 2,000 fake notes only live on the iPhone 13. Add a DEBUG-only Settings action on phone/iPad and Mac Dev: 'Fill with test notes' seeds the same deterministic library into the NORMAL Dev store, so it syncs through the Dev CloudKit environment to every Dev device (memos, assets, the 150 fake people into the Dev names DB). Every seeded memo carries a marker (e.g. metadata `testLibrary: true`) and 'Remove test notes' deletes exactly the marked ones everywhere (soft-delete path, then purge) and their fake people. Seeding twice never duplicates (deterministic ids). Never compiled into Release (#if DEBUG, checked by a test). Keep `-perfLibrary` working for perf traces. Tests: `TestLibrarySyncSeedTests` (phone target: seeds into the given store with the marker; idempotent; remove deletes only marked notes and fake people; Release guard). Mac: full build + headless -snapshot of the Settings row you look at. Never run any Mac UI test.
+check: `plan/mtest.sh TestLibrarySyncSeedTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3652,3 +3659,5 @@ ask: Give Skrift Dev Full Disk Access (System Settings > Privacy & Security), th
 - 2026-10-07 09:06 Q333 -> done — gate 44s @f960a37a
 - 2026-10-07 09:07 Q335 added
 - 2026-10-07 09:07 Q335 -> tuur — awaiting sitting
+- 2026-10-10 20:37 Q336 added
+- 2026-10-10 20:37 Q336 -> doing — worker out
