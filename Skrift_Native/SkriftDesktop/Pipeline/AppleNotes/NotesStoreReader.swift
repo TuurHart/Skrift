@@ -14,6 +14,8 @@ struct AppleNoteSummary: Identifiable, Equatable, Sendable {
     var created: Date?
     var modified: Date?
     var isLocked: Bool
+    /// `ZTITLE2` of the folder row the note sits in (nil = unknown / no folder column).
+    var folder: String? = nil
 }
 
 /// Q333 (route 1, signed in mocks/Q71-apple-notes-triage-v3.html): the Mac reads Apple Notes'
@@ -23,7 +25,11 @@ struct AppleNoteSummary: Identifiable, Equatable, Sendable {
 /// Column names drift across macOS releases (creation date lives in `ZCREATIONDATE1/2/3`, the
 /// note link in `ZNOTE` or `ZNOTE1`), so every optional column is looked up in
 /// `PRAGMA table_info` first and left out of the query when absent.
-final class NotesStoreReader {
+final class NotesStoreReader: @unchecked Sendable {   // every sqlite call is serialised by `lock`
+
+    /// Shown on the denied screen and in the copy error: Full Disk Access only takes effect on a fresh launch.
+    static let fullDiskAccessHint = "Give Skrift Full Disk Access in System Settings > Privacy & Security, then quit and reopen Skrift."
+    static let tempPrefix = "skrift-notes-"
 
     struct Failure: Error, LocalizedError, Equatable {
         enum Kind: Equatable { case denied, missing, cannotOpen, schema }
@@ -46,13 +52,15 @@ final class NotesStoreReader {
 
     private var db: OpaquePointer?
     private let workDir: URL
+    private let lock = NSLock()
     private var noteCols: Set<String> = []
     private var objCols: Set<String> = []
 
     /// Copies `source` (and its WAL/SHM when present), then opens the copy read-only.
     init(copying source: URL = NotesStoreReader.defaultStoreURL) throws {
         let fm = FileManager.default
-        workDir = fm.temporaryDirectory.appendingPathComponent("skrift-notes-\(UUID().uuidString)", isDirectory: true)
+        Self.sweepStaleCopies()
+        workDir = fm.temporaryDirectory.appendingPathComponent("\(Self.tempPrefix)\(UUID().uuidString)", isDirectory: true)
         try fm.createDirectory(at: workDir, withIntermediateDirectories: true)
         let dest = workDir.appendingPathComponent("NoteStore.sqlite")
         do {
@@ -81,6 +89,22 @@ final class NotesStoreReader {
         }
     }
 
+    /// A crash or a force-quit leaves its database copy behind. Removes `skrift-notes-*` folders in `dir`
+    /// not touched for `olderThan` seconds (6 hours; a copy in use is far younger). Returns how many went.
+    @discardableResult
+    static func sweepStaleCopies(in dir: URL = FileManager.default.temporaryDirectory,
+                                 olderThan age: TimeInterval = 6 * 3600, now: Date = Date()) -> Int {
+        let fm = FileManager.default
+        guard let items = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return 0 }
+        var removed = 0
+        for url in items where url.lastPathComponent.hasPrefix(tempPrefix) {
+            let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            guard let modified, now.timeIntervalSince(modified) > age else { continue }
+            if (try? fm.removeItem(at: url)) != nil { removed += 1 }
+        }
+        return removed
+    }
+
     deinit {
         if let db { sqlite3_close(db) }
         try? FileManager.default.removeItem(at: workDir)
@@ -93,7 +117,7 @@ final class NotesStoreReader {
         let denied = posix == EPERM || posix == EACCES
             || ns.code == NSFileReadNoPermissionError || ns.code == NSFileWriteNoPermissionError
         if denied {
-            return Failure(kind: .denied, detail: "Give Skrift Full Disk Access in System Settings > Privacy & Security, then try again. (\(ns.localizedDescription))")
+            return Failure(kind: .denied, detail: "\(fullDiskAccessHint) (\(ns.localizedDescription))")
         }
         if ns.code == NSFileReadNoSuchFileError || ns.code == NSFileNoSuchFileError {
             return Failure(kind: .missing, detail: source.path)
@@ -106,7 +130,8 @@ final class NotesStoreReader {
     /// Every live note: not in the trash folder, not marked for deletion. Locked notes are
     /// returned flagged (`isLocked`) so the UI can say how many stayed behind; the triage never offers them.
     func listNotes() throws -> [AppleNoteSummary] {
-        let created = ["ZCREATIONDATE3", "ZCREATIONDATE1", "ZCREATIONDATE2", "ZCREATIONDATE"].filter { objCols.contains($0) }
+        // Creation date: 3, then 2, then 1 (the Obsidian importer's order: ZCREATIONDATE3 || 2 || 1).
+        let created = ["ZCREATIONDATE3", "ZCREATIONDATE2", "ZCREATIONDATE1", "ZCREATIONDATE"].filter { objCols.contains($0) }
         let modified = ["ZMODIFICATIONDATE1", "ZMODIFICATIONDATE"].filter { objCols.contains($0) }
         let createdExpr = Self.firstOf(created.map { "o.\($0)" })
         let modifiedExpr = Self.firstOf(modified.map { "o.\($0)" })
@@ -116,12 +141,14 @@ final class NotesStoreReader {
         var wheres = ["o.ZIDENTIFIER IS NOT NULL"]
         if objCols.contains("ZMARKEDFORDELETION") { wheres.append("COALESCE(o.ZMARKEDFORDELETION,0) = 0") }
         var join = ""
+        var folderExpr = "NULL"
         if objCols.contains("ZFOLDER"), objCols.contains("ZFOLDERTYPE") {
             join = "LEFT JOIN ZICCLOUDSYNCINGOBJECT f ON f.Z_PK = o.ZFOLDER"
+            if objCols.contains("ZTITLE2") { folderExpr = "f.ZTITLE2" }
             wheres.append("COALESCE(f.ZFOLDERTYPE,0) <> 1")   // 1 = Recently Deleted
         }
         let sql = """
-            SELECT o.Z_PK, o.ZIDENTIFIER, \(titleExpr), \(snippetExpr), \(createdExpr), \(modifiedExpr), \(lockedExpr)
+            SELECT o.Z_PK, o.ZIDENTIFIER, \(titleExpr), \(snippetExpr), \(createdExpr), \(modifiedExpr), \(lockedExpr), \(folderExpr)
             FROM ZICNOTEDATA d JOIN ZICCLOUDSYNCINGOBJECT o ON o.Z_PK = d.ZNOTE \(join)
             WHERE \(wheres.joined(separator: " AND "))
             """
@@ -132,7 +159,7 @@ final class NotesStoreReader {
                 id: String(cString: idc), pk: sqlite3_column_int64(st, 0),
                 title: Self.text(st, 2) ?? "Untitled", snippet: Self.text(st, 3) ?? "",
                 created: Self.coreDataDate(st, 4), modified: Self.coreDataDate(st, 5),
-                isLocked: sqlite3_column_int(st, 6) != 0))
+                isLocked: sqlite3_column_int(st, 6) != 0, folder: Self.text(st, 7)))
         }
         return out
     }
@@ -148,22 +175,21 @@ final class NotesStoreReader {
             }
         }
         guard let data else { return nil }
-        return NotesBodyDecoder.decode(zdata: data, altText: inlineAltText(forNote: note.pk))
+        return NotesBodyDecoder.decode(zdata: data, altText: inlineAltText(ids: NotesBodyDecoder.inlineAttachmentIDs(zdata: data)))
     }
 
-    /// `identifier → "#tag"` for the note's inline hashtag / mention / link attachments.
-    private func inlineAltText(forNote pk: Int64) -> [String: String] {
-        let noteCols = ["ZNOTE", "ZNOTE1"].filter { objCols.contains($0) }
-        let utiCols = ["ZTYPEUTI", "ZTYPEUTI1"].filter { objCols.contains($0) }
-        guard !noteCols.isEmpty, !utiCols.isEmpty else { return [:] }
+    /// `identifier → "#tag"` for the inline hashtag / mention / link attachments the note's runs name.
+    /// Looked up by the attachment's own `ZIDENTIFIER` (the runs carry it), so it does not depend on which
+    /// of ZNOTE / ZNOTE1 this macOS release puts the owning note in.
+    private func inlineAltText(ids: [String]) -> [String: String] {
+        guard !ids.isEmpty else { return [:] }
         var textParts: [String] = []
         if objCols.contains("ZALTTEXT") { textParts.append("ZALTTEXT") }
         if objCols.contains("ZTOKENCONTENTIDENTIFIER") { textParts.append("'#' || ZTOKENCONTENTIDENTIFIER") }
         guard !textParts.isEmpty else { return [:] }
         let sql = """
             SELECT ZIDENTIFIER, \(Self.firstOf(textParts)) FROM ZICCLOUDSYNCINGOBJECT
-            WHERE (\(noteCols.map { "\($0) = \(pk)" }.joined(separator: " OR ")))
-              AND (\(utiCols.map { "\($0) LIKE 'com.apple.notes.inlinetextattachment.%'" }.joined(separator: " OR ")))
+            WHERE ZIDENTIFIER IN (\(ids.map { "'" + $0.replacingOccurrences(of: "'", with: "''") + "'" }.joined(separator: ",")))
             """
         var out: [String: String] = [:]
         try? query(sql) { st in
@@ -192,6 +218,7 @@ final class NotesStoreReader {
     }
 
     private func query(_ sql: String, row: (OpaquePointer) -> Void) throws {
+        lock.lock(); defer { lock.unlock() }
         var st: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &st, nil) == SQLITE_OK, let st else {
             let msg = db.map { String(cString: sqlite3_errmsg($0)) } ?? "no db"

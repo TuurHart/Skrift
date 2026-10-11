@@ -185,6 +185,11 @@ final class PipelineFile {
     /// Additive + defaulted → existing stores migrate lightweight.
     var isLocalImport: Bool = false
 
+    /// Q337: the Apple Notes `ZIDENTIFIER` this row was imported from (Mac triage). A retried
+    /// import finds the row by it and reuses it instead of minting a second note. Mac-local; not on the
+    /// synced Memo. Additive + defaulted → existing stores migrate lightweight.
+    var appleNoteID: String? = nil
+
     /// A row born on THIS Mac (recorded or imported) rather than synced from the phone.
     var isLocalCapture: Bool { isLocalRecording || isLocalImport }
 

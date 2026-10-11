@@ -138,7 +138,7 @@ struct AppleNotesTriageView: View {
         centered {
             Image(systemName: "lock.shield").font(.system(size: 28)).foregroundStyle(Theme.accentText)
             Text("Allow Skrift to read your Notes").font(.system(size: 15, weight: .semibold))
-            Text("Skrift reads a copy of the Notes database on this Mac, so it can tell notes apart even after you rename them. It never changes Notes. Turn on Full Disk Access for Skrift, then try again.")
+            Text("Skrift reads a copy of the Notes database on this Mac, so it can tell notes apart even after you rename them. It never changes Notes. Turn on Full Disk Access for Skrift in Privacy Settings, then quit and reopen Skrift. The permission only takes effect on a fresh launch.")
                 .font(.system(size: 13)).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center).frame(maxWidth: 420)
             HStack {
                 Button("Open Privacy Settings") {
@@ -163,12 +163,14 @@ struct AppleNotesTriageView: View {
                         .background(Theme.accent.opacity(0.13), in: RoundedRectangle(cornerRadius: 6))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Reading Apple Notes on your Mac").font(.system(size: 14))
-                        Text("\(c.total) notes · one list, no folders · read \(readAgo) · Full Disk Access on")
+                        Text("\(c.total) notes · \(model.hasFolders ? "\(model.folderNames.count) folders" : "one list, no folders") · read \(readAgo) · Full Disk Access on")
                             .font(.system(size: 12.5)).foregroundStyle(Theme.textSecondary)
                     }
                 }
                 hint("New notes you write in Notes show up here by themselves.")
-                hint("Your Notes are one flat list, so there is no folder step and Skrift adds no folder tags.")
+                hint(model.hasFolders
+                     ? "Your notes sit in \(model.folderNames.count) folders. Skrift reads them as one list and adds no folder tags."
+                     : "Your Notes are one flat list, so there is no folder step and Skrift adds no folder tags.")
                 if c.lockedLeftBehind > 0 { hint("\(c.lockedLeftBehind) locked note\(c.lockedLeftBehind == 1 ? "" : "s") stay\(c.lockedLeftBehind == 1 ? "s" : "") behind. Skrift cannot read them.") }
             }
             card {
@@ -223,6 +225,7 @@ struct AppleNotesTriageView: View {
     private func preview(_ n: AppleNoteSummary) -> some View {
         let d = model.decision(n.id)
         let body = model.body(of: n)
+        let pending = model.bodyPending(n.id)
         let dim = d?.kind == .skipped || d?.kind == .never
         return card {
             if let s = stamp(d) { s }
@@ -232,7 +235,7 @@ struct AppleNotesTriageView: View {
                 ForEach(AppleNotesTags.map(body?.tags ?? [], library: model.libraryTags()), id: \.self) { chip("#\($0)", .accent) }
             }
             Text(n.title).font(.system(size: 18, weight: .bold))
-            ForEach(Array(previewLines(body, title: n.title).enumerated()), id: \.offset) { _, l in
+            ForEach(Array(previewLines(body, title: n.title, pending: pending).enumerated()), id: \.offset) { _, l in
                 Text(l).font(.system(size: 14.5)).fixedSize(horizontal: false, vertical: true)
             }
             if let m = body?.media, !m.isEmpty {
@@ -241,10 +244,11 @@ struct AppleNotesTriageView: View {
             if body != nil, !(body?.tags.isEmpty ?? true) { Text("Notes tags become Skrift tags.").font(.system(size: 12)).foregroundStyle(Theme.textSecondary) }
         }
         .opacity(dim ? 0.55 : 1)
+        .onAppear { model.ensureBody(n.id) }
     }
 
-    private func previewLines(_ body: NotesBodyDecoder.Decoded?, title: String) -> [String] {
-        guard let body else { return ["This note's text could not be read."] }
+    private func previewLines(_ body: NotesBodyDecoder.Decoded?, title: String, pending: Bool = false) -> [String] {
+        guard let body else { return [pending ? "Reading the note…" : "This note's text could not be read."] }
         var lines = body.markdown.components(separatedBy: "\n").filter { !$0.isEmpty }
         if lines.first == "# " + title || lines.first?.hasPrefix("# ") == true { lines.removeFirst() }
         let shown = Array(lines.prefix(9))
@@ -356,11 +360,10 @@ struct AppleNotesTriageView: View {
         let c = model.counts
         let never = model.decided(.never)
         let inSkrift = model.decided(.rated, imported: true)
-        let unmapped = model.unmapped.values.reduce(NotesBodyDecoder.Media()) { a, m in
-            var r = a
-            r.pictures += m.pictures; r.drawings += m.drawings; r.scans += m.scans; r.tables += m.tables
-            r.pdfs += m.pdfs; r.audio += m.audio; r.video += m.video; return r
-        }
+        let safe = model.safeToDelete
+        let keep = model.keepInNotes
+        let waiting = model.waitingToImport
+        let unmapped = model.droppedTotals
         let undated = inSkrift.filter { $0.decision.created == nil }.count
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .bottom, spacing: 18) {
@@ -380,9 +383,19 @@ struct AppleNotesTriageView: View {
                 }
             }
             section("Now in Skrift")
-            listCard(key: "del", title: "Safe to delete in Apple Notes", count: inSkrift.count, countColor: Theme.green,
+            listCard(key: "del", title: "Safe to delete in Apple Notes", count: safe.count, countColor: Theme.green,
                      why: "Everything here is in Skrift. Skrift reads Notes, so each one drops off this list once you delete it there.",
-                     rows: inSkrift)
+                     rows: safe)
+            if !keep.isEmpty {
+                listCard(key: "keep", title: "In Skrift, but keep in Apple Notes", count: keep.count, countColor: Theme.amber,
+                         why: "The text is in Skrift. Pictures, drawings, scans, tables or files were not copied, so they only exist in Notes.",
+                         rows: keep)
+            }
+            if !waiting.isEmpty {
+                listCard(key: "wait", title: "Rated, not in Skrift yet", count: waiting.count, countColor: Theme.amber,
+                         why: (model.importFailures.values.first.map { "Their last import failed: \($0) " } ?? "Rated, but not imported yet. ") + "The next Next 10, or Import what I've decided, tries them again.",
+                         rows: waiting)
+            }
             section("Left in Apple Notes")
             VStack(spacing: 0) {
                 listCard(key: "nev", title: "Never import", count: never.count, countColor: Theme.textSecondary,

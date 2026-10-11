@@ -16,7 +16,7 @@ import Compression
 enum NotesBodyDecoder {
 
     /// What a decoded note carries beyond its words.
-    struct Media: Equatable, Sendable {
+    struct Media: Equatable, Sendable, Codable {
         var pictures = 0, drawings = 0, scans = 0, tables = 0, pdfs = 0, audio = 0, video = 0, other = 0, links = 0
         var checklistItems = 0, checklistDone = 0
         var isEmpty: Bool { self == Media() }
