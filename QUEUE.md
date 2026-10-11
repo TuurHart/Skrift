@@ -2536,7 +2536,7 @@ gate+: yes
 do: Tuur 2026-10-11, iPhone 17 Pro, Dev 183: tapping Fill with test notes showed 'building the index' for a long time and the screen behaved as if blocked, though the copy says it runs in the background; it did finish (~1,700 notes). Find what runs on the main actor during Fill (seeding, the semantic index build, or the list rebuild per insert) — Shared/Corpus/TestLibraryRunner.swift, TestLibrarySync.swift; move it off main or batch the inserts so the UI stays responsive, and make the status line honest. Test: `TestLibrarySyncSeedTests` extended: seeding inserts in batches and does not run on the main actor.
 check: `plan/mtest.sh TestLibrarySyncSeedTests`
 
-### Q341 [auto] (todo) FeedbackKit: tag every top-level phone/iPad screen and sheet with .feedbackScreen
+### Q341 [auto] (doing) FeedbackKit: tag every top-level phone/iPad screen and sheet with .feedbackScreen
 spec: -
 needs: -
 gate+: yes
@@ -3713,3 +3713,4 @@ check: `./gate.sh`
 - 2026-10-11 11:13 Q340 -> doing — re-accept: new tests move to an added extension file
 - 2026-10-11 11:29 Q339 -> done — gate 111s @7737e43c
 - 2026-10-11 11:31 Q340 -> done — gate 54s @ef0ce0a5
+- 2026-10-11 11:32 Q341 -> doing — worker out
