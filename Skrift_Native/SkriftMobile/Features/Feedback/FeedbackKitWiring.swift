@@ -7,7 +7,7 @@ import UIKit
 /// `Config/Feedback.xcconfig` (resolved from a file outside git). Phone + iPad only.
 enum FeedbackKitWiring {
     static let appID = "skrift"
-    static let privacyLine = "Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed."
+    static let privacyLine = SharedCopy.feedbackPrivacyLine
 
     /// Called once from `SkriftApp.init`.
     @MainActor

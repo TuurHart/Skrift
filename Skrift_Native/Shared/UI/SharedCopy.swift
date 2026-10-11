@@ -5,6 +5,9 @@ import Foundation
 /// `feedback_shared_code_first`). Internal identifiers (types, keys, file
 /// names) deliberately do NOT follow display renames.
 enum SharedCopy {
+    /// Under Send in the FeedbackKit sheet on both apps (Q299 phone, Q342 Mac).
+    static let feedbackPrivacyLine = "Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed."
+
     /// The review/journal surface: the phone tab + screen title, the Mac's
     /// sidebar mode pill + column header. Display name "Review" (Tuur,
     /// 2026-07-07; Mac holdouts fixed 2026-07-16).

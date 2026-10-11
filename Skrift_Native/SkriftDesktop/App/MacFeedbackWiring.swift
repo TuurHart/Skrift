@@ -7,7 +7,7 @@ import SwiftUI
 /// The app is unsandboxed, so the kit needs no extra entitlements.
 enum MacFeedbackWiring {
     static let appID = "skrift"
-    static let privacyLine = "Private, only Tuur reads it. Voice notes are deleted 30 days after they are transcribed."
+    static let privacyLine = SharedCopy.feedbackPrivacyLine
 
     /// Called once from `SkriftDesktopApp.init`, after the headless modes have had their turn.
     /// Never in a headless run or an XCTest host: the kit adds a child window to every titled window.
