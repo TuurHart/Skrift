@@ -3725,3 +3725,5 @@ check: `./gate.sh`
 - 2026-10-11 12:17 Q338 -> done — hand-merged (Tuur approved 2026-10-11: protected tests that pin four destinations rewritten to Personal/Portfolio (D189), incl. destination-only lines in 10 more test files after the aliases were removed)
 - 2026-10-11 12:21 Q342 added
 - 2026-10-11 12:48 Q342 -> doing — worker out (FeedbackKit macOS on netcup-server main 640f04c)
+- 2026-10-11 12:59 Q342 -> stuck — gate failed — .queue/Q342.gate.log
+- 2026-10-11 13:00 Q342 -> doing — fix: shared privacy line (twin-check)
