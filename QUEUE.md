@@ -2515,21 +2515,21 @@ gate+: yes
 do: Review of Q333 (2026-10-11, read-only, paths under Skrift_Native/SkriftDesktop/). Fix all of these, each with a fixture-backed test: (1 BLOCKER) NotesBodyDecoder.swift:126-133 reads Note at top-level field 3, but real ZDATA is NoteStoreProto{2: Document{2: version, 3: Note}} (apple_cloud_notes_parser proto/notestore.proto): descend into field 2 when present; the fixture must write the real wrapper (AppleNotesTriageTests.swift:51 writes the bare Document today). (2) NotesBodyDecoder.swift:265-275 paragraph styles: 100 dotted and 101 dashed → '- ', 102 numbered, 103 checkbox (with tick state from Todo), 4 monospaced → plain or code fence; fix the test at :337-339. (3) a rated note whose body is nil or whose import throws must stay retryable: pendingImports scans ALL rated decisions with skriftID == nil, not only the open batch (AppleNotesTriage.swift:134-147, TriageModel.swift:184-191), and the report lists them. (4) idempotent import: persist() after every markImported (TriageModel.swift:154-156), and store the Notes ZIDENTIFIER on the PipelineFile/Memo so a retry reuses the existing note instead of minting a new UUID (AppleNotesImporter.swift:26, :41-48). (5) a note whose media was dropped (pictures etc.) never appears under 'Safe to delete in Apple Notes' (TriageView.swift:357,383); persist `unmapped` in TriageDecision so it survives a relaunch. (6) cap the sanitised title in the import folder name at 80 characters (AppleNotesImporter.swift:27-28). (7) hashtag alt-text lookup by the attachment ZIDENTIFIER from the runs, not ZNOTE/ZNOTE1 (NotesStoreReader.swift:155-172). (8) denied-screen copy: grant Full Disk Access, then quit and reopen Skrift (TriageView.swift:141). (9) sweep stale $TMPDIR/skrift-notes-* copies at load (NotesStoreReader.swift:84-87); Never-import decisions store only the UUID, no title (AppleNotesTriage.swift:14-15). Also: creation-date order 3→2→1 like the Obsidian importer; the 'one flat list, no folders' text only when there really are no folders (TriageView.swift:166,171); decode bodies off the main thread (TriageModel.swift:100). Never open the real Notes database or ~/Library/Application Support/Skrift/. Mac proof = desktop UnitTests + full build + headless -snapshot you look at; never run any Mac UI test.
 check: `./gate.sh`
 
-### Q338 [auto] (todo) two destinations: Personal and Portfolio; idea / inspiration / project become preset tags (D189)
+### Q338 [auto] (doing) two destinations: Personal and Portfolio; idea / inspiration / project become preset tags (D189)
 spec: -
 needs: -
 gate+: yes
 do: Build SPEC D189 exactly as `~/Hackerman/Tiurihartog.com/docs/SKRIFT-REQUEST.md` section 'DO THIS NOW' lists (read it first; the rest of that file is history): NoteDestination = .personal/.portfolio, .portfolio exports to `<root>/_inbox/`; old idea/inspiration/project values decode as .portfolio + that tag (do NOT read Tuur's real data to check; just make the decode safe); the chip row keeps the PRIVATE ¦ PORTFOLIO divider with two chips, and when Portfolio is picked shows idea / inspiration / project as one-tap tag presets beside `+ add tag`; NoteDestination.reserved stops routing; `needs: - credit` keyed on the inspiration tag (Compiler.swift ~127); drop `summary:` from the portfolio profile; everything else in that list unchanged. Q332/D188 video rule: every video keeps and syncs its movie; the portfolio export copies the movie for Portfolio notes. Phone, iPad and Mac, shared code first. Screen proof: sim screenshot of the chip row (Personal; Portfolio with presets) and a Mac -snapshot, both LOOKED at. Tests: `TwoDestinationsTests` (decode of old values, export path `_inbox/<slug>.md` with media beside it and preset tags in `tags:`, credit rule) on phone and Mac. Update FEATURES.md 'Four export destinations' row.
 check: `./gate.sh`
 
-### Q339 [auto] (todo) Dynamic Island: the live recording waveform does not move (Lock Screen fine)
+### Q339 [auto] (doing) Dynamic Island: the live recording waveform does not move (Lock Screen fine)
 spec: -
 needs: -
 gate+: yes
 do: Tuur 2026-10-11 on the iPhone 17 Pro, Dev 183 (after Q232 moved RecordingActivityAttributes into Services/Recording): the Live Activity shows on the Lock Screen and in the Dynamic Island, but the Dynamic Island waveform stays still. Find why (ContentState not updated for the island, an update throttle, or the island view not animating a timeline) in SkriftWidget/SkriftLiveActivity.swift and Services/Recording/RecordingActivityManager.swift; fix; keep the existing update throttle budget. Hardware-flavoured: add a DevLog line per activity update so the device trace proves it. Test: `RecordingActivityCaptionTests` still passes plus a unit test on whatever state the island reads.
 check: `plan/mtest.sh RecordingActivityCaptionTests`
 
-### Q340 [auto] (todo) 'Fill with test notes' blocks while 'building the index' although it says it runs in the background
+### Q340 [auto] (doing) 'Fill with test notes' blocks while 'building the index' although it says it runs in the background
 spec: -
 needs: -
 gate+: yes
@@ -3705,3 +3705,6 @@ check: `./gate.sh`
 - 2026-10-11 10:31 Q274 -> done — Tuur 2026-10-11: mic off → one 'microphone is off / Open Settings' alert, re-enabled, recorded fine (silent-take half not tried)
 - 2026-10-11 10:31 Q334 -> done — Tuur 2026-10-11: Lock Screen + Dynamic Island show; island waveform does not move → new item
 - 2026-10-11 10:33 Q341 added
+- 2026-10-11 10:34 Q338 -> doing — worker out
+- 2026-10-11 10:34 Q339 -> doing — worker out
+- 2026-10-11 10:34 Q340 -> doing — worker out
