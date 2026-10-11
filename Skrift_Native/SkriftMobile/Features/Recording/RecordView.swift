@@ -588,7 +588,10 @@ struct RecordView: View {
         }
         // Append mode: fold the new clip into an existing memo, stay on it.
         if let appendTo {
-            saver.appendRecording(to: appendTo, tempURL: result.url, liveCaption: result.liveCaption)
+            // Q343: a photo taken mid-append used to be dropped here (only the new-note
+            // branch below took the camera's photos).
+            saver.appendRecording(to: appendTo, tempURL: result.url, liveCaption: result.liveCaption,
+                                  photos: camera.takeAll())
             Haptics.success()
             onSaved(appendTo)
             dismiss()
