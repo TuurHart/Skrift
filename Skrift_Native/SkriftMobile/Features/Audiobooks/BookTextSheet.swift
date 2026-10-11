@@ -64,7 +64,8 @@ struct BookTextSheet: View {
     private var perText: [BookTextSummary.PerText] { summary?.perText ?? [] }
     private var bookDuration: TimeInterval { summary?.bookDuration ?? book.duration }
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Text") }   // Q341
+    @ViewBuilder private var screenBody: some View {
         ZStack {
             Color.skSurface.ignoresSafeArea()
             VStack(spacing: 0) {

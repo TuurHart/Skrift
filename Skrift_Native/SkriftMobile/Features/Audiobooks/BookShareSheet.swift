@@ -27,7 +27,8 @@ struct BookShareSheet: View {
         totalBytes = BookBundle.estimatedSize(book: book, folder: AudiobookLibraryStore.shared.folder(for: book.id))
     }
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Share book") }   // Q341
+    @ViewBuilder private var screenBody: some View {
         BookTransferSheet(
             id: "book-share-sheet", detent: 280,
             title: book.title,
