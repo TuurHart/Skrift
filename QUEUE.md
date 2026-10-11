@@ -2536,6 +2536,13 @@ gate+: yes
 do: Tuur 2026-10-11, iPhone 17 Pro, Dev 183: tapping Fill with test notes showed 'building the index' for a long time and the screen behaved as if blocked, though the copy says it runs in the background; it did finish (~1,700 notes). Find what runs on the main actor during Fill (seeding, the semantic index build, or the list rebuild per insert) — Shared/Corpus/TestLibraryRunner.swift, TestLibrarySync.swift; move it off main or batch the inserts so the UI stays responsive, and make the status line honest. Test: `TestLibrarySyncSeedTests` extended: seeding inserts in batches and does not run on the main actor.
 check: `plan/mtest.sh TestLibrarySyncSeedTests`
 
+### Q341 [auto] (todo) FeedbackKit: tag every top-level phone/iPad screen and sheet with .feedbackScreen
+spec: -
+needs: -
+gate+: yes
+do: ~/Hackerman/netcup-server/ADOPTING.md step 5: put `.feedbackScreen("<Name>")` on each top-level screen and sheet so a feedback note says which screen it came from. Today only QuoteCaptureFlowView, AudiobookPlayerView and RecordView carry it. Add: Notes list, note screen, quick note, Books/Library, Review/Journal, Settings, Names, the share sheet's card, the Text sheet, the tag editor sheet, the person editor. Names are short and plain ('Notes', 'Note', 'Books', 'Review', 'Settings', …). Also confirm FeedbackKitWiring.swift passes nothing that disables the new previews/status features. Test: a UI test that opens the feedback sheet from the Notes list and asserts 'From the Notes screen' (phone sim, `-skipOnboarding`).
+check: `./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3697,3 +3704,4 @@ check: `plan/mtest.sh TestLibrarySyncSeedTests`
 - 2026-10-11 10:31 Q340 added
 - 2026-10-11 10:31 Q274 -> done — Tuur 2026-10-11: mic off → one 'microphone is off / Open Settings' alert, re-enabled, recorded fine (silent-take half not tried)
 - 2026-10-11 10:31 Q334 -> done — Tuur 2026-10-11: Lock Screen + Dynamic Island show; island waveform does not move → new item
+- 2026-10-11 10:33 Q341 added

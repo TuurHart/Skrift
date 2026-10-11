@@ -139,6 +139,7 @@ Rules:
   toggle also deleted the duration-match + merge paths; signed off + built 2026-08-01/08-11,
   round-trip proven on device, roadmap node `BookShare` done 2026-08-12). A mock the user approved
   IS the spec — build to it.
+- **User feedback (FeedbackKit, app id `skrift`):** run `~/Hackerman/netcup-server/tools/feedback.sh pull skrift`, then read `~/.feedback/skrift/FEEDBACK.md`. When you act on a note, tell its sender: `~/Hackerman/netcup-server/tools/feedback.sh status skrift <note-id> <received|planned|done|wontdo> 'one-line reply'`. Mark done only once a TestFlight build has the fix, and name the build in the reply. A feature built from feedback ships behind a FeedbackKit preview first (`~/Hackerman/netcup-server/ADOPTING.md` step 7): owner's phone only, labelled Under construction. On `preview <id>: keep` in FEEDBACK.md remove the flag; on `drop` remove the code.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
   MANDATORY second-agent verify → triage into BUGS.md (bugs) and SPEC.md Decisions (verdicts). Crash logs via `idevicecrashreport`.
