@@ -209,7 +209,9 @@ enum CorpusSeed {
             nameResolutionsData: nil,
             recordingDeviceID: n.recordingDeviceID ?? "corpus-phone-0001"
         )
-        memo.destination = NoteDestination(rawValue: n.destination) ?? .personal
+        let decoded = NoteDestination.decode(n.destination)
+        memo.destination = decoded.destination
+        if let tag = decoded.legacyTag { memo.tags = NoteDestination.withTag(tag, in: memo.tags) }
         memo.locked = n.locked
         memo.trashSeenAt = date(n.trashSeenAt)
         memo.keptAt = date(n.keptAt)

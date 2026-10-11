@@ -88,7 +88,10 @@ struct NoteProperties: View {
             // phone — no extra sync call needed here.
             TagEditorRow(tags: $file.tags, library: tagLibrary,
                          style: .mac, libraryCounts: tagCounts,
-                         onToast: onTagToast)
+                         onToast: onTagToast,
+                         // D189: idea / inspiration / project, one click each, Portfolio only.
+                         presets: DestinationSettings.isEnabled && file.destination.isPortfolio
+                             ? PortfolioTagPresets.all : [])
             // Q85 (signed mock Q75-note-header-final, behaviour A): importance is ONE pill,
             // each tap steps Not rated → Passing → Useful → Important → Not rated (C88), a
             // toast names the step; the orange fading line sits beside it when unrated.
@@ -115,6 +118,9 @@ struct NoteProperties: View {
             }
         }
         .onChange(of: file.id, initial: true) { _, _ in
+            // An old stored idea / inspiration / project becomes Portfolio + that tag, and the
+            // synced Memo follows (the tags mirror below carries the tag).
+            if file.adoptLegacyDestination() { MacCloudMetaSync.setDestination(file.destination, for: file) }
             selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
             refreshTagCounts()
             refreshFadingLine()

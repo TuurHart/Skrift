@@ -60,6 +60,10 @@ struct TagEditorRow: View {
     /// `@State private var tagToast: TagToast?`, sets it here, and renders
     /// `TagUndoToastView` at the SCREEN level — see that view's doc.
     var onToast: (TagToast?) -> Void = { _ in }
+    /// D189: one-tap tag presets drawn beside `+ add tag` (idea / inspiration / project while a
+    /// note is Portfolio). A preset the note already carries is its tag chip instead, so only the
+    /// missing ones show. Empty = none (every Personal note, and every note with destinations off).
+    var presets: [String] = []
 
     /// One removal's Undo state, reported to the caller via `onToast`. `undo()`
     /// closes over this row's own `tags` binding, so the caller doesn't need to
@@ -83,6 +87,28 @@ struct TagEditorRow: View {
     @FocusState private var fieldFocused: Bool
 
     private var typed: String { draft.trimmingCharacters(in: .whitespaces) }
+
+    private var missingPresets: [String] {
+        presets.filter { p in !tags.contains { $0.caseInsensitiveCompare(p) == .orderedSame } }
+    }
+
+    /// A dashed `+ idea` chip: one tap adds the tag through the same path as typing it.
+    @ViewBuilder private func presetChip(_ tag: String) -> some View {
+        Button {
+            armed = nil
+            commit([tag])
+        } label: {
+            Text("+ \(tag)").font(.system(size: 12))
+                .foregroundStyle(style.textColor)
+                .padding(.horizontal, style.chipHPad).frame(height: style.chipHeight)
+                .overlay(Capsule().strokeBorder(style.borderColor,
+                                                style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+                .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("tag-preset-\(tag)" + idSuffix)
+        .accessibilityLabel("Add tag \(tag)")
+    }
 
     private var matches: [String] {
         let t = typed.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
@@ -130,6 +156,7 @@ struct TagEditorRow: View {
             FlowLayout(spacing: 7, lineSpacing: 7) {
                 ForEach(tags, id: \.self) { chip($0) }
                 addControl
+                ForEach(missingPresets, id: \.self) { presetChip($0) }
             }
             if editing, style.usesDropdownMenu, !menuRows.isEmpty {
                 macMenu

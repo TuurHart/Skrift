@@ -1,74 +1,98 @@
 import Foundation
 
-/// WHERE a note goes when it leaves Skrift — one of four, never two.
+/// WHERE a note goes when it leaves Skrift — one of TWO (D189, Tuur 2026-10-08: "perhaps
+/// personal and portfolio is enough and we just sort via tags?").
 ///
-/// **The destination is a PRIVACY BOUNDARY, not a filing shelf.** That is Tuur's reason for
-/// the whole feature (2026-08-26): his own thoughts must never be read by AI, while his ideas
-/// and inspirations are the things he *wants* an AI to work out with him. Every rule in this
-/// file falls out of that one fact, so read it before changing any of them:
+/// **The destination is a PRIVACY BOUNDARY, not a filing shelf.** His own thoughts must never be
+/// read by AI; his ideas and inspirations are the things he *wants* an AI to work out with him.
+/// Only that line has to be decided at capture and has to be hard: a wrong Personal/Portfolio
+/// pick puts a private thought in a repo an AI reads. Which kind of portfolio note it is
+/// (idea / inspiration / project) costs one file move if wrong, so it is an ordinary TAG,
+/// offered as one-tap presets when Portfolio is picked (`PortfolioTagPresets`), any combination.
 ///
-/// - **One-of-four, never two.** The engine could write a memo to several destinations
-///   (`ExportLedger` is keyed per destination folder, so N destinations are N independent
-///   ledgers) — it is refused on purpose. Allow two and `personal` + `idea` becomes
-///   expressible, which is a private thought sitting in a repo an AI reads: the exact
-///   outcome the feature exists to prevent.
-/// - **`idea` + `inspiration` is meaningless, not merely unsupported.** The line between them
-///   is AUTHORSHIP — an inspiration is someone else's work, an idea is his own intent — and
-///   nothing can be both. The photograph that *gave him an idea* is ONE note, filed `.idea`
-///   ("that's actually how it always happens"); `.inspiration` is the narrower bucket, for a
-///   thing he liked with no idea attached yet.
-/// - **A stored field, NOT a tag string.** It is *rendered* as a chip beside the tags, which
-///   is what he asked for, but a literal tag would mean typing `idea` in the free tag field
-///   silently re-routes a note — a typo by another name. `reserved(_:)` is what refuses that.
+/// The privacy choice stays a stored FIELD rather than a tag: a typo in the free tag field must
+/// never re-route a note across the boundary. The presets are plain tags and route nothing.
 ///
-/// `.personal` is the default and means exactly today's behaviour: the note goes to the
-/// Obsidian vault picked in Settings, nothing else changes. The other three are inert until
-/// the user turns destinations on and picks their folders.
+/// `.personal` is the default and means exactly today's behaviour: the note goes to the Obsidian
+/// vault picked in Settings. `.portfolio` is inert until the user turns destinations on and
+/// picks the portfolio folder.
 enum NoteDestination: String, CaseIterable, Codable, Sendable {
     /// His own thoughts → the Obsidian vault. The default, and off-limits to the portfolio.
     case personal
-    /// Someone ELSE's work that he liked → the portfolio's `_inspiration/`.
-    case inspiration
-    /// Something he wants to make — HIS intent → the portfolio's `_ideas/`.
-    case idea
-    /// A thing he is building or has finished — a project → the portfolio's `_projects/`, to be sorted
-    /// into its item folder. Declared last: the order here IS the order the row shows.
-    case project
+    /// The portfolio → `<portfolio root>/_inbox/`, sorted there by tag by the portfolio session.
+    case portfolio
 
     /// The chip's word.
     var label: String {
         switch self {
-        case .personal:    "Personal"
-        case .inspiration: "Inspiration"
-        case .idea:        "Idea"
-        case .project:     "Project"
+        case .personal:  "Personal"
+        case .portfolio: "Portfolio"
         }
     }
 
-    /// Does this destination leave Skrift's private side? Drives the chip's colour (one
-    /// family is private, three are public) and the "AI reads this" line — the user should be
-    /// able to see which side of the boundary a note is on without reading a word.
-    var isPortfolio: Bool { self != .personal }
+    /// Does this destination leave Skrift's private side? Drives the chip's colour and the
+    /// export profile, so a glance answers which side of the line a note is on.
+    var isPortfolio: Bool { self == .portfolio }
 
-    /// The folder each portfolio destination writes into, relative to the picked portfolio root.
+    /// The folder the portfolio destination writes into, relative to the picked portfolio root.
     /// `nil` for `.personal`, which uses the existing Obsidian vault bookmark instead.
     var portfolioFolder: String? {
         switch self {
-        case .personal:    nil
-        case .inspiration: "_inspiration"
-        case .idea:        "_ideas"
-        case .project:     "_projects"
+        case .personal:  nil
+        case .portfolio: "_inbox"
         }
     }
 
-    /// The word a user might type that means "this is a destination, not a tag". Matched
-    /// case- and `#`-insensitively so `#Idea`, `idea` and `IDEA` all land here.
-    static func reserved(_ word: String) -> NoteDestination? {
-        let key = word.trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: "#", with: "")
-            .lowercased()
-        return allCases.first { $0.rawValue == key }
+    // MARK: Stored values from before D189
+
+    /// The four-destination era stored `idea`, `inspiration` and `project`. A note carrying one
+    /// reads as Portfolio and the old word becomes a tag (`decode`, `exportTags`). No other
+    /// unknown value may guess its way to Portfolio: it reads as Personal, the private side.
+    static let legacyPortfolioWords: [String] = ["idea", "inspiration", "project"]
+
+    /// Stored raw value → (destination, the tag an old value implies). Total: never fails.
+    static func decode(_ raw: String) -> (destination: NoteDestination, legacyTag: String?) {
+        if let d = NoteDestination(rawValue: raw) { return (d, nil) }
+        if legacyPortfolioWords.contains(raw) { return (.portfolio, raw) }
+        return (.personal, nil)
     }
+
+    /// `tags` plus the tag a legacy stored value implies (case-insensitive, never duplicated).
+    /// The exporters use this so an old value still lands as `idea` in `tags:` before the note
+    /// has been opened (and so rewritten) on any device.
+    static func exportTags(_ tags: [String], raw: String) -> [String] {
+        guard let tag = decode(raw).legacyTag else { return tags }
+        return withTag(tag, in: tags)
+    }
+
+    /// Typing `idea` is just a tag now (D189): no word is reserved and nothing re-routes a
+    /// note, so this is always nil. Kept so callers written for the four-destination era still
+    /// compile; delete it with them.
+    static func reserved(_ word: String) -> NoteDestination? { nil }
+
+    /// Append `tag` unless a case-insensitive match is already there.
+    static func withTag(_ tag: String, in tags: [String]) -> [String] {
+        tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame } ? tags : tags + [tag]
+    }
+}
+
+/// The one-tap tag presets offered beside `+ add tag` while a note is Portfolio. Plain tags:
+/// typing `idea` in the tag field is the same thing and routes nothing. Any combination is
+/// allowed: an idea sparked by someone else's lamp is `idea` + `inspiration`.
+enum PortfolioTagPresets {
+    static let all: [String] = NoteDestination.legacyPortfolioWords
+    /// The tag that raises `needs: - credit` in the portfolio profile (someone else's work).
+    static let inspiration = "inspiration"
+}
+
+// MARK: - Source compatibility with the four-destination call sites
+
+/// The old case names still compile (each now means Portfolio) so code and tests written
+/// before D189 keep building. New code says `.portfolio` and uses a tag.
+extension NoteDestination {
+    static var idea: NoteDestination { .portfolio }
+    static var inspiration: NoteDestination { .portfolio }
+    static var project: NoteDestination { .portfolio }
 }
 
 // MARK: - The feature switch
@@ -87,10 +111,8 @@ enum DestinationSettings {
     private static let key = "skrift.destinations.enabled"
     static let stampKey = "skrift.destinations.enabledModifiedAt"
 
-    /// ONE portfolio root, not three pickers. The three portfolio destinations are SIBLINGS
-    /// inside it (`_projects` / `_ideas` / `_inspiration` — `NoteDestination.portfolioFolder`),
-    /// which is how the portfolio is laid out, so asking for three folders would be asking
-    /// the same question three times and letting two of the answers be wrong.
+    /// ONE portfolio root. Every Portfolio note lands in `<root>/_inbox/`
+    /// (`NoteDestination.portfolioFolder`).
     ///
     /// `.personal` is NOT here: it keeps the existing Obsidian vault setting on each app
     /// (the phone's security-scoped bookmark, the Mac's `AppSettings.noteFolder`), so

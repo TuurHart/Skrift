@@ -35,24 +35,28 @@ enum SettingsCopy {
     // ── Destinations (setexp-67) ──
     static let destinationsToggleLabel = "Separate destinations"
     static let portfolioFolderLabel = "Portfolio folder"
+    /// The one read-only line under the portfolio picker: where Portfolio notes land.
+    static func portfolioInboxLine(root: String) -> String {
+        "\(root)/\(NoteDestination.portfolio.portfolioFolder ?? "_inbox")"
+    }
 
     /// The footer under the Destinations switch: off / on with no folder on this device /
     /// on with a folder. The on-without-folder text names the per-device folder (phone's
     /// wording; the Mac showed only the bare notice).
     static func destinationsHelp(on: Bool, hasFolder: Bool) -> String {
         guard on else {
-            return "Off, every note goes to your Obsidian vault. On, each note carries one of "
-                 + "four destinations you pick on the note itself."
+            return "Off, every note goes to your Obsidian vault. On, each note is Personal or "
+                 + "Portfolio, picked on the note itself."
         }
         guard hasFolder else {
             return DestinationSettings.needsFolderNotice + ". This switch is on for all your "
-                 + "devices; the folder is chosen per device. Skrift writes Project, Idea and "
-                 + "Inspiration notes into folders inside it. Personal notes still go to your "
-                 + "Obsidian vault and never here."
+                 + "devices; the folder is chosen per device. Skrift writes Portfolio notes into "
+                 + "its _inbox folder. Personal notes still go to your Obsidian vault and "
+                 + "never here."
         }
-        return "Personal notes go to your Obsidian vault. Project, Idea and Inspiration go to the "
-             + "portfolio — a folder you have chosen to let an AI read, so nothing personal is "
-             + "ever written there."
+        return "Personal notes go to your Obsidian vault. Portfolio notes go to the portfolio's "
+             + "_inbox folder, a folder you have chosen to let an AI read, so nothing personal is "
+             + "ever written there. Idea, inspiration and project are tags you tap on the note."
     }
 }
 

@@ -30,7 +30,7 @@ struct ObsidianSettingsSection: View {
     @State private var folderName = ObsidianVault.displayName
     @State private var pickError: String?
 
-    /// The four-destination feature. OFF by default and per-device — most people want one
+    /// The two-destination feature (Personal / Portfolio). OFF by default and per-device — most people want one
     /// folder, and the whole thing is Tuur's own way of separating his thoughts from his
     /// work (2026-08-26: *"somebody might not care. This is very specific for me"*).
     @State private var destinationsOn = DestinationSettings.isEnabled
@@ -112,12 +112,9 @@ struct ObsidianSettingsSection: View {
         destinationsSection
     }
 
-    /// Settings → Destinations. One switch, then ONE portfolio-folder pick.
-    ///
-    /// Not three pickers: the three portfolio destinations are siblings inside the portfolio
-    /// (`_projects` / `_ideas` / `_inspiration`), so three questions would be the same question
-    /// three times with two chances to answer it wrong. The subfolders are shown read-only
-    /// underneath, so what Skrift will do with the folder is visible before it does it.
+    /// Settings → Destinations. One switch, then ONE portfolio-folder pick. The `_inbox`
+    /// subfolder Portfolio notes land in is shown read-only underneath, so what Skrift will do
+    /// with the folder is visible before it does it.
     @ViewBuilder
     private var destinationsSection: some View {
         Section {
@@ -155,16 +152,14 @@ struct ObsidianSettingsSection: View {
                 .accessibilityIdentifier("portfolio-folder")
 
                 if let portfolioName {
-                    ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
-                        LabeledContent(d.label) {
-                            Text("\(portfolioName)/\(d.portfolioFolder ?? "")")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(Color.skTextFaint)
-                                // Identified explicitly: `LabeledContent` folds its label and
-                                // value into ONE accessibility element, so the resolved path
-                                // is not findable by its own text.
-                                .accessibilityIdentifier("portfolio-path-\(d.rawValue)")
-                        }
+                    LabeledContent(NoteDestination.portfolio.label) {
+                        Text(SettingsCopy.portfolioInboxLine(root: portfolioName))
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(Color.skTextFaint)
+                            // Identified explicitly: `LabeledContent` folds its label and
+                            // value into ONE accessibility element, so the resolved path
+                            // is not findable by its own text.
+                            .accessibilityIdentifier("portfolio-path-portfolio")
                     }
                 }
             }

@@ -182,8 +182,8 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             section("Destinations") {
-                // OFF by default — most people want one folder, and the four destinations
-                // are Tuur's own way of keeping his thoughts out of a repo an AI reads. The
+                // OFF by default — most people want one folder, and Personal / Portfolio
+                // is Tuur's own way of keeping his thoughts out of a repo an AI reads. The
                 // switch is `DestinationSettings` (UserDefaults) and SYNCS to the other
                 // devices through the vocabulary carrier (Q98 / D162); the portfolio FOLDER
                 // below stays per device.
@@ -208,15 +208,13 @@ struct SettingsView: View {
                     folderRow(SettingsCopy.portfolioFolderLabel, \.portfolioRoot)
                     if !settings.portfolioRoot.isEmpty {
                         let root = (settings.portfolioRoot as NSString).lastPathComponent
-                        ForEach(NoteDestination.allCases.filter(\.isPortfolio), id: \.self) { d in
-                            HStack {
-                                Text(d.label).font(.system(size: 11))
-                                    .foregroundStyle(Theme.textSecondary)
-                                Spacer()
-                                Text("\(root)/\(d.portfolioFolder ?? "")")
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundStyle(Theme.textMuted)
-                            }
+                        HStack {
+                            Text(NoteDestination.portfolio.label).font(.system(size: 11))
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Text(SettingsCopy.portfolioInboxLine(root: root))
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(Theme.textMuted)
                         }
                     }
                 }

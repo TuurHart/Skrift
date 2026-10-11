@@ -131,26 +131,29 @@ enum Compiler {
             // against the raw capture", which is exactly what the copy-edit is.
             y.append("voice: \(input.voice.rawValue)")
             // `needs:` — also the portfolio's own key (an empty `Renders/` becomes a need). An
-            // INSPIRATION is someone else's work by definition, so one without a maker is
-            // always incomplete and always worth the punch-list line. Project and Idea are HIS,
-            // so raising credit on them would be a false need — and a punch list of false
-            // needs stops being a punch list.
-            //
-            // The TAG counts too (Tuur, 2026-08-27): "if I see a cool thing that inspires me…
-            // it's just an idea with a hashtag inspiration as well." That note is filed Idea
-            // because the intent is his, but the OBJECT is someone else's — so it owes a credit
-            // exactly like an Inspiration does, and the folder alone would have lost it.
+            // `inspiration`-tagged note is someone else's work by definition, so one without a
+            // maker is always incomplete and always worth the punch-list line. `idea` and
+            // `project` are HIS, so raising credit on them would be a false need, and a punch
+            // list of false needs stops being a punch list. Since D189 the tag is the ONLY
+            // signal (inspiration is no longer a destination): an idea sparked by someone
+            // else's lamp is `idea` + `inspiration` and owes the credit like any inspiration.
             let taggedInspiration = input.tags.contains {
-                NoteDestination.reserved($0) == .inspiration
+                $0.trimmingCharacters(in: .whitespaces)
+                    .replacingOccurrences(of: "#", with: "")
+                    .caseInsensitiveCompare(PortfolioTagPresets.inspiration) == .orderedSame
             }
-            if input.destination == .inspiration || taggedInspiration {
+            if taggedInspiration {
                 y.append("needs:")
                 y.append("  - credit")
             }
         }
 
         // ── what the note is about ──
-        y.append(summary.isEmpty ? "summary:" : "summary: \(yamlQuoted(summary))")
+        // The portfolio profile has no `summary:` (the archive dropped it 2026-08-26: "is from a
+        // template yes. no need for this"); the vault keeps it.
+        if profile != .portfolio {
+            y.append(summary.isEmpty ? "summary:" : "summary: \(yamlQuoted(summary))")
+        }
         y.append("tags:")
         for t in input.tags { y.append("  - \(t)") }
         // People this note is ABOUT: the distinct canonical wiki-links present in the body.

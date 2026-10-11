@@ -298,11 +298,23 @@ final class Memo {
         }
     }
 
-    /// This note's destination, one of four. Unknown/corrupt raw values read as `.personal`
-    /// — an unreadable destination must never be guessed as one that leaves.
+    /// This note's destination, Personal or Portfolio (D189). A value stored by the
+    /// four-destination era (`idea` / `inspiration` / `project`) reads as Portfolio; any other
+    /// unknown/corrupt raw value reads as `.personal` — an unreadable destination must never be
+    /// guessed as one that leaves.
     var destination: NoteDestination {
-        get { NoteDestination(rawValue: destinationRaw) ?? .personal }
+        get { NoteDestination.decode(destinationRaw).destination }
         set { destinationRaw = newValue.rawValue }
+    }
+
+    /// Rewrite an old stored `idea` / `inspiration` / `project` as `portfolio` plus that tag.
+    /// Idempotent; true when it changed anything. Safe to call on any note.
+    @discardableResult
+    func adoptLegacyDestination() -> Bool {
+        guard let tag = NoteDestination.decode(destinationRaw).legacyTag else { return false }
+        tags = NoteDestination.withTag(tag, in: tags)
+        destinationRaw = NoteDestination.portfolio.rawValue
+        return true
     }
 
     /// Generic JSON helpers for the `metadataData` / `sharedContentData` blobs. Internal

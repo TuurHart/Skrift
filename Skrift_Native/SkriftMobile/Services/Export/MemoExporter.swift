@@ -46,7 +46,7 @@ enum MemoExporter {
             // frontmatter title and the filename can no longer disagree.
             title: exportTitle(for: memo, people: people, enhancement: enhancement),
             summary: nonEmpty(enh?.summary),
-            tags: memo.tags,
+            tags: NoteDestination.exportTags(memo.tags, raw: memo.destinationRaw),
             significance: memo.significance,
             sourceType: capture ? .capture : .audio,
             mediaSource: (meta?.sourceType == MemoMetadata.Source.video) ? "video" : nil,

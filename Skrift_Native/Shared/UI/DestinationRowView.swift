@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// THE destination control — signed off 2026-08-26 from `mocks/note-destination-tags.html`,
-/// version **B, COLLAPSED**. ONE view for the Mac, the iPad and the phone (each app maps its
+/// version **B, COLLAPSED** (two chips since D189: Personal, Portfolio). ONE view for the Mac, the iPad and the phone (each app maps its
 /// theme into `DestinationRowStyle`, the `NoteCardView` / `SignificanceCirclesView` seam).
 ///
 /// **Where it lives:** on the note, directly beside the importance circles. The two decisions
@@ -11,11 +11,13 @@ import SwiftUI
 /// destinations in one fuzzy-matched list; rejected outright, because it would land "add the
 /// word inspiration" one keystroke from "move this note into the repo an AI reads".)
 ///
-/// **Resting, it is ONE chip: the answer it currently holds.** Tap expands to all four; picking
+/// **Resting, it is ONE chip: the answer it currently holds.** Tap expands to both; picking
 /// collapses it again. And the two resting states are DELIBERATELY UNEQUAL:
 ///
 /// - `.personal` — a quiet accent chip and nothing else. Nothing is leaving, so nothing is said.
-/// - a portfolio destination — the chip in the portfolio colour, plus the folder it writes to.
+/// - `.portfolio` — the chip in the portfolio colour, plus the folder it writes to (`_inbox/`).
+///   The idea / inspiration / project presets are NOT here: they are plain tags, offered by
+///   `TagEditorRow(presets:)` beside `+ add tag` while the note is Portfolio.
 ///   (An "AI READS THIS" line sat here for a day; Tuur cut it 2026-08-27 — the amber chip and
 ///   the named folder already carry it, and a label that shouts on every portfolio note is the
 ///   always-on badge this project keeps deciding against.)
@@ -24,14 +26,14 @@ import SwiftUI
 /// always-on badge is no signal. The warning has to mean something the moment it appears, which
 /// it only can if it is absent the rest of the time.
 ///
-/// The colour split carries the boundary itself — one family is private, three are public — so a
+/// The colour split carries the boundary itself — Personal is private, Portfolio is public — so a
 /// glance answers "which side of the line is this note on" without reading a word.
 struct DestinationRowStyle {
     /// The private family (`.personal`) — the app accent.
     var accent: Color
     var accentSoft: Color
     var accentText: Color
-    /// The portfolio family (`.project` / `.idea` / `.inspiration`) — the amber token.
+    /// The portfolio family (`.portfolio`) — the amber token.
     var portfolio: Color
     var portfolioSoft: Color
     var text: Color
@@ -81,11 +83,10 @@ struct DestinationRowView: View {
             footer
         }
         // A CONTROL, not a banner. Without this the Mac's ~1400pt note column stretched the
-        // four segments into full-width slabs with a label floating in the middle of each,
-        // and pushed "AI READS THIS" a thousand points away from the chip it describes
+        // segments into full-width slabs with a label floating in the middle of each
         // (caught in `-snapshot-destinations`, not in review). The phone's content width is
         // ~354pt, comfortably under the cap, so nothing changes there — one rule, both apps.
-        .frame(maxWidth: 440, alignment: .leading)
+        .frame(maxWidth: 360, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Destination: \(destination.label)")
     }
@@ -155,16 +156,15 @@ struct DestinationRowView: View {
 
     // MARK: - Expanded
 
-    /// PRIVATE | PORTFOLIO over the segments — the boundary named, once, where the choice is made.
-    /// Measured rather than `maxWidth: .infinity`d, because the split is 1 segment to 3: an even
-    /// two-up would centre "PORTFOLIO" over the Inspiration/Idea boundary and label the wrong columns.
+    /// PRIVATE | PORTFOLIO over the two segments — the boundary named, once, where the choice is
+    /// made. Measured with the same cell width the segments get, so each label sits over its chip.
     private var familyLabels: some View {
         GeometryReader { geo in
             let gap: CGFloat = 6
-            let cell = max(0, (geo.size.width - gap * 3) / 4)
+            let cell = max(0, (geo.size.width - gap) / 2)
             HStack(spacing: gap) {
                 Text("PRIVATE").frame(width: cell)
-                Text("PORTFOLIO").frame(width: cell * 3 + gap * 2)
+                Text("PORTFOLIO").frame(width: cell)
             }
             .font(.system(size: 9, weight: .bold))
             .tracking(0.8)
@@ -174,13 +174,13 @@ struct DestinationRowView: View {
         .accessibilityHidden(true)
     }
 
-    /// The dashed line between the Private cell and the three Portfolio cells, running the full
+    /// The dashed line between the Private cell and the Portfolio cell, running the full
     /// height of labels + cells. Drawn as an overlay at the cell boundary (the same measure
     /// `familyLabels` uses) so it adds no layout width and the columns stay where they were.
     private var familyDivider: some View {
         GeometryReader { geo in
             let gap: CGFloat = 6
-            let cell = max(0, (geo.size.width - gap * 3) / 4)
+            let cell = max(0, (geo.size.width - gap) / 2)
             Path { p in
                 p.move(to: CGPoint(x: cell + gap / 2, y: 0))
                 p.addLine(to: CGPoint(x: cell + gap / 2, y: geo.size.height))
