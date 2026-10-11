@@ -175,6 +175,7 @@ final class TestLibrarySyncSeedTests: XCTestCase {
         XCTAssertEqual(repo.memoStructureVersion, structure0)
     }
 
+    @MainActor
     func testSeederSavesInBatchesNotPerNote() throws {
         let repo = NotesRepository(inMemory: true)
         let total = PerfLibrarySeeder.saveBatch * 2 + 40
@@ -193,6 +194,7 @@ final class TestLibrarySyncSeedTests: XCTestCase {
         XCTAssertGreaterThan(saves, 1, "and it does save along the way")
     }
 
+    @MainActor
     func testSkippedNotesDoNotCountTowardsABatch() throws {
         let repo = NotesRepository(inMemory: true)
         let total = 120
