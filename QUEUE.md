@@ -2529,7 +2529,7 @@ gate+: yes
 do: Tuur 2026-10-11 on the iPhone 17 Pro, Dev 183 (after Q232 moved RecordingActivityAttributes into Services/Recording): the Live Activity shows on the Lock Screen and in the Dynamic Island, but the Dynamic Island waveform stays still. Find why (ContentState not updated for the island, an update throttle, or the island view not animating a timeline) in SkriftWidget/SkriftLiveActivity.swift and Services/Recording/RecordingActivityManager.swift; fix; keep the existing update throttle budget. Hardware-flavoured: add a DevLog line per activity update so the device trace proves it. Test: `RecordingActivityCaptionTests` still passes plus a unit test on whatever state the island reads.
 check: `plan/mtest.sh RecordingActivityCaptionTests`
 
-### Q340 [auto] (doing) 'Fill with test notes' blocks while 'building the index' although it says it runs in the background
+### Q340 [auto] (done) 'Fill with test notes' blocks while 'building the index' although it says it runs in the background
 spec: -
 needs: -
 gate+: yes
@@ -3712,3 +3712,4 @@ check: `./gate.sh`
 - 2026-10-11 11:12 Q340 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/TestLibrarySyncSeedTests.swift 
 - 2026-10-11 11:13 Q340 -> doing — re-accept: new tests move to an added extension file
 - 2026-10-11 11:29 Q339 -> done — gate 111s @7737e43c
+- 2026-10-11 11:31 Q340 -> done — gate 54s @ef0ce0a5
