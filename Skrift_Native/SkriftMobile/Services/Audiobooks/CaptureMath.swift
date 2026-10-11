@@ -72,14 +72,18 @@ enum SentenceSnap {
 /// writes NO `[[..]]` and NO attribution line — the Mac owns both at export.
 enum QuoteFormatting {
     /// "Optimism is not…" → "> Optimism is not…" (per line; blank lines stay
-    /// as bare ">"). Empty/whitespace input → "".
+    /// as bare ">"; already-marked lines are not marked again). Empty/whitespace input → "".
     static func blockquote(_ quote: String) -> String {
         let trimmed = quote.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
         return trimmed
             .components(separatedBy: .newlines)
             .map { line in
-                let l = line.trimmingCharacters(in: .whitespaces)
+                // Q347: idempotent. The processor blockquotes the selection and the saver
+                // blockquoted it AGAIN, so every capture started "> > ". A line that already
+                // carries a marker keeps exactly one.
+                let l = (line as NSString).substring(from: CaptureQuote.markerLength(ofLine: line))
+                    .trimmingCharacters(in: .whitespaces)
                 return l.isEmpty ? ">" : "> " + l
             }
             .joined(separator: "\n")
