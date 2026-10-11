@@ -29,6 +29,9 @@ final class RecordingActivityManager {
     private var status: RecordingActivityAttributes.ContentState.Status = .recording
     private var caption = ""
     private var pausedAt: Date?
+    /// Mic levels since the last push; folded into the island's bars at push time.
+    private var pendingLevels: [Float] = []
+    private var lastBars: [Float] = []
 
     // Throttle caption pushes. The banner renders ~2 lines and every push
     // re-serializes + re-renders the activity — at the old 0.25 s the poll
@@ -85,6 +88,8 @@ final class RecordingActivityManager {
         status = .recording
         caption = ""
         pausedAt = nil
+        pendingLevels = []
+        lastBars = []
         lastPushAt = nil
         do {
             activity = try Activity.request(
@@ -103,6 +108,20 @@ final class RecordingActivityManager {
     func update(caption: String) {
         guard activity != nil else { return }
         self.caption = Self.displayCaption(caption)
+        schedulePush()
+    }
+
+    /// Feed one mic level (0...1, ~10 Hz from the recorder). The island waveform is
+    /// data, not an animation (the widget can't tick a timeline), so levels ride the
+    /// SAME 1.5 s throttle as captions: no extra ActivityKit budget.
+    func update(level: Float) {
+        guard activity != nil, status == .recording else { return }
+        pendingLevels.append(level)
+        if pendingLevels.count > 64 { pendingLevels.removeFirst(pendingLevels.count - 64) }
+        schedulePush()
+    }
+
+    private func schedulePush() {
         let now = Date()
         let since = lastPushAt.map { now.timeIntervalSince($0) } ?? .infinity
         if since >= throttle {
@@ -122,6 +141,8 @@ final class RecordingActivityManager {
         guard activity != nil else { return }
         status = .paused
         pausedAt = Date()
+        pendingLevels = []
+        lastBars = []
         push()
     }
 
@@ -132,6 +153,7 @@ final class RecordingActivityManager {
         startedAt = Date().addingTimeInterval(-elapsed)
         status = .recording
         pausedAt = nil
+        pendingLevels = []
         push()
     }
 
@@ -152,7 +174,19 @@ final class RecordingActivityManager {
     }
 
     private func makeState() -> RecordingActivityAttributes.ContentState {
-        .init(status: status, caption: caption, startedAt: startedAt, pausedAt: pausedAt)
+        .init(status: status, caption: caption, startedAt: startedAt, pausedAt: pausedAt, levels: lastBars)
+    }
+
+    /// Fold the levels gathered since the last push into `count` bars (peak of each
+    /// equal slice, oldest left; fewer samples than bars repeat samples). Empty in,
+    /// empty out.
+    nonisolated static func islandBars(_ samples: [Float], count: Int = RecordingActivityAttributes.ContentState.barCount) -> [Float] {
+        guard !samples.isEmpty, count > 0 else { return [] }
+        return (0..<count).map { i in
+            let lo = min(i * samples.count / count, samples.count - 1)
+            let hi = min(max(lo + 1, (i + 1) * samples.count / count), samples.count)
+            return min(1, max(0, samples[lo..<hi].max() ?? 0))
+        }
     }
 
     /// What the banner actually shows: the TAIL of the caption, word-aligned,
@@ -186,7 +220,12 @@ final class RecordingActivityManager {
         pendingTask?.cancel(); pendingTask = nil
         guard let activity else { return }
         lastPushAt = Date()
+        if status == .recording, !pendingLevels.isEmpty {
+            lastBars = Self.islandBars(pendingLevels)
+            pendingLevels = []
+        }
         let state = makeState()
+        DevLog.log("live activity update status=\(state.status.rawValue) bars=\(state.levels.map { String(format: "%.2f", $0) }.joined(separator: ",")) captionLen=\(state.caption.count)")
         Task { await activity.update(.init(state: state, staleDate: Date().addingTimeInterval(Self.staleAfter))) }
     }
 }

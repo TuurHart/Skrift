@@ -17,6 +17,12 @@ struct RecordingActivityAttributes: ActivityAttributes, Sendable {
         var caption: String
         var startedAt: Date
         var pausedAt: Date?
+        /// Island/Lock Screen waveform bar heights, 0...1, `barCount` entries (empty = idle).
+        /// The widget CANNOT animate on its own (ActivityKit renders snapshots; a
+        /// `TimelineView(.animation)` never ticks), so the bars are DATA the app pushes.
+        var levels: [Float]
+
+        static let barCount = 5
 
         enum Status: String, Codable, Hashable, Sendable {
             case recording
@@ -24,11 +30,21 @@ struct RecordingActivityAttributes: ActivityAttributes, Sendable {
             case stopping
         }
 
-        init(status: Status, caption: String, startedAt: Date, pausedAt: Date? = nil) {
+        init(status: Status, caption: String, startedAt: Date, pausedAt: Date? = nil, levels: [Float] = []) {
             self.status = status
             self.caption = caption
             self.startedAt = startedAt
             self.pausedAt = pausedAt
+            self.levels = levels
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            status = try c.decode(Status.self, forKey: .status)
+            caption = try c.decode(String.self, forKey: .caption)
+            startedAt = try c.decode(Date.self, forKey: .startedAt)
+            pausedAt = try c.decodeIfPresent(Date.self, forKey: .pausedAt)
+            levels = try c.decodeIfPresent([Float].self, forKey: .levels) ?? []
         }
     }
 

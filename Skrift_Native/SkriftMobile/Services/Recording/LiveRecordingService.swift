@@ -1690,6 +1690,7 @@ final class LiveRecordingService {
     private func pushWaveform(_ value: Float) {
         meter.push(value)
         waveform = meter.bars
+        RecordingActivityManager.shared.update(level: value)
     }
 
     private func accumulate() {
