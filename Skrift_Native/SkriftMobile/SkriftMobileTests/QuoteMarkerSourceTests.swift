@@ -53,7 +53,7 @@ final class QuoteMarkerSourceTests: XCTestCase {
         let split = try XCTUnwrap(CaptureQuote.split(body))
         XCTAssertEqual(split.displayText, sentence)
         XCTAssertEqual(split.ramble, "More blah")
-        XCTAssertEqual(split.rawBlock, "> > \(sentence)\n\n", "the stored bytes stay verbatim")
+        XCTAssertEqual(split.rawBlock, "> > \(sentence)\n", "the stored bytes stay verbatim")
         XCTAssertEqual(CaptureQuote.markerLength(ofLine: "> > x"), 4)
         XCTAssertEqual(CaptureQuote.markerLength(ofLine: ">> x"), 3)
         XCTAssertEqual(CaptureQuote.markerLength(ofLine: "> x"), 2)
