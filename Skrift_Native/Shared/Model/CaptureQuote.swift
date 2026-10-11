@@ -56,7 +56,7 @@ struct CaptureQuote: Equatable, Sendable {
         return ranges.filter { NSMaxRange($0) <= ns.length }
     }
 
-    /// How many leading characters of a quote line are the `>` marker plus the space after
+    /// How many leading characters of a quote line are the `>` marker(s) plus the space after
     /// it — the run a renderer hides so the reader sees prose, not syntax. Counts any
     /// leading whitespace before the `>` too. 0 when the line isn't a quote line.
     static func markerLength(ofLine line: String) -> Int {
@@ -64,8 +64,12 @@ struct CaptureQuote: Equatable, Sendable {
         var i = 0
         while i < ns.length, ns.character(at: i) == 32 || ns.character(at: i) == 9 { i += 1 }
         guard i < ns.length, ns.character(at: i) == 62 else { return 0 }   // ">"
-        i += 1
-        while i < ns.length, ns.character(at: i) == 32 || ns.character(at: i) == 9 { i += 1 }
+        // Q347: a doubled marker ("> > text", ">> text") is ONE quote marker. Older captures
+        // were saved with the quote blockquoted twice, and the second `>` showed in the text.
+        while i < ns.length, ns.character(at: i) == 62 {
+            i += 1
+            while i < ns.length, ns.character(at: i) == 32 || ns.character(at: i) == 9 { i += 1 }
+        }
         return i
     }
 
@@ -80,7 +84,8 @@ struct CaptureQuote: Equatable, Sendable {
         while i < lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespaces)
             guard line.hasPrefix(">") else { break }
-            quoteLines.append(String(line.dropFirst()).trimmingCharacters(in: .whitespaces))
+            quoteLines.append((line as NSString).substring(from: markerLength(ofLine: line))
+                .trimmingCharacters(in: .whitespaces))
             i += 1
         }
         guard quoteLines.contains(where: { !$0.isEmpty }) else { return nil }
