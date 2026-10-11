@@ -124,7 +124,7 @@ final class VideoAssetSyncTests: XCTestCase {
 
     func testMacVideoFiledIdeaWritesTheMovieAssetAndNamesIt() throws {
         let ctx = try cloudContext()
-        let pf = try macVideoRow(destination: .idea)
+        let pf = try macVideoRow(destination: .portfolio)
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
         let name = try XCTUnwrap(memo.metadata?.videoFilename)
         XCTAssertEqual(name, VideoKeep.filename(memoID: memo.id, sourceExtension: "mp4"))
@@ -147,7 +147,7 @@ final class VideoAssetSyncTests: XCTestCase {
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "D188: authored Personal, the movie already syncs")
 
-        pf.destination = .project
+        pf.destination = .portfolio
         // Idempotent: the asset is already there, so a pass inserts nothing.
         XCTAssertFalse(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
         try ctx.save()
@@ -163,7 +163,7 @@ final class VideoAssetSyncTests: XCTestCase {
 
     func testAVideoWithNoKeptMovieNamesNoMovie() throws {
         let ctx = try cloudContext()
-        let pf = try macVideoRow(destination: .idea, keepMovie: false)   // over the cap or the copy failed
+        let pf = try macVideoRow(destination: .portfolio, keepMovie: false)   // over the cap or the copy failed
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
         XCTAssertNil(memo.metadata?.videoFilename)
         XCTAssertTrue(try videoAssets(ctx, memo.id).isEmpty)

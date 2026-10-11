@@ -42,7 +42,7 @@ final class ExportGateParityTests: XCTestCase {
     func testIpadRefusalIsTheSharedGateInTheSharedWords() {
         let cases: [(Memo, PublishCoordinator, ExportGate.Failure)] = [
             (memo(), coordinator(vault: false), .noVaultFolder),
-            (memo { $0.destination = .idea }, coordinator(portfolio: false), .noPortfolioFolder),
+            (memo { $0.destination = .portfolio }, coordinator(portfolio: false), .noPortfolioFolder),
             (memo { $0.deletedAt = Date() }, coordinator(), .trashed),
             (memo { $0.locked = true }, coordinator(), .locked),
             (memo { $0.significance = 0 }, coordinator(), .unrated),

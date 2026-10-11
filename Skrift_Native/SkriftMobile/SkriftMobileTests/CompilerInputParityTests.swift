@@ -22,7 +22,7 @@ final class CompilerInputParityTests: XCTestCase {
         let enh = MemoEnhancement(memoID: m.id, copyedit: "", title: "Meeting Hendri", summary: "")
         let input = MemoExporter.compilerInput(for: m, people: [hendri], enhancement: enh)
         XCTAssertEqual(input.voice, .raw, "a title is not a copy-edit: the body is the transcript")
-        m.destination = .idea
+        m.destination = .portfolio
         let md = MemoExporter.markdown(for: m, people: [hendri], enhancement: enh, profile: .portfolio)
         XCTAssertTrue(md.contains("voice: raw"), md)
         XCTAssertTrue(md.contains("um so i met [[Hendri van Niekerk]] today"), md)

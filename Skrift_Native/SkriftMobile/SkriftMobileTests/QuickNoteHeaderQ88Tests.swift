@@ -13,10 +13,10 @@ final class QuickNoteHeaderQ88Tests: XCTestCase {
         let draft = QuickNoteDraft()
         draft.edited(title: "", body: "T", context: repo.context,
                      seedTags: ["a"], seedSignificance: 0.5,
-                     seedDestination: .idea)
+                     seedDestination: .portfolio)
         let memo = draft.memo
         XCTAssertEqual(memo?.significance, 0.5)
-        XCTAssertEqual(memo?.destination, .idea)
+        XCTAssertEqual(memo?.destination, .portfolio)
         XCTAssertEqual(memo?.tags, ["a"])
     }
 
@@ -33,7 +33,7 @@ final class QuickNoteHeaderQ88Tests: XCTestCase {
         let repo = NotesRepository(inMemory: true)
         let draft = QuickNoteDraft()
         draft.edited(title: "", body: "", context: repo.context,
-                     seedSignificance: 1.0, seedDestination: .project)
+                     seedSignificance: 1.0, seedDestination: .portfolio)
         XCTAssertNil(draft.memo, "D91: rating the pill alone must not create a note")
     }
 }

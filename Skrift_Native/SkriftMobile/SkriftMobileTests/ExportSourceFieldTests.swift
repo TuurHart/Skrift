@@ -29,7 +29,7 @@ final class ExportSourceFieldTests: XCTestCase {
 
     func testPortfolioCaptureKeyCarriesTheTypedValue() {
         let m = typedMemo()
-        m.destination = .idea
+        m.destination = .portfolio
         let md = MemoExporter.markdown(for: m, people: [], profile: .portfolio)
         XCTAssertEqual(sourceLine(md), "capture: Typed-note", md)
     }

@@ -92,7 +92,7 @@ final class VideoAssetPhoneTests: XCTestCase {
         AssetMaterializer.captureMissing(repo)
         XCTAssertEqual(videoAssets(repo, memo.id).count, 1, "D188: a Personal video syncs like every other note")
 
-        memo.destination = .idea
+        memo.destination = .portfolio
         AssetMaterializer.captureMissing(repo)
         let assets = videoAssets(repo, memo.id)
         XCTAssertEqual(assets.count, 1)
@@ -112,7 +112,7 @@ final class VideoAssetPhoneTests: XCTestCase {
 
     func testMovieRoundTripsToAnotherDevice() {
         let repo = NotesRepository(inMemory: true)
-        let (memo, name) = keptVideoMemo(repo, destination: .project)
+        let (memo, name) = keptVideoMemo(repo, destination: .portfolio)
         AssetMaterializer.captureMissing(repo)                 // device A
         XCTAssertEqual(videoAssets(repo, memo.id).count, 1)
         try? fm.removeItem(at: recordings(name))
@@ -163,11 +163,11 @@ final class VideoAssetPhoneTests: XCTestCase {
     func testPortfolioExportCopiesTheMovieBesideTheNote() throws {
         let movie = sandbox.appendingPathComponent("the-movie.mov")
         try Data("MOVIE".utf8).write(to: movie)
-        let outcome = try publisher(movie: movie, ledger: "a.json").publish(videoMemo(destination: .idea))
+        let outcome = try publisher(movie: movie, ledger: "a.json").publish(videoMemo(destination: .portfolio))
         guard case .written(let rel) = outcome else { return XCTFail("expected a write, got \(outcome)") }
 
         let stem = (rel as NSString).deletingPathExtension
-        let copied = sandbox.appendingPathComponent("portfolio/_ideas/\(stem).mov")
+        let copied = sandbox.appendingPathComponent("portfolio/_inbox/\(stem).mov")
         XCTAssertEqual(try? Data(contentsOf: copied), Data("MOVIE".utf8), "the pair travels together")
     }
 
@@ -183,7 +183,7 @@ final class VideoAssetPhoneTests: XCTestCase {
     }
 
     func testPortfolioNoteWithNoMovieOnThisDeviceStillExports() throws {
-        let outcome = try publisher(movie: nil, ledger: "c.json").publish(videoMemo(destination: .project))
+        let outcome = try publisher(movie: nil, ledger: "c.json").publish(videoMemo(destination: .portfolio))
         guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
     }
 
@@ -191,7 +191,7 @@ final class VideoAssetPhoneTests: XCTestCase {
 
     func testPermanentDeleteRemovesTheMovieFileAndAsset() {
         let repo = NotesRepository(inMemory: true)
-        let (memo, name) = keptVideoMemo(repo, destination: .idea)
+        let (memo, name) = keptVideoMemo(repo, destination: .portfolio)
         AssetMaterializer.captureMissing(repo)
         XCTAssertEqual(videoAssets(repo, memo.id).count, 1)
 

@@ -6,8 +6,8 @@ import XCTest
 /// `mocks/note-destination-tags.html` version B:
 ///
 ///   B1  resting, Personal      — a quiet chip, no folder, no notice
-///   B3  expanded               — PRIVATE | PORTFOLIO over four segments
-///   B2  resting, Idea          — the amber chip PLUS the folder it writes into
+///   B3  expanded               — PRIVATE | PORTFOLIO over two segments
+///   B2  resting, Portfolio     — the amber chip PLUS the folder it writes into (D189)
 ///
 /// PNGs land in `SKRIFT_SHOT_DIR` when the runner passes one, so the orchestrator can
 /// open them; otherwise they are attached to the result bundle as usual.
@@ -44,16 +44,14 @@ final class DestinationRowUITests: XCTestCase {
         capture(app, "B1-resting-personal")
 
         chip.tap()
-        let idea = app.buttons["destination-idea"]
-        XCTAssertTrue(idea.waitForExistence(timeout: 5), "tapping the chip expands to all four")
+        let portfolio = app.buttons["destination-portfolio"]
+        XCTAssertTrue(portfolio.waitForExistence(timeout: 5), "tapping the chip expands to both")
         XCTAssertTrue(app.buttons["destination-personal"].exists)
-        XCTAssertTrue(app.buttons["destination-project"].exists)
-        XCTAssertTrue(app.buttons["destination-inspiration"].exists)
         capture(app, "B3-expanded")
 
-        idea.tap()
+        portfolio.tap()
         XCTAssertTrue(chip.waitForExistence(timeout: 5), "picking collapses it again")
-        XCTAssertFalse(app.buttons["destination-idea"].exists, "…back to one chip, not four")
-        capture(app, "B2-resting-idea")
+        XCTAssertFalse(app.buttons["destination-portfolio"].exists, "…back to one chip, not two")
+        capture(app, "B2-resting-portfolio")
     }
 }

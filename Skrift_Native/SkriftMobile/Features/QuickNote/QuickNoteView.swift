@@ -65,7 +65,9 @@ struct QuickNoteView: View {
             titleField
             TagEditorRow(tags: $tags, library: repository.allTags(), style: .phone,
                          onChanged: syncMetaToMemo, idSuffix: "",
-                         onToast: { tagToast = $0 })
+                         onToast: { tagToast = $0 },
+                         presets: DestinationSettings.isEnabled && destination.isPortfolio
+                             ? PortfolioTagPresets.all : [])
                 .padding(.top, 8)
             // Q88: the SAME header as the note screen (C115) — the rating pill + the orange
             // fading line, then the destination row 12 pt under it (only when destinations

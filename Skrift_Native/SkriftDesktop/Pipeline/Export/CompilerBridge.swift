@@ -40,7 +40,7 @@ extension PipelineFile {
             // uses `exportTitle` (VaultExporter).
             title: enhancedTitle,
             summary: enhancedSummary,
-            tags: tags,
+            tags: NoteDestination.exportTags(tags, raw: destinationRaw),
             significance: significance,
             sourceType: noteSource,
             mediaSource: mediaSource,

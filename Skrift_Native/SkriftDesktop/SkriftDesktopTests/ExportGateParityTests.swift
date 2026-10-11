@@ -95,7 +95,7 @@ final class ExportGateParityTests: XCTestCase {
 
     /// setexp-72: a portfolio note with no portfolio root names the PORTFOLIO folder, not the vault.
     func testPortfolioNoteWithoutPortfolioRootThrowsNoPortfolioFolder() {
-        let pf = row { $0.destination = .idea }
+        let pf = row { $0.destination = .portfolio }
         XCTAssertThrowsError(try VaultExporter.export(pf, settings: settings(vault: "/tmp/skrift-q156-vault"))) { error in
             XCTAssertEqual(error as? VaultExporter.ExportError, .noPortfolioFolder)
             let text = (error as? LocalizedError)?.errorDescription ?? ""

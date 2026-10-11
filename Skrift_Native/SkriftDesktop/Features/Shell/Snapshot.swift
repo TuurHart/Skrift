@@ -1283,10 +1283,10 @@ enum Snapshot {
         writePNG(view, to: path, scheme: scheme)
     }
 
-    /// The four-destination row in BOTH of its states, at the Mac's real note width —
-    /// `-snapshot-destinations <path> [-noteWidth n]`. It exists because the Mac's note
-    /// column is far wider than the phone's, and four segments that simply fill the width
-    /// is the failure this catches: the mock's proportions do not survive a 1400pt column.
+    /// The two-destination row in BOTH of its states, plus the tag row with the Portfolio
+    /// presets, at the Mac's real note width — `-snapshot-destinations <path> [-noteWidth n]`.
+    /// It exists because the Mac's note column is far wider than the phone's, and segments that
+    /// simply fill the width is the failure this catches.
     @MainActor private static func renderDestinations(to path: String, width: CGFloat) {
         let view = VStack(alignment: .leading, spacing: 26) {
             ForEach(NoteDestination.allCases, id: \.self) { d in
@@ -1297,11 +1297,16 @@ enum Snapshot {
             }
             Divider().opacity(0.2)
             Text("EXPANDED").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.textMuted)
-            DestinationRowView(destination: .constant(.idea),
+            DestinationRowView(destination: .constant(.portfolio),
                                folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                                onPick: { _ in },
                                style: .mac,
                                startExpanded: true)
+            Divider().opacity(0.2)
+            Text("PORTFOLIO TAG ROW — presets beside + tag").font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Theme.textMuted)
+            TagEditorRow(tags: .constant(["lisbon", "idea"]), library: ["lisbon", "idea"],
+                         style: .mac, presets: PortfolioTagPresets.all)
         }
         .padding(28)
         .frame(width: width, alignment: .leading)

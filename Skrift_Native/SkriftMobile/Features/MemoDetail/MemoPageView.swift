@@ -494,8 +494,13 @@ struct MemoPageView: View {
                          // Q41: the toast is HOISTED to the page's own overlay
                          // (`tagToastView`, below) so it centres on the whole
                          // screen, not this row's own narrower bounds.
-                         onToast: { tagToast = $0 })
+                         onToast: { tagToast = $0 },
+                         // D189: idea / inspiration / project, one tap each, Portfolio only.
+                         presets: DestinationSettings.isEnabled && memo.destination.isPortfolio
+                             ? PortfolioTagPresets.all : [])
                 .padding(.top, 8)
+                // An old stored idea / inspiration / project becomes Portfolio + that tag.
+                .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
 
             // Q85 (signed mock Q75-note-header-final, behaviour A): the importance card is
             // ONE pill — each tap steps Not rated → Passing → Useful → Important → Not

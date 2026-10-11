@@ -36,11 +36,11 @@ final class MemoCloudUpdateTests: XCTestCase {
         XCTAssertEqual(pf.destination, .personal, "the default, i.e. today's behaviour")
 
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
-        m.destination = .idea
+        m.destination = .portfolio
 
         XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
                                             people: [], author: "Me", thisDeviceID: mac))
-        XCTAssertEqual(pf.destination, .idea)
+        XCTAssertEqual(pf.destination, .portfolio)
     }
 
     /// One-of-four all the way through: a later change REPLACES, never accumulates.
@@ -48,14 +48,14 @@ final class MemoCloudUpdateTests: XCTestCase {
         let id = UUID()
         let t0 = Date()
         let pf = ingestedFile(id: id, at: t0)
-        pf.destination = .inspiration
+        pf.destination = .portfolio
 
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
-        m.destination = .project
+        m.destination = .portfolio
 
         _ = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
                                   people: [], author: "Me", thisDeviceID: mac)
-        XCTAssertEqual(pf.destination, .project)
+        XCTAssertEqual(pf.destination, .portfolio)
     }
 
     /// An unreadable value degrades to the PRIVATE side on both models — never guessed

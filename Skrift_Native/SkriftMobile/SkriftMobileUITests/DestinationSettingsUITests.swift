@@ -32,9 +32,14 @@ final class DestinationSettingsUITests: XCTestCase {
     /// Scroll the Settings form until `element` is on screen (Destinations sits below
     /// Obsidian, which is already well down the list).
     private func reveal(_ app: XCUIApplication, _ element: XCUIElement) {
-        for _ in 0..<8 {
+        // Short drags (~15% of the screen), not `swipeUp()`: a full swipe can carry a row from
+        // behind the floating tab bar (exists, not hittable) straight past the top, and the test
+        // then never sees it hittable. The section changed height with D189, which moved the stops.
+        for _ in 0..<30 {
             if element.exists && element.isHittable { return }
-            app.swipeUp()
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.47))
+            from.press(forDuration: 0.05, thenDragTo: to)
         }
     }
 
@@ -61,22 +66,19 @@ final class DestinationSettingsUITests: XCTestCase {
         capture(app, "settings-on-unconfigured")
     }
 
-    /// Configured: the three portfolio subfolders are shown read-only, so what the folder is
-    /// about to be used for is visible before anything is written to it.
-    func testConfiguredShowsTheThreeFolders() {
+    /// Configured: the `_inbox` folder Portfolio notes land in is shown read-only, so what the
+    /// folder is about to be used for is visible before anything is written to it.
+    func testConfiguredShowsTheInboxFolder() {
         let app = launch(["-destinationsOn", "-seedPortfolioFolder"])
         let folderRow = app.buttons["portfolio-folder"]
         reveal(app, folderRow)
         XCTAssertTrue(folderRow.waitForExistence(timeout: 5))
-        let idea = app.staticTexts["portfolio-path-idea"]
-        XCTAssertTrue(idea.waitForExistence(timeout: 5),
+        let inbox = app.staticTexts["portfolio-path-portfolio"]
+        XCTAssertTrue(inbox.waitForExistence(timeout: 5),
                       "the resolved subfolder must be shown, not just promised")
-        // `LabeledContent` reads its label and value as ONE element ("Idea, portfolio/_ideas"),
+        // `LabeledContent` reads its label and value as ONE element ("Portfolio, portfolio/_inbox"),
         // which is the right thing for VoiceOver — so match the path inside it.
-        XCTAssertTrue(idea.label.hasSuffix("portfolio/_ideas"), idea.label)
-        XCTAssertTrue(app.staticTexts["portfolio-path-project"].label.hasSuffix("portfolio/_projects"))
-        XCTAssertTrue(app.staticTexts["portfolio-path-inspiration"].label
-                        .hasSuffix("portfolio/_inspiration"))
+        XCTAssertTrue(inbox.label.hasSuffix("portfolio/_inbox"), inbox.label)
         capture(app, "settings-configured")
     }
 }

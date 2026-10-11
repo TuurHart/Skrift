@@ -136,11 +136,22 @@ final class PipelineFile {
     /// "never set" state to be ambiguous about.
     var destinationRaw: String = NoteDestination.personal.rawValue
 
-    /// Typed access to `destinationRaw`. Unknown values read as `.personal` — an
+    /// Typed access to `destinationRaw`. A four-destination-era value (`idea` / `inspiration` /
+    /// `project`) reads as Portfolio; any other unknown value reads as `.personal` — an
     /// unreadable destination must never be guessed as one that LEAVES.
     var destination: NoteDestination {
-        get { NoteDestination(rawValue: destinationRaw) ?? .personal }
+        get { NoteDestination.decode(destinationRaw).destination }
         set { destinationRaw = newValue.rawValue }
+    }
+
+    /// Rewrite an old stored `idea` / `inspiration` / `project` as `portfolio` plus that tag.
+    /// Idempotent; true when it changed anything.
+    @discardableResult
+    func adoptLegacyDestination() -> Bool {
+        guard let tag = NoteDestination.decode(destinationRaw).legacyTag else { return false }
+        tags = NoteDestination.withTag(tag, in: tags)
+        destinationRaw = NoteDestination.portfolio.rawValue
+        return true
     }
 
     // Export

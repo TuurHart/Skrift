@@ -289,7 +289,7 @@ enum PerfLibrarySeeder {
                 annotationText: annotation,
                 nameResolutionsData: nil,
                 recordingDeviceID: "perf-phone-0001")
-            if rng.unit() < 0.15 { memo.destination = [.inspiration, .idea, .project][rng.int(3)] }
+            if rng.unit() < 0.15 { _ = rng.int(3); memo.destination = .portfolio }   // draw kept: the seed stays byte-stable
 
             // rating + lifecycle by role
             switch role {
