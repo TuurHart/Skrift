@@ -12,7 +12,8 @@ struct NamesListView: View {
     private let store = NamesStore.shared
 
     /// Pushed from Settings → relies on the parent NavigationStack (no own stack).
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Names") }   // Q341
+    @ViewBuilder private var screenBody: some View {
         ZStack {
             Color.skBg.ignoresSafeArea()
             content
@@ -161,7 +162,8 @@ struct AddPersonView: View {
     @State private var short = ""
     private let store = NamesStore.shared
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Person editor") }   // Q341
+    @ViewBuilder private var screenBody: some View {
         NavigationStack {
             Form {
                 Section {

@@ -40,7 +40,8 @@ struct PersonEditorView: View {
     private var demoAlias: String { aliases.first ?? (prefillName.isEmpty ? trimmedName : prefillName) }
     private var displayShort: String { PersonEditCore.displayShort(fullName: fullName, short: short) }
 
-    var body: some View {
+    var body: some View { screenBody.feedbackScreen("Person editor") }   // Q341
+    @ViewBuilder private var screenBody: some View {
         NavigationStack {
             ZStack {
                 Color.skBg.ignoresSafeArea()
