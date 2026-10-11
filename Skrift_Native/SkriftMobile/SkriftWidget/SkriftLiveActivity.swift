@@ -41,7 +41,7 @@ struct SkriftLiveActivity: Widget {
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
-                        Waveform(size: 16, paused: paused || stale)
+                        Waveform(size: 16, levels: context.state.levels, paused: paused || stale)
                         Text(stale ? "Interrupted" : (paused ? "Paused" : "Recording"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.85))
@@ -70,11 +70,11 @@ struct SkriftLiveActivity: Widget {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } compactLeading: {
-                Waveform(size: 14, paused: paused || stale)
+                Waveform(size: 14, levels: context.state.levels, paused: paused || stale)
             } compactTrailing: {
                 Circle().fill(stale || paused ? SK.amber : SK.red).frame(width: 8, height: 8)
             } minimal: {
-                Waveform(size: 14, paused: paused || stale)
+                Waveform(size: 14, levels: context.state.levels, paused: paused || stale)
             }
             .keylineTint(SK.accent)
             .widgetURL(SK.recordURL)
@@ -107,7 +107,7 @@ struct SkriftLiveActivity: Widget {
     private func lockScreen(_ state: RecordingActivityAttributes.ContentState) -> some View {
         let paused = state.status == .paused
         return HStack(spacing: 12) {
-            Waveform(size: 22, paused: paused).frame(width: 28)
+            Waveform(size: 22, levels: state.levels, paused: paused).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     timer(state).font(.system(size: 14, weight: .semibold, design: .monospaced))
@@ -149,26 +149,31 @@ struct SkriftLiveActivity: Widget {
     }
 }
 
-/// Self-animating waveform (TimelineView — `.symbolEffect` isn't reliable in a
-/// widget). Amber + still while paused, accent + moving while recording.
+/// Level-driven waveform. A Live Activity is rendered as snapshots, so a
+/// `TimelineView(.animation)` never ticks (Q339: the island bars sat still).
+/// The app pushes the bar heights in `ContentState.levels` (same throttle as the
+/// caption); each push redraws and eases between heights. Amber + flat while paused.
 private struct Waveform: View {
     let size: CGFloat
+    var levels: [Float] = []
     var paused: Bool = false
-    private let bars = 5
+    private let bars = RecordingActivityAttributes.ContentState.barCount
+
+    private func height(_ i: Int) -> CGFloat {
+        if paused { return 0.5 }
+        guard i < levels.count else { return 0.3 }
+        return 0.18 + 0.82 * CGFloat(min(1, max(0, levels[i])))
+    }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 0.08, paused: paused)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: max(1, size * 0.09)) {
-                ForEach(0..<bars, id: \.self) { i in
-                    let phase = t * 4 + Double(i) * 0.6
-                    let norm = paused ? 0.5 : 0.45 + 0.55 * (sin(phase) * 0.5 + 0.5)
-                    Capsule()
-                        .fill((paused ? SK.amber : SK.accent).opacity(paused ? 0.5 : 0.9))
-                        .frame(width: max(1.5, size * 0.13), height: size * CGFloat(norm))
-                }
+        HStack(alignment: .center, spacing: max(1, size * 0.09)) {
+            ForEach(0..<bars, id: \.self) { i in
+                Capsule()
+                    .fill((paused ? SK.amber : SK.accent).opacity(paused ? 0.5 : 0.9))
+                    .frame(width: max(1.5, size * 0.13), height: size * height(i))
             }
-            .frame(width: size * 1.4, height: size, alignment: .center)
         }
+        .frame(width: size * 1.4, height: size, alignment: .center)
+        .animation(.easeOut(duration: 0.3), value: levels)
     }
 }
