@@ -2571,7 +2571,7 @@ gate+: yes
 do: Seen in feedback note 2b8bc952's screenshot (Dev 184): the note title reads '> The first complete Odyssey in English w…' — the markdown quote marker leaks into the derived title. Fix the title ladder (Shared NoteTitle / ladderTitle) so a quote capture's title is the quote text without '> ' (or the book title, whichever the ladder rules say), on phone and Mac; keep one shared rule. Test in `NoteTitleQuoteTests` (phone) + a desktop case.
 check: `plan/mtest.sh NoteTitleQuoteTests`
 
-### Q346 [auto] (todo) check: appending a recording to a typed note (no audio yet) may discard the new clip
+### Q346 [auto] (doing) check: appending a recording to a typed note (no audio yet) may discard the new clip
 spec: -
 needs: Q343
 gate+: yes
@@ -3764,3 +3764,4 @@ check: `plan/mtest.sh AppendToTypedNoteTests`
 - 2026-10-11 20:26 Q345 -> doing — worker out
 - 2026-10-11 20:43 Q346 added
 - 2026-10-11 21:00 Q343 -> done — gate 287s @4f6fca2d
+- 2026-10-11 21:01 Q346 -> doing — worker out
