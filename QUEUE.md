@@ -2564,7 +2564,7 @@ gate+: yes
 do: Feedback note 719dfdbf (Tuur 2026-10-11, Dev 184, after Q338): 'before, the text was clipping over the personal versus portfolio buttons; now it works' — intermittent. His screenshot (~/.feedback/skrift/2026-10/719dfdbf-b11f-49ad-8c63-e997cf32dcbc.png) shows the expanded PRIVATE ¦ PORTFOLIO row with the body starting right under it, no gap. Find the layout race (header height measured before the destination row expands/collapses, or the editor's top inset not updating when the row changes) in MemoPageView / the hosted header, fix it, and give the body the same gap below the row as below the other header rows. Render and LOOK: sim screenshots with the row collapsed, expanded, and while toggling, light and dark. Reply to the sender when merged.
 check: `./gate.sh`
 
-### Q345 [auto] (doing) a book-quote note's title shows the literal '> ' quote marker
+### Q345 [auto] (done) a book-quote note's title shows the literal '> ' quote marker
 spec: -
 needs: -
 gate+: yes
@@ -3786,3 +3786,4 @@ check: `./gate.sh`
 - 2026-10-11 21:12 Q345 -> stuck — gate failed — .queue/Q345.gate.log
 - 2026-10-11 21:12 Q345 -> doing — re-accept after the MacMainThreadCostTests check (see Q348)
 - 2026-10-11 21:23 Q344 -> done — gate 169s @ba56c139
+- 2026-10-11 21:26 Q345 -> done — gate 78s @88eae032
