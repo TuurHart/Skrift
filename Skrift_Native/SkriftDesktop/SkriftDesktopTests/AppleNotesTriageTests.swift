@@ -31,6 +31,10 @@ final class AppleNotesTriageTests: XCTestCase {
         var locked = false
         var trashed = false
         var inTrashFolder = false
+        /// Inline picture attachments (their runs carry `public.jpeg`; the bytes are not copied by the importer).
+        var pictures = 0
+        /// `ZICCLOUDSYNCINGOBJECT.ZTITLE2` of the folder row the note sits in (nil = the default "Notes" folder).
+        var folder: String?
     }
 
     private func varint(_ value: UInt64) -> [UInt8] {
@@ -48,15 +52,18 @@ final class AppleNotesTriageTests: XCTestCase {
         return Data([0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 0xff] + out[0..<n] + [0, 0, 0, 0, 0, 0, 0, 0])
     }
 
-    /// Document{3: Note{2: text, 5: runs}} for the note's lines, then its tags as inline attachments.
-    private func blob(for note: FixtureNote) -> (Data, [String: String]) {
+    /// The REAL wrapper (apple_cloud_notes_parser proto/notestore.proto):
+    /// NoteStoreProto{2: Document{2: version, 3: Note{2: note_text, 5: repeated AttributeRun}}}.
+    /// ParagraphStyle numbers as the parser's AppleNote.rb / the Obsidian importer's ANStyleType:
+    /// -1 default, 0 title, 1 heading, 2 subheading, 4 monospaced, 100 dotted, 101 dashed, 102 numbered, 103 checkbox.
+    private func blob(for note: FixtureNote, wrapped: Bool = true) -> (Data, [String: String]) {
         var text = ""
         var runs: [[UInt8]] = []
         var alt: [String: String] = [:]
         func run(len: Int, style: Int, indent: Int = 0, done: Bool = false, attach: (String, String)? = nil) {
             var style_ = intField(1, UInt64(bitPattern: Int64(style)))
             if indent != 0 { style_ += intField(4, UInt64(indent)) }
-            if style == 100 { style_ += lenField(5, lenField(1, [1, 2, 3]) + intField(2, done ? 1 : 0)) }
+            if style == 103 { style_ += lenField(5, lenField(1, [1, 2, 3]) + intField(2, done ? 1 : 0)) }
             var r = intField(1, UInt64(len)) + lenField(2, style_)
             if let (id, uti) = attach { r += lenField(12, lenField(1, Array(id.utf8)) + lenField(2, Array(uti.utf8))) }
             runs.append(r)
@@ -75,11 +82,12 @@ final class AppleNotesTriageTests: XCTestCase {
                 text += "\u{FFFC}"; run(len: 1, style: -1, attach: (id, NotesBodyDecoder.hashtagUTI))
             }
         }
-        // one picture, to prove the report counts what is not copied
-        var doc: [UInt8] = intField(2, 0)
+        for k in 0..<note.pictures {
+            text += "\u{FFFC}"; run(len: 1, style: -1, attach: ("pic-\(note.id)-\(k)", "public.jpeg"))
+        }
         let noteMsg = lenField(2, Array(text.utf8)) + runs.reduce([UInt8]()) { $0 + lenField(5, $1) }
-        doc += lenField(3, noteMsg)
-        return (gzip(doc), alt)
+        let document = intField(2, 0) + lenField(3, noteMsg)
+        return (gzip(wrapped ? lenField(2, document) : document), alt)
     }
 
     private func exec(_ db: OpaquePointer?, _ sql: String) {
@@ -97,35 +105,45 @@ final class AppleNotesTriageTests: XCTestCase {
         defer { sqlite3_close(db) }
         exec(db, """
             CREATE TABLE ZICCLOUDSYNCINGOBJECT (Z_PK INTEGER PRIMARY KEY, Z_ENT INTEGER, ZIDENTIFIER TEXT, ZTITLE1 TEXT,
-              ZSNIPPET TEXT, ZCREATIONDATE3 REAL, ZMODIFICATIONDATE1 REAL, ZISPASSWORDPROTECTED INTEGER,
+              ZSNIPPET TEXT, ZCREATIONDATE1 REAL, ZCREATIONDATE2 REAL, ZCREATIONDATE3 REAL, ZMODIFICATIONDATE1 REAL, ZTITLE2 TEXT, ZISPASSWORDPROTECTED INTEGER,
               ZMARKEDFORDELETION INTEGER, ZFOLDER INTEGER, ZFOLDERTYPE INTEGER, ZNOTE INTEGER, ZTYPEUTI TEXT,
               ZALTTEXT TEXT, ZTOKENCONTENTIDENTIFIER TEXT);
             CREATE TABLE ZICNOTEDATA (Z_PK INTEGER PRIMARY KEY, ZNOTE INTEGER, ZDATA BLOB);
-            INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZFOLDERTYPE) VALUES (1, 'folder-notes', 0);
-            INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZFOLDERTYPE) VALUES (2, 'folder-trash', 1);
+            INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZFOLDERTYPE, ZTITLE2) VALUES (1, 'folder-notes', 0, 'Notes');
+            INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZFOLDERTYPE, ZTITLE2) VALUES (2, 'folder-trash', 1, 'Recently Deleted');
             """)
         var pk = 10
+        var customFolders: [String: Int] = [:]
         for n in notes {
+            let created = n.created.map { String($0.timeIntervalSinceReferenceDate) } ?? "NULL"
+            var folderPK = n.inTrashFolder ? 2 : 1
+            if let f = n.folder {
+                if customFolders[f] == nil {
+                    pk += 1
+                    customFolders[f] = pk
+                    exec(db, "INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZFOLDERTYPE, ZTITLE2) VALUES (\(pk), \(q("folder-" + f)), 0, \(q(f)));")
+                }
+                folderPK = customFolders[f]!
+            }
             pk += 1
             let notePK = pk
-            let created = n.created.map { String($0.timeIntervalSinceReferenceDate) } ?? "NULL"
             exec(db, """
                 INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZTITLE1, ZSNIPPET, ZCREATIONDATE3, ZMODIFICATIONDATE1,
                   ZISPASSWORDPROTECTED, ZMARKEDFORDELETION, ZFOLDER)
                 VALUES (\(pk), \(q(n.id)), \(q(n.title)), \(q(n.lines.first?.text ?? "")), \(created), 700000000,
-                  \(n.locked ? 1 : 0), \(n.trashed ? 1 : 0), \(n.inTrashFolder ? 2 : 1));
+                  \(n.locked ? 1 : 0), \(n.trashed ? 1 : 0), \(folderPK));
                 """)
             let (data, alt) = blob(for: n)
             var st: OpaquePointer?
             sqlite3_prepare_v2(db, "INSERT INTO ZICNOTEDATA (ZNOTE, ZDATA) VALUES (?, ?)", -1, &st, nil)
-            sqlite3_bind_int64(st, 1, Int64(pk))
+            sqlite3_bind_int64(st, 1, Int64(notePK))
             _ = data.withUnsafeBytes { sqlite3_bind_blob(st, 2, $0.baseAddress, Int32(data.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self)) }
             sqlite3_step(st); sqlite3_finalize(st)
             for (id, text) in alt {
                 pk += 1
                 exec(db, """
-                    INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZNOTE, ZTYPEUTI, ZALTTEXT)
-                    VALUES (\(pk), \(q(id)), \(notePK), \(q(NotesBodyDecoder.hashtagUTI)), \(q(text)));
+                    INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZTYPEUTI, ZALTTEXT)
+                    VALUES (\(pk), \(q(id)), \(q(NotesBodyDecoder.hashtagUTI)), \(q(text)));
                     """)
             }
         }
@@ -335,8 +353,8 @@ final class AppleNotesTriageTests: XCTestCase {
     func testBodyKeepsHeadingsListsAndTicksAndDateUnknownIsHonest() throws {
         let note = FixtureNote(title: "Gift ideas", lines: [
             P(text: "Gift ideas", style: 0), P(text: "Soon", style: 1),
-            P(text: "A chisel", style: 4), P(text: "Concert tickets?", style: 100, done: true),
-            P(text: "Book on joinery", style: 100), P(text: "Plain line")], created: nil)
+            P(text: "A chisel", style: 100), P(text: "Concert tickets?", style: 103, done: true),
+            P(text: "Book on joinery", style: 103), P(text: "Plain line")], created: nil)
         let reader = try NotesStoreReader(copying: try makeStore([note]))
         let s = try XCTUnwrap(try reader.listNotes().first)
         XCTAssertNil(s.created, "no creation date stays nil: Date unknown, never today (Q141)")
@@ -345,6 +363,33 @@ final class AppleNotesTriageTests: XCTestCase {
         XCTAssertEqual(d.media.checklistItems, 2); XCTAssertEqual(d.media.checklistDone, 1)
         XCTAssertEqual(AppleNotesTriage.ordered([s, AppleNoteSummary(id: "z", pk: 1, title: "dated", snippet: "", created: Date(), modified: nil, isLocked: false)]).last?.id, s.id,
                        "date unknown sorts last")
+    }
+
+    // MARK: - Q337 (1) the real NoteStoreProto wrapper, (2) the real paragraph style numbers
+
+    func testTheRealNoteStoreProtoWrapperDecodesAndABareDocumentStillDoes() throws {
+        let note = FixtureNote(title: "Wrapped", lines: [P(text: "Wrapped", style: 0), P(text: "Body text")])
+        for wrapped in [true, false] {
+            let (data, _) = blob(for: note, wrapped: wrapped)
+            let d = try XCTUnwrap(NotesBodyDecoder.decode(zdata: data), "wrapped=\(wrapped)")
+            XCTAssertEqual(d.markdown, "# Wrapped\n\nBody text", "wrapped=\(wrapped)")
+        }
+    }
+
+    func testParagraphStylesUseTheRealNumbers() throws {
+        let note = FixtureNote(title: "Styles", lines: [
+            P(text: "Styles", style: 0), P(text: "Big", style: 1), P(text: "Small", style: 2),
+            P(text: "dot one", style: 100), P(text: "dot two", style: 100, indent: 1),
+            P(text: "dash one", style: 101), P(text: "dash two", style: 101),
+            P(text: "first", style: 102), P(text: "second", style: 102),
+            P(text: "tick me", style: 103), P(text: "ticked", style: 103, done: true),
+            P(text: "let x = 1", style: 4), P(text: "Plain")])
+        let d = try XCTUnwrap(NotesBodyDecoder.decode(zdata: blob(for: note).0))
+        XCTAssertEqual(d.markdown, [
+            "# Styles", "## Big", "### Small",
+            "- dot one\n  - dot two\n- dash one\n- dash two\n1. first\n2. second\n- [ ] tick me\n- [x] ticked",
+            "let x = 1", "Plain"].joined(separator: "\n\n"))
+        XCTAssertEqual(d.media.checklistItems, 2); XCTAssertEqual(d.media.checklistDone, 1)
     }
 
     func testImportedNoteArrivesRatedDatedAndTagged() throws {
