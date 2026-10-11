@@ -70,7 +70,9 @@ final class AppendToTypedNoteTests: XCTestCase {
         XCTAssertFalse(fm.fileExists(atPath: clip.path), "the temp clip is moved, not copied")
         XCTAssertEqual(SourceKind.of(memo), .typedNote, "it stays a note you wrote")
 
-        // And it syncs: the audio is queued as a MemoAsset.
+        // And it syncs: the audio is queued as a MemoAsset (the saver does this in a detached task
+        // after the append; run it here so the test does not race that task).
+        AssetMaterializer.capture(memoID: id, repository: repo)
         let audio = repo.assets(forMemo: id).filter { $0.kind == MemoAsset.Kind.audio }
         XCTAssertEqual(audio.map(\.filename), [memo.audioFilename])
     }
