@@ -2543,7 +2543,7 @@ gate+: yes
 do: ~/Hackerman/netcup-server/ADOPTING.md step 5: put `.feedbackScreen("<Name>")` on each top-level screen and sheet so a feedback note says which screen it came from. Today only QuoteCaptureFlowView, AudiobookPlayerView and RecordView carry it. Add: Notes list, note screen, quick note, Books/Library, Review/Journal, Settings, Names, the share sheet's card, the Text sheet, the tag editor sheet, the person editor. Names are short and plain ('Notes', 'Note', 'Books', 'Review', 'Settings', …). Also confirm FeedbackKitWiring.swift passes nothing that disables the new previews/status features. Test: a UI test that opens the feedback sheet from the Notes list and asserts 'From the Notes screen' (phone sim, `-skipOnboarding`).
 check: `./gate.sh`
 
-### Q342 [auto] (todo) Mac: FeedbackKit button in Skrift's Mac app (after FeedbackKit gets macOS support)
+### Q342 [auto] (doing) Mac: FeedbackKit button in Skrift's Mac app (after FeedbackKit gets macOS support)
 spec: -
 needs: -
 gate+: yes
@@ -3724,3 +3724,4 @@ check: `./gate.sh`
 - 2026-10-11 12:10 Q341 -> done — gate 131s @d5a65a1e
 - 2026-10-11 12:17 Q338 -> done — hand-merged (Tuur approved 2026-10-11: protected tests that pin four destinations rewritten to Personal/Portfolio (D189), incl. destination-only lines in 10 more test files after the aliases were removed)
 - 2026-10-11 12:21 Q342 added
+- 2026-10-11 12:48 Q342 -> doing — worker out (FeedbackKit macOS on netcup-server main 640f04c)
