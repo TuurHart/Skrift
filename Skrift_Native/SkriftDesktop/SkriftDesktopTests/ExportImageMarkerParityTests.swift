@@ -69,7 +69,7 @@ final class ExportImageMarkerParityTests: XCTestCase {
         let audio = try noteFolder(images: ["img_001.jpg": Data([7])], manifest: ["img_001.jpg"])
         let pf = PipelineFile(id: UUID().uuidString, filename: "memo.m4a", path: audio.path, size: 3, sourceType: .audio)
         pf.enhancedTitle = "Lamp Idea"
-        pf.destination = .idea
+        pf.destination = .portfolio
         pf.sanitised = "Sketch: [[img_001]] done."
 
         let r = try VaultExporter.export(pf, settings: vaultSettings())

@@ -1,50 +1,44 @@
 import XCTest
 @testable import SkriftMobile
 
-/// `NoteDestination` + the reserved-word guard — the one-of-four rule in code.
+/// `NoteDestination` — the one-of-two rule in code (D189, Tuur 2026-10-08).
 ///
 /// The rule under test is a PRIVACY rule, not a tidiness rule (Tuur, 2026-08-26): his own
 /// thoughts must never be read by AI, his ideas and inspirations deliberately are. So a note
-/// carries exactly one destination, an unreadable one degrades to the PRIVATE side, and the
-/// four words can't be smuggled in as tags.
+/// carries exactly one destination (Personal or Portfolio) and an unreadable one degrades to the
+/// PRIVATE side. idea / inspiration / project are ordinary tags and route nothing.
 final class NoteDestinationTests: XCTestCase {
 
-    // MARK: - The four
+    // MARK: - The two
 
     func testPersonalIsTheDefaultAndTheOnlyPrivateOne() {
         XCTAssertEqual(Memo(title: "T").destination, .personal,
                        "an existing memo, and every new one, means today's behaviour")
         XCTAssertFalse(NoteDestination.personal.isPortfolio)
-        for d in [NoteDestination.project, .idea, .inspiration] {
-            XCTAssertTrue(d.isPortfolio, "\(d.label) leaves for a repo an AI reads")
-        }
+        XCTAssertTrue(NoteDestination.portfolio.isPortfolio, "Portfolio leaves for a repo an AI reads")
     }
 
-    /// D156: the words are Personal · Inspiration · Idea · Project, in that display order, and
-    /// the stored raw values are the same words lower-cased. No old word survives anywhere.
+    /// D189: the words are Personal · Portfolio, in that display order, and the stored raw values
+    /// are the same words lower-cased. The old values are NOT cases any more; they decode as
+    /// Portfolio plus a tag (`NoteDestination.decode`, covered by `TwoDestinationsTests`).
     func testLabelsOrderAndRawValues() {
-        XCTAssertEqual(NoteDestination.allCases.map(\.label),
-                       ["Personal", "Inspiration", "Idea", "Project"])
-        XCTAssertEqual(NoteDestination.allCases.map(\.rawValue),
-                       ["personal", "inspiration", "idea", "project"])
-        XCTAssertNil(NoteDestination(rawValue: "made"), "no migration: the old raw value is gone")
+        XCTAssertEqual(NoteDestination.allCases.map(\.label), ["Personal", "Portfolio"])
+        XCTAssertEqual(NoteDestination.allCases.map(\.rawValue), ["personal", "portfolio"])
+        XCTAssertNil(NoteDestination(rawValue: "idea"), "idea is a tag now, not a destination")
     }
 
     func testPortfolioFoldersMatchTheSpec() {
         XCTAssertNil(NoteDestination.personal.portfolioFolder, "personal uses the vault bookmark")
-        XCTAssertEqual(NoteDestination.project.portfolioFolder, "_projects")
-        XCTAssertEqual(NoteDestination.idea.portfolioFolder, "_ideas")
-        XCTAssertEqual(NoteDestination.inspiration.portfolioFolder, "_inspiration")
+        XCTAssertEqual(NoteDestination.portfolio.portfolioFolder, "_inbox")
     }
 
-    // MARK: - One-of-four
+    // MARK: - One-of-two
 
     func testSettingADestinationReplacesTheLastOne() {
         let m = Memo(title: "T")
-        m.destination = .inspiration
-        m.destination = .idea
-        XCTAssertEqual(m.destination, .idea,
-                       "one-of-four: idea + inspiration is meaningless — the line is authorship")
+        m.destination = .portfolio
+        m.destination = .personal
+        XCTAssertEqual(m.destination, .personal, "one destination at a time: setting replaces")
     }
 
     /// An unreadable value must never be guessed as one that LEAVES. Degrading to `.personal`
@@ -73,25 +67,21 @@ final class NoteDestinationTests: XCTestCase {
     /// as one that promises what it cannot do.
     func testExportVerbNamesWhereTheNoteIsActuallyGoing() {
         XCTAssertEqual(NoteWorkState.readyToExport.label(for: .personal), "Export to Obsidian")
-        for d in [NoteDestination.project, .idea, .inspiration] {
-            XCTAssertEqual(NoteWorkState.readyToExport.label(for: d), "Export to portfolio",
-                           "\(d.label) does not go to Obsidian")
-        }
+        XCTAssertEqual(NoteWorkState.readyToExport.label(for: .portfolio), "Export to portfolio",
+                       "Portfolio does not go to Obsidian")
         // The other two states are destination-agnostic on purpose: processing happens before
         // anywhere is chosen, and "Re-export" already means "again, to wherever it went".
-        XCTAssertEqual(NoteWorkState.exported.label(for: .idea), "Re-export")
-        XCTAssertEqual(NoteWorkState.needsProcessing.label(for: .idea), SharedCopy.processVerb)
+        XCTAssertEqual(NoteWorkState.exported.label(for: .portfolio), "Re-export")
+        XCTAssertEqual(NoteWorkState.needsProcessing.label(for: .portfolio), SharedCopy.processVerb)
     }
 
-    // MARK: - Reserved words in the free tag field
+    // MARK: - Tags never route
 
-    func testReservedMatchesCaseAndHashInsensitively() {
-        XCTAssertEqual(NoteDestination.reserved("idea"), .idea)
-        XCTAssertEqual(NoteDestination.reserved("#Idea"), .idea)
-        XCTAssertEqual(NoteDestination.reserved("  INSPIRATION "), .inspiration)
-        XCTAssertEqual(NoteDestination.reserved("personal"), .personal)
-        XCTAssertEqual(NoteDestination.reserved("project"), .project)
-        XCTAssertNil(NoteDestination.reserved("ideas"), "only the exact word is reserved")
-        XCTAssertNil(NoteDestination.reserved("lisbon"))
+    /// D189: typing `idea` (or any destination-looking word) in the free tag field is just a tag.
+    /// A tag is not a destination, so it can never move a note across the privacy line.
+    func testTagsNeverRouteANote() {
+        let m = Memo(title: "T")
+        m.tags = ["idea", "inspiration", "project", "portfolio"]
+        XCTAssertEqual(m.destination, .personal)
     }
 }

@@ -51,7 +51,7 @@ final class ExportSourceFieldTests: XCTestCase {
     /// The portfolio writes the same value under its own key (`capture:`).
     func testPortfolioCaptureKeyCarriesTheTypedValue() {
         let pf = MemoNoteProjection.file(for: typedMemo())
-        pf.destination = .idea
+        pf.destination = .portfolio
         let md = Compiler.compile(file: pf, author: "Me", date: "2026-10-03", profile: .portfolio)
         XCTAssertEqual(sourceLine(md), "capture: Typed-note", md)
     }

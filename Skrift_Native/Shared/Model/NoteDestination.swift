@@ -65,11 +65,6 @@ enum NoteDestination: String, CaseIterable, Codable, Sendable {
         return withTag(tag, in: tags)
     }
 
-    /// Typing `idea` is just a tag now (D189): no word is reserved and nothing re-routes a
-    /// note, so this is always nil. Kept so callers written for the four-destination era still
-    /// compile; delete it with them.
-    static func reserved(_ word: String) -> NoteDestination? { nil }
-
     /// Append `tag` unless a case-insensitive match is already there.
     static func withTag(_ tag: String, in tags: [String]) -> [String] {
         tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame } ? tags : tags + [tag]
@@ -83,16 +78,6 @@ enum PortfolioTagPresets {
     static let all: [String] = NoteDestination.legacyPortfolioWords
     /// The tag that raises `needs: - credit` in the portfolio profile (someone else's work).
     static let inspiration = "inspiration"
-}
-
-// MARK: - Source compatibility with the four-destination call sites
-
-/// The old case names still compile (each now means Portfolio) so code and tests written
-/// before D189 keep building. New code says `.portfolio` and uses a tag.
-extension NoteDestination {
-    static var idea: NoteDestination { .portfolio }
-    static var inspiration: NoteDestination { .portfolio }
-    static var project: NoteDestination { .portfolio }
 }
 
 // MARK: - The feature switch

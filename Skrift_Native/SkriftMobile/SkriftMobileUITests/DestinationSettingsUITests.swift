@@ -61,22 +61,19 @@ final class DestinationSettingsUITests: XCTestCase {
         capture(app, "settings-on-unconfigured")
     }
 
-    /// Configured: the three portfolio subfolders are shown read-only, so what the folder is
-    /// about to be used for is visible before anything is written to it.
-    func testConfiguredShowsTheThreeFolders() {
+    /// Configured: the `_inbox` folder Portfolio notes land in is shown read-only, so what the
+    /// folder is about to be used for is visible before anything is written to it.
+    func testConfiguredShowsTheInboxFolder() {
         let app = launch(["-destinationsOn", "-seedPortfolioFolder"])
         let folderRow = app.buttons["portfolio-folder"]
         reveal(app, folderRow)
         XCTAssertTrue(folderRow.waitForExistence(timeout: 5))
-        let idea = app.staticTexts["portfolio-path-idea"]
-        XCTAssertTrue(idea.waitForExistence(timeout: 5),
+        let inbox = app.staticTexts["portfolio-path-portfolio"]
+        XCTAssertTrue(inbox.waitForExistence(timeout: 5),
                       "the resolved subfolder must be shown, not just promised")
-        // `LabeledContent` reads its label and value as ONE element ("Idea, portfolio/_ideas"),
+        // `LabeledContent` reads its label and value as ONE element ("Portfolio, portfolio/_inbox"),
         // which is the right thing for VoiceOver — so match the path inside it.
-        XCTAssertTrue(idea.label.hasSuffix("portfolio/_ideas"), idea.label)
-        XCTAssertTrue(app.staticTexts["portfolio-path-project"].label.hasSuffix("portfolio/_projects"))
-        XCTAssertTrue(app.staticTexts["portfolio-path-inspiration"].label
-                        .hasSuffix("portfolio/_inspiration"))
+        XCTAssertTrue(inbox.label.hasSuffix("portfolio/_inbox"), inbox.label)
         capture(app, "settings-configured")
     }
 }

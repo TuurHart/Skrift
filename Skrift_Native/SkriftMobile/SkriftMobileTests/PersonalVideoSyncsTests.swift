@@ -81,11 +81,11 @@ final class PersonalVideoSyncsTests: XCTestCase {
 
     func testRefilingPersonalAndProjectNeverDeletesTheMovie() {
         let repo = NotesRepository(inMemory: true)
-        let (memo, name) = keptVideoMemo(repo, destination: .project)
+        let (memo, name) = keptVideoMemo(repo, destination: .portfolio)
         AssetMaterializer.captureMissing(repo)
         XCTAssertEqual(videoAssets(repo, memo.id).count, 1)
 
-        for d in [NoteDestination.personal, .project, .personal, .idea, .personal] {
+        for d in [NoteDestination.personal, .portfolio, .personal, .portfolio, .personal] {
             memo.destination = d
             AssetMaterializer.captureMissing(repo)
             XCTAssertEqual(videoAssets(repo, memo.id).count, 1, "filed \(d): the synced movie stays")
@@ -141,7 +141,7 @@ final class PersonalVideoSyncsTests: XCTestCase {
     func testPortfolioExportStillCopiesTheMovie() throws {
         let movie = sandbox.appendingPathComponent("the-movie.mov")
         try Data("MOVIE".utf8).write(to: movie)
-        let outcome = try publisher(movie: movie, ledger: "q.json").publish(videoMemo(destination: .project))
+        let outcome = try publisher(movie: movie, ledger: "q.json").publish(videoMemo(destination: .portfolio))
         guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
         XCTAssertEqual(movFiles(under: sandbox.appendingPathComponent("portfolio")).count, 1)
         XCTAssertTrue(movFiles(under: sandbox.appendingPathComponent("vault")).isEmpty)
