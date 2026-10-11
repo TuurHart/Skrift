@@ -2578,7 +2578,7 @@ gate+: yes
 do: Found by the Q343 worker (2026-10-11): MemoSaver.appendRecordingAsync bails and discards the clip when memo.audioURL is nil, i.e. a typed note with an empty audioFilename (QuickNote, a typed note's ⋯ Add recording). Confirm with a failing test whether those paths can reach it; if yes, a typed note that gets its first recording must keep it (the clip becomes the note's audio, its text appended after the typed body, photos per Q343). Possible data loss: verify, don't assume. Test: `AppendToTypedNoteTests`.
 check: `plan/mtest.sh AppendToTypedNoteTests`
 
-### Q347 [auto] (todo) book quote capture writes a second '> ' into the quote text
+### Q347 [auto] (doing) book quote capture writes a second '> ' into the quote text
 spec: -
 needs: -
 gate+: yes
@@ -3787,3 +3787,4 @@ check: `./gate.sh`
 - 2026-10-11 21:12 Q345 -> doing — re-accept after the MacMainThreadCostTests check (see Q348)
 - 2026-10-11 21:23 Q344 -> done — gate 169s @ba56c139
 - 2026-10-11 21:26 Q345 -> done — gate 78s @88eae032
+- 2026-10-11 21:27 Q347 -> doing — worker dispatched
