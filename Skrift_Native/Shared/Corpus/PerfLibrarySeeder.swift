@@ -63,6 +63,9 @@ enum PerfLibrarySeeder {
 
     enum SeedError: Error { case imageEncode, audioEncode }
 
+    /// Inserted notes per `context.save()` (Q340).
+    static let saveBatch = 250
+
     static let rngSeed: UInt64 = 0x5C21F7_0B313
 
     // MARK: Entry point
@@ -352,8 +355,11 @@ enum PerfLibrarySeeder {
         for t in forcedTargets where !linked.contains(t) { entries[t].memo.locked = true }
 
         // ---- insert --------------------------------------------------------------------------
+        // Q340: saved in batches of `saveBatch` INSERTED notes (skipped ids do not count), never one
+        // save per note: every save reaches the main context's lists as a store change.
         var summary = Summary()
         summary.linkSources = linkSources
+        var sinceSave = 0
         for (i, e) in entries.enumerated() {
             if plan.skipIDs.contains(e.memo.id) { continue }
             context.insert(e.memo)
@@ -364,12 +370,14 @@ enum PerfLibrarySeeder {
                 if a.kind == MemoAsset.Kind.audio { summary.audioAssets += 1 }
             }
             summary.memos += 1
-            if (i + 1) % 100 == 0 {
+            sinceSave += 1
+            if sinceSave >= saveBatch {
                 try context.save()
+                sinceSave = 0
                 progress?("saving", i + 1, n)
             }
         }
-        try context.save()
+        if sinceSave > 0 || context.hasChanges { try context.save() }
         progress?("saving", n, n)
         summary.people = people.count
         return summary
