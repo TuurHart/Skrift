@@ -180,7 +180,11 @@ final class JournalIndexService {
     /// Snapshots are built on the main actor — `Memo` is a main-context @Model
     /// and must not cross into the index actor.
     static func snapshots(from repository: NotesRepository) -> [MemoSnapshot] {
-        repository.allMemos().compactMap { memo -> MemoSnapshot? in
+        // Q340: ONE enhancement fetch grouped by note (newest wins, `SemanticSearch.newest`), not a
+        // fetch per note: with ~2,000 notes this runs on the main actor and was thousands of fetches.
+        let newestPolish = Dictionary(grouping: repository.allEnhancements(), by: \.memoID)
+            .compactMapValues { SemanticSearch.newest($0) }
+        return repository.allMemos().compactMap { memo -> MemoSnapshot? in
             // UNRATED notes are out of the idea graph (Tuur, 2026-07-26: "unrated
             // notes should not join in other notes' connections"). Being a candidate
             // in someone else's Related is Skrift claiming the note belongs to your
@@ -190,7 +194,7 @@ final class JournalIndexService {
             // to 0 (its `existing` minus `seen`).
             guard NoteConsent.isRated(memo) else { return nil }
             // The ONE shared Memo → snapshot rule the Mac uses too (Q168).
-            return SemanticSearch.snapshot(memo: memo, enhancement: repository.enhancement(forMemo: memo.id))
+            return SemanticSearch.snapshot(memo: memo, enhancement: newestPolish[memo.id])
         }
     }
 

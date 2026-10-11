@@ -21,35 +21,66 @@ final class TestLibraryRunner: ObservableObject {
         static let removeConfirm = "Delete every test note and the made-up people, on every Dev device?"
     }
 
+    /// The whole fill, run OFF the main actor on its own context of `container` (Q340). The seeder
+    /// saves in batches of `PerfLibrarySeeder.saveBatch` and never touches `NotesRepository`, so
+    /// `memoSetVersion` / `memoStructureVersion` do not move until the caller's `afterChange`.
+    /// `progress` is called on the worker thread.
+    nonisolated static func fillWork(container: ModelContainer, recordingsDirectory: URL?, names: NamesStore,
+                                     now: Date = Date(), plan: PerfLibrarySeeder.Plan = PerfLibrarySeeder.Plan(),
+                                     progress: (@Sendable (String, Int, Int) -> Void)? = nil) async throws -> TestLibrary.FillSummary {
+        try await Task.detached(priority: .userInitiated) {
+            let context = ModelContext(container)
+            context.autosaveEnabled = false
+            return try TestLibrary.fill(into: context, names: names, recordingsDirectory: recordingsDirectory,
+                                        now: now, plan: plan, progress: progress)
+        }.value
+    }
+
+    /// Marked notes in the store, counted off the main actor (decoding 2,000 metadata blobs is
+    /// not main-thread work).
+    nonisolated static func markedCount(in container: ModelContainer) async -> Int {
+        await Task.detached(priority: .utility) {
+            let context = ModelContext(container)
+            return ((try? context.fetch(FetchDescriptor<Memo>())) ?? []).filter(TestLibrary.isMarked).count
+        }.value
+    }
+
     /// Fill the store behind `container`. `recordingsDirectory` is the phone's media folder (nil on
     /// the Mac). `afterChange` runs on the main actor when the store changed (re-read lists, push
-    /// the names carrier).
+    /// the names carrier). The status line follows the real phases: building, saving (with counts),
+    /// "refreshing the list" while `afterChange` runs on main, then the final line once it returned.
     func fill(container: ModelContainer, recordingsDirectory: URL?, names: NamesStore = .shared,
               afterChange: @escaping @MainActor () -> Void) {
         guard !busy else { return }
         busy = true
         status = "Filling with test notes…"
         let began = Date()
-        Task.detached(priority: .userInitiated) {
-            let context = ModelContext(container)
-            context.autosaveEnabled = false
-            let line: String
+        Task {
+            var line: String
+            var changed = false
             do {
-                let s = try TestLibrary.fill(into: context, names: names, recordingsDirectory: recordingsDirectory) { phase, done, total in
+                let s = try await Self.fillWork(container: container, recordingsDirectory: recordingsDirectory,
+                                                names: names) { phase, done, total in
                     Task { @MainActor in self.status = "Filling with test notes: \(phase) \(done) / \(total)" }
                 }
-                line = s.memosAdded == 0 && s.peopleAdded == 0
+                changed = s.memosAdded > 0 || s.peopleAdded > 0
+                line = !changed
                     ? "Already full: the test notes are all here."
-                    : "Added \(s.memosAdded) notes, \(s.assetsAdded) files, \(s.peopleAdded) people in \(Int(Date().timeIntervalSince(began))) s."
+                    : "Added \(s.memosAdded) notes, \(s.assetsAdded) files, \(s.peopleAdded) people in \(Int(Date().timeIntervalSince(began))) s. They sync to your other devices in the background."
             } catch {
                 line = "Fill failed: \(error)"
+                changed = true   // earlier batches may have saved: re-read the lists anyway
             }
-            await MainActor.run {
-                self.status = line
-                self.busy = false
-                self.refreshCount(container: container)
+            if changed {
+                // `afterChange` rebuilds the lists on this actor and can hold it for a moment:
+                // say so first and let the line draw before it starts.
+                status = "Saved. Refreshing the list (the screen may pause for a second)…"
+                try? await Task.sleep(nanoseconds: 150_000_000)
                 afterChange()
             }
+            markedCount = await Self.markedCount(in: container)
+            status = line
+            busy = false
         }
     }
 
@@ -71,18 +102,19 @@ final class TestLibraryRunner: ObservableObject {
             } catch {
                 line = "Remove failed: \(error)"
             }
+            let count = await Self.markedCount(in: container)
             await MainActor.run {
                 self.status = line
                 self.busy = false
-                self.refreshCount(container: container)
+                self.markedCount = count
                 afterChange()
             }
         }
     }
 
+    /// Re-count the marked notes without blocking the main actor.
     func refreshCount(container: ModelContainer) {
-        let context = ModelContext(container)
-        markedCount = ((try? context.fetch(FetchDescriptor<Memo>())) ?? []).filter(TestLibrary.isMarked).count
+        Task { markedCount = await Self.markedCount(in: container) }
     }
 }
 #endif
