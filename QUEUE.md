@@ -2571,12 +2571,26 @@ gate+: yes
 do: Seen in feedback note 2b8bc952's screenshot (Dev 184): the note title reads '> The first complete Odyssey in English w…' — the markdown quote marker leaks into the derived title. Fix the title ladder (Shared NoteTitle / ladderTitle) so a quote capture's title is the quote text without '> ' (or the book title, whichever the ladder rules say), on phone and Mac; keep one shared rule. Test in `NoteTitleQuoteTests` (phone) + a desktop case.
 check: `plan/mtest.sh NoteTitleQuoteTests`
 
-### Q346 [auto] (todo) check: appending a recording to a typed note (no audio yet) may discard the new clip
+### Q346 [auto] (doing) check: appending a recording to a typed note (no audio yet) may discard the new clip
 spec: -
 needs: Q343
 gate+: yes
 do: Found by the Q343 worker (2026-10-11): MemoSaver.appendRecordingAsync bails and discards the clip when memo.audioURL is nil, i.e. a typed note with an empty audioFilename (QuickNote, a typed note's ⋯ Add recording). Confirm with a failing test whether those paths can reach it; if yes, a typed note that gets its first recording must keep it (the clip becomes the note's audio, its text appended after the typed body, photos per Q343). Possible data loss: verify, don't assume. Test: `AppendToTypedNoteTests`.
 check: `plan/mtest.sh AppendToTypedNoteTests`
+
+### Q347 [auto] (todo) book quote capture writes a second '> ' into the quote text
+spec: -
+needs: -
+gate+: yes
+do: Found by Q345 (2026-10-11) from feedback note 2b8bc952's screenshot (~/.feedback/skrift/2026-10/2b8bc952-b169-4ff9-b6a5-96b7e5587a52.png): the quote block shows a literal '> ' inside the italic quote text, i.e. the stored body is '> > The first…'. Q345 hid it in titles; find where the audiobook quote capture (QuoteCaptureFlowView / MergedCaptureView / the quote text source: book transcript sentences or read-along text) adds the second marker, fix it at the source, and make the display/export of an existing doubled quote show one marker. Test: `QuoteMarkerSourceTests` (phone).
+check: `plan/mtest.sh QuoteMarkerSourceTests`
+
+### Q348 [auto] (todo) MacMainThreadCostTests: a wall-clock budget in the gate fails under machine load
+spec: -
+needs: -
+gate+: no
+do: 2026-10-11 the gate went red on SkriftDesktopTests/MacMainThreadCostTests.testBacklinkedIDsOneCallPerRenderStaysUnderBudget: 204.66 ms against a 200 ms budget, while other xcodebuild jobs ran (the change under test, Q344, was phone-only). A wall-clock assertion in the per-merge gate fails on load, not on code. Turn it into a work-counter assertion (scans per call, like the D186 counter tests), or move the timing check to gate-full with a margin. This file is protected: propose the change and list it for Tuur's approval rather than editing it.
+check: `./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3764,3 +3778,10 @@ check: `plan/mtest.sh AppendToTypedNoteTests`
 - 2026-10-11 20:26 Q345 -> doing — worker out
 - 2026-10-11 20:43 Q346 added
 - 2026-10-11 21:00 Q343 -> done — gate 287s @4f6fca2d
+- 2026-10-11 21:01 Q346 -> doing — worker out
+- 2026-10-11 21:03 Q347 added
+- 2026-10-11 21:07 Q344 -> stuck — check failed — .queue/Q344.check.log
+- 2026-10-11 21:07 Q344 -> doing — re-accept: gate failed on MacMainThreadCostTests timing (204 ms vs 200 ms budget) while 3 builds ran; Q344 is phone-only
+- 2026-10-11 21:07 Q348 added
+- 2026-10-11 21:12 Q345 -> stuck — gate failed — .queue/Q345.gate.log
+- 2026-10-11 21:12 Q345 -> doing — re-accept after the MacMainThreadCostTests check (see Q348)
