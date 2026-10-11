@@ -37,7 +37,10 @@ final class FeedbackQ341ScreenTagUITests: XCTestCase {
     func testNamesSaysNames() throws {
         let app = launch(extra: ["-openTab", "settings"])
         let link = app.descendants(matching: .any).matching(identifier: "names-link").firstMatch
-        XCTAssertTrue(link.waitForExistence(timeout: 15))
+        // The Library section sits far down the Settings form; scroll until it is on screen.
+        var swipes = 0
+        while !link.waitForExistence(timeout: 2) && swipes < 8 { app.swipeUp(); swipes += 1 }
+        XCTAssertTrue(link.exists, "names-link not found after scrolling")
         link.tap()
         XCTAssertTrue(app.staticTexts["Jane Doe"].waitForExistence(timeout: 5))
         assertSheetSays("Names", in: app)
