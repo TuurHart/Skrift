@@ -572,15 +572,24 @@ struct MemoSaver {
     /// `.failed` (the memos list shows an Error pill) — never a silent no-op.
     func appendRecordingAsync(to memoID: UUID, tempURL: URL, liveCaption: String? = nil,
                               photos: [CapturedPhoto] = []) async {
-        guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
-            DevLog.log("append BAILED — memo missing or no audioURL (memoID \(memoID)); clip discarded")
+        // Q346: a TYPED note has no audio yet (`audioFilename == ""`) and is reachable from the quick
+        // note's plus and a typed note's Add recording. Its first recording becomes its audio
+        // (below). Captures (links, images, files) also have no audio but are not offered Add
+        // recording; for them the clip is still discarded.
+        guard let memo = repository.memo(id: memoID),
+              memo.audioURL != nil || memo.sharedContent == nil else {
+            DevLog.log("append BAILED — memo missing or a no-audio capture (memoID \(memoID)); clip discarded")
             try? FileManager.default.removeItem(at: tempURL)
             photos.forEach { try? FileManager.default.removeItem(at: $0.url) }
             return
         }
-        // Q343: the photos become MemoAssets (and get OCR'd) however the append ends.
+        let isFirstRecording = memo.audioURL == nil
+        let memoURL = memo.audioURL
+            ?? AppPaths.recordingsDirectory.appendingPathComponent(RecordingCore.filename(id: memoID))
+        // Q343: the photos become MemoAssets (and get OCR'd) however the append ends. Q346: so does
+        // a first recording's audio.
         defer {
-            if !photos.isEmpty {
+            if !photos.isEmpty || isFirstRecording {
                 Task {
                     AssetMaterializer.capture(memoID: memoID, repository: repository)
                     PhotoTextIndexer.run(repository)
@@ -611,8 +620,15 @@ struct MemoSaver {
         // clip — it stays available for transcription.) If the merge can't run
         // (e.g. placeholder audio in tests), keep the base audio and still append
         // the text — the feature is "add more text", audio is a bonus.
-        let merge = try? await Self.appendAudio(base: memoURL, addition: clip)
-        let mergedDuration = merge?.merged ?? priorDuration
+        let merge: (merged: TimeInterval, base: TimeInterval)?
+        if isFirstRecording {
+            // Q346: nothing to splice onto: the clip IS the note's audio (a copy; the clip itself
+            // stays until its text has landed, as ever). Its words start at 0.
+            merge = adoptAsAudio(clip: clip, memo: memo, dest: memoURL)
+        } else {
+            merge = try? await Self.appendAudio(base: memoURL, addition: clip)
+        }
+        var mergedDuration = merge?.merged ?? priorDuration
         // Shift the appended clip's word-timings by the PRECISE base duration the
         // clip was spliced at — not the (possibly-estimated) memo.duration.
         let clipOffset = merge?.base ?? priorDuration
@@ -640,6 +656,8 @@ struct MemoSaver {
             try? FileManager.default.removeItem(at: clip)
             return
         }
+        // Q346: a first recording whose file could not be sized falls back to its last word's end.
+        if isFirstRecording, mergedDuration <= 0 { mergedDuration = newTimings.last?.end ?? 0 }
         memo.duration = mergedDuration
 
         guard !newText.isEmpty else {
@@ -702,6 +720,25 @@ struct MemoSaver {
         repository.save()
         autoCopyIfEnabled(memo.transcript)   // the COMBINED transcript, not just the clip
         try? FileManager.default.removeItem(at: clip)
+    }
+
+    /// Q346: make `clip` the audio of a typed note that had none. Copies it to the note's own
+    /// `memo_<id>.m4a` and points the memo at it. Returns the clip's duration (0 when the file
+    /// cannot be sized) with base 0, or nil when the copy failed (the words still land).
+    private func adoptAsAudio(clip: URL, memo: Memo, dest: URL) -> (merged: TimeInterval, base: TimeInterval)? {
+        try? FileManager.default.removeItem(at: dest)
+        do { try FileManager.default.copyItem(at: clip, to: dest) } catch {
+            DevLog.log("append first-recording copy FAILED (\(error)) — words only")
+            return nil
+        }
+        memo.audioFilename = dest.lastPathComponent
+        memo.markEdited()
+        repository.save()
+        var seconds: TimeInterval = 0
+        if let file = try? AVAudioFile(forReading: dest), file.fileFormat.sampleRate > 0 {
+            seconds = Double(file.length) / file.fileFormat.sampleRate
+        }
+        return (seconds, 0)
     }
 
     /// Q343: move an append's photos to `photo_{memoId}_{NNN}.jpg` (numbered after the memo's
