@@ -2508,7 +2508,7 @@ gate+: yes
 do: Tuur 2026-10-10: Skrift Dev is the test environment and should carry the fake notes everywhere; his real notes (incl. the Apple Notes import) go in the real Skrift only. Today the Q313 perf library (Shared/Corpus/PerfLibrarySeeder.swift, `-perfLibrary`) seeds a SEPARATE never-synced store, so the 2,000 fake notes only live on the iPhone 13. Add a DEBUG-only Settings action on phone/iPad and Mac Dev: 'Fill with test notes' seeds the same deterministic library into the NORMAL Dev store, so it syncs through the Dev CloudKit environment to every Dev device (memos, assets, the 150 fake people into the Dev names DB). Every seeded memo carries a marker (e.g. metadata `testLibrary: true`) and 'Remove test notes' deletes exactly the marked ones everywhere (soft-delete path, then purge) and their fake people. Seeding twice never duplicates (deterministic ids). Never compiled into Release (#if DEBUG, checked by a test). Keep `-perfLibrary` working for perf traces. Tests: `TestLibrarySyncSeedTests` (phone target: seeds into the given store with the marker; idempotent; remove deletes only marked notes and fake people; Release guard). Mac: full build + headless -snapshot of the Settings row you look at. Never run any Mac UI test.
 check: `plan/mtest.sh TestLibrarySyncSeedTests`
 
-### Q337 [auto] (doing) Apple Notes importer: fix the review's blocker and should-fixes before the first real run
+### Q337 [auto] (done) Apple Notes importer: fix the review's blocker and should-fixes before the first real run
 spec: -
 needs: Q333
 gate+: yes
@@ -3708,3 +3708,4 @@ check: `./gate.sh`
 - 2026-10-11 10:34 Q338 -> doing — worker out
 - 2026-10-11 10:34 Q339 -> doing — worker out
 - 2026-10-11 10:34 Q340 -> doing — worker out
+- 2026-10-11 11:11 Q337 -> done — hand-merged (Tuur approved 2026-10-11: AppleNotesTriageTests' undated case gets a fresh note id (import now dedupes by Notes id))
