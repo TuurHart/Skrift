@@ -36,14 +36,21 @@ final class NoteHeaderGapQ344UITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(probe.frame.minY, row.frame.maxY + 4,
             "\(label): body first line (\(probe.frame.minY)) must sit below the destination row (\(row.frame.maxY)) with a gap",
             file: file, line: line)
-        XCTAssertLessThanOrEqual(probe.frame.minY, row.frame.maxY + 40,
-            "\(label): and the gap must not balloon (\(probe.frame.minY - row.frame.maxY))",
-            file: file, line: line)
+        // The gap below the row is the SAME in every state (a summary card may sit in it).
+        let gap = probe.frame.minY - row.frame.maxY
+        if let first = firstGap {
+            XCTAssertEqual(gap, first, accuracy: 2, "\(label): gap below the row changed", file: file, line: line)
+        } else { firstGap = gap }
     }
+
+    private var firstGap: CGFloat?
 
     func testBodyStaysBelowDestinationRowWhileToggling() {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-seedPolished", "-selectFirstMemo", "-destinationsOn"]
+        if let theme = ProcessInfo.processInfo.environment["SKRIFT_THEME"] {
+            app.launchArguments += ["-skipOnboarding", "-appTheme", theme]
+        }
         app.launch()
 
         let chip = app.buttons["destination-chip"]
