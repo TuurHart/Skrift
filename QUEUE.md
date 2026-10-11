@@ -2557,7 +2557,7 @@ gate+: yes
 do: Feedback note 2b8bc952 (Tuur 2026-10-11, iPhone 17 Pro, Dev 184): while adding a note to a book quote (QuoteCaptureFlowView / the capture's ramble) he took a picture; the saved note says 'and then a picture of a trash can' but has no photo. Screenshot: ~/.feedback/skrift/2026-10/2b8bc952-b169-4ff9-b6a5-96b7e5587a52.png. Find where the capture flow drops the photo (camera result not attached to the quote memo, marker not inserted, or asset not saved), fix it so the photo lands in the ramble at the moment it was taken like a voice note's photo (C11/C13 timed placement), and make sure it syncs as a MemoAsset. This is data loss: also check every other capture path (share-text capture, quote capture without audio) for the same drop. Test: `QuoteCapturePhotoTests` (phone target). Reply to the sender when merged: `feedback.sh status skrift 2b8bc952-b169-4ff9-b6a5-96b7e5587a52 done '…build N'`.
 check: `plan/mtest.sh QuoteCapturePhotoTests`
 
-### Q344 [auto] (doing) note header: the body text can overlap the Personal / Portfolio row
+### Q344 [auto] (done) note header: the body text can overlap the Personal / Portfolio row
 spec: -
 needs: -
 gate+: yes
@@ -3785,3 +3785,4 @@ check: `./gate.sh`
 - 2026-10-11 21:07 Q348 added
 - 2026-10-11 21:12 Q345 -> stuck — gate failed — .queue/Q345.gate.log
 - 2026-10-11 21:12 Q345 -> doing — re-accept after the MacMainThreadCostTests check (see Q348)
+- 2026-10-11 21:23 Q344 -> done — gate 169s @ba56c139
