@@ -41,8 +41,8 @@ final class TwoDestinationsUITests: XCTestCase {
         capture(app, "T3-portfolio-presets")
 
         idea.tap()
-        XCTAssertTrue(app.otherElements["tag-chip-idea"].waitForExistence(timeout: 5)
-                      || app.staticTexts["#idea"].waitForExistence(timeout: 5), "the preset became a tag")
+        XCTAssertTrue(app.descendants(matching: .any)["tag-chip-idea"].waitForExistence(timeout: 5),
+                      "the preset became a tag")
         XCTAssertFalse(app.buttons["tag-preset-idea"].exists, "a used preset leaves the strip")
         capture(app, "T4-idea-tagged")
     }
