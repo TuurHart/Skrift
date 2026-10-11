@@ -92,7 +92,8 @@ enum NoteTitle {
     static func captureTitle(_ sc: SharedContent?) -> String {
         if let title = sc?.urlTitle?.trimmingCharacters(in: .whitespaces), !title.isEmpty { return title }
         if let host = linkHost(sc) { return host }
-        if let text = sc?.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
+        if let raw = sc?.text?.trimmingCharacters(in: .whitespaces), !raw.isEmpty {
+            let text = stripMarkers(raw).isEmpty ? raw : stripMarkers(raw)
             let words = text.split(separator: " ")
             let head = words.prefix(8).joined(separator: " ")
             return head.isEmpty ? text : head + (words.count > 8 ? "…" : "")
@@ -127,9 +128,9 @@ enum NoteTitle {
             .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first(where: { !$0.isEmpty })
-        // A leading `> ` is a book capture's quote marker, not part of the words.
-        guard let line = first?.replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespaces), !line.isEmpty else { return nil }
+        // A book capture's `> ` quote marker (any depth: `> > x`, `>> x`) and any other markdown
+        // marker are syntax, not part of the words (Q345).
+        guard let first, case let line = stripMarkers(first), !line.isEmpty else { return nil }
         guard line.count > derivedLimit else { return line }
         let head = line.prefix(derivedLimit)
         if let space = head.lastIndex(where: { $0.isWhitespace }) {
@@ -137,6 +138,26 @@ enum NoteTitle {
             if !cut.isEmpty { return cut }
         }
         return String(head).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Q345: ONE line of body text as a title wants it: leading block markers dropped (blockquote
+    /// `>` at ANY depth, `#` headings, `-`/`*`/`+` bullets, in any mix) and emphasis marks removed
+    /// (`*x*`, `_x_`, `==x==`, backticks). `NoteSnippet.plain` has already taken `**bold**`.
+    /// A quote capture's body opens with `> `, and a quote that itself began with `>` left a
+    /// second one in the title (device feedback 2b8bc952: "> The first complete Odyssey…").
+    static func stripMarkers(_ line: String) -> String {
+        var s = line.trimmingCharacters(in: .whitespaces)
+        s = s.replacingOccurrences(of: #"^(?:>\s*|#{1,6}\s+|[-*+]\s+)+"#, with: "", options: .regularExpression)
+        let inline: [(String, String)] = [
+            (#"(?<![*\w])\*{1,3}([^*\n]+?)\*{1,3}(?![*\w])"#, "$1"),   // *italic* / ***both***
+            (#"(?<![_\w])_{1,3}([^_\n]+?)_{1,3}(?![_\w])"#, "$1"),     // _italic_
+            (#"==([^=\n]+)=="#, "$1"),                                  // ==highlight==
+            ("`", ""),
+        ]
+        for (pattern, template) in inline {
+            s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+        }
+        return s.trimmingCharacters(in: .whitespaces)
     }
 
     private static func trimmed(_ s: String?) -> String? {
@@ -158,7 +179,7 @@ enum NoteTitle {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .first(where: { !$0.isEmpty })
         guard let line else { return nil }
-        let cut = String(clip(line).prefix(recordingLimit)).trimmingCharacters(in: .whitespaces)
+        let cut = String(clip(stripMarkers(line)).prefix(recordingLimit)).trimmingCharacters(in: .whitespaces)
         return cut.isEmpty ? nil : cut
     }
 }

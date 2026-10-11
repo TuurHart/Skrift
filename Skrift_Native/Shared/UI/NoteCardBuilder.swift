@@ -184,7 +184,10 @@ enum NoteCardBuilder {
             if let host = NoteTitle.linkHost(sc) { return host }   // C72: one host rule
             return "Link"
         case .text:
-            if let text = clean(sc.text) { return NoteTitle.clip(text) }
+            if let text = clean(sc.text) {
+                let plain = NoteTitle.stripMarkers(text)   // Q345: a quoted text capture's `> ` is syntax
+                return NoteTitle.clip(plain.isEmpty ? text : plain)
+            }
             return "Text snippet"
         case .image:
             if let ann = clean(annotation) { return NoteTitle.clip(ann) }
