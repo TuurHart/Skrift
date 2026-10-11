@@ -2550,7 +2550,7 @@ gate+: yes
 do: Tuur 2026-10-11: 'make sure the mac app also has that feedback bubble'. BLOCKED until the netcup-server FeedbackKit session ships macOS support (requested 2026-10-11 from session 'Add under construction previews to FeedbackKit'); check `grep -L 'canImport(UIKit)' ~/Hackerman/netcup-server/Sources/FeedbackKit/*.swift` and ADOPTING.md's macOS steps before starting. Then: add the FeedbackKit package product to the SkriftDesktop target (project.yml), start it in the Mac App struct with Skrift's palette (reuse FeedbackPalette from the phone if it compiles on macOS), tag the Mac's top-level views with .feedbackScreen, Help > Send feedback… menu item. Proof: full Mac build + headless -snapshot of the panel you look at; never run a Mac UI test.
 check: `./gate.sh`
 
-### Q343 [auto] (doing) a photo taken while capturing an audiobook quote is lost
+### Q343 [auto] (done) a photo taken while capturing an audiobook quote is lost
 spec: -
 needs: -
 gate+: yes
@@ -3763,3 +3763,4 @@ check: `plan/mtest.sh AppendToTypedNoteTests`
 - 2026-10-11 20:26 Q344 -> doing — worker out
 - 2026-10-11 20:26 Q345 -> doing — worker out
 - 2026-10-11 20:43 Q346 added
+- 2026-10-11 21:00 Q343 -> done — gate 287s @4f6fca2d
