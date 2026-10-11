@@ -2550,21 +2550,21 @@ gate+: yes
 do: Tuur 2026-10-11: 'make sure the mac app also has that feedback bubble'. BLOCKED until the netcup-server FeedbackKit session ships macOS support (requested 2026-10-11 from session 'Add under construction previews to FeedbackKit'); check `grep -L 'canImport(UIKit)' ~/Hackerman/netcup-server/Sources/FeedbackKit/*.swift` and ADOPTING.md's macOS steps before starting. Then: add the FeedbackKit package product to the SkriftDesktop target (project.yml), start it in the Mac App struct with Skrift's palette (reuse FeedbackPalette from the phone if it compiles on macOS), tag the Mac's top-level views with .feedbackScreen, Help > Send feedback… menu item. Proof: full Mac build + headless -snapshot of the panel you look at; never run a Mac UI test.
 check: `./gate.sh`
 
-### Q343 [auto] (todo) a photo taken while capturing an audiobook quote is lost
+### Q343 [auto] (doing) a photo taken while capturing an audiobook quote is lost
 spec: -
 needs: -
 gate+: yes
 do: Feedback note 2b8bc952 (Tuur 2026-10-11, iPhone 17 Pro, Dev 184): while adding a note to a book quote (QuoteCaptureFlowView / the capture's ramble) he took a picture; the saved note says 'and then a picture of a trash can' but has no photo. Screenshot: ~/.feedback/skrift/2026-10/2b8bc952-b169-4ff9-b6a5-96b7e5587a52.png. Find where the capture flow drops the photo (camera result not attached to the quote memo, marker not inserted, or asset not saved), fix it so the photo lands in the ramble at the moment it was taken like a voice note's photo (C11/C13 timed placement), and make sure it syncs as a MemoAsset. This is data loss: also check every other capture path (share-text capture, quote capture without audio) for the same drop. Test: `QuoteCapturePhotoTests` (phone target). Reply to the sender when merged: `feedback.sh status skrift 2b8bc952-b169-4ff9-b6a5-96b7e5587a52 done '…build N'`.
 check: `plan/mtest.sh QuoteCapturePhotoTests`
 
-### Q344 [auto] (todo) note header: the body text can overlap the Personal / Portfolio row
+### Q344 [auto] (doing) note header: the body text can overlap the Personal / Portfolio row
 spec: -
 needs: -
 gate+: yes
 do: Feedback note 719dfdbf (Tuur 2026-10-11, Dev 184, after Q338): 'before, the text was clipping over the personal versus portfolio buttons; now it works' — intermittent. His screenshot (~/.feedback/skrift/2026-10/719dfdbf-b11f-49ad-8c63-e997cf32dcbc.png) shows the expanded PRIVATE ¦ PORTFOLIO row with the body starting right under it, no gap. Find the layout race (header height measured before the destination row expands/collapses, or the editor's top inset not updating when the row changes) in MemoPageView / the hosted header, fix it, and give the body the same gap below the row as below the other header rows. Render and LOOK: sim screenshots with the row collapsed, expanded, and while toggling, light and dark. Reply to the sender when merged.
 check: `./gate.sh`
 
-### Q345 [auto] (todo) a book-quote note's title shows the literal '> ' quote marker
+### Q345 [auto] (doing) a book-quote note's title shows the literal '> ' quote marker
 spec: -
 needs: -
 gate+: yes
@@ -3752,3 +3752,6 @@ check: `plan/mtest.sh NoteTitleQuoteTests`
 - 2026-10-11 20:25 Q343 added
 - 2026-10-11 20:25 Q344 added
 - 2026-10-11 20:25 Q345 added
+- 2026-10-11 20:26 Q343 -> doing — worker out
+- 2026-10-11 20:26 Q344 -> doing — worker out
+- 2026-10-11 20:26 Q345 -> doing — worker out
