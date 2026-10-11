@@ -2522,7 +2522,7 @@ gate+: yes
 do: Build SPEC D189 exactly as `~/Hackerman/Tiurihartog.com/docs/SKRIFT-REQUEST.md` section 'DO THIS NOW' lists (read it first; the rest of that file is history): NoteDestination = .personal/.portfolio, .portfolio exports to `<root>/_inbox/`; old idea/inspiration/project values decode as .portfolio + that tag (do NOT read Tuur's real data to check; just make the decode safe); the chip row keeps the PRIVATE ¦ PORTFOLIO divider with two chips, and when Portfolio is picked shows idea / inspiration / project as one-tap tag presets beside `+ add tag`; NoteDestination.reserved stops routing; `needs: - credit` keyed on the inspiration tag (Compiler.swift ~127); drop `summary:` from the portfolio profile; everything else in that list unchanged. Q332/D188 video rule: every video keeps and syncs its movie; the portfolio export copies the movie for Portfolio notes. Phone, iPad and Mac, shared code first. Screen proof: sim screenshot of the chip row (Personal; Portfolio with presets) and a Mac -snapshot, both LOOKED at. Tests: `TwoDestinationsTests` (decode of old values, export path `_inbox/<slug>.md` with media beside it and preset tags in `tags:`, credit rule) on phone and Mac. Update FEATURES.md 'Four export destinations' row.
 check: `./gate.sh`
 
-### Q339 [auto] (doing) Dynamic Island: the live recording waveform does not move (Lock Screen fine)
+### Q339 [auto] (done) Dynamic Island: the live recording waveform does not move (Lock Screen fine)
 spec: -
 needs: -
 gate+: yes
@@ -3711,3 +3711,4 @@ check: `./gate.sh`
 - 2026-10-11 11:11 Q337 -> done — hand-merged (Tuur approved 2026-10-11: AppleNotesTriageTests' undated case gets a fresh note id (import now dedupes by Notes id))
 - 2026-10-11 11:12 Q340 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/TestLibrarySyncSeedTests.swift 
 - 2026-10-11 11:13 Q340 -> doing — re-accept: new tests move to an added extension file
+- 2026-10-11 11:29 Q339 -> done — gate 111s @7737e43c
