@@ -108,6 +108,7 @@ struct SettingsView: View {
                              reloadNames()
                          },
                          onClose: { editorRequest = nil })
+                .macFeedbackScreen(MacFeedbackScreens.names)   // Q342: editing a name
         }
         .accessibilityIdentifier("settings.root")
     }

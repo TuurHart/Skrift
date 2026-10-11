@@ -124,12 +124,16 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)
+        // Q342: which screen feedback came from (Notes list / an open Note / Review).
+        .macFeedbackScreen(MacFeedbackScreens.main(isReview: model.surface == .journal,
+                                                   hasOpenNote: model.activeID != nil))
         .preferredColorScheme(AppTheme.colorScheme(appTheme))
         // Keep the AppKit layer (placeholders/carets/menus) in lock-step with the
         // SwiftUI colorScheme when the user switches theme.
         .onChange(of: appTheme) { _, new in AppTheme.applyToApp(new) }
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false; settingsAtSync = false }, scrollToSync: settingsAtSync)
+                .macFeedbackScreen(MacFeedbackScreens.settings)
         }
         .sheet(isPresented: $unpipelinedSheetID.isPresent) {
             UnpipelinedMemoSheet(
