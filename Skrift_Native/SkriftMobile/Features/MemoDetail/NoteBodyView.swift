@@ -1387,6 +1387,18 @@ final class NoteBodyTextView: UITextView {
     private var footerHeight: CGFloat = 0
     private var measuredWidth: CGFloat = 0
     private var needsAccessoryLayout = true
+    #if DEBUG
+    /// Q344 test seam: a 1-pt-tall marker at the top of the first text line
+    /// (= the top text-container inset, in content coordinates), so a UI test can
+    /// compare it with the header rows' frames. DEBUG only; invisible.
+    private let firstLineProbe: UIView = {
+        let v = UIView()
+        v.isUserInteractionEnabled = false
+        v.isAccessibilityElement = true
+        v.accessibilityIdentifier = "note-body-first-line"
+        return v
+    }()
+    #endif
 
     /// Insets the TEXT keeps clear regardless of accessories (set once at make).
     var baseTextInsets = UIEdgeInsets(top: 10, left: 20, bottom: 24, right: 20)
@@ -1421,8 +1433,17 @@ final class NoteBodyTextView: UITextView {
     }
 
     func setAccessories(header: AnyView, footer: AnyView) {
-        headerHost.rootView = header
-        footerHost.rootView = footer
+        // Q344: the header's OWN state (the destination row expanding, preset chips
+        // appearing under a Personal→Portfolio flip) resizes it WITHOUT a new
+        // rootView, so `updateUIView` never ran and the top inset stayed at the old
+        // height: the body sat under the taller header. The hosted content now
+        // reports its own height changes and the next layout pass re-measures.
+        headerHost.rootView = AnyView(header.onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { [weak self] _ in
+            self?.setNeedsAccessoryLayout()
+        })
+        footerHost.rootView = AnyView(footer.onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { [weak self] _ in
+            self?.setNeedsAccessoryLayout()
+        })
         setNeedsAccessoryLayout()
     }
 
@@ -1465,6 +1486,11 @@ final class NoteBodyTextView: UITextView {
         let footerFrame = CGRect(x: 0, y: max(footerY, headerHeight),
                                  width: width, height: footerHeight)
         if footerHost.view.frame != footerFrame { footerHost.view.frame = footerFrame }
+        #if DEBUG
+        if firstLineProbe.superview == nil { addSubview(firstLineProbe) }
+        let probeFrame = CGRect(x: 0, y: textContainerInset.top, width: width, height: 1)
+        if firstLineProbe.frame != probeFrame { firstLineProbe.frame = probeFrame }
+        #endif
     }
 
     // MARK: geometry helpers (TextKit-2 first, TextKit-1 fallback)
@@ -1478,6 +1504,10 @@ final class NoteBodyTextView: UITextView {
         headerHost.view.accessibilityElementsHidden = hidden
         footerHost.view.accessibilityElementsHidden = hidden
         accessibilityIdentifier = hidden ? "transcript-editor-offscreen" : "transcript-editor"
+        #if DEBUG
+        firstLineProbe.accessibilityElementsHidden = hidden
+        firstLineProbe.isAccessibilityElement = !hidden
+        #endif
     }
 
     /// Whether a point (view coordinates) lands on the hosted header/footer.
