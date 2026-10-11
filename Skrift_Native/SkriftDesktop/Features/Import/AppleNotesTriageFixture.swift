@@ -84,13 +84,13 @@ enum AppleNotesTriageFixture {
         let today = Date()
         let thu = cal.date(from: DateComponents(year: 2026, month: 9, day: 24, hour: 10))!
         let fri = cal.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: 10))!
-        var unmapped: [String: NotesBodyDecoder.Media] = [:]
         func put(_ i: Int, _ kind: TriageDecision.Kind, _ rating: Int?, day: Date, imported: Bool) {
             let n = notes[i]
-            var d = TriageDecision(kind: kind, rating: rating, title: n.title, created: n.created, decidedAt: day, session: 1)
+            let never = kind == .never
+            var d = TriageDecision(kind: kind, rating: rating, title: never ? "" : n.title, created: never ? nil : n.created, decidedAt: day, session: 1)
             if imported && kind == .rated {
                 d.skriftID = "pf-\(i)"; d.importedAt = day
-                if let m = decoded[n.id]?.media { unmapped[n.id] = m }
+                if let m = decoded[n.id]?.media { d.dropped = AppleNotesImporter.dropped(from: m) }
             }
             state.decisions[n.id] = d
         }
@@ -122,7 +122,7 @@ enum AppleNotesTriageFixture {
         case .reportEnd: phase = .report(end: true)
         case .denied: phase = .denied("The operation couldn’t be completed. (Operation not permitted)")
         }
-        return AppleNotesTriageModel(fixtureNotes: notes, decoded: decoded, state: state, phase: phase, unmapped: unmapped)
+        return AppleNotesTriageModel(fixtureNotes: notes, decoded: decoded, state: state, phase: phase)
     }
 }
 #endif

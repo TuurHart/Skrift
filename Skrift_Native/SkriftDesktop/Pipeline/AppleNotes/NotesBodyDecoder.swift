@@ -5,17 +5,18 @@ import Compression
 /// Markdown + the tags and media a note carries. Pure (Foundation + Compression), no SQLite,
 /// so it is testable from bytes alone.
 ///
-/// The wire layout (from the open-source parsers named in plan/research/apple-notes-export.md:
-/// apple_cloud_notes_parser, apple-notes-parser): `Document { 2: version, 3: Note }`,
+/// The wire layout (apple_cloud_notes_parser proto/notestore.proto; style numbers from its
+/// AppleNote.rb and the Obsidian importer's ANStyleType): the blob is `NoteStoreProto { 2: Document }`,
+/// `Document { 2: version, 3: Note }` (a bare Document, no wrapper, is accepted too),
 /// `Note { 2: note_text, 5: repeated AttributeRun }`, `AttributeRun { 1: length (UTF-16 units),
 /// 2: ParagraphStyle, 9: link, 12: AttachmentInfo }`, `ParagraphStyle { 1: style, 4: indent,
-/// 5: Todo { 2: done } }`, `AttachmentInfo { 1: identifier, 2: type_uti }`. NOT verified against
+/// 5: Checklist { 1: uuid, 2: done } }`, `AttachmentInfo { 1: identifier, 2: type_uti }`. NOT verified against
 /// a live NoteStore.sqlite on this Mac (no Full Disk Access for the worker): an unknown field is
 /// skipped, never fatal, and a blob that does not parse yields `nil` so the caller can say so.
 enum NotesBodyDecoder {
 
     /// What a decoded note carries beyond its words.
-    struct Media: Equatable, Sendable {
+    struct Media: Equatable, Sendable, Codable {
         var pictures = 0, drawings = 0, scans = 0, tables = 0, pdfs = 0, audio = 0, video = 0, other = 0, links = 0
         var checklistItems = 0, checklistDone = 0
         var isEmpty: Bool { self == Media() }
@@ -45,6 +46,24 @@ enum NotesBodyDecoder {
         }
         guard let parsed = parseDocument([UInt8](raw)) else { return nil }
         return render(parsed, altText: altText)
+    }
+
+    /// The identifiers of the note's inline attachments (hashtags, mentions, links), so the caller
+    /// can look their alt text up BY IDENTIFIER (`ZICCLOUDSYNCINGOBJECT.ZIDENTIFIER`), not by note.
+    static func inlineAttachmentIDs(zdata: Data) -> [String] {
+        let raw: Data
+        if zdata.count > 2, zdata[zdata.startIndex] == 0x1f, zdata[zdata.startIndex + 1] == 0x8b {
+            guard let inflated = gunzip(zdata) else { return [] }
+            raw = inflated
+        } else { raw = zdata }
+        guard let parsed = parseDocument([UInt8](raw)) else { return [] }
+        var seen = Set<String>(), out: [String] = []
+        for run in parsed.runs {
+            guard let id = run.attachmentID, let uti = run.uti, uti.hasPrefix("com.apple.notes.inlinetextattachment."),
+                  seen.insert(id).inserted else { continue }
+            out.append(id)
+        }
+        return out
     }
 
     // MARK: - gzip
@@ -123,14 +142,25 @@ enum NotesBodyDecoder {
 
     private struct Parsed { var text: String; var runs: [Run] }
 
-    private static func parseDocument(_ doc: [UInt8]) -> Parsed? {
-        var r = Reader(doc)
-        var noteBytes: [UInt8]?
+    /// The Note message's bytes. The real blob is `NoteStoreProto { 2: Document }` where
+    /// `Document { 2: version (varint), 3: Note }`; a bare Document is read too.
+    private static func noteBytes(in blob: [UInt8], depth: Int = 0) -> [UInt8]? {
+        var r = Reader(blob)
+        var note: [UInt8]?
+        var wrapped: [UInt8]?
         while !r.atEnd {
             guard let (f, w) = r.key() else { return nil }
-            if f == 3, w == 2 { noteBytes = r.bytes() } else if !r.skip(wire: w) { return nil }
+            if f == 3, w == 2 { note = r.bytes() }
+            else if f == 2, w == 2, depth == 0 { wrapped = r.bytes() }
+            else if !r.skip(wire: w) { return nil }
         }
-        guard let nb = noteBytes else { return nil }
+        if let note { return note }
+        if let wrapped { return noteBytes(in: wrapped, depth: 1) }
+        return nil
+    }
+
+    private static func parseDocument(_ doc: [UInt8]) -> Parsed? {
+        guard let nb = noteBytes(in: doc) else { return nil }
         var n = Reader(nb)
         var text: String?
         var runs: [Run] = []
@@ -265,9 +295,10 @@ enum NotesBodyDecoder {
             switch run.style {
             case 0, 1: line = "## " + trimmed; number = 0
             case 2: line = "### " + trimmed; number = 0
-            case 4, 5: line = pad + "- " + trimmed; isList = true; number = 0
-            case 6: number += 1; line = pad + "\(number). " + trimmed; isList = true
-            case 100:
+            case 4: line = trimmed; number = 0   // monospaced: plain text (no fence grouping)
+            case 100, 101: line = pad + "- " + trimmed; isList = true; number = 0
+            case 102: number += 1; line = pad + "\(number). " + trimmed; isList = true
+            case 103:
                 media.checklistItems += 1
                 if run.done { media.checklistDone += 1 }
                 line = pad + (run.done ? "- [x] " : "- [ ] ") + trimmed; isList = true; number = 0

@@ -10,7 +10,8 @@ struct TriageDecision: Codable, Equatable, Sendable {
     /// 1...3 (Passing / Useful / Important) for `.rated`, else nil.
     var rating: Int?
     /// Title + creation date as they were when decided, so the report can list a note
-    /// (Never import, Safe to delete) without re-reading Notes.
+    /// (Safe to delete) without re-reading Notes. A Never-import decision stores NEITHER (only
+    /// the UUID): the report reads the live note's title instead.
     var title: String
     var created: Date?
     var decidedAt: Date
@@ -19,6 +20,11 @@ struct TriageDecision: Codable, Equatable, Sendable {
     /// Set once the note is in Skrift (the `PipelineFile` id).
     var skriftID: String?
     var importedAt: Date?
+    /// What the importer could NOT carry over (pictures, drawings, scans, tables, files, audio),
+    /// persisted so a note with dropped media never reads as "safe to delete" after a relaunch.
+    var dropped: NotesBodyDecoder.Media?
+    /// True when the import left something behind in Apple Notes.
+    var hasDroppedMedia: Bool { !(dropped?.isEmpty ?? true) }
 }
 
 struct TriageState: Codable, Equatable, Sendable {
@@ -129,13 +135,21 @@ struct AppleNotesTriage {
     /// Next 10 is locked until every note of the batch is decided (a skip counts, Q71 choice 3).
     var canAdvance: Bool { !state.batch.isEmpty && openCount == 0 }
 
-    /// Rated notes of the open batch not yet in Skrift: what "Next 10" and "Import what I've
-    /// decided so far" hand to the importer.
+    /// Every rated note not yet in Skrift: what "Next 10" and "Import what I've decided so far" hand
+    /// to the importer. The open batch first (in the order shown), then rated notes of EARLIER
+    /// batches whose import failed or whose body could not be read, oldest decision first, so one bad
+    /// note is retried instead of being forgotten when its batch closes.
     func pendingImports() -> [String] {
-        state.batch.filter { id in
-            guard let d = state.decisions[id], d.kind == .rated, d.skriftID == nil else { return false }
-            return true
-        }
+        let inBatch = state.batch.filter { isPending($0) }
+        let batchSet = Set(inBatch)
+        let earlier = state.decisions.filter { isPending($0.key) && !batchSet.contains($0.key) }
+            .sorted { ($0.value.decidedAt, $0.key) < ($1.value.decidedAt, $1.key) }.map(\.key)
+        return inBatch + earlier
+    }
+
+    private func isPending(_ id: String) -> Bool {
+        guard let d = state.decisions[id], isDecided(id), d.kind == .rated, d.skriftID == nil else { return false }
+        return true
     }
 
     /// Closes the batch and opens the next ten. Refuses (nil) while any note is undecided.
@@ -170,14 +184,16 @@ struct AppleNotesTriage {
             state.decisions[note.id] = nil
             return .cleared
         }
-        let d = TriageDecision(kind: kind, rating: kind == .rated ? rating : nil, title: note.title,
-                               created: note.created, decidedAt: now, session: state.session)
+        let never = kind == .never
+        let d = TriageDecision(kind: kind, rating: kind == .rated ? rating : nil, title: never ? "" : note.title,
+                               created: never ? nil : note.created, decidedAt: now, session: state.session)
         state.decisions[note.id] = d
         return .changed
     }
 
-    mutating func markImported(_ id: String, skriftID: String, now: Date = Date()) {
+    mutating func markImported(_ id: String, skriftID: String, dropped: NotesBodyDecoder.Media? = nil, now: Date = Date()) {
         state.decisions[id]?.skriftID = skriftID
+        state.decisions[id]?.dropped = dropped
         state.decisions[id]?.importedAt = now
     }
 
