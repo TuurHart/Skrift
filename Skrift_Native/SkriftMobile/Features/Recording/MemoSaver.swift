@@ -551,8 +551,14 @@ struct MemoSaver {
     /// the memo's file, append the new text (+ word timings shifted past the prior
     /// duration), and mark the transcript user-edited so the Mac trusts the combined
     /// result (no re-transcription). The memo updates in place.
-    func appendRecording(to memoID: UUID, tempURL: URL, liveCaption: String? = nil) {
-        Task { await appendRecordingAsync(to: memoID, tempURL: tempURL, liveCaption: liveCaption) }
+    ///
+    /// Q343: `photos` are the pictures taken while this clip was recording (offsets are
+    /// CLIP-local, paused time excluded). They are kept on the memo (manifest + a synced
+    /// `MemoAsset`) and placed in the appended text at the moment they were taken (C11/C13),
+    /// exactly as a fresh voice note's are. Before, only the new-note branch took them, so a
+    /// picture taken while adding to an audiobook quote was thrown away.
+    func appendRecording(to memoID: UUID, tempURL: URL, liveCaption: String? = nil, photos: [CapturedPhoto] = []) {
+        Task { await appendRecordingAsync(to: memoID, tempURL: tempURL, liveCaption: liveCaption, photos: photos) }
     }
 
     /// Awaitable core of `appendRecording` (used directly by tests).
@@ -564,10 +570,22 @@ struct MemoSaver {
     /// up front destroyed the only retry source), a cold engine is awaited +
     /// retried instead of `try?`-swallowed, and a terminal failure surfaces as
     /// `.failed` (the memos list shows an Error pill) — never a silent no-op.
-    func appendRecordingAsync(to memoID: UUID, tempURL: URL, liveCaption: String? = nil) async {
+    func appendRecordingAsync(to memoID: UUID, tempURL: URL, liveCaption: String? = nil,
+                              photos: [CapturedPhoto] = []) async {
         guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
             DevLog.log("append BAILED — memo missing or no audioURL (memoID \(memoID)); clip discarded")
-            try? FileManager.default.removeItem(at: tempURL); return
+            try? FileManager.default.removeItem(at: tempURL)
+            photos.forEach { try? FileManager.default.removeItem(at: $0.url) }
+            return
+        }
+        // Q343: the photos become MemoAssets (and get OCR'd) however the append ends.
+        defer {
+            if !photos.isEmpty {
+                Task {
+                    AssetMaterializer.capture(memoID: memoID, repository: repository)
+                    PhotoTextIndexer.run(repository)
+                }
+            }
         }
         let priorDuration = memo.duration
         let priorStatus = memo.transcriptStatus
@@ -599,6 +617,11 @@ struct MemoSaver {
         // clip was spliced at — not the (possibly-estimated) memo.duration.
         let clipOffset = merge?.base ?? priorDuration
 
+        // Q343: keep the pictures NOW (before the slow transcribe), so they survive any
+        // outcome below. Stored offsets are in the MERGED audio; `localOffset` keeps the
+        // clip-local moment for placing them in the new text.
+        let landedPhotos = landAppendPhotos(photos, memo: memo, clipOffset: clipOffset)
+
         // Transcribe the clip (no image markers on an append). `transcribe` itself
         // awaits the model load, so stopping the append before the model was ready
         // QUEUES here instead of failing; the retry loop covers real errors.
@@ -626,6 +649,16 @@ struct MemoSaver {
                 // status and consume the clip.
                 DevLog.log("append NO-TEXT: engine ran but heard nothing (no caption) → restored \(priorStatus); nothing appended")
                 memo.transcriptStatus = priorStatus
+                if !landedPhotos.isEmpty {
+                    // Pictures with no words: they still go into the body (at the end).
+                    let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    let block = BodyV2Marker.block(landedPhotos.map(\.number))
+                    memo.transcript = BodyV2.committed(BodyV2.Input(
+                        text: existing.isEmpty ? block : existing + "\n\n" + block,
+                        manifest: memo.metadata?.imageManifest ?? [], source: .speech, userEdited: true))
+                    memo.transcriptUserEdited = true
+                    memo.markEdited()
+                }
                 try? FileManager.default.removeItem(at: clip)
             } else {
                 DevLog.log("append FAILED: transcription threw on every retry → .failed; clip kept for retry")
@@ -641,9 +674,20 @@ struct MemoSaver {
         }
 
         let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Q343: place this clip's pictures in ITS text from their moments (C11/C13), numbered
+        // past the memo's earlier pictures; the combined commit below then keeps every place.
+        var appended = newText
+        if !landedPhotos.isEmpty {
+            appended = Self.renumbered(
+                BodyV2.committed(BodyV2.Input(
+                    text: newText, words: newTimings,
+                    manifest: landedPhotos.map { ImageManifestEntry(filename: $0.filename, offsetSeconds: $0.localOffset) },
+                    source: .speech)),
+                by: landedPhotos[0].number - 1)
+        }
         // Body v2 (C10): the combined body is an edit — every picture keeps its place.
         memo.transcript = BodyV2.committed(BodyV2.Input(
-            text: existing.isEmpty ? newText : existing + "\n\n" + newText,
+            text: existing.isEmpty ? appended : existing + "\n\n" + appended,
             manifest: memo.metadata?.imageManifest ?? [], source: .speech, userEdited: true))
         memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
         memo.transcriptStatus = .done
@@ -658,6 +702,47 @@ struct MemoSaver {
         repository.save()
         autoCopyIfEnabled(memo.transcript)   // the COMBINED transcript, not just the clip
         try? FileManager.default.removeItem(at: clip)
+    }
+
+    /// Q343: move an append's photos to `photo_{memoId}_{NNN}.jpg` (numbered after the memo's
+    /// existing pictures) and add them to its manifest, with offsets shifted into the merged
+    /// audio. Returns each landed picture's body-marker number and its clip-local moment.
+    private func landAppendPhotos(_ photos: [CapturedPhoto], memo: Memo, clipOffset: TimeInterval)
+        -> [(number: Int, filename: String, localOffset: Double)] {
+        guard !photos.isEmpty else { return [] }
+        var meta = memo.metadata ?? MemoMetadata()
+        var manifest = meta.imageManifest ?? []
+        var landed: [(number: Int, filename: String, localOffset: Double)] = []
+        for photo in photos {
+            let number = manifest.count + 1
+            let filename = "photo_\(memo.id.uuidString)_\(String(format: "%03d", number)).jpg"
+            let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+            try? FileManager.default.removeItem(at: dest)
+            do { try FileManager.default.moveItem(at: photo.url, to: dest) } catch {
+                DevLog.log("append photo move FAILED (\(error)) — \(photo.url.lastPathComponent) skipped")
+                continue
+            }
+            manifest.append(ImageManifestEntry(filename: filename, offsetSeconds: photo.offset + clipOffset))
+            landed.append((number, filename, photo.offset))
+        }
+        guard !landed.isEmpty else { return [] }
+        meta.imageManifest = manifest
+        memo.metadata = meta
+        repository.save()
+        return landed
+    }
+
+    /// Shift every `[[img_NNN]]` marker in `text` up by `delta` (a clip-local 1…k placement made
+    /// global). `text` came from plain speech, so every marker in it is ours.
+    private static func renumbered(_ text: String, by delta: Int) -> String {
+        guard delta > 0 else { return text }
+        let ns = text as NSString
+        var out = text
+        for m in BodyV2Marker.regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).reversed() {
+            guard let n = Int(ns.substring(with: m.range(at: 1))) else { continue }
+            out = (out as NSString).replacingCharacters(in: m.range, with: BodyV2Marker.literal(n + delta))
+        }
+        return out
     }
 
     /// Settings → Capture → "Copy transcript to clipboard" (default OFF): when
