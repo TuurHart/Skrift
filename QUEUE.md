@@ -3709,3 +3709,5 @@ check: `./gate.sh`
 - 2026-10-11 10:34 Q339 -> doing — worker out
 - 2026-10-11 10:34 Q340 -> doing — worker out
 - 2026-10-11 11:11 Q337 -> done — hand-merged (Tuur approved 2026-10-11: AppleNotesTriageTests' undated case gets a fresh note id (import now dedupes by Notes id))
+- 2026-10-11 11:12 Q340 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/TestLibrarySyncSeedTests.swift 
+- 2026-10-11 11:13 Q340 -> doing — re-accept: new tests move to an added extension file
