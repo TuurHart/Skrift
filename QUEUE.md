@@ -2543,6 +2543,13 @@ gate+: yes
 do: ~/Hackerman/netcup-server/ADOPTING.md step 5: put `.feedbackScreen("<Name>")` on each top-level screen and sheet so a feedback note says which screen it came from. Today only QuoteCaptureFlowView, AudiobookPlayerView and RecordView carry it. Add: Notes list, note screen, quick note, Books/Library, Review/Journal, Settings, Names, the share sheet's card, the Text sheet, the tag editor sheet, the person editor. Names are short and plain ('Notes', 'Note', 'Books', 'Review', 'Settings', …). Also confirm FeedbackKitWiring.swift passes nothing that disables the new previews/status features. Test: a UI test that opens the feedback sheet from the Notes list and asserts 'From the Notes screen' (phone sim, `-skipOnboarding`).
 check: `./gate.sh`
 
+### Q342 [auto] (todo) Mac: FeedbackKit button in Skrift's Mac app (after FeedbackKit gets macOS support)
+spec: -
+needs: -
+gate+: yes
+do: Tuur 2026-10-11: 'make sure the mac app also has that feedback bubble'. BLOCKED until the netcup-server FeedbackKit session ships macOS support (requested 2026-10-11 from session 'Add under construction previews to FeedbackKit'); check `grep -L 'canImport(UIKit)' ~/Hackerman/netcup-server/Sources/FeedbackKit/*.swift` and ADOPTING.md's macOS steps before starting. Then: add the FeedbackKit package product to the SkriftDesktop target (project.yml), start it in the Mac App struct with Skrift's palette (reuse FeedbackPalette from the phone if it compiles on macOS), tag the Mac's top-level views with .feedbackScreen, Help > Send feedback… menu item. Proof: full Mac build + headless -snapshot of the panel you look at; never run a Mac UI test.
+check: `./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3716,3 +3723,4 @@ check: `./gate.sh`
 - 2026-10-11 11:32 Q341 -> doing — worker out
 - 2026-10-11 12:10 Q341 -> done — gate 131s @d5a65a1e
 - 2026-10-11 12:17 Q338 -> done — hand-merged (Tuur approved 2026-10-11: protected tests that pin four destinations rewritten to Personal/Portfolio (D189), incl. destination-only lines in 10 more test files after the aliases were removed)
+- 2026-10-11 12:21 Q342 added
