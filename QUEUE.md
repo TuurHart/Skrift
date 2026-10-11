@@ -2571,6 +2571,13 @@ gate+: yes
 do: Seen in feedback note 2b8bc952's screenshot (Dev 184): the note title reads '> The first complete Odyssey in English w…' — the markdown quote marker leaks into the derived title. Fix the title ladder (Shared NoteTitle / ladderTitle) so a quote capture's title is the quote text without '> ' (or the book title, whichever the ladder rules say), on phone and Mac; keep one shared rule. Test in `NoteTitleQuoteTests` (phone) + a desktop case.
 check: `plan/mtest.sh NoteTitleQuoteTests`
 
+### Q346 [auto] (todo) check: appending a recording to a typed note (no audio yet) may discard the new clip
+spec: -
+needs: Q343
+gate+: yes
+do: Found by the Q343 worker (2026-10-11): MemoSaver.appendRecordingAsync bails and discards the clip when memo.audioURL is nil, i.e. a typed note with an empty audioFilename (QuickNote, a typed note's ⋯ Add recording). Confirm with a failing test whether those paths can reach it; if yes, a typed note that gets its first recording must keep it (the clip becomes the note's audio, its text appended after the typed body, photos per Q343). Possible data loss: verify, don't assume. Test: `AppendToTypedNoteTests`.
+check: `plan/mtest.sh AppendToTypedNoteTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3755,3 +3762,4 @@ check: `plan/mtest.sh NoteTitleQuoteTests`
 - 2026-10-11 20:26 Q343 -> doing — worker out
 - 2026-10-11 20:26 Q344 -> doing — worker out
 - 2026-10-11 20:26 Q345 -> doing — worker out
+- 2026-10-11 20:43 Q346 added
