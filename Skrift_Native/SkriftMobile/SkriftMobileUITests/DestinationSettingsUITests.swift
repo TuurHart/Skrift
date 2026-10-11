@@ -32,9 +32,14 @@ final class DestinationSettingsUITests: XCTestCase {
     /// Scroll the Settings form until `element` is on screen (Destinations sits below
     /// Obsidian, which is already well down the list).
     private func reveal(_ app: XCUIApplication, _ element: XCUIElement) {
-        for _ in 0..<8 {
+        // Short drags (~15% of the screen), not `swipeUp()`: a full swipe can carry a row from
+        // behind the floating tab bar (exists, not hittable) straight past the top, and the test
+        // then never sees it hittable. The section changed height with D189, which moved the stops.
+        for _ in 0..<30 {
             if element.exists && element.isHittable { return }
-            app.swipeUp()
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.47))
+            from.press(forDuration: 0.05, thenDragTo: to)
         }
     }
 
