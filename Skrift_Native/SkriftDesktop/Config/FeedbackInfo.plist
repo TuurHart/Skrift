@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Q342: FeedbackKit reads these two from Info.plist. Merged into the generated plist
+	     (GENERATE_INFOPLIST_FILE). The key comes from Config/Feedback.xcconfig, which
+	     includes an untracked file outside git. NSMicrophoneUsageDescription is the
+	     INFOPLIST_KEY_ one in project.yml. -->
+	<key>FeedbackAppID</key>
+	<string>skrift</string>
+	<key>FeedbackKey</key>
+	<string>$(FEEDBACK_KEY)</string>
+</dict>
+</plist>

@@ -64,10 +64,19 @@ packages:
     url: https://github.com/apple/swift-collections
     exactVersion: 1.6.0
 
+  # In-app feedback (Q342, same kit + app id as the phone, Q299/D179): the shared FeedbackKit,
+  # a LOCAL package. ABSOLUTE path on purpose: a relative one breaks inside .claude/worktrees.
+  FeedbackKit:
+    path: /Users/tiurihartog/Hackerman/netcup-server
+
 targets:
   SkriftDesktop:
     type: application
     platform: macOS
+    # FEEDBACK_KEY comes from an untracked file outside git (see the xcconfig).
+    configFiles:
+      Debug: Config/Feedback.xcconfig
+      Release: Config/Feedback.xcconfig
     sources:
       - path: App
       - path: Models
@@ -107,6 +116,9 @@ targets:
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
+        # FeedbackAppID + FeedbackKey: custom Info.plist keys can't go through INFOPLIST_KEY_*,
+        # so a partial plist is merged into the generated one.
+        INFOPLIST_FILE: Config/FeedbackInfo.plist
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: YES
@@ -172,6 +184,8 @@ targets:
         product: Tokenizers
       - package: CoreMLLLM
         product: CoreMLLLM
+      - package: FeedbackKit
+        product: FeedbackKit
 
   # Host-less logic test bundle — proves `xcodebuild test` runs the unit harness.
   # Host-less logic tests: macOS hosted tests flakily hang on the testmanagerd
@@ -200,6 +214,8 @@ targets:
       - path: Features/Import/AppleNotesTriageModel.swift
       # Q328: the discard question's pause/keep/discard rule (Foundation-only), MacRecorderDiscardTests.
       - path: Engines/RecorderDiscardAsk.swift
+      # Q342: the feedback screen-name table (Foundation-only), MacFeedbackScreensTests.
+      - path: Features/Shell/MacFeedbackScreens.swift
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export

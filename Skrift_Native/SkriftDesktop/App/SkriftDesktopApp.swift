@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import FeedbackKit
 
 /// One shared SwiftData container for the UI (`@Query`) and the background ingest /
 /// reconcile contexts.
@@ -75,6 +76,10 @@ struct SkriftDesktopApp: App {
         // change; "auto" (nil) follows the system.
         AppTheme.applyToApp()
 
+        // Q342: the feedback bubble + sheet (FeedbackKit, same app id as the phone). After the
+        // headless modes above, which exit before reaching here; skipped under XCTest/-snapshot.
+        MacFeedbackWiring.startIfInteractive()
+
         // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
         // reconcile triggers + run the launch sweep. A no-op when the user switched
         // `cloudKitMacSync` off (it defaults ON). CloudKit is the ONLY phone↔Mac transport
@@ -145,6 +150,7 @@ struct SkriftDesktopApp: App {
                 Button("Start / Stop Recording") { MacShortcutAction.record.post() }
                     .keyboardShortcut(AppShortcuts.record)
             }
+            FeedbackCommands()   // Q342: Help > Send Feedback…
             CommandGroup(before: .toolbar) {
                 Button("Notes") { MacShortcutAction.notes.post() }
                     .keyboardShortcut(AppShortcuts.macNotes)
