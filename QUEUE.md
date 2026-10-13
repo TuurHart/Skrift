@@ -2765,6 +2765,27 @@ do: -
 check: Tuur kept the spelling or named another; follow-up item added if changed.
 ask: A note made with Library's "Send to a note" now exports `source: PDF-link` (or Episode-link, Audiobook-link, Article-link) and one line like `— *Title*, p. 4` above your words. Keep that spelling?
 
+### Q374 [auto] (doing) install today's Dev build on the iPhone 17 Pro and the Mac for the sitting
+spec: -
+needs: -
+gate+: no
+do: Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q356 literal (e.g. `LibraryTypeChips` symbol or a new copy string) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q365 literal (`ExportSession`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
+check: Tuur's phone and Mac run the new Dev build (worker reports both grep hits).
+
+### Q375 [tuur] (todo) look: the Library tab on Dev — shelf, podcast link, PDF share + reader, send to a note, jump back
+spec: C229 D90
+needs: Q374
+do: -
+check: Tuur looked; anything off became an item.
+ask: On the phone (Dev): open Library. Add a podcast by pasting an Apple or Spotify episode link; share a PDF from Mail or Files into Skrift; open it, select a sentence, Add note; then from a tile choose Send to a note and tap its card to jump back. Does it all feel right, and does the shelf look good?
+
+### Q376 [tuur] (todo) feel: the Mac on Dev after the five speed fixes (Q361-Q365)
+spec: D191 D186
+needs: Q374
+do: -
+check: Tuur used the Mac on Dev; slow spots became items.
+ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click through the list, search, open and play notes, type in a title and a body, switch apps and come back, run Process once. Anything still slow or behaving oddly?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4011,3 +4032,7 @@ ask: A note made with Library's "Send to a note" now exports `source: PDF-link` 
 - 2026-10-13 12:00 Q372 -> done — gate 53s @9e0f5cc0
 - 2026-10-13 12:00 Q373 added
 - 2026-10-13 12:00 Q373 -> tuur — awaiting sitting
+- 2026-10-13 12:01 Q374 added
+- 2026-10-13 12:01 Q375 added
+- 2026-10-13 12:01 Q376 added
+- 2026-10-13 12:02 Q374 -> doing — worker out
