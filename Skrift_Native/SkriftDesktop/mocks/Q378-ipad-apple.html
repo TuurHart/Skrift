@@ -1,0 +1,575 @@
+<title>Q378 iPad Notes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a bench. Controls on top; the Apple Notes iPad frame and the Skrift iPad frame at ONE scale
+   (1 CSS px = 1 iPad point; 13" iPad Pro landscape = 1376 x 1032 pt), stacked or flipped in place;
+   portrait under it; picks + the one question at the end. Frames shrink WHOLE to fit, never reflow. */
+:root{
+  --bench:#ecebf0; --ink:#1d1c22; --dim:#625f6e; --line:rgba(0,0,0,.12); --mark:#c2410c; --mark-soft:rgba(194,65,12,.10);
+  /* Skrift tokens: Shared/UI/Palette.swift (light) */
+  --sk-bg:#f5f5f7; --sk-surface:#ffffff; --sk-elev:#ebebf0; --sk-border:rgba(0,0,0,.08); --sk-ring:rgba(0,0,0,.16);
+  --sk-text:#1c1c1e; --sk-dim:#6c6c72; --sk-faint:#a3a3aa; --sk-accent:#6c5ce0; --sk-accent-soft:rgba(108,92,224,.13);
+  --sk-accent-text:#6051c8; --sk-amber:#d97706; --sk-amber-soft:rgba(217,119,6,.13); --sk-green:#0f9d72; --sk-red:#dc2626;
+  --sk-glass:rgba(255,255,255,.86); --sk-mark:rgba(28,28,30,.28);
+  /* Reference: sampled from Tuur's iPad screenshot (white list, dark-grey note text, Notes yellow) */
+  --rf-bg:#ffffff; --rf-ink:#000000; --rf-note:#454545; --rf-dim:#8a8a8e; --rf-div:#e8e8e8; --rf-hair:#e6e6e6;
+  --rf-tint:#e3ae12; --rf-glass:rgba(255,255,255,.92); --rf-rim:rgba(0,0,0,.09); --rf-icon:#1c1c1e; --rf-faint:#b4b4b8;
+  --toast-bg:#1d1c22; --toast-fg:#ffffff;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bench:#131217; --ink:#ecebf1; --dim:#9c99a8; --line:rgba(255,255,255,.13); --mark:#fb923c; --mark-soft:rgba(251,146,60,.12);
+  --sk-bg:#0f1117; --sk-surface:#181a23; --sk-elev:#1e2130; --sk-border:rgba(255,255,255,.08); --sk-ring:rgba(255,255,255,.2);
+  --sk-text:#e4e4e7; --sk-dim:#8b8b97; --sk-faint:#55556a; --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.16);
+  --sk-accent-text:#b9acff; --sk-amber:#f59e0b; --sk-amber-soft:rgba(245,158,11,.14); --sk-green:#34d399; --sk-red:#ef4444;
+  --sk-glass:rgba(34,36,48,.88); --sk-mark:rgba(228,228,231,.28);
+  --rf-bg:#000000; --rf-ink:#ffffff; --rf-note:#d6d6d6; --rf-dim:#8d8d93; --rf-div:#2a2a2c; --rf-hair:#2c2c2e;
+  --rf-tint:#c99a10; --rf-glass:rgba(44,44,46,.9); --rf-rim:rgba(255,255,255,.12); --rf-icon:#f2f2f2; --rf-faint:#636366;
+  --toast-bg:#ecebf1; --toast-fg:#131217; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bench:#131217; --ink:#ecebf1; --dim:#9c99a8; --line:rgba(255,255,255,.13); --mark:#fb923c; --mark-soft:rgba(251,146,60,.12);
+  --sk-bg:#0f1117; --sk-surface:#181a23; --sk-elev:#1e2130; --sk-border:rgba(255,255,255,.08); --sk-ring:rgba(255,255,255,.2);
+  --sk-text:#e4e4e7; --sk-dim:#8b8b97; --sk-faint:#55556a; --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.16);
+  --sk-accent-text:#b9acff; --sk-amber:#f59e0b; --sk-amber-soft:rgba(245,158,11,.14); --sk-green:#34d399; --sk-red:#ef4444;
+  --sk-glass:rgba(34,36,48,.88); --sk-mark:rgba(228,228,231,.28);
+  --rf-bg:#000000; --rf-ink:#ffffff; --rf-note:#d6d6d6; --rf-dim:#8d8d93; --rf-div:#2a2a2c; --rf-hair:#2c2c2e;
+  --rf-tint:#c99a10; --rf-glass:rgba(44,44,46,.9); --rf-rim:rgba(255,255,255,.12); --rf-icon:#f2f2f2; --rf-faint:#636366;
+  --toast-bg:#ecebf1; --toast-fg:#131217; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bench);color:var(--ink);font-family:var(--sys);margin:0}
+.wrap{max-width:1440px;margin:0 auto;padding-inline:16px;padding-block:18px 70px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+svg{display:block;flex:none}
+
+/* ── bench ── */
+.eyebrow{font:600 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+h1{font-size:22px;line-height:1.2;margin:6px 0 6px;text-wrap:balance}
+.lede{color:var(--dim);font-size:14px;line-height:1.5;max-width:72ch;margin:0}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:16px 0 12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bench);padding-block:8px}
+.grp{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.seg{display:inline-flex;background:var(--line);border-radius:9px;padding:3px;gap:2px}
+.seg button{padding:6px 10px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--dim);min-height:32px;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--bench);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.pk{font:700 9.5px/1 var(--mono);color:var(--mark);margin-left:3px}
+.flab{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:22px 0 8px}
+.flab h2{font-size:15px;margin:0}
+.flab span{font-size:12px;color:var(--dim)}
+.tag{font:700 10px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 5px}
+.tag.ref{color:var(--dim);border:1px dashed var(--dim)}
+.tag.new{color:var(--mark);border:1px solid var(--mark)}
+.fit{position:relative;max-width:100%}
+.fit.actual{overflow-x:auto;overflow-y:hidden}
+.fit > .scaler{transform-origin:0 0;position:absolute;left:0;top:0}
+.fit.actual > .scaler{position:relative}
+.dev{position:relative;overflow:hidden;border-radius:18px;box-shadow:0 0 0 9px #1b1b1f,0 14px 40px rgba(0,0,0,.25);margin:9px;font-family:var(--sys)}
+.land{width:1376px;height:1032px}
+.port{width:1032px;height:1376px}
+.flipnote{font-size:12px;color:var(--dim);margin:6px 0 0}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}
+.pick-c{border:1px solid var(--line);border-radius:12px;padding:12px 13px;display:flex;gap:10px;align-items:flex-start}
+.pick-c .n{flex:none;width:22px;height:22px;border-radius:11px;background:var(--mark);color:#fff;font:700 11px/22px var(--mono);text-align:center}
+.pick-c h4{margin:0 0 3px;font-size:14px;line-height:1.3}
+.pick-c p{margin:0;font-size:13px;line-height:1.45;color:var(--dim)}
+.ask{margin-top:26px;border:2px solid var(--mark);border-radius:14px;padding:14px 16px;max-width:780px}
+.ask p{margin:6px 0 0;font-size:15px;line-height:1.5}
+.fine{margin-top:20px;font-size:12px;color:var(--dim);line-height:1.55;max-width:90ch}
+h3.sect{font-size:16px;margin:34px 0 0}
+
+/* pick marks inside the frames */
+.pick{outline:2px dashed var(--mark);outline-offset:3px;position:relative}
+.pick::after{content:attr(data-k);position:absolute;top:-12px;right:-12px;min-width:20px;height:20px;border-radius:10px;background:var(--mark);color:#fff;font:700 11px/20px var(--mono);text-align:center;padding:0 5px;z-index:30;pointer-events:none}
+.nomarks .pick{outline:0}.nomarks .pick::after{display:none}
+
+/* ── shared status bar ── */
+.sbar{position:absolute;left:0;right:0;top:0;height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 24px 0 25px;font-size:14px;font-weight:600;z-index:4}
+.sbar .r{display:flex;gap:6px;align-items:center}
+.batt{font-size:10.5px;font-weight:700;background:currentColor;border-radius:4px;padding:0 4px;line-height:14px}
+.batt span{color:var(--rf-bg);mix-blend-mode:normal}
+
+/* ── REFERENCE (Apple Notes, iPad) — every position below is measured off the 2000-px screenshot at 1.4535 px/pt ── */
+.rf{background:var(--rf-bg);color:var(--rf-ink)}
+.rf .sbar{color:var(--rf-ink)}
+.rf .side{position:absolute;left:0;top:0;bottom:0;width:340px;border-right:1px solid var(--rf-div)}
+.rf .gc{position:absolute;top:32px;height:44px;border-radius:22px;background:var(--rf-glass);box-shadow:0 0 0 .5px var(--rf-rim),0 2px 10px rgba(0,0,0,.07);color:var(--rf-icon);display:flex;align-items:center;justify-content:center}
+.rf .gc.c{width:44px}
+.rf .ico{position:absolute;top:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;color:var(--rf-icon)}
+.rf .stitle{position:absolute;left:66px;top:36px;font-size:15px;line-height:20px;font-weight:600}
+.rf .stitle span{display:block;font-weight:400;color:var(--rf-dim)}
+.rf .gh{position:absolute;left:24px;font-size:20px;line-height:24px;font-weight:700}
+.rf .chev{position:absolute;left:298px;top:98px;color:var(--rf-ink)}
+.rf .row{position:absolute;left:16.5px;width:306.8px;height:59.2px;border-radius:18px;text-align:left;padding:7px 0 0 28px}
+.rf .row.sel{background:var(--rf-tint);color:#fff}
+.rf .row .t{font-size:17px;line-height:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:205px}
+.rf .row .l2{font-size:15px;line-height:20px;color:var(--rf-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:215px}
+.rf .row.sel .l2{color:rgba(255,255,255,.88)}
+.rf .row .l2 b{font-weight:400;margin-right:7px}
+.rf .row .th{position:absolute;right:11px;top:9.6px;width:40px;height:40px;border-radius:8px}
+.rf .hair{position:absolute;left:24px;width:292px;height:1px;background:var(--rf-hair)}
+.rf .ntitle{position:absolute;left:408px;top:92px;font-size:28px;line-height:34px;font-weight:700;color:var(--rf-note)}
+.rf .nbody{position:absolute;left:408px;top:158px;width:901px;font-size:17px;line-height:26px;color:var(--rf-note)}
+.rf .nphoto{position:absolute;left:408px;top:245.6px;width:901px;bottom:0;background:linear-gradient(160deg,#d8dbe0 0%,#b9c2c9 30%,#6f8b7a 52%,#2e3b33 70%,#c9ccd0 100%)}
+.rf .nphoto::before{content:"";position:absolute;left:8%;top:30%;width:34%;height:34%;border-radius:10px;background:linear-gradient(150deg,#1e6b55,#0f3b2f);transform:rotate(-12deg);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.rf .nphoto::after{content:"";position:absolute;left:46%;top:56%;width:36%;height:30%;border-radius:12px;background:linear-gradient(150deg,#3a3c40,#16171a);transform:rotate(-22deg);box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.rf .srch{position:absolute;left:1166px;top:43px;font-size:17px;line-height:22px;color:var(--rf-dim)}
+.rf .aa{font-size:22px;color:var(--rf-faint);font-weight:400;letter-spacing:-.5px}
+
+/* ── SKRIFT iPad ── */
+.sk{background:var(--sk-bg);color:var(--sk-text)}
+.sk .sbar{color:var(--sk-text)}
+.sk .tabs{position:absolute;left:0;right:0;top:24px;height:48px;display:flex;justify-content:center;align-items:center;z-index:3}
+.sk .tabs .tw{display:flex;gap:2px;padding:4px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 2px 10px rgba(0,0,0,.06)}
+.sk .tabs button{height:32px;padding:0 16px;border-radius:16px;font-size:15px;font-weight:600;color:var(--sk-dim)}
+.sk .tabs button[aria-pressed="true"]{background:var(--sk-accent-soft);color:var(--sk-accent-text)}
+.sk.tabsinband .tabs{top:24px;height:60px;left:var(--lw)}
+.sk .cols{position:absolute;left:0;right:0;top:72px;bottom:0;display:flex}
+.sk.tabsinband .cols{top:24px}
+.sk .lcol{width:var(--lw);flex:none;overflow:hidden;background:var(--sk-bg);border-right:.5px solid var(--sk-ring);transition:width .25s ease;position:relative}
+.sk.nolist .lcol{width:0;border-right-width:0}
+.sk .linner{width:var(--lw);height:100%;display:flex;flex-direction:column}
+.sk .gl{height:44px;min-width:44px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 2px 10px rgba(0,0,0,.06);display:inline-flex;align-items:center;justify-content:center;color:var(--sk-text);font-size:15px;font-weight:500;flex:none}
+.sk .gl.cap{padding:0 16px}
+.sk .gl.soft{background:var(--sk-accent-soft);color:var(--sk-accent-text);font-weight:600;box-shadow:none}
+.sk .gl.on{background:var(--sk-accent-soft);color:var(--sk-accent-text);box-shadow:none}
+.sk .side-t{position:absolute;left:9px;top:80px;z-index:6}
+.sk.tabsinband .side-t{top:32px}
+.sk .lhead{height:60px;flex:none;display:flex;align-items:center;gap:10px;padding:0 9px 0 66px}
+.sk .lhead .tt{flex:1;min-width:0;font-size:15px;line-height:20px;font-weight:600}
+.sk .lhead .tt span{display:block;font-weight:400;color:var(--sk-dim)}
+.sk .lscroll{flex:1;min-height:0;overflow:hidden}
+.sk .verbs{display:flex;gap:7px;padding:4px 14px 0}
+.sk .verb{flex:1;min-height:44px;border-radius:9px;background:var(--sk-elev);display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600}
+.sk .verb.rec{color:var(--sk-red)}
+.sk .verb.rec i{width:10px;height:10px;border-radius:50%;background:var(--sk-red);display:block}
+.sk .verb.sq{flex:none;width:44px}
+.sk .proc{margin:8px 14px 0;width:calc(100% - 28px);padding:8px 0;border-radius:9px;background:var(--sk-accent);color:#fff;font-size:13.5px;font-weight:600;display:flex;gap:6px;justify-content:center;align-items:center}
+.sk .proc b{opacity:.8}
+.sk .srch{margin:10px 14px 0;display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:11px;color:var(--sk-faint);font-size:15px}
+.sk .chips{display:flex;gap:6px;align-items:center;padding:8px 14px 0;white-space:nowrap}
+.sk .chip{font-size:12px;color:var(--sk-dim);padding:5px 9px;border-radius:7px;border:1px solid transparent}
+.sk .chip b{font-weight:600}
+.sk .chip[aria-pressed="true"]{color:var(--sk-accent);background:var(--sk-accent-soft)}
+.sk .chip.date{border:1px dashed var(--sk-ring)}
+.sk .sortw{margin-left:auto;font-size:12px;font-weight:600;color:var(--sk-dim)}
+.sk .gh2{font-size:20px;font-weight:700;padding:16px 16px 7px;line-height:24px}
+.sk .card{background:var(--sk-surface);border-radius:14px;margin:0 14px;overflow:hidden;border:1px solid var(--sk-border)}
+.sk .nrow{display:flex;gap:12px;align-items:center;padding:11px 14px 11px 16px;position:relative;width:100%;text-align:left}
+.sk .nrow + .nrow::before{content:"";position:absolute;left:16px;right:0;top:0;height:1px;background:var(--sk-border)}
+.sk .nrow.sel{background:var(--sk-accent-soft)}
+.sk .nrow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.sk .l1{display:flex;align-items:center;gap:6px;min-width:0}
+.sk .nrow .t{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:21px;display:flex;gap:6px;align-items:center}
+.sk .nrow .t span{overflow:hidden;text-overflow:ellipsis}
+.sk .nrow .l2{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sk-dim);line-height:19px}
+.sk .nrow .l2 b{font-weight:400;color:var(--sk-text);margin-right:6px;font-variant-numeric:tabular-nums}
+.sk .qbar{display:inline-block;width:2.5px;height:.95em;background:var(--sk-accent);border-radius:1px;vertical-align:-1px;margin-right:5px}
+.sk .nrow .l3{font-size:12.5px;color:var(--sk-faint);display:flex;align-items:center;gap:5px;line-height:17px;min-width:0}
+.sk .l3 .pf{width:6px;height:6px;border-radius:50%;background:var(--sk-amber);flex:none}
+.sk .l3 .pfw,.sk .l3 .fade{color:var(--sk-amber);white-space:nowrap}
+.sk .l3 .media{margin-left:auto;display:flex;gap:4px;align-items:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sk .unr{display:inline-flex;gap:4px;align-items:center;font-size:12.5px;color:var(--sk-faint);white-space:nowrap;flex:none}
+.sk .unr i{width:6px;height:6px;border-radius:50%;background:var(--sk-faint);display:block}
+.sk .spill{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap;flex:none}
+.sk .spill.progress{color:var(--sk-accent-text);background:var(--sk-accent-soft);animation:pulse 1.4s ease-in-out infinite}
+.sk .spill.amber{color:var(--sk-amber);background:var(--sk-amber-soft)}
+@keyframes pulse{50%{opacity:.45}}
+@media (prefers-reduced-motion: reduce){.sk .spill.progress{animation:none}.sk .lcol{transition:none}}
+.sk .nrow .th{width:52px;height:52px;border-radius:8px;flex:none}
+.sk .other{flex:1;display:grid;place-items:center;color:var(--sk-dim);font-size:15px}
+
+/* note pane */
+.sk .ncol{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--sk-surface);position:relative}
+.sk .nband{height:60px;flex:none;display:flex;align-items:center;gap:11px;padding:0 10px 0 66px;position:relative;z-index:8}
+.sk:not(.nolist) .nband{padding-left:10px}
+.sk .nband .sp{flex:1}
+.sk .tools{display:flex;align-items:center;padding:0 6px;position:relative}
+.sk .tools button{width:52px;height:44px;display:inline-flex;align-items:center;justify-content:center;color:var(--sk-text);border-radius:22px}
+.sk .tools button.on{color:var(--sk-accent)}
+.sk .tools .aa{font-size:20px;font-weight:500;letter-spacing:-.4px}
+.sk .nscroll{flex:1;min-height:0;overflow:hidden;position:relative}
+.sk .ntext{max-width:640px;padding:20px 20px 40px;margin-left:12px}
+.sk.nolist .ntext{max-width:900px;margin:0 auto}
+.sk.wide .ntext{max-width:none;margin:0;padding:20px 68px 40px 32px}
+.sk .ntitle{font-size:28px;line-height:34px;font-weight:700;display:flex;align-items:baseline;gap:8px}
+.sk .ntitle small{font-size:12px;font-weight:500;color:var(--sk-faint);display:inline-flex;gap:3px;align-items:center}
+.sk .meta{display:flex;flex-wrap:wrap;gap:0 6px;align-items:center;margin-top:8px;font-size:13px;line-height:18px;color:var(--sk-dim)}
+.sk .meta .ms{color:var(--sk-faint)}
+.sk .meta .mi{display:inline-flex;gap:3px;align-items:center}
+.sk .prow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:12px}
+.sk .rpill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 9px;border-radius:99px;background:var(--sk-accent-soft);font-size:13px;font-weight:600;color:var(--sk-accent-text)}
+.sk .rpill i{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--sk-ring);display:block}
+.sk .rpill i.on{background:var(--sk-accent);box-shadow:none}
+.sk .dchip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 10px;border-radius:99px;font-size:13px;font-weight:600;color:var(--sk-amber);background:var(--sk-amber-soft)}
+.sk .dchip i{width:6px;height:6px;border-radius:50%;background:var(--sk-amber);display:block}
+.sk .tagtx{font-size:14px;font-weight:500;color:var(--sk-accent-text)}
+.sk .addtx{font-size:13px;color:var(--sk-faint)}
+.sk .summ{margin-top:14px;padding-bottom:14px;border-bottom:.5px solid var(--sk-ring);font-size:15px;line-height:1.5;color:var(--sk-dim)}
+.sk .summ b{color:var(--sk-accent-text);font-weight:600}
+.sk .body{padding-top:14px;font-size:17px;line-height:26px}
+.sk .blk{border-radius:6px;margin:0 -6px;padding:1px 6px}
+.sk .blk + .blk{margin-top:8px}
+.sk .blk.cur{background:color-mix(in srgb,var(--sk-accent) 6%,transparent)}
+.sk .blk.h1{font-size:28px;line-height:34px;font-weight:700;margin-top:14px}
+.sk .blk.h2{font-size:22px;line-height:28px;font-weight:700;margin-top:14px}
+.sk .blk.h3{font-size:19px;line-height:25px;font-weight:600;margin-top:12px}
+.sk .blk.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px}
+.sk .blk.quote{border-left:3px solid color-mix(in srgb,var(--sk-accent) 60%,transparent);border-radius:0;font-style:italic;color:var(--sk-dim);padding-left:12px;margin-left:0}
+.sk .mk{color:var(--sk-mark);font-weight:400;font-style:normal}
+.sk .li{display:flex;gap:8px}
+.sk .li .bx{flex:none;width:17px;height:17px;border:1.6px solid var(--sk-faint);border-radius:5px;margin-top:4.5px}
+.sk .li .bx.on{background:var(--sk-accent);border-color:var(--sk-accent)}
+.sk .li.done .tx{color:var(--sk-dim);text-decoration:line-through}
+.sk .nm{color:var(--sk-accent);font-weight:500}
+.sk .caret{display:inline-block;width:2px;height:20px;background:var(--sk-accent);vertical-align:-4px;margin-left:1px;border-radius:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.sk .caret{animation:none}}
+.sk .photo{height:300px;border-radius:14px;margin:6px 0;background:linear-gradient(150deg,#c9ced8 0%,#8d97a8 35%,#4d5566 65%,#2f3542 100%);position:relative;overflow:hidden}
+.sk .photo::before{content:"";position:absolute;left:20%;top:30%;width:60%;height:36%;border-radius:8px;background:linear-gradient(180deg,#d7dbe3,#9aa2b1);box-shadow:0 0 0 3px #6a7282}
+.sk .photo span{position:absolute;left:10px;bottom:9px;font-size:12px;font-weight:600;color:#fff;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:7px}
+.sk .dock{height:56px;flex:none;border-top:.5px solid var(--sk-ring);display:flex;align-items:center;gap:16px;padding:0 22px;background:var(--sk-surface)}
+.sk .dock .play{width:34px;height:34px;border-radius:50%;background:var(--sk-accent);color:#fff;display:inline-flex;align-items:center;justify-content:center}
+.sk .dock .skp{color:var(--sk-dim);font-size:11px;font-weight:700;display:inline-flex;align-items:center}
+.sk .dock .t{font-size:12.5px;color:var(--sk-dim);font-variant-numeric:tabular-nums}
+.sk .dock .track{flex:1;height:4px;border-radius:3px;background:var(--sk-ring);position:relative}
+.sk .dock .track b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--sk-accent)}
+.sk .dock .rate{font-size:12.5px;font-weight:700;color:var(--sk-dim)}
+/* Aa popover = the Mac's full list (D197) */
+.sk .pop{position:absolute;top:54px;left:-14px;width:356px;background:var(--sk-surface);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.28),0 0 0 .5px var(--sk-ring);padding:12px;display:flex;flex-direction:column;gap:8px;z-index:20;text-align:left}
+.sk .pop::before{content:"";position:absolute;top:-7px;left:38px;width:14px;height:14px;background:var(--sk-surface);transform:rotate(45deg);box-shadow:-.5px -.5px 0 var(--sk-ring)}
+.sk .prow5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.sk .prow3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.sk .fb{min-height:44px;border-radius:10px;background:var(--sk-elev);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;color:var(--sk-text);width:100%}
+.sk .fb small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;color:var(--sk-faint)}
+.sk .fb.on{background:var(--sk-accent-soft);color:var(--sk-accent)}
+.sk .stl{display:flex;flex-direction:column;border-radius:12px;background:var(--sk-elev);overflow:hidden}
+.sk .stl button{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 12px;text-align:left;width:100%}
+.sk .stl button + button{border-top:.5px solid var(--sk-border)}
+.sk .stl button.on{background:var(--sk-accent-soft);color:var(--sk-accent)}
+.sk .stl small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--sk-faint);white-space:nowrap}
+.sk .pfoot{font-size:11.5px;color:var(--sk-faint);text-align:center}
+.sk .menu{position:absolute;top:54px;right:0;width:250px;background:var(--sk-surface);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.28),0 0 0 .5px var(--sk-ring);overflow:hidden;z-index:20;font-size:15px}
+.sk .menu button{display:flex;justify-content:space-between;width:100%;padding:11px 14px;text-align:left}
+.sk .menu button + button{border-top:.5px solid var(--sk-border)}
+.sk .menu .red{color:var(--sk-red)}
+.sk .menu .newi{color:var(--sk-accent-text);font-weight:600}
+.sk .conf{position:absolute;top:54px;right:0;width:300px;background:var(--sk-surface);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.28),0 0 0 .5px var(--sk-ring);padding:14px;z-index:20;display:flex;flex-direction:column;gap:10px;font-size:14px;text-align:left}
+.sk .conf h5{margin:0;font-size:16px}
+.sk .conf p{margin:0;color:var(--sk-dim);font-size:13px;line-height:1.4}
+.sk .conf label{display:flex;gap:9px;align-items:center;font-size:14px}
+.sk .conf .cb{width:20px;height:20px;border-radius:6px;background:var(--sk-accent);color:#fff;display:grid;place-items:center;flex:none}
+.sk .conf .cb.off{background:none;box-shadow:inset 0 0 0 1.6px var(--sk-faint)}
+.sk .conf .btns{display:flex;gap:8px;justify-content:flex-end}
+.sk .conf .btns button{height:36px;padding:0 14px;border-radius:10px;background:var(--sk-elev);font-weight:600}
+.sk .conf .btns .go{background:var(--sk-accent);color:#fff}
+.sk .wrapr{position:relative;display:flex;gap:11px;align-items:center}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:10px 14px;border-radius:10px;max-width:min(92vw,480px);transition:.2s;pointer-events:none;z-index:60;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* screenshot mode (#shot-…): one frame at 1:1, nothing else */
+body.shot .wrap > :not(.stagewrap){display:none}
+body.shot .stagewrap .flab,body.shot .flipnote{display:none}
+body.shot .wrap{padding:0;max-width:none}
+body.shot .dev{margin:0;box-shadow:none;border-radius:0}
+</style>
+
+<div class="wrap" id="app">
+  <div class="eyebrow">Q378 · mock · D193 D194 D196 D197 · iPad Pro 13" · 1 px = 1 pt</div>
+  <h1>Skrift on iPad, beside Apple Notes on iPad</h1>
+  <p class="lede">The top frame is Apple Notes, redrawn by hand from Tuur's iPad screenshot at its true size (1376 x 1032 pt). The frame under it is the proposed Skrift iPad screen at the same scale: the list rows from Q349 (D194, D197), the note from Q350 (D196), and the Mac's full Aa list (D197), because the iPad has a hardware keyboard. Orange numbers mark the picks you may want to overrule; they are listed under the frames.</p>
+
+  <div class="bar" id="bar">
+    <div class="grp">View <span class="seg"><button data-v="lay" data-x="stack" aria-pressed="true">Stacked</button><button data-v="lay" data-x="flip" aria-pressed="false">Flip in place</button></span></div>
+    <div class="grp">Size <span class="seg"><button data-v="size" data-x="fit" aria-pressed="true">Fit width</button><button data-v="size" data-x="actual" aria-pressed="false">1 : 1 points</button></span></div>
+    <div class="grp">Aa <span class="seg"><button data-v="aa" data-x="0" aria-pressed="true">Closed</button><button data-v="aa" data-x="1" aria-pressed="false">Open</button></span></div>
+    <div class="grp">List <span class="seg"><button data-v="list" data-x="1" aria-pressed="true">Shown</button><button data-v="list" data-x="0" aria-pressed="false">Hidden</button></span></div>
+    <div class="grp">Text width <span class="seg"><button data-v="wide" data-x="0" aria-pressed="true">640 pt<span class="pk">PICK</span></button><button data-v="wide" data-x="1" aria-pressed="false">Full, like Apple</button></span></div>
+    <div class="grp">Tabs <span class="seg"><button data-v="tabs" data-x="row" aria-pressed="true">Own row<span class="pk">PICK</span></button><button data-v="tabs" data-x="band" aria-pressed="false">In the toolbar line</button></span></div>
+    <div class="grp">Marks <span class="seg"><button data-v="marks" data-x="1" aria-pressed="true">On</button><button data-v="marks" data-x="0" aria-pressed="false">Off</button></span></div>
+  </div>
+
+  <div class="stagewrap" id="landStage"></div>
+  <p class="flipnote" id="flipnote" hidden>Flip in place: tap the frame label or press Space to swap Apple and Skrift in the same spot.</p>
+
+  <div class="stagewrap" id="portStage"></div>
+
+  <h3 class="sect">Picks you might overrule</h3>
+  <div class="picks" id="picks"></div>
+
+  <div class="ask">
+    <div class="eyebrow" style="color:var(--mark)">The one question</div>
+    <p>On the iPad, should the note's text run the full width of the pane like Apple Notes (about 900 pt in landscape), or stay capped at Skrift's 640 pt reading width, which leaves about 350 pt empty on the right? Flip "Text width" to see both.</p>
+  </div>
+
+  <p class="fine">The Apple Notes frame is redrawn in HTML from Tuur's own iPad screenshot (ipad-list-note.webp, 2000 x 1500 px, 13 Oct 2026). Its scale is 2000 / 1376 = 1.4535 px per point, confirmed by the 44 pt glass buttons (64 px) and the 340 pt sidebar (494 px). No screenshot or Apple icon is embedded, the icons are generic strokes, and the note text is invented to the same line lengths. The Skrift frames follow Shared/UI/NoteCardView.swift (row type 16 / 14 / 12.5, the grey Unrated marker, Portfolio-only line 3, 52 pt thumbnail), SkriftMobile/Features/MemosList/MemosListView.swift (375 pt list column, the pinned list toggle), MemosListView+Header.swift (verb row, Process, chips), Root/AppTabView.swift (Notes, Library, Review, Settings as a top strip), MemoDetail/MemoDetailView.swift (workbench band, 640 pt reading width, docked player) and the signed mocks Q349, Q350 and ipad-note-chrome-belongs.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const S = { lay:'stack', size:'fit', aa:false, list:true, wide:false, tabs:'row', marks:true, front:'ref', tab:'Notes', sel:1, refSel:0, menu:null, block:'p', audio:true };
+const h = (location.hash || '').slice(1);
+if (h.indexOf('shot') === 0) document.body.classList.add('shot');
+if (h.indexOf('aa') >= 0) S.aa = true;
+
+const I = {
+  side:'<svg width="24" height="20" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1.5" y="1.5" width="21" height="17" rx="4"/><path d="M9 1.5v17"/><path d="M4.5 6h2M4.5 9h2" stroke-linecap="round"/></svg>',
+  dots:'<svg width="20" height="4" viewBox="0 0 20 4" fill="currentColor"><circle cx="2" cy="2" r="2"/><circle cx="10" cy="2" r="2"/><circle cx="18" cy="2" r="2"/></svg>',
+  expand:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5v-6h6M2.5 2.5l6.5 6.5M19.5 13.5v6h-6M19.5 19.5L13 13"/></svg>',
+  compose:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M17 2.5l2.5 2.5L11 13.5l-3.3.8.8-3.3z"/></svg>',
+  check:'<svg width="26" height="20" viewBox="0 0 26 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="5" cy="5" r="3.8"/><path d="M3.3 5l1.3 1.3L7 3.8"/><circle cx="5" cy="15" r="3.8"/><path d="M12 5h12M12 15h12"/></svg>',
+  table:'<svg width="26" height="20" viewBox="0 0 26 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1.5" y="1.5" width="23" height="17" rx="2.5"/><path d="M1.5 7.3h23M1.5 12.8h23M9.3 1.5v17M17 1.5v17"/></svg>',
+  clip:'<svg width="16" height="22" viewBox="0 0 16 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 7v8.5a4.5 4.5 0 01-9 0V5a3 3 0 016 0v10a1.4 1.4 0 01-2.8 0V7"/></svg>',
+  spark:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 2.5l2.2 6.3 6.3 2.2-6.3 2.2L12 19.5l-2.2-6.3L3.5 11l6.3-2.2z"/><circle cx="19" cy="19" r="1.6" fill="currentColor"/></svg>',
+  markup:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><circle cx="11" cy="11" r="9.3"/><path d="M8 16l3-9 3 9M9.2 13h3.6"/></svg>',
+  share:'<svg width="20" height="24" viewBox="0 0 20 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v13M6 5.5L10 2l4 3.5"/><path d="M6.5 9.5H5a1.5 1.5 0 00-1.5 1.5v9A1.5 1.5 0 005 21.5h10a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0015 9.5h-1.5"/></svg>',
+  mag:'<svg width="18" height="18" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg>',
+  magS:'<svg width="15" height="15" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg>',
+  mic:'<svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg>',
+  micS:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="4" y="1" width="4" height="7" rx="2"/><path d="M2.5 6a3.5 3.5 0 007 0M6 9.5V11" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  bookS:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5h6.5a1 1 0 011 1V11H3a1 1 0 01-1-1z"/></svg>',
+  linkS:'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 7l2-2M4.2 5.4L3 6.6a2 2 0 002.8 2.8L7 8.2M7.8 6.6L9 5.4A2 2 0 006.2 2.6L5 3.8"/></svg>',
+  lockS:'<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="5.2" width="8" height="6" rx="1.4"/><path d="M4 5.5V4a2 2 0 014 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  photo:'<svg width="24" height="20" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="1.5" y="3" width="21" height="15.5" rx="3"/><circle cx="8" cy="8.5" r="2"/><path d="M2 16l6-5.5 4.5 4 3-2.5 6.5 5"/></svg>',
+  link:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 13l4-4M7.7 10.3L5.6 12.4a3.3 3.3 0 004.7 4.7l2.1-2.1M14.3 11.7l2.1-2.1a3.3 3.3 0 00-4.7-4.7L9.6 7"/></svg>',
+  plus:'<svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>',
+  pencil:'<svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H3a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7"/><path d="M10.5 1.5l2 2L7 9l-2.6.6L5 7z"/></svg>',
+  play:'<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.5v11l9-5.5z"/></svg>',
+  chevD:'<svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l6 6 6-6"/></svg>',
+  wifi:'<svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 9.3a1.4 1.4 0 110 2.7 1.4 1.4 0 010-2.7zM3.7 6.4a6.8 6.8 0 019.6 0l-1.3 1.3a5 5 0 00-7 0zM.9 3.6a10.8 10.8 0 0115.2 0L14.8 4.9a9 9 0 00-12.6 0z"/></svg>',
+  pin:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a3.5 3.5 0 013.5 3.5C9.5 7.2 6 11 6 11S2.5 7.2 2.5 4.5A3.5 3.5 0 016 1z"/></svg>',
+  sun:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="2.8"/></svg>',
+  hl:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M11 2.5l4.5 4.5-6.5 6.5H4.5V9z"/><path d="M2.5 16h13" stroke-linecap="round"/></svg>',
+  tick:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.3l2.3 2.3 4.7-5"/></svg>'
+};
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pick = (k) => S.marks ? ` pick" data-k="${k}` : '';
+
+/* ── Reference frame ── */
+const REF_ROWS = [
+  {group:'Pinned', top:130.7, title:'Bike route to Belém', time:'11:23', line:'Route for Saturday: down Calçada…', thumb:true},
+  {group:'Today', top:241, title:'Shopping list', time:'11:22', line:'Oat milk'}
+];
+function refFrame(){
+  const r0 = REF_ROWS[0], r1 = REF_ROWS[1];
+  const row = (r, i) => `<button class="row${S.refSel===i?' sel':''}" style="top:${r.top}px" data-ref="${i}"><div class="t">${esc(r.title)}</div><div class="l2"><b>${r.time}</b>${esc(r.line)}</div>${r.thumb?'<div class="th" style="background:linear-gradient(150deg,#d8dbe0,#6f8b7a 55%,#2e3b33)"></div>':''}</button>`;
+  return `<div class="dev land rf" id="ref-land">
+    <div class="sbar"><span>14:23&nbsp;&nbsp;Tue 13 Oct</span><span class="r">${I.wifi}<span class="batt"><span>80</span></span></span></div>
+    <div class="side">
+      <button class="gc c" style="left:9px" data-ack="Show or hide the folders (reference only)" aria-label="Folders">${I.side}</button>
+      <div class="stitle">Errands<span>2 Notes</span></div>
+      <button class="gc c" style="left:286px" data-ack="Folder menu (reference only)" aria-label="More">${I.dots}</button>
+      <div class="gh" style="top:95px">Pinned</div><span class="chev">${I.chevD}</span>
+      ${row(r0,0)}
+      <div class="gh" style="top:208px">Today</div>
+      <div class="hair" style="top:242px"></div>
+      ${row({...r1, top:243},1)}
+    </div>
+    <button class="gc c" style="left:350px" data-ack="Full screen (reference only)" aria-label="Full screen">${I.expand}</button>
+    <button class="gc c" style="left:406px" data-ack="New note (reference only)" aria-label="New note">${I.compose}</button>
+    <div class="gc" style="left:657.7px;width:288.3px">
+      <button class="ico aa" style="left:13.3px" data-ack="Format (reference only)">Aa</button>
+      <button class="ico" style="left:65.3px" data-ack="Checklist (reference only)">${I.check}</button>
+      <button class="ico" style="left:125.3px" data-ack="Table (reference only)">${I.table}</button>
+      <button class="ico" style="left:183.3px" data-ack="Attach (reference only)">${I.clip}</button>
+      <button class="ico" style="left:240.3px" data-ack="Writing tools (reference only)">${I.spark}</button>
+    </div>
+    <div class="gc" style="left:957px;width:157px">
+      <button class="ico" style="left:2.5px" data-ack="Markup (reference only)">${I.markup}</button>
+      <button class="ico" style="left:57.5px" data-ack="Share (reference only)">${I.share}</button>
+      <button class="ico" style="left:112px" data-ack="More (reference only)">${I.dots}</button>
+    </div>
+    <div class="gc" style="left:1125px;width:241px;justify-content:flex-start;padding-left:15px">${I.mag}<span style="position:absolute;right:15px;top:12px">${I.mic}</span></div>
+    <div class="srch">Search</div>
+    <div class="ntitle">Bike route to Belém</div>
+    <div class="nbody">Route for Saturday: down Calçada da Estrela to the river, then along the cycle path past the bridge to Belém. Stop at the bakery before ten, the queue gets long. Check the tyre pressure first and take the small lock, the big one rattles on the cobbles. Back by the tram line if it rains</div>
+    <div class="nphoto"></div>
+  </div>`;
+}
+
+/* ── Skrift data (invented). NOW = Tue 13 Oct 2026 14:23 ── */
+const NOTES = [
+ {id:1, g:'Today', date:'14:02', title:'Spindle clamp, 65 or 52', line:'Leaning to the 65 mm clamp. Test-print a PETG ring first.', pf:true, media:['mic','2:14'], thumb:'linear-gradient(140deg,#c9ced8,#8d97a8 40%,#4d5566 70%,#2f3542)'},
+ {id:2, g:'Today', date:'11:40', title:'Voice note', busy:'Transcribing…', pill:['Transcribing','progress'], unr:true, media:['mic','0:48']},
+ {id:3, g:'Today', date:'09:41', title:'Tile quote for the bathroom', line:'Called Rui about the bathroom tiles. He can start on the 26th.', media:['mic','2:34']},
+ {id:4, g:'Today', date:'07:30', title:'Groceries', line:'Oat milk, eggs, coriander, the good bread from Gleba.', unr:true},
+ {id:5, g:'Yesterday', date:'Yesterday', title:'Moby-Dick', quote:'Whenever I find myself growing grim about the mouth…', media:['book','ch. 1 · 0:42']},
+ {id:6, g:'Previous 7 Days', date:'Saturday', title:'Lamp idea: paper shade on a robot arm', line:'The arm parks the shade low for reading.', pf:true, media:['mic','3:51'], thumb:'linear-gradient(140deg,#f3e3c3,#d9a75f 55%,#5b3b1e)'},
+ {id:7, g:'Previous 7 Days', date:'Friday', title:'Health', locked:true},
+ {id:8, g:'Previous 7 Days', date:'Wednesday', title:'How SwiftUI lists diff their rows', line:'Read before the editor rebuild.', unr:true, fade:'starts fading 17 Oct', media:['link','swiftwithmajid.com']},
+ {id:9, g:'Previous 30 Days', date:'27 Sep', title:'Call with Marta about the Porto trip', line:'Marta can host us the second weekend.', pill:['2 versions','amber'], media:['mic','12:30']},
+ {id:10, g:'Previous 30 Days', date:'24 Sep', title:'Gift ideas for Pim', line:'Climbing chalk bag, the Moomin book in Dutch.'},
+ {id:11, g:'Previous 30 Days', date:'15 Sep', title:'Morning pages', line:'Slept badly again, the neighbours were drilling at seven.', media:['mic','5:02']},
+ {id:12, g:'August', date:'21 Aug', title:'Feira da Ladra finds', line:'A brass level, two old postcards of Sintra.', media:['mic','1:30'], thumb:'linear-gradient(130deg,#e8c9a0,#b0743c 50%,#3d2a1c)'}
+];
+function nrow(n, first){
+  const sel = S.sel === n.id ? ' sel' : '';
+  const title = n.locked ? `<div class="t">${I.lockS}<span>${esc(n.title)}</span></div>` : `<div class="t"><span>${esc(n.title)}</span></div>`;
+  const pill = n.pill ? `<span class="spill ${n.pill[1]}">${n.pill[0]}</span>` : '';
+  const unr = n.unr && !n.locked ? `<span class="unr${first.unr ? '' : ''}${!first.u && (first.u = 1) ? pick(4) : ''}"><i></i>Unrated</span>` : '';
+  let l2 = `<b>${n.date}</b>`;
+  if (n.locked) l2 += 'Locked';
+  else if (n.busy) l2 += `<span style="color:var(--sk-accent-text)">${n.busy}</span>`;
+  else if (n.quote) l2 += `<span class="qbar"></span><em>${esc(n.quote)}</em>`;
+  else if (n.line) l2 += esc(n.line);
+  let l3 = '';
+  if (n.pf) l3 += `<span class="pf"></span><span class="pfw">Portfolio</span>`;
+  if (n.fade) l3 += `<span class="fade">${n.fade}</span>`;
+  if (n.media && !n.locked) l3 += `<span class="media">${n.media[0]==='mic'?I.micS:n.media[0]==='book'?I.bookS:I.linkS}${esc(n.media[1])}</span>`;
+  return `<button class="nrow${sel}" data-sel="${n.id}"><div class="tx"><div class="l1">${title}${pill}${unr}</div><div class="l2">${l2}</div>${l3?`<div class="l3">${l3}</div>`:''}</div>${n.thumb && !n.locked ? `<div class="th" style="background:${n.thumb}"></div>` : ''}</button>`;
+}
+function listCol(){
+  const groups = []; const idx = {};
+  NOTES.forEach(n => { if (!(n.g in idx)) { idx[n.g] = groups.length; groups.push({t:n.g, notes:[]}); } groups[idx[n.g]].notes.push(n); });
+  const first = {};
+  return `<div class="lcol"><div class="linner">
+    <div class="lhead"><div class="tt${pick(3)}">Notes<span>${NOTES.length} notes</span></div><button class="gl cap" data-ack="Select mode (unchanged)">Select</button></div>
+    <div class="lscroll">
+      <div class="verbs"><button class="verb" data-ack="Import: audio or video from Files, video from Photos, scan a document (unchanged)">${I.plus}Import</button><button class="verb rec" data-ack="Record starts a take (unchanged)"><i></i>Record</button><button class="verb sq" data-ack="New typed note (unchanged)" aria-label="New note">${I.pencil}</button></div>
+      <button class="proc" data-ack="Process runs the pile on this iPad (unchanged)">${I.play}Process <b>3</b></button>
+      <div class="srch">${I.magS}<span>Search memos</span></div>
+      <div class="chips"><button class="chip" aria-pressed="true" data-ack="All notes">All</button><button class="chip" aria-pressed="false" data-ack="Needs Work filter (unchanged)">Needs Work <b>3</b></button><button class="chip" aria-pressed="false" data-ack="Done filter (unchanged)">Done <b>6</b></button><button class="chip" aria-pressed="false" data-ack="Unrated filter (unchanged)">Unrated <b>3</b></button><button class="chip date" data-ack="Date range (unchanged)">Date</button><button class="sortw" data-ack="Recorded is the default; Added switches the groups to the add date (D197)">Recorded ↓</button></div>
+      ${groups.map(g => `<div class="gh2">${g.t}</div><div class="card">${g.notes.map(n => nrow(n, first)).join('')}</div>`).join('')}
+    </div></div></div>`;
+}
+const STY = [['h1','Title','# ','⇧⌘T',24,700],['h2','Heading','## ','⇧⌘H',19,700],['h3','Subheading','### ','',16,600],['p','Body','plain','⇧⌘B',15,400],['mono','Monostyled','`code`','',14,400]];
+function aaPop(){
+  const bi = (v,l,c,css) => `<button class="fb" data-wrap="${v}"><span style="font-size:17px;${css}">${l}</span><small>${esc(c)}</small></button>`;
+  const li = (v,l,c) => `<button class="fb${S.block===v?' on':''}" data-style="${v}"><span style="font-size:14px">${l}</span><small>${esc(c)}</small></button>`;
+  return `<div class="pop${pick(7)}" role="dialog" aria-label="Format">
+    <div class="prow5">${bi('b','B','**…**','font-weight:800')}${bi('i','I','*…*','font-style:italic;font-family:Georgia,serif')}${bi('u','U','<u>…</u>','text-decoration:underline')}${bi('s','S','~~…~~','text-decoration:line-through')}<button class="fb" data-wrap="hl"><span style="display:flex;justify-content:center">${I.hl}</span><small>==…==</small></button></div>
+    <div class="stl">${STY.map(s => `<button class="${S.block===s[0]?'on':''}" data-style="${s[0]}"><span style="font-size:${s[4]}px;font-weight:${s[5]};${s[0]==='mono'?'font-family:ui-monospace,Menlo,monospace':''}">${s[1]}</span><small>${esc(s[2])}${s[3]?'  '+s[3]:''}</small></button>`).join('')}</div>
+    <div class="prow3">${li('ul','• Bulleted','* ')}${li('dash','– Dashed','- ')}${li('ol','1. Numbered','1. ')}</div>
+    <button class="fb${S.block==='quote'?' on':''}" data-style="quote" style="flex-direction:row;gap:10px;min-height:40px"><span style="font-size:14px">❝ Block Quote</span><small>&gt; </small></button>
+    <div class="pfoot">Written as Markdown in the note. No colour.</div>
+  </div>`;
+}
+function curBlock(){
+  const txt = 'Rui says the 65 clamp needs a new plate anyway, so the price gap closes. Order the clamp after the test ring.';
+  const mk = {h1:'# ',h2:'## ',h3:'### ',ul:'* ',dash:'- ',ol:'1. ',quote:'> '}[S.block] || '';
+  const cls = {h1:'h1',h2:'h2',h3:'h3',mono:'mono',quote:'quote'}[S.block] || '';
+  const lead = S.block==='ul' ? '• ' : S.block==='dash' ? '– ' : S.block==='ol' ? '1. ' : '';
+  const body = S.block==='mono' ? '<span class="mk">`</span>'+txt+'<span class="mk">`</span>' : txt;
+  return `<div class="blk cur ${cls}">${mk?`<span class="mk">${mk}</span>`:''}${lead && !mk ? lead : ''}${body}<span class="caret"></span></div>`;
+}
+function noteCol(){
+  const menu = S.menu === 'more' ? `<div class="menu" role="menu"><button class="newi" data-ack="Split speakers lives here now (D196)">Split speakers</button><button data-ack="Find in note">Find in Note</button><button data-ack="Add recording (unchanged)">Add recording</button><button data-ack="Lock note (unchanged)">Lock Note</button><button data-ack="Share (unchanged)">Share Note…</button><button data-ack="Copied as Markdown">Copy as Markdown</button><button class="red" data-ack="Delete asks first (unchanged)">Delete</button></div>` : '';
+  const conf = S.menu === 'export' ? `<div class="conf" role="dialog" aria-label="Export"><h5>Export to Portfolio</h5><p>Writes this note to _projects/ in your vault.</p><label><button class="cb${S.audio?'':' off'}" data-audio aria-label="Include audio">${S.audio?I.tick:''}</button>Include audio in export</label><p style="font-size:12px">Remembered for this note.</p><div class="btns"><button data-close>Cancel</button><button class="go" data-ack="Exported (mock). Include audio: remembered for this note" data-close>Export</button></div></div>` : '';
+  return `<div class="ncol">
+    <div class="nband">
+      <span class="sp"></span>
+      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button data-ack="Camera or photo library (unchanged)" aria-label="Photo">${I.photo}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}</div>
+      <div class="wrapr"><button class="gl cap" data-ack="Connections slides in over the note (unchanged)">Connections</button><button class="gl cap soft" data-menu="export">Export</button><button class="gl" data-menu="more" aria-label="More">${I.dots}</button>${menu}${conf}</div>
+    </div>
+    <div class="nscroll"><div class="ntext${pick(8)}">
+      <div class="ntitle${pick(6)}">Spindle clamp, 65 or 52<small>${I.spark.replace('width="24" height="24"','width="11" height="11"')}suggested</small></div>
+      <div class="meta"><span class="mi">Today 14:02</span><span class="ms">·</span><span class="mi">${I.pin}Marvila</span><span class="ms">·</span><span class="mi">${I.sun}22°</span><span class="ms">·</span><span class="mi">${I.micS}2:14</span></div>
+      <div class="prow"><button class="rpill" data-ack="Rating: Not rated, Passing, Useful, Important (unchanged)"><i class="on"></i><i class="on"></i><i></i>Useful</button><button class="dchip" data-ack="Personal or Portfolio (unchanged)"><i></i>Portfolio ⌄</button><span class="tagtx">#cnc</span><span class="tagtx">#workshop</span><button class="addtx" data-ack="Add a tag (unchanged)">+ tag</button></div>
+      <div class="summ"><b>Summary</b> Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate.</div>
+      <div class="body">
+        <div class="blk">Measured the spindle at 64.8 mm, so the 65 clamp fits with a shim and the 52 needs an adapter ring. <span class="nm">Rui</span> has PETG in the workshop.</div>
+        <div class="blk h2"><span class="mk">## </span>Before drilling</div>
+        <div class="li blk"><span class="bx on"></span><span class="tx" style="color:var(--sk-dim);text-decoration:line-through">Print the drilling template</span></div>
+        <div class="li blk"><span class="bx"></span><span class="tx">Check runout with the dial gauge</span></div>
+        <div class="photo"><span>Gantry plate, photo from the recording</span></div>
+        ${curBlock()}
+      </div>
+    </div></div>
+    <div class="dock${pick(9)}"><span class="skp">⟲10</span><button class="play" data-ack="Plays the recording with the karaoke highlight (unchanged)" aria-label="Play">${I.play}</button><span class="skp">10⟳</span><span class="t">0:24</span><span class="track"><b style="width:18%"></b></span><span class="t">2:14</span><span class="rate">1×</span></div>
+  </div>`;
+}
+function skFrame(orient){
+  const cls = ['dev', orient, 'sk'];
+  if (!S.list) cls.push('nolist');
+  if (S.wide) cls.push('wide');
+  if (S.tabs === 'band') cls.push('tabsinband');
+  const tabs = ['Notes','Library','Review','Settings'];
+  const content = S.tab === 'Notes' ? listCol() + noteCol() : `<div class="other">${S.tab} is not part of this mock. Tap Notes.</div>`;
+  return `<div class="${cls.join(' ')}" id="sk-${orient}" style="--lw:375px">
+    <div class="sbar"><span>14:23&nbsp;&nbsp;Tue 13 Oct</span><span class="r">${I.wifi}<span class="batt" style="color:var(--sk-text)"><span style="color:var(--sk-bg)">80</span></span></span></div>
+    <div class="tabs"><div class="tw${pick(1)}">${tabs.map(t => `<button aria-pressed="${S.tab===t}" data-tab="${t}">${t}</button>`).join('')}</div></div>
+    <button class="gl side-t${pick(2)}" data-list aria-label="${S.list?'Hide':'Show'} the notes list">${I.side}</button>
+    <div class="cols">${content}</div>
+  </div>`;
+}
+
+/* ── stage ── */
+function fitBox(inner, w, hgt){
+  return `<div class="fit${S.size==='actual'?' actual':''}" data-w="${w+18}" data-h="${hgt+18}"><div class="scaler">${inner}</div></div>`;
+}
+function render(){
+  const L = document.getElementById('landStage');
+  const refLab = `<div class="flab"><span class="tag ref">Reference</span><h2>Apple Notes on iPad</h2><span>redrawn from Tuur's screenshot, 1376 x 1032 pt</span></div>`;
+  const skLab = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, landscape</h2><span>same scale; list column 375 pt (source)</span></div>`;
+  if (S.lay === 'stack') L.innerHTML = refLab + fitBox(refFrame(),1376,1032) + skLab + fitBox(skFrame('land'),1376,1032);
+  else {
+    const isRef = S.front === 'ref';
+    L.innerHTML = `<button style="text-align:left" data-flip>${isRef?refLab:skLab}</button>` + fitBox(isRef ? refFrame() : skFrame('land'),1376,1032);
+  }
+  document.getElementById('flipnote').hidden = S.lay !== 'flip';
+  document.getElementById('portStage').innerHTML = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, portrait</h2><span>1032 x 1376 pt; the list stays open, Aa follows the toggle above. No Apple portrait screenshot yet.</span></div>` + fitBox(skFrame('port'),1032,1376);
+  document.querySelectorAll('#bar [data-v]').forEach(b => {
+    const v = b.dataset.v, x = b.dataset.x;
+    const cur = v==='aa' ? (S.aa?'1':'0') : v==='list' ? (S.list?'1':'0') : v==='wide' ? (S.wide?'1':'0') : v==='marks' ? (S.marks?'1':'0') : S[v];
+    b.setAttribute('aria-pressed', String(cur === x));
+  });
+  fit();
+}
+function fit(){
+  document.querySelectorAll('.fit').forEach(f => {
+    const w = +f.dataset.w, hh = +f.dataset.h, sc = f.querySelector('.scaler');
+    if (f.classList.contains('actual')) { sc.style.transform = ''; f.style.height = ''; f.style.width = ''; return; }
+    const avail = f.parentElement.clientWidth;
+    const s = Math.min(1, avail / w);
+    sc.style.transform = `scale(${s})`;
+    f.style.width = (w * s) + 'px'; f.style.height = (hh * s) + 'px';
+  });
+}
+window.addEventListener('resize', fit);
+
+const PICKS = [
+ ['Tabs keep their own row above both columns', 'Today\'s source and the signed chrome mock put Notes · Library · Review · Settings in a strip under the status bar. Apple Notes has no tabs, so its toolbar sits 48 pt higher. Flip "Tabs" to try them in the toolbar line over the note.'],
+ ['One list toggle, pinned top left, Apple\'s size', 'The ◧ stays screen-pinned like today (MemosListView overlay) but grows from a 30 pt chip to Apple\'s 44 pt glass circle at the same spot Apple uses (9 pt in).'],
+ ['List header copies Apple: name over count, Select as a capsule', 'Was "Notes" 22 bold with a plain Select word. Now Notes 15 semibold over "12 notes", like Apple\'s folder name and count. Import · Record · new note, Process, search and the chips stay under it.'],
+ ['Rows exactly as Q349 signed', 'One card per group, 16 / 14 type, Portfolio only on line 3, the grey "Unrated" at the end of line 1, status pills only while something runs, 52 pt thumbnails, groups Today / Yesterday / Previous 7 Days / Previous 30 Days / months by recorded date.'],
+ ['Note toolbar copies Apple\'s pill', 'One glass pill at the right: Aa · checklist · photo · note link (Skrift\'s four, where Apple has Aa · checklist · table · attach · writing tools). Then Connections, Export in the soft tint, and ⋯. Controls are Apple\'s 44 pt, up from 30 pt. Search stays in the list; Apple puts it in the note toolbar.'],
+ ['Title 28 pt, above the grey line (D196)', 'Apple\'s title is 28 pt bold. Skrift\'s title takes the same size here, then the grey time · place · weather · length line, then rating + Portfolio + tags on one row, then the summary.'],
+ ['Aa = the Mac\'s full list, as a popover', 'With a hardware keyboard the phone\'s accessory bar never shows, so Aa opens the Mac popover (D197): B I U S + highlight, Title / Heading / Subheading / Body / Monostyled, Bulleted / Dashed / Numbered, Block Quote, each with the Markdown it writes. Tap a style: it changes the caret line.'],
+ ['Text stays at the 640 pt reading width', 'Today the note column is capped at 640 pt and sits against the list, so the text ends near x 1007 and about 350 pt stays empty. Apple runs its text 900 pt wide with 68 pt margins. This is the question below.'],
+ ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there.'],
+ ['No Pinned group, accent selection', 'Skrift has no pinning, so the list starts at Today. The selected row keeps Skrift\'s soft purple fill; Apple fills it solid yellow with white text.'],
+ ['Portrait keeps the list open', 'Same layout at 1032 pt wide: list 375 + note 657. Apple tends to hide its list in portrait; Skrift remembers the ◧ choice instead (ipadListVisible).']
+];
+document.getElementById('picks').innerHTML = PICKS.map((p,i) => `<div class="pick-c"><span class="n">${i+1}</span><div><h4>${esc(p[0])}</h4><p>${esc(p[1])}</p></div></div>`).join('');
+
+let tt;
+function toast(m){ const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.v) { const x = d.x;
+    if (d.v==='aa') S.aa = x==='1'; else if (d.v==='list') S.list = x==='1'; else if (d.v==='wide') S.wide = x==='1'; else if (d.v==='marks') S.marks = x==='1'; else S[d.v] = x;
+    document.body.classList.toggle('nomarks', !S.marks); render(); return; }
+  if ('flip' in d) { S.front = S.front==='ref' ? 'sk' : 'ref'; render(); return; }
+  if (d.ref != null) { S.refSel = +d.ref; render(); return; }
+  if (d.tab) { S.tab = d.tab; S.menu = null; render(); if (d.tab !== 'Notes') toast(d.tab + ' tab selected (not drawn here)'); return; }
+  if ('list' in d) { S.list = !S.list; render(); return; }
+  if (d.sel) { S.sel = +d.sel; render(); toast('Selected. The pane shows one sample note in this mock.'); return; }
+  if ('aa' in d) { S.aa = !S.aa; S.menu = null; render(); return; }
+  if (d.style) { S.block = d.style; render(); const s = {h1:'# ',h2:'## ',h3:'### ',p:'nothing',mono:'`…`',ul:'* ',dash:'- ',ol:'1. ',quote:'> '}[d.style]; toast('Caret line now writes ' + s); return; }
+  if (d.wrap) { toast('Selected word wraps in ' + {b:'**…**',i:'*…*',u:'<u>…</u>',s:'~~…~~',hl:'==…=='}[d.wrap]); return; }
+  if (d.menu) { S.menu = S.menu === d.menu ? null : d.menu; S.aa = false; render(); return; }
+  if ('audio' in d) { S.audio = !S.audio; render(); return; }
+  if ('close' in d) { S.menu = null; render(); if (d.ack) toast(d.ack); return; }
+  if (d.ack) toast(d.ack);
+});
+document.addEventListener('keydown', e => { if (e.code === 'Space' && S.lay === 'flip' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); S.front = S.front==='ref' ? 'sk' : 'ref'; render(); } });
+window.mockSet = (o) => { Object.assign(S, o); document.body.classList.toggle('nomarks', !S.marks); render(); return 'ok'; };
+if (document.body.classList.contains('shot')) { S.size = 'actual'; S.marks = false; document.body.classList.add('nomarks'); }
+render();
+})();
+</script>
