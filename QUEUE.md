@@ -2765,7 +2765,7 @@ do: -
 check: Tuur kept the spelling or named another; follow-up item added if changed.
 ask: A note made with Library's "Send to a note" now exports `source: PDF-link` (or Episode-link, Audiobook-link, Article-link) and one line like `— *Title*, p. 4` above your words. Keep that spelling?
 
-### Q374 [auto] (doing) install today's Dev build on the iPhone 17 Pro and the Mac for the sitting
+### Q374 [auto] (done) install today's Dev build on the iPhone 17 Pro and the Mac for the sitting
 spec: -
 needs: -
 gate+: no
@@ -4037,3 +4037,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 12:01 Q376 added
 - 2026-10-13 12:02 Q374 -> doing — worker out
 - 2026-10-13 12:06 Q349 -> tuur — built @70e9bd61, gate 114s — awaiting sitting
+- 2026-10-13 12:08 Q374 -> done — gate 37s @d7c7e7c8
