@@ -80,12 +80,17 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 }
 
 /* phone frame */
-.phone{width:390px;max-width:100%;height:760px;border-radius:46px;border:10px solid #1b1b1f;
+.phone{box-sizing:content-box;width:402px;height:874px;border-radius:62px;border:10px solid #1b1b1f;
   overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.18)}
-@media (max-width:440px){ .phone{border-width:6px;border-radius:34px;height:720px} }
-.status{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-weight:600;font-size:15px}
-.status i{width:96px;height:26px;border-radius:14px;background:#000;display:block}
-.status .r{width:40px}
+/* ONE true scale for every phone frame: the screen is 402 x 874 CSS px = iPhone 17 Pro points
+   (Tuur's screenshots are 1206 x 2622 px = 3x), and every size inside is the real iOS point size.
+   A frame that does not fit its column is shrunk WHOLE by fitPhones() (transform: scale on .pfit),
+   never squeezed: max-width on the frame is what made the content look ~1.3x too big. */
+.pfit{position:relative;flex:none}
+.pfit > .phone{position:absolute;left:0;top:0;transform-origin:0 0}
+.status{height:62px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 52px;font-weight:600;font-size:17px}
+.status i{width:125px;height:37px;border-radius:19px;background:#000;display:block;margin-top:-2px}
+.status .r{width:60px}
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;min-height:0}
 /* mac frame */
 .mac{width:292px;max-width:100%;height:700px;border-radius:11px;overflow:hidden;position:relative;display:flex;flex-direction:column;
@@ -104,39 +109,40 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .gone s{opacity:.8}
 
 /* ── REFERENCE: redrawn from Tuur's iOS 27 screenshots (IMG_0436/0444/0445, iPhone 17 Pro, 402 pt wide)
-   and, for the Mac column, Apple's Notes for Mac guide image. Measured: 44 pt glass circles at 16 pt;
-   large title ~36 bold; count line ~17 gray; group header ~21 bold; card inset 16, radius ~26;
-   row 60 pt, text 28 pt inside the card; title ~19 semibold, line 2 ~17 gray (time AND preview gray);
-   hairline from the text edge to 16 pt short of the card edge; in All iCloud (IMG_0447, layout only) a 3rd line = folder glyph + folder name, rows ~80 pt, 56 pt thumbnail; search pill 48 pt + 49 pt compose circle
+   and, for the Mac column, Apple's Notes for Mac guide image. Measured off the 1206-px shots at exactly 1/3
+   (re-measured 13 Oct, Q349d; the earlier 36/21/19/17 read was ~12% large): status 62 pt, then 44 pt glass circles
+   at 16 pt; large title 34 bold (cap 24 pt); count 15 gray; group header 20 bold; card inset 16, radius ~24;
+   row 60 pt, text 29 pt inside the card; title 17 semibold, line 2 15 gray (time AND preview gray);
+   hairline from the text edge to 16 pt short of the card edge; in All iCloud (IMG_0447, layout only) a 3rd line = folder glyph + folder name, rows 80 pt, 56 pt thumbnail; search pill 48 pt + 48 pt compose circle, 28 pt from the edges
    floating at the bottom. No toolbar. Inside one folder (IMG_0444) the folder line drops. */
 .ref{background:var(--ref-bg);color:var(--ref-text)}
-.ref .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 0;height:58px}
+.ref .nav{display:flex;justify-content:space-between;align-items:center;padding:0 16px;height:44px;flex:none}
 .ref .glass{height:44px;min-width:44px;border-radius:22px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;color:var(--ref-text)}
 .ref .glass.pair{width:101px;justify-content:space-around;padding:0 6px}
-.ref h3{font-size:36px;font-weight:700;margin:22px 16px 0;letter-spacing:.1px;line-height:1.1}
-.ref .count{font-size:17px;color:var(--ref-dim);margin:2px 16px 0}
-.ref .gh{font-size:21px;font-weight:700;margin:24px 16px 10px;line-height:1.15}
-.ref .group{background:var(--ref-card);border-radius:26px;margin:0 16px;overflow:hidden}
-.ref .row{display:flex;gap:10px;align-items:center;min-height:60px;padding:8px 12px 8px 28px;position:relative;width:100%;text-align:left}
-.ref .row + .row::before{content:"";position:absolute;left:28px;right:16px;top:0;height:1px;transform:scaleY(.5);background:var(--ref-sep)}
+.ref h3{font-size:34px;font-weight:700;margin:20px 16px 0;letter-spacing:.2px;line-height:41px}
+.ref .count{font-size:15px;color:var(--ref-dim);margin:0 16px 0;line-height:20px}
+.ref .gh{font-size:20px;font-weight:700;margin:18px 16px 10px;line-height:25px}
+.ref .group{background:var(--ref-card);border-radius:24px;margin:0 16px;overflow:hidden}
+.ref .group + .gh{margin-top:26px}
+.ref .row{display:flex;gap:10px;align-items:center;min-height:60px;padding:9px 12px 9px 29px;position:relative;width:100%;text-align:left}
+.ref .row + .row::before{content:"";position:absolute;left:29px;right:16px;top:0;height:1px;transform:scaleY(.5);background:var(--ref-sep)}
 .ref .row:active{background:var(--ref-fill)}
 .ref .row .gut{position:absolute;left:9px;top:12px;color:var(--ref-dim)}
 .ref .tx{flex:1;min-width:0}
-.ref .t{font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
-.ref .l2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;color:var(--ref-dim);margin-top:1px}
+.ref .t{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:22px}
+.ref .l2{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;color:var(--ref-dim)}
 .ref .l2 b{font-weight:400;color:var(--ref-dim);margin-right:8px;font-variant-numeric:tabular-nums}
-.ref .l3{font-size:17px;color:var(--ref-dim);display:flex;gap:5px;align-items:center;line-height:1.25;margin-top:1px}
-.ref .l3 svg{width:17px;height:17px}
+.ref .l3{font-size:15px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:20px}
+.ref .l3 svg{width:15px;height:15px}
 .ref .th{width:56px;height:56px;border-radius:9px;flex:none}
-.ref .dock{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:flex-end;gap:10px;padding:0 27px 24px;
+.ref .dock{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:flex-end;gap:12px;padding:0 28px 28px;
   background:linear-gradient(to bottom,transparent,var(--ref-bg) 55%);pointer-events:none}
 .ref .dock > *{pointer-events:auto}
-@media (max-width:440px){ .ref .dock{padding:0 14px 18px} }
-.ref .dock .search{flex:1;min-width:0;height:48px;border-radius:24px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--ref-text)}
-.ref .dock .search input{flex:1;min-width:0;border:0;background:none;font:19px var(--ui);color:var(--ref-text);outline:none;padding:0}
+.ref .dock .search{flex:1;min-width:0;height:48px;border-radius:24px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--ref-text)}
+.ref .dock .search input{flex:1;min-width:0;border:0;background:none;font:17px var(--ui);color:var(--ref-text);outline:none;padding:0}
 .ref .dock .search input::placeholder{color:var(--ref-dim)}
 .ref .dock .search .mic{color:var(--ref-text)}
-.ref .dock .glass{width:49px;height:49px;border-radius:25px;flex:none}
+.ref .dock .glass{width:48px;height:48px;border-radius:24px;flex:none}
 .ref .foot{height:110px}
 /* Mac list column: redrawn from Tuur's macOS screenshots (13 Oct 2026). Column header = folder name
    13 bold + count 11 gray + a glass "…" circle; no icon bar (compose, format tools, share, search sit
@@ -297,6 +303,50 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .mac .cards .nrow{margin:0 8px 6px;width:calc(100% - 16px)}
 .sk.big .mac .nrow .t, .mac.big .nrow .t{font-size:15px}
 
+
+/* extra reference frames: list behaviours in Tuur's iOS 27 screenshots that no Skrift frame here covers */
+.xtra{margin-top:30px}
+.xtra .xs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:10px}
+.xtra .xf{display:flex;flex-direction:column;gap:8px;align-items:center}
+.xtra .xf p{margin:0;font-size:12.5px;color:var(--bench-dim);max-width:330px;line-height:1.4}
+.xtra .phone{box-shadow:0 6px 20px rgba(0,0,0,.14)}
+/* swipe (IMG_0455 / IMG_0457): the swiped row becomes a gray pill 60 tall; actions are 32-tall capsules with a 13 pt label under */
+.xtra .ref .swrow{position:relative;height:60px;margin:0 0 0 0;overflow:hidden}
+.xtra .ref .act{position:absolute;top:5px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;line-height:16px;color:var(--ref-dim)}
+.xtra .ref .act i{height:31px;border-radius:16px;display:grid;place-items:center;color:#fff;font-style:normal}
+.xtra .ref .act i svg{width:18px;height:18px}
+.xtra .ref .pill{position:absolute;top:0;height:60px;font-size:15px;font-weight:400;color:var(--ref-text);background:#e5e5ea;border-radius:30px;padding:9px 0 9px 28px;white-space:nowrap;overflow:hidden;display:flex;align-items:center;gap:10px}
+.xtra .ref .pill .tx{min-width:0}
+.xtra .ref .swcard{background:var(--ref-card);border-radius:0 0 24px 24px;margin:0 16px}
+/* press and hold (IMG_0453): preview card 16 from the edges, menu 248 wide centred */
+.xtra .ref .prev{position:absolute;left:16px;right:16px;top:78px;height:443px;background:#fff;border-radius:28px;padding:16px 19px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.xtra .ref .prev b{display:block;font-size:25.5px;line-height:30px;color:#3a3a3c;margin:4px 0 26px}
+.xtra .ref .prev p{margin:0;font-size:15.6px;line-height:22.4px;color:#48484a}
+.xtra .ref .prev .ph{margin:12px 0 0;height:320px;border-radius:2px;background:linear-gradient(150deg,#d9d9d9,#8a8f86 45%,#3d4a3c 70%,#cfcfcf)}
+.xtra .ref .menu{position:absolute;left:77px;width:248px;top:538px;height:222px;border-radius:32px;background:#ececf0;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.xtra .ref .menu .top{display:flex;justify-content:space-around;padding:16px 8px 0;height:77px;font-size:13px;font-weight:600;line-height:16px}
+.xtra .ref .menu .top span{display:flex;flex-direction:column;align-items:center;gap:6px;width:70px}
+.xtra .ref .menu .top svg{width:20px;height:20px}
+.xtra .ref .menu hr{border:0;border-top:.5px solid #c6c6c8;margin:0 23px}
+.xtra .ref .menu .li{display:flex;align-items:center;gap:12px;height:42px;padding:0 0 0 30px;font-size:17px}
+.xtra .ref .menu hr + .li{margin-top:11px}
+.xtra .ref .menu .li svg{width:20px;height:20px;flex:none}
+/* search (IMG_0445 / IMG_0446): section headers 17 bold at 82, rows 52 (suggested) / 80 (hits), lifted search pill */
+.xtra .ref .sh{display:flex;justify-content:space-between;align-items:baseline;margin:10px 16px 8px;line-height:22px}
+.xtra .ref .sh b{font-size:17px}.xtra .ref .sh span{font-size:15px;color:var(--ref-dim)}
+.xtra .ref .sugg .row{min-height:52px;padding:0 12px 0 56px}
+.xtra .ref .sugg .row + .row::before{left:56px}
+.xtra .ref .sugg .row .t{font-weight:400}
+.xtra .ref .sugg .row .gi{position:absolute;left:16px;top:14px;width:24px;height:24px;display:grid;place-items:center;color:var(--ref-tint)}
+.xtra .ref .sugg .row .gi svg{width:24px;height:22px}
+.xtra .ref .hits .row{min-height:80px}
+.xtra .ref .lift{position:absolute;left:8px;right:8px;top:516px;display:flex;gap:12px;align-items:center}
+.xtra .ref .lift .search{flex:1;height:46px;border-radius:23px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 14px;font-size:17px}
+.xtra .ref .lift .search .ph{flex:1;color:var(--ref-dim)}
+.xtra .ref .lift .glass{width:48px;height:48px;border-radius:24px;flex:none}
+.xtra .ref .kb{position:absolute;left:0;right:0;bottom:0;height:302px;background:rgba(200,203,210,.55);border-radius:40px 40px 0 0;display:grid;place-items:center;font:600 11px/1.3 var(--mono);color:var(--ref-dim);letter-spacing:.06em;text-transform:uppercase}
+.xtra .ref mark{background:none;color:var(--ref-tint)}
+
 /* ── picks list ───────────────────────────────── */
 .picks{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .pk{border:1px solid var(--bench-line);border-radius:12px;padding:13px 14px;display:flex;gap:11px;align-items:flex-start;background:color-mix(in srgb,var(--bench) 60%,transparent)}
@@ -355,6 +405,50 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 
   <div class="stage" id="stage"></div>
 
+
+  <section class="xtra">
+    <h3 class="sect">Also in Tuur's iOS 27 screenshots: list behaviours no Skrift frame here shows</h3>
+    <p class="fine" style="margin-top:4px">Reference only, redrawn by hand; the invented note text matches the frames above. Added so the sitting can decide whether the Skrift list gets the same gestures. There is no Skrift frame beside these because the mock does not cover them.</p>
+    <div class="xs">
+      <div class="xf"><span class="reftag">Reference · swipe a row right</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll"><div class="nav"><span class="glass"><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2 10l8 8"/></svg></span><span class="glass pair"><svg width="20" height="22" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v12M6 5.5L10 2l4 3.5"/><path d="M6.5 9H5a1.5 1.5 0 00-1.5 1.5v8A1.5 1.5 0 005 20h10a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0015 9h-1.5"/></svg><svg width="18" height="4" viewBox="0 0 18 4" fill="currentColor"><circle cx="2" cy="2" r="1.8"/><circle cx="9" cy="2" r="1.8"/><circle cx="16" cy="2" r="1.8"/></svg></span></div><h3>Home</h3><div class="count">2 Notes</div><div class="gh">Today</div>
+          <div class="swrow"><span class="act" style="left:26px"><i style="width:122px;background:#f19a37"><svg viewBox="0 0 16 20" fill="currentColor"><path d="M4 1.5h8l-1 6 3 3.5H2l3-3.5z"/><rect x="7.2" y="11" width="1.6" height="7.5" rx=".8"/></svg></i>Pin</span><div class="pill" style="left:158px;width:260px"><div class="tx"><div class="t">Tile quote for the bathroom</div><div class="l2"><b>09:41</b>Called Rui about the bathroom tiles</div></div></div></div>
+          <div class="swcard"><div class="row" style="cursor:default"><div class="tx"><div class="t">Gift ideas for Pim</div><div class="l2"><b>08:30</b>A good headlamp, the blue one</div></div></div></div>
+        </div><div class="dock"><label class="search"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg><input placeholder="Search" aria-label="Search (reference only)" tabindex="-1"><span class="mic"><svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg></span></label><span class="glass"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M17 2.5l2.5 2.5L11 13.5l-3.2.7.7-3.2z"/></svg></span></div></div>
+        <p>Measured off IMG_0455: one orange Pin capsule (122 x 31 pt, 13 pt label under it); the swiped row turns into a gray pill 60 pt tall that slides off the right edge.</p></div>
+      <div class="xf"><span class="reftag">Reference · swipe a row left</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll"><div class="nav"><span class="glass"><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2 10l8 8"/></svg></span><span class="glass pair"><svg width="20" height="22" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v12M6 5.5L10 2l4 3.5"/><path d="M6.5 9H5a1.5 1.5 0 00-1.5 1.5v8A1.5 1.5 0 005 20h10a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0015 9h-1.5"/></svg><svg width="18" height="4" viewBox="0 0 18 4" fill="currentColor"><circle cx="2" cy="2" r="1.8"/><circle cx="9" cy="2" r="1.8"/><circle cx="16" cy="2" r="1.8"/></svg></span></div><h3>Home</h3><div class="count">2 Notes</div><div class="gh">Today</div>
+          <div class="swrow"><div class="pill" style="left:16px;width:150px;padding:9px 12px 9px 0;justify-content:flex-end"><div class="l2" style="color:var(--ref-dim)">…otherwise it slips</div></div><span class="act" style="left:176px"><i style="width:60px;background:#3d8bf7"><svg viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v12M6 5.5L10 2l4 3.5"/><path d="M6.5 9H5a1.5 1.5 0 00-1.5 1.5v8A1.5 1.5 0 005 20h10a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0015 9h-1.5"/></svg></i>Share</span><span class="act" style="left:246px"><i style="width:60px;background:#7a73ef"><svg viewBox="0 0 20 18" fill="currentColor"><path d="M1 4a2 2 0 012-2h4.5l2 2.2H17a2 2 0 012 2V15a2 2 0 01-2 2H3a2 2 0 01-2-2z"/></svg></i>Move</span><span class="act" style="left:316px"><i style="width:60px;background:#eb4d4b"><svg viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 5h14M7 5V2.5h4V5M3.8 5l.9 12.5h8.6l.9-12.5M7.3 8.5v6M10.7 8.5v6"/></svg></i>Delete</span></div>
+          <div class="swcard"><div class="row" style="cursor:default"><div class="tx"><div class="t">Gift ideas for Pim</div><div class="l2"><b>08:30</b>A good headlamp, the blue one</div></div></div></div>
+        </div><div class="dock"><label class="search"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg><input placeholder="Search" aria-label="Search (reference only)" tabindex="-1"><span class="mic"><svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg></span></label><span class="glass"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M17 2.5l2.5 2.5L11 13.5l-3.2.7.7-3.2z"/></svg></span></div></div>
+        <p>Measured off IMG_0457: Share (blue), Move (indigo), Delete (red), each a 60 x 31 pt capsule 10 pt apart with its label under it; the row shrinks to a 150 pt gray pill showing the tail of its line.</p></div>
+      <div class="xf"><span class="reftag">Reference · press and hold a row</span>
+        <div class="phone ref" style="background:#c9c9ce"><div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+          <div class="prev"><b>Tile quote for the bathroom</b><p>Called Rui about the bathroom tiles. He can start on the 26th if we confirm the green ones by Friday, otherwise it slips to November.</p><div class="ph"></div></div>
+          <div class="menu"><div class="top"><span><svg viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v12M6 5.5L10 2l4 3.5"/><path d="M6.5 9H5a1.5 1.5 0 00-1.5 1.5v8A1.5 1.5 0 005 20h10a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0015 9h-1.5"/></svg>Share</span><span><svg viewBox="0 0 20 18" fill="currentColor"><path d="M1 4a2 2 0 012-2h4.5l2 2.2H17a2 2 0 012 2V15a2 2 0 01-2 2H3a2 2 0 01-2-2z"/></svg>Move</span><span style="color:#e5484d"><svg viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 5h14M7 5V2.5h4V5M3.8 5l.9 12.5h8.6l.9-12.5M7.3 8.5v6M10.7 8.5v6"/></svg>Delete</span></div><hr><div class="li"><svg viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 1.5h8l-1 6 3 3.5H2l3-3.5z"/><path d="M8 11v7.5" stroke-linecap="round"/></svg>Pin Note</div><div class="li"><svg viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="8.5" width="12" height="9.5" rx="2"/><path d="M4.8 8.5V6a3.2 3.2 0 016.4 0v2.5"/></svg>Lock Note</div><div class="li"><svg viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5" width="10.5" height="13.5" rx="2"/><path d="M12.5 5V3a1.5 1.5 0 00-1.5-1.5H4A1.5 1.5 0 002.5 3v10A1.5 1.5 0 004 14.5h1.5"/></svg>Duplicate Note</div></div>
+          <div class="dock" style="background:none"><label class="search"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg><input placeholder="Search" aria-label="Search (reference only)" tabindex="-1"><span class="mic"><svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg></span></label><span class="glass"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M17 2.5l2.5 2.5L11 13.5l-3.2.7.7-3.2z"/></svg></span></div>
+        </div>
+        <p>Measured off IMG_0453: the note lifts out as a 370 pt preview card (the note at ~92%: title 25.5 bold, text 15.6 on a 22.4 line, then the first photo) with a 248 pt menu under it: Share, Move, Delete as a top row, then Pin Note, Lock Note, Duplicate Note at 17 pt.</p></div>
+      <div class="xf"><span class="reftag">Reference · search, empty</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+          <div class="sh"><b>Suggested</b></div>
+          <div class="group sugg"><div class="row"><span class="gi"><svg viewBox="0 0 24 20" fill="currentColor"><circle cx="8" cy="6" r="3.5"/><circle cx="17" cy="6.5" r="3"/><path d="M1 17c0-4 3-6 7-6s7 2 7 6zM14 17c0-2.3-.7-4-2-5.2 1.2-.5 2.7-.8 5-.8 3.5 0 6 1.7 6 6z"/></svg></span><div class="tx"><div class="t">Shared Notes</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 16 20" fill="currentColor"><rect x="2" y="8.5" width="12" height="9.5" rx="2"/><path d="M4.8 8.5V6a3.2 3.2 0 016.4 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span><div class="tx"><div class="t">Locked Notes</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 22 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="4.5" cy="5" r="3"/><circle cx="4.5" cy="14.5" r="3"/><path d="M10 5h10M10 14.5h10"/></svg></span><div class="tx"><div class="t">Notes with Checklists</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 2l-2 16M13.5 2l-2 16M2 7h14M1.5 13h14"/></svg></span><div class="tx"><div class="t">Notes with Tags</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8.5"/><path d="M6.5 15l3.5-9 3.5 9M8 11.5h4"/></svg></span><div class="tx"><div class="t">Notes with Drawings</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 6V3.5A1.5 1.5 0 013.5 2H6M14 2h2.5A1.5 1.5 0 0118 3.5V6M18 14v2.5a1.5 1.5 0 01-1.5 1.5H14M6 18H3.5A1.5 1.5 0 012 16.5V14"/><rect x="6.5" y="5.5" width="7" height="9" rx="1"/></svg></span><div class="tx"><div class="t">Notes with Scanned Documents</div></div></div><div class="row"><span class="gi"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M16 9l-6.5 6.5a4 4 0 01-5.7-5.7L10.5 3a2.7 2.7 0 013.8 3.8L8 13.2a1.3 1.3 0 01-1.9-1.9L12 5.5"/></svg></span><div class="tx"><div class="t">Notes with Attachments</div></div></div></div>
+          <div class="lift"><span class="search"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg><span class="ph">Search</span><svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg></span><span class="glass"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg></span></div>
+          <div class="kb">keyboard</div>
+        </div>
+        <p>Measured off IMG_0445: tapping Search lifts a 46 pt pill above the keyboard with a 48 pt close circle. Empty, it shows a Suggested card of 52 pt rows (shared, locked, checklists, tags, drawings, scans, attachments).</p></div>
+      <div class="xf"><span class="reftag">Reference · search, typing</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+          <div class="sh"><b>Top Hits</b><span>2 Found</span></div>
+          <div class="group hits"><div class="row"><div class="tx"><div class="t">Gift ideas for Pim</div><div class="l2"><b>24/09/2026</b>…a good <mark>head</mark>lamp, the blue one</div><div class="l3"><svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 3.5a1 1 0 011-1h3l1.2 1.4h4.8a1 1 0 011 1v5.6a1 1 0 01-1 1h-9a1 1 0 01-1-1z"/></svg><span>Home</span></div></div></div><div class="row"><div class="tx"><div class="t">Porto weekend</div><div class="l2"><b>27/09/2026</b>…<mark>head</mark> back Sunday evening</div><div class="l3"><svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 3.5a1 1 0 011-1h3l1.2 1.4h4.8a1 1 0 011 1v5.6a1 1 0 01-1 1h-9a1 1 0 01-1-1z"/></svg><span>Trips</span></div></div></div></div>
+          <div class="sh" style="margin-top:28px"><b>Notes</b><span>4 Found</span></div>
+          <div class="group hits"><div class="row"><div class="tx"><div class="t">Tile quote for the bathroom</div><div class="l2"><b>13/10/2026</b>…a<mark>head</mark> of the 26th if we confirm</div><div class="l3"><svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 3.5a1 1 0 011-1h3l1.2 1.4h4.8a1 1 0 011 1v5.6a1 1 0 01-1 1h-9a1 1 0 01-1-1z"/></svg><span>Home</span></div></div></div></div>
+          <div class="lift"><span class="search"><svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg><span style="flex:1">head</span><span style="width:20px;height:20px;border-radius:10px;background:var(--ref-text);color:var(--ref-card);display:grid;place-items:center;flex:none"><svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></span></span><span class="glass"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4l12 12M16 4L4 16"/></svg></span></div>
+          <div class="kb">keyboard</div>
+        </div>
+        <p>Measured off IMG_0446: typing shows Top Hits and Notes sections (17 bold, "N Found" 15 gray on the right), 80 pt rows with the date, the match tinted in the accent, and the folder line.</p></div>
+    </div>
+  </section>
   <div class="ask">
     <div class="eyebrow">The one question for the sitting</div>
     <p>The new row drops the three importance balls and the faded look of unrated notes. Rating stays in the open note and the Unrated chip still finds them. Can the list stop showing importance at all?</p>
@@ -754,7 +848,22 @@ function render(){
   document.querySelectorAll('[data-rows]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rows === S.rows));
   document.querySelectorAll('[data-type]').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === S.type));
   const an = document.getElementById('anno'); an.setAttribute('aria-pressed', S.anno); an.textContent = S.anno ? 'Pins on' : 'Pins off';
+  fitPhones();
 }
+/* One true scale: each phone keeps its 402 x 874 pt screen and is shrunk whole to fit its column. */
+function fitPhones(){
+  document.querySelectorAll('.phone').forEach(p => {
+    let box = p.parentElement;
+    if (!box.classList.contains('pfit')) { box = document.createElement('div'); box.className = 'pfit'; p.replaceWith(box); box.appendChild(p); }
+    const col = box.parentElement, cs = getComputedStyle(col);
+    const avail = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (!avail) return;
+    const W = p.offsetWidth, H = p.offsetHeight, sc = Math.min(1, avail / W);
+    p.style.transform = sc < 1 ? 'scale(' + sc + ')' : '';
+    box.style.width = W * sc + 'px'; box.style.height = H * sc + 'px';
+  });
+}
+window.addEventListener('resize', fitPhones);
 document.getElementById('picks').innerHTML = PICKS.map((p,i) => `<div class="pk"><span class="n">${i+1}</span><div><h4>${esc(p[0])}</h4><p>${esc(p[1])}</p><span class="src">${esc(p[2])}</span></div></div>`).join('');
 
 let tt;

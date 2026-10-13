@@ -99,10 +99,12 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .ptoast.show{opacity:1}
 
 /* ── Phone frame (pt = CSS px) ─────────────────────────────── */
-.phone{width:390px;height:844px;border-radius:46px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
+/* ONE true scale: both phone frames (Skrift and reference) have a 402 x 874 CSS px screen = iPhone 17 Pro points
+   (Tuur's screenshots are 1206 x 2622 px = 3x); the border sits outside it. fit() shrinks the WHOLE frame. */
+.phone{box-sizing:content-box;width:402px;height:874px;border-radius:62px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
 .app{font-family:var(--sys);color:var(--a-text);background:var(--a-bg)}
 .app button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
-.sbar{height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 34px 6px;font-size:15px;font-weight:600}
+.sbar{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 34px 0 50px;font-size:15px;font-weight:600}
 .sbar i{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--a-faint)}
 .nav{height:44px;display:flex;align-items:center;gap:4px;padding:0 10px 0 8px}
 .nav .back{color:var(--a-accent);font-size:17px;display:flex;align-items:center;gap:2px;padding:0 6px;height:44px}
@@ -291,7 +293,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .rnav .sp{flex:1}
 .rclip{position:absolute;left:0;right:0;top:112px;bottom:0;overflow:hidden}
 .rdate{text-align:center;font-size:12.5px;color:var(--r-dim);margin-top:4px}
-.rbody{padding:6px 26px;font-size:18px;line-height:26px}
+.rbody{padding:6px 26px;font-size:17px;line-height:26px}
 .rbody .rt{font-size:28px;font-weight:700;line-height:1.15;margin:0 0 22px}
 .rbody .rh{font-size:22px;font-weight:700;margin:16px 0 4px;line-height:1.2}
 .rbody p{margin:0 0 6px}
@@ -304,28 +306,34 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .rbar .rg.tools{width:212px;justify-content:space-around;height:48px;border-radius:24px}
 .rbar .rg.c{width:48px;height:48px;border-radius:24px}
 .rkb{position:absolute;left:0;right:0;bottom:0;z-index:4}
-.rkbar{margin:0 10px 10px;height:48px;border-radius:24px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--r-black);font-size:21px;overflow:hidden;white-space:nowrap}
+.rkbar{margin:0 10px 10px;height:46px;border-radius:24px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--r-black);font-size:21px;overflow:hidden;white-space:nowrap}
 .rkbar .aa{font-weight:500;font-size:22px}
 .rkbar .cut{margin-right:-26px;opacity:.9}
-.rkeys{background:var(--r-kb);border-radius:38px 38px 0 0;height:300px;padding:10px 3px;display:flex;flex-direction:column;gap:11px}
+.rkeys{background:var(--r-kb);border-radius:38px 38px 0 0;height:328px;padding:10px 4px 0;display:flex;flex-direction:column;gap:12.5px}
+.rkeys .wt + .kr{margin-top:-2.5px}
+.rkeys .kr{gap:5.6px}
+.rkeys .key{width:34px;height:42px;font-size:22px}
+.rkeys .key.wide{width:91px;font-size:16px}.rkeys .key.space{width:190px}
+.rkeys .emo{display:flex;justify-content:space-between;padding:3px 30px 0;font-size:22px;color:var(--r-black)}
 .rkeys .wt{display:flex;justify-content:space-around;font-size:15px;color:var(--r-dim);height:30px;align-items:center}
-.rkeys .key{background:var(--r-key);color:var(--r-black);border-radius:8px;box-shadow:none}
-.rmenu{position:absolute;z-index:6;display:flex;height:42px;align-items:center;border-radius:21px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 8px 24px rgba(0,0,0,.18);font-size:15px;padding:0 6px;color:var(--r-black)}
-.rmenu span{padding:0 10px}
+.rkeys .key{background:var(--r-key);color:var(--r-black);border-radius:8.5px;box-shadow:none}
+.rmenu{position:absolute;z-index:6;display:flex;height:44px;align-items:center;border-radius:22px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 8px 24px rgba(0,0,0,.18);font-size:15px;padding:0 6px;color:var(--r-black)}
+.rmenu span{padding:0 15px}
 .rmenu .del{color:#e5484d}
 .rmenu .sepv{width:.5px;height:20px;background:var(--r-line);padding:0}
 .rsel{background:var(--r-selfill);position:relative}
 .rsel::before,.rsel::after{content:"";position:absolute;width:2px;background:var(--r-acc);top:-2px;bottom:-2px}
 .rsel::before{left:-1px}.rsel::after{right:-1px}
-.rfmt{position:absolute;left:8px;right:8px;bottom:8px;height:262px;background:var(--r-glass);border-radius:40px;box-shadow:0 0 0 .5px var(--r-rim),0 10px 30px rgba(0,0,0,.14);padding:20px 16px 18px;display:flex;flex-direction:column;gap:12px;color:var(--r-black);z-index:5}
+.rfmt{position:absolute;left:8px;right:8px;bottom:10px;height:264px;background:var(--r-glass);border-radius:40px;box-shadow:0 0 0 .5px var(--r-rim),0 10px 30px rgba(0,0,0,.14);padding:8px 16px 18px;display:flex;flex-direction:column;gap:14px;color:var(--r-black);z-index:5}
 .rfmt .fh{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;padding-left:0}
-.rfmt .fh .rg{width:42px;height:42px;min-width:42px}
+.rfmt .fh .rg{width:44px;height:44px;min-width:44px}
 .rsty{display:flex;gap:16px;align-items:center;overflow:hidden;white-space:nowrap;margin-right:-16px}
 .rsty span{flex:none}
-.rsty .on{background:var(--r-acc);color:#fff;border-radius:22px;padding:4px 16px}
+.rsty{height:40px}
+.rsty .on{background:var(--r-acc);color:#fff;border-radius:20px;padding:4px 14px;line-height:32px}
 .rsegs{display:flex;gap:14px}
 .rseg{display:flex;border-radius:21px;overflow:hidden;background:var(--r-seg);height:42px}
-.rseg span{width:56px;display:inline-flex;align-items:center;justify-content:center;font-size:19px}
+.rseg span{width:58px;display:inline-flex;align-items:center;justify-content:center;font-size:19px}
 .rseg span + span{border-left:1px solid var(--r-bg)}
 .rseg span.on{background:var(--r-acc);color:#fff}
 .rnone{position:absolute;inset:140px 30px auto;text-align:center;color:var(--r-dim);font-size:15px;line-height:1.5;border:1.5px dashed var(--r-line);border-radius:14px;padding:24px 16px}
@@ -590,7 +598,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   };
   function pk(k){ return ' pick" data-k="'+k; }
 
-  function statusBar(){ return '<div class="sbar"><span>9:41</span><i>iPhone 13 · 390 pt</i><span>􀛨</span></div>'.replace("􀛨","▮▮"); }
+  function statusBar(){ return '<div class="sbar"><span>9:41</span><i>iPhone 17 Pro · 402 pt</i><span>􀛨</span></div>'.replace("􀛨","▮▮"); }
   function headerCore(mac){
     var lit = S.rate;
     var balls = [1,2,3].map(function(i){ return '<span class="pb'+(i<=lit?" lit":"")+'"></span>'; }).join("");
@@ -774,7 +782,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<p>Ask Rui whether the <i>old</i> '+(sel?'<span class="rsel">spindle</span>':'spindle')+' still fits the <s>52</s> mount.</p></div>';
   }
   function rKeys(writingTools){
-    return '<div class="rkeys">'+(writingTools?'<div class="wt"><span>⌕ Proofread</span><span>↻ Rewrite</span><span>✦</span></div>':'<div class="wt"><span>I</span><span>The</span><span>And</span></div>')+["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r){ return '<div class="kr">'+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+'</div>'; }).join("")+'<div class="kr"><span class="key wide">123</span><span class="key space"></span><span class="key wide">⏎</span></div></div>';
+    return '<div class="rkeys">'+(writingTools?'<div class="wt"><span>⌕ Proofread</span><span>↻ Rewrite</span><span>✦</span></div>':'<div class="wt"><span>I</span><span>The</span><span>And</span></div>')+["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r){ return '<div class="kr">'+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+'</div>'; }).join("")+'<div class="kr"><span class="key wide">123</span><span class="key space"></span><span class="key wide">⏎</span></div><div class="emo"><span>☺</span><span><svg width="16" height="24" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg></span></div></div>';
   }
   function refPhone(){
     var st = S.st, h = ['<div class="phone ref">'+rStamp()];
@@ -795,12 +803,12 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       h.push((st==="select"?selNav:editNav)+'<div class="rclip"><div style="transform:translateY(-'+(st==="select"?250:150)+'px)">'+rBody(st==="select")+'</div></div>');
       if (st === "aa"){
         h.push('<div class="rfmt"><div class="fh"><span>Format</span><span class="rg">'+RX+'</span></div>'+
-          '<div class="rsty"><span class="on" style="font-weight:700;font-size:28px">Title</span><span style="font-weight:700;font-size:22px">Heading</span><span style="font-weight:600;font-size:17px">Subheading</span><span style="font-size:17px">Body</span><span style="font-family:var(--mono);font-size:15px">Monostyled</span></div>'+
+          '<div class="rsty"><span class="on" style="font-weight:700;font-size:26px">Title</span><span style="font-weight:700;font-size:21px">Heading</span><span style="font-weight:600;font-size:16px">Subheading</span><span style="font-size:17px">Body</span><span style="font-family:var(--mono);font-size:15px">Monostyled</span></div>'+
           '<div class="rsegs"><span class="rseg"><span class="on" style="font-weight:800">B</span><span style="font-style:italic;font-family:Georgia,serif">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span></span><span class="rseg"><span>'+RHI+'</span><span><i style="width:18px;height:18px;border-radius:50%;background:#b44fd8;display:block"></i></span></span></div>'+
           '<div class="rsegs"><span class="rseg"><span>'+RLIST+'</span><span>–≡</span><span style="font-size:14px">1≡</span></span><span class="rseg"><span>'+ROUT+'</span><span>'+RIN+'</span></span><span class="rseg"><span>'+RQUO+'</span></span></div></div>');
       } else if (st === "select"){
         h.push('<div class="rkb"><div class="rkbar"><b style="font-size:22px">B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span>'+RHI+'</span><span>'+RLINK+'</span><span class="cut">'+RLIST+'</span></div>'+rKeys(true)+'</div>');
-        h.push('<div class="rmenu" style="left:16px;top:300px"><span>Cut</span><span class="sepv"></span><span>Copy</span><span class="sepv"></span><span>Paste</span><span class="sepv"></span><span class="del">Delete</span><span class="sepv"></span><span>'+RSPARK+'</span><span>›</span></div>');
+        h.push('<div class="rmenu" style="left:22px;top:372px"><span>Cut</span><span class="sepv"></span><span>Copy</span><span class="sepv"></span><span>Paste</span><span class="sepv"></span><span class="del">Delete</span><span class="sepv"></span><span>'+RSPARK+'</span><span>›</span></div>');
       } else {
         h.push('<div class="rkb"><div class="rkbar"><span class="aa">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.clip+'</span><span>'+IC.pen+'</span><span class="cut">'+RQUO+'</span></div>'+rKeys(false)+'</div>');
       }
@@ -844,7 +852,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     document.getElementById("refcol").hidden = !S.ref;
     document.getElementById("sk").innerHTML = mac ? macFrame() : phoneFrame();
     document.getElementById("rf").innerHTML = mac ? refMac() : refPhone();
-    document.getElementById("skcap").textContent = mac ? "Mac · note column, band + docked player" : "iPhone 13 · 390 × 844 pt";
+    document.getElementById("skcap").textContent = mac ? "Mac · note column, band + docked player" : "iPhone 17 Pro · 402 × 874 pt";
     if (!mac && S.st === "select") placeEMenu();
     if (mac && S.mst === "m-select") placeCMenu();
     if (S.playing) wrapWords();
@@ -855,8 +863,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   }
   function placeEMenu(){
     var pf = document.getElementById("pf"), sel = pf.querySelector(".sel"); if (!sel) return;
-    var pr = pf.getBoundingClientRect(), r = sel.getBoundingClientRect(), sc = pr.width / 390;
-    var top = (r.top - pr.top)/sc - 50, left = Math.max(8, Math.min(390-300, (r.left - pr.left)/sc - 110));
+    var pr = pf.getBoundingClientRect(), r = sel.getBoundingClientRect(), sc = pr.width / pf.offsetWidth;
+    var top = (r.top - pr.top)/sc - 50, left = Math.max(8, Math.min(402-300, (r.left - pr.left)/sc - 110));
     var b = blocks[S.sel.b].md, on = function(m){ return b.indexOf(m) >= 0 ? " on" : ""; };
     document.getElementById("emenu-slot").innerHTML = '<div class="emenu" style="top:'+top+'px;left:'+left+'px">'+
       '<button class="fmtb'+on("**spindle")+'" data-act="wrap" data-v="b" style="font-weight:800">B</button>'+
@@ -1015,3 +1023,4 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   render();
 })();
 </script>
+
