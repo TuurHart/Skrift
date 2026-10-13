@@ -2599,7 +2599,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (tuur) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (done) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
@@ -2660,18 +2660,18 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, and D194's picks (no importance on rows; folder line for Portfolio only; one card per group; 16 / 14; pills only while something is happening; an unrated note shows a small grey dot + "Unrated" where importance used to sit, rated notes show nothing there), on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/list-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q359 [auto] (todo) build the phone and iPad note and toolbar per the Q350 mock
+### Q359 [auto] (doing) build the phone and iPad note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on phone and iPad: the open note's look, the selection bar and "Aa" menu as signed, photo blocks moved by long-press drag between paragraphs (D112). Every C234 must-keep survives (inline pictures, capture-quote protection, speaker turns, `transcriptUserEdited`, save-now, polished-body editing, swipe-between-notes OFF). Keep the NoteOpenWork/SaveNoop counter tests green, never loosened (D186). Phone test `EditorFormattingTests` (each toolbar action writes the right markdown, photo move keeps the marker order). Screenshots against the mock, LOOK, `plan/reads/editor-apple/`. FEATURES.md row.
+do: Signed with D196's picks on top of the mock: title ABOVE the grey meta line; 'New person…' at the right end of the selection bar after the formatting items, Paste in its normal place; Export soft tint; 'Include audio in export' is a choice in the Export confirmation (per-note `Memo.includeAudioInExport`), not a header switch; 'Split speakers' in the top ⋯ menu. Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on phone and iPad: the open note's look, the selection bar and "Aa" menu as signed, photo blocks moved by long-press drag between paragraphs (D112). Every C234 must-keep survives (inline pictures, capture-quote protection, speaker turns, `transcriptUserEdited`, save-now, polished-body editing, swipe-between-notes OFF). Keep the NoteOpenWork/SaveNoop counter tests green, never loosened (D186). Phone test `EditorFormattingTests` (each toolbar action writes the right markdown, photo move keeps the marker order). Screenshots against the mock, LOOK, `plan/reads/editor-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteOpenWorkTests`
 
-### Q360 [auto] (todo) build the Mac note and toolbar per the Q350 mock
+### Q360 [auto] (doing) build the Mac note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350 Q363
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
+do: Signed with D196's picks on top of the mock: title ABOVE the grey meta line; 'New person…' at the right end of the selection bar after the formatting items, Paste in its normal place; Export soft tint; 'Include audio in export' is a choice in the Export confirmation (per-note `Memo.includeAudioInExport`), not a header switch; 'Split speakers' in the top ⋯ menu. Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/mac-*.png | wc -l) -ge 1 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEditorFormattingTests.swift`
 
 ### Q361 [auto] (done) Mac perf: the sidebar derives its list once per change, not on every redraw
@@ -4053,3 +4053,6 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:15 Q272 -> done — Tuur: yes, keep all three
 - 2026-10-13 14:15 Q350 -> tuur — built @5012ab7c, gate 50s — awaiting sitting
 - 2026-10-13 14:17 Q371 -> done — hand-merged (Tuur 2026-10-13: approve Q371 (door assertions follow the built doors))
+- 2026-10-13 14:18 Q350 -> done — signed D196: title above the meta line, New person further right, Export soft tint, audio choice in the Export confirmation, Split speakers in ⋯; 'mac frame looks a lot better'
+- 2026-10-13 14:18 Q359 -> doing — worker out
+- 2026-10-13 14:18 Q360 -> doing — worker out
