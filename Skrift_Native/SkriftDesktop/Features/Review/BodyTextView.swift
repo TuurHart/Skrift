@@ -224,10 +224,10 @@ struct BodyTextView: NSViewRepresentable {
             guard let coordinator, let tv else { return }
             coordinator.openPhoto(at: loc, in: tv)
         }
-        // D112: a photo dropped between paragraphs moves its paragraph in the model.
-        tv.onMovePhoto = { [weak coordinator, weak tv] number, from, to in
+        // D112: a photo, video or file block dropped between paragraphs moves its paragraph.
+        tv.onMoveBlock = { [weak coordinator, weak tv] literal, from, to in
             guard let coordinator, let tv else { return }
-            coordinator.movePhoto(number, from: from, toParagraph: to, in: tv)
+            coordinator.moveBlock(literal, from: from, toParagraph: to, in: tv)
         }
         // D199: a non-picture file dropped / pasted / inserted becomes a video or file block.
         tv.onAddAttachmentFile = { [weak coordinator, weak tv] url, loc in
@@ -508,15 +508,16 @@ struct BodyTextView: NSViewRepresentable {
             return ms
         }
 
-        /// D112: move photo `number` (its paragraph at storage `from`) so it lands before storage
-        /// paragraph `to` (counted with the photo in place), through the shared `BodyFormat.movePhoto`.
-        func movePhoto(_ number: Int, from: Int, toParagraph to: Int, in tv: SelfSizingTextView) {
+        /// D112 / Q391: move a block — photo, video or file, by its marker `literal` (its paragraph
+        /// at storage `from`) — so it lands before storage paragraph `to` (counted with the block in
+        /// place), through the shared `BodyFormat.moveBlock`.
+        func moveBlock(_ literal: String, from: Int, toParagraph to: Int, in tv: SelfSizingTextView) {
             let model = flushModelCommit(tv)
             let ns = tv.string as NSString
             let before = ns.substring(to: min(from, ns.length))
             let fromPara = before.components(separatedBy: "\n\n").count - 1
             let target = to > fromPara ? to - 1 : to
-            let moved = BodyFormat.movePhoto(marker: number, in: model, toParagraph: target)
+            let moved = BodyFormat.moveBlock(literal: literal, in: model, toParagraph: target)
             guard moved != model else { return }
             parent.text = moved
             gate.accounted(moved)
@@ -2797,12 +2798,14 @@ final class SelfSizingTextView: NSTextView {
         return MacEditorFormatting.checkedStyle(BodyFormat.lineStyle(at: caret, in: string), inFence: inFence)
     }
 
-    // MARK: D112 — a photo block dragged between paragraphs (Apple Notes)
+    // MARK: D112 — a block (photo, video, file) dragged between paragraphs (Apple Notes)
 
-    /// The coordinator moves photo `imgNumber` (at storage `from`) to sit before paragraph
-    /// `toParagraph` of the storage (counted WITH the photo still in place).
-    var onMovePhoto: ((_ imgNumber: Int, _ from: Int, _ toParagraph: Int) -> Void)?
-    private var photoDrag: (loc: Int, start: NSPoint)?
+    /// The coordinator moves the block whose marker is `literal` (at storage `from`) to sit
+    /// before paragraph `toParagraph` of the storage (counted WITH the block still in place).
+    var onMoveBlock: ((_ literal: String, _ from: Int, _ toParagraph: Int) -> Void)?
+    /// `open`: a video / file block pressed in an editable note — a drag moves it, a click
+    /// without travel opens it on mouse-up (mock pick 6: "on the Mac you drag a block straight away").
+    private var photoDrag: (loc: Int, start: NSPoint, open: Bool)?
     private var photoDropLine: (y: CGFloat, paragraph: Int)? { didSet { needsDisplay = true } }
 
     /// Storage paragraphs (`\n\n`-separated, as body v2 stores them): their start offsets.
@@ -2835,11 +2838,19 @@ final class SelfSizingTextView: NSTextView {
 
     override func mouseUp(with event: NSEvent) {
         defer { photoDrag = nil; photoDropLine = nil }
-        if let drag = photoDrag, let drop = photoDropLine, let storage = textStorage, drag.loc < storage.length,
-           let att = storage.attribute(.attachment, at: drag.loc, effectiveRange: nil) as? ImageMarkerAttachment {
-            onMovePhoto?(att.imgNumber, drag.loc, drop.paragraph)
+        guard let drag = photoDrag, let storage = textStorage, drag.loc < storage.length else {
+            super.mouseUp(with: event); return
+        }
+        let att = storage.attribute(.attachment, at: drag.loc, effectiveRange: nil)
+        if let drop = photoDropLine {
+            if let photo = att as? ImageMarkerAttachment {
+                onMoveBlock?(BodyV2Marker.literal(photo.imgNumber), drag.loc, drop.paragraph)
+            } else if let block = att as? NoteBlockAttachment {
+                onMoveBlock?(block.literal, drag.loc, drop.paragraph)
+            }
             return
         }
+        if drag.open { _ = onSingleClickAt?(drag.loc); return }   // no travel: the click opens it
         super.mouseUp(with: event)
     }
 
@@ -2862,10 +2873,18 @@ final class SelfSizingTextView: NSTextView {
             onOpenPhotoAt?(idx)
             return
         }
+        // A video / file block in an editable note: wait for the drag or the click (mouse-up).
+        if event.clickCount == 1, isEditable, let idx = charIndex(at: convert(event.locationInWindow, from: nil)),
+           let storage = textStorage, idx < storage.length,
+           storage.attribute(.attachment, at: idx, effectiveRange: nil) is NoteBlockAttachment {
+            window?.makeFirstResponder(self)
+            photoDrag = (idx, convert(event.locationInWindow, from: nil), true)
+            return
+        }
         if event.clickCount == 1, let handler = onSingleClickAt,
            let idx = charIndex(at: convert(event.locationInWindow, from: nil)), handler(idx) {
             // A photo click selected it: a drag from here moves the photo (D112).
-            if selectedPhotoLoc == idx { photoDrag = (idx, convert(event.locationInWindow, from: nil)) }
+            if selectedPhotoLoc == idx { photoDrag = (idx, convert(event.locationInWindow, from: nil), false) }
             return   // resolver handled it; don't move the caret
         }
         super.mouseDown(with: event)
