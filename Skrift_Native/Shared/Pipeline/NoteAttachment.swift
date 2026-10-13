@@ -179,14 +179,73 @@ enum NoteAttachment {
         ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
-    /// "DXF drawing", "PDF document", "Video": the kind on the card.
+    /// The card's kind word by file extension (lowercase). One fixed table, never the system's
+    /// type description, so a file reads the same on the phone, the Mac and the Q384 mock (D202).
+    static let kindWords: [String: String] = {
+        var t: [String: String] = [:]
+        func add(_ word: String, _ exts: String...) { exts.forEach { t[$0] = word } }
+        // Office and documents
+        add("PDF document", "pdf")
+        add("Word document", "doc", "docx", "docm", "odt")
+        add("Pages document", "pages")
+        add("Rich text document", "rtf", "rtfd")
+        add("Excel spreadsheet", "xls", "xlsx", "xlsm", "ods")
+        add("Numbers spreadsheet", "numbers")
+        add("CSV spreadsheet", "csv", "tsv")
+        add("PowerPoint presentation", "ppt", "pptx", "pps", "ppsx", "odp")
+        add("Keynote presentation", "key")
+        add("Text file", "txt", "log")
+        add("Markdown file", "md", "markdown")
+        add("ePub book", "epub")
+        add("JSON file", "json")
+        add("XML file", "xml")
+        add("HTML file", "html", "htm")
+        // Images
+        add("PNG image", "png")
+        add("JPEG image", "jpg", "jpeg")
+        add("HEIC image", "heic", "heif")
+        add("GIF image", "gif")
+        add("TIFF image", "tif", "tiff")
+        add("WebP image", "webp")
+        add("SVG image", "svg")
+        add("RAW image", "raw", "dng", "cr2", "nef", "arw")
+        // Audio
+        add("MP3 audio", "mp3")
+        add("M4A audio", "m4a")
+        add("WAV audio", "wav")
+        add("AAC audio", "aac")
+        add("FLAC audio", "flac")
+        add("AIFF audio", "aif", "aiff")
+        add("OGG audio", "ogg", "opus")
+        // Video that arrives as a file (a picked movie is `Kind.video` and says "Video")
+        add("Video", "mov", "mp4", "m4v", "avi", "mkv", "webm", "3gp")
+        // Archives
+        add("ZIP archive", "zip")
+        add("7Z archive", "7z")
+        add("RAR archive", "rar")
+        add("TAR archive", "tar")
+        add("GZ archive", "gz", "tgz")
+        // CAD and 3D printing
+        add("DXF drawing", "dxf")
+        add("DWG drawing", "dwg")
+        add("STEP model", "step", "stp")
+        add("IGES model", "iges", "igs")
+        add("STL model", "stl")
+        add("3MF model", "3mf")
+        add("OBJ model", "obj")
+        add("FBX model", "fbx")
+        add("Fusion 360 design", "f3d")
+        add("G-code file", "gcode", "gco", "nc")
+        return t
+    }()
+
+    /// "DXF drawing", "PDF document", "Video": the kind on the card. A table word for the
+    /// extension, else the uppercase extension and " file" ("QZX file"), else "File".
     static func kindLabel(_ entry: NoteAttachmentEntry) -> String {
         if entry.kind == Kind.video { return "Video" }
-        if let d = UTType(entry.uti)?.localizedDescription, !d.isEmpty, entry.uti != UTType.data.identifier {
-            return d.prefix(1).uppercased() + d.dropFirst()
-        }
-        let ext = (entry.name as NSString).pathExtension.uppercased()
-        return ext.isEmpty ? "File" : "\(ext) file"
+        let ext = (entry.name as NSString).pathExtension.lowercased()
+        if let word = kindWords[ext] { return word }
+        return ext.isEmpty ? "File" : "\(ext.uppercased()) file"
     }
 
     /// The card's second line: "DXF drawing · 412 KB", a video "Video · 0:42 · 18 MB".
