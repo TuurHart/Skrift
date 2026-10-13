@@ -916,6 +916,9 @@ enum Snapshot {
                 RunLoop.main.run(until: Date().addingTimeInterval(0.1))
             }
         }
+        // Light all the way down: the painter reads the text view's AppKit appearance, which a
+        // SwiftUI `.preferredColorScheme` does not reach on a dark Mac.
+        NSApplication.shared.appearance = NSAppearance(named: .aqua)
         let everything = files.manifest.map(\.filename) + [photo.lastPathComponent]
         for (name, large) in [("mac-1-note", files.large), ("mac-2-large", everything)] {
             let pane = BodyTextView(text: .constant(NoteAttachmentFixture.body),

@@ -22,9 +22,9 @@ enum NoteAttachmentFixture {
 
     The loom drawing for the new fan, to cut at the makerspace, and his quote:
 
-    [[file_001]]
-
     [[file_002]]
+
+    [[file_003]]
 
     Order the tensioner on Friday. Ask whether the fan bracket fits the 124 too.
     """
@@ -34,7 +34,8 @@ enum NoteAttachmentFixture {
     static let pdfName = "orcamento-oficina.pdf"
 
     /// The three entries `body` points at, written beside `dir` under their shared filenames.
-    /// Returns the manifest (vid_001, file_001, file_002 in that order) and the large list.
+    /// Returns the manifest (vid_001, file_002, file_003 in that order: a marker's N is its 1-based
+    /// place in the ONE manifest, whatever its kind) and the large list.
     static func write(into dir: URL, owner: UUID) -> (manifest: [NoteAttachmentEntry], large: [String]) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let vid = NoteAttachment.filename(owner: owner, number: 1, kind: NoteAttachment.Kind.video, ext: "mov")
