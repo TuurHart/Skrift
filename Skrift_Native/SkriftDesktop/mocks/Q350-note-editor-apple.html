@@ -193,13 +193,14 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .kr{display:flex;justify-content:center;gap:6px}
 .key{width:32px;height:42px;border-radius:5px;background:var(--a-key);box-shadow:0 1px 0 rgba(0,0,0,.3);display:inline-flex;align-items:center;justify-content:center;font-size:20px;color:var(--a-text)}
 .key.wide{width:88px;font-size:14px} .key.space{width:180px;font-size:14px;color:var(--a-dim)}
-.fmt{background:var(--a-surface);border-radius:14px 14px 0 0;box-shadow:0 -1px 0 var(--a-border);height:345px;padding:14px 16px 30px;display:flex;flex-direction:column;gap:14px}
+.fmt{background:var(--a-surface);border-radius:14px 14px 0 0;box-shadow:0 -1px 0 var(--a-border);padding:10px 16px 28px;display:flex;flex-direction:column;gap:8px}
 .fmt .fh{display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:700}
-.fmt .x{width:30px;height:30px;border-radius:50%;background:var(--a-chip);color:var(--a-dim);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
-.frow{display:grid;gap:8px}
+.fmt .x{width:28px;height:28px;border-radius:50%;background:var(--a-chip);color:var(--a-dim);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.frow{display:grid;gap:6px}
 .frow.s3{grid-template-columns:repeat(3,1fr)} .frow.s4{grid-template-columns:repeat(4,1fr)}
-.app .fb{border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--a-text)}
-.fb small{font-family:var(--mono);font-size:9.5px;color:var(--a-faint)}
+/* D195: buttons cut from 58 to 40 pt (Apple's Format rows are ~42); the Markdown each writes stays as a small caption */
+.app .fb{border-radius:10px;background:var(--a-chip);min-height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:var(--a-text);line-height:1.1}
+.fb small{font-family:var(--mono);font-size:8.5px;line-height:10px;color:var(--a-faint)}
 .app .fb.on{background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line);color:var(--a-accent)}
 .fb.on small{color:var(--a-accent-text)}
 .fb[disabled]{opacity:.35;cursor:not-allowed}
@@ -272,7 +273,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .mdock .track b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--a-accent)}
 .mdock .rate{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--a-dim);padding:6px 10px;border-radius:8px;background:var(--a-chip)}
 .pop{position:absolute;z-index:9;width:300px;background:var(--a-surface);border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);padding:12px;display:flex;flex-direction:column;gap:10px}
-.app .pop .fb{min-height:46px}
+.app .pop .fb{min-height:34px}
 .cmenu{position:absolute;z-index:9;width:230px;background:var(--a-surface);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);padding:5px;font-size:13px}
 .cmenu div{display:flex;justify-content:space-between;padding:4px 10px;border-radius:5px}
 .cmenu div span{color:var(--a-faint)}
@@ -421,7 +422,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <h2>Picked for you. Overrule any of these.</h2>
     <ol>
       <li><span class="k">1</span><span><b>While typing, undo/redo and Done move to the top bar</b>, where Apple Notes has them. The keyboard bar shrinks to Aa · checklist · photo · note link. Find moves into the ⋯ menu. Apple&rsquo;s table and markup-pen buttons are left out (no tables, C116; markup opens from the photo).</span></li>
-      <li><span class="k">2</span><span><b>The Aa panel holds only D115&rsquo;s set:</b> Title, Heading, Body · B I U S · bulleted, numbered, checklist. No Subheading, Monostyled, colour, indent or block quote. Each button shows the Markdown it writes.</span></li>
+      <li><span class="k">2</span><span><b>The Aa panel holds only D115&rsquo;s set:</b> Title, Heading, Body · B I U S · bulleted, numbered, checklist. No Subheading, Monostyled, colour, indent or block quote. Each button shows the Markdown it writes as a small caption. Buttons are 40 pt tall now (were 58), close to Apple&rsquo;s Format rows (D195).</span></li>
       <li><span class="k">3</span><span><b>Underline writes <code>&lt;u&gt;…&lt;/u&gt;</code></b>, because Markdown has no underline. Obsidian renders it; in Skrift the tags show dim like every other mark.</span></li>
       <li><span class="k">4</span><span><b>The title is no longer pinned</b> and grows from 17 to 22 pt; it scrolls with the note. The pin was for swiping between notes, which is off (Q314).</span></li>
       <li><span class="k">5</span><span><b>The Mac gets one Aa button in its band</b> (Apple Notes has one there), plus ⌘B ⌘I ⌘U ⇧⌘X and a Format section in the right-click menu. No floating selection bar on the Mac.</span></li>
@@ -660,11 +661,11 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     var b = blocks[S.caret] || {};
     var dis = inQuote ? " disabled" : "";
     var st = function(k,label,hint,size,w){ return '<button class="fb'+(b.k===k&&!inQuote?" on":"")+'" data-act="style" data-v="'+k+'"'+dis+'><span style="font-size:'+size+'px;font-weight:'+w+'">'+label+'</span><small>'+hint+'</small></button>'; };
-    var bi = function(v,label,hint,css){ return '<button class="fb" data-act="wrap" data-v="'+v+'"><span style="font-size:18px;'+css+'">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
-    var li = function(k,label,hint){ return '<button class="fb'+(b.k===k&&!inQuote?" on":"")+'" data-act="list" data-v="'+k+'"'+dis+'><span style="font-size:15px">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
+    var bi = function(v,label,hint,css){ return '<button class="fb" data-act="wrap" data-v="'+v+'"><span style="font-size:16px;'+css+'">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
+    var li = function(k,label,hint){ return '<button class="fb'+(b.k===k&&!inQuote?" on":"")+'" data-act="list" data-v="'+k+'"'+dis+'><span style="font-size:13.5px">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
     return '<div class="fmt'+pk(2)+'"><div class="fh"><span>Format</span><button class="x" data-act="closeaa" aria-label="Close">✕</button></div>'+
-      '<div class="frow s3">'+st("h1","Title","# ",20,700)+st("h2","Heading","## ",16,700)+st("p","Body","plain",14,400)+'</div>'+
-      '<div class="frow s4">'+bi("b","B","**…**","font-weight:800")+bi("i","I","*…*","font-style:italic;font-family:Georgia,serif")+'<span class="'+pk(3).slice(1)+'" style="display:grid"><button class="fb" data-act="wrap" data-v="u"><span style="font-size:18px;text-decoration:underline">U</span><small>&lt;u&gt;…&lt;/u&gt;</small></button></span>'+bi("s","S","~~…~~","text-decoration:line-through")+'</div>'+
+      '<div class="frow s3">'+st("h1","Title","# ",17,700)+st("h2","Heading","## ",15,700)+st("p","Body","plain",14,400)+'</div>'+
+      '<div class="frow s4">'+bi("b","B","**…**","font-weight:800")+bi("i","I","*…*","font-style:italic;font-family:Georgia,serif")+'<span class="'+pk(3).slice(1)+'" style="display:grid"><button class="fb" data-act="wrap" data-v="u"><span style="font-size:16px;text-decoration:underline">U</span><small>&lt;u&gt;…&lt;/u&gt;</small></button></span>'+bi("s","S","~~…~~","text-decoration:line-through")+'</div>'+
       '<div class="frow s3">'+li("bullet","• List","- ")+li("num","1. List","1. ")+li("check","☑ Checklist","- [ ] ")+'</div>'+
       (inQuote?'<div class="fnote '+pk(6).slice(1)+'">Caret is in the book quote: styles and lists are off so it stays a quote.</div>':'<div class="fnote">Acts on the caret&rsquo;s line. B I U S act on the selected word.</div>')+
       '</div>';
@@ -687,7 +688,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     if (st === "quote") return h.join("") + quoteNote() + '</div>';
     if (st === "turns") return h.join("") + turnsNote() + '</div>';
     var off = 0;
-    if (st==="type") off = -250; if (st==="select") off = -360; if (st==="aa") off = -300; if (st==="drag") off = -330;
+    if (st==="type") off = -250; if (st==="select") off = -360; if (st==="aa") off = -240; if (st==="drag") off = -330;
     h.push('<div class="scroll"><div style="transform:translateY('+off+'px)">');
     h.push(metaLine(META_MAIN));
     h.push(titleBlock(editing));
