@@ -101,6 +101,16 @@ final class ConversationMockUITests: XCTestCase {
         XCTAssertFalse(app.buttons["tag-speaker-Speaker 2"].exists)
     }
 
+    /// Split speakers moved into the top ⋯ menu (D196, Q359): open it and return the entry.
+    private func openSplitSpeakers(_ app: XCUIApplication) -> XCUIElement {
+        let menu = app.buttons["detail-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10), "⋯ menu missing")
+        menu.tap()
+        let split = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Split speakers")).firstMatch
+        XCTAssertTrue(split.waitForExistence(timeout: 5), "Split speakers missing from the ⋯ menu")
+        return split
+    }
+
     /// Record (always plain now — no pre-record toggle), then the post-transcript "Split
     /// speakers" button → "2 speakers" diarizes (SeededDiarizer in sim) + fuses into turns.
     func testSplitSpeakersButtonSplitsIntoTurns() throws {
@@ -115,8 +125,8 @@ final class ConversationMockUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         record.tap()   // stop → save → detail (PLAIN transcript)
 
-        let split = app.buttons["split-speakers-button"]
-        XCTAssertTrue(split.waitForExistence(timeout: 10), "split-speakers button missing"); split.tap()
+        let split = openSplitSpeakers(app)
+        split.tap()
         let two = app.buttons["2 speakers"]
         XCTAssertTrue(two.waitForExistence(timeout: 5)); two.tap()
 
@@ -140,8 +150,8 @@ final class ConversationMockUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         record.tap()
 
-        let split = app.buttons["split-speakers-button"]
-        XCTAssertTrue(split.waitForExistence(timeout: 10)); split.tap()
+        let split = openSplitSpeakers(app)
+        split.tap()
         let two = app.buttons["2 speakers"]
         XCTAssertTrue(two.waitForExistence(timeout: 5)); two.tap()
 
