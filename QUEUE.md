@@ -2739,7 +2739,7 @@ ask: On the Dev build with the perf library, record the 7-minute flow on the iPh
 
 ### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
-needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393
+needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393 Q397 Q398 Q399 Q400 Q401
 do: -
 check: The production Skrift on Tuur's phone runs build 188+ (literal grep matches the installed build), the prod Mac app likewise if he chose it, and his notes/names are intact after the upgrade.
 ask: Dev checks pass. Ready to put the updated production Skrift on your phone (I install the Release build to the prod app over USB, you switch on the new synced fields in the iCloud console first — RELEASE.md), and the Mac's /Applications/Skrift.app too, or phone only for now?
@@ -2923,6 +2923,41 @@ needs: Q392
 gate+: yes
 do: NoteAttachment.kindLabel (Shared/Pipeline/NoteAttachment.swift) uses the system UTType description, so one DXF reads 'DXF · 4 KB' on the Mac, 'DXF file · 4 KB' on the phone and 'DXF drawing' in the Q384 mock. Replace it with one fixed extension→label table in Shared (common office, image, audio, video, archive, CAD and 3D-print types; unknown → uppercase extension + ' file'), so every device says the same words. Mac test `NoteAttachmentKindLabelTests` in SkriftDesktopTests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentKindLabelTests.swift`
+
+### Q397 [auto] (doing) Mac backfill guard: author Memos only for local captures, only after the first full CloudKit import (ICLOUD_MERGE A1)
+spec: D203
+needs: Q393
+gate+: yes
+do: MacMemoAuthor.backfill (run on every reconcile from MemoCloudReconciler) authors a Memo for every PipelineFile with a UUID id and no Memo, never checking isLocalCapture — on a fresh Production store it would upload a twin of every phone note. Guard: only rows that are Mac local captures, and only after the first full CloudKit import has finished (persisted flag set from the mirroring delegate's import-complete event). Mac test `BackfillGuardTests` in SkriftDesktopTests (fresh store + phone-made rows → zero authored; local capture after import → authored once). See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/BackfillGuardTests.swift`
+
+### Q398 [auto] (todo) DevEraMerge engine: id-based merge of the Aug Mac store into Production, batches of 25 (ICLOUD_MERGE A2)
+spec: D203
+needs: Q397
+gate+: yes
+do: Build the engine ICLOUD_MERGE.md §A2 describes: reads a moved-out old memo_cloud.store (merge-from-dev/) read-only, merges into the live Production store by Memo.id in batches of 25 with the rules in §7 (shared notes keep Production; Mac field edits copied only when Production is unchanged since S=2026-09-25; insert Mac-made notes and phone notes recorded after S; never insert phone notes recorded before S, >20 such stops; MemoEnhancement newer enhancedAt wins in place), writes merge-report.txt (inserted ids) and supports unmerge. Confirm from e6245caa code that every Mac write bumps lastEditedAt. Mac tests `DevEraMergeTests` on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DevEraMergeTests.swift`
+
+### Q399 [auto] (todo) merge dry run: StoreCopyTest --merge-dry-run + mac-store-copytest.sh --merge on copies (ICLOUD_MERGE A3)
+spec: D203
+needs: Q398
+gate+: yes
+do: Extend the Q367 tool: `StoreCopyTest --merge-dry-run` runs DevEraMerge on COPIES of the old store and a downloaded Production store and prints only counts (before/after, duplicate Memo.id groups, Mac-made notes present once with assets, enhancement LWW outcomes, conflicts, any drop → non-zero exit); `plan/release/mac-store-copytest.sh --merge` wires it for Tuur. Self-test on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
+check: `plan/release/mac-store-copytest.sh --self-test`
+
+### Q400 [auto] (todo) one-shot merge alert in the Release Mac app, triggered by a merge-from-dev/ folder (ICLOUD_MERGE A4)
+spec: D203
+needs: Q398
+gate+: yes
+do: Per ICLOUD_MERGE.md §A4: when the Release Mac app finds ~/Library/Application Support/Skrift/merge-from-dev/ and the first Production import is done, it shows one alert with the dry-run numbers and Yes/Not now; Yes runs DevEraMerge, writes merge-report.txt, renames the folder to merged-<date>/. Never automatic. Mac test `MergeAlertTests` (folder present + import done → alert once; absent → never). Snapshot of the alert. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MergeAlertTests.swift`
+
+### Q401 [tuur] (tuur) question: how did the iPhone 17 Pro get your notes — Quick Start/device transfer, an iCloud backup restore, or a fresh install that downloaded them?
+spec: D203
+needs: -
+do: -
+check: Tuur answered (ICLOUD_MERGE F2).
+ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Start / phone-to-phone transfer, restore from an iCloud backup, or install Skrift fresh and let it download? Did your old notes appear on the new phone right away?
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4267,3 +4302,10 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteA
 - 2026-10-13 22:31 Q396 added
 - 2026-10-13 22:35 Q392 -> done — gate 51s @048e2d66
 - 2026-10-13 22:36 Q394 -> doing — worker out
+- 2026-10-13 22:39 Q397 added
+- 2026-10-13 22:39 Q398 added
+- 2026-10-13 22:39 Q399 added
+- 2026-10-13 22:39 Q400 added
+- 2026-10-13 22:39 Q401 added
+- 2026-10-13 22:40 Q401 -> tuur — awaiting Tuur
+- 2026-10-13 22:42 Q397 -> doing — worker out
