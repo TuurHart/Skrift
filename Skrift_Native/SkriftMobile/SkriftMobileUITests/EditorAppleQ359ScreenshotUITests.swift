@@ -15,7 +15,9 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         add(attachment)
         if let dir = ProcessInfo.processInfo.environment["SKRIFT_SHOT_DIR"] {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+            // Q382: SKRIFT_SHOT_SUFFIX ("-light") keeps the light-mode set beside the dark one.
+            let suffix = ProcessInfo.processInfo.environment["SKRIFT_SHOT_SUFFIX"] ?? ""
+            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name)\(suffix).png"))
         }
     }
 
