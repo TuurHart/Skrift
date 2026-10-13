@@ -39,7 +39,11 @@ enum LibraryHatch {
 
     /// Where he is in the source, as the mock writes it: "1:12:05", "p. 4 of 18".
     static func placeLine(for book: Audiobook) -> String {
-        book.sourceKind == .pdf ? LibraryPDF.progressLine(book) : AudiobookTime.clock(book.position)
+        switch book.sourceKind {
+        case .pdf: LibraryPDF.progressLine(book)
+        case .article: LibraryArticle.progressLine(book)   // Q355: "31%", never a clock
+        case .book, .episode: AudiobookTime.clock(book.position)
+        }
     }
 
     /// The link card's second line (mock `sentNoteScreen` `.srccard .d`):

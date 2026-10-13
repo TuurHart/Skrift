@@ -35,6 +35,21 @@ struct BookShelfTile: View {
                             RoundedRectangle.sk(12)
                                 .stroke(isCurrent ? Color.skAccent.opacity(0.6) : .clear, lineWidth: 2)
                         )
+                        .overlay(alignment: .bottom) {
+                            // Q355 (mock `.fetchtag`): the article text is still on its way.
+                            if book.sourceKind == .article, LibraryArticle.isFetching(book, store: .shared) {
+                                HStack(spacing: 6) {
+                                    ProgressView().controlSize(.mini).tint(.white)
+                                    Text("Getting the text\u{2026}")
+                                }
+                                .font(.system(size: 10.5, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.black.opacity(0.62), in: .rect(cornerRadius: 8, style: .continuous))
+                                .padding(6)
+                            }
+                        }
                     if let syncGlyph {
                         Image(systemName: syncGlyph)
                             .font(.system(size: 10, weight: .semibold))
@@ -150,6 +165,16 @@ struct BookShelfTile: View {
                 Text(LibraryPDF.progressLine(book))
                 Spacer(minLength: 4)
                 Text(LibraryPDF.leftLine(book))
+            } else if book.sourceKind == .article {
+                // Q355 (mock Q351): "new · 41 min read", "31%" · "29 min left", "finished";
+                // "saving for offline" while the text is still on its way.
+                if LibraryArticle.isFetching(book, store: .shared) {
+                    Text("saving for offline")
+                } else {
+                    Text(LibraryArticle.progressLine(book))
+                    Spacer(minLength: 4)
+                    if book.position > 0, !book.isFinished { Text(LibraryArticle.leftLine(book)) }
+                }
             } else {
                 Text(Self.progressLabel(for: book))
                 Spacer(minLength: 4)

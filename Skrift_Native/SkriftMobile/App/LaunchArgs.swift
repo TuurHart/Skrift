@@ -54,6 +54,13 @@ enum LaunchFlags {
     static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
     static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
     static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
+    /// Q355 (DEBUG): two articles on the shelf (no network: the text is built in); `-showArticleReader`
+    /// opens one with a sentence selected, `-showArticleCapture` opens Add note on it,
+    /// `-showArticleToast` raises the "No article text on that page" toast. Screenshots only.
+    static var seedLibraryArticle: Bool { args.boolFlag("-seedLibraryArticle") }
+    static var showArticleReader: Bool { args.boolFlag("-showArticleReader") }
+    static var showArticleCapture: Bool { args.boolFlag("-showArticleCapture") }
+    static var showArticleToast: Bool { args.boolFlag("-showArticleToast") }
     /// Q353 (DEBUG): one seeded podcast episode (kind `episode`, Het Uur) opened as a paused session
     /// for the Episode-player screenshot.
     static var seedEpisode: Bool { args.boolFlag("-seedEpisode") }

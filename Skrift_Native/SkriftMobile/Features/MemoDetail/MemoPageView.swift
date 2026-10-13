@@ -62,6 +62,8 @@ struct MemoPageView: View {
     @State var bookJumpFailed = false
     /// Q354: the jump-back of a note captured from a PDF opens the reader on that page.
     @State var pdfJump: PDFJumpRequest?
+    /// Q355: the article reader opened at a note's highlight (its reading place is not moved).
+    @State var articleJump: ArticleJumpRequest?
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
     // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
@@ -635,6 +637,9 @@ struct MemoPageView: View {
         .fullScreenCover(item: $pdfJump) { jump in
             LibraryPDFReaderView(book: jump.book, jumpBackPage: jump.page)
         }
+        .fullScreenCover(item: $articleJump) { jump in
+            LibraryArticleReaderView(book: jump.book, jumpBackWord: jump.word)
+        }
         .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
         .alert("Audio isn’t on this device", isPresented: $bookJumpFailed) {
             Button("OK", role: .cancel) {}
@@ -648,6 +653,8 @@ struct MemoPageView: View {
         switch BookNotesJoin.route(for: target, source: source) {
         case .page(let page):
             pdfJump = PDFJumpRequest(book: source, page: page)
+        case .reading(let word, _):
+            articleJump = ArticleJumpRequest(book: source, word: word)
         case .time:
             if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
             else { bookJumpFailed = true }
