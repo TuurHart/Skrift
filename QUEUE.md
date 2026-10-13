@@ -2910,7 +2910,7 @@ gate+: no
 do: Same recipe as Q383 (findings Q374/Q383: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal). Bump CFBundleVersion to 189 in both project.yml files (188 is the Release build). Phone Debug → devicectl install com.skrift.mobile.dev, grep `Add to this note` in SkriftMobile.debug.dylib; Mac Debug → quit 'Skrift Dev' by exact name, ditto to /Applications/Skrift Dev.app, open, grep `Set All to Large` in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. Commit the bump.
 check: Tuur's phone and Mac run Dev 189 (worker reports both grep hits).
 
-### Q395 [auto] (doing) Personal/Portfolio pill: tap toggles in place like the rating pill, no menu (D204)
+### Q395 [auto] (done) Personal/Portfolio pill: tap toggles in place like the rating pill, no menu (D204)
 spec: D204 D189
 needs: -
 gate+: yes
@@ -4310,3 +4310,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:40 Q401 -> tuur — awaiting Tuur
 - 2026-10-13 22:42 Q397 -> doing — worker out
 - 2026-10-13 22:43 Q393 -> done — gate skipped, no code: path touched @fdd6ec41
+- 2026-10-13 22:50 Q395 -> done — gate 52s @e5e0d1ca
