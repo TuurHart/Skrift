@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Note Attachments Mock</title>
+<style>
+/* Layout: picks on top, a sticky device/state bar, then Skrift beside (phone) or above (iPad, Mac) a hand-drawn Apple Notes reference at the same point scale. */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  /* In-app tokens: Shared/UI/Palette.swift (phone light), as in Q350 */
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-ring:rgba(0,0,0,.18); --a-amber:#d97706; --a-amber-soft:#d9770621;
+  --a-glass:rgba(255,255,255,.82); --a-card:#ececf1; --a-page:#ffffff;
+  /* Reference panel: redrawn from Tuur's iOS 27 / macOS screenshots */
+  --r-bg:#ffffff; --r-ink:#454545; --r-dim:#8a8a8e; --r-line:#e3e3e8; --r-acc:#ddb13a; --r-glass:rgba(255,255,255,.86); --r-rim:rgba(0,0,0,.10);
+  --r-band:#f2f2f3; --r-card:#ebebed; --r-side:#f3f3f5; --r-sel:#5cb346; --r-veil:rgba(214,214,216,.92); --r-menu:#f4f4f5; --r-red:#e0443a;
+  --toast-bg:rgba(0,0,0,.85); --toast-fg:#ffffff; --on-accent:#ffffff;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+    --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21;
+    --a-glass:rgba(30,32,44,.82); --a-card:#20232f; --a-page:#f4f4f2;
+    --r-bg:#1c1c1e; --r-ink:#dcdcdc; --r-dim:#8d8d93; --r-line:#38383a; --r-acc:#e6b422; --r-glass:rgba(58,58,60,.88); --r-rim:rgba(255,255,255,.14);
+    --r-band:#2a2a2c; --r-card:#2c2c2e; --r-side:#232325; --r-sel:#4e9c3c; --r-veil:rgba(40,40,42,.92); --r-menu:#2f2f31; --r-red:#ff6159;
+    --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+  --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21;
+  --a-glass:rgba(30,32,44,.82); --a-card:#20232f; --a-page:#f4f4f2;
+  --r-bg:#1c1c1e; --r-ink:#dcdcdc; --r-dim:#8d8d93; --r-line:#38383a; --r-acc:#e6b422; --r-glass:rgba(58,58,60,.88); --r-rim:rgba(255,255,255,.14);
+  --r-band:#2a2a2c; --r-card:#2c2c2e; --r-side:#232325; --r-sel:#4e9c3c; --r-veil:rgba(40,40,42,.92); --r-menu:#2f2f31; --r-red:#ff6159;
+  --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;margin:0}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 6px;text-wrap:balance}
+h2{font-size:16px;margin:0;text-wrap:balance}
+p{margin:0;max-width:72ch}
+code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+.lede{color:var(--pg-dim);font-size:14px}
+.mine{border:1.5px dashed var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mine h2{color:var(--pg-warn);font-size:15px}
+.mine ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.mine li{display:flex;gap:9px;align-items:flex-start}
+.k{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:5px;padding:0 5px;line-height:18px;margin-top:1px}
+.q{border:1.5px solid var(--pg-accent);background:var(--pg-accent-soft);border-radius:12px;padding:10px 14px;font-size:14px}
+.q b{color:var(--pg-accent)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--pg-bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;border-bottom:1px solid var(--pg-line)}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px;gap:2px}
+.seg button{font:500 13.5px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:34px;padding:0 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:var(--on-accent)}
+.lbl{font-size:12px;color:var(--pg-faint);margin-right:-4px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim);min-height:34px}
+.chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.how{font-size:14px;color:var(--pg-dim);background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:9px 12px}
+.how b{color:var(--pg-ink)}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.stage.one{grid-template-columns:1fr}
+.stage.noref{grid-template-columns:minmax(0,520px)}
+.stage.one.noref{grid-template-columns:1fr}
+@media (max-width:760px){ .stage{grid-template-columns:1fr} .stage.noref{grid-template-columns:1fr} }
+.col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.colcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.colcap .tag{border-radius:4px;padding:0 5px;font-weight:600}
+.colcap .tag.sk{background:var(--pg-accent-soft);color:var(--pg-accent)}
+.colcap .tag.rf{border:1px dashed var(--pg-faint);color:var(--pg-dim)}
+.refpick{display:flex;flex-wrap:wrap;gap:4px}
+.refpick button{font:500 12px var(--sys);border:1px solid var(--pg-line);background:var(--pg-card);color:var(--pg-dim);border-radius:99px;min-height:30px;padding:0 10px;cursor:pointer}
+.refpick button[aria-pressed="true"]{border-color:var(--pg-ink);color:var(--pg-ink)}
+.fit{position:relative;width:100%;overflow:hidden}
+.fit.actual{overflow:auto;max-height:80vh;border-radius:12px}
+.fitin{transform-origin:0 0;position:absolute;left:0;top:0}
+.fit.actual .fitin{position:relative}
+.noshot{font-size:13px;color:var(--pg-dim);border:1px dashed var(--pg-line);border-radius:10px;padding:10px 12px}
+footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);padding-top:12px}
+.ptoast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:8px 14px;border-radius:99px;opacity:0;transition:opacity .15s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.ptoast.show{opacity:1}
+.solo body, body.solo{padding:0;background:transparent}
+
+/* ── Frames (1 CSS px = 1 pt) ─────────────────────────────── */
+.phone{box-sizing:content-box;width:402px;height:874px;border-radius:62px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
+.ipad{box-sizing:content-box;width:1376px;height:1032px;border-radius:30px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
+.macw{box-sizing:content-box;width:2147px;height:1155px;border-radius:12px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
+.app{font-family:var(--sys);color:var(--a-text);background:var(--a-surface)}
+.app button,.ref button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+.ico{display:inline-block;flex:none}
+.sbar{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 34px 0 50px;font-size:15px;font-weight:600}
+.sbar i{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--a-faint)}
+.nav{height:44px;display:flex;align-items:center;gap:4px;padding:0 10px 0 8px}
+.nav .back{color:var(--a-accent);font-size:17px;display:flex;align-items:center;gap:2px;padding:0 6px;height:44px}
+.nav .sp{flex:1}
+.nav .nb{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;color:var(--a-dim);border-radius:9px}
+.nav .nb.on{background:var(--a-accent-soft);color:var(--a-accent)}
+.scr{position:absolute;left:0;right:0;top:106px;bottom:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.titleA{font-size:22px;font-weight:700;line-height:1.2;padding:4px 20px 0}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;padding:6px 20px 0;font-size:12.5px;line-height:18px;color:var(--a-dim)}
+.msep{color:var(--a-faint)}
+.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:7px 10px;padding:9px 20px 0}
+.app .pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:12px;font-weight:600;color:var(--a-accent-text);white-space:nowrap}
+.pill .pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
+.pill .pb.lit{background:var(--a-accent);box-shadow:none}
+.app .dchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 9px;border-radius:99px;font-size:12px;font-weight:600;color:var(--a-accent-text);background:var(--a-accent-soft);white-space:nowrap}
+.dchip .dd{width:6px;height:6px;border-radius:50%;background:var(--a-accent)}
+.tagtx{font-size:13px;font-weight:500;color:var(--a-accent-text);white-space:nowrap}
+.addtx{font-size:12.5px;color:var(--a-faint);white-space:nowrap}
+.summ{margin:12px 20px 0;padding:0 0 12px;border-bottom:.5px solid var(--a-border);font-size:13.5px;line-height:1.45;color:var(--a-dim)}
+.summ b{color:var(--a-accent-text);font-weight:600}
+.body{padding:12px 20px 150px;font-size:15.5px;line-height:1.55}
+.blk{position:relative}
+.blk + .blk{margin-top:10px}
+.blk.tx{padding:0}
+.nm{color:var(--a-accent);font-weight:500}
+
+/* media blocks */
+.mb{position:relative;border-radius:14px;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .15s, box-shadow .15s, opacity .15s;max-width:var(--mmax,100%)}
+.mb.lift{transform:scale(1.035);box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:4}
+.mb.ghost{opacity:.35}
+.dropline{height:3px;border-radius:2px;background:var(--a-accent);margin:6px 0;box-shadow:0 0 0 3px var(--a-accent-soft)}
+/* poster frame: a hand-drawn garage scene, not a real photo */
+.poster{position:absolute;inset:0;background:linear-gradient(180deg,#d7dade 0%,#c9cdd2 46%,#8e9196 47%,#a3a6aa 100%);overflow:hidden}
+.poster .beam{position:absolute;left:-5%;right:-5%;top:6%;height:3%;background:#59606a;transform:rotate(-4deg)}
+.poster .win{position:absolute;top:16%;width:14%;height:8%;background:#f4f6f8;box-shadow:inset 0 0 0 3px #4d545d}
+.poster .door{position:absolute;left:10%;top:28%;width:30%;height:19%;background:repeating-linear-gradient(90deg,#69707a 0 3px,#b4b9bf 3px 12px)}
+.poster .car{position:absolute;left:8%;right:-4%;top:46%;height:30%;border-radius:18% 18% 8% 8%;background:linear-gradient(180deg,#d2d5d8,#9da2a7 70%,#7c8186)}
+.poster .bonnet{position:absolute;left:30%;right:0;top:34%;height:16%;background:linear-gradient(170deg,#8b8574,#6d6a5f);clip-path:polygon(6% 100%,0 20%,92% 0,100% 85%)}
+.poster .grille{position:absolute;left:58%;width:30%;top:42%;height:6%;background:repeating-linear-gradient(180deg,#e9eaec 0 3px,#8b9097 3px 6px);border-radius:3px}
+.poster .eng{position:absolute;left:36%;right:6%;top:52%;height:12%;background:radial-gradient(circle at 30% 50%,#3a3d42 0 18%,transparent 19%),radial-gradient(circle at 70% 40%,#e9dfbf 0 12%,transparent 13%),#26292e;border-radius:6px}
+.poster .lamp{position:absolute;top:66%;width:16%;height:6%;border-radius:4px;background:#eef1f3;box-shadow:inset 0 0 0 2px #8d9399}
+.poster .plate{position:absolute;left:56%;top:79%;width:30%;height:4%;background:#f4f4f2;border-radius:2px;box-shadow:inset 6px 0 0 #2a5bd7,inset -5px 0 0 #f2c230}
+.poster .man{position:absolute;left:12%;top:38%;width:9%;height:26%;border-radius:40% 40% 10% 10%;background:linear-gradient(180deg,#5b4636 0 18%,#e8e2d4 18%,#cfc8b6 100%)}
+.mb.playing .poster{animation:pan 6s linear infinite alternate}
+@keyframes pan{from{transform:scale(1.02) translateX(0)}to{transform:scale(1.06) translateX(-2%)}}
+.vplay{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;background:rgba(255,255,255,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.18);z-index:2}
+.vdur{position:absolute;right:9px;bottom:9px;font-size:10.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:7px;font-variant-numeric:tabular-nums;z-index:2}
+.vctl{position:absolute;left:8px;right:8px;bottom:8px;height:40px;border-radius:20px;background:rgba(20,20,24,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:8px;padding:0 6px 0 4px;color:#fff;z-index:2}
+.vctl button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:#fff !important;flex:none}
+.vctl .t{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;flex:none;opacity:.9}
+.vtrack{flex:1;height:3.5px;border-radius:2px;background:rgba(255,255,255,.35);position:relative}
+.vtrack b{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#fff}
+/* photo, from Q350 */
+.photo{height:190px;background:linear-gradient(140deg,#8d97a8,#4d5566 55%,#2f3542)}
+.photo::before{content:"";position:absolute;left:18%;top:34%;width:64%;height:30%;border-radius:6px;background:linear-gradient(180deg,#c9ced8,#9aa2b1);box-shadow:0 0 0 2px #6a7282}
+.photo::after{content:"";position:absolute;left:24%;top:42%;width:8px;height:8px;border-radius:50%;background:#3b414e;box-shadow:150px 0 0 #3b414e,0 30px 0 #3b414e,150px 30px 0 #3b414e}
+.pcap{position:absolute;left:10px;bottom:8px;font-size:10.5px;font-weight:600;color:#fff;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:7px;z-index:1}
+/* PDF first page, from CapturePDFInlineBlock (14 pt corners, 1 pt border, N pages chip) */
+.pdf{background:var(--a-page);box-shadow:inset 0 0 0 1px var(--a-border);aspect-ratio:1/1.414}
+.pg{position:absolute;inset:0;padding:22% 13% 0;color:#1d2b7a}
+.pg .h{font-size:min(5.2cqw,19px);font-weight:800;letter-spacing:-.2px}
+.pdf{container-type:inline-size}
+.pg .h{font-size:6cqw}
+.pg .r{height:1px;background:#222;margin:1.5% 0 1.2%;width:80%}
+.pg .s{font-size:3.4cqw}
+.pg .ln{height:1.1cqw;background:#d9dbe2;border-radius:2px;margin-top:2.2cqw;width:72%}
+.pg .ln.b{width:60%} .pg .ln.c{width:66%}
+.pg .logo{position:absolute;left:0;right:0;bottom:8%;text-align:center;font-size:4.5cqw;font-weight:700;color:#8a93a3;letter-spacing:-.3px}
+.chip{position:absolute;right:9px;bottom:9px;font-size:10.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:7px;z-index:2}
+.pdftx{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:var(--a-surface);box-shadow:inset 0 0 0 .5px var(--a-border);margin-top:6px;font-size:12px;font-weight:600;max-width:var(--mmax,100%)}
+.pdftx .bx{width:22px;height:22px;border-radius:6px;background:var(--a-accent-soft);color:var(--a-accent);display:inline-flex;align-items:center;justify-content:center}
+.pdftx .n{margin-left:auto;font-weight:400;font-size:11px;color:var(--a-faint)}
+/* file card, copied from Apple's small attachment card */
+.fcard{display:flex;align-items:center;gap:12px;border-radius:13px;background:var(--a-card);padding:11px 12px 11px 14px;min-height:70px}
+.fcard .fn{flex:1;min-width:0}
+.fcard .nm1{font-size:15px;font-weight:600;line-height:1.25;color:var(--a-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.fcard .sub{font-size:13px;color:var(--a-dim);margin-top:2px}
+.ficon{flex:none;width:36px;height:46px;position:relative;border-radius:4px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 1px 2px rgba(0,0,0,.08);overflow:hidden}
+.ficon::before{content:"";position:absolute;right:0;top:0;width:10px;height:10px;background:linear-gradient(225deg,var(--a-card) 50%,#e3e3e8 50%)}
+.ficon b{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:8.5px;font-weight:800;letter-spacing:.3px;color:#fff;margin:0 3px;border-radius:2px;padding:1px 0}
+.ficon i{position:absolute;left:6px;right:8px;top:12px;height:2px;background:#d5d7de;box-shadow:0 5px 0 #d5d7de,0 10px 0 #d5d7de;font-style:normal}
+
+/* player (Q350 PlayerBar) */
+.player{position:absolute;left:20px;right:20px;bottom:30px;height:54px;border-radius:24px;background:var(--a-glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 6px 18px rgba(0,0,0,.28);display:flex;align-items:center;gap:10px;padding:0 14px;z-index:5}
+.player .play{width:32px;height:32px;border-radius:50%;background:var(--a-accent);color:#fff !important;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.player .t{font-size:10.5px;font-weight:600;color:var(--a-dim);font-variant-numeric:tabular-nums;flex:none}
+.player .track{flex:1;height:3.5px;border-radius:2px;background:var(--a-ring);position:relative}
+.player .track b{position:absolute;left:0;top:0;bottom:0;width:18%;border-radius:2px;background:var(--a-accent)}
+.player .rate{font-size:11px;font-weight:700;padding:4px 7px;border-radius:8px;background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);flex:none}
+.player.paused-by-video{opacity:.6}
+
+/* overlays */
+.veil{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.hmenu{position:absolute;z-index:22;width:250px;border-radius:16px;background:var(--a-surface);box-shadow:0 14px 40px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:16px}
+.hmenu button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
+.hmenu button:first-child{border-top:0 !important}
+.hmenu .red{color:#dc2626 !important}
+.hmenu .hint{font-size:11.5px;color:var(--a-dim);padding:8px 16px;background:var(--a-bg)}
+.amenu{position:absolute;z-index:22;width:262px;border-radius:16px;background:var(--a-surface);box-shadow:0 14px 40px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:16px}
+.amenu button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
+.amenu button:first-child{border-top:0 !important}
+.amenu .ico{color:var(--a-accent)}
+.amenu .cut{font-size:11.5px;color:var(--a-dim);padding:8px 16px;background:var(--a-bg)}
+.fs{position:absolute;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column}
+.fs .fstop{display:flex;align-items:center;justify-content:space-between;padding:62px 16px 0;height:110px}
+.fs .fstop button{color:#fff !important;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.14);display:inline-flex;align-items:center;justify-content:center}
+.fs .fsv{flex:1;position:relative;margin:8px 0}
+.fs .fsv .poster{border-radius:0}
+.fs .fsbot{padding:0 18px 40px;display:flex;flex-direction:column;gap:14px}
+.fs .row{display:flex;align-items:center;gap:10px;font-size:11px;font-variant-numeric:tabular-nums}
+.fs .ctr{display:flex;justify-content:center;gap:44px}
+.fs .ctr button{color:#fff !important}
+.ql{position:absolute;inset:0;z-index:30;background:var(--a-bg);display:flex;flex-direction:column}
+.ql .qtop{display:flex;align-items:center;gap:8px;padding:62px 14px 8px;font-size:15px;font-weight:600}
+.ql .qtop .dn{color:var(--a-accent);font-weight:600}
+.ql .qtop .tt{flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ql .qbody{flex:1;margin:6px 12px 12px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--a-border);position:relative;overflow:hidden}
+.ql .qbar{height:74px;display:flex;align-items:flex-start;justify-content:space-around;padding-top:10px;color:var(--a-accent)}
+.qsub{position:absolute;left:12px;bottom:10px;font-size:11px;color:#666;background:rgba(255,255,255,.9);padding:3px 8px;border-radius:7px}
+.toastin{position:absolute;left:50%;bottom:100px;transform:translateX(-50%);font-size:12px;font-weight:600;color:var(--a-text);background:var(--a-surface);box-shadow:0 4px 14px rgba(0,0,0,.2),inset 0 0 0 .5px var(--a-border);padding:6px 12px;border-radius:99px;z-index:40;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+.toastin.show{opacity:1}
+
+/* Mac + iPad Skrift chrome */
+.mlist{position:absolute;left:0;top:0;bottom:0;background:var(--a-bg);border-right:.5px solid var(--a-border)}
+.mlist .lh{padding:16px 18px 8px;font-size:20px;font-weight:700}
+.mlist .grp{padding:14px 18px 6px;font-size:13px;font-weight:700;color:var(--a-dim)}
+.mlist .row{margin:0 10px;padding:9px 10px;border-radius:10px;display:flex;gap:10px;align-items:center}
+.mlist .row.on{background:var(--a-accent-soft)}
+.mlist .row .t1{font-size:14px;font-weight:600}
+.mlist .row .t2{font-size:12.5px;color:var(--a-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mlist .row .th{width:40px;height:40px;border-radius:7px;flex:none;margin-left:auto}
+.mlist .ph{position:absolute;left:0;right:0;bottom:16px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--a-faint)}
+.medit{position:absolute;top:0;right:0;bottom:0;background:var(--a-surface)}
+.mband{height:56px;display:flex;align-items:center;gap:8px;padding:0 16px}
+.gbtn{height:34px;min-width:34px;border-radius:17px;background:var(--a-glass);box-shadow:0 1px 4px rgba(0,0,0,.12),inset 0 0 0 .5px var(--a-border);display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:0 6px;color:var(--a-dim)}
+.gbtn .gi{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:17px}
+.gbtn .gi.on{background:var(--a-accent-soft);color:var(--a-accent)}
+.gbtn.exp{color:var(--a-accent-text);background:var(--a-accent-soft);font-size:13px;font-weight:600;padding:0 14px}
+.gbtn.txt{font-size:13px;font-weight:600;padding:0 14px;color:var(--a-text)}
+.medit .scr{top:56px}
+.medit .titleA{font-size:24px;padding:10px 40px 0}
+.medit .meta,.medit .pillrow{padding-left:40px;padding-right:40px}
+.medit .summ{margin-left:40px;margin-right:40px}
+.medit .body{padding:14px 40px 140px;font-size:16px}
+.mdock{position:absolute;left:0;right:0;bottom:0;height:52px;border-top:.5px solid var(--a-border);background:var(--a-surface);display:flex;align-items:center;gap:14px;padding:0 24px;z-index:5}
+.mdock .play{width:30px;height:30px;border-radius:50%;background:var(--a-accent);color:#fff !important;display:inline-flex;align-items:center;justify-content:center}
+.mdock .track{flex:1;height:3px;border-radius:2px;background:var(--a-ring);position:relative}
+.mdock .track b{position:absolute;left:0;top:0;bottom:0;width:18%;background:var(--a-accent);border-radius:2px}
+.mdock .t{font-size:11px;color:var(--a-dim);font-variant-numeric:tabular-nums}
+.ctx{position:absolute;z-index:25;width:250px;border-radius:9px;background:var(--a-surface);box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 0 0 .5px var(--a-border);padding:5px;font-size:13px}
+.ctx button{display:flex;width:100%;padding:4px 10px;border-radius:5px;text-align:left}
+.ctx button:hover{background:var(--a-accent);color:#fff !important}
+.ctx .sep{height:.5px;background:var(--a-border);margin:5px 8px}
+.ctx .red{color:#dc2626}
+.mql{position:absolute;z-index:30;border-radius:12px;background:var(--a-surface);box-shadow:0 24px 70px rgba(0,0,0,.4),inset 0 0 0 .5px var(--a-border);overflow:hidden;display:flex;flex-direction:column}
+.mql .qh{height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;font-size:13px;font-weight:600;border-bottom:.5px solid var(--a-border)}
+.mql .qh .dots{display:flex;gap:7px}
+.mql .qh .dots i{width:12px;height:12px;border-radius:50%;background:#ff5f57}
+.mql .qh .dots i+i{background:#febc2e} .mql .qh .dots i+i+i{background:#28c840}
+.mql .qh .ow{margin-left:auto;font-weight:500;font-size:12px;padding:3px 10px;border-radius:6px;box-shadow:inset 0 0 0 .5px var(--a-border)}
+.mql .qb{flex:1;position:relative;background:#fff}
+.ltabs{margin:10px 12px 4px;height:36px;border-radius:18px;background:var(--a-glass);box-shadow:0 1px 6px rgba(0,0,0,.12),inset 0 0 0 .5px var(--a-border);display:flex;padding:3px;gap:2px}
+.ltabs span{flex:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--a-dim);border-radius:15px}
+.ltabs span.on{background:var(--a-accent-soft);color:var(--a-accent)}
+.lact{display:flex;gap:6px;padding:8px 12px}
+.lact span{flex:1;height:32px;border-radius:9px;background:var(--a-surface);box-shadow:inset 0 0 0 .5px var(--a-border);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600}
+.lact span.rec{color:#dc2626}
+.lact span.sq{flex:none;width:32px}
+
+/* picks */
+.pick{outline:2px dashed var(--pg-warn);outline-offset:3px}
+.pk{position:absolute;z-index:9;font:700 11px/16px var(--mono);color:var(--on-accent);background:var(--pg-warn);border-radius:5px;padding:0 4px;pointer-events:none}
+.nomarks .pick{outline:0} .nomarks .pk{display:none}
+
+/* ── Reference (Apple Notes, redrawn) ─────────────────────── */
+.ref{font-family:var(--sys);color:var(--r-ink);background:var(--r-bg);position:relative}
+.ref .abs{position:absolute}
+.rglass{position:absolute;border-radius:99px;background:var(--r-glass);box-shadow:0 2px 10px rgba(0,0,0,.08),inset 0 0 0 .7px var(--r-rim);display:flex;align-items:center;justify-content:space-around;color:var(--r-ink)}
+.rplay{position:absolute;border-radius:50%;background:rgba(255,255,255,.66);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center}
+.rstamp{position:absolute;left:50%;transform:translateX(-50%);top:6px;font:500 8.5px/14px var(--mono);letter-spacing:.06em;color:var(--r-dim);border:1px dashed var(--r-dim);border-radius:4px;padding:0 6px;white-space:nowrap;z-index:50;background:var(--r-bg)}
+.rmenu{position:absolute;background:var(--r-menu);box-shadow:0 18px 50px rgba(0,0,0,.22),inset 0 0 0 .5px var(--r-rim)}
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+  <header>
+    <div class="eyebrow">Q384 · mock · D199 D198 D126 D112 D200 · phone, iPad, Mac</div>
+    <h1>A video and a file inside a note, next to Apple Notes</h1>
+    <p class="lede">An open Skrift note holding all four kinds of block: the new video, the new file card, and the existing photo and PDF. Phone and Mac sit next to Apple Notes redrawn by hand from Tuur&rsquo;s screenshots of 13 Oct, at the same point scale (1 px here = 1 pt there). The iPad has no screenshot, so it is drawn from those two plus the signed Q378 layout. Try it: tap the video, tap a file card, press and hold any block, tap + (phone) or the paperclip (iPad, Mac).</p>
+  </header>
+
+  <div class="mine" id="mine">
+    <h2>Picked for you. Overrule any of these (the orange numbers mark them in the frames).</h2>
+    <ol>
+      <li><span class="k">1</span><span><b>Tapping the video plays it inside the note</b>, with a small control strip and a ⤢ button for full screen. Starting the video pauses the note&rsquo;s own recording, so only one thing makes sound. Apple&rsquo;s screenshots do not show what its tap does.</span></li>
+      <li><span class="k">2</span><span><b>A tall phone video is cut to 420 pt high in the note</b> (the poster is cropped to the middle) so the text around it stays on screen. Apple shows the full 9:16 frame, which fills the whole phone. The &ldquo;Tall video&rdquo; switch in the bar shows Apple&rsquo;s way.</span></li>
+      <li><span class="k">3</span><span><b>Each kind of attachment has one size; there is no small/large switch.</b> Video, photo and PDF are always big; any other file is always the card. Apple has a per-attachment chevron and &ldquo;Set All to Small / Large&rdquo; in its ⋯ menu; Skrift leaves both out.</span></li>
+      <li><span class="k">4</span><span><b>The file card is copied from Apple&rsquo;s small card:</b> grey card, name on up to two lines, kind · size, file icon on the right. The whole card opens Quick Look. Skrift&rsquo;s old capture card with its purple &ldquo;Open&rdquo; button is replaced.</span></li>
+      <li><span class="k">5</span><span><b>The video has a duration label</b> (bottom right, the same style as the PDF&rsquo;s &ldquo;38 pages&rdquo;). Apple shows only the play button.</span></li>
+      <li><span class="k">6</span><span><b>Press and hold works like Apple:</b> the block lifts and a menu appears (Copy, Share, Save, Delete). Move your finger without letting go and the menu closes and the block moves (D112). On the Mac you drag a block straight away and right-click for the menu.</span></li>
+      <li><span class="k">7</span><span><b>The PDF stays as Skrift draws it today:</b> the first page with 14 pt corners, the &ldquo;N pages&rdquo; label and the &ldquo;Text from the PDF&rdquo; row (D126). Apple&rsquo;s grey band with the filename and the page-thumbnail strip is not copied.</span></li>
+      <li><span class="k">8</span><span><b>Media is at most 720 pt wide on iPad and Mac</b> (Apple&rsquo;s Mac video is 720 pt), left-aligned, while the text runs the full width of the pane (D198). The PDF page is 520 pt wide there.</span></li>
+    </ol>
+  </div>
+
+  <div class="q"><b>The one question:</b> when you tap a video in a note, should it play right there in the note (my pick), or open full screen straight away?</div>
+
+  <div class="bar" role="toolbar" aria-label="View controls">
+    <div class="seg" role="group" aria-label="Device" id="devs"></div>
+    <div class="seg" role="group" aria-label="State" id="states"></div>
+    <span class="lbl">Tall video</span>
+    <div class="seg" role="group" aria-label="Tall video" id="tall"></div>
+    <span class="lbl">Size</span>
+    <div class="seg" role="group" aria-label="Size" id="size"></div>
+    <label class="chk"><input type="checkbox" id="ref-toggle" checked> Reference</label>
+    <label class="chk"><input type="checkbox" id="marks-toggle" checked> Mark my picks</label>
+  </div>
+
+  <div class="how" id="how"></div>
+
+  <div class="stage" id="stage">
+    <div class="col" id="skcol">
+      <div class="colcap"><span class="tag sk">SKRIFT</span><span id="skcap"></span></div>
+      <div class="fit" id="fit-sk"><div class="fitin" id="sk"></div></div>
+    </div>
+    <div class="col" id="refcol">
+      <div class="colcap"><span class="tag rf">REFERENCE · APPLE NOTES</span><span id="rfcap"></span></div>
+      <div class="refpick" id="refpick"></div>
+      <div class="fit" id="fit-rf"><div class="fitin" id="rf"></div></div>
+    </div>
+  </div>
+
+  <p style="font-size:12.5px;color:var(--pg-dim);max-width:80ch;line-height:1.5">Reference sources: Tuur&rsquo;s iPhone 17 Pro screenshots of 13 Oct 2026 (IMG_0465&ndash;0471: a PDF large and small, a video note, the ⋯ menu&rsquo;s Attachment View, the press-and-hold menu) and his Mac screenshots of the same day (PDF with and without thumbnails, a video note, the ⋯ menu). His Mac screenshots are 2147 &times; 1155 px at 1 px per point, so both Mac frames are drawn at that window size. The green is his Mac accent colour. Note text, file names and pictures in the reference are invented; nothing from the screenshots is embedded. Positions were measured off the images and are right to about a point.</p>
+  <footer>Drawn from source: phone note page <code>MemoPageView.swift</code> (header order per D196: title, grey meta line, rating · Personal · tags), the inline PDF <code>CapturePDFInlineBlock</code> in <code>MemoDetailSupportTypes.swift</code> (first page, 14 pt corners, 1 pt border, &ldquo;N pages&rdquo; chip, tap opens Quick Look), <code>PDFTextDisclosure.swift</code> (&ldquo;Text from the PDF&rdquo; row), the old file card <code>captureFileCard</code> (replaced here), the photo block and player bar from the signed Q350 mock, the iPad list column and top bar from the signed Q378 option A (D198). New, not in the app: the video block, the Apple-style file card, the hold menu, the in-note attach menu on the phone. The status bar, list rows and Quick Look contents are placeholders.</footer>
+</div>
+<div class="ptoast" id="ptoast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  /* ── state ── */
+  var S = {
+    dev:"phone", st:"note", ref:null, showRef:true, marks:true, tall:"cap", size:"fit",
+    playing:false, vt:7, menu:null, attach:false, ql:"file1", fs:false, ctx:null,
+    order:["p1","video","p2","photo","p3","pdf","p4","file1","file2","p5"]
+  };
+  var hash = location.hash.replace(/^#/,"");
+  var SOLO = null;
+  if (hash){ hash.split("&").forEach(function(kv){ var p = kv.split("="); if (p[0]==="solo") SOLO = p[1]; else if (p[0] in S) S[p[0]] = p[1]; }); }
+
+  var DEVS = [["phone","Phone"],["ipad","iPad"],["mac","Mac"]];
+  var STATES = [["note","The note"],["play","Video playing"],["full","Full screen"],["ql","File: Quick Look"],["hold","Hold and move"],["attach","Attach menu"]];
+  var REFS = {
+    phone:[["video","Video note (IMG_0467)"],["pdfL","PDF large (IMG_0465)"],["pdfS","PDF small card (IMG_0471)"],["hold","Hold menu (IMG_0469)"],["attv","⋯ Attachment View (IMG_0468)"]],
+    mac:[["video","Video note (17.21.30)"],["pdf","PDF (17.20.11)"],["menu","⋯ Attachment View (17.21.48)"]],
+    ipad:[]
+  };
+  var REFDEF = {phone:{note:"video",play:"video",full:"video",ql:"pdfS",hold:"hold",attach:"attv"}, mac:{note:"video",play:"video",full:"video",ql:"pdf",hold:"video",attach:"menu"}};
+  var HOW = {
+    note:"<b>The note.</b> Scroll inside the frame: text, the video, a photo, the PDF, then two file cards. Tap the video to play it, tap a file card for Quick Look, press and hold any block to lift it.",
+    play:"<b>Video playing (pick 1).</b> The video plays where it sits. Tap it to pause, tap ⤢ for full screen. The note&rsquo;s recording bar dims because playing the video paused it.",
+    full:"<b>Full screen.</b> Reached from ⤢ on the playing video. Done (or swipe down on the phone) puts you back in the note at the same place.",
+    ql:"<b>File: Quick Look (pick 4).</b> Tapping a file card opens the system Quick Look over the note. Share is top right. The PDF opens the same way. Switch which file with the cards in the note.",
+    hold:"<b>Hold and move (pick 6, D112).</b> Press and hold any block: it lifts and the menu shows. Keep holding and move up or down: the menu closes, a purple line shows where it lands. On the Mac just drag; right-click for the menu.",
+    attach:"<b>Attach menu (D198).</b> Apple&rsquo;s four items minus Record Audio. Take or Choose Photo or Video can now put a video in the note, Attach File any file (D199). The block lands where the caret is."
+  };
+  var T = {
+    p1:'Rui opened the bonnet so I could film it idling. Listen for the tick in the first ten seconds; that&rsquo;s the one <span class="nm">Rui</span> means.',
+    p2:'He thinks it&rsquo;s the cam chain tensioner. The part number on the old one:',
+    p3:'The manual page he sent me:',
+    p4:'The loom drawing for the new fan, to cut at the makerspace, and his quote:',
+    p5:'Order the tensioner on Friday. Ask whether the fan bracket fits the 124 too.'
+  };
+  var FILES = {
+    file1:{name:"fan-loom-bracket-rev-c.dxf", kind:"DXF drawing", size:"412 KB", ext:"DXF", col:"#5b6b8a"},
+    file2:{name:"orcamento-oficina-out.xlsx", kind:"Excel spreadsheet", size:"38 KB", ext:"XLSX", col:"#2f8a52"}
+  };
+
+  /* ── icons (stroke = currentColor) ── */
+  function I(name, s){
+    s = s || 18;
+    var P = {
+      play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
+      pause:'<rect x="6.5" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13.9" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none"/>',
+      expand:'<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
+      close:'<path d="M6 6l12 12M18 6L6 18"/>',
+      back:'<path d="M15 5l-7 7 7 7"/>',
+      more:'<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
+      plus:'<path d="M12 5v14M5 12h14"/>',
+      share:'<path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/>',
+      clip:'<path d="M20 11.5l-7.8 7.8a5 5 0 01-7.1-7.1l8.5-8.5a3.3 3.3 0 014.7 4.7l-8.5 8.5a1.7 1.7 0 01-2.4-2.4l7.8-7.8"/>',
+      check:'<circle cx="6" cy="7" r="2.4"/><circle cx="6" cy="17" r="2.4"/><path d="M11 7h9M11 17h9"/>',
+      compose:'<path d="M12 4H5v15h15v-7"/><path d="M18.5 2.5l3 3L12 15l-4 1 1-4z"/>',
+      link:'<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+      copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
+      trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+      save:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+      scan:'<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M9 9h6M9 12h6M9 15h4"/>',
+      camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+      photos:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/>',
+      doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+      text:'<path d="M5 6h14M5 10h14M5 14h14M5 18h9"/>',
+      aa:'<text x="2" y="17" font-size="15" font-weight="600" fill="currentColor" stroke="none" font-family="-apple-system,Helvetica">Aa</text>',
+      sidebar:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 5v14"/>',
+      people:'<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14c2.6 0 4.5 1.4 4.5 4"/>',
+      rew:'<path d="M11 6L5 12l6 6zM19 6l-6 6 6 6z" fill="currentColor" stroke="none"/>',
+      fwd:'<path d="M13 6l6 6-6 6zM5 6l6 6-6 6z" fill="currentColor" stroke="none"/>',
+      table:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M3 14.5h18M9 5v14M15 5v14"/>',
+      pen:'<circle cx="12" cy="12" r="8.5"/><path d="M9.5 16l2.5-7 2.5 7M10.4 13.5h3.2"/>',
+      pin:'<path d="M9 3h6l-1 5 3 3H7l3-3zM12 11v10"/>',
+      lock:'<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 016 0v3"/>',
+      search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+      folder:'<path d="M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>',
+      clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
+      maths:'<circle cx="12" cy="12" r="8.5"/><path d="M8.5 10h7M8.5 14h7"/>',
+      grid:'<rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9.7h18M3 14.3h18M7.5 5v14M12 5v14M16.5 5v14"/>',
+      attv:'<rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/>',
+      chev:'<path d="M9 6l6 6-6 6"/>',
+      chevd:'<path d="M6 9l6 6 6-6"/>',
+      thumbs:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 6v4M11 6v4M15 6v4"/>',
+      newfolder:'<path d="M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M15 11v5M12.5 13.5h5"/>',
+      mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>'
+    };
+    return '<svg class="ico" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(P[name]||"")+'</svg>';
+  }
+  function pk(k, style){ return '<span class="pk" data-k="'+k+'" style="'+style+'">'+k+'</span>'; }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  function fmt(t){ t = Math.max(0, Math.round(t)); return Math.floor(t/60)+":"+("0"+(t%60)).slice(-2); }
+
+  /* ── Skrift blocks ── */
+  function posterHTML(){
+    return '<div class="poster"><div class="beam"></div><div class="win" style="left:30%"></div><div class="win" style="left:62%"></div><div class="door"></div><div class="man"></div><div class="car"></div><div class="bonnet"></div><div class="grille"></div><div class="eng"></div><div class="lamp" style="left:40%"></div><div class="lamp" style="left:80%"></div><div class="plate"></div></div>';
+  }
+  function videoBlock(dev, w){
+    var h, mmax = dev === "phone" ? w : Math.min(720, w);
+    var natural = mmax * 16 / 9;
+    h = (dev === "phone" && S.tall === "cap") ? Math.min(420, natural) : (dev === "phone" ? natural : Math.min(natural, 560));
+    var playing = S.playing;
+    var inner = posterHTML();
+    if (!playing){
+      inner += '<button class="vplay" data-act="vplay" aria-label="Play video" style="color:#3a3a3c">'+I("play",28)+'</button>';
+      inner += '<span class="vdur">0:42</span>';
+    } else {
+      inner += '<div class="vctl"><button data-act="vpause" aria-label="Pause">'+I("pause",18)+'</button><span class="t" id="vt-'+dev+'">'+fmt(S.vt)+'</span><div class="vtrack"><b id="vb-'+dev+'" style="width:'+(S.vt/42*100)+'%"></b></div><span class="t">0:42</span><button data-act="vfull" aria-label="Full screen">'+I("expand",17)+'</button></div>';
+    }
+    var marks = '';
+    if (dev === S.dev){
+      if (!playing) marks += pk(5,"right:4px;bottom:34px");
+      if (dev === "phone" && S.tall === "cap") marks += pk(2,"left:6px;top:6px");
+      if (playing) marks += pk(1,"left:6px;top:6px");
+    }
+    return '<div class="mb vid'+(playing?" playing":"")+(dev==="phone"&&S.tall==="cap"?" pick":"")+'" data-mb="video" data-act="vtap" style="height:'+Math.round(h)+'px;--mmax:'+mmax+'px">'+inner+marks+'</div>';
+  }
+  function photoBlock(dev, w){
+    var mmax = dev === "phone" ? w : Math.min(720, w);
+    var h = dev === "phone" ? 190 : 300;
+    return '<div class="mb photo" data-mb="photo" data-act="photo" style="height:'+h+'px;--mmax:'+mmax+'px"><span class="pcap">IMG · old tensioner</span></div>';
+  }
+  function pdfBlock(dev, w){
+    var mmax = dev === "phone" ? w : Math.min(520, w);
+    var m = dev === S.dev ? pk(7,"left:6px;top:6px") : "";
+    return '<div data-mb="pdf" class="mbwrap"><div class="mb pdf" data-act="pdf" style="--mmax:'+mmax+'px"><div class="pg"><div class="h">M104 cam chain tensioner</div><div class="r"></div><div class="s">Workshop manual · section 05</div><div class="ln"></div><div class="ln b"></div><div class="ln c"></div><div class="ln"></div><div class="ln b"></div><div class="logo">W124 · 1993</div></div><span class="chip">38 pages</span>'+m+'</div>'
+      + '<div class="pdftx" style="--mmax:'+mmax+'px"><span class="bx">'+I("text",11)+'</span>Text from the PDF<span class="n">38 pages</span>'+I("chevd",11)+'</div></div>';
+  }
+  function fileBlock(id, dev, w){
+    var f = FILES[id], mmax = dev === "phone" ? w : Math.min(520, w);
+    var m = (id === "file1" && dev === S.dev) ? pk(4,"right:4px;top:-8px") + pk(3,"right:26px;top:-8px") : "";
+    return '<div class="mb fcard'+(id==="file1"?" pick":"")+'" data-mb="'+id+'" data-act="file" data-f="'+id+'" style="--mmax:'+mmax+'px"><div class="fn"><div class="nm1">'+esc(f.name)+'</div><div class="sub">'+f.kind+' · '+f.size+'</div></div><span class="ficon"><i></i><b style="background:'+f.col+'">'+f.ext+'</b></span>'+m+'</div>';
+  }
+  function bodyHTML(dev, w){
+    return S.order.map(function(id){
+      var inner;
+      if (T[id]) inner = T[id];
+      else if (id === "video") inner = videoBlock(dev, w);
+      else if (id === "photo") inner = photoBlock(dev, w);
+      else if (id === "pdf") inner = pdfBlock(dev, w);
+      else inner = fileBlock(id, dev, w);
+      return '<div class="blk'+(T[id]?" tx":"")+'" data-id="'+id+'">'+inner+'</div>';
+    }).join("");
+  }
+  function headerHTML(){
+    return '<div class="titleA">Engine tick, the old E-class</div>'
+      + '<div class="meta"><span>Today 17:21</span><span class="msep">·</span><span>Marvila</span><span class="msep">·</span><span>21°</span><span class="msep">·</span><span>1:48</span></div>'
+      + '<div class="pillrow"><span class="pill"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span>Useful</span><span class="dchip"><span class="dd"></span>Personal</span><span class="tagtx">#garage</span><span class="addtx">+ tag</span></div>'
+      + '<div class="summ"><b>Summary</b> Rui suspects the cam chain tensioner; order it Friday and check the fan bracket fits.</div>';
+  }
+
+  /* overlays shared by devices */
+  function holdMenuHTML(dev, x, y){
+    var id = S.menu, isV = id === "video", isP = id === "photo";
+    var save = isV || isP ? "Save to Photos" : "Save to Files";
+    var mac = dev === "mac";
+    if (mac){
+      return '<div class="ctx" style="left:'+x+'px;top:'+y+'px">'
+        + '<button data-act="m-ql">Quick Look</button><button data-act="m-x">Copy</button><button data-act="m-x">Share…</button><button data-act="m-x">'+(isV||isP?"Save to Photos":"Save to Downloads")+'</button>'
+        + (isV?'<button data-act="vplay">Play</button>':'')
+        + '<div class="sep"></div><button data-act="m-x">Show in Note Assets…</button><div class="sep"></div><button class="red" data-act="m-del">Delete</button></div>';
+    }
+    return '<div class="hmenu" style="left:'+x+'px;top:'+y+'px">'
+      + '<button data-act="m-x">'+I("copy",18)+'Copy</button><button data-act="m-x">'+I("share",18)+'Share</button><button data-act="m-x">'+I("save",18)+save+'</button><button class="red" data-act="m-del">'+I("trash",18)+'Delete</button>'
+      + '<div class="hint">Keep holding and move to place it</div></div>';
+  }
+  function attachMenuHTML(x, y, mac){
+    var cls = mac ? "ctx" : "amenu";
+    if (mac){
+      return '<div class="ctx" style="left:'+x+'px;top:'+y+'px;width:230px"><button data-act="a-scan">Scan Document</button><button data-act="a-take">Take Photo or Video</button><button data-act="a-choose">Choose Photo or Video</button><div class="sep"></div><button data-act="a-file">Attach File…</button></div>';
+    }
+    return '<div class="'+cls+'" style="left:'+x+'px;top:'+y+'px"><button data-act="a-scan">'+I("scan",20)+'Scan Document</button><button data-act="a-take">'+I("camera",20)+'Take Photo or Video</button><button data-act="a-choose">'+I("photos",20)+'Choose Photo or Video</button><button data-act="a-file">'+I("doc",20)+'Attach File</button><div class="cut">Record Audio is left out: Skrift records its own way (D198).</div></div>';
+  }
+  function fullHTML(dev){
+    if (dev === "phone"){
+      return '<div class="fs"><div class="fstop"><button data-act="fsdone" aria-label="Done">'+I("close",18)+'</button><button data-act="m-x" aria-label="Share">'+I("share",18)+'</button></div><div class="fsv">'+posterHTML()+'</div><div class="fsbot"><div class="row"><span>'+fmt(S.vt)+'</span><div class="vtrack"><b id="vb-fs" style="width:'+(S.vt/42*100)+'%"></b></div><span>-'+fmt(42-S.vt)+'</span></div><div class="ctr"><button data-act="m-x">'+I("rew",26)+'</button><button data-act="fsplay">'+I(S.playing?"pause":"play",34)+'</button><button data-act="m-x">'+I("fwd",26)+'</button></div></div></div>';
+    }
+    return '<div class="fs" style="flex-direction:row"><div class="fsv" style="flex:1;margin:0"><div style="position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);aspect-ratio:9/16">'+posterHTML()+'</div></div><div style="position:absolute;left:50%;bottom:60px;transform:translateX(-50%);width:560px;height:56px;border-radius:16px;background:rgba(40,40,44,.8);display:flex;align-items:center;gap:14px;padding:0 18px;font-size:12px;font-variant-numeric:tabular-nums"><button data-act="fsplay" style="color:#fff">'+I(S.playing?"pause":"play",24)+'</button><span>'+fmt(S.vt)+'</span><div class="vtrack"><b id="vb-fs" style="width:'+(S.vt/42*100)+'%"></b></div><span>0:42</span></div><button data-act="fsdone" style="position:absolute;left:24px;top:24px;color:#fff;background:rgba(255,255,255,.16);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600">Exit Full Screen</button></div>';
+  }
+  function qlContent(id){
+    if (id === "pdf") return '<div class="pg" style="padding:18% 12% 0;container-type:inline-size;position:absolute;inset:0"><div class="h" style="font-size:22px">M104 cam chain tensioner</div><div class="r"></div><div class="s" style="font-size:13px">Workshop manual · section 05</div></div><span class="qsub">Page 1 of 38</span>';
+    if (id === "file2"){
+      var rows = ""; for (var r = 0; r < 14; r++){ rows += '<div style="display:flex;border-bottom:1px solid #e3e3e3;height:26px;font-size:11px;color:#333">' + ["Tensor corrente","Mão de obra","Junta tampa","IVA 23%","",""].map(function(c,i){ return '<span style="flex:'+(i?1:2)+';border-right:1px solid #e3e3e3;padding:5px 6px;white-space:nowrap;overflow:hidden">'+(r===0?["Item","Qtd","Preço","Total","",""][i]:(i===0?(["Tensor corrente","Mão de obra","Junta tampa","IVA 23%"][r%4]):(i<4?(r*7%23+1):"")))+'</span>'; }).join("") + '</div>'; }
+      return '<div style="position:absolute;inset:0;overflow:hidden">'+rows+'</div><span class="qsub">Sheet 1 · read only</span>';
+    }
+    return '<svg viewBox="0 0 300 300" style="position:absolute;inset:8% 6%;width:88%;height:84%" fill="none" stroke="#2b3a67" stroke-width="1.2"><rect x="30" y="60" width="240" height="150" rx="10"/><circle cx="80" cy="135" r="28"/><circle cx="220" cy="135" r="28"/><path d="M108 135h84M150 60v-30M150 210v40M40 250h220"/><circle cx="45" cy="75" r="4"/><circle cx="255" cy="75" r="4"/><circle cx="45" cy="195" r="4"/><circle cx="255" cy="195" r="4"/><text x="150" y="285" font-size="10" fill="#2b3a67" stroke="none" text-anchor="middle" font-family="Menlo,monospace">BRACKET REV C · 1:2</text></svg><span class="qsub">DXF drawing · preview</span>';
+  }
+  function qlName(id){ return id === "pdf" ? "workshop-manual-sec05.pdf" : FILES[id].name; }
+  function qlHTML(dev, W, H){
+    var id = S.ql;
+    if (dev === "phone") return '<div class="ql"><div class="qtop"><button class="dn" data-act="qldone">Done</button><span class="tt">'+esc(qlName(id))+'</span><button data-act="m-x" style="color:var(--a-accent)">'+I("share",20)+'</button></div><div class="qbody">'+qlContent(id)+'</div><div class="qbar"><button data-act="m-x">'+I("pen",24)+'</button><button data-act="m-x">'+I("search",24)+'</button></div></div>';
+    var w = dev === "mac" ? 900 : 760, h = dev === "mac" ? 700 : 640;
+    return '<div class="veil" data-act="qldone" style="background:rgba(0,0,0,.08);backdrop-filter:none;-webkit-backdrop-filter:none"></div><div class="mql" style="left:'+((W-w)/2)+'px;top:'+((H-h)/2)+'px;width:'+w+'px;height:'+h+'px"><div class="qh">'+(dev==="mac"?'<span class="dots"><i data-act="qldone"></i><i></i><i></i></span>':'<button data-act="qldone" style="color:var(--a-accent)">Done</button>')+'<span>'+esc(qlName(id))+'</span><span class="ow">Open with Preview</span>'+I("share",16)+'</div><div class="qb">'+qlContent(id)+'</div></div>';
+  }
+
+  /* ── Skrift frames ── */
+  function skPhone(){
+    var w = 362;
+    var nav = '<div class="nav"><button class="back" data-act="m-x">'+I("back",20)+'Notes</button><span class="sp"></span><button class="nb'+(S.attach?" on":"")+'" data-act="attach" aria-label="Attach">'+I("plus",21)+'</button><button class="nb" data-act="m-x" aria-label="People">'+I("people",20)+'</button><button class="nb" data-act="m-x" aria-label="More">'+I("more",20)+'</button></div>';
+    var h = '<div class="phone app" id="skframe"><div class="sbar"><span>9:41</span><i>iPhone 17 Pro · 402 pt · no tab bar (D200)</i><span>▮▮</span></div>' + nav
+      + '<div class="scr" id="scr"><div>'+headerHTML()+'</div><div class="body" id="pbody">'+bodyHTML("phone", w)+'</div></div>'
+      + '<div class="player'+(S.playing?" paused-by-video":"")+'"><button class="play" data-act="m-x">'+I("play",14)+'</button><span class="t">0:24</span><div class="track"><b></b></div><span class="t">1:48</span><span class="rate">1×</span></div>'
+      + '<div class="toastin" id="tin"></div>';
+    h += overlays("phone", 402, 874);
+    return h + '</div>';
+  }
+  function overlays(dev, W, H){
+    var h = "";
+    if (S.fs) h += fullHTML(dev);
+    else if (S.st === "ql") h += qlHTML(dev, W, H);
+    if (S.attach){
+      if (dev === "phone") h += '<div class="veil" data-act="unattach" style="background:rgba(0,0,0,.06)"></div>' + attachMenuHTML(W - 272, 100, false);
+      else if (dev === "ipad") h += '<div class="veil" data-act="unattach" style="background:rgba(0,0,0,.04);backdrop-filter:none;-webkit-backdrop-filter:none"></div>' + attachMenuHTML(W - 560, 62, false);
+      else h += '<div class="veil" data-act="unattach" style="background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none"></div>' + attachMenuHTML(1500, 58, true);
+    }
+    return h;
+  }
+  function skIpad(){
+    var W = 1376, H = 1032, L = 360, ew = W - L - 80;
+    var list = '<div class="mlist" style="width:'+L+'px"><div style="height:24px;font-size:13px;font-weight:600;padding:6px 22px">9:41  Tue 13 Oct</div>'
+      + '<div class="ltabs"><span class="on">Notes</span><span>Library</span><span>Review</span><span>Settings</span></div>'
+      + '<div style="display:flex;align-items:center;padding:6px 18px 0"><div><div style="font-size:20px;font-weight:700">Notes</div><div style="font-size:12px;color:var(--a-dim)">12 notes</div></div><span style="margin-left:auto;font-size:13px;font-weight:600;color:var(--a-accent)">Select</span></div>'
+      + '<div class="lact"><span>+ Import</span><span class="rec">● Record</span><span class="sq">'+I("compose",15)+'</span></div>'
+      + listRows() + '</div>';
+    var edit = '<div class="medit" style="left:'+L+'px"><div class="mband"><span class="gbtn"><span class="gi">'+I("sidebar",19)+'</span></span><span style="flex:1"></span>'
+      + '<span class="gbtn"><span class="gi">'+I("aa",20)+'</span><span class="gi">'+I("check",19)+'</span><span class="gi'+(S.attach?" on":"")+'" data-act="attach">'+I("clip",19)+'</span><span class="gi">'+I("link",19)+'</span></span>'
+      + '<span class="gbtn txt">Connections</span><span class="gbtn exp">Export</span><span class="gbtn"><span class="gi">'+I("more",19)+'</span></span></div>'
+      + '<div class="scr" id="scr"><div>'+headerHTML()+'</div><div class="body" id="pbody">'+bodyHTML("ipad", ew)+'</div></div>'
+      + '<div class="player'+(S.playing?" paused-by-video":"")+'" style="left:40px;right:40px"><button class="play" data-act="m-x">'+I("play",14)+'</button><span class="t">0:24</span><div class="track"><b></b></div><span class="t">1:48</span><span class="rate">1×</span></div></div>';
+    return '<div class="ipad app" id="skframe">' + list + edit + '<div class="toastin" id="tin"></div>' + overlays("ipad", W, H) + '</div>';
+  }
+  function listRows(){
+    var rows = [["Today"],["Engine tick, the old E-class","17:21  Rui opened the bonnet so I…",1,"#8d939b"],["Bracket sizes","15:02  64.8 mm, so the 65 clamp…",0,""],["Yesterday"],["Lamp idea: paper shade","Yesterday  The arm parks the shade…",0,"#d6a35a"],["Groceries","Yesterday  Oat milk, eggs, coriander…",0,""]];
+    return rows.map(function(r){
+      if (r.length === 1) return '<div class="grp">'+r[0]+'</div>';
+      return '<div class="row'+(r[2]?" on":"")+'"><div style="min-width:0"><div class="t1">'+r[0]+'</div><div class="t2">'+r[1]+'</div></div>'+(r[3]?'<span class="th" style="background:linear-gradient(140deg,'+r[3]+',#3b414e)"></span>':'')+'</div>';
+    }).join("");
+  }
+  function skMac(){
+    var W = 2147, H = 1155, L = 420, ew = W - L - 80;
+    var list = '<div class="mlist" style="width:'+L+'px"><div style="display:flex;gap:8px;padding:18px 18px 0"><i style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></i><i style="width:13px;height:13px;border-radius:50%;background:#febc2e"></i><i style="width:13px;height:13px;border-radius:50%;background:#28c840"></i></div><div class="lh">Notes</div>' + listRows() + '<div class="ph">Notes list · its own mock (D190, Q349)</div></div>';
+    var edit = '<div class="medit" style="left:'+L+'px"><div class="mband"><span class="gbtn"><span class="gi">'+I("compose",18)+'</span></span><span style="flex:1"></span>'
+      + '<span class="gbtn"><span class="gi">'+I("aa",20)+'</span><span class="gi">'+I("check",19)+'</span><span class="gi'+(S.attach?" on":"")+'" data-act="attach">'+I("clip",19)+'</span><span class="gi">'+I("link",19)+'</span></span><span style="flex:1"></span>'
+      + '<span class="gbtn exp">Export</span><span class="gbtn"><span class="gi">'+I("share",18)+'</span><span class="gi">'+I("more",19)+'</span></span></div>'
+      + '<div class="scr" id="scr" style="bottom:52px"><div>'+headerHTML()+'</div><div class="body" id="pbody">'+bodyHTML("mac", ew)+'</div></div>'
+      + '<div class="mdock" style="'+(S.playing?"opacity:.6":"")+'"><button class="play" data-act="m-x">'+I("play",13)+'</button><span class="t">0:24</span><div class="track"><b></b></div><span class="t">1:48</span><span class="t" style="font-weight:700">1×</span></div></div>';
+    var ctx = "";
+    if (S.ctx) ctx = '<div class="veil" data-act="unmenu" style="background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none"></div>' + holdMenuHTML("mac", S.ctx.x, S.ctx.y);
+    return '<div class="macw app" id="skframe">' + list + edit + '<div class="toastin" id="tin"></div>' + overlays("mac", W, H) + ctx + '</div>';
+  }
+
+  /* ── Reference frames ── */
+  function rStatus(){ return '<div class="abs" style="left:52px;top:21px;font-size:17px;font-weight:600;color:#111">17:22</div><div class="abs" style="right:30px;top:24px;display:flex;gap:6px;align-items:center;color:#111"><span style="font-size:11px;letter-spacing:-1px">●●●●</span><span style="font-size:12px">◠</span><span style="font-size:11px;font-weight:700;background:#111;color:#fff;border-radius:5px;padding:0 4px">69</span></div>'; }
+  function rTop(){ return '<div class="rglass" style="left:16px;top:62px;width:44px;height:44px">'+I("back",22)+'</div><div class="rglass" style="left:285px;top:62px;width:101px;height:44px;padding:0 6px">'+I("share",22)+I("more",22)+'</div>'; }
+  function rBottom(){ return '<div class="rglass" style="left:28px;top:798px;width:167px;height:48px;padding:0 10px">'+I("check",22)+I("clip",21)+I("pen",22)+'</div><div class="rglass" style="left:326px;top:798px;width:48px;height:48px">'+I("compose",21)+'</div>'; }
+  function rTitle(t){ return '<div class="abs" style="left:26px;top:124px;font-size:29px;font-weight:700;letter-spacing:-.3px;color:var(--r-ink)">'+t+'</div>'; }
+  function rPoster(left, top, w, h, play){
+    return '<div class="abs" style="left:'+left+'px;top:'+top+'px;width:'+w+'px;height:'+h+'px;overflow:hidden">'+posterHTML()+'</div>'
+      + (play ? '<div class="rplay" style="left:'+(left+w/2-play/2)+'px;top:'+(top+Math.min(h, w*16/9)/2-play/2)+'px;width:'+play+'px;height:'+play+'px;color:#55575c">'+I("play",play*0.45)+'</div>' : '');
+  }
+  function refPhone(kind){
+    var h = '<div class="phone ref" id="rfframe">' + rStatus();
+    if (kind === "video" || kind === "attv"){
+      h += rTop() + rTitle("Garage, Tuesday") + rPoster(26, 250, 350, 622, 65) + rBottom();
+      if (kind === "attv"){
+        h += '<div class="rmenu" style="left:144px;top:62px;width:242px;height:400px;border-radius:30px;opacity:.97">'
+          + '<div style="display:flex;justify-content:space-around;padding:18px 10px 0;font-size:12px;color:#7a7a7e;text-align:center"><div>'+I("scan",20)+'<div>Scan</div></div><div>'+I("pin",20)+'<div>Pin Note</div></div><div>'+I("lock",20)+'<div>Lock</div></div></div>'
+          + '<div style="height:.5px;background:var(--r-line);margin:14px 20px 4px"></div>'
+          + [["search","Find in Note",""],["folder","Move Note",""],["clock","Recent Notes","›"],["maths","Maths Results","›"],["grid","Lines &amp; Grids",""]].map(function(r){ return '<div style="display:flex;align-items:center;gap:14px;padding:0 22px;height:41px;font-size:16px;color:#8a8a8e">'+I(r[0],19)+'<span style="flex:1">'+r[1]+'</span><span>'+r[2]+'</span></div>'; }).join("")
+          + '</div>'
+          + '<div class="rmenu" style="left:137px;top:356px;width:249px;height:165px;border-radius:30px"><div style="display:flex;align-items:center;gap:12px;padding:0 22px;height:64px;font-size:16px;font-weight:700;color:#111">'+I("attv",20)+'<span style="flex:1">Attachment View</span>'+I("chevd",16)+'</div><div style="height:.5px;background:var(--r-line);margin:0 20px"></div><div style="padding:14px 28px 0;font-size:16px;color:#111;line-height:42px">Set All to Small<br>Set All to Large</div></div>';
+      }
+    } else if (kind === "pdfL"){
+      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:208px;font-size:17px;color:#555">Section five</div>'
+        + '<div class="abs" style="left:0;right:0;top:319px;bottom:0;background:var(--r-band)"></div>'
+        + '<div class="abs" style="left:26px;top:330px;font-size:15.5px;font-weight:500;color:#111;width:262px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">workshop-manual-sec05_2026…</div>'
+        + '<div class="abs" style="left:302px;top:330px;width:20px;height:20px;border-radius:50%;background:#d8d8da;color:#6b6b70;display:flex;align-items:center;justify-content:center">'+I("chevd",12)+'</div>'
+        + '<div class="abs" style="left:358px;top:329px;color:var(--r-acc)">'+I("thumbs",26)+'</div>'
+        + '<div class="abs" style="left:26px;top:361px;width:352px;height:520px;background:#fff;container-type:inline-size"><div class="pg" style="padding:44% 12% 0"><div class="h">M104 cam chain tensioner</div><div class="r"></div><div class="s">Workshop manual</div><div class="logo" style="bottom:7%">W124 · 1993</div></div></div>'
+        + rBottom();
+    } else if (kind === "pdfS"){
+      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:208px;font-size:17px;color:#555">Section five</div>'
+        + '<div class="abs" style="left:26px;top:319px;width:326px;height:71px;border-radius:13px;background:var(--r-card)"></div>'
+        + '<div class="abs" style="left:42px;top:328px;width:210px;font-size:15.5px;font-weight:600;color:#111;line-height:18px">workshop-manual-sec05_<br>2026…</div>'
+        + '<div class="abs" style="left:42px;top:366px;font-size:14px;color:#8a8a8e">PDF Document · 1,8 MB</div>'
+        + '<div class="abs" style="left:258px;top:345px;width:22px;height:22px;border-radius:50%;background:#d0d0d3;color:#6b6b70;display:flex;align-items:center;justify-content:center">'+I("chevd",13)+'</div>'
+        + '<div class="abs" style="left:307px;top:331px;width:34px;height:47px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.1)"><div style="margin:8px 5px 0;height:1.5px;background:#2a3a8a;width:60%"></div></div>'
+        + '<div class="abs" style="left:26px;top:410px;font-size:12px;color:var(--r-dim);font-family:var(--mono)">(keyboard from IMG_0471 left out)</div>'
+        + rBottom();
+    } else if (kind === "hold"){
+      h += '<div class="abs" style="inset:0;background:var(--r-veil)"></div>'
+        + '<div class="abs" style="left:16px;top:62px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.4)"></div>'
+        + '<div class="abs" style="left:40px;top:88px;width:322px;height:573px;border-radius:20px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.2)">'+posterHTML()+'</div>'
+        + '<div class="abs" style="left:76px;top:678px;width:249px;height:145px;border-radius:26px;background:#f1f1f2;box-shadow:0 10px 40px rgba(0,0,0,.18);padding:4px 0">'
+        + [["copy","Copy",""],["share","Share",""],["trash","Delete","red"]].map(function(r){ return '<div style="display:flex;align-items:center;gap:16px;padding:0 30px;height:45px;font-size:17px;color:'+(r[2]?"var(--r-red)":"#111")+'">'+I(r[0],20)+r[1]+'</div>'; }).join("") + '</div>'
+        + '<div class="abs" style="left:28px;top:798px;width:167px;height:48px;border-radius:24px;box-shadow:inset 0 0 0 .7px var(--r-rim);opacity:.5"></div><div class="abs" style="left:326px;top:798px;width:48px;height:48px;border-radius:50%;box-shadow:inset 0 0 0 .7px var(--r-rim);opacity:.6"></div>';
+    }
+    return h + '<div class="rstamp">REFERENCE · REDRAWN FROM TUUR’S IOS 27 SCREENSHOTS</div></div>';
+  }
+  function refMac(kind){
+    var h = '<div class="macw ref" id="rfframe" style="background:#fff">';
+    // sidebar
+    h += '<div class="abs" style="left:8px;top:8px;width:220px;bottom:8px;border-radius:14px;background:var(--r-side);box-shadow:0 0 0 .5px var(--r-line)"></div>';
+    h += '<div class="abs" style="left:19px;top:19px;display:flex;gap:10px"><i style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></i><i style="width:13px;height:13px;border-radius:50%;background:#febc2e"></i><i style="width:13px;height:13px;border-radius:50%;background:#28c840"></i></div>';
+    h += '<div class="abs" style="left:150px;top:14px;color:#666">'+I("newfolder",21)+'</div><div class="abs" style="left:194px;top:14px;color:#666">'+I("sidebar",21)+'</div>';
+    var side = [["Quick Notes",84,67],["Shared",13,99],["All iCloud",449,163],["Notes",431,195],["Imported Notes",1,228],["Test",4,259],["Workout tracking",13,291]];
+    h += '<div class="abs" style="left:23px;top:129px;font-size:11px;font-weight:600;color:#8a8a8e">iCloud</div><div class="abs" style="left:23px;top:321px;font-size:11px;font-weight:600;color:#8a8a8e">Tags</div>';
+    h += '<div class="abs" style="left:17px;top:'+(259-15)+'px;width:200px;height:30px;border-radius:7px;background:#e4e4e6"></div>';
+    side.forEach(function(s){ var on = s[0] === "Test"; h += '<div class="abs" style="left:23px;top:'+(s[2]-9)+'px;width:186px;display:flex;align-items:center;gap:7px;font-size:13px;color:'+(on?"var(--r-sel)":"#222")+'">'+I(s[0]==="Shared"?"people":"folder",16)+'<span style="flex:1">'+s[0]+'</span><span style="color:#9a9a9e">'+s[1]+'</span></div>'; });
+    // list
+    h += '<div class="abs" style="left:247px;top:11px;font-size:13px;font-weight:700;color:#222">Test</div><div class="abs" style="left:247px;top:27px;font-size:11px;color:#8a8a8e">4 notes</div>';
+    h += '<div class="abs" style="left:620px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#333">'+I("more",17)+'</div>';
+    h += '<div class="abs" style="left:243px;top:61px;font-size:15px;font-weight:700;color:#222">Pinned</div><div class="abs" style="left:624px;top:63px;color:#999">'+I("chevd",13)+'</div><div class="abs" style="left:238px;top:90px;width:422px;height:.5px;background:var(--r-line)"></div>';
+    h += rowM(113, "Another one", "11:23", "Fam’s gonna run some tests. We need to search n…", false, "#5a5f66");
+    h += '<div class="abs" style="left:243px;top:186px;font-size:15px;font-weight:700;color:#222">Today</div>';
+    var selTitle = kind === "pdf" ? "Manual from Rui" : "Garage, Tuesday", selSub = kind === "pdf" ? "Section five" : "1 video";
+    if (kind === "pdf"){ h += rowM(222, "Garage, Tuesday", "17:21", "1 video", false, "#8e9196") + rowM(278, selTitle, "17:19", selSub, true, null, true); }
+    else { h += rowM(222, selTitle, "17:21", selSub, true, "#8e9196") + rowM(278, "Manual from Rui", "17:19", "Section five", false, null, true); }
+    h += rowM(334, "Hi my name is", "11:22", "Lalala", false, null);
+    h += '<div class="abs" style="left:660px;top:0;bottom:0;width:.5px;background:var(--r-line)"></div>';
+    // editor toolbar
+    h += '<div class="abs" style="left:673px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("compose",16)+'</div>';
+    h += '<div class="abs" style="left:1127px;top:7px;width:193px;height:36px;border-radius:18px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:space-around;color:#555;padding:0 6px">'+I("aa",20)+I("check",18)+I("table",18)+I("clip",18)+I("pen",18)+'</div>';
+    h += '<div class="abs" style="left:1741px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("share",16)+'</div>';
+    h += '<div class="abs" style="left:1784px;top:9px;width:32px;height:32px;border-radius:50%;background:'+(kind==="menu"?"#e6e6e8":"#fff")+';box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("more",17)+'</div>';
+    h += '<div class="abs" style="left:1830px;top:8px;width:310px;height:34px;border-radius:17px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:#888">'+I("search",14)+'Search</div>';
+    if (kind === "pdf"){
+      h += '<div class="abs" style="left:686px;top:-6px;font-size:19px;font-weight:700;color:#bbb">Manual from Rui</div>';
+      h += '<div class="abs" style="left:686px;top:46px;font-size:13px;color:#555">Section five</div><div class="abs" style="left:686px;top:78px;width:2px;height:20px;background:var(--r-sel)"></div>';
+      h += '<div class="abs" style="left:663px;right:0;top:112px;bottom:0;background:var(--r-band)"></div>';
+      h += '<div class="abs" style="left:686px;top:122px;font-size:13px;color:#222;display:flex;align-items:center;gap:10px">workshop-manual-sec05_2026-08-13 '+I("chevd",13)+'</div>';
+      h += '<div class="abs" style="right:12px;top:122px;font-size:12px;color:#666">Show Thumbnails</div>';
+      h += '<div class="abs" style="left:666px;top:146px;width:748px;height:1009px;background:#fff;container-type:inline-size"><div class="pg" style="padding:26% 13% 0"><div class="h" style="font-size:3.6cqw">M104 cam chain tensioner</div><div class="r" style="width:62%"></div><div class="s" style="font-size:2.3cqw">Workshop manual</div><div class="logo" style="bottom:6%;font-size:3.2cqw">W124 · 1993</div></div></div>';
+      h += '<div class="abs" style="left:1424px;top:146px;width:748px;height:1009px;background:#fff;padding:40px 90px"><div style="font-size:18px;color:#8a93a3;font-weight:700">W124 · 1993</div><div style="height:1px;background:#999;margin:6px 0 30px"></div>'+'<div style="height:6px;background:#e3e4e8;border-radius:3px;margin:12px 0;width:90%"></div>'.repeat(14)+'</div>';
+    } else {
+      h += '<div class="abs" style="left:1407px;top:59px;transform:translateX(-50%);font-size:12px;color:#8a8a8e;white-space:nowrap">13 October 2026 at 17:21</div>';
+      h += '<div class="abs" style="left:686px;top:82px;font-size:19.5px;font-weight:700;color:#3b3b3b">Garage, Tuesday</div>';
+      h += rPoster(686, 148, 720, 1280, 66);
+      if (kind === "menu"){
+        h += '<div class="abs" style="inset:0;background:rgba(255,255,255,.42)"></div>';
+        h += '<div class="rmenu" style="left:1780px;top:43px;width:187px;height:211px;border-radius:9px;padding:5px;font-size:13px;color:#222">'
+          + [["pin","Pin Note",""],["lock","Lock Note",""],["-"],["search","Find in Note",""],["folder","Move to","›"],["clock","Recent Notes","›"],["maths","Maths Results","›"],["attv","Attachment View","›",1],["trash","Delete Note",""]].map(function(r){ if (r[0]==="-") return '<div style="height:.5px;background:var(--r-line);margin:4px 8px"></div>'; return '<div style="display:flex;align-items:center;gap:7px;height:22.5px;padding:0 8px;border-radius:5px;'+(r[3]?"background:var(--r-sel);color:#fff":"")+'">'+I(r[0],12)+'<span style="flex:1">'+r[1]+'</span><span>'+r[2]+'</span></div>'; }).join("") + '</div>';
+        h += '<div class="rmenu" style="left:1964px;top:196px;width:123px;height:57px;border-radius:9px;padding:6px 14px;font-size:13px;color:#222;line-height:22.5px">Set All to Small<br>Set All to Large</div>';
+      }
+    }
+    return h + '<div class="rstamp" style="top:auto;bottom:10px">REFERENCE · REDRAWN FROM TUUR’S MACOS SCREENSHOTS · 2147 × 1155 PT</div></div>';
+  }
+  function rowM(y, t, time, sub, sel, thumb, pdfThumb){
+    var h = '';
+    if (sel) h += '<div class="abs" style="left:237px;top:'+(y-5)+'px;width:415px;height:56px;border-radius:8px;background:var(--r-sel)"></div>';
+    else h += '<div class="abs" style="left:262px;top:'+(y+51)+'px;width:390px;height:.5px;background:var(--r-line)"></div>';
+    h += '<div class="abs" style="left:262px;top:'+(y+4)+'px;font-size:13px;font-weight:700;color:'+(sel?"#fff":"#222")+'">'+t+'</div>';
+    h += '<div class="abs" style="left:262px;top:'+(y+20)+'px;font-size:12px;color:'+(sel?"#fff":"#222")+';white-space:nowrap;width:330px;overflow:hidden;text-overflow:ellipsis">'+time+'&nbsp;&nbsp;<span style="color:'+(sel?"rgba(255,255,255,.85)":"#8a8a8e")+'">'+sub+'</span></div>';
+    if (thumb) h += '<div class="abs" style="left:598px;top:'+(y+1)+'px;width:44px;height:44px;border-radius:6px;background:linear-gradient(160deg,'+thumb+',#3a3d42)"></div>';
+    if (pdfThumb) h += '<div class="abs" style="left:598px;top:'+(y+1)+'px;width:44px;height:44px;border-radius:6px;background:#fff;box-shadow:0 0 0 .5px var(--r-line)"></div>';
+    return h;
+  }
+
+  /* ── render ── */
+  function render(){
+    var dev = S.dev;
+    document.documentElement.classList.toggle("nomarks", !S.marks);
+    var stage = document.getElementById("stage");
+    stage.className = "stage" + (dev === "phone" ? "" : " one") + (S.showRef && dev !== "ipad" ? "" : " noref");
+    document.getElementById("refcol").hidden = !(S.showRef);
+    var sk = document.getElementById("sk");
+    var keep = document.getElementById("scr"), top = keep ? keep.scrollTop : 0;
+    sk.innerHTML = dev === "phone" ? skPhone() : dev === "ipad" ? skIpad() : skMac();
+    var scr = document.getElementById("scr"); if (scr) scr.scrollTop = top;
+    document.getElementById("skcap").textContent = dev === "phone" ? "iPhone 17 Pro · 402 × 874 pt" : dev === "ipad" ? "iPad 13 in · 1376 × 1032 pt · Q378 option A" : "Mac · 2147 × 1155 pt, Tuur’s window size";
+    // reference
+    var rf = document.getElementById("rf"), rp = document.getElementById("refpick");
+    if (dev === "ipad"){
+      rp.innerHTML = "";
+      rf.innerHTML = '<div class="noshot" style="width:600px">No iPad screenshot was taken (D200 says none is needed). The iPad frame is drawn from the iPhone and Mac references above plus the signed Q378 iPad layout: list column with the slim tab control (option A), editor tools in the top bar, text the full pane width (D198). Switch to Phone or Mac to see the references.</div>';
+      document.getElementById("rfcap").textContent = "none for iPad";
+    } else {
+      var ref = S.ref || REFDEF[dev][S.st];
+      rp.innerHTML = REFS[dev].map(function(r){ return '<button data-ref="'+r[0]+'" aria-pressed="'+(r[0]===ref)+'">'+r[1]+'</button>'; }).join("");
+      rf.innerHTML = dev === "phone" ? refPhone(ref) : refMac(ref);
+      document.getElementById("rfcap").textContent = dev === "phone" ? "402 × 874 pt, same scale" : "2147 × 1155 pt, same scale";
+    }
+    document.getElementById("how").innerHTML = HOW[S.st];
+    paintBar();
+    placeHold();
+    fit();
+  }
+  function paintBar(){
+    document.getElementById("devs").innerHTML = DEVS.map(function(d){ return '<button data-dev="'+d[0]+'" aria-pressed="'+(S.dev===d[0])+'">'+d[1]+'</button>'; }).join("");
+    document.getElementById("states").innerHTML = STATES.map(function(d){ return '<button data-st="'+d[0]+'" aria-pressed="'+(S.st===d[0])+'">'+d[1]+'</button>'; }).join("");
+    document.getElementById("tall").innerHTML = [["cap","Cut to 420 pt"],["full","Full, like Apple"]].map(function(d){ return '<button data-tall="'+d[0]+'" aria-pressed="'+(S.tall===d[0])+'">'+d[1]+'</button>'; }).join("");
+    document.getElementById("size").innerHTML = [["fit","Fit"],["actual","1 : 1 pt"]].map(function(d){ return '<button data-size="'+d[0]+'" aria-pressed="'+(S.size===d[0])+'">'+d[1]+'</button>'; }).join("");
+  }
+  /* hold menu: positioned under the lifted block, inside the frame */
+  function placeHold(){
+    if (!S.menu || S.dev === "mac") return;
+    var fr = document.getElementById("skframe"), blk = fr && fr.querySelector('[data-mb="'+S.menu+'"]');
+    if (!blk) return;
+    var sc = scaleOf(), fb = fr.getBoundingClientRect(), bb = blk.getBoundingClientRect();
+    var bx = (bb.left - fb.left)/sc, by = (bb.bottom - fb.top)/sc, top = (bb.top - fb.top)/sc;
+    var W = fr.offsetWidth, H = fr.offsetHeight, mh = 236;
+    var y = by + 10; if (y + mh > H - 20) y = Math.max(110, top - mh - 10);
+    var x = Math.min(Math.max(16, bx), W - 266);
+    blk.classList.add("lift");
+    var v = document.createElement("div"); v.className = "veil"; v.dataset.act = "unmenu"; fr.appendChild(v);
+    var clone = blk.cloneNode(true); clone.style.position = "absolute"; clone.style.left = bx + "px"; clone.style.top = top + "px"; clone.style.width = (bb.width/sc) + "px"; clone.style.zIndex = 21; clone.style.margin = 0; clone.removeAttribute("data-act");
+    fr.appendChild(clone);
+    var m = document.createElement("div"); m.innerHTML = holdMenuHTML(S.dev, x, y); fr.appendChild(m.firstChild);
+    var k = document.createElement("div"); k.innerHTML = pk(6, "left:"+(x+232)+"px;top:"+(y-8)+"px"); fr.appendChild(k.firstChild);
+  }
+  function scaleOf(){ var inner = document.getElementById("sk"); var m = /scale\(([\d.]+)\)/.exec(inner.style.transform || ""); return m ? +m[1] : 1; }
+  function fit(){
+    [["fit-sk","sk"],["fit-rf","rf"]].forEach(function(p){
+      var box = document.getElementById(p[0]), inner = document.getElementById(p[1]), el = inner.firstElementChild;
+      if (!el || box.offsetParent === null) return;
+      box.classList.toggle("actual", S.size === "actual");
+      if (S.size === "actual"){ inner.style.transform = "none"; box.style.height = ""; return; }
+      var W = el.offsetWidth, H = el.offsetHeight, sc = Math.min(1, box.clientWidth / W);
+      inner.style.transform = "scale(" + sc + ")"; box.style.height = (H * sc) + "px";
+    });
+  }
+
+  /* ── video clock ── */
+  var vtimer = null;
+  function setPlaying(on){
+    S.playing = on; clearInterval(vtimer);
+    if (on) vtimer = setInterval(function(){
+      S.vt += 1; if (S.vt >= 42){ S.vt = 0; setPlaying(false); render(); return; }
+      ["phone","ipad","mac"].forEach(function(d){ var t = document.getElementById("vt-"+d), b = document.getElementById("vb-"+d); if (t) t.textContent = fmt(S.vt); if (b) b.style.width = (S.vt/42*100)+"%"; });
+      var f = document.getElementById("vb-fs"); if (f) f.style.width = (S.vt/42*100)+"%";
+    }, 1000);
+  }
+
+  /* ── toasts ── */
+  var tt = null, pt = null;
+  function itoast(msg){ var t = document.getElementById("tin"); if (!t) return pageToast(msg); t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove("show"); }, 1900); }
+  function pageToast(msg){ var t = document.getElementById("ptoast"); t.textContent = msg; t.classList.add("show"); clearTimeout(pt); pt = setTimeout(function(){ t.classList.remove("show"); }, 2200); }
+
+  /* ── state changes ── */
+  function goState(st){
+    S.st = st; S.ref = null; S.menu = null; S.ctx = null; S.attach = false; S.fs = false;
+    if (st === "play" || st === "full"){ if (!S.playing){ setPlaying(true); } }
+    else setPlaying(false);
+    if (st === "full") S.fs = true;
+    if (st === "attach") S.attach = true;
+    if (st === "hold"){ if (S.dev === "mac") S.ctx = {x:900, y:420, id:"video"}; else S.menu = "video"; if (S.dev === "mac") S.menu = "video"; }
+    render();
+    if (st === "full" || st === "play" || st === "hold"){ var scr = document.getElementById("scr"), v = document.querySelector('#sk [data-mb="video"]'); if (scr && v && !S.fs) { scr.scrollTop = Math.max(0, v.offsetTop - 120); render(); } }
+  }
+
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-dev],[data-st],[data-tall],[data-size],[data-ref]");
+    if (b){
+      if (b.dataset.dev){ S.dev = b.dataset.dev; goState(S.st); }
+      else if (b.dataset.st) goState(b.dataset.st);
+      else if (b.dataset.tall){ S.tall = b.dataset.tall; render(); }
+      else if (b.dataset.size){ S.size = b.dataset.size; render(); }
+      else if (b.dataset.ref){ S.ref = b.dataset.ref; render(); }
+      return;
+    }
+    if (suppressClick){ suppressClick = false; return; }
+    var a = e.target.closest("#sk [data-act]"); if (!a) return;
+    var act = a.dataset.act;
+    switch (act){
+      case "vplay": S.menu = null; S.ctx = null; S.st = "play"; setPlaying(true); render(); itoast("Playing in the note · the recording paused"); break;
+      case "vpause": setPlaying(false); S.st = "note"; render(); break;
+      case "vtap": if (S.playing){ setPlaying(false); S.st = "note"; render(); } else { S.st = "play"; setPlaying(true); render(); } break;
+      case "vfull": e.stopPropagation(); S.st = "full"; S.fs = true; render(); break;
+      case "fsdone": S.fs = false; S.st = S.playing ? "play" : "note"; render(); break;
+      case "fsplay": setPlaying(!S.playing); render(); break;
+      case "file": S.ql = a.dataset.f; S.st = "ql"; S.ref = null; render(); break;
+      case "pdf": S.ql = "pdf"; S.st = "ql"; render(); break;
+      case "qldone": S.st = "note"; render(); break;
+      case "photo": itoast("Tap opens the photo viewer · hold to move"); break;
+      case "attach": S.attach = !S.attach; S.st = S.attach ? "attach" : "note"; render(); break;
+      case "unattach": S.attach = false; S.st = "note"; render(); break;
+      case "a-scan": S.attach = false; S.st = "note"; render(); itoast("Scanner opens · the scan lands as a PDF block"); break;
+      case "a-take": S.attach = false; S.st = "note"; render(); itoast("Camera opens in photo or video mode"); break;
+      case "a-choose": S.attach = false; S.st = "note"; render(); itoast("Photos picker · videos allowed now (D199)"); break;
+      case "a-file": S.attach = false; S.st = "note"; render(); itoast("Files picker · any file becomes a card"); break;
+      case "unmenu": S.menu = null; S.ctx = null; S.st = "note"; render(); break;
+      case "m-ql": var id = S.ctx && S.ctx.id; S.ctx = null; S.menu = null; if (id === "video"){ S.st = "full"; S.fs = true; setPlaying(true); } else { S.ql = id === "pdf" ? "pdf" : (FILES[id] ? id : "file1"); S.st = "ql"; } render(); break;
+      case "m-del": S.menu = null; S.ctx = null; S.st = "note"; render(); itoast("Deleted · Undo"); break;
+      case "m-x": itoast("Placeholder in the mock"); break;
+    }
+  });
+
+  /* ── press and hold / drag (D112) ── */
+  var press = null, suppressClick = false;
+  function blocksIn(){ var body = document.getElementById("pbody"); return body ? Array.prototype.slice.call(body.children) : []; }
+  document.addEventListener("pointerdown", function(e){
+    if (e.button === 2) return;
+    var mb = e.target.closest("#sk [data-mb]"); if (!mb || e.target.closest(".vctl button,.vplay")) { if (!mb) return; }
+    if (e.target.closest(".vctl button")) return;
+    var id = mb.dataset.mb, mac = S.dev === "mac";
+    press = {id:id, x:e.clientX, y:e.clientY, lifted:false, moved:false, best:null, el:mb};
+    if (!mac) press.t = setTimeout(function(){
+      if (!press) return;
+      press.lifted = true; suppressClick = true;
+      S.menu = id; S.st = "hold"; S.ref = null; setPlaying(false);
+      render();
+      press.el = document.querySelector('#sk [data-mb="'+id+'"]');
+    }, 420);
+  });
+  document.addEventListener("pointermove", function(e){
+    if (!press) return;
+    var dy = e.clientY - press.y, dx = e.clientX - press.x, far = Math.abs(dy) > 6 || Math.abs(dx) > 6;
+    if (S.dev === "mac" && !press.lifted && far){ press.lifted = true; suppressClick = true; press.el.classList.add("lift"); }
+    if (!press.lifted){ if (far) { clearTimeout(press.t); press = null; } return; }
+    if (!press.moved && far){
+      press.moved = true;
+      // menu closes, drag begins
+      var fr = document.getElementById("skframe"); Array.prototype.slice.call(fr.querySelectorAll(".veil,.hmenu,.pk[data-k='6']")).forEach(function(n){ n.remove(); });
+      var clones = fr.querySelectorAll(":scope > .mb"); Array.prototype.forEach.call(clones, function(c){ c.remove(); });
+      press.el = document.querySelector('#sk [data-mb="'+press.id+'"]'); if (press.el) press.el.classList.add("lift");
+    }
+    if (!press.moved) return;
+    e.preventDefault();
+    var sc = scaleOf();
+    if (press.el) press.el.style.transform = "scale(1.035) translateY(" + (dy / sc) + "px)";
+    var items = blocksIn(), best = null;
+    items.forEach(function(b, i){ if (b.dataset.id === press.id) return; var r = b.getBoundingClientRect(); if (e.clientY > r.top + r.height/2) best = i; });
+    var old = document.querySelector("#sk .dropline"); if (old) old.remove();
+    var d = document.createElement("div"); d.className = "dropline";
+    if (best == null) items[0].before(d); else items[best].after(d);
+    press.best = best == null ? -1 : best;
+    // auto-scroll near edges
+    var scr = document.getElementById("scr"); if (scr){ var r = scr.getBoundingClientRect(); if (e.clientY < r.top + 40) scr.scrollTop -= 12; else if (e.clientY > r.bottom - 60) scr.scrollTop += 12; }
+  }, {passive:false});
+  document.addEventListener("touchmove", function(e){ if (press && press.lifted) e.preventDefault(); }, {passive:false});
+  function endPress(){
+    if (!press) return; clearTimeout(press.t);
+    var p = press; press = null;
+    if (p.lifted && p.moved){
+      var from = S.order.indexOf(p.id), to = p.best, id = S.order.splice(from, 1)[0];
+      var ins = to < 0 ? 0 : (to >= from ? to : to + 1); S.order.splice(ins, 0, id);
+      S.menu = null; S.ctx = null; S.st = "note"; render(); itoast("Moved · its marker moved in the Markdown too");
+      setTimeout(function(){ suppressClick = false; }, 50);
+    } else if (p.lifted && S.dev === "mac"){ render(); setTimeout(function(){ suppressClick = false; }, 50); }
+  }
+  document.addEventListener("pointerup", endPress);
+  document.addEventListener("pointercancel", endPress);
+  document.addEventListener("contextmenu", function(e){
+    var mb = e.target.closest("#sk [data-mb]"); if (!mb) return;
+    e.preventDefault();
+    if (S.dev !== "mac") return;
+    var fr = document.getElementById("skframe"), sc = scaleOf(), fb = fr.getBoundingClientRect();
+    S.ctx = {x:Math.min((e.clientX - fb.left)/sc, 2147-260), y:Math.min((e.clientY - fb.top)/sc, 1155-260), id:mb.dataset.mb}; S.menu = mb.dataset.mb; S.st = "hold"; render();
+  });
+
+  document.getElementById("ref-toggle").addEventListener("change", function(e){ S.showRef = e.target.checked; render(); });
+  document.getElementById("marks-toggle").addEventListener("change", function(e){ S.marks = e.target.checked; render(); });
+  window.addEventListener("resize", fit);
+
+  if (SOLO){
+    document.body.classList.add("solo");
+    var only = SOLO === "ref" ? (S.dev === "phone" ? refPhone(S.ref || "video") : refMac(S.ref || "video")) : (S.dev === "phone" ? skPhone() : S.dev === "ipad" ? skIpad() : skMac());
+    document.body.innerHTML = only;
+    document.body.style.margin = "0"; document.body.style.padding = "0";
+    return;
+  }
+  goState(S.st);
+  window.__S = S; window.__go = goState;
+})();
+</script>
+</body>
+</html>
