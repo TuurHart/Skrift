@@ -258,3 +258,21 @@ struct ImageManifestEntry: Codable, Equatable, Sendable {
     /// and it rides the synced metadata blob to every device.
     var text: String? = nil
 }
+
+/// One video or file inside a note body (D199, D202; rules in `NoteAttachment`). Rides the synced
+/// metadata blob (`attachmentManifest`, ADDITIVE), so no new CloudKit field: the bytes travel as a
+/// `MemoAsset` of kind `video` / `file` named `filename`. Lives here, not beside `NoteAttachment`,
+/// because the extensions compile Shared/Model without Shared/Pipeline.
+struct NoteAttachmentEntry: Codable, Equatable, Sendable {
+    /// `NoteAttachment.Kind.video` / `.file`.
+    var kind: String
+    /// The on-disk + `MemoAsset` filename (`NoteAttachment.filename`).
+    var filename: String
+    /// The name the file came in with: the card's title and the exported file's name.
+    var name: String
+    /// The file's uniform type identifier ("com.adobe.pdf"), for the card's kind label and icon.
+    var uti: String
+    var byteCount: Int
+    /// A video's length, for the duration label (pick 5). nil for a file.
+    var durationSeconds: Double? = nil
+}

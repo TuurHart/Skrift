@@ -2,24 +2,6 @@ import Foundation
 import CoreGraphics
 import UniformTypeIdentifiers
 
-/// One video or file inside a note body (D199, D202). Rides the synced metadata blob
-/// (`MemoMetadata.attachmentManifest`, ADDITIVE), so no new CloudKit field: the bytes travel as a
-/// `MemoAsset` of kind `video` / `file` named `filename`.
-struct NoteAttachmentEntry: Codable, Equatable, Sendable {
-    /// `NoteAttachment.Kind.video` / `.file`.
-    var kind: String
-    /// The on-disk + `MemoAsset` filename (`NoteAttachment.filename`).
-    var filename: String
-    /// The name the file came in with ("fan-loom-bracket-rev-c.dxf"): the card's title and the
-    /// exported file's name.
-    var name: String
-    /// The file's uniform type identifier ("com.adobe.pdf"), for the card's kind label and icon.
-    var uti: String
-    var byteCount: Int
-    /// A video's length, for the duration label (pick 5). nil for a file.
-    var durationSeconds: Double? = nil
-}
-
 /// Videos and files inside a note body, the rules both apps share (D199, D202, mock
 /// Q384-note-attachments). Markers, the manifest lookup, filenames, the small/large state, the
 /// card's words and the export embed all live here once; the phone and the Mac only draw.
@@ -123,7 +105,10 @@ enum NoteAttachment {
         let at = max(0, min(caret, ns.length))
         let spot = at == 0 || ns.length == 0 ? at : BodyV2.spot(after: at - 1, in: ns)
         let marker = literal(kind: kind, number: number)
-        let raw = ns.replacingCharacters(in: NSRange(location: spot, length: 0), with: "\n\n" + marker + "\n\n")
+        // The space that separated the two sentences goes; the block is the break now.
+        var end = spot
+        while end < ns.length, ns.character(at: end) == 32 || ns.character(at: end) == 9 { end += 1 }
+        let raw = ns.replacingCharacters(in: NSRange(location: spot, length: end - spot), with: "\n\n" + marker + "\n\n")
         let stored = BodyV2Text.normalised(raw)
         let found = (stored as NSString).range(of: marker)
         return (stored, found.location == NSNotFound ? spot : found.location)
