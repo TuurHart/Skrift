@@ -109,6 +109,17 @@ enum MacNoteAttachments {
     /// The filenames drawn large: the memo's synced list, else none (a Mac-only note draws small).
     static func large(memo: Memo?) -> [String]? { memo?.metadata?.largeAttachments }
 
+    /// Every block Set All switches: photos, videos and files (`NoteAttachment.allFilenames`).
+    static func allFilenames(memo: Memo) -> [String] {
+        NoteAttachment.allFilenames(attachments: memo.metadata?.attachmentManifest, photos: memo.metadata?.imageManifest)
+    }
+
+    /// Whether the note's ⋯ menu offers Set All (it holds a photo, video or file).
+    static func hasBlocks(memo: Memo?) -> Bool {
+        guard let memo else { return false }
+        return !allFilenames(memo: memo).isEmpty
+    }
+
     /// Switch one attachment, or every one (`filename` nil = the ⋯ menu's Set All).
     static func setSize(_ size: NoteAttachment.Size, filename: String?, memo: Memo, allFilenames: [String],
                         context: ModelContext?) {
@@ -118,7 +129,11 @@ enum MacNoteAttachments {
         memo.metadata = meta
         memo.markEdited(stampWords: false)
         try? context?.save()
+        NotificationCenter.default.post(name: sizesChanged, object: nil)
     }
+
+    /// Posted after a size switch, so an open body redraws its blocks (the ⋯ menu is another view).
+    static let sizesChanged = Notification.Name("SkriftNoteBlockSizesChanged")
 
     // MARK: sync heal
 

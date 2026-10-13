@@ -139,6 +139,13 @@ enum NotePhotoPayload {
         }
     }
 
+    /// Non-picture files named on the pasteboard (D199): each becomes a video or file block.
+    static func attachmentFiles(_ pb: NSPasteboard) -> [URL] {
+        let urls = (pb.readObjects(forClasses: [NSURL.self],
+                                   options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+        return urls.filter { MacNoteAttachments.isAttachment($0) && !$0.hasDirectoryPath }
+    }
+
     /// Raw picture data (a screenshot, an image copied from a page).
     static func imageData(_ pb: NSPasteboard) -> Data? {
         pb.data(forType: .png) ?? pb.data(forType: .tiff)

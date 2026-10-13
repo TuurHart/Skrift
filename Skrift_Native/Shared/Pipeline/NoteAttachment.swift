@@ -136,7 +136,7 @@ enum NoteAttachment {
 
     // MARK: Small / large (D202: Apple's switch, SMALL by default, synced per attachment)
 
-    enum Size: String, Equatable { case small, large }
+    enum Size: String, Equatable, Hashable { case small, large }
 
     /// The size an attachment draws at. `large` = `MemoMetadata.largeAttachments`.
     static func size(of filename: String, large: [String]?) -> Size {
@@ -155,6 +155,8 @@ enum NoteAttachment {
         size == .small || filenames.isEmpty ? nil : filenames
     }
 
+    /// The Mac ⋯ submenu holding the two, Apple's name for it.
+    static let attachmentViewTitle = "Attachment View"
     static let setAllSmallTitle = "Set All to Small"
     static let setAllLargeTitle = "Set All to Large"
     static let viewSmallTitle = "View as Small"
