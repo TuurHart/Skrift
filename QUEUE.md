@@ -2861,7 +2861,7 @@ gate+: yes
 do: On the phone (compact width) the open note hides the tab bar (`.toolbar(.hidden, for: .tabBar)` on the note destination — Q382 confirmed it works); it comes back on the list. The edge-swipe back and '‹ Notes' (Q382's NoteBackButton + SwipeBackRestorer) return to the list. iPad unchanged. Quick note, Library player and share sheet unchanged. Phone UI test `NoteHidesTabBarUITests`: open a note → no tab bar; back → tab bar. Screenshot before/after into plan/reads/editor-apple/tabbar-*.png.
 check: `test $(ls plan/reads/editor-apple/tabbar-*.png | wc -l) -ge 2`
 
-### Q388 [auto] (doing) Mac Release signs for the CloudKit Production environment (icloud-container-environment)
+### Q388 [auto] (done) Mac Release signs for the CloudKit Production environment (icloud-container-environment)
 spec: D201
 needs: -
 gate+: no
@@ -4189,3 +4189,4 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 - 2026-10-13 17:36 Q389 added
 - 2026-10-13 17:36 Q389 -> tuur — awaiting sitting
 - 2026-10-13 17:36 Q388 -> doing — worker out
+- 2026-10-13 17:44 Q388 -> done — gate 73s @5efc20c4
