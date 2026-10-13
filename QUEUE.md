@@ -2593,7 +2593,7 @@ gate+: no
 do: 2026-10-11 the gate went red on SkriftDesktopTests/MacMainThreadCostTests.testBacklinkedIDsOneCallPerRenderStaysUnderBudget: 204.66 ms against a 200 ms budget, while other xcodebuild jobs ran (the change under test, Q344, was phone-only). A wall-clock assertion in the per-merge gate fails on load, not on code. Turn it into a work-counter assertion (scans per call, like the D186 counter tests), or move the timing check to gate-full with a margin. This file is protected: propose the change and list it for Tuur's approval rather than editing it.
 check: `./gate.sh`
 
-### Q349 [tuur] (tuur) mockup: the notes list next to Apple Notes, phone and Mac
+### Q349 [tuur] (done) mockup: the notes list next to Apple Notes, phone and Mac
 spec: D190 D193 C113
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
@@ -2657,7 +2657,7 @@ check: `! grep -rq 'ContinueListening' Skrift_Native --include='*.swift' && perl
 spec: D190 D193 C113
 needs: Q349 Q357 Q361
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, and D194's picks (no importance on rows; folder line for Portfolio only; one card per group; 16 / 14; pills only while something is happening; an unrated note shows a small grey dot + "Unrated" where importance used to sit, rated notes show nothing there), on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/list-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
 ### Q359 [auto] (todo) build the phone and iPad note and toolbar per the Q350 mock
@@ -4041,3 +4041,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 13:22 Q349 -> tuur — built @7de0e5e5, gate 36s — awaiting sitting
 - 2026-10-13 13:53 Q375 -> tuur — awaiting sitting (Dev 186 installed)
 - 2026-10-13 13:53 Q376 -> tuur — awaiting sitting (Dev 186 installed)
+- 2026-10-13 13:55 Q349 -> done — signed: 'this looks actually really fucking good' + D194 picks; unrated = grey dot + word in the importance spot
