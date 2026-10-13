@@ -290,7 +290,9 @@ enum NoteRowText {
     static func lines(title: String?, snippet: String?, busy: String? = nil) -> Lines {
         let flat = snippet.map(oneLine)?.nilIfEmpty
         if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
-            return Lines(title: t, line: flat, busy: flat == nil ? busy.map { "\($0)…" } : nil)
+            // An image capture's title IS its annotation: never print the same words twice.
+            let line = flat == t ? nil : flat
+            return Lines(title: t, line: line, busy: line == nil ? busy.map { "\($0)…" } : nil)
         }
         guard let flat else {
             return Lines(title: SourceKind.voiceMemo.emptyTitleFallback, line: nil, busy: busy.map { "\($0)…" })

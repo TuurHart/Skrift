@@ -105,6 +105,20 @@ final class ListGroupingTests: XCTestCase {
         XCTAssertEqual(bucket(d), "September")
     }
 
+    // MARK: - The row's reliable title line (Q349 pick 10)
+
+    func testUntitledRowTakesItsFirstSentenceAsTitle() {
+        let l = NoteRowText.lines(title: nil, snippet: "Morning pages. Slept badly again, the neighbours were drilling.")
+        XCTAssertEqual(l.title, "Morning pages")
+        XCTAssertEqual(l.line, "Slept badly again, the neighbours were drilling.")
+    }
+
+    func testTitledRowKeepsItsTitleAndNeverRepeatsIt() {
+        XCTAssertEqual(NoteRowText.lines(title: "Groceries", snippet: "Oat milk, eggs").line, "Oat milk, eggs")
+        XCTAssertNil(NoteRowText.lines(title: "Whiteboard", snippet: "Whiteboard").line)
+        XCTAssertEqual(NoteRowText.lines(title: nil, snippet: nil, busy: "Transcribing").busy, "Transcribing…")
+    }
+
     func testRecentlyEditedGroupsByEditDay() {
         let m = Memo(recordedAt: at(2026, 9, 1), createdAt: at(2026, 9, 1), editedAt: at(2026, 10, 13, 8, 0))
         let d = NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: true)

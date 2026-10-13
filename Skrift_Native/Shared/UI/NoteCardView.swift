@@ -243,7 +243,8 @@ struct NoteCardView: View {
     @ViewBuilder private var lineThree: some View {
         let showsFolder = model.portfolio && !model.locked
         let clock = model.locked ? nil : (model.fadingLine ?? model.quietLine)
-        let media = model.locked ? nil : model.media
+        // A bare link's line 2 is already its domain: the marker would repeat it.
+        let media = model.locked || model.media?.text == text.line ? nil : model.media
         if showsFolder || clock != nil || media != nil {
             HStack(spacing: 5) {
                 if showsFolder {
