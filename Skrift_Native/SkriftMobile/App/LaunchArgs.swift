@@ -36,6 +36,11 @@ enum LaunchFlags {
     /// centered circle — distorts to an ellipse if the thumbnail squishes aspect),
     /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.
     static var seedVideoMemo: Bool { args.boolFlag("-seedVideoMemo") }
+    /// Q391 (DEBUG): ONE note holding every block of mock Q384 — text, a LARGE video (a short
+    /// real .mov), a photo, a DXF card and a PDF card (`NoteAttachmentFixture`). With
+    /// `-seedAttachmentLarge` every block starts large (Set All to Large).
+    static var seedAttachmentMemo: Bool { args.boolFlag("-seedAttachmentMemo") }
+    static var seedAttachmentLarge: Bool { args.boolFlag("-seedAttachmentLarge") }
     /// Seed back-dated memos with locations for the Journal tab (Looking-back
     /// cards, calendar dot density, place clusters) — screenshot verification.
     static var seedJournal: Bool { args.boolFlag("-seedJournal") }
