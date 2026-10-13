@@ -16,6 +16,9 @@ import SwiftData
 // `MemoCloudStore.container` (the CloudKit one) is never evaluated.
 //
 // Exit codes: 0 no drop, 1 a count dropped, 2 usage or open error, 3 refused path.
+//
+// Q399: `--merge-dry-run --old <copy> --prod <copy> --mac-device-id <id>` runs the Dev-era merge
+// (DevEraMerge) on two copies instead; see MergeDryRun.swift.
 
 // MARK: - Arguments
 
@@ -26,13 +29,22 @@ struct CopyTestArgs {
     var corpus: URL?
     var simulateDrop = false
     var requireNonzero = false
+    // Q399: the merge dry run (MergeDryRun.swift).
+    var mergeDryRun = false
+    var old: URL?
+    var prod: URL?
+    var macDeviceIDs: Set<String> = []
+    var makeMergeSynthetic: URL?
+    var phoneBeforeSplit = 2
 
     init(_ argv: [String]) {
         var i = 1
-        func next() -> URL? {
+        func nextString() -> String? {
             i += 1
-            guard i < argv.count else { return nil }
-            return URL(fileURLWithPath: (argv[i] as NSString).expandingTildeInPath)
+            return i < argv.count ? argv[i] : nil
+        }
+        func next() -> URL? {
+            nextString().map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
         }
         while i < argv.count {
             switch argv[i] {
@@ -42,6 +54,13 @@ struct CopyTestArgs {
             case "--corpus": corpus = next()
             case "--simulate-drop": simulateDrop = true
             case "--require-nonzero": requireNonzero = true
+            case "--merge-dry-run": mergeDryRun = true
+            case "--old": old = next()
+            case "--prod": prod = next()
+            case "--mac-device-id":
+                if let id = nextString(), !id.isEmpty { macDeviceIDs.insert(id) }
+            case "--make-merge-synthetic": makeMergeSynthetic = next()
+            case "--phone-before-split": phoneBeforeSplit = nextString().flatMap(Int.init) ?? phoneBeforeSplit
             default: copyTestFail(2, "unknown argument \(argv[i])")
             }
             i += 1
@@ -343,6 +362,16 @@ enum StoreCopyTestMain {
             guard let corpus = args.corpus else { copyTestFail(2, "--make-synthetic needs --corpus <test-fixtures/corpus>") }
             makeSynthetic(in: dir, corpus: corpus)
             exit(0)
+        }
+        if let dir = args.makeMergeSynthetic {
+            MergeSynthetic.make(in: dir, phoneBeforeSplit: args.phoneBeforeSplit)
+            exit(0)
+        }
+        if args.mergeDryRun {
+            guard let old = args.old, let prod = args.prod else {
+                copyTestFail(2, "usage: StoreCopyTest --merge-dry-run --old <copy>/memo_cloud.store --prod <copy>/memo_cloud.store --mac-device-id <id>")
+            }
+            MergeDryRun.run(old: old, prod: prod, macDeviceIDs: args.macDeviceIDs, simulateDrop: args.simulateDrop)
         }
 
         guard let local = args.local else {
