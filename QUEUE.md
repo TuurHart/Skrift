@@ -2625,7 +2625,7 @@ gate+: yes
 do: Per D90 and the Q6 mock "Episode player" screen: a pasted or shared Apple Podcasts link resolves to the show's RSS feed via the iTunes lookup API; a Spotify link resolves via its oEmbed show name + iTunes search; a raw RSS URL is used as is. Parse the feed, pick the episode, download its MP3 enclosure into Library as kind `episode` (title, show, date, artwork). A show with no public feed is refused with one plain sentence (D14), never scraped. Playback reuses the book player and capture ("Add note") unchanged. Fixtures: a saved copy of the NRC Het Uur feed (`https://rss.art19.com/het-uur`) under test-fixtures/, no network in tests. Phone test `PodcastFeedTests` (feed parse, enclosure pick, Apple-link → feed URL, Spotify-exclusive refusal). Try the D144 links by hand once and note the result in the commit. Screenshot the episode player, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PodcastFeedTests`
 
-### Q354 [auto] (doing) Library: PDFs from the share sheet, a PDF reader, select to Add note
+### Q354 [auto] (stuck) Library: PDFs from the share sheet, a PDF reader, select to Add note
 spec: D126 D135 D138 C229
 needs: Q352
 gate+: yes
@@ -2643,7 +2643,7 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 spec: D90 D127 D138 D177 C229
 needs: Q353 Q354
 gate+: yes
-do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q353: a podcast link shared from another app goes to Library (not a note), and the Q6 player's 'notes from this episode' row. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
+do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q354: a PDF capture note labels and exports as a PDF quote (SourceKind case + frontmatter `source:`), not 'Audiobook quote'; the 'N notes from this PDF' row under the reader. Also from Q353: a podcast link shared from another app goes to Library (not a note), and the Q6 player's 'notes from this episode' row. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests`
 
 ### Q357 [auto] (done) delete the Continue-listening card and its code
@@ -3988,3 +3988,4 @@ ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q
 - 2026-10-13 10:57 Q353 -> done — gate 65s @53c3e7a2
 - 2026-10-13 10:57 Q371 added
 - 2026-10-13 10:58 Q371 -> tuur — awaiting sitting
+- 2026-10-13 11:02 Q354 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
