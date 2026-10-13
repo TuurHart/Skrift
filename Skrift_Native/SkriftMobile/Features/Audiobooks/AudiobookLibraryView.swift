@@ -27,6 +27,8 @@ struct AudiobookLibraryView: View {
     private var sort: BookSort { BookSort(rawValue: sortRaw) ?? .recentlyPlayed }
 
     @State private var showImporter = false
+    /// Q353: the "Podcast or episode" door: paste a link, Skrift finds the public feed.
+    @State private var showPodcastSheet = false
     @State private var importing = false
     @ObservedObject private var openInBridge = BookFileImportBridge.shared
     @State private var openInQueue: [URL] = []
@@ -164,6 +166,10 @@ struct AudiobookLibraryView: View {
         .fullScreenCover(isPresented: $showPlayer) {
             AudiobookPlayerView()
         }
+        // Q353: the podcast door. The finished episode joins the shelf like any other source.
+        .sheet(isPresented: $showPodcastSheet) {
+            PodcastLinkSheet { episode in store.add(episode) }
+        }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
         }
@@ -237,8 +243,15 @@ struct AudiobookLibraryView: View {
             ScreenTitle("Library")
             Spacer()
 
-            Button {
-                showImporter = true
+            Menu {
+                Button { showImporter = true } label: {
+                    Label("Audiobook from Files…", systemImage: "books.vertical")
+                }
+                .accessibilityIdentifier("library-add-audiobook")
+                Button { showPodcastSheet = true } label: {
+                    Label("Podcast link…", systemImage: "antenna.radiowaves.left.and.right")
+                }
+                .accessibilityIdentifier("library-add-podcast")
             } label: {
                 if importing {
                     ProgressView()
@@ -253,7 +266,7 @@ struct AudiobookLibraryView: View {
             }
             .disabled(importing)
             .accessibilityIdentifier("library-import")
-            .accessibilityLabel("Add to Library — import an audiobook from Files; select every part of a multi-file book at once")
+            .accessibilityLabel("Add to Library — an audiobook from Files, or a podcast episode from a link")
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
@@ -405,7 +418,8 @@ struct AudiobookLibraryView: View {
     private func openDoor(_ door: LibraryDoor) {
         switch door {
         case .audiobook: showImporter = true
-        case .podcast, .epubOrPDF, .article: break   // hidden until Q353-Q355 land their importers
+        case .podcast: showPodcastSheet = true
+        case .epubOrPDF, .article: break   // hidden until Q354/Q355 land their importers
         }
     }
 

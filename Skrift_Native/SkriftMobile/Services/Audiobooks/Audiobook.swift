@@ -89,6 +89,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// this same Codable blob, so the synced carrier record gains no field and CloudKit needs no
     /// schema change; nil (every record written before Q352) reads as a book via `sourceKind`.
     var kind: LibrarySourceKind? = nil
+    /// Q353: an episode's release date from its feed (nil for every book). Rides in the same
+    /// blob as `kind`, so the synced carrier needs no schema change.
+    var publishedAt: Date? = nil
 
     /// The kind to show and branch on: nil means a book.
     var sourceKind: LibrarySourceKind { kind ?? .book }
@@ -215,7 +218,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         // (the Odyssey device report). The sync blob still never carries them: every
         // send path encodes `sanitizedForSync()`, which nils all of them first.
         case epubFilename, epubFilenames, epubChapters
-        case kind
+        case kind, publishedAt
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -233,6 +236,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         epubFilename = try c.decodeIfPresent(String.self, forKey: .epubFilename)
         epubFilenames = try c.decodeIfPresent([String].self, forKey: .epubFilenames)
         epubChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .epubChapters)
+        publishedAt = try c.decodeIfPresent(Date.self, forKey: .publishedAt)
         // An unknown raw value (a kind a newer build wrote) reads as nil = book, never a failed decode.
         kind = (try? c.decodeIfPresent(LibrarySourceKind.self, forKey: .kind)) ?? nil
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
@@ -274,6 +278,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(epubFilenames, forKey: .epubFilenames)
         try c.encodeIfPresent(epubChapters, forKey: .epubChapters)
         try c.encodeIfPresent(kind, forKey: .kind)
+        try c.encodeIfPresent(publishedAt, forKey: .publishedAt)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
