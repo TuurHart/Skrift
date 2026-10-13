@@ -2813,7 +2813,7 @@ gate+: yes
 do: Remove means delete (no hidden or kept-just-in-case code). Known leftovers from the workers' findings in plan/RUN.md: ChipFlow.swift + ChipLineBreakerTests + Snapshot.renderCardChips (Q358, row draws no chips); NoteCardModel fields balls/chips/quiet/quietLine kept only for parity tests (Q358) — move the parity tests onto the drawn fields and delete the dead ones; the old phone Aa grid / header chip views and the Mac header audio + split-speakers switches replaced by Q359/Q360; `.feedbackScreen("Books")` → "Library" with FeedbackQ341ScreenTagUITests (Q352); the Mac always-on status pill code (Q358). Then run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on SkriftMobile and the full SkriftDesktop scheme, and delete every finding introduced since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment, never delete a synced field). Protected tests: only ported or deleted with the code they covered (D163; list them as needs hand-merge). Update FEATURES.md rows that name deleted files. Write the before/after counts into plan/periphery.md. Then the twin pass (Tuur 2026-10-13: "keep code shared as much as possible… I don't want drift"; C239, feedback_shared_code_first): run `./plan/twin-check.sh --report` and read today's new phone/Mac pairs by hand too, because the checker only matches names. Known candidates: phone `applyMarkdownStyling` (NoteBodyView) vs Mac BodyTextView restyle — move WHICH ranges get dimmed/styled into one Shared function both text views consume; phone NoteFormatPanel vs Mac MacFormatPopover — one Shared table of Aa items (phone shows the D115 subset, Mac/iPad the full D197 list); phone vs Mac list-row sizes and the Unrated marker — one source in NoteCardStyle; the article/PDF/podcast source labels and link lines — SourceKind only. Single-source each in Skrift_Native/Shared/ in this item; anything left on purpose carries `twin-ok: <reason>`. Re-baseline plan/twins.baseline only if the count went DOWN.
 check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift' && grep -q 'Q380\|2026-10' plan/periphery.md`
 
-### Q381 [auto] (stuck) article reader + article note match the signed Q351 mock (Q355's difference list)
+### Q381 [auto] (done) article reader + article note match the signed Q351 mock (Q355's difference list)
 spec: D195 D138
 needs: Q355
 gate+: no
@@ -4119,3 +4119,4 @@ check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 
 - 2026-10-13 15:25 Q379 -> doing — worker out
 - 2026-10-13 15:25 Q382 -> doing — worker out
 - 2026-10-13 15:37 Q381 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
+- 2026-10-13 15:51 Q381 -> done — gate 60s @346beda6
