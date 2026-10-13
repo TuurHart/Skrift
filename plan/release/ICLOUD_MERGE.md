@@ -53,7 +53,7 @@ Production-pinned build.
 | Id | What | Why |
 |---|---|---|
 | A1 | **Backfill guard.** `MacMemoAuthor.backfill` (`MacMemoAuthor.swift:225`, run on every reconcile from `MemoCloudReconciler.swift:362`) may author a `Memo` only for a row with `isLocalCapture` true, and only once the cloud store has finished its first full import since it was created (an `NSPersistentCloudKitContainer.eventChangedNotification` import that ended with success, stamped in settings). Test: a fresh, empty cloud context plus phone-origin `PipelineFile`s authors nothing. | Today a fresh store makes the Mac author a Mac-shaped twin of **every** phone note it has a row for, because none of their `Memo`s have downloaded yet. Those twins upload and collide with the phone's records as divergent same-id pairs. This is the biggest code risk in the whole switch, merge or no merge. |
-| A2 | **Merge engine** `Shared/Pipeline/DevEraMerge.swift`: `plan(old:prod:splitDate:macDeviceIDs:)` returns counts plus a list of actions; `apply(_:into:)` performs them in batches of 25 notes per save. Rules below. Unit tests on synthetic stores. | Deterministic, id-based, testable without CloudKit. |
+| A2 | **Merge engine** `SkriftDesktop/Pipeline/Ingest/DevEraMerge.swift` (built Q398, Mac-only, tests `DevEraMergeTests`): `plan(old:prod:splitDate:macDeviceIDs:)` returns counts plus a list of actions; `apply(_:from:into:firstImportDone:)` performs them in batches of 25 notes per save. Rules below. Unit tests on synthetic stores. | Deterministic, id-based, testable without CloudKit. |
 | A3 | **Dry-run tool.** `StoreCopyTest --merge-dry-run --old <copy> --prod <copy>`: runs plan and apply on two copies with `cloudKitDatabase: .none`, prints counts before and after (never a title or text), exits 1 on any check failure. `plan/release/mac-store-copytest.sh --merge <old store dir>` copies both (old store from its backup folder, Production store from the live app folder, app quit) into a fresh temp dir and runs it. Self-test on the synthetic corpus. | The dry run below. Reuses the Q367 guard (marker file, protected roots, exit 3). |
 | A4 | **One-shot trigger in the Release app.** If `~/Library/Application Support/Skrift/merge-from-dev/memo_cloud.store` exists and the first-import stamp from A1 is set, show one alert with the dry-run counts ("Bring in N notes and M polishes from the old Mac store?"). Yes runs `apply`, writes `merge-report.txt` (counts and inserted ids only) and renames the folder to `merged-<date>`. No leaves it. | Release builds cannot take DEBUG launch arguments. One alert, no new screen. |
 
@@ -101,6 +101,16 @@ on evidence:
   Mac `setTitle` after S shows up).
 - **Rating:** copied with the content case above only when Production's rating is 0 (never
   overwrite a rating Production has, since the phone's rating leaves no stamp). Otherwise diverged.
+  A rating difference alone is never a conflict.
+- **Refusals:** `apply` throws before writing anything when the Q397 first-import stamp is not set
+  for the live store, or when more than 20 old-only phone notes predate S.
+- **Files:** `merge-report.txt` (counts and ids only) and `merge-undo.json` (the before/after
+  values of every changed field and enhancement, plus inserted ids). `DevEraMerge.unmerge` replays
+  the journal: inserted notes go to the trash, inserted enhancement rows are deleted, changed rows
+  get their before values back; a row edited again since the merge is left alone and listed. The
+  undo file holds note text, so it stays on the Mac next to the report and is never pasted.
+- The old store is opened only as a copy (`openOldStoreCopy`, CloudKit off); the files in
+  `merge-from-dev/` are never opened.
 - **Trash:** old `deletedAt` > S, Production alive and not touched since (`lastEditedAt`, `keptAt`
   both earlier) = copy `deletedAt` + `trashSeenAt`. Old alive with `keptAt` > S and after
   Production's pre-S `deletedAt` = a Mac restore, copied. Anything else that differs = diverged.
