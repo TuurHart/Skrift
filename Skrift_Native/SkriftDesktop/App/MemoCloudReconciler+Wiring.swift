@@ -42,7 +42,13 @@ extension MemoCloudReconciler {
             guard let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
                     as? NSPersistentCloudKitContainer.Event else { return }
             let importDone = event.endDate != nil && event.type == .import && event.succeeded
-            if importDone { Task { @MainActor in reconcileSoon() } }
+            if importDone {
+                // Q397 (ICLOUD_MERGE A1): the first finished import unlocks the backfill for
+                // this store file (idempotent after that).
+                CloudFirstImport.markDone(storeURL: AppPaths.memoCloudStoreFile,
+                                          stampURL: AppPaths.memoCloudFirstImportStamp)
+                Task { @MainActor in reconcileSoon() }
+            }
         }
 
         // App became active — the desktop analogue of the phone's foreground sweep.
@@ -53,6 +59,20 @@ extension MemoCloudReconciler {
         }
 
         Task { @MainActor in _ = reconcile() }   // launch sweep — async, doesn't block App.init()
+    }
+
+    /// Q397 (ICLOUD_MERGE A1): may the reconcile's backfill author yet? True once the cloud
+    /// store has finished its first CloudKit import (`CloudFirstImport` stamp). DEBUG only:
+    /// `-assumeFirstCloudImport` forces it on for headless runs, and the CloudKit-off perf
+    /// library never imports, so it counts as done there.
+    static var firstCloudImportDone: Bool {
+        #if DEBUG
+        if PerfLibrary.isActive || ProcessInfo.processInfo.arguments.contains("-assumeFirstCloudImport") {
+            return true
+        }
+        #endif
+        return CloudFirstImport.isDone(storeURL: AppPaths.memoCloudStoreFile,
+                                       stampURL: AppPaths.memoCloudFirstImportStamp)
     }
 
     /// One pending sweep, re-armed per trigger: CloudKit import events land in
@@ -117,7 +137,8 @@ extension MemoCloudReconciler {
         do {
             pass = try MemoCloudReconciler.pass(from: cloudContext, into: local, people: people,
                                                 author: settings.authorName, thisDeviceID: thisDevice,
-                                                deferNewIngest: deferIngest)
+                                                deferNewIngest: deferIngest,
+                                                firstImportDone: firstCloudImportDone)
         } catch {
             AppLog.cloudkit.error("reconcile: pass FAILED: \(error)")
             return 0
