@@ -99,7 +99,8 @@ struct AudiobookPlayerView: View {
         // Q273 / Q6 mock: a note's jump-back says the book's own place stays put.
         .task(id: session.isJumpBack) {
             if session.isJumpBack, let book = session.book {
-                showToast(BookNotesJoin.jumpToast(bookTitle: book.title, position: session.currentTime),
+                showToast(BookNotesJoin.jumpToast(title: book.title, position: session.currentTime,
+                                                  kind: book.sourceKind),
                           seconds: 2.8)
             }
         }

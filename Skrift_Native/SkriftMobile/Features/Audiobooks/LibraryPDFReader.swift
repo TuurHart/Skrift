@@ -38,7 +38,9 @@ struct LibraryPDFReaderView: View {
         }
         .background(Color.skBg.ignoresSafeArea())
         .onChange(of: model.page) { _, page in
-            if jumpBackPage == nil, model.ready { LibraryPDF.savePage(page, bookID: book.id, store: store) }
+            if LibraryPDF.savesPage(jumpBackPage: jumpBackPage, ready: model.ready) {
+                LibraryPDF.savePage(page, bookID: book.id, store: store)
+            }
         }
         .fullScreenCover(item: $capture, onDismiss: { model.clearSelection() }) { request in
             PDFCaptureView(book: book, request: request) { capture = nil }
