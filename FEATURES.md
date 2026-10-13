@@ -123,6 +123,19 @@ phone app byte-for-byte, incl. iPad Split View); prose capped at a reading measu
 (`DesignSystem/Adaptive.swift`). Suite 885/0 + iPad Pro 13-inch sim build green 2026-07-22;
 **Tuur review + real-iPad round owed.**
 
+**Q379 (2026-10-13, signed mock `mocks/Q378-ipad-apple.html`, D193/D197/D198):** the Apple-Notes
+iPad layout. Tabs option A: Notes · Library · Review · Settings as a slim glass control at the top
+of the list column (`Features/Root/IPadTabControl.swift`), system tab bar hidden at regular width,
+the tabs leave with the list. List header "Notes / N notes" + glass Select; 44 pt glass ◧. The note
+runs the FULL pane width (48 pt margins beside the list, 89 pt alone; the 640 cap is gone for notes)
+on white paper. Top bar: Aa · ☑ · 📎 · link (`MemoDetail/IPadNoteToolbar.swift`) · Connections ·
+primary verb · ⋯; the keyboard bar stays away at regular width. 📎 = Apple's attach menu minus
+Record Audio under "Add to this note" (Scan Document, Take Photo or Video, Choose Photo or Video,
+Attach File — photos only today, inserted at the caret). Aa = the phone's `NoteFormatPanel` with the
+FULL set from the shared `Shared/Pipeline/FormatCommand.swift` (the Mac's Aa reads the same list).
+Rules `DesignSystem/IPadLayout.swift`, tests `IPadLayoutTests`; screenshots vs mock
+`plan/reads/ipad-apple/compare-*.png`. Real-iPad round owed.
+
 | Capability | Mobile (iPad regular width) | Key files | Notes |
 |---|---|---|---|
 | Notes = list ↔ note split | ✅ | `MemosListView.swift` (NavigationSplitView, selection, `-selectFirstMemo` rig), `Features/Root/AppTabView.swift` (`.sidebarAdaptable`), `TabSelectionBridge.swift` | list column = phone list verbatim + bottom chrome; detail = the note or a quiet placeholder; list column is a FIXED 375 pt (`Adaptive.listColumnWidth` via `slidingColumn` — it slides open/shut, it is not draggable). ✅ v2 m1b-B (2026-07-23): at regular the list is a TRIAGE surface — unrated live notes render quiet (dim + hollow ○ + spine one-liner; status pill outranks), count line taps the Not-rated filter; **rating IS the flag** — no Flag verb (the Mac's quiet-row Flag menu item removed same day; the significance-card microcopy "Flagged — …" → "Rated — …" and the Mac triage help "flag one" → "rate one" in fix wave `13269c1`, guarded by a no-flag-language test); compact = phone notebook byte-for-byte |
