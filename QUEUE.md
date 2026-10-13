@@ -2618,14 +2618,14 @@ gate+: yes
 do: Build the phone tab to `Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html` (signed, D134/D135): tab label "Library" (`AppTabView.swift`), the shelf of tiles where a tap plays/opens and the '❝ N' pill opens that source's notes, the empty tab's four doors (audiobook, podcast, ePub or PDF, article). Add an optional `kind` (book, episode, pdf, article; nil = book) to `Audiobook` INSIDE the existing synced carrier blob, so no CloudKit schema change; old entries decode as books. Doors for kinds not built yet open their importer once Q353-Q355 land; until then a door shows nothing dead (hide it). iPad shelf grid stays (C229). Phone test `LibraryShelfTests` (kind round-trips, nil decodes as book, empty state lists four doors). Screenshots of shelf + empty tab against the mock, LOOK, into `plan/reads/library-tab/`. FEATURES.md row.
 check: `test $(ls plan/reads/library-tab/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryShelfTests`
 
-### Q353 [auto] (todo) Library: podcast episodes from a link or RSS feed, with the episode player
+### Q353 [auto] (doing) Library: podcast episodes from a link or RSS feed, with the episode player
 spec: D90 D144 C229
 needs: Q352
 gate+: yes
 do: Per D90 and the Q6 mock "Episode player" screen: a pasted or shared Apple Podcasts link resolves to the show's RSS feed via the iTunes lookup API; a Spotify link resolves via its oEmbed show name + iTunes search; a raw RSS URL is used as is. Parse the feed, pick the episode, download its MP3 enclosure into Library as kind `episode` (title, show, date, artwork). A show with no public feed is refused with one plain sentence (D14), never scraped. Playback reuses the book player and capture ("Add note") unchanged. Fixtures: a saved copy of the NRC Het Uur feed (`https://rss.art19.com/het-uur`) under test-fixtures/, no network in tests. Phone test `PodcastFeedTests` (feed parse, enclosure pick, Apple-link → feed URL, Spotify-exclusive refusal). Try the D144 links by hand once and note the result in the commit. Screenshot the episode player, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PodcastFeedTests`
 
-### Q354 [auto] (todo) Library: PDFs from the share sheet, a PDF reader, select to Add note
+### Q354 [auto] (doing) Library: PDFs from the share sheet, a PDF reader, select to Add note
 spec: D126 D135 D138 C229
 needs: Q352
 gate+: yes
@@ -2695,7 +2695,7 @@ gate+: yes
 do: From plan/perf2/f-mac-ui.md M4 M6 M6b M13 M14; re-check each against today's code first. Title keystrokes stay local and commit on the same debounce as the body (one CloudKit save + one sidebar notification per pause, not per key); `BodyTextView.updateNSView` restyles only when its real inputs changed (no full restyle on every SwiftUI update) and never puts back older model text inside the 1 s debounce (M6b, the Q63 data-loss risk); `MacCloudEditSync.flush` runs its Sanitiser passes off the main actor; speaker spines compute turn rects only when the text or turns change. New counter test `MacTypingWorkTests` in SkriftDesktopTests: 20 title keystrokes cause at most one store save; an unrelated SwiftUI update does not restyle; an update inside the debounce keeps the typed text. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacTypingWorkTests.swift`
 
-### Q364 [auto] (doing) Mac perf: the reconcile sweep skips monologue blobs, stops scanning by id, ingests off the main thread
+### Q364 [auto] (done) Mac perf: the reconcile sweep skips monologue blobs, stops scanning by id, ingests off the main thread
 spec: D191 D186 C278 C281
 needs: -
 gate+: yes
@@ -3972,3 +3972,6 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:27 Q365 -> doing — worker out
 - 2026-10-13 10:33 Q352 -> done — gate 78s @1f68eade
 - 2026-10-13 10:33 Q357 -> done — gate pass (batched with Q352); ContinueListening grep clean
+- 2026-10-13 10:37 Q353 -> doing — worker out
+- 2026-10-13 10:37 Q354 -> doing — worker out
+- 2026-10-13 10:38 Q364 -> done — gate 42s @ee44b630
