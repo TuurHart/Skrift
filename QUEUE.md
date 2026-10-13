@@ -2786,14 +2786,14 @@ do: -
 check: Tuur used the Mac on Dev; slow spots became items.
 ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click through the list, search, open and play notes, type in a title and a body, switch apps and come back, run Process once. Anything still slow or behaving oddly?
 
-### Q377 [auto] (todo) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
+### Q377 [auto] (doing) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
 spec: D197 D190
 needs: -
 gate+: yes
 do: D197 on top of Q358's list (Shared/Model/MemoDate.swift `MemoDate.bucket`, Shared/UI/NotesListModel.swift, phone ListDerivedCache, Mac MacListDerivedCache): (1) add a Yesterday bucket between Today and Previous 7 Days (Europe/Lisbon calendar day); (2) sections group by the note's recorded date by default, or by its added date when the Recorded/Added date picker (Q105, C70) is on Added; within a section, newest of that same date first — an old note imported today lands in its real month. Same rule phone, iPad and Mac from the one shared bucket function. Extend ListGroupingTests (phone) and MacListWorkTests stays green (port only if needed, D163). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q378 [tuur] (doing) mockup: iPad list + open note next to Apple Notes on iPad
+### Q378 [tuur] (tuur) mockup: iPad list + open note next to Apple Notes on iPad
 spec: D193 D194 D196 D197
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
@@ -4090,3 +4090,5 @@ check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift'
 - 2026-10-13 14:26 Q378 -> doing — mockup out
 - 2026-10-13 14:40 Q380 added
 - 2026-10-13 14:44 Q360 -> done — gate 43s @0303864c
+- 2026-10-13 14:44 Q377 -> doing — worker out
+- 2026-10-13 14:55 Q378 -> tuur — built @74e2fe13, gate 41s — awaiting sitting
