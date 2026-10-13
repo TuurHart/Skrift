@@ -332,6 +332,11 @@ func makeSynthetic(in dir: URL, corpus: URL) {
 
 enum StoreCopyTestMain {
     static func run() -> Never {
+        // Counts only: keep Core Data's SQL logging off whatever the defaults say (SQLDebug 3+
+        // would echo bound row values, i.e. note text, to stderr).
+        UserDefaults.standard.setVolatileDomain(["com.apple.CoreData.SQLDebug": 0,
+                                                 "com.apple.CoreData.MigrationDebug": 0],
+                                                forName: UserDefaults.argumentDomain)
         let args = CopyTestArgs(CommandLine.arguments)
 
         if let dir = args.makeSynthetic {
