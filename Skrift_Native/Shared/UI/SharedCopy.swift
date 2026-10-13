@@ -190,6 +190,10 @@ enum ListChrome {
     static let headerSize: Double = 11.5
     static let headerKerning: Double = 0.5
     static let subtitleSize: Double = 11
+    /// D190 / Q349: the date-group headers ("Today", "Previous 7 Days", "September") read like
+    /// Apple Notes' — bold, title case, primary colour, bigger than the caps RELATED header.
+    static let groupHeaderSizePhone: Double = 19
+    static let groupHeaderSizeMac: Double = 13
     static let relatedHeader = "RELATED"
     static let relatedSubtitle = "similar in meaning"
 }

@@ -132,6 +132,26 @@ enum NoteCardBuilder {
         return c
     }
 
+    /// Q358 (D194): the one marker line 3 keeps at its right end — mic + length for a
+    /// recording, book glyph + chapter + length for a book capture, link glyph + domain for a
+    /// link. Typed notes and other captures: nil. Separate from `content` so the card-content
+    /// goldens stay what they were.
+    static func media(for f: NoteCardFacts) -> NoteCardModel.Chip? {
+        if let shared = f.shared {
+            guard let domain = domain(of: shared) else { return nil }
+            return .init(text: domain, systemImage: SourceKind.captureURL.glyph)
+        }
+        let length = f.durationSeconds.flatMap { $0 > 0 ? duration(seconds: $0) : nil }
+        if let book = f.book {
+            let glyphKind: SourceKind = f.kind.isSourceLink ? f.kind
+                : (f.kind == .pdfQuote ? .pdfQuote : .audiobookQuote)
+            let text = [CaptureQuote.chapterLabel(book.chapter), length].compactMap { $0 }.joined(separator: " · ")
+            return text.isEmpty ? nil : .init(text: text, systemImage: glyphKind.glyph)
+        }
+        guard let length else { return nil }
+        return .init(text: length, systemImage: f.kind == .video ? SourceKind.video.glyph : SourceKind.voiceMemo.glyph)
+    }
+
     // MARK: - Pieces (also what the phone's detail-side helpers delegate to)
 
     /// The leading `> ` block as ONE row-sized line (≤120). nil when the body doesn't open
@@ -253,4 +273,64 @@ extension NoteCardModel {
         snippet = content.snippet
         chips = content.chips
     }
+}
+
+/// Q358 (D190 / Q349 pick 10): a reliable title line. Apple's rule is that the first line is the
+/// title; Skrift uses his title, then the Mac's generated title (both already in `title`), then
+/// the first sentence of the untitled row's text. Line 2 continues after that sentence, so no
+/// row is ever without a bold first line and no words repeat.
+enum NoteRowText {
+    struct Lines: Equatable {
+        var title: String
+        var line: String?
+        /// "Transcribing…" in place of the line while the note has no words yet.
+        var busy: String? = nil
+    }
+
+    static func lines(title: String?, snippet: String?, busy: String? = nil) -> Lines {
+        let flat = snippet.map(oneLine)?.nilIfEmpty
+        if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+            return Lines(title: t, line: flat, busy: flat == nil ? busy.map { "\($0)…" } : nil)
+        }
+        guard let flat else {
+            return Lines(title: SourceKind.voiceMemo.emptyTitleFallback, line: nil, busy: busy.map { "\($0)…" })
+        }
+        let head = firstSentence(flat)
+        let rest = String(flat.dropFirst(head.consumed)).trimmingCharacters(in: .whitespaces)
+        if rest.isEmpty, let busy { return Lines(title: head.title, line: nil, busy: "\(busy)…") }
+        return Lines(title: head.title, line: rest.isEmpty ? nil : rest)
+    }
+
+    /// The first sentence (8–80 characters ending in . ! or ?, the trailing full stop dropped),
+    /// else the first 70 characters. `consumed` is how much of `text` it used.
+    static func firstSentence(_ text: String) -> (title: String, consumed: Int) {
+        let chars = Array(text)
+        var i = 0
+        while i < min(chars.count, 80) {
+            let c = chars[i]
+            if i >= 7, c == "." || c == "!" || c == "?", i + 1 == chars.count || chars[i + 1].isWhitespace {
+                let sentence = String(chars[0...i])
+                let title = c == "." ? String(sentence.dropLast()) : sentence
+                return (title, i + 1)
+            }
+            i += 1
+        }
+        if chars.count <= 70 { return (text, chars.count) }
+        // Cut at the last word break inside 70 characters so a word is never split.
+        let window = String(chars[0..<70])
+        if let space = window.lastIndex(of: " ") {
+            let cut = window[..<space]
+            return (String(cut), cut.count)
+        }
+        return (window, 70)
+    }
+
+    private static func oneLine(_ s: String) -> String {
+        s.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }.joined(separator: " ")
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
