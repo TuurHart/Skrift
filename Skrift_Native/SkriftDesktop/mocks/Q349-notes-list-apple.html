@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Notes List Beside Apple Notes</title>
 <style>
 /* Layout: a mock bench. Device switch on top, then three panels (reference / today / new)
@@ -66,6 +67,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .collabel{width:100%;max-width:390px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;justify-content:space-between}
 .collabel h2{font-size:14px;margin:0}
 .collabel span{font-size:11.5px;color:var(--bench-dim);text-align:right}
+.collabel .reftag{text-align:left}
 .reftag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bench-dim);
   border:1px dashed var(--bench-dim);border-radius:4px;padding:3px 5px;line-height:1.3;text-align:left}
 .newtag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--pin);
@@ -129,7 +131,8 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .ref .dock{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:flex-end;gap:10px;padding:0 27px 24px;
   background:linear-gradient(to bottom,transparent,var(--ref-bg) 55%);pointer-events:none}
 .ref .dock > *{pointer-events:auto}
-.ref .dock .search{flex:1;height:48px;border-radius:24px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--ref-text)}
+@media (max-width:440px){ .ref .dock{padding:0 14px 18px} }
+.ref .dock .search{flex:1;min-width:0;height:48px;border-radius:24px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--ref-text)}
 .ref .dock .search input{flex:1;min-width:0;border:0;background:none;font:19px var(--ui);color:var(--ref-text);outline:none;padding:0}
 .ref .dock .search input::placeholder{color:var(--ref-dim)}
 .ref .dock .search .mic{color:var(--ref-text)}
