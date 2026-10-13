@@ -29,8 +29,6 @@ struct NoteActions: View {
         _ = file.exportStatus
         return VaultExporter.workInputs(for: file, cloud: cloudContext, settings: SettingsStore.shared.load())
     }
-    private var isAppleNote: Bool { file.sourceType == .note }
-    private var transcribeDone: Bool { file.steps.transcribe == .done }
     /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
     /// ONLY copy of the diarization (the phone never uploads segments/word-timings).
     /// Only an audio memo can be a conversation (a note with bold headings is not).

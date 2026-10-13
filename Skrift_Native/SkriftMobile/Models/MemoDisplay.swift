@@ -26,8 +26,6 @@ extension Memo {
     /// First non-empty line of the transcript with `[[img_NNN]]` markers removed.
     var firstTranscriptLine: String? { NoteCardBuilder.firstLine(of: transcript) }   // C115: one rule, both apps
 
-    var durationLabel: String { DurationFormat.label(seconds: duration) }
-
     /// True when this memo was imported from a VIDEO (audio extracted + one frame).
     /// Drives the video source glyph in the list row + the "Video" chip in detail.
     /// A video import is an ordinary audio memo otherwise (not a share/book capture),

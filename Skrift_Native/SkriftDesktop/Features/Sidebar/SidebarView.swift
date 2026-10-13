@@ -497,13 +497,6 @@ struct SidebarView: View {
     /// invite the same class of problem onto the Mac.
     private var canProcess: Bool { pendingCount > 0 && !coordinator.isRunning && !sessionBusy }
 
-    private func importButton(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            ImportVerbLabel(style: .mac)
-        }
-        .buttonStyle(.plain)
-    }
-
     /// Q333: Import is a menu of doors (the phone's Import menu has the same shape): files, and
     /// the Apple Notes triage, which says "continue" while a triage is half done.
     private var importMenu: some View {
@@ -1150,10 +1143,6 @@ struct SidebarView: View {
         NSWorkspace.shared.open(URL(fileURLWithPath: mdPath))   // fallback: default md app
     }
 
-    private func copyText(_ s: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(s, forType: .string)
-    }
 }
 
 // ── Promised-file drop (drag from Photos / Mail / Safari) ───

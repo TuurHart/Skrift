@@ -12,10 +12,6 @@ extension MemosListView {
         MemoSpine.rowClockLine(for: memo, backlinked: backlinked, now: now)
     }
 
-    /// The query the list is filtered by: the search field's text, settled ~150 ms after the
-    /// last keystroke (Q315) so a burst of typing filters once, not per letter.
-    var searchingNow: Bool { NotesListModel.isSearching(appliedSearch) }
-
     /// The phone's adapter onto the shared list rule (`NotesListModel.listRows`, Q104): live
     /// rows plus, while searching, fading rows, both through the same search + chip + filter
     /// sheet. Unsorted; pure so `NotesListFilterParityTests` drives it. The list itself runs the

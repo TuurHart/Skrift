@@ -13,8 +13,6 @@ import FluidAudio
 /// Title, tags, and the transcript are hand-editable (save-now post-record flow); copy +
 /// delete live in the ⋯ menu.
 struct MemoDetailView: View {
-    let initialID: UUID
-
     @Environment(\.dismiss) var dismiss
     /// iPad wave: the note becomes list|detail at regular width — the Connections
     /// panel stands beside the page, the reading measure + player bar cap the note
@@ -65,7 +63,6 @@ struct MemoDetailView: View {
     @State var ipadPaneWidth: CGFloat?
 
     init(initialID: UUID, listVisible: Binding<Bool>? = nil) {
-        self.initialID = initialID
         self.listVisible = listVisible
         _selection = State(initialValue: initialID)
         let opened = NotesRepository.shared.memo(id: initialID)

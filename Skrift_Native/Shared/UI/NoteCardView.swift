@@ -43,11 +43,6 @@ struct NoteCardModel {
     var position: GroupPosition = .only
 
     enum GroupPosition: Equatable { case only, first, middle, last
-        static func of(index: Int, count: Int) -> GroupPosition {
-            if count <= 1 { return .only }
-            if index == 0 { return .first }
-            return index == count - 1 ? .last : .middle
-        }
         var roundsTop: Bool { self == .only || self == .first }
         var roundsBottom: Bool { self == .only || self == .last }
     }

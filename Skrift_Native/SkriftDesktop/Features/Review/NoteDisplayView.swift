@@ -39,7 +39,6 @@ struct NoteDisplayView: View {
     var searchQuery: String = ""
     /// A new note asks for the cursor in its body, once per token (see `BodyTextView.focusToken`).
     var focusBodyToken: String? = nil
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     /// Pre-action snapshot backing the inline undo toast. The OPT-OUT body is a pure function
