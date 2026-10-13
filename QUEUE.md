@@ -2827,7 +2827,7 @@ gate+: no
 do: Q359's compare (plan/reads/editor-apple/phone-*.png vs Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html at 402 x 874) left: rating pill ~36 pt tall vs mock 26 (balls larger) and the Personal chip ~30 vs 26; on an unrated note the rating + amber fading line + Personal wrap onto two rows (mock: one row); the mock keeps '‹ Notes' in the top bar while typing (phone shows only undo, redo, ⋯, Done); the reading player is a full-width dark ~50 pt capsule (mock: a narrower glass pill, 24 pt radius); the keyboard bar is full-width and flush (mock: a short floating white pill inset ~10 pt with a shadow); phone-7-speakers shows the list, not the opened conversation note. Fix each to the mock (the book quote keeps the locked borderless accent-bar idiom — do NOT add a tinted block, feedback_no_bubbles_on_shared_input). Take shots in LIGHT mode too so colours can be compared. Launch flags: `-seedPhotoMoveMemo`, `-skipOnboarding`.
 check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests`
 
-### Q383 [auto] (doing) install Dev 187 (list, editors, iPad, article reader) on the iPhone 17 Pro and the Mac
+### Q383 [auto] (done) install Dev 187 (list, editors, iPad, article reader) on the iPhone 17 Pro and the Mac
 spec: -
 needs: -
 gate+: no
@@ -4147,3 +4147,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteA
 - 2026-10-13 16:09 Q383 -> doing — worker out
 - 2026-10-13 16:10 Q384 added
 - 2026-10-13 16:10 Q385 added
+- 2026-10-13 16:17 Q383 -> done — gate 38s @3c3cc8f2
