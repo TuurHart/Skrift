@@ -2834,10 +2834,10 @@ gate+: no
 do: Same recipe as Q374 (finding: phone device builds need `-skipMacroValidation -skipPackagePluginValidation`; iPhone 17 Pro xcodebuild id == devicectl id; binary greps need `/usr/bin/grep -a`). Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q379 literal (`IPadTabControl`) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q360 literal (`MacExportConfirm`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
 
-### Q384 [tuur] (todo) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
+### Q384 [tuur] (doing) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
 spec: D199 D198 D126
 needs: -
-do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots — ask him for one of an Apple note with a video and a file if '/Users/tiurihartog/Downloads/apple notes ui/' has none — laid at the same scale. One agent on the file.
+do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots in '/Users/tiurihartog/Downloads/apple notes ui/attatchments/' (iPhone and Mac), laid at the same scale; the iPad frame is drawn from those plus the signed Q378 iPad layout (D200). One agent on the file.
 check: Tuur clicked through it and said go.
 
 ### Q385 [auto] (todo) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
@@ -2853,6 +2853,13 @@ needs: Q380
 gate+: yes
 do: Finish what Q380 left (its finding in plan/RUN.md). (a) Re-run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on a `git archive` snapshot in your scratch dir — inside a worktree Periphery refuses a second -derivedDataPath — for SkriftMobile and the full SkriftDesktop scheme; delete every finding in files changed since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment; never delete a synced field); write before/after counts into plan/periphery.md. (b) One shared note header row: the phone uses NoteRatingPill with the fading line on its own line (Q382) while the Mac and quick note use NoteRatingRow with the line beside the pill — make one Shared row both apps draw (phone layout from the signed Q350 mock wins). (c) Read the article/PDF/podcast/book source labels and link lines on both apps; anything not coming from SourceKind moves there. After each deletion run the FULL SkriftDesktop build too — the UnitTests bundle does not compile every file (Q380 broke EditConflictViews.swift that way). Protected tests only ported or deleted with their code (needs hand-merge list). Never run SkriftDesktopUITests.
 check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
+
+### Q387 [auto] (doing) phone: hide the tab bar while a note is open (D200)
+spec: D200
+needs: -
+gate+: yes
+do: On the phone (compact width) the open note hides the tab bar (`.toolbar(.hidden, for: .tabBar)` on the note destination — Q382 confirmed it works); it comes back on the list. The edge-swipe back and '‹ Notes' (Q382's NoteBackButton + SwipeBackRestorer) return to the list. iPad unchanged. Quick note, Library player and share sheet unchanged. Phone UI test `NoteHidesTabBarUITests`: open a note → no tab bar; back → tab bar. Screenshot before/after into plan/reads/editor-apple/tabbar-*.png.
+check: `test $(ls plan/reads/editor-apple/tabbar-*.png | wc -l) -ge 2`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4160,3 +4167,6 @@ check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 - 2026-10-13 16:38 Q386 -> doing — worker out
 - 2026-10-13 17:10 Q386 -> done — gate 58s @87984fff
 - 2026-10-13 17:11 Q366 -> doing — worker out
+- 2026-10-13 17:24 Q387 added
+- 2026-10-13 17:26 Q387 -> doing — worker out
+- 2026-10-13 17:26 Q384 -> doing — mockup out
