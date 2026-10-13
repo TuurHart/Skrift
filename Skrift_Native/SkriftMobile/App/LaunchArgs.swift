@@ -44,9 +44,6 @@ enum LaunchFlags {
     /// capsule was un-screenshotable before this (a real book is device-only),
     /// which is exactly how the build-40 FAB/capsule overlap shipped unseen.
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
-    /// Seed the synthetic book WITHOUT arming a session — the Notes
-    /// "Continue listening" card state (card-at-rest / pill-when-live).
-    static var seedAudiobookIdle: Bool { args.boolFlag("-seedAudiobookIdle") }
     /// Q352: four seeded books (two with capture notes) for the Library shelf screenshot.
     static var seedLibraryShelf: Bool { args.boolFlag("-seedLibraryShelf") }
     /// Device-verify hook (📖 rounds 5–7): open the most recently played REAL

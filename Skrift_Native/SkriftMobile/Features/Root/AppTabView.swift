@@ -88,16 +88,12 @@ struct AppTabView: View {
         }
         // Sim seed hooks only (screenshots/UITests — a real book is device-only,
         // which is how the build-40 overlap shipped unseen): `-seedAudiobook`
-        // fabricates a LIVE session (the V2a pill state); `-seedAudiobookIdle`
-        // seeds a played book with NO session (the Continue-listening card
-        // state). Launch-restore was REMOVED 2026-07-07: the card on Notes
-        // replaced the phantom paused session — cards for starting, chrome for
-        // controlling; a session exists only once you actually play.
+        // fabricates a LIVE session (the V2a pill state). A session exists only once you
+        // actually play (launch-restore was removed 2026-07-07).
         .task {
             var seeded = false
             #if DEBUG
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen(); seeded = true }
-            else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly(); seeded = true }
             else if LaunchFlags.seedLibraryShelf { AudiobookSeeder.seedShelf(); seeded = true }
             #endif
             // `-resumeBook`: open the last-played REAL book paused — the same
