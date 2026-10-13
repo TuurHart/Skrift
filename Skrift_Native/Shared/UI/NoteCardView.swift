@@ -29,14 +29,8 @@ struct NoteCardModel {
     /// Audiobook-capture lead quote (already stripped of "> ").
     var quote: String?
     var snippet: String?
-    /// The shared builder's chips. The row no longer draws them (D194: tags, place and weather
-    /// leave the row); `media` carries the one marker that stays. Kept on the model because
-    /// both apps' card-content parity tests compare them.
-    var chips: [Chip] = []
     var thumb: Image?
     var locked = false
-    /// Unrated row (the Mac's quiet rows). No longer dims the row (D194).
-    var quiet = false
     var selected = false
     /// Importance, 0–3, nil for locked rows (Q26). The row shows NO importance (D194); 0 is read
     /// as "unrated" and draws the grey Unrated marker. NEVER tappable — rating lives in detail.
@@ -72,24 +66,16 @@ struct NoteCardModel {
         /// pulse — it waits for him. Same slot as Transcribing; it outranks every other pill.
         static let twoVersions = Pill(label: "2 versions", kind: .amber, systemImage: "arrow.triangle.branch")
     }
+    /// Line 3's media marker: a glyph + text (`NoteCardBuilder.media`).
     struct Chip: Equatable {
         var text: String
         var systemImage: String?
-        var isTag = false
-    }
-
-    /// C115 shared tag-chip builder — the ONE way a note's tags become chips, so
-    /// the phone and the Mac card models can't drift again (Q65 found the Mac
-    /// list carrying a tagged note's duration/source chips but never its
-    /// `#tags`; Q68 fixes it by routing BOTH card models through this).
-    static func tagChips(for tags: [String]) -> [Chip] {
-        tags.map { Chip(text: "#\($0)", isTag: true) }
     }
 }
 
-/// Per-app colours and sizes — construct from each app's theme, never inline literals in the
-/// view (the SignificanceStyle pattern). Sizes default to the phone's (Q349: 16 / 14 / 12.5);
-/// the Mac passes its own (14 / 12.5 / 11.5).
+/// Per-app colours — construct from each app's theme, never inline literals in the view (the
+/// SignificanceStyle pattern). Sizes default to the phone's (Q349: 16 / 14 / 12.5); the Mac's
+/// live here too (`macMetrics()`), so both rows' metrics sit in one file (Q380, C239).
 struct NoteCardStyle {
     var accent: Color
     var accentSoft: Color
@@ -100,6 +86,7 @@ struct NoteCardStyle {
     var amber: Color
     var green: Color
     var red: Color
+    /// The two-versions sheet's device-glyph tile (`EditConflictViews`); the row draws no chips.
     var chipFill: Color
     var surface: Color
     var border: Color
@@ -111,6 +98,16 @@ struct NoteCardStyle {
     var spacing: CGFloat = 12
     var padding = EdgeInsets(top: 11, leading: 16, bottom: 11, trailing: 14)
     var cornerRadius: CGFloat = 12
+
+    /// The Mac list's sizes (Q349): 14 / 12.5 / 11.5, a 40 pt thumbnail, tighter padding.
+    func macMetrics() -> NoteCardStyle {
+        var s = self
+        s.titleSize = 14; s.lineSize = 12.5; s.folderSize = 11.5
+        s.thumbSize = 40; s.thumbRadius = 5
+        s.spacing = 9; s.padding = EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 10)
+        s.cornerRadius = 9
+        return s
+    }
 }
 
 struct NoteCardView: View {

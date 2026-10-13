@@ -22,13 +22,12 @@ enum LockedRow {
     }
 
     /// The card for a locked row: stamp + 🔒 + title, nothing else.
-    static func card(stamp: String, title: String, selected: Bool, quiet: Bool) -> NoteCardModel {
+    static func card(stamp: String, title: String, selected: Bool) -> NoteCardModel {
         var m = NoteCardModel(stamp: stamp)
         m.locked = true
         m.title = title
         m.balls = nil
         m.selected = selected
-        m.quiet = quiet
         return m
     }
 }

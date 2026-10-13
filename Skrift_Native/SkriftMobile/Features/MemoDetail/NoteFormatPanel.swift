@@ -74,7 +74,7 @@ struct NoteFormatPanel: View {
         HStack(spacing: 6) {
             ForEach(FormatCommand.aaMarks, id: \.self) { cmd in
                 if let mark = cmd.mark {
-                    markButton(mark, Self.markLabel(mark), cmd.markdownHint) { Self.markLook($0, mark) }
+                    markButton(mark, cmd.shortTitle, cmd.markdownHint) { Self.markLook($0, mark) }
                 }
             }
         }
@@ -95,21 +95,28 @@ struct NoteFormatPanel: View {
     }
 
     @ViewBuilder private var phoneList: some View {
+            // Q380: D115's subset of the ONE shared table (`FormatCommand.phone*`); only the
+            // button faces are the phone's.
             HStack(spacing: 6) {
-                styleButton(.title, "Title", "# ", .system(size: 17, weight: .bold))
-                styleButton(.heading, "Heading", "## ", .system(size: 15, weight: .bold))
-                styleButton(.body, "Body", "plain", .system(size: 14))
+                ForEach(FormatCommand.phoneStyles, id: \.self) { cmd in
+                    if let style = cmd.lineStyle {
+                        styleButton(style, cmd.shortTitle, cmd.markdownHint, Self.styleFace(cmd))
+                    }
+                }
             }
             HStack(spacing: 6) {
-                markButton(.bold, "B", "**…**") { $0.font(.system(size: 16, weight: .heavy)) }
-                markButton(.italic, "I", "*…*") { $0.font(.custom("Georgia-Italic", size: 16)) }
-                markButton(.underline, "U", "<u>…</u>") { $0.font(.system(size: 16)).underline() }
-                markButton(.strike, "S", "~~…~~") { $0.font(.system(size: 16)).strikethrough() }
+                ForEach(FormatCommand.phoneMarks, id: \.self) { cmd in
+                    if let mark = cmd.mark {
+                        markButton(mark, cmd.shortTitle, cmd.markdownHint) { Self.markLook($0, mark) }
+                    }
+                }
             }
             HStack(spacing: 6) {
-                styleButton(.bullet, "• List", "- ", .system(size: 13.5))
-                styleButton(.numbered, "1. List", "1. ", .system(size: 13.5))
-                styleButton(.checklist, "☑ Checklist", "- [ ] ", .system(size: 13.5))
+                ForEach(FormatCommand.phoneLists, id: \.self) { cmd in
+                    if let style = cmd.lineStyle {
+                        styleButton(style, cmd.shortTitle, cmd.markdownHint, .system(size: 13.5))
+                    }
+                }
             }
             Text("Acts on the caret’s line. B I U S act on the selected words.")
                 .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
@@ -117,14 +124,12 @@ struct NoteFormatPanel: View {
 
     // MARK: the full set's pieces (Q379)
 
-    private static func markLabel(_ mark: BodyFormat.InlineMark) -> String {
-        switch mark {
-        case .bold: return "B"
-        case .italic: return "I"
-        case .underline: return "U"
-        case .strike: return "S"
-        case .highlight: return "Highlight"
-        case .code: return "Code"
+    /// The phone row's style buttons wear their own size (the look stays local).
+    private static func styleFace(_ cmd: FormatCommand) -> Font {
+        switch cmd {
+        case .title: return .system(size: 17, weight: .bold)
+        case .heading: return .system(size: 15, weight: .bold)
+        default: return .system(size: 14)
         }
     }
 

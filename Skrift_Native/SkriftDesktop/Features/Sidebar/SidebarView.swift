@@ -1328,7 +1328,7 @@ private struct QueueRowView: View {
         // no words, balls or chips (C91/C161, R88; the phone's `cardModel` rule).
         if file.locked {
             var l = LockedRow.card(stamp: m.stamp, title: LockedRow.title(for: file),
-                                   selected: selected, quiet: false)
+                                   selected: selected)
             l.statusPill = m.statusPill
             return l
         }
@@ -1358,11 +1358,8 @@ extension NoteCardStyle {
         // D136: rows become white cards on the sidebar's new grey ground (was a
         // near-transparent wash meant to blend into the old white sidebar).
         surface: Theme.surface,
-        border: Theme.hairline.opacity(0.16),
-        // Q349 Mac sizes: 14 / 12.5 / 11.5, a 40 pt thumbnail, tighter padding.
-        titleSize: 14, lineSize: 12.5, folderSize: 11.5, thumbSize: 40, thumbRadius: 5,
-        spacing: 9, padding: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 10),
-        cornerRadius: 9)
+        border: Theme.hairline.opacity(0.16))
+        .macMetrics()   // Q349 Mac sizes, kept in the shared NoteCardView.swift
 }
 
 extension SidebarEntry {

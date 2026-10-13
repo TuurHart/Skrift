@@ -3,16 +3,6 @@ import SwiftUI
 extension MemosListView {
     // MARK: - Derived
 
-    /// Unrated-live = the quiet FADE, every width (m1b B + Tuur's 2026-07-23
-    /// phone extension — his flow rates important notes AT capture, so an
-    /// unrated row genuinely means untriaged, not fresh: "when I take a note
-    /// that I know is important I give it a score straight away"). Rating IS
-    /// the flag (no Flag verb anywhere, same correction as the Mac's m6 peek);
-    /// tap opens the note, whose Importance circles are the rating surface.
-    func isUnratedLive(_ memo: Memo) -> Bool {
-        !NoteConsent.isRated(memo) && memo.deletedAt == nil && !memo.locked
-    }
-
     /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22; asymmetry
     /// REVISED 2026-07-23 — the fade above now runs on every width): the line
     /// appears (amber) only when the clock actually matters — fading starts

@@ -23,24 +23,6 @@ final class MacQuietRowChipsTests: XCTestCase {
         MacQuietCard.model(for: m, selected: false, backlinked: [], conflicts: conflicts, now: now)
     }
 
-    // MARK: chips (list-sidebar-67, -69)
-
-    func testQuietRowCarriesDurationPlaceWeatherAndTagChips() {
-        let meta = MemoMetadata(location: LocationInfo(latitude: 38.7, longitude: -9.1, placeName: "Lisbon"),
-                                weather: WeatherInfo(conditions: "Clear", temperature: 18, temperatureUnit: "C"))
-        let m = card(memo(daysOld: 1, tags: ["daily", "harbour"], metadata: meta))
-        XCTAssertEqual(m.chips.map(\.text), ["1:23", "Lisbon", "18°", "#daily", "#harbour"])
-        XCTAssertEqual(m.chips.filter(\.isTag).map(\.text), ["#daily", "#harbour"])
-        XCTAssertTrue(m.quiet)
-    }
-
-    func testQuietRowChipsEqualThePhoneCardsChips() {
-        // The phone builds the same chips from the same shared builder.
-        let meta = MemoMetadata(location: LocationInfo(latitude: 0, longitude: 0, placeName: "Porto"))
-        let note = memo(daysOld: 1, tags: ["x"], metadata: meta)
-        XCTAssertEqual(card(note).chips, NoteCardBuilder.content(for: note.cardFacts()).chips)
-    }
-
     // MARK: the fading line (list-sidebar-75, D136)
 
     func testNoStandingSpineLineOnACalmQuietRow() {
@@ -78,14 +60,13 @@ final class MacQuietRowChipsTests: XCTestCase {
         XCTAssertNil(card(quiet).balls)
         XCTAssertTrue(card(quiet).locked)
         // The rated Mac row's locked card (the other half of the parity) drops them too.
-        XCTAssertNil(LockedRow.card(stamp: "x", title: "t", selected: false, quiet: false).balls)
+        XCTAssertNil(LockedRow.card(stamp: "x", title: "t", selected: false).balls)
     }
 
     func testLockedRowShowsNoChipsAndNoLine() {
         let m = memo(daysOld: 25, tags: ["secret"])
         m.locked = true
         let c = card(m)
-        XCTAssertTrue(c.chips.isEmpty)
         XCTAssertNil(c.fadingLine)
         XCTAssertNil(c.snippet)
     }

@@ -226,4 +226,14 @@ Skrift_Native/SkriftMobile/SkriftShare (1)
 
 ## Q234 correction: these Periphery findings are LIVE (do not delete)
 
-`LockGate`, `ConnectionWhy.wikiNames`, `EmbeddingIndex.gistPairScores`, `NamesStore.writeWithSmartBumps`, `NamesStore.seedRoster`, `NamesStore.pruneOldTombstones` have callers. Q234 removed `Sanitiser.hasCanonicalLink`, `Sanitiser.prunedKeys`, the `wholeWord`/`avoidInside`/`preservePossessive` flags and `CorpusSeed.Note.expect`; `LiveCaptionEngine.caption()` was already gone. `unlinkOccurrence`, `relinkOccurrence`, `PersonEditCore.materialise`'s `renamedFrom`, `ExportLedger.Entry.exportedAt`, `Assessment.proceed(creates:)` and `Standing.absent` stay: protected tests read them (removal needs the hand-merge with Tuur's yes).
+`LockGate`, `ConnectionWhy.wikiNames`, `EmbeddingIndex.gistPairScores`, `NamesStore.writeWithSmartBumps`, `NamesStore.seedRoster`, `NamesStore.pruneOldTombstones` have callers (`seedRoster` / `upsert(canonical:aliases:short:)` show as unused on the PHONE scan only because the Mac snapshot path calls them). Q234 removed `Sanitiser.hasCanonicalLink`, `Sanitiser.prunedKeys`, the `wholeWord`/`avoidInside`/`preservePossessive` flags and `CorpusSeed.Note.expect`; `LiveCaptionEngine.caption()` was already gone. `unlinkOccurrence`, `relinkOccurrence`, `PersonEditCore.materialise`'s `renamedFrom`, `ExportLedger.Entry.exportedAt`, `Assessment.proceed(creates:)` and `Standing.absent` stay: protected tests read them (removal needs the hand-merge with Tuur's yes).
+
+## Q380 (2026-10-13): sweep after the Q352-Q379 rebuild — PARTIAL
+
+Same binary and flags as Q60. Scanned a `git archive` snapshot of wt/Q380 @ 9821afc0 (after the known leftovers below were deleted), so edits in the worktree could not race the build.
+
+- Phone (SkriftMobile + SkriftWidget + SkriftShare, generic iOS Simulator): **318 findings** (Q60: 263 raw). 114 sit in Swift files changed since 4519b3ea. Not yet triaged: Shared/ hits need the Mac scan (a Shared symbol the Mac calls reads unused on the phone), Equatable `Inputs` fields are false positives, test-only symbols move to CHECK per the Q61 rule.
+- Mac (full SkriftDesktop scheme, same snapshot): **283 findings** (Q60: 163 raw). Not yet triaged.
+- Deleted before the scan (Q380 known leftovers): `Shared/UI/ChipFlow.swift`, `ChipLineBreakerTests`, `CardChipParityTests`, `Snapshot.renderCardChips` + `-snapshot-card-chips`; `NoteCardModel.chips` / `.quiet` / `Chip.isTag` / `tagChips(for:)`, `NoteCardContent.chips`, `NoteCardFacts.place` / `.temperature` / `.tags`; `MemoRow.quiet` / `MemoCard.quiet` / `isUnratedLive`; `LockedRow.card(quiet:)`; `SplitSpeakersRow` full header body + switch (`compact` / `interactive`), `SplitSpeakersCopy.switchOffHint` / `.splitHint`.
+- Kept on purpose: `NoteCardModel.balls` (drives the grey Unrated marker) and `.quietLine` (drawn on line 3 for a stranded rated memo); both are drawn, the Q358 finding was wrong about them.
+- Before / after: phone 318 / Mac 283 before; after not re-scanned yet. Raw logs (machine-local): `scratchpad/Q380/out/{mobile,desktop}-scan.log` in session e63ddcf6.

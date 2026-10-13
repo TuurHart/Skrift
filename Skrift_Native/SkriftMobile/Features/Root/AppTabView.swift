@@ -60,9 +60,7 @@ struct AppTabView: View {
 
             AudiobookLibraryView()
                 .ipadTabChrome(hSize, hostsOwnRow: false)
-                // Still "Books": FeedbackQ341ScreenTagUITests asserts it (a protected test); rename
-                // together with that test at the next hand-merge.
-                .feedbackScreen("Books")
+                .feedbackScreen("Library")
                 .tabItem { Label("Library", systemImage: "book") }
                 .tag(Tab.books)
 
