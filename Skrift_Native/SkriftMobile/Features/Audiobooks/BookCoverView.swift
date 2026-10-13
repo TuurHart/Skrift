@@ -19,20 +19,15 @@ struct BookCoverView: View {
                         .scaledToFill()
                         .frame(width: geo.size.width, height: geo.size.height)
                         .clipped()
+                } else if book.sourceKind == .pdf {
+                    pdfPaper(width: geo.size.width)
                 } else {
                     LinearGradient(
                         colors: Self.gradient(for: book),
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     )
                     if showsPlaceholderTitle {
-                        Text(book.title.uppercased())
-                            .font(.system(size: max(6, geo.size.width / 8), weight: .bold))
-                            .kerning(0.3)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(4)
-                            .minimumScaleFactor(0.5)
-                            .foregroundStyle(.white.opacity(0.88))
-                            .padding(geo.size.width / 10)
+                        drawnTitle(width: geo.size.width)
                     }
                 }
                 // The mock's subtle top sheen.
@@ -43,6 +38,64 @@ struct BookCoverView: View {
             }
         }
         .accessibilityHidden(true)
+    }
+
+    /// Q356 (Q6 mock `.cv`): title + author at the bottom-left, the title in a bold serif (an
+    /// episode's in heavy sans), the byline at 62% size and 80% opacity, warm off-white ink,
+    /// 10% inset.
+    private func drawnTitle(width w: CGFloat) -> some View {
+        let text = BookCoverText.lines(for: book)
+        let size = max(6, w / 11)
+        let ink = Color(hex: 0xf4efe6)
+        return VStack(alignment: .leading, spacing: max(1, w / 40)) {
+            Spacer(minLength: 0)
+            Text(text.title)
+                .font(book.sourceKind == .episode
+                      ? .system(size: size, weight: .heavy)
+                      : .system(size: size, weight: .bold, design: .serif))
+                .kerning(book.sourceKind == .episode ? -0.02 * size : 0)
+                .lineLimit(4)
+                .minimumScaleFactor(0.6)
+                .multilineTextAlignment(.leading)
+            if let byline = text.byline {
+                Text(byline)
+                    .font(.system(size: size * 0.62))
+                    .opacity(0.8)
+                    .lineLimit(1)
+            }
+        }
+        .foregroundStyle(ink)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        .padding(w / 10)
+    }
+
+    /// A PDF with no page-1 image (mock `.cv.pdf`): paper, the title at the top in sans, four
+    /// faint text lines, a folded top-right corner.
+    private func pdfPaper(width w: CGFloat) -> some View {
+        let ink = Color(hex: 0x2b2b30)
+        return ZStack(alignment: .topTrailing) {
+            Color(hex: 0xf4f1ea)
+            VStack(alignment: .leading, spacing: w * 0.06) {
+                if showsPlaceholderTitle {
+                    Text(book.title)
+                        .font(.system(size: max(5, w / 13), weight: .bold))
+                        .foregroundStyle(ink)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.6)
+                }
+                ForEach([0.9, 0.75, 0.85, 0.6], id: \.self) { f in
+                    Capsule().fill(ink.opacity(0.25)).frame(width: w * 0.8 * f, height: max(1, w / 55))
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(w / 10)
+            Path { p in
+                p.move(to: .zero); p.addLine(to: CGPoint(x: w * 0.22, y: w * 0.22)); p.addLine(to: CGPoint(x: 0, y: w * 0.22))
+            }
+            .fill(Color.black.opacity(0.18))
+            .frame(width: w * 0.22, height: w * 0.22)
+        }
     }
 
     /// Deterministic gradient per book (stable across launches).
@@ -56,6 +109,23 @@ struct BookCoverView: View {
         ]
         let index = StableHash.index(book.id.uuidString, count: palettes.count)
         return palettes[index].map { Color(hex: $0) }
+    }
+}
+
+/// Q356: the words the drawn cover carries (the mock's `.ct` + `.ca`). An episode shows its show
+/// (the record's `author`) over "podcast", like the mock's "Het Uur · NRC · podcast"; a PDF only
+/// its title; a book its title over its author.
+struct BookCoverText: Equatable {
+    let title: String
+    let byline: String?
+
+    static func lines(for book: Audiobook) -> BookCoverText {
+        let author = book.author.trimmingCharacters(in: .whitespaces)
+        switch book.sourceKind {
+        case .episode: return BookCoverText(title: author.isEmpty ? book.title : author, byline: "podcast")
+        case .pdf: return BookCoverText(title: book.title, byline: nil)
+        case .book, .article: return BookCoverText(title: book.title, byline: author.isEmpty ? nil : author)
+        }
     }
 }
 

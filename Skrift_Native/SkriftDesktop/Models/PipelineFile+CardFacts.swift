@@ -9,7 +9,9 @@ extension PipelineFile {
     /// audio. A book capture and a video import are both `.audio` rows, so the markers
     /// (`bookCapture`, `mediaSource`) decide, not `sourceType`.
     var sourceKind: SourceKind {
-        SourceKind.classify(hasBook: bookCapture != nil, media: mediaSource,
+        SourceKind.classify(hasBook: bookCapture != nil,
+                            pdfPage: SourceKind.isPDFPageLabel(bookCapture?.chapter),
+                            media: mediaSource,
                             sharedType: sharedContent?.type.rawValue,
                             isCaptureRow: sourceType == .capture,
                             hasAudio: sourceType == .audio)

@@ -92,6 +92,11 @@ enum LibraryPDF {
         store.updateProgress(id: bookID, position: Double(min(max(1, page), count)))
     }
 
+    /// Q356 (D177): whether the reader writes the page it is on to the kept page. A jump-back
+    /// reader never does (the source's own place is not moved), and nothing is saved before the
+    /// reader has landed on its first page.
+    static func savesPage(jumpBackPage: Int?, ready: Bool) -> Bool { jumpBackPage == nil && ready }
+
     /// "p. 4 of 18" (the mock's tile line and reader dock).
     static func progressLine(_ book: Audiobook) -> String {
         "p. \(page(of: book)) of \(pageCount(of: book))"
@@ -111,11 +116,7 @@ enum LibraryPDF {
     static func pageLabel(_ page: Int) -> String { "p. \(page)" }
 
     /// True for a `bookChapter` written by `pageLabel` ("p. 4"): the note came from a PDF.
-    static func isPageLabel(_ chapter: String?) -> Bool {
-        guard let c = chapter, c.hasPrefix("p. ") else { return false }
-        let n = c.dropFirst(3)
-        return !n.isEmpty && n.allSatisfy(\.isNumber)
-    }
+    static func isPageLabel(_ chapter: String?) -> Bool { SourceKind.isPDFPageLabel(chapter) }
 
     // MARK: - Capture (quote + his voice)
 

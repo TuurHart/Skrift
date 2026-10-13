@@ -32,6 +32,8 @@ struct AudiobookPlayerView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
     @State private var toast: String?
+    /// Q356: the notes sheet the "N notes from this episode" row opens.
+    @State private var notesSheetBook: Audiobook?
     /// Bookmarks for the current book — reloaded on book change + after a toggle.
     /// Drives the Mark chip's filled/outline state + the read-along margin glyphs.
     @State private var currentBookmarks: [AudiobookBookmark] = []
@@ -89,6 +91,16 @@ struct AudiobookPlayerView: View {
             }
         }
         .sheet(isPresented: $showTextSettings) { TextSettingsSheet() }
+        // Q356: a note in the sheet opens in Notes (they live there); the player steps aside.
+        .sheet(item: $notesSheetBook) { book in
+            BookNotesSheetHost(book: book) { memo in
+                notesSheetBook = nil
+                dismiss()
+                TabSelectionBridge.shared.select(.notes)
+                MemoOpenBridge.shared.open(memo.id)
+            }
+            .presentationDetents([.medium, .large])
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-player")
         .task(id: session.book?.id) {
@@ -99,7 +111,8 @@ struct AudiobookPlayerView: View {
         // Q273 / Q6 mock: a note's jump-back says the book's own place stays put.
         .task(id: session.isJumpBack) {
             if session.isJumpBack, let book = session.book {
-                showToast(BookNotesJoin.jumpToast(bookTitle: book.title, position: session.currentTime),
+                showToast(BookNotesJoin.jumpToast(title: book.title, position: session.currentTime,
+                                                  kind: book.sourceKind),
                           seconds: 2.8)
             }
         }
@@ -175,6 +188,9 @@ struct AudiobookPlayerView: View {
                         scrubber(book, time: time).padding(.bottom, 14)
                         transport.padding(.bottom, 16)
                         utilityRow
+                        // Q356 (mock "this source's notes, in the player").
+                        SourceNotesRow(book: book) { notesSheetBook = book }
+                            .padding(.top, 14)
                     }
                     .padding(.horizontal, Theme.Space.margin)
                     .padding(.top, 14)
@@ -275,6 +291,18 @@ struct AudiobookPlayerView: View {
 
     private func menu(_ book: Audiobook) -> some View {
         Menu {
+            // Q356 (mock `srcMenu`): the source stays here; a new note links back to this moment.
+            Button {
+                var here = book
+                here.position = session.currentTime
+                if let id = LibraryHatch.sendToNote(book: here) {
+                    dismiss()
+                    TabSelectionBridge.shared.select(.notes)
+                    MemoOpenBridge.shared.open(id)
+                }
+            } label: { Label(LibraryHatch.sendLabel, systemImage: "square.and.pencil") }
+            .accessibilityIdentifier("player-send-to-note")
+            Divider()
             Button { showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off 2026-07-23):

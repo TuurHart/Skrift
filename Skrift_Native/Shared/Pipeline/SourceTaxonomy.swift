@@ -6,13 +6,14 @@ import Foundation
 /// the phone's row/chip glyphs all read THESE — a symbol renamed here renames
 /// everywhere, and nowhere else.
 enum SourceKind: Equatable {
-    case audiobookQuote, video, captureURL, captureImage, captureText,
+    case audiobookQuote, pdfQuote, video, captureURL, captureImage, captureText,
          captureFile, captureOther, appleNote, voiceMemo, typedNote
 
     /// SF Symbol.
     var glyph: String {
         switch self {
         case .audiobookQuote: return "book.closed.fill"
+        case .pdfQuote:       return "doc.text"
         case .video:          return "video.fill"
         case .captureURL:     return "link"
         case .captureImage:   return "photo"
@@ -29,6 +30,7 @@ enum SourceKind: Equatable {
     var label: String {
         switch self {
         case .audiobookQuote: return "Audiobook quote"
+        case .pdfQuote:       return "PDF quote"
         case .video:          return "Video"
         case .captureURL:     return "Link"
         case .captureImage:   return "Image"
@@ -74,9 +76,10 @@ enum SourceKind: Equatable {
     /// - `sharedType`: the capture's `type` string (nil / unknown means not a typed capture)
     /// - `isCaptureRow`: the row is already known to be a capture (Mac `.capture` rows), so
     ///   an unknown subtype reads as `.captureOther` rather than falling through.
-    static func classify(hasBook: Bool, media: String?, sharedType: String?,
+    /// - `pdfPage`: the quote's place is a PDF page ("p. 4", `isPDFPageLabel`), Q356 / D138.
+    static func classify(hasBook: Bool, pdfPage: Bool = false, media: String?, sharedType: String?,
                          isCaptureRow: Bool = false, hasAudio: Bool) -> SourceKind {
-        if hasBook { return .audiobookQuote }
+        if hasBook { return pdfPage ? .pdfQuote : .audiobookQuote }
         if media == "video" { return .video }
         // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
         // Without the marker a no-audio memo reads as an Apple Note import below.
@@ -111,12 +114,22 @@ enum SourceKind: Equatable {
         kindMisses.add()
         let meta = metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
         let shared: SharedContent? = Memo.decodeJSON(sharedContentData)
-        let kind = classify(hasBook: Memo.metadata(from: metadataData)?.bookTitle.map { !$0.isEmpty } ?? false,
+        let memoMeta = Memo.metadata(from: metadataData)
+        let kind = classify(hasBook: memoMeta?.bookTitle.map { !$0.isEmpty } ?? false,
+                            pdfPage: isPDFPageLabel(memoMeta?.bookChapter),
                             media: mediaMarker(in: meta),
                             sharedType: shared?.type.rawValue,
                             hasAudio: hasAudio)
         kindCache.setObject(KindBox(kind), forKey: key)
         return kind
+    }
+
+    /// True for a capture place written as a PDF page ("p. 4", the phone's `LibraryPDF.pageLabel`):
+    /// the quote came from a PDF, not a book (Q356 / D138). Both apps read it from `bookChapter`.
+    static func isPDFPageLabel(_ chapter: String?) -> Bool {
+        guard let c = chapter, c.hasPrefix("p. ") else { return false }
+        let n = c.dropFirst(3)
+        return !n.isEmpty && n.allSatisfy(\.isNumber)
     }
 
     /// How many times the classifier actually ran (tests read this; harmless in production).

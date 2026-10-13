@@ -135,6 +135,14 @@ struct BookJumpBackButton: View {
         self.position = TimeInterval(page); self.page = page; self.action = action
     }
 
+    /// Q356: the label and glyph follow the route (a PDF's page, an episode's or book's time).
+    init(route: BookNotesJoin.JumpRoute, action: @escaping () -> Void) {
+        switch route {
+        case .page(let p): self.init(page: p, action: action)
+        case .time(let t): self.init(position: t, action: action)
+        }
+    }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -184,5 +192,96 @@ struct BookNotesSheetHost: View {
 
     var body: some View {
         BookNotesSheet(book: book, notes: BookNotesJoin.notes(forBook: book.id, in: liveMemos), onOpen: onOpen)
+    }
+}
+
+// MARK: - Q356: the link card and the source's notes row
+
+/// The card "Send to a note" / "Move to Library" leaves in the note (mock `.srccard`): a 56pt
+/// cover, the title (14pt semibold, two lines) and "PDF · p. 4 of 18 · open in Library ›" in
+/// accent. Tap = the jump-back.
+struct SourceLinkCard: View {
+    let book: Audiobook
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                BookCoverView(book: book)
+                    .frame(width: 56, height: 56)
+                    .clipShape(.rect(cornerRadius: 8, style: .continuous))
+                    .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(book.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    Text(LibraryHatch.cardDetail(for: book))
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.skSurface, in: .rect(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.skBorder, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("source-link-card")
+    }
+}
+
+/// "❝ 3 notes from this episode · Newest: … ›" under the player and the reader (mock
+/// `srcNotesRow`). With no notes it says so and is not a button.
+struct SourceNotesRow: View {
+    let book: Audiobook
+    let onOpen: () -> Void
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+
+    var body: some View {
+        let notes = BookNotesJoin.notes(forBook: book.id, in: liveMemos)
+        if notes.isEmpty {
+            row(notes).accessibilityIdentifier("source-notes-row")
+        } else {
+            Button(action: onOpen) { row(notes) }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("source-notes-row")
+        }
+    }
+
+    private func row(_ notes: [Memo]) -> some View {
+        let detail = notes.first.map {
+            LibraryHatch.notesRowDetail(newestTitle: $0.displayTitle, when: LibraryHatch.shortDate($0.recordedAt))
+        } ?? LibraryHatch.notesRowEmptyDetail
+        return HStack(spacing: 10) {
+            Text("\u{275D}")
+                .font(.system(size: 18, weight: .black))
+                .foregroundStyle(Color.skAccentText)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(LibraryHatch.notesRowTitle(count: notes.count, kind: book.sourceKind))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                Text(detail)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextDim)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            if !notes.isEmpty {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.skSurface, in: .rect(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(Color.skBorder, lineWidth: 0.5))
     }
 }

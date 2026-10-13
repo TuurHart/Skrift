@@ -57,7 +57,8 @@ enum Compiler {
         // `sourceType: .audio`, so the markers (`bookTitle`, `mediaSource`) win first.
         let source: String
         if bookTitle != nil {
-            source = "Audiobook-quote"
+            // Q356 (D138): a quote from a Library PDF says so; its place is "p. N".
+            source = SourceKind.isPDFPageLabel(bookChapter) ? "PDF-quote" : "Audiobook-quote"
         } else if input.mediaSource == "video" {
             source = "Video"
         } else if input.kind == .typedNote {

@@ -438,6 +438,19 @@ enum CaptureInboxDrainer {
             DevLog.log("drain: pdf \(entry.id) not importable as a source — keeping it as a note attachment")
         }
 
+        // Q356 (D90): a bare Apple Podcasts / Spotify link is a Library source. The Library tab
+        // opens the podcast sheet on it, which finds the public feed (or says plainly that the
+        // show has none). Network and download run there, never in the drain.
+        if entry.type == "url", let link = entry.url,
+           CaptureInboxEntry.routesPodcastToLibrary(url: link, thought: entry.annotationText,
+                                                    significance: entry.significance) {
+            CaptureInbox.delete(entryDir: entryDir)
+            DevLog.log("drain: podcast link \(entry.id) → Library")
+            PodcastLinkArrival.shared.post(link)
+            TabSelectionBridge.shared.select(.books)
+            return nil
+        }
+
         // Duplicate guard: if we already have this memo, just clean up.
         if repository.memo(id: memoID) != nil {
             CaptureInbox.delete(entryDir: entryDir)

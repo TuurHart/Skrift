@@ -151,6 +151,12 @@ struct MemoDetailView: View {
         if WallPrinter.shared.hasPrinter {
             Button { WallPrinter.shared.printCard(memo, repository: repository) } label: { menuLabel(.printCard) }
         }
+        // Q356 (mock `noteMenu`, D90): only on a note that holds a PDF.
+        if LibraryHatch.canMoveToLibrary(memo) {
+            Button { LibraryHatch.moveToLibrary(memo: memo) } label: {
+                Label(LibraryHatch.moveLabel, systemImage: "books.vertical")
+            }
+        }
         Button { toggleLock(memo) } label: { menuLabel(NoteMenuItem.lockItem(isLocked: memo.locked)) }
         Button { showShare = true } label: { menuLabel(.share) }
         Button(action: copyTranscript) { menuLabel(.copyTranscript) }
@@ -496,6 +502,10 @@ struct MemoDetailView: View {
                 Button(NoteMenuItem.printCard.label, action: {
                     WallPrinter.shared.printCard(memo, repository: repository)
                 })
+            }
+            // Q356 (mock `noteMenu`, D90): only on a note that holds a PDF.
+            if let memo = currentMemo, LibraryHatch.canMoveToLibrary(memo) {
+                Button(LibraryHatch.moveLabel, action: { LibraryHatch.moveToLibrary(memo: memo) })
             }
             if let memo = currentMemo {
                 Button(NoteMenuItem.lockItem(isLocked: memo.locked).label, action: { toggleLock(memo) })

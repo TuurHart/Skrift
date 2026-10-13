@@ -24,11 +24,18 @@ struct AudiobookLibraryView: View {
     @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
     /// Status filter (transient, like the Notes funnel): nil = all books.
     @State private var statusFilter: BookStatusFilter?
+    /// Q356 (Q6 mock chips): the type filter. Falls back to All when its kind leaves the shelf.
+    @State private var typeFilter: LibraryTypeFilter = .all
+    private var typeChips: [LibraryTypeFilter] { LibraryTypeFilter.chips(for: store.books) }
+    private var effectiveTypeFilter: LibraryTypeFilter { typeChips.contains(typeFilter) ? typeFilter : .all }
     private var sort: BookSort { BookSort(rawValue: sortRaw) ?? .recentlyPlayed }
 
     @State private var showImporter = false
     /// Q353: the "Podcast or episode" door: paste a link, Skrift finds the public feed.
     @State private var showPodcastSheet = false
+    /// Q356: the shared podcast link the sheet opens on (nil = the empty paste field).
+    @State private var podcastPrefill: String?
+    @ObservedObject private var podcastArrival = PodcastLinkArrival.shared
     @State private var importing = false
     @ObservedObject private var openInBridge = BookFileImportBridge.shared
     @State private var openInQueue: [URL] = []
@@ -75,6 +82,20 @@ struct AudiobookLibraryView: View {
         notesSheetBook = nil
         TabSelectionBridge.shared.select(.notes)
         MemoOpenBridge.shared.open(memo.id)
+    }
+
+    private func takePodcastArrival() {
+        guard let arrival = podcastArrival.pending, !showPodcastSheet else { return }
+        podcastArrival.clear()
+        podcastPrefill = arrival.link
+        showPodcastSheet = true
+    }
+
+    /// Q356 (D138): "Send to a note" keeps the source here and opens a new note linked to it.
+    private func sendToNote(_ book: Audiobook) {
+        guard let id = LibraryHatch.sendToNote(book: store.book(id: book.id) ?? book) else { return }
+        TabSelectionBridge.shared.select(.notes)
+        MemoOpenBridge.shared.open(id)
     }
 
     // MARK: - 📖 Book text (spike 6 / multi-text)
@@ -171,9 +192,12 @@ struct AudiobookLibraryView: View {
             AudiobookPlayerView()
         }
         // Q353: the podcast door. The finished episode joins the shelf like any other source.
-        .sheet(isPresented: $showPodcastSheet) {
-            PodcastLinkSheet { episode in store.add(episode) }
+        .sheet(isPresented: $showPodcastSheet, onDismiss: { podcastPrefill = nil }) {
+            PodcastLinkSheet(onAdd: { episode in store.add(episode) }, initialLink: podcastPrefill)
         }
+        // Q356: a podcast link shared from another app opens the sheet on that link.
+        .onAppear { takePodcastArrival() }
+        .onChange(of: podcastArrival.pending) { _, _ in takePodcastArrival() }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
         }
@@ -282,6 +306,12 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !typeChips.isEmpty {
+                LibraryTypeChips(chips: typeChips, selection: Binding(get: { effectiveTypeFilter },
+                                                                      set: { typeFilter = $0 }))
+                    .padding(.horizontal, -Theme.Space.margin)
+                    .contentMargins(.horizontal, Theme.Space.margin, for: .scrollContent)
+            }
             HStack {
                 sortFilterChip
                 Spacer()
@@ -363,7 +393,8 @@ struct AudiobookLibraryView: View {
 
     /// The list the rows render: status-filtered, then sorted by the chip's choice.
     private var visibleBooks: [Audiobook] {
-        let filtered = statusFilter.map { f in store.books.filter { f.matches($0) } } ?? store.books
+        let typed = effectiveTypeFilter.apply(store.books)
+        let filtered = statusFilter.map { f in typed.filter { f.matches($0) } } ?? typed
         return sort.sorted(filtered)
     }
 
@@ -458,6 +489,17 @@ struct AudiobookLibraryView: View {
         // (Level 1, inline job controls) and book text (Level 2: Add /
         // Re-check / Remove, fileImporter presents over it).
         Group {
+            // Q356 (mock `srcMenu`): the two new items lead the menu.
+            Button { sendToNote(book) } label: {
+                Label(LibraryHatch.sendLabel, systemImage: "square.and.pencil")
+            }
+            .accessibilityIdentifier("library-send-to-note")
+            if let n = noteCounts[book.id], n > 0 {
+                Button { notesSheetBook = book } label: {
+                    Label("\(n) note\(n == 1 ? "" : "s") from this", systemImage: "quote.opening")
+                }
+            }
+            Divider()
             if book.sourceKind != .pdf {   // Q354: a PDF has no transcript, book text or audio to sync
             Button {
                 bookTextSheetBook = book

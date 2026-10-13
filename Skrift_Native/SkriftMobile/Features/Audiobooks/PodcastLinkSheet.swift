@@ -8,6 +8,8 @@ import UIKit
 struct PodcastLinkSheet: View {
     /// Called with the finished record; the caller adds it to the store.
     let onAdd: (Audiobook) -> Void
+    /// Q356: a podcast link shared from another app (`PodcastLinkArrival`); looked up on appear.
+    var initialLink: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
@@ -74,6 +76,12 @@ struct PodcastLinkSheet: View {
         .presentationDetents([.medium, .large])
         .accessibilityIdentifier("podcast-link-sheet")
         .onAppear {
+            // Q356: a link shared from another app arrives here and is looked up at once.
+            if let initialLink, !initialLink.isEmpty {
+                text = initialLink
+                go()
+                return
+            }
             // Prefill from the clipboard only when it already holds a link.
             if text.isEmpty, let s = UIPasteboard.general.string, PodcastLink.classify(s) != nil { text = s }
             focused = text.isEmpty

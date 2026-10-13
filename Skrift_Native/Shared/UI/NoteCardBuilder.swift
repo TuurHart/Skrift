@@ -114,7 +114,8 @@ enum NoteCardBuilder {
         }
         if let book = f.book,
            let caption = CaptureQuote.caption(book: book.title, chapter: book.chapter) {
-            c.chips.append(.init(text: caption, systemImage: SourceKind.audiobookQuote.glyph))
+            c.chips.append(.init(text: caption,
+                                 systemImage: (f.kind == .pdfQuote ? SourceKind.pdfQuote : .audiobookQuote).glyph))
         }
         if let secs = f.durationSeconds, secs > 0 {
             c.chips.append(.init(text: duration(seconds: secs)))

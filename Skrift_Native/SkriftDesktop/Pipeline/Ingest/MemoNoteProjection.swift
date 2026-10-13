@@ -161,7 +161,7 @@ enum MemoNoteProjection {
         switch kind {
         case .appleNote, .typedNote: return .note   // text-born notes render the note path
         case .captureURL, .captureImage, .captureText, .captureFile, .captureOther: return .capture
-        case .voiceMemo, .video, .audiobookQuote: return .audio
+        case .voiceMemo, .video, .audiobookQuote, .pdfQuote: return .audio
         }
     }
 

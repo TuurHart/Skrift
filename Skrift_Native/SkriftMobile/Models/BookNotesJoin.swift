@@ -48,6 +48,32 @@ enum BookNotesJoin {
         "Back to it at \(LibraryPDF.pageLabel(page)) in Library"
     }
 
+    /// Q356 (D177): where a jump-back lands, by the source's kind. A PDF opens its reader on the
+    /// page (clamped to the document); an episode or a book plays from the time.
+    enum JumpRoute: Equatable {
+        case page(Int)
+        case time(TimeInterval)
+    }
+
+    static func route(for target: JumpTarget, source: Audiobook) -> JumpRoute {
+        guard source.sourceKind == .pdf else { return .time(target.position) }
+        let count = max(1, LibraryPDF.pageCount(of: source))
+        return .page(min(max(1, Int(target.position)), count))
+    }
+
+    static func jumpLabel(for route: JumpRoute) -> String {
+        switch route {
+        case .page(let page): jumpLabel(page: page)
+        case .time(let position): jumpLabel(position: position)
+        }
+    }
+
+    /// The player's jump-back toast, naming the kind: "The episode’s own place is not moved."
+    static func jumpToast(title: String, position: TimeInterval, kind: LibrarySourceKind) -> String {
+        guard kind != .book else { return jumpToast(bookTitle: title, position: position) }
+        return "Opens \(title) at \(AudiobookTime.clock(position)). The \(LibraryHatch.kindNoun(kind))\u{2019}s own place is not moved."
+    }
+
     /// Q273: whether a playback session writes its position to the book's resume place. A
     /// jump-back session does not (Q6 mock: "The book's own place is not moved").
     static func shouldPersistProgress(jumpBackSession: Bool) -> Bool { !jumpBackSession }

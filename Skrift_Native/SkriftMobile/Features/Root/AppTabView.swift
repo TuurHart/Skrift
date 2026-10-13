@@ -98,6 +98,11 @@ struct AppTabView: View {
             else if LaunchFlags.seedLibraryShelf { AudiobookSeeder.seedShelf(); seeded = true }
             else if LaunchFlags.seedEpisode { AudiobookSeeder.seedEpisode(); seeded = true }
             if LaunchFlags.showPlayer { showSeededPlayer = true }
+            if LaunchFlags.showSentNote, let first = AudiobookLibraryStore.shared.sortedByRecent.first,
+               let id = LibraryHatch.sendToNote(book: first) {
+                TabSelectionBridge.shared.select(.notes)
+                MemoOpenBridge.shared.open(id)
+            }
             #endif
             // `-resumeBook`: open the last-played REAL book paused — the same
             // book-open path a library tap runs (incl. `alignIfNeeded`), for
