@@ -2793,7 +2793,7 @@ gate+: yes
 do: D197 on top of Q358's list (Shared/Model/MemoDate.swift `MemoDate.bucket`, Shared/UI/NotesListModel.swift, phone ListDerivedCache, Mac MacListDerivedCache): (1) add a Yesterday bucket between Today and Previous 7 Days (Europe/Lisbon calendar day); (2) sections group by the note's recorded date by default, or by its added date when the Recorded/Added date picker (Q105, C70) is on Added; within a section, newest of that same date first — an old note imported today lands in its real month. Same rule phone, iPad and Mac from the one shared bucket function. Extend ListGroupingTests (phone) and MacListWorkTests stays green (port only if needed, D163). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q378 [tuur] (doing) mockup: iPad list + open note next to Apple Notes on iPad
+### Q378 [tuur] (tuur) mockup: iPad list + open note next to Apple Notes on iPad
 spec: D193 D194 D196 D197
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
@@ -4104,3 +4104,4 @@ check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl 
 - 2026-10-13 15:03 Q377 -> done — hand-merged (Tuur D197 2026-10-13: Yesterday group — ListGroupingTests assertions follow the decided behaviour)
 - 2026-10-13 15:10 Q381 added
 - 2026-10-13 15:15 Q355 -> done — hand-merged (D163/Q371 pattern: LibraryShelfTests asserts the built article door; conductor resolved the Q371 conflict)
+- 2026-10-13 15:17 Q378 -> tuur — built @07672798, gate 59s — awaiting sitting
