@@ -2688,7 +2688,7 @@ gate+: yes
 do: From plan/perf2/f-mac-ui.md M5 M7 M8 M12 M15 and h-shared-data.md N1 P2; re-check each against today's code first. Mirror the phone's Q314: Connections refresh reuses the shared backlink index and runs only when the panel is open; the fading line for an unrated note reads cached backlinks; `NamesStore` memoises names.json until it changes (both apps, Shared); `[[` link candidates and `TagLibrary.counts` come from a cache keyed on the memo-set version; during playback the 20 Hz tick reads a karaoke word map built once per note version, not `bestBodyText.split` per tick. New counter test `MacNoteOpenWorkTests` in SkriftDesktopTests: opening a note in a 2,000-note in-memory store does no full-corpus fetch; ten playback ticks build the word map once; names.json is decoded once across two opens. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacNoteOpenWorkTests.swift`
 
-### Q363 [auto] (doing) Mac perf: typing never saves the store per key or restyles the whole note
+### Q363 [auto] (done) Mac perf: typing never saves the store per key or restyles the whole note
 spec: D191 D186 C277
 needs: -
 gate+: yes
@@ -3967,3 +3967,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:20 Q365 -> doing — worker out
 - 2026-10-13 10:21 Q365 -> todo — waits for a free worker slot (3 out)
 - 2026-10-13 10:21 Q351 -> tuur — built @3924ad30, gate 34s — awaiting sitting
+- 2026-10-13 10:21 Q363 -> done — gate 34s @c82c4c49
