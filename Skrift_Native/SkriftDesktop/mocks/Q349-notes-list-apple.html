@@ -293,6 +293,30 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .mac .cards .nrow{margin:0 8px 6px;width:calc(100% - 16px)}
 .sk.big .mac .nrow .t, .mac.big .nrow .t{font-size:15px}
 
+
+/* extra reference frames: list behaviours in Tuur's iOS 27 screenshots that no Skrift frame here covers */
+.xtra{margin-top:30px}
+.xtra .xs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:10px}
+.xtra .xf{display:flex;flex-direction:column;gap:8px;align-items:center}
+.xtra .xf p{margin:0;font-size:12.5px;color:var(--bench-dim);max-width:330px;line-height:1.4}
+.xtra .phone{height:560px}
+.xtra .ref .sw{display:flex;align-items:center;gap:8px;margin:0 16px;position:relative}
+.xtra .ref .act{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;color:var(--ref-dim);flex:none}
+.xtra .ref .act i{width:62px;height:32px;border-radius:16px;display:grid;place-items:center;color:#fff;font-style:normal;font-size:15px}
+.xtra .ref .pill{flex:1;min-width:0;background:#e5e5ea;border-radius:26px;padding:8px 14px;white-space:nowrap;overflow:hidden}
+.xtra .ref .pill .t{font-size:19px;font-weight:600}.xtra .ref .pill .l2{font-size:17px;color:var(--ref-dim)}
+.xtra .ref .menu{margin:14px auto 0;width:250px;border-radius:26px;background:#ececf0;padding:12px 0;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+.xtra .ref .menu .top{display:flex;justify-content:space-around;padding:0 10px 12px;border-bottom:.5px solid #ccc;font-size:15px}
+.xtra .ref .menu .top span{display:flex;flex-direction:column;align-items:center;gap:3px}
+.xtra .ref .menu .li{padding:10px 22px;font-size:18px}
+.xtra .ref .prev{margin:10px 16px 0;background:#fff;border-radius:26px;padding:16px 18px;font-size:16px;line-height:1.4;color:#454545;height:170px;overflow:hidden}
+.xtra .ref .prev b{display:block;font-size:24px;color:#454545;margin-bottom:8px}
+.xtra .ref .sugg .row{min-height:52px;padding-left:58px}
+.xtra .ref .sugg .row .gi{position:absolute;left:20px;top:15px;color:var(--ref-tint);font-size:18px}
+.xtra .ref .hits{display:flex;justify-content:space-between;align-items:baseline;margin:16px 16px 10px}
+.xtra .ref .hits b{font-size:21px}.xtra .ref .hits span{font-size:17px;color:var(--ref-dim)}
+.xtra .ref mark{background:none;color:var(--ref-tint)}
+
 /* ── picks list ───────────────────────────────── */
 .picks{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .pk{border:1px solid var(--bench-line);border-radius:12px;padding:13px 14px;display:flex;gap:11px;align-items:flex-start;background:color-mix(in srgb,var(--bench) 60%,transparent)}
@@ -351,6 +375,34 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 
   <div class="stage" id="stage"></div>
 
+
+  <section class="xtra">
+    <h3 class="sect">Also in Tuur's iOS 27 screenshots: list behaviours no Skrift frame here shows</h3>
+    <p class="fine" style="margin-top:4px">Reference only, redrawn by hand; the invented note text matches the frames above. Added so the sitting can decide whether the Skrift list gets the same gestures. There is no Skrift frame beside these because the mock does not cover them.</p>
+    <div class="xs">
+      <div class="xf"><span class="reftag">Reference · swipe a row</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll">
+          <h3 style="margin-top:8px">All iCloud</h3><div class="count">15 Notes</div><div class="gh">Today</div>
+          <div class="sw"><span class="act"><i style="background:#f09a37">⚲</i>Pin</span><div class="pill"><div class="t">Tile quote for the bathroom</div><div class="l2">09:41&nbsp; Called Rui about the bathroom tiles</div></div></div>
+          <div class="sw" style="margin-top:14px"><div class="pill" style="text-align:right"><div class="l2">…the green ones by Friday</div></div><span class="act"><i style="background:#4f8ff7">⇪</i>Share</span><span class="act"><i style="background:#7a77f4">▭</i>Move</span><span class="act"><i style="background:#ea4b4b">⌫</i>Delete</span></div>
+        </div></div>
+        <p>Swipe right: one orange Pin action. Swipe left: Share (blue), Move (indigo), Delete (red), each a pill with its label under it. The swiped row turns into a gray rounded pill.</p></div>
+      <div class="xf"><span class="reftag">Reference · press and hold a row</span>
+        <div class="phone ref" style="background:#c9c9ce"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll">
+          <div class="prev"><b>Tile quote for the bathroom</b>Called Rui about the bathroom tiles. He can start on the 26th if we confirm the green ones by Friday, otherwise it slips to November.</div>
+          <div class="menu"><div class="top"><span>⇪<br>Share</span><span>▭<br>Move</span><span style="color:#e5484d">⌫<br>Delete</span></div><div class="li">Pin Note</div><div class="li">Lock Note</div><div class="li">Duplicate Note</div></div>
+        </div></div>
+        <p>A live preview of the note (title + text + first photo) lifts out, with a menu under it: Share, Move, Delete as a top row, then Pin Note, Lock Note, Duplicate Note.</p></div>
+      <div class="xf"><span class="reftag">Reference · search</span>
+        <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll">
+          <div class="gh" style="margin-top:14px">Suggested</div>
+          <div class="group sugg"><div class="row"><span class="gi">⚇</span><div class="tx"><div class="t" style="font-weight:400">Shared Notes</div></div></div><div class="row"><span class="gi">🔒︎</span><div class="tx"><div class="t" style="font-weight:400">Locked Notes</div></div></div><div class="row"><span class="gi">☑︎</span><div class="tx"><div class="t" style="font-weight:400">Notes with Checklists</div></div></div><div class="row"><span class="gi">#</span><div class="tx"><div class="t" style="font-weight:400">Notes with Tags</div></div></div><div class="row"><span class="gi">⌇</span><div class="tx"><div class="t" style="font-weight:400">Notes with Attachments</div></div></div></div>
+          <div class="hits"><b>Top Hits</b><span>2 Found</span></div>
+          <div class="group"><div class="row"><div class="tx"><div class="t">Gift ideas for Pim</div><div class="l2"><b>24/09/2026</b>…a good <mark>head</mark>lamp</div><div class="l3">▭ Home</div></div></div></div>
+        </div></div>
+        <p>Tapping Search lifts the pill above the keyboard with a close circle. Empty: a Suggested card (shared, locked, checklists, tags, drawings, scans, attachments). Typing: Top Hits and Notes sections with "N Found" on the right, the match tinted in the accent, folder line shown.</p></div>
+    </div>
+  </section>
   <div class="ask">
     <div class="eyebrow">The one question for the sitting</div>
     <p>The new row drops the three importance balls and the faded look of unrated notes. Rating stays in the open note and the Unrated chip still finds them. Can the list stop showing importance at all?</p>
