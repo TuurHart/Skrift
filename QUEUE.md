@@ -2840,7 +2840,7 @@ needs: -
 do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots in '/Users/tiurihartog/Downloads/apple notes ui/attatchments/' (iPhone and Mac), laid at the same scale; the iPad frame is drawn from those plus the signed Q378 iPad layout (D200). One agent on the file.
 check: Tuur clicked through it and said go.
 
-### Q385 [auto] (doing) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
+### Q385 [auto] (done) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
 spec: D199 D126
 needs: Q384 Q379
 gate+: yes
@@ -4214,3 +4214,4 @@ check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 
 - 2026-10-13 19:39 Q384 -> done — signed D202: inline play, 420 pt cut, small by default + Set All Small/Large in ⋯; 'very good… nicely done'
 - 2026-10-13 19:39 Q385 -> doing — worker out
 - 2026-10-13 20:20 Q391 added
+- 2026-10-13 20:24 Q385 -> done — gate 50s @b5d3cbac
