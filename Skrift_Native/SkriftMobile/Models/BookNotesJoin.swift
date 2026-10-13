@@ -43,6 +43,11 @@ enum BookNotesJoin {
         "Back to it at \(AudiobookTime.clock(position)) in Library"
     }
 
+    /// Q354: the same jump-back for a PDF source: "Back to it at p. 4 in Library".
+    static func jumpLabel(page: Int) -> String {
+        "Back to it at \(LibraryPDF.pageLabel(page)) in Library"
+    }
+
     /// Q273: whether a playback session writes its position to the book's resume place. A
     /// jump-back session does not (Q6 mock: "The book's own place is not moved").
     static func shouldPersistProgress(jumpBackSession: Bool) -> Bool { !jumpBackSession }
@@ -64,7 +69,10 @@ enum BookNotesJoin {
         if let chapter = memo.metadata?.bookChapter?.trimmingCharacters(in: .whitespaces), !chapter.isEmpty {
             parts.append(chapter.allSatisfy(\.isNumber) ? "ch \(chapter)" : chapter)
         }
-        if let target = jumpTarget(for: memo) { parts.append(AudiobookTime.clock(target.position)) }
+        // Q354: a PDF note's "p. 4" already says where; its position is a page, not seconds.
+        if let target = jumpTarget(for: memo), !LibraryPDF.isPageLabel(memo.metadata?.bookChapter) {
+            parts.append(AudiobookTime.clock(target.position))
+        }
         let f = DateFormatter()
         f.calendar = calendar
         f.locale = Locale(identifier: "en_US_POSIX")

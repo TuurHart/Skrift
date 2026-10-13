@@ -35,6 +35,9 @@ struct AudiobookLibraryView: View {
     /// Partial-import notice: the book imported but N parts were skipped (unreadable).
     @State private var importNotice: String?
     @State private var showPlayer = false
+    /// Q354: the "ePub or PDF" door's picker, and the PDF a tapped tile opens (`LibraryPDFHost`).
+    @State private var showPDFImporter = false
+    @State private var pdfReaderBook: Audiobook?
     /// A0 (mock book-text-unified.html): the once-per-book "Give this book text"
     /// prompt, presented right after an import confirms. `a0Candidate` parks the
     /// just-imported book until the confirm sheet is off-screen — presenting from
@@ -108,6 +111,7 @@ struct AudiobookLibraryView: View {
             }
         }
         .animation(Theme.Motion.spring, value: session.isActive)
+        .libraryPDFs(isImporting: $showPDFImporter, reader: $pdfReaderBook)   // Q354
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             // Multi-select imports ONE book: a file-per-chapter folder's mp3s
             // become its ordered chapters (Bound-style).
@@ -405,12 +409,14 @@ struct AudiobookLibraryView: View {
     private func openDoor(_ door: LibraryDoor) {
         switch door {
         case .audiobook: showImporter = true
-        case .podcast, .epubOrPDF, .article: break   // hidden until Q353-Q355 land their importers
+        case .epubOrPDF: showPDFImporter = true       // Q354
+        case .podcast, .article: break   // hidden until Q353/Q355 land their importers
         }
     }
 
     /// Tap-to-play/resume (2026-07-06 convention) — the shelf tile's tap.
     private func openOrPlay(_ book: Audiobook, syncState: BookSyncState?) {
+        if book.sourceKind == .pdf { pdfReaderBook = book; return }   // Q354: a PDF opens its reader
         if session.open(book, autoplay: true) {
             showPlayer = true
         } else if syncState == .downloadAvailable {
@@ -434,6 +440,7 @@ struct AudiobookLibraryView: View {
         // (Level 1, inline job controls) and book text (Level 2: Add /
         // Re-check / Remove, fileImporter presents over it).
         Group {
+            if book.sourceKind != .pdf {   // Q354: a PDF has no transcript, book text or audio to sync
             Button {
                 bookTextSheetBook = book
             } label: {
@@ -452,6 +459,7 @@ struct AudiobookLibraryView: View {
                 Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
                       systemImage: "icloud")
             }
+            }   // end: not a PDF
             Button(role: .destructive) { pendingDelete = book } label: {
                 Label("Delete", systemImage: "trash")
             }

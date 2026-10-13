@@ -93,7 +93,8 @@ struct BookShelfTile: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ipad-library-book-tile")
         .accessibilityLabel(BookTileState.accessibilityLabel(
-            title: book.title, author: book.author, timeLeft: AudiobookTime.clock(book.timeLeft),
+            title: book.title, author: book.author,
+            timeLeft: book.sourceKind == .pdf ? LibraryPDF.leftPhrase(book) : AudiobookTime.clock(book.timeLeft),
             syncState: syncState, transferFraction: transferFraction, realign: realign))
     }
 
@@ -144,10 +145,17 @@ struct BookShelfTile: View {
 
     private var progressStatusLine: some View {
         HStack {
-            Text(Self.progressLabel(for: book))
-            Spacer(minLength: 4)
-            if !book.isFinished {
-                Text(AudiobookTime.clock(book.timeLeft) + " left")
+            // Q354: a PDF counts pages, not minutes ("p. 4 of 18" · "14 pages left").
+            if book.sourceKind == .pdf {
+                Text(LibraryPDF.progressLine(book))
+                Spacer(minLength: 4)
+                Text(LibraryPDF.leftLine(book))
+            } else {
+                Text(Self.progressLabel(for: book))
+                Spacer(minLength: 4)
+                if !book.isFinished {
+                    Text(AudiobookTime.clock(book.timeLeft) + " left")
+                }
             }
         }
         .font(.system(size: 10))

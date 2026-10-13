@@ -259,7 +259,10 @@ struct ShareSheetView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .shareCardChrome()
-            honestyLine(payload.filePageCount != nil
+            honestyLine(CaptureInboxEntry.routesPDFToLibrary(
+                            displayName: payload.fileName, thought: trimmedThought, significance: significance)
+                        ? "Goes to your Library · type a thought to make it a note instead"
+                        : payload.filePageCount != nil
                         ? "Its text becomes searchable in Skrift · opens inline in the note"
                         : "Opens from the note · Skrift opens on it next time")
         }
@@ -794,7 +797,10 @@ struct ShareSheetView: View {
             annotationText: trimmedThought,
             significance: significance, sharedAt: ISO8601.string(from: Date()),
             fileName: "file_\(id.uuidString).\(ext)",
-            fileDisplayName: payload.fileName
+            fileDisplayName: payload.fileName,
+            // Q354 / D126: a bare PDF goes to the Library tab, not into a new note.
+            routeToLibrary: CaptureInboxEntry.routesPDFToLibrary(
+                displayName: payload.fileName, thought: trimmedThought, significance: significance) ? true : nil
         )
     }
 

@@ -84,6 +84,21 @@ struct CaptureInboxEntry: Codable {
     /// The document's original display name (e.g. "report.pdf"), shown in the capture
     /// detail. Distinct from `fileName` (the UUID-keyed stored name).
     var fileDisplayName: String? = nil
+    /// Q354 (D126, Q6 mock "Share a PDF from Mail"): true = a PDF shared with no typed thought and
+    /// no rating becomes a Library source (kind `pdf`) instead of a note with the file attached.
+    /// Optional so older entries decode (nil = a note, as before).
+    var routeToLibrary: Bool? = nil
+}
+
+extension CaptureInboxEntry {
+    /// The ONE rule for where a shared PDF lives: the share sheet calls it when it writes the
+    /// entry. A bare PDF (no words, no rating) is a thing to read later = the Library; his words
+    /// or a rating say "this is a note", so the file attaches to that note as today.
+    static func routesPDFToLibrary(displayName: String?, thought: String?, significance: Double) -> Bool {
+        guard let name = displayName, (name as NSString).pathExtension.lowercased() == "pdf" else { return false }
+        let hasThought = !(thought ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return !hasThought && significance <= 0
+    }
 }
 
 // MARK: - Inbox

@@ -46,7 +46,8 @@ enum LibraryDoor: String, CaseIterable, Identifiable, Sendable {
     var isBuilt: Bool {
         switch self {
         case .audiobook: true
-        case .podcast, .epubOrPDF, .article: false
+        case .epubOrPDF: true   // Q354: PDFs (an ePub is attached to a book, Book text)
+        case .podcast, .article: false
         }
     }
 

@@ -204,7 +204,9 @@ final class ShareViewController: UIViewController {
             return n > 1 ? "\(n) photos → one note" : "Photo saved"
         case .url:  return "Link saved"
         case .text: return "Text saved"
-        case .file: return payload.fileName.map { "\($0) saved" } ?? "Document saved"
+        case .file:
+            if entries.first?.routeToLibrary == true { return "PDF → Library" }
+            return payload.fileName.map { "\($0) saved" } ?? "Document saved"
         }
     }
 

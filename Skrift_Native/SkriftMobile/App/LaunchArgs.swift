@@ -46,6 +46,11 @@ enum LaunchFlags {
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
     /// Q352: four seeded books (two with capture notes) for the Library shelf screenshot.
     static var seedLibraryShelf: Bool { args.boolFlag("-seedLibraryShelf") }
+    /// Q354: two PDFs on the Library shelf; `-showPDFReader` opens one on page 4 with text selected,
+    /// `-showPDFToast` raises the "Added to Library" toast. Screenshots only.
+    static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
+    static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
+    static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
     /// Device-verify hook (📖 rounds 5–7): open the most recently played REAL
     /// book as a PAUSED session on launch — fires the same book-open
     /// `alignIfNeeded` a library tap would (re-adopt + schema re-align run
