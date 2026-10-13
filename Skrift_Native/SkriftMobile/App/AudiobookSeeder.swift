@@ -13,22 +13,36 @@ enum AudiobookSeeder {
     static func seedAndOpen(store: AudiobookLibraryStore = .shared,
                             session: AudiobookSession = .shared) {
         guard !session.isActive else { return }
-        resetCardState()
         guard let book = ensureBook(store: store) else { return }
         session.open(book)   // paused session — the V2a pill state
     }
 
-    /// Seeded launches define a KNOWN state: any continue-card dismissal left
-    /// in the sim container by earlier runs is cleared (hermetic UI tests).
-    private static func resetCardState() {
-        UserDefaults.standard.removeObject(forKey: PrefKey.continueCardDismissedDay)
-    }
-
-    /// Seed the book with a played history but NO session — the Notes
-    /// "Continue listening" card state.
-    static func seedOnly(store: AudiobookLibraryStore = .shared) {
-        resetCardState()
-        _ = ensureBook(store: store)
+    /// `-seedLibraryShelf` (Q352): four books with different progress, two of them with capture
+    /// notes, so the Library shelf and its "❝ N" pills render in the Simulator. Screenshot-only.
+    static func seedShelf(store: AudiobookLibraryStore = .shared, repo: NotesRepository = .shared) {
+        guard store.books.isEmpty else { return }
+        let shelf: [(String, String, Double, Double, Int)] = [
+            ("The Long Way Round", "Frank Herbert", 36_000, 14_400, 5),
+            ("Het Uur: Ik zit in een rouwproces", "NRC", 3_600, 3_400, 0),
+            ("A Pattern Language", "Christopher Alexander", 72_000, 0, 2),
+            ("Walking", "Henry David Thoreau", 18_000, 9_000, 0),
+        ]
+        for (index, entry) in shelf.enumerated() {
+            let (title, author, duration, position, notes) = entry
+            let book = Audiobook(
+                audioFilename: "book.wav", title: title, author: author, duration: duration,
+                chapters: [AudiobookChapter(title: "Chapter 1", start: 0, duration: duration)],
+                lastPlayedAt: Date(timeIntervalSinceNow: -Double(index) * 3_600), position: position)
+            store.add(book)
+            for n in 0..<notes {
+                var meta = MemoMetadata()
+                meta.bookTitle = title; meta.bookChapter = "\(n + 1)"
+                meta.bookID = book.id; meta.bookPosition = position
+                repo.insert(Memo.make(recordedAt: Date(timeIntervalSinceNow: -Double(n) * 86_400),
+                                      title: "Note \(n + 1)", transcript: "> A sentence from the book.\n\nMy thought.",
+                                      metadata: meta))
+            }
+        }
     }
 
     private static func ensureBook(store: AudiobookLibraryStore) -> Audiobook? {

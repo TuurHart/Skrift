@@ -24,10 +24,6 @@ enum PrefKey {
     static let fadingLastSeenAt = "fadingLastSeenAt"
     static let fadingLastSeenAtDefault: Double = 0
 
-    /// The day (yyyy-MM-dd) the Continue-listening card was dismissed (phone).
-    static let continueCardDismissedDay = "continueCardDismissedDay"
-    static let continueCardDismissedDayDefault = ""
-
     /// The OpenWeather key Settings writes and `WeatherClient` reads (phone).
     static let weatherAPIKey = "weatherAPIKey"
     static let weatherAPIKeyDefault = ""

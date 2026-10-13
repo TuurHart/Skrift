@@ -2,8 +2,8 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// The Books tab (mock state 1, Bound-inspired; root tab since 2026-06-19,
-/// renamed Library→Books 2026-07-06): import from Files/iCloud, covers,
+/// The Library tab (Q6 mock; was the Books tab, Bound-inspired; root tab since 2026-06-19,
+/// Library→Books 2026-07-06, Books→Library Q352): import from Files/iCloud, covers,
 /// sort + status filters (default: recently played), per-book resume with
 /// time-left, swipe-delete (captures survive — they're ordinary memos with
 /// their own audio). Tapping a book PLAYS it (2026-07-06) — the full player
@@ -89,7 +89,8 @@ struct AudiobookLibraryView: View {
             Color.skBg.ignoresSafeArea()
             VStack(spacing: 0) {
                 topBar
-                header
+                // The empty tab (Q6 mock) is title + doors only: no sort chip or count.
+                if !store.books.isEmpty { header }
                 booksContent
             }
         }
@@ -233,7 +234,7 @@ struct AudiobookLibraryView: View {
         // tabs): "Books" + the import action inline — the separate title row
         // below is gone.
         HStack {
-            ScreenTitle("Books")
+            ScreenTitle("Library")
             Spacer()
 
             Button {
@@ -252,7 +253,7 @@ struct AudiobookLibraryView: View {
             }
             .disabled(importing)
             .accessibilityIdentifier("library-import")
-            .accessibilityLabel("Import an audiobook from Files — select every part of a multi-file book at once")
+            .accessibilityLabel("Add to Library — import an audiobook from Files; select every part of a multi-file book at once")
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
@@ -280,6 +281,13 @@ struct AudiobookLibraryView: View {
                     .font(.system(size: 10.5))
                     .foregroundStyle(Color.skTextFaint)
             }
+            // The mock's one-line hint (Q6): what a tap, a hold and the ❝ pill each do.
+            if !isRegular {
+                Text("Tap a cover to open it. Hold a cover for its menu. Tap ❝ for its notes.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.skTextFaint)
+                    .accessibilityIdentifier("library-shelf-hint")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Theme.Space.margin)
@@ -290,8 +298,8 @@ struct AudiobookLibraryView: View {
 
     private var countLine: String {
         let n = store.books.count
-        let books = "\(n) book\(n == 1 ? "" : "s")"
-        return session.isActive ? books + " · 1 listening" : books
+        let sources = "\(n) source\(n == 1 ? "" : "s")"
+        return session.isActive ? sources + " · 1 listening" : sources
     }
 
     /// The header chip IS the sort/filter control (it used to be a static
@@ -338,63 +346,25 @@ struct AudiobookLibraryView: View {
         return sort.sorted(filtered)
     }
 
-    // MARK: - List
+    // MARK: - Shelf (Q6 mock `Q6-library-tab.html`; iPad wave mock `ipad-app.html` m6)
 
-    private var bookList: some View {
-        List {
-            ForEach(visibleBooks) { book in
-                row(book)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 4, leading: Theme.Space.margin, bottom: 4, trailing: Theme.Space.margin))
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            pendingDelete = book
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                    .contextMenu { contextMenuItems(book) }
-            }
-            // ONE import affordance — the toolbar +. The empty library keeps a
-            // passive hint line only (no second button).
-            if store.books.isEmpty {
-                emptyHint
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
-            } else if visibleBooks.isEmpty {
-                // A status filter with no matches must say so, not show a blank list.
-                Text("No \(statusFilter?.label.lowercased() ?? "matching") books.")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Color.skTextFaint)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        // Sync feedback lives ON each book row (uploading/downloading bar) — no floating
-        // pill here, so nothing overlaps the titles.
-        .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
+    /// Q352: the shelf of tiles at EVERY width (the phone's 54pt row list is gone). Phone = the
+    /// mock's two columns (18 across, 26 down); regular width keeps its adaptive grid (C229).
+    private var booksContent: some View { bookShelf }
+
+    private var shelfColumns: [GridItem] {
+        isRegular
+            ? [GridItem(.adaptive(minimum: 170, maximum: 220), spacing: 20)]
+            : [GridItem(.flexible(), spacing: 18), GridItem(.flexible(), spacing: 18)]
     }
 
-    // MARK: - Shelf (iPad wave, regular width — mock `ipad-app.html` m6)
-
-    @ViewBuilder
-    private var booksContent: some View {
-        if isRegular { bookShelf } else { bookList }
-    }
-
-    /// The row data promoted into a cover shelf: same books, same sort/filter,
-    /// same tap-to-play + long-press menu — just a grid instead of 54pt rows.
+    /// Same books, same sort/filter, same tap-to-play + long-press menu.
     private var bookShelf: some View {
         ScrollView {
             if store.books.isEmpty {
-                emptyHint
+                LibraryEmptyView { door in openDoor(door) }
                     .padding(.horizontal, Theme.Space.margin)
-                    .padding(.top, 10)
+                    .padding(.top, 18)
             } else if visibleBooks.isEmpty {
                 Text("No \(statusFilter?.label.lowercased() ?? "matching") books.")
                     .font(.system(size: 11.5))
@@ -403,7 +373,7 @@ struct AudiobookLibraryView: View {
                     .padding(.horizontal, Theme.Space.margin)
                     .padding(.top, 10)
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 220), spacing: 20)], spacing: 26) {
+                LazyVGrid(columns: shelfColumns, spacing: 26) {
                     ForEach(visibleBooks) { book in
                         let isCurrent = session.book?.id == book.id
                         let syncState = bookSyncState(book)
@@ -431,8 +401,15 @@ struct AudiobookLibraryView: View {
         .accessibilityIdentifier("ipad-library-book-shelf")
     }
 
-    /// Tap-to-play/resume (2026-07-06 convention) — shared by the list row and
-    /// the shelf tile so the two surfaces can never diverge in behavior.
+    /// An empty-tab door opens its importer. Only built doors are shown (`LibraryDoor.visible`).
+    private func openDoor(_ door: LibraryDoor) {
+        switch door {
+        case .audiobook: showImporter = true
+        case .podcast, .epubOrPDF, .article: break   // hidden until Q353-Q355 land their importers
+        }
+    }
+
+    /// Tap-to-play/resume (2026-07-06 convention) — the shelf tile's tap.
     private func openOrPlay(_ book: Audiobook, syncState: BookSyncState?) {
         if session.open(book, autoplay: true) {
             showPlayer = true
@@ -481,16 +458,6 @@ struct AudiobookLibraryView: View {
         }
     }
 
-    private var emptyHint: some View {
-        Text("No audiobooks yet — import from **Files / iCloud** with the **+** above. Select every file of a file-per-chapter book at once; title, author & chapters come from the tags (you only confirm if they’re missing).")
-            .font(.system(size: 11))
-            .foregroundStyle(Color.skTextFaint)
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 2)
-            .accessibilityIdentifier("library-empty-hint")
-    }
-
     enum BookSyncState { case uploading, downloading, downloadAvailable, synced }
 
     /// Per-book sync state, shown ON the row. nil = local-only (no record). `uploading`
@@ -511,132 +478,6 @@ struct AudiobookLibraryView: View {
         }
         if present { return .synced }
         return AudiobookCloudSync.isDownloadRemoved(bookID: book.id) ? .downloadAvailable : .downloading
-    }
-
-    /// The mock's row label: "Uploading audio · 38%" / "Downloading · 61%" (the % drops
-    /// out in the brief pre-first-byte window so we never show a misleading "0%").
-    private func transferLabel(uploading: Bool, fraction: Double?) -> String {
-        BookTileState.transferLabel(uploading: uploading, fraction: fraction)
-    }
-
-    private func row(_ book: Audiobook) -> some View {
-        let isCurrent = session.book?.id == book.id
-        let syncState = bookSyncState(book)
-        return Button {
-            // Tapping a book PLAYS it (2026-07-06 — the audiobook-app convention;
-            // an open-paused player was a dead extra tap). open() no-ops the
-            // teardown for the already-loaded book and just resumes it.
-            openOrPlay(book, syncState: syncState)
-        } label: {
-            HStack(spacing: 12) {
-                BookCoverView(book: book)
-                    .frame(width: 54, height: 54)
-                    .clipShape(.rect(cornerRadius: 9, style: .continuous))
-                    .shadow(color: .black.opacity(0.3), radius: 5, y: 2)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(book.title)
-                            .font(.system(size: 13.5, weight: .semibold))
-                            .foregroundStyle(Color.skText)
-                            .lineLimit(1)
-                        // Per-book sync glyph (Phase 1h): ✓ when the audio is here, or a
-                        // download cloud when it's freed on this device. Uploading /
-                        // downloading show as a bar on the progress line below instead.
-                        switch syncState {
-                        case .synced:
-                            Image(systemName: "checkmark.icloud")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Color.skTextDim)
-                                .accessibilityLabel("Synced to your devices")
-                        case .downloadAvailable:
-                            Image(systemName: "icloud.and.arrow.down")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Color.skTextDim)
-                                .accessibilityLabel("Synced — download to this device")
-                        case .uploading, .downloading, .none:
-                            EmptyView()
-                        }
-                    }
-                    Text(book.author)
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.skTextDim)
-                        .lineLimit(1)
-                    if syncState == .uploading || syncState == .downloading {
-                        // In-flight sync: a DETERMINATE bar on the book itself, fed by the
-                        // raw-CloudKit transport's real per-record progress. Falls back to
-                        // indeterminate only in the brief window before the first byte (a
-                        // received phantom waiting on the source's audioUploadedAt push).
-                        let transfer = cloudSync.bookTransfers[book.id]
-                        HStack(spacing: 7) {
-                            Group {
-                                if let fraction = transfer?.fraction {
-                                    ProgressView(value: fraction)
-                                } else {
-                                    ProgressView()
-                                }
-                            }
-                            .progressViewStyle(.linear)
-                            .tint(Color.skAccent)
-                            .frame(maxWidth: 110)
-                            .scaleEffect(x: 1, y: 0.7, anchor: .center)
-                            Text(transferLabel(uploading: syncState == .uploading, fraction: transfer?.fraction))
-                                .font(.system(size: 10.5))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.skAccentText)
-                        }
-                        .padding(.top, 3)
-                    } else if textActivity.isActive(book.id) {
-                        // A re-align is running for THIS book — say so, or the app just
-                        // looks frozen (device finding 2026-07-23). Never blocks anything:
-                        // the work is background, playback and taps keep working.
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.mini)
-                            Text(textActivity.stage ?? BookTileState.realignFallback)
-                                .font(.system(size: 10.5))
-                                .foregroundStyle(Color.skAccentText)
-                                .lineLimit(1)
-                        }
-                        .padding(.top, 3)
-                    } else {
-                        HStack(spacing: 7) {
-                            ProgressView(value: book.progress)
-                                .progressViewStyle(.linear)
-                                .tint(Color.skAccent.opacity(0.65))
-                                .frame(maxWidth: 110)
-                                .scaleEffect(x: 1, y: 0.7, anchor: .center)
-                            Text(AudiobookTime.clock(book.timeLeft) + " left")
-                                .font(.system(size: 10.5))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.skTextFaint)
-                        }
-                        .padding(.top, 3)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            }
-            .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
-            .background(
-                isCurrent ? Color.skAccent.opacity(0.07) : Color.skSurface,
-                in: .rect(cornerRadius: 14, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle.sk(14)
-                    .stroke(isCurrent ? Color.skAccent.opacity(0.3) : .clear, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        // ❝ N on the compact row: a small pill at the trailing edge (its own button).
-        .overlay(alignment: .trailing) {
-            if let count = noteCounts[book.id], count > 0 {
-                BookNotesPill(count: count, compact: true) { notesSheetBook = book }
-                    .padding(.trailing, 12)
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("library-book-row")
-        .accessibilityLabel("\(book.title) by \(book.author), \(AudiobookTime.clock(book.timeLeft)) left")
     }
 
     // MARK: - Actions

@@ -85,6 +85,13 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// key. Distinct from `lastPlayedAt` (which is purely the "recently played" sort),
     /// so a speed change with no playback still syncs without reordering the library.
     var modifiedAt: Date
+    /// Q352 (Q6 mock, D134/D135): what kind of Library source this is. Optional and carried INSIDE
+    /// this same Codable blob, so the synced carrier record gains no field and CloudKit needs no
+    /// schema change; nil (every record written before Q352) reads as a book via `sourceKind`.
+    var kind: LibrarySourceKind? = nil
+
+    /// The kind to show and branch on: nil means a book.
+    var sourceKind: LibrarySourceKind { kind ?? .book }
 
     /// Legacy convenience: the first (for single-file books, only) file.
     var audioFilename: String { files.first ?? "" }
@@ -208,6 +215,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         // (the Odyssey device report). The sync blob still never carries them: every
         // send path encodes `sanitizedForSync()`, which nils all of them first.
         case epubFilename, epubFilenames, epubChapters
+        case kind
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -225,6 +233,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         epubFilename = try c.decodeIfPresent(String.self, forKey: .epubFilename)
         epubFilenames = try c.decodeIfPresent([String].self, forKey: .epubFilenames)
         epubChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .epubChapters)
+        // An unknown raw value (a kind a newer build wrote) reads as nil = book, never a failed decode.
+        kind = (try? c.decodeIfPresent(LibrarySourceKind.self, forKey: .kind)) ?? nil
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
         importedAt = try c.decode(Date.self, forKey: .importedAt)
         lastPlayedAt = try c.decodeIfPresent(Date.self, forKey: .lastPlayedAt)
@@ -263,6 +273,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(epubFilename, forKey: .epubFilename)
         try c.encodeIfPresent(epubFilenames, forKey: .epubFilenames)
         try c.encodeIfPresent(epubChapters, forKey: .epubChapters)
+        try c.encodeIfPresent(kind, forKey: .kind)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
