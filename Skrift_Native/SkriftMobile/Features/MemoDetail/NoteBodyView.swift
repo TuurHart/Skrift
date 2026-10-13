@@ -1229,7 +1229,7 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         /// D202 (mock pick 6): a hold released without moving opens the block's menu (the shared
-        /// `NoteAttachment.blockActions`: View as Small/Large, Move Up/Down, Share, Delete).
+        /// `NoteAttachment.holdMenu`: Copy, Share, Save, View as Small/Large, Move Up/Down, Delete).
         private func presentBlockMenu(_ literal: String, at point: CGPoint) {
             guard let tv = textView else { return }
             if blockMenuInteraction.view == nil { tv.addInteraction(blockMenuInteraction) }
@@ -1243,9 +1243,9 @@ struct NoteBodyView: UIViewRepresentable {
             let raw = reconstruct(textView?.attributedText)
             let spot = NoteAttachment.paragraphIndex(of: literal, in: raw) ?? (0, 1)
             let size = NoteAttachment.size(of: filename, large: memo.metadata?.largeAttachments)
-            var actions = NoteAttachment.blockActions(size: size, paragraph: spot.index, count: spot.count,
-                                                      shareable: blockFileURL(literal) != nil)
-            if currentMode != .editing { actions.removeAll { $0 != .share && $0 != .setSize(size == .large ? .small : .large) } }
+            let actions = NoteAttachment.holdMenu(size: size, paragraph: spot.index, count: spot.count,
+                                                  hasFile: blockFileURL(literal) != nil, isMedia: isMediaBlock(literal),
+                                                  editing: currentMode == .editing)
             return UIMenu(children: actions.map { a in
                 UIAction(title: a.title, image: UIImage(systemName: a.symbol),
                          attributes: a == .delete ? .destructive : []) { [weak self] _ in
@@ -1278,7 +1278,30 @@ struct NoteBodyView: UIViewRepresentable {
                 share.popoverPresentationController?.sourceView = tv
                 share.popoverPresentationController?.sourceRect = CGRect(origin: point, size: .zero)
                 host.present(share, animated: true)
+            case .copy:
+                guard let url = blockFileURL(literal) else { return }
+                NoteBlockFileActions.copy(url, isPicture: attachmentEntry(literal: literal) == nil)
+                Haptics.tap(.light)
+            case .save(let toPhotos):
+                guard let url = blockFileURL(literal) else { return }
+                if toPhotos {
+                    let isVideo = attachmentEntry(literal: literal)?.kind == NoteAttachment.Kind.video
+                    NoteBlockFileActions.saveToPhotos(url, isVideo: isVideo) { ok in Haptics.tap(ok ? .light : .rigid) }
+                } else if let host = Self.hostController(of: tv) {
+                    // Save to Files: the system picker, saving a copy under the file's own name.
+                    let named = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(attachmentEntry(literal: literal)?.name ?? url.lastPathComponent)
+                    try? FileManager.default.removeItem(at: named)
+                    let source = (try? FileManager.default.copyItem(at: url, to: named)) != nil ? named : url
+                    host.present(UIDocumentPickerViewController(forExporting: [source], asCopy: true), animated: true)
+                }
             }
+        }
+
+        /// A photo or a video block (Save goes to Photos); any other file saves to Files.
+        private func isMediaBlock(_ literal: String) -> Bool {
+            guard let e = attachmentEntry(literal: literal) else { return true }   // a photo marker
+            return e.kind == NoteAttachment.Kind.video
         }
 
         static func hostController(of view: UIView) -> UIViewController? {

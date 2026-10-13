@@ -134,6 +134,8 @@ targets:
         # an empty `location:` because only iOS ever captured a place. macOS prompts once.
         INFOPLIST_KEY_NSLocationUsageDescription: "Skrift tags each memo with where you recorded it, the same as on your phone."
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it, the same as on your phone."
+        # Q391: a note's photo or video block → "Save to Photos" (right-click menu, mock Q384 pick 6).
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Skrift saves a photo or video from a note to your library when you choose Save to Photos."
         # App icon from App/Assets.xcassets (macOS squircle, full size set).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Team signing — REQUIRED for CloudKit (the Mac joins the phone's private DB to read

@@ -1185,37 +1185,40 @@ struct BodyTextView: NSViewRepresentable {
 
         /// What a block at `loc` is: its marker literal, its filename and its file. Photos and
         /// video / file blocks alike; nil for a card whose file has not arrived.
-        private func blockInfo(at loc: Int, in tv: SelfSizingTextView) -> (literal: String, filename: String, url: URL?)? {
+        private func blockInfo(at loc: Int, in tv: SelfSizingTextView) -> (literal: String, filename: String, url: URL?, entry: NoteAttachmentEntry?)? {
             guard let storage = tv.textStorage, loc >= 0, loc < storage.length else { return nil }
             let v = storage.attribute(.attachment, at: loc, effectiveRange: nil)
             if let photo = v as? ImageMarkerAttachment, !photo.isCard, let url = parent.imageURL(photo.imgNumber) {
-                return (BodyV2Marker.literal(photo.imgNumber), url.lastPathComponent, url)
+                return (BodyV2Marker.literal(photo.imgNumber), url.lastPathComponent, url, nil)
             }
             if let block = v as? NoteBlockAttachment {
-                return (block.literal, block.entry.filename, parent.attachmentURL(block.entry))
+                return (block.literal, block.entry.filename, parent.attachmentURL(block.entry), block.entry)
             }
             return nil
         }
 
-        /// The right-click menu of a block (mock pick 6 + D202's View as Small / Large).
+        /// The right-click menu of a block, the shared `NoteAttachment.holdMenu` (mock pick 6:
+        /// Copy, Share…, Save, then D202's View as Small / Large, the moves and Delete).
         func blockMenu(at loc: Int, in tv: SelfSizingTextView) -> NSMenu? {
             guard let info = blockInfo(at: loc, in: tv) else { return nil }
             let model = modelString(tv)
             let where_ = NoteAttachment.paragraphIndex(of: info.literal, in: model) ?? (0, 1)
             let size = NoteAttachment.size(of: info.filename, large: parent.largeAttachments())
-            var actions = NoteAttachment.blockActions(size: size, paragraph: where_.index, count: where_.count,
-                                                      shareable: info.url != nil)
+            var actions = NoteAttachment.holdMenu(size: size, paragraph: where_.index, count: where_.count,
+                                                  hasFile: info.url != nil,
+                                                  isMedia: info.entry.map { $0.kind == NoteAttachment.Kind.video } ?? true,
+                                                  editing: tv.isEditable)
             if parent.onSetAttachmentSize == nil { actions.removeAll { if case .setSize = $0 { return true }; return false } }
-            if !tv.isEditable { actions.removeAll { $0 != .share } }
             guard !actions.isEmpty else { return nil }
             let menu = NSMenu()
-            for a in actions {
-                if a == .delete || a == .share { menu.addItem(.separator()) }
+            for (i, a) in actions.enumerated() {
+                // Separators before the size switch and before Delete (the mock's groups).
+                if i > 0, a == .delete || { if case .setSize = a { return true }; return false }() { menu.addItem(.separator()) }
                 let item = NSMenuItem(title: a.title, action: #selector(blockAction(_:)), keyEquivalent: "")
                 item.target = self
                 item.image = NSImage(systemSymbolName: a.symbol, accessibilityDescription: nil)
                 item.representedObject = BlockActionBox(action: a, literal: info.literal, filename: info.filename,
-                                                        url: info.url, loc: loc, tv: tv)
+                                                        name: info.entry?.name ?? info.filename, url: info.url, loc: loc, tv: tv)
                 menu.addItem(item)
             }
             return menu
@@ -1246,6 +1249,17 @@ struct BodyTextView: NSViewRepresentable {
             case .share:
                 guard let url = box.url, let rect = tv.attachmentRect(at: box.loc) else { return }
                 NSSharingServicePicker(items: [url]).show(relativeTo: rect, of: tv, preferredEdge: .minY)
+            case .copy:
+                guard let url = box.url else { return }
+                NoteBlockFileActions.copy(url, isPicture: NoteAttachment.markers(in: box.literal).isEmpty)
+            case .save(let toPhotos):
+                guard let url = box.url else { return }
+                if toPhotos {
+                    let isVideo = NoteAttachment.markers(in: box.literal).first?.kind == NoteAttachment.Kind.video
+                    NoteBlockFileActions.saveToPhotos(url, isVideo: isVideo) { ok in if !ok { NSSound.beep() } }
+                } else if NoteBlockFileActions.saveToDownloads(url, name: box.name) == nil {
+                    NSSound.beep()
+                }
             }
         }
 
@@ -2102,7 +2116,9 @@ private final class BlockActionBox {
     let url: URL?
     let loc: Int
     weak var tv: SelfSizingTextView?
-    init(action: NoteAttachment.BlockAction, literal: String, filename: String, url: URL?, loc: Int, tv: SelfSizingTextView) {
+    let name: String
+    init(action: NoteAttachment.BlockAction, literal: String, filename: String, name: String, url: URL?, loc: Int, tv: SelfSizingTextView) {
+        self.name = name
         self.action = action; self.literal = literal; self.filename = filename; self.url = url; self.loc = loc; self.tv = tv
     }
 }
