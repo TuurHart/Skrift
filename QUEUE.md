@@ -2924,7 +2924,7 @@ gate+: yes
 do: NoteAttachment.kindLabel (Shared/Pipeline/NoteAttachment.swift) uses the system UTType description, so one DXF reads 'DXF · 4 KB' on the Mac, 'DXF file · 4 KB' on the phone and 'DXF drawing' in the Q384 mock. Replace it with one fixed extension→label table in Shared (common office, image, audio, video, archive, CAD and 3D-print types; unknown → uppercase extension + ' file'), so every device says the same words. Mac test `NoteAttachmentKindLabelTests` in SkriftDesktopTests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentKindLabelTests.swift`
 
-### Q397 [auto] (doing) Mac backfill guard: author Memos only for local captures, only after the first full CloudKit import (ICLOUD_MERGE A1)
+### Q397 [auto] (done) Mac backfill guard: author Memos only for local captures, only after the first full CloudKit import (ICLOUD_MERGE A1)
 spec: D203
 needs: Q393
 gate+: yes
@@ -4312,3 +4312,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:43 Q393 -> done — gate skipped, no code: path touched @fdd6ec41
 - 2026-10-13 22:50 Q395 -> done — gate 52s @e5e0d1ca
 - 2026-10-13 22:51 Q396 -> doing — worker out
+- 2026-10-13 22:54 Q397 -> done — gate 72s @92c75dd8
