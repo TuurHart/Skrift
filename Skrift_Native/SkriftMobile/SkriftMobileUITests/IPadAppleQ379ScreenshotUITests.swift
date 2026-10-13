@@ -38,9 +38,9 @@ final class IPadAppleQ379ScreenshotUITests: XCTestCase {
 
         // Aa: the full list drops from the button (D197).
         element(app, "ipad-tool-format").tap()
-        XCTAssertTrue(element(app, "ipad-format-popover").waitForExistence(timeout: 5), "Aa popover missing")
-        XCTAssertTrue(element(app, "ipad-format-Monostyled").exists, "Monostyled row missing")
-        XCTAssertTrue(element(app, "ipad-format-Block Quote").exists, "Block Quote missing")
+        XCTAssertTrue(element(app, "format-panel").waitForExistence(timeout: 5), "Aa popover missing")
+        XCTAssertTrue(element(app, "format-Monostyled").exists, "Monostyled row missing")
+        XCTAssertTrue(element(app, "format-Block Quote").exists, "Block Quote missing")
         capture(app, "ipad-2-aa")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.95)).tap()   // dismiss
 

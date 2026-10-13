@@ -69,25 +69,31 @@ final class IPadLayoutTests: XCTestCase {
 
     // MARK: the full Aa list (D197)
 
+    // One shared set (`FormatCommand`, Shared/Pipeline) behind the Mac's Aa and the iPad's.
+
     func testTheAaMarksAreBIUSAndHighlight() {
-        XCTAssertEqual(IPadFormatMenu.marks, [.bold, .italic, .underline, .strike, .highlight])
+        XCTAssertEqual(FormatCommand.aaMarks.compactMap(\.mark), [.bold, .italic, .underline, .strike, .highlight])
     }
 
     func testTheAaStyleListIsApplesFull() {
-        XCTAssertEqual(IPadFormatMenu.styles.map(\.label), ["Title", "Heading", "Subheading", "Body", "Monostyled"])
-        XCTAssertEqual(IPadFormatMenu.lists.map(\.label), ["Bulleted", "Dashed", "Numbered"])
-        XCTAssertEqual(IPadFormatMenu.quote.label, "Block Quote")
+        XCTAssertEqual(FormatCommand.aaStyles.map(\.title), ["Title", "Heading", "Subheading", "Body", "Monostyled"])
+        XCTAssertEqual(FormatCommand.aaLists.map(\.title), ["Bulleted List", "Dashed List", "Numbered List"])
+        XCTAssertEqual(FormatCommand.aaTail.map(\.title), ["Block Quote"])
     }
 
     /// Each caption is the Markdown the row really writes (the shared rule, never a guess).
     func testEveryCaptionIsWhatTheRowWrites() {
-        for row in IPadFormatMenu.styles + IPadFormatMenu.lists + [IPadFormatMenu.quote] {
-            guard case .line(let style) = row.action else { continue }
+        for cmd in FormatCommand.aaStyles + FormatCommand.aaLists + FormatCommand.aaTail {
+            guard let style = cmd.lineStyle else { continue }
             let written = BodyFormat.setStyle(style, in: "word", selection: NSRange(location: 0, length: 0)).text
-            let expected = row.hint == "plain" ? "word" : row.hint + "word"
-            XCTAssertEqual(written, expected, "\(row.label) says \(row.hint) but writes \(written)")
+            let expected = cmd.markdownHint == "plain" ? "word" : cmd.markdownHint + "word"
+            XCTAssertEqual(written, expected, "\(cmd.title) says \(cmd.markdownHint) but writes \(written)")
         }
-        XCTAssertEqual(IPadFormatMenu.styles.last?.action, .monostyled)
+        for cmd in FormatCommand.aaMarks {
+            guard let mark = cmd.mark else { return XCTFail("\(cmd.title) has no mark") }
+            XCTAssertEqual(cmd.markdownHint, mark.open + "…" + mark.close)
+        }
+        XCTAssertEqual(FormatCommand.aaStyles.last, .monostyled)
         let mono = BodyFormat.monostyled(in: "a word here", selection: NSRange(location: 2, length: 4)).text
         XCTAssertEqual(mono, "a `word` here", "Monostyled on a selection writes inline code")
     }
