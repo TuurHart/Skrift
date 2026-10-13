@@ -211,6 +211,11 @@ struct BodyTextView: NSViewRepresentable {
             guard let coordinator, let tv else { return }
             coordinator.openPhoto(at: loc, in: tv)
         }
+        // D112: a photo dropped between paragraphs moves its paragraph in the model.
+        tv.onMovePhoto = { [weak coordinator, weak tv] number, from, to in
+            guard let coordinator, let tv else { return }
+            coordinator.movePhoto(number, from: from, toParagraph: to, in: tv)
+        }
         // Q360: a format edit is decisive — commit the model and restyle fully now.
         tv.onFormatted = { [weak coordinator, weak tv] in
             guard let coordinator, let tv else { return }
@@ -459,6 +464,23 @@ struct BodyTextView: NSViewRepresentable {
             return ms
         }
 
+        /// D112: move photo `number` (its paragraph at storage `from`) so it lands before storage
+        /// paragraph `to` (counted with the photo in place), through the shared `BodyFormat.movePhoto`.
+        func movePhoto(_ number: Int, from: Int, toParagraph to: Int, in tv: SelfSizingTextView) {
+            let model = flushModelCommit(tv)
+            let ns = tv.string as NSString
+            let before = ns.substring(to: min(from, ns.length))
+            let fromPara = before.components(separatedBy: "\n\n").count - 1
+            let target = to > fromPara ? to - 1 : to
+            let moved = BodyFormat.movePhoto(marker: number, in: model, toParagraph: target)
+            guard moved != model else { return }
+            parent.text = moved
+            gate.accounted(moved)
+            render(tv, model: moved)
+            tv.selectedPhotoLoc = nil
+            tv.invalidateIntrinsicContentSize()
+        }
+
         // MARK: inline `#` tag suggestions (Obsidian idiom)
 
         /// The caret-anchored tag menu — a PASSIVE child panel (`TagSuggestPanel`): it
@@ -634,21 +656,51 @@ struct BodyTextView: NSViewRepresentable {
             let ns = view.string as NSString
             guard r.length > 0, r.location + r.length <= ns.length else { return menu }
             let sel = ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !sel.isEmpty, sel.count <= 60 else { return menu }
+            let nameable = !sel.isEmpty && sel.count <= 60
 
             // D184: a word the app does not know offers "New person…" right in the menu (the shared
             // rule: not blank, not a name this note already shows, not a known person).
-            let offer = newPersonOffer(for: r, in: view)
+            let offer = nameable ? newPersonOffer(for: r, in: view) : nil
+
+            // Q360 (mock #m-select, D196): the Format block leads the menu — B I U S with their
+            // shortcuts, then New person… as its LAST entry. Cut / Copy / Paste stay where they are.
+            var at = 0
+            if view.isEditable {
+                for entry in MacEditorFormatting.contextBlock(newPerson: offer) {
+                    let item: NSMenuItem
+                    switch entry {
+                    case .header:
+                        item = NSMenuItem.sectionHeader(title: "Format")
+                    case .command(let c):
+                        item = NSMenuItem(title: c.title, action: #selector(SelfSizingTextView.applyFormatCommand(_:)),
+                                          keyEquivalent: c.chord?.key ?? "")
+                        item.keyEquivalentModifierMask = (c.chord?.modifiers.contains(.shift) ?? false) ? [.command, .shift] : [.command]
+                        item.attributedTitle = FormatCommandBox.styledTitle(c)
+                        item.target = view
+                        item.representedObject = FormatCommandBox(c)
+                    case .newPerson(let name):
+                        item = NSMenuItem(title: NameActionLabel.newPerson, action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+                        item.target = self; item.representedObject = name
+                        item.image = NSImage(systemSymbolName: "person.badge.plus", accessibilityDescription: nil)
+                    }
+                    menu.insertItem(item, at: at)
+                    at += 1
+                }
+                menu.insertItem(.separator(), at: at)
+                at += 1
+            } else if let name = offer {
+                let top = NSMenuItem(title: NameActionLabel.newPerson, action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+                top.target = self; top.representedObject = name
+                top.image = NSImage(systemSymbolName: "person.badge.plus", accessibilityDescription: nil)
+                menu.insertItem(top, at: at)
+                at += 1
+            }
+            guard nameable else { return menu }
 
             let parentItem = NSMenuItem(title: "Add “\(sel)” as…", action: nil, keyEquivalent: "")
             let sub = NSMenu()
 
-            if let name = offer {
-                let top = NSMenuItem(title: NameActionLabel.newPerson, action: #selector(addNewNameAction(_:)), keyEquivalent: "")
-                top.target = self; top.representedObject = name
-                top.image = NSImage(systemSymbolName: "person.badge.plus", accessibilityDescription: nil)
-                menu.insertItem(top, at: 0)
-            } else {
+            if offer == nil {
                 let newItem = NSMenuItem(title: "A new person…", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
                 newItem.target = self; newItem.representedObject = sel
                 sub.addItem(newItem)
@@ -670,7 +722,6 @@ struct BodyTextView: NSViewRepresentable {
                 }
             }
             parentItem.submenu = sub
-            let at = offer == nil ? 0 : 1
             menu.insertItem(parentItem, at: at)
             menu.insertItem(.separator(), at: at + 1)
             return menu
@@ -2079,6 +2130,7 @@ final class SelfSizingTextView: NSTextView {
         drawQuoteDecoration()
         drawSpeakerSpines()
         drawSelectedPhoto()
+        drawPhotoDropLine()
     }
 
     /// Where the photo glyph at `loc` is drawn, in view coordinates.
@@ -2447,7 +2499,63 @@ final class SelfSizingTextView: NSTextView {
         return MacEditorFormatting.checkedStyle(BodyFormat.lineStyle(at: caret, in: string), inFence: inFence)
     }
 
+    // MARK: D112 — a photo block dragged between paragraphs (Apple Notes)
+
+    /// The coordinator moves photo `imgNumber` (at storage `from`) to sit before paragraph
+    /// `toParagraph` of the storage (counted WITH the photo still in place).
+    var onMovePhoto: ((_ imgNumber: Int, _ from: Int, _ toParagraph: Int) -> Void)?
+    private var photoDrag: (loc: Int, start: NSPoint)?
+    private var photoDropLine: (y: CGFloat, paragraph: Int)? { didSet { needsDisplay = true } }
+
+    /// Storage paragraphs (`\n\n`-separated, as body v2 stores them): their start offsets.
+    private func paragraphStarts() -> [Int] {
+        var starts: [Int] = [], pos = 0
+        for p in string.components(separatedBy: "\n\n") { starts.append(pos); pos += (p as NSString).length + 2 }
+        return starts
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let drag = photoDrag, isEditable, let lm = layoutManager, let tc = textContainer else {
+            super.mouseDragged(with: event); return
+        }
+        let p = convert(event.locationInWindow, from: nil)
+        guard hypot(p.x - drag.start.x, p.y - drag.start.y) > 4 else { return }
+        let loc = characterIndexForInsertion(at: p)
+        let starts = paragraphStarts()
+        var i = max(0, (starts.lastIndex { $0 <= loc }) ?? 0)
+        let end = i + 1 < starts.count ? starts[i + 1] - 2 : (string as NSString).length
+        if loc - starts[i] > (end - starts[i]) / 2 { i += 1 }        // lower half → after it
+        let y: CGFloat
+        if i < starts.count {
+            let g = lm.glyphIndexForCharacter(at: min(starts[i], max(0, (string as NSString).length - 1)))
+            y = lm.lineFragmentRect(forGlyphAt: g, effectiveRange: nil).minY + textContainerOrigin.y - 4
+        } else {
+            y = lm.usedRect(for: tc).maxY + textContainerOrigin.y + 4
+        }
+        photoDropLine = (y, i)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        defer { photoDrag = nil; photoDropLine = nil }
+        if let drag = photoDrag, let drop = photoDropLine, let storage = textStorage, drag.loc < storage.length,
+           let att = storage.attribute(.attachment, at: drag.loc, effectiveRange: nil) as? ImageMarkerAttachment {
+            onMovePhoto?(att.imgNumber, drag.loc, drop.paragraph)
+            return
+        }
+        super.mouseUp(with: event)
+    }
+
+    /// The landing line while a photo is dragged (the mock's purple drop line).
+    private func drawPhotoDropLine() {
+        guard let drop = photoDropLine, let tc = textContainer else { return }
+        let x = textContainerOrigin.x + tc.lineFragmentPadding
+        NSColor(Theme.accent).setFill()
+        NSBezierPath(roundedRect: NSRect(x: x, y: drop.y - 1.5, width: tc.size.width - 2 * tc.lineFragmentPadding, height: 3),
+                     xRadius: 1.5, yRadius: 1.5).fill()
+    }
+
     override func mouseDown(with event: NSEvent) {
+        photoDrag = nil
         // Double-click on a photo opens it (the first click already selected it).
         if event.clickCount == 2, let idx = charIndex(at: convert(event.locationInWindow, from: nil)),
            let storage = textStorage, idx < storage.length,
@@ -2458,6 +2566,8 @@ final class SelfSizingTextView: NSTextView {
         }
         if event.clickCount == 1, let handler = onSingleClickAt,
            let idx = charIndex(at: convert(event.locationInWindow, from: nil)), handler(idx) {
+            // A photo click selected it: a drag from here moves the photo (D112).
+            if selectedPhotoLoc == idx { photoDrag = (idx, convert(event.locationInWindow, from: nil)) }
             return   // resolver handled it; don't move the caret
         }
         super.mouseDown(with: event)

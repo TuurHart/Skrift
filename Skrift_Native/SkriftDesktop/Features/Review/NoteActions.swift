@@ -177,6 +177,12 @@ struct NoteActions: View {
                 NotificationCenter.default.post(name: .macAddRecordingRequested, object: file.id)
             }
         }
+        // Q360 (D196): Split speakers moved here from the header; the confirm opens in the header.
+        if file.sourceType == .audio, !SplitSpeakers.isSplit(file), coordinator.splitPhases[file.id] == nil {
+            Button(NoteMenuItem.splitSpeakers.label) {
+                NotificationCenter.default.post(name: .macSplitSpeakersRequested, object: file.id)
+            }
+        }
         if isConversation {
             Button(NoteMenuItem.flattenToMonologue.label) {
                 Task { await coordinator.flattenToMonologue(file, context: ctx) }
@@ -237,8 +243,37 @@ struct NoteActions: View {
         guard !runState(inputs).isBusy else { return }
         if !inputs.hasPolish {
             Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
+        } else if MacExportConfirm.asksAboutAudio(hasAudio: file.sourceType == .audio) {
+            confirmExport()
         } else {
             Task { await coordinator.export(file, context: ctx) }
+        }
+    }
+
+    /// D196: Export asks once, and "Include audio in export" is the choice inside it (a native
+    /// sheet's checkbox), remembered per note (`includeAudioInExport`, mirrored to the `Memo`).
+    private func confirmExport() {
+        let alert = NSAlert()
+        alert.messageText = MacExportConfirm.title
+        alert.informativeText = MacExportConfirm.body
+        alert.addButton(withTitle: MacExportConfirm.confirmVerb)
+        alert.addButton(withTitle: "Cancel")
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = MacExportConfirm.includeAudioLabel
+        alert.suppressionButton?.state = file.includeAudioInExport ? .on : .off
+        let finish: (NSApplication.ModalResponse) -> Void = { response in
+            guard response == .alertFirstButtonReturn else { return }
+            var include = file.includeAudioInExport
+            if MacExportConfirm.apply(includeAudio: alert.suppressionButton?.state == .on, to: &include) {
+                file.includeAudioInExport = include
+                MacCloudMetaSync.setIncludeAudio(for: file)
+            }
+            Task { await coordinator.export(file, context: ctx) }
+        }
+        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+            alert.beginSheetModal(for: window, completionHandler: finish)
+        } else {
+            finish(alert.runModal())
         }
     }
 
@@ -248,12 +283,13 @@ struct NoteActions: View {
         switch runState(inputs) {
         case .idle:
             Button(action: primaryAction) {
+                // D195/D196: the soft tint (accent-soft fill, accent text), never solid purple.
                 Text(primaryLabel(inputs))
                     .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 8))
+                    .foregroundStyle(Theme.accentText)
+                    .padding(.horizontal, 13)
+                    .frame(height: 30)
+                    .background(Theme.accent.opacity(0.14), in: Capsule())
             }
             .buttonStyle(.plain)
         case .queued:
@@ -330,4 +366,7 @@ extension Notification.Name {
     /// "Add recording" from an open note's ⋯ (Q290). `object` is the `PipelineFile` id;
     /// `RootView` starts the live session in append mode for it.
     static let macAddRecordingRequested = Notification.Name("skrift.mac.addRecordingRequested")
+    /// Q360 (D196): "Split speakers" from the top ⋯. `object` is the `PipelineFile` id; the
+    /// header's `SplitSpeakersRow` opens its confirm (the switch left the header).
+    static let macSplitSpeakersRequested = Notification.Name("skrift.mac.splitSpeakersRequested")
 }

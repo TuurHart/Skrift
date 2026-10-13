@@ -35,7 +35,40 @@ struct SplitSpeakersRow: View {
     private var notice: String? { coordinator?.splitNotices[file.id] }
     private var isOn: Bool { phase != nil || SplitSpeakers.isSplit(file) }
 
+    /// Q360 (D196): the switch lives in the top ⋯ menu now ("Split speakers"); the header row
+    /// appears only while that item's confirm, a split run or its notice is up.
+    var compact = false
+
     var body: some View {
+        Group {
+            if compact { compactBody } else { fullBody }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macSplitSpeakersRequested)) { note in
+            guard note.object as? String == file.id, canSplit, phase == nil else { return }
+            editedAt = lastEditDate()
+            confirm = isOn ? .off : .on
+        }
+    }
+
+    @ViewBuilder private var compactBody: some View {
+        if confirm != nil || phase != nil || notice != nil {
+            VStack(alignment: .leading, spacing: 6) {
+                if phase != nil || notice != nil {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("Split speakers")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                        statusLine
+                    }
+                }
+                if let confirm { card(confirm) }
+            }
+            .animation(.easeOut(duration: 0.12), value: confirm == nil)
+            .onChange(of: confirm, initial: true) { _, c in if c == .on { editedAt = lastEditDate() } }
+        }
+    }
+
+    private var fullBody: some View {
         VStack(alignment: .leading, spacing: 9) {
             Rectangle().fill(Theme.hairline.opacity(0.10)).frame(height: 1)
                 .padding(.top, 2)

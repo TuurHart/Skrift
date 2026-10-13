@@ -114,7 +114,14 @@ struct SkriftDesktopApp: App {
         .modelContainer(SharedStore.container)
         .commands {
             // Q126: the phone's ☑ on the Mac. Only the focused note's text view answers.
+            // Q360 (D115): Apple Notes' Format list with its shortcuts; each command reaches the
+            // focused note's text through the responder chain (`FormatCommandBox`).
             CommandMenu("Format") {
+                ForEach(MacEditorFormatting.popoverStyles, id: \.self) { formatItem($0) }
+                Divider()
+                ForEach(MacEditorFormatting.popoverMarks, id: \.self) { formatItem($0) }
+                Divider()
+                ForEach(MacEditorFormatting.popoverLists + MacEditorFormatting.popoverTail, id: \.self) { formatItem($0) }
                 Button("Checklist") {
                     NSApp.sendAction(#selector(SelfSizingTextView.toggleChecklist(_:)), to: nil, from: nil)
                 }
@@ -158,6 +165,15 @@ struct SkriftDesktopApp: App {
                     .keyboardShortcut(AppShortcuts.macReview)
                 Divider()
             }
+        }
+    }
+
+    /// One Format menu item: the command's title, its Apple chord when it has one.
+    @ViewBuilder private func formatItem(_ c: MacEditorFormatting.Command) -> some View {
+        if let chord = c.chord {
+            Button(c.title) { FormatCommandBox.send(c) }.keyboardShortcut(chord)
+        } else {
+            Button(c.title) { FormatCommandBox.send(c) }
         }
     }
 }

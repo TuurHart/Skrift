@@ -123,6 +123,7 @@ enum MacEditorFormatting {
 /// opens, and the choice is remembered per note (`Memo.includeAudioInExport`, mirrored by the row).
 enum MacExportConfirm {
     static let title = "Export this note?"
+    static let body = "It is written to your vault as Markdown."
     static let includeAudioLabel = "Include audio in export"
     static let confirmVerb = "Export"
 
