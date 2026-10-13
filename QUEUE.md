@@ -2667,7 +2667,7 @@ gate+: yes
 do: Signed with D196's picks on top of the mock: title ABOVE the grey meta line; 'New person…' at the right end of the selection bar after the formatting items, Paste in its normal place; Export soft tint; 'Include audio in export' is a choice in the Export confirmation (per-note `Memo.includeAudioInExport`), not a header switch; 'Split speakers' in the top ⋯ menu. Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on phone and iPad: the open note's look, the selection bar and "Aa" menu as signed, photo blocks moved by long-press drag between paragraphs (D112). Every C234 must-keep survives (inline pictures, capture-quote protection, speaker turns, `transcriptUserEdited`, save-now, polished-body editing, swipe-between-notes OFF). Keep the NoteOpenWork/SaveNoop counter tests green, never loosened (D186). Phone test `EditorFormattingTests` (each toolbar action writes the right markdown, photo move keeps the marker order). Screenshots against the mock, LOOK, `plan/reads/editor-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteOpenWorkTests`
 
-### Q360 [auto] (doing) build the Mac note and toolbar per the Q350 mock
+### Q360 [auto] (done) build the Mac note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350 Q363
 gate+: yes
@@ -4089,3 +4089,4 @@ check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift'
 - 2026-10-13 14:25 Q379 added
 - 2026-10-13 14:26 Q378 -> doing — mockup out
 - 2026-10-13 14:40 Q380 added
+- 2026-10-13 14:44 Q360 -> done — gate 43s @0303864c
