@@ -258,7 +258,7 @@ struct NoteBody: View {
     private func setAttachmentSize(_ filename: String?, _ size: NoteAttachment.Size) {
         guard let memo = cloudMemo() else { return }
         MacNoteAttachments.setSize(size, filename: filename, memo: memo,
-                                   allFilenames: MacNoteAttachments.allFilenames(memo: memo),
+                                   allFilenames: NoteAttachment.allFilenames(of: memo),
                                    context: cloudContext)
     }
 
