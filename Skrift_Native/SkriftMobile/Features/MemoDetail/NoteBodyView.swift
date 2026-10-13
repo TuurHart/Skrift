@@ -132,6 +132,7 @@ struct NoteBodyView: UIViewRepresentable {
         tap.delegate = context.coordinator
         tap.cancelsTouchesInView = false
         tv.addGestureRecognizer(tap)
+        context.coordinator.installPhotoDrag(on: tv)       // D112: long press lifts a photo
 
         context.coordinator.observeEnvironment()
         context.coordinator.load(force: true)
@@ -157,6 +158,8 @@ struct NoteBodyView: UIViewRepresentable {
 
         tv.setAccessories(header: header, footer: footer)
         tv.setAccessibilityHidden(a11yHidden)
+        // The page on screen owns the top bar's undo / redo / Done and the ⋯ menu's Find.
+        if !a11yHidden, NoteEditorChrome.shared.current !== c { NoteEditorChrome.shared.current = c }
 
         c.load(force: false)                    // re-render only if the text changed under us
         c.apply(mode: mode)                     // editable / painter / read-only
@@ -523,6 +526,7 @@ struct NoteBodyView: UIViewRepresentable {
                 storage.removeAttribute(.backgroundColor, range: range)
                 storage.addAttribute(.foregroundColor, value: UIColor(Color.skText), range: range)
             }
+            applyMarkdownStyling()          // headings + B I U S, marks dim (C24/C116)
             var built: [(NSRange, NameSpan)] = []
             // Name spans carry stored offsets; the ONE remap is marker → one glyph (C17).
             // (`shown.map` is the identity for a v2 body; only a pre-v2 body goes through
@@ -588,18 +592,10 @@ struct NoteBodyView: UIViewRepresentable {
         // MARK: keyboard accessory (undo · redo · find · photo · Done)
 
         func installAccessoryBar(on tv: NoteBodyTextView) {
-            let bar = NoteAccessoryBar()
-            bar.onUndo = { [weak self, weak tv] in
-                tv?.undoManager?.undo()
-                self?.refreshAccessory()
-            }
-            bar.onRedo = { [weak self, weak tv] in
-                tv?.undoManager?.redo()
-                self?.refreshAccessory()
-            }
-            bar.onFind = { [weak tv] in
-                tv?.findInteraction?.presentFindNavigator(showingReplace: false)
-            }
+            // Q359 (mock Q350 pick 1): Aa · checklist · photo · note link. Undo / redo /
+            // Done sit in the top bar (`NoteEditorChrome`), Find in the ⋯ menu.
+            let bar = NoteAccessoryBar(layout: .editor)
+            bar.onFormat = { [weak self] in self?.toggleFormatPanel() }
             bar.onPhoto = { [weak self] in
                 guard let self, let tv = self.textView else { return }
                 self.pendingPhotoLocation = tv.selectedRange.location
@@ -612,18 +608,247 @@ struct NoteBodyView: UIViewRepresentable {
                 self?.pendingLinkTrigger = nil
                 self?.onRequestMemoLink()
             }
-            bar.onDone = { [weak self, weak tv] in
-                self?.commitDraft()
-                tv?.resignFirstResponder()
-            }
             tv.inputAccessoryView = bar
             accessory = bar
         }
 
         private func refreshAccessory() {
-            accessory?.refresh(canUndo: textView?.undoManager?.canUndo ?? false,
-                               canRedo: textView?.undoManager?.canRedo ?? false,
-                               inChecklist: caretInTaskLine())
+            let canUndo = textView?.undoManager?.canUndo ?? false
+            let canRedo = textView?.undoManager?.canRedo ?? false
+            accessory?.refresh(canUndo: canUndo, canRedo: canRedo, inChecklist: caretInTaskLine())
+            let chrome = NoteEditorChrome.shared
+            if chrome.current === self {
+                if chrome.canUndo != canUndo { chrome.canUndo = canUndo }
+                if chrome.canRedo != canRedo { chrome.canRedo = canRedo }
+            }
+            refreshFormatState()
+        }
+
+        // MARK: top-bar verbs (NoteEditorChrome)
+
+        func undo() { textView?.undoManager?.undo(); refreshAccessory() }
+        func redo() { textView?.undoManager?.redo(); refreshAccessory() }
+        /// Done = save now (C234) and put the keyboard away; the commit marks the text as the
+        /// user's edit (`transcriptUserEdited`), so the Mac trusts it.
+        func finishEditing() {
+            commitDraft()
+            hideFormatPanel()
+            textView?.resignFirstResponder()
+        }
+        func presentFind() {
+            textView?.findInteraction?.presentFindNavigator(showingReplace: false)
+        }
+
+        // MARK: formatting (D115, mock Q350): B I U S + the Aa panel
+
+        let formatState = EditorFormatState()
+        private var formatHost: UIInputView?
+
+        func toggleFormatPanel() {
+            guard let tv = textView else { return }
+            if tv.inputView != nil { hideFormatPanel(); return }
+            let panel = NoteFormatPanel(
+                state: formatState,
+                onStyle: { [weak self] in self?.applyLineStyle($0) },
+                onMark: { [weak self] in self?.applyInline($0) },
+                onClose: { [weak self] in self?.hideFormatPanel() })
+            let host = UIHostingController(rootView: panel)
+            host.view.backgroundColor = .clear
+            let input = UIInputView(frame: CGRect(x: 0, y: 0, width: tv.bounds.width, height: 236),
+                                    inputViewStyle: .keyboard)
+            input.allowsSelfSizing = false
+            host.view.translatesAutoresizingMaskIntoConstraints = false
+            input.addSubview(host.view)
+            NSLayoutConstraint.activate([
+                host.view.leadingAnchor.constraint(equalTo: input.leadingAnchor),
+                host.view.trailingAnchor.constraint(equalTo: input.trailingAnchor),
+                host.view.topAnchor.constraint(equalTo: input.topAnchor),
+                host.view.bottomAnchor.constraint(equalTo: input.bottomAnchor),
+            ])
+            formatHost = input
+            refreshFormatState()
+            tv.inputView = input
+            tv.reloadInputViews()
+            accessory?.setFormatOpen(true)
+        }
+
+        func hideFormatPanel() {
+            guard let tv = textView, tv.inputView != nil else { return }
+            tv.inputView = nil
+            formatHost = nil
+            tv.reloadInputViews()
+            accessory?.setFormatOpen(false)
+        }
+
+        /// The caret line's raw Markdown (tasks as `- [ ]`), its storage range (no newline),
+        /// and the caret's offset into that raw line.
+        private func caretLine() -> (range: NSRange, raw: String, caretRaw: Int, prevRaw: String?)? {
+            guard let tv = textView else { return nil }
+            let storage = tv.textStorage
+            let ns = storage.string as NSString
+            let caret = min(tv.selectedRange.location, ns.length)
+            var line = ns.lineRange(for: NSRange(location: caret, length: 0))
+            if line.length > 0, ns.character(at: NSMaxRange(line) - 1) == 10 { line.length -= 1 }
+            let raw = reconstruct(storage.attributedSubstring(from: line))
+            let caretRaw = (reconstruct(storage.attributedSubstring(
+                from: NSRange(location: line.location, length: caret - line.location))) as NSString).length
+            var prevRaw: String?
+            if line.location > 0 {
+                var prev = ns.lineRange(for: NSRange(location: line.location - 1, length: 0))
+                if prev.length > 0, ns.character(at: NSMaxRange(prev) - 1) == 10 { prev.length -= 1 }
+                prevRaw = reconstruct(storage.attributedSubstring(from: prev))
+            }
+            return (line, raw, caretRaw, prevRaw)
+        }
+
+        /// Aa's Title / Heading / Body / lists on the caret's line, through the shared rule.
+        /// A photo's paragraph is left alone (C10: a picture is its own paragraph).
+        func applyLineStyle(_ style: BodyFormat.LineStyle) {
+            guard let tv = textView, currentMode == .editing, let line = caretLine() else { return }
+            if tv.textStorage.length > 0, line.range.length > 0 {
+                var hasPhoto = false
+                tv.textStorage.enumerateAttribute(Self.markerKey, in: line.range) { v, _, _ in
+                    if v != nil { hasPhoto = true }
+                }
+                if hasPhoto { return }
+            }
+            let lead = line.prevRaw.map { $0 + "\n" } ?? ""
+            let offset = (lead as NSString).length
+            let r = BodyFormat.setStyle(style, in: lead + line.raw,
+                                        selection: NSRange(location: offset + line.caretRaw, length: 0))
+            let newRaw = (r.text as NSString).substring(from: offset)
+            let caretRaw = max(0, r.selection.location - offset)
+            let piece = attributed(from: newRaw)
+            let caretDisplay = attributed(from: (newRaw as NSString).substring(to: min(caretRaw, (newRaw as NSString).length))).length
+            tv.textStorage.replaceCharacters(in: line.range, with: piece)
+            tv.selectedRange = NSRange(location: line.range.location + caretDisplay, length: 0)
+            Haptics.tap(.light)
+            textViewDidChange(tv)
+            applyTierStyling()
+        }
+
+        /// B I U S on the selection: the shared toggle, applied through the text input system so
+        /// it lands on the undo stack.
+        func applyInline(_ mark: BodyFormat.InlineMark) {
+            guard let tv = textView, currentMode == .editing else { return }
+            let r = BodyFormat.toggle(mark, in: tv.textStorage.string, selection: tv.selectedRange)
+            tv.undoManager?.beginUndoGrouping()
+            for e in r.edits.reversed() {
+                guard let start = tv.position(from: tv.beginningOfDocument, offset: e.range.location),
+                      let end = tv.position(from: start, offset: e.range.length),
+                      let range = tv.textRange(from: start, to: end) else { continue }
+                tv.replace(range, withText: e.replacement)
+            }
+            tv.undoManager?.endUndoGrouping()
+            let len = tv.textStorage.length
+            let loc = min(r.selection.location, len)
+            tv.selectedRange = NSRange(location: loc, length: min(r.selection.length, len - loc))
+            applyMarkdownStyling(around: tv.selectedRange)
+            refreshAccessory()
+        }
+
+        private func refreshFormatState() {
+            guard let tv = textView else { return }
+            let text = tv.textStorage.string
+            let sel = tv.selectedRange
+            let style = caretLine().map { BodyFormat.parse(line: $0.raw).style } ?? .body
+            var marks: Set<BodyFormat.InlineMark> = []
+            if NSMaxRange(sel) <= (text as NSString).length {
+                for m in BodyFormat.InlineMark.allCases where BodyFormat.isActive(m, in: text, selection: sel) {
+                    marks.insert(m)
+                }
+            }
+            if formatState.lineStyle != style { formatState.lineStyle = style }
+            if formatState.marks != marks { formatState.marks = marks }
+            if formatState.hasSelection != (sel.length > 0) { formatState.hasSelection = sel.length > 0 }
+        }
+
+        // MARK: dim-visible marks (C24 / C116)
+
+        /// Tags the characters the markdown pass dimmed or decorated, so the next pass can undo it.
+        static let mdKey = NSAttributedString.Key("skriftMdStyled")
+
+        static func titleFont() -> UIFont {
+            UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 22, weight: .bold))
+        }
+        static func headingFont() -> UIFont {
+            UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 18.5, weight: .bold))
+        }
+
+        /// Restyle the paragraphs touching `range` (the whole text when nil): headings get their
+        /// size, `**` `*` `<u>` `~~` pairs style their words, and every mark stays visible but dim.
+        /// Characters are never changed (the stored text is the Markdown the export writes).
+        func applyMarkdownStyling(around range: NSRange? = nil) {
+            guard let tv = textView, tv.markedTextRange == nil else { return }
+            let storage = tv.textStorage
+            let ns = storage.string as NSString
+            guard ns.length > 0 else { return }
+            let target: NSRange
+            if let range {
+                let loc = min(range.location, ns.length)
+                target = ns.paragraphRange(for: NSRange(location: loc, length: min(range.length, ns.length - loc)))
+            } else {
+                target = NSRange(location: 0, length: ns.length)
+            }
+            guard target.length > 0 else { return }
+            let base = Coordinator.bodyFont()
+            let text = UIColor(Color.skText)
+            let markColor = UIColor(Color.skText).withAlphaComponent(0.25)
+            storage.beginEditing()
+            storage.enumerateAttribute(Self.mdKey, in: target) { v, r, _ in
+                guard v != nil else { return }
+                storage.removeAttribute(Self.mdKey, range: r)
+                storage.removeAttribute(.strikethroughStyle, range: r)
+                storage.removeAttribute(.underlineStyle, range: r)
+                storage.removeAttribute(.backgroundColor, range: r)
+                if !painting { storage.addAttribute(.foregroundColor, value: text, range: r) }
+            }
+            storage.enumerateAttribute(.attachment, in: target) { a, r, _ in
+                guard a == nil else { return }
+                storage.addAttribute(.font, value: base, range: r)
+            }
+            let sub = ns.substring(with: target)
+            let off = target.location
+            func shift(_ r: NSRange) -> NSRange { NSRange(location: r.location + off, length: r.length) }
+            func dim(_ r: NSRange) {
+                storage.addAttributes([.foregroundColor: markColor, .font: base, Self.mdKey: true], range: shift(r))
+            }
+            for h in BodyMarkdown.headings(in: sub) {
+                let f = h.level == 1 ? Coordinator.titleFont()
+                    : h.level == 2 ? Coordinator.headingFont()
+                    : UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16.5, weight: .semibold))
+                storage.addAttribute(.font, value: f, range: shift(h.text))
+                dim(NSRange(location: h.marks.location, length: h.marks.length + 1))
+            }
+            for s in BodyFormat.inlineMarks(in: sub) {
+                let c = shift(s.content)
+                switch s.mark {
+                case .bold, .italic:
+                    let trait: UIFontDescriptor.SymbolicTraits = s.mark == .bold ? .traitBold : .traitItalic
+                    storage.enumerateAttribute(.font, in: c) { f, r, _ in
+                        let font = (f as? UIFont) ?? base
+                        var traits = font.fontDescriptor.symbolicTraits
+                        traits.insert(trait)
+                        if let d = font.fontDescriptor.withSymbolicTraits(traits) {
+                            storage.addAttribute(.font, value: UIFont(descriptor: d, size: font.pointSize), range: r)
+                        }
+                    }
+                case .underline:
+                    storage.addAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
+                case .strike:
+                    storage.addAttributes([.strikethroughStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
+                case .highlight:
+                    // Written on the Mac (Q360); the phone shows it, its Aa set stays D115's.
+                    storage.addAttributes([.backgroundColor: UIColor(Color.skAmber).withAlphaComponent(0.22),
+                                           Self.mdKey: true], range: c)
+                case .code:
+                    storage.addAttributes([.font: UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular),
+                                           Self.mdKey: true], range: c)
+                }
+                dim(s.open)
+                dim(s.close)
+            }
+            storage.endEditing()
         }
 
         /// Whether the caret's line starts with a checkbox glyph.
@@ -716,6 +941,8 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ tv: UITextView) {
             editingBeganAt = Date()
+            NoteEditorChrome.shared.current = self
+            NoteEditorChrome.shared.isEditing = true
             refreshAccessory()
             // UIKit's delegate order on a tap-to-focus varies: the caret can be
             // placed BEFORE didBeginEditing (no later selection callback comes),
@@ -755,7 +982,7 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         private static let customKeys: [NSAttributedString.Key] =
-            [markerKey, taskKey, memoLinkKey, displayOnlyKey]
+            [markerKey, taskKey, memoLinkKey, displayOnlyKey, mdKey]
 
         private func sanitizeTypingAttributes(_ tv: UITextView) {
             guard Self.customKeys.contains(where: { tv.typingAttributes[$0] != nil }) else { return }
@@ -825,16 +1052,149 @@ struct NoteBodyView: UIViewRepresentable {
                 people: NamesStore.shared.livePeople())
         }
 
-        /// Adds "New person…" ahead of the system actions when the selection qualifies.
+        /// The selection bar (D196 on mock Q350): the system's Cut · Copy · Paste in their
+        /// normal place, then B I U S, then "New person…" at the right end when the
+        /// selection qualifies (D184 — used less often).
         func textView(_ tv: UITextView, editMenuForTextIn range: NSRange,
                       suggestedActions: [UIMenuElement]) -> UIMenu? {
-            guard let name = newPersonOffer(for: range, in: tv) else { return nil }
-            let item = UIAction(title: NameActionLabel.newPerson,
-                                image: UIImage(systemName: "person.badge.plus")) { [weak self] _ in
-                tv.resignFirstResponder()
-                self?.onNewPersonFromSelection(name)
+            var children = suggestedActions
+            if currentMode == .editing, range.length > 0 {
+                let text = tv.textStorage.string
+                let formats: [(BodyFormat.InlineMark, String, String)] = [
+                    (.bold, "bold", "Bold"), (.italic, "italic", "Italic"),
+                    (.underline, "underline", "Underline"), (.strike, "strikethrough", "Strikethrough"),
+                ]
+                let actions = formats.map { mark, symbol, label in
+                    let a = UIAction(title: "", image: UIImage(systemName: symbol),
+                                     state: BodyFormat.isActive(mark, in: text, selection: range) ? .on : .off) { [weak self] _ in
+                        self?.applyInline(mark)
+                    }
+                    a.discoverabilityTitle = label
+                    return a
+                }
+                // First, so B I U S sit on the bar's first page (mock Q350). Appended after
+                // the system's Cut/Copy/Replace/AutoFill they landed behind the › overflow.
+                children.insert(UIMenu(options: .displayInline, children: actions), at: 0)
             }
-            return UIMenu(children: [item] + suggestedActions)
+            if let name = newPersonOffer(for: range, in: tv) {
+                let item = UIAction(title: NameActionLabel.newPerson,
+                                    image: UIImage(systemName: "person.badge.plus")) { [weak self] _ in
+                    tv.resignFirstResponder()
+                    self?.onNewPersonFromSelection(name)
+                }
+                children.append(item)
+            }
+            return UIMenu(children: children)
+        }
+
+        // MARK: D112: move a photo by long press
+
+        private var photoDrag: (marker: Int, snapshot: UIView, line: UIView, grab: CGFloat)?
+
+        func installPhotoDrag(on tv: NoteBodyTextView) {
+            let press = UILongPressGestureRecognizer(target: self, action: #selector(handlePhotoPress(_:)))
+            press.minimumPressDuration = 0.42
+            press.delegate = self
+            tv.addGestureRecognizer(press)
+        }
+
+        func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+            guard g is UILongPressGestureRecognizer, let tv = textView else { return true }
+            guard currentMode != .playing else { return false }
+            if case .openImage = attachmentAction(at: g.location(in: tv)) { return true }
+            return false
+        }
+
+        /// The drop spot for a finger at `y` (text-view coordinates): the start of the paragraph
+        /// under it, or the end of the text below the last line.
+        private func dropLocation(atY y: CGFloat) -> Int {
+            guard let tv = textView else { return 0 }
+            let ns = tv.textStorage.string as NSString
+            let point = CGPoint(x: tv.textContainerInset.left + 4, y: y)
+            guard let idx = tv.characterIndex(at: point) else { return ns.length }
+            let para = ns.paragraphRange(for: NSRange(location: min(idx, ns.length), length: 0))
+            let rects = tv.rects(forCharacterRange: NSRange(location: para.location, length: max(1, min(para.length, 1))))
+            if let r = rects.first, y > r.midY, para.length > 0, NSMaxRange(para) >= ns.length { return ns.length }
+            return para.location
+        }
+
+        @objc func handlePhotoPress(_ g: UILongPressGestureRecognizer) {
+            guard let tv = textView else { return }
+            let p = g.location(in: tv)
+            switch g.state {
+            case .began:
+                guard case .openImage(let marker)? = attachmentAction(at: p),
+                      let range = attachmentRange(forMarker: marker),
+                      let rect = tv.rects(forCharacterRange: range).first,
+                      let snap = tv.resizableSnapshotView(from: rect, afterScreenUpdates: false, withCapInsets: .zero)
+                else { return }
+                tv.resignFirstResponder()
+                snap.frame = rect
+                snap.layer.cornerRadius = 14
+                snap.layer.shadowColor = UIColor.black.cgColor
+                snap.layer.shadowOpacity = 0.35
+                snap.layer.shadowRadius = 20
+                snap.layer.shadowOffset = CGSize(width: 0, height: 18)
+                tv.addSubview(snap)
+                let line = UIView(frame: CGRect(x: tv.textContainerInset.left, y: rect.minY,
+                                                width: tv.bounds.width - tv.textContainerInset.left - tv.textContainerInset.right,
+                                                height: 3))
+                line.backgroundColor = UIColor(Color.skAccent)
+                line.layer.cornerRadius = 1.5
+                line.isHidden = true
+                tv.addSubview(line)
+                UIView.animate(withDuration: 0.15) { snap.transform = CGAffineTransform(scaleX: 1.04, y: 1.04) }
+                Haptics.tap(.medium)
+                photoDrag = (marker, snap, line, p.y - rect.minY)
+            case .changed:
+                guard let drag = photoDrag else { return }
+                drag.snapshot.frame.origin.y = p.y - drag.grab
+                let loc = dropLocation(atY: p.y)
+                let ns = tv.textStorage.string as NSString
+                let y: CGFloat
+                if loc >= ns.length, let last = tv.rects(forCharacterRange: NSRange(location: max(0, ns.length - 1), length: 1)).last {
+                    y = last.maxY + 4
+                } else if let r = tv.rects(forCharacterRange: NSRange(location: loc, length: 1)).first {
+                    y = r.minY - 4
+                } else { y = p.y }
+                drag.line.frame.origin.y = y
+                drag.line.isHidden = false
+                tv.bringSubviewToFront(drag.snapshot)
+            case .ended:
+                guard let drag = photoDrag else { return }
+                let loc = dropLocation(atY: p.y)
+                finishPhotoDrag(drag)
+                movePhoto(marker: drag.marker, toDisplayLocation: loc)
+            default:
+                if let drag = photoDrag { finishPhotoDrag(drag) }
+            }
+        }
+
+        private func finishPhotoDrag(_ drag: (marker: Int, snapshot: UIView, line: UIView, grab: CGFloat)) {
+            drag.snapshot.removeFromSuperview()
+            drag.line.removeFromSuperview()
+            photoDrag = nil
+        }
+
+        /// Drop picture `marker` before the paragraph starting at `location` (display offsets),
+        /// through the shared `BodyFormat.movePhoto`, and save now (a move is a decisive act).
+        func movePhoto(marker: Int, toDisplayLocation location: Int) {
+            guard let tv = textView, currentMode == .editing,
+                  let own = attachmentRange(forMarker: marker) else { return }
+            let ns = tv.textStorage.string as NSString
+            let before = ns.substring(to: min(location, ns.length))
+            var index = before.components(separatedBy: "\n\n").count - 1
+            if location >= ns.length { index = Int.max / 2 }
+            if own.location < location, index != Int.max / 2 { index -= 1 }   // its own paragraph leaves the count
+            let raw = reconstruct(tv.attributedText)
+            let moved = BodyFormat.movePhoto(marker: marker, in: raw, toParagraph: max(0, index))
+            guard moved != raw else { return }
+            tv.attributedText = attributed(from: moved)
+            markDraftDirty()
+            commitDraft()
+            load(force: true)
+            applyTierStyling()
+            Haptics.tap(.light)
         }
 
         /// What a focus-gaining tap on an attachment should do.
@@ -1054,6 +1414,7 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidChange(_ tv: UITextView) {
             markDraftDirty()
+            applyMarkdownStyling(around: NSRange(location: tv.selectedRange.location, length: 0))
             refreshAccessory()
             detectLinkTrigger(tv)
             (tv as? NoteBodyTextView)?.setNeedsAccessoryLayout()
@@ -1067,6 +1428,12 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidEndEditing(_ tv: UITextView) {
             commitDraft()
+            if NoteEditorChrome.shared.current === self { NoteEditorChrome.shared.isEditing = false }
+            if tv.inputView != nil {             // the next edit opens on the keyboard again
+                tv.inputView = nil
+                formatHost = nil
+                accessory?.setFormatOpen(false)
+            }
             // Task syntax TYPED during this session is still literal text in the
             // display — materialize it into live checkboxes now that the
             // keyboard is down (rebuilding mid-typing would fight the caret).

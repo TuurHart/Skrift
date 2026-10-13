@@ -2660,7 +2660,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, and D194's picks (no importance on rows; folder line for Portfolio only; one card per group; 16 / 14; pills only while something is happening; an unrated note shows a small grey dot + "Unrated" where importance used to sit, rated notes show nothing there), on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/list-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q359 [auto] (doing) build the phone and iPad note and toolbar per the Q350 mock
+### Q359 [auto] (done) build the phone and iPad note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350
 gate+: yes
@@ -2799,7 +2799,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q379 [auto] (todo) build the iPad list + note layout per the iPad mock
+### Q379 [auto] (doing) build the iPad list + note layout per the iPad mock
 spec: D193
 needs: Q378 Q358 Q359
 gate+: yes
@@ -2819,6 +2819,13 @@ needs: Q355
 gate+: no
 do: Q355 built the article reader; its compare (plan/reads/library-tab/q355-pair-*.png, q355-diff.md) against Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html lists: (1) DEFECT: an article capture note shows an empty audio player although it has no audio — hide the player when a note has no audio; (2) cover lacks the ARTICLE badge; (3) reader selection is purple, mock uses system blue; (4) no reading-progress line at the top of the reader; (5) a 'No notes yet' card is pinned over the reader text — show the notes row only when there are notes, never over the text; (6) the capture screen lacks the mock's quote card and the boxed link-back line; (7) the highlight lacks its ❝ glyph. Fix all seven; re-take the q355 pairs at 402 x 874 next to the mock and LOOK. Launch with `-skipOnboarding` on a fresh sim; `-showArticleNote` is the DEBUG hook for the note shot. The share-sheet Article/Note frame cannot be driven on iOS 27 (Safari share button not found by XCUITest) — leave it to Tuur's device check.
 check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
+
+### Q382 [auto] (doing) phone note editor matches the signed Q350 mock: Q359's visual gaps
+spec: D196 D193
+needs: Q359
+gate+: no
+do: Q359's compare (plan/reads/editor-apple/phone-*.png vs Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html at 402 x 874) left: rating pill ~36 pt tall vs mock 26 (balls larger) and the Personal chip ~30 vs 26; on an unrated note the rating + amber fading line + Personal wrap onto two rows (mock: one row); the mock keeps '‹ Notes' in the top bar while typing (phone shows only undo, redo, ⋯, Done); the reading player is a full-width dark ~50 pt capsule (mock: a narrower glass pill, 24 pt radius); the keyboard bar is full-width and flush (mock: a short floating white pill inset ~10 pt with a shadow); phone-7-speakers shows the list, not the opened conversation note. Fix each to the mock (the book quote keeps the locked borderless accent-bar idiom — do NOT add a tinted block, feedback_no_bubbles_on_shared_input). Take shots in LIGHT mode too so colours can be compared. Launch flags: `-seedPhotoMoveMemo`, `-skipOnboarding`.
+check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4107,3 +4114,7 @@ check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl 
 - 2026-10-13 15:17 Q378 -> tuur — built @07672798, gate 59s — awaiting sitting
 - 2026-10-13 15:17 Q378 -> done — signed D198: full width, Apple attach menu minus Record Audio, tabs option A ('A')
 - 2026-10-13 15:17 Q381 -> doing — worker out
+- 2026-10-13 15:19 Q382 added
+- 2026-10-13 15:24 Q359 -> done — gate 37s @bc9277f0
+- 2026-10-13 15:25 Q379 -> doing — worker out
+- 2026-10-13 15:25 Q382 -> doing — worker out

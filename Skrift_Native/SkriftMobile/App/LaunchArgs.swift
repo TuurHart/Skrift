@@ -18,6 +18,9 @@ enum LaunchFlags {
     /// Seed a memo whose photo contains rendered text but is NOT yet OCR'd —
     /// the photo-search end-to-end fixture (launch sweep must index it).
     static var seedPhotoTextMemo: Bool { args.boolFlag("-seedPhotoTextMemo") }
+    /// Q359 (DEBUG): ONE note with three paragraphs and a photo between 1 and 2, for the
+    /// long-press-move-a-photo screenshot.
+    static var seedPhotoMoveMemo: Bool { args.boolFlag("-seedPhotoMoveMemo") }
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }

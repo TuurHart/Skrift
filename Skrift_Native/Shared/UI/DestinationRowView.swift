@@ -41,6 +41,9 @@ struct DestinationRowStyle {
     var textFaint: Color
     var border: Color
     var chipFill: Color
+    /// The resting chip's 1 pt ring. The Q350 note mock has a flat tinted chip (no ring), so the
+    /// phone turns it off; the Mac keeps its look until Q360 decides.
+    var chipOutlined: Bool = true
 }
 
 struct DestinationRowView: View {
@@ -146,8 +149,12 @@ struct DestinationRowView: View {
             .foregroundStyle(destination.isPortfolio ? style.portfolio : style.accentText)
             .padding(.horizontal, 9).padding(.vertical, 5)
             .background(destination.isPortfolio ? style.portfolioSoft : style.accentSoft, in: .capsule)
-            .overlay(Capsule().strokeBorder(
-                (destination.isPortfolio ? style.portfolio : style.accent).opacity(0.35), lineWidth: 1))
+            .overlay {
+                if style.chipOutlined {
+                    Capsule().strokeBorder(
+                        (destination.isPortfolio ? style.portfolio : style.accent).opacity(0.35), lineWidth: 1)
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("destination-chip")

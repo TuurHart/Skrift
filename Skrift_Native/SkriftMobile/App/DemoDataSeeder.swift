@@ -24,6 +24,7 @@ enum DemoDataSeeder {
         guard repo.allMemos().isEmpty else { return }
         if LaunchFlags.seedQuoteMemo { repo.insert(editedQuoteMemo()); return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
+        if LaunchFlags.seedPhotoMoveMemo { repo.insert(photoTextMemo(paragraphs: true)); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
@@ -100,7 +101,7 @@ enum DemoDataSeeder {
     /// still nil — the device round-3/4 "photo search finds nothing" repro:
     /// the launch sweep must OCR it (REAL Vision) and the list search must
     /// then surface the memo.
-    static func photoTextMemo() -> Memo {
+    static func photoTextMemo(paragraphs: Bool = false) -> Memo {
         let id = UUID()
         let photoName = "photo_\(id.uuidString)_001.jpg"
         writeTextPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
@@ -110,7 +111,9 @@ enum DemoDataSeeder {
             duration: 21,
             recordedAt: Date().addingTimeInterval(-1_800),
             syncStatus: .waiting,
-            transcript: "Snapped the tram stop sign on the way home. [[img_001]]",
+            transcript: paragraphs
+                ? "Snapped the tram stop sign on the way home.\n\n[[img_001]]\n\nThe old tiles are still there under the paint.\n\nI should ask the council whether they plan to restore the stop."
+                : "Snapped the tram stop sign on the way home. [[img_001]]",
             transcriptStatus: .done,
             transcriptConfidence: 0.9,
             metadata: MemoMetadata(
