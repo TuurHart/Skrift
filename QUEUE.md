@@ -2599,7 +2599,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (doing) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (tuur) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
@@ -4051,3 +4051,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:08 Q373 -> done — Tuur: keep PDF-link / Episode-link / Audiobook-link / Article-link
 - 2026-10-13 14:08 Q298 -> done — Tuur: yes — same-day release, Mac copy-test first, ~10 min in the CloudKit console at Q370
 - 2026-10-13 14:15 Q272 -> done — Tuur: yes, keep all three
+- 2026-10-13 14:15 Q350 -> tuur — built @5012ab7c, gate 50s — awaiting sitting
