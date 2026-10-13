@@ -27,7 +27,7 @@ struct BookShelfTile: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
                 ZStack(alignment: .topTrailing) {
-                    BookCoverView(book: book)
+                    BookCoverView(book: book, reservesBadge: true)
                         .aspectRatio(1, contentMode: .fit)
                         .clipShape(.rect(cornerRadius: 12, style: .continuous))
                         .shadow(color: .black.opacity(0.3), radius: 6, y: 3)

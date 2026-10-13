@@ -944,6 +944,10 @@ enum LibraryArticleDebug {
         } else {
             tv.becomeFirstResponder()
             tv.selectedRange = r
+            // `-scrollArticleReader`: a screenshot with the reading place moved (the progress line).
+            if ProcessInfo.processInfo.arguments.contains("-scrollArticleReader") {
+                tv.setContentOffset(CGPoint(x: 0, y: 150), animated: false)
+            }
         }
     }
 

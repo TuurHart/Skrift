@@ -42,3 +42,7 @@ The share extension only runs inside a host app's share sheet. The one route tri
 3. App adds standard note chrome the mock leaves out: date chip, "Article quote · Local-first software" chip, "+ tag", "starts fading 12 Nov" warning.
 4. Back control: app circular chevron + "+" / "⋯" capsule; mock "‹ Notes" text and circled "⋯".
 5. Quote, attribution and "↗ Back to it at N% in Library" pill match the mock's idiom and accent colour.
+
+## Q381 re-take (same pairs, mock left, app right, 402 x 874)
+Fixed and looked at: (1) the note has no player bar; (2) ARTICLE badge on the article cover, site label moved below it; (3) selection and handles system blue; (4) 2 pt progress line under the status bar (`q381-reader-scrolled.png` shows the fill at 3%; seed pairs sit at 0% so only the grey track shows); (5) the notes row shows only when the article has notes, never "No notes yet"; (6) link-back is a boxed line with the vault sentence, quote block has more air (the dashed outline round the mock's capture block is the mock's "new" annotation, not a card, so no card was drawn); (7) noted sentences end in a ❝ that opens the note.
+Left as is: quote type stays 15.5 pt (the mock's CSS value; the mock frame is scaled up about 1.12 in the shot, so the 17 pt in the old list was a scaling artefact), tile byline and hint line, floating tab bar, back/menu controls, note chrome chips (items 2-4 of the earlier lists).

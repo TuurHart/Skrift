@@ -9,6 +9,8 @@ struct BookCoverView: View {
     let book: Audiobook
     /// Hide the placeholder title text below this edge length (mini-player thumb).
     var showsPlaceholderTitle = true
+    /// Q381: the shelf tile draws a type badge top-left, so an article's site label sits below it.
+    var reservesBadge = false
 
     var body: some View {
         GeometryReader { geo in
@@ -82,6 +84,7 @@ struct BookCoverView: View {
         let site = book.site ?? book.sourceURL.flatMap(URL.init(string:)).map(ArticleExtractor.site(of:)) ?? ""
         return VStack(alignment: .leading, spacing: 0) {
             if showsPlaceholderTitle {
+                if reservesBadge { Color.clear.frame(height: w * 0.13) }
                 Text(site.uppercased())
                     .font(.system(size: max(5, w / 18), weight: .semibold, design: .monospaced))
                     .kerning(0.06 * max(5, w / 18))
