@@ -100,7 +100,8 @@ final class LibraryArticleTests: XCTestCase {
     }
 
     func testAVideoPageHasNoArticleText() throws {
-        XCTAssertNil(ArticleExtractor.extract(html: html("video-page.html"), url: videoURL),
+        let page = try html("video-page.html")
+        XCTAssertNil(ArticleExtractor.extract(html: page, url: videoURL),
                      "a video page is not an article (D138: it stays a note)")
     }
 
