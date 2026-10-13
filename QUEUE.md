@@ -2751,6 +2751,13 @@ do: -
 check: Tuur approved; the conductor flips `testOnlyBuiltDoorsAreShown` (XCTAssertFalse(.podcast) → True, same for .pdf once Q354 lands) via plan/hand-merge.sh and `plan/mtest.sh LibraryShelfTests` passes.
 ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q353/Q354 built them. OK to flip those assertions so the test matches?
 
+### Q372 [auto] (doing) a Library 'send to a note' note exports as a link to its source, not a quote; Move to Library drops the note's PDF asset
+spec: D138 D90
+needs: -
+gate+: yes
+do: From Q356's report: a "Send to a note" / "Move to Library" note is capture metadata (`bookID` + `bookPosition`, PDF page as "p. N" in `bookChapter`) with no quote; `LibraryHatch.isSourceLink` tells it apart on the phone, but `SourceKind.classify` (Shared/Pipeline/SourceTaxonomy.swift) cannot see that, so the Mac card and the export still say Audiobook/PDF quote (`source: Audiobook-quote`) with no quote. Make the shared classifier recognise the source-link shape (one rule in Shared, used by phone, Mac and both exporters) and export it as a link line to the source (`— *Title*, p. N` / `— *Show*, mm:ss` per D138) with `source:` naming the source kind, never an empty quote block. And D90: "Move to Library" moves the PDF, so the note's CloudKit `document` MemoAsset is removed once the Library copy exists (never before; no data loss if the move fails midway). New tests: Mac `SourceLinkExportTests` in SkriftDesktopTests (classify + exported markdown for book, PDF and episode link notes), phone `LibraryHatchMoveTests` (asset removed only after the Library copy is written). Never run SkriftDesktopUITests. FEATURES.md rows.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/SourceLinkExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchMoveTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -3992,3 +3999,5 @@ ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q
 - 2026-10-13 11:09 Q354 -> done — gate 37s @14474740
 - 2026-10-13 11:09 Q356 -> doing — worker out
 - 2026-10-13 11:40 Q356 -> done — gate 43s @7e4d12e1
+- 2026-10-13 11:41 Q372 added
+- 2026-10-13 11:41 Q372 -> doing — worker out
