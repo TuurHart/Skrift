@@ -153,8 +153,8 @@ final class MacNoteOpenWorkTests: XCTestCase {
         let (ctx, t, _) = library(count: 200, target: target)
         let work = MacNoteOpenWork(version: version)
 
-        let a = work.linkCandidates(excluding: t.id, context: ctx)
-        let b = work.linkCandidates(excluding: UUID().uuidString, context: ctx)
+        let a = work.linkCandidates(excluding: t.id, context: ctx, titleOf: { $0.filename })
+        let b = work.linkCandidates(excluding: UUID().uuidString, context: ctx, titleOf: { $0.filename })
         XCTAssertEqual(work.corpusFetches, 1, "reopening the picker reuses the candidates")
         XCTAssertEqual(a.count, 200)
         XCTAssertEqual(b.count, 201)
@@ -167,7 +167,7 @@ final class MacNoteOpenWorkTests: XCTestCase {
         XCTAssertEqual(work.corpusFetches, 2, "tag counts: one more pass, once")
 
         version.bump()
-        _ = work.linkCandidates(excluding: t.id, context: ctx)
+        _ = work.linkCandidates(excluding: t.id, context: ctx, titleOf: { $0.filename })
         _ = work.tagCounts(ctx)
         XCTAssertEqual(work.corpusFetches, 4, "both rebuilt after the library changed")
     }
@@ -228,7 +228,7 @@ final class MacNoteOpenWorkTests: XCTestCase {
     }
 
     func testTheTextViewWordRangesAreMappedOnceUntilTheTextResets() {
-        let cache = KaraokeStorageMapCache()
+        let cache = KaraokeStorageMapCache<[Int]>()
         var maps = 0
         for _ in 0..<10 {
             _ = cache.value(length: 42) { maps += 1; return [0, 1, 2] }
