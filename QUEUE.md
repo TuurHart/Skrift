@@ -4036,3 +4036,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 12:01 Q375 added
 - 2026-10-13 12:01 Q376 added
 - 2026-10-13 12:02 Q374 -> doing — worker out
+- 2026-10-13 12:06 Q349 -> tuur — built @70e9bd61, gate 114s — awaiting sitting
