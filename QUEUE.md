@@ -2709,7 +2709,7 @@ gate+: yes
 do: From plan/perf2/g-mac-pipeline.md G8 G9 G10 G13; re-check each first. The vault tag scan is cached across runs and refreshed by file modification dates (and no longer drops tags past 5,000 files); the export ledger and names.json are decoded once per run and the ledger written once at the end (crash-safe: per-note entries still land if the run dies, e.g. append then compact); photo/audio copies are skipped when the markdown and the ledger say the note is unchanged, before any full byte compare; `runProcess` filters with a Set. Exported bytes must be identical to today's on the corpus. New counter test `MacExportWorkTests` in SkriftDesktopTests: exporting 50 unchanged notes decodes the ledger once, writes it once, and reads no image bytes. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacExportWorkTests.swift`
 
-### Q366 [auto] (todo) release prep: version bump, Release builds of both apps, the synced-field list for Q298
+### Q366 [auto] (doing) release prep: version bump, Release builds of both apps, the synced-field list for Q298
 spec: D186
 needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380 Q386
 gate+: no
@@ -4159,3 +4159,4 @@ check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 - 2026-10-13 16:37 Q380 -> done — hand-merged (D163 blanket: protected tests only deleted with the chip/quiet code or call sites ported)
 - 2026-10-13 16:38 Q386 -> doing — worker out
 - 2026-10-13 17:10 Q386 -> done — gate 58s @87984fff
+- 2026-10-13 17:11 Q366 -> doing — worker out
