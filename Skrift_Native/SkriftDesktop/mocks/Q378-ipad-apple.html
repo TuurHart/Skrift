@@ -191,7 +191,7 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .proc{margin:8px 14px 0;width:calc(100% - 28px);padding:8px 0;border-radius:9px;background:var(--sk-accent);color:#fff;font-size:13.5px;font-weight:600;display:flex;gap:6px;justify-content:center;align-items:center}
 .sk .proc b{opacity:.8}
 .sk .srch{margin:10px 14px 0;display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:11px;color:var(--sk-faint);font-size:15px}
-.sk .chips{display:flex;gap:6px;align-items:center;padding:8px 14px 0;white-space:nowrap}
+.sk .chips{display:flex;gap:4px;align-items:center;padding:8px 14px 0;white-space:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
 .sk .chip{font-size:12px;color:var(--sk-dim);padding:5px 9px;border-radius:7px;border:1px solid transparent}
 .sk .chip b{font-weight:600}
 .sk .chip[aria-pressed="true"]{color:var(--sk-accent);background:var(--sk-accent-soft)}
@@ -229,8 +229,8 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk:not(.nolist) .nband{padding-left:10px}
 .sk .nband .sp{flex:1}
 .sk .tools{display:flex;align-items:center;padding:0 6px;position:relative}
-.sk .tools button{width:52px;height:44px;display:inline-flex;align-items:center;justify-content:center;color:var(--sk-text);border-radius:22px}
-.sk .tools button.on{color:var(--sk-accent)}
+.sk .tools > button{width:52px;height:44px;display:inline-flex;align-items:center;justify-content:center;color:var(--sk-text);border-radius:22px}
+.sk .tools > button.on{color:var(--sk-accent)}
 .sk .tools .aa{font-size:20px;font-weight:500;letter-spacing:-.4px}
 .sk .nscroll{flex:1;min-height:0;overflow:hidden;position:relative}
 .sk .ntext{max-width:640px;padding:20px 20px 40px;margin-left:12px}
@@ -319,7 +319,7 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .emenu i{width:1px;height:19px;background:var(--sk-ring);display:block}
 .sk .emenu .newp{color:var(--sk-accent-text);font-weight:600}
 .sk .ssel{background:var(--sk-accent-soft);border-radius:2px;box-shadow:0 0 0 1px var(--sk-accent-soft)}
-.sk .pmenu{position:absolute;top:0;left:104px;width:240px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0;z-index:20;display:flex;flex-direction:column}
+.sk .pmenu{position:absolute;top:0;left:104px;width:240px;border-radius:22px;background:var(--sk-surface);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0;z-index:20;display:flex;flex-direction:column}
 .sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
 .sk .tools .pmenu button{width:100%}
 .sk .li .bx{display:flex;align-items:center;justify-content:center;color:#fff}
