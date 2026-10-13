@@ -2639,7 +2639,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`: a shared article link is fetched once, reader-mode text extracted and stored locally (kind `article`, title, site, byline, URL); non-article links stay notes (D138, the mock's rule). Reader shows the stored text offline; select → "Add note" opens the capture; the note links back and exports `— *Title*, site` + URL. Fixtures: two saved article HTML pages + one video page under test-fixtures/, no network in tests. Phone test `LibraryArticleTests` (extraction, article vs non-article routing, capture link-back). Screenshot the reader against the mock, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 
-### Q356 [auto] (todo) Library hatches: Send to a note, Move to Library, jump-back on PDF and podcast notes
+### Q356 [auto] (done) Library hatches: Send to a note, Move to Library, jump-back on PDF and podcast notes
 spec: D90 D127 D138 D177 C229
 needs: Q353 Q354
 gate+: yes
@@ -3990,3 +3990,5 @@ ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q
 - 2026-10-13 10:58 Q371 -> tuur — awaiting sitting
 - 2026-10-13 11:02 Q354 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
 - 2026-10-13 11:09 Q354 -> done — gate 37s @14474740
+- 2026-10-13 11:09 Q356 -> doing — worker out
+- 2026-10-13 11:40 Q356 -> done — gate 43s @7e4d12e1
