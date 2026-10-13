@@ -53,7 +53,7 @@ Production-pinned build.
 | Id | What | Why |
 |---|---|---|
 | A1 | **Backfill guard.** `MacMemoAuthor.backfill` (`MacMemoAuthor.swift:225`, run on every reconcile from `MemoCloudReconciler.swift:362`) may author a `Memo` only for a row with `isLocalCapture` true, and only once the cloud store has finished its first full import since it was created (an `NSPersistentCloudKitContainer.eventChangedNotification` import that ended with success, stamped in settings). Test: a fresh, empty cloud context plus phone-origin `PipelineFile`s authors nothing. | Today a fresh store makes the Mac author a Mac-shaped twin of **every** phone note it has a row for, because none of their `Memo`s have downloaded yet. Those twins upload and collide with the phone's records as divergent same-id pairs. This is the biggest code risk in the whole switch, merge or no merge. |
-| A2 | **Merge engine** `Shared/Pipeline/DevEraMerge.swift`: `plan(old:prod:splitDate:macDeviceIDs:)` returns counts plus a list of actions; `apply(_:into:)` performs them in batches of 25 notes per save. Rules below. Unit tests on synthetic stores. | Deterministic, id-based, testable without CloudKit. |
+| A2 | **Merge engine** `SkriftDesktop/Pipeline/Ingest/DevEraMerge.swift` (built Q398, Mac-only, tests `DevEraMergeTests`): `plan(old:prod:splitDate:macDeviceIDs:)` returns counts plus a list of actions; `apply(_:from:into:firstImportDone:)` performs them in batches of 25 notes per save. Rules below. Unit tests on synthetic stores. | Deterministic, id-based, testable without CloudKit. |
 | A3 | **Dry-run tool.** `StoreCopyTest --merge-dry-run --old <copy> --prod <copy>`: runs plan and apply on two copies with `cloudKitDatabase: .none`, prints counts before and after (never a title or text), exits 1 on any check failure. `plan/release/mac-store-copytest.sh --merge <old store dir>` copies both (old store from its backup folder, Production store from the live app folder, app quit) into a fresh temp dir and runs it. Self-test on the synthetic corpus. | The dry run below. Reuses the Q367 guard (marker file, protected roots, exit 3). |
 | A4 | **One-shot trigger in the Release app.** If `~/Library/Application Support/Skrift/merge-from-dev/memo_cloud.store` exists and the first-import stamp from A1 is set, show one alert with the dry-run counts ("Bring in N notes and M polishes from the old Mac store?"). Yes runs `apply`, writes `merge-report.txt` (counts and inserted ids only) and renames the folder to `merged-<date>`. No leaves it. | Release builds cannot take DEBUG launch arguments. One alert, no new screen. |
 
@@ -74,6 +74,51 @@ Per note id, after collapsing same-id rows on each side with `MemoDuplicates.kee
 | Only in old store, trashed (`deletedAt` set) | Skip, count. |
 | Only in old store, phone-made, `recordedAt` < S | **Do not insert.** Most likely deleted on the phone after S and purged (14-day trash, `Memo.swift:23`). Count it by month. If this count is large (more than 20), Production probably lacks the phone's history: **stop and re-plan**. |
 | Only in Production | Nothing. |
+
+### What the Aug Mac's writes stamp (Q398, read from `git show e6245caa:…`, 2026-10-13)
+
+**Most Aug Mac writes do NOT bump `lastEditedAt`.** Only one path calls `markEdited`:
+
+| Aug Mac write (`e6245caa`) | Fields | Bumps `editedAt`? |
+|---|---|---|
+| `MemoNoteProjection.writeBack` (edits in an unrated note's pane) | title, transcript + `transcriptUserEdited`, tags | **yes** (`markEdited`, content changes only) |
+| same, rating change | significance | no |
+| `MacCloudMetaSync.mirror` / `setRating` / `setTitle` | tags, significance, title | no (doc comment says so on purpose) |
+| `MacCloudDeleteSync.mirror`, `SidebarView`/`JournalView`/`UnpipelinedMemoSheet` delete | `deletedAt`, `trashSeenAt` | no (but `deletedAt` is itself a time) |
+| `LifecycleSweepScheduler` auto-trash | `deletedAt`, `trashSeenAt` | no (same) |
+| `WayOutRules.bringBack` (restore / keep) | `keptAt` = now, `deletedAt` = nil, `trashSeenAt` = nil | no (but `keptAt` is a time) |
+| `MacMemoAuthor.reflectTranscripts` (Mac's own notes, empty transcript only) | transcript, status, confidence | no |
+| `SidebarView` / `UnpipelinedMemoSheet` rate | significance | no |
+
+The phone's rating (`MemoPageView` significance binding) and restore (`NotesRepository.restore`)
+do not stamp either. So for a field neither side timestamps, a difference does not say which side
+changed it. The engine (`SkriftDesktop/Pipeline/Ingest/DevEraMerge.swift`) therefore copies only
+on evidence:
+
+- **Content (title, body, tags):** copied when the old row's `editedAt` > S and Production's
+  `editedAt` ≤ S. Both > S with a difference = conflict, Production kept, id listed. Old `editedAt`
+  ≤ S with a difference = "diverged", Production kept, id + field listed for Tuur (this is where a
+  Mac `setTitle` after S shows up).
+- **Rating:** copied with the content case above only when Production's rating is 0 (never
+  overwrite a rating Production has, since the phone's rating leaves no stamp). Otherwise diverged.
+  A rating difference alone is never a conflict.
+- **Refusals:** `apply` throws before writing anything when the Q397 first-import stamp is not set
+  for the live store, or when more than 20 old-only phone notes predate S.
+- **Files:** `merge-report.txt` (counts and ids only) and `merge-undo.json` (the before/after
+  values of every changed field and enhancement, plus inserted ids). `DevEraMerge.unmerge` replays
+  the journal: inserted notes go to the trash, inserted enhancement rows are deleted, changed rows
+  get their before values back; a row edited again since the merge is left alone and listed. The
+  undo file holds note text, so it stays on the Mac next to the report and is never pasted.
+- The old store is opened only as a copy (`openOldStoreCopy`, CloudKit off); the files in
+  `merge-from-dev/` are never opened.
+- **Trash:** old `deletedAt` > S, Production alive and not touched since (`lastEditedAt`, `keptAt`
+  both earlier) = copy `deletedAt` + `trashSeenAt`. Old alive with `keptAt` > S and after
+  Production's pre-S `deletedAt` = a Mac restore, copied. Anything else that differs = diverged.
+- **`keptAt`:** the later one wins (it only delays fading).
+- `editedAt` (not `lastEditedAt`) is the signal: `lastEditedAt` falls back to `createdAt`, which
+  would make every note created after S look edited.
+- "Phone note after S" uses `addedAt` (`createdAt ?? recordedAt`), not `recordedAt`: an imported
+  old video keeps its filming date in `recordedAt` and would otherwise count as "before S".
 
 `MemoEnhancement`, per `memoID` of a note in the merged result: take the newest row on each side
 by `enhancedAt`. If Production has none, insert the old one. If both exist, the newer `enhancedAt`
