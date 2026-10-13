@@ -65,6 +65,7 @@ extension PipelineFile {
             // The ONE classifier the phone's exporter uses too (Q142): a typed row is
             // `.note` + `mediaSource: "typed"` here, which alone would read `Apple-Note`.
             kind: SourceKind.classify(hasBook: !(meta?.bookTitle ?? "").isEmpty,
+                                      pdfPage: SourceKind.isPDFPageLabel(meta?.bookChapter),
                                       media: mediaSource, sharedType: sc?.type.rawValue,
                                       isCaptureRow: sourceType == .capture,
                                       hasAudio: sourceType == .audio && !path.isEmpty))

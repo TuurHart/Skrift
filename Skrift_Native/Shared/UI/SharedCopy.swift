@@ -133,8 +133,9 @@ enum SharedCopy {
 
     /// The header chip of an audiobook quote note: "Audiobook quote · <book title>"
     /// (Q187, books-109 — the Mac's chip, now on the phone too).
-    static func quoteChip(bookTitle: String) -> String {
-        "\(SourceKind.audiobookQuote.label) · \(bookTitle)"
+    /// Q356: a quote from a Library PDF reads "PDF quote · <title>" (pass `.pdfQuote`).
+    static func quoteChip(bookTitle: String, kind: SourceKind = .audiobookQuote) -> String {
+        "\(kind == .pdfQuote ? SourceKind.pdfQuote.label : SourceKind.audiobookQuote.label) · \(bookTitle)"
     }
 
     /// The note screen of a locked note. `authName` is the platform's prompt word

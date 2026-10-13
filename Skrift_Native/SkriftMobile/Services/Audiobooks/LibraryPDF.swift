@@ -116,11 +116,7 @@ enum LibraryPDF {
     static func pageLabel(_ page: Int) -> String { "p. \(page)" }
 
     /// True for a `bookChapter` written by `pageLabel` ("p. 4"): the note came from a PDF.
-    static func isPageLabel(_ chapter: String?) -> Bool {
-        guard let c = chapter, c.hasPrefix("p. ") else { return false }
-        let n = c.dropFirst(3)
-        return !n.isEmpty && n.allSatisfy(\.isNumber)
-    }
+    static func isPageLabel(_ chapter: String?) -> Bool { SourceKind.isPDFPageLabel(chapter) }
 
     // MARK: - Capture (quote + his voice)
 
