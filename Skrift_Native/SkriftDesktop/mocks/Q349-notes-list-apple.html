@@ -652,7 +652,7 @@ function newGroups(mac){
   PIN = {};
   const groups = groupBy(filtered('new'), groupNew);
   if (!groups.length) return '<div class="empty">No notes match.</div>';
-  return `<div class="${S.rows==='card'?'cards':''}">${groups.map((g,i) => `<div class="gh2 pinned">${g.title}${i===0?'<span class="pin" style="right:18px;top:18px">3</span>':''}</div><div class="grp pinned">${i===0?'<span class="pin" style="right:6px;top:-9px">4</span>':''}${g.notes.map(n => nrow(n,'new',mac)).join('')}</div>`).join('')}</div>`;
+  return `<div class="${S.rows==='card'?'cards':''}">${groups.map((g,i) => `<div class="gh2 pinned">${g.title}${i===0?'<span class="pin ip" style="margin-left:8px">3</span><span class="pin ip">4</span>':''}</div><div class="grp pinned">${g.notes.map(n => nrow(n,'new',mac)).join('')}</div>`).join('')}</div>`;
 }
 function newPhone(){
   return `<div class="phone sk${S.type==='big'?' big':''}">
