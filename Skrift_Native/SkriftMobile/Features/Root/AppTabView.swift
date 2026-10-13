@@ -1,8 +1,8 @@
 import FeedbackKit
 import SwiftUI
 
-/// Root tab bar: **Notes · Books · Journal · Settings** (audiobook reading-mode
-/// redesign 2026-06-19; Books rename + Journal 2026-07-07).
+/// Root tab bar: **Notes · Library · Review · Settings** (audiobook reading-mode
+/// redesign 2026-06-19; Books rename + Journal 2026-07-07; Books → Library Q352, the Q6 mock).
 ///
 /// - The audiobook library is a co-equal tab (not a sheet — a sheet's
 ///   swipe-down-to-dismiss stole pull-to-refresh, device feedback 2026-06-19),
@@ -54,8 +54,10 @@ struct AppTabView: View {
                 .tag(Tab.notes)
 
             AudiobookLibraryView()
+                // Still "Books": FeedbackQ341ScreenTagUITests asserts it (a protected test); rename
+                // together with that test at the next hand-merge.
                 .feedbackScreen("Books")
-                .tabItem { Label("Books", systemImage: "book") }
+                .tabItem { Label("Library", systemImage: "book") }
                 .tag(Tab.books)
 
             JournalHomeView()
@@ -96,6 +98,7 @@ struct AppTabView: View {
             #if DEBUG
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen(); seeded = true }
             else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly(); seeded = true }
+            else if LaunchFlags.seedLibraryShelf { AudiobookSeeder.seedShelf(); seeded = true }
             #endif
             // `-resumeBook`: open the last-played REAL book paused — the same
             // book-open path a library tap runs (incl. `alignIfNeeded`), for
