@@ -2739,7 +2739,7 @@ ask: On the Dev build with the perf library, record the 7-minute flow on the iPh
 
 ### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
-needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375
+needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389
 do: -
 check: The production Skrift on Tuur's phone runs build 188+ (literal grep matches the installed build), the prod Mac app likewise if he chose it, and his notes/names are intact after the upgrade.
 ask: Dev checks pass. Ready to put the updated production Skrift on your phone (I install the Release build to the prod app over USB, you switch on the new synced fields in the iCloud console first — RELEASE.md), and the Mac's /Applications/Skrift.app too, or phone only for now?
@@ -2860,6 +2860,20 @@ needs: -
 gate+: yes
 do: On the phone (compact width) the open note hides the tab bar (`.toolbar(.hidden, for: .tabBar)` on the note destination — Q382 confirmed it works); it comes back on the list. The edge-swipe back and '‹ Notes' (Q382's NoteBackButton + SwipeBackRestorer) return to the list. iPad unchanged. Quick note, Library player and share sheet unchanged. Phone UI test `NoteHidesTabBarUITests`: open a note → no tab bar; back → tab bar. Screenshot before/after into plan/reads/editor-apple/tabbar-*.png.
 check: `test $(ls plan/reads/editor-apple/tabbar-*.png | wc -l) -ge 2`
+
+### Q388 [auto] (doing) Mac Release signs for the CloudKit Production environment (icloud-container-environment)
+spec: D201
+needs: -
+gate+: no
+do: plan/research/cloudkit-env-mac-release.md: a development-signed local Mac Release with no `com.apple.developer.icloud-container-environment` uses the CloudKit DEVELOPMENT environment; the installed prod /Applications/Skrift.app (Aug build) is signed exactly that way (codesign shows aps-environment development, get-task-allow, no environment key), while the phone prod is Ad Hoc/TestFlight = Production. Fix: add `com.apple.developer.icloud-container-environment` = `Production` to the Release SkriftDesktop entitlements file ONLY (Debug/Dev keeps its own container); keep the value literal (no $(VAR) — CLAUDE.md signing lesson). Rebuild Release into build-release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`) and show the signed entitlements with `codesign -d --entitlements :-` on the built product (key present, Production). Install nothing. Note in plan/release/RELEASE.md: deploy the prod schema BEFORE installing this build, or Production writes fail; push delivery with aps-environment development is unverified.
+check: `grep -q 'icloud-container-environment' Skrift_Native/SkriftDesktop/*Release*.entitlements Skrift_Native/SkriftDesktop/**/*.entitlements 2>/dev/null`
+
+### Q389 [tuur] (tuur) check: does the real Skrift on the Mac show the notes you recorded on your phone lately?
+spec: D201
+needs: -
+do: -
+check: Tuur answered; if the Mac misses phone notes, an item to merge the two CloudKit environments safely is added before Q370.
+ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from this month show up there? The prod Mac build is set up in a way that may sync to a different iCloud environment than your phone, so they might not.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4171,3 +4185,7 @@ check: `test $(ls plan/reads/editor-apple/tabbar-*.png | wc -l) -ge 2`
 - 2026-10-13 17:26 Q387 -> doing — worker out
 - 2026-10-13 17:26 Q384 -> doing — mockup out
 - 2026-10-13 17:31 Q366 -> done — gate 132s @12486193
+- 2026-10-13 17:36 Q388 added
+- 2026-10-13 17:36 Q389 added
+- 2026-10-13 17:36 Q389 -> tuur — awaiting sitting
+- 2026-10-13 17:36 Q388 -> doing — worker out
