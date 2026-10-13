@@ -2625,7 +2625,7 @@ gate+: yes
 do: Per D90 and the Q6 mock "Episode player" screen: a pasted or shared Apple Podcasts link resolves to the show's RSS feed via the iTunes lookup API; a Spotify link resolves via its oEmbed show name + iTunes search; a raw RSS URL is used as is. Parse the feed, pick the episode, download its MP3 enclosure into Library as kind `episode` (title, show, date, artwork). A show with no public feed is refused with one plain sentence (D14), never scraped. Playback reuses the book player and capture ("Add note") unchanged. Fixtures: a saved copy of the NRC Het Uur feed (`https://rss.art19.com/het-uur`) under test-fixtures/, no network in tests. Phone test `PodcastFeedTests` (feed parse, enclosure pick, Apple-link → feed URL, Spotify-exclusive refusal). Try the D144 links by hand once and note the result in the commit. Screenshot the episode player, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PodcastFeedTests`
 
-### Q354 [auto] (stuck) Library: PDFs from the share sheet, a PDF reader, select to Add note
+### Q354 [auto] (done) Library: PDFs from the share sheet, a PDF reader, select to Add note
 spec: D126 D135 D138 C229
 needs: Q352
 gate+: yes
@@ -3989,3 +3989,4 @@ ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q
 - 2026-10-13 10:57 Q371 added
 - 2026-10-13 10:58 Q371 -> tuur — awaiting sitting
 - 2026-10-13 11:02 Q354 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
+- 2026-10-13 11:09 Q354 -> done — gate 37s @14474740
