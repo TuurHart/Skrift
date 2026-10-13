@@ -26,6 +26,9 @@ enum VaultTagScanner {
         return tags.sorted()
     }
 
+    /// The process-wide cache every Process run asks (Q365, G10).
+    static let cached = VaultTagCache()
+
     /// Collect tag names from one note's text (frontmatter `tags:` + inline `#tags`).
     static func collectTags(from text: String, into tags: inout Set<String>) {
         if let fm = frontmatter(text) {
@@ -71,5 +74,59 @@ enum VaultTagScanner {
             i = j
         }
         return out.filter { !$0.isEmpty }
+    }
+}
+
+/// The vault tag scan, cached across Process runs (Q365, D186; plan/perf2/g-mac-pipeline.md
+/// G10). The first scan reads every `.md` once; later scans enumerate the vault for
+/// modification dates and re-read only the files whose date or size moved, dropping files that
+/// left. No file cap by default: the old 5,000-file `maxFiles` silently dropped every tag past
+/// it. Answers exactly what a full `VaultTagScanner.scan` of every file answers.
+final class VaultTagCache: @unchecked Sendable {
+    private struct Seen { var modified: Date?; var size: Int?; var tags: Set<String> }
+
+    private let lock = NSLock()
+    private let maxFiles: Int?
+    private var root: String?
+    private var files: [String: Seen] = [:]
+    private var reads = 0
+
+    /// Work counter: `.md` files read from disk over this cache's life.
+    var filesRead: Int { lock.lock(); defer { lock.unlock() }; return reads }
+
+    init(maxFiles: Int? = nil) { self.maxFiles = maxFiles }
+
+    func scan(root: URL) -> [String] {
+        guard !root.path.isEmpty else { return [] }
+        lock.lock(); defer { lock.unlock() }
+        let key = root.standardizedFileURL.path
+        if self.root != key { self.root = key; files = [:] }   // a new vault starts fresh
+        let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey]
+        guard let en = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys,
+                                                      options: [.skipsHiddenFiles]) else { return [] }
+        var next: [String: Seen] = [:]
+        var count = 0
+        for case let url as URL in en {
+            guard url.pathExtension.lowercased() == "md" else { continue }
+            count += 1
+            if let maxFiles, count > maxFiles { break }
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            let modified = values?.contentModificationDate
+            let size = values?.fileSize
+            if let known = files[url.path], modified != nil, known.modified == modified, known.size == size {
+                next[url.path] = known
+                continue
+            }
+            var tags = Set<String>()
+            reads += 1
+            if let text = try? String(contentsOf: url, encoding: .utf8) {
+                VaultTagScanner.collectTags(from: text, into: &tags)
+            }
+            next[url.path] = Seen(modified: modified, size: size, tags: tags)
+        }
+        files = next
+        var all = Set<String>()
+        for seen in next.values { all.formUnion(seen.tags) }
+        return all.sorted()
     }
 }

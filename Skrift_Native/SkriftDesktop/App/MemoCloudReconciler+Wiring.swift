@@ -158,14 +158,17 @@ extension MemoCloudReconciler {
         // re-written). A refused row is skipped quietly: locked (a note UNLOCKED on the phone
         // re-exports on the same sweep), trashed (a note the phone just binned must not be
         // re-written; a restore clears `deletedAt`), unrated, held with two versions.
+        // One export run for the whole sweep (Q365): ledger + names decoded once, ledger written once.
+        let session = ExportSession()
+        defer { session.finish() }
         for pf in files where pf.exportStatus == .done {
-            if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
+            if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings, session: session) {
                 AppLog.cloudkit
                     .info("re-export skipped \(pf.id, privacy: .public): gate \(String(describing: failure), privacy: .public)")
                 continue
             }
             do {
-                let result = try VaultExporter.export(pf, settings: settings)
+                let result = try VaultExporter.export(pf, settings: settings, session: session)
                 // The engine's refusals are the CONTRACT working, not failures: a
                 // vault-edited note stays the user's, a filed-away note stays where
                 // they put it. Only a real write updates the recorded path.
