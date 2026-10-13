@@ -68,6 +68,17 @@ struct LibraryPDFReaderView: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
             Menu {
+                // Q356 (mock `srcMenu`): the PDF stays here; a new note links back to this page.
+                Button {
+                    var here = store.book(id: book.id) ?? book
+                    here.position = Double(model.page)   // the page on screen, not the kept one
+                    if let id = LibraryHatch.sendToNote(book: here) {
+                        dismiss()
+                        TabSelectionBridge.shared.select(.notes)
+                        MemoOpenBridge.shared.open(id)
+                    }
+                } label: { Label(LibraryHatch.sendLabel, systemImage: "square.and.pencil") }
+                .accessibilityIdentifier("library-pdf-send-to-note")
                 Button {
                     if let id = LibraryPDF.moveToNote(book: book, store: store) {
                         dismiss()

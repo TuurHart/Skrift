@@ -77,6 +77,13 @@ struct AudiobookLibraryView: View {
         MemoOpenBridge.shared.open(memo.id)
     }
 
+    /// Q356 (D138): "Send to a note" keeps the source here and opens a new note linked to it.
+    private func sendToNote(_ book: Audiobook) {
+        guard let id = LibraryHatch.sendToNote(book: store.book(id: book.id) ?? book) else { return }
+        TabSelectionBridge.shared.select(.notes)
+        MemoOpenBridge.shared.open(id)
+    }
+
     // MARK: - 📖 Book text (spike 6 / multi-text)
 
     /// Long-press → "Book text…" target; the whole flow (sheet + picker + alerts)
@@ -458,6 +465,17 @@ struct AudiobookLibraryView: View {
         // (Level 1, inline job controls) and book text (Level 2: Add /
         // Re-check / Remove, fileImporter presents over it).
         Group {
+            // Q356 (mock `srcMenu`): the two new items lead the menu.
+            Button { sendToNote(book) } label: {
+                Label(LibraryHatch.sendLabel, systemImage: "square.and.pencil")
+            }
+            .accessibilityIdentifier("library-send-to-note")
+            if let n = noteCounts[book.id], n > 0 {
+                Button { notesSheetBook = book } label: {
+                    Label("\(n) note\(n == 1 ? "" : "s") from this", systemImage: "quote.opening")
+                }
+            }
+            Divider()
             if book.sourceKind != .pdf {   // Q354: a PDF has no transcript, book text or audio to sync
             Button {
                 bookTextSheetBook = book

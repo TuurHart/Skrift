@@ -275,6 +275,18 @@ struct AudiobookPlayerView: View {
 
     private func menu(_ book: Audiobook) -> some View {
         Menu {
+            // Q356 (mock `srcMenu`): the source stays here; a new note links back to this moment.
+            Button {
+                var here = book
+                here.position = session.currentTime
+                if let id = LibraryHatch.sendToNote(book: here) {
+                    dismiss()
+                    TabSelectionBridge.shared.select(.notes)
+                    MemoOpenBridge.shared.open(id)
+                }
+            } label: { Label(LibraryHatch.sendLabel, systemImage: "square.and.pencil") }
+            .accessibilityIdentifier("player-send-to-note")
+            Divider()
             Button { showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off 2026-07-23):

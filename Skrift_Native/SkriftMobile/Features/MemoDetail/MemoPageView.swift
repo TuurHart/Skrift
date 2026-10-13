@@ -613,35 +613,44 @@ struct MemoPageView: View {
                 }
                 .padding(.top, 18)
 
-                // D127 / Q6 mock: "Back to it at 1:12:05 in Library". Only while the book is
+                // D127 / Q6 mock: "Back to it at 1:12:05 in Library". Only while the source is
                 // still in the library and the note stored where in it the quote came from.
+                // Q356: one route for every kind, a PDF to the page, an episode or book to the time.
                 if let target = BookNotesJoin.jumpTarget(for: memo),
-                   let jumpBook = AudiobookLibraryStore.shared.book(id: target.bookID),
-                   jumpBook.sourceKind == .pdf {
-                    BookJumpBackButton(page: Int(target.position)) {
-                        pdfJump = PDFJumpRequest(book: jumpBook, page: Int(target.position))
+                   let source = AudiobookLibraryStore.shared.book(id: target.bookID) {
+                    BookJumpBackButton(route: BookNotesJoin.route(for: target, source: source)) {
+                        jumpBack(to: target, source: source)
                     }
                     .padding(.top, 10)
                     .padding(.leading, 14)
-                    .fullScreenCover(item: $pdfJump) { jump in
-                        LibraryPDFReaderView(book: jump.book, jumpBackPage: jump.page)
-                    }
-                } else if let target = BookNotesJoin.jumpTarget(for: memo),
-                   AudiobookLibraryStore.shared.book(id: target.bookID) != nil {
-                    BookJumpBackButton(position: target.position) {
-                        if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
-                        else { bookJumpFailed = true }
-                    }
-                    .padding(.top, 10)
-                    .padding(.leading, 14)
-                    .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
-                    .alert("Audio isn’t on this device", isPresented: $bookJumpFailed) {
-                        Button("OK", role: .cancel) {}
-                    } message: {
-                        Text("This book’s audio was removed from this device. Re-download it in Books, then jump back.")
-                    }
                 }
+            } else if LibraryHatch.isSourceLink(memo),
+                      let target = BookNotesJoin.jumpTarget(for: memo),
+                      let source = AudiobookLibraryStore.shared.book(id: target.bookID) {
+                // Q356 (mock "what Send to a note makes"): the link card back to the source.
+                SourceLinkCard(book: source) { jumpBack(to: target, source: source) }
+                    .padding(.top, 14)
             }
+        }
+        .fullScreenCover(item: $pdfJump) { jump in
+            LibraryPDFReaderView(book: jump.book, jumpBackPage: jump.page)
+        }
+        .fullScreenCover(isPresented: $showBookPlayerFromNote) { AudiobookPlayerView() }
+        .alert("Audio isn’t on this device", isPresented: $bookJumpFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This source’s audio was removed from this device. Re-download it in Library, then jump back.")
+        }
+    }
+
+    /// Q356 (D177): open the source where the note points, without moving its own place.
+    func jumpBack(to target: BookNotesJoin.JumpTarget, source: Audiobook) {
+        switch BookNotesJoin.route(for: target, source: source) {
+        case .page(let page):
+            pdfJump = PDFJumpRequest(book: source, page: page)
+        case .time:
+            if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
+            else { bookJumpFailed = true }
         }
     }
 
