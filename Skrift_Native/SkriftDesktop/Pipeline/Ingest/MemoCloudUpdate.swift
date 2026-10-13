@@ -105,7 +105,7 @@ enum MemoCloudUpdate {
         // The metadata BLOB changed (book fields edited, photo OCR landed, …) — refresh the
         // stored copy and recompile (the frontmatter reads it). Deterministic byte-compare:
         // `metadataJSON` sorts keys, so an unchanged blob never churns.
-        let blob = MemoCloudIngest.metadataJSON(for: memo)
+        let blob = MemoCloudIngest.cachedMetadataJSON(for: memo)
         if pf.audioMetadataJSON != blob {
             pf.audioMetadataJSON = blob
             contentChanged = true
