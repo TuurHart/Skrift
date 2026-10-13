@@ -73,5 +73,3 @@ STATE FROM LAST SESSION:
   so. The next chat's job #1 is to verify it — that only works if you're honest about what's unproven.
 - **Explicit-path commits** are the guard against the git-index race that swept files into the wrong
   commit before. Never blanket-add.
-- Update `roadmap/` arrays + markdown only if a phase/detour status actually changed (see CLAUDE.md
-  update contract) — otherwise skip; it's not part of every handoff.

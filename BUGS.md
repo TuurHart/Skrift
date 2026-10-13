@@ -195,7 +195,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       Source: plan/sources.md #104.
 - [ ] **Karaoke realignment after a hand-edited live take never landed.** "Parked with its one
       open decision (edited takes need a timings-only pass)" was only ever a parenthetical in a
-      roadmap shipped-log line (`roadmap.yaml:2114`), never promoted to a clause or its own
+      roadmap shipped-log line (`archive/roadmap-2026-10/roadmap.yaml:2114`), never promoted to a clause or its own
       BUGS row until now. Source: plan/sources.md #105.
 - [ ] **`GemmaEmbedder.downloadProgress` is a `nonisolated(unsafe) static var`.** A data race on the
       download progress publisher (`Shared/RetrievalEngine/GemmaEmbedder.swift:27`); AUDIT_PLAN §4 item,
