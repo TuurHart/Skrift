@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Notes List Beside Apple Notes</title>
 <style>
 /* Layout: a mock bench. Device switch on top, then three panels (reference / today / new)
@@ -62,11 +63,11 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .panelswitch{display:none}
 .stage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
 .col{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:center}
-.collabel{width:100%;max-width:390px;display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.collabel{width:100%;max-width:390px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;justify-content:space-between}
 .collabel h2{font-size:14px;margin:0}
 .collabel span{font-size:11.5px;color:var(--bench-dim);text-align:right}
 .reftag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bench-dim);
-  border:1px dashed var(--bench-dim);border-radius:4px;padding:3px 5px}
+  border:1px dashed var(--bench-dim);border-radius:4px;padding:3px 5px;line-height:1.3;text-align:left}
 .newtag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--pin);
   border:1px solid var(--pin);border-radius:4px;padding:3px 5px}
 @media (max-width: 1080px){
