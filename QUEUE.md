@@ -2702,7 +2702,7 @@ gate+: yes
 do: From plan/perf2/g-mac-pipeline.md G1-G7 G11 G12, f-mac-ui.md M10 and h-shared-data.md M1-M3 X1; re-check each first. `adoptLateDiarization` and `adoptLateWordTimings` short-circuit for a note with nothing to adopt and never fault asset blobs; `MacMemoAuthor.backfill/reflectTranscripts` use one id→Memo dictionary per sweep instead of a fetch per row; new memos ingest on a background context in batches with one save; `MemoCloudUpdate.apply` skips the JSON re-serialise when the metadata is unchanged; the lifecycle sweep and the Connections snapshot reuse the reconcile's memo snapshot; `NoteActions.workInputs` is computed once per body. Keep every sync rule identical (C-contract: raw transcript in, LWW by `enhancedAt`). New counter test `MacReconcileWorkTests` in SkriftDesktopTests: a sweep over 2,000 already-ingested monologues fetches no blob and does O(1) Memo fetches; a second sweep with no change writes nothing. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacReconcileWorkTests.swift`
 
-### Q365 [auto] (doing) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
+### Q365 [auto] (done) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
 spec: D191 D186
 needs: -
 gate+: yes
@@ -3977,3 +3977,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:38 Q364 -> done — gate 42s @ee44b630
 - 2026-10-13 10:38 Q362 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
 - 2026-10-13 10:43 Q362 -> done — gate 73s @5201903e
+- 2026-10-13 10:46 Q365 -> done — gate 71s @7cd7a694
