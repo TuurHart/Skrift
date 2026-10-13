@@ -2875,7 +2875,7 @@ do: -
 check: Tuur answered; if the Mac misses phone notes, an item to merge the two CloudKit environments safely is added before Q370.
 ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from this month show up there? The prod Mac build is set up in a way that may sync to a different iCloud environment than your phone, so they might not.
 
-### Q390 [auto] (todo) shared-code + cleanliness review of the attachments build (Q385)
+### Q390 [auto] (doing) shared-code + cleanliness review of the attachments build (Q385)
 spec: D202 C239
 needs: Q385 Q391
 gate+: yes
@@ -4217,3 +4217,4 @@ check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 
 - 2026-10-13 20:24 Q385 -> done — gate 50s @b5d3cbac
 - 2026-10-13 20:24 Q391 -> doing — worker out
 - 2026-10-13 20:54 Q391 -> done — gate 42s @c82b12b7
+- 2026-10-13 20:54 Q390 -> doing — worker out
