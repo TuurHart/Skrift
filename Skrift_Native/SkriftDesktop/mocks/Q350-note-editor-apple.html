@@ -13,8 +13,8 @@
   --a-ring:rgba(0,0,0,.18); --a-amber:#d97706; --a-amber-soft:#d9770621; --a-amber-line:#d9770659; --a-accent-line:#6c5ce059;
   --a-mark:rgba(28,28,30,.25); --a-glass:rgba(255,255,255,.82); --a-key:#ffffff; --a-kb:#d1d3d9; --a-sel:#6c5ce033;
   --sp0:#0f7d74; --sp1:#a8446a;
-  /* Reference panel: a neutral paper, drawn by hand */
-  --r-bg:#fbfaf6; --r-ink:#1f1e1a; --r-dim:#8a877d; --r-line:#e4e1d6; --r-acc:#c99700; --r-kb:#d4d5da; --r-key:#ffffff;
+  /* Reference panel: redrawn from Tuur's iOS 27 screenshots (note text is dark gray, not black; Notes yellow) */
+  --r-bg:#ffffff; --r-ink:#454545; --r-dim:#8a8a8e; --r-line:#e3e3e8; --r-acc:#ddb13a; --r-kb:#dfe1e6; --r-key:#ffffff; --r-glass:rgba(255,255,255,.86); --r-rim:rgba(0,0,0,.10); --r-seg:#ececee; --r-black:#111111; --r-selfill:#f7ecc8;
   --toast-bg:rgba(0,0,0,.85); --toast-fg:#ffffff; --on-accent:#ffffff;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
@@ -29,7 +29,7 @@
     --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
     --a-mark:rgba(228,228,231,.25); --a-glass:rgba(30,32,44,.82); --a-key:#3a3b44; --a-kb:#22232b; --a-sel:#7c6bf544;
     --sp0:#5fd4c4; --sp1:#f08cae;
-    --r-bg:#1c1b18; --r-ink:#ece9df; --r-dim:#8f8b80; --r-line:#34322c; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c;
+    --r-bg:#1c1c1e; --r-ink:#dcdcdc; --r-dim:#8d8d93; --r-line:#38383a; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c; --r-glass:rgba(58,58,60,.88); --r-rim:rgba(255,255,255,.14); --r-seg:#3a3a3c; --r-black:#f2f2f2; --r-selfill:#5a4a1a;
     --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
   }
 }
@@ -42,7 +42,7 @@
   --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
   --a-mark:rgba(228,228,231,.25); --a-glass:rgba(30,32,44,.82); --a-key:#3a3b44; --a-kb:#22232b; --a-sel:#7c6bf544;
   --sp0:#5fd4c4; --sp1:#f08cae;
-  --r-bg:#1c1b18; --r-ink:#ece9df; --r-dim:#8f8b80; --r-line:#34322c; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c;
+  --r-bg:#1c1c1e; --r-ink:#dcdcdc; --r-dim:#8d8d93; --r-line:#38383a; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c; --r-glass:rgba(58,58,60,.88); --r-rim:rgba(255,255,255,.14); --r-seg:#3a3a3c; --r-black:#f2f2f2; --r-selfill:#5a4a1a;
   --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
 }
 *{box-sizing:border-box}
@@ -269,59 +269,127 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .cmenu div.hi{background:var(--a-accent);color:#fff} .cmenu div.hi span{color:#fff}
 .cmenu hr{border:0;border-top:.5px solid var(--a-border);margin:4px 6px}
 
-/* ── Reference panel (hand-drawn) ─────────────────────────────── */
+/* ── Reference panel: redrawn by hand from Tuur's iOS 27 screenshots (iPhone 17 Pro, 402 pt) ──
+   Measured (pt): 44 glass circles at 16 from the edge, y 62; edit nav = back · undo · share+more pill · yellow done circle;
+   title 28 bold dark gray; body ~18 on a 26 line, dark gray, 26 from the edge; reading bar = a glass pill
+   (checklist, attach, markup, writing tools) + a compose circle, floating 28 above the bottom; typing = a 48 tall
+   glass accessory pill 10 from each edge over the keyboard (Aa, checklist, table, attach, markup, then more by
+   swipe); selection = pale yellow fill, yellow handles, a glass Cut | Copy | Paste | Delete | ✦ | › pill, and the
+   accessory pill flips to B I U S, highlight, link, list; Aa = a floating Format sheet (radius ~40, 8 from the
+   edges) that replaces the keyboard: header + close circle, a scrolling style row (Title as a yellow pill),
+   then segmented groups B I U S | highlight, colour and lists | outdent, indent | quote. */
 .ref{font-family:var(--sys);background:var(--r-bg);color:var(--r-ink)}
 .ref.phone{border:1.5px dashed var(--pg-faint)}
 .ref.mac{border:1.5px dashed var(--pg-faint)}
 .rstamp{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--r-dim);border:1px dashed var(--r-dim);border-radius:4px;padding:1px 6px;white-space:nowrap;z-index:9;background:var(--r-bg)}
-.mac .rstamp{top:12px}
-.rnav{height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;color:var(--r-acc);font-size:17px;margin-top:20px}
+.mac .rstamp{top:auto;bottom:10px}
+.rg{height:44px;min-width:44px;border-radius:22px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 8px rgba(0,0,0,.07);display:inline-flex;align-items:center;justify-content:center;color:var(--r-black);flex:none}
+.rg.pair{width:100px;justify-content:space-around;padding:0 4px}
+.rg.ok{background:var(--r-acc);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.rg.ok svg{width:20px;height:20px}
+.rnav{position:absolute;left:0;right:0;top:60px;display:flex;align-items:center;gap:10px;padding:0 16px;z-index:4}
 .rnav .sp{flex:1}
-.rnav .ok{width:30px;height:30px;border-radius:50%;background:var(--r-acc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
-.rclip{position:absolute;left:0;right:0;top:64px;bottom:0;overflow:hidden}
+.rclip{position:absolute;left:0;right:0;top:112px;bottom:0;overflow:hidden}
 .rdate{text-align:center;font-size:12.5px;color:var(--r-dim);margin-top:4px}
-.rbody{padding:8px 20px;font-size:17px;line-height:1.45}
-.rbody .rt{font-size:28px;font-weight:700;line-height:1.15;margin:6px 0 10px}
-.rbody .rh{font-size:20px;font-weight:700;margin:14px 0 6px}
-.rbody p{margin:0 0 8px}
-.rchk{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
-.rchk i{flex:none;width:21px;height:21px;border-radius:50%;border:1.5px solid var(--r-dim);margin-top:1px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;color:#fff}
+.rbody{padding:6px 26px;font-size:18px;line-height:26px}
+.rbody .rt{font-size:28px;font-weight:700;line-height:1.15;margin:0 0 22px}
+.rbody .rh{font-size:22px;font-weight:700;margin:16px 0 4px;line-height:1.2}
+.rbody p{margin:0 0 6px}
+.rchk{display:flex;gap:13px;align-items:flex-start;margin:4px 0}
+.rchk i{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid #c7c7cc;margin-top:2px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;color:#fff}
 .rchk i.on{background:var(--r-acc);border-color:var(--r-acc)}
 .rchk.done span{color:var(--r-dim)}
-.rphoto{height:170px;border-radius:10px;background:linear-gradient(140deg,#a7a49a,#6b685f);margin:10px 0}
-.rtool{position:absolute;left:0;right:0;bottom:0;height:84px;display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px;color:var(--r-acc);border-top:.5px solid var(--r-line);background:var(--r-bg)}
-.rkb{position:absolute;left:0;right:0;bottom:0}
-.rkbar{height:46px;display:flex;align-items:center;justify-content:space-around;padding:0 10px;color:var(--r-ink);background:var(--r-bg);border-top:.5px solid var(--r-line);font-size:17px}
-.rkbar .aa{font-weight:600}
-.rkeys{background:var(--r-kb);height:291px;padding:8px 3px;display:flex;flex-direction:column;gap:11px}
-.rkeys .key{background:var(--r-key);color:var(--r-ink)}
-.rmenu{position:absolute;z-index:3;display:flex;height:40px;align-items:center;border-radius:20px;background:var(--r-key);box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px;padding:0 8px;color:var(--r-ink)}
-.rmenu span{padding:0 9px}
+.rphoto{height:170px;border-radius:0;background:linear-gradient(140deg,#a7a49a,#6b685f);margin:12px 0}
+.rbar{position:absolute;left:24px;right:24px;bottom:26px;display:flex;justify-content:space-between;align-items:center;z-index:4}
+.rbar .rg.tools{width:212px;justify-content:space-around;height:48px;border-radius:24px}
+.rbar .rg.c{width:48px;height:48px;border-radius:24px}
+.rkb{position:absolute;left:0;right:0;bottom:0;z-index:4}
+.rkbar{margin:0 10px 10px;height:48px;border-radius:24px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--r-black);font-size:21px;overflow:hidden;white-space:nowrap}
+.rkbar .aa{font-weight:500;font-size:22px}
+.rkbar .cut{margin-right:-26px;opacity:.9}
+.rkeys{background:var(--r-kb);border-radius:38px 38px 0 0;height:300px;padding:10px 3px;display:flex;flex-direction:column;gap:11px}
+.rkeys .wt{display:flex;justify-content:space-around;font-size:15px;color:var(--r-dim);height:30px;align-items:center}
+.rkeys .key{background:var(--r-key);color:var(--r-black);border-radius:8px;box-shadow:none}
+.rmenu{position:absolute;z-index:6;display:flex;height:42px;align-items:center;border-radius:21px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 8px 24px rgba(0,0,0,.18);font-size:15px;padding:0 6px;color:var(--r-black)}
+.rmenu span{padding:0 10px}
+.rmenu .del{color:#e5484d}
 .rmenu .sepv{width:.5px;height:20px;background:var(--r-line);padding:0}
-.rsel{background:color-mix(in srgb,var(--r-acc) 35%,transparent)}
-.rfmt{position:absolute;left:0;right:0;bottom:0;height:345px;background:var(--r-key);border-radius:14px 14px 0 0;padding:14px 16px;display:flex;flex-direction:column;gap:12px;color:var(--r-ink)}
-.rfmt .fh{display:flex;justify-content:space-between;font-size:17px;font-weight:700}
-.rrow{display:flex;gap:8px;overflow:hidden}
-.rrow span{flex:none;border-radius:10px;background:var(--r-bg);padding:12px 12px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;min-width:44px}
-.rrow span.on{background:var(--r-acc);color:#fff}
-.rnone{position:absolute;inset:120px 30px auto;text-align:center;color:var(--r-dim);font-size:15px;line-height:1.5;border:1.5px dashed var(--r-line);border-radius:14px;padding:24px 16px}
+.rsel{background:var(--r-selfill);position:relative}
+.rsel::before,.rsel::after{content:"";position:absolute;width:2px;background:var(--r-acc);top:-2px;bottom:-2px}
+.rsel::before{left:-1px}.rsel::after{right:-1px}
+.rfmt{position:absolute;left:8px;right:8px;bottom:8px;height:262px;background:var(--r-glass);border-radius:40px;box-shadow:0 0 0 .5px var(--r-rim),0 10px 30px rgba(0,0,0,.14);padding:20px 16px 18px;display:flex;flex-direction:column;gap:12px;color:var(--r-black);z-index:5}
+.rfmt .fh{display:flex;justify-content:space-between;align-items:center;font-size:19px;font-weight:700;padding-left:0}
+.rfmt .fh .rg{width:42px;height:42px;min-width:42px}
+.rsty{display:flex;gap:16px;align-items:center;overflow:hidden;white-space:nowrap;margin-right:-16px}
+.rsty span{flex:none}
+.rsty .on{background:var(--r-acc);color:#fff;border-radius:22px;padding:4px 16px}
+.rsegs{display:flex;gap:14px}
+.rseg{display:flex;border-radius:21px;overflow:hidden;background:var(--r-seg);height:42px}
+.rseg span{width:56px;display:inline-flex;align-items:center;justify-content:center;font-size:19px}
+.rseg span + span{border-left:1px solid var(--r-bg)}
+.rseg span.on{background:var(--r-acc);color:#fff}
+.rnone{position:absolute;inset:140px 30px auto;text-align:center;color:var(--r-dim);font-size:15px;line-height:1.5;border:1.5px dashed var(--r-line);border-radius:14px;padding:24px 16px}
 .rnone b{display:block;color:var(--r-ink);font-size:17px;margin-bottom:6px}
-.rmac-side{width:180px;flex:none;border-right:.5px solid var(--r-line);padding:44px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px;color:var(--r-ink)}
-.rmac-side .hd{font-size:11px;font-weight:600;color:var(--r-dim)}
-.rmac-side .on{background:color-mix(in srgb,var(--r-acc) 22%,transparent);border-radius:6px;padding:3px 8px;margin:0 -8px}
-.rmac-list{width:240px;flex:none;border-right:.5px solid var(--r-line);padding:44px 0 0}
-.rmac-list .row{padding:9px 16px;border-bottom:.5px solid var(--r-line);font-size:13px}
-.rmac-list .row b{display:block;font-size:13.5px}
-.rmac-list .row small{color:var(--r-dim)}
-.rmac-list .row.on{background:color-mix(in srgb,var(--r-acc) 30%,transparent);border-radius:7px;margin:0 6px;border:0}
-.rmac-note{flex:1;display:flex;flex-direction:column;min-width:0}
-.rmac-tb{height:52px;display:flex;align-items:center;gap:16px;padding:0 16px;color:var(--r-dim);border-bottom:.5px solid var(--r-line);font-size:15px}
+/* Mac: redrawn from Tuur's macOS screenshots (13 Oct 2026, same throwaway folder). Three columns: a light
+   sidebar panel (traffic lights, new-folder + sidebar buttons, 13 pt rows with outline folder glyphs and gray
+   counts, the open folder tinted in HIS accent green); the list (folder 13 bold + count 11, "…" circle,
+   15 bold group headers with a hairline under them, the selected row filled green with white text, gray
+   when focus is in the note); the note (compose circle left; a centred glass pill Aa · checklist · table ·
+   attach · writing tools; share · more; a wide Search field). Date centred 12 gray, title ~20 bold dark
+   gray, body ~13. Aa opens a popover: B I U S | highlight · colour, then Title, Heading, Subheading,
+   ✓ Body, Monostyled, the three lists, Block Quote. Right-click opens the long system menu. */
+.ref.mac{--mg:#55b13f;--mgsel:#cfe8c4;background:#fff;color:#333}
+.rmac-side{width:178px;flex:none;margin:6px 0 6px 6px;border-radius:12px;background:#f6f6f6;box-shadow:0 0 0 .5px rgba(0,0,0,.08);padding:12px 8px;font-size:13px;display:flex;flex-direction:column;gap:1px;color:#111;position:relative}
+.rmac-side .tl{display:flex;gap:7px;padding:2px 4px 18px;align-items:center}
+.rmac-side .tl i{width:12px;height:12px;border-radius:50%;display:block}
+.rmac-side .tl .sp{flex:1}
+.rmac-side .tl b{color:#666;display:flex}
+.rmac-side span.it svg{flex:none;color:#222}
+.rmac-side .on svg{color:var(--mg)}
+.rmac-side span.it{padding:5px 6px;display:flex;gap:7px;align-items:center;border-radius:7px}
+.rmac-side span.it em{font-style:normal;color:#9a9a9e;margin-left:auto;font-size:12px}
+.rmac-side .hd{font-size:11px;font-weight:600;color:#8a8a8e;margin:10px 6px 2px}
+.rmac-side .on{background:rgba(0,0,0,.06);color:var(--mg)}
+.rmac-list{width:236px;flex:none;border-right:.5px solid #e2e2e2;padding:10px 0 0;background:#fff;color:#111}
+.rmac-list .lh{padding:0 10px 6px 18px;display:flex;justify-content:space-between;align-items:flex-start}
+.rmac-list .lh b{display:block;font-size:13px}.rmac-list .lh small{font-size:11px;color:#8a8a8e}
+.rmac-list .lh .rg{width:32px;height:32px;min-width:32px}
+.rmac-list .gh{font-size:15px;font-weight:700;margin:10px 12px 6px;padding:0 0 8px 3px;border-bottom:.5px solid #e2e2e2;display:flex;justify-content:space-between}
+.rmac-list .gh em{font-style:normal;color:#aaa;font-weight:400;font-size:12px}
+.rmac-list .row{padding:7px 9px 7px 25px;margin:0 9px;font-size:12px;position:relative;border-radius:8px}
+.rmac-list .row b{display:block;font-size:13px}
+.rmac-list .row small{display:block;color:#8a8a8e;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmac-list .row small u{text-decoration:none;color:#111;margin-right:6px}
+.rmac-list .row.on{background:var(--mg);color:#fff}
+.rmac-list .row.on small,.rmac-list .row.on small u{color:#fff}
+.rmac-list .row.blur{background:#dcdcdc}
+.rmac-note{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff;position:relative}
+.rmac-tb{height:50px;display:flex;align-items:center;gap:8px;padding:0 8px;color:#222;font-size:15px}
+.rmac-tb .rg{height:32px;min-width:32px;border-radius:16px}
+.rmac-tb .rg.grp{gap:16px;padding:0 14px}
 .rmac-tb .sp{flex:1}
-.rmac-tb .aa{font-weight:600;color:var(--r-ink)}
-.rmac-tb .hl{outline:1.5px solid var(--r-acc);border-radius:6px;padding:2px 6px}
-.rmac-body{padding:14px 40px;font-size:15px;line-height:1.5}
-.rmac-body .rt{font-size:24px;font-weight:700;margin:8px 0}
-.rmac-body .rh{font-size:18px;font-weight:700;margin:12px 0 4px}
+.rmac-tb .aa{font-weight:400;color:#222;font-size:16px}
+.rmac-tb .aa.dim{color:#aaa}
+.rmac-tb .srch{height:32px;width:150px;border-radius:16px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim);display:flex;align-items:center;gap:6px;padding:0 10px;color:#888;font-size:13px}
+.rmac-body{padding:0 24px;font-size:13px;line-height:1.35;color:#333}
+.rmac-body .rdate{font-size:12px;color:#8a8a8e;margin:6px 0 0}
+.rmac-body .rt{font-size:20px;font-weight:700;margin:14px 0 12px;color:#444}
+.rmac-body .rh{font-size:16px;font-weight:700;margin:10px 0 2px}
+.rmac-body .rchk{gap:7px;margin:2px 0}
+.rmac-body .rchk i{width:15px;height:15px;border-width:1px;font-size:9px;margin-top:1px}
+.rmac-body .rchk i.on{background:var(--mg);border-color:var(--mg)}
+.rmac-body .msel{background:var(--mgsel)}
+.rmac-body .rphoto{height:150px;margin:8px 0}
+.rpop{position:absolute;z-index:8;background:var(--r-glass);backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 10px 28px rgba(0,0,0,.2);font-size:13px;color:#111;padding:6px}
+.rpop .bius{display:flex;gap:10px;align-items:center;padding:4px 8px 8px;border-bottom:.5px solid #ddd;font-size:16px}
+.rpop .it{padding:4px 10px 4px 26px;position:relative;white-space:nowrap}
+.rpop .it.ck::before{content:"✓";position:absolute;left:9px;font-size:11px}
+.rpop hr{border:0;border-top:.5px solid #ddd;margin:4px 6px}
+.rctx{position:absolute;z-index:8;width:262px;background:var(--r-glass);backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 10px 28px rgba(0,0,0,.22);font-size:12px;color:#111;padding:5px}
+.rctx div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 10px 1px 12px;line-height:15px;white-space:nowrap}
+.rctx div.g{color:#aaa}
+.rctx div span{color:#9a9a9e}
+.rctx hr{border:0;border-top:.5px solid #ddd;margin:3px 8px}
 @media (max-width:760px){ .stage{grid-template-columns:1fr} .stage .col.refc{order:2} .bar{position:static} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -330,7 +398,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   <header>
     <div class="eyebrow">Q350 · mock · D193 D115 C113 C234 · current parts drawn from source (C117)</div>
     <h1>The open note and its editing toolbar, next to Apple Notes</h1>
-    <p class="lede">Phone and Mac. Each state shows Skrift on one side and a hand-drawn reference panel of Apple Notes on the other. The reference is my own approximate drawing of the public app, never your notes, and carries no Apple branding. Tap things: tabs, play, the pill, the destination chip, Aa, the checklist boxes, the photo (press and hold, then drag).</p>
+    <p class="lede">Phone and Mac. Each state shows Skrift on one side and a reference panel of Apple Notes on the other, redrawn by hand in HTML from Tuur&rsquo;s own iOS 27 screenshots of a throwaway folder (phone) and his macOS screenshots (Mac). No screenshot is embedded, there is no Apple branding, and the note text in the reference is invented. Tap things: tabs, play, the pill, the destination chip, Aa, the checklist boxes, the photo (press and hold, then drag).</p>
   </header>
 
   <div class="q" id="question">
@@ -373,7 +441,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <div class="fit" id="fit-sk"><div class="fitin" id="sk"></div></div>
     </div>
     <div class="col refc" id="refcol">
-      <div class="colcap"><span class="tag rf">REFERENCE · APPLE NOTES</span><span>hand-drawn, approximate, not Skrift</span></div>
+      <div class="colcap"><span class="tag rf">REFERENCE · APPLE NOTES</span><span>redrawn by hand from real screenshots, not Skrift</span></div>
       <div class="fit" id="fit-rf"><div class="fitin" id="rf"></div></div>
     </div>
   </div>
@@ -388,6 +456,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <ul id="keeps"></ul>
   </section>
 
+  <p class="refsrc" style="font-size:12px;color:var(--pg-dim);max-width:80ch;line-height:1.5">Reference sources: phone states from Tuur&rsquo;s iOS 27 screenshots (iPhone 17 Pro, 13 Oct 2026: open note, typing bar pages 1&ndash;3, selection, Format sheet, note menu); cross-checked with Apple&rsquo;s iPhone guide page &ldquo;Create and format notes&rdquo; (<a href="https://support.apple.com/guide/iphone/iph1ac0b3a2/ios">support.apple.com/guide/iphone/iph1ac0b3a2/ios</a>) and the App Store page for Notes (<a href="https://apps.apple.com/us/app/notes/id1110145109">apps.apple.com/us/app/notes/id1110145109</a>). Mac states from Tuur&rsquo;s macOS screenshots of the same throwaway folder (13 Oct 2026: window, Aa popover, right-click menu, attach menu, note menu); the green is his system accent colour, Apple&rsquo;s default is yellow. Sizes are measured off the images, approximate to about a point.</p>
   <footer>Drawn from source: phone note page <code>MemoPageView.swift</code> (title row, <code>noteHeaderCore</code>, summary card), <code>NoteBodyView.swift</code> (15.5 pt body, 4 pt line spacing, 14 pt photo corners, karaoke played/current/upcoming colours), <code>NoteAccessoryBar.swift</code> (40 pt pill, 33×30 buttons), <code>MemoDetailSupportTypes.swift</code> <code>PlayerBar</code> (glass capsule, 24 pt radius), <code>MemoDetailView.swift</code> nav buttons, <code>Shared/UI/NoteRatingPill.swift</code>, <code>DestinationRowView.swift</code> (Personal · Portfolio, D189), <code>NoteMenu.swift</code> titles, <code>NoteLook.swift</code> (memo-link chip, band 48 pt), <code>CaptureQuoteViews.swift</code>, <code>SpeakerTurnsView.swift</code> + <code>Palette.speakerHues</code>; Mac <code>NoteDisplayView.swift</code> (band, docked player), <code>NoteProperties.swift</code>, <code>NoteToolbar.swift</code>, <code>BodyTextView.swift</code> (16 pt body, headings 23/19.5 pt, marks at 25% ink). New, not in the app yet: the Aa panel, the selection bar, B I U S, phone headings, the title at 22 pt. The status bar, keyboard keys and Mac notes list are placeholders. The reference panels are my approximate drawing; details like exact icons and button order may differ from the real app.</footer>
 </div>
 <div class="ptoast" id="ptoast" role="status" aria-live="polite"></div>
@@ -681,11 +750,21 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     return h.join("");
   }
 
-  /* ── Reference panels ── */
-  function rStamp(){ return '<div class="rstamp">Reference · hand-drawn · approximate</div>'; }
+  /* ── Reference panels: redrawn from Tuur's iOS 27 screenshots; Mac from Apple's Notes for Mac guide ── */
+  function rStamp(){ return '<div class="rstamp">Reference · redrawn from Tuur&rsquo;s iOS 27 screenshots</div>'; }
+  var RCHEV = '<svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2 10l8 8"/></svg>';
+  var RTICK = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5l4.5 4.5L17 4.5"/></svg>';
+  var RX = '<svg width="16" height="16" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>';
+  var RSPARK = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 5l1.4 3.6L15 10l-3.6 1.4L10 15l-1.4-3.6L5 10l3.6-1.4z" stroke-linejoin="round"/></svg>';
+  var RHI = '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M5 15l1-4 8-8 3 3-8 8z"/><path d="M3 19h16" stroke-linecap="round"/></svg>';
+  var RLINK = '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 13l4-4M7.5 10.5l-2 2a3 3 0 004.2 4.2l2-2M14.5 11.5l2-2a3 3 0 00-4.2-4.2l-2 2"/></svg>';
+  var RLIST = '<svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor"><circle cx="2" cy="2" r="1.6"/><circle cx="2" cy="8" r="1.6"/><circle cx="2" cy="14" r="1.6"/><rect x="6" y="1.2" width="14" height="1.6" rx=".8"/><rect x="6" y="7.2" width="14" height="1.6" rx=".8"/><rect x="6" y="13.2" width="14" height="1.6" rx=".8"/></svg>';
+  var ROUT = '<svg width="22" height="16" viewBox="0 0 22 16" fill="currentColor"><rect y="1" width="14" height="1.6" rx=".8"/><rect y="5.5" width="11" height="1.6" rx=".8"/><rect y="10" width="11" height="1.6" rx=".8"/><rect y="14" width="14" height="1.6" rx=".8"/><path d="M21 4.5v7l-4-3.5z"/></svg>';
+  var RIN = '<svg width="22" height="16" viewBox="0 0 22 16" fill="currentColor"><path d="M1 4.5v7l4-3.5z"/><rect x="8" y="1" width="14" height="1.6" rx=".8"/><rect x="11" y="5.5" width="11" height="1.6" rx=".8"/><rect x="11" y="10" width="11" height="1.6" rx=".8"/><rect x="8" y="14" width="14" height="1.6" rx=".8"/></svg>';
+  var RQUO = '<svg width="22" height="18" viewBox="0 0 22 18" fill="currentColor"><rect x="1" y="1" width="2" height="16" rx="1"/><rect x="7" y="2" width="14" height="14" rx="3" opacity=".6"/></svg>';
   function rBody(sel){
-    return '<div class="rdate">13 October 2026 at 14:29</div><div class="rbody">'+
-      (S.title==="a"||true ? '<div class="rt">Spindle clamp, 65 or 52</div>' : "")+
+    return '<div class="rbody">'+
+      '<div class="rt">Spindle clamp, 65 or 52</div>'+
       '<p>So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p>'+
       '<div class="rh">Before drilling</div>'+
       '<div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div>'+
@@ -694,49 +773,61 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<div class="rphoto"></div>'+
       '<p>Ask Rui whether the <i>old</i> '+(sel?'<span class="rsel">spindle</span>':'spindle')+' still fits the <s>52</s> mount.</p></div>';
   }
-  function rKeys(){
-    return '<div class="rkeys">'+["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r){ return '<div class="kr">'+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+'</div>'; }).join("")+'<div class="kr"><span class="key wide">123</span><span class="key space">space</span><span class="key wide">return</span></div></div>';
+  function rKeys(writingTools){
+    return '<div class="rkeys">'+(writingTools?'<div class="wt"><span>⌕ Proofread</span><span>↻ Rewrite</span><span>✦</span></div>':'<div class="wt"><span>I</span><span>The</span><span>And</span></div>')+["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r){ return '<div class="kr">'+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+'</div>'; }).join("")+'<div class="kr"><span class="key wide">123</span><span class="key space"></span><span class="key wide">⏎</span></div></div>';
   }
   function refPhone(){
     var st = S.st, h = ['<div class="phone ref">'+rStamp()];
-    var editNav = '<div class="rnav"><span>‹ Notes</span><span class="sp"></span><span>'+IC.undo+'</span><span>'+IC.share+'</span><span>'+IC.dots+'</span><span class="ok">✓</span></div>';
-    var readNav = '<div class="rnav"><span>‹ Notes</span><span class="sp"></span><span>'+IC.share+'</span><span>'+IC.dots+'</span></div>';
+    var back = '<span class="rg" data-ack="Back to the list (reference only)">'+RCHEV+'</span>';
+    var pair = '<span class="rg pair"><span>'+IC.share+'</span><span>'+IC.dots+'</span></span>';
+    var editNav = '<div class="rnav">'+back+'<span class="sp"></span><span class="rg">'+IC.undo+'</span>'+pair+'<span class="rg ok">'+RTICK+'</span></div>';
+    var selNav = '<div class="rnav">'+back+'<span class="sp"></span>'+pair+'<span class="rg ok">'+RTICK+'</span></div>';
+    var readNav = '<div class="rnav">'+back+'<span class="sp"></span>'+pair+'</div>';
     if (st === "quote" || st === "turns"){
       h.push(readNav+'<div class="rnone"><b>'+(st==="quote"?"No book quotes here":"No speaker turns here")+'</b>The reference app has no audio, no '+(st==="quote"?"audiobook captures":"diarized conversations")+' and no karaoke. Skrift keeps its own (D193).</div></div>');
       return h.join("");
     }
     if (st === "read" || st === "drag"){
       h.push(readNav+'<div class="rclip"><div style="'+(st==="drag"?"transform:translateY(-200px)":"")+'">'+rBody(false)+'</div></div>');
-      h.push('<div class="rtool"><span>'+IC.rchk+'</span><span>'+IC.cam+'</span><span>'+IC.pen+'</span><span>'+IC.compose+'</span></div>');
-      if (st==="drag") h.push('<div class="rnone" style="inset:auto 30px 110px;background:var(--r-bg)">Press and hold a picture, drag it between paragraphs.</div>');
+      h.push('<div class="rbar"><span class="rg tools"><span>'+IC.rchk+'</span><span>'+IC.clip+'</span><span>'+IC.pen+'</span><span>'+RSPARK+'</span></span><span class="rg c">'+IC.compose+'</span></div>');
+      if (st==="drag") h.push('<div class="rnone" style="inset:auto 30px 110px;background:var(--r-bg)">Press and hold a picture, drag it between paragraphs. (Not in Tuur&rsquo;s screenshots; kept from the earlier drawing, unverified.)</div>');
     } else {
-      h.push(editNav+'<div class="rclip"><div style="transform:translateY(-'+(st==="select"?250:150)+'px)">'+rBody(st==="select")+'</div></div>');
+      h.push((st==="select"?selNav:editNav)+'<div class="rclip"><div style="transform:translateY(-'+(st==="select"?250:150)+'px)">'+rBody(st==="select")+'</div></div>');
       if (st === "aa"){
-        h.push('<div class="rfmt"><div class="fh"><span>Format</span><span>✕</span></div>'+
-          '<div class="rrow"><span class="on" style="font-weight:700;font-size:18px">Title</span><span style="font-weight:700">Heading</span><span style="font-weight:600">Subheading</span><span>Body</span></div>'+
-          '<div class="rrow"><span style="font-family:var(--mono)">Monostyled</span></div>'+
-          '<div class="rrow"><span style="font-weight:800">B</span><span style="font-style:italic">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span><span>✎ colour</span></div>'+
-          '<div class="rrow"><span>• ≡</span><span>– ≡</span><span>1. ≡</span><span>▍quote</span></div>'+
-          '<div class="rrow"><span>⇤</span><span>⇥</span></div></div>');
+        h.push('<div class="rfmt"><div class="fh"><span>Format</span><span class="rg">'+RX+'</span></div>'+
+          '<div class="rsty"><span class="on" style="font-weight:700;font-size:28px">Title</span><span style="font-weight:700;font-size:22px">Heading</span><span style="font-weight:600;font-size:17px">Subheading</span><span style="font-size:17px">Body</span><span style="font-family:var(--mono);font-size:15px">Monostyled</span></div>'+
+          '<div class="rsegs"><span class="rseg"><span class="on" style="font-weight:800">B</span><span style="font-style:italic;font-family:Georgia,serif">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span></span><span class="rseg"><span>'+RHI+'</span><span><i style="width:18px;height:18px;border-radius:50%;background:#b44fd8;display:block"></i></span></span></div>'+
+          '<div class="rsegs"><span class="rseg"><span>'+RLIST+'</span><span>–≡</span><span style="font-size:14px">1≡</span></span><span class="rseg"><span>'+ROUT+'</span><span>'+RIN+'</span></span><span class="rseg"><span>'+RQUO+'</span></span></div></div>');
+      } else if (st === "select"){
+        h.push('<div class="rkb"><div class="rkbar"><b style="font-size:22px">B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span>'+RHI+'</span><span>'+RLINK+'</span><span class="cut">'+RLIST+'</span></div>'+rKeys(true)+'</div>');
+        h.push('<div class="rmenu" style="left:16px;top:300px"><span>Cut</span><span class="sepv"></span><span>Copy</span><span class="sepv"></span><span>Paste</span><span class="sepv"></span><span class="del">Delete</span><span class="sepv"></span><span>'+RSPARK+'</span><span>›</span></div>');
       } else {
-        h.push('<div class="rkb"><div class="rkbar"><span class="aa">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.clip+'</span><span>'+IC.pen+'</span><span>⌄</span></div>'+rKeys()+'</div>');
+        h.push('<div class="rkb"><div class="rkbar"><span class="aa">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.clip+'</span><span>'+IC.pen+'</span><span class="cut">'+RQUO+'</span></div>'+rKeys(false)+'</div>');
       }
-      if (st === "select") h.push('<div class="rmenu" style="left:40px;top:225px"><span>Cut</span><span class="sepv"></span><span>Copy</span><span class="sepv"></span><span>Paste</span><span class="sepv"></span><span>Format ›</span></div><div class="rmenu" style="left:110px;top:275px"><span style="font-weight:800">B</span><span style="font-style:italic">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span></div><div style="position:absolute;left:250px;top:258px;font-family:var(--mono);font-size:9.5px;color:var(--r-dim)">↳ after Format ›</div>');
     }
     h.push('</div>');
     return h.join("");
   }
   function refMac(){
     var st = S.mst;
-    var h = ['<div class="mac ref">'+rStamp()];
-    h.push('<div class="rmac-side"><span class="hd">iCloud</span><span>All Notes</span><span class="on">Workshop</span><span>Ideas</span><span>Recently Deleted</span></div>');
-    h.push('<div class="rmac-list"><div class="row on"><b>Spindle clamp, 65 or 52</b><small>14:29 · So the 65 mm clamp…</small></div><div class="row"><b>Gantry plate with Rui</b><small>11:05 · Mill a new one…</small></div><div class="row"><b>Router bits order</b><small>Yesterday · 6 mm upcut…</small></div></div>');
-    h.push('<div class="rmac-note"><div class="rmac-tb"><span>'+IC.compose+'</span><span class="sp"></span><span class="aa hl">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.cam+'</span><span class="sp"></span><span>'+IC.share+'</span><span>⌕</span></div>');
+    var FOLD = '<svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 2a1 1 0 011-1h3.5l1.3 1.5H13a1 1 0 011 1V10a1 1 0 01-1 1H2a1 1 0 01-1-1z"/></svg>';
+    var h = ['<div class="mac ref"><div class="rstamp">Reference · Apple Notes · redrawn from Tuur&rsquo;s macOS screenshots</div>'];
+    h.push('<div class="rmac-side"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="sp"></span><b><svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 3a1 1 0 011-1h4.2l1.5 1.8h7.3a1 1 0 011 1V13a1 1 0 01-1 1h-13a1 1 0 01-1-1z"/><circle cx="15.5" cy="4" r="3" fill="#f6f6f6"/><path d="M15.5 2.4v3.2M13.9 4h3.2" stroke-linecap="round"/></svg></b><b><svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="1.5" width="17" height="13" rx="2.5"/><path d="M7 1.5v13M3.5 4.5h1.8M3.5 7h1.8"/></svg></b></div>'+
+      '<span class="it"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1.5" width="13" height="12" rx="2"/><path d="M3.5 10l2-3 1.5 2 2-3.5 2.5 4.5" stroke-linejoin="round"/></svg>Quick Notes<em>4</em></span><span class="it"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7.5" cy="7.5" r="6.5"/><circle cx="7.5" cy="6" r="2.2"/><path d="M3.4 12.2c1-1.8 2.4-2.6 4.1-2.6s3.1.8 4.1 2.6"/></svg>Shared<em>2</em></span><span class="hd">iCloud</span>'+
+      '<span class="it">'+FOLD+' All iCloud<em>35</em></span><span class="it">'+FOLD+' Notes<em>21</em></span><span class="it on">'+FOLD+' Workshop<em>3</em></span><span class="it">'+FOLD+' Ideas<em>11</em></span><span class="hd">Tags</span></div>');
+    var lsel = st === "m-note" ? "on" : "blur";
+    h.push('<div class="rmac-list"><div class="lh"><div><b>Workshop</b><small>3 notes</small></div><span class="rg">'+IC.dots+'</span></div>'+
+      '<div class="gh">Today</div><div class="row '+lsel+'"><b>Spindle clamp, 65 or 52</b><small><u>14:29</u>So the 65 mm clamp is probably…</small></div><div class="row"><b>Gantry plate with Rui</b><small><u>11:05</u>Mill a new one from 8 mm…</small></div>'+
+      '<div class="gh">Yesterday</div><div class="row"><b>Router bits order</b><small><u>Yesterday</u>6 mm upcut, two of them</small></div></div>');
+    h.push('<div class="rmac-note"><div class="rmac-tb"><span class="rg">'+IC.compose+'</span><span class="sp"></span><span class="rg grp"><span class="aa'+(st==="m-note"?"":" dim")+'">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.clip+'</span><span>'+RSPARK+'</span></span><span class="sp"></span><span class="rg">'+IC.share+'</span><span class="rg">'+IC.dots+'</span><span class="srch">⌕ Search</span></div>');
     if (st === "m-turns"){
       h.push('<div class="rnone" style="position:static;margin:60px 40px">No speaker turns here<br>The reference app has no audio or diarization. Skrift keeps its own (D193).</div>');
     } else {
-      h.push('<div class="rmac-body"><div class="rdate">13 October 2026 at 14:29</div><div class="rt">Spindle clamp, 65 or 52</div><p>So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p><div class="rh">Before drilling</div><div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div><div class="rchk"><i></i><span>Check runout with the dial gauge</span></div><p style="margin-top:8px">Ask Rui whether the <i>old</i> <span class="'+(st==="m-select"?"rsel":"")+'">spindle</span> still fits the <s>52</s> mount.</p></div>');
-      if (st === "m-select") h.push('<div class="cmenu" style="left:640px;top:330px;color:var(--r-ink);background:var(--r-key)"><div>Cut</div><div>Copy</div><div>Paste</div><hr><div class="hi">Font ›</div><hr><div>Look Up “spindle”</div></div><div class="cmenu" style="left:870px;top:420px;width:120px;color:var(--r-ink);background:var(--r-key)"><div>Bold</div><div>Italic</div><div>Underline</div></div>');
+      h.push('<div class="rmac-body"><div class="rdate" style="text-align:center">13 October 2026 at 14:29</div><div class="rt">Spindle clamp, 65 or 52</div><p style="margin:0 0 6px">So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p><div class="rh">Before drilling</div><div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div><div class="rchk"><i></i><span>Check runout with the dial gauge</span></div><p style="margin:8px 0 0">Ask Rui whether the <i>old</i> <span class="'+(st==="m-select"?"msel":"")+'">spindle</span> still fits the <s>52</s> mount.</p><div class="rphoto"></div></div>');
+      if (st === "m-note") h.push('<div class="rpop" style="left:146px;top:52px;width:176px"><div class="bius"><b>B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span style="color:#ccc">|</span><span>'+IC.pen+'</span><i style="width:8px;height:8px;border-radius:50%;background:#b44fd8;display:block"></i></div>'+
+        '<div class="it" style="font-size:19px;font-weight:700">Title</div><div class="it" style="font-size:16px;font-weight:700">Heading</div><div class="it" style="font-weight:700">Subheading</div><div class="it ck">Body</div><div class="it" style="font-family:var(--mono);font-size:12px">Monostyled</div><div class="it">• Bulleted List</div><div class="it">– Dashed List</div><div class="it">1. Numbered List</div><hr><div class="it">| Block Quote</div></div>');
+      if (st === "m-select") h.push('<div class="rctx" style="left:240px;top:56px">'+
+        '<div>Add Link…<span>⌘K</span></div><hr><div>Look Up “spindle”</div><div>Translate “spindle”</div><hr><div>Search With …</div><hr><div>Cut</div><div>Copy</div><div>Paste</div><hr><div>Paragraph Styles<span>›</span></div><hr><div>Checklist<span>⇧⌘L</span></div><div class="g">Mark as Ticked<span>⇧⌘U</span></div><hr><div>Record Audio…</div><div class="g">Show Highlights<span>⌃⌘I</span></div><hr><div>Add Table<span>⌥⌘T</span></div><hr><div class="g">Paste and Match Style</div><hr><div>Share…</div><hr><div>Font<span>›</span></div><hr><div>Show Writing Tools</div><div>Proofread</div><div>Rewrite</div><hr><div>Spelling and Grammar<span>›</span></div><div>Substitutions<span>›</span></div><div>Transformations<span>›</span></div><div>Speech<span>›</span></div><div>Layout Orientation<span>›</span></div><hr><div>AutoFill<span>›</span></div><div>Insert from iPhone or iPad<span>›</span></div><div>Services<span>›</span></div></div>');
     }
     h.push('</div></div>');
     return h.join("");
