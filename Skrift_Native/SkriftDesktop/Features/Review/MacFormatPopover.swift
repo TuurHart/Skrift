@@ -65,10 +65,10 @@ struct MacFormatPopover: View {
 
     @ViewBuilder private func markLabel(_ c: MacEditorFormatting.Command) -> some View {
         switch c {
-        case .bold: Text("B").font(.system(size: 14, weight: .heavy))
-        case .italic: Text("I").font(.system(size: 14).italic())
-        case .underline: Text("U").font(.system(size: 14)).underline()
-        case .strikethrough: Text("S").font(.system(size: 14)).strikethrough()
+        case .bold: Text(c.shortTitle).font(.system(size: 14, weight: .heavy))
+        case .italic: Text(c.shortTitle).font(.system(size: 14).italic())
+        case .underline: Text(c.shortTitle).font(.system(size: 14)).underline()
+        case .strikethrough: Text(c.shortTitle).font(.system(size: 14)).strikethrough()
         default: Image(systemName: "highlighter").font(.system(size: 13))
         }
     }

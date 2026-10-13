@@ -106,4 +106,25 @@ enum FormatCommand: CaseIterable, Hashable {
     static let aaStyles: [FormatCommand] = [.title, .heading, .subheading, .body, .monostyled]
     static let aaLists: [FormatCommand] = [.bulletList, .dashedList, .numberedList]
     static let aaTail: [FormatCommand] = [.blockQuote]
+
+    /// Q380 (C239): the phone's Aa panel under the keyboard — D115's subset of the same table,
+    /// three rows: the styles, B I U S, the lists. The iPad and the Mac show the full list above.
+    static let phoneStyles: [FormatCommand] = [.title, .heading, .body]
+    static let phoneMarks: [FormatCommand] = [.bold, .italic, .underline, .strikethrough]
+    static let phoneLists: [FormatCommand] = [.bulletList, .numberedList, .checklist]
+
+    /// The touch panels' compact button label (the Mac's menus use `title`).
+    var shortTitle: String {
+        switch self {
+        case .bold: return "B"
+        case .italic: return "I"
+        case .underline: return "U"
+        case .strikethrough: return "S"
+        case .monostyled: return "Code"
+        case .bulletList: return "• List"
+        case .numberedList: return "1. List"
+        case .checklist: return "☑ Checklist"
+        default: return title
+        }
+    }
 }
