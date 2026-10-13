@@ -386,7 +386,13 @@ struct MemoDetailView: View {
         .toolbar(hSize == .regular ? .hidden : .automatic, for: .navigationBar)
         .background(Color.skBg.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(hSize != .regular)
+        .background { if hSize != .regular { SwipeBackRestorer().frame(width: 0, height: 0) } }
         .toolbar {
+            // Q382: "‹ Notes" stays in the phone's top bar, typing included (mock Q350).
+            ToolbarItem(placement: .topBarLeading) {
+                if hSize != .regular { NoteBackButton { dismiss() } }
+            }
             // COMPACT (phone) nav bar only — at regular these live in the
             // workbench's chrome band (`workbenchChrome`).
             // Reading: + (add recording) · ⋯. Typing (mock Q350 pick 1): undo · redo · ⋯ · Done.

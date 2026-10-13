@@ -25,7 +25,7 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", seed, "-selectFirstMemo", "-destinationsOn", "-skipOnboarding"]
         // Q382: the polished memo is opened THROUGH the list (a real push: back button, tab bar).
-        if seed == "-seedPolished" { app.launchArguments.append("-routeViaList") }
+        if seed == "-seedPolished" || seed == "-seedQuoteMemo" { app.launchArguments.append("-routeViaList") }
         // Q382: SKRIFT_SHOT_THEME=light takes the light-mode set (the app's own theme pref).
         if ProcessInfo.processInfo.environment["SKRIFT_SHOT_THEME"] == "light" {
             app.launchArguments += ["-appTheme", "light"]

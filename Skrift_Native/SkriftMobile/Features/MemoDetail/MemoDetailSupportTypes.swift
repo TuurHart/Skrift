@@ -178,10 +178,15 @@ struct PlayerBar: View {
         GeometryReader { geo in
             let progress = player.duration > 0 ? min(max(clock.time / player.duration, 0), 1) : 0
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.14)).frame(height: 3.5)
+                // Q382: the track was white at 14% — invisible on the light glass. The mock's
+                // `--a-ring` (22% white in dark, 18% black in light), adaptive.
+                Capsule().fill(Color(uiColor: UIColor { tc in
+                    tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.22) : UIColor(white: 0, alpha: 0.18)
+                })).frame(height: 3.5)
                 Capsule().fill(Color.skAccent)
                     .frame(width: max(3.5, geo.size.width * progress), height: 3.5)
                 Circle().fill(.white)
+                    .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
                     .frame(width: 11, height: 11)
                     .offset(x: geo.size.width * progress - 5.5)
             }

@@ -250,9 +250,6 @@ struct MemosListView: View {
             // header line (~44pt returned to content). Root-only — pushed
             // detail views keep their own nav bars.
             .toolbar(.hidden, for: .navigationBar)
-            // Q382 (mock Q350): the pushed note's back button reads "‹ Notes". The bar above is
-            // hidden, so this title is never drawn here; it only names the back button.
-            .navigationTitle("Notes")
             // Screenshot rig (`-showFilterSheet`) — on notesRoot so it fires for
             // BOTH the phone (NavigationStack) and the iPad (split view).
             .onAppear { if LaunchFlags.showFilterSheet { showDateStrip = true } }
