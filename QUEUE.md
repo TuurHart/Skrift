@@ -2739,7 +2739,7 @@ ask: On the Dev build with the perf library, record the 7-minute flow on the iPh
 
 ### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
-needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389
+needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393
 do: -
 check: The production Skrift on Tuur's phone runs build 188+ (literal grep matches the installed build), the prod Mac app likewise if he chose it, and his notes/names are intact after the upgrade.
 ask: Dev checks pass. Ready to put the updated production Skrift on your phone (I install the Release build to the prod app over USB, you switch on the new synced fields in the iCloud console first — RELEASE.md), and the Mac's /Applications/Skrift.app too, or phone only for now?
@@ -2868,7 +2868,7 @@ gate+: no
 do: plan/research/cloudkit-env-mac-release.md: a development-signed local Mac Release with no `com.apple.developer.icloud-container-environment` uses the CloudKit DEVELOPMENT environment; the installed prod /Applications/Skrift.app (Aug build) is signed exactly that way (codesign shows aps-environment development, get-task-allow, no environment key), while the phone prod is Ad Hoc/TestFlight = Production. Fix: add `com.apple.developer.icloud-container-environment` = `Production` to the Release SkriftDesktop entitlements file ONLY (Debug/Dev keeps its own container); keep the value literal (no $(VAR) — CLAUDE.md signing lesson). Rebuild Release into build-release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`) and show the signed entitlements with `codesign -d --entitlements :-` on the built product (key present, Production). Install nothing. Note in plan/release/RELEASE.md: deploy the prod schema BEFORE installing this build, or Production writes fail; push delivery with aps-environment development is unverified.
 check: `grep -q 'icloud-container-environment' Skrift_Native/SkriftDesktop/SkriftDesktop.entitlements`
 
-### Q389 [tuur] (tuur) check: does the real Skrift on the Mac show the notes you recorded on your phone lately?
+### Q389 [tuur] (done) check: does the real Skrift on the Mac show the notes you recorded on your phone lately?
 spec: D201
 needs: -
 do: -
@@ -2895,6 +2895,20 @@ needs: Q390
 gate+: no
 do: From plan/reads/q385-review.md: (1) the Mac capture card `CaptureViews.fileCard` still has its own purple Open button — replace it with the shared grey card from Shared/UI/NoteAttachmentArt.swift (whole card opens Quick Look), as the phone now does (D202 pick 4); (2) the phone page and the iPad toolbar each chain the same three pickers (camera, library, files) — one shared intake (NoteAttachIntake) both call; (3) the captured PDF's context menu lacks Save — add it from the shared hold-menu list. Mac `-snapshot` + phone shot of the file card next to the Q384 mock frame; LOOK. Never run SkriftDesktopUITests.
 check: `! grep -q 'captureFileCard' -r Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
+
+### Q393 [auto] (doing) plan (no execution): bring the prod Mac's Development-iCloud data into Production safely
+spec: D201
+needs: -
+gate+: no
+do: Facts (Tuur 2026-10-13, Q389): the real Skrift on the Mac shows phone notes only up to 25/26 Sep 2026; the phone's newest is Sun 11 Oct; he switched to the iPhone 17 Pro around 1 Oct. The prod Mac app (Aug, e6245caa) is development-signed with no icloud-container-environment → CloudKit DEVELOPMENT of iCloud.com.skrift.mobile; the new phone's prod build is TestFlight/App-Store-signed → PRODUCTION. So since ~late Sep the phone writes Production and the Mac writes Development. Write plan/release/ICLOUD_MERGE.md: what lives where (phone local store + Production; Mac local store + Development: Mac-made notes, MemoEnhancement polish, names/vocab edits since 25 Sep), and the safest way to end with ONE Production copy and zero loss or duplicates — e.g. what NSPersistentCloudKitContainer/SwiftData does when the same local store is opened under a different environment (re-upload? metadata reset? — research with sources, plan/research/), how ids dedupe (Memo.id UUIDs, MemoDeduper, NamesMerge LWW union), MemoEnhancement LWW by enhancedAt, a dry run on a COPY first (extend plan/release/mac-store-copytest.sh if needed), and the exact steps Tuur does vs the agent. NEVER read his real data; no CloudKit writes; code reading + research only.
+check: `test -s plan/release/ICLOUD_MERGE.md`
+
+### Q394 [auto] (todo) install Dev 189 (attachments, Q385-Q392) on the iPhone 17 Pro and the Mac
+spec: -
+needs: Q392
+gate+: no
+do: Same recipe as Q383 (findings Q374/Q383: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal). Bump CFBundleVersion to 189 in both project.yml files (188 is the Release build). Phone Debug → devicectl install com.skrift.mobile.dev, grep `Add to this note` in SkriftMobile.debug.dylib; Mac Debug → quit 'Skrift Dev' by exact name, ditto to /Applications/Skrift Dev.app, open, grep `Set All to Large` in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. Commit the bump.
+check: Tuur's phone and Mac run Dev 189 (worker reports both grep hits).
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4230,3 +4244,7 @@ check: `! grep -q 'captureFileCard' -r Skrift_Native --include='*.swift' && perl
 - 2026-10-13 21:14 Q392 -> doing — worker out
 - 2026-10-13 21:18 Q392 -> todo — paused by Tuur (gaming); wip on wt/Q392 in agent-a5b75aec6775df775 — redispatch from it
 - 2026-10-13 22:19 Q392 -> doing — resumed: worker out from wt/Q392
+- 2026-10-13 22:25 Q393 added
+- 2026-10-13 22:25 Q394 added
+- 2026-10-13 22:25 Q389 -> done — Tuur: Mac's newest phone note 25/26 Sep, phone newest 11 Oct; split ~when he moved to the iPhone 17 Pro → Q393 plans the merge
+- 2026-10-13 22:27 Q393 -> doing — worker out
