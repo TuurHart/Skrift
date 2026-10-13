@@ -2681,7 +2681,7 @@ gate+: yes
 do: From plan/perf2/f-mac-ui.md M1 M2 M3 M9 M11 and h-shared-data.md S1 L1; re-check each against today's code first (`chipCounts` already goes through `NotesListModel`) and skip what is fixed. Mirror the phone's Q315: the sidebar's rows, chip counts, backlinked set, sort and snippets come from one cache rebuilt when the memo-set version changes, never per body pass or per meter/run tick; `WayOutRules.quietRows` reuses the cached backlinked set; `refreshCloudMemos` does not refetch every Memo on a filter change; search uses the shared precomputed lowercase text with a ~150 ms debounce; snippets are built once per memo version. New counter test `MacListWorkTests` in SkriftDesktopTests: a body pass with an unchanged memo set does no corpus scan; a search keystroke does not re-lowercase unchanged memos; results equal the uncached path on the corpus. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacListWorkTests.swift`
 
-### Q362 [auto] (doing) Mac perf: opening and playing a note does no whole-library work
+### Q362 [auto] (done) Mac perf: opening and playing a note does no whole-library work
 spec: D191 D186
 needs: -
 gate+: yes
@@ -3975,3 +3975,5 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:37 Q353 -> doing — worker out
 - 2026-10-13 10:37 Q354 -> doing — worker out
 - 2026-10-13 10:38 Q364 -> done — gate 42s @ee44b630
+- 2026-10-13 10:38 Q362 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
+- 2026-10-13 10:43 Q362 -> done — gate 73s @5201903e
