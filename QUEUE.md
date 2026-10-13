@@ -2931,7 +2931,7 @@ gate+: yes
 do: MacMemoAuthor.backfill (run on every reconcile from MemoCloudReconciler) authors a Memo for every PipelineFile with a UUID id and no Memo, never checking isLocalCapture — on a fresh Production store it would upload a twin of every phone note. Guard: only rows that are Mac local captures, and only after the first full CloudKit import has finished (persisted flag set from the mirroring delegate's import-complete event). Mac test `BackfillGuardTests` in SkriftDesktopTests (fresh store + phone-made rows → zero authored; local capture after import → authored once). See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/BackfillGuardTests.swift`
 
-### Q398 [auto] (todo) DevEraMerge engine: id-based merge of the Aug Mac store into Production, batches of 25 (ICLOUD_MERGE A2)
+### Q398 [auto] (doing) DevEraMerge engine: id-based merge of the Aug Mac store into Production, batches of 25 (ICLOUD_MERGE A2)
 spec: D203
 needs: Q397
 gate+: yes
@@ -4313,3 +4313,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:50 Q395 -> done — gate 52s @e5e0d1ca
 - 2026-10-13 22:51 Q396 -> doing — worker out
 - 2026-10-13 22:54 Q397 -> done — gate 72s @92c75dd8
+- 2026-10-13 22:55 Q398 -> doing — worker out
