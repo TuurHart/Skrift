@@ -292,22 +292,26 @@ enum LibraryArticle {
         book.publishedAt = doc.published
     }
 
+    @MainActor
     static func docURL(bookID: UUID, store: AudiobookLibraryStore) -> URL {
         store.folder(for: bookID).appendingPathComponent(fileName)
     }
 
+    @MainActor
     static func save(_ doc: ArticleDoc, bookID: UUID, store: AudiobookLibraryStore) {
         let url = docURL(bookID: bookID, store: store)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(doc) { try? data.write(to: url, options: .atomic) }
     }
 
+    @MainActor
     static func doc(of book: Audiobook, store: AudiobookLibraryStore) -> ArticleDoc? {
         guard let data = try? Data(contentsOf: docURL(bookID: book.id, store: store)) else { return nil }
         return try? JSONDecoder().decode(ArticleDoc.self, from: data)
     }
 
     /// True while the text is not on this device yet.
+    @MainActor
     static func isFetching(_ book: Audiobook, store: AudiobookLibraryStore) -> Bool {
         book.sourceKind == .article && !FileManager.default.fileExists(atPath: docURL(bookID: book.id, store: store).path)
     }

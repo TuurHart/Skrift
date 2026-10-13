@@ -231,6 +231,7 @@ private struct ArticleNotesFeed<Content: View>: View {
 
 /// "Highlight" (mock callout): a yellow mark that stays in the article, no note made. Local to the
 /// device, beside the stored text (`highlights.json`).
+@MainActor
 enum ArticleHighlights {
     static func url(_ bookID: UUID, store: AudiobookLibraryStore) -> URL {
         store.folder(for: bookID).appendingPathComponent("highlights.json")
