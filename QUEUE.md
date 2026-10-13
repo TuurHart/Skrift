@@ -2882,7 +2882,7 @@ gate+: yes
 do: A fresh agent reviews everything Q385 changed (`git diff` of its merge) for drift and mess, then fixes it: phone/iPad/Mac twins of attachment logic, labels or sizes → one Shared home; dead code left by the old `captureFileCard` and photo-only attach paths deleted (remove means delete); no new main-thread work on note open or list render (keep NoteOpenWorkTests / MacNoteOpenWorkTests / ListDerivedCacheTests / MacListWorkTests counters green, never loosened); FEATURES.md rows accurate. Run Periphery (flags in plan/periphery.md, on a `git archive` snapshot) for files Q385 touched and delete true dead code. Write a short review note into plan/reads/q385-review.md: what was shared, what was deleted, what stays on purpose (with `twin-ok:` reasons). Full SkriftDesktop build after each deletion. Never run SkriftDesktopUITests.
 check: `test -s plan/reads/q385-review.md && ./plan/twin-check.sh`
 
-### Q391 [auto] (doing) attachments match the Q384 mock: screenshots + the gaps Q385 left
+### Q391 [auto] (done) attachments match the Q384 mock: screenshots + the gaps Q385 left
 spec: D202 D199
 needs: Q385
 gate+: yes
@@ -4216,3 +4216,4 @@ check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 
 - 2026-10-13 20:20 Q391 added
 - 2026-10-13 20:24 Q385 -> done — gate 50s @b5d3cbac
 - 2026-10-13 20:24 Q391 -> doing — worker out
+- 2026-10-13 20:54 Q391 -> done — gate 42s @c82b12b7
