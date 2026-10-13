@@ -2758,6 +2758,13 @@ gate+: yes
 do: From Q356's report: a "Send to a note" / "Move to Library" note is capture metadata (`bookID` + `bookPosition`, PDF page as "p. N" in `bookChapter`) with no quote; `LibraryHatch.isSourceLink` tells it apart on the phone, but `SourceKind.classify` (Shared/Pipeline/SourceTaxonomy.swift) cannot see that, so the Mac card and the export still say Audiobook/PDF quote (`source: Audiobook-quote`) with no quote. Make the shared classifier recognise the source-link shape (one rule in Shared, used by phone, Mac and both exporters) and export it as a link line to the source (`— *Title*, p. N` / `— *Show*, mm:ss` per D138) with `source:` naming the source kind, never an empty quote block. And D90: "Move to Library" moves the PDF, so the note's CloudKit `document` MemoAsset is removed once the Library copy exists (never before; no data loss if the move fails midway). New tests: Mac `SourceLinkExportTests` in SkriftDesktopTests (classify + exported markdown for book, PDF and episode link notes), phone `LibraryHatchMoveTests` (asset removed only after the Library copy is written). Never run SkriftDesktopUITests. FEATURES.md rows.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/SourceLinkExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchMoveTests`
 
+### Q373 [tuur] (tuur) decide: exported source spelling for Library link notes (Q372 picked PDF-link / Episode-link / Audiobook-link / Article-link)
+spec: D138
+needs: -
+do: -
+check: Tuur kept the spelling or named another; follow-up item added if changed.
+ask: A note made with Library's "Send to a note" now exports `source: PDF-link` (or Episode-link, Audiobook-link, Article-link) and one line like `— *Title*, p. 4` above your words. Keep that spelling?
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4002,3 +4009,5 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/Sourc
 - 2026-10-13 11:41 Q372 added
 - 2026-10-13 11:41 Q372 -> doing — worker out
 - 2026-10-13 12:00 Q372 -> done — gate 53s @9e0f5cc0
+- 2026-10-13 12:00 Q373 added
+- 2026-10-13 12:00 Q373 -> tuur — awaiting sitting
