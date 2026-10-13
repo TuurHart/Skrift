@@ -394,6 +394,8 @@ struct MemoDetailView: View {
         .background((hSize == .regular ? Color.skSurface : Color.skBg).ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(hSize != .regular)
+        // Q387 (D200): the phone note hides the tab bar, like Apple Notes; it returns on the list.
+        .toolbar(hSize == .regular ? .automatic : .hidden, for: .tabBar)
         .background { if hSize != .regular { SwipeBackRestorer().frame(width: 0, height: 0) } }
         .toolbar {
             // Q382: "‹ Notes" stays in the phone's top bar, typing included (mock Q350).
