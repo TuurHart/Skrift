@@ -63,14 +63,15 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
     }
 
     func testMoveAPhoto() {
-        let app = launch("-seedPhotoTextMemo")
+        let app = launch("-seedPhotoMoveMemo")
         openFirstNote(app)
         let editor = app.textViews["transcript-editor"]
         XCTAssertTrue(editor.waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-5-photo-before")
-        // The photo sits at ~0.485 of the screen height; drag it above its sentence (~0.33).
-        let app0 = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.485))
-        app0.press(forDuration: 1.0, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.31)))
+        // Three paragraphs with the photo between 1 and 2 (~0.47 of the screen height): drag it
+        // up onto the first sentence (~0.29).
+        let app0 = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.47))
+        app0.press(forDuration: 1.0, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.29)))
         capture(app, "phone-5-photo-after")
     }
 

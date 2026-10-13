@@ -1072,7 +1072,9 @@ struct NoteBodyView: UIViewRepresentable {
                     a.discoverabilityTitle = label
                     return a
                 }
-                children.append(UIMenu(options: .displayInline, children: actions))
+                // First, so B I U S sit on the bar's first page (mock Q350). Appended after
+                // the system's Cut/Copy/Replace/AutoFill they landed behind the › overflow.
+                children.insert(UIMenu(options: .displayInline, children: actions), at: 0)
             }
             if let name = newPersonOffer(for: range, in: tv) {
                 let item = UIAction(title: NameActionLabel.newPerson,
