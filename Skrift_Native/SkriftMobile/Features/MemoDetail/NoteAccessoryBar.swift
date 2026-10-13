@@ -7,6 +7,12 @@ import SwiftUI
 /// round 2 same day: NO ⋯ overflow while every verb still fits — find rides
 /// inline. Revisit overflow-vs-scroll only when scan/markup verbs arrive.
 final class NoteAccessoryBar: UIView {
+    /// `.editor` = the note editor's bar per the signed Q350 mock (pick 1): Aa · checklist ·
+    /// photo · note link; undo / redo / Done live in the top bar, Find in the ⋯ menu.
+    /// `.quickNote` = the quick-note screen's bar, unchanged (undo · redo · find · Done).
+    enum Layout { case quickNote, editor }
+
+    var onFormat: (() -> Void)?
     var onUndo: (() -> Void)?
     var onRedo: (() -> Void)?
     var onFind: (() -> Void)?
@@ -22,8 +28,9 @@ final class NoteAccessoryBar: UIView {
     private let linkButton = NoteAccessoryBar.iconButton("arrow.right", id: "accessory-link")
     private let findButton = NoteAccessoryBar.iconButton("magnifyingglass", id: "accessory-find")
     private let doneButton = UIButton(type: .system)
+    private let formatButton = UIButton(type: .system)
 
-    init() {
+    init(layout: Layout = .quickNote) {
         super.init(frame: CGRect(x: 0, y: 0, width: 0, height: 54))
         autoresizingMask = .flexibleWidth
         backgroundColor = .clear
@@ -64,14 +71,33 @@ final class NoteAccessoryBar: UIView {
         findButton.addAction(UIAction { [weak self] _ in self?.onFind?() }, for: .touchUpInside)
         doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [undoButton, redoButton, divider,
-                                                   checklistButton, photoButton, linkButton, findButton,
-                                                   UIView(), doneButton])
+        formatButton.setTitle("Aa", for: .normal)
+        formatButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        formatButton.setTitleColor(UIColor(Color.skTextDim), for: .normal)
+        formatButton.layer.cornerRadius = 8
+        formatButton.layer.cornerCurve = .continuous
+        formatButton.accessibilityIdentifier = "accessory-format"
+        formatButton.accessibilityLabel = "Format"
+        formatButton.widthAnchor.constraint(equalToConstant: 33).isActive = true
+        formatButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        formatButton.addAction(UIAction { [weak self] _ in self?.onFormat?() }, for: .touchUpInside)
+
+        let items: [UIView]
+        switch layout {
+        case .editor:
+            items = [formatButton, checklistButton, photoButton, linkButton, UIView()]
+        case .quickNote:
+            items = [undoButton, redoButton, divider, checklistButton, photoButton, linkButton, findButton,
+                     UIView(), doneButton]
+        }
+        let stack = UIStackView(arrangedSubviews: items)
         stack.axis = .horizontal
         stack.alignment = .center
         stack.spacing = 2
-        stack.setCustomSpacing(7, after: redoButton)
-        stack.setCustomSpacing(7, after: divider)
+        if layout == .quickNote {
+            stack.setCustomSpacing(7, after: redoButton)
+            stack.setCustomSpacing(7, after: divider)
+        }
         stack.translatesAutoresizingMaskIntoConstraints = false
         pill.addSubview(stack)
 
@@ -110,6 +136,12 @@ final class NoteAccessoryBar: UIView {
             ? UIColor(Color.skAccent) : UIColor(Color.skTextDim)
         checklistButton.backgroundColor = inChecklist
             ? UIColor(Color.skAccentSoft) : .clear
+    }
+
+    /// Light the Aa button while the Format panel replaces the keyboard.
+    func setFormatOpen(_ open: Bool) {
+        formatButton.setTitleColor(UIColor(open ? Color.skAccent : Color.skTextDim), for: .normal)
+        formatButton.backgroundColor = open ? UIColor(Color.skAccentSoft) : .clear
     }
 
     private static func iconButton(_ symbol: String, id: String) -> UIButton {

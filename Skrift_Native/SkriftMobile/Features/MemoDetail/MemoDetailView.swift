@@ -26,6 +26,8 @@ struct MemoDetailView: View {
     @State var pageMemo: Memo?
     @State var showActions = false
     @State var showSplitOptions = false
+    /// Q359: while the body is being typed in, undo / redo / Done take the top bar (mock Q350).
+    @ObservedObject var editorChrome = NoteEditorChrome.shared
     /// Q87: the Flatten to monologue confirm, and the one-voice toast after a split that found nobody else.
     @State var showFlattenConfirm = false
     @State var splitToast: String?
@@ -387,8 +389,31 @@ struct MemoDetailView: View {
         .toolbar {
             // COMPACT (phone) nav bar only — at regular these live in the
             // workbench's chrome band (`workbenchChrome`).
+            // Reading: + (add recording) · ⋯. Typing (mock Q350 pick 1): undo · redo · ⋯ · Done.
+            // Split speakers lives in the ⋯ menu (D196). The editing ids keep the old
+            // accessory names so existing UI tests still find Done / Undo.
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize != .regular, currentMemo?.isShareCapture != true {
+                if hSize != .regular, editorChrome.isEditing {
+                    HStack(spacing: 2) {
+                        Button { editorChrome.undo() } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                        }
+                        .disabled(!editorChrome.canUndo)
+                        .accessibilityIdentifier("accessory-undo")
+                        .accessibilityLabel("Undo")
+                        Button { editorChrome.redo() } label: {
+                            Image(systemName: "arrow.uturn.forward")
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                        }
+                        .disabled(!editorChrome.canRedo)
+                        .accessibilityIdentifier("accessory-redo")
+                        .accessibilityLabel("Redo")
+                    }
+                    .foregroundStyle(Color.skTextDim)
+                } else if hSize != .regular, currentMemo?.isShareCapture != true {
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .semibold))
@@ -400,18 +425,6 @@ struct MemoDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize != .regular, let memo = currentMemo, !(memo.transcript ?? "").isEmpty,
-                   memo.audioURL != nil, !memo.isShareCapture {
-                    Button { showSplitOptions = true } label: {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(width: 34, height: 34)
-                            .foregroundStyle(Color.skTextDim)
-                    }
-                    .accessibilityIdentifier("split-speakers-button")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
                 if hSize != .regular {
                     Button { showActions = true } label: {
                         Image(systemName: "ellipsis")
@@ -420,6 +433,18 @@ struct MemoDetailView: View {
                             .foregroundStyle(Color.skTextDim)
                     }
                     .accessibilityIdentifier("detail-menu")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if hSize != .regular, editorChrome.isEditing {
+                    Button { editorChrome.done() } label: {
+                        Text("Done")
+                            .font(.system(size: 13.5, weight: .semibold))
+                            .foregroundStyle(Color.skAccent)
+                            .padding(.horizontal, 13).frame(height: 30)
+                            .background(Color.skAccentSoft, in: .rect(cornerRadius: 9, style: .continuous))
+                    }
+                    .accessibilityIdentifier("accessory-done")
                 }
             }
         }
@@ -475,6 +500,10 @@ struct MemoDetailView: View {
             if let memo = currentMemo, !workState(for: memo).wantsProcessing,
                PolishCenter.shared.isAvailable {
                 Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
+            }
+            // Q359 (mock Q350 pick 1): Find left the keyboard bar for this menu.
+            if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
+                Button("Find in Note", action: { editorChrome.find() })
             }
             Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
             // Q87: the icon in the bar has no label, so the sheet says it in words, in its

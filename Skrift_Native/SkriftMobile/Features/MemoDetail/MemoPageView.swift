@@ -297,14 +297,25 @@ struct MemoPageView: View {
         .padding(.horizontal, Theme.Space.margin)
     }
 
-    /// The B2 pinned title row — always visible above the scrolling note, so you
-    /// know which memo you're in while swiping between memos. The ✦ chooser rides
-    /// along when the Mac sent a suggested title.
-    var pinnedTitleRow: some View {
-        HStack(alignment: .center, spacing: 8) {
-            TextField("", text: titleBinding, prompt: titlePrompt)
-                .font(.system(size: 17, weight: .bold))
+    /// The title (mock Q350 pick 4 + D196): 22 pt bold, the first line of the header, scrolling
+    /// with the note (no pin: swipe-between-notes is off). The ✦ chooser rides along when the
+    /// Mac sent a suggested title. Return ends the edit instead of breaking the line.
+    var titleField: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            TextField("", text: Binding(
+                get: { titleBinding.wrappedValue },
+                set: { new in
+                    if new.contains("\n") {
+                        titleBinding.wrappedValue = new.replacingOccurrences(of: "\n", with: "")
+                        titleFocused = false
+                        repository.save()
+                    } else {
+                        titleBinding.wrappedValue = new
+                    }
+                }), prompt: titlePrompt, axis: .vertical)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Color.skText)
+                .lineLimit(1...4)
                 .tint(.skAccent)
                 .submitLabel(.done)
                 .focused($titleFocused)
@@ -314,19 +325,48 @@ struct MemoPageView: View {
                 Button { showTitleChooser = true } label: {
                     Image(systemName: "sparkles")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.skAccent)
-                        .frame(width: 28, height: 28)
-                        .background(Color.skAccentSoft, in: .rect(cornerRadius: 8, style: .continuous))
+                        .foregroundStyle(Color.skAccent.opacity(0.7))
+                        .frame(width: 26, height: 26)
                 }
                 .accessibilityIdentifier("title-chooser-button")
+                .accessibilityLabel("Suggested title")
             }
         }
-        .padding(.horizontal, Theme.Space.margin)
-        .padding(.top, 4)
-        .padding(.bottom, 9)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.skBorder).frame(height: 0.5)
+        .padding(.top, 2)
+    }
+
+    /// ONE quiet grey line: time · place · weather · length (mock Q350 pick 7, D195): no chip boxes.
+    var metaLine: some View {
+        FlowLayout(spacing: 6, lineSpacing: 2) {
+            ForEach(Array(metaChips.enumerated()), id: \.element.id) { i, chip in
+                HStack(spacing: 6) {
+                    if i > 0 { Text("·").foregroundStyle(Color.skTextFaint) }
+                    HStack(spacing: 3) {
+                        if let s = chip.symbol {
+                            Image(systemName: s).font(.system(size: 9.5)).opacity(0.8)
+                        }
+                        Text(chip.text).lineLimit(1)
+                    }
+                }
+            }
         }
+        .font(.system(size: 12.5))
+        .foregroundStyle(Color.skTextDim)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("detail-meta-line")
+    }
+
+    /// The Mac's summary as a grey line with a hairline under it (mock Q350 pick 7).
+    func summaryLine(_ summary: String) -> some View {
+        let head = (Text(Image(systemName: "sparkles")).font(.system(size: 11, weight: .semibold))
+                    + Text(" Summary  ").font(.system(size: 13.5, weight: .semibold)))
+            .foregroundStyle(Color.skAccentText)
+        return (head + Text(summary).font(.system(size: 13.5)).foregroundStyle(Color.skTextDim))
+            .lineSpacing(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 12)
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.skBorder).frame(height: 0.5) }
+            .accessibilityIdentifier("polish-summary-card")
     }
 
     /// COMPACT-width processing line. At regular width the note BAR owns this
@@ -381,7 +421,6 @@ struct MemoPageView: View {
     /// footer scroll INSIDE it. Native selection/caret/undo mechanics throughout.
     var editorPage: some View {
         VStack(spacing: 0) {
-            pinnedTitleRow
             polishStatusBand
             NoteBodyView(
                 memo: memo,
@@ -452,10 +491,9 @@ struct MemoPageView: View {
     }
 
     /// Conversations + C3 share-captures keep the legacy outer-scroll layout for
-    /// now (phase 2), under the same pinned title row.
+    /// now (phase 2); the title scrolls inside the header like the editor page's.
     func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
         VStack(spacing: 0) {
-            pinnedTitleRow
             polishStatusBand
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -481,29 +519,14 @@ struct MemoPageView: View {
     func noteHeaderCore(isCurrent: Bool) -> some View {
         let suffix = isCurrent ? "" : "-offscreen"
         return VStack(alignment: .leading, spacing: 0) {
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                ForEach(metaChips) { chip in
-                    ContextChip(text: chip.text, systemImage: chip.symbol)
-                }
-            }
+            // Q359 (mock Q350 + D196): title first (22 pt, scrolls with the note — the pin
+            // was for swiping between notes, which is off), then ONE grey meta line, then
+            // rating · Personal · tags on one row, then the summary as a grey line.
+            titleField
+            metaLine
+                .padding(.top, 6)
 
-            // Tags — their OWN row under the title (D139 pick 3, signed mock
-            // `mocks/tag-ui-revamp.html`), no sheet: `+ tag` turns into an inline
-            // field, comma/Return commits, tap-arms-then-removes with a 4 s Undo.
-            TagEditorRow(tags: $memo.tags, library: repository.allTags(),
-                         style: .phone, onChanged: { memo.markEdited(); repository.save() },
-                         idSuffix: suffix,
-                         // Q41: the toast is HOISTED to the page's own overlay
-                         // (`tagToastView`, below) so it centres on the whole
-                         // screen, not this row's own narrower bounds.
-                         onToast: { tagToast = $0 },
-                         // D189: idea / inspiration / project, one tap each, Portfolio only.
-                         presets: DestinationSettings.isEnabled && memo.destination.isPortfolio
-                             ? PortfolioTagPresets.all : [])
-                .padding(.top, 8)
-                // An old stored idea / inspiration / project becomes Portfolio + that tag.
-                .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
-
+            FlowLayout(spacing: 10, lineSpacing: 7) {
             // Q85 (signed mock Q75-note-header-final, behaviour A): the importance card is
             // ONE pill — each tap steps Not rated → Passing → Useful → Important → Not
             // rated (C88 un-rating), a toast names the step. When the note is unrated the
@@ -524,11 +547,10 @@ struct MemoPageView: View {
                 },
                 onToast: { ratingToast = $0 },
                 idSuffix: suffix)
-                .padding(.top, 8)
 
             // WHERE this note goes when it leaves — the shared `DestinationRowView`
-            // (signed mock note-destination-tags.html, version B collapsed), 12 pt under
-            // the pill. Importance says whether a note may leave Skrift, destination says
+            // (signed mock note-destination-tags.html, version B collapsed), beside the
+            // pill. Importance says whether a note may leave Skrift, destination says
             // where. Hidden entirely until destinations are switched on.
             if DestinationSettings.isEnabled, memo.deletedAt == nil {
                 DestinationRowView(
@@ -540,15 +562,31 @@ struct MemoPageView: View {
                         repository.save()
                     },
                     style: .phone)
-                    .padding(.top, 12)
                     .accessibilityIdentifier("destination-row")
             }
 
-            // Mac's polish: the summary card (when present) above the body.
+            // Tags (D139: inline field, no sheet; tap-arms-then-removes with a 4 s Undo),
+            // now as quiet accent words on the same row (mock Q350 pick 7).
+            TagEditorRow(tags: $memo.tags, library: repository.allTags(),
+                         style: .phoneInline, onChanged: { memo.markEdited(); repository.save() },
+                         idSuffix: suffix,
+                         // Q41: the toast is HOISTED to the page's own overlay
+                         // (`tagToastView`, below) so it centres on the whole
+                         // screen, not this row's own narrower bounds.
+                         onToast: { tagToast = $0 },
+                         // D189: idea / inspiration / project, one tap each, Portfolio only.
+                         presets: DestinationSettings.isEnabled && memo.destination.isPortfolio
+                             ? PortfolioTagPresets.all : [])
+                // An old stored idea / inspiration / project becomes Portfolio + that tag.
+                .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
+            }
+            .padding(.top, 10)
+
+            // Mac's polish: the summary (when present) above the body, as a grey line.
             if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),
                !summary.isEmpty {
-                summaryCard(summary)
-                    .padding(.top, 16)
+                summaryLine(summary)
+                    .padding(.top, 12)
             }
 
             if let label = diarStatus.label(for: memo.id) {
@@ -1069,24 +1107,6 @@ struct MemoPageView: View {
         NoteTitle.recordingLine(transcript: memo.transcript)
     }
 
-    func summaryCard(_ summary: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 5) {
-                Image(systemName: "sparkles").font(.system(size: 10, weight: .bold))
-                Text("SUMMARY").font(.system(size: 11, weight: .bold)).kerning(0.5)
-            }
-            .foregroundStyle(Color.skAccent)
-            Text(summary)
-                .font(.system(size: 13.5))
-                .foregroundStyle(Color.skTextDim)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(12)
-        .background(Color.skAccentSoft.opacity(0.5), in: .rect(cornerRadius: 13, style: .continuous))
-        .overlay(RoundedRectangle.sk(13).stroke(Color.skAccent.opacity(0.22), lineWidth: 1))
-        .accessibilityIdentifier("polish-summary-card")
-    }
-
     // MARK: - Name resolution (the tapped-name sheet)
 
     var resolveDialogPresented: Binding<Bool> {
@@ -1365,7 +1385,11 @@ struct MemoPageView: View {
                 chips.append(MetaChip(text: DurationFormat.label(seconds: memo.duration), symbol: "waveform"))
             }
         }
-        // Q85: no daypart chip — the mock's chips row is date · place · weather.
+        // Q359 (mock Q350 / D196): the line ends with the recording's length.
+        if memo.duration > 0, !chips.contains(where: { $0.symbol == "waveform" }) {
+            chips.append(MetaChip(text: DurationFormat.label(seconds: memo.duration), symbol: "waveform"))
+        }
+        // Q85: no daypart chip — the mock's line is date · place · weather · length.
         return chips
     }
 
