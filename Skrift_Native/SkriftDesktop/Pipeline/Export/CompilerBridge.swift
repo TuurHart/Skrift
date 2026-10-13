@@ -55,7 +55,8 @@ extension PipelineFile {
                     recordedAt: m.recordedAt,
                     bookTitle: m.bookTitle,
                     bookAuthor: m.bookAuthor,
-                    bookChapter: m.bookChapter
+                    bookChapter: m.bookChapter,
+                    bookPosition: m.bookPosition   // a link note's place (Q372)
                 )
             },
             sharedContent: sc,
@@ -66,6 +67,9 @@ extension PipelineFile {
             // `.note` + `mediaSource: "typed"` here, which alone would read `Apple-Note`.
             kind: SourceKind.classify(hasBook: !(meta?.bookTitle ?? "").isEmpty,
                                       pdfPage: SourceKind.isPDFPageLabel(meta?.bookChapter),
+                                      // Q372: a "Send to a note" / "Move to Library" link
+                                      sourceLink: SourceKind.sourceLink(metadataData: audioMetadataJSON,
+                                                                        body: transcript),
                                       media: mediaSource, sharedType: sc?.type.rawValue,
                                       isCaptureRow: sourceType == .capture,
                                       hasAudio: sourceType == .audio && !path.isEmpty))

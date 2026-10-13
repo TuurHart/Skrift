@@ -56,7 +56,10 @@ enum Compiler {
         // detail "source" label). A video import + an audiobook quote both ride
         // `sourceType: .audio`, so the markers (`bookTitle`, `mediaSource`) win first.
         let source: String
-        if bookTitle != nil {
+        if let linkSource = input.kind?.linkExportSource {
+            // Q372 (D138): a "Send to a note" / "Move to Library" note links to its source.
+            source = linkSource
+        } else if bookTitle != nil {
             // Q356 (D138): a quote from a Library PDF says so; its place is "p. N".
             source = SourceKind.isPDFPageLabel(bookChapter) ? "PDF-quote" : "Audiobook-quote"
         } else if input.mediaSource == "video" {
@@ -205,6 +208,14 @@ enum Compiler {
         if input.sourceType == .capture, let sc {
             return frontmatter + captureSharedBlock(sc, body: body) + body
         }
+        // A source-link note (Q372, D138): one link line to the source, then his words. Never
+        // an empty quote block.
+        if let kind = input.kind, kind.isSourceLink, let bookTitle {
+            let line = sourceLinkLine(kind: kind, title: bookTitle, author: bookAuthor,
+                                      chapter: bookChapter, position: meta?.bookPosition)
+            let words = body.trimmingCharacters(in: .whitespacesAndNewlines)
+            return frontmatter + (words.isEmpty ? line + "\n" : line + "\n\n" + body)
+        }
         // Audiobook quote memos italicise the quote + add the attribution line.
         let renderedBody = bookTitle.map {
             audiobookBody(body, book: $0, author: bookAuthor, chapter: bookChapter)
@@ -241,6 +252,36 @@ enum Compiler {
 
         let block = italicQuote + "\n>\n" + attribution
         return split.ramble.isEmpty ? block : block + "\n\n" + split.ramble
+    }
+
+    /// The link line of a source-link note (D138's attribution forms, no quote above it):
+    /// - PDF:      `— *Title*, p. N`
+    /// - episode:  `— *Show*, Episode, mm:ss` (the source's author is the show)
+    /// - audiobook / article: the vault attribution (`— [[Author]], *Title*, ch. N`) + the clock.
+    /// The jump-back itself is Skrift-only; the vault gets the words.
+    static func sourceLinkLine(kind: SourceKind, title: String, author: String?, chapter: String?,
+                               position: Double?) -> String {
+        let clock = position.flatMap(linkClock)
+        switch kind {
+        case .pdfLink:
+            return "— *\(title)*" + (chapter.map { ", \($0)" } ?? "")
+        case .episodeLink:
+            guard let show = author else { return "— *\(title)*" + (clock.map { ", \($0)" } ?? "") }
+            return "— *\(show)*, \(title)" + (clock.map { ", \($0)" } ?? "")
+        default:
+            let base = CaptureQuote.attribution(book: title, author: author, chapter: chapter, style: .vault)
+                ?? "— *\(title)*"
+            return base + (clock.map { ", \($0)" } ?? "")
+        }
+    }
+
+    /// "23:41" under an hour, "1:12:05" from an hour (the phone's `AudiobookTime.clock` shape).
+    /// nil for a non-finite or negative position.
+    static func linkClock(_ seconds: Double) -> String? {
+        guard seconds.isFinite, seconds >= 0 else { return nil }
+        let total = Int(seconds.rounded(.down))
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
     }
 
     // MARK: Capture shared-content block

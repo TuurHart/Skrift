@@ -39,6 +39,11 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// ignored by the Mac's decoder) — contract stays byte-compatible.
     var bookID: UUID?
     var bookPosition: Double?
+    /// Q372 (D138): the KIND of the Library source a link note points at ("book" / "episode" /
+    /// "pdf" / "article", the phone's `LibrarySourceKind` raw value), written by "Send to a note"
+    /// and "Move to Library" so the export can write `— *Show*, episode, mm:ss` for an episode.
+    /// ADDITIVE + optional (nil on captures and every other memo; an older decoder ignores it).
+    var bookKind: String?
 
     /// How the memo entered Skrift, when it's NOT an ordinary voice recording —
     /// the first marker of the deferred "unified source taxonomy" (voice memo /
@@ -129,7 +134,8 @@ extension MemoMetadata {
     /// hPa as Double, dayPeriod as a string, location without coordinates), so a legacy
     /// RN/Python-era payload or a partial one still yields what it has instead of nil —
     /// the strict `MemoMetadata` decoder refuses those (no `tags`, no lat/long). Reads only
-    /// the frontmatter fields; `bookID`/`bookPosition` are ignored (FEATURES.md "ignore").
+    /// the frontmatter fields (+ `bookPosition` for a link note's export line, Q372); `bookID` is
+    /// ignored (FEATURES.md "ignore"; the source-link rule reads it from the raw JSON).
     /// Encodes absent fields as absent (synthesized encodeIfPresent).
     struct Lenient: Codable, Sendable {
         struct Location: Codable, Sendable { var placeName: String? }
@@ -149,6 +155,8 @@ extension MemoMetadata {
         var bookTitle: String?
         var bookAuthor: String?
         var bookChapter: String?
+        /// Q372: a source-link note's place (seconds, or a PDF page), for its export link line.
+        var bookPosition: Double?
         var importFileName: String?   // D176
     }
 

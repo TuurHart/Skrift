@@ -109,7 +109,8 @@ enum MemoExporter {
             daylight: m.daylight.map { CompilerMetadata.Daylight(sunrise: $0.sunrise, sunset: $0.sunset, hoursOfLight: $0.hoursOfLight) },
             steps: m.steps,
             recordedAt: nil,                                   // date supplied via the `date:` override
-            bookTitle: m.bookTitle, bookAuthor: m.bookAuthor, bookChapter: m.bookChapter
+            bookTitle: m.bookTitle, bookAuthor: m.bookAuthor, bookChapter: m.bookChapter,
+            bookPosition: m.bookPosition                       // a link note's place (Q372)
         )
     }
 
