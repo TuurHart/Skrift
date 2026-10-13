@@ -2813,6 +2813,13 @@ gate+: yes
 do: Remove means delete (no hidden or kept-just-in-case code). Known leftovers from the workers' findings in plan/RUN.md: ChipFlow.swift + ChipLineBreakerTests + Snapshot.renderCardChips (Q358, row draws no chips); NoteCardModel fields balls/chips/quiet/quietLine kept only for parity tests (Q358) — move the parity tests onto the drawn fields and delete the dead ones; the old phone Aa grid / header chip views and the Mac header audio + split-speakers switches replaced by Q359/Q360; `.feedbackScreen("Books")` → "Library" with FeedbackQ341ScreenTagUITests (Q352); the Mac always-on status pill code (Q358). Then run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on SkriftMobile and the full SkriftDesktop scheme, and delete every finding introduced since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment, never delete a synced field). Protected tests: only ported or deleted with the code they covered (D163; list them as needs hand-merge). Update FEATURES.md rows that name deleted files. Write the before/after counts into plan/periphery.md.
 check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift' && grep -q 'Q380\|2026-10' plan/periphery.md`
 
+### Q381 [auto] (todo) article reader + article note match the signed Q351 mock (Q355's difference list)
+spec: D195 D138
+needs: Q355
+gate+: no
+do: Q355 built the article reader; its compare (plan/reads/library-tab/q355-pair-*.png, q355-diff.md) against Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html lists: (1) DEFECT: an article capture note shows an empty audio player although it has no audio — hide the player when a note has no audio; (2) cover lacks the ARTICLE badge; (3) reader selection is purple, mock uses system blue; (4) no reading-progress line at the top of the reader; (5) a 'No notes yet' card is pinned over the reader text — show the notes row only when there are notes, never over the text; (6) the capture screen lacks the mock's quote card and the boxed link-back line; (7) the highlight lacks its ❝ glyph. Fix all seven; re-take the q355 pairs at 402 x 874 next to the mock and LOOK. Launch with `-skipOnboarding` on a fresh sim; `-showArticleNote` is the DEBUG hook for the note shot. The share-sheet Article/Note frame cannot be driven on iOS 27 (Safari share button not found by XCUITest) — leave it to Tuur's device check.
+check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4095,3 +4102,4 @@ check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift'
 - 2026-10-13 15:03 Q378 -> todo — revise per D198: tab placement options, Apple attach menu minus Record Audio, full-width text
 - 2026-10-13 15:03 Q378 -> doing — mockup revision out
 - 2026-10-13 15:03 Q377 -> done — hand-merged (Tuur D197 2026-10-13: Yesterday group — ListGroupingTests assertions follow the decided behaviour)
+- 2026-10-13 15:10 Q381 added
