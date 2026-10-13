@@ -48,6 +48,9 @@ struct CompilerMetadata: Sendable {
     var bookTitle: String? = nil
     var bookAuthor: String? = nil
     var bookChapter: String? = nil
+    /// Q372: a source-link note's place — seconds into an audiobook / episode (a PDF's page rides
+    /// `bookChapter` as "p. N"). Only the link line reads it.
+    var bookPosition: Double? = nil
 }
 /// Everything the shared `Compiler.compile(_:)` needs from a note. Each app fills this from
 /// its own model; the Compiler never sees `PipelineFile`/`Memo`.

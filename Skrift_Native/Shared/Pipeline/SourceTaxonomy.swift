@@ -7,13 +7,39 @@ import Foundation
 /// everywhere, and nowhere else.
 enum SourceKind: Equatable {
     case audiobookQuote, pdfQuote, video, captureURL, captureImage, captureText,
-         captureFile, captureOther, appleNote, voiceMemo, typedNote
+         captureFile, captureOther, appleNote, voiceMemo, typedNote,
+         /// Q372 (D138): a note that LINKS to a Library source with no captured quote — what
+         /// "Send to a note" and "Move to Library" leave. One case per source kind.
+         audiobookLink, episodeLink, pdfLink, articleLink
+
+    /// True for the four source-link kinds.
+    var isSourceLink: Bool {
+        switch self {
+        case .audiobookLink, .episodeLink, .pdfLink, .articleLink: return true
+        default: return false
+        }
+    }
+
+    /// The `source:` frontmatter value of a source-link note, naming the source kind (D138).
+    var linkExportSource: String? {
+        switch self {
+        case .audiobookLink: return "Audiobook-link"
+        case .episodeLink:   return "Episode-link"
+        case .pdfLink:       return "PDF-link"
+        case .articleLink:   return "Article-link"
+        default:             return nil
+        }
+    }
 
     /// SF Symbol.
     var glyph: String {
         switch self {
         case .audiobookQuote: return "book.closed.fill"
         case .pdfQuote:       return "doc.text"
+        case .audiobookLink:  return "book.closed"
+        case .episodeLink:    return "antenna.radiowaves.left.and.right"
+        case .pdfLink:        return "doc"
+        case .articleLink:    return "newspaper"
         case .video:          return "video.fill"
         case .captureURL:     return "link"
         case .captureImage:   return "photo"
@@ -31,6 +57,10 @@ enum SourceKind: Equatable {
         switch self {
         case .audiobookQuote: return "Audiobook quote"
         case .pdfQuote:       return "PDF quote"
+        case .audiobookLink:  return "Audiobook link"
+        case .episodeLink:    return "Episode link"
+        case .pdfLink:        return "PDF link"
+        case .articleLink:    return "Article link"
         case .video:          return "Video"
         case .captureURL:     return "Link"
         case .captureImage:   return "Image"
@@ -77,8 +107,12 @@ enum SourceKind: Equatable {
     /// - `isCaptureRow`: the row is already known to be a capture (Mac `.capture` rows), so
     ///   an unknown subtype reads as `.captureOther` rather than falling through.
     /// - `pdfPage`: the quote's place is a PDF page ("p. 4", `isPDFPageLabel`), Q356 / D138.
-    static func classify(hasBook: Bool, pdfPage: Bool = false, media: String?, sharedType: String?,
+    /// - `sourceLink`: the note is a link to a Library source (`sourceLink(...)`, Q372), which
+    ///   wins over the quote kinds: it carries the same book metadata but no quote.
+    static func classify(hasBook: Bool, pdfPage: Bool = false, sourceLink: SourceKind? = nil,
+                         media: String?, sharedType: String?,
                          isCaptureRow: Bool = false, hasAudio: Bool) -> SourceKind {
+        if let sourceLink, sourceLink.isSourceLink { return sourceLink }
         if hasBook { return pdfPage ? .pdfQuote : .audiobookQuote }
         if media == "video" { return .video }
         // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
@@ -101,15 +135,19 @@ enum SourceKind: Equatable {
     /// (`CaptureInboxDrainer`); a video is `sourceType` OR `mediaSource` in `metadataData`.
     static func of(_ memo: Memo) -> SourceKind {
         of(metadataData: memo.metadataData, sharedContentData: memo.sharedContentData,
-           hasAudio: !memo.audioFilename.isEmpty)
+           hasAudio: !memo.audioFilename.isEmpty, body: memo.transcript)
     }
 
-    /// The classifier over a memo's raw facts (Q320). Content-keyed cache: the three inputs are the
+    /// The classifier over a memo's raw facts (Q320). Content-keyed cache: the inputs are the
     /// whole answer, so any edit (local or CloudKit merge) is a new key and nothing goes stale.
     /// Building a list of titles used to JSON-parse two blobs per note per call. Callable off the
-    /// main actor (NSCache is thread-safe).
-    static func of(metadataData: Data?, sharedContentData: Data?, hasAudio: Bool) -> SourceKind {
-        let key = KindKey(metadataData, sharedContentData, hasAudio)
+    /// main actor (NSCache is thread-safe). `body` (the raw transcript) only matters for a note
+    /// linked to a Library source: a leading quote makes it a quote, none makes it a link (Q372).
+    /// It enters the key as one Bool, computed only when the metadata carries a `bookID`.
+    static func of(metadataData: Data?, sharedContentData: Data?, hasAudio: Bool,
+                   body: String? = nil) -> SourceKind {
+        let quoted = hasBookIDKey(metadataData) && CaptureQuote.split(body) != nil
+        let key = KindKey(metadataData, sharedContentData, hasAudio, quoted)
         if let hit = kindCache.object(forKey: key) { return hit.kind }
         kindMisses.add()
         let meta = metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
@@ -117,12 +155,50 @@ enum SourceKind: Equatable {
         let memoMeta = Memo.metadata(from: metadataData)
         let kind = classify(hasBook: memoMeta?.bookTitle.map { !$0.isEmpty } ?? false,
                             pdfPage: isPDFPageLabel(memoMeta?.bookChapter),
+                            sourceLink: sourceLink(metadata: meta, quoted: quoted),
                             media: mediaMarker(in: meta),
                             sharedType: shared?.type.rawValue,
                             hasAudio: hasAudio)
         kindCache.setObject(KindBox(kind), forKey: key)
         return kind
     }
+
+    // MARK: - Source links (Q372, D138)
+
+    /// THE source-link rule, used by the phone (`LibraryHatch.isSourceLink`, `of(_:)`), the Mac
+    /// row (`PipelineFile.sourceKind`) and both exporters (`CompilerInput.kind`). A note links to
+    /// a Library source when its metadata carries the link (`bookID` + a finite, non-negative
+    /// `bookPosition`, what `LibraryHatch.linkMetadata` writes) and its body opens with NO
+    /// captured quote. The kind comes from `bookKind` ("book" / "episode" / "pdf" / "article");
+    /// a link written before that key existed falls back on its place: "p. N" is a PDF, anything
+    /// else an audiobook. nil = not a source link.
+    static func sourceLink(metadataData: Data?, body: String?) -> SourceKind? {
+        guard hasBookIDKey(metadataData) else { return nil }
+        let meta = metadataData.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        return sourceLink(metadata: meta, quoted: CaptureQuote.split(body) != nil)
+    }
+
+    /// The rule over an already-parsed metadata object; `quoted` = the body opens with a quote.
+    static func sourceLink(metadata meta: [String: Any]?, quoted: Bool) -> SourceKind? {
+        guard !quoted, let meta,
+              let id = meta["bookID"] as? String, UUID(uuidString: id) != nil,
+              let position = (meta["bookPosition"] as? NSNumber)?.doubleValue,
+              position.isFinite, position >= 0 else { return nil }
+        switch (meta["bookKind"] as? String)?.lowercased() {
+        case "episode": return .episodeLink
+        case "pdf":     return .pdfLink
+        case "article": return .articleLink
+        case "book":    return .audiobookLink
+        default:        return isPDFPageLabel(meta["bookChapter"] as? String) ? .pdfLink : .audiobookLink
+        }
+    }
+
+    /// Cheap pre-check (a byte search, no JSON parse) so an ordinary note never splits its body.
+    private static func hasBookIDKey(_ data: Data?) -> Bool {
+        guard let data else { return false }
+        return data.range(of: bookIDKeyBytes) != nil
+    }
+    private static let bookIDKeyBytes = Data("\"bookID\"".utf8)
 
     /// True for a capture place written as a PDF page ("p. 4", the phone's `LibraryPDF.pageLabel`):
     /// the quote came from a PDF, not a book (Q356 / D138). Both apps read it from `bookChapter`.
@@ -137,16 +213,16 @@ enum SourceKind: Equatable {
 
     private final class KindBox { let kind: SourceKind; init(_ k: SourceKind) { kind = k } }
     private final class KindKey: NSObject {
-        let metadata: Data?, shared: Data?, hasAudio: Bool
-        init(_ m: Data?, _ s: Data?, _ a: Bool) { metadata = m; shared = s; hasAudio = a }
+        let metadata: Data?, shared: Data?, hasAudio: Bool, quoted: Bool
+        init(_ m: Data?, _ s: Data?, _ a: Bool, _ q: Bool) { metadata = m; shared = s; hasAudio = a; quoted = q }
         override var hash: Int {
             var h = Hasher()
-            h.combine(metadata); h.combine(shared); h.combine(hasAudio)
+            h.combine(metadata); h.combine(shared); h.combine(hasAudio); h.combine(quoted)
             return h.finalize()
         }
         override func isEqual(_ object: Any?) -> Bool {
             guard let o = object as? KindKey else { return false }
-            return metadata == o.metadata && shared == o.shared && hasAudio == o.hasAudio
+            return metadata == o.metadata && shared == o.shared && hasAudio == o.hasAudio && quoted == o.quoted
         }
     }
     private static let kindCache: NSCache<KindKey, KindBox> = {

@@ -162,6 +162,8 @@ enum MemoNoteProjection {
         case .appleNote, .typedNote: return .note   // text-born notes render the note path
         case .captureURL, .captureImage, .captureText, .captureFile, .captureOther: return .capture
         case .voiceMemo, .video, .audiobookQuote, .pdfQuote: return .audio
+        // Q372: a link note carries the same book metadata as a quote, so it rides the same path.
+        case .audiobookLink, .episodeLink, .pdfLink, .articleLink: return .audio
         }
     }
 

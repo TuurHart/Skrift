@@ -11,6 +11,8 @@ extension PipelineFile {
     var sourceKind: SourceKind {
         SourceKind.classify(hasBook: bookCapture != nil,
                             pdfPage: SourceKind.isPDFPageLabel(bookCapture?.chapter),
+                            // Q372: a link to a Library source, not a quote (the shared rule)
+                            sourceLink: SourceKind.sourceLink(metadataData: audioMetadataJSON, body: transcript),
                             media: mediaSource,
                             sharedType: sharedContent?.type.rawValue,
                             isCaptureRow: sourceType == .capture,

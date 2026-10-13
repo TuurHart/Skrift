@@ -191,6 +191,15 @@ final class NotesRepository {
         for asset in assets(forMemo: id) { context.delete(asset) }
     }
 
+    /// Delete a memo's asset rows of one `MemoAsset.Kind` (e.g. the `document` a "Move to
+    /// Library" moved out, Q372). Returns how many went. Caller saves.
+    @discardableResult
+    func deleteAssets(forMemo id: UUID, kind: String) -> Int {
+        let doomed = assets(forMemo: id).filter { $0.kind == kind }
+        for asset in doomed { context.delete(asset) }
+        return doomed.count
+    }
+
     /// Every tag across live memos, most-used first (the tag editor's
     /// autocomplete source). Was a full re-fetch + re-sort of every memo on
     /// EVERY call — it's constructed inline in a view initializer
