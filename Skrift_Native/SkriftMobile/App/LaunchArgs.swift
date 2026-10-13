@@ -61,6 +61,8 @@ enum LaunchFlags {
     static var showArticleReader: Bool { args.boolFlag("-showArticleReader") }
     static var showArticleCapture: Bool { args.boolFlag("-showArticleCapture") }
     static var showArticleToast: Bool { args.boolFlag("-showArticleToast") }
+    /// `-showArticleNote` saves the mock's quote as a capture note on "Local-first software" and opens it.
+    static var showArticleNote: Bool { args.boolFlag("-showArticleNote") }
     /// Q353 (DEBUG): one seeded podcast episode (kind `episode`, Het Uur) opened as a paused session
     /// for the Episode-player screenshot.
     static var seedEpisode: Bool { args.boolFlag("-seedEpisode") }

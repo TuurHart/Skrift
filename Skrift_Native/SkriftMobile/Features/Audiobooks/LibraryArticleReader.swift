@@ -865,6 +865,7 @@ enum LibraryArticleDebug {
     static func run(reader: Binding<Audiobook?>) {
         let flags = LaunchFlags.self
         guard flags.seedLibraryArticle || flags.showArticleReader || flags.showArticleCapture || flags.showArticleToast
+                || flags.showArticleNote
         else { return }
         let store = AudiobookLibraryStore.shared
         var lfs = store.books.first { $0.title == "Local-first software" }
@@ -876,6 +877,11 @@ enum LibraryArticleDebug {
         }
         if flags.showArticleReader || flags.showArticleCapture { reader.wrappedValue = lfs }
         if flags.showArticleToast { LibraryArticleArrival.shared.post(memoID: UUID()) }
+        if flags.showArticleNote, let book = lfs, let at = localFirst.wordOffset(of: quote),
+           let id = LibraryArticle.saveCapture(quote: quote, book: book, wordOffset: at, significance: 0) {
+            TabSelectionBridge.shared.select(.notes)
+            MemoOpenBridge.shared.open(id)
+        }
     }
 
     static func readerAppeared(model: ArticleReaderModel, capture: Binding<ArticleCaptureRequest?>, book: Audiobook) async {
