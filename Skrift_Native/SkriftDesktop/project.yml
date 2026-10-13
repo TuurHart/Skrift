@@ -206,6 +206,8 @@ targets:
       - path: Features/Review/NoteFindBar.swift
       # Q363: the typing debounce + body update gate (Foundation-only), MacTypingWorkTests.
       - path: Features/Review/MacTypingWork.swift
+      # Q360: the Format commands + Export confirm rules (Foundation-only), MacEditorFormattingTests.
+      - path: Features/Review/MacEditorFormatting.swift
       # The recorder, file-by-file for the same reason: it imports only AVFoundation +
       # CoreAudio (system frameworks), while the rest of Engines/ is FluidAudio and MLX and
       # would turn the fast MLX-free loop into the slow one. What's under test is the

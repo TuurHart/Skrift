@@ -28,6 +28,8 @@ enum Snapshot {
             MainActor.assumeIsolated { renderDestinations(to: p, width: w); exit(0) }
         }
         if let p = path("-snapshot-split") { MainActor.assumeIsolated { renderSplit(to: p); exit(0) } }
+        // Q360: the Q350 Mac frames (note + Aa, right-click, speakers) into one folder.
+        if let p = path("-snapshot-editor-apple") { MainActor.assumeIsolated { renderEditorApple(dir: p); exit(0) } }
         if let p = path("-snapshot-settings-light") { MainActor.assumeIsolated { renderSettings(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-settings-hosted") {
             let w = CGFloat(path("-settingsWidth").flatMap { Double($0) } ?? 620)
@@ -1771,6 +1773,97 @@ enum Snapshot {
             }
         }
         dispatchMain()
+    }
+
+    /// Q360: the signed Q350 Mac frames, HOSTED (real AppKit: the body is an NSTextView).
+    /// Writes `mac-note.png` (#m-note), `mac-aa.png` (the Aa popover composited under the band,
+    /// a popover window can't be captured headlessly), `mac-select.png` (#m-select: "spindle"
+    /// selected; the Format block beside it is drawn from `MacEditorFormatting.contextBlock`,
+    /// since an NSMenu can't be captured either) and `mac-turns.png` (#m-turns).
+    /// Triggered by: `-snapshot-editor-apple <dir>`.
+    @MainActor private static func renderEditorApple(dir: String) {
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let body = """
+        So the 65 mm clamp is probably the right call, the **52 was always going to be a squeeze**.
+
+        ## Before drilling
+
+        - [x] Print a test ring in PETG
+        - [ ] Check runout with the dial gauge
+        - [ ] Drill the four M6 holes through the gantry plate
+
+        Ask Rui whether the *old* spindle still fits the ~~52~~ mount. The <u>plan</u> is ==ready==.
+        """
+        let turns = """
+        **[[Tiuri Hartog]]:** Can the old spindle mount take the 65 clamp, or do we mill a new plate?
+
+        **[[Rui]]:** The old one is **aluminium 6 mm**. It flexes. Mill a new one, 10 mm.
+
+        **Tiuri:** Okay. Then the four M6 holes move outward by about 8 mm.
+
+        **Rui:** Print the drilling template first. I have the PETG.
+        """
+        UserDefaults.standard.set(false, forKey: "connectionsPanelVisible")
+        let size = NSSize(width: 760, height: 660)
+        func note(_ text: String, title: String, summary: String?) -> (AnyView, ModelContainer)? {
+            guard let container = fixtureStore() else { return nil }
+            let ctx = container.mainContext
+            for f in DemoSeed.snapshotFiles() { ctx.insert(f) }
+            try? ctx.save()
+            guard let file = (try? ctx.fetch(FetchDescriptor<PipelineFile>()))?.first(where: { $0.id == "demo-1" })
+            else { return nil }
+            file.transcript = text
+            file.sanitised = text
+            file.enhancedTitle = title
+            file.enhancedSummary = summary
+            let v = NoteDisplayView(file: file, coordinator: ProcessingCoordinator(), onOpenMemo: { _ in })
+                .frame(width: size.width, height: size.height)
+                .background(Theme.surface)
+                .preferredColorScheme(.dark)
+                .modelContainer(container)
+            return (AnyView(v), container)
+        }
+        let summary = "Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate."
+        if let made = note(body, title: "Spindle clamp, 65 or 52", summary: summary) {
+            let v = made.0
+            hostPNG(v, size: size, to: dir + "/mac-note.png")
+            let aa = v.overlay(alignment: .top) {
+                MacFormatPopover(checked: .heading, onPick: { _ in })
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.35), radius: 16, y: 8)
+                    .padding(.top, 52)
+            }
+            hostPNG(aa, size: size, to: dir + "/mac-aa.png")
+            let menu = VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(MacEditorFormatting.contextBlock(newPerson: "spindle").enumerated()), id: \.offset) { _, e in
+                    switch e {
+                    case .header: Text("Format").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.textMuted)
+                    case .command(let cmd):
+                        HStack { Text(cmd.title).bold(cmd == .bold).italic(cmd == .italic)
+                                     .underline(cmd == .underline).strikethrough(cmd == .strikethrough); Spacer()
+                                 Text(cmd.chord?.glyphs ?? "").foregroundStyle(Theme.textMuted) }
+                    case .newPerson: Text(NameActionLabel.newPerson)
+                    }
+                }
+                Divider()
+                ForEach(["Cut ⌘X", "Copy ⌘C", "Paste ⌘V"], id: \.self) { Text($0) }
+            }
+            .font(.system(size: 13)).foregroundStyle(Theme.textPrimary)
+            .padding(8).frame(width: 220)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 8))
+            .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+            let sel = v.overlay(alignment: .bottomTrailing) { menu.padding(30) }
+            hostPNG(sel, size: size, to: dir + "/mac-select.png", prepare: { host in
+                for tv in textViews(in: host) {
+                    let r = (tv.string as NSString).range(of: "spindle")
+                    if r.location != NSNotFound { tv.window?.makeFirstResponder(tv); tv.setSelectedRange(r); break }
+                }
+            })
+        }
+        if let made = note(turns, title: "Gantry plate with Rui", summary: nil) {
+            hostPNG(made.0, size: size, to: dir + "/mac-turns.png")
+        }
     }
 }
 

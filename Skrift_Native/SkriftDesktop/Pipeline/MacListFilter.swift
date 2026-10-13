@@ -240,4 +240,17 @@ enum SidebarEntry: Identifiable {
             return NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false)
         }
     }
+
+    /// D197 (Q377): the header date under the Recorded / Added picker. A pipeline row reads its
+    /// memo's added date by shared id (`addedAtByID`), falling back to its recorded date.
+    func groupDate(field: MemoDateField, addedAtByID: [String: Date]) -> Date {
+        switch self {
+        case .file(let f):
+            return NotesListModel.groupDate(recordedAt: f.uploadedAt, lastEditedAt: f.uploadedAt, byEditTime: false,
+                                            addedAt: addedAtByID[f.id] ?? f.uploadedAt, field: field)
+        case .memo(let m):
+            return NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false,
+                                            addedAt: m.addedAt, field: field)
+        }
+    }
 }

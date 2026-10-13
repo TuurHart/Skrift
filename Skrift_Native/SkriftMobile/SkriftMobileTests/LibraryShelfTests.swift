@@ -56,7 +56,8 @@ final class LibraryShelfTests: XCTestCase {
     func testOnlyBuiltDoorsAreShown() {
         XCTAssertTrue(LibraryDoor.visible.allSatisfy(\.isBuilt))
         XCTAssertTrue(LibraryDoor.visible.contains(.audiobook))
-        XCTAssertTrue(LibraryDoor.visible.contains(.article))
-        XCTAssertFalse(LibraryDoor.visible.contains(.podcast))
+        XCTAssertTrue(LibraryDoor.visible.contains(.podcast))   // built in Q353 (Tuur approved Q371)
+        XCTAssertTrue(LibraryDoor.visible.contains(.epubOrPDF)) // built in Q354
+        XCTAssertTrue(LibraryDoor.visible.contains(.article))   // built in Q355
     }
 }

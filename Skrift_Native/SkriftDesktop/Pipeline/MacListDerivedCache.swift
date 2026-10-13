@@ -260,14 +260,23 @@ final class MacListDerivedCache {
 
         let groups: [(title: String, items: [SidebarEntry])] = p.sort == .title
             ? [(title: "", items: entries)]
-            : NotesListModel.dayGroups(entries, dayLabel: { dayLabel($0.groupDate) })
+            : NotesListModel.dateGroups(entries, date: { $0.groupDate(field: p.dateField, addedAtByID: i.addedAtByID) },
+                                        ascending: p.sort == .oldest, label: dayLabel)
+        // D197: the sections follow the picked date (Recorded by default) while Newest still sorts
+        // on the added day, so the drawn order is the groups' order, not `entries`'. The ⇧-click
+        // range and the selectable set read that drawn order.
+        let drawn = groups.flatMap(\.items)
+        let queueIDs = Set(queueRowFiles.map(\.id))
         return Derived(
             chipCounts: b.chipCounts,
             hasNoQuietMemos: i.files.isEmpty && b.unpipelined.isEmpty,
             queueRowFiles: queueRowFiles,
             entries: entries,
-            orderedIDs: queueRowFiles.map(\.id),
-            displayedIDs: entries.map { e in
+            orderedIDs: drawn.compactMap { e in
+                if case .file(let f) = e, queueIDs.contains(f.id) { return f.id }
+                return nil
+            },
+            displayedIDs: drawn.map { e in
                 switch e {
                 case .file(let f): return f.id
                 case .memo(let m): return m.id.uuidString

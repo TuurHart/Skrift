@@ -2058,7 +2058,7 @@ do: -
 check: Undated Apple Note imports now carry a 1970 date. An older installed build would fade them at once. Promote phone and Mac together before importing Apple Notes, agreed?
 ask: Undated Apple Note imports get a 1970 date, which an older build would fade at once. Release phone and Mac together?
 
-### Q272 [tuur] (tuur) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
+### Q272 [tuur] (done) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
 spec: -
 needs: -
 do: -
@@ -2237,7 +2237,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D177): the audiobook jump-back (Q151/Q273, `AudiobookSession.isJumpBack`, `beginJumpBack(to:)`) also appears on non-book notes that have a source position — PDF captures and podcast clips. Keep the '❝ N' Library capsule. Phone test `JumpBackNonBookTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./gate.sh`
 
-### Q298 [tuur] (tuur) promotion (Q186 + Q287): deploy the CloudKit prod schema for the new synced Memo.includeAudioInExport (and MemoAsset kind video once Q287 lands) before promoting either app
+### Q298 [tuur] (done) promotion (Q186 + Q287): deploy the CloudKit prod schema for the new synced Memo.includeAudioInExport (and MemoAsset kind video once Q287 lands) before promoting either app
 spec: -
 needs: Q366
 do: (fill in)
@@ -2599,7 +2599,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (doing) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (done) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
@@ -2653,25 +2653,25 @@ gate+: no
 do: D190: the Continue-listening book banner on top of the notes list goes, and goes means deleted. Remove `SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift`, both uses in `MemosListView.swift`, and anything only it used (state, strings, tests, xcodegen entries). The mini player bar while a book plays stays. Grep both apps and Shared for leftovers. FEATURES.md row updated.
 check: `! grep -rq 'ContinueListening' Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q358 [auto] (doing) build the notes list per the Q349 mock on phone, iPad and Mac
+### Q358 [auto] (done) build the notes list per the Q349 mock on phone, iPad and Mac
 spec: D190 D193 C113
 needs: Q349 Q357 Q361
 gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, and D194's picks (no importance on rows; folder line for Portfolio only; one card per group; 16 / 14; pills only while something is happening; an unrated note shows a small grey dot + "Unrated" where importance used to sit, rated notes show nothing there), on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/list-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q359 [auto] (todo) build the phone and iPad note and toolbar per the Q350 mock
+### Q359 [auto] (doing) build the phone and iPad note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on phone and iPad: the open note's look, the selection bar and "Aa" menu as signed, photo blocks moved by long-press drag between paragraphs (D112). Every C234 must-keep survives (inline pictures, capture-quote protection, speaker turns, `transcriptUserEdited`, save-now, polished-body editing, swipe-between-notes OFF). Keep the NoteOpenWork/SaveNoop counter tests green, never loosened (D186). Phone test `EditorFormattingTests` (each toolbar action writes the right markdown, photo move keeps the marker order). Screenshots against the mock, LOOK, `plan/reads/editor-apple/`. FEATURES.md row.
+do: Signed with D196's picks on top of the mock: title ABOVE the grey meta line; 'New person…' at the right end of the selection bar after the formatting items, Paste in its normal place; Export soft tint; 'Include audio in export' is a choice in the Export confirmation (per-note `Memo.includeAudioInExport`), not a header switch; 'Split speakers' in the top ⋯ menu. Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on phone and iPad: the open note's look, the selection bar and "Aa" menu as signed, photo blocks moved by long-press drag between paragraphs (D112). Every C234 must-keep survives (inline pictures, capture-quote protection, speaker turns, `transcriptUserEdited`, save-now, polished-body editing, swipe-between-notes OFF). Keep the NoteOpenWork/SaveNoop counter tests green, never loosened (D186). Phone test `EditorFormattingTests` (each toolbar action writes the right markdown, photo move keeps the marker order). Screenshots against the mock, LOOK, `plan/reads/editor-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteOpenWorkTests`
 
-### Q360 [auto] (todo) build the Mac note and toolbar per the Q350 mock
+### Q360 [auto] (done) build the Mac note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350 Q363
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
+do: Signed with D196's picks on top of the mock: title ABOVE the grey meta line; 'New person…' at the right end of the selection bar after the formatting items, Paste in its normal place; Export soft tint; 'Include audio in export' is a choice in the Export confirmation (per-note `Memo.includeAudioInExport`), not a header switch; 'Split speakers' in the top ⋯ menu. Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/mac-*.png | wc -l) -ge 1 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEditorFormattingTests.swift`
 
 ### Q361 [auto] (done) Mac perf: the sidebar derives its list once per change, not on every redraw
@@ -2711,7 +2711,7 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEx
 
 ### Q366 [auto] (todo) release prep: version bump, Release builds of both apps, the synced-field list for Q298
 spec: D186
-needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365
+needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380
 gate+: no
 do: Write `plan/release/RELEASE.md`. Bump CFBundleVersion in both project.yml files. Build the phone Release archive config and the Mac Release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`), string-grep a literal from Q357/Q358 in each product, record the paths. List every synced field and asset kind added since the installed prod build (diff the SwiftData `Memo`/`MemoAsset`/carrier models against the prod tag or commit; at least `Memo.includeAudioInExport` and MemoAsset kind `video`/`thumbnail`) with the CloudKit console steps for Q298. List the open device checks (Q17 Q63 Q64 Q272 Q280 Q281 Q302 Q304 Q309 Q311) for Tuur to clear or wave. Install nothing; never touch /Applications/Skrift.app or real data.
 check: `grep -q 'includeAudioInExport' plan/release/RELEASE.md && grep -q 'build-release' plan/release/RELEASE.md`
@@ -2742,9 +2742,9 @@ spec: -
 needs: Q298 Q368 Q369
 do: -
 check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
-ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
+ask: Prod is idle? Then: you switch on the new synced fields in the CloudKit console (steps in plan/release/RELEASE.md, ~10 min, agreed in Q298), I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
 
-### Q371 [tuur] (tuur) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
+### Q371 [tuur] (done) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
 spec: -
 needs: -
 do: -
@@ -2758,7 +2758,7 @@ gate+: yes
 do: From Q356's report: a "Send to a note" / "Move to Library" note is capture metadata (`bookID` + `bookPosition`, PDF page as "p. N" in `bookChapter`) with no quote; `LibraryHatch.isSourceLink` tells it apart on the phone, but `SourceKind.classify` (Shared/Pipeline/SourceTaxonomy.swift) cannot see that, so the Mac card and the export still say Audiobook/PDF quote (`source: Audiobook-quote`) with no quote. Make the shared classifier recognise the source-link shape (one rule in Shared, used by phone, Mac and both exporters) and export it as a link line to the source (`— *Title*, p. N` / `— *Show*, mm:ss` per D138) with `source:` naming the source kind, never an empty quote block. And D90: "Move to Library" moves the PDF, so the note's CloudKit `document` MemoAsset is removed once the Library copy exists (never before; no data loss if the move fails midway). New tests: Mac `SourceLinkExportTests` in SkriftDesktopTests (classify + exported markdown for book, PDF and episode link notes), phone `LibraryHatchMoveTests` (asset removed only after the Library copy is written). Never run SkriftDesktopUITests. FEATURES.md rows.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/SourceLinkExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchMoveTests`
 
-### Q373 [tuur] (tuur) decide: exported source spelling for Library link notes (Q372 picked PDF-link / Episode-link / Audiobook-link / Article-link)
+### Q373 [tuur] (done) decide: exported source spelling for Library link notes (Q372 picked PDF-link / Episode-link / Audiobook-link / Article-link)
 spec: D138
 needs: -
 do: -
@@ -2785,6 +2785,33 @@ needs: Q374
 do: -
 check: Tuur used the Mac on Dev; slow spots became items.
 ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click through the list, search, open and play notes, type in a title and a body, switch apps and come back, run Process once. Anything still slow or behaving oddly?
+
+### Q377 [auto] (done) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
+spec: D197 D190
+needs: -
+gate+: yes
+do: D197 on top of Q358's list (Shared/Model/MemoDate.swift `MemoDate.bucket`, Shared/UI/NotesListModel.swift, phone ListDerivedCache, Mac MacListDerivedCache): (1) add a Yesterday bucket between Today and Previous 7 Days (Europe/Lisbon calendar day); (2) sections group by the note's recorded date by default, or by its added date when the Recorded/Added date picker (Q105, C70) is on Added; within a section, newest of that same date first — an old note imported today lands in its real month. Same rule phone, iPad and Mac from the one shared bucket function. Extend ListGroupingTests (phone) and MacListWorkTests stays green (port only if needed, D163). Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
+
+### Q378 [tuur] (doing) mockup: iPad list + open note next to Apple Notes on iPad
+spec: D193 D194 D196 D197
+needs: -
+do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
+check: Tuur clicked through it and said go.
+
+### Q379 [auto] (todo) build the iPad list + note layout per the iPad mock
+spec: D193
+needs: Q378 Q358 Q359
+gate+: yes
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html` (the signed version) on the iPad width of the universal phone target: list column + open note side by side, the toolbar as signed, the full Aa list (D197). Reuse Q358's shared list row and Q359's editor; iPad-only layout code only. Screenshots on the iPad simulator next to the mock frames at the same scale into plan/reads/ipad-apple/. Phone test `IPadLayoutTests` for the size-class switch.
+check: `test $(ls plan/reads/ipad-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh IPadLayoutTests`
+
+### Q380 [auto] (todo) dead-code sweep after the rebuild: delete what Q352-Q379 left unused, Periphery on both apps
+spec: -
+needs: Q355 Q358 Q359 Q360 Q377 Q379
+gate+: yes
+do: Remove means delete (no hidden or kept-just-in-case code). Known leftovers from the workers' findings in plan/RUN.md: ChipFlow.swift + ChipLineBreakerTests + Snapshot.renderCardChips (Q358, row draws no chips); NoteCardModel fields balls/chips/quiet/quietLine kept only for parity tests (Q358) — move the parity tests onto the drawn fields and delete the dead ones; the old phone Aa grid / header chip views and the Mac header audio + split-speakers switches replaced by Q359/Q360; `.feedbackScreen("Books")` → "Library" with FeedbackQ341ScreenTagUITests (Q352); the Mac always-on status pill code (Q358). Then run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on SkriftMobile and the full SkriftDesktop scheme, and delete every finding introduced since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment, never delete a synced field). Protected tests: only ported or deleted with the code they covered (D163; list them as needs hand-merge). Update FEATURES.md rows that name deleted files. Write the before/after counts into plan/periphery.md.
+check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift' && grep -q 'Q380\|2026-10' plan/periphery.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4048,3 +4075,23 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:04 Q350 -> todo — revise per D195: Personal pill beside the rating pill (phone + Mac), calmer header, smaller Aa buttons, add-person in the selection menu
 - 2026-10-13 14:04 Q355 -> doing — worker out
 - 2026-10-13 14:04 Q350 -> doing — mockup revision out
+- 2026-10-13 14:08 Q373 -> done — Tuur: keep PDF-link / Episode-link / Audiobook-link / Article-link
+- 2026-10-13 14:08 Q298 -> done — Tuur: yes — same-day release, Mac copy-test first, ~10 min in the CloudKit console at Q370
+- 2026-10-13 14:15 Q272 -> done — Tuur: yes, keep all three
+- 2026-10-13 14:15 Q350 -> tuur — built @5012ab7c, gate 50s — awaiting sitting
+- 2026-10-13 14:17 Q371 -> done — hand-merged (Tuur 2026-10-13: approve Q371 (door assertions follow the built doors))
+- 2026-10-13 14:18 Q350 -> done — signed D196: title above the meta line, New person further right, Export soft tint, audio choice in the Export confirmation, Split speakers in ⋯; 'mac frame looks a lot better'
+- 2026-10-13 14:18 Q359 -> doing — worker out
+- 2026-10-13 14:18 Q360 -> doing — worker out
+- 2026-10-13 14:22 Q358 -> done — hand-merged (D163 blanket: protected tests only ported or deleted with the code they covered)
+- 2026-10-13 14:23 Q377 added
+- 2026-10-13 14:25 Q378 added
+- 2026-10-13 14:25 Q379 added
+- 2026-10-13 14:26 Q378 -> doing — mockup out
+- 2026-10-13 14:40 Q380 added
+- 2026-10-13 14:44 Q360 -> done — gate 43s @0303864c
+- 2026-10-13 14:44 Q377 -> doing — worker out
+- 2026-10-13 14:55 Q378 -> tuur — built @74e2fe13, gate 41s — awaiting sitting
+- 2026-10-13 15:03 Q378 -> todo — revise per D198: tab placement options, Apple attach menu minus Record Audio, full-width text
+- 2026-10-13 15:03 Q378 -> doing — mockup revision out
+- 2026-10-13 15:03 Q377 -> done — hand-merged (Tuur D197 2026-10-13: Yesterday group — ListGroupingTests assertions follow the decided behaviour)

@@ -16,9 +16,8 @@ final class ListHeadersScrollTests: XCTestCase {
         // Same numbers the Mac sidebar reads; only the pinning went.
         XCTAssertEqual(ListChrome.headerSize, 11.5)
         XCTAssertEqual(ListChrome.headerKerning, 0.5)
-        XCTAssertEqual(ListSectionHeaderStyle.text(for: "Sat 3 Oct"), "SAT 3 OCT")
-        XCTAssertEqual(ListSectionHeaderStyle.text(for: "Today"), "TODAY")
-        XCTAssertEqual(ListSectionHeaderStyle.text(for: "Longest first"), "LONGEST FIRST")
+        // Q358 (D190): the caps day-header text (`ListSectionHeaderStyle.text`) is deleted with the
+        // per-day groups; its three assertions went with it. Group headers are title case now.
     }
 
     func testHeaderRowLinesUpWithTheCardRows() {
