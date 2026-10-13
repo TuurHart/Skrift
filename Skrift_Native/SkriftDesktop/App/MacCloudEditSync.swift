@@ -20,59 +20,81 @@ final class MacCloudEditSync {
     /// Idle window before a burst of keystrokes flushes to CloudKit (avoids per-keystroke churn).
     let debounce: Duration = .seconds(1.5)
 
-    private var pending: [String: Task<Void, Never>] = [:]   // keyed by pf.id, latest reschedule wins
+    /// Q363 (M4): one pending push per note, body and title together.
+    private lazy var typing = MacTypingDebounce(delay: debounce)
+    /// Notes whose BODY polish is waiting to go out (pipeline rows only, see `note`).
+    private var bodyPending: Set<String> = []
+    /// Notes whose typed TITLE is waiting to go out. Held strongly: an unrated note's
+    /// projection row may be dropped by its pane before the window ends, and the title
+    /// must still reach the memo.
+    private var titlePending: [String: PipelineFile] = [:]
+    /// Per-note flush counter: a flush whose off-main round trip finishes after a NEWER
+    /// flush started is dropped, so an older body can never land last (M13).
+    private var flushGeneration: [String: Int] = [:]
 
     private init() {}
 
     /// Register an edit to `pf` and (re)schedule its write-back after the debounce window.
+    /// `title: true` = the edit was the typed title: it goes onto `Memo.title` on the same
+    /// debounce as the body — one CloudKit save + one sidebar notification per pause, not
+    /// per key (Q363, M4).
     ///
     /// A row with no `modelContext` is a `MemoNoteProjection` — an unrated memo rendered
     /// through the note view, with no pipeline row behind it. Its edits DO belong on the
     /// memo, but not through this carrier: this one writes a `MemoEnhancement`, i.e. "the
     /// Mac polished this", which would be a lie about a note the Mac has never processed.
-    /// `MemoNoteProjection.writeBack` puts them on the memo's own fields instead.
-    func note(_ pf: PipelineFile) {
-        guard pf.modelContext != nil else { return }
+    /// `MemoNoteProjection.writeBack` puts them on the memo's own fields instead. Its typed
+    /// title still goes out through `MacCloudMetaSync.setTitle`, as it always did.
+    func note(_ pf: PipelineFile, title: Bool = false) {
         guard MemoCloudStore.syncContainer != nil else { return }
+        let body = pf.modelContext != nil
+        guard body || title else { return }
         let id = pf.id
-        pending[id]?.cancel()
-        pending[id] = Task { [weak self, weak pf] in
+        if body { bodyPending.insert(id) }
+        if title { titlePending[id] = pf }
+        typing.schedule(id) { [weak self, weak pf] in
             guard let self else { return }
-            try? await Task.sleep(for: self.debounce)
-            guard !Task.isCancelled, let pf else { return }
-            self.pending[id] = nil
-            self.flush(pf)
+            let titled = self.titlePending.removeValue(forKey: id)
+            let bodied = self.bodyPending.remove(id) != nil
+            if let titled { MacCloudMetaSync.setTitle(titled.enhancedTitle, for: titled) }
+            if bodied, let pf { self.flush(pf) }
         }
     }
 
     /// Push the edited polish now. Reads `pf.bestBodyText` at fire time, so a burst of edits
-    /// coalesces to the latest text.
+    /// coalesces to the latest text. The Sanitiser round trip runs off the main actor (M13);
+    /// only the store reads and writes stay on it.
     private func flush(_ pf: PipelineFile) {
         guard let container = MemoCloudStore.container else { return }
-        do {
-            let people = NamesStore.shared.livePeople()
-            let raw = Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people)
-            let ctx = container.mainContext
-            let memo = MacCloudWriteBack.resolve(for: pf, in: ctx)
-            let before = memo.flatMap { EditConflicts.polishedBody(for: $0.id, in: ctx) }
-            // A title/summary-only edit never touches `pf.sanitised`, but re-`process`ing it and
-            // unlinking it again (the same round trip `raw` just went through) isn't guaranteed
-            // to reproduce `before` byte-for-byte (short-name demotion on re-link). Round-trip
-            // `before` through the SAME pipeline so only a REAL body change registers (Q42).
-            let beforeRoundTripped = before.map {
-                Sanitiser.unlinkToSpoken(Sanitiser.process(text: $0, people: people,
-                                                           neverLink: Set(pf.unlinkedNames),
-                                                           namePicks: pf.namePicks).sanitised, people: people)
+        let id = pf.id
+        let generation = (flushGeneration[id] ?? 0) + 1
+        flushGeneration[id] = generation
+        let people = NamesStore.shared.livePeople()
+        let body = pf.bestBodyText
+        let ctx = container.mainContext
+        let memo = MacCloudWriteBack.resolve(for: pf, in: ctx)
+        // A title/summary-only edit never touches `pf.sanitised`; `MacEditRoundTrip` round-trips
+        // the stored polish through the same pipeline so only a REAL body change registers (Q42).
+        let before = memo.flatMap { EditConflicts.polishedBody(for: $0.id, in: ctx) }
+        let neverLink = Set(pf.unlinkedNames)
+        let namePicks = pf.namePicks
+        Task { @MainActor [weak self, weak pf] in
+            let trip = await MacEditRoundTrip.offMain(body: body, before: before, people: people,
+                                                      neverLink: neverLink, namePicks: namePicks)
+            guard let self, let pf, self.flushGeneration[id] == generation else { return }
+            self.flushGeneration[id] = nil
+            do {
+                try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: DeviceID.current(),
+                                             bodyOverride: trip.raw)
+                // C98 (Q38): he edited the polished body here, so it is a words edit for conflict
+                // detection. Only when the body actually moved: a title/summary edit flushes here too.
+                if trip.bodyMoved, let memo,
+                   EditConflicts.recordPolishedEdit(memo, in: ctx) {
+                    try ctx.save()
+                }
+            } catch {
+                AppLog.cloudkit.error("edit write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
             }
-            try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: DeviceID.current(), bodyOverride: raw)
-            // C98 (Q38): he edited the polished body here, so it is a words edit for conflict
-            // detection. Only when the body actually moved: a title/summary edit flushes here too.
-            if let memo, beforeRoundTripped != raw,
-               EditConflicts.recordPolishedEdit(memo, in: ctx) {
-                try ctx.save()
-            }
-        } catch {
-            AppLog.cloudkit.error("edit write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
 }

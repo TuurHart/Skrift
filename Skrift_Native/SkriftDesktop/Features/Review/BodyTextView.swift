@@ -104,6 +104,24 @@ struct BodyTextView: NSViewRepresentable {
     /// Q325: changes when a photo file may have landed (the reconcile sweep nudges the row), so a
     /// card can become its photo without a text change.
     var photoToken: Date? = nil
+    /// Q363 (M6b): which note this view shows. SwiftUI reuses the view across note switches, so
+    /// a debounced commit still pending at a switch is written to the note it was typed in
+    /// before the new note renders. nil = the host shows one fixed text (snapshots).
+    var noteID: String? = nil
+
+    /// Everything the full `restyle` reads besides the text: when none of it changed, an
+    /// update (a resize frame, re-created closures) skips the restyle (Q363, M6).
+    struct StyleKey: Equatable {
+        var suggested: [AmbiguousOccurrence]
+        var people: [Person]
+        var quoteAttribution: String?
+        var linksClickable: Bool
+        var speakersAssignable: Bool
+    }
+    var styleKey: StyleKey {
+        StyleKey(suggested: suggested, people: people, quoteAttribution: quoteAttribution,
+                 linksClickable: onLinkedUnlink != nil, speakersAssignable: speakerAssign != nil)
+    }
 
     /// Which word is playing (a MODEL word index, from the shared `KaraokeTrack`; nil = none
     /// yet) + a click-a-word → seek callback (arg = the clicked word's model INDEX, so the
@@ -192,10 +210,18 @@ struct BodyTextView: NSViewRepresentable {
             coordinator.openPhoto(at: loc, in: tv)
         }
         coordinator.render(tv, model: text)
+        coordinator.gate.accounted(text)
+        coordinator.noteID = noteID
         return tv
     }
 
     func updateNSView(_ tv: SelfSizingTextView, context: Context) {
+        // M6b: a note switch with a commit still pending writes that typing to the note it
+        // was typed in (the OLD parent's binding) before the new note renders.
+        if context.coordinator.noteID != noteID {
+            context.coordinator.flushPendingToCurrentNote(tv)
+            context.coordinator.noteID = noteID
+        }
         // SwiftUI REUSES this NSView across note switches, so refresh the coordinator's
         // parent — otherwise its `text` binding write-back + `imageURL` resolver + `onUnlink`
         // callback stay bound to the first note shown.
@@ -205,7 +231,10 @@ struct BodyTextView: NSViewRepresentable {
             tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
             tv.invalidateIntrinsicContentSize()
         }
-        // Re-render only on an EXTERNAL change. `modelString` must differ from BOTH:
+        // Re-render only on an EXTERNAL change (`BodyUpdateGate`, Q363). Never while a
+        // debounced commit is pending: the binding lags the typing then, and re-rendering
+        // would put the older model text back (M6b). Otherwise only when the binding moved
+        // since the text the view is known to show, and then `modelString` must differ from BOTH:
         //  • the raw binding — our own edit already wrote `text = modelString`, so equal
         //    here means "this is our own keystroke", skip (this is the load-bearing guard
         //    while editing NEXT TO a snapped photo: mid-edit the reconstruct isn't
@@ -215,8 +244,14 @@ struct BodyTextView: NSViewRepresentable {
         //    fallback (`BodyV2Legacy`), so a raw-only compare would loop
         //    forever on it (raw ≠ shown when a photo is mid-sentence). Identity for v2.
         // Differ from both ⇒ the text genuinely changed under us (a phone sync).
-        let ms = context.coordinator.modelString(tv)
-        let textChanged = ms != text && ms != BodyV2Legacy.shown(text).text
+        // A full restyle runs only when a styling input changed or playback just ended (M6).
+        let coordinator = context.coordinator
+        let plan = coordinator.gate.plan(
+            model: text, commitPending: coordinator.commitPending, style: styleKey,
+            playing: karaoke != nil,
+            storageModel: { coordinator.modelString(tv) },
+            shown: { BodyV2Legacy.shown($0).text })
+        let textChanged = plan.render
         if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()
@@ -238,8 +273,9 @@ struct BodyTextView: NSViewRepresentable {
         } else {
             if tv.isEditable == readOnly { tv.isEditable = !readOnly }
             tv.liveTurnLoc = nil          // paused → no turn is "now"
-            // render() already restyled; otherwise we're leaving karaoke — restyle in place.
-            if !textChanged { context.coordinator.restyle(tv) }
+            // render() already restyled; otherwise only a styling input change or leaving
+            // karaoke restyles in place (the gate decided above).
+            if plan.restyle { context.coordinator.restyle(tv) }
         }
         if let token = focusToken, context.coordinator.lastFocusToken != token {
             context.coordinator.lastFocusToken = token
@@ -344,7 +380,14 @@ struct BodyTextView: NSViewRepresentable {
         /// Live-people snapshot for the link tooltips applied on every restyle —
         /// refreshed per render (note switch / external change) and per unlink click,
         /// NOT per keystroke (`livePeople()` reads names.json from disk).
-        private var peopleCache: [Person] = []
+        private var peopleCache: [Person] = [] {
+            didSet {
+                guard oldValue != peopleCache else { return }
+                peopleByBareName = Dictionary(
+                    peopleCache.map { (NamesMerge.bareName($0.canonical).lowercased(), $0) },
+                    uniquingKeysWith: { first, _ in first })
+            }
+        }
         init(_ parent: BodyTextView) { self.parent = parent }
 
         /// R90: the pending debounced model commit — `modelString` (an O(document)
@@ -352,6 +395,24 @@ struct BodyTextView: NSViewRepresentable {
         /// only run once per second of typing, the way the phone debounces
         /// `commitDraft`, instead of on every keystroke.
         private var commitTask: Task<Void, Never>?
+        /// A debounced commit is in flight: the binding lags what is on screen (M6b).
+        var commitPending: Bool { commitTask != nil }
+        /// Q363: what `updateNSView` re-renders / restyles for, and which note is shown.
+        var gate = BodyUpdateGate<BodyTextView.StyleKey>()
+        var noteID: String?
+
+        /// The note is about to change under this reused view: write a still-pending commit
+        /// to the CURRENT parent's binding (the note it was typed in). Deferred a turn so the
+        /// binding is not written during the SwiftUI update; the binding holds its own note.
+        func flushPendingToCurrentNote(_ tv: SelfSizingTextView) {
+            guard commitPending else { return }
+            commitTask?.cancel()
+            commitTask = nil
+            let ms = modelString(tv)
+            let binding = parent.$text
+            guard ms != binding.wrappedValue else { return }
+            DispatchQueue.main.async { binding.wrappedValue = ms }
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? SelfSizingTextView else { return }
@@ -385,7 +446,8 @@ struct BodyTextView: NSViewRepresentable {
             commitTask = nil
             let ms = modelString(tv)
             if ms != parent.text { parent.text = ms }   // attachments → [[img_NNN]] markers
-            restyle(tv)                                  // full pass — links/headings/turns/suggested catch up
+            gate.accounted(ms)                           // our own text: no re-render for it
+            restyle(tv)                                // full pass — links/headings/turns/suggested catch up
             return ms
         }
 
@@ -902,6 +964,7 @@ struct BodyTextView: NSViewRepresentable {
         /// Mac→phone edit sync), as one decisive act.
         private func show(model: String, in tv: SelfSizingTextView) {
             parent.text = model
+            gate.accounted(model)
             render(tv, model: model)
             tv.invalidateIntrinsicContentSize()
         }
@@ -1070,6 +1133,7 @@ struct BodyTextView: NSViewRepresentable {
                                          range: NSRange(location: sep, length: 1))
                 }
             }
+            tv.invalidateTurnRects()   // a full pass resets fonts and paragraph styles
             tv.speakerTurns = gutters
             // LINKED tier: a person `[[link]]` gets the accent-link color (#9d8ff7) + a
             // click-to-unlink hover tooltip; other wiki-links (places, etc.) keep the plain accent.
@@ -1181,11 +1245,13 @@ struct BodyTextView: NSViewRepresentable {
         private func person(matchingCore core: String) -> Person? {
             let key = Sanitiser.linkTarget(core)
             guard !key.isEmpty else { return nil }
-            return peopleCache.first {
-                NamesMerge.bareName($0.canonical)
-                    .caseInsensitiveCompare(key) == .orderedSame
-            }
+            return peopleByBareName[key.lowercased()]
         }
+
+        /// `peopleCache` keyed by lowercased bare name, built once per roster (Q363, M14), so a
+        /// full restyle costs one lookup per `[[link]]` instead of a scan of every person.
+        /// First person wins on a clash, as the old linear `first` did.
+        private var peopleByBareName: [String: Person] = [:]
 
         /// Each `parent.suggested` occurrence (offset/length into the RAW
         /// `PipelineFile.sanitised`) mapped to its STORAGE range: the ONE remap is the
@@ -1857,7 +1923,39 @@ final class SelfSizingTextView: NSTextView {
     /// Conversation turns: each gutter attachment's storage location + its speaker's hue
     /// slot, ascending. Set by `restyle`. Drawn rather than attributed — a 2pt bar spanning
     /// a turn that wraps to four lines is geometry, not a character attribute.
-    var speakerTurns: [(loc: Int, slot: Int)] = [] { didSet { needsDisplay = true } }
+    /// Reassigned on every full restyle; only a real change repaints (Q363, M14).
+    var speakerTurns: [(loc: Int, slot: Int)] = [] {
+        didSet {
+            guard !oldValue.elementsEqual(speakerTurns, by: { $0.loc == $1.loc && $0.slot == $1.slot }) else { return }
+            turnRectCache = nil
+            needsDisplay = true
+        }
+    }
+    /// `turnRects()` measured once per text / turns / width, not per draw (M14). Cleared by any
+    /// character edit (typed or programmatic), a turns change, a width change, and
+    /// `invalidateTurnRects()` after a full restyle (fonts). A karaoke recolor or a search-hit
+    /// paint only touches colours, so it keeps the cache.
+    private var turnRectCache: [(rect: NSRect, slot: Int, loc: Int)]?
+    private var storageEditObserver: NSObjectProtocol?
+    func invalidateTurnRects() { turnRectCache = nil }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard storageEditObserver == nil, let storage = textStorage else { return }
+        storageEditObserver = NotificationCenter.default.addObserver(
+            forName: NSTextStorage.didProcessEditingNotification, object: storage, queue: nil
+        ) { [weak self] note in
+            guard let storage = note.object as? NSTextStorage,
+                  storage.editedMask.contains(.editedCharacters) else { return }
+            self?.turnRectCache = nil
+        }
+    }
+    deinit {
+        if let storageEditObserver { NotificationCenter.default.removeObserver(storageEditObserver) }
+    }
+    override func setFrameSize(_ newSize: NSSize) {
+        if newSize.width != frame.width { turnRectCache = nil }
+        super.setFrameSize(newSize)
+    }
     /// While playing, the gutter location of the turn being read (mock E1 · b). nil = paused.
     var liveTurnLoc: Int? { didSet { if oldValue != liveTurnLoc { needsDisplay = true } } }
 
@@ -2055,6 +2153,13 @@ final class SelfSizingTextView: NSTextView {
     /// inline photos, chips and checkboxes. Trailing blank lines are trimmed off, or every
     /// spine would overshoot into the gap before the next speaker.
     private func turnRects() -> [(rect: NSRect, slot: Int, loc: Int)] {
+        if let turnRectCache { return turnRectCache }
+        let rects = measureTurnRects()
+        turnRectCache = rects
+        return rects
+    }
+
+    private func measureTurnRects() -> [(rect: NSRect, slot: Int, loc: Int)] {
         guard let lm = layoutManager, let tc = textContainer, !speakerTurns.isEmpty else { return [] }
         let ns = string as NSString
         var out: [(NSRect, Int, Int)] = []
