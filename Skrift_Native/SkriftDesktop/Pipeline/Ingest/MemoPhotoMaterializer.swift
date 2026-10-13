@@ -25,7 +25,9 @@ enum MemoPhotoMaterializer {
                                    fetchAssets: () -> [MemoAsset]) -> Bool {
         let linkThumbWrote = materializeLinkThumbnail(memo: memo, pf: pf, fetchAssets: fetchAssets)
         let videoWrote = materializeVideo(memo: memo, pf: pf, fetchAssets: fetchAssets)
-        let thumbWrote = linkThumbWrote || videoWrote
+        // D199: the body's videos and files heal the same way (`MacNoteAttachments`).
+        let attachmentsWrote = MacNoteAttachments.materializeMissing(memo: memo, pf: pf, fetchAssets: fetchAssets)
+        let thumbWrote = linkThumbWrote || videoWrote || attachmentsWrote
         let manifest = memo.metadata?.imageManifest ?? []
         guard !manifest.isEmpty, let folder = pf.workingFolder else { return thumbWrote }
 

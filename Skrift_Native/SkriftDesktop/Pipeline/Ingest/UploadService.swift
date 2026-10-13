@@ -101,7 +101,11 @@ struct UploadService: Sendable {
             try audio.blob.write(to: original)
             // C63 / C148 / D172: a video filed Inspiration / Idea / Project brings its movie
             // (a synced `video` asset). Written as `source.<ext>`, where `VaultExporter` looks.
-            if let movie = assets.first(where: { $0.kind == MemoAsset.Kind.video }), !movie.blob.isEmpty {
+            // Only the KEPT movie (`videoFilename`): a video attached inside the body (D199) is
+            // also a `video` row and is not this note's source.
+            let kept = memo.metadata?.videoFilename
+            if let movie = assets.first(where: { $0.kind == MemoAsset.Kind.video && $0.filename == kept }),
+               !movie.blob.isEmpty {
                 try? movie.blob.write(to: folder.appendingPathComponent(
                     VideoKeep.macSourceName(forAssetFilename: movie.filename)))
             }

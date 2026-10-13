@@ -80,6 +80,15 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// every real note; an older decoder ignores the key.
     var testLibrary: Bool?
 
+    /// D199: the videos and files in the note body, in marker order (`[[vid_NNN]]` /
+    /// `[[file_NNN]]` = the Nth entry, `NoteAttachment`). Their bytes sync as `MemoAsset` kinds
+    /// `video` / `file`. ADDITIVE + optional - nil on every note without one.
+    var attachmentManifest: [NoteAttachmentEntry]?
+
+    /// D202: the filenames of the attachments the person switched to LARGE (Apple's small/large
+    /// switch, small by default). ADDITIVE + optional - nil = every attachment small.
+    var largeAttachments: [String]?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
