@@ -10,6 +10,7 @@ final class MacListGroupDateTests: XCTestCase {
     private var cal: Calendar = {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone(identifier: "Europe/Lisbon")!
+        c.locale = Locale(identifier: "en_GB")
         return c
     }()
     private func at(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12) -> Date {
