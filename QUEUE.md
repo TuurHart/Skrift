@@ -2643,7 +2643,7 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 spec: D90 D127 D138 D177 C229
 needs: Q353 Q354
 gate+: yes
-do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
+do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q353: a podcast link shared from another app goes to Library (not a note), and the Q6 player's 'notes from this episode' row. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests`
 
 ### Q357 [auto] (done) delete the Continue-listening card and its code
@@ -2743,6 +2743,13 @@ needs: Q298 Q368 Q369
 do: -
 check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
 ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
+
+### Q371 [tuur] (todo) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
+spec: -
+needs: -
+do: -
+check: Tuur approved; the conductor flips `testOnlyBuiltDoorsAreShown` (XCTAssertFalse(.podcast) → True, same for .pdf once Q354 lands) via plan/hand-merge.sh and `plan/mtest.sh LibraryShelfTests` passes.
+ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q353/Q354 built them. OK to flip those assertions so the test matches?
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -3979,3 +3986,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:43 Q362 -> done — gate 73s @5201903e
 - 2026-10-13 10:46 Q365 -> done — gate 71s @7cd7a694
 - 2026-10-13 10:57 Q353 -> done — gate 65s @53c3e7a2
+- 2026-10-13 10:57 Q371 added
