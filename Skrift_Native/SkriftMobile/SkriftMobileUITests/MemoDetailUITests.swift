@@ -119,11 +119,14 @@ final class MemoDetailUITests: XCTestCase {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
-        // Split-speakers is a dedicated post-transcript toolbar button (person.2.fill),
-        // shown for a memo with transcript + audio; tapping it offers Auto / N speakers.
-        let split = app.buttons["split-speakers-button"]
+        // Split speakers lives in the top ⋯ menu (D196; the toolbar button was removed). It is
+        // offered for a memo with transcript + audio; tapping it offers Auto / N speakers.
+        let menu = app.buttons["detail-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "⋯ menu missing")
+        menu.tap()
+        let split = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Split speakers")).firstMatch
         XCTAssertTrue(split.waitForExistence(timeout: 5),
-                      "Split-speakers button missing for a memo with transcript + audio")
+                      "Split speakers missing from the ⋯ menu for a memo with transcript + audio")
         split.tap()
         XCTAssertTrue(app.buttons["Auto"].waitForExistence(timeout: 5),
                       "'How many speakers?' options didn't appear after tapping Split speakers")
