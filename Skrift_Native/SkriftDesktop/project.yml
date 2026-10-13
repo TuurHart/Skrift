@@ -123,7 +123,7 @@ targets:
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "186"
+        CURRENT_PROJECT_VERSION: "187"
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
         # The Mac records too (2026-07-28). macOS TCC needs this string even though the app is
         # NOT sandboxed — without it, requesting mic access kills the process rather than
