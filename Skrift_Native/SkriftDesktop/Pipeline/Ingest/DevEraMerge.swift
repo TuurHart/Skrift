@@ -249,8 +249,8 @@ enum DevEraMerge {
 
         var macInserts: [(Date, UUID)] = []
         var phoneInserts: [(Date, UUID)] = []
-        for (id, rows) in oldGroups {
-            guard let oldK = MemoDuplicates.keeper(of: rows) else { continue }
+        for (id, group) in oldGroups {
+            guard let oldK = MemoDuplicates.keeper(of: group) else { continue }
             if let prodRows = prodGroups[id], let prodK = MemoDuplicates.keeper(of: prodRows) {
                 plan.counts.inBoth += 1
                 compareShared(old: oldK, prod: prodK, split: splitDate, into: &plan)
