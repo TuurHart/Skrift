@@ -136,7 +136,8 @@ final class MacListWorkTests: XCTestCase {
         _ = derive(c, k)
         XCTAssertEqual(c.baseBuilds, 1)
         // A polish finishing on a row changes Done; no list input changed, only the model did.
-        let target = k.files.first { $0.enhanceStatus != .done && !$0.locked }!
+        let target = k.files.first { $0.enhanceStatus != .done && !$0.locked
+            && $0.enhancedTitle == nil && $0.enhancedSummary == nil && $0.enhancedCopyedit == nil }!
         target.enhanceStatus = .done
         XCTAssertTrue(c.isDirty, "observation must mark the base stale")
         let after = derive(c, k).chipCounts[.done]

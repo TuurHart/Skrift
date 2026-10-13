@@ -36,49 +36,35 @@ struct SidebarView: View {
     /// Locking a note this machine already exported (Q100 / C161): the plaintext file stays.
     @State private var lockVaultNotice = false
 
-    private var filtered: [PipelineFile] { model.visible(files) }
-    /// `filtered` minus a quiet local take (unrated, error-free Mac recording — the
-    /// unrated-take doctrine, 2026-07-28): it never renders as a lit `QueueRowView`,
-    /// so it must not sit in the ordered/selectable row list either. Its twin `Memo`
-    /// renders instead via `quietMemoRow` (see `unpipelinedMemos`/`WayOutRules`).
-    private var queueRowFiles: [PipelineFile] { filtered.filter { !WayOutRules.isQuietLocalTake($0) } }
-    private var orderedIDs: [String] { queueRowFiles.map(\.id) }
+    /// Q361 (D191 / M1): the list as ONE cached model, rebuilt when the memo set (or a model
+    /// property it read) changes, never per body pass / meter tick / run tick. Rows, chip counts,
+    /// quiet and stranded sets, sort and day groups all come from it.
+    @State private var listCache = MacListDerivedCache()
+    /// Bumped by `refreshCloudMemos` whenever it re-reads the store: the cache's memo-set version.
+    @State private var memoVersion = 0
+    /// The search text after a ~150 ms pause (M11): the list matches on this, the field on the live text.
+    @State private var debouncedQuery = ""
+
+    private var derived: MacListDerivedCache.Derived {
+        listCache.derived(
+            .init(files: files, memos: effectiveCloudMemos, memoVersion: memoVersion, backlinked: backlinkedIDs,
+                  addedAtByID: model.addedAtByID, processedIDs: model.processedIDs),
+            params: .init(chip: model.filter, query: debouncedQuery, from: model.dateFrom, to: model.dateTo,
+                          dateField: model.dateField, sort: model.sort, unlocked: LockGate.shared.unlockedIDs),
+            fileTitle: { $0.queueTitle }, entryTitle: { $0.title }, dayLabel: { MemoDate.group($0) })
+    }
+    /// The pipeline rows as drawn, minus a quiet local take (unrated, error-free Mac recording —
+    /// the unrated-take doctrine, 2026-07-28): it never renders as a lit `QueueRowView`, so it
+    /// must not sit in the ordered/selectable row list either. Its twin `Memo` renders instead
+    /// via `quietMemoRow` (see `WayOutRules`).
+    private var orderedIDs: [String] { derived.orderedIDs }
     /// Every row as drawn, quiet unrated notes included — the span a ⇧-click range runs over.
-    private var displayedIDs: [String] {
-        entries.map { entry in
-            switch entry {
-            case .file(let f): return f.id
-            case .memo(let m): return m.id.uuidString
-            }
-        }
-    }
-    /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over
-    /// ALL live items (not the filtered view), like the old triage line's counts.
-    ///
-    /// Q37 fix: Needs Work used to count ONLY `files` (PipelineFile rows), so a
-    /// rated memo waiting on its OWN row — `strandedMemos`, WayOutRules.stranded —
-    /// was invisible to the chip (the "Needs Work 6 vs the iPad's 99" gap over the
-    /// same corpus: the iPad's Needs Work chip scans every rated
-    /// memo directly, with no pipeline-row prerequisite). Unrated switched from the
-    /// band's `unpipelinedMemos` (which also excludes a fading note — right for the
-    /// row list, since the conveyor owns that row, but wrong for the doctrine above:
-    /// "ALL live items") to `ProcessPile.unrated`, the SAME shared call the iPad's
-    /// chip makes — one definition, not two.
-    ///
-    /// Q282 (D167): Needs Work / Done go through the ONE shared `QueueFilter.admits` the
-    /// phone and iPad call (via `MacListFilter.inChip`). Done = processed on any device,
-    /// never "exported", for pipeline rows and stranded memos alike.
-    private var chipCounts: [QueueFilter: Int] {
-        var f = model.listFilter
-        func count(_ chip: QueueFilter) -> Int {
-            f.chip = chip
-            return files.filter { f.inChip($0) }.count + strandedMemos.filter { f.inChip($0) }.count
-        }
-        return NotesListModel.chipCounts(
-            needsWork: count(.needsWork),
-            done: count(.done),
-            notRated: ProcessPile.unrated(memos: effectiveCloudMemos).count)
-    }
+    private var displayedIDs: [String] { derived.displayedIDs }
+    /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over ALL live items
+    /// (not the filtered view). Built in `MacListDerivedCache`: Needs Work / Done go through the
+    /// ONE shared `QueueFilter.admits` (D167) over pipeline rows + stranded memos (Q37); Unrated is
+    /// `ProcessPile.unrated`, the same shared call the iPad's chip makes.
+    private var chipCounts: [QueueFilter: Int] { derived.chipCounts }
     /// Files still waiting on the Process button — gated through
     /// `coordinator.needsProcessing` too (not just `queueStatus`), so an unrated
     /// local recording is never counted into "Process N" / `canProcess`, matching
@@ -102,11 +88,6 @@ struct SidebarView: View {
     @State private var relatedIDs: [UUID] = []
     /// Row-tap peek (read-only + Flag) — same sheet the Review river uses.
     private var effectiveCloudMemos: [Memo] { fixtureCloudMemos ?? cloudMemos }
-    private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: effectiveCloudMemos, files: files) }
-    /// Rated memos with no pipeline row — see `WayOutRules.stranded`. Kept apart from
-    /// `unpipelinedMemos` on purpose: these are RATED, so they must not swell the "N not
-    /// rated" count or the Process-all set. They only need to be SEEN.
-    private var strandedMemos: [Memo] { WayOutRules.stranded(memos: effectiveCloudMemos, files: files) }
     /// Q56/R90: was a computed property re-run by EVERY quiet row's `quietMemoRow`
     /// call — O(quietRows × cloudMemos) per render. Cached instead, refreshed
     /// alongside `cloudMemos` (the only thing it derives from) — one scan per
@@ -201,7 +182,14 @@ struct SidebarView: View {
             refreshCloudMemos()
         }
         .onChange(of: files.count) { _, _ in refreshCloudMemos() }
-        .onChange(of: model.filter) { _, _ in refreshCloudMemos() }
+        // M11: the list matches on the query after a ~150 ms pause; clearing applies at once.
+        .task(id: model.searchText) {
+            let q = model.searchText
+            if q.isEmpty || q == debouncedQuery { debouncedQuery = q; return }
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !Task.isCancelled else { return }
+            debouncedQuery = q
+        }
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
         }
@@ -633,11 +621,12 @@ struct SidebarView: View {
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {
-        let rows = entries
+        let d = derived
+        let rows = d.entries
         // A live take pins its own synthetic row (below) whether or not there's anything
         // else to show — an empty vault mid-first-recording is not the "No memos yet" state.
         let related = relatedEntries(excluding: rows)
-        if files.isEmpty && unpipelinedMemos.isEmpty && !sessionBusy {
+        if d.hasNoQuietMemos && !sessionBusy {
             emptyQueue
         } else if rows.isEmpty && related.isEmpty && !sessionBusy {
             noMatches
@@ -658,10 +647,7 @@ struct SidebarView: View {
                 // Title sort scrambles chronological order, so day headers would
                 // repeat non-contiguously (the phone's `.longest` bypass, mirrored):
                 // one flat "All" bucket instead.
-                ForEach(model.sort == .title
-                        ? [(title: "", items: rows)]
-                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.groupDate) }),
-                        id: \.title) { group in
+                ForEach(d.groups, id: \.title) { group in
                     // Q95: the day header PINS at the top of the scroll like the phone's
                     // (`pinnedViews: [.sectionHeaders]` on the LazyVStack below). The header
                     // carries the sidebar's own ground so cards scroll UNDER it, not through it.
@@ -743,6 +729,7 @@ struct SidebarView: View {
     /// Through the shared Related rule (Q104): the same chip + date range as the list, so a
     /// filtered list never grows unfiltered Related rows underneath it.
     private func relatedEntries(excluding shown: [SidebarEntry]) -> [SidebarEntry] {
+        guard !relatedIDs.isEmpty else { return [] }   // no semantic hits: skip the O(rows) shown-set
         let exact = Set(shown.map { entry -> String in
             switch entry {
             case .file(let f): return f.id
@@ -789,22 +776,12 @@ struct SidebarView: View {
     // circles live. Right-click carries the fast verbs (Flag/Lock/Delete).
     // Rated rows keep the full click/selection machinery.
 
-    /// Stranded, quiet, locked-quiet and (while searching) fading rows, each through the
-    /// shared list rule (Q104, `MacListFilter.memoRows`): search AND chip AND the date range,
-    /// the same three tests a pipeline row and every phone row pass. Stranded notes (rated,
-    /// no pipeline row) ride every chip except Not rated; unrated kinds sit under All and
-    /// Not rated. Fading notes join only while searching (no-bad-info, 2026-07-21) — their
-    /// one-liner ("moves to Recently Deleted in Nd") is the marker.
-    private var visibleMemoRows: [Memo] {
-        model.listFilter.memoRows(memos: effectiveCloudMemos, files: files)
-    }
-
-    /// One list, two row kinds, interleaved by the active sort (Newest = added date, Q105).
-    private var entries: [SidebarEntry] {
-        var out: [SidebarEntry] = queueRowFiles.map { .file($0) }
-        out.append(contentsOf: visibleMemoRows.map { .memo($0) })
-        return model.listFilter.sort(out, by: model.sort, title: { $0.title })
-    }
+    // Stranded, quiet, locked-quiet and (while searching) fading rows, each through the shared
+    // list rule (Q104, `MacListFilter.memoRows`): search AND chip AND the date range, the same
+    // three tests a pipeline row and every phone row pass. Stranded notes (rated, no pipeline
+    // row) ride every chip except Not rated; unrated kinds sit under All and Not rated. Fading
+    // notes join only while searching (no-bad-info, 2026-07-21). One list, two row kinds,
+    // interleaved by the active sort (Newest = added date, Q105): `derived.entries`.
 
     private func quietMemoRow(_ memo: Memo) -> some View {
         let selected = model.selection.contains(memo.id.uuidString)
@@ -894,32 +871,36 @@ struct SidebarView: View {
     }
 
 
+    /// Re-read the shared store. Triggers: launch, a sync/ingest/edit announcement, a change in
+    /// the number of pipeline rows. NOT a chip tap: the filter does not change the memo set (M3).
+    /// One `MemoEnhancement` fetch feeds both the backlink copy-edits and the Done set.
     private func refreshCloudMemos() {
-        defer {
-            let copyedits = fixtureCloudMemos == nil
-                ? (MemoCloudStore.container.map { Backlinks.copyeditsByMemoID(in: ModelContext($0)) } ?? [:]) : [:]
-            backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos, copyedits: copyedits)
-            // Q105: Newest + the Added filter read the memo's `addedAt` (a pipeline row carries
-            // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
-            let added = MacListFilter.addedDates(memos: effectiveCloudMemos)
-            if model.addedAtByID != added { model.addedAtByID = added }
-            // Q282 (D167): which notes a polish pass ran for on ANY device, for the Done chip.
-            let processed = fixtureCloudMemos == nil
-                ? MacListFilter.processedIDs(enhancements: (try? cloudSnapshot?.context.fetch(
-                    FetchDescriptor<MemoEnhancement>())) ?? [])
-                : []
-            if model.processedIDs != processed { model.processedIDs = processed }
+        var enhancements: [MemoEnhancement] = []
+        if fixtureCloudMemos == nil {
+            // FRESH CONTEXT, not `mainContext` — the same trap `MemoCloudReconciler.reconcile`
+            // documents and fixed for itself (2026-07-15): a CloudKit import writes to the
+            // persistent STORE but does NOT refresh objects already registered with
+            // `mainContext`, so it hands back STALE memos and a just-synced one is missing.
+            // A brand-new context has an empty row cache, so every fetch hits the store.
+            if let cloud = MemoCloudStore.container {
+                let snap = CloudMemoSnapshot(container: cloud)
+                cloudSnapshot = snap
+                cloudMemos = snap.memos
+                enhancements = (try? snap.context.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+            } else {
+                cloudMemos = []
+            }
         }
-        guard fixtureCloudMemos == nil else { return }   // snapshot fixtures: never open the real store
-        guard let cloud = MemoCloudStore.container else { cloudMemos = []; return }
-        // FRESH CONTEXT, not `mainContext` — the same trap `MemoCloudReconciler.reconcile`
-        // documents and fixed for itself (2026-07-15): a CloudKit import writes to the
-        // persistent STORE but does NOT refresh objects already registered with
-        // `mainContext`, so it hands back STALE memos and a just-synced one is missing.
-        // A brand-new context has an empty row cache, so every fetch hits the store.
-        let snap = CloudMemoSnapshot(container: cloud)
-        cloudSnapshot = snap
-        cloudMemos = snap.memos
+        backlinkedIDs = MemoLifecycle.backlinkedIDs(in: effectiveCloudMemos,
+                                                    copyedits: Backlinks.copyeditsByMemoID(enhancements))
+        // Q105: Newest + the Added filter read the memo's `addedAt` (a pipeline row carries
+        // only the recorded date). Cached beside the fetch, like `backlinkedIDs`.
+        let added = MacListFilter.addedDates(memos: effectiveCloudMemos)
+        if model.addedAtByID != added { model.addedAtByID = added }
+        // Q282 (D167): which notes a polish pass ran for on ANY device, for the Done chip.
+        let processed = MacListFilter.processedIDs(enhancements: enhancements)
+        if model.processedIDs != processed { model.processedIDs = processed }
+        memoVersion &+= 1
     }
 
     /// Search/filter excluded every memo (the queue itself isn't empty). Mirrors
@@ -1344,7 +1325,10 @@ private struct QueueRowView: View {
         // "Book · ch. N" chip, a video's source chip, a capture's title + domain chip all
         // arrive through `file.cardFacts` (a book capture and a video are both `.audio`
         // rows, so the old `sourceType != .audio` chip test never saw them).
-        m.apply(NoteCardBuilder.content(for: file.cardFacts))
+        // Q361 (M9): built once per note version, not on every hover / selection change.
+        m.apply(MacRowSnippetCache.shared.value(id: "pf-" + file.id, version: file.cardVersion) {
+            NoteCardBuilder.content(for: file.cardFacts)
+        })
         return m
     }
 }

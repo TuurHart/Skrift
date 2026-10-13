@@ -134,16 +134,21 @@ struct MacListFilter {
 
     /// The memo rows: stranded, quiet, locked-quiet and — while searching — fading notes
     /// without a pipeline row, every kind through the same search + chip + date rule.
-    func memoRows(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
+    /// `backlinked` (Q361, M2): the sidebar's cached backlink set. nil scans ONCE here (the old
+    /// shape scanned every transcript three times per call).
+    func memoRows(memos: [Memo], files: [PipelineFile], backlinked: Set<UUID>? = nil,
+                  now: Date = Date()) -> [Memo] {
+        let bl = backlinked ?? MemoLifecycle.backlinkedIDs(in: memos)
+        let quiet = WayOutRules.quietSplit(memos: memos, files: files, backlinked: bl, now: now)
         let live = WayOutRules.stranded(memos: memos, files: files)
-            + WayOutRules.unpipelined(memos: memos, files: files, now: now)
+            + quiet.unpipelined
             // A locked quiet note stays in the list as title + 🔒 (Q100, C91).
-            + WayOutRules.lockedQuiet(memos: memos, files: files, now: now)
+            + quiet.lockedQuiet
         let searching = NotesListModel.isSearching(query)
         var fading: [Memo] = []
         if searching {
             let ingested = Set(files.compactMap { UUID(uuidString: $0.id) })
-            fading = MemoLifecycle.partition(memos, now: now).fading.filter {
+            fading = MemoLifecycle.partition(memos, backlinked: bl, now: now).fading.filter {
                 !NoteConsent.isRated($0) && !ingested.contains($0.id)
             }
         }

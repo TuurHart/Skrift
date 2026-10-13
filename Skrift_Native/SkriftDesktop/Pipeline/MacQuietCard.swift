@@ -36,7 +36,10 @@ enum MacQuietCard {
         if conflicted { m.statusPill = .twoVersions }
         // Q106 (C115): title, quote, snippet and source / book / duration / place / weather / tag
         // chips from the ONE shared builder the rated rows and the phone call.
-        m.apply(NoteCardBuilder.content(for: memo.cardFacts()))
+        // Q361 (M9): built once per note version (the snippet is a regex pass over the body).
+        m.apply(MacRowSnippetCache.shared.value(id: "memo-" + memo.id.uuidString, version: memo.cardVersion) {
+            NoteCardBuilder.content(for: memo.cardFacts())
+        })
         return m
     }
 }
