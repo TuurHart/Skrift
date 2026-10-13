@@ -199,12 +199,12 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 /* overlays */
 .veil{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .hmenu{position:absolute;z-index:22;width:250px;border-radius:16px;background:var(--a-surface);box-shadow:0 14px 40px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:16px}
-.hmenu button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
+.hmenu button{font-size:16px !important;display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
 .hmenu button:first-child{border-top:0 !important}
 .hmenu .red{color:#dc2626 !important}
 .hmenu .hint{font-size:11.5px;color:var(--a-dim);padding:8px 16px;background:var(--a-bg)}
 .amenu{position:absolute;z-index:22;width:262px;border-radius:16px;background:var(--a-surface);box-shadow:0 14px 40px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:16px}
-.amenu button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
+.amenu button{font-size:16px !important;display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;text-align:left;border-top:.5px solid var(--a-border) !important}
 .amenu button:first-child{border-top:0 !important}
 .amenu .ico{color:var(--a-accent)}
 .amenu .cut{font-size:11.5px;color:var(--a-dim);padding:8px 16px;background:var(--a-bg)}
@@ -219,7 +219,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .fs .ctr button{color:#fff !important}
 .ql{position:absolute;inset:0;z-index:30;background:var(--a-bg);display:flex;flex-direction:column}
 .ql .qtop{display:flex;align-items:center;gap:8px;padding:62px 14px 8px;font-size:15px;font-weight:600}
-.ql .qtop .dn{color:var(--a-accent);font-weight:600}
+.ql .qtop .dn{color:var(--a-accent) !important;font-weight:600;font-size:16px !important}
 .ql .qtop .tt{flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ql .qbody{flex:1;margin:6px 12px 12px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--a-border);position:relative;overflow:hidden}
 .ql .qbar{height:74px;display:flex;align-items:flex-start;justify-content:space-around;padding-top:10px;color:var(--a-accent)}
@@ -255,7 +255,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .mdock .track b{position:absolute;left:0;top:0;bottom:0;width:18%;background:var(--a-accent);border-radius:2px}
 .mdock .t{font-size:11px;color:var(--a-dim);font-variant-numeric:tabular-nums}
 .ctx{position:absolute;z-index:25;width:250px;border-radius:9px;background:var(--a-surface);box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 0 0 .5px var(--a-border);padding:5px;font-size:13px}
-.ctx button{display:flex;width:100%;padding:4px 10px;border-radius:5px;text-align:left}
+.ctx button{font-size:13px !important;display:flex;width:100%;padding:4px 10px;border-radius:5px;text-align:left}
 .ctx button:hover{background:var(--a-accent);color:#fff !important}
 .ctx .sep{height:.5px;background:var(--a-border);margin:5px 8px}
 .ctx .red{color:#dc2626}
@@ -471,7 +471,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   }
   function fileBlock(id, dev, w){
     var f = FILES[id], mmax = dev === "phone" ? w : Math.min(520, w);
-    var m = (id === "file1" && dev === S.dev) ? pk(4,"right:4px;top:-8px") + pk(3,"right:26px;top:-8px") : "";
+    var m = (id === "file1" && dev === S.dev) ? pk(4,"right:56px;top:6px") + pk(3,"right:78px;top:6px") : "";
     return '<div class="mb fcard'+(id==="file1"?" pick":"")+'" data-mb="'+id+'" data-act="file" data-f="'+id+'" style="--mmax:'+mmax+'px"><div class="fn"><div class="nm1">'+esc(f.name)+'</div><div class="sub">'+f.kind+' · '+f.size+'</div></div><span class="ficon"><i></i><b style="background:'+f.col+'">'+f.ext+'</b></span>'+m+'</div>';
   }
   function bodyHTML(dev, w){
