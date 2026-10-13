@@ -56,8 +56,6 @@ final class MacListDerivedCache {
         let chipCounts: [QueueFilter: Int]
         /// No pipeline row and no quiet memo at all (the empty-state test).
         let hasNoQuietMemos: Bool
-        /// The pipeline rows as drawn (sorted, quiet local takes out).
-        let queueRowFiles: [PipelineFile]
         /// Every row as drawn, quiet notes included, in the active sort.
         let entries: [SidebarEntry]
         let orderedIDs: [String]
@@ -270,7 +268,6 @@ final class MacListDerivedCache {
         return Derived(
             chipCounts: b.chipCounts,
             hasNoQuietMemos: i.files.isEmpty && b.unpipelined.isEmpty,
-            queueRowFiles: queueRowFiles,
             entries: entries,
             orderedIDs: drawn.compactMap { e in
                 if case .file(let f) = e, queueIDs.contains(f.id) { return f.id }

@@ -408,8 +408,10 @@ targets:
       - path: Features/MemoDetail/SignificanceCircles.swift
       - path: ../Shared/UI/NoteRatingPill.swift
       - path: ../Shared/Model/ThreeBallScale.swift
+      # Q386: the shared header row (`NoteRatingRow`) lays the phone's row out with FlowLayout.
+      - path: ../Shared/UI/FlowLayout.swift
       # DesignSystem (Theme colours, Haptics) — no UIKit/AppKit-only API here,
-      # so it builds cleanly in the extension process. Components.swift, FlowLayout,
+      # so it builds cleanly in the extension process. Components.swift,
       # TagRules and TagEditorRow are app-only (Q231; TagRowStyle.phone lives in
       # DesignSystem/TagRowStyle+Phone.swift). Theme sources its cross-app
       # hex values from the shared Palette table.

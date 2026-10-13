@@ -9,7 +9,6 @@ enum SplitSpeakersCopy {
 
     /// The Mac row on an unrated note: the Mac has no pipeline row for it (C187).
     static let rateFirst = "Rate the note first. The Mac only works on rated notes."
-    static let rateFirstShort = "Rate the note first"
 
     // MARK: Mac confirm — turning on
     static let confirmTitle = "Split this note into speakers?"

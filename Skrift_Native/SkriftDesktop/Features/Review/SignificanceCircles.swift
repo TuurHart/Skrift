@@ -47,7 +47,8 @@ extension NoteRatingPillStyle {
             height: 22,
             fontSize: 11.5,
             hitHeight: 22,
-            animation: .easeOut(duration: 0.12))
+            animation: .easeOut(duration: 0.12),
+            rowWraps: false)
     }
 }
 

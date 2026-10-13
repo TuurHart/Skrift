@@ -643,7 +643,6 @@ struct NoteBodyView: UIViewRepresentable {
         // MARK: formatting (D115, mock Q350): B I U S + the Aa panel
 
         let formatState = EditorFormatState()
-        private var formatHost: UIInputView?
 
         func toggleFormatPanel() {
             guard let tv = textView else { return }
@@ -666,7 +665,6 @@ struct NoteBodyView: UIViewRepresentable {
                 host.view.topAnchor.constraint(equalTo: input.topAnchor),
                 host.view.bottomAnchor.constraint(equalTo: input.bottomAnchor),
             ])
-            formatHost = input
             refreshFormatState()
             tv.inputView = input
             tv.reloadInputViews()
@@ -676,7 +674,6 @@ struct NoteBodyView: UIViewRepresentable {
         func hideFormatPanel() {
             guard let tv = textView, tv.inputView != nil else { return }
             tv.inputView = nil
-            formatHost = nil
             tv.reloadInputViews()
             accessory?.setFormatOpen(false)
         }
@@ -1476,7 +1473,6 @@ struct NoteBodyView: UIViewRepresentable {
             if NoteEditorChrome.shared.current === self { NoteEditorChrome.shared.isEditing = false }
             if tv.inputView != nil {             // the next edit opens on the keyboard again
                 tv.inputView = nil
-                formatHost = nil
                 accessory?.setFormatOpen(false)
             }
             // Task syntax TYPED during this session is still literal text in the

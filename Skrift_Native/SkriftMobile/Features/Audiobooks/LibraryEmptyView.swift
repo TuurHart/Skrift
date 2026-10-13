@@ -4,6 +4,17 @@ import SwiftUI
 /// (inside the existing synced carrier blob; nil = book).
 enum LibrarySourceKind: String, Codable, CaseIterable, Sendable {
     case book, episode, pdf, article
+
+    /// Q386: the shared taxonomy kind of a note that links to this source; its labels
+    /// (`sourceName`, `sourceNoun`) come from `SourceKind`, never typed here.
+    var linkKind: SourceKind {
+        switch self {
+        case .book: .audiobookLink
+        case .episode: .episodeLink
+        case .pdf: .pdfLink
+        case .article: .articleLink
+        }
+    }
 }
 
 /// One door of the empty Library tab. All four are listed in `all`; `visible` is the subset whose

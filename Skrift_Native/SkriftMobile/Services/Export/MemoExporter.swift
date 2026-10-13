@@ -71,12 +71,6 @@ enum MemoExporter {
         ExportNaming.title(for: memo, enhancement: enhancement)
     }
 
-    /// The on-device name-linked body (transcript for audio, annotation for a share-capture).
-    static func linkedBody(for memo: Memo, people: [Person]) -> String {
-        let raw = memo.isShareCapture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
-        return CompilerInput.linkBody(raw, source: memo.linkSource, people: people, resolutions: memo.nameResolutions)
-    }
-
     /// Flatten `[[Canonical|spoken]]` → "spoken", `[[Name]]` → "Name", and drop `[[img_NNN]]`
     /// markers — for plain-text / PDF / card surfaces that shouldn't show wiki syntax.
     static func flattenLinks(_ text: String) -> String {

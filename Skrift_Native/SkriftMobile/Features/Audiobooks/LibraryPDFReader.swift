@@ -15,7 +15,6 @@ struct LibraryPDFReaderView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model = PDFReaderModel()
     @State private var capture: PDFCaptureRequest?
-    @State private var movedToNote = false
     @State private var showNotes = false
 
     private var store: AudiobookLibraryStore { .shared }

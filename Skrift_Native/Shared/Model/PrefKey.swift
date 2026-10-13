@@ -35,8 +35,4 @@ enum PrefKey {
     /// Whether the Mac sidebar is showing.
     static let macSidebarVisible = "macSidebarVisible"
     static let macSidebarVisibleDefault = true
-
-    /// The author name for published notes. The key and its LWW stamp are owned by
-    /// `AuthorSettings` (Q158); this only re-exports the key.
-    static let publishAuthor = AuthorSettings.key
 }

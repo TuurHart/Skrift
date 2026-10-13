@@ -18,23 +18,14 @@ enum LibraryHatch {
     static func sentToast(title: String) -> String { "Sent to Notes. \(title) stays in Library." }
 
     /// The mock's `sub`: what kind of source it is, as one word.
+    /// Q386: the words live on the shared `SourceKind` (every link kind has both).
     static func kindLabel(_ kind: LibrarySourceKind) -> String {
-        switch kind {
-        case .book: "Audiobook"
-        case .episode: "Episode"
-        case .pdf: "PDF"
-        case .article: "Article"
-        }
+        kind.linkKind.sourceName ?? kind.linkKind.label
     }
 
     /// The noun in "N notes from this episode".
     static func kindNoun(_ kind: LibrarySourceKind) -> String {
-        switch kind {
-        case .book: "book"
-        case .episode: "episode"
-        case .pdf: "PDF"
-        case .article: "article"
-        }
+        kind.linkKind.sourceNoun ?? kind.rawValue
     }
 
     /// Where he is in the source, as the mock writes it: "1:12:05", "p. 4 of 18".
