@@ -56,6 +56,7 @@ final class LibraryShelfTests: XCTestCase {
     func testOnlyBuiltDoorsAreShown() {
         XCTAssertTrue(LibraryDoor.visible.allSatisfy(\.isBuilt))
         XCTAssertTrue(LibraryDoor.visible.contains(.audiobook))
+        XCTAssertTrue(LibraryDoor.visible.contains(.article))
         XCTAssertFalse(LibraryDoor.visible.contains(.podcast))
     }
 }
