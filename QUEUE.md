@@ -2854,7 +2854,7 @@ gate+: yes
 do: Finish what Q380 left (its finding in plan/RUN.md). (a) Re-run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on a `git archive` snapshot in your scratch dir — inside a worktree Periphery refuses a second -derivedDataPath — for SkriftMobile and the full SkriftDesktop scheme; delete every finding in files changed since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment; never delete a synced field); write before/after counts into plan/periphery.md. (b) One shared note header row: the phone uses NoteRatingPill with the fading line on its own line (Q382) while the Mac and quick note use NoteRatingRow with the line beside the pill — make one Shared row both apps draw (phone layout from the signed Q350 mock wins). (c) Read the article/PDF/podcast/book source labels and link lines on both apps; anything not coming from SourceKind moves there. After each deletion run the FULL SkriftDesktop build too — the UnitTests bundle does not compile every file (Q380 broke EditConflictViews.swift that way). Protected tests only ported or deleted with their code (needs hand-merge list). Never run SkriftDesktopUITests.
 check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 
-### Q387 [auto] (doing) phone: hide the tab bar while a note is open (D200)
+### Q387 [auto] (done) phone: hide the tab bar while a note is open (D200)
 spec: D200
 needs: -
 gate+: yes
@@ -4191,3 +4191,4 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 - 2026-10-13 17:36 Q388 -> doing — worker out
 - 2026-10-13 17:44 Q388 -> done — gate 73s @5efc20c4
 - 2026-10-13 17:48 Q384 -> tuur — built @0480185c, gate 55s — awaiting sitting
+- 2026-10-13 17:52 Q387 -> done — gate 37s @fa4ddbe0
