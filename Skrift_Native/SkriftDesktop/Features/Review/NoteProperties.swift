@@ -71,51 +71,43 @@ struct NoteProperties: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
+        // Q360 (signed mock Q350 #m-note + D196): the title FIRST, then one grey meta line
+        // (no chip boxes), then rating · Personal · tags on one row. "Include audio in export"
+        // moved into the Export confirmation and "Split speakers" into the top ⋯ menu (D196).
+        VStack(alignment: .leading, spacing: 10) {
             titleSection
-            // Facts row — date · place · weather · daypart · source · duration ·
-            // lock. Signed mock `mocks/mac-note-header.html` (Tuur
-            // 2026-07-25, at the iPad's weight): this replaces the four-row
-            // properties table, which repeated what the chips, the player and the
-            // sidebar glyph already said.
-            FlowLayout(spacing: 6) {
-                ForEach(metaChips) { c in
-                    MacContextChip(text: c.text, systemImage: c.symbol, tint: c.tint)
+            metaLine
+            HStack(alignment: .center, spacing: 10) {
+                // Q85: importance is ONE pill, each tap steps Not rated → Passing → Useful →
+                // Important → Not rated (C88); the orange fading line sits beside it when unrated.
+                NoteRatingRow(value: $file.significance, style: .mac,
+                              fadingLine: fadingLine, lineFont: 11.5,
+                              lineColor: Theme.amber.opacity(0.9),
+                              onToast: onRatingToast)
+                    .fixedSize()
+                // WHERE this note goes when it leaves — the SHARED `DestinationRowView`
+                // (D189 Personal · Portfolio). Hidden until destinations are switched on.
+                if DestinationSettings.isEnabled {
+                    DestinationRowView(
+                        destination: Binding(get: { file.destination },
+                                             set: { file.destination = $0 }),
+                        folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
+                        onPick: { MacCloudMetaSync.setDestination($0, for: file) },
+                        style: .mac)
+                        .fixedSize()
                 }
+                // Tags (D139, `tag-ui-revamp.html`): inline field, `✕` on hover, library-wide
+                // case fold. `.onChange(of: file.tags)` below mirrors any edit to the phone.
+                TagEditorRow(tags: $file.tags, library: tagLibrary,
+                             style: .mac, libraryCounts: tagCounts,
+                             onToast: onTagToast,
+                             presets: DestinationSettings.isEnabled && file.destination.isPortfolio
+                                 ? PortfolioTagPresets.all : [])
             }
-            // Tags — their OWN row (D139 pick 3, signed mock `mocks/tag-ui-revamp.html`):
-            // an inline field (no sheet), `✕` on hover, library-wide case fold (C93/D139).
-            // `.onChange(of: file.tags)` below already mirrors any tag edit to the
-            // phone — no extra sync call needed here.
-            TagEditorRow(tags: $file.tags, library: tagLibrary,
-                         style: .mac, libraryCounts: tagCounts,
-                         onToast: onTagToast,
-                         // D189: idea / inspiration / project, one click each, Portfolio only.
-                         presets: DestinationSettings.isEnabled && file.destination.isPortfolio
-                             ? PortfolioTagPresets.all : [])
-            // Q85 (signed mock Q75-note-header-final, behaviour A): importance is ONE pill,
-            // each tap steps Not rated → Passing → Useful → Important → Not rated (C88), a
-            // toast names the step; the orange fading line sits beside it when unrated.
-            NoteRatingRow(value: $file.significance, style: .mac,
-                          fadingLine: fadingLine, lineFont: 11.5,
-                          lineColor: Theme.amber.opacity(0.9),
-                          onToast: onRatingToast)
-            // WHERE this note goes when it leaves — the SHARED `DestinationRowView`, in
-            // the same place as the phone's (signed mock note-destination-tags.html,
-            // version B collapsed). Hidden until destinations are switched on.
-            if DestinationSettings.isEnabled {
-                DestinationRowView(
-                    destination: Binding(get: { file.destination },
-                                         set: { file.destination = $0 }),
-                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
-                    onPick: { MacCloudMetaSync.setDestination($0, for: file) },
-                    style: .mac)
-            }
-            if canExport, file.sourceType == .audio { audioExportRow }
-            // Q87: Split speakers, the header's last row (greyed "Rate the note first" when unrated).
+            // Q87: the Split speakers confirm / progress, opened from the ⋯ menu (D196).
             if file.sourceType == .audio {
                 SplitSpeakersRow(file: file, coordinator: coordinator, canSplit: canExport,
-                                 interactive: interactive)
+                                 interactive: interactive, compact: true)
             }
         }
         .onChange(of: file.id, initial: true) { _, _ in
@@ -252,26 +244,23 @@ struct NoteProperties: View {
                 })
     }
 
-    /// Per-note opt-out for copying the audio into the vault on export (ST8). Kept a
-    /// REAL switch — Tuur 2026-07-25: "the include audio should still be a toggle i
-    /// think. but can be small." It's a decision you flip while looking at the note,
-    /// so it doesn't belong behind a menu; `.mini` at 11pt is enough presence.
-    @ViewBuilder private var audioExportRow: some View {
-        HStack(spacing: 8) {
-            if interactive {
-                // Q186: the choice is synced (`Memo.includeAudioInExport`), so the phone's
-                // publisher honours it too — written out the moment it is flipped.
-                Toggle("", isOn: Binding(get: { file.includeAudioInExport },
-                                         set: { file.includeAudioInExport = $0
-                                                MacCloudMetaSync.setIncludeAudio(for: file) }))
-                    .labelsHidden().toggleStyle(.switch).controlSize(.mini).tint(Theme.accent)
-            } else {
-                // ImageRenderer can't draw a switch — the snapshot path states it.
-                Text(file.includeAudioInExport ? "ON" : "OFF")
-                    .font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.accent)
+    /// The grey meta line (D195/D196, mock `.mmeta`): time · place · weather · length, plus the
+    /// conditional source / url / edited / lock facts — words with small glyphs, no chip boxes.
+    private var metaLine: some View {
+        FlowLayout(spacing: 6) {
+            ForEach(Array(metaChips.enumerated()), id: \.element.id) { i, c in
+                HStack(spacing: 6) {
+                    if i > 0 { Text("·").foregroundStyle(Theme.textMuted) }
+                    HStack(spacing: 3) {
+                        if i > 0, let s = c.symbol { Image(systemName: s).font(.system(size: 10)) }
+                        Text(c.text)
+                    }
+                    .foregroundStyle(c.tint == .link ? Theme.blue : c.tint == .warn ? Theme.amber : Theme.textSecondary)
+                }
             }
-            Text("Include audio in export").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
         }
+        .font(.system(size: 12))
+        .accessibilityIdentifier("note-meta-line")
     }
 
     /// URL row value for url captures — the host + path without the scheme for

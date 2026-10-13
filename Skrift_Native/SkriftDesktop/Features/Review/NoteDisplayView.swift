@@ -560,10 +560,7 @@ struct NoteDisplayView: View {
             .lineSpacing(3)
             .foregroundStyle(Theme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 14)
-            .overlay(alignment: .leading) {
-                Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
-            }
+            .summaryLine()
     }
 
     /// Read-only summary for the snapshot path (ImageRenderer can't draw
@@ -575,10 +572,7 @@ struct NoteDisplayView: View {
             .lineSpacing(3)
             .foregroundStyle(Theme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 14)
-            .overlay(alignment: .leading) {
-                Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
-            }
+            .summaryLine()
     }
 
     /// Context line — what you're looking at + when. (Was a "Queue ›" breadcrumb, but
@@ -631,19 +625,20 @@ struct NoteDisplayView: View {
                 CaptureSourceStrip(file: file)
             }
             Spacer()
+            // Q360 (signed mock Q350 #m-note, D195): Apple's band — one Aa, centred.
+            MacAaButton()
+            Spacer()
+            if capabilities(for: file).connections { connectionsToggle }
             // An unrated note keeps its ⋯ — copying text that's on screen needs no
             // rating — but the menu holds only the verbs that can act without a
-            // pipeline row, and the primary Process/Export button is absent.
+            // pipeline row, and the primary Process/Export button is absent. The ⋯ sits
+            // at the far right (D195), after the soft-tinted Export.
             NoteActions(file: file, coordinator: coordinator, copyOnly: !capabilities(for: file).pipeline,
                         onRemoved: onRemoved)
-            if capabilities(for: file).connections { connectionsToggle }
         }
         .padding(.horizontal, NoteLook.bandSidePadding)
         .frame(height: NoteLook.bandHeight)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.hairline.opacity(NoteLook.hairlineAlpha(dark: colorScheme == .dark)))
-                .frame(height: NoteLook.bandHairlineHeight)
-        }
+        // D195: no hairline under the band (Apple's idiom); the note column is the paper.
     }
 
     /// Is the inspector actually floating right now? (The snapshot fixture hosts
@@ -677,12 +672,13 @@ struct NoteDisplayView: View {
     /// (the iPad's 13" hasn't, so there it's a per-note visitor sheet instead).
     private var connectionsToggle: some View {
         Button { setConnections(!connectionsVisible) } label: {
+            // D195: a flat word (mock `.gl.flat`); accent while the panel stands open.
             Text(RetrievalGate.Copy.summonLabel)
                 .font(.system(size: 12.5, weight: .semibold))
                 .foregroundStyle(connectionsVisible ? Theme.accentText : Theme.textSecondary)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 10)
                 .frame(height: 30)
-                .barGlass(on: connectionsVisible, in: Capsule())
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .keyboardShortcut("c", modifiers: [.command, .option])
@@ -713,6 +709,15 @@ struct NoteDisplayView: View {
         var isDir: ObjCBool = false
         return !file.path.isEmpty
             && FileManager.default.fileExists(atPath: file.path, isDirectory: &isDir) && !isDir.boolValue
+    }
+}
+
+private extension View {
+    /// Q360 (D195, mock `.summ`): the summary is a grey line with a hairline under it — no
+    /// tinted card, no accent bar.
+    func summaryLine() -> some View {
+        padding(.bottom, 12)
+            .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.10)).frame(height: 0.5) }
     }
 }
 

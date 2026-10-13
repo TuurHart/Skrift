@@ -45,9 +45,9 @@ struct NoteToolbar: View {
                 Text(PlaybackRates.label(audio.rate))
                     .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Theme.hairline.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())   // Q360 (D195): no button boxes on the dock
             }
             .buttonStyle(.plain)
         }
@@ -66,7 +66,7 @@ struct NoteToolbar: View {
                 .font(.system(size: 17))
                 .foregroundStyle(Theme.textSecondary)
                 .frame(width: 32, height: 32)
-                .background(Theme.hairline.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
