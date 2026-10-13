@@ -186,6 +186,8 @@ struct SkriftDesktopApp: App {
 /// system delivers its silent pushes and the container imports — no manual push handling needed.
 final class MacAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Q400 (ICLOUD_MERGE A4): the one-shot merge-from-dev alert, if that folder is there.
+        MergeAlertWiring.checkAtLaunch()
         #if DEBUG
         if PerfLibrary.isActive { return }   // Q313: the perf library takes no CloudKit pushes
         #endif

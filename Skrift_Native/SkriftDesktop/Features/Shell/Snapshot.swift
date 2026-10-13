@@ -69,6 +69,11 @@ enum Snapshot {
         }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
         if let p = path("-snapshot-conflict")       { MainActor.assumeIsolated { renderConflict(to: p); exit(0) } }
+        // Q400: the one-shot merge-from-dev alert (ICLOUD_MERGE A4), synthetic counts, `-light` for light.
+        if let p = path("-snapshot-merge-alert") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated { renderMergeAlert(to: p, light: light, blocked: args.contains("-blocked")); exit(0) }
+        }
         if let p = path("-snapshot-applenotes")     { MainActor.assumeIsolated { renderAppleNotes(to: p); exit(0) } }
         if let p = path("-snapshot-audiochoice-light") { MainActor.assumeIsolated { renderAudioChoice(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-audiochoice")    { MainActor.assumeIsolated { renderAudioChoice(to: p); exit(0) } }
@@ -764,6 +769,42 @@ enum Snapshot {
     /// `EditConflictPrompt` takes a plain `EditConflict` — no store, no PipelineFile row —
     /// so this renders it directly with synthetic diverging words, same idea as `renderTags`.
     /// Triggered by: `-snapshot-conflict <path>`.
+    /// Q400: the real `NSAlert` from `MergeAlertWiring.makeAlert`, over a synthetic plan (no store).
+    /// `-blocked` renders the refusal variant (more than 20 old-only phone notes before S).
+    @MainActor private static func renderMergeAlert(to path: String, light: Bool, blocked: Bool) {
+        var plan = DevEraMerge.Plan()
+        plan.inserts = (0..<37).map { _ in UUID() }
+        plan.counts.oldOnlyMacMade = 29
+        plan.counts.oldOnlyPhoneAfterSplit = 8
+        plan.counts.oldOnlyTrashed = 4
+        plan.counts.oldOnlyPhoneBeforeSplit = blocked ? 212 : 3
+        plan.counts.enhancementsInserted = 51
+        plan.enhancementUpdates = (0..<6).map { _ in DevEraMerge.EnhancementValues(MemoEnhancement(memoID: UUID())) }
+        plan.fieldCopies = (0..<12).map { _ in
+            let id = UUID()
+            return DevEraMerge.FieldCopy(memoID: id, fields: [.title],
+                                         values: DevEraMerge.MemoFields(Memo(id: id, audioFilename: "a.m4a")))
+        }
+        plan.conflicts = [UUID(), UUID()]
+        plan.diverged = [UUID(): [.title], UUID(): [.rating], UUID(): [.title, .tags]]
+        if blocked { plan.blocked = .tooManyPhoneNotesBeforeSplit(count: 212, limit: DevEraMerge.maxPhoneNotesBeforeSplit) }
+
+        let alert = MergeAlertWiring.makeAlert(DevMergeTrigger.prompt(for: plan))
+        alert.window.appearance = NSAppearance(named: light ? .aqua : .darkAqua)
+        alert.layout()
+        guard let view = alert.window.contentView else { return }
+        view.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        do {
+            try rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+            FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
+        } catch {
+            FileHandle.standardError.write(Data("snapshot write FAILED: \(path) — \(error)\n".utf8))
+        }
+    }
+
     @MainActor private static func renderConflict(to path: String) {
         let now = Date()
         let local = NoteWords(deviceID: "MAC-DEVICE", deviceKind: "Mac",
