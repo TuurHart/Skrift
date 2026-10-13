@@ -1294,25 +1294,18 @@ enum Snapshot {
         writePNG(view, to: path, scheme: scheme)
     }
 
-    /// The two-destination row in BOTH of its states, plus the tag row with the Portfolio
-    /// presets, at the Mac's real note width — `-snapshot-destinations <path> [-noteWidth n]`.
-    /// It exists because the Mac's note column is far wider than the phone's, and segments that
-    /// simply fill the width is the failure this catches.
+    /// The destination pill (D204, a tap toggle) in BOTH of its states beside the rating pill,
+    /// plus the tag row with the Portfolio presets, at the Mac's real note width —
+    /// `-snapshot-destinations <path> [-noteWidth n]`. The Mac's note column is far wider than
+    /// the phone's; this catches a pill that stretches to fill it.
     @MainActor private static func renderDestinations(to path: String, width: CGFloat) {
         let view = VStack(alignment: .leading, spacing: 26) {
             ForEach(NoteDestination.allCases, id: \.self) { d in
-                DestinationRowView(destination: .constant(d),
-                                   folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
-                                   onPick: { _ in },
-                                   style: .mac)
+                HStack(spacing: 10) {
+                    NoteRatingPill(value: .constant(0.5), style: .mac)
+                    DestinationRowView(destination: .constant(d), onPick: { _ in }, style: .mac)
+                }
             }
-            Divider().opacity(0.2)
-            Text("EXPANDED").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.textMuted)
-            DestinationRowView(destination: .constant(.portfolio),
-                               folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
-                               onPick: { _ in },
-                               style: .mac,
-                               startExpanded: true)
             Divider().opacity(0.2)
             Text("PORTFOLIO TAG ROW — presets beside + tag").font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Theme.textMuted)

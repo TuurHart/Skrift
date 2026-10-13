@@ -1,33 +1,20 @@
 import SwiftUI
 
-/// THE destination control — signed off 2026-08-26 from `mocks/note-destination-tags.html`,
-/// version **B, COLLAPSED** (two chips since D189: Personal, Portfolio). ONE view for the Mac, the iPad and the phone (each app maps its
-/// theme into `DestinationRowStyle`, the `NoteCardView` / `SignificanceCirclesView` seam).
+/// THE destination control (D204, Q395): a tap pill that works like the rating pill (`NoteRatingPill`).
+/// One tap flips Personal ⇄ Portfolio in place. No dropdown, no menu, no sheet, no expanding row:
+/// the pill never changes size while you choose, so nothing around it re-lays out. ONE view for
+/// the Mac, the iPad and the phone (each app maps its theme into `DestinationRowStyle`, the
+/// `NoteCardView` / `NoteRatingPillStyle` seam), drawn in the header row beside the rating pill
+/// (`NoteRatingRow`'s trailing slot, Q386).
 ///
-/// **Where it lives:** on the note, directly beside the importance circles. The two decisions
-/// belong together because they are the same kind of decision — importance says *whether* a
-/// note may leave Skrift, destination says *where* — and both are one tap with nothing to open.
-/// (Version A put it inside the tag sheet; rejected — it isn't a tag. Version C put tags and
-/// destinations in one fuzzy-matched list; rejected outright, because it would land "add the
-/// word inspiration" one keystroke from "move this note into the repo an AI reads".)
+/// The two states are DELIBERATELY UNEQUAL in colour: Personal is a quiet accent pill (nothing is
+/// leaving, so nothing is said); Portfolio is the amber pill (this note goes to a repo an AI
+/// reads). The colour split carries the privacy boundary, so a glance answers "which side of the
+/// line is this note on". The folder Portfolio writes to (`_inbox/`) is spoken to VoiceOver and
+/// shown as the Mac tooltip, not drawn: a folder label appearing on the tap would move the row.
 ///
-/// **Resting, it is ONE chip: the answer it currently holds.** Tap expands to both; picking
-/// collapses it again. And the two resting states are DELIBERATELY UNEQUAL:
-///
-/// - `.personal` — a quiet accent chip and nothing else. Nothing is leaving, so nothing is said.
-/// - `.portfolio` — the chip in the portfolio colour, plus the folder it writes to (`_inbox/`).
-///   The idea / inspiration / project presets are NOT here: they are plain tags, offered by
-///   `TagEditorRow(presets:)` beside `+ add tag` while the note is Portfolio.
-///   (An "AI READS THIS" line sat here for a day; Tuur cut it 2026-08-27 — the amber chip and
-///   the named folder already carry it, and a label that shouts on every portfolio note is the
-///   always-on badge this project keeps deciding against.)
-///
-/// That asymmetry is the point, and it is the same doctrine as the notes list's status pill: an
-/// always-on badge is no signal. The warning has to mean something the moment it appears, which
-/// it only can if it is absent the rest of the time.
-///
-/// The colour split carries the boundary itself — Personal is private, Portfolio is public — so a
-/// glance answers "which side of the line is this note on" without reading a word.
+/// The idea / inspiration / project presets are plain tags, offered by `TagEditorRow(presets:)`
+/// beside `+ add tag` while the note is Portfolio.
 struct DestinationRowStyle {
     /// The private family (`.personal`) — the app accent.
     var accent: Color
@@ -36,213 +23,63 @@ struct DestinationRowStyle {
     /// The portfolio family (`.portfolio`) — the amber token.
     var portfolio: Color
     var portfolioSoft: Color
-    var text: Color
-    var textDim: Color
-    var textFaint: Color
-    var border: Color
-    var chipFill: Color
-    /// The resting chip's 1 pt ring. The Q350 note mock has a flat tinted chip (no ring), so the
-    /// phone turns it off; the Mac keeps its look until Q360 decides.
+    /// The pill's 1 pt ring. The Q350 note mock has a flat tinted pill (no ring), so the phone
+    /// turns it off; the Mac keeps its look until Q360 decides.
     var chipOutlined: Bool = true
-    /// Q382: a fixed resting-chip height (the Q350 phone mock: 26 pt, 12 pt text, level with the
-    /// 26 pt rating pill beside it). nil = the Mac's padded 11.5 pt chip, unchanged.
-    var chipHeight: CGFloat? = nil
-    /// Resting-chip text size and side padding; the defaults are the Mac's (11.5 / 9).
+    /// Pill height: 26 pt on the phone/iPad (level with the rating pill, Q382), 22 pt on the Mac.
+    var chipHeight: CGFloat = 22
+    /// Touch target height, layout-neutral (44 pt on the phone, same as `NoteRatingPillStyle`).
+    var chipHitHeight: CGFloat = 22
     var chipFontSize: CGFloat = 11.5
     var chipSidePadding: CGFloat = 9
 }
 
 struct DestinationRowView: View {
     @Binding var destination: NoteDestination
-    /// What to show as the folder for a destination — the app supplies it, because "is a folder
-    /// configured on THIS device" is a per-device fact (a destination is a folder bookmark, the
-    /// same shape as today's Obsidian picker). `nil` = not set up here yet, so no path is shown.
-    var folderLabel: (NoteDestination) -> String?
     /// Called only when the value actually CHANGES — callers persist + `markEdited` here.
     var onPick: (NoteDestination) -> Void
+    var style: DestinationRowStyle
 
-    @State private var expanded: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let style: DestinationRowStyle
 
-    /// `startExpanded` is the snapshot/preview seam — the Mac's `-snapshot-destinations`
-    /// harness needs the open state on screen, and `expanded` is private @State. The app
-    /// never passes it.
-    init(destination: Binding<NoteDestination>,
-         folderLabel: @escaping (NoteDestination) -> String?,
-         onPick: @escaping (NoteDestination) -> Void,
-         style: DestinationRowStyle,
-         startExpanded: Bool = false) {
-        _destination = destination
-        self.folderLabel = folderLabel
-        self.onPick = onPick
-        self.style = style
-        _expanded = State(initialValue: startExpanded)
-    }
+    private var hitPad: CGFloat { max(0, (style.chipHitHeight - style.chipHeight) / 2) }
+    private var hue: Color { destination.isPortfolio ? style.portfolio : style.accent }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            if expanded {
-                VStack(spacing: 7) {
-                    familyLabels
-                    segments
-                }
-                .overlay { familyDivider }
-            }
-            footer
-        }
-        // A CONTROL, not a banner. Without this the Mac's ~1400pt note column stretched the
-        // segments into full-width slabs with a label floating in the middle of each
-        // (caught in `-snapshot-destinations`, not in review). The phone's content width is
-        // ~354pt, comfortably under the cap, so nothing changes there — one rule, both apps.
-        .frame(maxWidth: 360, alignment: .leading)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Destination: \(destination.label)")
-    }
-
-    // MARK: - Resting
-
-    /// True when there is anything to say about where this note goes — a folder, or the
-    /// portfolio notice. `.personal` with no folder has neither, which is the whole point of it.
-    private var hasDetail: Bool {
-        folderLabel(destination) != nil || destination.isPortfolio
-    }
-
-    /// The collapsed chip, and — expanded — the same line restated under the segments, so the
-    /// consequence of the pick you are about to make is on screen while you make it.
-    ///
-    /// Expanded on a `.personal` note the line is EMPTY, so it is dropped entirely rather than
-    /// rendered as a lone "→" pointing at nothing (caught on the simulator, not in review).
-    @ViewBuilder
-    private var footer: some View {
-        if expanded && !hasDetail {
-            EmptyView()
-        } else {
-            footerLine
-        }
-    }
-
-    private var footerLine: some View {
-        HStack(spacing: 8) {
-            if expanded {
-                Text("→").font(.system(size: 11)).foregroundStyle(style.textFaint)
-            } else {
-                chip
-            }
-            if let folder = folderLabel(destination) {
-                Text(folder)
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundStyle(destination.isPortfolio ? style.portfolio : style.textDim)
-                    .lineLimit(1).truncationMode(.head)
-            }
-        }
-    }
-
-    private var chip: some View {
         Button {
-            withAnimation(reduceMotion ? nil : SkMotion.snappy) { expanded = true }
+            withAnimation(reduceMotion ? nil : SkMotion.snappy) {
+                NoteDestination.tapped(&destination, onPick: onPick)
+            }
         } label: {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(destination.isPortfolio ? style.portfolio : style.accent)
+                    .fill(hue)
                     .frame(width: 6, height: 6)
                 Text(destination.label)
                     .font(.system(size: style.chipFontSize, weight: .semibold))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .bold))
-                    .opacity(0.55)
+                    .lineLimit(1)
             }
             .foregroundStyle(destination.isPortfolio ? style.portfolio : style.accentText)
             .padding(.horizontal, style.chipSidePadding)
-            .padding(.vertical, style.chipHeight == nil ? 5 : 0)
             .frame(height: style.chipHeight)
             .background(destination.isPortfolio ? style.portfolioSoft : style.accentSoft, in: .capsule)
             .overlay {
                 if style.chipOutlined {
-                    Capsule().strokeBorder(
-                        (destination.isPortfolio ? style.portfolio : style.accent).opacity(0.35), lineWidth: 1)
+                    Capsule().strokeBorder(hue.opacity(0.35), lineWidth: 1)
                 }
             }
+            // Taller touch target, layout-neutral (the rating pill's trick).
+            .padding(.vertical, hitPad)
+            .contentShape(Rectangle())
+            .padding(.vertical, -hitPad)
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("destination-chip")
-        .accessibilityHint("Change where this note goes")
-    }
-
-    // MARK: - Expanded
-
-    /// PRIVATE | PORTFOLIO over the two segments — the boundary named, once, where the choice is
-    /// made. Measured with the same cell width the segments get, so each label sits over its chip.
-    private var familyLabels: some View {
-        GeometryReader { geo in
-            let gap: CGFloat = 6
-            let cell = max(0, (geo.size.width - gap) / 2)
-            HStack(spacing: gap) {
-                Text("PRIVATE").frame(width: cell)
-                Text("PORTFOLIO").frame(width: cell)
-            }
-            .font(.system(size: 9, weight: .bold))
-            .tracking(0.8)
-            .foregroundStyle(style.textFaint)
-        }
-        .frame(height: 11)
-        .accessibilityHidden(true)
-    }
-
-    /// The dashed line between the Private cell and the Portfolio cell, running the full
-    /// height of labels + cells. Drawn as an overlay at the cell boundary (the same measure
-    /// `familyLabels` uses) so it adds no layout width and the columns stay where they were.
-    private var familyDivider: some View {
-        GeometryReader { geo in
-            let gap: CGFloat = 6
-            let cell = max(0, (geo.size.width - gap) / 2)
-            Path { p in
-                p.move(to: CGPoint(x: cell + gap / 2, y: 0))
-                p.addLine(to: CGPoint(x: cell + gap / 2, y: geo.size.height))
-            }
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            .foregroundStyle(style.textFaint)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private var segments: some View {
-        HStack(spacing: 6) {
-            ForEach(NoteDestination.allCases, id: \.self) { d in
-                segment(d)
-            }
-        }
-    }
-
-    private func segment(_ d: NoteDestination) -> some View {
-        let on = d == destination
-        let hue = d.isPortfolio ? style.portfolio : style.accent
-        return Button {
-            if d != destination {
-                destination = d
-                onPick(d)
-            }
-            withAnimation(reduceMotion ? nil : SkMotion.snappy) { expanded = false }
-        } label: {
-            VStack(spacing: 6) {
-                Circle()
-                    .fill(on ? hue : style.textFaint)
-                    .frame(width: 7, height: 7)
-                Text(d.label)
-                    .font(.system(size: 11, weight: .semibold))
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                    .foregroundStyle(on ? hue : style.textDim)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 9)
-            .background(on ? hue.opacity(0.14) : style.chipFill,
-                        in: .rect(cornerRadius: 11, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(on ? hue.opacity(0.55) : style.border, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("destination-\(d.rawValue)")
-        .accessibilityAddTraits(on ? [.isSelected] : [])
+        .fixedSize()
+        .animation(reduceMotion ? nil : SkMotion.snappy, value: destination)
+        .accessibilityIdentifier("destination-pill")
+        .accessibilityLabel("Destination: \(destination.label)")
+        .accessibilityValue(destination.portfolioFolder.map { "Exports to \($0)/" } ?? "Exports to your vault")
+        .accessibilityHint("Tap to switch to \(destination.toggled.label)")
+        .help("Tap to switch to \(destination.toggled.label)")
     }
 }

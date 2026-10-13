@@ -30,7 +30,7 @@ final class HeaderQ85UITests: XCTestCase {
     }
 
     private func frames(_ app: XCUIApplication, _ tag: String) {
-        for id in ["rating-pill", "detail-lifecycle-line", "destination-chip", "add-tag-button"] {
+        for id in ["rating-pill", "detail-lifecycle-line", "destination-pill", "add-tag-button"] {
             let e = el(app, id)
             if e.exists { print("Q85 \(tag) \(id) frame=\(e.frame)") }
         }

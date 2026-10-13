@@ -79,11 +79,9 @@ struct QuickNoteView: View {
             if DestinationSettings.isEnabled {
                 DestinationRowView(
                     destination: $destination,
-                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
-                    onPick: { _ in syncMetaToMemo() },
+                    onPick: { _ in Haptics.tap(.light); syncMetaToMemo() },
                     style: .phone)
                     .padding(.top, 12)
-                    .accessibilityIdentifier("destination-row")
             }
             bodyEditor
                 .padding(.top, 14)

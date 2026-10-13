@@ -17,8 +17,7 @@ extension DestinationRowStyle {
         DestinationRowStyle(
             accent: .skAccent, accentSoft: .skAccentSoft, accentText: .skAccentText,
             portfolio: .skAmber, portfolioSoft: .skAmber.opacity(0.13),
-            text: .skText, textDim: .skTextDim, textFaint: .skTextFaint,
-            border: .skBorder, chipFill: .skElev, chipOutlined: false,
-            chipHeight: 26, chipFontSize: 12, chipSidePadding: 10)
+            chipOutlined: false,
+            chipHeight: 26, chipHitHeight: 44, chipFontSize: 12, chipSidePadding: 10)
     }
 }

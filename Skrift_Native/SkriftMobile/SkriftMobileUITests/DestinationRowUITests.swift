@@ -2,12 +2,10 @@ import XCTest
 
 /// Drives the SHARED `DestinationRowView` on a real note and writes PNGs, because a
 /// destination row reviewed from source is a destination row nobody has looked at
-/// (memory `feedback_ui_review_vision`). Three states, matching the signed mock
-/// `mocks/note-destination-tags.html` version B:
+/// (memory `feedback_ui_review_vision`). Two states of the D204 tap pill:
 ///
-///   B1  resting, Personal      — a quiet chip, no folder, no notice
-///   B3  expanded               — PRIVATE | PORTFOLIO over two segments
-///   B2  resting, Portfolio     — the amber chip PLUS the folder it writes into (D189)
+///   B1  Personal      — the quiet accent pill
+///   B2  Portfolio     — the amber pill, after one tap
 ///
 /// PNGs land in `SKRIFT_SHOT_DIR` when the runner passes one, so the orchestrator can
 /// open them; otherwise they are attached to the result bundle as usual.
@@ -38,20 +36,14 @@ final class DestinationRowUITests: XCTestCase {
                                "-destinationsOn"]
         app.launch()
 
-        let chip = app.buttons["destination-chip"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 20),
-                      "the collapsed chip is the resting state of the row")
+        let pill = app.buttons["destination-pill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 20), "the pill is the whole control (D204)")
+        XCTAssertEqual(pill.label, "Destination: Personal")
         capture(app, "B1-resting-personal")
 
-        chip.tap()
-        let portfolio = app.buttons["destination-portfolio"]
-        XCTAssertTrue(portfolio.waitForExistence(timeout: 5), "tapping the chip expands to both")
-        XCTAssertTrue(app.buttons["destination-personal"].exists)
-        capture(app, "B3-expanded")
-
-        portfolio.tap()
-        XCTAssertTrue(chip.waitForExistence(timeout: 5), "picking collapses it again")
-        XCTAssertFalse(app.buttons["destination-portfolio"].exists, "…back to one chip, not two")
+        pill.tap()
+        XCTAssertEqual(pill.label, "Destination: Portfolio", "one tap flips it in place")
+        XCTAssertEqual(app.buttons.matching(identifier: "destination-pill").count, 1, "nothing opens")
         capture(app, "B2-resting-portfolio")
     }
 }

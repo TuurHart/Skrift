@@ -24,7 +24,7 @@ final class NoteHeaderGapQ344UITests: XCTestCase {
     /// The body's first line starts below the destination row's bottom edge, with a gap.
     private func assertBodyBelowRow(_ app: XCUIApplication, _ label: String,
                                     file: StaticString = #filePath, line: UInt = #line) {
-        let row = app.descendants(matching: .any)["destination-row"]
+        let row = app.descendants(matching: .any)["destination-pill"]
         let probe = app.descendants(matching: .any)["note-body-first-line"]
         XCTAssertTrue(row.waitForExistence(timeout: 10), "\(label): row exists", file: file, line: line)
         XCTAssertTrue(probe.waitForExistence(timeout: 10), "\(label): probe exists", file: file, line: line)
@@ -53,35 +53,21 @@ final class NoteHeaderGapQ344UITests: XCTestCase {
         }
         app.launch()
 
-        let chip = app.buttons["destination-chip"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 20))
-        assertBodyBelowRow(app, "collapsed personal")
-        capture(app, "Q344-1-collapsed")
-
-        chip.tap()
-        XCTAssertTrue(app.buttons["destination-portfolio"].waitForExistence(timeout: 5))
-        assertBodyBelowRow(app, "expanded")
-        capture(app, "Q344-2-expanded")
+        // D204 / Q395: the pill flips in place, so the body must not move at all while tapping.
+        let pill = app.buttons["destination-pill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 20))
+        assertBodyBelowRow(app, "personal")
+        capture(app, "Q344-1-personal")
 
         for round in 1...3 {
-            app.buttons["destination-portfolio"].tap()
+            pill.tap()
             XCTAssertTrue(app.buttons["tag-preset-idea"].waitForExistence(timeout: 5), "presets on Portfolio")
-            assertBodyBelowRow(app, "round \(round) portfolio collapsed (presets)")
-            if round == 1 { capture(app, "Q344-3-portfolio-collapsed") }
+            assertBodyBelowRow(app, "round \(round) portfolio (presets)")
+            if round == 1 { capture(app, "Q344-3-portfolio") }
 
-            app.buttons["destination-chip"].tap()
-            XCTAssertTrue(app.buttons["destination-personal"].waitForExistence(timeout: 5))
-            assertBodyBelowRow(app, "round \(round) expanded on portfolio")
-            if round == 1 { capture(app, "Q344-4-expanded-on-portfolio") }
-
-            app.buttons["destination-personal"].tap()
-            XCTAssertTrue(app.buttons["destination-chip"].waitForExistence(timeout: 5))
+            pill.tap()
             XCTAssertFalse(app.buttons["tag-preset-idea"].exists, "presets leave with Personal")
-            assertBodyBelowRow(app, "round \(round) personal collapsed")
-
-            app.buttons["destination-chip"].tap()
-            XCTAssertTrue(app.buttons["destination-portfolio"].waitForExistence(timeout: 5))
-            assertBodyBelowRow(app, "round \(round) expanded on personal")
+            assertBodyBelowRow(app, "round \(round) personal")
         }
         capture(app, "Q344-5-after-toggling")
     }

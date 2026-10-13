@@ -586,13 +586,12 @@ struct MemoPageView: View {
                 DestinationRowView(
                     destination: Binding(get: { memo.destination },
                                          set: { memo.destination = $0 }),
-                    folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                     onPick: { _ in
+                        Haptics.tap(.light)
                         memo.markEdited(stampWords: false)   // destination isn't title/body/tags (C98)
                         repository.save()
                     },
                     style: .phone)
-                    .accessibilityIdentifier("destination-row")
             }
 
             // Tags (D139: inline field, no sheet; tap-arms-then-removes with a 4 s Undo),

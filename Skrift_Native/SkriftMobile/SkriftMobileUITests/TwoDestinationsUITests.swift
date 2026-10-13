@@ -22,18 +22,16 @@ final class TwoDestinationsUITests: XCTestCase {
         app.launchArguments = ["-inMemoryStore", "-seedPolished", "-selectFirstMemo", "-destinationsOn"]
         app.launch()
 
-        let chip = app.buttons["destination-chip"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 20))
+        // D204 / Q395: ONE tap pill; a tap flips Personal <-> Portfolio in place.
+        let pill = app.buttons["destination-pill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 20))
+        XCTAssertEqual(pill.label, "Destination: Personal")
         XCTAssertFalse(app.buttons["tag-preset-idea"].exists, "Personal shows no presets")
         capture(app, "T1-personal")
 
-        chip.tap()
-        XCTAssertTrue(app.buttons["destination-portfolio"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["destination-personal"].exists)
-        XCTAssertFalse(app.buttons["destination-idea"].exists, "no third chip")
-        capture(app, "T2-expanded")
-
-        app.buttons["destination-portfolio"].tap()
+        pill.tap()
+        XCTAssertEqual(pill.label, "Destination: Portfolio")
+        XCTAssertEqual(app.buttons.matching(identifier: "destination-pill").count, 1, "no second control opens")
         let idea = app.buttons["tag-preset-idea"]
         XCTAssertTrue(idea.waitForExistence(timeout: 5), "Portfolio offers the presets")
         XCTAssertTrue(app.buttons["tag-preset-inspiration"].exists)
@@ -45,5 +43,9 @@ final class TwoDestinationsUITests: XCTestCase {
                       "the preset became a tag")
         XCTAssertFalse(app.buttons["tag-preset-idea"].exists, "a used preset leaves the strip")
         capture(app, "T4-idea-tagged")
+
+        pill.tap()
+        XCTAssertEqual(pill.label, "Destination: Personal", "a second tap flips back")
+        XCTAssertFalse(app.buttons["tag-preset-project"].exists, "presets leave with Personal")
     }
 }
