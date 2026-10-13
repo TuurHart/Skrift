@@ -2799,7 +2799,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q379 [auto] (todo) build the iPad list + note layout per the iPad mock
+### Q379 [auto] (doing) build the iPad list + note layout per the iPad mock
 spec: D193
 needs: Q378 Q358 Q359
 gate+: yes
@@ -2820,7 +2820,7 @@ gate+: no
 do: Q355 built the article reader; its compare (plan/reads/library-tab/q355-pair-*.png, q355-diff.md) against Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html lists: (1) DEFECT: an article capture note shows an empty audio player although it has no audio — hide the player when a note has no audio; (2) cover lacks the ARTICLE badge; (3) reader selection is purple, mock uses system blue; (4) no reading-progress line at the top of the reader; (5) a 'No notes yet' card is pinned over the reader text — show the notes row only when there are notes, never over the text; (6) the capture screen lacks the mock's quote card and the boxed link-back line; (7) the highlight lacks its ❝ glyph. Fix all seven; re-take the q355 pairs at 402 x 874 next to the mock and LOOK. Launch with `-skipOnboarding` on a fresh sim; `-showArticleNote` is the DEBUG hook for the note shot. The share-sheet Article/Note frame cannot be driven on iOS 27 (Safari share button not found by XCUITest) — leave it to Tuur's device check.
 check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 
-### Q382 [auto] (todo) phone note editor matches the signed Q350 mock: Q359's visual gaps
+### Q382 [auto] (doing) phone note editor matches the signed Q350 mock: Q359's visual gaps
 spec: D196 D193
 needs: Q359
 gate+: no
@@ -4116,3 +4116,5 @@ check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 
 - 2026-10-13 15:17 Q381 -> doing — worker out
 - 2026-10-13 15:19 Q382 added
 - 2026-10-13 15:24 Q359 -> done — gate 37s @bc9277f0
+- 2026-10-13 15:25 Q379 -> doing — worker out
+- 2026-10-13 15:25 Q382 -> doing — worker out
