@@ -107,11 +107,12 @@ struct CaptureSharedContentBlock: View {
     private var sc: SharedContent? { file.sharedContent }
 
     /// The synced `.file` document, materialized under the capture folder's `files/` (3b) —
-    /// the single file there. nil until the document asset arrives (then the card gains "Open").
+    /// the single file there. nil until the document asset arrives (then the card opens it).
     private var documentURL: URL? { file.captureDocumentURL }
 
     @State private var textExpanded = false
     @State private var textShowAll = false
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: link — thumbnail, title, description, domain (phone `captureURLCard`)
 
@@ -238,27 +239,22 @@ struct CaptureSharedContentBlock: View {
             .background(Theme.accent.opacity(0.12), in: Capsule())
     }
 
-    /// Non-PDF documents, a PDF that has not synced yet, or one PDFKit cannot read.
+    /// Non-PDF documents, a PDF that has not synced yet, or one PDFKit cannot read: the shared
+    /// grey file card (mock Q384 pick 4, D202, the phone's own), the whole card opens the file.
     private func fileCard(_ sc: SharedContent, doc: URL?) -> some View {
-        let kind = (sc.mimeType?.contains("pdf") == true) ? "PDF" : (sc.mimeType ?? "Document")
-        return HStack(spacing: 10) {
-            Image(systemName: "doc.richtext")
-                .font(.system(size: 22))
-                .foregroundStyle(Theme.blue)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(sc.fileName ?? "Shared document")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text(doc != nil ? "\(kind) · captured in the note"
-                                : "\(kind) · on your iPhone — its text is captured in the note")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
-            }
-            if let doc {
-                Spacer(minLength: 8)
-                openButton(doc)
-            }
+        let name = sc.fileName ?? doc?.lastPathComponent ?? "Shared document"
+        let card = NoteAttachmentArt.fileCard(name: name, fileURL: doc, width: NoteAttachment.widePageMaxWidth,
+                                              dark: colorScheme == .dark)
+        return Button {
+            if let doc { NSWorkspace.shared.open(doc) }
+        } label: {
+            Image(nsImage: card)
         }
+        .buttonStyle(.plain)
+        .disabled(doc == nil)
+        .help(doc == nil ? "On your iPhone, its text is captured in the note" : "Open the file")
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel(name)
     }
 
     /// The extracted PDF text, in the note: a quiet collapsed row; opened it shows the first
