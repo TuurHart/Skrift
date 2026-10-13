@@ -32,13 +32,14 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-1-reading")
 
-        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)).tap()
+        // dy 0.62 landed on the People footer (run 1); 0.40 is the name-free "commonplace" line.
+        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.40)).tap()
         XCTAssertTrue(app.buttons["accessory-done"].waitForExistence(timeout: 5), "top-bar Done missing")
         XCTAssertTrue(app.buttons["accessory-format"].exists, "Aa missing from the keyboard bar")
         capture(app, "phone-2-typing")
 
         // Selection: double-tap a word → the edit menu (Cut Copy Paste · B I U S · New person…).
-        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.62)).doubleTap()
+        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.40)).doubleTap()
         capture(app, "phone-3-selection")
 
         // Aa: the Format panel replaces the keyboard; Heading on the caret line, Bold on the word.
