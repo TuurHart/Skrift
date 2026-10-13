@@ -40,7 +40,7 @@ final class MemoDateTests: XCTestCase {
 
     func testGroupHeaderCarriesYearOnlyForOtherYears() {
         let now = date(2026, 6, 25)
-        XCTAssertTrue(MemoDate.group(date(2025, 6, 19), now: now).contains("2025"))
-        XCTAssertFalse(MemoDate.group(date(2026, 1, 10), now: now).contains("2026"))
+        XCTAssertTrue(MemoDate.bucket(date(2025, 6, 19), now: now).contains("2025"))
+        XCTAssertFalse(MemoDate.bucket(date(2026, 1, 10), now: now).contains("2026"))
     }
 }

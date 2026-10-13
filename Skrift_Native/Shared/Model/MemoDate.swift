@@ -42,20 +42,42 @@ enum MemoDate {
         return "\(isoDateFormatter.string(from: date)) · \(time)"
     }
 
-    /// Day-group header key for the list ("Today" / "Yesterday" / "Mon 3 Jun").
-    static func group(_ date: Date, now: Date = Date()) -> String {
+    /// D190 (Q358): the list's group key, Apple Notes' buckets — "Today", "Previous 7 Days",
+    /// "Previous 30 Days", then the month name this year ("September"), then the year ("2025").
+    /// Days count between calendar midnights in `calendar`'s time zone, against the INJECTED
+    /// `now` (never the wall clock), so a 25-hour DST day and 23:59 last night both land right.
+    /// A future date (clock skew) reads as Today rather than making its own group.
+    static func bucket(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
         if isUnknown(date) { return unknownLabel }
-        let cal = Calendar.current
-        // Day delta against the injected `now` (deterministic across midnight — see `label`).
-        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),
-                                      to: cal.startOfDay(for: now)).day ?? 0
+        let days = dayDelta(date, now: now, calendar: calendar)
         if days <= 0 { return "Today" }
+        if days <= 7 { return "Previous 7 Days" }
+        if days <= 30 { return "Previous 30 Days" }
+        let year = calendar.component(.year, from: date)
+        guard year == calendar.component(.year, from: now) else { return String(year) }
+        return calendar.standaloneMonthSymbols[calendar.component(.month, from: date) - 1]
+    }
+
+    /// D190 (Q358): the date that leads a row's line 2 — "09:41" today, "Yesterday", the
+    /// weekday within the week ("Friday"), "27 Sep" this year, "24/12/2025" before. The detail
+    /// the old per-day headers carried now lives here.
+    static func listDate(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        if isUnknown(date) { return unknownLabel }
+        let days = dayDelta(date, now: now, calendar: calendar)
+        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: date)
+        if days <= 0 { return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0) }
         if days == 1 { return "Yesterday" }
-        // Carry the year on a different-year group so old day-groups aren't ambiguous.
-        if cal.component(.year, from: date) == cal.component(.year, from: now) {
-            return groupFormatter.string(from: date)
+        if days <= 7 { return calendar.standaloneWeekdaySymbols[(c.weekday ?? 1) - 1] }
+        if c.year == calendar.component(.year, from: now) {
+            return "\(c.day ?? 1) \(calendar.shortStandaloneMonthSymbols[(c.month ?? 1) - 1])"
         }
-        return groupYearFormatter.string(from: date)
+        return "\(c.day ?? 1)/\(c.month ?? 1)/\(c.year ?? 0)"
+    }
+
+    /// Whole calendar days from `date`'s midnight to `now`'s midnight (negative = future).
+    private static func dayDelta(_ date: Date, now: Date, calendar: Calendar) -> Int {
+        calendar.dateComponents([.day], from: calendar.startOfDay(for: date),
+                                to: calendar.startOfDay(for: now)).day ?? 0
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -64,16 +86,10 @@ enum MemoDate {
     private static let weekdayFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "EEE"; return f
     }()
-    private static let groupFormatter: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "EEE d MMM"; return f
-    }()
     private static let monthDayFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "d MMM"; return f
     }()
     private static let isoDateFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-    private static let groupYearFormatter: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "EEE d MMM yyyy"; return f
     }()
 }

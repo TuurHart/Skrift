@@ -427,7 +427,7 @@ final class ListDerivedCache: ObservableObject {
             return rows.isEmpty ? [] : [NotesListGroup(title: "Longest first", memos: rows)]
         }
         return NotesListModel.dayGroups(rows) {
-            MemoDate.group(NotesListModel.groupDate(recordedAt: $0.recordedAt, lastEditedAt: $0.lastEditedAt,
+            MemoDate.bucket(NotesListModel.groupDate(recordedAt: $0.recordedAt, lastEditedAt: $0.lastEditedAt,
                                                     byEditTime: sort == .edited))
         }.map { NotesListGroup(title: $0.title, memos: $0.items) }
     }

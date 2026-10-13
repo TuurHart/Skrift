@@ -51,7 +51,7 @@ struct SidebarView: View {
                   addedAtByID: model.addedAtByID, processedIDs: model.processedIDs),
             params: .init(chip: model.filter, query: debouncedQuery, from: model.dateFrom, to: model.dateTo,
                           dateField: model.dateField, sort: model.sort, unlocked: LockGate.shared.unlockedIDs),
-            fileTitle: { $0.queueTitle }, entryTitle: { $0.title }, dayLabel: { MemoDate.group($0) })
+            fileTitle: { $0.queueTitle }, entryTitle: { $0.title }, dayLabel: { MemoDate.bucket($0) })
     }
     /// The pipeline rows as drawn, minus a quiet local take (unrated, error-free Mac recording —
     /// the unrated-take doctrine, 2026-07-28): it never renders as a lit `QueueRowView`, so it
@@ -634,7 +634,7 @@ struct SidebarView: View {
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
-            // D136: day groups, new on the Mac — the SAME `MemoDate.group` key the
+            // D136: day groups, new on the Mac — the SAME `MemoDate.bucket` key the
             // phone/iPad use, via the shared `NotesListModel.dayGroups`, so a day
             // header reads the same word everywhere.
             let inner = Group {
