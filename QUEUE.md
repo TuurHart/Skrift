@@ -2903,7 +2903,7 @@ gate+: no
 do: Facts (Tuur 2026-10-13, Q389): the real Skrift on the Mac shows phone notes only up to 25/26 Sep 2026; the phone's newest is Sun 11 Oct; he switched to the iPhone 17 Pro around 1 Oct. The prod Mac app (Aug, e6245caa) is development-signed with no icloud-container-environment → CloudKit DEVELOPMENT of iCloud.com.skrift.mobile; the new phone's prod build is TestFlight/App-Store-signed → PRODUCTION. So since ~late Sep the phone writes Production and the Mac writes Development. Write plan/release/ICLOUD_MERGE.md: what lives where (phone local store + Production; Mac local store + Development: Mac-made notes, MemoEnhancement polish, names/vocab edits since 25 Sep), and the safest way to end with ONE Production copy and zero loss or duplicates — e.g. what NSPersistentCloudKitContainer/SwiftData does when the same local store is opened under a different environment (re-upload? metadata reset? — research with sources, plan/research/), how ids dedupe (Memo.id UUIDs, MemoDeduper, NamesMerge LWW union), MemoEnhancement LWW by enhancedAt, a dry run on a COPY first (extend plan/release/mac-store-copytest.sh if needed), and the exact steps Tuur does vs the agent. NEVER read his real data; no CloudKit writes; code reading + research only.
 check: `test -s plan/release/ICLOUD_MERGE.md`
 
-### Q394 [auto] (todo) install Dev 189 (attachments, Q385-Q392) on the iPhone 17 Pro and the Mac
+### Q394 [auto] (doing) install Dev 189 (attachments, Q385-Q392) on the iPhone 17 Pro and the Mac
 spec: -
 needs: Q392
 gate+: no
@@ -4266,3 +4266,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteA
 - 2026-10-13 22:29 Q395 -> doing — worker out
 - 2026-10-13 22:31 Q396 added
 - 2026-10-13 22:35 Q392 -> done — gate 51s @048e2d66
+- 2026-10-13 22:36 Q394 -> doing — worker out
