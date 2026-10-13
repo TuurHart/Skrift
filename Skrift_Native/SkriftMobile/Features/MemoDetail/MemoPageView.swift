@@ -302,25 +302,34 @@ struct MemoPageView: View {
     /// Mac sent a suggested title. Return ends the edit instead of breaking the line.
     var titleField: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            TextField("", text: Binding(
-                get: { titleBinding.wrappedValue },
-                set: { new in
-                    if new.contains("\n") {
-                        titleBinding.wrappedValue = new.replacingOccurrences(of: "\n", with: "")
-                        titleFocused = false
-                        repository.save()
-                    } else {
-                        titleBinding.wrappedValue = new
-                    }
-                }), prompt: titlePrompt, axis: .vertical)
+            // The invisible Text sizes the field to the title's own width, so the ✦ sits right
+            // after the last word (mock Q350) instead of at the far edge.
+            (titleBinding.wrappedValue.isEmpty ? titlePrompt : Text(titleBinding.wrappedValue))
                 .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(Color.skText)
-                .lineLimit(1...4)
-                .tint(.skAccent)
-                .submitLabel(.done)
-                .focused($titleFocused)
-                .onSubmit { repository.save() }
-                .accessibilityIdentifier("detail-title")
+                .lineLimit(4)
+                .opacity(0)
+                .overlay(alignment: .topLeading) {
+                    TextField("", text: Binding(
+                        get: { titleBinding.wrappedValue },
+                        set: { new in
+                            if new.contains("\n") {
+                                titleBinding.wrappedValue = new.replacingOccurrences(of: "\n", with: "")
+                                titleFocused = false
+                                repository.save()
+                            } else {
+                                titleBinding.wrappedValue = new
+                            }
+                        }), prompt: titlePrompt, axis: .vertical)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1...4)
+                        .tint(.skAccent)
+                        .submitLabel(.done)
+                        .focused($titleFocused)
+                        .onSubmit { repository.save() }
+                        .accessibilityIdentifier("detail-title")
+                }
+                .layoutPriority(1)
             if macPolish?.title.trimmingCharacters(in: .whitespaces).isEmpty == false {
                 Button { showTitleChooser = true } label: {
                     Image(systemName: "sparkles")
