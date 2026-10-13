@@ -1071,7 +1071,7 @@ struct SidebarView: View {
             let exportable = targets.filter { $0.steps.enhance == .done }
             if !exportable.isEmpty {
                 Button("Export \(exportable.count) to Obsidian") {
-                    Task { for t in exportable { await coordinator.export(t, context: ctx) } }
+                    Task { await coordinator.export(exportable, context: ctx) }   // one run (Q365)
                 }
             }
             Divider()

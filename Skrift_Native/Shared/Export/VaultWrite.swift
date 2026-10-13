@@ -38,30 +38,75 @@ final class ExportLedger {
         var exportedAt: Date
     }
 
+    /// Work counters (Q365, D186): how often a ledger was decoded from disk and how often the
+    /// whole ledger was rewritten. An export RUN must cost one of each, not one per note.
+    struct Work: Equatable { var decodes = 0; var writes = 0; var appends = 0 }
+    private static let workLock = NSLock()
+    nonisolated(unsafe) private static var _work = Work()
+    static var work: Work { workLock.lock(); defer { workLock.unlock() }; return _work }
+    static func resetWork() { workLock.lock(); _work = Work(); workLock.unlock() }
+    private static func count(_ bump: (inout Work) -> Void) { workLock.lock(); bump(&_work); workLock.unlock() }
+
+    /// One line of the append-only journal: `entry == nil` is a removal.
+    private struct JournalLine: Codable { var id: String; var entry: Entry? }
+
     private let fileURL: URL
+    /// Beside the ledger: `<key>.journal`, one JSON line per change made while a run defers
+    /// the full rewrite. Replayed on load, folded in and deleted by the next full write.
+    private let journalURL: URL
     private var cache: [String: Entry]
+    private var deferring = false
+    private let lock = NSLock()
 
     init(fileURL: URL) {
         self.fileURL = fileURL
-        self.cache = (try? JSONDecoder().decode([String: Entry].self,
-                                                from: Data(contentsOf: fileURL))) ?? [:]
+        self.journalURL = fileURL.deletingPathExtension().appendingPathExtension("journal")
+        Self.count { $0.decodes += 1 }
+        var cache = (try? JSONDecoder().decode([String: Entry].self,
+                                               from: Data(contentsOf: fileURL))) ?? [:]
+        // A run that died before compacting left its per-note changes here: replay them in
+        // order. A torn last line (died mid-append) fails to decode and is skipped.
+        if let journal = try? Data(contentsOf: journalURL) {
+            let decoder = JSONDecoder()
+            for line in journal.split(separator: UInt8(ascii: "\n")) {
+                guard let l = try? decoder.decode(JournalLine.self, from: Data(line)) else { continue }
+                cache[l.id] = l.entry
+            }
+        }
+        self.cache = cache
     }
 
-    func entry(for id: UUID) -> Entry? { cache[id.uuidString] }
+    func entry(for id: UUID) -> Entry? { lock.lock(); defer { lock.unlock() }; return cache[id.uuidString] }
 
     func set(_ entry: Entry, for id: UUID) {
+        lock.lock(); defer { lock.unlock() }
         cache[id.uuidString] = entry
-        persist()
+        record(JournalLine(id: id.uuidString, entry: entry))
     }
 
     func remove(for id: UUID) {
+        lock.lock(); defer { lock.unlock() }
         guard cache.removeValue(forKey: id.uuidString) != nil else { return }
-        persist()
+        record(JournalLine(id: id.uuidString, entry: nil))
     }
 
     /// Every relative path this device believes it owns — the memo-link resolver reads
     /// stems from here so wikilinks land on the files actually written.
-    func relativePath(for id: UUID) -> String? { cache[id.uuidString]?.relativePath }
+    func relativePath(for id: UUID) -> String? {
+        lock.lock(); defer { lock.unlock() }; return cache[id.uuidString]?.relativePath
+    }
+
+    /// Start a RUN (Q365): from here each change is APPENDED to the journal (cheap, and on disk
+    /// the moment it happens, so a run that dies keeps every note it wrote) instead of
+    /// rewriting the whole ledger per note. `compact()` ends the run with one full write.
+    func beginDeferring() { lock.lock(); deferring = true; lock.unlock() }
+
+    /// End a run: one atomic full write, then drop the journal it now contains.
+    func compact() {
+        lock.lock(); defer { lock.unlock() }
+        deferring = false
+        persist()
+    }
 
     /// The ledger for one PICKED FOLDER, keyed by the folder's path — so pointing the
     /// app at a different folder starts a fresh ledger (correct: new destination; the
@@ -76,11 +121,31 @@ final class ExportLedger {
         return ExportLedger(fileURL: dir.appendingPathComponent("\(key).json"))
     }
 
+    /// MUST hold `lock`. Outside a run: the full rewrite per change, as always.
+    private func record(_ line: JournalLine) {
+        guard deferring else { persist(); return }
+        guard var data = try? JSONEncoder().encode(line) else { persist(); return }
+        data.append(UInt8(ascii: "\n"))
+        try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(),
+                                                 withIntermediateDirectories: true)
+        if let handle = try? FileHandle(forWritingTo: journalURL) {
+            defer { try? handle.close() }
+            do { try handle.seekToEnd(); try handle.write(contentsOf: data) } catch { persist(); return }
+        } else if (try? data.write(to: journalURL)) == nil {
+            persist(); return   // no journal possible: fall back to the full write, never lose it
+        }
+        Self.count { $0.appends += 1 }
+    }
+
+    /// MUST hold `lock`. The full ledger replaces the journal: written first (atomic), the
+    /// journal removed only after, so a crash between the two just replays entries the full
+    /// file already holds.
     private func persist() {
         try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
-        if let data = try? JSONEncoder().encode(cache) {
-            try? data.write(to: fileURL, options: .atomic)
+        if let data = try? JSONEncoder().encode(cache), (try? data.write(to: fileURL, options: .atomic)) != nil {
+            Self.count { $0.writes += 1 }
+            try? FileManager.default.removeItem(at: journalURL)
         }
     }
 }
@@ -378,6 +443,15 @@ struct VaultWriter {
                       markdownURL: dest, audioURL: audioURL)
     }
 
+    /// Would `commit(markdown:...)` with no attachments come back `.unchanged`? The same
+    /// stamp + equivalence test, without writing anything — so a caller can learn a note is
+    /// current BEFORE placing its pictures (Q365: an unchanged re-export reads no image bytes).
+    func isUnchanged(markdown: String, id: UUID, relativePath: String) -> Bool {
+        let dest = root.appendingPathComponent(relativePath)
+        guard let existing = Self.readCoordinated(dest) else { return false }
+        return VaultStamp.contentEquivalent(VaultStamp.apply(to: markdown, id: id, touchedAt: now()), existing)
+    }
+
     // ── IO (coordinated: the vault lives in iCloud) ──
 
     /// Atomic + NSFileCoordinator'd, so Obsidian/iCloud never observe a half-written
@@ -424,12 +498,15 @@ extension VaultAsset.Source {
     fileprivate func isIdentical(to url: URL, fm: FileManager) -> Bool {
         switch self {
         case .data(let data):
-            return (try? Data(contentsOf: url)) == data
+            let existing = try? Data(contentsOf: url)
+            VaultAttachmentOwnership.countRead(existing?.count ?? 0)
+            return existing == data
         case .file(let src):
             guard let sizeA = (try? fm.attributesOfItem(atPath: url.path))?[.size] as? Int,
                   let sizeB = (try? fm.attributesOfItem(atPath: src.path))?[.size] as? Int,
                   sizeA == sizeB else { return false }
             guard let da = try? Data(contentsOf: url), let db = try? Data(contentsOf: src) else { return false }
+            VaultAttachmentOwnership.countRead(da.count + db.count)
             return da == db
         }
     }
@@ -438,7 +515,10 @@ extension VaultAsset.Source {
     fileprivate func write(to dest: URL) throws {
         switch self {
         case .data(let data): try VaultWriter.writeAtomic(data, to: dest)
-        case .file(let src):  try VaultWriter.coordinatedWrite(to: dest) { try FileManager.default.copyItem(at: src, to: $0) }
+        case .file(let src):
+            let size = (try? FileManager.default.attributesOfItem(atPath: src.path))?[.size] as? Int ?? 0
+            VaultAttachmentOwnership.countRead(size)
+            try VaultWriter.coordinatedWrite(to: dest) { try FileManager.default.copyItem(at: src, to: $0) }
         }
     }
 }
@@ -452,6 +532,15 @@ extension VaultAsset.Source {
 /// gives a foreign markdown file) so no attachment lane ever deletes a file it
 /// doesn't own.
 enum VaultAttachmentOwnership {
+    /// Work counter (Q365, D186): attachment bytes read to compare or copy. An unchanged
+    /// re-export must read none.
+    struct Work: Equatable { var bytesRead = 0 }
+    private static let workLock = NSLock()
+    nonisolated(unsafe) private static var _work = Work()
+    static var work: Work { workLock.lock(); defer { workLock.unlock() }; return _work }
+    static func resetWork() { workLock.lock(); _work = Work(); workLock.unlock() }
+    fileprivate static func countRead(_ bytes: Int) { workLock.lock(); _work.bytesRead += bytes; workLock.unlock() }
+
     /// Copies `src` into `dir`, choosing an ownership-safe name first. Returns the URL
     /// actually written (existing untouched file gives the same URL, nothing copied), or nil on
     /// a genuine I/O failure.
