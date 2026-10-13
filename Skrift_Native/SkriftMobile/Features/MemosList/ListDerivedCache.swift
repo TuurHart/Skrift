@@ -411,9 +411,13 @@ final class ListDerivedCache: ObservableObject {
             isLocked: { !NoteVisibility.contentVisible(locked: $0.locked,
                                                        unlockedThisSession: params.unlocked.contains($0.id.uuidString)) })
 
+        // D197: the sections follow the picked date (Recorded by default), so the drawn order is
+        // the groups' order; the row ids count off THAT order.
+        let groups = Self.groups(from: rows, sort: params.sort, field: params.filter.dateField)
         let value = NotesListDerived(
-            groups: Self.groups(from: rows, sort: params.sort),
-            flatIndex: Dictionary(rows.enumerated().map { ($0.element.id, $0.offset) }, uniquingKeysWith: { a, _ in a }),
+            groups: groups,
+            flatIndex: Dictionary(groups.flatMap(\.memos).enumerated().map { ($0.element.id, $0.offset) },
+                                  uniquingKeysWith: { a, _ in a }),
             related: relatedRows,
             enhancedTitleByMemoID: base.enhancedTitleByMemoID,
             searchFadingIDs: searching ? Set(base.fading.map(\.id)) : [],
@@ -422,14 +426,15 @@ final class ListDerivedCache: ObservableObject {
         return value
     }
 
-    static func groups(from rows: [Memo], sort: MemoSort) -> [NotesListGroup] {
+    static func groups(from rows: [Memo], sort: MemoSort, field: MemoDateField = .recorded) -> [NotesListGroup] {
         if sort == .longest {
             return rows.isEmpty ? [] : [NotesListGroup(title: "Longest first", memos: rows)]
         }
-        return NotesListModel.dayGroups(rows) {
-            MemoDate.bucket(NotesListModel.groupDate(recordedAt: $0.recordedAt, lastEditedAt: $0.lastEditedAt,
-                                                    byEditTime: sort == .edited))
-        }.map { NotesListGroup(title: $0.title, memos: $0.items) }
+        return NotesListModel.dateGroups(rows, date: {
+            NotesListModel.groupDate(recordedAt: $0.recordedAt, lastEditedAt: $0.lastEditedAt,
+                                     byEditTime: sort == .edited, addedAt: $0.addedAt, field: field)
+        }, ascending: sort == .oldest, label: { MemoDate.bucket($0) })
+            .map { NotesListGroup(title: $0.title, memos: $0.items) }
     }
 
     /// The live and fading notes matching `query`. An extension of the previous query only

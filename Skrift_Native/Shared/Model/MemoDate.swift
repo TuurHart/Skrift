@@ -42,7 +42,7 @@ enum MemoDate {
         return "\(isoDateFormatter.string(from: date)) · \(time)"
     }
 
-    /// D190 (Q358): the list's group key, Apple Notes' buckets — "Today", "Previous 7 Days",
+    /// D190 (Q358) + D197 (Q377): the list's group key, Apple Notes' buckets — "Today", "Yesterday", "Previous 7 Days",
     /// "Previous 30 Days", then the month name this year ("September"), then the year ("2025").
     /// Days count between calendar midnights in `calendar`'s time zone, against the INJECTED
     /// `now` (never the wall clock), so a 25-hour DST day and 23:59 last night both land right.
@@ -51,6 +51,7 @@ enum MemoDate {
         if isUnknown(date) { return unknownLabel }
         let days = dayDelta(date, now: now, calendar: calendar)
         if days <= 0 { return "Today" }
+        if days == 1 { return "Yesterday" }
         if days <= 7 { return "Previous 7 Days" }
         if days <= 30 { return "Previous 30 Days" }
         let year = calendar.component(.year, from: date)

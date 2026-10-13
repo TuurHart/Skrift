@@ -33,8 +33,27 @@ enum NotesListModel {
     /// fresh device's CloudKit fill all share one arrival day), and grouping on it filed a
     /// whole archive under "Yesterday" (Tuur 2026-10-02). The Mac queue already keys on the
     /// content date (`QueueEntry.date`), so all three surfaces read the same day.
-    static func groupDate(recordedAt: Date, lastEditedAt: Date, byEditTime: Bool) -> Date {
-        byEditTime ? lastEditedAt : recordedAt
+    ///
+    /// D197 (Q377): the Recorded / Added picker switches the header date too. Recorded is the
+    /// default, so an old note imported today files under its real month; Added files it under
+    /// the day it entered Skrift. "Recently edited" still names the edit day.
+    static func groupDate(recordedAt: Date, lastEditedAt: Date, byEditTime: Bool,
+                          addedAt: Date? = nil, field: MemoDateField = .recorded) -> Date {
+        if byEditTime { return lastEditedAt }
+        return field == .added ? (addedAt ?? recordedAt) : recordedAt
+    }
+
+    /// D197 (Q377): group a list by its grouping date, on all three surfaces. Items are put in
+    /// date order first (newest first, or oldest first), stable for equal dates, so a section's
+    /// rows run newest-of-that-date first and the sections come out in date order even when the
+    /// list's own sort (Newest = added day, C70) ran on a different date.
+    static func dateGroups<T>(_ items: [T], date: (T) -> Date, ascending: Bool,
+                              label: (Date) -> String) -> [(title: String, items: [T])] {
+        let dated = items.enumerated().map { (index: $0.offset, item: $0.element, date: date($0.element)) }
+        let ordered = dated.sorted { a, b in
+            a.date == b.date ? a.index < b.index : (ascending ? a.date < b.date : a.date > b.date)
+        }
+        return dayGroups(ordered, dayLabel: { label($0.date) }).map { (title: $0.title, items: $0.items.map(\.item)) }
     }
 
     /// Day-group a list into `(title, items)` buckets, in the order items already

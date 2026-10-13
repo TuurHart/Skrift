@@ -29,11 +29,12 @@ final class ListGroupingTests: XCTestCase {
     func testTodayRunsFromLocalMidnight() {
         XCTAssertEqual(bucket(at(2026, 10, 13, 0, 1)), "Today")
         XCTAssertEqual(bucket(at(2026, 10, 13, 9, 59)), "Today")
-        XCTAssertEqual(bucket(at(2026, 10, 12, 23, 59)), "Previous 7 Days", "23:59 last night is yesterday")
+        XCTAssertEqual(bucket(at(2026, 10, 12, 23, 59)), "Yesterday", "23:59 last night is yesterday")
     }
 
     func testPreviousSevenDaysEndsAtDaySeven() {
-        XCTAssertEqual(bucket(at(2026, 10, 12)), "Previous 7 Days")   // 1 day
+        XCTAssertEqual(bucket(at(2026, 10, 12)), "Yesterday")   // 1 day (D197)
+        XCTAssertEqual(bucket(at(2026, 10, 11, 23, 59)), "Previous 7 Days")   // 2 days
         XCTAssertEqual(bucket(at(2026, 10, 6, 0, 1)), "Previous 7 Days")   // 7 days
         XCTAssertEqual(bucket(at(2026, 10, 5, 23, 59)), "Previous 30 Days")   // 8 days
     }
@@ -62,7 +63,7 @@ final class ListGroupingTests: XCTestCase {
         // 23:30 the day before the change is still exactly 1 day back the morning after.
         let mon = at(2026, 10, 26, 0, 30)
         XCTAssertEqual(bucket(at(2026, 10, 26, 0, 5), now: mon), "Today")
-        XCTAssertEqual(bucket(at(2026, 10, 25, 23, 30), now: mon), "Previous 7 Days")
+        XCTAssertEqual(bucket(at(2026, 10, 25, 23, 30), now: mon), "Yesterday")
         XCTAssertEqual(line(at(2026, 10, 25, 23, 30), now: mon), "Yesterday")
     }
 
@@ -94,8 +95,8 @@ final class ListGroupingTests: XCTestCase {
                      at(2025, 12, 24)]
         let groups = NotesListModel.dayGroups(dates) { bucket($0) }
         XCTAssertEqual(groups.map(\.title),
-                       ["Today", "Previous 7 Days", "Previous 30 Days", "September", "August", "2025"])
-        XCTAssertEqual(groups.map(\.items.count), [2, 2, 1, 1, 2, 1])
+                       ["Today", "Yesterday", "Previous 7 Days", "Previous 30 Days", "September", "August", "2025"])
+        XCTAssertEqual(groups.map(\.items.count), [2, 1, 1, 1, 1, 2, 1])
     }
 
     func testANoteThatArrivedYesterdayGroupsByItsRecordedDay() {
@@ -117,6 +118,43 @@ final class ListGroupingTests: XCTestCase {
         XCTAssertEqual(NoteRowText.lines(title: "Groceries", snippet: "Oat milk, eggs").line, "Oat milk, eggs")
         XCTAssertNil(NoteRowText.lines(title: "Whiteboard", snippet: "Whiteboard").line)
         XCTAssertEqual(NoteRowText.lines(title: nil, snippet: nil, busy: "Transcribing").busy, "Transcribing…")
+    }
+
+    // MARK: - D197 / Q377: Yesterday, and the Recorded / Added picker drives the groups
+
+    func testYesterdayRunsFromLisbonMidnightToMidnight() {
+        XCTAssertEqual(bucket(at(2026, 10, 12, 0, 0)), "Yesterday")
+        XCTAssertEqual(bucket(at(2026, 10, 12, 23, 59)), "Yesterday")
+        XCTAssertEqual(bucket(at(2026, 10, 11, 23, 59)), "Previous 7 Days", "00:00 two days back is no longer yesterday")
+        XCTAssertEqual(bucket(at(2026, 10, 13, 0, 0)), "Today")
+    }
+
+    func testAnOldImportAddedTodayLandsInItsRealMonthByDefault() {
+        let m = Memo(recordedAt: at(2026, 3, 9), createdAt: at(2026, 10, 13, 8, 0))
+        let rec = NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false,
+                                           addedAt: m.addedAt, field: .recorded)
+        XCTAssertEqual(bucket(rec), "March")
+        let add = NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false,
+                                           addedAt: m.addedAt, field: .added)
+        XCTAssertEqual(bucket(add), "Today", "the Added picker groups by the day it entered Skrift")
+    }
+
+    func testDateGroupsOrderSectionsAndRowsByTheGroupingDate() {
+        // (name, recorded, added): the import was added today but recorded in March.
+        let rows: [(String, Date, Date)] = [("import", at(2026, 3, 9), at(2026, 10, 13, 8)),
+                                            ("today", at(2026, 10, 13, 9), at(2026, 10, 13, 9)),
+                                            ("last-night", at(2026, 10, 12, 21), at(2026, 10, 12, 21)),
+                                            ("earlier", at(2026, 10, 13, 7), at(2026, 10, 13, 7))]
+        // The list arrives in ADDED order (the sort), as the apps' own sorts give it.
+        let arrived = rows.sorted { $0.2 > $1.2 }
+        let byRecorded = NotesListModel.dateGroups(arrived, date: { $0.1 }, ascending: false) { bucket($0) }
+        XCTAssertEqual(byRecorded.map(\.title), ["Today", "Yesterday", "March"])
+        XCTAssertEqual(byRecorded[0].items.map(\.0), ["today", "earlier"], "newest of the same date first")
+        let byAdded = NotesListModel.dateGroups(arrived, date: { $0.2 }, ascending: false) { bucket($0) }
+        XCTAssertEqual(byAdded.map(\.title), ["Today", "Yesterday"])
+        XCTAssertEqual(byAdded[0].items.map(\.0), ["today", "import", "earlier"])
+        let oldest = NotesListModel.dateGroups(arrived, date: { $0.1 }, ascending: true) { bucket($0) }
+        XCTAssertEqual(oldest.map(\.title), ["March", "Yesterday", "Today"])
     }
 
     func testRecentlyEditedGroupsByEditDay() {
