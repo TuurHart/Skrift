@@ -14,7 +14,8 @@
   --sk-glass:rgba(255,255,255,.86); --sk-mark:rgba(28,28,30,.28);
   /* Reference: sampled from Tuur's iPad screenshot (white list, dark-grey note text, Notes yellow) */
   --rf-bg:#ffffff; --rf-ink:#000000; --rf-note:#454545; --rf-dim:#8a8a8e; --rf-div:#e8e8e8; --rf-hair:#e6e6e6;
-  --rf-tint:#e3ae12; --rf-glass:rgba(255,255,255,.92); --rf-rim:rgba(0,0,0,.09); --rf-icon:#1c1c1e; --rf-faint:#b4b4b8;
+  --rf-tint:#e3bc4d; --rf-glass:rgba(255,255,255,.92); --rf-rim:rgba(0,0,0,.09); --rf-icon:#1c1c1e; --rf-faint:#b4b4b8;
+  --rf-gsel:#ededee; --rf-hl:rgba(227,188,77,.20); --rf-side:#efeeea; --rf-panel:rgba(250,249,247,.93); --rf-cap:rgba(0,0,0,.055); --rf-rule:#d5d5d8; --rf-chip:#dddcd8; --rf-chipt:#7a7974; --rf-red:#e5484d;
   --toast-bg:#1d1c22; --toast-fg:#ffffff;
   --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -27,6 +28,7 @@
   --sk-glass:rgba(34,36,48,.88); --sk-mark:rgba(228,228,231,.28);
   --rf-bg:#000000; --rf-ink:#ffffff; --rf-note:#d6d6d6; --rf-dim:#8d8d93; --rf-div:#2a2a2c; --rf-hair:#2c2c2e;
   --rf-tint:#c99a10; --rf-glass:rgba(44,44,46,.9); --rf-rim:rgba(255,255,255,.12); --rf-icon:#f2f2f2; --rf-faint:#636366;
+  --rf-gsel:#2c2c2e; --rf-hl:rgba(201,154,16,.28); --rf-side:#1c1c1e; --rf-panel:rgba(40,40,42,.94); --rf-cap:rgba(255,255,255,.08); --rf-rule:#3a3a3c; --rf-chip:#2c2c2e; --rf-chipt:#a1a1a6; --rf-red:#ff6961;
   --toast-bg:#ecebf1; --toast-fg:#131217; color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -37,6 +39,7 @@
   --sk-glass:rgba(34,36,48,.88); --sk-mark:rgba(228,228,231,.28);
   --rf-bg:#000000; --rf-ink:#ffffff; --rf-note:#d6d6d6; --rf-dim:#8d8d93; --rf-div:#2a2a2c; --rf-hair:#2c2c2e;
   --rf-tint:#c99a10; --rf-glass:rgba(44,44,46,.9); --rf-rim:rgba(255,255,255,.12); --rf-icon:#f2f2f2; --rf-faint:#636366;
+  --rf-gsel:#2c2c2e; --rf-hl:rgba(201,154,16,.28); --rf-side:#1c1c1e; --rf-panel:rgba(40,40,42,.94); --rf-cap:rgba(255,255,255,.08); --rf-rule:#3a3a3c; --rf-chip:#2c2c2e; --rf-chipt:#a1a1a6; --rf-red:#ff6961;
   --toast-bg:#ecebf1; --toast-fg:#131217; color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -91,32 +94,70 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .batt{font-size:10.5px;font-weight:700;background:currentColor;border-radius:4px;padding:0 4px;line-height:14px}
 .batt span{color:var(--rf-bg);mix-blend-mode:normal}
 
-/* ── REFERENCE (Apple Notes, iPad) — every position below is measured off the 2000-px screenshot at 1.4535 px/pt ── */
+/* ── REFERENCE (Apple Notes, iPad). Positions measured off Tuur's 2752 x 2064 px screenshots
+   (IMG_5231…5238) at 2 px per point; every number below is an iPad point. ── */
 .rf{background:var(--rf-bg);color:var(--rf-ink)}
 .rf .sbar{color:var(--rf-ink)}
+.rf .ab{position:absolute}
 .rf .side{position:absolute;left:0;top:0;bottom:0;width:340px;border-right:1px solid var(--rf-div)}
+.rf .fold{position:absolute;left:0;top:0;bottom:0;width:280px;background:var(--rf-side)}
 .rf .gc{position:absolute;top:32px;height:44px;border-radius:22px;background:var(--rf-glass);box-shadow:0 0 0 .5px var(--rf-rim),0 2px 10px rgba(0,0,0,.07);color:var(--rf-icon);display:flex;align-items:center;justify-content:center}
 .rf .gc.c{width:44px}
 .rf .ico{position:absolute;top:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;color:var(--rf-icon)}
-.rf .stitle{position:absolute;left:66px;top:36px;font-size:15px;line-height:20px;font-weight:600}
+.rf .stitle{position:absolute;top:34px;font-size:15px;line-height:20px;font-weight:600}
 .rf .stitle span{display:block;font-weight:400;color:var(--rf-dim)}
-.rf .gh{position:absolute;left:24px;font-size:20px;line-height:24px;font-weight:700}
-.rf .chev{position:absolute;left:298px;top:98px;color:var(--rf-ink)}
-.rf .row{position:absolute;left:16.5px;width:306.8px;height:59.2px;border-radius:18px;text-align:left;padding:7px 0 0 28px}
+.rf .gh{position:absolute;font-size:20px;line-height:24px;font-weight:700}
+.rf .chev{position:absolute;color:var(--rf-ink)}
+.rf .row{position:absolute;width:308px;height:60px;border-radius:18px;text-align:left;padding:8px 0 0 28px}
 .rf .row.sel{background:var(--rf-tint);color:#fff}
+.rf .row.gsel{background:var(--rf-gsel)}
 .rf .row .t{font-size:17px;line-height:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:205px}
 .rf .row .l2{font-size:15px;line-height:20px;color:var(--rf-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:215px}
 .rf .row.sel .l2{color:rgba(255,255,255,.88)}
 .rf .row .l2 b{font-weight:400;margin-right:7px}
-.rf .row .th{position:absolute;right:11px;top:9.6px;width:40px;height:40px;border-radius:8px}
-.rf .hair{position:absolute;left:24px;width:292px;height:1px;background:var(--rf-hair)}
-.rf .ntitle{position:absolute;left:408px;top:92px;font-size:28px;line-height:34px;font-weight:700;color:var(--rf-note)}
-.rf .nbody{position:absolute;left:408px;top:158px;width:901px;font-size:17px;line-height:26px;color:var(--rf-note)}
-.rf .nphoto{position:absolute;left:408px;top:245.6px;width:901px;bottom:0;background:linear-gradient(160deg,#d8dbe0 0%,#b9c2c9 30%,#6f8b7a 52%,#2e3b33 70%,#c9ccd0 100%)}
+.rf .row .th{position:absolute;right:12px;top:11px;width:40px;height:40px;border-radius:8px}
+.rf .hair{position:absolute;height:1px;background:var(--rf-hair)}
+.rf .ntitle{position:absolute;font-size:28px;line-height:34px;font-weight:700;color:var(--rf-note);white-space:nowrap}
+.rf .nbody{position:absolute;font-size:17px;line-height:26px;color:var(--rf-note);white-space:nowrap}
+.rf .nphoto{position:absolute;left:408px;top:246px;width:901px;bottom:0;background:linear-gradient(160deg,#d8dbe0 0%,#b9c2c9 30%,#6f8b7a 52%,#2e3b33 70%,#c9ccd0 100%)}
 .rf .nphoto::before{content:"";position:absolute;left:8%;top:30%;width:34%;height:34%;border-radius:10px;background:linear-gradient(150deg,#1e6b55,#0f3b2f);transform:rotate(-12deg);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .rf .nphoto::after{content:"";position:absolute;left:46%;top:56%;width:36%;height:30%;border-radius:12px;background:linear-gradient(150deg,#3a3c40,#16171a);transform:rotate(-22deg);box-shadow:0 10px 30px rgba(0,0,0,.3)}
-.rf .srch{position:absolute;left:1166px;top:43px;font-size:17px;line-height:22px;color:var(--rf-dim)}
+.rf .srch{position:absolute;top:43px;font-size:17px;line-height:22px;color:var(--rf-dim)}
 .rf .aa{font-size:22px;color:var(--rf-faint);font-weight:400;letter-spacing:-.5px}
+.rf .aa.live{color:var(--rf-icon)}
+.rf .hl{position:absolute;background:var(--rf-hl)}
+.rf .knob{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--rf-tint)}
+.rf .knob::after{content:"";position:absolute;left:4.5px;width:2px;height:24px;background:var(--rf-tint)}
+.rf .knob.top::after{top:6px}.rf .knob.bot::after{bottom:6px}
+.rf .gmenu{position:absolute;background:var(--rf-glass);box-shadow:0 0 0 .5px var(--rf-rim),0 8px 30px rgba(0,0,0,.14);display:flex;align-items:center;font-size:15px;color:var(--rf-icon)}
+.rf .gmenu .it{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;transform:translateX(-50%);white-space:nowrap;gap:6px}
+.rf .gmenu .vs{position:absolute;top:12px;bottom:12px;width:1px;background:var(--rf-hair)}
+.rf .amenu{position:absolute;left:722px;top:33px;width:223px;height:316px;border-radius:28px;background:var(--rf-glass);box-shadow:0 0 0 .5px var(--rf-rim),0 10px 40px rgba(0,0,0,.16);font-size:15px;color:var(--rf-icon)}
+.rf .amenu .mi{position:absolute;left:0;right:0;display:flex;align-items:center;line-height:18px;text-align:left}
+.rf .amenu .mi svg{position:absolute;left:21px}
+.rf .amenu .mi span{position:absolute;left:54px}
+.rf .dim{position:absolute;inset:0;background:rgba(0,0,0,.165);z-index:5}
+.rf .fmt{position:absolute;left:501px;top:411px;width:374px;height:230px;border-radius:34px;background:var(--rf-panel);box-shadow:0 0 0 .5px var(--rf-rim),0 16px 50px rgba(0,0,0,.18);z-index:6;overflow:hidden}
+.rf .fmt h4{position:absolute;left:16px;top:22px;margin:0;font-size:20px;line-height:24px;font-weight:600}
+.rf .fmt .x{position:absolute;left:314px;top:13px;width:44px;height:44px;border-radius:50%;background:var(--rf-glass);box-shadow:0 0 0 .5px var(--rf-rim);display:flex;align-items:center;justify-content:center}
+.rf .fmt .sty{position:absolute;left:0;top:69px;height:40px;display:flex;gap:2px;white-space:nowrap;transition:transform .25s ease}
+.rf .fmt .sty button{height:40px;padding:0 16px;border-radius:20px;color:var(--rf-ink)}
+.rf .fmt .sty button.on{background:var(--rf-tint);color:#fff}
+.rf .fmt .cap{position:absolute;height:41px;border-radius:20.5px;background:var(--rf-cap)}
+.rf .fmt .fi{position:absolute;width:44px;height:41px;display:flex;align-items:center;justify-content:center;transform:translateX(-50%);font-size:19px;color:var(--rf-ink)}
+.rf .ruled{position:absolute;height:1px;background:var(--rf-rule)}
+.rf .cbx{position:absolute;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--rf-faint)}
+.rf .cbx.on{background:var(--rf-tint);border-color:var(--rf-tint);display:flex;align-items:center;justify-content:center;color:#fff}
+.rf .tbl{position:absolute;border:1px solid var(--rf-rule)}
+.rf .tbl i{position:absolute;background:var(--rf-rule)}
+.rf .frow{position:absolute;left:16px;width:248px;height:44px;border-radius:12px;display:flex;align-items:center;font-size:17px}
+.rf .frow.sel{background:var(--rf-tint);color:#fff}
+.rf .frow svg{position:absolute;left:14px}
+.rf .frow span{position:absolute;left:50px}
+.rf .frow b{position:absolute;right:16px;font-weight:400;color:var(--rf-dim)}
+.rf .frow.sel b{color:#fff}
+.rf .fh{position:absolute;left:32px;font-size:17px;color:var(--rf-dim)}
+.rf .tagc{position:absolute;height:32px;padding:0 12px;border-radius:9px;background:var(--rf-chip);font-size:15px;line-height:32px;color:var(--rf-chipt);font-weight:500}
 
 /* ── SKRIFT iPad ── */
 .sk{background:var(--sk-bg);color:var(--sk-text)}
@@ -267,12 +308,27 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .conf .btns .go{background:var(--sk-accent);color:#fff}
 .sk .wrapr{position:relative;display:flex;gap:11px;align-items:center}
 
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+.toc a{font-size:12.5px;font-weight:600;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:5px 10px}
+.sec{scroll-margin-top:70px}
+.sn{display:inline-block;width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--bench);font:700 12px/22px var(--mono);text-align:center;margin-right:8px;vertical-align:1px}
+.nosk{margin:12px 9px 0;border:1px dashed var(--mark);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;color:var(--dim);max-width:720px}
+.sk .emenu{position:absolute;left:150px;top:-50px;display:flex;align-items:center;height:43px;padding:0 6px;border-radius:21.5px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 8px 30px rgba(0,0,0,.16);font-size:15px;font-weight:400;font-style:normal;white-space:nowrap;z-index:12;color:var(--sk-text);line-height:1}
+.sk .emenu button{height:43px;padding:0 11px;display:inline-flex;align-items:center}
+.sk .emenu i{width:1px;height:19px;background:var(--sk-ring);display:block}
+.sk .emenu .newp{color:var(--sk-accent-text);font-weight:600}
+.sk .ssel{background:var(--sk-accent-soft);border-radius:2px;box-shadow:0 0 0 1px var(--sk-accent-soft)}
+.sk .pmenu{position:absolute;top:0;left:104px;width:240px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0;z-index:20;display:flex;flex-direction:column}
+.sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
+.sk .tools .pmenu button{width:100%}
+.sk .li .bx{display:flex;align-items:center;justify-content:center;color:#fff}
+.sk .dchip.pers{color:var(--sk-dim);background:var(--sk-elev)}
+.sk .dchip.pers i{background:var(--sk-faint)}
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:10px 14px;border-radius:10px;max-width:min(92vw,480px);transition:.2s;pointer-events:none;z-index:60;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* screenshot mode (#shot-…): one frame at 1:1, nothing else */
-body.shot .wrap > :not(.stagewrap){display:none}
-body.shot .stagewrap .flab,body.shot .flipnote{display:none}
+body.shot .wrap > :not(#stages){display:none}
 body.shot .wrap{padding:0;max-width:none}
 body.shot .dev{margin:0;box-shadow:none;border-radius:0}
 </style>
@@ -280,22 +336,18 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
 <div class="wrap" id="app">
   <div class="eyebrow">Q378 · mock · D193 D194 D196 D197 · iPad Pro 13" · 1 px = 1 pt</div>
   <h1>Skrift on iPad, beside Apple Notes on iPad</h1>
-  <p class="lede">The top frame is Apple Notes, redrawn by hand from Tuur's iPad screenshot at its true size (1376 x 1032 pt). The frame under it is the proposed Skrift iPad screen at the same scale: the list rows from Q349 (D194, D197), the note from Q350 (D196), and the Mac's full Aa list (D197), because the iPad has a hardware keyboard. Orange numbers mark the picks you may want to overrule; they are listed under the frames.</p>
+  <p class="lede">Seven pairs. In each, the top frame is Apple Notes redrawn by hand from one of Tuur's iPad screenshots at its true size (1376 x 1032 pt, the screenshots are 2752 px wide, so 2 px per point). The frame under it is the proposed Skrift iPad screen in the same state at the same scale. Orange numbers mark the picks you may want to overrule; they are listed at the end.</p>
 
   <div class="bar" id="bar">
     <div class="grp">View <span class="seg"><button data-v="lay" data-x="stack" aria-pressed="true">Stacked</button><button data-v="lay" data-x="flip" aria-pressed="false">Flip in place</button></span></div>
     <div class="grp">Size <span class="seg"><button data-v="size" data-x="fit" aria-pressed="true">Fit width</button><button data-v="size" data-x="actual" aria-pressed="false">1 : 1 points</button></span></div>
-    <div class="grp">Aa <span class="seg"><button data-v="aa" data-x="0" aria-pressed="true">Closed</button><button data-v="aa" data-x="1" aria-pressed="false">Open</button></span></div>
-    <div class="grp">List <span class="seg"><button data-v="list" data-x="1" aria-pressed="true">Shown</button><button data-v="list" data-x="0" aria-pressed="false">Hidden</button></span></div>
     <div class="grp">Text width <span class="seg"><button data-v="wide" data-x="0" aria-pressed="true">640 pt<span class="pk">PICK</span></button><button data-v="wide" data-x="1" aria-pressed="false">Full, like Apple</button></span></div>
     <div class="grp">Tabs <span class="seg"><button data-v="tabs" data-x="row" aria-pressed="true">Own row<span class="pk">PICK</span></button><button data-v="tabs" data-x="band" aria-pressed="false">In the toolbar line</button></span></div>
     <div class="grp">Marks <span class="seg"><button data-v="marks" data-x="1" aria-pressed="true">On</button><button data-v="marks" data-x="0" aria-pressed="false">Off</button></span></div>
   </div>
+  <nav class="toc" id="toc"></nav>
 
-  <div class="stagewrap" id="landStage"></div>
-  <p class="flipnote" id="flipnote" hidden>Flip in place: tap the frame label or press Space to swap Apple and Skrift in the same spot.</p>
-
-  <div class="stagewrap" id="portStage"></div>
+  <div id="stages"></div>
 
   <h3 class="sect">Picks you might overrule</h3>
   <div class="picks" id="picks"></div>
@@ -305,18 +357,49 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
     <p>On the iPad, should the note's text run the full width of the pane like Apple Notes (about 900 pt in landscape), or stay capped at Skrift's 640 pt reading width, which leaves about 350 pt empty on the right? Flip "Text width" to see both.</p>
   </div>
 
-  <p class="fine">The Apple Notes frame is redrawn in HTML from Tuur's own iPad screenshot (ipad-list-note.webp, 2000 x 1500 px, 13 Oct 2026). Its scale is 2000 / 1376 = 1.4535 px per point, confirmed by the 44 pt glass buttons (64 px) and the 340 pt sidebar (494 px). No screenshot or Apple icon is embedded, the icons are generic strokes, and the note text is invented to the same line lengths. The Skrift frames follow Shared/UI/NoteCardView.swift (row type 16 / 14 / 12.5, the grey Unrated marker, Portfolio-only line 3, 52 pt thumbnail), SkriftMobile/Features/MemosList/MemosListView.swift (375 pt list column, the pinned list toggle), MemosListView+Header.swift (verb row, Process, chips), Root/AppTabView.swift (Notes, Library, Review, Settings as a top strip), MemoDetail/MemoDetailView.swift (workbench band, 640 pt reading width, docked player) and the signed mocks Q349, Q350 and ipad-note-chrome-belongs.</p>
+  <p class="fine">The Apple Notes frames are redrawn in HTML from Tuur's own iPad screenshots (IMG_5231 to IMG_5238, 2752 x 2064 px, 13 Oct 2026; scale 2752 / 1376 = 2 px per point, confirmed by the 44 pt glass buttons at 88 px and the 340 pt sidebar at 680 px). No screenshot or Apple icon is embedded, the icons are generic strokes, and the note text, folder names and tags are invented to the same line lengths. The Skrift frames follow Shared/UI/NoteCardView.swift (row type 16 / 14 / 12.5, the grey Unrated marker, Portfolio-only line 3, 52 pt thumbnail), SkriftMobile/Features/MemosList/MemosListView.swift (375 pt list column, the pinned list toggle), MemosListView+Header.swift (verb row, Process, chips), Root/AppTabView.swift (Notes, Library, Review, Settings as a top strip), MemoDetail/MemoDetailView.swift (workbench band, 640 pt reading width, docked player), MemoPageView.swift (Take Photo / Choose from Library), NoteBodyView.swift (square checkboxes, "New person…" in the text menu) and the signed mocks Q349, Q350 and ipad-note-chrome-belongs.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
 <script>
 (() => {
-const S = { lay:'stack', size:'fit', aa:false, list:true, wide:false, tabs:'row', marks:true, front:'ref', tab:'Notes', sel:1, refSel:0, menu:null, block:'p', audio:true };
+/* G = page-wide toggles. Each section keeps its own state (st); renderers read S, which render() points at
+   the section being drawn. */
+const G = { lay:'stack', size:'fit', wide:false, tabs:'row', marks:true };
+const base = { tab:'Notes', sel:1, aa:false, list:true, menu:null, block:'p', audio:true, front:'ref', selbar:false, photo:false, refSty:0 };
+const SEC = [
+  {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{},                           cap:'the list beside an open note'},
+  {id:'aa',     name:'Aa',              shot:'IMG_5234 + 5235', ref:'format', st:{aa:true},             cap:'Aa open: Apple floats a Format panel over a dimmed screen; Skrift drops the Mac popover from the button'},
+  {id:'select', name:'Text selected',   shot:'IMG_5232', ref:'select',  st:{selbar:true},                cap:'a sentence selected: the edit menu above it'},
+  {id:'attach', name:'Attach / photo',  shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach (Apple) or photo (Skrift) button opened'},
+  {id:'check',  name:'Checklist note',  shot:'IMG_5236', ref:'check',   st:{sel:4},                      cap:'a typed note with a checklist'},
+  {id:'full',   name:'List hidden',     shot:'IMG_5237', ref:'full',    st:{sel:4, list:false},          cap:'the list closed, the note takes the screen'},
+  {id:'folders',name:'Folders column',  shot:'IMG_5238', ref:'folders', st:null,                         cap:'Apple\'s three columns; Skrift has no folders column'}
+];
+SEC.forEach(s => { if (s.st) s.st = Object.assign({}, base, s.st); });
+const PORT = Object.assign({}, base);
+let S = SEC[0].st;
+let shotSpec = null;
 const h = (location.hash || '').slice(1);
-if (h.indexOf('shot') === 0) document.body.classList.add('shot');
-if (h.indexOf('aa') >= 0) S.aa = true;
-
+if (h.indexOf('shot-') === 0) { const p = h.split('-'); shotSpec = {sec:p[1], side:p[2]}; document.body.classList.add('shot'); G.size = 'actual'; G.marks = false; document.body.classList.add('nomarks'); }
 const I = {
+  chevR:'<svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg>',
+  kbd:'<svg width="26" height="18" viewBox="0 0 26 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="24" height="16" rx="4"/><text x="13" y="12" font-size="7" text-anchor="middle" fill="currentColor" stroke="none" font-family="-apple-system" font-weight="600">EN</text></svg>',
+  rw:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M15.5 9A6.5 6.5 0 113.4 5.6"/><path d="M2.5 2v4h4"/><path d="M9 5.5v4l2.5 1.5"/></svg>',
+  scanT:'<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 6V3.5a2 2 0 012-2H6M14 1.5h2.5a2 2 0 012 2V6M18.5 14v2.5a2 2 0 01-2 2H14M6 18.5H3.5a2 2 0 01-2-2V14M6 7h8M6 10h8M6 13h5"/></svg>',
+  scanD:'<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 6V3.5a2 2 0 012-2H6M14 1.5h2.5a2 2 0 012 2V6M18.5 14v2.5a2 2 0 01-2 2H14M6 18.5H3.5a2 2 0 01-2-2V14"/><rect x="6" y="5" width="8" height="10" rx="1.5"/></svg>',
+  cam:'<svg width="22" height="18" viewBox="0 0 22 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M1.5 5.5a2 2 0 012-2h3l1.5-2h6l1.5 2h3a2 2 0 012 2v9a2 2 0 01-2 2h-15a2 2 0 01-2-2z"/><circle cx="11" cy="10" r="3.6"/></svg>',
+  play2:'<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8.5"/><circle cx="7" cy="8" r="2"/><path d="M4 15c2-3 5-4 8-3 2 .6 3.5 2 4 3"/></svg>',
+  wave:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2 7v4M5 4v10M8 6v6M11 2v14M14 5v8M17 7.5v3"/></svg>',
+  file:'<svg width="16" height="20" viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M1.5 3a1.5 1.5 0 011.5-1.5h6.5l5 5V17a1.5 1.5 0 01-1.5 1.5H3A1.5 1.5 0 011.5 17z"/><path d="M9.5 1.5v5h5"/></svg>',
+  x:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>',
+  ulist:'<svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="2" cy="2" r=".8" fill="currentColor"/><circle cx="2" cy="8" r=".8" fill="currentColor"/><circle cx="2" cy="14" r=".8" fill="currentColor"/><path d="M7 2h14M7 8h14M7 14h14"/></svg>',
+  dlist:'<svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 2h3M1 8h3M1 14h3M7 2h14M7 8h14M7 14h14"/></svg>',
+  olist:'<svg width="22" height="18" viewBox="0 0 22 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><text x="0" y="6" font-size="6" fill="currentColor" stroke="none" font-family="-apple-system">1</text><text x="0" y="12" font-size="6" fill="currentColor" stroke="none" font-family="-apple-system">2</text><text x="0" y="18" font-size="6" fill="currentColor" stroke="none" font-family="-apple-system">3</text><path d="M7 3h14M7 9h14M7 15h14"/></svg>',
+  outd:'<svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 2h14M1 6h10M1 10h10M1 14h14"/><path d="M20 5l-3 3 3 3" fill="currentColor"/></svg>',
+  ind:'<svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7 2h14M11 6h10M11 10h10M7 14h14"/><path d="M1 5l3 3-3 3" fill="currentColor"/></svg>',
+  bq:'<svg width="20" height="18" viewBox="0 0 20 18"><rect x="1" y="1" width="2.4" height="16" rx="1" fill="currentColor"/><rect x="6" y="3" width="13" height="12" rx="2.5" fill="currentColor"/></svg>',
+  newf:'<svg width="28" height="22" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 4.5a2 2 0 012-2h6l2.2 2.5h9.8a2 2 0 012 2v10a2 2 0 01-2 2h-18a2 2 0 01-2-2z"/><circle cx="22" cy="6" r="5" fill="var(--rf-glass)"/><path d="M22 3.5v5M19.5 6h5" stroke-linecap="round"/></svg>',
+  shrink:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6H3M9 9L2.5 2.5M13 19v-6h6M13 13l6.5 6.5"/></svg>',
   side:'<svg width="24" height="20" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1.5" y="1.5" width="21" height="17" rx="4"/><path d="M9 1.5v17"/><path d="M4.5 6h2M4.5 9h2" stroke-linecap="round"/></svg>',
   dots:'<svg width="20" height="4" viewBox="0 0 20 4" fill="currentColor"><circle cx="2" cy="2" r="2"/><circle cx="10" cy="2" r="2"/><circle cx="18" cy="2" r="2"/></svg>',
   expand:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5v-6h6M2.5 2.5l6.5 6.5M19.5 13.5v6h-6M19.5 19.5L13 13"/></svg>',
@@ -347,50 +430,174 @@ const I = {
   tick:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.3l2.3 2.3 4.7-5"/></svg>'
 };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const pick = (k) => S.marks ? ` pick" data-k="${k}` : '';
-
-/* ── Reference frame ── */
-const REF_ROWS = [
-  {group:'Pinned', top:130.7, title:'Bike route to Belém', time:'11:23', line:'Route for Saturday: down Calçada…', thumb:true},
-  {group:'Today', top:241, title:'Shopping list', time:'11:22', line:'Oat milk'}
-];
-function refFrame(){
-  const r0 = REF_ROWS[0], r1 = REF_ROWS[1];
-  const row = (r, i) => `<button class="row${S.refSel===i?' sel':''}" style="top:${r.top}px" data-ref="${i}"><div class="t">${esc(r.title)}</div><div class="l2"><b>${r.time}</b>${esc(r.line)}</div>${r.thumb?'<div class="th" style="background:linear-gradient(150deg,#d8dbe0,#6f8b7a 55%,#2e3b33)"></div>':''}</button>`;
-  return `<div class="dev land rf" id="ref-land">
-    <div class="sbar"><span>14:23&nbsp;&nbsp;Tue 13 Oct</span><span class="r">${I.wifi}<span class="batt"><span>80</span></span></span></div>
-    <div class="side">
-      <button class="gc c" style="left:9px" data-ack="Show or hide the folders (reference only)" aria-label="Folders">${I.side}</button>
-      <div class="stitle">Errands<span>2 Notes</span></div>
-      <button class="gc c" style="left:286px" data-ack="Folder menu (reference only)" aria-label="More">${I.dots}</button>
-      <div class="gh" style="top:95px">Pinned</div><span class="chev">${I.chevD}</span>
-      ${row(r0,0)}
-      <div class="gh" style="top:208px">Today</div>
-      <div class="hair" style="top:242px"></div>
-      ${row({...r1, top:243},1)}
-    </div>
-    <button class="gc c" style="left:350px" data-ack="Full screen (reference only)" aria-label="Full screen">${I.expand}</button>
-    <button class="gc c" style="left:406px" data-ack="New note (reference only)" aria-label="New note">${I.compose}</button>
-    <div class="gc" style="left:657.7px;width:288.3px">
-      <button class="ico aa" style="left:13.3px" data-ack="Format (reference only)">Aa</button>
-      <button class="ico" style="left:65.3px" data-ack="Checklist (reference only)">${I.check}</button>
-      <button class="ico" style="left:125.3px" data-ack="Table (reference only)">${I.table}</button>
-      <button class="ico" style="left:183.3px" data-ack="Attach (reference only)">${I.clip}</button>
-      <button class="ico" style="left:240.3px" data-ack="Writing tools (reference only)">${I.spark}</button>
-    </div>
-    <div class="gc" style="left:957px;width:157px">
-      <button class="ico" style="left:2.5px" data-ack="Markup (reference only)">${I.markup}</button>
-      <button class="ico" style="left:57.5px" data-ack="Share (reference only)">${I.share}</button>
-      <button class="ico" style="left:112px" data-ack="More (reference only)">${I.dots}</button>
-    </div>
-    <div class="gc" style="left:1125px;width:241px;justify-content:flex-start;padding-left:15px">${I.mag}<span style="position:absolute;right:15px;top:12px">${I.mic}</span></div>
-    <div class="srch">Search</div>
-    <div class="ntitle">Bike route to Belém</div>
-    <div class="nbody">Route for Saturday: down Calçada da Estrela to the river, then along the cycle path past the bridge to Belém. Stop at the bakery before ten, the queue gets long. Check the tyre pressure first and take the small lock, the big one rattles on the cobbles. Back by the tram line if it rains</div>
-    <div class="nphoto"></div>
-  </div>`;
+const pick = (k) => G.marks ? ` pick" data-k="${k}` : '';
+/* ── Reference frames: one function, seven states, each laid against its screenshot ── */
+const RA = {title:'Bike route to Belém', line:'Route for Saturday: down Calçada…', time:'11:23'};
+const RB = {title:'Before we go', line:'Keys', time:'11:22'};
+const ackR = m => `data-ack="${esc(m)} (Apple reference, not Skrift)"`;
+function refRow(r, x, y, mode, thumb){
+  const cls = mode === 'y' ? ' sel' : mode === 'g' ? ' gsel' : '';
+  return `<button class="row${cls}" style="left:${x}px;top:${y}px" ${ackR('Opens the note')}><div class="t">${esc(r.title)}</div><div class="l2"><b>${r.time}</b>${esc(r.line)}</div>${thumb?'<div class="th" style="background:linear-gradient(150deg,#d8dbe0,#6f8b7a 55%,#2e3b33)"></div>':''}</button>`;
 }
-
+/* list column: x0 = column left (0 or 280); pinned/today selection modes */
+function refList(x0, mA, mB){
+  return `<div class="stitle" style="left:${x0+66-(x0?49:0)}px">Errands<span>2 Notes</span></div>
+    <button class="gc c" style="left:${x0+286}px" ${ackR('Folder menu')} aria-label="More">${I.dots}</button>
+    <div class="gh" style="left:${x0+24}px;top:96px">Pinned</div><span class="chev" style="left:${x0+301}px;top:103px">${I.chevD}</span>
+    ${mA ? '' : `<div class="hair" style="left:${x0+24}px;top:130px;width:292px"></div>`}
+    ${refRow(RA, x0+16, 130, mA, true)}
+    <div class="gh" style="left:${x0+24}px;top:208px">Today</div>
+    ${mB ? '' : `<div class="hair" style="left:${x0+24}px;top:242px;width:292px"></div>`}
+    ${refRow(RB, x0+16, 243, mB, false)}`;
+}
+/* note toolbar: pill left edge, whether writing tools show, whether Aa is live */
+function refTools(px, opts){
+  const o = Object.assign({spark:true, aaLive:false, right:957, search:'field'}, opts);
+  const w = o.spark ? 288 : 230;
+  const pill = o.hidePill ? '' : `<div class="gc" style="left:${px}px;width:${w}px">
+      <button class="ico aa${o.aaLive?' live':''}" style="left:5px" ${ackR('Format')}>Aa</button>
+      <button class="ico" style="left:65px" ${ackR('Checklist')}>${I.check}</button>
+      <button class="ico" style="left:125px" ${ackR('Table')}>${I.table}</button>
+      <button class="ico" style="left:183px" ${ackR('Attach')}>${I.clip}</button>
+      ${o.spark ? `<button class="ico" style="left:240px" ${ackR('Writing tools')}>${I.spark}</button>` : ''}
+    </div>`;
+  const right = `<div class="gc" style="left:${o.right}px;width:157px">
+      <button class="ico" style="left:2px" ${ackR('Markup')}>${I.markup}</button>
+      <button class="ico" style="left:57px" ${ackR('Share')}>${I.share}</button>
+      <button class="ico" style="left:111px" ${ackR('More')}>${I.dots}</button>
+    </div>`;
+  const search = o.search === 'field'
+    ? `<div class="gc" style="left:1126px;width:240px;justify-content:flex-start;padding-left:13px">${I.mag}<span style="position:absolute;right:19px;top:12px">${I.mic}</span></div><div class="srch" style="left:1166px">Search</div>`
+    : `<button class="gc c" style="left:1321px" ${ackR('Search')} aria-label="Search">${I.mag}</button>`;
+  return pill + right + search;
+}
+const PHOTO_LINES = ['Route for Saturday: down Calçada da Estrela to the river, then the cycle path past the bridge and on to the', 'tower at Belém, stop at the bakery before ten because the queue gets long, check the tyres and take the small', 'lock.'];
+function photoNote(){
+  return `<div class="ntitle" style="left:408px;top:94px">${esc(RA.title)}</div>
+    <div class="nbody" style="left:408px;top:160px">${PHOTO_LINES.map(esc).join('<br>')}</div>
+    <div class="nphoto"></div>`;
+}
+/* checklist note; k = geometry set (two-column, full screen, three-column) */
+const CK = {
+  two:  {x:408, tt:94,  ts:28, tl:34, fs:17, lh:26, by:160, rows:[188,220,252], cx:409, cd:22, tx:443, after:282, tb:[408,342,360,91,181,58], rule:[407,482,903,56.45,10]},
+  full: {x:89,  tt:96,  ts:33, tl:38, fs:20, lh:30, by:172, rows:[205,238,272], cx:90,  cd:23, tx:124, after:303, tb:[89,371,399,102,200,66], rule:[88,528,1200,75,7]},
+  three:{x:670, tt:94,  ts:28, tl:34, fs:17, lh:26, by:160, rows:[188,220,252], cx:671, cd:22, tx:705, after:282, tb:[670,342,328,91,164,58], rule:[669,482,658,41.3,13]}
+};
+function checkNote(k){
+  const g = CK[k];
+  const items = [['Keys',0],['Charger',0],['Tickets',1]];
+  let s = `<div class="ntitle" style="left:${g.x}px;top:${g.tt}px;font-size:${g.ts}px;line-height:${g.tl}px">${esc(RB.title)}</div>
+    <div class="nbody" style="left:${g.x}px;top:${g.by}px;font-size:${g.fs}px;line-height:${g.lh}px">Keys</div>`;
+  items.forEach((it,i) => {
+    s += `<span class="cbx${it[1]?' on':''}" style="left:${g.cx}px;top:${g.rows[i]+ (g.lh-g.cd)/2}px;width:${g.cd}px;height:${g.cd}px">${it[1]?I.tick:''}</span>
+      <div class="nbody" style="left:${g.tx}px;top:${g.rows[i]}px;font-size:${g.fs}px;line-height:${g.lh}px">${it[0]}</div>`;
+  });
+  s += `<div class="nbody" style="left:${g.x}px;top:${g.after}px;font-size:${g.fs}px;line-height:${g.lh}px">All set</div>`;
+  const [tx,ty,tw,th,cw,rh] = g.tb;
+  s += `<div class="tbl" style="left:${tx}px;top:${ty}px;width:${tw}px;height:${th}px"><i style="left:${cw}px;top:0;bottom:0;width:1px"></i><i style="left:0;right:0;top:${rh}px;height:1px"></i>
+      <div class="nbody" style="position:absolute;left:5px;top:${k==='full'?3:4}px;width:${cw-10}px;white-space:normal;font-size:${g.fs}px;line-height:${k==='full'?29:24}px">Train at 9:10 from Oriente</div></div>`;
+  const [rx,ry,rw,rs,rn] = g.rule;
+  for (let i = 0; i < rn; i++) s += `<div class="ruled" style="left:${rx}px;top:${(ry + i*rs).toFixed(1)}px;width:${rw}px"></div>`;
+  return s;
+}
+function refSelect(){
+  /* IMG_5232: lines 1–2 and the start of line 3 highlighted, knobs, edit menu, writing-tools bar */
+  return `<div class="hl" style="left:408px;top:162px;width:901px;height:49px"></div><div class="hl" style="left:408px;top:211px;width:46px;height:26px"></div>
+    <span class="knob top" style="left:403.5px;top:150.5px"></span><span class="knob bot" style="left:448.5px;top:236.5px"></span>
+    <div class="gmenu" style="left:638px;top:253px;width:446px;height:43px;border-radius:21.5px;z-index:4">
+      <button class="it" style="left:31px" ${ackR('Cut')}>Cut</button><span class="vs" style="left:61px"></span>
+      <button class="it" style="left:93px" ${ackR('Copy')}>Copy</button><span class="vs" style="left:127px"></span>
+      <button class="it" style="left:162px" ${ackR('Paste')}>Paste</button><span class="vs" style="left:196px"></span>
+      <button class="it" style="left:236px;color:var(--rf-red)" ${ackR('Delete')}>Delete</button><span class="vs" style="left:276px"></span>
+      <button class="it" style="left:300px" ${ackR('Writing tools')}>${I.spark.replace('width="24" height="24"','width="20" height="20"')}</button><span class="vs" style="left:324px"></span>
+      <button class="it" style="left:367px" ${ackR('AutoFill')}>AutoFill</button>
+      <button class="it" style="left:425px" ${ackR('More actions')}>${I.chevR}</button>
+    </div>
+    <div class="gmenu" style="left:373px;top:961px;width:630px;height:44px;border-radius:22px;z-index:4;font-size:17px">
+      <button class="it" style="left:35px" ${ackR('Keyboard language')}>${I.kbd}</button>
+      <button class="it" style="left:152px" ${ackR('Proofread')}>${I.magS}Proofread</button><span class="vs" style="left:284px"></span>
+      <button class="it" style="left:396px" ${ackR('Rewrite')}>${I.rw}Rewrite</button><span class="vs" style="left:504px"></span>
+      <button class="it" style="left:535px" ${ackR('Writing tools')}>${I.spark.replace('width="24" height="24"','width="20" height="20"')}</button>
+      <button class="it" style="left:594px" ${ackR('Dictation')}>${I.mic}</button>
+    </div>`;
+}
+function refAttach(){
+  const it = (y, icon, label, two) => `<button class="mi" style="top:${y - (two?18:9)}px;height:${two?36:18}px" ${ackR(label.replace('<br>',' '))}>${icon}<span>${label}</span></button>`;
+  return `<div class="amenu">
+      ${it(25,I.scanT,'Scan Text')}${it(63,I.scanD,'Scan Documents')}${it(101,I.cam,'Take Photo or Video')}${it(148,I.photo,'Choose Photo<br>or Video',true)}${it(195,I.play2,'Image Playground')}
+      <div class="hair" style="left:20px;top:223px;width:183px"></div>
+      ${it(250,I.wave,'Record Audio')}${it(288,I.file,'Attach File')}
+    </div>`;
+}
+function refFormat(){
+  /* IMG_5234 (row scrolled to Body) and IMG_5235 (row at Title): tap a style to scroll between them */
+  const off = S.refSty ? -81 : 0;
+  const caps = [[20,219],[249,105]].map(c => `<span class="cap" style="left:${c[0]}px;top:120px;width:${c[1]}px"></span>`).join('')
+    + [[20,162],[192,104]].map(c => `<span class="cap" style="left:${c[0]}px;top:172px;width:${c[1]}px"></span>`).join('')
+    + `<span class="cap" style="left:304px;top:172px;width:50px"></span>`;
+  const fi = (x, y, inner, m) => `<button class="fi" style="left:${x}px;top:${y}px" ${ackR(m)}>${inner}</button>`;
+  return `<div class="dim"></div><div class="fmt" role="dialog" aria-label="Format (reference)">
+      <h4>Format</h4><button class="x" ${ackR('Close')}>${I.x}</button>
+      <div class="sty" style="transform:translateX(${20 + off}px)">
+        <button data-rsty="0" style="font-size:28px;font-weight:700">Title</button><button data-rsty="1" style="font-size:22px;font-weight:700">Heading</button><button data-rsty="1" style="font-size:17px;font-weight:600">Subheading</button><button data-rsty="1" class="on" style="font-size:17px">Body</button><button data-rsty="1" style="font-size:16px;font-family:ui-monospace,Menlo,monospace">Monostyled</button>
+      </div>
+      ${caps}
+      ${fi(45,120,'<b style="font-weight:800">B</b>','Bold')}${fi(101,120,'<i style="font-family:Georgia,serif">I</i>','Italic')}${fi(157,120,'<u>U</u>','Underline')}${fi(212,120,'<s>S</s>','Strikethrough')}
+      ${fi(274,120,I.hl,'Highlight')}${fi(327,120,'<span style="width:14px;height:14px;border-radius:50%;background:var(--rf-red);display:block"></span>','Colour')}
+      ${fi(46,172,I.ulist,'Bulleted list')}${fi(101,172,I.dlist,'Dashed list')}${fi(155,172,I.olist,'Numbered list')}
+      ${fi(217,172,I.outd,'Outdent')}${fi(270,172,I.ind,'Indent')}${fi(329,172,I.bq,'Block quote')}
+    </div>`;
+}
+function refFolders(){
+  const rows = [['Quick Notes',84,108,'qn'],['Shared',13,152,'sh'],['All iCloud',446,250,'f'],['Notes',430,294,'f'],['Recipes',6,338,'f'],['Errands',2,382,'f',1],['Workshop',13,426,'f']];
+  const ico = k => k==='qn' ? '<svg width="24" height="24" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="6" fill="#e3bc4d"/><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="#fff" stroke-width="1.6"/></svg>'
+    : k==='sh' ? '<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#4aa8e8"/><circle cx="9" cy="10" r="3" fill="#fff"/><circle cx="16" cy="10" r="2.5" fill="#fff"/><path d="M4 19c0-3 2.5-5 5-5s5 2 5 5zM13 18c.3-2.2 1.8-3.6 3.2-3.6 1.8 0 3.3 1.5 3.3 3.6z" fill="#fff"/></svg>'
+    : '<svg width="26" height="20" viewBox="0 0 26 20" fill="none" stroke="var(--rf-tint)" stroke-width="1.6"><path d="M1.5 3.5a2 2 0 012-2h6l2.2 2.5h10.8a2 2 0 012 2v11a2 2 0 01-2 2h-19a2 2 0 01-2-2z"/><path d="M1.5 7h23"/></svg>';
+  const tags = [['All Tags'],['#books'],['#cnc'],['#cooking'],['#design'],['#family'],['#garden'],['#health'],['#ideas'],['#lisbon'],['#music'],['#porto'],['#reading'],['#robots'],['#running'],['#travel'],['#work'],['#writing'],['#bike'],['#home'],['#plants'],['#work-log'],['#yoga']];
+  let x = 16, y = 503, tg = '';
+  tags.forEach(t => { const w = Math.round(t[0].length * 8.6 + 24); if (x + w > 264) { x = 16; y += 42; } tg += `<span class="tagc" style="left:${x}px;top:${y}px">${t[0]}</span>`; x += w + 8; });
+  return `<div class="fold">
+      <button class="gc" style="left:10px;width:62px;font-size:17px" ${ackR('Edit folders')}>Edit</button>
+      <button class="gc c" style="left:170px" ${ackR('New folder')} aria-label="New folder">${I.newf}</button>
+      <button class="gc c" style="left:225px" ${ackR('Hide folders')} aria-label="Folders">${I.side}</button>
+      ${rows.map(r => `<button class="frow${r[4]?' sel':''}" style="top:${r[2]-22}px" ${ackR('Opens the folder')}>${ico(r[3])}<span>${r[0]}</span><b>${r[1]}</b></button>`).join('')}
+      <div class="fh" style="top:195px">iCloud</div><span class="chev" style="left:233px;top:201px;color:var(--rf-dim)">${I.chevD}</span>
+      <div class="fh" style="top:469px">Tags</div><span class="chev" style="left:233px;top:475px;color:var(--rf-dim)">${I.chevD}</span>
+      ${tg}
+    </div>`;
+}
+function refFrame(state){
+  const two = ['list','select','attach','format','check'].includes(state);
+  const noteFocus = state === 'select' || state === 'attach' || state === 'format';
+  let s = `<div class="dev land rf" id="ref-${state}">
+    <div class="sbar"><span>14:23&nbsp;&nbsp;Tue 13 Oct</span><span class="r">${I.wifi}<span class="batt"><span>80</span></span></span></div>`;
+  if (two) {
+    const checkSel = state === 'check';
+    s += `<div class="side"><button class="gc c" style="left:10px" ${ackR('Show the folders')} aria-label="Folders">${I.side}</button>
+      ${refList(0, checkSel ? '' : (noteFocus ? 'g' : 'y'), checkSel ? 'y' : '')}</div>
+      <button class="gc c" style="left:351px" ${ackR('Full screen')} aria-label="Full screen">${I.expand}</button>
+      <button class="gc c" style="left:407px" ${ackR('New note')} aria-label="New note">${I.compose}</button>`;
+    if (state === 'check') s += refTools(658, {}) + checkNote('two');
+    else {
+      s += refTools(state === 'select' ? 716 : 658, {spark: state !== 'select', aaLive: state !== 'list', hidePill: state === 'attach'}) + photoNote();
+      if (state === 'select' || state === 'attach') s += `<div class="hl" style="left:408px;top:162px;width:901px;height:49px"></div><div class="hl" style="left:408px;top:211px;width:46px;height:26px"></div><span class="knob top" style="left:403.5px;top:150.5px"></span><span class="knob bot" style="left:448.5px;top:236.5px"></span>`;
+      if (state === 'select') s += refSelect();
+      if (state === 'attach') s += refAttach();
+      if (state === 'format') s += refFormat();
+    }
+  } else if (state === 'full') {
+    s += `<button class="gc c" style="left:10px" ${ackR('Exit full screen')} aria-label="Exit full screen">${I.shrink}</button>
+      <button class="gc c" style="left:66px" ${ackR('New note')} aria-label="New note">${I.compose}</button>
+      ${refTools(545, {})}${checkNote('full')}`;
+  } else {
+    s += refFolders() + `<div class="side" style="left:280px;width:340px">${''}</div>
+      <div style="position:absolute;left:0;top:0">${refList(280, '', 'g')}</div>
+      <button class="gc c" style="left:631px" ${ackR('Full screen')} aria-label="Full screen">${I.expand}</button>
+      <button class="gc c" style="left:687px" ${ackR('New note')} aria-label="New note">${I.compose}</button>
+      ${refTools(855, {right:1153, search:'circle'})}${checkNote('three')}`;
+  }
+  return s + `</div>`;
+}
 /* ── Skrift data (invented). NOW = Tue 13 Oct 2026 14:23 ── */
 const NOTES = [
  {id:1, g:'Today', date:'14:02', title:'Spindle clamp, 65 or 52', line:'Leaning to the 65 mm clamp. Test-print a PETG ring first.', pf:true, media:['mic','2:14'], thumb:'linear-gradient(140deg,#c9ced8,#8d97a8 40%,#4d5566 70%,#2f3542)'},
@@ -456,37 +663,68 @@ function curBlock(){
   const body = S.block==='mono' ? '<span class="mk">`</span>'+txt+'<span class="mk">`</span>' : txt;
   return `<div class="blk cur ${cls}">${mk?`<span class="mk">${mk}</span>`:''}${lead && !mk ? lead : ''}${body}<span class="caret"></span></div>`;
 }
+/* Skrift text menu on a selection (D196): Cut · Copy · Paste in place, then B I U S, then New person…, then › */
+function selMenu(){
+  return `<div class="emenu${pick(10)}" role="menu">
+    <button data-ack="Cut">Cut</button><i></i><button data-ack="Copy">Copy</button><i></i><button data-ack="Paste">Paste</button><i></i>
+    <button data-wrap="b" style="font-weight:800">B</button><button data-wrap="i" style="font-style:italic;font-family:Georgia,serif">I</button><button data-wrap="u" style="text-decoration:underline">U</button><button data-wrap="s" style="text-decoration:line-through">S</button><i></i>
+    <button class="newp" data-ack="New person… opens the person editor with &ldquo;Rui&rdquo; filled in (D196)">New person…</button><i></i><button data-ack="More: Look Up, Translate, Share">${I.chevR}</button>
+  </div>`;
+}
+function photoMenu(){
+  return `<div class="pmenu${pick(11)}" role="menu"><button data-close data-ack="Camera opens; the photo lands at the caret">${I.cam}<span>Take Photo</span></button><button data-close data-ack="Photo library opens; the photo lands at the caret">${I.photo}<span>Choose from Library</span></button></div>`;
+}
+function audioNote(){
+  const sel = S.selbar;
+  const p1 = sel ? `Measured the spindle at 64.8 mm, so the 65 clamp fits with a shim and the 52 needs an adapter ring. <span class="ssel"><span class="nm">Rui</span> has PETG in the workshop.</span>${selMenu()}`
+                 : `Measured the spindle at 64.8 mm, so the 65 clamp fits with a shim and the 52 needs an adapter ring. <span class="nm">Rui</span> has PETG in the workshop.`;
+  return `<div class="nscroll"><div class="ntext${pick(8)}">
+      <div class="ntitle${pick(6)}">Spindle clamp, 65 or 52<small>${I.spark.replace('width="24" height="24"','width="11" height="11"')}suggested</small></div>
+      <div class="meta"><span class="mi">Today 14:02</span><span class="ms">·</span><span class="mi">${I.pin}Marvila</span><span class="ms">·</span><span class="mi">${I.sun}22°</span><span class="ms">·</span><span class="mi">${I.micS}2:14</span></div>
+      <div class="prow"><button class="rpill" data-ack="Rating: Not rated, Passing, Useful, Important (unchanged)"><i class="on"></i><i class="on"></i><i></i>Useful</button><button class="dchip" data-ack="Personal or Portfolio (unchanged)"><i></i>Portfolio ⌄</button><span class="tagtx">#cnc</span><span class="tagtx">#workshop</span><button class="addtx" data-ack="Add a tag (unchanged)">+ tag</button></div>
+      <div class="summ"><b>Summary</b> Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate.</div>
+      <div class="body">
+        <div class="blk" style="position:relative">${p1}</div>
+        <div class="blk h2"><span class="mk">## </span>Before drilling</div>
+        <div class="li blk"><span class="bx on">${I.tick}</span><span class="tx" style="color:var(--sk-dim);text-decoration:line-through">Print the drilling template</span></div>
+        <div class="li blk"><span class="bx"></span><span class="tx">Check runout with the dial gauge</span></div>
+        <div class="photo"><span>Gantry plate, photo from the recording</span></div>
+        ${sel ? '' : curBlock()}
+      </div>
+    </div></div>
+    <div class="dock${pick(9)}"><span class="skp">⟲10</span><button class="play" data-ack="Plays the recording with the karaoke highlight (unchanged)" aria-label="Play">${I.play}</button><span class="skp">10⟳</span><span class="t">0:24</span><span class="track"><b style="width:18%"></b></span><span class="t">2:14</span><span class="rate">1×</span></div>`;
+}
+const CHECKS = [false, false, true, false];
+function typedNote(){
+  const items = ['Oat milk','Eggs','Coriander','The good bread from Gleba'];
+  return `<div class="nscroll"><div class="ntext${pick(8)}">
+      <div class="ntitle">Groceries</div>
+      <div class="meta"><span class="mi">Today 07:30</span><span class="ms">·</span><span class="mi">${I.pin}Marvila</span><span class="ms">·</span><span class="mi">Typed</span></div>
+      <div class="prow"><button class="rpill" data-ack="Rating: Not rated, Passing, Useful, Important (unchanged)"><i></i><i></i><i></i>Not rated</button><button class="dchip pers" data-ack="Personal or Portfolio (unchanged)"><i></i>Personal ⌄</button><button class="addtx" data-ack="Add a tag (unchanged)">+ tag</button></div>
+      <div class="body" style="border-top:.5px solid var(--sk-ring);margin-top:14px">
+        <div class="blk">For Saturday, after the market.</div>
+        ${items.map((t,i) => `<div class="li blk${CHECKS[i]?' done':''}"><button class="bx${CHECKS[i]?' on':''}" data-chk="${i}" aria-label="Tick ${esc(t)}">${CHECKS[i]?I.tick:''}</button><span class="tx">${esc(t)}</span></div>`).join('')}
+        <div class="blk">All set<span class="caret"></span></div>
+      </div>
+    </div></div>`;
+}
 function noteCol(){
   const menu = S.menu === 'more' ? `<div class="menu" role="menu"><button class="newi" data-ack="Split speakers lives here now (D196)">Split speakers</button><button data-ack="Find in note">Find in Note</button><button data-ack="Add recording (unchanged)">Add recording</button><button data-ack="Lock note (unchanged)">Lock Note</button><button data-ack="Share (unchanged)">Share Note…</button><button data-ack="Copied as Markdown">Copy as Markdown</button><button class="red" data-ack="Delete asks first (unchanged)">Delete</button></div>` : '';
   const conf = S.menu === 'export' ? `<div class="conf" role="dialog" aria-label="Export"><h5>Export to Portfolio</h5><p>Writes this note to _projects/ in your vault.</p><label><button class="cb${S.audio?'':' off'}" data-audio aria-label="Include audio">${S.audio?I.tick:''}</button>Include audio in export</label><p style="font-size:12px">Remembered for this note.</p><div class="btns"><button data-close>Cancel</button><button class="go" data-ack="Exported (mock). Include audio: remembered for this note" data-close>Export</button></div></div>` : '';
   return `<div class="ncol">
     <div class="nband">
       <span class="sp"></span>
-      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button data-ack="Camera or photo library (unchanged)" aria-label="Photo">${I.photo}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}</div>
+      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button class="${S.photo?'on':''}" data-photo aria-label="Photo">${I.photo}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}${S.photo ? photoMenu() : ''}</div>
       <div class="wrapr"><button class="gl cap" data-ack="Connections slides in over the note (unchanged)">Connections</button><button class="gl cap soft" data-menu="export">Export</button><button class="gl" data-menu="more" aria-label="More">${I.dots}</button>${menu}${conf}</div>
     </div>
-    <div class="nscroll"><div class="ntext${pick(8)}">
-      <div class="ntitle${pick(6)}">Spindle clamp, 65 or 52<small>${I.spark.replace('width="24" height="24"','width="11" height="11"')}suggested</small></div>
-      <div class="meta"><span class="mi">Today 14:02</span><span class="ms">·</span><span class="mi">${I.pin}Marvila</span><span class="ms">·</span><span class="mi">${I.sun}22°</span><span class="ms">·</span><span class="mi">${I.micS}2:14</span></div>
-      <div class="prow"><button class="rpill" data-ack="Rating: Not rated, Passing, Useful, Important (unchanged)"><i class="on"></i><i class="on"></i><i></i>Useful</button><button class="dchip" data-ack="Personal or Portfolio (unchanged)"><i></i>Portfolio ⌄</button><span class="tagtx">#cnc</span><span class="tagtx">#workshop</span><button class="addtx" data-ack="Add a tag (unchanged)">+ tag</button></div>
-      <div class="summ"><b>Summary</b> Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate.</div>
-      <div class="body">
-        <div class="blk">Measured the spindle at 64.8 mm, so the 65 clamp fits with a shim and the 52 needs an adapter ring. <span class="nm">Rui</span> has PETG in the workshop.</div>
-        <div class="blk h2"><span class="mk">## </span>Before drilling</div>
-        <div class="li blk"><span class="bx on"></span><span class="tx" style="color:var(--sk-dim);text-decoration:line-through">Print the drilling template</span></div>
-        <div class="li blk"><span class="bx"></span><span class="tx">Check runout with the dial gauge</span></div>
-        <div class="photo"><span>Gantry plate, photo from the recording</span></div>
-        ${curBlock()}
-      </div>
-    </div></div>
-    <div class="dock${pick(9)}"><span class="skp">⟲10</span><button class="play" data-ack="Plays the recording with the karaoke highlight (unchanged)" aria-label="Play">${I.play}</button><span class="skp">10⟳</span><span class="t">0:24</span><span class="track"><b style="width:18%"></b></span><span class="t">2:14</span><span class="rate">1×</span></div>
+    ${S.sel === 4 ? typedNote() : audioNote()}
   </div>`;
 }
 function skFrame(orient){
   const cls = ['dev', orient, 'sk'];
   if (!S.list) cls.push('nolist');
-  if (S.wide) cls.push('wide');
-  if (S.tabs === 'band') cls.push('tabsinband');
+  if (G.wide) cls.push('wide');
+  if (G.tabs === 'band') cls.push('tabsinband');
   const tabs = ['Notes','Library','Review','Settings'];
   const content = S.tab === 'Notes' ? listCol() + noteCol() : `<div class="other">${S.tab} is not part of this mock. Tap Notes.</div>`;
   return `<div class="${cls.join(' ')}" id="sk-${orient}" style="--lw:375px">
@@ -499,22 +737,35 @@ function skFrame(orient){
 
 /* ── stage ── */
 function fitBox(inner, w, hgt){
-  return `<div class="fit${S.size==='actual'?' actual':''}" data-w="${w+18}" data-h="${hgt+18}"><div class="scaler">${inner}</div></div>`;
+  return `<div class="fit${G.size==='actual'?' actual':''}" data-w="${w+18}" data-h="${hgt+18}"><div class="scaler">${inner}</div></div>`;
+}
+function secHTML(sec, i){
+  const refLab = `<div class="flab"><span class="tag ref">Reference</span><h2>Apple Notes</h2><span>${sec.shot}, ${esc(sec.cap)}</span></div>`;
+  const skLab = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift</h2><span>same state, same scale</span></div>`;
+  S = sec.st || base;
+  const ref = fitBox(refFrame(sec.ref), 1376, 1032);
+  const sk = sec.st ? fitBox(skFrame('land'), 1376, 1032)
+    : `<div class="nosk">Skrift has no folders column: Personal and Portfolio are the only split, and both live in the list's chips. Not drawn. If folders come, this is the layout to copy.<span class="pk">PICK 12</span></div>`;
+  let body;
+  if (G.lay === 'stack' || !sec.st) body = refLab + ref + (sec.st ? skLab : '') + sk;
+  else { const isRef = S.front === 'ref'; body = `<button style="text-align:left" data-flip>${isRef ? refLab : skLab}</button>` + (isRef ? ref : sk) + `<p class="flipnote">Tap the label to swap Apple and Skrift in the same spot.</p>`; }
+  return `<section class="sec" id="s-${sec.id}" data-sec="${i}"><h3 class="sect"><span class="sn">${i+1}</span>${esc(sec.name)}</h3>${body}</section>`;
 }
 function render(){
-  const L = document.getElementById('landStage');
-  const refLab = `<div class="flab"><span class="tag ref">Reference</span><h2>Apple Notes on iPad</h2><span>redrawn from Tuur's screenshot, 1376 x 1032 pt</span></div>`;
-  const skLab = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, landscape</h2><span>same scale; list column 375 pt (source)</span></div>`;
-  if (S.lay === 'stack') L.innerHTML = refLab + fitBox(refFrame(),1376,1032) + skLab + fitBox(skFrame('land'),1376,1032);
-  else {
-    const isRef = S.front === 'ref';
-    L.innerHTML = `<button style="text-align:left" data-flip>${isRef?refLab:skLab}</button>` + fitBox(isRef ? refFrame() : skFrame('land'),1376,1032);
+  if (shotSpec) {
+    const sec = SEC.find(s => s.id === shotSpec.sec);
+    if (shotSpec.sec === 'port') { S = PORT; document.getElementById('stages').innerHTML = `<section data-sec="port">${skFrame('port')}</section>`; return; }
+    S = sec.st || base;
+    document.getElementById('stages').innerHTML = `<section data-sec="${SEC.indexOf(sec)}">${shotSpec.side === 'sk' ? skFrame('land') : refFrame(sec.ref)}</section>`;
+    return;
   }
-  document.getElementById('flipnote').hidden = S.lay !== 'flip';
-  document.getElementById('portStage').innerHTML = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, portrait</h2><span>1032 x 1376 pt; the list stays open, Aa follows the toggle above. No Apple portrait screenshot yet.</span></div>` + fitBox(skFrame('port'),1032,1376);
+  let html = SEC.map(secHTML).join('');
+  S = PORT;
+  html += `<section class="sec" id="s-port" data-sec="port"><h3 class="sect"><span class="sn">8</span>Skrift, portrait</h3><div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, portrait</h2><span>1032 x 1376 pt; the list stays open. No Apple portrait screenshot yet.</span></div>${fitBox(skFrame('port'),1032,1376)}</section>`;
+  document.getElementById('stages').innerHTML = html;
   document.querySelectorAll('#bar [data-v]').forEach(b => {
     const v = b.dataset.v, x = b.dataset.x;
-    const cur = v==='aa' ? (S.aa?'1':'0') : v==='list' ? (S.list?'1':'0') : v==='wide' ? (S.wide?'1':'0') : v==='marks' ? (S.marks?'1':'0') : S[v];
+    const cur = v==='wide' ? (G.wide?'1':'0') : v==='marks' ? (G.marks?'1':'0') : G[v];
     b.setAttribute('aria-pressed', String(cur === x));
   });
   fit();
@@ -530,19 +781,22 @@ function fit(){
   });
 }
 window.addEventListener('resize', fit);
+document.getElementById('toc').innerHTML = SEC.map((s,i) => `<a href="#s-${s.id}">${i+1} ${esc(s.name)}</a>`).join('') + `<a href="#s-port">8 Portrait</a>`;
 
 const PICKS = [
  ['Tabs keep their own row above both columns', 'Today\'s source and the signed chrome mock put Notes · Library · Review · Settings in a strip under the status bar. Apple Notes has no tabs, so its toolbar sits 48 pt higher. Flip "Tabs" to try them in the toolbar line over the note.'],
- ['One list toggle, pinned top left, Apple\'s size', 'The ◧ stays screen-pinned like today (MemosListView overlay) but grows from a 30 pt chip to Apple\'s 44 pt glass circle at the same spot Apple uses (9 pt in).'],
+ ['One list toggle, pinned top left, Apple\'s size', 'The ◧ stays screen-pinned like today (MemosListView overlay) but grows from a 30 pt chip to Apple\'s 44 pt glass circle at Apple\'s spot (10 pt in).'],
  ['List header copies Apple: name over count, Select as a capsule', 'Was "Notes" 22 bold with a plain Select word. Now Notes 15 semibold over "12 notes", like Apple\'s folder name and count. Import · Record · new note, Process, search and the chips stay under it.'],
  ['Rows exactly as Q349 signed', 'One card per group, 16 / 14 type, Portfolio only on line 3, the grey "Unrated" at the end of line 1, status pills only while something runs, 52 pt thumbnails, groups Today / Yesterday / Previous 7 Days / Previous 30 Days / months by recorded date.'],
- ['Note toolbar copies Apple\'s pill', 'One glass pill at the right: Aa · checklist · photo · note link (Skrift\'s four, where Apple has Aa · checklist · table · attach · writing tools). Then Connections, Export in the soft tint, and ⋯. Controls are Apple\'s 44 pt, up from 30 pt. Search stays in the list; Apple puts it in the note toolbar.'],
- ['Title 28 pt, above the grey line (D196)', 'Apple\'s title is 28 pt bold. Skrift\'s title takes the same size here, then the grey time · place · weather · length line, then rating + Portfolio + tags on one row, then the summary.'],
- ['Aa = the Mac\'s full list, as a popover', 'With a hardware keyboard the phone\'s accessory bar never shows, so Aa opens the Mac popover (D197): B I U S + highlight, Title / Heading / Subheading / Body / Monostyled, Bulleted / Dashed / Numbered, Block Quote, each with the Markdown it writes. Tap a style: it changes the caret line.'],
- ['Text stays at the 640 pt reading width', 'Today the note column is capped at 640 pt and sits against the list, so the text ends near x 1007 and about 350 pt stays empty. Apple runs its text 900 pt wide with 68 pt margins. This is the question below.'],
- ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there.'],
- ['No Pinned group, accent selection', 'Skrift has no pinning, so the list starts at Today. The selected row keeps Skrift\'s soft purple fill; Apple fills it solid yellow with white text.'],
- ['Portrait keeps the list open', 'Same layout at 1032 pt wide: list 375 + note 657. Apple tends to hide its list in portrait; Skrift remembers the ◧ choice instead (ipadListVisible).']
+ ['Note toolbar copies Apple\'s pill', 'One glass pill: Aa · checklist · photo · note link (Skrift\'s four, where Apple has Aa · checklist · table · attach · writing tools). Then Connections, Export in the soft tint, and ⋯. Controls are Apple\'s 44 pt. Search stays in the list; Apple puts it in the note toolbar.'],
+ ['Title 28 pt, above the grey line (D196)', 'Apple\'s title is 28 pt bold. Skrift\'s title takes the same size, then the grey time · place · weather · length line, then rating + Portfolio + tags on one row, then the summary.'],
+ ['Aa = the Mac\'s full list, as a popover under the button', 'Apple\'s iPad Aa (pair 2) floats a "Format" panel in the middle of a dimmed screen, with the styles in a sideways-scrolling row. Skrift drops the Mac popover from the Aa button instead (D197): B I U S + highlight, Title / Heading / Subheading / Body / Monostyled as a list, Bulleted / Dashed / Numbered, Block Quote, each with the Markdown it writes. No colour dot, no indent buttons.'],
+ ['Text stays at the 640 pt reading width', 'Today the note column is capped at 640 pt and sits against the list, so about 350 pt stays empty on the right. Apple runs its text 900 pt wide. This is the question below.'],
+ ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there. Typed notes (pairs 5, 6) have no dock.'],
+ ['Selection menu: Apple\'s pill, Skrift\'s items (D196)', 'Pair 3. The same floating glass pill above the selection, holding Cut · Copy · Paste in their normal place, then B I U S, then "New person…" in the accent colour, then ›. Apple\'s writing-tools bar at the bottom is not copied.'],
+ ['Photo opens Apple\'s in-place menu', 'Pair 4. Today the phone asks "Add photo" in a bottom dialog. On iPad the photo button grows into a glass menu like Apple\'s attach menu, with Skrift\'s two choices: Take Photo, Choose from Library.'],
+ ['No folders column', 'Pair 7. Apple shows folders and tags in a third column. Skrift draws none on iPad; Personal / Portfolio stay as list chips.'],
+ ['Square checkboxes, Skrift purple', 'Pair 5. Apple draws round yellow checkboxes. Skrift keeps its square ones (NoteBodyView: square / checkmark.square.fill) in the accent colour.']
 ];
 document.getElementById('picks').innerHTML = PICKS.map((p,i) => `<div class="pick-c"><span class="n">${i+1}</span><div><h4>${esc(p[0])}</h4><p>${esc(p[1])}</p></div></div>`).join('');
 
@@ -552,24 +806,28 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
   if (d.v) { const x = d.x;
-    if (d.v==='aa') S.aa = x==='1'; else if (d.v==='list') S.list = x==='1'; else if (d.v==='wide') S.wide = x==='1'; else if (d.v==='marks') S.marks = x==='1'; else S[d.v] = x;
-    document.body.classList.toggle('nomarks', !S.marks); render(); return; }
-  if ('flip' in d) { S.front = S.front==='ref' ? 'sk' : 'ref'; render(); return; }
-  if (d.ref != null) { S.refSel = +d.ref; render(); return; }
-  if (d.tab) { S.tab = d.tab; S.menu = null; render(); if (d.tab !== 'Notes') toast(d.tab + ' tab selected (not drawn here)'); return; }
-  if ('list' in d) { S.list = !S.list; render(); return; }
-  if (d.sel) { S.sel = +d.sel; render(); toast('Selected. The pane shows one sample note in this mock.'); return; }
-  if ('aa' in d) { S.aa = !S.aa; S.menu = null; render(); return; }
-  if (d.style) { S.block = d.style; render(); const s = {h1:'# ',h2:'## ',h3:'### ',p:'nothing',mono:'`…`',ul:'* ',dash:'- ',ol:'1. ',quote:'> '}[d.style]; toast('Caret line now writes ' + s); return; }
-  if (d.wrap) { toast('Selected word wraps in ' + {b:'**…**',i:'*…*',u:'<u>…</u>',s:'~~…~~',hl:'==…=='}[d.wrap]); return; }
-  if (d.menu) { S.menu = S.menu === d.menu ? null : d.menu; S.aa = false; render(); return; }
-  if ('audio' in d) { S.audio = !S.audio; render(); return; }
-  if ('close' in d) { S.menu = null; render(); if (d.ack) toast(d.ack); return; }
+    if (d.v==='wide') G.wide = x==='1'; else if (d.v==='marks') G.marks = x==='1'; else G[d.v] = x;
+    document.body.classList.toggle('nomarks', !G.marks); render(); return; }
+  const secEl = b.closest('[data-sec]'); if (!secEl) return;
+  const st = secEl.dataset.sec === 'port' ? PORT : (SEC[+secEl.dataset.sec].st || base);
+  const y = window.scrollY;
+  const re = () => { render(); window.scrollTo(0, y); };
+  if ('flip' in d) { st.front = st.front==='ref' ? 'sk' : 'ref'; re(); return; }
+  if (d.rsty != null) { st.refSty = +d.rsty ? 1 : 0; re(); toast('Apple scrolls its style row sideways (reference)'); return; }
+  if (d.tab) { st.tab = d.tab; st.menu = null; re(); if (d.tab !== 'Notes') toast(d.tab + ' tab selected (not drawn here)'); return; }
+  if ('list' in d) { st.list = !st.list; re(); return; }
+  if (d.sel) { const n = +d.sel; if (n === 1 || n === 4) { st.sel = n; re(); } else toast('Selected. This mock draws two sample notes: the clamp note and Groceries.'); return; }
+  if ('aa' in d) { st.aa = !st.aa; st.menu = null; st.photo = false; re(); return; }
+  if ('photo' in d) { st.photo = !st.photo; st.aa = false; st.menu = null; re(); return; }
+  if (d.style) { st.block = d.style; re(); const s = {h1:'# ',h2:'## ',h3:'### ',p:'nothing',mono:'`…`',ul:'* ',dash:'- ',ol:'1. ',quote:'> '}[d.style]; toast('Caret line now writes ' + s); return; }
+  if (d.wrap) { toast('Selected text wraps in ' + {b:'**…**',i:'*…*',u:'<u>…</u>',s:'~~…~~',hl:'==…=='}[d.wrap]); return; }
+  if (d.menu) { st.menu = st.menu === d.menu ? null : d.menu; st.aa = false; st.photo = false; re(); return; }
+  if ('audio' in d) { st.audio = !st.audio; re(); return; }
+  if ('close' in d) { st.menu = null; st.photo = false; re(); if (d.ack) toast(d.ack); return; }
+  if ('chk' in d) { const k = +d.chk; CHECKS[k] = !CHECKS[k]; re(); return; }
   if (d.ack) toast(d.ack);
 });
-document.addEventListener('keydown', e => { if (e.code === 'Space' && S.lay === 'flip' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); S.front = S.front==='ref' ? 'sk' : 'ref'; render(); } });
-window.mockSet = (o) => { Object.assign(S, o); document.body.classList.toggle('nomarks', !S.marks); render(); return 'ok'; };
-if (document.body.classList.contains('shot')) { S.size = 'actual'; S.marks = false; document.body.classList.add('nomarks'); }
+window.mockSet = (o) => { Object.assign(G, o); document.body.classList.toggle('nomarks', !G.marks); render(); return 'ok'; };
 render();
 })();
 </script>
