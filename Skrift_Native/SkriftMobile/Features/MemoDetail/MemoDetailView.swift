@@ -60,6 +60,9 @@ struct MemoDetailView: View {
     @State var exportNotice: String?
     /// Transient "Exported ✓" shown in the button's place for ~2s after a write.
     @State var exportFlash: String?
+    /// Q379: the note column's width at regular width (padding excluded), handed to the page so
+    /// inline photos size to the full pane.
+    @State var ipadPaneWidth: CGFloat?
 
     init(initialID: UUID, listVisible: Binding<Bool>? = nil) {
         self.initialID = initialID
@@ -187,43 +190,44 @@ struct MemoDetailView: View {
     /// forever; Tuur, 2026-07-24), quiet → accent while the sheet is up.
     @ViewBuilder var workbenchChrome: some View {
         if let memo = currentMemo {
-            HStack(spacing: 8) {
+            // Q379 (signed mock Q378, D198): the editing tools · Connections · the primary verb · ⋯,
+            // 44 pt glass on a 60 pt line, no hairline (Apple's bar floats on the page). With
+            // the list hidden the band clears the screen-pinned ◧.
+            HStack(spacing: 11) {
                 Spacer(minLength: 0)
 
-                processControl(memo)
-
-                Menu { noteOverflowItems(memo) } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.skTextDim)
-                        .frame(width: 30, height: 30)
-                        .barGlass()
-                }
-                .accessibilityIdentifier("note-overflow-button")
+                if memo.isShareCapture != true { IPadNoteToolbar(memo: memo) }
 
                 if connectionsAvailable {
                     Button {
                         withAnimation(Theme.Motion.snappy) { showConnections.toggle() }
                     } label: {
                         Text(RetrievalGate.Copy.summonLabel)
-                            .font(.system(size: 12.5, weight: .semibold))
-                            .foregroundStyle(showConnections ? Color.skAccentText : Color.skTextDim)
-                            .padding(.horizontal, 12)
-                            .frame(height: 30)
-                            .barGlass(on: showConnections, in: Capsule())
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(showConnections ? Color.skAccentText : Color.skText)
+                            .padding(.horizontal, 16)
+                            .frame(height: IPadLayout.glassHeight)
+                            .ipadGlass(on: showConnections, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("ipad-connections-summon")
                     .accessibilityLabel(showConnections ? "Hide Connections" : "Show Connections")
                 }
+
+                processControl(memo)
+
+                Menu { noteOverflowItems(memo) } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Color.skText)
+                        .frame(width: IPadLayout.glassHeight, height: IPadLayout.glassHeight)
+                        .ipadGlass(in: Circle())
+                }
+                .accessibilityIdentifier("note-overflow-button")
             }
-            .padding(.horizontal, NoteLook.bandSidePadding)
-            .frame(height: NoteLook.bandHeight)
-            // A real toolbar has an edge (signed mock): the hairline is what
-            // stops the controls reading as floating.
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.skBorder).frame(height: NoteLook.bandHairlineHeight)
-            }
+            .padding(.leading, listHidden ? IPadLayout.toggleLeading + IPadLayout.glassHeight + 13 : 10)
+            .padding(.trailing, 10)
+            .frame(height: IPadLayout.rowHeight)
             .accessibilityIdentifier("ipad-note-chrome")
         }
     }
@@ -270,13 +274,13 @@ struct MemoDetailView: View {
                     // the one filled Process; this per-note one is secondary so two
                     // Process buttons don't shout at each other (Tuur, 2026-07-24).
                     Button { PolishCenter.shared.polishNow(memo) } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "play.fill").font(.system(size: 9, weight: .bold))
-                            Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.fill").font(.system(size: 11, weight: .bold))
+                            Text(SharedCopy.processVerb).font(.system(size: 15, weight: .semibold))
                         }
                         .foregroundStyle(Color.skAccentText)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(Color.skAccentSoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .padding(.horizontal, 16).frame(height: IPadLayout.glassHeight)
+                        .background(Color.skAccentSoft, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("ipad-process-button")
@@ -296,10 +300,10 @@ struct MemoDetailView: View {
                 } else {
                     Button { exportNow(memo) } label: {
                         Text(state.label(for: memo.destination))
-                            .font(.system(size: 12.5, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color.skAccentText)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(Color.skAccentSoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .padding(.horizontal, 16).frame(height: IPadLayout.glassHeight)
+                            .background(Color.skAccentSoft, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("ipad-export-button")
@@ -359,15 +363,13 @@ struct MemoDetailView: View {
                 VStack(spacing: 0) {
                     workbenchChrome
                     ZStack(alignment: .trailing) {
-                        // Anchoring rule (Tuur, live round b130 — "the note is
-                        // pushed to the right"): while the LIST is open the note
-                        // sits AGAINST it, Apple-Notes-style; alone on screen
-                        // (focus mode) it centers and wins width (640 → 900).
+                        // Q379 (D198): the note text runs the FULL pane width like Apple's —
+                        // 48 pt margins beside the list, 89 pt alone (the 640 pt cap is gone).
+                        // The page draws its own `Theme.Space.margin`; the rest is padding here.
                         notePager
-                            .frame(maxWidth: listHidden ? 900 : Adaptive.readingMaxWidth)
-                            .frame(maxWidth: .infinity,
-                                   alignment: listHidden ? .center : .leading)
-                            .padding(.leading, listHidden ? 0 : 12)
+                            .environment(\.ipadPaneWidth, ipadPaneWidth)
+                            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { ipadPaneWidth = $0 }
+                            .padding(.horizontal, IPadLayout.noteMargin(listVisible: !listHidden) - Theme.Space.margin)
                         // The visitor sheet rides over the note's trailing edge;
                         // nothing beneath reflows. It fills the reading area and
                         // stops at the docked player (the sibling below).
@@ -384,7 +386,8 @@ struct MemoDetailView: View {
         // At regular the workbench owns its chrome band (above), so the stack's
         // spanning nav bar stays hidden.
         .toolbar(hSize == .regular ? .hidden : .automatic, for: .navigationBar)
-        .background(Color.skBg.ignoresSafeArea())
+        // Q379 (mock Q378): on iPad the note is white paper beside the grey list column.
+        .background((hSize == .regular ? Color.skSurface : Color.skBg).ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // COMPACT (phone) nav bar only — at regular these live in the
