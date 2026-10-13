@@ -50,3 +50,42 @@ enum NoteAttachIntake {
         file(url, url.lastPathComponent, uti)
     }
 }
+
+extension View {
+    /// The attach menu's three pickers (camera, library, Files) hung on one view. The phone page
+    /// and the iPad toolbar both call this; they only say what happens to a picture and to a file.
+    func noteAttachPickers(camera: Binding<Bool>, library: Binding<Bool>, files: Binding<Bool>,
+                           image: @escaping (UIImage) -> Void,
+                           file: @escaping (URL, String?, String?) -> Void) -> some View {
+        modifier(NoteAttachPickers(camera: camera, library: library, files: files, image: image, file: file))
+    }
+}
+
+private struct NoteAttachPickers: ViewModifier {
+    @Binding var camera: Bool
+    @Binding var library: Bool
+    @Binding var files: Bool
+    let image: (UIImage) -> Void
+    let file: (URL, String?, String?) -> Void
+    @State private var picked: PhotosPickerItem?
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(isPresented: $camera) {
+                CameraImagePicker(onCapture: image, onMovie: { file($0, nil, nil) })
+                    .ignoresSafeArea()
+            }
+            .photosPicker(isPresented: $library, selection: $picked, matching: NoteAttachIntake.libraryFilter)
+            .onChange(of: picked) { _, item in
+                guard let item else { return }
+                Task {
+                    await NoteAttachIntake.load(item, image: image, file: file)
+                    picked = nil
+                }
+            }
+            .fileImporter(isPresented: $files, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
+                guard case .success(let urls) = result, let url = urls.first else { return }
+                NoteAttachIntake.importFile(url, image: image, file: file)
+            }
+    }
+}

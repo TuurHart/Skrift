@@ -85,7 +85,6 @@ struct MemoPageView: View {
     /// hands the image to the live editor coordinator.
     @State var bodyProxy = NoteBodyProxy()
     @State var showPhotoPicker = false
-    @State var pickedPhoto: PhotosPickerItem?
     @State var showPhotoSourceDialog = false
     @State var showCameraCapture = false
     @State var showAttachFiles = false
@@ -182,25 +181,9 @@ struct MemoPageView: View {
             Button(IPadLayout.AttachItem.choosePhoto.title) { showPhotoPicker = true }
             Button(IPadLayout.AttachItem.attachFile.title) { showAttachFiles = true }
         }
-        .fullScreenCover(isPresented: $showCameraCapture) {
-            CameraImagePicker(onCapture: { insertPickedPhoto($0) },
-                              onMovie: { insertPickedFile($0, name: nil, uti: nil) })
-                .ignoresSafeArea()
-        }
-        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: NoteAttachIntake.libraryFilter)
-        .onChange(of: pickedPhoto) { _, item in
-            guard let item else { return }
-            Task {
-                await NoteAttachIntake.load(item, image: { insertPickedPhoto($0) },
-                                            file: { insertPickedFile($0, name: $1, uti: $2) })
-                pickedPhoto = nil
-            }
-        }
-        .fileImporter(isPresented: $showAttachFiles, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            NoteAttachIntake.importFile(url, image: { insertPickedPhoto($0) },
-                                        file: { insertPickedFile($0, name: $1, uti: $2) })
-        }
+        .noteAttachPickers(camera: $showCameraCapture, library: $showPhotoPicker, files: $showAttachFiles,
+                           image: { insertPickedPhoto($0) },
+                           file: { insertPickedFile($0, name: $1, uti: $2) })
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
         // type a new name. Replaces the old free-text alert.
@@ -1482,15 +1465,10 @@ struct MemoPageView: View {
                         }
                     }
                     .contextMenu {
-                        // Mock pick 6's order: Copy, Share, then the size switch.
-                        let next: NoteAttachment.Size = size == .large ? .small : .large
-                        let action = NoteAttachment.BlockAction.setSize(next)
-                        Button { NoteBlockFileActions.copy(url, isPicture: false) } label: {
-                            Label(NoteAttachment.BlockAction.copy.title, systemImage: NoteAttachment.BlockAction.copy.symbol)
-                        }
-                        ShareLink(item: url) { Label(NoteAttachment.BlockAction.share.title, systemImage: NoteAttachment.BlockAction.share.symbol) }
-                        Button { NoteAttachmentStore.setSize(next, filename: key, memo: memo) } label: {
-                            Label(action.title, systemImage: action.symbol)
+                        // The shared hold-menu list (mock pick 6): Copy, Share, Save, then the size switch.
+                        ForEach(NoteAttachment.holdMenu(size: size, paragraph: 0, count: 1, hasFile: true,
+                                                        isMedia: false, editing: false), id: \.title) { action in
+                            capturedFileMenuItem(action, url: url, name: sc.fileName ?? url.lastPathComponent, key: key)
                         }
                     }
                     // Track B (wave-2 mock m3): the A6-extracted text, in the
@@ -1504,16 +1482,33 @@ struct MemoPageView: View {
                         }
                     }
                 } else {
-                    captureFileCard(sc: sc)
+                    capturedDocumentCard(sc: sc)
                 }
             }
+        }
+    }
+
+    /// One row of the captured PDF's context menu, run by the same verbs as the editor's hold menu.
+    @ViewBuilder private func capturedFileMenuItem(_ action: NoteAttachment.BlockAction, url: URL,
+                                                   name: String, key: String) -> some View {
+        switch action {
+        case .copy:
+            Button { NoteBlockFileActions.copy(url, isPicture: false) } label: { Label(action.title, systemImage: action.symbol) }
+        case .share:
+            ShareLink(item: url) { Label(action.title, systemImage: action.symbol) }
+        case .save:
+            Button { NoteBlockFileActions.saveToFiles(url, name: name) } label: { Label(action.title, systemImage: action.symbol) }
+        case .setSize(let next):
+            Button { NoteAttachmentStore.setSize(next, filename: key, memo: memo) } label: { Label(action.title, systemImage: action.symbol) }
+        case .moveUp, .moveDown, .delete:
+            EmptyView()   // editing verbs; `holdMenu(editing: false)` never lists them
         }
     }
 
     /// A NON-PDF shared document capture (or an unreadable PDF): the shared grey file card
     /// (mock Q384 pick 4, D202), the whole card opens Quick Look. It replaced the old capture
     /// card and its Open button.
-    func captureFileCard(sc: SharedContent) -> some View {
+    func capturedDocumentCard(sc: SharedContent) -> some View {
         let url = memo.sharedFileURL
         return Button {
             guard let url else { return }
