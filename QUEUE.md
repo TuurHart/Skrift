@@ -2866,7 +2866,7 @@ spec: D201
 needs: -
 gate+: no
 do: plan/research/cloudkit-env-mac-release.md: a development-signed local Mac Release with no `com.apple.developer.icloud-container-environment` uses the CloudKit DEVELOPMENT environment; the installed prod /Applications/Skrift.app (Aug build) is signed exactly that way (codesign shows aps-environment development, get-task-allow, no environment key), while the phone prod is Ad Hoc/TestFlight = Production. Fix: add `com.apple.developer.icloud-container-environment` = `Production` to the Release SkriftDesktop entitlements file ONLY (Debug/Dev keeps its own container); keep the value literal (no $(VAR) — CLAUDE.md signing lesson). Rebuild Release into build-release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`) and show the signed entitlements with `codesign -d --entitlements :-` on the built product (key present, Production). Install nothing. Note in plan/release/RELEASE.md: deploy the prod schema BEFORE installing this build, or Production writes fail; push delivery with aps-environment development is unverified.
-check: `grep -q 'icloud-container-environment' Skrift_Native/SkriftDesktop/*Release*.entitlements Skrift_Native/SkriftDesktop/**/*.entitlements 2>/dev/null`
+check: `grep -q 'icloud-container-environment' Skrift_Native/SkriftDesktop/SkriftDesktop.entitlements`
 
 ### Q389 [tuur] (tuur) check: does the real Skrift on the Mac show the notes you recorded on your phone lately?
 spec: D201
