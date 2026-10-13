@@ -144,7 +144,7 @@ needs: Q16
 node: AuditFix2
 do: Install the Dev build on the iPhone 13. Take 1: record, take a phone call mid-take, hang up. Take 2: record, force-quit mid-take. Relaunch after each; pull `Documents/devlog.txt`.
 check: On the phone, start a recording, take a call (or force-quit Skrift) mid-take, then reopen. Are both notes there with all the audio up to the interruption?
-ask: Record, then take a call (or force-quit Skrift) mid-take and reopen. Is all the audio up to the interruption there?
+ask: Start a recording and let someone call you while it is still recording; answer, then hang up. Open Skrift: is the note there with everything you said before the call? Then do the same again, but swipe Skrift closed while it records.
 
 ### Q18 [auto] (done) a corrupt local file is never loaded as empty
 spec: C50 C265 C218
@@ -480,14 +480,14 @@ needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live. ALSO (speed sweep 2, plan/perf2/f-mac-ui.md M6b, static read): type in a long note, then within 1 s drag the sidebar or resize the window — does any just-typed text disappear?
 Also, in the same Dev window: does the sidebar's left edge cut the first letter of every row and day header ("ODAY", "AT 19 SEP")? The headless snapshot always shows it (Q35, Q37, Q65); a real window has never been checked.
 check: On the Mac, type a heading and a link in a note. Does the brief flash while typing feel fine, or should it go?
-ask: Type a heading and a link in a Mac note. Is the brief flash fine? And do just-typed letters ever vanish if you drag the sidebar or resize right after typing?
+ask: On the Mac, type a heading and a link in a note. The styling can lag up to a second behind your typing. Does that bother you? Also: right after typing, drag the sidebar or resize the window. Do any letters you just typed disappear?
 
 ### Q64 [tuur] (tuur) iPhone 13: quick note full screen, ✎ opens a new note, toolbar stays
 spec: C112 C114
 needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Install the Dev build from the session branch on the iPhone 13 (bump SKRIFT_BUILD); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
 check: On the phone, open a quick note full screen and tap ✎. Does it open a new note with the toolbar still up?
-ask: Open a quick note full screen and tap ✎. Does a new note open with the toolbar still up?
+ask: Start a quick note and expand it to full screen, then tap the pencil button. Does a fresh empty note open, and does the bar above the keyboard stay visible?
 
 ### Q65 [auto] (done) Mac sidebar looks like the phone list: grey background, white card rows (D135 miss)
 spec: C115 C240
@@ -1929,7 +1929,7 @@ needs: -
 do: -
 check: Tuur picked; if 'gate it', a follow-up [auto] item is added.
 
-### Q252 [tuur] (tuur) verify: Q116's SwiftData column rename (@Attribute(originalName:) legacyUnlinkedNames/legacyNamePicksJSON) opens a COPY of the prod Mac store and keeps existing name decisions, before the next prod promotion
+### Q252 [tuur] (done) verify: Q116's SwiftData column rename (@Attribute(originalName:) legacyUnlinkedNames/legacyNamePicksJSON) opens a COPY of the prod Mac store and keeps existing name decisions, before the next prod promotion
 spec: -
 needs: -
 do: -
@@ -2050,7 +2050,7 @@ needs: -
 do: -
 check: Tuur decided or approved; follow-up item added if needed.
 
-### Q271 [tuur] (tuur) promotion note: after Q141, undated Apple Note imports carry recordedAt=1970 (MemoDate.unknown); an older installed phone/Mac build would fade them at once — promote both apps together before importing Apple Notes on the new build
+### Q271 [tuur] (done) promotion note: after Q141, undated Apple Note imports carry recordedAt=1970 (MemoDate.unknown); an older installed phone/Mac build would fade them at once — promote both apps together before importing Apple Notes on the new build
 spec: -
 needs: -
 do: -
@@ -2062,7 +2062,7 @@ spec: -
 needs: -
 do: -
 check: Look on Dev: the phone memo-link chip now looks like the Mac's ('🗒 Title', bordered), Mac inline photos fill the column (320 pt cap), and the record waveform has a quiet-bar floor. Keep all of it?
-ask: On Dev: the phone note-link chip now looks like the Mac's (🗒 Title, bordered), Mac photos fill the column, the record waveform has a floor. Keep all three?
+ask: Three small look changes. 1) On the phone, a link to another note now looks like the Mac's: note icon plus title in a thin box. 2) On the Mac, photos in a note fill the text width. 3) While recording on the phone, quiet moments still show short bars. Keep all three?
 
 ### Q273 [auto] (done) Library jump-back does not move the book's own resume place (Q6 mock: 'The book's own place is not moved')
 spec: D127
@@ -2096,14 +2096,14 @@ needs: -
 do: Under SPEC D163 (ports of tests of deleted code): rewrite the constructors in protected SkriftDesktopTests/CompilerTests.swift (~325-354) to build SharedContent(type: .url/.text/.image/.image/.file, ...) directly — the old unknown-type case becomes .file = 'a .file capture pins nothing' — then delete the Q247 temporary shim SkriftDesktopTests/CompilerSharedContentShim.swift. Assertions keep their meaning. Never run SkriftDesktopUITests.
 check: `! test -f Skrift_Native/SkriftDesktop/SkriftDesktopTests/CompilerSharedContentShim.swift && ./gate.sh`
 
-### Q278 [tuur] (tuur) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
+### Q278 [tuur] (done) promotion check (Q260): confirm an older installed phone/Mac build tolerates a synced MemoAsset with the new kind 'thumbnail' (decode/skip, no crash) — or promote both apps together
 spec: -
 needs: -
 do: (fill in)
 check: Before promoting only one app: OK if I test whether an older build survives a synced link thumbnail (new asset kind), or do we always promote phone and Mac together?
 ask: Always release phone and Mac together (recommended), or first test that an older build survives the new link-thumbnail data?
 
-### Q279 [tuur] (tuur) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
+### Q279 [tuur] (stuck) SPEC wording to update (from Q174's commit message): C220 says the Mac rotates at 7 s but TranscriptionService.swift:179 uses 20; C199 'silently ignored today' is stale (Open-in routes via ImportKinds); C145 should mention the built Files chooser + Q150 long-audio offer
 spec: -
 needs: -
 do: (fill in)
@@ -2115,14 +2115,14 @@ spec: -
 needs: -
 do: (fill in)
 check: Look on the phone: the list header's Import / Record / New-note row and the filter date picker moved to shared code. Do they look the same as before?
-ask: Does the phone list header (Import / Record / ✎) and the filter date picker look the same as before?
+ask: On the phone, look at the top of the notes list: the Import, Record and New-note buttons, and the date picker in the filter. The code behind them moved. Do they look the same as before?
 
 ### Q281 [tuur] (tuur) look (Q245): share a voice memo, a video, a URL and a photo into Skrift on the phone and check the share sheet cards look unchanged after the shared card-chrome refactor — compile-checked only
 spec: -
 needs: -
 do: (fill in)
 check: On the phone, share a voice memo, a video, a link and a photo into Skrift. Do the share-sheet cards look unchanged?
-ask: Share a voice memo, a video, a link and a photo into Skrift. Do the share cards look unchanged?
+ask: From other apps, share into Skrift a voice memo, a video, a web link and a photo. Do the cards Skrift shows look the same as before?
 
 ### Q282 [auto] (done) Done means processed on every device: one shared QueueFilter predicate
 spec: C61 C115 D167
@@ -2241,7 +2241,7 @@ spec: -
 needs: -
 do: (fill in)
 check: Before promoting the new build: OK to deploy the CloudKit prod schema for the new synced export-audio setting (and the video asset once it lands)? It needs you in the CloudKit console.
-ask: Before the next release, new iCloud fields (export-audio setting, video assets, the weather key from Q326) must be published in the CloudKit console with you. OK to plan that?
+ask: When we release to the real Skrift: I release phone and Mac on the same day, I first test the Mac upgrade on a copy of your real data, and I need you for about ten minutes on Apple's iCloud developer website to switch on the new kinds of synced data. OK?
 
 ### Q299 [auto] (done) in-app feedback button on phone and iPad (FeedbackKit, app id skrift)
 spec: D179
@@ -2269,7 +2269,7 @@ spec: -
 needs: -
 do: (fill in)
 check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt on the phone. Do all three arrive on the Mac, and does a note you delete on the phone disappear from the Mac?
-ask: Add a word, a person and edit a polish prompt on the phone. Do all three reach the Mac, and does a note deleted on the phone vanish from the Mac?
+ask: On the phone, add a custom word, add a person, and change one polish instruction. Do all three show up on the Mac a minute later? Then delete a note on the phone. Does it disappear from the Mac too?
 
 ### Q303 [auto] (done) Mac -snapshot modes never read the live Dev store
 spec: -
@@ -2283,7 +2283,7 @@ spec: -
 needs: -
 do: (fill in)
 check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
-ask: On the Mac: ⋯ > Add recording on a voice note, say a sentence, stop. Does the audio play through, the words land after a blank line, and the phone show the same?
+ask: On the Mac, open a voice note, choose ... > Add recording, say one sentence and stop. Does the note play straight on into your new sentence, are the new words a new paragraph, and does the phone show the same?
 
 ### Q305 [auto] (done) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
 spec: -
@@ -2318,7 +2318,7 @@ spec: -
 needs: -
 do: (fill in)
 check: On the Mac and iPad (Dev): press ⌘N (new note), ⇧⌘N (record), ⌘F in a note and outside one, ⌘1/⌘2. Do they all do what you expect? Note the Mac's File > New Window is gone (⌘N is New Note now) — OK?
-ask: On Mac and iPad: do ⌘N, ⇧⌘N, ⌘F and ⌘1/⌘2 do what you expect? (File > New Window is gone on the Mac.)
+ask: Try these shortcuts on the Mac and iPad: Cmd-N new note, Shift-Cmd-N record, Cmd-F search (inside a note it finds in that note), Cmd-1 and Cmd-2 switch tabs. Do they all work? The Mac no longer has File > New Window, because Cmd-N now makes a note. OK?
 
 ### Q310 [auto] (done) fix the flaky photo-OCR test MemoSaverTests.testSavedPhotoBecomesSearchableWithoutRelaunch
 spec: -
@@ -2332,7 +2332,7 @@ spec: -
 needs: -
 do: (fill in)
 check: On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
-ask: Add a recording to a voice note on the phone and play across the join. Clean audio, no silence, karaoke still in time?
+ask: On the phone, open a voice note and add a recording to it. Play from just before the point where the two recordings meet. Does it run on without a silent gap, and does the word highlighting stay in time with your voice?
 
 ### Q312 [auto] (done) phone MemosListUITests fail at the first seeded-memo wait
 spec: -
@@ -2494,7 +2494,7 @@ do: -
 check: Live Activity after Q232 (SkriftShared framework removed): Lock Screen + Dynamic Island show the recording and end cleanly.
 ask: Start a recording on your phone and look at the Lock Screen and Dynamic Island. Does the recording show there, and does it go away when you stop?
 
-### Q335 [tuur] (tuur) Mac (the REAL Skrift, after Q337 and the release; D189/Tuur 2026-10-11): grant Full Disk Access, open Import > Apple Notes…, report the start screen (Q333's first real read)
+### Q335 [tuur] (stuck) Mac (the REAL Skrift, after Q337 and the release; D189/Tuur 2026-10-11): grant Full Disk Access, open Import > Apple Notes…, report the start screen (Q333's first real read)
 spec: -
 needs: -
 do: -
@@ -3791,3 +3791,8 @@ check: `./gate.sh`
 - 2026-10-11 21:37 Q346 -> stuck — gate weakened: modified QUEUE.md 
 - 2026-10-11 21:41 Q346 -> done — gate 105s @5337ba75
 - 2026-10-11 21:43 Q347 -> done — gate 75s @741d03a1
+- 2026-10-13 09:12 Q252 -> done — folded into Q298: release phone and Mac together, Mac upgrade tested on a copy first
+- 2026-10-13 09:12 Q271 -> done — folded into Q298: release phone and Mac together, Mac upgrade tested on a copy first
+- 2026-10-13 09:12 Q278 -> done — folded into Q298: release phone and Mac together, Mac upgrade tested on a copy first
+- 2026-10-13 09:12 Q279 -> stuck — not a question for Tuur: Claude fixes the SPEC wording at the next /2-plan
+- 2026-10-13 09:12 Q335 -> stuck — waits for the release to the real Skrift; Tuur does it then
