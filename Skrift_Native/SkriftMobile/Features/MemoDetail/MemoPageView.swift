@@ -89,6 +89,7 @@ struct MemoPageView: View {
     @State var showPhotoSourceDialog = false
     @State var showCameraCapture = false
     @State var showAttachFiles = false
+    @Environment(\.colorScheme) var colorScheme
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
     @State var showMemoLinkPicker = false
     /// Track B: the full extracted-PDF-text reader (wave-2 mock m3).
@@ -899,6 +900,13 @@ struct MemoPageView: View {
     /// size-change capture), re-OCR an inline photo (its manifest text resets
     /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
     /// decodes fresh).
+    /// The captured PDF in Quick Look (Markup saves back, like a photo).
+    func presentPDF(_ url: URL) {
+        markupQuickLook.present(url: url, anchor: nil) { edited in
+            if edited { photoWasEdited(marker: nil) }
+        }
+    }
+
     func photoWasEdited(marker: Int?) {
         if let n = marker,
            var meta = memo.metadata, var manifest = meta.imageManifest,
@@ -1455,10 +1463,31 @@ struct MemoPageView: View {
                 if let url = memo.sharedFileURL, url.pathExtension.lowercased() == "pdf",
                    let entry = PDFThumbnailLoader.firstPage(
                        at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
-                    CapturePDFInlineBlock(entry: entry) {
-                        markupQuickLook.present(url: url, anchor: nil) { edited in
-                            if edited { photoWasEdited(marker: nil) }
+                    // D202: the PDF block switches too, SMALL (the shared grey card) by default.
+                    let key = NoteAttachmentStore.pdfFilename(of: memo) ?? url.lastPathComponent
+                    let size = NoteAttachment.size(of: key, large: memo.metadata?.largeAttachments)
+                    Group {
+                        if size == .small {
+                            Button { presentPDF(url) } label: {
+                                Image(uiImage: NoteAttachmentArt.pdfCard(
+                                    name: sc.fileName ?? url.lastPathComponent, pages: entry.pageCount, fileURL: url,
+                                    width: UIScreen.main.bounds.width - 2 * Theme.Space.margin,
+                                    dark: colorScheme == .dark))
+                                .resizable().aspectRatio(contentMode: .fit)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("capture-pdf-card")
+                        } else {
+                            CapturePDFInlineBlock(entry: entry) { presentPDF(url) }
                         }
+                    }
+                    .contextMenu {
+                        let next: NoteAttachment.Size = size == .large ? .small : .large
+                        let action = NoteAttachment.BlockAction.setSize(next)
+                        Button { NoteAttachmentStore.setSize(next, filename: key, memo: memo) } label: {
+                            Label(action.title, systemImage: action.symbol)
+                        }
+                        ShareLink(item: url) { Label(NoteAttachment.BlockAction.share.title, systemImage: NoteAttachment.BlockAction.share.symbol) }
                     }
                     // Track B (wave-2 mock m3): the A6-extracted text, in the
                     // note — collapsed by default, reader on "Show all".

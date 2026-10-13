@@ -66,11 +66,14 @@ enum NoteAttachmentStore {
     /// Every attachment filename the note holds, for the ⋯ menu's Set All: its videos and files,
     /// photos and a shared PDF (the photo and PDF blocks get the switch too, D202).
     static func allFilenames(of memo: Memo) -> [String] {
-        let meta = memo.metadata
-        var names = (meta?.attachmentManifest ?? []).map(\.filename)
-        names += (meta?.imageManifest ?? []).map(\.filename)
-        if let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty { names.append(rel) }
-        return names.filter { !$0.isEmpty }
+        NoteAttachment.allFilenames(attachments: memo.metadata?.attachmentManifest, photos: memo.metadata?.imageManifest,
+                                    pdf: pdfFilename(of: memo)).filter { !$0.isEmpty }
+    }
+
+    /// The captured file's name the PDF block's size is stored under (nil = no captured file).
+    static func pdfFilename(of memo: Memo) -> String? {
+        guard let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty else { return nil }
+        return rel
     }
 
     /// Switch one attachment, or every one (`filename` nil = Set All). Not a words edit.

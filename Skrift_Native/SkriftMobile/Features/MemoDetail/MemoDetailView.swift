@@ -126,6 +126,12 @@ struct MemoDetailView: View {
         SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource)
     }
 
+    /// D202: every block in the note to one size; the open editor redraws.
+    func setAllSizes(_ size: NoteAttachment.Size, _ memo: Memo) {
+        NoteAttachmentStore.setSize(size, filename: nil, memo: memo)
+        NoteEditorChrome.shared.current?.load(force: true)
+    }
+
     @ViewBuilder func noteOverflowItems(_ memo: Memo) -> some View {
         // Wording / glyph / ORDER come from the shared `NoteMenuItem` — the Mac's
         // ⋯ renders the same vocabulary (Tuur 2026-07-25). Which items exist is
@@ -166,13 +172,13 @@ struct MemoDetailView: View {
                 Label(LibraryHatch.moveLabel, systemImage: "books.vertical")
             }
         }
-        // D202: Apple's "Set All to Small / Large", on a note that holds a video or file.
-        if !(memo.metadata?.attachmentManifest ?? []).isEmpty {
-            Button { NoteAttachmentStore.setSize(.small, filename: nil, memo: memo); NoteEditorChrome.shared.current?.load(force: true) } label: {
-                Label(NoteAttachment.setAllSmallTitle, systemImage: "rectangle.compress.vertical")
-            }
-            Button { NoteAttachmentStore.setSize(.large, filename: nil, memo: memo); NoteEditorChrome.shared.current?.load(force: true) } label: {
-                Label(NoteAttachment.setAllLargeTitle, systemImage: "rectangle.expand.vertical")
+        // D202: Apple's "Set All to Small / Large", on a note that holds a photo, video, file or PDF.
+        if !NoteAttachmentStore.allFilenames(of: memo).isEmpty {
+            ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
+                let action = NoteAttachment.BlockAction.setSize(size)
+                Button { setAllSizes(size, memo) } label: {
+                    Label(size == .small ? NoteAttachment.setAllSmallTitle : NoteAttachment.setAllLargeTitle, systemImage: action.symbol)
+                }
             }
         }
         Button { toggleLock(memo) } label: { menuLabel(NoteMenuItem.lockItem(isLocked: memo.locked)) }
@@ -559,6 +565,11 @@ struct MemoDetailView: View {
             // Q356 (mock `noteMenu`, D90): only on a note that holds a PDF.
             if let memo = currentMemo, LibraryHatch.canMoveToLibrary(memo) {
                 Button(LibraryHatch.moveLabel, action: { LibraryHatch.moveToLibrary(memo: memo) })
+            }
+            // D202: Set All to Small / Large, the same pair the iPad ⋯ menu has.
+            if let memo = currentMemo, !NoteAttachmentStore.allFilenames(of: memo).isEmpty {
+                Button(NoteAttachment.setAllSmallTitle, action: { setAllSizes(.small, memo) })
+                Button(NoteAttachment.setAllLargeTitle, action: { setAllSizes(.large, memo) })
             }
             if let memo = currentMemo {
                 Button(NoteMenuItem.lockItem(isLocked: memo.locked).label, action: { toggleLock(memo) })
