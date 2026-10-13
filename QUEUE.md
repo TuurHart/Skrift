@@ -2751,7 +2751,7 @@ do: -
 check: Tuur approved; the conductor flips `testOnlyBuiltDoorsAreShown` (XCTAssertFalse(.podcast) → True, same for .pdf once Q354 lands) via plan/hand-merge.sh and `plan/mtest.sh LibraryShelfTests` passes.
 ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q353/Q354 built them. OK to flip those assertions so the test matches?
 
-### Q372 [auto] (doing) a Library 'send to a note' note exports as a link to its source, not a quote; Move to Library drops the note's PDF asset
+### Q372 [auto] (done) a Library 'send to a note' note exports as a link to its source, not a quote; Move to Library drops the note's PDF asset
 spec: D138 D90
 needs: -
 gate+: yes
@@ -4001,3 +4001,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/Sourc
 - 2026-10-13 11:40 Q356 -> done — gate 43s @7e4d12e1
 - 2026-10-13 11:41 Q372 added
 - 2026-10-13 11:41 Q372 -> doing — worker out
+- 2026-10-13 12:00 Q372 -> done — gate 53s @9e0f5cc0
