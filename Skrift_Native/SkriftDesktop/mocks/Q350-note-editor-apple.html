@@ -207,7 +207,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .fnote{font-size:11.5px;color:var(--a-dim)}
 .emenu{position:absolute;z-index:7;display:flex;align-items:center;height:40px;border-radius:20px;background:var(--a-surface);box-shadow:0 8px 24px rgba(0,0,0,.25),inset 0 0 0 .5px var(--a-border);padding:0 6px;font-size:14px}
 .emenu button{height:40px;padding:0 10px;display:inline-flex;align-items:center}
-.emenu .fmtb{font-size:16px;width:34px;justify-content:center}
+.emenu .fmtb{font-size:16px;width:30px;justify-content:center;padding:0}
+.emenu .newp{color:var(--a-accent-text);font-weight:600;padding:0 9px;white-space:nowrap}
 .emenu .fmtb.on{color:var(--a-accent)}
 .emenu .dv{width:.5px;height:20px;background:var(--a-border);margin:0 3px}
 .dmenu{position:absolute;right:10px;top:84px;width:230px;z-index:9;background:var(--a-surface);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:15px}
@@ -427,6 +428,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <li><span class="k">4</span><span><b>The title is no longer pinned</b> and grows from 17 to 22 pt; it scrolls with the note. The pin was for swiping between notes, which is off (Q314).</span></li>
       <li><span class="k">5</span><span><b>The Mac gets one Aa button in its band</b> (Apple Notes has one there), plus ⌘B ⌘I ⌘U ⇧⌘X and a Format section in the right-click menu. No floating selection bar on the Mac.</span></li>
       <li><span class="k">7</span><span><b>The header is three rows, as close to Apple&rsquo;s calm as Skrift&rsquo;s fields allow (D195):</b> one grey line (time · place · weather · length, no chip boxes), the title, then rating · Personal · tags on one row. The summary loses its tinted card and becomes a grey line with a hairline under it. On the Mac the two switches sit at the right end of that same row.</span></li>
+      <li><span class="k">8</span><span><b>&ldquo;New person…&rdquo; sits right after B I U S in the selection bar (D184)</b>, tinted so it reads as Skrift&rsquo;s own. To keep the bar one row at 402 pt, Paste moves behind ›. On the Mac it is the last entry of the Format block in the right-click menu.</span></li>
       <li><span class="k">6</span><span><b>Inside a book quote the Aa styles and lists are greyed</b>, so the quote stays a <code>&gt; </code> quote and polish keeps protecting it. B I U S still work there.</span></li>
     </ol>
   </div>
@@ -497,7 +499,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   var HOW = {
     "read":"<b>Reading.</b> Press play: the words light up as they are spoken (karaoke). Tap the rating pill to step it, tap Personal to open Personal · Portfolio. Tap the 🗒 note link: a page count ghosts in above the player (paging). Swiping sideways does nothing: swipe-between-notes stays off.",
     "type":"<b>Typing.</b> Tap any line to move the caret. Aa opens the format panel; the checklist button turns the caret&rsquo;s line into a checkbox and back. Done saves now and marks the text as your edit, so the Mac trusts it (<code>transcriptUserEdited</code>).",
-    "select":"<b>Selection.</b> &ldquo;spindle&rdquo; is selected. The bar leads with B I U S, then the system&rsquo;s Cut, Copy, Paste. Tap B, I, U or S and watch the dim marks appear around the word.",
+    "select":"<b>Selection.</b> &ldquo;spindle&rdquo; is selected. The bar leads with B I U S, then New person… (D184), then Cut and Copy; Paste is behind ›. Tap B, I, U or S and watch the dim marks appear around the word.",
     "aa":"<b>Aa menu.</b> It replaces the keyboard, as in the reference. Title, Heading, Body and the three lists act on the caret&rsquo;s line (the heading &ldquo;Before drilling&rdquo; to start; tap another line to move it). B I U S act on the selected word.",
     "drag":"<b>Move a photo (D112).</b> Press and hold the photo until it lifts, then drag it up or down; a purple line shows where it lands between paragraphs. Release to drop.",
     "quote":"<b>Book quote.</b> An audiobook capture: the book&rsquo;s words as a quote with its caption, your spoken ramble under it. The caret is in the quote, so Aa greys the styles that would break it (pick 6).",
@@ -868,7 +870,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<button class="fmtb'+on("*spindle*")+'" data-act="wrap" data-v="i" style="font-style:italic;font-family:Georgia,serif">I</button>'+
       '<button class="fmtb'+on("<u>spindle")+'" data-act="wrap" data-v="u" style="text-decoration:underline">U</button>'+
       '<button class="fmtb'+on("~~spindle")+'" data-act="wrap" data-v="s" style="text-decoration:line-through">S</button><span class="dv"></span>'+
-      '<button data-act="ack" data-msg="Cut">Cut</button><button data-act="ack" data-msg="Copy">Copy</button><button data-act="ack" data-msg="Paste">Paste</button><button data-act="ack" data-msg="More: Look Up, Translate, New person from selection…">›</button></div>'; var em = document.querySelector('#emenu-slot .emenu'); em.style.left = Math.max(6, Math.min(390 - em.offsetWidth - 6, left)) + 'px';
+      '<button class="newp'+pk(8)+'" data-act="ack" data-msg="New person… opens the person editor with &ldquo;spindle&rdquo; filled in (D184)">New person…</button><span class="dv"></span>'+
+      '<button data-act="ack" data-msg="Cut">Cut</button><button data-act="ack" data-msg="Copy">Copy</button><button data-act="ack" data-msg="More: Paste, Look Up, Translate">›</button></div>'; var em = document.querySelector('#emenu-slot .emenu'); em.style.left = Math.max(6, Math.min(390 - em.offsetWidth - 6, left)) + 'px';
   }
   function placeCMenu(){
     var mf = document.querySelector("#sk .mac .note"), sel = mf.querySelector(".sel"); if (!sel) return;
@@ -877,7 +880,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<div style="font-size:11px;color:var(--a-faint)">Format</div>'+
       '<div data-act="wrap" data-v="b" style="cursor:pointer;font-weight:700">Bold<span>⌘B</span></div><div data-act="wrap" data-v="i" style="cursor:pointer;font-style:italic">Italic<span>⌘I</span></div>'+
       '<div data-act="wrap" data-v="u" style="cursor:pointer;text-decoration:underline">Underline<span>⌘U</span></div><div data-act="wrap" data-v="s" style="cursor:pointer;text-decoration:line-through">Strikethrough<span>⇧⌘X</span></div>'+
-      '<hr><div>Cut<span>⌘X</span></div><div>Copy<span>⌘C</span></div><div>Paste<span>⌘V</span></div><hr><div>Look Up “spindle”</div><div>New person from selection…</div></div>';
+      '<div data-act="ack" data-msg="New person… opens the person editor with “spindle” filled in (D184)" class="'+pk(8).slice(1)+'" style="cursor:pointer;color:var(--a-accent-text);font-weight:600">New person…</div>'+
+      '<hr><div>Cut<span>⌘X</span></div><div>Copy<span>⌘C</span></div><div>Paste<span>⌘V</span></div><hr><div>Look Up “spindle”</div></div>';
   }
   function wrapWords(){
     var nodes = [];
