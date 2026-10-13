@@ -12,7 +12,7 @@ enum MacQuietCard {
     static func model(for memo: Memo, selected: Bool, backlinked: Set<UUID>,
                       conflicts: Set<UUID>,
                       now: Date = Date()) -> NoteCardModel {
-        let stamp = MemoDate.label(memo.recordedAt)
+        let stamp = MemoDate.listDate(memo.recordedAt)   // D190: line 2's list date
         let conflicted = conflicts.contains(memo.id)
         // Locked ⇒ title + 🔒 and nothing else (C91/C161, R88) — still IN the list, dimmed. The
         // two-versions pill outranks every other state, locked or not (the phone sets it first).
@@ -40,6 +40,8 @@ enum MacQuietCard {
         m.apply(MacRowSnippetCache.shared.value(id: "memo-" + memo.id.uuidString, version: memo.cardVersion) {
             NoteCardBuilder.content(for: memo.cardFacts())
         })
+        m.media = NoteCardBuilder.media(for: memo.cardFacts())
+        m.portfolio = memo.destination.isPortfolio
         return m
     }
 }

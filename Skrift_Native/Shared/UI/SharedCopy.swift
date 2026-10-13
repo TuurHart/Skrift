@@ -141,6 +141,8 @@ enum SharedCopy {
     /// The note screen of a locked note. `authName` is the platform's prompt word
     /// ("Face ID" on the phone, "Touch ID or your password" on the Mac). C161/C213.
     static let lockedTitleFallback = "Locked note"
+    /// Q358: a locked list row's line 2 after the date (the note's words never show).
+    static let lockedRowLine = "Locked"
     static func lockedBody(authName: String) -> String {
         "Locked notes stay out of Obsidian publish and need \(authName) here. They're hidden, not encrypted."
     }

@@ -6,7 +6,8 @@ import SwiftUI
 /// `NoteCardStyle` (the `SignificanceCirclesView` cure — two hand-built rows drifted for a month).
 ///
 /// The row, top to bottom (all optional parts collapse):
-///   line 1 — the title, bold, one line (🔒 + title only on a locked note); trailing: a status
+///   line 1 — the title, bold, one line (🔒 + title on a locked note, line 2 = date + "Locked"
+///            and nothing else); trailing: a status
 ///            pill ONLY while something is happening (Transcribing, error, 2 versions), then the
 ///            grey "Unrated" marker on an unrated note (where the importance balls used to sit;
 ///            a rated note shows nothing there — D194)
@@ -120,7 +121,7 @@ struct NoteCardView: View {
         HStack(alignment: .center, spacing: style.spacing) {
             VStack(alignment: .leading, spacing: 2) {
                 lineOne
-                if !model.locked { lineTwo }
+                lineTwo
                 lineThree
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -207,7 +208,8 @@ struct NoteCardView: View {
 
     private var text: NoteRowText.Lines {
         if model.locked {
-            return .init(title: model.title?.isEmpty == false ? model.title! : SharedCopy.lockedTitleFallback, line: nil)
+            return .init(title: model.title?.isEmpty == false ? model.title! : SharedCopy.lockedTitleFallback,
+                         line: SharedCopy.lockedRowLine)
         }
         return NoteRowText.lines(title: model.title, snippet: model.snippet,
                                  busy: model.statusPill?.kind == .progress ? model.statusPill?.label : nil)
