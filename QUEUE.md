@@ -2653,7 +2653,7 @@ gate+: no
 do: D190: the Continue-listening book banner on top of the notes list goes, and goes means deleted. Remove `SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift`, both uses in `MemosListView.swift`, and anything only it used (state, strings, tests, xcodegen entries). The mini player bar while a book plays stays. Grep both apps and Shared for leftovers. FEATURES.md row updated.
 check: `! grep -rq 'ContinueListening' Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q358 [auto] (doing) build the notes list per the Q349 mock on phone, iPad and Mac
+### Q358 [auto] (done) build the notes list per the Q349 mock on phone, iPad and Mac
 spec: D190 D193 C113
 needs: Q349 Q357 Q361
 gate+: yes
@@ -4056,3 +4056,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:18 Q350 -> done — signed D196: title above the meta line, New person further right, Export soft tint, audio choice in the Export confirmation, Split speakers in ⋯; 'mac frame looks a lot better'
 - 2026-10-13 14:18 Q359 -> doing — worker out
 - 2026-10-13 14:18 Q360 -> doing — worker out
+- 2026-10-13 14:22 Q358 -> done — hand-merged (D163 blanket: protected tests only ported or deleted with the code they covered)
