@@ -2799,7 +2799,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q379 [auto] (doing) build the iPad list + note layout per the iPad mock
+### Q379 [auto] (done) build the iPad list + note layout per the iPad mock
 spec: D193
 needs: Q378 Q358 Q359
 gate+: yes
@@ -4121,3 +4121,4 @@ check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 
 - 2026-10-13 15:37 Q381 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
 - 2026-10-13 15:51 Q381 -> done — gate 60s @346beda6
 - 2026-10-13 15:55 Q382 -> done — gate 38s @9b6aa679
+- 2026-10-13 16:07 Q379 -> done — gate 41s @d88dfa92
