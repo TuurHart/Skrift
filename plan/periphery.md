@@ -243,7 +243,7 @@ Same binary and flags as Q60. Scanned a `git archive` snapshot of wt/Q380 @ 9821
 Same binary and flags. Scanned `git archive` snapshots (Periphery refuses a second `-derivedDataPath` inside a worktree).
 
 - **Before** (session branch @ 67edc636): phone **318**, Mac **286**. 149 unique findings sit in Swift files changed since 4519b3ea (a Shared/ finding counts only when BOTH scans report it).
-- **After** (wt/Q386 @ AFTER_SHA): phone **AFTER_M**, Mac **AFTER_D**.
+- **After** (wt/Q386 @ e89debd4): phone **309**, Mac **279**.
 - Deleted (15, no reference anywhere in the repo, tests included): Shared `PrefKey.publishAuthor`, `SplitSpeakersCopy.rateFirstShort`, `NoteCardView.GroupPosition.of(index:count:)`; Mac `NoteActions.isAppleNote` / `.transcribeDone`, `SidebarView.importButton(action:)` / `.copyText(_:)`, `MacListDerivedCache.Derived.queueRowFiles`, `NoteDisplayView.colorScheme`; phone `LibraryPDFReaderView.movedToNote`, `NoteBodyView.Coordinator.formatHost` (written, never read), `MemosListView.searchingNow`, `Memo.durationLabel`, `MemoExporter.linkedBody(for:people:)`, `MemoDetailView.initialID` (stored copy; the init parameter stays).
 - Replaced (part c): `SharedCopy.quoteChip` → `SourceKind.bookChip(title:)` / `.bookKind`; `LibraryHatch.kindLabel` / `kindNoun` now read `SourceKind.sourceName` / `.sourceNoun` via `LibrarySourceKind.linkKind`.
 - Kept, false positives: every "assigned, but never used" field of an `Equatable` key / inputs struct (`ListDerivedCache` keys, `MemosListView+Row`, `MacListDerivedCache` inputs, `BodyTextView.StyleKey`, `AudiobookPlayerView.IdleKey`, `NamesStore` / `MacNotePhotos` file fingerprints, `MemoCloudIngest` / `MacNoteOpenWork` keys) — synthesized `==` reads them.
