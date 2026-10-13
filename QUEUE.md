@@ -2945,7 +2945,7 @@ gate+: yes
 do: Extend the Q367 tool: `StoreCopyTest --merge-dry-run` runs DevEraMerge on COPIES of the old store and a downloaded Production store and prints only counts (before/after, duplicate Memo.id groups, Mac-made notes present once with assets, enhancement LWW outcomes, conflicts, any drop → non-zero exit); `plan/release/mac-store-copytest.sh --merge` wires it for Tuur. Self-test on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `plan/release/mac-store-copytest.sh --self-test`
 
-### Q400 [auto] (doing) one-shot merge alert in the Release Mac app, triggered by a merge-from-dev/ folder (ICLOUD_MERGE A4)
+### Q400 [auto] (done) one-shot merge alert in the Release Mac app, triggered by a merge-from-dev/ folder (ICLOUD_MERGE A4)
 spec: D203
 needs: Q398
 gate+: yes
@@ -4319,3 +4319,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 23:11 Q399 -> doing — worker out
 - 2026-10-13 23:11 Q400 -> doing — worker out
 - 2026-10-13 23:22 Q399 -> done — gate 41s @31a892aa
+- 2026-10-13 23:24 Q400 -> done — gate 46s @66274e7d
