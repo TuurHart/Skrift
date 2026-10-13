@@ -2938,7 +2938,7 @@ gate+: yes
 do: Build the engine ICLOUD_MERGE.md §A2 describes: reads a moved-out old memo_cloud.store (merge-from-dev/) read-only, merges into the live Production store by Memo.id in batches of 25 with the rules in §7 (shared notes keep Production; Mac field edits copied only when Production is unchanged since S=2026-09-25; insert Mac-made notes and phone notes recorded after S; never insert phone notes recorded before S, >20 such stops; MemoEnhancement newer enhancedAt wins in place), writes merge-report.txt (inserted ids) and supports unmerge. Confirm from e6245caa code that every Mac write bumps lastEditedAt. Mac tests `DevEraMergeTests` on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DevEraMergeTests.swift`
 
-### Q399 [auto] (doing) merge dry run: StoreCopyTest --merge-dry-run + mac-store-copytest.sh --merge on copies (ICLOUD_MERGE A3)
+### Q399 [auto] (done) merge dry run: StoreCopyTest --merge-dry-run + mac-store-copytest.sh --merge on copies (ICLOUD_MERGE A3)
 spec: D203
 needs: Q398
 gate+: yes
@@ -4318,3 +4318,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 23:11 Q398 -> done — gate 53s @f4aa6b04
 - 2026-10-13 23:11 Q399 -> doing — worker out
 - 2026-10-13 23:11 Q400 -> doing — worker out
+- 2026-10-13 23:22 Q399 -> done — gate 41s @31a892aa
