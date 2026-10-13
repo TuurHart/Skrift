@@ -46,6 +46,11 @@ enum LaunchFlags {
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
     /// Q352: four seeded books (two with capture notes) for the Library shelf screenshot.
     static var seedLibraryShelf: Bool { args.boolFlag("-seedLibraryShelf") }
+    /// Q354: two PDFs on the Library shelf; `-showPDFReader` opens one on page 4 with text selected,
+    /// `-showPDFToast` raises the "Added to Library" toast. Screenshots only.
+    static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
+    static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
+    static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
     /// Q353 (DEBUG): one seeded podcast episode (kind `episode`, Het Uur) opened as a paused session
     /// for the Episode-player screenshot.
     static var seedEpisode: Bool { args.boolFlag("-seedEpisode") }

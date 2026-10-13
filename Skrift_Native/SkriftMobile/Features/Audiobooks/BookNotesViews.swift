@@ -123,13 +123,23 @@ struct BookNotesSheet: View {
 /// quote's attribution. 12.5pt semibold, accent text on the accent wash, 32pt tall.
 struct BookJumpBackButton: View {
     let position: TimeInterval
+    /// Q354: set for a PDF source: the label names the page and the glyph is the mock's "↗".
+    let page: Int?
     let action: () -> Void
+
+    init(position: TimeInterval, action: @escaping () -> Void) {
+        self.position = position; self.page = nil; self.action = action
+    }
+
+    init(page: Int, action: @escaping () -> Void) {
+        self.position = TimeInterval(page); self.page = page; self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: "play.fill").font(.system(size: 10))
-                Text(BookNotesJoin.jumpLabel(position: position))
+                Image(systemName: page == nil ? "play.fill" : "arrow.up.right").font(.system(size: 10))
+                Text(page.map { BookNotesJoin.jumpLabel(page: $0) } ?? BookNotesJoin.jumpLabel(position: position))
                     .font(.system(size: 12.5, weight: .semibold))
             }
             .foregroundStyle(Color.skAccentText)

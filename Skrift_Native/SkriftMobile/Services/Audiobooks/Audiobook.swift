@@ -291,7 +291,12 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     var progress: Double { duration > 0 ? min(1, max(0, position / duration)) : 0 }
     /// Within `BookStatusFilter.finishedTail` of the end: functionally finished even when
     /// `progress` has not rounded to 1.0 (never show a stalled 99%).
-    var isFinished: Bool { duration > 0 && timeLeft <= BookStatusFilter.finishedTail }
+    /// Q354: a PDF counts pages, so the tail is "on the last page" (a seconds tail would call a
+    /// 6-page PDF finished on page 1).
+    var isFinished: Bool {
+        if sourceKind == .pdf { return duration > 0 && position >= duration }
+        return duration > 0 && timeLeft <= BookStatusFilter.finishedTail
+    }
 
     // MARK: - Global time ↔ file mapping
 

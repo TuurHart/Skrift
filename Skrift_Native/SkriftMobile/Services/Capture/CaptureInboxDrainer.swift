@@ -35,6 +35,9 @@ enum CaptureInboxDrainer {
     /// interleaving with the first would double-import the delete-first media types.
     private static var isDraining = false
 
+    /// Where a shared PDF that routes to the Library lands (Q354). Tests point it at a temp store.
+    static var libraryStore: AudiobookLibraryStore = .shared
+
     // MARK: - Q94 / C70 — dating a shared bundle by the shared filename ladder
 
     /// ISO8601 entry array element at `i`, nil when absent / blank / malformed.
@@ -411,6 +414,28 @@ enum CaptureInboxDrainer {
                 CaptureInbox.delete(entryDir: entryDir)
             }
             return nil
+        }
+
+        // Q354 / D126: a bare shared PDF becomes a Library source (kind `pdf`), not a note; the
+        // Library tab shows "Added to Library · add to a note instead". The book reuses the entry
+        // id, so a re-drain after a crash finds it instead of adding a second. A file that is not
+        // a readable PDF falls through to the note path below: a share is never lost.
+        if entry.type == "file", entry.routeToLibrary == true {
+            if libraryStore.book(id: entry.id) != nil {
+                CaptureInbox.delete(entryDir: entryDir)
+                return nil
+            }
+            if let src = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
+               FileManager.default.fileExists(atPath: src.path),
+               let book = LibraryPDF.importPDF(from: src, displayName: entry.fileDisplayName,
+                                               store: libraryStore, id: entry.id) {
+                CaptureInbox.delete(entryDir: entryDir)
+                DevLog.log("drain: pdf \(entry.id) → Library ('\(book.title)', \(LibraryPDF.pageCount(of: book)) pages)")
+                LibraryPDFArrival.shared.post(bookID: book.id)
+                TabSelectionBridge.shared.select(.books)
+                return nil   // a Library source, not a note — no jump target
+            }
+            DevLog.log("drain: pdf \(entry.id) not importable as a source — keeping it as a note attachment")
         }
 
         // Duplicate guard: if we already have this memo, just clean up.

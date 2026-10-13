@@ -60,6 +60,8 @@ struct MemoPageView: View {
     /// D127: the quote block's jump-back opens the player at the note's book position.
     @State var showBookPlayerFromNote = false
     @State var bookJumpFailed = false
+    /// Q354: the jump-back of a note captured from a PDF opens the reader on that page.
+    @State var pdfJump: PDFJumpRequest?
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
     // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
     // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
@@ -603,7 +605,10 @@ struct MemoPageView: View {
                 CaptureQuoteFrame(attribution: memo.quoteAttributionLabel) {
                     CaptureQuoteText(text: quote.displayText,
                                      rambleWordCount: QuoteKaraokeMap.spokenWordCount(ofRamble: quote.ramble),
-                                     timings: timings, player: player, clock: player.clock,
+                                     // Q354: a PDF quote was never spoken, so the audio (his ramble only)
+                                     // has no timings for its words: no karaoke on the quote.
+                                     timings: LibraryPDF.isPageLabel(memo.metadata?.bookChapter) ? [] : timings,
+                                     player: player, clock: player.clock,
                                      onCommit: commitQuoteEdit)
                 }
                 .padding(.top, 18)
@@ -611,6 +616,17 @@ struct MemoPageView: View {
                 // D127 / Q6 mock: "Back to it at 1:12:05 in Library". Only while the book is
                 // still in the library and the note stored where in it the quote came from.
                 if let target = BookNotesJoin.jumpTarget(for: memo),
+                   let jumpBook = AudiobookLibraryStore.shared.book(id: target.bookID),
+                   jumpBook.sourceKind == .pdf {
+                    BookJumpBackButton(page: Int(target.position)) {
+                        pdfJump = PDFJumpRequest(book: jumpBook, page: Int(target.position))
+                    }
+                    .padding(.top, 10)
+                    .padding(.leading, 14)
+                    .fullScreenCover(item: $pdfJump) { jump in
+                        LibraryPDFReaderView(book: jump.book, jumpBackPage: jump.page)
+                    }
+                } else if let target = BookNotesJoin.jumpTarget(for: memo),
                    AudiobookLibraryStore.shared.book(id: target.bookID) != nil {
                     BookJumpBackButton(position: target.position) {
                         if BookNotesJoin.jump(to: target) { showBookPlayerFromNote = true }
