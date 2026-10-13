@@ -2834,6 +2834,19 @@ gate+: no
 do: Same recipe as Q374 (finding: phone device builds need `-skipMacroValidation -skipPackagePluginValidation`; iPhone 17 Pro xcodebuild id == devicectl id; binary greps need `/usr/bin/grep -a`). Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q379 literal (`IPadTabControl`) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q360 literal (`MacExportConfirm`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
 
+### Q384 [tuur] (todo) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
+spec: D199 D198 D126
+needs: -
+do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots — ask him for one of an Apple note with a video and a file if '/Users/tiurihartog/Downloads/apple notes ui/' has none — laid at the same scale. One agent on the file.
+check: Tuur clicked through it and said go.
+
+### Q385 [auto] (todo) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
+spec: D199 D126
+needs: Q384 Q379
+gate+: yes
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html` (signed). Body v2 gets block markers for a video and a file like `[[img_NNN]]` (Shared, one rule both apps); they sync as MemoAsset kinds (`video` exists since Q287; add `file` with original name + UTI) — no new CloudKit record type; list any new synced field for the release's schema step (Q366 RELEASE.md). Attach menu items (Take/Choose Photo or Video, Attach File) insert them on phone/iPad; Mac adds them by drop/paste/Insert like photos (Q325). Export copies the file beside the note and links it (`![[file]]`), same ledger/ExportSession path as photos (Q365). Tests: phone `NoteAttachmentTests`, Mac `NoteAttachmentExportTests`. Never run SkriftDesktopUITests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4132,3 +4145,5 @@ check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
 - 2026-10-13 16:08 Q380 -> doing — worker out
 - 2026-10-13 16:08 Q383 added
 - 2026-10-13 16:09 Q383 -> doing — worker out
+- 2026-10-13 16:10 Q384 added
+- 2026-10-13 16:10 Q385 added
