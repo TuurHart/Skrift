@@ -2709,7 +2709,7 @@ gate+: yes
 do: From plan/perf2/g-mac-pipeline.md G8 G9 G10 G13; re-check each first. The vault tag scan is cached across runs and refreshed by file modification dates (and no longer drops tags past 5,000 files); the export ledger and names.json are decoded once per run and the ledger written once at the end (crash-safe: per-note entries still land if the run dies, e.g. append then compact); photo/audio copies are skipped when the markdown and the ledger say the note is unchanged, before any full byte compare; `runProcess` filters with a Set. Exported bytes must be identical to today's on the corpus. New counter test `MacExportWorkTests` in SkriftDesktopTests: exporting 50 unchanged notes decodes the ledger once, writes it once, and reads no image bytes. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacExportWorkTests.swift`
 
-### Q366 [auto] (doing) release prep: version bump, Release builds of both apps, the synced-field list for Q298
+### Q366 [auto] (done) release prep: version bump, Release builds of both apps, the synced-field list for Q298
 spec: D186
 needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380 Q386
 gate+: no
@@ -2737,12 +2737,12 @@ do: -
 check: Phone and Mac flows re-recorded with `plan/perf2/tools/`; no D186 budget missed, or Tuur waved the miss.
 ask: On the Dev build with the perf library, record the 7-minute flow on the iPhone 17 Pro and a short Mac flow in Instruments; I read them with flow.py.
 
-### Q370 [tuur] (todo) promote phone and Mac to the real Skrift on the same day, merge to main
+### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
-needs: Q298 Q368 Q369
+needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375
 do: -
-check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
-ask: Prod is idle? Then: you switch on the new synced fields in the CloudKit console (steps in plan/release/RELEASE.md, ~10 min, agreed in Q298), I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
+check: The production Skrift on Tuur's phone runs build 188+ (literal grep matches the installed build), the prod Mac app likewise if he chose it, and his notes/names are intact after the upgrade.
+ask: Dev checks pass. Ready to put the updated production Skrift on your phone (I install the Release build to the prod app over USB, you switch on the new synced fields in the iCloud console first — RELEASE.md), and the Mac's /Applications/Skrift.app too, or phone only for now?
 
 ### Q371 [tuur] (done) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
 spec: -
@@ -4170,3 +4170,4 @@ check: `test $(ls plan/reads/editor-apple/tabbar-*.png | wc -l) -ge 2`
 - 2026-10-13 17:24 Q387 added
 - 2026-10-13 17:26 Q387 -> doing — worker out
 - 2026-10-13 17:26 Q384 -> doing — mockup out
+- 2026-10-13 17:31 Q366 -> done — gate 132s @12486193
