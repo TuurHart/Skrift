@@ -1,0 +1,924 @@
+<title>Q350 Note Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: question + picks on top, a sticky device/state bar, then each state as Skrift beside a hand-drawn reference panel; must-keeps list at the end. */
+:root{
+  --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
+  --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
+  /* In-app tokens: Shared/UI/Palette.swift (phone light) */
+  --a-bg:#f5f5f7; --a-surface:#ffffff; --a-accent:#6c5ce0; --a-accent-text:#6051c8; --a-accent-soft:#6c5ce021;
+  --a-text:#1c1c1e; --a-dim:#6c6c72; --a-faint:#a3a3aa; --a-chip:#ebebf0; --a-border:rgba(0,0,0,.09);
+  --a-ring:rgba(0,0,0,.18); --a-amber:#d97706; --a-amber-soft:#d9770621; --a-amber-line:#d9770659; --a-accent-line:#6c5ce059;
+  --a-mark:rgba(28,28,30,.25); --a-glass:rgba(255,255,255,.82); --a-key:#ffffff; --a-kb:#d1d3d9; --a-sel:#6c5ce033;
+  --sp0:#0f7d74; --sp1:#a8446a;
+  /* Reference panel: a neutral paper, drawn by hand */
+  --r-bg:#fbfaf6; --r-ink:#1f1e1a; --r-dim:#8a877d; --r-line:#e4e1d6; --r-acc:#c99700; --r-kb:#d4d5da; --r-key:#ffffff;
+  --toast-bg:rgba(0,0,0,.85); --toast-fg:#ffffff; --on-accent:#ffffff;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+    --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+    --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+    --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+    --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
+    --a-mark:rgba(228,228,231,.25); --a-glass:rgba(30,32,44,.82); --a-key:#3a3b44; --a-kb:#22232b; --a-sel:#7c6bf544;
+    --sp0:#5fd4c4; --sp1:#f08cae;
+    --r-bg:#1c1b18; --r-ink:#ece9df; --r-dim:#8f8b80; --r-line:#34322c; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c;
+    --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --pg-bg:#0d0c12; --pg-ink:#ebe9f2; --pg-dim:#a29db5; --pg-faint:#6d6882; --pg-line:#2a2736;
+  --pg-card:#16141e; --pg-accent:#9d8ff7; --pg-accent-soft:#9d8ff724; --pg-warn:#fb923c; --pg-warn-soft:#fb923c1a;
+  --a-bg:#0f1117; --a-surface:#181a23; --a-accent:#7c6bf5; --a-accent-text:#b9acff; --a-accent-soft:#7c6bf521;
+  --a-text:#e4e4e7; --a-dim:#8b8b97; --a-faint:#55556a; --a-chip:#1e2130; --a-border:rgba(255,255,255,.08);
+  --a-ring:rgba(255,255,255,.22); --a-amber:#f59e0b; --a-amber-soft:#f59e0b21; --a-amber-line:#f59e0b59; --a-accent-line:#7c6bf559;
+  --a-mark:rgba(228,228,231,.25); --a-glass:rgba(30,32,44,.82); --a-key:#3a3b44; --a-kb:#22232b; --a-sel:#7c6bf544;
+  --sp0:#5fd4c4; --sp1:#f08cae;
+  --r-bg:#1c1b18; --r-ink:#ece9df; --r-dim:#8f8b80; --r-line:#34322c; --r-acc:#e6b422; --r-kb:#2b2b2f; --r-key:#46464c;
+  --toast-bg:rgba(255,255,255,.9); --toast-fg:#111111;
+}
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--sys);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:18px 60px;margin:0}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-faint)}
+h1{font-size:22px;line-height:1.2;margin:4px 0 6px;text-wrap:balance}
+h2{font-size:16px;margin:0;text-wrap:balance}
+p{margin:0;max-width:70ch}
+code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
+.lede{color:var(--pg-dim);font-size:14px}
+.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.q .n{font-family:var(--mono);font-weight:600;color:var(--pg-accent)}
+.q .qt{font-size:18px;font-weight:600;text-wrap:balance}
+.q .qs{font-size:14px;color:var(--pg-dim)}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.picks button{font:600 15px var(--sys);min-height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-ink);cursor:pointer;text-align:left}
+.picks button[aria-pressed="true"]{background:var(--pg-accent);border-color:var(--pg-accent);color:var(--on-accent)}
+.mine{border:1.5px dashed var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.mine h2{color:var(--pg-warn);font-size:15px}
+.mine ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.mine li{display:flex;gap:9px;align-items:flex-start}
+.k{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--pg-warn);border:1.5px dashed var(--pg-warn);border-radius:5px;padding:0 5px;line-height:18px;margin-top:1px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--pg-bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;border-bottom:1px solid var(--pg-line)}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:2px;gap:2px}
+.seg button{font:500 13.5px var(--sys);border:0;background:transparent;color:var(--pg-dim);min-height:34px;padding:0 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:var(--on-accent)}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--pg-dim);min-height:34px}
+.chk input{width:18px;height:18px;accent-color:var(--pg-accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.how{font-size:14px;color:var(--pg-dim);background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:9px 12px}
+.how b{color:var(--pg-ink)}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.stage.mac{grid-template-columns:1fr}
+.stage.noref{grid-template-columns:minmax(0,520px)}
+.stage.mac.noref{grid-template-columns:1fr}
+.col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.col.ref{order:2}
+.stage:not(.mac) .col.ref{order:0}
+.colcap{font-family:var(--mono);font-size:11px;color:var(--pg-faint);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.colcap .tag{border-radius:4px;padding:0 5px;font-weight:600}
+.colcap .tag.sk{background:var(--pg-accent-soft);color:var(--pg-accent)}
+.colcap .tag.rf{border:1px dashed var(--pg-faint);color:var(--pg-dim)}
+.fit{position:relative;width:100%;overflow:hidden}
+.fitin{transform-origin:0 0;position:absolute;left:0;top:0}
+.mdout{font-family:var(--mono);font-size:12px;line-height:1.55;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:10px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;color:var(--pg-ink);margin:0}
+.mdcap{font-size:12.5px;color:var(--pg-dim)}
+.keeps{display:flex;flex-direction:column;gap:8px}
+.keeps ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.keeps li button{font:500 13px var(--sys);border:1px solid var(--pg-line);background:var(--pg-card);color:var(--pg-ink);border-radius:99px;min-height:34px;padding:0 12px;cursor:pointer}
+.keeps li button span{color:var(--pg-faint);font-family:var(--mono);font-size:11px;margin-left:6px}
+footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);padding-top:12px}
+.ptoast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:8px 14px;border-radius:99px;opacity:0;transition:opacity .15s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.ptoast.show{opacity:1}
+
+/* ── Phone frame (pt = CSS px) ─────────────────────────────── */
+.phone{width:390px;height:844px;border-radius:46px;overflow:hidden;position:relative;border:1px solid var(--pg-line)}
+.app{font-family:var(--sys);color:var(--a-text);background:var(--a-bg)}
+.app button{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+.sbar{height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 34px 6px;font-size:15px;font-weight:600}
+.sbar i{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--a-faint)}
+.nav{height:44px;display:flex;align-items:center;gap:4px;padding:0 10px 0 8px}
+.nav .back{color:var(--a-accent);font-size:17px;display:flex;align-items:center;gap:2px;padding:0 6px;height:44px}
+.nav .sp{flex:1}
+.nav .nb{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;color:var(--a-dim);border-radius:9px}
+.nav .done{height:30px;padding:0 13px;border-radius:9px;background:var(--a-accent-soft);color:var(--a-accent);font-size:13.5px;font-weight:600;margin-left:4px}
+.scroll{position:absolute;left:0;right:0;top:91px;bottom:0;overflow:hidden}
+.titleA{font-size:22px;font-weight:700;line-height:1.2;padding:4px 20px 0;display:flex;align-items:center;gap:8px}
+.titleA .spark{width:28px;height:28px;border-radius:8px;background:var(--a-accent-soft);color:var(--a-accent);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hcore{padding:8px 20px 0}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:13px;color:var(--a-dim);background:var(--a-chip);padding:2px 7px;border-radius:7px;white-space:nowrap}
+.ic{width:10px;height:10px;flex:none}
+.tchip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-accent-text);font-size:13px;font-weight:500}
+.addtag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-size:12px}
+.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px}
+.app .pill{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:12px;font-weight:600;color:var(--a-accent-text);white-space:nowrap}
+.app .pill.none{background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-weight:500}
+.pill .pbs{display:inline-flex;gap:3px}
+.pill .pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
+.pill .pb.lit{background:var(--a-accent);box-shadow:none}
+.app .dchip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:99px;font-size:11.5px;font-weight:600;line-height:14px;color:var(--a-accent-text);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
+.app .dchip.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
+.dchip .dd{width:6px;height:6px;border-radius:50%;background:var(--a-accent)}
+.dchip.arc .dd{background:var(--a-amber)}
+.dchip .dv{font-size:8px;opacity:.55;font-weight:700}
+.dfolder{font-family:var(--mono);font-size:10.5px;color:var(--a-amber)}
+.dsegs{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:260px}
+.dfam{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:260px;font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--a-faint);text-align:center}
+.app .dseg{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0;border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);font-size:11px;font-weight:600;color:var(--a-dim)}
+.dseg .dd{width:7px;height:7px;border-radius:50%;background:var(--a-faint)}
+.app .dseg.on{color:var(--a-accent);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
+.dseg.on .dd{background:var(--a-accent)}
+.app .dseg.on.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
+.dseg.on.arc .dd{background:var(--a-amber)}
+.summ{margin:14px 20px 0;padding:12px;border-radius:13px;background:color-mix(in srgb,var(--a-accent-soft) 50%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a-accent) 22%,transparent)}
+.summ .sh{display:flex;align-items:center;gap:5px;color:var(--a-accent);font-size:11px;font-weight:700;letter-spacing:.5px}
+.summ p{font-size:13.5px;color:var(--a-dim);margin-top:5px}
+.body{padding:12px 20px 140px;font-size:15.5px;line-height:1.55}
+.blk{position:relative;border-radius:6px;margin:0 -6px;padding:1px 6px}
+.blk + .blk{margin-top:7px}
+.blk.cur{background:color-mix(in srgb,var(--a-accent) 6%,transparent)}
+.blk.h1{font-size:22px;font-weight:700;line-height:1.25;margin-top:12px}
+.blk.h2{font-size:18.5px;font-weight:700;line-height:1.3;margin-top:12px}
+.mk{color:var(--a-mark);font-weight:400;font-style:normal;text-decoration:none}
+.mk[data-m="b"]::before{content:"**"} .mk[data-m="i"]::before{content:"*"} .mk[data-m="s"]::before{content:"~~"}
+.mk[data-m="u1"]::before{content:"<u>"} .mk[data-m="u2"]::before{content:"</u>"}
+.mk[data-m="h1"]::before{content:"# "} .mk[data-m="h2"]::before{content:"## "}
+.mk[data-m="li"]::before{content:"- "} .mk[data-m="q"]::before{content:"> "}
+.blk.check,.blk.bullet,.blk.num{display:flex;gap:8px;align-items:flex-start}
+.box{flex:none;width:15px;height:15px;border:1.6px solid var(--a-faint);border-radius:4px;margin-top:4px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--on-accent)}
+.box.on{background:var(--a-accent);border-color:var(--a-accent)}
+.blk.check.done .tx{color:var(--a-dim)}
+.lnum{flex:none;color:var(--a-dim);min-width:16px}
+.nm{color:var(--a-accent);font-weight:500}
+.ml{display:inline-block;font-size:14px;font-weight:500;color:var(--a-accent-text);background:color-mix(in srgb,var(--a-accent) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a-accent) 35%,transparent);border-radius:6px;padding:0 8px;line-height:22px;cursor:pointer}
+.photo{height:190px;border-radius:14px;background:linear-gradient(140deg,#8d97a8,#4d5566 55%,#2f3542);position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .15s, box-shadow .15s}
+.photo::before{content:"";position:absolute;left:18%;top:34%;width:64%;height:30%;border-radius:6px;background:linear-gradient(180deg,#c9ced8,#9aa2b1);box-shadow:0 0 0 2px #6a7282}
+.photo::after{content:"";position:absolute;left:24%;top:42%;width:8px;height:8px;border-radius:50%;background:#3b414e;box-shadow:150px 0 0 #3b414e,0 30px 0 #3b414e,150px 30px 0 #3b414e}
+.photo .pcap{position:absolute;left:10px;bottom:8px;font-size:10.5px;font-weight:600;color:#fff;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:7px;z-index:1}
+.photo.lift{transform:scale(1.04);box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:3}
+.dropline{height:3px;border-radius:2px;background:var(--a-accent);margin:4px 0;box-shadow:0 0 0 3px var(--a-accent-soft)}
+.w.pl{color:var(--a-dim)} .w.cur{color:var(--a-accent)}
+.sel{background:var(--a-sel);border-radius:2px;box-shadow:-1px 0 0 var(--a-accent),1px 0 0 var(--a-accent)}
+.caret{display:inline-block;width:2px;height:18px;background:var(--a-accent);vertical-align:-3px;margin-left:1px;border-radius:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.player{position:absolute;left:20px;right:20px;bottom:30px;height:54px;border-radius:24px;background:var(--a-glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 6px 18px rgba(0,0,0,.28),inset 0 0 0 .5px rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;padding:0 14px;z-index:5}
+.player .play{width:32px;height:32px;border-radius:50%;background:var(--a-accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 3px 5px color-mix(in srgb,var(--a-accent) 38%,transparent);flex:none}
+.player .sk{width:26px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--a-text);flex:none}
+.player .t{font-size:10.5px;font-weight:600;color:var(--a-dim);font-variant-numeric:tabular-nums;flex:none}
+.player .track{flex:1;height:3.5px;border-radius:2px;background:var(--a-ring);position:relative}
+.player .track b{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--a-accent)}
+.player .track i{position:absolute;top:-3.75px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);margin-left:-5.5px}
+.player .rate{font-size:11px;font-weight:700;padding:4px 7px;border-radius:8px;background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);flex:none}
+.flash{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--a-dim);background:var(--a-surface);box-shadow:inset 0 0 0 .5px var(--a-border);padding:4px 9px;border-radius:99px;z-index:6;opacity:0;transition:opacity .2s}
+.flash.show{opacity:1}
+.kbwrap{position:absolute;left:0;right:0;bottom:0;z-index:6}
+.acc{height:54px;padding:0 10px 8px;display:flex;align-items:flex-end}
+.accpill{flex:1;height:40px;border-radius:15px;background:color-mix(in srgb,var(--a-surface) 94%,transparent);box-shadow:0 6px 11px rgba(0,0,0,.25),inset 0 0 0 .5px rgba(255,255,255,.13);display:flex;align-items:center;gap:2px;padding:0 7px}
+.accpill .ab{width:33px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--a-dim);font-size:15px;font-weight:600}
+.accpill .ab.on{color:var(--a-accent);background:var(--a-accent-soft)}
+.accpill .aa{font-size:16px;font-weight:600;letter-spacing:-.5px}
+.kb{background:var(--a-kb);padding:8px 3px 30px;display:flex;flex-direction:column;gap:11px;height:291px}
+.kr{display:flex;justify-content:center;gap:6px}
+.key{width:32px;height:42px;border-radius:5px;background:var(--a-key);box-shadow:0 1px 0 rgba(0,0,0,.3);display:inline-flex;align-items:center;justify-content:center;font-size:20px;color:var(--a-text)}
+.key.wide{width:88px;font-size:14px} .key.space{width:180px;font-size:14px;color:var(--a-dim)}
+.fmt{background:var(--a-surface);border-radius:14px 14px 0 0;box-shadow:0 -1px 0 var(--a-border);height:345px;padding:14px 16px 30px;display:flex;flex-direction:column;gap:14px}
+.fmt .fh{display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:700}
+.fmt .x{width:30px;height:30px;border-radius:50%;background:var(--a-chip);color:var(--a-dim);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.frow{display:grid;gap:8px}
+.frow.s3{grid-template-columns:repeat(3,1fr)} .frow.s4{grid-template-columns:repeat(4,1fr)}
+.fb{border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--a-text)}
+.fb small{font-family:var(--mono);font-size:9.5px;color:var(--a-faint)}
+.fb.on{background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line);color:var(--a-accent)}
+.fb.on small{color:var(--a-accent-text)}
+.fb[disabled]{opacity:.35;cursor:not-allowed}
+.fnote{font-size:11.5px;color:var(--a-dim)}
+.emenu{position:absolute;z-index:7;display:flex;align-items:center;height:40px;border-radius:20px;background:var(--a-surface);box-shadow:0 8px 24px rgba(0,0,0,.25),inset 0 0 0 .5px var(--a-border);padding:0 6px;font-size:14px}
+.emenu button{height:40px;padding:0 10px;display:inline-flex;align-items:center}
+.emenu .fmtb{font-size:16px;width:34px;justify-content:center}
+.emenu .fmtb.on{color:var(--a-accent)}
+.emenu .dv{width:.5px;height:20px;background:var(--a-border);margin:0 3px}
+.dmenu{position:absolute;right:10px;top:84px;width:230px;z-index:9;background:var(--a-surface);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);overflow:hidden;font-size:15px}
+.dmenu div{padding:11px 14px;border-top:.5px solid var(--a-border);display:flex;justify-content:space-between}
+.dmenu div:first-child{border-top:0}
+.dmenu .new{color:var(--a-accent);font-weight:600}
+.dmenu .red{color:#dc2626}
+.quote{position:relative;padding-left:14px;margin:4px 0}
+.quote::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:2px;background:color-mix(in srgb,var(--a-accent) 65%,transparent)}
+.quote .qt{font-style:italic;font-size:15.5px;line-height:1.6;color:color-mix(in srgb,var(--a-text) 78%,transparent)}
+.quote .qc{font-size:12.5px;font-weight:500;color:var(--a-dim);margin-top:4px}
+.turn{display:flex;gap:10px;margin-top:12px}
+.turn .bar3{width:3px;border-radius:2px;flex:none}
+.turn .who{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.turn .who i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.turn .tt{font-size:15.5px;line-height:1.55;margin-top:2px}
+.pick{outline:1.5px dashed var(--pg-warn);outline-offset:3px;position:relative}
+.pick::after{content:attr(data-k);position:absolute;top:-11px;right:-10px;font:600 9px/14px var(--mono);color:var(--on-accent);background:var(--pg-warn);border-radius:4px;padding:0 3px;z-index:8;pointer-events:none}
+.nomarks .pick{outline:0} .nomarks .pick::after{display:none}
+.ftoast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:13px;padding:8px 14px;border-radius:99px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;z-index:12}
+.ftoast.show{opacity:1}
+
+/* ── Mac frame ─────────────────────────────── */
+.mac{width:1000px;height:660px;border-radius:12px;overflow:hidden;position:relative;border:1px solid var(--pg-line);display:flex}
+.mac .side{width:250px;flex:none;border-right:1px solid var(--a-border);background:repeating-linear-gradient(135deg,transparent 0 9px,var(--a-chip) 9px 10px);display:flex;flex-direction:column}
+.mac .tls{display:flex;gap:7px;padding:16px 16px}
+.mac .tls i{width:12px;height:12px;border-radius:50%;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border)}
+.mac .sidecap{margin:auto 18px;font-family:var(--mono);font-size:11px;color:var(--a-dim);text-align:center;background:var(--a-bg);padding:8px;border-radius:8px}
+.mac .note{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.mband{height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:.5px solid var(--a-border);flex:none}
+.mband .sp{flex:1}
+.gl{height:30px;min-width:30px;padding:0 10px;border-radius:99px;background:var(--a-chip);display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--a-dim)}
+.gl.on{background:var(--a-accent-soft);color:var(--a-accent-text)}
+.gl.prim{background:var(--a-accent);color:#fff}
+.mscroll{flex:1;overflow:hidden;position:relative}
+.mcol{max-width:640px;margin:0 auto;padding:26px 0 30px}
+.mtitle{font-size:19px;font-weight:700}
+.msrc{font-size:11.5px;color:var(--a-dim);margin-top:3px;display:flex;gap:10px}
+.msrc b{color:var(--a-accent);font-weight:600}
+.mrow{margin-top:10px}
+.mac .tchip,.mac .addtag{height:22px;padding:0 9px;font-size:12px}
+.mac .pill{height:22px;font-size:11.5px}
+.mswitch{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--a-dim)}
+.sw{width:26px;height:15px;border-radius:99px;background:var(--a-accent);position:relative;flex:none;display:inline-block;vertical-align:middle;margin-right:5px}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#fff}
+.sw.off{background:var(--a-ring)} .sw.off::after{right:auto;left:2px}
+.maside{margin-top:22px;padding-left:14px;border-left:2px solid color-mix(in srgb,var(--a-accent) 40%,transparent);font-size:13.5px;font-style:italic;color:var(--a-dim)}
+.mac .body{padding:20px 0 30px;font-size:16px}
+.mac .blk.h1{font-size:23px} .mac .blk.h2{font-size:19.5px}
+.mac .photo{height:250px}
+.mac .photo.selp{box-shadow:0 0 0 3px var(--a-accent)}
+.mdock{height:52px;flex:none;border-top:.5px solid var(--a-border);background:var(--a-surface);display:flex;align-items:center;gap:16px;padding:0 18px}
+.mdock .sk{width:32px;height:32px;border-radius:8px;background:var(--a-chip);display:inline-flex;align-items:center;justify-content:center;color:var(--a-dim);font-size:11px;font-weight:700}
+.mdock .play{width:34px;height:34px;border-radius:50%;background:var(--a-accent);color:#fff;display:inline-flex;align-items:center;justify-content:center}
+.mdock .t{font-family:var(--mono);font-size:11.5px;color:var(--a-dim)}
+.mdock .track{flex:1;height:5px;border-radius:3px;background:var(--a-ring);position:relative}
+.mdock .track b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--a-accent)}
+.mdock .rate{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--a-dim);padding:6px 10px;border-radius:8px;background:var(--a-chip)}
+.pop{position:absolute;z-index:9;width:300px;background:var(--a-surface);border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);padding:12px;display:flex;flex-direction:column;gap:10px}
+.pop .fb{min-height:46px}
+.cmenu{position:absolute;z-index:9;width:230px;background:var(--a-surface);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.3),inset 0 0 0 .5px var(--a-border);padding:5px;font-size:13px}
+.cmenu div{display:flex;justify-content:space-between;padding:4px 10px;border-radius:5px}
+.cmenu div span{color:var(--a-faint)}
+.cmenu div.hi{background:var(--a-accent);color:#fff} .cmenu div.hi span{color:#fff}
+.cmenu hr{border:0;border-top:.5px solid var(--a-border);margin:4px 6px}
+
+/* ── Reference panel (hand-drawn) ─────────────────────────────── */
+.ref{font-family:var(--sys);background:var(--r-bg);color:var(--r-ink)}
+.ref.phone{border:1.5px dashed var(--pg-faint)}
+.ref.mac{border:1.5px dashed var(--pg-faint)}
+.rstamp{position:absolute;top:52px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--r-dim);border:1px dashed var(--r-dim);border-radius:4px;padding:1px 6px;white-space:nowrap;z-index:9;background:var(--r-bg)}
+.mac .rstamp{top:12px}
+.rnav{height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;color:var(--r-acc);font-size:17px;margin-top:20px}
+.rnav .sp{flex:1}
+.rnav .ok{width:30px;height:30px;border-radius:50%;background:var(--r-acc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.rdate{text-align:center;font-size:12.5px;color:var(--r-dim);margin-top:4px}
+.rbody{padding:8px 20px;font-size:17px;line-height:1.45}
+.rbody .rt{font-size:28px;font-weight:700;line-height:1.15;margin:6px 0 10px}
+.rbody .rh{font-size:20px;font-weight:700;margin:14px 0 6px}
+.rbody p{margin:0 0 8px}
+.rchk{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
+.rchk i{flex:none;width:21px;height:21px;border-radius:50%;border:1.5px solid var(--r-dim);margin-top:1px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;color:#fff}
+.rchk i.on{background:var(--r-acc);border-color:var(--r-acc)}
+.rchk.done span{color:var(--r-dim)}
+.rphoto{height:170px;border-radius:10px;background:linear-gradient(140deg,#a7a49a,#6b685f);margin:10px 0}
+.rtool{position:absolute;left:0;right:0;bottom:0;height:84px;display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px;color:var(--r-acc);border-top:.5px solid var(--r-line);background:var(--r-bg)}
+.rkb{position:absolute;left:0;right:0;bottom:0}
+.rkbar{height:46px;display:flex;align-items:center;justify-content:space-around;padding:0 10px;color:var(--r-ink);background:var(--r-bg);border-top:.5px solid var(--r-line);font-size:17px}
+.rkbar .aa{font-weight:600}
+.rkeys{background:var(--r-kb);height:291px;padding:8px 3px;display:flex;flex-direction:column;gap:11px}
+.rkeys .key{background:var(--r-key);color:var(--r-ink)}
+.rmenu{position:absolute;z-index:3;display:flex;height:40px;align-items:center;border-radius:20px;background:var(--r-key);box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px;padding:0 8px;color:var(--r-ink)}
+.rmenu span{padding:0 9px}
+.rmenu .sepv{width:.5px;height:20px;background:var(--r-line);padding:0}
+.rsel{background:color-mix(in srgb,var(--r-acc) 35%,transparent)}
+.rfmt{position:absolute;left:0;right:0;bottom:0;height:345px;background:var(--r-key);border-radius:14px 14px 0 0;padding:14px 16px;display:flex;flex-direction:column;gap:12px;color:var(--r-ink)}
+.rfmt .fh{display:flex;justify-content:space-between;font-size:17px;font-weight:700}
+.rrow{display:flex;gap:8px;overflow:hidden}
+.rrow span{flex:none;border-radius:10px;background:var(--r-bg);padding:12px 12px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;min-width:44px}
+.rrow span.on{background:var(--r-acc);color:#fff}
+.rnone{position:absolute;inset:120px 30px auto;text-align:center;color:var(--r-dim);font-size:15px;line-height:1.5;border:1.5px dashed var(--r-line);border-radius:14px;padding:24px 16px}
+.rnone b{display:block;color:var(--r-ink);font-size:17px;margin-bottom:6px}
+.rmac-side{width:180px;flex:none;border-right:.5px solid var(--r-line);padding:44px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px;color:var(--r-ink)}
+.rmac-side .hd{font-size:11px;font-weight:600;color:var(--r-dim)}
+.rmac-side .on{background:color-mix(in srgb,var(--r-acc) 22%,transparent);border-radius:6px;padding:3px 8px;margin:0 -8px}
+.rmac-list{width:240px;flex:none;border-right:.5px solid var(--r-line);padding:44px 0 0}
+.rmac-list .row{padding:9px 16px;border-bottom:.5px solid var(--r-line);font-size:13px}
+.rmac-list .row b{display:block;font-size:13.5px}
+.rmac-list .row small{color:var(--r-dim)}
+.rmac-list .row.on{background:color-mix(in srgb,var(--r-acc) 30%,transparent);border-radius:7px;margin:0 6px;border:0}
+.rmac-note{flex:1;display:flex;flex-direction:column;min-width:0}
+.rmac-tb{height:52px;display:flex;align-items:center;gap:16px;padding:0 16px;color:var(--r-dim);border-bottom:.5px solid var(--r-line);font-size:15px}
+.rmac-tb .sp{flex:1}
+.rmac-tb .aa{font-weight:600;color:var(--r-ink)}
+.rmac-tb .hl{outline:1.5px solid var(--r-acc);border-radius:6px;padding:2px 6px}
+.rmac-body{padding:14px 40px;font-size:15px;line-height:1.5}
+.rmac-body .rt{font-size:24px;font-weight:700;margin:8px 0}
+.rmac-body .rh{font-size:18px;font-weight:700;margin:12px 0 4px}
+@media (max-width:760px){ .stage{grid-template-columns:1fr} .stage .col.ref{order:2} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap" id="top">
+  <header>
+    <div class="eyebrow">Q350 · mock · D193 D115 C113 C234 · current parts drawn from source (C117)</div>
+    <h1>The open note and its editing toolbar, next to Apple Notes</h1>
+    <p class="lede">Phone and Mac. Each state shows Skrift on one side and a hand-drawn reference panel of Apple Notes on the other. The reference is my own approximate drawing of the public app, never your notes, and carries no Apple branding. Tap things: tabs, play, the pill, the destination chip, Aa, the checklist boxes, the photo (press and hold, then drag).</p>
+  </header>
+
+  <div class="q" id="question">
+    <div class="qt"><span class="n">1.</span> Where does the note&rsquo;s title live?</div>
+    <div class="qs">Apple Notes has no title field: the first line of the text is the title. Skrift keeps a separate title (synced on its own, with the suggested-title choice). Both versions are live in the frames below; pick one and the frames follow.</div>
+    <div class="picks" role="group" aria-label="Pick a title model">
+      <button id="pick-a" data-pick="a" aria-pressed="true">A · its own line on top, then the header, then the text (my pick)</button>
+      <button id="pick-b" data-pick="b" aria-pressed="false">B · header on top, the text starts with a Title line, as in Apple Notes</button>
+    </div>
+  </div>
+
+  <div class="mine" id="mine">
+    <h2>Picked for you. Overrule any of these.</h2>
+    <ol>
+      <li><span class="k">1</span><span><b>While typing, undo/redo and Done move to the top bar</b>, where Apple Notes has them. The keyboard bar shrinks to Aa · checklist · photo · note link. Find moves into the ⋯ menu. Apple&rsquo;s table and markup-pen buttons are left out (no tables, C116; markup opens from the photo).</span></li>
+      <li><span class="k">2</span><span><b>The Aa panel holds only D115&rsquo;s set:</b> Title, Heading, Body · B I U S · bulleted, numbered, checklist. No Subheading, Monostyled, colour, indent or block quote. Each button shows the Markdown it writes.</span></li>
+      <li><span class="k">3</span><span><b>Underline writes <code>&lt;u&gt;…&lt;/u&gt;</code></b>, because Markdown has no underline. Obsidian renders it; in Skrift the tags show dim like every other mark.</span></li>
+      <li><span class="k">4</span><span><b>The title is no longer pinned</b> and grows from 17 to 22 pt; it scrolls with the note. The pin was for swiping between notes, which is off (Q314).</span></li>
+      <li><span class="k">5</span><span><b>The Mac gets one Aa button in its band</b> (Apple Notes has one there), plus ⌘B ⌘I ⌘U ⇧⌘X and a Format section in the right-click menu. No floating selection bar on the Mac.</span></li>
+      <li><span class="k">6</span><span><b>Inside a book quote the Aa styles and lists are greyed</b>, so the quote stays a <code>&gt; </code> quote and polish keeps protecting it. B I U S still work there.</span></li>
+    </ol>
+  </div>
+
+  <div class="bar" role="toolbar" aria-label="View controls">
+    <div class="seg" role="group" aria-label="Device">
+      <button id="dev-phone" data-dev="phone" aria-pressed="true">Phone</button>
+      <button id="dev-mac" data-dev="mac" aria-pressed="false">Mac</button>
+    </div>
+    <div class="seg" role="group" aria-label="State" id="states"></div>
+    <label class="chk"><input type="checkbox" id="ref-toggle" checked> Reference</label>
+    <label class="chk"><input type="checkbox" id="marks-toggle" checked> Mark my picks</label>
+    <label class="chk"><input type="checkbox" id="md-toggle"> Show the Markdown</label>
+  </div>
+
+  <div class="how" id="how"></div>
+
+  <div class="stage" id="stage">
+    <div class="col sk">
+      <div class="colcap"><span class="tag sk">SKRIFT</span><span id="skcap"></span></div>
+      <div class="fit" id="fit-sk"><div class="fitin" id="sk"></div></div>
+    </div>
+    <div class="col ref" id="refcol">
+      <div class="colcap"><span class="tag rf">REFERENCE · APPLE NOTES</span><span>hand-drawn, approximate, not Skrift</span></div>
+      <div class="fit" id="fit-rf"><div class="fitin" id="rf"></div></div>
+    </div>
+  </div>
+
+  <div id="mdwrap" hidden>
+    <p class="mdcap">The note&rsquo;s text as stored, synced and exported (C116: plain Markdown, marks verbatim). What the editor shows above is this text with the marks dimmed, so the Mac stays WYSIWYG to the export (C234). The Mac&rsquo;s export resolves <code>[[img_001]]</code> into the photo embed and the memo link into a wikilink.</p>
+    <pre class="mdout" id="mdout"></pre>
+  </div>
+
+  <section class="keeps">
+    <h2>Must keep (C234, D193): where each one shows</h2>
+    <ul id="keeps"></ul>
+  </section>
+
+  <footer>Drawn from source: phone note page <code>MemoPageView.swift</code> (title row, <code>noteHeaderCore</code>, summary card), <code>NoteBodyView.swift</code> (15.5 pt body, 4 pt line spacing, 14 pt photo corners, karaoke played/current/upcoming colours), <code>NoteAccessoryBar.swift</code> (40 pt pill, 33×30 buttons), <code>MemoDetailSupportTypes.swift</code> <code>PlayerBar</code> (glass capsule, 24 pt radius), <code>MemoDetailView.swift</code> nav buttons, <code>Shared/UI/NoteRatingPill.swift</code>, <code>DestinationRowView.swift</code> (Personal · Portfolio, D189), <code>NoteMenu.swift</code> titles, <code>NoteLook.swift</code> (memo-link chip, band 48 pt), <code>CaptureQuoteViews.swift</code>, <code>SpeakerTurnsView.swift</code> + <code>Palette.speakerHues</code>; Mac <code>NoteDisplayView.swift</code> (band, docked player), <code>NoteProperties.swift</code>, <code>NoteToolbar.swift</code>, <code>BodyTextView.swift</code> (16 pt body, headings 23/19.5 pt, marks at 25% ink). New, not in the app yet: the Aa panel, the selection bar, B I U S, phone headings, the title at 22 pt. The status bar, keyboard keys and Mac notes list are placeholders. The reference panels are my approximate drawing; details like exact icons and button order may differ from the real app.</footer>
+</div>
+<div class="ptoast" id="ptoast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var TIERS = ["Not rated","Passing","Useful","Important"];
+  var S = {
+    dev:"phone", st:"read", mst:"m-note", ref:true, marks:true, md:false, title:"a",
+    rate:2, dest:"personal", destOpen:false, playing:false, word:-1,
+    caret:1, sel:{b:6, w:"spindle"}, lifted:false, macPop:false, flash:false
+  };
+  var BASE = [
+    {k:"p",  md:"So the 65 mm clamp is probably the right call, the **52 was always going to be a squeeze**."},
+    {k:"h2", md:"Before drilling"},
+    {k:"check", done:true,  md:"Print a test ring in PETG"},
+    {k:"check", done:false, md:"Check runout with the dial gauge"},
+    {k:"check", done:false, md:"Drill the four M6 holes through the gantry plate"},
+    {k:"photo", id:1},
+    {k:"p",  md:"Ask {Rui} whether the *old* spindle still fits the ~~52~~ mount. The plan is in [Router gantry plan]."}
+  ];
+  var blocks = JSON.parse(JSON.stringify(BASE));
+
+  var STATES = {
+    phone:[["read","Reading"],["type","Typing"],["select","Selection"],["aa","Aa menu"],["drag","Move a photo"],["quote","Book quote"],["turns","Speakers"]],
+    mac:[["m-note","Note + Aa"],["m-select","Right-click"],["m-turns","Speakers"]]
+  };
+  var HOW = {
+    "read":"<b>Reading.</b> Press play: the words light up as they are spoken (karaoke). Tap the rating pill to step it, tap Personal to open Personal · Portfolio. Tap the 🗒 note link: a page count ghosts in above the player (paging). Swiping sideways does nothing: swipe-between-notes stays off.",
+    "type":"<b>Typing.</b> Tap any line to move the caret. Aa opens the format panel; the checklist button turns the caret&rsquo;s line into a checkbox and back. Done saves now and marks the text as your edit, so the Mac trusts it (<code>transcriptUserEdited</code>).",
+    "select":"<b>Selection.</b> &ldquo;spindle&rdquo; is selected. The bar leads with B I U S, then the system&rsquo;s Cut, Copy, Paste. Tap B, I, U or S and watch the dim marks appear around the word.",
+    "aa":"<b>Aa menu.</b> It replaces the keyboard, as in the reference. Title, Heading, Body and the three lists act on the caret&rsquo;s line (the heading &ldquo;Before drilling&rdquo; to start; tap another line to move it). B I U S act on the selected word.",
+    "drag":"<b>Move a photo (D112).</b> Press and hold the photo until it lifts, then drag it up or down; a purple line shows where it lands between paragraphs. Release to drop.",
+    "quote":"<b>Book quote.</b> An audiobook capture: the book&rsquo;s words as a quote with its caption, your spoken ramble under it. The caret is in the quote, so Aa greys the styles that would break it (pick 6).",
+    "turns":"<b>Speakers.</b> A two-person recording keeps its turn view: a colour per voice, the name on top of each turn. Formatting works inside a turn&rsquo;s text the same way.",
+    "m-note":"<b>Mac note.</b> The note view is an editor, WYSIWYG to the exported Markdown. Click Aa in the band for the popover; it acts on the caret&rsquo;s line (the heading). Click the photo to select it. Turn on &ldquo;Show the Markdown&rdquo; to compare.",
+    "m-select":"<b>Right-click.</b> A selected word, right-clicked: Format sits at the top of the menu with the keyboard shortcuts. Click Bold to apply.",
+    "m-turns":"<b>Mac speakers.</b> The split-speakers switch stays in the header (D157); turns keep their colours."
+  };
+  var KEEPS = [
+    ["Inline photos","read","m-note"],["Move a photo (long press)","drag",null],["Capture-quote protection","quote",null],
+    ["Speaker turns","turns","m-turns"],["transcriptUserEdited","type",null],["Save now","type",null],
+    ["Polished text, editable","read","m-note"],["Paging (note-link hop)","read",null],["Swipe between notes stays off","read",null],
+    ["Mac editor = exported Markdown","m-note",null],["Audio + karaoke","read","m-note"],["Personal / Portfolio","read","m-note"],
+    ["Rating pill","read","m-note"],["Polish summary","read","m-note"]
+  ];
+
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  var M = function(m){ return '<span class="mk" data-m="'+m+'"></span>'; };
+  function inl(md){
+    var s = esc(md);
+    s = s.replace(/\*\*(.+?)\*\*/g, function(_,a){ return M("b")+"<b>"+a+"</b>"+M("b"); });
+    s = s.replace(/~~(.+?)~~/g, function(_,a){ return M("s")+"<s>"+a+"</s>"+M("s"); });
+    s = s.replace(/&lt;u&gt;(.+?)&lt;\/u&gt;/g, function(_,a){ return M("u1")+"<u>"+a+"</u>"+M("u2"); });
+    s = s.replace(/(^|[^\w*])\*(?!\s)([^*]+?)\*(?!\w)/g, function(_,p,a){ return p+M("i")+"<i>"+a+"</i>"+M("i"); });
+    s = s.replace(/\{(\w+)\}/g, '<span class="nm">$1</span>');
+    s = s.replace(/\[([^\]]+)\]/g, '<span class="ml" data-act="hop">🗒 $1</span>');
+    return s;
+  }
+  function withSel(md, bi){
+    if (!(S.st==="select" || S.st==="aa") || bi !== S.sel.b) return inl(md);
+    var h = inl(md);
+    return h.replace(/(^|[^\w])(spindle)(?![\w])/, '$1<span class="sel">$2</span>');
+  }
+  function photoHTML(mac){
+    return '<div class="photo'+(S.lifted?" lift":"")+(mac&&S.photoSel?" selp":"")+'" data-act="photo"><span class="pcap">IMG · gantry plate</span></div>';
+  }
+  function bodyHTML(opts){
+    opts = opts || {};
+    var out = [], n = 0;
+    blocks.forEach(function(b, i){
+      var cur = (opts.caret && i === S.caret) ? " cur" : "";
+      var caret = (opts.caretBar && i === S.caret) ? '<span class="caret"></span>' : "";
+      var attrs = ' data-b="'+i+'"';
+      if (b.k !== "num") n = 0;
+      if (b.k === "photo"){ out.push('<div class="blk pblk"'+attrs+'>'+photoHTML(opts.mac)+'</div>'); return; }
+      var tx = withSel(b.md, i);
+      if (b.k === "h1") out.push('<div class="blk h1'+cur+'"'+attrs+'>'+M("h1")+'<span class="tx kara">'+tx+'</span>'+caret+'</div>');
+      else if (b.k === "h2") out.push('<div class="blk h2'+cur+'"'+attrs+'>'+M("h2")+'<span class="tx kara">'+tx+'</span>'+caret+'</div>');
+      else if (b.k === "check") out.push('<div class="blk check'+(b.done?" done":"")+cur+'"'+attrs+'><button class="box'+(b.done?" on":"")+'" data-act="tick" data-i="'+i+'" aria-label="Tick">'+(b.done?"✓":"")+'</button><span class="tx kara">'+tx+caret+'</span></div>');
+      else if (b.k === "bullet") out.push('<div class="blk bullet'+cur+'"'+attrs+'><span class="lnum">•</span><span class="tx kara">'+tx+caret+'</span></div>');
+      else if (b.k === "num"){ n++; out.push('<div class="blk num'+cur+'"'+attrs+'><span class="lnum">'+n+'.</span><span class="tx kara">'+tx+caret+'</span></div>'); }
+      else out.push('<div class="blk p'+cur+'"'+attrs+'><span class="tx kara">'+tx+caret+'</span></div>');
+      if (opts.drop != null && opts.drop === i) out.push('<div class="dropline"></div>');
+    });
+    return out.join("");
+  }
+  function mdText(){
+    var t = [], n = 0;
+    if (S.title === "b") t.push("# Spindle clamp, 65 or 52");
+    blocks.forEach(function(b){
+      if (b.k !== "num") n = 0;
+      var md = b.md ? b.md.replace(/\{(\w+)\}/g,"$1").replace(/\[([^\]]+)\]/g,"[[memo:…|$1]]") : "";
+      if (b.k === "photo") t.push("[[img_001]]");
+      else if (b.k === "h1") t.push("# "+md);
+      else if (b.k === "h2") t.push("## "+md);
+      else if (b.k === "check") t.push((b.done?"- [x] ":"- [ ] ")+md);
+      else if (b.k === "bullet") t.push("- "+md);
+      else if (b.k === "num"){ n++; t.push(n+". "+md); }
+      else t.push(md);
+    });
+    return t.join("\n\n").replace(/(- \[[ x]\] [^\n]*)\n\n(?=- \[)/g,"$1\n").replace(/(- \[[ x]\] [^\n]*)\n\n(?=- \[)/g,"$1\n");
+  }
+
+  var IC = {
+    pin:'<svg class="ic" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="currentColor"/><circle cx="6" cy="5" r="2.1" fill="var(--a-bg)"/></svg>',
+    cloud:'<svg class="ic" viewBox="0 0 12 12"><circle cx="4" cy="4" r="2" fill="currentColor"/><path d="M3.2 10.5h5.6a2.2 2.2 0 0 0 0-4.4 3 3 0 0 0-5.6.9 1.8 1.8 0 0 0 0 3.5z" fill="currentColor"/></svg>',
+    wave:'<svg class="ic" viewBox="0 0 12 12"><path d="M1 6h1M3 3.5v5M5 1.5v9M7 3v6M9 4.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+    book:'<svg class="ic" viewBox="0 0 12 12"><path d="M2 2h3.5a1.5 1.5 0 0 1 1.5 1.5V11a1.2 1.2 0 0 0-1.2-1.2H2zM10 2H7.5" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>',
+    plus:'<svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    ppl:'<svg width="18" height="16" viewBox="0 0 18 16"><circle cx="6" cy="5" r="3" fill="currentColor"/><circle cx="12.5" cy="5.5" r="2.5" fill="currentColor"/><path d="M0.5 15c0-3.5 2.5-5 5.5-5s5.5 1.5 5.5 5zM12 15c0-2-0.6-3.4-1.6-4.3 0.7-.3 1.4-.4 2.1-.4 2.6 0 4.9 1.3 4.9 4.7z" fill="currentColor"/></svg>',
+    dots:'<svg width="18" height="4" viewBox="0 0 18 4"><circle cx="2" cy="2" r="2" fill="currentColor"/><circle cx="9" cy="2" r="2" fill="currentColor"/><circle cx="16" cy="2" r="2" fill="currentColor"/></svg>',
+    undo:'<svg width="17" height="15" viewBox="0 0 17 15"><path d="M5 1L1 5l4 4M1.5 5H10a5 5 0 0 1 0 10H6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    redo:'<svg width="17" height="15" viewBox="0 0 17 15"><path d="M12 1l4 4-4 4M15.5 5H7a5 5 0 0 0 0 10h4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    chk:'<svg width="17" height="15" viewBox="0 0 17 15"><rect x="1" y="1.5" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M2.5 4.5l1.2 1.2 2-2.4M10 4.5h6M2 11.5h5M10 11.5h6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+    cam:'<svg width="18" height="15" viewBox="0 0 18 15"><path d="M2 4h3l1.5-2h5L13 4h3v9H2z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><circle cx="9" cy="8.5" r="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+    link:'<svg width="17" height="13" viewBox="0 0 17 13"><path d="M1 6.5h14M10 1.5l5 5-5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    play:'<svg width="12" height="13" viewBox="0 0 12 13"><path d="M2 1l9 5.5L2 12z" fill="currentColor"/></svg>',
+    pause:'<svg width="12" height="13" viewBox="0 0 12 13"><rect x="1.5" y="1" width="3" height="11" rx="1" fill="currentColor"/><rect x="7.5" y="1" width="3" height="11" rx="1" fill="currentColor"/></svg>',
+    b10:'<svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 9a6 6 0 1 0 2-4.5M5 1.5v3.3H1.7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><text x="9" y="11.8" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor" font-family="-apple-system,sans-serif">10</text></svg>',
+    f10:'<svg width="18" height="18" viewBox="0 0 18 18"><path d="M15 9a6 6 0 1 1-2-4.5M13 1.5v3.3h3.3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><text x="9" y="11.8" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor" font-family="-apple-system,sans-serif">10</text></svg>',
+    spark:'<svg width="13" height="13" viewBox="0 0 13 13"><path d="M6.5 0l1.4 4.1L12 5.5 7.9 6.9 6.5 11 5.1 6.9 1 5.5l4.1-1.4z" fill="currentColor"/></svg>',
+    side:'<svg width="16" height="13" viewBox="0 0 16 13"><rect x="1" y="1" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M6 1v11" stroke="currentColor" stroke-width="1.4"/></svg>',
+    share:'<svg width="15" height="18" viewBox="0 0 15 18"><path d="M7.5 1v10M4 4.5L7.5 1 11 4.5M2.5 8v8.5h10V8" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    compose:'<svg width="19" height="19" viewBox="0 0 19 19"><path d="M8 3H3v13h13v-5M9 10l7.5-7.5 1 1L10 11H9z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>',
+    pen:'<svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 15l1-4 8-8 3 3-8 8z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>',
+    table:'<svg width="18" height="16" viewBox="0 0 18 16"><rect x="1" y="1" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M1 6h16M1 10.5h16M7 1v14" stroke="currentColor" stroke-width="1.3"/></svg>',
+    clip:'<svg width="12" height="18" viewBox="0 0 12 18"><path d="M9.5 6v7a3.5 3.5 0 0 1-7 0V4a2.3 2.3 0 0 1 4.6 0v8.5a1 1 0 0 1-2 0V6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+    rchk:'<svg width="20" height="18" viewBox="0 0 20 18"><circle cx="4.5" cy="4.5" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="4.5" cy="13.5" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M11 4.5h8M11 13.5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  function pk(k){ return ' pick" data-k="'+k; }
+
+  function statusBar(){ return '<div class="sbar"><span>9:41</span><i>iPhone 13 · 390 pt</i><span>􀛨</span></div>'.replace("􀛨","▮▮"); }
+  function headerCore(mac){
+    var lit = S.rate;
+    var balls = [1,2,3].map(function(i){ return '<span class="pb'+(i<=lit?" lit":"")+'"></span>'; }).join("");
+    var pill = '<button class="pill'+(lit===0?" none":"")+'" data-act="rate"><span class="pbs">'+balls+'</span>'+TIERS[lit]+'</button>';
+    var arc = S.dest === "portfolio";
+    var dest;
+    if (S.destOpen){
+      dest = '<div class="dfam"><span>PRIVATE</span><span>PORTFOLIO</span></div><div class="dsegs">'+
+        '<button class="dseg'+(arc?"":" on")+'" data-act="dest" data-v="personal"><span class="dd"></span>Personal</button>'+
+        '<button class="dseg'+(arc?" on arc":"")+'" data-act="dest" data-v="portfolio"><span class="dd"></span>Portfolio</button></div>';
+    } else {
+      dest = '<div class="flow"><button class="dchip'+(arc?" arc":"")+'" data-act="destopen"><span class="dd"></span>'+(arc?"Portfolio":"Personal")+'<span class="dv">⌄</span></button>'+(arc?'<span style="font-size:11px;color:var(--a-faint)">→</span><span class="dfolder">_projects/</span>':"")+'</div>';
+    }
+    var chips = '<div class="flow"><span class="cchip">Today · 14:29</span><span class="cchip">'+IC.pin+'Alfama</span><span class="cchip">'+IC.cloud+'22°</span><span class="cchip">'+IC.wave+'2:14</span></div>';
+    var tags = '<div class="flow" style="margin-top:8px"><span class="tchip">#cnc</span><span class="tchip">#workshop</span><span class="addtag">+ tag</span></div>';
+    if (mac){
+      return '<div class="mrow">'+chips+'</div>'+tags.replace('margin-top:8px','margin-top:10px')+
+        '<div class="mrow pillrow">'+pill+'</div><div class="mrow" style="display:flex;flex-direction:column;gap:7px">'+dest+'</div>'+
+        '<div class="mrow mswitch"><span><i class="sw"></i>Include audio in export</span><span><i class="sw off"></i>Split speakers</span></div>';
+    }
+    return '<div class="hcore">'+chips+tags+'<div class="pillrow" style="margin-top:8px">'+pill+'</div><div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">'+dest+'</div></div>';
+  }
+  var SUMMARY = "Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate.";
+  function titleBlock(editing){
+    if (S.title === "b") return "";
+    return '<div class="titleA'+pk(4)+'" style="margin:0 14px;padding-left:6px;padding-right:6px">Spindle clamp, 65 or 52<span class="spark">'+IC.spark+'</span></div>';
+  }
+  function titleLineB(){
+    if (S.title !== "b") return "";
+    return '<div class="blk h1" style="margin-top:4px">'+M("h1")+'<span class="tx kara">Spindle clamp, 65 or 52</span></div>';
+  }
+  function navRead(){
+    return '<div class="nav"><button class="back" data-act="ack" data-msg="Back to the notes list">‹ Notes</button><span class="sp"></span>'+
+      '<button class="nb" data-act="ack" data-msg="Add recording (unchanged)">'+IC.plus+'</button>'+
+      '<button class="nb" data-act="ack" data-msg="Split speakers (unchanged)">'+IC.ppl+'</button>'+
+      '<button class="nb" data-act="menu">'+IC.dots+'</button></div>';
+  }
+  function navEdit(){
+    return '<div class="nav"><button class="back" data-act="ack" data-msg="Back to the notes list">‹ Notes</button><span class="sp"></span>'+
+      '<span class="'+pk(1).slice(1)+'" style="display:inline-flex;gap:2px"><button class="nb" data-act="ack" data-msg="Undo">'+IC.undo+'</button><button class="nb" data-act="ack" data-msg="Redo">'+IC.redo+'</button></span>'+
+      '<button class="nb" data-act="menu">'+IC.dots+'</button>'+
+      '<button class="done'+pk(1)+'" data-act="done">Done</button></div>';
+  }
+  function keyboard(){
+    var rows = ["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r,i){
+      return '<div class="kr">'+(i===2?'<span class="key" style="width:42px;font-size:14px">⇧</span>':"")+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+(i===2?'<span class="key" style="width:42px;font-size:14px">⌫</span>':"")+'</div>';
+    }).join("");
+    return '<div class="kb">'+rows+'<div class="kr"><span class="key wide">123</span><span class="key space">space</span><span class="key wide">return</span></div></div>';
+  }
+  function accBar(){
+    var inChk = blocks[S.caret] && blocks[S.caret].k === "check";
+    return '<div class="acc"><div class="accpill'+pk(1)+'">'+
+      '<button class="ab aa" data-act="openaa" aria-label="Format">Aa</button>'+
+      '<button class="ab'+(inChk?" on":"")+'" data-act="list" data-v="check" aria-label="Checklist">'+IC.chk+'</button>'+
+      '<button class="ab" data-act="ack" data-msg="Camera or photo library (unchanged)" aria-label="Photo">'+IC.cam+'</button>'+
+      '<button class="ab" data-act="ack" data-msg="Link to another note (unchanged)" aria-label="Note link">'+IC.link+'</button>'+
+      '</div></div>';
+  }
+  function fmtPanel(inQuote){
+    var b = blocks[S.caret] || {};
+    var dis = inQuote ? " disabled" : "";
+    var st = function(k,label,hint,size,w){ return '<button class="fb'+(b.k===k&&!inQuote?" on":"")+'" data-act="style" data-v="'+k+'"'+dis+'><span style="font-size:'+size+'px;font-weight:'+w+'">'+label+'</span><small>'+hint+'</small></button>'; };
+    var bi = function(v,label,hint,css){ return '<button class="fb" data-act="wrap" data-v="'+v+'"><span style="font-size:18px;'+css+'">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
+    var li = function(k,label,hint){ return '<button class="fb'+(b.k===k&&!inQuote?" on":"")+'" data-act="list" data-v="'+k+'"'+dis+'><span style="font-size:15px">'+label+'</span><small>'+esc(hint)+'</small></button>'; };
+    return '<div class="fmt'+pk(2)+'"><div class="fh"><span>Format</span><button class="x" data-act="closeaa" aria-label="Close">✕</button></div>'+
+      '<div class="frow s3">'+st("h1","Title","# ",20,700)+st("h2","Heading","## ",16,700)+st("p","Body","plain",14,400)+'</div>'+
+      '<div class="frow s4">'+bi("b","B","**…**","font-weight:800")+bi("i","I","*…*","font-style:italic;font-family:Georgia,serif")+'<span class="'+pk(3).slice(1)+'" style="display:grid"><button class="fb" data-act="wrap" data-v="u"><span style="font-size:18px;text-decoration:underline">U</span><small>&lt;u&gt;…&lt;/u&gt;</small></button></span>'+bi("s","S","~~…~~","text-decoration:line-through")+'</div>'+
+      '<div class="frow s3">'+li("bullet","• List","- ")+li("num","1. List","1. ")+li("check","☑ Checklist","- [ ] ")+'</div>'+
+      (inQuote?'<div class="fnote '+pk(6).slice(1)+'">Caret is in the book quote: styles and lists are off so it stays a quote.</div>':'<div class="fnote">Acts on the caret&rsquo;s line. B I U S act on the selected word.</div>')+
+      '</div>';
+  }
+  function playerBar(){
+    var pct = S.word < 0 ? 18 : Math.min(98, 18 + S.word*1.2);
+    return '<div class="flash'+(S.flash?" show":"")+'">2 / 41</div><div class="player"><button class="play" data-act="play" aria-label="Play">'+(S.playing?IC.pause:IC.play)+'</button>'+
+      '<span class="sk">'+IC.b10+'</span><span class="sk">'+IC.f10+'</span><span class="t">0:'+(S.playing?"3"+Math.min(9,Math.max(1,Math.floor(S.word/8))):"24")+'</span>'+
+      '<span class="track"><b style="width:'+pct+'%"></b><i style="left:'+pct+'%"></i></span><span class="t">2:14</span><span class="rate">1×</span></div>';
+  }
+  function menuHTML(){
+    return '<div class="dmenu"><div class="new '+pk(1).slice(1)+'">Find in Note<span>⌕</span></div><div>Add recording</div><div>Split speakers</div><div>Redo<span>›</span></div><div>Print card</div><div>Lock note</div><div>Share note…</div><div>Copy transcript</div><div>Copy as Markdown</div><div class="red">Delete</div></div>';
+  }
+
+  function phoneFrame(){
+    var st = S.st, h = [];
+    h.push('<div class="phone app" id="pf">'+statusBar());
+    var editing = (st==="type"||st==="select"||st==="aa");
+    h.push(editing ? navEdit() : navRead());
+    if (st === "quote") return h.join("") + quoteNote() + '</div>';
+    if (st === "turns") return h.join("") + turnsNote() + '</div>';
+    var off = 0;
+    if (st==="type"||st==="select") off = -250; if (st==="aa") off = -300; if (st==="drag") off = -330;
+    h.push('<div class="scroll"><div style="transform:translateY('+off+'px)">');
+    h.push(titleBlock(editing));
+    h.push(headerCore(false));
+    h.push('<div class="summ"><div class="sh">'+IC.spark+'SUMMARY</div><p>'+SUMMARY+'</p></div>');
+    h.push('<div class="body" id="pbody">'+titleLineB()+bodyHTML({caret:editing, caretBar:st==="type"||st==="aa", drop:S.dropAt})+'</div>');
+    h.push('</div></div>');
+    if (st==="read"||st==="drag") h.push(playerBar());
+    if (st==="type") h.push('<div class="kbwrap">'+accBar()+keyboard()+'</div>');
+    if (st==="select") h.push('<div class="kbwrap">'+accBar()+keyboard()+'</div>');
+    if (st==="aa") h.push('<div class="kbwrap">'+fmtPanel(false)+'</div>');
+    if (st==="select") h.push('<div id="emenu-slot"></div>');
+    if (S.menu) h.push(menuHTML());
+    h.push('<div class="ftoast" id="ftoast"></div></div>');
+    return h.join("");
+  }
+  function quoteNote(){
+    var b = {k:"quote"};
+    return '<div class="scroll"><div style="transform:translateY(-120px)">'+
+      (S.title==="b"?"":'<div class="titleA" style="padding-top:4px">On attention and craft</div>')+
+      '<div class="hcore"><div class="flow"><span class="cchip">Yesterday · 22:10</span><span class="cchip">'+IC.book+'Quote · The Craftsman</span><span class="cchip">'+IC.wave+'1:02</span></div>'+
+      '<div class="pillrow" style="margin-top:8px"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb lit"></span></span>Important</span></div>'+
+      '<div style="margin-top:12px"><span class="dchip arc"><span class="dd"></span>Portfolio<span class="dv">⌄</span></span> <span style="font-size:11px;color:var(--a-faint)">→</span> <span class="dfolder">_projects/</span></div></div>'+
+      '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'On attention and craft</div>':"")+
+      '<div class="quote blk cur"><div class="qt">'+M("q")+'The craftsman dwells in the work; the pace of good work is set by the material, not the clock.<span class="caret"></span></div><div class="qc">— a book author, The Craftsman · ch. 3</div></div>'+
+      '<div class="blk p" style="margin-top:12px">That is exactly the spindle thing. I keep rushing the <b>'+M("b")+'test ring'+M("b")+'</b> because I want to drill. Let the PETG tell me.</div></div>'+
+      '</div></div><div class="kbwrap">'+fmtPanel(true)+'</div><div class="ftoast" id="ftoast"></div>';
+  }
+  function turnsNote(){
+    var t = function(c,name,slot,txt){ return '<div class="turn"><span class="bar3" style="background:var('+c+')"></span><div><div class="who" style="color:var('+c+')"><i style="background:var('+c+')"></i>'+name+'</div><div class="tt">'+txt+'</div></div></div>'; };
+    return '<div class="scroll"><div>'+(S.title==="b"?"":'<div class="titleA">Gantry plate with Rui</div>')+
+      '<div class="hcore"><div class="flow"><span class="cchip">Today · 11:05</span><span class="cchip">'+IC.pin+'Marvila</span><span class="cchip">'+IC.wave+'6:40</span></div>'+
+      '<div class="pillrow" style="margin-top:8px"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span></div>'+
+      '<div style="margin-top:12px"><span class="dchip"><span class="dd"></span>Personal<span class="dv">⌄</span></span></div></div>'+
+      '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'Gantry plate with Rui</div>':"")+
+      t("--sp0","Tuur Hartog",0,'Can the old spindle mount take the 65 clamp, or do we mill a new plate?')+
+      t("--sp1","Rui",1,'The old one is '+M("b")+'<b>aluminium 6 mm</b>'+M("b")+'. It flexes. Mill a new one, 10 mm.')+
+      t("--sp0","Tuur",0,'Okay. Then the four M6 holes move outward by about 8 mm.')+
+      t("--sp1","Rui",1,'Print the drilling template first. I have the PETG.')+
+      '</div></div></div>'+playerBar()+'<div class="ftoast" id="ftoast"></div>';
+  }
+
+  /* ── Mac ── */
+  function macFrame(){
+    var st = S.mst, h = [];
+    h.push('<div class="mac app"><div class="side"><div class="tls"><i></i><i></i><i></i></div><div class="sidecap">Notes list · its own mock (D190)</div></div><div class="note">');
+    h.push('<div class="mband"><span class="gl on">'+IC.side+'</span><span class="sp"></span>'+
+      '<button class="gl'+(S.macPop?" on":"")+pk(5)+'" data-act="macaa" style="font-size:14px">Aa</button>'+
+      '<span class="gl prim">Export</span><button class="gl" data-act="ack" data-msg="The note menu (unchanged)">'+IC.dots+'</button><span class="gl">Connections</span></div>');
+    h.push('<div class="mscroll"><div class="mcol">');
+    if (st === "m-turns"){
+      h.push((S.title==="b"?"":'<div class="mtitle">Gantry plate with Rui</div>')+'<div class="mrow flow"><span class="cchip">Today · 11:05</span><span class="cchip">'+IC.pin+'Marvila</span><span class="cchip">'+IC.wave+'6:40</span></div>'+
+        '<div class="mrow pillrow"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span></div>'+
+        '<div class="mrow mswitch"><span><i class="sw"></i>Include audio in export</span><span><i class="sw"></i>Split speakers</span></div>'+
+        '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'Gantry plate with Rui</div>':"")+
+        turnsNote().split('<div class="body">')[1].split('</div></div></div>')[0]+'</div></div></div>');
+    } else {
+      h.push(S.title==="b" ? "" : '<div class="mtitle">Spindle clamp, 65 or 52</div><div class="msrc"><b>Suggested</b><span>From recording</span></div>');
+      h.push(headerCore(true));
+      h.push('<div class="maside">'+SUMMARY+'</div>');
+      h.push('<div class="body" id="mbody">'+titleLineB()+bodyHTML({caret:true, caretBar:st==="m-note", mac:true})+'</div>');
+      h.push('</div></div>');
+    }
+    h.push('<div class="mdock"><span class="sk">'+IC.b10+'</span><button class="play" data-act="play">'+(S.playing?IC.pause:IC.play)+'</button><span class="sk">'+IC.f10+'</span><span class="t">0:24</span><span class="track"><b style="width:'+(S.word<0?18:Math.min(98,18+S.word*1.2))+'%"></b></span><span class="t">2:14</span><span class="rate">1×</span></div>');
+    if (S.macPop && st !== "m-turns") h.push('<div class="pop'+pk(5)+'" style="right:150px;top:52px">'+fmtPanel(false).replace('class="fmt pick" data-k="2"','class="" style="display:flex;flex-direction:column;gap:10px"').replace('<div class="fh"><span>Format</span><button class="x" data-act="closeaa" aria-label="Close">✕</button></div>','<div style="font-size:12px;font-weight:700;color:var(--a-dim)">FORMAT · ⇧⌘T Title · ⇧⌘H Heading · ⇧⌘B Body</div>')+'</div>');
+    if (st === "m-select") h.push('<div id="cmenu-slot"></div>');
+    h.push('<div class="ftoast" id="ftoast"></div></div></div>');
+    return h.join("");
+  }
+
+  /* ── Reference panels ── */
+  function rStamp(){ return '<div class="rstamp">Reference · hand-drawn · approximate</div>'; }
+  function rBody(sel){
+    return '<div class="rdate">13 October 2026 at 14:29</div><div class="rbody">'+
+      (S.title==="a"||true ? '<div class="rt">Spindle clamp, 65 or 52</div>' : "")+
+      '<p>So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p>'+
+      '<div class="rh">Before drilling</div>'+
+      '<div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div>'+
+      '<div class="rchk"><i></i><span>Check runout with the dial gauge</span></div>'+
+      '<div class="rchk"><i></i><span>Drill the four M6 holes through the gantry plate</span></div>'+
+      '<div class="rphoto"></div>'+
+      '<p>Ask Rui whether the <i>old</i> '+(sel?'<span class="rsel">spindle</span>':'spindle')+' still fits the <s>52</s> mount.</p></div>';
+  }
+  function rKeys(){
+    return '<div class="rkeys">'+["qwertyuiop","asdfghjkl","zxcvbnm"].map(function(r){ return '<div class="kr">'+r.split("").map(function(c){ return '<span class="key">'+c+'</span>'; }).join("")+'</div>'; }).join("")+'<div class="kr"><span class="key wide">123</span><span class="key space">space</span><span class="key wide">return</span></div></div>';
+  }
+  function refPhone(){
+    var st = S.st, h = ['<div class="phone ref">'+rStamp()];
+    var editNav = '<div class="rnav"><span>‹ Notes</span><span class="sp"></span><span>'+IC.undo+'</span><span>'+IC.share+'</span><span>'+IC.dots+'</span><span class="ok">✓</span></div>';
+    var readNav = '<div class="rnav"><span>‹ Notes</span><span class="sp"></span><span>'+IC.share+'</span><span>'+IC.dots+'</span></div>';
+    if (st === "quote" || st === "turns"){
+      h.push(readNav+'<div class="rnone"><b>'+(st==="quote"?"No book quotes here":"No speaker turns here")+'</b>The reference app has no audio, no '+(st==="quote"?"audiobook captures":"diarized conversations")+' and no karaoke. Skrift keeps its own (D193).</div></div>');
+      return h.join("");
+    }
+    if (st === "read" || st === "drag"){
+      h.push(readNav+'<div style="'+(st==="drag"?"transform:translateY(-200px)":"")+'">'+rBody(false)+'</div>');
+      h.push('<div class="rtool"><span>'+IC.rchk+'</span><span>'+IC.cam+'</span><span>'+IC.pen+'</span><span>'+IC.compose+'</span></div>');
+      if (st==="drag") h.push('<div class="rnone" style="inset:auto 30px 110px;background:var(--r-bg)">Press and hold a picture, drag it between paragraphs.</div>');
+    } else {
+      h.push(editNav+'<div style="transform:translateY(-150px)">'+rBody(st==="select")+'</div>');
+      if (st === "aa"){
+        h.push('<div class="rfmt"><div class="fh"><span>Format</span><span>✕</span></div>'+
+          '<div class="rrow"><span class="on" style="font-weight:700;font-size:18px">Title</span><span style="font-weight:700">Heading</span><span style="font-weight:600">Subheading</span><span>Body</span></div>'+
+          '<div class="rrow"><span style="font-family:var(--mono)">Monostyled</span></div>'+
+          '<div class="rrow"><span style="font-weight:800">B</span><span style="font-style:italic">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span><span>✎ colour</span></div>'+
+          '<div class="rrow"><span>• ≡</span><span>– ≡</span><span>1. ≡</span><span>▍quote</span></div>'+
+          '<div class="rrow"><span>⇤</span><span>⇥</span></div></div>');
+      } else {
+        h.push('<div class="rkb"><div class="rkbar"><span class="aa">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.clip+'</span><span>'+IC.pen+'</span><span>⌄</span></div>'+rKeys()+'</div>');
+      }
+      if (st === "select") h.push('<div class="rmenu" style="left:40px;top:300px"><span>Cut</span><span class="sepv"></span><span>Copy</span><span class="sepv"></span><span>Paste</span><span class="sepv"></span><span>Format ›</span></div><div class="rmenu" style="left:110px;top:350px"><span style="font-weight:800">B</span><span style="font-style:italic">I</span><span style="text-decoration:underline">U</span><span style="text-decoration:line-through">S</span></div><div style="position:absolute;left:250px;top:333px;font-family:var(--mono);font-size:9.5px;color:var(--r-dim)">↳ after Format ›</div>');
+    }
+    h.push('</div>');
+    return h.join("");
+  }
+  function refMac(){
+    var st = S.mst;
+    var h = ['<div class="mac ref">'+rStamp()];
+    h.push('<div class="rmac-side"><span class="hd">iCloud</span><span>All Notes</span><span class="on">Workshop</span><span>Ideas</span><span>Recently Deleted</span></div>');
+    h.push('<div class="rmac-list"><div class="row on"><b>Spindle clamp, 65 or 52</b><small>14:29 · So the 65 mm clamp…</small></div><div class="row"><b>Gantry plate with Rui</b><small>11:05 · Mill a new one…</small></div><div class="row"><b>Router bits order</b><small>Yesterday · 6 mm upcut…</small></div></div>');
+    h.push('<div class="rmac-note"><div class="rmac-tb"><span>'+IC.compose+'</span><span class="sp"></span><span class="aa hl">Aa</span><span>'+IC.rchk+'</span><span>'+IC.table+'</span><span>'+IC.cam+'</span><span class="sp"></span><span>'+IC.share+'</span><span>⌕</span></div>');
+    if (st === "m-turns"){
+      h.push('<div class="rnone" style="position:static;margin:60px 40px">No speaker turns here<br>The reference app has no audio or diarization. Skrift keeps its own (D193).</div>');
+    } else {
+      h.push('<div class="rmac-body"><div class="rdate">13 October 2026 at 14:29</div><div class="rt">Spindle clamp, 65 or 52</div><p>So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p><div class="rh">Before drilling</div><div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div><div class="rchk"><i></i><span>Check runout with the dial gauge</span></div><p style="margin-top:8px">Ask Rui whether the <i>old</i> <span class="'+(st==="m-select"?"rsel":"")+'">spindle</span> still fits the <s>52</s> mount.</p></div>');
+      if (st === "m-select") h.push('<div class="cmenu" style="left:640px;top:330px;color:var(--r-ink);background:var(--r-key)"><div>Cut</div><div>Copy</div><div>Paste</div><hr><div class="hi">Font ›</div><hr><div>Look Up “spindle”</div></div><div class="cmenu" style="left:870px;top:420px;width:120px;color:var(--r-ink);background:var(--r-key)"><div>Bold</div><div>Italic</div><div>Underline</div></div>');
+    }
+    h.push('</div></div>');
+    return h.join("");
+  }
+
+  /* ── Render ── */
+  var stageEl = document.getElementById("stage");
+  function render(){
+    var mac = S.dev === "mac";
+    var stname = mac ? S.mst : S.st;
+    document.getElementById("states").innerHTML = STATES[S.dev].map(function(s){ return '<button data-st="'+s[0]+'" aria-pressed="'+(s[0]===stname)+'">'+s[1]+'</button>'; }).join("");
+    document.getElementById("how").innerHTML = HOW[stname];
+    stageEl.className = "stage" + (mac ? " mac" : "") + (S.ref ? "" : " noref") + (S.marks ? "" : " nomarks");
+    document.getElementById("refcol").hidden = !S.ref;
+    document.getElementById("sk").innerHTML = mac ? macFrame() : phoneFrame();
+    document.getElementById("rf").innerHTML = mac ? refMac() : refPhone();
+    document.getElementById("skcap").textContent = mac ? "Mac · note column, band + docked player" : "iPhone 13 · 390 × 844 pt";
+    if (!mac && S.st === "select") placeEMenu();
+    if (mac && S.mst === "m-select") placeCMenu();
+    if (S.playing) wrapWords();
+    document.getElementById("mdwrap").hidden = !S.md;
+    document.getElementById("mdout").textContent = mdText();
+    document.querySelectorAll(".picks button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.pick === S.title)); });
+    fit();
+  }
+  function placeEMenu(){
+    var pf = document.getElementById("pf"), sel = pf.querySelector(".sel"); if (!sel) return;
+    var pr = pf.getBoundingClientRect(), r = sel.getBoundingClientRect(), sc = pr.width / 390;
+    var top = (r.top - pr.top)/sc - 50, left = Math.max(8, Math.min(390-300, (r.left - pr.left)/sc - 110));
+    var b = blocks[S.sel.b].md, on = function(m){ return b.indexOf(m) >= 0 ? " on" : ""; };
+    document.getElementById("emenu-slot").innerHTML = '<div class="emenu" style="top:'+top+'px;left:'+left+'px">'+
+      '<button class="fmtb'+on("**spindle")+'" data-act="wrap" data-v="b" style="font-weight:800">B</button>'+
+      '<button class="fmtb'+on("*spindle*")+'" data-act="wrap" data-v="i" style="font-style:italic;font-family:Georgia,serif">I</button>'+
+      '<button class="fmtb'+on("<u>spindle")+'" data-act="wrap" data-v="u" style="text-decoration:underline">U</button>'+
+      '<button class="fmtb'+on("~~spindle")+'" data-act="wrap" data-v="s" style="text-decoration:line-through">S</button><span class="dv"></span>'+
+      '<button data-act="ack" data-msg="Cut">Cut</button><button data-act="ack" data-msg="Copy">Copy</button><button data-act="ack" data-msg="Paste">Paste</button><button data-act="ack" data-msg="More: Look Up, Translate, New person from selection…">›</button></div>';
+  }
+  function placeCMenu(){
+    var mf = document.querySelector("#sk .mac"), sel = mf.querySelector(".sel"); if (!sel) return;
+    var pr = mf.getBoundingClientRect(), r = sel.getBoundingClientRect(), sc = pr.width / 1000;
+    document.getElementById("cmenu-slot").innerHTML = '<div class="cmenu'+pk(5)+'" style="left:'+((r.right-pr.left)/sc+4)+'px;top:'+Math.min(380,(r.top-pr.top)/sc - 160)+'px">'+
+      '<div style="font-size:11px;color:var(--a-faint)">Format</div>'+
+      '<div data-act="wrap" data-v="b" style="cursor:pointer;font-weight:700">Bold<span>⌘B</span></div><div data-act="wrap" data-v="i" style="cursor:pointer;font-style:italic">Italic<span>⌘I</span></div>'+
+      '<div data-act="wrap" data-v="u" style="cursor:pointer;text-decoration:underline">Underline<span>⌘U</span></div><div data-act="wrap" data-v="s" style="cursor:pointer;text-decoration:line-through">Strikethrough<span>⇧⌘X</span></div>'+
+      '<hr><div>Cut<span>⌘X</span></div><div>Copy<span>⌘C</span></div><div>Paste<span>⌘V</span></div><hr><div>Look Up “spindle”</div><div>New person from selection…</div></div>';
+  }
+  function wrapWords(){
+    var nodes = [];
+    document.querySelectorAll("#sk .kara, #sk .tt, #sk .qt").forEach(function(el){
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      while (w.nextNode()) nodes.push(w.currentNode);
+    });
+    var idx = 0;
+    nodes.forEach(function(t){
+      if (!t.nodeValue.trim()) return;
+      var frag = document.createDocumentFragment();
+      t.nodeValue.split(/(\s+)/).forEach(function(part){
+        if (!part) return;
+        if (/^\s+$/.test(part)){ frag.appendChild(document.createTextNode(part)); return; }
+        var s = document.createElement("span"); s.className = "w"; s.dataset.w = idx++; s.textContent = part; frag.appendChild(s);
+      });
+      t.parentNode.replaceChild(frag, t);
+    });
+    paintWords();
+  }
+  function paintWords(){
+    document.querySelectorAll("#sk .w").forEach(function(s){
+      var i = +s.dataset.w; s.className = "w" + (i < S.word ? " pl" : (i === S.word ? " cur" : ""));
+    });
+  }
+  var timer = null;
+  function setPlaying(on){
+    S.playing = on; clearInterval(timer);
+    if (on){ if (S.word < 0) S.word = 0; timer = setInterval(function(){ S.word++; if (S.word > 90){ setPlaying(false); S.word = -1; render(); return; } paintWords(); var pl = document.querySelector("#sk .player .track b, #sk .mdock .track b"); if (pl) pl.style.width = Math.min(98,18+S.word*1.2)+"%"; }, 300); }
+    render();
+  }
+  function fit(){
+    [["fit-sk","sk"],["fit-rf","rf"]].forEach(function(p){
+      var box = document.getElementById(p[0]), inner = document.getElementById(p[1]), el = inner.firstElementChild;
+      if (!el || box.offsetParent === null) return;
+      var W = el.offsetWidth, H = el.offsetHeight, sc = Math.min(1, box.clientWidth / W);
+      inner.style.transform = "scale(" + sc + ")"; box.style.height = (H * sc) + "px";
+    });
+    if (S.dev === "phone" && S.st === "select") { /* menu positions depend on scale */ }
+  }
+  var tt = null;
+  function ftoast(msg){
+    var t = document.getElementById("ftoast"); if (!t) return;
+    t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove("show"); }, 1700);
+  }
+  function wrapWord(v){
+    var b = blocks[S.sel.b], open = {b:"**",i:"*",u:"<u>",s:"~~"}[v], close = {b:"**",i:"*",u:"</u>",s:"~~"}[v];
+    var w = S.sel.w, re = new RegExp(open.replace(/[*<>\/~]/g,"\\$&") + w + close.replace(/[*<>\/~]/g,"\\$&"));
+    if (re.test(b.md)) b.md = b.md.replace(re, w);
+    else b.md = b.md.replace(new RegExp("(^|[^\\w*~>])" + w + "(?![\\w])"), "$1" + open + w + close);
+    ftoast(re.test(b.md) ? "Marks added: " + open + w + close : "Marks removed");
+  }
+  function wrapLine(v){
+    var b = blocks[S.caret]; if (!b || !b.md) return;
+    var open = {b:"**",i:"*",u:"<u>",s:"~~"}[v], close = {b:"**",i:"*",u:"</u>",s:"~~"}[v];
+    if (b.md.indexOf(open) === 0 && b.md.slice(-close.length) === close) b.md = b.md.slice(open.length, -close.length);
+    else b.md = open + b.md + close;
+  }
+
+  /* ── Events ── */
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("[data-act],[data-st],[data-dev],[data-pick],[data-keep]");
+    if (!t) {
+      var blk = e.target.closest("#sk .blk[data-b]");
+      if (blk && (["type","aa","select"].indexOf(S.st) >= 0 || S.dev === "mac")){ S.caret = +blk.dataset.b; render(); return; }
+      if (blk && S.dev === "phone" && S.st === "read" && !S.playing){ S.caret = +blk.dataset.b; S.st = "type"; render(); return; }
+      if (S.menu){ S.menu = false; render(); }
+      return;
+    }
+    if (t.dataset.st){ S.menu = false; S.macPop = false; if (S.dev === "mac") S.mst = t.dataset.st; else S.st = t.dataset.st; if (S.st==="aa") S.caret = 1; render(); return; }
+    if (t.dataset.dev){ S.dev = t.dataset.dev; document.querySelectorAll("[data-dev]").forEach(function(b){ b.setAttribute("aria-pressed", String(b === t)); }); setPlaying(false); return; }
+    if (t.dataset.pick){ S.title = t.dataset.pick; render(); pageToast(S.title === "a" ? "A: title on its own line. Say it in the sitting." : "B: the text starts with the Title line. Say it in the sitting."); return; }
+    if (t.dataset.keep){ var k = KEEPS[+t.dataset.keep]; var st = k[1]; if (st.indexOf("m-") === 0){ S.dev = "mac"; S.mst = st; } else { S.dev = "phone"; S.st = st; }
+      document.querySelectorAll("[data-dev]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.dev === S.dev)); });
+      render(); document.getElementById("stage").scrollIntoView({behavior:"smooth", block:"start"}); return; }
+    var a = t.dataset.act;
+    if (a === "rate"){ var from = S.rate; S.rate = (S.rate + 1) % 4; render(); ftoast(S.rate === 0 ? "Not rated · out of the queue, no export" : TIERS[S.rate]); }
+    else if (a === "destopen"){ S.destOpen = true; render(); }
+    else if (a === "dest"){ S.dest = t.dataset.v; S.destOpen = false; render(); }
+    else if (a === "play"){ setPlaying(!S.playing); }
+    else if (a === "hop"){ S.flash = true; render(); setTimeout(function(){ S.flash = false; var f = document.querySelector("#sk .flash"); if (f) f.classList.remove("show"); }, 1600); ftoast("Opens “Router gantry plan” in place, no slide"); }
+    else if (a === "tick"){ var b = blocks[+t.dataset.i]; b.done = !b.done; render(); }
+    else if (a === "openaa"){ S.st = "aa"; render(); }
+    else if (a === "closeaa"){ S.st = "type"; render(); }
+    else if (a === "style"){ var bb = blocks[S.caret]; if (bb && bb.md !== undefined){ bb.k = t.dataset.v; delete bb.done; } render(); }
+    else if (a === "list"){ var bl = blocks[S.caret]; if (bl && bl.md !== undefined){ var v = t.dataset.v; if (bl.k === v){ bl.k = "p"; delete bl.done; } else { bl.k = v; if (v === "check") bl.done = false; } } render(); }
+    else if (a === "wrap"){ if (S.st === "aa") wrapLine(t.dataset.v); else wrapWord(t.dataset.v); render(); }
+    else if (a === "done"){ S.st = "read"; render(); ftoast("Saved · marked as your edit"); }
+    else if (a === "menu"){ S.menu = !S.menu; render(); }
+    else if (a === "macaa"){ S.macPop = !S.macPop; render(); }
+    else if (a === "photo" && S.dev === "mac"){ S.photoSel = !S.photoSel; render(); }
+    else if (a === "ack"){ ftoast(t.dataset.msg); }
+  });
+  document.getElementById("ref-toggle").addEventListener("change", function(e){ S.ref = e.target.checked; render(); });
+  document.getElementById("marks-toggle").addEventListener("change", function(e){ S.marks = e.target.checked; render(); });
+  document.getElementById("md-toggle").addEventListener("change", function(e){ S.md = e.target.checked; render(); });
+
+  /* Long-press drag for the phone photo (D112) */
+  var press = null;
+  document.addEventListener("pointerdown", function(e){
+    var ph = e.target.closest("#sk .phone .photo"); if (!ph) return;
+    if (S.st !== "drag") { if (S.st === "read") ftoast("Tap opens the photo viewer; press and hold to move it"); return; }
+    e.preventDefault();
+    press = {y:e.clientY, t:setTimeout(function(){ S.lifted = true; ph.classList.add("lift"); ftoast("Lifted · drag between paragraphs"); }, 420)};
+  });
+  document.addEventListener("pointermove", function(e){
+    if (!press || !S.lifted) return;
+    var body = document.getElementById("pbody"); if (!body) return;
+    var items = Array.prototype.slice.call(body.querySelectorAll(".blk[data-b]")).filter(function(b){ return !b.classList.contains("pblk"); });
+    var best = null;
+    items.forEach(function(b){ var r = b.getBoundingClientRect(); if (e.clientY > r.top + r.height/2) best = +b.dataset.b; });
+    var ph = body.querySelector(".photo"); if (ph) ph.style.transform = "scale(1.04) translateY(" + (e.clientY - press.y) / (body.getBoundingClientRect().width / 350) + "px)";
+    var old = body.querySelector(".dropline"); if (old) old.remove();
+    if (best != null){ var tgt = body.querySelector('.blk[data-b="'+best+'"]'); var d = document.createElement("div"); d.className = "dropline"; tgt.after(d); }
+    press.best = best;
+  });
+  document.addEventListener("pointerup", function(){
+    if (!press) return; clearTimeout(press.t);
+    if (S.lifted){
+      var from = blocks.findIndex(function(b){ return b.k === "photo"; }), to = press.best;
+      if (to != null){ var ph = blocks.splice(from, 1)[0]; var ins = to >= from ? to : to + 1; blocks.splice(ins, 0, ph); }
+      S.lifted = false; render(); ftoast("Dropped · the [[img_001]] marker moved with it");
+    }
+    press = null;
+  });
+
+  var pt = null;
+  function pageToast(msg){ var t = document.getElementById("ptoast"); t.textContent = msg; t.classList.add("show"); clearTimeout(pt); pt = setTimeout(function(){ t.classList.remove("show"); }, 2200); }
+
+  document.getElementById("keeps").innerHTML = KEEPS.map(function(k, i){
+    var where = (k[1].indexOf("m-")===0 ? "Mac · " : "Phone · ") + (STATES.phone.concat(STATES.mac).filter(function(s){ return s[0] === k[1]; })[0] || ["",""])[1] + (k[2] ? " + Mac" : "");
+    return '<li><button data-keep="'+i+'">'+k[0]+'<span>'+where+'</span></button></li>';
+  }).join("");
+
+  if (window.ResizeObserver) new ResizeObserver(function(){ fit(); }).observe(document.querySelector(".wrap"));
+  window.addEventListener("resize", fit);
+  var h = (location.hash || "").replace("#","");
+  if (h === "mac" || h.indexOf("m-") === 0){ S.dev = "mac"; if (h.indexOf("m-")===0) S.mst = h; document.getElementById("dev-mac").setAttribute("aria-pressed","true"); document.getElementById("dev-phone").setAttribute("aria-pressed","false"); }
+  else if (STATES.phone.some(function(s){ return s[0] === h; })) S.st = h;
+  render();
+})();
+</script>
