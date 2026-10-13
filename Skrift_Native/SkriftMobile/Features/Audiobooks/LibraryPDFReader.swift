@@ -226,7 +226,12 @@ private struct PDFKitReader: UIViewRepresentable {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let doc = view.document {
                 let index = min(max(0, startPage - 1), doc.pageCount - 1)
-                if model.page == index + 1, let target = doc.page(at: index) { view.go(to: target) }
+                // `go(to: page)` left the page ~80 pt low in the first render; naming the page's
+                // top-left corner as the destination pins that corner to the view's top.
+                if model.page == index + 1, let target = doc.page(at: index) {
+                    let top = target.bounds(for: .cropBox)
+                    view.go(to: PDFDestination(page: target, at: CGPoint(x: top.minX, y: top.maxY)))
+                }
             }
             #if DEBUG
             LibraryPDFDebug.selectSampleIfAsked(in: view, model: model)

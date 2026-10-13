@@ -150,6 +150,9 @@ enum LibraryPDFDebug {
         guard LaunchFlags.showPDFReader, let doc = view.document else { return }
         for match in doc.findString(sampleSelection, withOptions: [.literal]).prefix(1) {
             view.setCurrentSelection(match, animate: false)
+            // A programmatic selection is not drawn without a first responder; a touch selection is.
+            match.color = UIColor.systemYellow.withAlphaComponent(0.45)
+            view.highlightedSelections = [match]
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 model.refreshSelection()
