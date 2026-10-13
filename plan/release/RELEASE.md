@@ -95,10 +95,16 @@ Not deployable yet: the Q364 "X1 #Index" idea would be a schema change; it is no
    and `CD_MemoEditHead` exists.
 5. Only then install 188 on the phone (TestFlight) and swap the Mac (Q370), on the same day.
 
-Doubt to settle in step 1: the Mac prod app is a locally built, development-signed Release.
-Neither `SkriftDesktop.entitlements` nor `SkriftMobile.entitlements` sets
-`com.apple.developer.icloud-container-environment`; check in the console (Data > Records, query
-`CD_Memo`) that his real notes sit in the Production environment where the TestFlight phone writes.
+Mac environment (Q388, `plan/research/cloudkit-env-mac-release.md`): a development-signed local
+Release with no `com.apple.developer.icloud-container-environment` uses the CloudKit DEVELOPMENT
+environment, so the installed Aug prod Mac was very likely on Development while the TestFlight/Ad Hoc
+phone is on Production (unverified: run `codesign -d --entitlements :- /Applications/Skrift.app`).
+`SkriftDesktop.entitlements` (Release only) now sets `icloud-container-environment` = `Production`.
+**Deploy the prod schema (steps above) BEFORE installing a Release build with this key**, or its
+Production writes fail (Development created missing fields silently). Push delivery is unverified:
+Xcode still signs `aps-environment` = `development` for a development-signed build, and whether
+Production silent pushes reach it is unknown (polling / fetch-on-activate still works). Also check in
+the console (Data > Records, query `CD_Memo`) that his real notes sit in the Production environment.
 
 ## Open device checks (QUEUE items in state `tuur`) — clear or wave before Q370
 
