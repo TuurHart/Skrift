@@ -50,6 +50,7 @@ enum MacMemoAuthor {
     @discardableResult
     static func author(for pf: PipelineFile, audioURL: URL?, into ctx: ModelContext) throws -> Memo? {
         guard let id = UUID(uuidString: pf.id) else { return nil }
+        ReconcileWork.bump(\.memoFetches)
         let already = try ctx.fetchCount(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id }))
         guard already == 0 else { return nil }
 
@@ -112,6 +113,7 @@ enum MacMemoAuthor {
         // C63 / C148 / D188: a video brings its movie, whatever its destination.
         syncVideoAsset(for: pf, memo: memo, in: ctx)
 
+        ReconcileWork.bump(\.saves)
         try ctx.save()
         return memo
     }
@@ -150,6 +152,14 @@ enum MacMemoAuthor {
     /// reconciler's OTHER text-reflect logic think the phone edited something).
     @discardableResult
     static func reflectTranscripts(files: [PipelineFile], into ctx: ModelContext) throws -> Int {
+        try reflectTranscripts(files: files, into: ctx, memosByID: nil)
+    }
+
+    /// `memosByID` (Q364): the reconcile's one id→Memo dictionary, so a sweep looks each row's
+    /// memo up in memory instead of one unindexed `Memo` fetch per done row. nil = fetch.
+    @discardableResult
+    static func reflectTranscripts(files: [PipelineFile], into ctx: ModelContext,
+                                   memosByID: [UUID: Memo]?) throws -> Int {
         var count = 0
         for pf in files {
             guard let t = pf.transcript, !t.isEmpty, let id = UUID(uuidString: pf.id) else { continue }
@@ -160,15 +170,24 @@ enum MacMemoAuthor {
             // over the row's final text (found 2026-07-28: a paragraphed final clobbered
             // back to its flat seed). In-flight rows simply wait for their own reflect.
             guard pf.transcribeStatus == .done else { continue }
-            guard let memo = try ctx.fetch(FetchDescriptor<Memo>(
-                predicate: #Predicate { $0.id == id })).first else { continue }
+            let found: Memo?
+            if let memosByID {
+                found = memosByID[id]
+            } else {
+                ReconcileWork.bump(\.memoFetches)
+                found = try ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })).first
+            }
+            guard let memo = found else { continue }
             guard memo.recordingDeviceID == DeviceID.current() else { continue }
             guard memo.sharedContentData == nil else { continue }   // a capture's text is its annotation
             guard (memo.transcript ?? "").isEmpty else { continue }
             markTranscribed(memo, transcript: t)
             count += 1
         }
-        if count > 0 { try ctx.save() }
+        if count > 0 {
+            ReconcileWork.bump(\.saves)
+            try ctx.save()
+        }
         return count
     }
 
@@ -192,6 +211,24 @@ enum MacMemoAuthor {
         for pf in files {
             guard UUID(uuidString: pf.id) != nil, !pf.path.isEmpty else { continue }
             if try author(for: pf, audioURL: resolvedAudioURL(for: pf), into: ctx) != nil {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    /// The reconcile's `backfill` (Q364): a row whose id is already a key in `memosByID` (the
+    /// sweep's one Memo fetch) has its memo and is skipped without a store query; only a row
+    /// with no memo there reaches `author`, whose own idempotency fetch still guards it. Each
+    /// memo authored joins the dictionary, so the same pass's `reflectTranscripts` sees it.
+    @discardableResult
+    static func backfill(files: [PipelineFile], into ctx: ModelContext,
+                         memosByID: inout [UUID: Memo]) throws -> Int {
+        var count = 0
+        for pf in files {
+            guard let id = UUID(uuidString: pf.id), !pf.path.isEmpty, memosByID[id] == nil else { continue }
+            if let memo = try author(for: pf, audioURL: resolvedAudioURL(for: pf), into: ctx) {
+                memosByID[id] = memo
                 count += 1
             }
         }

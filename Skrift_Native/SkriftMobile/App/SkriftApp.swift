@@ -115,7 +115,7 @@ struct SkriftApp: App {
                 Divider()
                 Button("Notes")    { TabSelectionBridge.shared.select(.notes) }
                     .keyboardShortcut(AppShortcuts.tabNotes)
-                Button("Books")    { TabSelectionBridge.shared.select(.books) }
+                Button("Library")  { TabSelectionBridge.shared.select(.books) }
                     .keyboardShortcut(AppShortcuts.tabBooks)
                 Button("Review")   { TabSelectionBridge.shared.select(.journal) }
                     .keyboardShortcut(AppShortcuts.tabReview)

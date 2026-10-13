@@ -2593,39 +2593,39 @@ gate+: no
 do: 2026-10-11 the gate went red on SkriftDesktopTests/MacMainThreadCostTests.testBacklinkedIDsOneCallPerRenderStaysUnderBudget: 204.66 ms against a 200 ms budget, while other xcodebuild jobs ran (the change under test, Q344, was phone-only). A wall-clock assertion in the per-merge gate fails on load, not on code. Turn it into a work-counter assertion (scans per call, like the D186 counter tests), or move the timing check to gate-full with a margin. This file is protected: propose the change and list it for Tuur's approval rather than editing it.
 check: `./gate.sh`
 
-### Q349 [tuur] (todo) mockup: the notes list next to Apple Notes, phone and Mac
+### Q349 [tuur] (tuur) mockup: the notes list next to Apple Notes, phone and Mac
 spec: D190 D193 C113
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (todo) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (tuur) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q351 [tuur] (todo) mockup: the article reader in Library, highlight to Add note
+### Q351 [tuur] (tuur) mockup: the article reader in Library, highlight to Add note
 spec: D90 D126 D138 C229
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`, extending `Q6-library-tab.html` (the Q6 mock says the article reader is not drawn): a shared article link lands on the Library shelf as an article tile; the reader shows clean reader-mode text (title, site, byline); select text → "Add note" opens the capture (quote + his voice) and the new note links back with `— *Title*, site` + URL (D138); a non-article link (video, tweet, product page) stays a note (D138). Phone only. Current parts drawn from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q352 [auto] (todo) the Books tab becomes Library: shelf and empty tab per the Q6 mock
+### Q352 [auto] (done) the Books tab becomes Library: shelf and empty tab per the Q6 mock
 spec: C229 D90 D128 D134 D135
 needs: -
 gate+: yes
 do: Build the phone tab to `Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html` (signed, D134/D135): tab label "Library" (`AppTabView.swift`), the shelf of tiles where a tap plays/opens and the '❝ N' pill opens that source's notes, the empty tab's four doors (audiobook, podcast, ePub or PDF, article). Add an optional `kind` (book, episode, pdf, article; nil = book) to `Audiobook` INSIDE the existing synced carrier blob, so no CloudKit schema change; old entries decode as books. Doors for kinds not built yet open their importer once Q353-Q355 land; until then a door shows nothing dead (hide it). iPad shelf grid stays (C229). Phone test `LibraryShelfTests` (kind round-trips, nil decodes as book, empty state lists four doors). Screenshots of shelf + empty tab against the mock, LOOK, into `plan/reads/library-tab/`. FEATURES.md row.
 check: `test $(ls plan/reads/library-tab/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryShelfTests`
 
-### Q353 [auto] (todo) Library: podcast episodes from a link or RSS feed, with the episode player
+### Q353 [auto] (doing) Library: podcast episodes from a link or RSS feed, with the episode player
 spec: D90 D144 C229
 needs: Q352
 gate+: yes
 do: Per D90 and the Q6 mock "Episode player" screen: a pasted or shared Apple Podcasts link resolves to the show's RSS feed via the iTunes lookup API; a Spotify link resolves via its oEmbed show name + iTunes search; a raw RSS URL is used as is. Parse the feed, pick the episode, download its MP3 enclosure into Library as kind `episode` (title, show, date, artwork). A show with no public feed is refused with one plain sentence (D14), never scraped. Playback reuses the book player and capture ("Add note") unchanged. Fixtures: a saved copy of the NRC Het Uur feed (`https://rss.art19.com/het-uur`) under test-fixtures/, no network in tests. Phone test `PodcastFeedTests` (feed parse, enclosure pick, Apple-link → feed URL, Spotify-exclusive refusal). Try the D144 links by hand once and note the result in the commit. Screenshot the episode player, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PodcastFeedTests`
 
-### Q354 [auto] (todo) Library: PDFs from the share sheet, a PDF reader, select to Add note
+### Q354 [auto] (doing) Library: PDFs from the share sheet, a PDF reader, select to Add note
 spec: D126 D135 D138 C229
 needs: Q352
 gate+: yes
@@ -2643,10 +2643,10 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 spec: D90 D127 D138 D177 C229
 needs: Q353 Q354
 gate+: yes
-do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
+do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests`
 
-### Q357 [auto] (todo) delete the Continue-listening card and its code
+### Q357 [auto] (done) delete the Continue-listening card and its code
 spec: D190
 needs: -
 gate+: no
@@ -2674,35 +2674,35 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/mac-*.png | wc -l) -ge 1 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEditorFormattingTests.swift`
 
-### Q361 [auto] (todo) Mac perf: the sidebar derives its list once per change, not on every redraw
+### Q361 [auto] (done) Mac perf: the sidebar derives its list once per change, not on every redraw
 spec: D191 D186 C279
 needs: -
 gate+: yes
 do: From plan/perf2/f-mac-ui.md M1 M2 M3 M9 M11 and h-shared-data.md S1 L1; re-check each against today's code first (`chipCounts` already goes through `NotesListModel`) and skip what is fixed. Mirror the phone's Q315: the sidebar's rows, chip counts, backlinked set, sort and snippets come from one cache rebuilt when the memo-set version changes, never per body pass or per meter/run tick; `WayOutRules.quietRows` reuses the cached backlinked set; `refreshCloudMemos` does not refetch every Memo on a filter change; search uses the shared precomputed lowercase text with a ~150 ms debounce; snippets are built once per memo version. New counter test `MacListWorkTests` in SkriftDesktopTests: a body pass with an unchanged memo set does no corpus scan; a search keystroke does not re-lowercase unchanged memos; results equal the uncached path on the corpus. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacListWorkTests.swift`
 
-### Q362 [auto] (todo) Mac perf: opening and playing a note does no whole-library work
+### Q362 [auto] (doing) Mac perf: opening and playing a note does no whole-library work
 spec: D191 D186
 needs: -
 gate+: yes
 do: From plan/perf2/f-mac-ui.md M5 M7 M8 M12 M15 and h-shared-data.md N1 P2; re-check each against today's code first. Mirror the phone's Q314: Connections refresh reuses the shared backlink index and runs only when the panel is open; the fading line for an unrated note reads cached backlinks; `NamesStore` memoises names.json until it changes (both apps, Shared); `[[` link candidates and `TagLibrary.counts` come from a cache keyed on the memo-set version; during playback the 20 Hz tick reads a karaoke word map built once per note version, not `bestBodyText.split` per tick. New counter test `MacNoteOpenWorkTests` in SkriftDesktopTests: opening a note in a 2,000-note in-memory store does no full-corpus fetch; ten playback ticks build the word map once; names.json is decoded once across two opens. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacNoteOpenWorkTests.swift`
 
-### Q363 [auto] (todo) Mac perf: typing never saves the store per key or restyles the whole note
+### Q363 [auto] (done) Mac perf: typing never saves the store per key or restyles the whole note
 spec: D191 D186 C277
 needs: -
 gate+: yes
 do: From plan/perf2/f-mac-ui.md M4 M6 M6b M13 M14; re-check each against today's code first. Title keystrokes stay local and commit on the same debounce as the body (one CloudKit save + one sidebar notification per pause, not per key); `BodyTextView.updateNSView` restyles only when its real inputs changed (no full restyle on every SwiftUI update) and never puts back older model text inside the 1 s debounce (M6b, the Q63 data-loss risk); `MacCloudEditSync.flush` runs its Sanitiser passes off the main actor; speaker spines compute turn rects only when the text or turns change. New counter test `MacTypingWorkTests` in SkriftDesktopTests: 20 title keystrokes cause at most one store save; an unrelated SwiftUI update does not restyle; an update inside the debounce keeps the typed text. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacTypingWorkTests.swift`
 
-### Q364 [auto] (todo) Mac perf: the reconcile sweep skips monologue blobs, stops scanning by id, ingests off the main thread
+### Q364 [auto] (done) Mac perf: the reconcile sweep skips monologue blobs, stops scanning by id, ingests off the main thread
 spec: D191 D186 C278 C281
 needs: -
 gate+: yes
 do: From plan/perf2/g-mac-pipeline.md G1-G7 G11 G12, f-mac-ui.md M10 and h-shared-data.md M1-M3 X1; re-check each first. `adoptLateDiarization` and `adoptLateWordTimings` short-circuit for a note with nothing to adopt and never fault asset blobs; `MacMemoAuthor.backfill/reflectTranscripts` use one id→Memo dictionary per sweep instead of a fetch per row; new memos ingest on a background context in batches with one save; `MemoCloudUpdate.apply` skips the JSON re-serialise when the metadata is unchanged; the lifecycle sweep and the Connections snapshot reuse the reconcile's memo snapshot; `NoteActions.workInputs` is computed once per body. Keep every sync rule identical (C-contract: raw transcript in, LWW by `enhancedAt`). New counter test `MacReconcileWorkTests` in SkriftDesktopTests: a sweep over 2,000 already-ingested monologues fetches no blob and does O(1) Memo fetches; a second sweep with no change writes nothing. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacReconcileWorkTests.swift`
 
-### Q365 [auto] (todo) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
+### Q365 [auto] (doing) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
 spec: D191 D186
 needs: -
 gate+: yes
@@ -3953,3 +3953,25 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 09:38 Q279 -> done — SPEC wording fixed at the 2026-10-13 /2-plan: C220 20 s, C199 ImportKinds, C145 long-audio offer
 - 2026-10-13 09:38 Q221 -> tuur — hardware: needs Tuur's repro on the device before a fix
 - 2026-10-13 09:39 plan: resync +22 (Q349–Q370: Library tab, Apple-Notes list + editor, Mac speed D191, release); Q298 needs Q366, Q335 needs Q370; SPEC C220 C199 C145 C229 reworded
+- 2026-10-13 10:02 Q349 -> doing — worker out
+- 2026-10-13 10:02 Q350 -> doing — worker out
+- 2026-10-13 10:02 Q351 -> doing — worker out
+- 2026-10-13 10:02 Q352 -> doing — worker out
+- 2026-10-13 10:02 Q357 -> doing — worker out
+- 2026-10-13 10:02 Q361 -> doing — worker out
+- 2026-10-13 10:02 Q363 -> doing — worker out
+- 2026-10-13 10:18 Q362 -> doing — worker out
+- 2026-10-13 10:19 Q364 -> doing — worker out
+- 2026-10-13 10:19 Q349 -> tuur — built @6d563ec6, gate 156s — awaiting sitting
+- 2026-10-13 10:20 Q361 -> done — gate 62s @7cd49253
+- 2026-10-13 10:20 Q365 -> doing — worker out
+- 2026-10-13 10:21 Q365 -> todo — waits for a free worker slot (3 out)
+- 2026-10-13 10:21 Q351 -> tuur — built @3924ad30, gate 34s — awaiting sitting
+- 2026-10-13 10:21 Q363 -> done — gate 34s @c82c4c49
+- 2026-10-13 10:22 Q350 -> tuur — built @03123eb9, gate 32s — awaiting sitting
+- 2026-10-13 10:27 Q365 -> doing — worker out
+- 2026-10-13 10:33 Q352 -> done — gate 78s @1f68eade
+- 2026-10-13 10:33 Q357 -> done — gate pass (batched with Q352); ContinueListening grep clean
+- 2026-10-13 10:37 Q353 -> doing — worker out
+- 2026-10-13 10:37 Q354 -> doing — worker out
+- 2026-10-13 10:38 Q364 -> done — gate 42s @ee44b630

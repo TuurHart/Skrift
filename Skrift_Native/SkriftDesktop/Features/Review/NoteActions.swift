@@ -29,7 +29,6 @@ struct NoteActions: View {
         _ = file.exportStatus
         return VaultExporter.workInputs(for: file, cloud: cloudContext, settings: SettingsStore.shared.load())
     }
-    private var enhanceDone: Bool { workInputs.hasPolish }
     private var isAppleNote: Bool { file.sourceType == .note }
     private var transcribeDone: Bool { file.steps.transcribe == .done }
     /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
@@ -38,9 +37,13 @@ struct NoteActions: View {
     private var isConversation: Bool { MacNoteMenu.isConversation(file) }
 
     /// One shared rule, so the Mac and the iPad can never describe the same note
-    /// differently (`NoteWorkState`).
-    private var workState: NoteWorkState { workInputs.state }
-    private var primaryLabel: String { workState.label(for: file.destination) }
+    /// differently (`NoteWorkState`). Derived ONCE per `body` (and once per tap): each
+    /// `workInputs` read decodes settings.json, scans memos, fetches the enhancement and
+    /// re-reads the export ledger, and the old computed chain ran it 3-4 times per render
+    /// (g-mac-pipeline G7, Q364).
+    private func primaryLabel(_ inputs: NoteWorkState.Inputs) -> String {
+        inputs.state.label(for: file.destination)
+    }
 
     /// Redo's availability: the shared rule (`NoteRedoItem.isOffered`, Q180) plus a REAL polish (Q295: a chosen title alone is not one): ANY polished
     /// part, engine, unlocked. It used to demand all three parts, so a note the iPad offered
@@ -222,16 +225,17 @@ struct NoteActions: View {
 
     /// THIS note's run state (Q118): the coordinator's live run mapped onto this note, plus the
     /// note's own failure. The Mac's `PolishCenter.Phase`.
-    private var runState: MacNoteRunState {
+    private func runState(_ inputs: NoteWorkState.Inputs) -> MacNoteRunState {
         MacNoteRunState.of(noteID: file.id, run: coordinator.runState?.snapshot,
                            transcribe: file.transcribeStatus, enhance: file.enhanceStatus,
-                           error: file.error, needsProcessing: workState.wantsProcessing)
+                           error: file.error, needsProcessing: inputs.state.wantsProcessing)
     }
 
     private func primaryAction() {
+        let inputs = workInputs
         // The verb is replaced while a run is on this note; this guards a stray key-equivalent.
-        guard !runState.isBusy else { return }
-        if !enhanceDone {
+        guard !runState(inputs).isBusy else { return }
+        if !inputs.hasPolish {
             Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
         } else {
             Task { await coordinator.export(file, context: ctx) }
@@ -240,11 +244,11 @@ struct NoteActions: View {
 
     /// The verb, or while a pass runs on this note a bar + step line in its place (the iPad's
     /// `processControl`), or after a failed pass "Couldn't process — Retry".
-    @ViewBuilder private var primaryControl: some View {
-        switch runState {
+    @ViewBuilder private func primaryControl(_ inputs: NoteWorkState.Inputs) -> some View {
+        switch runState(inputs) {
         case .idle:
             Button(action: primaryAction) {
-                Text(primaryLabel)
+                Text(primaryLabel(inputs))
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
@@ -295,7 +299,7 @@ struct NoteActions: View {
     var body: some View {
         HStack(spacing: 8) {
             if !copyOnly {
-                primaryControl
+                primaryControl(workInputs)   // the one workInputs derivation this body makes
             }
 
             // Native Menu: auto-dismisses on outside click (N3) and the items

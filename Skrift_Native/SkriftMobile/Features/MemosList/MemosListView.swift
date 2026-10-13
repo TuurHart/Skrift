@@ -70,9 +70,6 @@ struct MemosListView: View {
 
     @State var path: [NoteRoute] = []
     @State var showRecord = false
-    /// Presents the audiobook player for the continue-card's body tap (hoisted
-    /// here: a cover on the card itself would die when its List row unmounts).
-    @State var showBookPlayer = false
     @State var lastHandledStart = 0
     @State var lastHandledQuickNote = 0
     @ObservedObject var intentBridge = RecordingIntentBridge.shared
@@ -232,10 +229,6 @@ struct MemosListView: View {
                     verbRow
                     if isRegular { processRow }
                     if memos.isEmpty {
-                        // No list to scroll — the card sits pinned here.
-                        ContinueListeningCard(openPlayer: { showBookPlayer = true })
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 2)
                         emptyState
                     } else {
                         listContent
@@ -285,9 +278,6 @@ struct MemosListView: View {
             .modifier(RecordPresentation(isPresented: $showRecord, isPad: Adaptive.isPadIdiom) {
                 RecordView(onSaved: { newID in openMemo(newID) })
             })
-            .fullScreenCover(isPresented: $showBookPlayer) {
-                AudiobookPlayerView()
-            }
             .onChange(of: editHeadsStamp, initial: true) {
                 EditConflictWatch.shared.refresh(in: context)
             }
@@ -443,14 +433,6 @@ struct MemosListView: View {
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
             List(selection: $selected) {
-                // The continue-card is the FIRST ROW — content under the pinned
-                // search bar, scrolling away with the notes (device round 5,
-                // build 49: pinned-above-search read as stuck chrome). Renders
-                // nothing while a session is live / dismissed today / no book.
-                ContinueListeningCard(openPlayer: { showBookPlayer = true })
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
                 ForEach(d.groups) { group in
                     Section {
                         DayHeaderRow(title: group.title)   // D180: scrolls with the notes, never pins

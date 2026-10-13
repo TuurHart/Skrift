@@ -23,31 +23,48 @@ enum WayOutRules {
     /// — a legacy/local-upload `PipelineFile.id` that ISN'T a well-formed UUID can
     /// never collide with one, so it's naturally excluded from the lookup map
     /// with no extra filtering needed (same as the old `ingested` Set).
-    static func unpipelined(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
-        quietRows(memos: memos, files: files, locked: false, now: now)
+    static func unpipelined(memos: [Memo], files: [PipelineFile], backlinked: Set<UUID>? = nil,
+                            now: Date = Date()) -> [Memo] {
+        quietRows(memos: memos, byMemoID: filesByMemoID(files), locked: false,
+                  backlinked: backlinked ?? MemoLifecycle.backlinkedIDs(in: memos), now: now)
     }
 
     /// LOCKED quiet notes (Q100, C91): unrated, live, locked. They are NOT in
     /// `unpipelined` (a resolved note doesn't nag the band / counts), but a locked note
     /// still has to be IN the list — as a title + 🔒 placeholder — or locking a
     /// never-rated note makes its row vanish (parity audit list-sidebar-73).
-    static func lockedQuiet(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
-        quietRows(memos: memos, files: files, locked: true, now: now)
+    static func lockedQuiet(memos: [Memo], files: [PipelineFile], backlinked: Set<UUID>? = nil,
+                            now: Date = Date()) -> [Memo] {
+        quietRows(memos: memos, byMemoID: filesByMemoID(files), locked: true,
+                  backlinked: backlinked ?? MemoLifecycle.backlinkedIDs(in: memos), now: now)
     }
 
-    private static func quietRows(memos: [Memo], files: [PipelineFile], locked: Bool, now: Date) -> [Memo] {
+    /// Q361 (M2): both quiet lists from ONE file map and ONE (handed-in) backlink set. The
+    /// sidebar cache calls this once per memo-set version, never per body pass.
+    static func quietSplit(memos: [Memo], files: [PipelineFile], backlinked: Set<UUID>,
+                           now: Date = Date()) -> (unpipelined: [Memo], lockedQuiet: [Memo]) {
+        let byMemoID = filesByMemoID(files)
+        return (quietRows(memos: memos, byMemoID: byMemoID, locked: false, backlinked: backlinked, now: now),
+                quietRows(memos: memos, byMemoID: byMemoID, locked: true, backlinked: backlinked, now: now))
+    }
+
+    private static func filesByMemoID(_ files: [PipelineFile]) -> [UUID: PipelineFile] {
         var byMemoID: [UUID: PipelineFile] = [:]
         for f in files {
             guard let id = UUID(uuidString: f.id) else { continue }
             byMemoID[id] = f
         }
+        return byMemoID
+    }
+
+    private static func quietRows(memos: [Memo], byMemoID: [UUID: PipelineFile], locked: Bool,
+                                  backlinked: Set<UUID>, now: Date) -> [Memo] {
         // One-home law (the spine): a FADING note's counting surface is the
         // Review conveyor — the band listing it too made it double-homed
         // ("are those the fading ones?", Tuur's 2026-07-21 eyeball round).
         // The list = quiet clock-run notes: what the Mac is quietly ignoring.
         // LOCKED notes are excluded from `unpipelined` (m6, 2026-07-22): lock is the
         // explicit keep-don't-polish verb — a resolved note doesn't nag.
-        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
         return memos.filter { memo in
             guard memo.deletedAt == nil && !NoteConsent.isRated(memo) && memo.locked == locked
                     && !MemoLifecycle.isFading(memo, backlinked: backlinked, now: now) else { return false }

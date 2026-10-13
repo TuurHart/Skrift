@@ -170,7 +170,8 @@ struct NoteBody: View {
             photoSlot: photoSlot,
             onAddPhoto: addPhoto,
             onPhotoMarkup: photoMarkedUp,
-            photoToken: file.lastActivityAt
+            photoToken: file.lastActivityAt,
+            noteID: file.id
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

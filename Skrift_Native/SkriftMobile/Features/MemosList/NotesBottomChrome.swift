@@ -8,10 +8,6 @@ import SwiftUI
 /// on the session's 2 Hz playback ticks, never the memos list.
 struct NotesBottomChrome: View {
     var session = AudiobookSession.shared
-    /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
-    /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
-    /// this view stays mounted while the card's List row comes and goes.
-    @AppStorage(PrefKey.continueCardDismissedDay) var cardDismissedDay = PrefKey.continueCardDismissedDayDefault
 
     var body: some View {
         HStack(spacing: 16) {
@@ -26,12 +22,6 @@ struct NotesBottomChrome: View {
         .padding(.horizontal, 14)
         .padding(.bottom, 8)
         .animation(Theme.Motion.spring, value: session.isActive)
-        .onChange(of: session.isActive) { _, active in
-            if active {
-                DevLog.log("bottomChrome void — session active, clearing cardDismissedDay (was '\(cardDismissedDay)')")
-                cardDismissedDay = ""
-            }
-        }
     }
 }
 

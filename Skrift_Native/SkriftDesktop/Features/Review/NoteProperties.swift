@@ -244,11 +244,11 @@ struct NoteProperties: View {
         Binding(get: { file.enhancedTitle ?? "" },
                 set: {
                     file.enhancedTitle = $0
-                    MacCloudEditSync.shared.note(file)          // Part B live sync (debounced)
                     // Typing your own title is as explicit a choice as picking a source,
-                    // so it reaches every device too. `setTitle` no-ops when unchanged,
-                    // so per-keystroke calls don't churn CloudKit.
-                    MacCloudMetaSync.setTitle($0, for: file)
+                    // so it reaches every device too (`MacCloudMetaSync.setTitle`). The
+                    // keystrokes stay local: the push, the CloudKit save and the sidebar
+                    // notification run once per typing pause, with the body's (Q363, M4).
+                    MacCloudEditSync.shared.note(file, title: true)
                 })
     }
 
