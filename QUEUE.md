@@ -2711,7 +2711,7 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEx
 
 ### Q366 [auto] (todo) release prep: version bump, Release builds of both apps, the synced-field list for Q298
 spec: D186
-needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380
+needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380 Q386
 gate+: no
 do: Write `plan/release/RELEASE.md`. Bump CFBundleVersion in both project.yml files. Build the phone Release archive config and the Mac Release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`), string-grep a literal from Q357/Q358 in each product, record the paths. List every synced field and asset kind added since the installed prod build (diff the SwiftData `Memo`/`MemoAsset`/carrier models against the prod tag or commit; at least `Memo.includeAudioInExport` and MemoAsset kind `video`/`thumbnail`) with the CloudKit console steps for Q298. List the open device checks (Q17 Q63 Q64 Q272 Q280 Q281 Q302 Q304 Q309 Q311) for Tuur to clear or wave. Install nothing; never touch /Applications/Skrift.app or real data.
 check: `grep -q 'includeAudioInExport' plan/release/RELEASE.md && grep -q 'build-release' plan/release/RELEASE.md`
@@ -2846,6 +2846,13 @@ needs: Q384 Q379
 gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html` (signed). Body v2 gets block markers for a video and a file like `[[img_NNN]]` (Shared, one rule both apps); they sync as MemoAsset kinds (`video` exists since Q287; add `file` with original name + UTI) — no new CloudKit record type; list any new synced field for the release's schema step (Q366 RELEASE.md). Attach menu items (Take/Choose Photo or Video, Attach File) insert them on phone/iPad; Mac adds them by drop/paste/Insert like photos (Q325). Export copies the file beside the note and links it (`![[file]]`), same ledger/ExportSession path as photos (Q365). Tests: phone `NoteAttachmentTests`, Mac `NoteAttachmentExportTests`. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
+
+### Q386 [auto] (todo) dead-code sweep part 2: triage the Periphery scans, one shared note header row, SourceKind label twins
+spec: -
+needs: Q380
+gate+: yes
+do: Finish what Q380 left (its finding in plan/RUN.md). (a) Re-run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on a `git archive` snapshot in your scratch dir — inside a worktree Periphery refuses a second -derivedDataPath — for SkriftMobile and the full SkriftDesktop scheme; delete every finding in files changed since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment; never delete a synced field); write before/after counts into plan/periphery.md. (b) One shared note header row: the phone uses NoteRatingPill with the fading line on its own line (Q382) while the Mac and quick note use NoteRatingRow with the line beside the pill — make one Shared row both apps draw (phone layout from the signed Q350 mock wins). (c) Read the article/PDF/podcast/book source labels and link lines on both apps; anything not coming from SourceKind moves there. After each deletion run the FULL SkriftDesktop build too — the UnitTests bundle does not compile every file (Q380 broke EditConflictViews.swift that way). Protected tests only ported or deleted with their code (needs hand-merge list). Never run SkriftDesktopUITests.
+check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4148,3 +4155,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteA
 - 2026-10-13 16:10 Q384 added
 - 2026-10-13 16:10 Q385 added
 - 2026-10-13 16:17 Q383 -> done — gate 38s @3c3cc8f2
+- 2026-10-13 16:34 Q386 added
