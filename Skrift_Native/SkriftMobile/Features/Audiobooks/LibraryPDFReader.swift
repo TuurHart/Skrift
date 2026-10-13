@@ -205,6 +205,11 @@ private struct PDFKitReader: UIViewRepresentable {
                        name: .PDFViewPageChanged, object: view)
         nc.addObserver(context.coordinator, selector: #selector(Coordinator.selectionChanged),
                        name: .PDFViewSelectionChanged, object: view)
+        // The callout follows the selection as the page scrolls or zooms.
+        nc.addObserver(context.coordinator, selector: #selector(Coordinator.selectionChanged),
+                       name: .PDFViewVisiblePagesChanged, object: view)
+        nc.addObserver(context.coordinator, selector: #selector(Coordinator.selectionChanged),
+                       name: .PDFViewScaleChanged, object: view)
         // Land on the kept page once the view has a size.
         DispatchQueue.main.async {
             if let doc = view.document {
@@ -214,6 +219,15 @@ private struct PDFKitReader: UIViewRepresentable {
             }
             model.ready = true
             model.refreshPage()
+        }
+        // The first `go` runs before auto-scaling has laid the pages out, which leaves the kept page
+        // scrolled part-way (seen in the first Simulator render). Once layout has settled, land on
+        // its top again, unless he has already moved on.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if let doc = view.document {
+                let index = min(max(0, startPage - 1), doc.pageCount - 1)
+                if model.page == index + 1, let target = doc.page(at: index) { view.go(to: target) }
+            }
             #if DEBUG
             LibraryPDFDebug.selectSampleIfAsked(in: view, model: model)
             #endif

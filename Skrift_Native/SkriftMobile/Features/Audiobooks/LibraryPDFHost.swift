@@ -181,6 +181,14 @@ enum LibraryPDFDebug {
                     for (i, line) in lines.enumerated() {
                         (line as NSString).draw(at: CGPoint(x: 56, y: 96 + CGFloat(i) * 20), withAttributes: [.font: body])
                     }
+                } else if p == 1 {
+                    ("GFR grant application, draft 3" as NSString).draw(
+                        in: CGRect(x: 56, y: 120, width: 500, height: 120),
+                        withAttributes: [.font: UIFont.systemFont(ofSize: 34, weight: .bold)])
+                    for i in 0..<6 {
+                        ("Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do" as NSString)
+                            .draw(at: CGPoint(x: 56, y: 280 + CGFloat(i) * 22), withAttributes: [.font: body])
+                    }
                 } else {
                     ("Page \(p)" as NSString).draw(at: CGPoint(x: 56, y: 60), withAttributes: [.font: head])
                 }

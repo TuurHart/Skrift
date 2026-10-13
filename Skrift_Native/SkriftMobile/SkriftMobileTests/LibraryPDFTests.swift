@@ -189,6 +189,17 @@ final class LibraryPDFTests: XCTestCase {
     }
 
     @MainActor
+    func testAShortPdfIsNotFinishedUntilItsLastPage() throws {
+        let store = makeStore()
+        let book = try XCTUnwrap(LibraryPDF.importPDF(from: try makePDF(pages: 6), displayName: "T.pdf", store: store))
+        XCTAssertFalse(book.isFinished, "page 1 of 6 must not read as finished (the audio tail is seconds)")
+        LibraryPDF.savePage(5, bookID: book.id, store: store)
+        XCTAssertFalse(try XCTUnwrap(store.book(id: book.id)).isFinished)
+        LibraryPDF.savePage(6, bookID: book.id, store: store)
+        XCTAssertTrue(try XCTUnwrap(store.book(id: book.id)).isFinished)
+    }
+
+    @MainActor
     func testAPageOutsideTheDocumentIsClamped() throws {
         let store = makeStore()
         let book = try XCTUnwrap(LibraryPDF.importPDF(from: try makePDF(pages: 3), displayName: "T.pdf", store: store))
