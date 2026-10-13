@@ -149,6 +149,9 @@ enum ArticleLinkGuess: Equatable, Sendable {
         return .article
     }
 
+    /// The sheet's line under the Article card (mock Q351).
+    static let libraryLine = "Skrift saves the article text for offline reading the next time it opens. If the page turns out to have no article text, it becomes a note instead."
+
     /// True when the entry goes to Library: he left "Article" picked on a link guessed as one.
     /// "Note" keeps it a note (D195); a video, post or shop page never reaches Library.
     static func routesToLibrary(url: String?, pickedArticle: Bool) -> Bool {

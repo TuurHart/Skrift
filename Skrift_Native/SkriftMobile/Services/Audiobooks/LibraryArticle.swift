@@ -199,8 +199,6 @@ enum LibraryArticle {
     static let fileName = "article.json"
     static let noArticleToast = "No article text on that page. Saved it as a note instead."
     static let noArticleAction = "Open note"
-    /// The mock's share-sheet line under the Article card.
-    static let shareSheetLine = "Skrift saves the article text for offline reading the next time it opens. If the page turns out to have no article text, it becomes a note instead."
 
     /// The network. Tests swap in saved pages.
     static var fetcher: any LinkFetching = URLSessionLinkFetcher()

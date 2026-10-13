@@ -30,6 +30,16 @@ struct ShareSheetView: View {
     /// defaults to the Books tab (read-along) instead of a transcribed memo —
     /// overridable per share via the routing chooser.
     @State private var sendToBooks = false
+    /// Q355 (D195, mock Q351 pick 1): a web link guessed as an article asks "Article or Note",
+    /// Article pre-picked. Picking Article hides the thought field and the rating (a source has neither).
+    @State private var pickedArticle = true
+
+    /// The address-only guess (the extension cannot load the page).
+    private var linkGuess: ArticleLinkGuess {
+        payload.type == .url && !payload.isAudio && !payload.isVideo ? ArticleLinkGuess.guess(payload.url) : .unchanged
+    }
+    /// True when this share goes to Library as an article.
+    private var toLibrary: Bool { linkGuess == .article && pickedArticle }
 
     /// Any clip at/over the 1-hour threshold → the Books routing chooser shows.
     private var hasLongClip: Bool {
@@ -74,12 +84,23 @@ struct ShareSheetView: View {
             // Audio shares carry NO ramble UI (signed 2026-07-10): the voice note
             // IS the content — thoughts get appended inside the note later. The
             // sheet is just: what's coming in → significance → Save.
-            if !payload.isAudio {
-                annotationField
+            if toLibrary {
+                Text(ArticleLinkGuess.libraryLine)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextDim)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 2)
                     .padding(.bottom, 12)
+                    .accessibilityIdentifier("capture-article-line")
+            } else {
+                if !payload.isAudio {
+                    annotationField
+                        .padding(.bottom, 12)
+                }
+                PhoneRatingRow(value: $significance)
+                    .padding(.bottom, 13)
             }
-            PhoneRatingRow(value: $significance)
-                .padding(.bottom, 13)
             saveButton
                 // UIApplication.shared is unavailable in app extensions — SwiftUI's
                 // own safe-area handling covers the home-indicator inset; this is
@@ -182,7 +203,14 @@ struct ShareSheetView: View {
         } else {
             switch payload.type {
             case .url:
-                urlCard
+                VStack(alignment: .leading, spacing: 11) {
+                    urlCard
+                    switch linkGuess {
+                    case .article: articleChooser
+                    case .note(let kind): noteRouteLine(kind)
+                    case .unchanged: EmptyView()
+                    }
+                }
             case .text:
                 textQuoteBlock
             case .image:
@@ -361,6 +389,30 @@ struct ShareSheetView: View {
             ) { sendToBooks = false }
             .accessibilityIdentifier("capture-choice-memo")
         }
+    }
+
+    // Q355 (D195, mock Q351 pick 1): Article (to Library) or Note, same card idiom as the
+    // Audiobook / Voice note chooser.
+    private var articleChooser: some View {
+        HStack(spacing: 8) {
+            choiceCard(title: "Article", subtitle: "Read it in Library, highlight to add notes",
+                       selected: pickedArticle) { pickedArticle = true }
+            .accessibilityIdentifier("capture-choice-article")
+            choiceCard(title: "Note", subtitle: "Save the link as a note",
+                       selected: !pickedArticle) { pickedArticle = false }
+            .accessibilityIdentifier("capture-choice-note")
+        }
+    }
+
+    // Q355 (D138): a video, a post or a shop page is a note; the sheet says so and offers no Library.
+    private func noteRouteLine(_ kind: String) -> some View {
+        (Text("\(kind) → a note. ").bold().foregroundStyle(Color.skText)
+         + Text("Videos, posts and product pages save as notes, never to Library.").foregroundStyle(Color.skTextDim))
+            .font(.system(size: 11.5))
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 4).padding(.vertical, 2)
+            .accessibilityIdentifier("capture-note-route")
     }
 
     // B1: One note (default — clips merged in order) vs N separate notes.
@@ -646,6 +698,7 @@ struct ShareSheetView: View {
     /// Save label re-states the multi-audio choice live (signed mock):
     /// "Save as one note" ⇄ "Save N notes".
     private var saveLabel: String {
+        if toLibrary { return "Add to Library" }
         guard payload.isAudio, AudioImportChoice.needsChoice(clipCount: payload.audioItems.count) else { return "Save to Skrift" }
         let choice: AudioImportChoice = combineIntoOne ? .oneNote : .separateNotes
         return choice.confirmTitle(clipCount: payload.audioItems.count)
@@ -817,15 +870,18 @@ struct ShareSheetView: View {
             // Legacy single field stays the FIRST image (capture detail + Mac read it).
             imageFileName: imageItems.first?.fileName,
             mimeType: payload.mimeType,
-            annotationText: trimmedThought,
-            significance: significance,
+            // Q355: an article share carries no thought and no rating (the sheet hid both).
+            annotationText: toLibrary ? nil : trimmedThought,
+            significance: toLibrary ? 0 : significance,
             sharedAt: ISO8601.string(from: Date()),
             // The names array carries EVERY image (single included) — the write
             // path stores them all from `imageDatas`, index-aligned.
             imageFileNames: images.fileNames,
             imageRecordedAts: images.recordedAts,
             imageOriginalNames: images.originalNames,
-            imageSelectionPositions: images.selectionPositions
+            imageSelectionPositions: images.selectionPositions,
+            // Q355: "Article" picked on a link guessed as one: the app fetches it into Library.
+            routeToLibrary: toLibrary ? true : nil
         )
     }
 }
