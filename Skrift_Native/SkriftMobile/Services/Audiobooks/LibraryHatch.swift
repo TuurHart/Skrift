@@ -85,17 +85,21 @@ enum LibraryHatch {
             chapter = book.chapterIndex(at: book.position).map { String($0 + 1) }
             position = book.position
         }
-        return MemoMetadata(bookTitle: book.title,
-                            bookAuthor: author.isEmpty ? nil : author,
-                            bookChapter: chapter,
-                            bookID: book.id,
-                            bookPosition: position)
+        var meta = MemoMetadata(bookTitle: book.title,
+                                bookAuthor: author.isEmpty ? nil : author,
+                                bookChapter: chapter,
+                                bookID: book.id,
+                                bookPosition: position)
+        // Q372: the source's kind, so the export can write an episode's `— *Show*, episode, mm:ss`.
+        meta.bookKind = book.sourceKind.rawValue
+        return meta
     }
 
     /// A note that links to a source without a captured quote: what "Send to a note" and
-    /// "Move to Library" leave. The note page draws the link card for it.
+    /// "Move to Library" leave. The note page draws the link card for it. The ONE shared rule
+    /// (`SourceKind.sourceLink`) the Mac row and both exporters use too (Q372).
     static func isSourceLink(_ memo: Memo) -> Bool {
-        BookNotesJoin.jumpTarget(for: memo) != nil && memo.captureQuote == nil
+        SourceKind.sourceLink(metadataData: memo.metadataData, body: memo.transcript) != nil
     }
 
     // MARK: - Send to a note
@@ -152,11 +156,27 @@ enum LibraryHatch {
         meta.bookChapter = link.bookChapter
         meta.bookID = link.bookID
         meta.bookPosition = link.bookPosition
+        meta.bookKind = link.bookKind
         memo.metadata = meta
         memo.transcriptStatus = .done
         memo.markEdited(stampWords: false)
         repository.save()
-        try? FileManager.default.removeItem(at: src)
+        // D90: Move MOVES the PDF, so the note's synced `document` asset goes too, but only
+        // once the Library copy is on disk (`importPDF` returned a book whose file exists).
+        // A failed import returned nil above with the note and its asset untouched.
+        if libraryCopyExists(book, store: store) {
+            if repository.deleteAssets(forMemo: memo.id, kind: MemoAsset.Kind.document) > 0 {
+                repository.save()
+            }
+            try? FileManager.default.removeItem(at: src)
+        }
         return book
+    }
+
+    /// True when every file of the moved source is on disk in the Library.
+    static func libraryCopyExists(_ book: Audiobook, store: AudiobookLibraryStore) -> Bool {
+        !book.files.isEmpty && book.files.allSatisfy {
+            FileManager.default.fileExists(atPath: store.folder(for: book.id).appendingPathComponent($0).path)
+        }
     }
 }
