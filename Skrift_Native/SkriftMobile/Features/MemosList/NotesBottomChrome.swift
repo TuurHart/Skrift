@@ -68,5 +68,5 @@ extension NoteCardStyle {
         accent: .skAccent, accentSoft: .skAccentSoft, accentText: .skAccentText,
         text: .skText, textDim: .skTextDim, textFaint: .skTextFaint,
         amber: .skAmber, green: .skGreen, red: .skRed,
-        surface: .skSurface, border: .skBorder)
+        chipFill: .skElev, surface: .skSurface, border: .skBorder)
 }

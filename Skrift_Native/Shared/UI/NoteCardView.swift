@@ -86,6 +86,8 @@ struct NoteCardStyle {
     var amber: Color
     var green: Color
     var red: Color
+    /// The two-versions sheet's device-glyph tile (`EditConflictViews`); the row draws no chips.
+    var chipFill: Color
     var surface: Color
     var border: Color
     var titleSize: CGFloat = 16

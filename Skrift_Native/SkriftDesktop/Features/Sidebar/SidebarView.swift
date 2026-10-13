@@ -1354,6 +1354,7 @@ extension NoteCardStyle {
         accentText: Theme.accentText,
         text: Theme.textPrimary, textDim: Theme.textSecondary, textFaint: Theme.textMuted,
         amber: Theme.amber, green: Theme.green, red: Theme.destructive,
+        chipFill: Theme.hairline.opacity(0.07),
         // D136: rows become white cards on the sidebar's new grey ground (was a
         // near-transparent wash meant to blend into the old white sidebar).
         surface: Theme.surface,
