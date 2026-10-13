@@ -2772,14 +2772,14 @@ gate+: no
 do: Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q356 literal (e.g. `LibraryTypeChips` symbol or a new copy string) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q365 literal (`ExportSession`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run the new Dev build (worker reports both grep hits).
 
-### Q375 [tuur] (todo) look: the Library tab on Dev — shelf, podcast link, PDF share + reader, send to a note, jump back
+### Q375 [tuur] (tuur) look: the Library tab on Dev — shelf, podcast link, PDF share + reader, send to a note, jump back
 spec: C229 D90
 needs: Q374
 do: -
 check: Tuur looked; anything off became an item.
 ask: On the phone (Dev): open Library. Add a podcast by pasting an Apple or Spotify episode link; share a PDF from Mail or Files into Skrift; open it, select a sentence, Add note; then from a tile choose Send to a note and tap its card to jump back. Does it all feel right, and does the shelf look good?
 
-### Q376 [tuur] (todo) feel: the Mac on Dev after the five speed fixes (Q361-Q365)
+### Q376 [tuur] (tuur) feel: the Mac on Dev after the five speed fixes (Q361-Q365)
 spec: D191 D186
 needs: Q374
 do: -
@@ -4039,3 +4039,5 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 12:06 Q349 -> tuur — built @70e9bd61, gate 114s — awaiting sitting
 - 2026-10-13 12:08 Q374 -> done — gate 37s @d7c7e7c8
 - 2026-10-13 13:22 Q349 -> tuur — built @7de0e5e5, gate 36s — awaiting sitting
+- 2026-10-13 13:53 Q375 -> tuur — awaiting sitting (Dev 186 installed)
+- 2026-10-13 13:53 Q376 -> tuur — awaiting sitting (Dev 186 installed)
