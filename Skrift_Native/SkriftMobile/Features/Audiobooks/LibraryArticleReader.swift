@@ -23,11 +23,16 @@ struct LibraryArticleReaderView: View {
     @State private var showNotes = false
     @State private var showTextSettings = false
 
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
+
     private var store: AudiobookLibraryStore { .shared }
     private var current: Audiobook { store.book(id: book.id) ?? book }
+    private var hasNotes: Bool { !BookNotesJoin.notes(forBook: book.id, in: liveMemos).isEmpty }
 
     var body: some View {
         VStack(spacing: 0) {
+            progressLine
             navBar
             Group {
                 if let doc {
@@ -53,9 +58,12 @@ struct LibraryArticleReaderView: View {
                 }
             }
             .frame(maxHeight: .infinity)
-            // Q356 (mock `srcnotes`): this article's notes, above the dock.
-            SourceNotesRow(book: current) { showNotes = true }
-                .padding(.horizontal, 20).padding(.vertical, 8)
+            // Q356 (mock `srcnotes`): this article's notes, above the dock. Q381: only when there are
+            // notes; with none the row would sit pinned over the text for no reason.
+            if hasNotes {
+                SourceNotesRow(book: current) { showNotes = true }
+                    .padding(.horizontal, 20).padding(.vertical, 8)
+            }
             dock
         }
         .background(Color.skBg.ignoresSafeArea())
@@ -112,6 +120,19 @@ struct LibraryArticleReaderView: View {
     }
 
     // MARK: - Chrome
+
+    /// Q381 (mock `.pbar`): a 2 pt accent line at the very top, as long as the part read.
+    private var progressLine: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle().fill(Color.skBorder)
+                Rectangle().fill(Color.skAccent)
+                    .frame(width: geo.size.width * (doc == nil ? 0 : readingBook.progress))
+            }
+        }
+        .frame(height: 2)
+        .accessibilityHidden(true)
+    }
 
     private var navBar: some View {
         HStack(spacing: 8) {
@@ -333,6 +354,8 @@ struct ArticleTextView: UIViewRepresentable {
         tv.textContainer.lineFragmentPadding = 0
         tv.delegate = context.coordinator
         tv.linkTextAttributes = [.foregroundColor: UIColor(Color.skAccentText)]
+        // Q381 (mock `--sel`): the selection and its handles are system blue, not the accent purple.
+        tv.tintColor = .systemBlue
         tv.addGestureRecognizer({
             let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
             tap.cancelsTouchesInView = false
@@ -516,21 +539,32 @@ enum ArticleLayout {
         // Yellow: notes first (they open their note), then plain highlights.
         let ns = out.string as NSString
         let bodyRange = NSRange(location: bodyStart, length: ns.length - bodyStart)
+        var glyphs: [(at: Int, memo: UUID)] = []
         for q in noteQuotes {
             let r = ns.range(of: q.text, options: [], range: bodyRange)
             guard r.location != NSNotFound else { continue }
             out.addAttributes([.backgroundColor: highlightColor(), ArticleTextView.noteKey: q.memoID], range: r)
+            glyphs.append((r.location + r.length, q.memoID))
         }
         for h in highlights {
             let r = ns.range(of: h, options: [], range: bodyRange)
             if r.location != NSNotFound { out.addAttribute(.backgroundColor, value: highlightColor(), range: r) }
         }
+        // Q381 (mock `.hlq`): a ❝ after the end of a noted sentence, accent colour, 0.8 em, no
+        // background; it opens the note too. Hair space (not a word break) keeps the word count.
+        for g in glyphs.sorted(by: { $0.at > $1.at }) {
+            out.insert(NSAttributedString(string: "\u{200A}\u{275D}", attributes: [
+                .font: UIFont.systemFont(ofSize: size * 0.8, weight: .black),
+                .foregroundColor: UIColor(Color.skAccentText),
+                ArticleTextView.noteKey: g.memo]), at: g.at)
+        }
+        let final = out.string as NSString
 
         // Word starts in the body (whitespace-split, the same count `ArticleDoc.wordCount` makes).
         var starts: [Int] = []
         var inWord = false
-        for i in bodyStart..<ns.length {
-            let ch = ns.character(at: i)
+        for i in bodyStart..<final.length {
+            let ch = final.character(at: i)
             let space = ch == 32 || ch == 10 || ch == 9 || ch == 13 || ch == 0xA0
             if !space, !inWord { starts.append(i) }
             inWord = !space
@@ -581,11 +615,7 @@ struct ArticleCaptureView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 8)
             quoteBlock
-            Text("\u{2197} Links back to the article at \(LibraryArticle.percent(word: request.word, of: book))%.")
-                .font(.system(size: 11.5))
-                .foregroundStyle(Color.skTextDim)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 18).padding(.top, 12)
+            linkBack
             Text("Wrong words? \u{2715}, then drag the selection handles in the article.")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.skTextFaint)
@@ -643,6 +673,25 @@ struct ArticleCaptureView: View {
         .padding(.horizontal, 16).padding(.top, 15).padding(.bottom, 12)
     }
 
+    /// Q381 (mock `.linkback`): the boxed line under the quote: the place, and what the vault gets.
+    private var linkBack: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("\u{2197}")
+            (Text("Links back to the article").fontWeight(.semibold).foregroundColor(Color.skText)
+             + Text(" at \(LibraryArticle.percent(word: request.word, of: book))%. The vault gets the title, the site and the URL."))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(Color.skTextDim)
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.skBorder, lineWidth: 0.5))
+        .padding(.horizontal, 18).padding(.top, 14)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("library-article-linkback")
+    }
+
     /// Accent bar, italic, borderless: the quote idiom (no box on shared input). Fixed text.
     private var quoteBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -660,7 +709,7 @@ struct ArticleCaptureView: View {
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2).fill(Color.skAccent.opacity(0.65)).frame(width: 3)
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 18).padding(.vertical, 14)
     }
 
     private var recordBar: some View {
@@ -895,6 +944,10 @@ enum LibraryArticleDebug {
         } else {
             tv.becomeFirstResponder()
             tv.selectedRange = r
+            // `-scrollArticleReader`: a screenshot with the reading place moved (the progress line).
+            if ProcessInfo.processInfo.arguments.contains("-scrollArticleReader") {
+                tv.setContentOffset(CGPoint(x: 0, y: 150), animated: false)
+            }
         }
     }
 
