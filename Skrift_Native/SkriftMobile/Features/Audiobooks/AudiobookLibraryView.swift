@@ -29,6 +29,9 @@ struct AudiobookLibraryView: View {
     @State private var showImporter = false
     /// Q353: the "Podcast or episode" door: paste a link, Skrift finds the public feed.
     @State private var showPodcastSheet = false
+    /// Q356: the shared podcast link the sheet opens on (nil = the empty paste field).
+    @State private var podcastPrefill: String?
+    @ObservedObject private var podcastArrival = PodcastLinkArrival.shared
     @State private var importing = false
     @ObservedObject private var openInBridge = BookFileImportBridge.shared
     @State private var openInQueue: [URL] = []
@@ -75,6 +78,13 @@ struct AudiobookLibraryView: View {
         notesSheetBook = nil
         TabSelectionBridge.shared.select(.notes)
         MemoOpenBridge.shared.open(memo.id)
+    }
+
+    private func takePodcastArrival() {
+        guard let arrival = podcastArrival.pending, !showPodcastSheet else { return }
+        podcastArrival.clear()
+        podcastPrefill = arrival.link
+        showPodcastSheet = true
     }
 
     /// Q356 (D138): "Send to a note" keeps the source here and opens a new note linked to it.
@@ -178,9 +188,12 @@ struct AudiobookLibraryView: View {
             AudiobookPlayerView()
         }
         // Q353: the podcast door. The finished episode joins the shelf like any other source.
-        .sheet(isPresented: $showPodcastSheet) {
-            PodcastLinkSheet { episode in store.add(episode) }
+        .sheet(isPresented: $showPodcastSheet, onDismiss: { podcastPrefill = nil }) {
+            PodcastLinkSheet(onAdd: { episode in store.add(episode) }, initialLink: podcastPrefill)
         }
+        // Q356: a podcast link shared from another app opens the sheet on that link.
+        .onAppear { takePodcastArrival() }
+        .onChange(of: podcastArrival.pending) { _, _ in takePodcastArrival() }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
         }
