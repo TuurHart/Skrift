@@ -1167,6 +1167,15 @@ struct NoteBodyView: UIViewRepresentable {
             return UIMenu(children: children)
         }
 
+        /// Q391: a held photo / video / file block gets Skrift's hold menu (mock pick 6), never
+        /// UITextView's own attachment menu ("Copy Image · Save to Camera Roll"), which otherwise
+        /// wins the long press on a reading note.
+        func textView(_ textView: UITextView, menuConfigurationFor textItem: UITextItem,
+                      defaultMenu: UIMenu) -> UITextItem.MenuConfiguration? {
+            if case .textAttachment = textItem.content { return nil }
+            return UITextItem.MenuConfiguration(menu: defaultMenu)
+        }
+
         // MARK: D112: move a photo by long press
 
         /// A held block: its marker literal (photo, video or file), the lifted snapshot, the drop
