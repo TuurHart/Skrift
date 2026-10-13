@@ -2674,7 +2674,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html` on the Mac: the open note's look, the formatting controls as signed (Format menu shortcuts stay), photo blocks dragged between paragraphs (D112). The Mac note view stays an editor, WYSIWYG to the exported markdown (C234); every C234 must-keep survives. Keep the Q363 typing counter tests green, never loosened. New Mac test `MacEditorFormattingTests` in SkriftDesktopTests. `-snapshot` PNGs against the mock, LOOK, `plan/reads/editor-apple/mac-*.png`. Never run SkriftDesktopUITests. FEATURES.md row.
 check: `test $(ls plan/reads/editor-apple/mac-*.png | wc -l) -ge 1 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEditorFormattingTests.swift`
 
-### Q361 [auto] (doing) Mac perf: the sidebar derives its list once per change, not on every redraw
+### Q361 [auto] (done) Mac perf: the sidebar derives its list once per change, not on every redraw
 spec: D191 D186 C279
 needs: -
 gate+: yes
@@ -3963,3 +3963,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:18 Q362 -> doing — worker out
 - 2026-10-13 10:19 Q364 -> doing — worker out
 - 2026-10-13 10:19 Q349 -> tuur — built @6d563ec6, gate 156s — awaiting sitting
+- 2026-10-13 10:20 Q361 -> done — gate 62s @7cd49253
