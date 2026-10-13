@@ -337,7 +337,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     </div>
   </div>
 
-  <p style="font-size:12.5px;color:var(--pg-dim);max-width:80ch;line-height:1.5">Reference sources: Tuur&rsquo;s iPhone 17 Pro screenshots of 13 Oct 2026 (IMG_0465&ndash;0471: a PDF large and small, a video note, the ⋯ menu&rsquo;s Attachment View, the press-and-hold menu) and his Mac screenshots of the same day (PDF with and without thumbnails, a video note, the ⋯ menu). His Mac screenshots are 2147 &times; 1155 px at 1 px per point, so both Mac frames are drawn at that window size. The green is his Mac accent colour. Note text, file names and pictures in the reference are invented; nothing from the screenshots is embedded. Positions were measured off the images and are right to about a point.</p>
+  <p style="font-size:12.5px;color:var(--pg-dim);max-width:80ch;line-height:1.5">Reference sources: Tuur&rsquo;s iPhone 17 Pro screenshots of 13 Oct 2026 (IMG_0465&ndash;0471: a PDF large and small, a video note, the ⋯ menu&rsquo;s Attachment View, the press-and-hold menu) and his Mac screenshots of the same day (a PDF with its thumbnail strip, a video note, the ⋯ menu). His Mac screenshots are 2147 &times; 1155 px at 1 px per point, so both Mac frames are drawn at that window size. The green is his Mac accent colour. Note text, file names and pictures in the reference are invented; nothing from the screenshots is embedded. Positions were measured off the images and are right to about a point.</p>
   <footer>Drawn from source: phone note page <code>MemoPageView.swift</code> (header order per D196: title, grey meta line, rating · Personal · tags), the inline PDF <code>CapturePDFInlineBlock</code> in <code>MemoDetailSupportTypes.swift</code> (first page, 14 pt corners, 1 pt border, &ldquo;N pages&rdquo; chip, tap opens Quick Look), <code>PDFTextDisclosure.swift</code> (&ldquo;Text from the PDF&rdquo; row), the old file card <code>captureFileCard</code> (replaced here), the photo block and player bar from the signed Q350 mock, the iPad list column and top bar from the signed Q378 option A (D198). New, not in the app: the video block, the Apple-style file card, the hold menu, the in-note attach menu on the phone. The status bar, list rows and Quick Look contents are placeholders.</footer>
 </div>
 <div class="ptoast" id="ptoast" role="status" aria-live="polite"></div>
@@ -359,7 +359,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   var STATES = [["note","The note"],["play","Video playing"],["full","Full screen"],["ql","File: Quick Look"],["hold","Hold and move"],["attach","Attach menu"]];
   var REFS = {
     phone:[["video","Video note (IMG_0467)"],["pdfL","PDF large (IMG_0465)"],["pdfS","PDF small card (IMG_0471)"],["hold","Hold menu (IMG_0469)"],["attv","⋯ Attachment View (IMG_0468)"]],
-    mac:[["video","Video note (17.21.30)"],["pdf","PDF (17.20.11)"],["menu","⋯ Attachment View (17.21.48)"]],
+    mac:[["video","Video note (17.21.30)"],["pdf","PDF with thumbnails (17.20.48)"],["menu","⋯ Attachment View (17.21.48)"]],
     ipad:[]
   };
   var REFDEF = {phone:{note:"video",play:"video",full:"video",ql:"pdfS",hold:"hold",attach:"attv"}, mac:{note:"video",play:"video",full:"video",ql:"pdf",hold:"video",attach:"menu"}};
@@ -596,7 +596,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   function rStatus(){ return '<div class="abs" style="left:52px;top:21px;font-size:17px;font-weight:600;color:#111">17:22</div><div class="abs" style="right:30px;top:24px;display:flex;gap:6px;align-items:center;color:#111"><span style="font-size:11px;letter-spacing:-1px">●●●●</span><span style="font-size:12px">◠</span><span style="font-size:11px;font-weight:700;background:#111;color:#fff;border-radius:5px;padding:0 4px">69</span></div>'; }
   function rTop(){ return '<div class="rglass" style="left:16px;top:62px;width:44px;height:44px">'+I("back",22)+'</div><div class="rglass" style="left:285px;top:62px;width:101px;height:44px;padding:0 6px">'+I("share",22)+I("more",22)+'</div>'; }
   function rBottom(){ return '<div class="rglass" style="left:28px;top:798px;width:167px;height:48px;padding:0 10px">'+I("check",22)+I("clip",21)+I("pen",22)+'</div><div class="rglass" style="left:326px;top:798px;width:48px;height:48px">'+I("compose",21)+'</div>'; }
-  function rTitle(t){ return '<div class="abs" style="left:26px;top:124px;font-size:29px;font-weight:700;letter-spacing:-.3px;color:var(--r-ink)">'+t+'</div>'; }
+  function rTitle(t){ return '<div class="abs" style="left:26px;top:119px;font-size:29px;font-weight:700;letter-spacing:-.3px;color:var(--r-ink)">'+t+'</div>'; }
   function rPoster(left, top, w, h, play){
     return '<div class="abs" style="left:'+left+'px;top:'+top+'px;width:'+w+'px;height:'+h+'px;overflow:hidden">'+posterHTML()+'</div>'
       + (play ? '<div class="rplay" style="left:'+(left+w/2-play/2)+'px;top:'+(top+Math.min(h, w*16/9)/2-play/2)+'px;width:'+play+'px;height:'+play+'px;color:#55575c">'+I("play",play*0.45)+'</div>' : '');
@@ -608,13 +608,13 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       if (kind === "attv"){
         h += '<div class="rmenu" style="left:144px;top:62px;width:242px;height:400px;border-radius:30px;opacity:.97">'
           + '<div style="display:flex;justify-content:space-around;padding:18px 10px 0;font-size:12px;color:#7a7a7e;text-align:center"><div>'+I("scan",20)+'<div>Scan</div></div><div>'+I("pin",20)+'<div>Pin Note</div></div><div>'+I("lock",20)+'<div>Lock</div></div></div>'
-          + '<div style="height:.5px;background:var(--r-line);margin:14px 20px 4px"></div>'
-          + [["search","Find in Note",""],["folder","Move Note",""],["clock","Recent Notes","›"],["maths","Maths Results","›"],["grid","Lines &amp; Grids",""]].map(function(r){ return '<div style="display:flex;align-items:center;gap:14px;padding:0 22px;height:41px;font-size:16px;color:#8a8a8e">'+I(r[0],19)+'<span style="flex:1">'+r[1]+'</span><span>'+r[2]+'</span></div>'; }).join("")
+          + '<div style="height:.5px;background:var(--r-line);margin:14px 20px 12px"></div>'
+          + [["search","Find in Note",""],["folder","Move Note",""],["clock","Recent Notes","›"],["maths","Maths Results","›"],["grid","Lines &amp; Grids",""]].map(function(r){ var m = r[1] === "Maths Results"; return '<div style="display:flex;align-items:center;gap:14px;padding:0 22px;height:'+(m?58:41)+'px;font-size:16px;color:#8a8a8e">'+I(r[0],19)+'<span style="flex:1">'+r[1]+(m?'<br><span style="font-size:12px;color:#b0b0b4">Suggest Results</span>':'')+'</span><span>'+r[2]+'</span></div>'; }).join("")
           + '</div>'
-          + '<div class="rmenu" style="left:137px;top:356px;width:249px;height:165px;border-radius:30px"><div style="display:flex;align-items:center;gap:12px;padding:0 22px;height:64px;font-size:16px;font-weight:700;color:#111">'+I("attv",20)+'<span style="flex:1">Attachment View</span>'+I("chevd",16)+'</div><div style="height:.5px;background:var(--r-line);margin:0 20px"></div><div style="padding:14px 28px 0;font-size:16px;color:#111;line-height:42px">Set All to Small<br>Set All to Large</div></div>';
+          + '<div class="rmenu" style="left:137px;top:356px;width:249px;height:165px;border-radius:30px"><div style="display:flex;align-items:center;gap:12px;padding:0 22px;height:64px;font-size:16px;font-weight:700;color:#111">'+I("attv",20)+'<span style="flex:1">Attachment View</span>'+I("chevd",16)+'</div><div style="height:.5px;background:var(--r-line);margin:0 20px"></div><div style="padding:7px 28px 0;font-size:16px;color:#111;line-height:42px">Set All to Small<br>Set All to Large</div></div>';
       }
     } else if (kind === "pdfL"){
-      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:208px;font-size:17px;color:#555">Section five</div>'
+      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:205px;font-size:17px;color:#555">Section five</div>'
         + '<div class="abs" style="left:0;right:0;top:319px;bottom:0;background:var(--r-band)"></div>'
         + '<div class="abs" style="left:26px;top:330px;font-size:15.5px;font-weight:500;color:#111;width:262px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">workshop-manual-sec05_2026…</div>'
         + '<div class="abs" style="left:302px;top:330px;width:20px;height:20px;border-radius:50%;background:#d8d8da;color:#6b6b70;display:flex;align-items:center;justify-content:center">'+I("chevd",12)+'</div>'
@@ -622,10 +622,10 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
         + '<div class="abs" style="left:26px;top:361px;width:352px;height:520px;background:#fff;container-type:inline-size"><div class="pg" style="padding:44% 12% 0"><div class="h">M104 cam chain tensioner</div><div class="r"></div><div class="s">Workshop manual</div><div class="logo" style="bottom:7%">W124 · 1993</div></div></div>'
         + rBottom();
     } else if (kind === "pdfS"){
-      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:208px;font-size:17px;color:#555">Section five</div>'
+      h += rTop() + rTitle("Manual from Rui") + '<div class="abs" style="left:26px;top:205px;font-size:17px;color:#555">Section five</div>'
         + '<div class="abs" style="left:26px;top:319px;width:326px;height:71px;border-radius:13px;background:var(--r-card)"></div>'
-        + '<div class="abs" style="left:42px;top:328px;width:210px;font-size:15.5px;font-weight:600;color:#111;line-height:18px">workshop-manual-sec05_<br>2026…</div>'
-        + '<div class="abs" style="left:42px;top:366px;font-size:14px;color:#8a8a8e">PDF Document · 1,8 MB</div>'
+        + '<div class="abs" style="left:42px;top:326px;width:210px;font-size:15.5px;font-weight:600;color:#111;line-height:18px">workshop-manual-sec05_<br>2026…</div>'
+        + '<div class="abs" style="left:42px;top:363px;font-size:14px;color:#8a8a8e">PDF Document · 1,8 MB</div>'
         + '<div class="abs" style="left:258px;top:345px;width:22px;height:22px;border-radius:50%;background:#d0d0d3;color:#6b6b70;display:flex;align-items:center;justify-content:center">'+I("chevd",13)+'</div>'
         + '<div class="abs" style="left:307px;top:331px;width:34px;height:47px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.1)"><div style="margin:8px 5px 0;height:1.5px;background:#2a3a8a;width:60%"></div></div>'
         + '<div class="abs" style="left:26px;top:410px;font-size:12px;color:var(--r-dim);font-family:var(--mono)">(keyboard from IMG_0471 left out)</div>'
@@ -634,8 +634,8 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       h += '<div class="abs" style="inset:0;background:var(--r-veil)"></div>'
         + '<div class="abs" style="left:16px;top:62px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.4)"></div>'
         + '<div class="abs" style="left:40px;top:88px;width:322px;height:573px;border-radius:20px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.2)">'+posterHTML()+'</div>'
-        + '<div class="abs" style="left:76px;top:678px;width:249px;height:145px;border-radius:26px;background:#f1f1f2;box-shadow:0 10px 40px rgba(0,0,0,.18);padding:4px 0">'
-        + [["copy","Copy",""],["share","Share",""],["trash","Delete","red"]].map(function(r){ return '<div style="display:flex;align-items:center;gap:16px;padding:0 30px;height:45px;font-size:17px;color:'+(r[2]?"var(--r-red)":"#111")+'">'+I(r[0],20)+r[1]+'</div>'; }).join("") + '</div>'
+        + '<div class="abs" style="left:76px;top:678px;width:249px;height:145px;border-radius:26px;background:#f1f1f2;box-shadow:0 10px 40px rgba(0,0,0,.18);padding:10px 0 0">'
+        + [["copy","Copy",""],["share","Share",""],["trash","Delete","red"]].map(function(r){ return '<div style="display:flex;align-items:center;gap:16px;padding:0 30px;height:42px;font-size:17px;color:'+(r[2]?"var(--r-red)":"#111")+'">'+I(r[0],20)+r[1]+'</div>'; }).join("") + '</div>'
         + '<div class="abs" style="left:28px;top:798px;width:167px;height:48px;border-radius:24px;box-shadow:inset 0 0 0 .7px var(--r-rim);opacity:.5"></div><div class="abs" style="left:326px;top:798px;width:48px;height:48px;border-radius:50%;box-shadow:inset 0 0 0 .7px var(--r-rim);opacity:.6"></div>';
     }
     return h + '<div class="rstamp">REFERENCE · REDRAWN FROM TUUR’S IOS 27 SCREENSHOTS</div></div>';
@@ -651,38 +651,39 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     h += '<div class="abs" style="left:17px;top:'+(259-15)+'px;width:200px;height:30px;border-radius:7px;background:#e4e4e6"></div>';
     side.forEach(function(s){ var on = s[0] === "Test"; h += '<div class="abs" style="left:23px;top:'+(s[2]-9)+'px;width:186px;display:flex;align-items:center;gap:7px;font-size:13px;color:'+(on?"var(--r-sel)":"#222")+'">'+I(s[0]==="Shared"?"people":"folder",16)+'<span style="flex:1">'+s[0]+'</span><span style="color:#9a9a9e">'+s[1]+'</span></div>'; });
     // list
-    h += '<div class="abs" style="left:247px;top:11px;font-size:13px;font-weight:700;color:#222">Test</div><div class="abs" style="left:247px;top:27px;font-size:11px;color:#8a8a8e">4 notes</div>';
+    h += '<div class="abs" style="left:247px;top:11px;font-size:13px;font-weight:700;color:#222">Test</div><div class="abs" style="left:247px;top:27px;font-size:11px;color:#8a8a8e">'+(kind==="pdf"?3:4)+' notes</div>';
     h += '<div class="abs" style="left:620px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#333">'+I("more",17)+'</div>';
     h += '<div class="abs" style="left:243px;top:61px;font-size:15px;font-weight:700;color:#222">Pinned</div><div class="abs" style="left:624px;top:63px;color:#999">'+I("chevd",13)+'</div><div class="abs" style="left:238px;top:90px;width:422px;height:.5px;background:var(--r-line)"></div>';
-    h += rowM(113, "Another one", "11:23", "Fam’s gonna run some tests. We need to search n…", false, "#5a5f66");
+    h += rowM(109, "Another one", "11:23", "Fam’s gonna run some tests. We need to search n…", false, "#5a5f66");
     h += '<div class="abs" style="left:243px;top:186px;font-size:15px;font-weight:700;color:#222">Today</div>';
     var selTitle = kind === "pdf" ? "Manual from Rui" : "Garage, Tuesday", selSub = kind === "pdf" ? "Section five" : "1 video";
-    if (kind === "pdf"){ h += rowM(222, "Garage, Tuesday", "17:21", "1 video", false, "#8e9196") + rowM(278, selTitle, "17:19", selSub, true, null, true); }
-    else { h += rowM(222, selTitle, "17:21", selSub, true, "#8e9196") + rowM(278, "Manual from Rui", "17:19", "Section five", false, null, true); }
-    h += rowM(334, "Hi my name is", "11:22", "Lalala", false, null);
+    if (kind === "pdf"){ h += rowM(222, selTitle, "17:19", selSub, true, null, true) + rowM(278, "Hi my name is", "11:22", "Lalala", false, null); }
+    else { h += rowM(222, selTitle, "17:21", selSub, true, "#8e9196") + rowM(278, "Manual from Rui", "17:19", "Section five", false, null, true) + rowM(334, "Hi my name is", "11:22", "Lalala", false, null); }
     h += '<div class="abs" style="left:660px;top:0;bottom:0;width:.5px;background:var(--r-line)"></div>';
     // editor toolbar
     h += '<div class="abs" style="left:673px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("compose",16)+'</div>';
     h += '<div class="abs" style="left:1127px;top:7px;width:193px;height:36px;border-radius:18px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:space-around;color:#555;padding:0 6px">'+I("aa",20)+I("check",18)+I("table",18)+I("clip",18)+I("pen",18)+'</div>';
     h += '<div class="abs" style="left:1741px;top:9px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("share",16)+'</div>';
     h += '<div class="abs" style="left:1784px;top:9px;width:32px;height:32px;border-radius:50%;background:'+(kind==="menu"?"#e6e6e8":"#fff")+';box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#444">'+I("more",17)+'</div>';
-    h += '<div class="abs" style="left:1830px;top:8px;width:310px;height:34px;border-radius:17px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;align-items:center;gap:6px;padding:0 12px;font-size:13px;color:#888">'+I("search",14)+'Search</div>';
+    h += '<div class="abs" style="left:1830px;top:8px;width:310px;height:34px;border-radius:17px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;font-size:13px;color:#888">'+I("search",14)+'Search</div>';
     if (kind === "pdf"){
       h += '<div class="abs" style="left:686px;top:-6px;font-size:19px;font-weight:700;color:#bbb">Manual from Rui</div>';
       h += '<div class="abs" style="left:686px;top:46px;font-size:13px;color:#555">Section five</div><div class="abs" style="left:686px;top:78px;width:2px;height:20px;background:var(--r-sel)"></div>';
       h += '<div class="abs" style="left:663px;right:0;top:112px;bottom:0;background:var(--r-band)"></div>';
       h += '<div class="abs" style="left:686px;top:122px;font-size:13px;color:#222;display:flex;align-items:center;gap:10px">workshop-manual-sec05_2026-08-13 '+I("chevd",13)+'</div>';
-      h += '<div class="abs" style="right:12px;top:122px;font-size:12px;color:#666">Show Thumbnails</div>';
-      h += '<div class="abs" style="left:666px;top:146px;width:748px;height:1009px;background:#fff;container-type:inline-size"><div class="pg" style="padding:26% 13% 0"><div class="h" style="font-size:3.6cqw">M104 cam chain tensioner</div><div class="r" style="width:62%"></div><div class="s" style="font-size:2.3cqw">Workshop manual</div><div class="logo" style="bottom:6%;font-size:3.2cqw">W124 · 1993</div></div></div>';
-      h += '<div class="abs" style="left:1424px;top:146px;width:748px;height:1009px;background:#fff;padding:40px 90px"><div style="font-size:18px;color:#8a93a3;font-weight:700">W124 · 1993</div><div style="height:1px;background:#999;margin:6px 0 30px"></div>'+'<div style="height:6px;background:#e3e4e8;border-radius:3px;margin:12px 0;width:90%"></div>'.repeat(14)+'</div>';
+      h += '<div class="abs" style="right:4px;top:124px;font-size:12px;color:#666">Hide Thumbnails</div>';
+      var th = ""; for (var n = 0; n < 30; n++) th += '<div class="abs" style="left:'+(666+n*49.4)+'px;top:160px;width:41px;height:56px;border-radius:5px;background:'+(n===1?"#cfcfd2":"#fff")+';box-shadow:0 0 0 .5px var(--r-line)'+(n===0?",0 0 0 2px #bdbdc0":"")+';padding:8px 6px"><div style="height:2px;background:#d4d6dc;box-shadow:0 5px 0 #d4d6dc,0 10px 0 #d4d6dc,0 15px 0 #d4d6dc"></div></div>';
+      h += th + '<div class="abs" style="left:696px;top:221px;width:694px;height:5px;border-radius:3px;background:#9a9a9e"></div>';
+      h += '<div class="abs" style="left:686px;top:238px;width:686px;height:917px;background:#fff;container-type:inline-size"><div class="pg" style="padding:26% 13% 0"><div class="h" style="font-size:3.6cqw">M104 cam chain tensioner</div><div class="r" style="width:62%"></div><div class="s" style="font-size:2.3cqw">Workshop manual</div><div class="logo" style="bottom:6%;font-size:3.2cqw">W124 · 1993</div></div></div>';
+      h += '<div class="abs" style="left:1380px;top:238px;width:686px;height:917px;background:#fff;padding:40px 90px"><div style="font-size:18px;color:#8a93a3;font-weight:700">W124 · 1993</div><div style="height:1px;background:#999;margin:6px 0 30px"></div>'+'<div style="height:6px;background:#e3e4e8;border-radius:3px;margin:12px 0;width:90%"></div>'.repeat(14)+'</div>';
     } else {
       h += '<div class="abs" style="left:1407px;top:59px;transform:translateX(-50%);font-size:12px;color:#8a8a8e;white-space:nowrap">13 October 2026 at 17:21</div>';
       h += '<div class="abs" style="left:686px;top:82px;font-size:19.5px;font-weight:700;color:#3b3b3b">Garage, Tuesday</div>';
       h += rPoster(686, 148, 720, 1280, 66);
       if (kind === "menu"){
         h += '<div class="abs" style="inset:0;background:rgba(255,255,255,.42)"></div>';
-        h += '<div class="rmenu" style="left:1780px;top:43px;width:187px;height:211px;border-radius:9px;padding:5px;font-size:13px;color:#222">'
-          + [["pin","Pin Note",""],["lock","Lock Note",""],["-"],["search","Find in Note",""],["folder","Move to","›"],["clock","Recent Notes","›"],["maths","Maths Results","›"],["attv","Attachment View","›",1],["trash","Delete Note",""]].map(function(r){ if (r[0]==="-") return '<div style="height:.5px;background:var(--r-line);margin:4px 8px"></div>'; return '<div style="display:flex;align-items:center;gap:7px;height:22.5px;padding:0 8px;border-radius:5px;'+(r[3]?"background:var(--r-sel);color:#fff":"")+'">'+I(r[0],12)+'<span style="flex:1">'+r[1]+'</span><span>'+r[2]+'</span></div>'; }).join("") + '</div>';
+        h += '<div class="rmenu" style="left:1780px;top:43px;width:187px;height:213px;border-radius:9px;padding:4px 5px;font-size:13px;color:#222">'
+          + [["pin","Pin Note",""],["lock","Lock Note",""],["-"],["search","Find in Note",""],["folder","Move to","›"],["clock","Recent Notes","›"],["maths","Maths Results","›"],["attv","Attachment View","›",1],["trash","Delete Note",""]].map(function(r){ if (r[0]==="-") return '<div style="height:.5px;background:var(--r-line);margin:5.25px 8px"></div>'; return '<div style="display:flex;align-items:center;gap:7px;height:24px;line-height:24px;flex:none;padding:0 8px 0 14px;border-radius:5px;'+(r[3]?"background:var(--r-sel);color:#fff":"")+'">'+I(r[0],12)+'<span style="flex:1">'+r[1]+'</span><span>'+r[2]+'</span></div>'; }).join("") + '</div>';
         h += '<div class="rmenu" style="left:1964px;top:196px;width:123px;height:57px;border-radius:9px;padding:6px 14px;font-size:13px;color:#222;line-height:22.5px">Set All to Small<br>Set All to Large</div>';
       }
     }
