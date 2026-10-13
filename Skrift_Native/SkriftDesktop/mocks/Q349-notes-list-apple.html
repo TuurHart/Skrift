@@ -13,8 +13,8 @@
   --sk-amber:#d97706; --sk-green:#0f9d72; --sk-red:#dc2626;
   /* reference panel: hand-drawn from the public look of the list app */
   --ref-bg:#f2f2f7; --ref-card:#ffffff; --ref-text:#000000; --ref-dim:rgba(60,60,67,.62);
-  --ref-sep:rgba(60,60,67,.22); --ref-tint:#c99a06; --ref-fill:rgba(118,118,128,.12);
-  --ref-sel:#f7d65a;
+  --ref-sep:rgba(60,60,67,.36); --ref-tint:#d4a72c; --ref-fill:rgba(118,118,128,.12);
+  --ref-sel:#f6e496; --ref-glass:rgba(255,255,255,.82); --ref-rim:rgba(0,0,0,.10);
   --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
@@ -26,7 +26,7 @@
   --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
   --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
   --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
-  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#8a6d12;
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#6b5512; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -37,7 +37,7 @@
   --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
   --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
   --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
-  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#8a6d12;
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#6b5512; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -100,38 +100,61 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
   background:var(--pin-soft);font-size:11.5px;line-height:1.3;display:flex;gap:8px;align-items:center}
 .gone s{opacity:.8}
 
-/* ── REFERENCE (hand-drawn) ───────────────────── */
+/* ── REFERENCE: redrawn from Tuur's iOS 27 screenshots (IMG_0436/0444/0445, iPhone 17 Pro, 402 pt wide)
+   and, for the Mac column, Apple's Notes for Mac guide image. Measured: 44 pt glass circles at 16 pt;
+   large title ~36 bold; count line ~17 gray; group header ~21 bold; card inset 16, radius ~26;
+   row 60 pt, text 28 pt inside the card; title ~19 semibold, line 2 ~17 gray (time AND preview gray);
+   hairline from the text edge to 16 pt short of the card edge; search pill 48 pt + 49 pt compose circle
+   floating at the bottom. No toolbar, no folder line inside a single folder. */
 .ref{background:var(--ref-bg);color:var(--ref-text)}
-.ref .nav{display:flex;justify-content:space-between;align-items:center;padding:4px 16px 0;color:var(--ref-tint);font-size:17px;height:40px}
-.ref .navbtn{width:34px;height:34px;border-radius:17px;background:var(--ref-fill);display:grid;place-items:center}
-.ref h3{font-size:34px;font-weight:700;margin:2px 16px 8px;letter-spacing:.2px}
-.ref .search{margin:0 16px 6px;background:var(--ref-fill);border-radius:10px;height:36px;display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--ref-dim)}
-.ref .search input{flex:1;min-width:0;border:0;background:none;font:17px var(--ui);color:var(--ref-text);outline:none}
-.ref .search input::placeholder{color:var(--ref-dim)}
-.ref .gh{font-size:20px;font-weight:700;margin:18px 16px 7px}
-.ref .group{background:var(--ref-card);border-radius:10px;margin:0 16px;overflow:hidden}
-.ref .row{display:flex;gap:10px;align-items:center;padding:10px 16px 10px 16px;position:relative;width:100%;text-align:left}
-.ref .row + .row::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ref-sep)}
+.ref .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 0;height:58px}
+.ref .glass{height:44px;min-width:44px;border-radius:22px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;color:var(--ref-text)}
+.ref .glass.pair{width:101px;justify-content:space-around;padding:0 6px}
+.ref h3{font-size:36px;font-weight:700;margin:22px 16px 0;letter-spacing:.1px;line-height:1.1}
+.ref .count{font-size:17px;color:var(--ref-dim);margin:2px 16px 0}
+.ref .gh{font-size:21px;font-weight:700;margin:24px 16px 10px;line-height:1.15}
+.ref .group{background:var(--ref-card);border-radius:26px;margin:0 16px;overflow:hidden}
+.ref .row{display:flex;gap:10px;align-items:center;min-height:60px;padding:8px 12px 8px 28px;position:relative;width:100%;text-align:left}
+.ref .row + .row::before{content:"";position:absolute;left:28px;right:16px;top:0;height:1px;transform:scaleY(.5);background:var(--ref-sep)}
 .ref .row:active{background:var(--ref-fill)}
+.ref .row .gut{position:absolute;left:9px;top:12px;color:var(--ref-dim)}
 .ref .tx{flex:1;min-width:0}
-.ref .t{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
-.ref .l2{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35;color:var(--ref-dim)}
-.ref .l2 b{font-weight:400;color:var(--ref-text);margin-right:6px}
-.ref .l3{font-size:14px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:1.35;margin-top:1px}
-.ref .th{width:56px;height:56px;border-radius:6px;flex:none}
-.ref .tool{flex:none;height:46px;display:flex;align-items:center;justify-content:center;position:relative;font-size:11px;color:var(--ref-text);border-top:.5px solid var(--ref-sep);background:var(--ref-bg)}
-.ref .tool button{position:absolute;right:18px;top:9px;color:var(--ref-tint)}
-.ref.macref .bar2{height:52px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;color:var(--ref-dim);border-bottom:.5px solid var(--ref-sep)}
-.ref.macref .gh{font-size:13px;margin:14px 18px 4px}
-.ref.macref .group{background:none;margin:0 8px;border-radius:0;overflow:visible}
-.ref.macref .row{padding:8px 10px;border-radius:7px}
-.ref.macref .row + .row::before{left:10px;right:10px}
+.ref .t{font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.ref .l2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;color:var(--ref-dim);margin-top:1px}
+.ref .l2 b{font-weight:400;color:var(--ref-dim);margin-right:8px;font-variant-numeric:tabular-nums}
+.ref .l3{display:none}
+.ref .th{width:40px;height:40px;border-radius:8px;flex:none}
+.ref .dock{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:flex-end;gap:10px;padding:0 27px 24px;
+  background:linear-gradient(to bottom,transparent,var(--ref-bg) 55%);pointer-events:none}
+.ref .dock > *{pointer-events:auto}
+.ref .dock .search{flex:1;height:48px;border-radius:24px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 10px rgba(0,0,0,.07);display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--ref-text)}
+.ref .dock .search input{flex:1;min-width:0;border:0;background:none;font:19px var(--ui);color:var(--ref-text);outline:none;padding:0}
+.ref .dock .search input::placeholder{color:var(--ref-dim)}
+.ref .dock .search .mic{color:var(--ref-text)}
+.ref .dock .glass{width:49px;height:49px;border-radius:25px;flex:none}
+.ref .foot{height:110px}
+/* Mac list column: redrawn from Apple's Notes for Mac guide (macOS 27 edition image). Column header
+   = folder name 13 bold + count 11 gray + a glass "…" circle; no icon bar (compose, search and the
+   format tools live over the note pane). Group header ~14 bold; rows ~58 pt, 28 pt left gutter,
+   title 13 bold, line 2 date + preview 12 gray, line 3 folder glyph + folder 12 gray; selection =
+   a rounded yellow fill inset 7 pt; 44 pt thumbnail right. */
+.ref.macref .mh{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 12px 4px 20px;flex:none}
+.ref.macref .mh b{display:block;font-size:13px}
+.ref.macref .mh span{display:block;font-size:11px;color:var(--ref-dim);margin-top:2px}
+.ref.macref .mh .glass{width:30px;height:30px;min-width:30px;border-radius:15px}
+.ref.macref .gh{font-size:14px;margin:14px 18px 6px}
+.ref.macref .group{background:none;margin:0 7px;border-radius:0;overflow:visible}
+.ref.macref .row{min-height:58px;padding:7px 9px 7px 28px;border-radius:10px;gap:8px}
+.ref.macref .row + .row::before{left:28px;right:9px;transform:none;height:.5px}
+.ref.macref .row .gut{left:8px;top:9px}
 .ref.macref .row.sel{background:var(--ref-sel)}
 .ref.macref .row.sel::before,.ref.macref .row.sel + .row::before{display:none}
-.ref.macref .t{font-size:13px;font-weight:700}
-.ref.macref .l2{font-size:12px}
-.ref.macref .l3{font-size:12px}
-.ref.macref .th{width:42px;height:42px;border-radius:5px}
+.ref.macref .t{font-size:13px;font-weight:700;line-height:1.3}
+.ref.macref .l2{font-size:12px;line-height:1.35;margin-top:0}
+.ref.macref .l2 b{margin-right:7px}
+.ref.macref .l3{font-size:12px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:1.35}
+.ref.macref .th{width:44px;height:44px;border-radius:4px}
+.ref.macref .foot{height:24px}
 
 /* ── SKRIFT shared chrome (from source) ───────── */
 .sk{background:var(--sk-bg);color:var(--sk-text)}
@@ -285,7 +308,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 <div class="wrap" id="app">
   <div class="eyebrow">Q349 · mock · D190 D193 C113</div>
   <h1>The notes list, beside Apple Notes</h1>
-  <p class="lede">Three panels per width: the Apple Notes reference (hand-drawn, not Skrift), Skrift as it is built today (drawn from source), and the proposed Skrift list. Pink numbers point at the picks underneath. Every note here is invented.</p>
+  <p class="lede">Three panels per width: the Apple Notes reference (redrawn by hand from real screenshots, not Skrift), Skrift as it is built today (drawn from source), and the proposed Skrift list. Pink numbers point at the picks underneath. Every note here is invented.</p>
 
   <div class="bar">
     <div class="seg" role="group" aria-label="Width">
@@ -330,7 +353,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
   <h3 class="sect">Picks that depart from Apple Notes, and why</h3>
   <div class="picks" id="picks"></div>
 
-  <p class="fine">Reference panels are drawn by hand from the publicly visible look of Apple Notes (list layout, grouping, row lines). They are not screenshots, contain no Apple icons or logos, and use none of Tuur's notes. Skrift panels follow Shared/UI/NoteCardView.swift, Shared/UI/NoteCardBuilder.swift, Shared/Model/MemoDate.swift, Shared/UI/Palette.swift, SkriftMobile/Features/MemosList/*, SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift and SkriftDesktop/Features/Sidebar/SidebarView.swift at session head e294d8e3.</p>
+  <p class="fine">Reference panels are redrawn by hand in HTML from real screenshots; no screenshot is embedded, no Apple icon or logo is used, and every note in them is invented. Phone: Tuur's own iOS 27 screenshots of a throwaway folder (iPhone 17 Pro, 13 Oct 2026), cross-checked against the list screenshot on Apple's App Store page for Notes (<a href="https://apps.apple.com/us/app/notes/id1110145109">apps.apple.com/us/app/notes/id1110145109</a>). Mac column: the "View your notes" image in Apple's Notes for Mac guide (<a href="https://support.apple.com/guide/notes/apd8b73d28be/mac">support.apple.com/guide/notes/apd8b73d28be/mac</a>, macOS 27 edition). Sizes are measured off those images and are approximate to about a point. Skrift panels follow Shared/UI/NoteCardView.swift, Shared/UI/NoteCardBuilder.swift, Shared/Model/MemoDate.swift, Shared/UI/Palette.swift, SkriftMobile/Features/MemosList/*, SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift and SkriftDesktop/Features/Sidebar/SidebarView.swift at session head e294d8e3.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -491,34 +514,51 @@ function refLine(n){
   if (!n.title && !n.gen && n.body.startsWith(t)) return n.body.slice(t.length).replace(/^[.!?]\s*/,'') || 'No additional text';
   return n.body;
 }
+/* Apple's own buckets (iOS 27 list + Mac guide): Today, Yesterday, Previous 7 Days, Previous 30 Days, months, years */
+function groupRef(d){
+  const n = days(d);
+  if (n <= 0) return 'Today';
+  if (n === 1) return 'Yesterday';
+  if (n <= 7) return 'Previous 7 Days';
+  if (n <= 30) return 'Previous 30 Days';
+  if (d.getFullYear() === NOW.getFullYear()) return MOL[d.getMonth()];
+  return String(d.getFullYear());
+}
+const RI = {
+  share:'<svg width="20" height="22" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v12M6 5.5L10 2l4 3.5"/><path d="M6.5 9H5a1.5 1.5 0 00-1.5 1.5v8A1.5 1.5 0 005 20h10a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0015 9h-1.5"/></svg>',
+  mic:'<svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1.5" width="6" height="11" rx="3"/><path d="M1.5 9.5a5.5 5.5 0 0011 0M7 15v3.5"/></svg>',
+  mag:'<svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M12.5 12.5l5 5"/></svg>',
+  compose:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/><path d="M17 2.5l2.5 2.5L11 13.5l-3.3.8.8-3.3z"/></svg>',
+  chev:'<svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2L2 10l8 8"/></svg>'
+};
 function refRow(n, mac){
   const sel = mac && S.sel.ref === n.id ? ' sel' : '';
   return `<button class="row${sel}" data-open="ref" data-id="${n.id}">
-    <div class="tx"><div class="t">${n.locked ? '<span style="display:inline-flex;gap:5px;align-items:center">'+I.lock+' '+esc(refTitle(n))+'</span>' : esc(refTitle(n))}</div>
+    ${n.locked ? `<span class="gut">${I.lock}</span>` : ''}
+    <div class="tx"><div class="t">${esc(refTitle(n))}</div>
     <div class="l2"><b>${dateRef(n.at)}</b>${esc(refLine(n))}</div>
     <div class="l3">${I.folder}<span>${esc(n.refFolder)}</span></div></div>
     ${n.photo && !n.locked ? `<div class="th" style="background:${n.photo}"></div>` : ''}</button>`;
 }
 function refPhone(){
   const list = filtered('ref');
-  const groups = groupBy(list, groupNew);
+  const groups = groupBy(list, groupRef);
   return `<div class="phone ref pinned" id="ref-phone">
     <div class="status"><span>09:41</span><i></i><span class="r"></span></div>
     <div class="scroll">
-      <div class="nav"><button data-ack="Back to the folder list (reference only)" style="display:flex;gap:6px;align-items:center">${I.chev}<span>Folders</span></button><button class="navbtn" data-ack="More menu (reference only)">${I.dots}</button></div>
-      <h3>All Notes</h3>
-      <label class="search">${I.search}<input id="ref-q" placeholder="Search" value="${esc(S.q.ref)}" aria-label="Search the reference list"></label>
+      <div class="nav"><button class="glass" data-ack="Back to Folders (reference only)" aria-label="Back">${RI.chev}</button><span class="glass pair"><button data-ack="Share folder (reference only)" aria-label="Share">${RI.share}</button><button data-ack="Folder menu: gallery, sort, group by date (reference only)" aria-label="More">${I.dots}</button></span></div>
+      <h3>Notes</h3>
+      <div class="count">${NOTES.length} Notes</div>
       ${groups.map(g => `<div class="gh">${g.title}</div><div class="group">${g.notes.map(n => refRow(n,false)).join('')}</div>`).join('') || '<div class="empty">No results</div>'}
       <div class="foot"></div>
     </div>
-    <div class="tool"><span>${NOTES.length} Notes</span><button data-ack="New note (reference only)">${I.pencilBig}</button></div>
+    <div class="dock"><label class="search">${RI.mag}<input id="ref-q" placeholder="Search" value="${esc(S.q.ref)}" aria-label="Search the reference list"><span class="mic">${RI.mic}</span></label><button class="glass" data-ack="New note (reference only)" aria-label="New note">${RI.compose}</button></div>
   </div>`;
 }
 function refMac(){
-  const groups = groupBy(filtered('ref'), groupNew);
+  const groups = groupBy(filtered('ref'), groupRef);
   return `<div class="mac ref macref">
-    <div class="lights"><i></i><i></i><i></i></div>
-    <div class="bar2"><button data-ack="List or gallery view (reference only)">${I.grid}</button><button data-ack="Delete (reference only)">${I.trash}</button><button data-ack="New note (reference only)">${I.pencil}</button><button data-ack="Search sits in the window toolbar (reference only)">${I.search}</button></div>
+    <div class="mh"><div><b>All iCloud</b><span>${NOTES.length} notes</span></div><button class="glass" data-ack="List menu: gallery, sort, group by date (reference only)" aria-label="More">${I.dots}</button></div>
     <div class="scroll">${groups.map(g => `<div class="gh">${g.title}</div><div class="group">${g.notes.map(n => refRow(n,true)).join('')}</div>`).join('')}<div class="foot"></div></div>
   </div>`;
 }
@@ -688,7 +728,7 @@ const stage = document.getElementById('stage');
 function render(){
   const ph = S.dev === 'phone';
   const label = (k) => ({
-    ref: `<div class="collabel"><h2>Apple Notes</h2><span class="reftag">Reference · hand-drawn</span></div>`,
+    ref: `<div class="collabel"><h2>Apple Notes</h2><span class="reftag">${ph ? 'Reference · Apple Notes · redrawn from Tuur\'s iOS 27 screenshots' : 'Reference · Apple Notes · redrawn from Apple\'s Notes for Mac guide, macOS 27'}</span></div>`,
     today: `<div class="collabel"><h2>Skrift today</h2><span>${ph ? 'MemosListView + NoteCardView' : 'SidebarView + NoteCardView'}</span></div>`,
     new: `<div class="collabel"><h2>Skrift new</h2><span class="newtag">Proposed</span></div>`
   }[k]);
