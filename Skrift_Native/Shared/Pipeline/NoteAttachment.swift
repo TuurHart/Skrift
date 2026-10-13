@@ -230,6 +230,113 @@ enum NoteAttachment {
     /// A small video's poster thumbnail on the card's right.
     static let cardThumbSize = CGSize(width: 46, height: 46)
 
+    /// How wide a block draws in a column `column` wide. The phone fills the column; iPad and Mac
+    /// (`wide`) cap large media at 720 pt and the card / PDF page at 520 pt, left-aligned (pick 8).
+    static func blockWidth(column: CGFloat, wide: Bool, largeMedia: Bool) -> CGFloat {
+        guard wide else { return column }
+        return min(column, largeMedia ? wideMediaMaxWidth : widePageMaxWidth)
+    }
+
+    /// The tallest a large video draws: 420 pt on the phone, 560 pt on iPad and Mac (pick 2).
+    static func videoMaxHeight(wide: Bool) -> CGFloat { wide ? wideVideoMaxHeight : phoneVideoMaxHeight }
+
+    /// What the small grey card says, for any block: a video or file entry, a photo, the PDF.
+    /// `thumb` = a picture goes on the right (video poster, photo) instead of the file icon.
+    struct Card: Equatable {
+        let title: String
+        let subtitle: String
+        let badge: String
+        let badgeHex: UInt32
+        let thumb: Bool
+    }
+
+    static func card(_ entry: NoteAttachmentEntry) -> Card {
+        Card(title: entry.name, subtitle: subtitle(entry), badge: badge(entry), badgeHex: badgeHex(entry),
+             thumb: entry.kind == Kind.video)
+    }
+
+    /// A photo's small card (D202: photos switch too): "Photo", "JPEG image · 1.2 MB".
+    static func photoCard(filename: String, byteCount: Int?) -> Card {
+        let t = UTType(filenameExtension: (filename as NSString).pathExtension)
+        let kind = t?.localizedDescription.map { $0.prefix(1).uppercased() + $0.dropFirst() } ?? "Image"
+        return Card(title: "Photo", subtitle: [kind, byteCount.map(sizeLabel)].compactMap { $0 }.joined(separator: " · "),
+                    badge: "IMG", badgeHex: 0x5b6b8a, thumb: true)
+    }
+
+    /// The captured PDF's small card (D202 over D126): its name, "PDF document · 38 pages".
+    static func pdfCard(name: String, pages: Int?, byteCount: Int?) -> Card {
+        let pageWord = pages.map { $0 == 1 ? "1 page" : "\($0) pages" }
+        return Card(title: name, subtitle: ["PDF document", pageWord, byteCount.map(sizeLabel)].compactMap { $0 }.joined(separator: " · "),
+                    badge: "PDF", badgeHex: 0xc8463d, thumb: false)
+    }
+
+    // MARK: The block's hold / right-click menu (D202, mock pick 6)
+
+    enum BlockAction: Equatable {
+        case moveUp, moveDown, setSize(Size), share, delete
+        var title: String {
+            switch self {
+            case .moveUp: return "Move Up"
+            case .moveDown: return "Move Down"
+            case .setSize(let s): return s == .large ? NoteAttachment.viewLargeTitle : NoteAttachment.viewSmallTitle
+            case .share: return "Share…"
+            case .delete: return "Delete"
+            }
+        }
+        var symbol: String {
+            switch self {
+            case .moveUp: return "arrow.up"
+            case .moveDown: return "arrow.down"
+            case .setSize(let s): return s == .large ? "rectangle.expand.vertical" : "rectangle.compress.vertical"
+            case .share: return "square.and.arrow.up"
+            case .delete: return "trash"
+            }
+        }
+    }
+
+    /// The menu for a block at `size` whose paragraph is at `paragraph` of `count` (both apps).
+    static func blockActions(size: Size, paragraph: Int, count: Int, shareable: Bool) -> [BlockAction] {
+        var out: [BlockAction] = [.setSize(size == .large ? .small : .large)]
+        if paragraph > 0 { out.append(.moveUp) }
+        if paragraph < count - 1 { out.append(.moveDown) }
+        if shareable { out.append(.share) }
+        out.append(.delete)
+        return out
+    }
+
+    /// The stored paragraphs (`\n\n`-separated) and which one holds `literal`.
+    static func paragraphIndex(of literal: String, in text: String) -> (index: Int, count: Int)? {
+        let paras = text.components(separatedBy: "\n\n")
+        guard let i = paras.firstIndex(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines) == literal }) else { return nil }
+        return (i, paras.count)
+    }
+
+    /// The body with the block `literal` (any marker, photo or attachment) swapped one paragraph
+    /// up (`by` -1) or down (+1). Unchanged when it cannot move.
+    static func moving(_ literal: String, by step: Int, in text: String) -> String {
+        var paras = text.components(separatedBy: "\n\n")
+        guard let (i, _) = paragraphIndex(of: literal, in: text) else { return text }
+        let j = i + step
+        guard j >= 0, j < paras.count else { return text }
+        paras.swapAt(i, j)
+        return paras.joined(separator: "\n\n")
+    }
+
+    /// The body with the block `literal` taken out (its paragraph goes; the file stays in the
+    /// manifest so Undo and other devices still find it, like a photo's, C14).
+    static func deleting(_ literal: String, in text: String) -> String {
+        var paras = text.components(separatedBy: "\n\n")
+        guard let (i, _) = paragraphIndex(of: literal, in: text) else { return text }
+        paras.remove(at: i)
+        return paras.joined(separator: "\n\n")
+    }
+
+    /// Every filename Set All switches: photos, videos, files, and the captured PDF.
+    static func allFilenames(attachments: [NoteAttachmentEntry]?, photos: [ImageManifestEntry]?,
+                             pdf: String? = nil) -> [String] {
+        (attachments ?? []).map(\.filename) + (photos ?? []).map(\.filename) + (pdf.map { [$0] } ?? [])
+    }
+
     /// The block's height for a video of `natural` size drawn `width` wide: the full frame, cut at
     /// `maxHeight` (pick 2). Without a known frame, 16:9.
     static func videoHeight(width: CGFloat, natural: CGSize?, maxHeight: CGFloat) -> CGFloat {
