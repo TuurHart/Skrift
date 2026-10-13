@@ -199,7 +199,7 @@ final class MacNoteOpenWorkTests: XCTestCase {
         for tick in 0..<10 {
             let p = cache.playback(fileID: "n1", body: body, timingsJSON: json,
                                    loadedDuration: 200, fallbackDuration: { 0 })
-            actives.append(p.track.activeIndex(at: Double(tick) * 0.05 + 40))
+            actives.append(p.track.activeIndex(at: Double(tick) * 0.01 + 40))
         }
         XCTAssertEqual(cache.builds, 1, "ten 20 Hz ticks: one split + one decode + one align")
         XCTAssertEqual(cache.timingDecodes, 1)
