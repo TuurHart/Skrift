@@ -29,6 +29,27 @@ final class NamesStore {
     /// install (no file yet, never loaded before) is allowed to be empty.
     private var lastGood: NamesData?
 
+    /// Q362 (perf2 h-shared-data N1): the decoded roster, kept until `names.json` changes. Every
+    /// access used to read and JSON-decode the whole file (voice embeddings included) — per note
+    /// open, per popover, per sync pass. The stamp is the file's modification time + size + file
+    /// number (an atomic write lands a new file), so a write by anything — this store, the sync, a
+    /// second process — is seen on the next read.
+    private struct FileStamp: Equatable {
+        let modified: Date?
+        let size: UInt64?
+        let fileNumber: UInt?
+    }
+    private var memo: (stamp: FileStamp, value: NamesData)?
+    /// How many times `names.json` was read and decoded from disk (tests read this).
+    private(set) var diskDecodes = 0
+
+    private static func stamp(of url: URL) -> FileStamp? {
+        guard let a = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
+        return FileStamp(modified: a[.modificationDate] as? Date,
+                         size: (a[.size] as? NSNumber)?.uint64Value,
+                         fileNumber: (a[.systemFileNumber] as? NSNumber)?.uintValue)
+    }
+
     init(fileURL: URL = AppPaths.namesFile) {
         self.fileURL = fileURL
         let e = JSONEncoder()
@@ -44,11 +65,17 @@ final class NamesStore {
 
     /// MUST be called with `lock` already held.
     private func unlockedLoad() -> NamesData {
+        if let stamp = Self.stamp(of: fileURL), let memo, memo.stamp == stamp { return memo.value }
         let outcome = SafeJSONStore.load(NamesData.self, from: fileURL, decoder: decoder)
+        diskDecodes += 1
         if let value = outcome.value {
             lastGood = value
+            // Stamp AFTER the read, so a write that landed in between is never remembered
+            // under the older stamp.
+            memo = Self.stamp(of: fileURL).map { ($0, value) }
             return value
         }
+        memo = nil
         if outcome.wasCorrupt, let cached = lastGood {
             return cached
         }
@@ -84,8 +111,11 @@ final class NamesStore {
             lastModifiedAt: NamesMerge.topLevelTimestamp(data.people),
             people: NamesMerge.sortPeople(data.people)
         )
+        let before = Self.stamp(of: fileURL)
         SafeJSONStore.write(out, to: fileURL, encoder: encoder)
         lastGood = out
+        // Warm the memo only when the write really landed (a failed write leaves the old stamp).
+        if let after = Self.stamp(of: fileURL), after != before { memo = (after, out) } else { memo = nil }
         return out
     }
 

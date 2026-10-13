@@ -41,7 +41,7 @@ struct NoteBody: View {
     var splitting: Bool = false
 
     private static let bodyFont = Font.system(size: 16)
-    @State private var trackCache = KaraokeTrackCache()
+    @State private var karaokeCache = MacKaraokeCache()   // Q362: the word map per note version, not per 20 Hz tick
     private static let bodyLineSpacing: CGFloat = 6
 
     /// The real loaded duration when available (locally-ingested audio has no phone
@@ -163,7 +163,7 @@ struct NoteBody: View {
             tagCandidates: karaokeActive ? { [] } : tagCandidates,
             onInlineTag: onInlineTag,
             karaoke: karaokeActive ? karaokePlayback : nil,
-            quoteAttribution: file.bookCapture?.attribution,
+            quoteAttribution: karaokeCache.attribution(metadata: file.audioMetadataJSON) { file.bookCapture?.attribution },
             searchJumpToken: searchJumpToken,
             focusToken: focusToken,
             readOnly: editState == .reading,
@@ -198,9 +198,10 @@ struct NoteBody: View {
     /// word count differ from the timings. The track is cached per body: it is re-aligned
     /// only when the words change, never on the 20 Hz playback tick.
     private var karaokePlayback: BodyTextView.KaraokePlayback {
-        let displayedWords = file.bestBodyText.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        let track = trackCache.track(displayedWords: displayedWords, timings: file.wordTimings,
-                                     duration: effectiveDuration)
+        // Q362 (M5): split + timings decode + align happen once per note version; a tick is a key compare.
+        let track = karaokeCache.playback(fileID: file.id, body: file.bestBodyText,
+                                          timingsJSON: file.wordTimingsJSON, loadedDuration: audio.duration,
+                                          fallbackDuration: { file.durationSeconds }).track
         return .init(active: track.activeIndex(at: audio.currentTime)) { wordIndex in
             guard let t = track.seekTime(forWord: wordIndex) else { return }
             audio.seek(to: t)

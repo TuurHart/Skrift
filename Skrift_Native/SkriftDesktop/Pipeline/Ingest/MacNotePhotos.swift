@@ -27,14 +27,47 @@ enum MacNotePhotos {
     /// Lenient on purpose: a manifest written by an older ingest may lack `offsetSeconds`, and
     /// `NoteBody` has always read it key by key, so a strict decode would blank old photos.
     static func manifest(in folder: URL) -> [ImageManifestEntry] {
-        guard let data = try? Data(contentsOf: folder.appendingPathComponent(manifestName)),
+        // Q362 (M12): a note with N photos asked for the manifest N times per open (once per marker);
+        // read and parse it once until the file changes (modification time + size + file number).
+        let url = folder.appendingPathComponent(manifestName)
+        let stamp = (try? FileManager.default.attributesOfItem(atPath: url.path)).map {
+            ManifestStamp(modified: $0[.modificationDate] as? Date,
+                          size: ($0[.size] as? NSNumber)?.uint64Value,
+                          fileNumber: ($0[.systemFileNumber] as? NSNumber)?.uintValue)
+        }
+        if let stamp, let hit = manifestMemo.get(url.path, stamp) { return hit }
+        guard let data = try? Data(contentsOf: url),
               let arr = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] else { return [] }
-        return arr.map { item in      // keeps positions: marker N is the Nth entry
+        let entries = arr.map { item in      // keeps positions: marker N is the Nth entry
             ImageManifestEntry(filename: (item["filename"] as? String) ?? "",
                                offsetSeconds: (item["offsetSeconds"] as? Double) ?? 0,
                                text: item["text"] as? String)
         }
+        if let stamp { manifestMemo.put(url.path, stamp, entries) }
+        return entries
     }
+
+    private struct ManifestStamp: Equatable {
+        let modified: Date?
+        let size: UInt64?
+        let fileNumber: UInt?
+    }
+
+    private final class ManifestMemo: @unchecked Sendable {
+        private let lock = NSLock()
+        private var entries: [String: (stamp: ManifestStamp, value: [ImageManifestEntry])] = [:]
+        func get(_ path: String, _ stamp: ManifestStamp) -> [ImageManifestEntry]? {
+            lock.lock(); defer { lock.unlock() }
+            guard let e = entries[path], e.stamp == stamp else { return nil }
+            return e.value
+        }
+        func put(_ path: String, _ stamp: ManifestStamp, _ value: [ImageManifestEntry]) {
+            lock.lock(); defer { lock.unlock() }
+            if entries.count > 64 { entries.removeAll() }   // a working set of recently opened notes, not a library
+            entries[path] = (stamp, value)
+        }
+    }
+    private static let manifestMemo = ManifestMemo()
 
     static func imagesFolder(in folder: URL) -> URL {
         folder.appendingPathComponent("images", isDirectory: true)
