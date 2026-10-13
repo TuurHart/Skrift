@@ -2917,7 +2917,7 @@ gate+: yes
 do: The shared destination control (Shared/UI/DestinationRowView.swift + the Shared NoteRatingRow trailing slot, Q386) becomes a tap pill: one tap flips Personal ⇄ Portfolio in place, same look and hit area as NoteRatingPill (Q85), no Menu/dropdown/sheet, no list re-layout while choosing. Writes the same synced field as today (NoteDestination; Portfolio keeps its folder/_inbox rules, D189). One shared view for phone, iPad, Mac, quick note and share sheet; delete the menu code (remove means delete). Tests: Mac `DestinationPillTests` in SkriftDesktopTests (tap flips value; no menu path left). Phone + Mac shots of the header before/after into plan/reads/destination-pill/. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/destination-pill/*.png | wc -l) -ge 2 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DestinationPillTests.swift`
 
-### Q396 [auto] (todo) file card kind label: one extension→label table in Shared (same words on phone and Mac)
+### Q396 [auto] (doing) file card kind label: one extension→label table in Shared (same words on phone and Mac)
 spec: D202 C239
 needs: Q392
 gate+: yes
@@ -4311,3 +4311,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:42 Q397 -> doing — worker out
 - 2026-10-13 22:43 Q393 -> done — gate skipped, no code: path touched @fdd6ec41
 - 2026-10-13 22:50 Q395 -> done — gate 52s @e5e0d1ca
+- 2026-10-13 22:51 Q396 -> doing — worker out
