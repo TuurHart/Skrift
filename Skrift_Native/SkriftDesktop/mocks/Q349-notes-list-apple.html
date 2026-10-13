@@ -104,8 +104,8 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
    and, for the Mac column, Apple's Notes for Mac guide image. Measured: 44 pt glass circles at 16 pt;
    large title ~36 bold; count line ~17 gray; group header ~21 bold; card inset 16, radius ~26;
    row 60 pt, text 28 pt inside the card; title ~19 semibold, line 2 ~17 gray (time AND preview gray);
-   hairline from the text edge to 16 pt short of the card edge; search pill 48 pt + 49 pt compose circle
-   floating at the bottom. No toolbar, no folder line inside a single folder. */
+   hairline from the text edge to 16 pt short of the card edge; in All iCloud (IMG_0447, layout only) a 3rd line = folder glyph + folder name, rows ~80 pt, 56 pt thumbnail; search pill 48 pt + 49 pt compose circle
+   floating at the bottom. No toolbar. Inside one folder (IMG_0444) the folder line drops. */
 .ref{background:var(--ref-bg);color:var(--ref-text)}
 .ref .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 0;height:58px}
 .ref .glass{height:44px;min-width:44px;border-radius:22px;background:var(--ref-glass);box-shadow:0 0 0 .5px var(--ref-rim),0 2px 8px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;color:var(--ref-text)}
@@ -122,8 +122,9 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .ref .t{font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .ref .l2{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;color:var(--ref-dim);margin-top:1px}
 .ref .l2 b{font-weight:400;color:var(--ref-dim);margin-right:8px;font-variant-numeric:tabular-nums}
-.ref .l3{display:none}
-.ref .th{width:40px;height:40px;border-radius:8px;flex:none}
+.ref .l3{font-size:17px;color:var(--ref-dim);display:flex;gap:5px;align-items:center;line-height:1.25;margin-top:1px}
+.ref .l3 svg{width:17px;height:17px}
+.ref .th{width:56px;height:56px;border-radius:9px;flex:none}
 .ref .dock{position:absolute;left:0;right:0;bottom:0;height:104px;display:flex;align-items:flex-end;gap:10px;padding:0 27px 24px;
   background:linear-gradient(to bottom,transparent,var(--ref-bg) 55%);pointer-events:none}
 .ref .dock > *{pointer-events:auto}
@@ -138,6 +139,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
    format tools live over the note pane). Group header ~14 bold; rows ~58 pt, 28 pt left gutter,
    title 13 bold, line 2 date + preview 12 gray, line 3 folder glyph + folder 12 gray; selection =
    a rounded yellow fill inset 7 pt; 44 pt thumbnail right. */
+.ref.macref{background:var(--ref-card)}
 .ref.macref .mh{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 12px 4px 20px;flex:none}
 .ref.macref .mh b{display:block;font-size:13px}
 .ref.macref .mh span{display:block;font-size:11px;color:var(--ref-dim);margin-top:2px}
@@ -154,6 +156,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .ref.macref .l2 b{margin-right:7px}
 .ref.macref .l3{font-size:12px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:1.35}
 .ref.macref .th{width:44px;height:44px;border-radius:4px}
+.ref.macref .l3 svg{width:13px;height:13px}
 .ref.macref .foot{height:24px}
 
 /* ── SKRIFT shared chrome (from source) ───────── */
@@ -547,7 +550,7 @@ function refPhone(){
     <div class="status"><span>09:41</span><i></i><span class="r"></span></div>
     <div class="scroll">
       <div class="nav"><button class="glass" data-ack="Back to Folders (reference only)" aria-label="Back">${RI.chev}</button><span class="glass pair"><button data-ack="Share folder (reference only)" aria-label="Share">${RI.share}</button><button data-ack="Folder menu: gallery, sort, group by date (reference only)" aria-label="More">${I.dots}</button></span></div>
-      <h3>Notes</h3>
+      <h3>All iCloud</h3>
       <div class="count">${NOTES.length} Notes</div>
       ${groups.map(g => `<div class="gh">${g.title}</div><div class="group">${g.notes.map(n => refRow(n,false)).join('')}</div>`).join('') || '<div class="empty">No results</div>'}
       <div class="foot"></div>
