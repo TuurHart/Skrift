@@ -8,89 +8,15 @@ import Foundation
 ///
 /// Foundation only, so the host-less unit bundle compiles it (`MacEditorFormattingTests`).
 enum MacEditorFormatting {
-    enum Command: CaseIterable, Hashable {
-        case bold, italic, underline, strikethrough, highlight
-        case title, heading, subheading, body, monostyled
-        case bulletList, dashedList, numberedList
-        case blockQuote
-        case checklist
-
-        var title: String {
-            switch self {
-            case .bold: return "Bold"
-            case .italic: return "Italic"
-            case .underline: return "Underline"
-            case .strikethrough: return "Strikethrough"
-            case .highlight: return "Highlight"
-            case .title: return "Title"
-            case .heading: return "Heading"
-            case .subheading: return "Subheading"
-            case .body: return "Body"
-            case .monostyled: return "Monostyled"
-            case .bulletList: return "Bulleted List"
-            case .dashedList: return "Dashed List"
-            case .numberedList: return "Numbered List"
-            case .blockQuote: return "Block Quote"
-            case .checklist: return "Checklist"
-            }
-        }
-
-        /// Apple Notes' chords; Q126's ⇧⌘L checklist stays. Highlight has none.
-        var chord: AppShortcuts.Chord? {
-            let c: (String) -> AppShortcuts.Chord = { .init(key: $0, modifiers: [.command]) }
-            let sc: (String) -> AppShortcuts.Chord = { .init(key: $0, modifiers: [.command, .shift]) }
-            switch self {
-            case .bold: return c("b")
-            case .italic: return c("i")
-            case .underline: return c("u")
-            case .strikethrough: return sc("x")
-            case .highlight: return nil
-            case .title: return sc("t")
-            case .heading: return sc("h")
-            case .subheading: return sc("j")
-            case .body: return sc("b")
-            case .monostyled: return sc("m")
-            case .bulletList: return sc("7")
-            case .dashedList: return sc("8")
-            case .numberedList: return sc("9")
-            case .blockQuote: return c("'")
-            case .checklist: return sc("l")
-            }
-        }
-
-        var mark: BodyFormat.InlineMark? {
-            switch self {
-            case .bold: return .bold
-            case .italic: return .italic
-            case .underline: return .underline
-            case .strikethrough: return .strike
-            case .highlight: return .highlight
-            default: return nil
-            }
-        }
-
-        var lineStyle: BodyFormat.LineStyle? {
-            switch self {
-            case .title: return .title
-            case .heading: return .heading
-            case .subheading: return .subheading
-            case .body: return .body
-            case .bulletList: return .bullet
-            case .dashedList: return .dashed
-            case .numberedList: return .numbered
-            case .blockQuote: return .quote
-            case .checklist: return .checklist
-            default: return nil
-            }
-        }
-    }
+    /// The command set lives in Shared (`FormatCommand`, Q379): the iPad's Aa reads the same list.
+    typealias Command = FormatCommand
 
     /// The Aa popover, Apple Notes' order (Tuur 2026-10-13): B I U S | highlight; the styles
     /// (Body checked when current); the lists; a divider; Block Quote.
-    static let popoverMarks: [Command] = [.bold, .italic, .underline, .strikethrough, .highlight]
-    static let popoverStyles: [Command] = [.title, .heading, .subheading, .body, .monostyled]
-    static let popoverLists: [Command] = [.bulletList, .dashedList, .numberedList]
-    static let popoverTail: [Command] = [.blockQuote]
+    static let popoverMarks: [Command] = FormatCommand.aaMarks
+    static let popoverStyles: [Command] = FormatCommand.aaStyles
+    static let popoverLists: [Command] = FormatCommand.aaLists
+    static let popoverTail: [Command] = FormatCommand.aaTail
 
     /// Which style row is checked for the caret's line.
     static func checkedStyle(_ style: BodyFormat.LineStyle, inFence: Bool) -> Command {

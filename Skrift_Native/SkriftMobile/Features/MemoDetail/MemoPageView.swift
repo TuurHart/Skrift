@@ -16,6 +16,7 @@ struct MemoPageView: View {
     /// (`MemoDetailView.showConnections`), so the inline footer omits related/backlinks and
     /// the body caps to the reading measure.
     @Environment(\.horizontalSizeClass) var hSize
+    @Environment(\.ipadPaneWidth) var ipadPaneWidth   // Q379
     let repository = NotesRepository.shared
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
     /// touch check (backlinked notes never fade).
@@ -499,7 +500,9 @@ struct MemoPageView: View {
                 proxy: bodyProxy,
                 // iPad regular width: size inline images to the 640 reading column,
                 // not the full screen (the note column is reading-measure-capped).
-                readingWidthCap: hSize == .regular ? Adaptive.readingMaxWidth : nil
+                // Q379: at regular width the note runs the full pane (D198) — the workbench
+                // measures it (`ipadPaneWidth`); the 640 cap is only the first-frame fallback.
+                readingWidthCap: hSize == .regular ? (ipadPaneWidth ?? Adaptive.readingMaxWidth) : nil
             )
         }
     }

@@ -46,15 +46,20 @@ struct AppTabView: View {
     /// `-showTextSheet` / `-showTextPrompt` screenshot hooks (unified "Text" sheet + A0).
     @State private var showSeededText = false
     @State private var showSeededTextPrompt = false
+    /// Q379 tabs option A: at regular width the tabs are `IPadTabControl` at the top of the list
+    /// column and the system tab bar is hidden (`ipadTabChrome`).
+    @Environment(\.horizontalSizeClass) private var hSize
 
     var body: some View {
         TabView(selection: $selection) {
             MemosListView()
+                .ipadTabChrome(hSize, hostsOwnRow: true)
                 .feedbackScreen("Notes")   // Q299: newest visible tag wins (a pushed note/sheet)
                 .tabItem { Label(SharedCopy.notesTitle, systemImage: "note.text") }
                 .tag(Tab.notes)
 
             AudiobookLibraryView()
+                .ipadTabChrome(hSize, hostsOwnRow: false)
                 // Still "Books": FeedbackQ341ScreenTagUITests asserts it (a protected test); rename
                 // together with that test at the next hand-merge.
                 .feedbackScreen("Books")
@@ -62,6 +67,7 @@ struct AppTabView: View {
                 .tag(Tab.books)
 
             JournalHomeView()
+                .ipadTabChrome(hSize, hostsOwnRow: false)
                 .feedbackScreen(SharedCopy.reviewTitle)
                 // Display name = SharedCopy.reviewTitle (Tuur, 2026-07-07) — internal
                 // ids stay `journal` (the `-openTab journal` flag + file names are
@@ -70,6 +76,7 @@ struct AppTabView: View {
                 .tag(Tab.journal)
 
             SettingsView()
+                .ipadTabChrome(hSize, hostsOwnRow: false)
                 .feedbackScreen("Settings")
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Tab.settings)
@@ -82,6 +89,7 @@ struct AppTabView: View {
         // mode duplicated four tabs into a whole column — "weird and
         // unnecessary. just keep it up top."
         .tabViewStyle(.tabBarOnly)
+        .environment(\.ipadTab, IPadTabContext(current: selection, select: { selection = $0 }))
         // Let the app-level keyboard shortcuts switch tabs (⌘1–⌘4, and the
         // tab-focus half of ⌘N/⌘F). One-shot: consume + clear.
         .onChange(of: tabBridge.requestedTab) { _, tab in

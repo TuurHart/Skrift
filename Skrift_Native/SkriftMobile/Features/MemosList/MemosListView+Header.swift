@@ -13,30 +13,40 @@ extension MemosListView {
     /// D136 second pass: the iPad-regular identity row is now JUST the title +
     /// Select — the verb row, Process and the chips all moved out into
     /// `notesRoot` so the phone can share them at compact width too.
+    /// Q379 (mock Q378, Apple's list header): "Notes" over the note count, Select as a glass
+    /// capsule — one 60 pt line under the tab row.
     var macStyleHeader: some View {
-        HStack(spacing: 8) {
-            // 22pt, hugging the top — "the notes title can be bigger, move
-            // the whole notes bit up" (Tuur, live round b130).
-            Text(SharedCopy.notesTitle)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(Color.skText)
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(SharedCopy.notesTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                Text("\(memos.count) notes")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.skTextDim)
+                    .accessibilityIdentifier("ipad-notes-count")
+            }
+            .lineLimit(1)
             Spacer(minLength: 0)
-            Button(editMode.isEditing ? "Done" : "Select") {
+            Button {
                 withAnimation(Theme.Motion.snappy) {
                     if editMode.isEditing { editMode = .inactive; selected.removeAll() }
                     else { editMode = .active }
                 }
+            } label: {
+                Text(editMode.isEditing ? "Done" : "Select")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                    .padding(.horizontal, 16)
+                    .frame(height: IPadLayout.glassHeight)
+                    .ipadGlass(in: Capsule())
             }
-            .font(.system(size: 13))
-            .tint(.skAccent)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("select-button")
         }
-        // Clear the screen-pinned ◧ (14 + 30) and sit on the same 48pt line
-        // as the note's chrome bar, so the button reads as belonging to this
-        // header while the list is open (signed mock ipad-note-chrome-belongs).
-        .padding(.leading, 34)
-        .frame(height: 48)
-        .padding(.horizontal, 14)
+        .padding(.leading, 16)
+        .padding(.trailing, IPadLayout.tabRowTrailing)
+        .frame(height: IPadLayout.rowHeight)
     }
 
     /// The Mac sidebar's verb row, ported whole and now shared by the PHONE too

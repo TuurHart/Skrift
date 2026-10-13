@@ -50,9 +50,6 @@ extension View {
 extension BarGlassStyle {
     static let phone = BarGlassStyle(onFill: .skAccentSoft, offFill: .skElev, border: .skBorder)
 }
-extension PanelToggleStyle {
-    static let phone = PanelToggleStyle(glass: .phone, onText: .skAccentText, offText: .skTextDim)
-}
 extension SharedTextQuoteStyle {
     static let phone = SharedTextQuoteStyle(text: .skText, bar: Color.skAccent.opacity(0.6))
 }
@@ -69,26 +66,5 @@ extension ChipRowStyle {
         // The compact picker ignores `.font`; shrink it to chip scale and give the layout the
         // shrunk size (scaleEffect alone keeps the big frame).
         AnyView(picker.fixedSize().scaleEffect(0.82).frame(width: 108, height: 26))
-    }
-}
-
-/// The workbench's one panel toggle — the pinned ◧ (signed mock
-/// ipad-note-chrome-belongs.html): a plain system sidebar glyph in an
-/// iPadOS-26 glass chip, accent-soft while the list is open, quiet while it's
-/// hidden. Screen-pinned by its host so it never appears to move as the
-/// surface beneath it changes.
-struct PanelToggle: View {
-    let icon: String
-    let on: Bool
-    let label: String
-    let id: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            PanelToggleLabel(icon: icon, on: on, style: .phone)
-        }
-        .accessibilityIdentifier(id)
-        .accessibilityLabel(label)
     }
 }

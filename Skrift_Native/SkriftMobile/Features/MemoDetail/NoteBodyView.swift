@@ -158,6 +158,7 @@ struct NoteBodyView: UIViewRepresentable {
 
         tv.setAccessories(header: header, footer: footer)
         tv.setAccessibilityHidden(a11yHidden)
+        c.setKeyboardBarHidden(context.environment.horizontalSizeClass == .regular)   // Q379
         // The page on screen owns the top bar's undo / redo / Done and the ⋯ menu's Find.
         if !a11yHidden, NoteEditorChrome.shared.current !== c { NoteEditorChrome.shared.current = c }
 
@@ -678,6 +679,43 @@ struct NoteBodyView: UIViewRepresentable {
             formatHost = nil
             tv.reloadInputViews()
             accessory?.setFormatOpen(false)
+        }
+
+        // MARK: iPad top bar (Q379, mock Q378): the workbench toolbar runs the keyboard bar's verbs
+
+        /// At regular width the tools sit in the note's top bar, so the keyboard bar stays away.
+        func setKeyboardBarHidden(_ hidden: Bool) {
+            guard let tv = textView else { return }
+            let want: UIView? = hidden ? nil : accessory
+            guard tv.inputAccessoryView !== want else { return }
+            tv.inputAccessoryView = want
+            if tv.isFirstResponder { tv.reloadInputViews() }
+        }
+
+        /// The toolbar's note link: the same picker the typed "[[" opens; the chip lands at the caret.
+        func requestMemoLinkAtCaret() {
+            pendingLinkTrigger = nil
+            onRequestMemoLink()
+        }
+
+        /// Aa ▸ Monostyled (D197): inline code on a one-line selection, else a fenced block —
+        /// the shared rule, applied through the text input system so it lands on the undo stack.
+        func applyMonostyled() {
+            guard let tv = textView, currentMode == .editing else { return }
+            let r = BodyFormat.monostyled(in: tv.textStorage.string, selection: tv.selectedRange)
+            tv.undoManager?.beginUndoGrouping()
+            for e in r.edits.reversed() {
+                guard let start = tv.position(from: tv.beginningOfDocument, offset: e.range.location),
+                      let end = tv.position(from: start, offset: e.range.length),
+                      let range = tv.textRange(from: start, to: end) else { continue }
+                tv.replace(range, withText: e.replacement)
+            }
+            tv.undoManager?.endUndoGrouping()
+            let len = tv.textStorage.length
+            let loc = min(r.selection.location, len)
+            tv.selectedRange = NSRange(location: loc, length: min(r.selection.length, len - loc))
+            applyMarkdownStyling(around: tv.selectedRange)
+            refreshAccessory()
         }
 
         /// The caret line's raw Markdown (tasks as `- [ ]`), its storage range (no newline),
