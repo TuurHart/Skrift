@@ -2643,10 +2643,10 @@ check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 spec: D90 D127 D138 D177 C229
 needs: Q353 Q354
 gate+: yes
-do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
+do: Per the Q6 mock screens "A capture note" and "A note with a PDF" and D138: "Send to a note" (⋯ and long-press on a tile) keeps the source on the shelf and opens a new note holding a link card that jumps back to it; "Move to Library" on a note with a PDF moves the PDF to the shelf and keeps his words as a linked note. The audiobook jump-back (`AudiobookSession.beginJumpBack(to:)`, Q151/Q273) also works from PDF capture notes (to the page) and podcast capture notes (to the time), not moving the source's own place (D177, absorbs Q297). Keep the '❝ N' capsule. Also from Q352: the Q6 mock's type-filter chips on the shelf (one per kind present), and the cover drawn as the mock draws it (title + author on the cover). Phone tests `LibraryHatchTests` + `JumpBackNonBookTests`. FEATURES.md rows.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchTests && perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests`
 
-### Q357 [auto] (doing) delete the Continue-listening card and its code
+### Q357 [auto] (done) delete the Continue-listening card and its code
 spec: D190
 needs: -
 gate+: no
@@ -3971,3 +3971,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:22 Q350 -> tuur — built @03123eb9, gate 32s — awaiting sitting
 - 2026-10-13 10:27 Q365 -> doing — worker out
 - 2026-10-13 10:33 Q352 -> done — gate 78s @1f68eade
+- 2026-10-13 10:33 Q357 -> done — gate pass (batched with Q352); ContinueListening grep clean
