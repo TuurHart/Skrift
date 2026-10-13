@@ -2632,7 +2632,7 @@ gate+: yes
 do: Per D126 and the Q6 mock screens "Share a PDF from Mail" and "PDF reader": a PDF shared from another app becomes a Library source (kind `pdf`) with the toast "Added to Library · add to a note instead" (the second half turns it into a note attachment as today); the "+" inside a note still attaches a PDF to that note. A PDFKit reader with text selection opens from the tile and keeps the page; selecting text → "Add note" opens the capture (quote + his voice); the note carries source + page for the jump-back and exports `— *Title*, p. N` (D138). Phone test `LibraryPDFTests` (share routing, page persisted, capture carries page). Screenshots of toast + reader, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryPDFTests`
 
-### Q355 [auto] (doing) Library: articles from a shared link, reader mode, highlight to Add note
+### Q355 [auto] (done) Library: articles from a shared link, reader mode, highlight to Add note
 spec: D90 D138 C229
 needs: Q351 Q352
 gate+: yes
@@ -4103,3 +4103,4 @@ check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl 
 - 2026-10-13 15:03 Q378 -> doing — mockup revision out
 - 2026-10-13 15:03 Q377 -> done — hand-merged (Tuur D197 2026-10-13: Yesterday group — ListGroupingTests assertions follow the decided behaviour)
 - 2026-10-13 15:10 Q381 added
+- 2026-10-13 15:15 Q355 -> done — hand-merged (D163/Q371 pattern: LibraryShelfTests asserts the built article door; conductor resolved the Q371 conflict)
