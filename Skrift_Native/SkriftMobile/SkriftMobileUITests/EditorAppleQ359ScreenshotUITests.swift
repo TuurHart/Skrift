@@ -39,14 +39,15 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-1-reading")
 
-        // dy 0.62 landed on the People footer (run 1); 0.40 is the name-free "commonplace" line.
-        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.40)).tap()
+        // The editor element spans more than the body, so tap by SCREEN position: in the
+        // seeded note the word "commonplace" sits at ~(0.3, 0.425) of the screen.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.425)).tap()
         XCTAssertTrue(app.buttons["accessory-done"].waitForExistence(timeout: 5), "top-bar Done missing")
         XCTAssertTrue(app.buttons["accessory-format"].exists, "Aa missing from the keyboard bar")
         capture(app, "phone-2-typing")
 
         // Selection: double-tap a word → the edit menu (Cut Copy Paste · B I U S · New person…).
-        editor.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.40)).doubleTap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.425)).doubleTap()
         capture(app, "phone-3-selection")
 
         // Aa: the Format panel replaces the keyboard; Heading on the caret line, Bold on the word.
@@ -67,8 +68,9 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         let editor = app.textViews["transcript-editor"]
         XCTAssertTrue(editor.waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-5-photo-before")
-        let photo = editor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
-        photo.press(forDuration: 0.8, thenDragTo: editor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)))
+        // The photo sits at ~0.485 of the screen height; drag it above its sentence (~0.33).
+        let app0 = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.485))
+        app0.press(forDuration: 1.0, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.31)))
         capture(app, "phone-5-photo-after")
     }
 

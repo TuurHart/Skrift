@@ -304,9 +304,12 @@ struct MemoPageView: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             // The invisible Text sizes the field to the title's own width, so the ✦ sits right
             // after the last word (mock Q350) instead of at the far edge.
-            (titleBinding.wrappedValue.isEmpty ? titlePrompt : Text(titleBinding.wrappedValue))
+            // (An empty title shows its ghost prompt on ONE line, full width: the field
+            // truncates a placeholder, so a two-line sizer left a blank gap under it.)
+            Text(titleBinding.wrappedValue.isEmpty ? " " : titleBinding.wrappedValue)
                 .font(.system(size: 22, weight: .bold))
                 .lineLimit(4)
+                .frame(maxWidth: titleBinding.wrappedValue.isEmpty ? .infinity : nil, alignment: .leading)
                 .opacity(0)
                 .overlay(alignment: .topLeading) {
                     TextField("", text: Binding(
