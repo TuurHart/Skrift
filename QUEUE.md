@@ -2847,7 +2847,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html` (signed). Body v2 gets block markers for a video and a file like `[[img_NNN]]` (Shared, one rule both apps); they sync as MemoAsset kinds (`video` exists since Q287; add `file` with original name + UTI) — no new CloudKit record type; list any new synced field for the release's schema step (Q366 RELEASE.md). Attach menu items (Take/Choose Photo or Video, Attach File) insert them on phone/iPad; Mac adds them by drop/paste/Insert like photos (Q325). Export copies the file beside the note and links it (`![[file]]`), same ledger/ExportSession path as photos (Q365). Tests: phone `NoteAttachmentTests`, Mac `NoteAttachmentExportTests`. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
-### Q386 [auto] (doing) dead-code sweep part 2: triage the Periphery scans, one shared note header row, SourceKind label twins
+### Q386 [auto] (done) dead-code sweep part 2: triage the Periphery scans, one shared note header row, SourceKind label twins
 spec: -
 needs: Q380
 gate+: yes
@@ -4158,3 +4158,4 @@ check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 - 2026-10-13 16:34 Q386 added
 - 2026-10-13 16:37 Q380 -> done — hand-merged (D163 blanket: protected tests only deleted with the chip/quiet code or call sites ported)
 - 2026-10-13 16:38 Q386 -> doing — worker out
+- 2026-10-13 17:10 Q386 -> done — gate 58s @87984fff
