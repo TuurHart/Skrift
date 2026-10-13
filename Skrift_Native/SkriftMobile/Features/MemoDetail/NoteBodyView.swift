@@ -800,6 +800,7 @@ struct NoteBodyView: UIViewRepresentable {
                 storage.removeAttribute(Self.mdKey, range: r)
                 storage.removeAttribute(.strikethroughStyle, range: r)
                 storage.removeAttribute(.underlineStyle, range: r)
+                storage.removeAttribute(.backgroundColor, range: r)
                 if !painting { storage.addAttribute(.foregroundColor, value: text, range: r) }
             }
             storage.enumerateAttribute(.attachment, in: target) { a, r, _ in
@@ -813,8 +814,10 @@ struct NoteBodyView: UIViewRepresentable {
                 storage.addAttributes([.foregroundColor: markColor, .font: base, Self.mdKey: true], range: shift(r))
             }
             for h in BodyMarkdown.headings(in: sub) {
-                storage.addAttribute(.font, value: h.level == 1 ? Coordinator.titleFont() : Coordinator.headingFont(),
-                                     range: shift(h.text))
+                let f = h.level == 1 ? Coordinator.titleFont()
+                    : h.level == 2 ? Coordinator.headingFont()
+                    : UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16.5, weight: .semibold))
+                storage.addAttribute(.font, value: f, range: shift(h.text))
                 dim(NSRange(location: h.marks.location, length: h.marks.length + 1))
             }
             for s in BodyFormat.inlineMarks(in: sub) {
@@ -834,6 +837,13 @@ struct NoteBodyView: UIViewRepresentable {
                     storage.addAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
                 case .strike:
                     storage.addAttributes([.strikethroughStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
+                case .highlight:
+                    // Written on the Mac (Q360); the phone shows it, its Aa set stays D115's.
+                    storage.addAttributes([.backgroundColor: UIColor(Color.skAmber).withAlphaComponent(0.22),
+                                           Self.mdKey: true], range: c)
+                case .code:
+                    storage.addAttributes([.font: UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular),
+                                           Self.mdKey: true], range: c)
                 }
                 dim(s.open)
                 dim(s.close)

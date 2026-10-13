@@ -132,7 +132,10 @@ final class EditorFormattingTests: XCTestCase {
     func testCheckedTasksReadAsChecklist() {
         XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "- [x] done"), .checklist)
         XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "plain"), .body)
-        XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "### deep"), .heading)
+        XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "## two"), .heading)
+        // D197 (Q360's mapping, shared): `### ` and deeper is a Subheading; `* ` is Dashed.
+        XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "### deep"), .subheading)
+        XCTAssertEqual(BodyFormat.lineStyle(at: 2, in: "* dash"), .dashed)
     }
 
     // MARK: D112: move a photo between paragraphs
