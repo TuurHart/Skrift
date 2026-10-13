@@ -282,7 +282,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .ref.phone{border:1.5px dashed var(--pg-faint)}
 .ref.mac{border:1.5px dashed var(--pg-faint)}
 .rstamp{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--r-dim);border:1px dashed var(--r-dim);border-radius:4px;padding:1px 6px;white-space:nowrap;z-index:9;background:var(--r-bg)}
-.mac .rstamp{top:12px}
+.mac .rstamp{top:auto;bottom:10px}
 .rg{height:44px;min-width:44px;border-radius:22px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 8px rgba(0,0,0,.07);display:inline-flex;align-items:center;justify-content:center;color:var(--r-black);flex:none}
 .rg.pair{width:100px;justify-content:space-around;padding:0 4px}
 .rg.ok{background:var(--r-acc);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -343,7 +343,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .rmac-side .tl{display:flex;gap:7px;padding:2px 4px 18px;align-items:center}
 .rmac-side .tl i{width:12px;height:12px;border-radius:50%;display:block}
 .rmac-side .tl .sp{flex:1}
-.rmac-side .tl b{color:#666;font-weight:400;font-size:15px}
+.rmac-side .tl b{color:#666;display:flex}
+.rmac-side span.it svg{flex:none;color:#222}
+.rmac-side .on svg{color:var(--mg)}
 .rmac-side span.it{padding:5px 6px;display:flex;gap:7px;align-items:center;border-radius:7px}
 .rmac-side span.it em{font-style:normal;color:#9a9a9e;margin-left:auto;font-size:12px}
 .rmac-side .hd{font-size:11px;font-weight:600;color:#8a8a8e;margin:10px 6px 2px}
@@ -384,7 +386,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .rpop .it.ck::before{content:"✓";position:absolute;left:9px;font-size:11px}
 .rpop hr{border:0;border-top:.5px solid #ddd;margin:4px 6px}
 .rctx{position:absolute;z-index:8;width:262px;background:var(--r-glass);backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 10px 28px rgba(0,0,0,.22);font-size:12px;color:#111;padding:5px}
-.rctx div{display:flex;justify-content:space-between;padding:1.5px 10px 1.5px 12px;line-height:16px;white-space:nowrap}
+.rctx div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:1px 10px 1px 12px;line-height:15px;white-space:nowrap}
 .rctx div.g{color:#aaa}
 .rctx div span{color:#9a9a9e}
 .rctx hr{border:0;border-top:.5px solid #ddd;margin:3px 8px}
@@ -809,9 +811,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   function refMac(){
     var st = S.mst;
     var FOLD = '<svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 2a1 1 0 011-1h3.5l1.3 1.5H13a1 1 0 011 1V10a1 1 0 01-1 1H2a1 1 0 01-1-1z"/></svg>';
-    var h = ['<div class="mac ref"><div class="rstamp">Reference · redrawn from Tuur&rsquo;s macOS screenshots</div>'];
-    h.push('<div class="rmac-side"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="sp"></span><b>⊞</b><b>▯</b></div>'+
-      '<span class="it">▣ Quick Notes<em>4</em></span><span class="it">◉ Shared<em>2</em></span><span class="hd">iCloud</span>'+
+    var h = ['<div class="mac ref"><div class="rstamp">Reference · Apple Notes · redrawn from Tuur&rsquo;s macOS screenshots</div>'];
+    h.push('<div class="rmac-side"><div class="tl"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="sp"></span><b><svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 3a1 1 0 011-1h4.2l1.5 1.8h7.3a1 1 0 011 1V13a1 1 0 01-1 1h-13a1 1 0 01-1-1z"/><circle cx="15.5" cy="4" r="3" fill="#f6f6f6"/><path d="M15.5 2.4v3.2M13.9 4h3.2" stroke-linecap="round"/></svg></b><b><svg width="20" height="16" viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="1.5" width="17" height="13" rx="2.5"/><path d="M7 1.5v13M3.5 4.5h1.8M3.5 7h1.8"/></svg></b></div>'+
+      '<span class="it"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1.5" width="13" height="12" rx="2"/><path d="M3.5 10l2-3 1.5 2 2-3.5 2.5 4.5" stroke-linejoin="round"/></svg>Quick Notes<em>4</em></span><span class="it"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7.5" cy="7.5" r="6.5"/><circle cx="7.5" cy="6" r="2.2"/><path d="M3.4 12.2c1-1.8 2.4-2.6 4.1-2.6s3.1.8 4.1 2.6"/></svg>Shared<em>2</em></span><span class="hd">iCloud</span>'+
       '<span class="it">'+FOLD+' All iCloud<em>35</em></span><span class="it">'+FOLD+' Notes<em>21</em></span><span class="it on">'+FOLD+' Workshop<em>3</em></span><span class="it">'+FOLD+' Ideas<em>11</em></span><span class="hd">Tags</span></div>');
     var lsel = st === "m-note" ? "on" : "blur";
     h.push('<div class="rmac-list"><div class="lh"><div><b>Workshop</b><small>3 notes</small></div><span class="rg">'+IC.dots+'</span></div>'+
@@ -822,9 +824,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       h.push('<div class="rnone" style="position:static;margin:60px 40px">No speaker turns here<br>The reference app has no audio or diarization. Skrift keeps its own (D193).</div>');
     } else {
       h.push('<div class="rmac-body"><div class="rdate" style="text-align:center">13 October 2026 at 14:29</div><div class="rt">Spindle clamp, 65 or 52</div><p style="margin:0 0 6px">So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p><div class="rh">Before drilling</div><div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div><div class="rchk"><i></i><span>Check runout with the dial gauge</span></div><p style="margin:8px 0 0">Ask Rui whether the <i>old</i> <span class="'+(st==="m-select"?"msel":"")+'">spindle</span> still fits the <s>52</s> mount.</p><div class="rphoto"></div></div>');
-      if (st === "m-note") h.push('<div class="rpop" style="left:146px;top:46px;width:176px"><div class="bius"><b>B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span style="color:#ccc">|</span><span>'+IC.pen+'</span><i style="width:8px;height:8px;border-radius:50%;background:#b44fd8;display:block"></i></div>'+
+      if (st === "m-note") h.push('<div class="rpop" style="left:146px;top:52px;width:176px"><div class="bius"><b>B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span style="color:#ccc">|</span><span>'+IC.pen+'</span><i style="width:8px;height:8px;border-radius:50%;background:#b44fd8;display:block"></i></div>'+
         '<div class="it" style="font-size:19px;font-weight:700">Title</div><div class="it" style="font-size:16px;font-weight:700">Heading</div><div class="it" style="font-weight:700">Subheading</div><div class="it ck">Body</div><div class="it" style="font-family:var(--mono);font-size:12px">Monostyled</div><div class="it">• Bulleted List</div><div class="it">– Dashed List</div><div class="it">1. Numbered List</div><hr><div class="it">| Block Quote</div></div>');
-      if (st === "m-select") h.push('<div class="rctx" style="left:150px;top:62px">'+
+      if (st === "m-select") h.push('<div class="rctx" style="left:240px;top:56px">'+
         '<div>Add Link…<span>⌘K</span></div><hr><div>Look Up “spindle”</div><div>Translate “spindle”</div><hr><div>Search With …</div><hr><div>Cut</div><div>Copy</div><div>Paste</div><hr><div>Paragraph Styles<span>›</span></div><hr><div>Checklist<span>⇧⌘L</span></div><div class="g">Mark as Ticked<span>⇧⌘U</span></div><hr><div>Record Audio…</div><div class="g">Show Highlights<span>⌃⌘I</span></div><hr><div>Add Table<span>⌥⌘T</span></div><hr><div class="g">Paste and Match Style</div><hr><div>Share…</div><hr><div>Font<span>›</span></div><hr><div>Show Writing Tools</div><div>Proofread</div><div>Rewrite</div><hr><div>Spelling and Grammar<span>›</span></div><div>Substitutions<span>›</span></div><div>Transformations<span>›</span></div><div>Speech<span>›</span></div><div>Layout Orientation<span>›</span></div><hr><div>AutoFill<span>›</span></div><div>Insert from iPhone or iPad<span>›</span></div><div>Services<span>›</span></div></div>');
     }
     h.push('</div></div>');
