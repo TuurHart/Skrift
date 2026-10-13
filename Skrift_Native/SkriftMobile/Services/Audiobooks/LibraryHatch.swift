@@ -51,7 +51,7 @@ enum LibraryHatch {
     // MARK: - The notes row under the player and the reader (mock `srcNotesRow`)
 
     static func notesRowTitle(count: Int, kind: LibrarySourceKind) -> String {
-        guard count > 0 else { return "No notes yet" }
+        guard count > 0 else { return SharedCopy.emptyLibraryTitle }   // the one "No notes yet"
         return "\(count) note\(count == 1 ? "" : "s") from this \(kindNoun(kind))"
     }
 
