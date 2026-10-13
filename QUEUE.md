@@ -2910,6 +2910,13 @@ gate+: no
 do: Same recipe as Q383 (findings Q374/Q383: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal). Bump CFBundleVersion to 189 in both project.yml files (188 is the Release build). Phone Debug → devicectl install com.skrift.mobile.dev, grep `Add to this note` in SkriftMobile.debug.dylib; Mac Debug → quit 'Skrift Dev' by exact name, ditto to /Applications/Skrift Dev.app, open, grep `Set All to Large` in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. Commit the bump.
 check: Tuur's phone and Mac run Dev 189 (worker reports both grep hits).
 
+### Q395 [auto] (doing) Personal/Portfolio pill: tap toggles in place like the rating pill, no menu (D204)
+spec: D204 D189
+needs: -
+gate+: yes
+do: The shared destination control (Shared/UI/DestinationRowView.swift + the Shared NoteRatingRow trailing slot, Q386) becomes a tap pill: one tap flips Personal ⇄ Portfolio in place, same look and hit area as NoteRatingPill (Q85), no Menu/dropdown/sheet, no list re-layout while choosing. Writes the same synced field as today (NoteDestination; Portfolio keeps its folder/_inbox rules, D189). One shared view for phone, iPad, Mac, quick note and share sheet; delete the menu code (remove means delete). Tests: Mac `DestinationPillTests` in SkriftDesktopTests (tap flips value; no menu path left). Phone + Mac shots of the header before/after into plan/reads/destination-pill/. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/destination-pill/*.png | wc -l) -ge 2 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DestinationPillTests.swift`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4248,3 +4255,5 @@ check: Tuur's phone and Mac run Dev 189 (worker reports both grep hits).
 - 2026-10-13 22:25 Q394 added
 - 2026-10-13 22:25 Q389 -> done — Tuur: Mac's newest phone note 25/26 Sep, phone newest 11 Oct; split ~when he moved to the iPhone 17 Pro → Q393 plans the merge
 - 2026-10-13 22:27 Q393 -> doing — worker out
+- 2026-10-13 22:27 Q395 added
+- 2026-10-13 22:29 Q395 -> doing — worker out
