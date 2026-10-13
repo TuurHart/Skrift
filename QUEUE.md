@@ -2786,6 +2786,13 @@ do: -
 check: Tuur used the Mac on Dev; slow spots became items.
 ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click through the list, search, open and play notes, type in a title and a body, switch apps and come back, run Process once. Anything still slow or behaving oddly?
 
+### Q377 [auto] (todo) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
+spec: D197 D190
+needs: -
+gate+: yes
+do: D197 on top of Q358's list (Shared/Model/MemoDate.swift `MemoDate.bucket`, Shared/UI/NotesListModel.swift, phone ListDerivedCache, Mac MacListDerivedCache): (1) add a Yesterday bucket between Today and Previous 7 Days (Europe/Lisbon calendar day); (2) sections group by the note's recorded date by default, or by its added date when the Recorded/Added date picker (Q105, C70) is on Added; within a section, newest of that same date first — an old note imported today lands in its real month. Same rule phone, iPad and Mac from the one shared bucket function. Extend ListGroupingTests (phone) and MacListWorkTests stays green (port only if needed, D163). Never run SkriftDesktopUITests.
+check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4057,3 +4064,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:18 Q359 -> doing — worker out
 - 2026-10-13 14:18 Q360 -> doing — worker out
 - 2026-10-13 14:22 Q358 -> done — hand-merged (D163 blanket: protected tests only ported or deleted with the code they covered)
+- 2026-10-13 14:23 Q377 added
