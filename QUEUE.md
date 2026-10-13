@@ -2786,7 +2786,7 @@ do: -
 check: Tuur used the Mac on Dev; slow spots became items.
 ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click through the list, search, open and play notes, type in a title and a body, switch apps and come back, run Process once. Anything still slow or behaving oddly?
 
-### Q377 [auto] (doing) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
+### Q377 [auto] (done) list groups: add Yesterday; group by the recorded date (the Recorded/Added picker switches it)
 spec: D197 D190
 needs: -
 gate+: yes
@@ -4094,3 +4094,4 @@ check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift'
 - 2026-10-13 14:55 Q378 -> tuur — built @74e2fe13, gate 41s — awaiting sitting
 - 2026-10-13 15:03 Q378 -> todo — revise per D198: tab placement options, Apple attach menu minus Record Audio, full-width text
 - 2026-10-13 15:03 Q378 -> doing — mockup revision out
+- 2026-10-13 15:03 Q377 -> done — hand-merged (Tuur D197 2026-10-13: Yesterday group — ListGroupingTests assertions follow the decided behaviour)
