@@ -152,7 +152,7 @@ extension Memo {
             let site = metadata?.bookChapter?.trimmingCharacters(in: .whitespaces) ?? ""
             return site.isEmpty ? "— \(title)" : "— \(title), \(site)"
         }
-        CaptureQuote.attribution(book: metadata?.bookTitle,
+        return CaptureQuote.attribution(book: metadata?.bookTitle,
                                  author: metadata?.bookAuthor,
                                  chapter: metadata?.bookChapter)
     }
