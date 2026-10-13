@@ -1,4 +1,5 @@
-import AVFoundation
+import CoreGraphics
+import ImageIO
 import PDFKit
 #if canImport(UIKit)
 import UIKit
@@ -27,20 +28,22 @@ enum NoteAttachmentArt {
 
     private static let cache = NSCache<NSString, Image>()
 
-    /// A video or file block.
+    /// A video or file block. A video's poster comes from `NotePoster` only (never decoded here,
+    /// so a note with a large video opens without touching the file on the main thread); until
+    /// it lands the block draws without its picture and the editor swaps it in on `NotePoster.ready`.
     static func image(_ entry: NoteAttachmentEntry, size: NoteAttachment.Size, width: CGFloat,
                       maxVideoHeight: CGFloat = NoteAttachment.phoneVideoMaxHeight,
                       fileURL: URL?, dark: Bool) -> Image {
-        let key = "\(entry.filename)|\(size.rawValue)|\(Int(width))|\(Int(maxVideoHeight))|\(dark)|\(fileURL != nil)" as NSString
+        let frame = entry.kind == NoteAttachment.Kind.video ? fileURL.flatMap { NotePoster.shared.frame(for: $0) }.map(image) : nil
+        let key = "\(entry.filename)|\(size.rawValue)|\(Int(width))|\(Int(maxVideoHeight))|\(dark)|\(fileURL != nil)|\(frame != nil)" as NSString
         if let hit = cache.object(forKey: key) { return hit }
         let made: Image
-        if size == .large, entry.kind == NoteAttachment.Kind.video, let url = fileURL {
-            made = videoBlock(entry, width: width, maxHeight: maxVideoHeight, url: url)
+        if size == .large, entry.kind == NoteAttachment.Kind.video, fileURL != nil {
+            made = videoBlock(entry, width: width, maxHeight: maxVideoHeight, frame: frame)
         } else if size == .large, NoteAttachment.isPDF(entry), let url = fileURL, let page = pdfPage(url, width: width) {
             made = page
         } else {
-            let thumb = entry.kind == NoteAttachment.Kind.video ? fileURL.flatMap { poster($0, maxSide: 60) } : nil
-            made = card(NoteAttachment.card(entry), width: width, thumb: thumb, dark: dark)
+            made = card(NoteAttachment.card(entry), width: width, thumb: frame, dark: dark)
         }
         cache.setObject(made, forKey: key)
         return made
@@ -121,16 +124,7 @@ enum NoteAttachmentArt {
 
     // MARK: video (large)
 
-    static func poster(_ url: URL, maxSide: CGFloat) -> Image? {
-        let gen = AVAssetImageGenerator(asset: AVURLAsset(url: url))
-        gen.appliesPreferredTrackTransform = true
-        gen.maximumSize = CGSize(width: maxSide * 2, height: maxSide * 2)
-        guard let cg = try? gen.copyCGImage(at: CMTime(seconds: 0.1, preferredTimescale: 600), actualTime: nil) else { return nil }
-        return image(cg)
-    }
-
-    private static func videoBlock(_ entry: NoteAttachmentEntry, width: CGFloat, maxHeight: CGFloat, url: URL) -> Image {
-        let frame = poster(url, maxSide: width)
+    private static func videoBlock(_ entry: NoteAttachmentEntry, width: CGFloat, maxHeight: CGFloat, frame: Image?) -> Image {
         let h = NoteAttachment.videoHeight(width: width, natural: frame?.size, maxHeight: maxHeight)
         let size = CGSize(width: width, height: h)
         return render(size) {

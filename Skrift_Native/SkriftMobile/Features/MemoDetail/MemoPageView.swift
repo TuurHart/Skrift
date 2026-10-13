@@ -1482,12 +1482,16 @@ struct MemoPageView: View {
                         }
                     }
                     .contextMenu {
+                        // Mock pick 6's order: Copy, Share, then the size switch.
                         let next: NoteAttachment.Size = size == .large ? .small : .large
                         let action = NoteAttachment.BlockAction.setSize(next)
+                        Button { NoteBlockFileActions.copy(url, isPicture: false) } label: {
+                            Label(NoteAttachment.BlockAction.copy.title, systemImage: NoteAttachment.BlockAction.copy.symbol)
+                        }
+                        ShareLink(item: url) { Label(NoteAttachment.BlockAction.share.title, systemImage: NoteAttachment.BlockAction.share.symbol) }
                         Button { NoteAttachmentStore.setSize(next, filename: key, memo: memo) } label: {
                             Label(action.title, systemImage: action.symbol)
                         }
-                        ShareLink(item: url) { Label(NoteAttachment.BlockAction.share.title, systemImage: NoteAttachment.BlockAction.share.symbol) }
                     }
                     // Track B (wave-2 mock m3): the A6-extracted text, in the
                     // note — collapsed by default, reader on "Show all".

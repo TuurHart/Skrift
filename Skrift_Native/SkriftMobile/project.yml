@@ -141,6 +141,8 @@ targets:
         NSFaceIDUsageDescription: "Skrift uses Face ID to open your locked notes."
         NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it (place name, daylight, weather)."
         NSMotionUsageDescription: "Skrift records your step count alongside a memo for context."
+        # Q391: a note's photo or video block → "Save to Photos" (hold menu, mock Q384 pick 6).
+        NSPhotoLibraryAddUsageDescription: "Skrift saves a photo or video from a note to your library when you choose Save to Photos."
         # FeedbackKit (Q299): app id + the key resolved from Config/Feedback.xcconfig.
         FeedbackAppID: skrift
         FeedbackKey: $(FEEDBACK_KEY)

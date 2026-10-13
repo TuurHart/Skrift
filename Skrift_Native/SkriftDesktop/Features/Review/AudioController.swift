@@ -20,6 +20,24 @@ final class AudioController {
     /// Bumped on every load so a slow async load that resolves after the user has
     /// already switched notes is ignored (no stale player).
     private var loadToken = 0
+    @ObservationIgnored private var videoObserver: NSObjectProtocol?
+
+    init() {
+        // Pick 1 (mock Q384): a note's inline video starting pauses the note's own audio.
+        videoObserver = NotificationCenter.default.addObserver(forName: NoteAttachment.inlineVideoStarted,
+                                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pause() }
+        }
+    }
+
+    deinit {
+        if let videoObserver { NotificationCenter.default.removeObserver(videoObserver) }
+    }
+
+    func pause() {
+        guard isPlaying else { return }
+        player?.pause(); isPlaying = false; stopTicker()
+    }
 
     func load(path: String) {
         stop()

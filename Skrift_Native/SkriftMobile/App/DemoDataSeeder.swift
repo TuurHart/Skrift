@@ -27,6 +27,7 @@ enum DemoDataSeeder {
         if LaunchFlags.seedPhotoMoveMemo { repo.insert(photoTextMemo(paragraphs: true)); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
+        if LaunchFlags.seedAttachmentMemo { repo.insert(attachmentMemo(allLarge: LaunchFlags.seedAttachmentLarge)); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
         if LaunchFlags.seedPolished { seedPolished(repo); return }
         if LaunchFlags.seedJournal { seedJournal(repo); return }
@@ -119,6 +120,28 @@ enum DemoDataSeeder {
             metadata: MemoMetadata(
                 imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)]
             )
+        )
+    }
+
+    /// Q391: mock Q384's note — text, a large video, a photo, a DXF and a PDF (shared fixture).
+    static func attachmentMemo(allLarge: Bool = false) -> Memo {
+        let id = UUID()
+        let photoName = "photo_\(id.uuidString)_001.jpg"
+        writeTextPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
+        let files = NoteAttachmentFixture.write(into: AppPaths.recordingsDirectory, owner: id)
+        var meta = MemoMetadata(imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)])
+        meta.attachmentManifest = files.manifest
+        meta.largeAttachments = allLarge ? files.manifest.map(\.filename) + [photoName] : files.large
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 108,
+            recordedAt: Date().addingTimeInterval(-600),
+            syncStatus: .waiting,
+            transcript: NoteAttachmentFixture.body,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: meta
         )
     }
 

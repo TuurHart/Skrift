@@ -30,6 +30,8 @@ enum Snapshot {
         if let p = path("-snapshot-split") { MainActor.assumeIsolated { renderSplit(to: p); exit(0) } }
         // Q360: the Q350 Mac frames (note + Aa, right-click, speakers) into one folder.
         if let p = path("-snapshot-editor-apple") { MainActor.assumeIsolated { renderEditorApple(dir: p); exit(0) } }
+        // Q391: the Q384 note (video, photo, DXF, PDF) small-by-default and all-large, into one folder.
+        if let p = path("-snapshot-attachments") { MainActor.assumeIsolated { renderAttachments(dir: p); exit(0) } }
         if let p = path("-snapshot-settings-light") { MainActor.assumeIsolated { renderSettings(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-settings-hosted") {
             let w = CGFloat(path("-settingsWidth").flatMap { Double($0) } ?? 620)
@@ -893,6 +895,47 @@ enum Snapshot {
                 if let found { tv.selectedPhotoLoc = found; break }
             }
         })
+    }
+
+    /// Q391 (mock Q384-note-attachments, Mac frame): the seeded note body — a large video (a real
+    /// short .mov, poster made off-main), a photo, a DXF card and a PDF card — as the default
+    /// (`mac-1-note.png`) and after Set All to Large (`mac-2-large.png`), light, 1 px per pt.
+    /// Real NSTextView, hosted. `-snapshot-attachments <dir>`.
+    @MainActor private static func renderAttachments(dir: String) {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("snap-attachments")
+        try? FileManager.default.removeItem(at: work)
+        try? FileManager.default.createDirectory(at: URL(fileURLWithPath: dir), withIntermediateDirectories: true)
+        let files = NoteAttachmentFixture.write(into: work, owner: UUID())
+        let photo = work.appendingPathComponent("photo_001.jpg")
+        writeSamplePhoto(to: photo, size: NSSize(width: 1000, height: 640))
+        // Warm the poster first so the shot shows the frame, not the waiting block.
+        if let video = files.manifest.first {
+            let url = work.appendingPathComponent(video.filename)
+            let deadline = Date().addingTimeInterval(15)
+            while NotePoster.shared.frame(for: url) == nil, Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            }
+        }
+        // Light all the way down: the painter reads the text view's AppKit appearance, which a
+        // SwiftUI `.preferredColorScheme` does not reach on a dark Mac.
+        NSApplication.shared.appearance = NSAppearance(named: .aqua)
+        let everything = files.manifest.map(\.filename) + [photo.lastPathComponent]
+        for (name, large) in [("mac-1-note", files.large), ("mac-2-large", everything)] {
+            let pane = BodyTextView(text: .constant(NoteAttachmentFixture.body),
+                                    imageURL: { $0 == 1 ? photo : nil },
+                                    onAddPhoto: { _ in nil },
+                                    attachments: { files.manifest },
+                                    attachmentURL: { work.appendingPathComponent($0.filename) },
+                                    largeAttachments: { large },
+                                    onSetAttachmentSize: { _, _ in })
+                .frame(width: 820)
+                .padding(.horizontal, 40).padding(.vertical, 32)
+                .frame(width: 900, alignment: .topLeading)
+                .background(Color.white)
+                .preferredColorScheme(.light)
+            hostPNG(pane, size: NSSize(width: 900, height: name == "mac-1-note" ? 900 : 1500),
+                    to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png").path)
+        }
     }
 
     @MainActor private static func textViews(in view: NSView) -> [SelfSizingTextView] {

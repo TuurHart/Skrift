@@ -246,6 +246,7 @@ struct NoteBodyView: UIViewRepresentable {
         private var commitTask: Task<Void, Never>?
         private var resignObserver: NSObjectProtocol?
         private var sizeObserver: NSObjectProtocol?
+        private var posterObserver: NSObjectProtocol?
 
         /// Name spans mapped to DISPLAYED offsets for hit-testing.
         private var displaySpans: [(range: NSRange, span: NameSpan)] = []
@@ -319,16 +320,24 @@ struct NoteBodyView: UIViewRepresentable {
                     self.load(force: true)
                 }
             }
+            // Q391: a video poster made off the main thread swaps into its block in place.
+            posterObserver = NotificationCenter.default.addObserver(
+                forName: NotePoster.ready, object: nil, queue: .main
+            ) { [weak self] note in
+                guard let url = note.object as? URL else { return }
+                MainActor.assumeIsolated { self?.refreshPoster(url) }
+            }
         }
 
         func teardown() {
             clockSub?.cancel()
             commitTask?.cancel()
-            for o in [resignObserver, sizeObserver].compactMap({ $0 }) {
+            for o in [resignObserver, sizeObserver, posterObserver].compactMap({ $0 }) {
                 NotificationCenter.default.removeObserver(o)
             }
             resignObserver = nil
             sizeObserver = nil
+            posterObserver = nil
         }
 
         /// The body font, scaled for Dynamic Type (15.5 pt at the default size).
@@ -578,6 +587,11 @@ struct NoteBodyView: UIViewRepresentable {
             let point = gr.location(in: tv)
             // Taps on the hosted header/footer belong to their SwiftUI content.
             guard !tv.pointIsInAccessory(point) else { return }
+            // Pick 1: a video tapped while the note plays starts the video (which pauses the note).
+            if case .openAttachment(let literal)? = attachmentAction(at: point) {
+                openAttachmentBlock(literal)
+                return
+            }
             guard let charIndex = tv.characterIndex(at: point),
                   let local = KaraokeMap.wordIndex(at: charIndex, in: wordRanges) else { return }
             // The same shared track the highlight reads, so a tap seeks to the word that
@@ -1153,6 +1167,15 @@ struct NoteBodyView: UIViewRepresentable {
             return UIMenu(children: children)
         }
 
+        /// Q391: a held photo / video / file block gets Skrift's hold menu (mock pick 6), never
+        /// UITextView's own attachment menu ("Copy Image · Save to Camera Roll"), which otherwise
+        /// wins the long press on a reading note.
+        func textView(_ textView: UITextView, menuConfigurationFor textItem: UITextItem,
+                      defaultMenu: UIMenu) -> UITextItem.MenuConfiguration? {
+            if case .textAttachment = textItem.content { return nil }
+            return UITextItem.MenuConfiguration(menu: defaultMenu)
+        }
+
         // MARK: D112: move a photo by long press
 
         /// A held block: its marker literal (photo, video or file), the lifted snapshot, the drop
@@ -1215,7 +1238,7 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         /// D202 (mock pick 6): a hold released without moving opens the block's menu (the shared
-        /// `NoteAttachment.blockActions`: View as Small/Large, Move Up/Down, Share, Delete).
+        /// `NoteAttachment.holdMenu`: Copy, Share, Save, View as Small/Large, Move Up/Down, Delete).
         private func presentBlockMenu(_ literal: String, at point: CGPoint) {
             guard let tv = textView else { return }
             if blockMenuInteraction.view == nil { tv.addInteraction(blockMenuInteraction) }
@@ -1229,9 +1252,9 @@ struct NoteBodyView: UIViewRepresentable {
             let raw = reconstruct(textView?.attributedText)
             let spot = NoteAttachment.paragraphIndex(of: literal, in: raw) ?? (0, 1)
             let size = NoteAttachment.size(of: filename, large: memo.metadata?.largeAttachments)
-            var actions = NoteAttachment.blockActions(size: size, paragraph: spot.index, count: spot.count,
-                                                      shareable: blockFileURL(literal) != nil)
-            if currentMode != .editing { actions.removeAll { $0 != .share && $0 != .setSize(size == .large ? .small : .large) } }
+            let actions = NoteAttachment.holdMenu(size: size, paragraph: spot.index, count: spot.count,
+                                                  hasFile: blockFileURL(literal) != nil, isMedia: isMediaBlock(literal),
+                                                  editing: currentMode == .editing)
             return UIMenu(children: actions.map { a in
                 UIAction(title: a.title, image: UIImage(systemName: a.symbol),
                          attributes: a == .delete ? .destructive : []) { [weak self] _ in
@@ -1264,7 +1287,30 @@ struct NoteBodyView: UIViewRepresentable {
                 share.popoverPresentationController?.sourceView = tv
                 share.popoverPresentationController?.sourceRect = CGRect(origin: point, size: .zero)
                 host.present(share, animated: true)
+            case .copy:
+                guard let url = blockFileURL(literal) else { return }
+                NoteBlockFileActions.copy(url, isPicture: attachmentEntry(literal: literal) == nil)
+                Haptics.tap(.light)
+            case .save(let toPhotos):
+                guard let url = blockFileURL(literal) else { return }
+                if toPhotos {
+                    let isVideo = attachmentEntry(literal: literal)?.kind == NoteAttachment.Kind.video
+                    NoteBlockFileActions.saveToPhotos(url, isVideo: isVideo) { ok in Haptics.tap(ok ? .light : .rigid) }
+                } else if let host = Self.hostController(of: tv) {
+                    // Save to Files: the system picker, saving a copy under the file's own name.
+                    let named = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(attachmentEntry(literal: literal)?.name ?? url.lastPathComponent)
+                    try? FileManager.default.removeItem(at: named)
+                    let source = (try? FileManager.default.copyItem(at: url, to: named)) != nil ? named : url
+                    host.present(UIDocumentPickerViewController(forExporting: [source], asCopy: true), animated: true)
+                }
             }
+        }
+
+        /// A photo or a video block (Save goes to Photos); any other file saves to Files.
+        private func isMediaBlock(_ literal: String) -> Bool {
+            guard let e = attachmentEntry(literal: literal) else { return true }   // a photo marker
+            return e.kind == NoteAttachment.Kind.video
         }
 
         static func hostController(of view: UIView) -> UIViewController? {
@@ -1308,6 +1354,8 @@ struct NoteBodyView: UIViewRepresentable {
             tv.addSubview(vc.view)
             vc.didMove(toParent: host)
             inlineVideo = vc
+            // Pick 1: only one thing makes sound — the note's own recording pauses.
+            if player?.isPlaying == true { player?.pause() }
             vc.player?.play()
         }
 
@@ -1852,6 +1900,25 @@ struct NoteBodyView: UIViewRepresentable {
             let a = NSMutableAttributedString(attachment: att)
             a.addAttribute(Self.attachmentKey, value: literal, range: NSRange(location: 0, length: a.length))
             return a
+        }
+
+        /// Q391: the poster for `url` landed — redraw that video's blocks where they stand (the
+        /// characters stay, so the caret and the draft are untouched).
+        func refreshPoster(_ url: URL) {
+            guard let tv = textView else { return }
+            let storage = tv.textStorage
+            let target = url.standardizedFileURL
+            var hits: [(NSRange, NoteAttachmentEntry, String)] = []
+            storage.enumerateAttribute(Self.attachmentKey, in: NSRange(location: 0, length: storage.length)) { v, r, _ in
+                guard let literal = v as? String, let e = attachmentEntry(literal: literal),
+                      e.kind == NoteAttachment.Kind.video,
+                      NoteAttachmentStore.fileURL(e).standardizedFileURL == target else { return }
+                hits.append((r, e, literal))
+            }
+            for (r, e, literal) in hits {
+                guard let att = attachmentPiece(e, literal: literal).attribute(.attachment, at: 0, effectiveRange: nil) else { continue }
+                storage.addAttribute(.attachment, value: att, range: r)
+            }
         }
 
         /// Plain text with any resolving `[[vid_NNN]]` / `[[file_NNN]]` drawn as its block.
