@@ -68,8 +68,9 @@ extension View {
     /// tab carries it inside its list column (`MemosListView`).
     @ViewBuilder func ipadTabChrome(_ size: UserInterfaceSizeClass?, hostsOwnRow: Bool) -> some View {
         let regular = !IPadLayout.showsSystemTabBar(size)
-        self
-            .toolbar(regular ? .hidden : .automatic, for: .tabBar)
+        // Q387: at compact width set NOTHING for the tab bar: an explicit `.automatic` here wins over
+        // the open note's `.toolbar(.hidden, for: .tabBar)` (D200), so the phone's note kept the bar.
+        TabBarVisibility(regular: regular, content: self)
             .safeAreaInset(edge: .top, spacing: 0) {
                 if regular && !hostsOwnRow {
                     HStack(spacing: 0) {
@@ -78,5 +79,15 @@ extension View {
                     }
                 }
             }
+    }
+}
+
+/// Hides the tab bar at regular width only; at compact it adds no tab-bar preference at all, so a
+/// pushed note can hide it (D200). The branch only flips when the size class does.
+private struct TabBarVisibility<Content: View>: View {
+    let regular: Bool
+    let content: Content
+    var body: some View {
+        if regular { content.toolbar(.hidden, for: .tabBar) } else { content }
     }
 }
