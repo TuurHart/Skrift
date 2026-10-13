@@ -50,7 +50,9 @@ final class MacMainThreadCostTests: XCTestCase {
         // Generous: a real vault is nowhere near 3000 memos. The point isn't
         // shaving microseconds — it's that ONE call is cheap, so caching it once
         // per render (instead of the old once-PER-ROW) is exactly the right fix.
-        XCTAssertLessThan(elapsedMs, 200,
+        // 1000 ms, not 200: the gate runs while other builds load the Mac (204 and
+        // 341 ms seen 2026-10-11). The once-per-row bug costs seconds, so it still fails.
+        XCTAssertLessThan(elapsedMs, 1000,
             "one backlinkedIDs pass over 3000 memos should be well under a render budget")
     }
 
