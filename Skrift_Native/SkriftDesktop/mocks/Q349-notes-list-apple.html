@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Notes List Beside Apple Notes</title>
 <style>
 /* Layout: a mock bench. Device switch on top, then three panels (reference / today / new)
@@ -300,9 +301,9 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .xtra .xf{display:flex;flex-direction:column;gap:8px;align-items:center}
 .xtra .xf p{margin:0;font-size:12.5px;color:var(--bench-dim);max-width:330px;line-height:1.4}
 .xtra .phone{height:560px}
-.xtra .ref .sw{display:flex;align-items:center;gap:8px;margin:0 16px;position:relative}
+.xtra .ref .sw{display:flex;align-items:center;gap:6px;margin:0 12px;position:relative;overflow:hidden}
 .xtra .ref .act{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:15px;color:var(--ref-dim);flex:none}
-.xtra .ref .act i{width:62px;height:32px;border-radius:16px;display:grid;place-items:center;color:#fff;font-style:normal;font-size:15px}
+.xtra .ref .act i{width:48px;height:32px;border-radius:16px;display:grid;place-items:center;color:#fff;font-style:normal;font-size:15px}
 .xtra .ref .pill{flex:1;min-width:0;background:#e5e5ea;border-radius:26px;padding:8px 14px;white-space:nowrap;overflow:hidden}
 .xtra .ref .pill .t{font-size:19px;font-weight:600}.xtra .ref .pill .l2{font-size:17px;color:var(--ref-dim)}
 .xtra .ref .menu{margin:14px auto 0;width:250px;border-radius:26px;background:#ececf0;padding:12px 0;box-shadow:0 10px 30px rgba(0,0,0,.15)}
@@ -384,7 +385,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
         <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll">
           <h3 style="margin-top:8px">All iCloud</h3><div class="count">15 Notes</div><div class="gh">Today</div>
           <div class="sw"><span class="act"><i style="background:#f09a37">⚲</i>Pin</span><div class="pill"><div class="t">Tile quote for the bathroom</div><div class="l2">09:41&nbsp; Called Rui about the bathroom tiles</div></div></div>
-          <div class="sw" style="margin-top:14px"><div class="pill" style="text-align:right"><div class="l2">…the green ones by Friday</div></div><span class="act"><i style="background:#4f8ff7">⇪</i>Share</span><span class="act"><i style="background:#7a77f4">▭</i>Move</span><span class="act"><i style="background:#ea4b4b">⌫</i>Delete</span></div>
+          <div class="sw" style="margin-top:14px"><div class="pill" style="text-align:right;min-width:60px;flex:1 1 60px"><div class="l2">…the green ones by Friday</div></div><span class="act"><i style="background:#4f8ff7">⇪</i>Share</span><span class="act"><i style="background:#7a77f4">▭</i>Move</span><span class="act"><i style="background:#ea4b4b">⌫</i>Delete</span></div>
         </div></div>
         <p>Swipe right: one orange Pin action. Swipe left: Share (blue), Move (indigo), Delete (red), each a pill with its label under it. The swiped row turns into a gray rounded pill.</p></div>
       <div class="xf"><span class="reftag">Reference · press and hold a row</span>
@@ -396,7 +397,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
       <div class="xf"><span class="reftag">Reference · search</span>
         <div class="phone ref"><div class="status"><span>09:41</span><i></i><span class="r"></span></div><div class="scroll">
           <div class="gh" style="margin-top:14px">Suggested</div>
-          <div class="group sugg"><div class="row"><span class="gi">⚇</span><div class="tx"><div class="t" style="font-weight:400">Shared Notes</div></div></div><div class="row"><span class="gi">🔒︎</span><div class="tx"><div class="t" style="font-weight:400">Locked Notes</div></div></div><div class="row"><span class="gi">☑︎</span><div class="tx"><div class="t" style="font-weight:400">Notes with Checklists</div></div></div><div class="row"><span class="gi">#</span><div class="tx"><div class="t" style="font-weight:400">Notes with Tags</div></div></div><div class="row"><span class="gi">⌇</span><div class="tx"><div class="t" style="font-weight:400">Notes with Attachments</div></div></div></div>
+          <div class="group sugg"><div class="row"><span class="gi">⚇</span><div class="tx"><div class="t" style="font-weight:400">Shared Notes</div></div></div><div class="row"><span class="gi"><svg width="16" height="18" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="5.2" width="8" height="6" rx="1.4"/><path d="M4 5.5V4a2 2 0 014 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span><div class="tx"><div class="t" style="font-weight:400">Locked Notes</div></div></div><div class="row"><span class="gi">☑︎</span><div class="tx"><div class="t" style="font-weight:400">Notes with Checklists</div></div></div><div class="row"><span class="gi">#</span><div class="tx"><div class="t" style="font-weight:400">Notes with Tags</div></div></div><div class="row"><span class="gi">⌇</span><div class="tx"><div class="t" style="font-weight:400">Notes with Attachments</div></div></div></div>
           <div class="hits"><b>Top Hits</b><span>2 Found</span></div>
           <div class="group"><div class="row"><div class="tx"><div class="t">Gift ideas for Pim</div><div class="l2"><b>24/09/2026</b>…a good <mark>head</mark>lamp</div><div class="l3">▭ Home</div></div></div></div>
         </div></div>

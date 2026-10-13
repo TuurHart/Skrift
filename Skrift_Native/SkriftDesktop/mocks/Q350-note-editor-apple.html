@@ -282,7 +282,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .ref.phone{border:1.5px dashed var(--pg-faint)}
 .ref.mac{border:1.5px dashed var(--pg-faint)}
 .rstamp{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--r-dim);border:1px dashed var(--r-dim);border-radius:4px;padding:1px 6px;white-space:nowrap;z-index:9;background:var(--r-bg)}
-.mac .rstamp{top:12px}
+.mac .rstamp{top:auto;bottom:8px}
 .rg{height:44px;min-width:44px;border-radius:22px;background:var(--r-glass);box-shadow:0 0 0 .5px var(--r-rim),0 2px 8px rgba(0,0,0,.07);display:inline-flex;align-items:center;justify-content:center;color:var(--r-black);flex:none}
 .rg.pair{width:100px;justify-content:space-around;padding:0 4px}
 .rg.ok{background:var(--r-acc);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
@@ -384,7 +384,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .rpop .it.ck::before{content:"✓";position:absolute;left:9px;font-size:11px}
 .rpop hr{border:0;border-top:.5px solid #ddd;margin:4px 6px}
 .rctx{position:absolute;z-index:8;width:262px;background:var(--r-glass);backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 10px 28px rgba(0,0,0,.22);font-size:12px;color:#111;padding:5px}
-.rctx div{display:flex;justify-content:space-between;padding:1.5px 10px 1.5px 12px;line-height:16px;white-space:nowrap}
+.rctx div{display:flex;justify-content:space-between;padding:1px 10px 1px 12px;line-height:15px;white-space:nowrap}
 .rctx div.g{color:#aaa}
 .rctx div span{color:#9a9a9e}
 .rctx hr{border:0;border-top:.5px solid #ddd;margin:3px 8px}
@@ -824,7 +824,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       h.push('<div class="rmac-body"><div class="rdate" style="text-align:center">13 October 2026 at 14:29</div><div class="rt">Spindle clamp, 65 or 52</div><p style="margin:0 0 6px">So the 65 mm clamp is probably the right call, the <b>52 was always going to be a squeeze</b>.</p><div class="rh">Before drilling</div><div class="rchk done"><i class="on">✓</i><span>Print a test ring in PETG</span></div><div class="rchk"><i></i><span>Check runout with the dial gauge</span></div><p style="margin:8px 0 0">Ask Rui whether the <i>old</i> <span class="'+(st==="m-select"?"msel":"")+'">spindle</span> still fits the <s>52</s> mount.</p><div class="rphoto"></div></div>');
       if (st === "m-note") h.push('<div class="rpop" style="left:146px;top:46px;width:176px"><div class="bius"><b>B</b><i style="font-family:Georgia,serif">I</i><u>U</u><s>S</s><span style="color:#ccc">|</span><span>'+IC.pen+'</span><i style="width:8px;height:8px;border-radius:50%;background:#b44fd8;display:block"></i></div>'+
         '<div class="it" style="font-size:19px;font-weight:700">Title</div><div class="it" style="font-size:16px;font-weight:700">Heading</div><div class="it" style="font-weight:700">Subheading</div><div class="it ck">Body</div><div class="it" style="font-family:var(--mono);font-size:12px">Monostyled</div><div class="it">• Bulleted List</div><div class="it">– Dashed List</div><div class="it">1. Numbered List</div><hr><div class="it">| Block Quote</div></div>');
-      if (st === "m-select") h.push('<div class="rctx" style="left:150px;top:62px">'+
+      if (st === "m-select") h.push('<div class="rctx" style="left:150px;top:40px">'+
         '<div>Add Link…<span>⌘K</span></div><hr><div>Look Up “spindle”</div><div>Translate “spindle”</div><hr><div>Search With …</div><hr><div>Cut</div><div>Copy</div><div>Paste</div><hr><div>Paragraph Styles<span>›</span></div><hr><div>Checklist<span>⇧⌘L</span></div><div class="g">Mark as Ticked<span>⇧⌘U</span></div><hr><div>Record Audio…</div><div class="g">Show Highlights<span>⌃⌘I</span></div><hr><div>Add Table<span>⌥⌘T</span></div><hr><div class="g">Paste and Match Style</div><hr><div>Share…</div><hr><div>Font<span>›</span></div><hr><div>Show Writing Tools</div><div>Proofread</div><div>Rewrite</div><hr><div>Spelling and Grammar<span>›</span></div><div>Substitutions<span>›</span></div><div>Transformations<span>›</span></div><div>Speech<span>›</span></div><div>Layout Orientation<span>›</span></div><hr><div>AutoFill<span>›</span></div><div>Insert from iPhone or iPad<span>›</span></div><div>Services<span>›</span></div></div>');
     }
     h.push('</div></div>');
