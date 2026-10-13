@@ -276,12 +276,22 @@ enum NoteAttachment {
 
     enum BlockAction: Equatable {
         case moveUp, moveDown, setSize(Size), share, delete
+        /// Q391 (mock pick 6): Apple's Copy and Save. `toPhotos` = a photo or video ("Save to
+        /// Photos"); any other file saves to Files on the phone, to Downloads on the Mac.
+        case copy, save(toPhotos: Bool)
         var title: String {
             switch self {
             case .moveUp: return "Move Up"
             case .moveDown: return "Move Down"
             case .setSize(let s): return s == .large ? NoteAttachment.viewLargeTitle : NoteAttachment.viewSmallTitle
+            #if os(macOS)
             case .share: return "Share…"
+            case .save(let photos): return photos ? "Save to Photos" : "Save to Downloads"
+            #else
+            case .share: return "Share"
+            case .save(let photos): return photos ? "Save to Photos" : "Save to Files"
+            #endif
+            case .copy: return "Copy"
             case .delete: return "Delete"
             }
         }
@@ -291,9 +301,22 @@ enum NoteAttachment {
             case .moveDown: return "arrow.down"
             case .setSize(let s): return s == .large ? "rectangle.expand.vertical" : "rectangle.compress.vertical"
             case .share: return "square.and.arrow.up"
+            case .copy: return "doc.on.doc"
+            case .save: return "square.and.arrow.down"
             case .delete: return "trash"
             }
         }
+    }
+
+    /// The hold menu (phone) and right-click menu (Mac) of a block, as the mock draws it: Copy,
+    /// Share, Save while its file is here, then View as Small/Large, the moves the body allows,
+    /// and Delete. Reading (`editing` false) keeps the file verbs and the size switch only.
+    static func holdMenu(size: Size, paragraph: Int, count: Int, hasFile: Bool, isMedia: Bool,
+                         editing: Bool) -> [BlockAction] {
+        let fileVerbs: [BlockAction] = hasFile ? [.copy, .share, .save(toPhotos: isMedia)] : []
+        let blockVerbs = blockActions(size: size, paragraph: paragraph, count: count, shareable: false)
+            .filter { editing || $0 == .setSize(size == .large ? .small : .large) }
+        return fileVerbs + blockVerbs
     }
 
     /// The menu for a block at `size` whose paragraph is at `paragraph` of `count` (both apps).

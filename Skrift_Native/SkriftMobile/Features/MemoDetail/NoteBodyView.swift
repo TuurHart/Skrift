@@ -246,6 +246,7 @@ struct NoteBodyView: UIViewRepresentable {
         private var commitTask: Task<Void, Never>?
         private var resignObserver: NSObjectProtocol?
         private var sizeObserver: NSObjectProtocol?
+        private var posterObserver: NSObjectProtocol?
 
         /// Name spans mapped to DISPLAYED offsets for hit-testing.
         private var displaySpans: [(range: NSRange, span: NameSpan)] = []
@@ -319,16 +320,24 @@ struct NoteBodyView: UIViewRepresentable {
                     self.load(force: true)
                 }
             }
+            // Q391: a video poster made off the main thread swaps into its block in place.
+            posterObserver = NotificationCenter.default.addObserver(
+                forName: NotePoster.ready, object: nil, queue: .main
+            ) { [weak self] note in
+                guard let url = note.object as? URL else { return }
+                MainActor.assumeIsolated { self?.refreshPoster(url) }
+            }
         }
 
         func teardown() {
             clockSub?.cancel()
             commitTask?.cancel()
-            for o in [resignObserver, sizeObserver].compactMap({ $0 }) {
+            for o in [resignObserver, sizeObserver, posterObserver].compactMap({ $0 }) {
                 NotificationCenter.default.removeObserver(o)
             }
             resignObserver = nil
             sizeObserver = nil
+            posterObserver = nil
         }
 
         /// The body font, scaled for Dynamic Type (15.5 pt at the default size).
@@ -1852,6 +1861,25 @@ struct NoteBodyView: UIViewRepresentable {
             let a = NSMutableAttributedString(attachment: att)
             a.addAttribute(Self.attachmentKey, value: literal, range: NSRange(location: 0, length: a.length))
             return a
+        }
+
+        /// Q391: the poster for `url` landed — redraw that video's blocks where they stand (the
+        /// characters stay, so the caret and the draft are untouched).
+        func refreshPoster(_ url: URL) {
+            guard let tv = textView else { return }
+            let storage = tv.textStorage
+            let target = url.standardizedFileURL
+            var hits: [(NSRange, NoteAttachmentEntry, String)] = []
+            storage.enumerateAttribute(Self.attachmentKey, in: NSRange(location: 0, length: storage.length)) { v, r, _ in
+                guard let literal = v as? String, let e = attachmentEntry(literal: literal),
+                      e.kind == NoteAttachment.Kind.video,
+                      NoteAttachmentStore.fileURL(e).standardizedFileURL == target else { return }
+                hits.append((r, e, literal))
+            }
+            for (r, e, literal) in hits {
+                guard let att = attachmentPiece(e, literal: literal).attribute(.attachment, at: 0, effectiveRange: nil) else { continue }
+                storage.addAttribute(.attachment, value: att, range: r)
+            }
         }
 
         /// Plain text with any resolving `[[vid_NNN]]` / `[[file_NNN]]` drawn as its block.

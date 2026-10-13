@@ -432,9 +432,18 @@ struct BodyTextView: NSViewRepresentable {
                     tv.invalidateIntrinsicContentSize()
                 }
             }
+            // Q391: a video poster made off the main thread swaps into its block in place.
+            posterObserver = NotificationCenter.default.addObserver(forName: NotePoster.ready, object: nil,
+                                                                    queue: .main) { [weak self] note in
+                guard let url = note.object as? URL else { return }
+                MainActor.assumeIsolated { self?.refreshPoster(url) }
+            }
         }
-        deinit { if let sizesObserver { NotificationCenter.default.removeObserver(sizesObserver) } }
+        deinit {
+            for o in [sizesObserver, posterObserver].compactMap({ $0 }) { NotificationCenter.default.removeObserver(o) }
+        }
         private var sizesObserver: NSObjectProtocol?
+        private var posterObserver: NSObjectProtocol?
         weak var textView: SelfSizingTextView?
 
         /// R90: the pending debounced model commit — `modelString` (an O(document)
@@ -1081,28 +1090,53 @@ struct BodyTextView: NSViewRepresentable {
             guard text.contains("[[vid_") || text.contains("[[file_") else { return }
             let manifest = parent.attachments()
             guard !manifest.isEmpty else { return }
-            let large = parent.largeAttachments()
+            storage.beginEditing()
+            for m in NoteAttachment.markers(in: text).reversed() {
+                guard let e = NoteAttachment.entry(kind: m.kind, number: m.number, manifest: manifest) else { continue }
+                let att = blockAttachment(e, literal: (text as NSString).substring(with: m.range), in: tv)
+                storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+            }
+            storage.endEditing()
+        }
+
+        /// One block drawn by the shared painter at its size, 720 / 520 pt wide at most (pick 8).
+        private func blockAttachment(_ e: NoteAttachmentEntry, literal: String, in tv: SelfSizingTextView) -> NoteBlockAttachment {
             let pad = tv.textContainer?.lineFragmentPadding ?? 0
             var column = (tv.textContainer?.size.width ?? 0) - 2 * pad
             if column <= 0 || column > 4000 { column = tv.bounds.width - 2 * pad }
             if column < 200 { column = NoteAttachment.wideMediaMaxWidth }
             let dark = tv.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let url = parent.attachmentURL(e)
+            let size = NoteAttachment.size(of: e.filename, large: parent.largeAttachments())
+            let media = size == .large && url != nil && e.kind == NoteAttachment.Kind.video
+            let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: media)
+            let img = NoteAttachmentArt.image(e, size: size, width: w,
+                                              maxVideoHeight: NoteAttachment.videoMaxHeight(wide: true),
+                                              fileURL: url, dark: dark)
+            let att = NoteBlockAttachment(literal: literal, entry: e)
+            att.image = img
+            att.bounds = CGRect(origin: .zero, size: img.size)
+            return att
+        }
+
+        /// Q391: the poster for `url` landed — redraw that video's blocks where they stand (the
+        /// characters stay, so the caret, undo and the pending commit are untouched).
+        func refreshPoster(_ url: URL) {
+            guard let tv = textView, let storage = tv.textStorage else { return }
+            let target = url.standardizedFileURL
+            var hits: [(NSRange, NoteBlockAttachment)] = []
+            storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { v, r, _ in
+                guard let block = v as? NoteBlockAttachment, block.entry.kind == NoteAttachment.Kind.video,
+                      parent.attachmentURL(block.entry)?.standardizedFileURL == target else { return }
+                hits.append((r, block))
+            }
+            guard !hits.isEmpty else { return }
             storage.beginEditing()
-            for m in NoteAttachment.markers(in: text).reversed() {
-                guard let e = NoteAttachment.entry(kind: m.kind, number: m.number, manifest: manifest) else { continue }
-                let url = parent.attachmentURL(e)
-                let size = NoteAttachment.size(of: e.filename, large: large)
-                let media = size == .large && url != nil && e.kind == NoteAttachment.Kind.video
-                let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: media)
-                let img = NoteAttachmentArt.image(e, size: size, width: w,
-                                                  maxVideoHeight: NoteAttachment.videoMaxHeight(wide: true),
-                                                  fileURL: url, dark: dark)
-                let att = NoteBlockAttachment(literal: (text as NSString).substring(with: m.range), entry: e)
-                att.image = img
-                att.bounds = CGRect(origin: .zero, size: img.size)
-                storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+            for (r, block) in hits {
+                storage.addAttribute(.attachment, value: blockAttachment(block.entry, literal: block.literal, in: tv), range: r)
             }
             storage.endEditing()
+            tv.invalidateIntrinsicContentSize()
         }
 
         /// A non-picture file dropped / pasted / inserted at storage `loc`: the host copies it in
