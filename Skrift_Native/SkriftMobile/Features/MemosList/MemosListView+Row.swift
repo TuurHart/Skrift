@@ -13,8 +13,6 @@ struct MemoRow: View {
     var enhancedTitle: String? = nil
     var fading: Bool = false
     var clockLine: String? = nil
-    /// Unrated-live fade (every width — see MemoCard.quiet).
-    var quiet: Bool = false
     /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
     /// Always false on the phone (`selectedMemoID` is nil there).
     var selected: Bool = false
@@ -34,14 +32,13 @@ struct MemoRow: View {
         var enhancedTitle: String?
         var fading: Bool
         var clockLine: String?
-        var quiet: Bool
         var selected: Bool
         var regularWidth: Bool
         var position: NoteCardModel.GroupPosition
     }
     var inputs: Inputs {
         Inputs(memo: ObjectIdentifier(memo), enhancedTitle: enhancedTitle, fading: fading,
-               clockLine: clockLine, quiet: quiet, selected: selected, regularWidth: regularWidth,
+               clockLine: clockLine, selected: selected, regularWidth: regularWidth,
                position: position)
     }
 
@@ -50,7 +47,7 @@ struct MemoRow: View {
         // highlight while editing.
         let editing = editMode?.wrappedValue.isEditing == true
         let card = MemoCard(memo: memo, enhancedTitle: enhancedTitle, fading: fading,
-                            clockLine: clockLine, quiet: quiet,
+                            clockLine: clockLine,
                             selected: editing ? false : selected, position: position)
         if editing {
             card
@@ -87,12 +84,6 @@ struct MemoCard: View {
     /// Recently Deleted in 3d"), computed once at the list level (backlink
     /// scan is never per-row). Non-nil ⇒ the clock is short ⇒ amber.
     var clockLine: String? = nil
-    /// Unrated-live fade (m1b B + Tuur's 2026-07-23 phone extension: "when I
-    /// take a note that I know is important I give it a score straight away" —
-    /// so unrated genuinely means untriaged, on EVERY width): the row dims and
-    /// wears the hollow ○ (the unfilled significance circles' own idiom).
-    /// Rating the note IS the flag — no Flag verb anywhere.
-    var quiet: Bool = false
     /// iPad split view (m1): the selected row (its note is in the detail pane)
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
@@ -104,9 +95,6 @@ struct MemoCard: View {
     /// layout — the Mac maps its own rows into the same view, so the two lists
     /// cannot drift again ("make sure the ipad also follows that one to the T").
     var body: some View {
-        // Q26 fix (BUGS §4): this used to layer .opacity(0.55) OVER NoteCardView's
-        // own quiet dim (0.62), so an unrated row read at 0.34 — nearly invisible.
-        // `m.quiet` below already drives the ONE dim; this view adds nothing on top.
         NoteCardView(model: cardModel, style: .skrift)
             .accessibilityIdentifier(memo.isShareCapture ? "capture-row" : "memo-card")
     }
@@ -116,7 +104,6 @@ struct MemoCard: View {
         var m = NoteCardModel(stamp: MemoDate.listDate(memo.recordedAt))
         m.position = position
         m.fadingLine = clockLine ?? (fading ? "fading" : nil)
-        m.quiet = quiet
         m.selected = selected
         m.locked = memo.locked
         m.balls = memo.locked ? nil : ThreeBallScale.step(for: memo.significance)
@@ -133,7 +120,7 @@ struct MemoCard: View {
             m.title = memo.title?.isEmpty == false ? memo.title : "Locked note"
             return m   // locked rows show title + 🔒 and NOTHING else
         }
-        // Q106 (C115): title, quote, snippet and chips come from the ONE shared builder
+        // Q106 (C115): title, quote and snippet come from the ONE shared builder
         // the Mac's rows call too (`NoteCardBuilder`); only the chrome above is this app's.
         let facts = memo.cardFacts(generatedTitle: enhancedTitle)
         m.apply(NoteCardBuilder.content(for: facts))

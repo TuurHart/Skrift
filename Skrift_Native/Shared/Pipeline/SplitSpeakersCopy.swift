@@ -7,13 +7,9 @@ enum SplitSpeakersCopy {
     /// Both apps, when the diarizer found fewer than two voices. Today's silence read as broken.
     static let oneVoice = "Only one voice found. Nothing was split."
 
-    /// The Mac header row's resting line, when the note is not split.
-    static let switchOffHint = "Off. Turn on to see who said what, when more than one person talks."
-    /// The Mac switch on an unrated note: the Mac has no pipeline row for it (C187).
+    /// The Mac row on an unrated note: the Mac has no pipeline row for it (C187).
     static let rateFirst = "Rate the note first. The Mac only works on rated notes."
     static let rateFirstShort = "Rate the note first"
-    /// The row while the note is split.
-    static let splitHint = "Click a name to say who it is."
 
     // MARK: Mac confirm — turning on
     static let confirmTitle = "Split this note into speakers?"

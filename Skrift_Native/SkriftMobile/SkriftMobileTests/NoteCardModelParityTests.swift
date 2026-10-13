@@ -55,42 +55,26 @@ final class NoteCardModelParityTests: XCTestCase {
 
     // MARK: golden
 
-    private typealias Chip = NoteCardModel.Chip
-
     private func golden(_ name: String) -> NoteCardContent {
         switch name {
         case "voice":
-            return .init(title: nil, quote: nil, snippet: "Walked past the bakery.\nThen home.", chips: [
-                Chip(text: "1:23"),
-                Chip(text: "Lisbon", systemImage: "mappin.circle.fill"),
-                Chip(text: "18°", systemImage: "cloud.sun.fill"),
-                Chip(text: "#daily", isTag: true)])
+            return .init(title: nil, quote: nil, snippet: "Walked past the bakery.\nThen home.")
         case "video":
-            return .init(title: "Standup", quote: nil, snippet: "Planning the week", chips: [
-                Chip(text: "Video", systemImage: "video.fill"),
-                Chip(text: "2:05")])
+            return .init(title: "Standup", quote: nil, snippet: "Planning the week")
         case "book":
-            return .init(title: nil, quote: "Focus is a skill. Train it.", snippet: "My take: yes", chips: [
-                Chip(text: "Deep Work · ch. 4", systemImage: "book.closed.fill"),
-                Chip(text: "0:40")])
+            return .init(title: nil, quote: "Focus is a skill. Train it.", snippet: "My take: yes")
         case "link":
-            return .init(title: "A Post", quote: nil, snippet: "example.com", chips: [
-                Chip(text: "Link", systemImage: "link"),
-                Chip(text: "example.com")])
+            return .init(title: "A Post", quote: nil, snippet: "example.com")
         case "text":
             return .init(title: "Remember to call the notary tomorrow morning", quote: nil,
-                         snippet: "Do it first thing", chips: [
-                Chip(text: "Text", systemImage: "text.quote")])
+                         snippet: "Do it first thing")
         case "image":
             return .init(title: "Whiteboard from the meeting", quote: nil,
-                         snippet: "Whiteboard from the meeting", chips: [
-                Chip(text: "Image", systemImage: "photo")])
+                         snippet: "Whiteboard from the meeting")
         case "pdf":
-            return .init(title: "Report.pdf", quote: nil, snippet: nil, chips: [
-                Chip(text: "File", systemImage: "doc")])
+            return .init(title: "Report.pdf", quote: nil, snippet: nil)
         case "typed":
-            return .init(title: nil, quote: nil, snippet: "Buy milk", chips: [
-                Chip(text: "Note", systemImage: "square.and.pencil")])
+            return .init(title: nil, quote: nil, snippet: "Buy milk")
         default:
             fatalError("no golden for \(name)")
         }
@@ -99,7 +83,7 @@ final class NoteCardModelParityTests: XCTestCase {
     // MARK: tests
 
     private func content(of model: NoteCardModel) -> NoteCardContent {
-        NoteCardContent(title: model.title, quote: model.quote, snippet: model.snippet, chips: model.chips)
+        NoteCardContent(title: model.title, quote: model.quote, snippet: model.snippet)
     }
 
     /// The phone's real list card (`MemoCard.cardModel`) for every kind equals the golden.
@@ -132,7 +116,6 @@ final class NoteCardModelParityTests: XCTestCase {
         memo.locked = true
         let model = MemoCard(memo: memo).cardModel
         XCTAssertTrue(model.locked)
-        XCTAssertTrue(model.chips.isEmpty)
         XCTAssertNil(model.snippet)
     }
 }

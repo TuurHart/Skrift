@@ -106,8 +106,7 @@ struct NoteProperties: View {
             }
             // Q87: the Split speakers confirm / progress, opened from the ⋯ menu (D196).
             if file.sourceType == .audio {
-                SplitSpeakersRow(file: file, coordinator: coordinator, canSplit: canExport,
-                                 interactive: interactive, compact: true)
+                SplitSpeakersRow(file: file, coordinator: coordinator, canSplit: canExport)
             }
         }
         .onChange(of: file.id, initial: true) { _, _ in

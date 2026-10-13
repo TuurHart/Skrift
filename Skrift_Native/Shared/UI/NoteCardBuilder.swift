@@ -11,7 +11,7 @@ import Foundation
 /// `Memo` rows via `Memo.cardFacts`, the Mac's rated `PipelineFile` rows via
 /// `PipelineFile.cardFacts`) and calls `NoteCardBuilder.content`. The per-app CHROME (stamp,
 /// status pill, balls, fading line, selection, lock placeholder, thumbnail) stays in each
-/// adapter; only title / quote / snippet / chips live here.
+/// adapter; only title / quote / snippet live here (`media` is line 3's one marker).
 ///
 /// Foundation-only on purpose so the host-less Mac test bundle compiles it.
 
@@ -33,9 +33,6 @@ struct NoteCardFacts: Equatable {
     var book: Book?
     /// nil = no audio / no duration (never a permanent "0:00" for a note with no recording).
     var durationSeconds: Double?
-    var place: String?
-    var temperature: Int?
-    var tags: [String]
 
     struct Book: Equatable {
         var title: String
@@ -48,8 +45,7 @@ struct NoteCardFacts: Equatable {
 
     init(kind: SourceKind, title: String? = nil, generatedTitle: String? = nil, body: String? = nil,
          annotation: String? = nil, shared: SharedContent? = nil, book: Book? = nil,
-         durationSeconds: Double? = nil, place: String? = nil, temperature: Int? = nil,
-         tags: [String] = []) {
+         durationSeconds: Double? = nil) {
         self.kind = kind
         self.title = title
         self.generatedTitle = generatedTitle
@@ -58,18 +54,14 @@ struct NoteCardFacts: Equatable {
         self.shared = shared
         self.book = book
         self.durationSeconds = durationSeconds
-        self.place = place
-        self.temperature = temperature
-        self.tags = tags
     }
 }
 
-/// The text and chips of one card. Equatable so a test can compare two adapters' output.
+/// The text of one card. Equatable so a test can compare two adapters' output.
 struct NoteCardContent: Equatable {
     var title: String?
     var quote: String?
     var snippet: String?
-    var chips: [NoteCardModel.Chip] = []
 }
 
 enum NoteCardBuilder {
@@ -78,15 +70,11 @@ enum NoteCardBuilder {
 
     static func content(for f: NoteCardFacts) -> NoteCardContent {
         var c = NoteCardContent()
-        // A capture: no audio, a shared thing. Its row leads with the capture title and a
-        // type chip (+ the domain for a link) — never a duration.
+        // A capture: no audio, a shared thing. Its row leads with the capture title.
         if let shared = f.shared {
             c.title = clean(f.title) ?? clean(f.generatedTitle).map { NoteTitle.clip($0) }
                 ?? captureTitle(shared: shared, annotation: f.annotation)
             c.snippet = captureSnippet(shared: shared, annotation: f.annotation)
-            c.chips.append(.init(text: f.kind.label, systemImage: f.kind.glyph))
-            if let domain = domain(of: shared) { c.chips.append(.init(text: domain, systemImage: nil)) }
-            c.chips.append(contentsOf: NoteCardModel.tagChips(for: f.tags))
             return c
         }
 
@@ -107,35 +95,12 @@ enum NoteCardBuilder {
             c.snippet = bodyText(f.body) ?? f.kind.emptyTitleFallback
         }
 
-        // Chips: source (everything but a plain voice memo; a book capture's own chip below
-        // plays that part), book, duration, place, weather, tags.
-        if f.book == nil, f.kind != .voiceMemo {
-            c.chips.append(.init(text: f.kind.label, systemImage: f.kind.glyph))
-        }
-        if let book = f.book,
-           let caption = CaptureQuote.caption(book: book.title, chapter: book.chapter) {
-            // A link note (Q372) wears its source kind's glyph; a quote the quote glyph.
-            let glyphKind: SourceKind = f.kind.isSourceLink ? f.kind
-                : ((f.kind == .pdfQuote || f.kind == .articleQuote) ? f.kind : .audiobookQuote)
-            c.chips.append(.init(text: caption, systemImage: glyphKind.glyph))
-        }
-        if let secs = f.durationSeconds, secs > 0 {
-            c.chips.append(.init(text: duration(seconds: secs)))
-        }
-        if let place = clean(f.place) {
-            c.chips.append(.init(text: place, systemImage: "mappin.circle.fill"))
-        }
-        if let t = f.temperature {
-            c.chips.append(.init(text: "\(t)°", systemImage: "cloud.sun.fill"))
-        }
-        c.chips.append(contentsOf: NoteCardModel.tagChips(for: f.tags))
         return c
     }
 
     /// Q358 (D194): the one marker line 3 keeps at its right end — mic + length for a
     /// recording, book glyph + chapter + length for a book capture, link glyph + domain for a
-    /// link. Typed notes and other captures: nil. Separate from `content` so the card-content
-    /// goldens stay what they were.
+    /// link. Typed notes and other captures: nil.
     static func media(for f: NoteCardFacts) -> NoteCardModel.Chip? {
         if let shared = f.shared {
             guard let domain = domain(of: shared) else { return nil }
@@ -258,10 +223,7 @@ extension Memo {
             annotation: annotationText,
             shared: hasAudio ? nil : sharedContent,
             book: (bookTitle?.isEmpty == false) ? .init(title: bookTitle!, chapter: metadata?.bookChapter) : nil,
-            durationSeconds: hasAudio ? duration : nil,
-            place: metadata?.location?.placeName,
-            temperature: metadata?.weather?.temperature,
-            tags: tags)
+            durationSeconds: hasAudio ? duration : nil)
     }
 }
 
@@ -271,7 +233,6 @@ extension NoteCardModel {
         title = content.title
         quote = content.quote
         snippet = content.snippet
-        chips = content.chips
     }
 }
 

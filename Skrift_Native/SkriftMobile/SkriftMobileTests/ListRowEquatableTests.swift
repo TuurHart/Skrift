@@ -16,9 +16,9 @@ final class ListRowEquatableTests: XCTestCase {
     }
 
     private func row(_ m: Memo, enhancedTitle: String? = nil, fading: Bool = false, clockLine: String? = nil,
-                     quiet: Bool = false, selected: Bool = false, regular: Bool = false,
+                     selected: Bool = false, regular: Bool = false,
                      onTap: @escaping () -> Void = {}) -> MemoRow {
-        MemoRow(memo: m, enhancedTitle: enhancedTitle, fading: fading, clockLine: clockLine, quiet: quiet,
+        MemoRow(memo: m, enhancedTitle: enhancedTitle, fading: fading, clockLine: clockLine,
                 selected: selected, regularWidth: regular, onTap: onTap)
     }
 
@@ -27,8 +27,8 @@ final class ListRowEquatableTests: XCTestCase {
     func testRowsWithUnchangedInputsCompareEqual() {
         let m = memo(1)
         XCTAssertEqual(row(m), row(m))
-        XCTAssertEqual(row(m, enhancedTitle: "Zenith", fading: true, clockLine: "starts fading 4 Oct", quiet: true),
-                       row(m, enhancedTitle: "Zenith", fading: true, clockLine: "starts fading 4 Oct", quiet: true))
+        XCTAssertEqual(row(m, enhancedTitle: "Zenith", fading: true, clockLine: "starts fading 4 Oct"),
+                       row(m, enhancedTitle: "Zenith", fading: true, clockLine: "starts fading 4 Oct"))
     }
 
     func testTapClosureIsNotPartOfTheComparison() {
@@ -44,7 +44,6 @@ final class ListRowEquatableTests: XCTestCase {
         XCTAssertNotEqual(base, row(m, enhancedTitle: "A title"))
         XCTAssertNotEqual(base, row(m, fading: true))
         XCTAssertNotEqual(base, row(m, clockLine: "starts fading 4 Oct"))
-        XCTAssertNotEqual(base, row(m, quiet: true))
         XCTAssertNotEqual(base, row(m, selected: true))
         XCTAssertNotEqual(base, row(m, regular: true), "a tap closure built for the other width must not be reused")
         XCTAssertNotEqual(row(m, clockLine: "a"), row(m, clockLine: "b"))

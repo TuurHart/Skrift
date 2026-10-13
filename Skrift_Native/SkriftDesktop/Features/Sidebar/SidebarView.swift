@@ -1328,7 +1328,7 @@ private struct QueueRowView: View {
         // no words, balls or chips (C91/C161, R88; the phone's `cardModel` rule).
         if file.locked {
             var l = LockedRow.card(stamp: m.stamp, title: LockedRow.title(for: file),
-                                   selected: selected, quiet: false)
+                                   selected: selected)
             l.statusPill = m.statusPill
             return l
         }

@@ -6,8 +6,6 @@ import Foundation
 /// audiobook quote and the shared-item title + domain chip.
 final class SourceGlyphParityTests: XCTestCase {
 
-    private func chips(_ f: NoteCardFacts) -> [NoteCardModel.Chip] { NoteCardBuilder.content(for: f).chips }
-
     func testPictureOnlyMarkerReadsImageNotCapture() {
         // A Mac picture-only note: a capture row, no sharedContent, mediaSource "image".
         let kind = SourceKind.classify(hasBook: false, media: MemoMetadata.Source.image, sharedType: nil,
@@ -28,27 +26,10 @@ final class SourceGlyphParityTests: XCTestCase {
         XCTAssertEqual(SourceKind.of(m).label, "Image")
     }
 
-    func testPictureOnlyRowShowsTheImageChip() {
-        let f = NoteCardFacts(kind: .captureImage, body: "[[img_001]]")
-        XCTAssertEqual(chips(f).first, .init(text: "Image", systemImage: "photo"))
-    }
-
-    func testVideoRowShowsTheSourceChip() {
-        let f = NoteCardFacts(kind: .video, body: "hello", durationSeconds: 60)
-        XCTAssertEqual(chips(f).first, .init(text: SourceKind.video.label, systemImage: SourceKind.video.glyph))
-    }
-
-    func testAudiobookQuoteRowShowsTheBookGlyph() {
-        let f = NoteCardFacts(kind: .audiobookQuote, body: "> a quote", book: .init(title: "Goats", chapter: "3"))
-        XCTAssertTrue(chips(f).contains { $0.systemImage == SourceKind.audiobookQuote.glyph })
-    }
-
     func testSharedLinkRowShowsTitleAndDomainChip() {
         let sc = SharedContent(type: .url, url: "https://www.example.com/a", urlTitle: "An article")
         let c = NoteCardBuilder.content(for: NoteCardFacts(kind: .captureURL, shared: sc))
         XCTAssertEqual(c.title, "An article")
-        XCTAssertEqual(c.chips.first, .init(text: "Link", systemImage: "link"))
-        XCTAssertTrue(c.chips.contains { $0.text == "example.com" })
     }
 
     func testEveryKindHasOneGlyphAndLabel() {

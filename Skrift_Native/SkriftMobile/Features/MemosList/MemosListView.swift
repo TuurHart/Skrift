@@ -453,7 +453,6 @@ struct MemosListView: View {
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     fading: d.searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
-                                    quiet: isUnratedLive(memo),
                                     selected: memo.id == selectedMemoID,
                                     regularWidth: isRegular,
                                     position: lone ? .only : memo.id == firstID ? .first

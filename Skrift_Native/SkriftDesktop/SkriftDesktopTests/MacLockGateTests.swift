@@ -72,12 +72,11 @@ final class MacLockGateTests: XCTestCase {
 
     func testLockedRowShowsTitleAndLockOnly_unrated() {
         let m = memo(significance: 0, locked: true)
-        let card = LockedRow.card(stamp: "Today", title: LockedRow.title(for: m), selected: false, quiet: true)
+        let card = LockedRow.card(stamp: "Today", title: LockedRow.title(for: m), selected: false)
         XCTAssertTrue(card.locked)
         XCTAssertEqual(card.title, "Locked note", "never the first line of the transcript")
         XCTAssertNil(card.balls)
         XCTAssertNil(card.snippet)
-        XCTAssertTrue(card.chips.isEmpty)
         XCTAssertNil(card.quote)
     }
 
@@ -89,11 +88,10 @@ final class MacLockGateTests: XCTestCase {
         XCTAssertEqual(LockedRow.title(for: pf), "Locked note")
         pf.enhancedTitle = "  Groceries  "
         XCTAssertEqual(LockedRow.title(for: pf), "Groceries", "an explicit title is allowed (the phone's rule)")
-        let card = LockedRow.card(stamp: "Today", title: LockedRow.title(for: pf), selected: true, quiet: false)
+        let card = LockedRow.card(stamp: "Today", title: LockedRow.title(for: pf), selected: true)
         XCTAssertTrue(card.locked)
         XCTAssertNil(card.balls, "a rated locked note shows no balls")
         XCTAssertNil(card.snippet)
-        XCTAssertTrue(card.chips.isEmpty)
         XCTAssertTrue(card.selected)
     }
 

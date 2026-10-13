@@ -29,14 +29,8 @@ struct NoteCardModel {
     /// Audiobook-capture lead quote (already stripped of "> ").
     var quote: String?
     var snippet: String?
-    /// The shared builder's chips. The row no longer draws them (D194: tags, place and weather
-    /// leave the row); `media` carries the one marker that stays. Kept on the model because
-    /// both apps' card-content parity tests compare them.
-    var chips: [Chip] = []
     var thumb: Image?
     var locked = false
-    /// Unrated row (the Mac's quiet rows). No longer dims the row (D194).
-    var quiet = false
     var selected = false
     /// Importance, 0–3, nil for locked rows (Q26). The row shows NO importance (D194); 0 is read
     /// as "unrated" and draws the grey Unrated marker. NEVER tappable — rating lives in detail.
@@ -72,18 +66,10 @@ struct NoteCardModel {
         /// pulse — it waits for him. Same slot as Transcribing; it outranks every other pill.
         static let twoVersions = Pill(label: "2 versions", kind: .amber, systemImage: "arrow.triangle.branch")
     }
+    /// Line 3's media marker: a glyph + text (`NoteCardBuilder.media`).
     struct Chip: Equatable {
         var text: String
         var systemImage: String?
-        var isTag = false
-    }
-
-    /// C115 shared tag-chip builder — the ONE way a note's tags become chips, so
-    /// the phone and the Mac card models can't drift again (Q65 found the Mac
-    /// list carrying a tagged note's duration/source chips but never its
-    /// `#tags`; Q68 fixes it by routing BOTH card models through this).
-    static func tagChips(for tags: [String]) -> [Chip] {
-        tags.map { Chip(text: "#\($0)", isTag: true) }
     }
 }
 

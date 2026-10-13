@@ -1,22 +1,18 @@
 import SwiftUI
 import SwiftData
 
-/// The note header's LAST row: the Split speakers switch (Q87, signed mock
-/// `mocks/Q86-split-speakers.html`, "Do the switch in header" — Tuur 2026-09-30).
-///
-/// Under "Include audio in export", parted from it by a hairline. Off by default. The switch
-/// never flips on its own: turning it on (or off) opens a confirm first, and only the confirm's
-/// button changes anything. ON re-transcribes from the audio (so it replaces hand edits) and
-/// queues through `RunQueue`; OFF is the existing Flatten to monologue. The switch's state is the
-/// note's truth: on exactly when its words ARE turns (`SplitSpeakers.isSplit`).
+/// Split speakers under the note header (Q87, signed mock `mocks/Q86-split-speakers.html`).
+/// Q360 (D196): the switch itself is the top ⋯ menu's "Split speakers" item; this row appears
+/// only while that item's confirm, a split run or its notice is up. Nothing changes until the
+/// confirm's button: ON re-transcribes from the audio (so it replaces hand edits) and queues
+/// through `RunQueue`; OFF is the existing Flatten to monologue. On exactly when the note's
+/// words ARE turns (`SplitSpeakers.isSplit`).
 struct SplitSpeakersRow: View {
     @Bindable var file: PipelineFile
     var coordinator: ProcessingCoordinator?
     /// False on an unrated note: the Mac has no pipeline row for it (C187), so the switch is
     /// greyed and says why. Rating the note wakes it up.
     var canSplit: Bool
-    /// False on the ImageRenderer snapshot path, which cannot draw a switch.
-    var interactive = true
     @Environment(\.modelContext) private var ctx
 
     enum Confirm { case on, off }
@@ -35,14 +31,8 @@ struct SplitSpeakersRow: View {
     private var notice: String? { coordinator?.splitNotices[file.id] }
     private var isOn: Bool { phase != nil || SplitSpeakers.isSplit(file) }
 
-    /// Q360 (D196): the switch lives in the top ⋯ menu now ("Split speakers"); the header row
-    /// appears only while that item's confirm, a split run or its notice is up.
-    var compact = false
-
     var body: some View {
-        Group {
-            if compact { compactBody } else { fullBody }
-        }
+        compactBody
         .onReceive(NotificationCenter.default.publisher(for: .macSplitSpeakersRequested)) { note in
             guard note.object as? String == file.id, canSplit, phase == nil else { return }
             editedAt = lastEditDate()
@@ -65,47 +55,6 @@ struct SplitSpeakersRow: View {
             }
             .animation(.easeOut(duration: 0.12), value: confirm == nil)
             .onChange(of: confirm, initial: true) { _, c in if c == .on { editedAt = lastEditDate() } }
-        }
-    }
-
-    private var fullBody: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Rectangle().fill(Theme.hairline.opacity(0.10)).frame(height: 1)
-                .padding(.top, 2)
-            HStack(alignment: .top, spacing: 8) {
-                switchView
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Split speakers")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(canSplit ? Theme.textSecondary : Theme.textMuted)
-                    statusLine
-                }
-                Spacer(minLength: 0)
-            }
-            // Inline under the switch (not a floating card): the note body is an AppKit view,
-            // which paints OVER any SwiftUI overlay that reaches down onto it.
-            if let confirm { card(confirm) }
-        }
-        .animation(.easeOut(duration: 0.12), value: confirm == nil)
-        .onChange(of: confirm, initial: true) { _, c in if c == .on { editedAt = lastEditDate() } }
-    }
-
-    // MARK: the switch
-
-    @ViewBuilder private var switchView: some View {
-        if interactive {
-            Toggle("", isOn: Binding(
-                get: { isOn },
-                set: { wantsOn in
-                    if wantsOn { editedAt = lastEditDate() }
-                    confirm = wantsOn ? .on : .off
-                }))
-                .labelsHidden().toggleStyle(.switch).controlSize(.mini).tint(Theme.accent)
-                .disabled(!canSplit || phase != nil)
-                .accessibilityIdentifier("split-speakers-switch")
-        } else {
-            Text(isOn ? "ON" : "OFF")
-                .font(.system(size: 9, weight: .bold)).foregroundStyle(canSplit ? Theme.accent : Theme.textMuted)
         }
     }
 
@@ -133,10 +82,6 @@ struct SplitSpeakersRow: View {
             }
         } else if let notice {
             Text(notice).font(.system(size: 11)).foregroundStyle(Theme.amber.opacity(0.9))
-        } else if SplitSpeakers.isSplit(file) {
-            line(SplitSpeakersCopy.splitHint)
-        } else {
-            line(SplitSpeakersCopy.switchOffHint)
         }
     }
 
