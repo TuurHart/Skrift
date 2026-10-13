@@ -125,6 +125,8 @@ struct BookJumpBackButton: View {
     let position: TimeInterval
     /// Q354: set for a PDF source: the label names the page and the glyph is the mock's "↗".
     let page: Int?
+    /// Q355: an article's label ("Back to it at 31% in Library"); nil for the other kinds.
+    var readingLabel: String? = nil
     let action: () -> Void
 
     init(position: TimeInterval, action: @escaping () -> Void) {
@@ -140,14 +142,17 @@ struct BookJumpBackButton: View {
         switch route {
         case .page(let p): self.init(page: p, action: action)
         case .time(let t): self.init(position: t, action: action)
+        case .reading(let word, _):
+            self.init(position: TimeInterval(word), action: action)
+            readingLabel = BookNotesJoin.jumpLabel(for: route)
         }
     }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: page == nil ? "play.fill" : "arrow.up.right").font(.system(size: 10))
-                Text(page.map { BookNotesJoin.jumpLabel(page: $0) } ?? BookNotesJoin.jumpLabel(position: position))
+                Image(systemName: page == nil && readingLabel == nil ? "play.fill" : "arrow.up.right").font(.system(size: 10))
+                Text(readingLabel ?? page.map { BookNotesJoin.jumpLabel(page: $0) } ?? BookNotesJoin.jumpLabel(position: position))
                     .font(.system(size: 12.5, weight: .semibold))
             }
             .foregroundStyle(Color.skAccentText)

@@ -1360,7 +1360,7 @@ struct MemoPageView: View {
            let title = memo.metadata?.bookTitle?.trimmingCharacters(in: .whitespaces) {
             let quoteKind = SourceKind.of(memo)   // Q356: a PDF quote says so
             chips.append(MetaChip(text: SharedCopy.quoteChip(bookTitle: title, kind: quoteKind),
-                                  symbol: (quoteKind == .pdfQuote ? SourceKind.pdfQuote : .audiobookQuote).glyph))
+                                  symbol: ((quoteKind == .pdfQuote || quoteKind == .articleQuote) ? quoteKind : SourceKind.audiobookQuote).glyph))
             if memo.duration > 0 {
                 chips.append(MetaChip(text: DurationFormat.label(seconds: memo.duration), symbol: "waveform"))
             }

@@ -438,6 +438,17 @@ enum CaptureInboxDrainer {
             DevLog.log("drain: pdf \(entry.id) not importable as a source — keeping it as a note attachment")
         }
 
+        // Q355 (D138, mock Q351): he picked "Article" in the share sheet. The page is fetched here,
+        // once (network in the app, never the extension): article text makes a Library source with
+        // the text stored; no article text saves the link as a note and the Library says so.
+        if entry.type == "url", entry.routeToLibrary == true, let link = entry.url {
+            await LibraryArticle.drain(entryID: entry.id, url: link, title: entry.urlTitle,
+                                       store: libraryStore, repository: repository)
+            CaptureInbox.delete(entryDir: entryDir)
+            TabSelectionBridge.shared.select(.books)
+            return nil   // a Library source (or a note announced by the toast) — no jump target
+        }
+
         // Q356 (D90): a bare Apple Podcasts / Spotify link is a Library source. The Library tab
         // opens the podcast sheet on it, which finds the public feed (or says plainly that the
         // show has none). Network and download run there, never in the drain.

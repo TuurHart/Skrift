@@ -116,7 +116,7 @@ enum NoteCardBuilder {
            let caption = CaptureQuote.caption(book: book.title, chapter: book.chapter) {
             // A link note (Q372) wears its source kind's glyph; a quote the quote glyph.
             let glyphKind: SourceKind = f.kind.isSourceLink ? f.kind
-                : (f.kind == .pdfQuote ? .pdfQuote : .audiobookQuote)
+                : ((f.kind == .pdfQuote || f.kind == .articleQuote) ? f.kind : .audiobookQuote)
             c.chips.append(.init(text: caption, systemImage: glyphKind.glyph))
         }
         if let secs = f.durationSeconds, secs > 0 {

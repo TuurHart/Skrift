@@ -6,7 +6,10 @@ import Foundation
 /// the phone's row/chip glyphs all read THESE — a symbol renamed here renames
 /// everywhere, and nowhere else.
 enum SourceKind: Equatable {
-    case audiobookQuote, pdfQuote, video, captureURL, captureImage, captureText,
+    case audiobookQuote, pdfQuote,
+         /// Q355 (D138): a quote highlighted in a Library article (`bookKind` "article").
+         articleQuote,
+         video, captureURL, captureImage, captureText,
          captureFile, captureOther, appleNote, voiceMemo, typedNote,
          /// Q372 (D138): a note that LINKS to a Library source with no captured quote — what
          /// "Send to a note" and "Move to Library" leave. One case per source kind.
@@ -36,6 +39,7 @@ enum SourceKind: Equatable {
         switch self {
         case .audiobookQuote: return "book.closed.fill"
         case .pdfQuote:       return "doc.text"
+        case .articleQuote:   return "newspaper.fill"
         case .audiobookLink:  return "book.closed"
         case .episodeLink:    return "antenna.radiowaves.left.and.right"
         case .pdfLink:        return "doc"
@@ -57,6 +61,7 @@ enum SourceKind: Equatable {
         switch self {
         case .audiobookQuote: return "Audiobook quote"
         case .pdfQuote:       return "PDF quote"
+        case .articleQuote:   return "Article quote"
         case .audiobookLink:  return "Audiobook link"
         case .episodeLink:    return "Episode link"
         case .pdfLink:        return "PDF link"
@@ -107,13 +112,14 @@ enum SourceKind: Equatable {
     /// - `isCaptureRow`: the row is already known to be a capture (Mac `.capture` rows), so
     ///   an unknown subtype reads as `.captureOther` rather than falling through.
     /// - `pdfPage`: the quote's place is a PDF page ("p. 4", `isPDFPageLabel`), Q356 / D138.
+    /// - `article`: the quote came from a Library article (`bookKind` "article"), Q355.
     /// - `sourceLink`: the note is a link to a Library source (`sourceLink(...)`, Q372), which
     ///   wins over the quote kinds: it carries the same book metadata but no quote.
-    static func classify(hasBook: Bool, pdfPage: Bool = false, sourceLink: SourceKind? = nil,
+    static func classify(hasBook: Bool, pdfPage: Bool = false, article: Bool = false, sourceLink: SourceKind? = nil,
                          media: String?, sharedType: String?,
                          isCaptureRow: Bool = false, hasAudio: Bool) -> SourceKind {
         if let sourceLink, sourceLink.isSourceLink { return sourceLink }
-        if hasBook { return pdfPage ? .pdfQuote : .audiobookQuote }
+        if hasBook { return article ? .articleQuote : (pdfPage ? .pdfQuote : .audiobookQuote) }
         if media == "video" { return .video }
         // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
         // Without the marker a no-audio memo reads as an Apple Note import below.
@@ -155,6 +161,7 @@ enum SourceKind: Equatable {
         let memoMeta = Memo.metadata(from: metadataData)
         let kind = classify(hasBook: memoMeta?.bookTitle.map { !$0.isEmpty } ?? false,
                             pdfPage: isPDFPageLabel(memoMeta?.bookChapter),
+                            article: memoMeta?.bookKind?.lowercased() == "article",
                             sourceLink: sourceLink(metadata: meta, quoted: quoted),
                             media: mediaMarker(in: meta),
                             sharedType: shared?.type.rawValue,

@@ -53,9 +53,15 @@ enum BookNotesJoin {
     enum JumpRoute: Equatable {
         case page(Int)
         case time(TimeInterval)
+        /// Q355: an article opens its reader at the quote's word; `percent` names it in the label.
+        case reading(word: Int, percent: Int)
     }
 
     static func route(for target: JumpTarget, source: Audiobook) -> JumpRoute {
+        if source.sourceKind == .article {
+            let word = max(0, Int(target.position))
+            return .reading(word: word, percent: LibraryArticle.percent(word: word, of: source))
+        }
         guard source.sourceKind == .pdf else { return .time(target.position) }
         let count = max(1, LibraryPDF.pageCount(of: source))
         return .page(min(max(1, Int(target.position)), count))
@@ -65,6 +71,7 @@ enum BookNotesJoin {
         switch route {
         case .page(let page): jumpLabel(page: page)
         case .time(let position): jumpLabel(position: position)
+        case .reading(_, let percent): "Back to it at \(percent)% in Library"
         }
     }
 

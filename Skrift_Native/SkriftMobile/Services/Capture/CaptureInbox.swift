@@ -87,6 +87,8 @@ struct CaptureInboxEntry: Codable {
     /// Q354 (D126, Q6 mock "Share a PDF from Mail"): true = a PDF shared with no typed thought and
     /// no rating becomes a Library source (kind `pdf`) instead of a note with the file attached.
     /// Optional so older entries decode (nil = a note, as before).
+    /// Q355: on a `url` entry, true = he picked "Article" in the share sheet; the app fetches the
+    /// page and adds it to Library (kind `article`), or saves a note when it has no article text.
     var routeToLibrary: Bool? = nil
 }
 
@@ -98,6 +100,59 @@ extension CaptureInboxEntry {
         guard let name = displayName, (name as NSString).pathExtension.lowercased() == "pdf" else { return false }
         let hasThought = !(thought ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return !hasThought && significance <= 0
+    }
+}
+
+// MARK: - Article or note (Q355, D138, mock Q351 pick 1)
+
+/// The share sheet's guess for a shared web link. The extension cannot load the page, so it guesses
+/// from the address alone: an ordinary web link is probably an article (the sheet asks "Article or
+/// Note" with Article pre-picked), a known video, post or shop page is a note (the sheet says so and
+/// never offers Library). Links another door owns (podcast, Maps, a PDF) keep today's sheet. The app
+/// fetches the page on its next open and falls back to a note when there is no article text.
+/// Compiled into the app and the extension (this file is in both targets).
+enum ArticleLinkGuess: Equatable, Sendable {
+    case article
+    /// Not an article; `kind` names it in the sheet ("Video", "Post", "Product page").
+    case note(kind: String)
+    /// Not a web article link at all: today's link sheet, unchanged.
+    case unchanged
+
+    static func guess(_ raw: String?) -> ArticleLinkGuess {
+        guard let raw, let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              var host = url.host?.lowercased(), !host.isEmpty else { return .unchanged }
+        for prefix in ["www.", "m.", "mobile."] where host.hasPrefix(prefix) { host.removeFirst(prefix.count) }
+        let path = url.path.lowercased()
+        func on(_ domains: [String]) -> Bool { domains.contains { host == $0 || host.hasSuffix("." + $0) } }
+
+        if url.pathExtension.lowercased() == "pdf" { return .unchanged }
+        if on(["podcasts.apple.com", "open.spotify.com", "spotify.com", "overcast.fm", "pca.st", "castbox.fm"]) {
+            return .unchanged
+        }
+        if on(["maps.apple.com", "maps.google.com", "maps.app.goo.gl"])
+            || (on(["google.com", "goo.gl"]) && path.hasPrefix("/maps")) { return .unchanged }
+        if on(["youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "twitch.tv", "dailymotion.com", "loom.com"]) {
+            return .note(kind: "Video")
+        }
+        if on(["x.com", "twitter.com", "instagram.com", "threads.net", "facebook.com", "fb.com", "bsky.app",
+               "reddit.com", "mastodon.social", "tumblr.com"])
+            || (on(["linkedin.com"]) && (path.contains("/posts/") || path.contains("/feed/"))) {
+            return .note(kind: "Post")
+        }
+        let shopHosts = ["ebay.com", "etsy.com", "aliexpress.com", "bol.com", "amzn.to", "amzn.eu", "ikea.com"]
+        if host.split(separator: ".").contains("amazon") || host.split(separator: ".").contains("ebay")
+            || on(shopHosts)
+            || ["/dp/", "/product/", "/products/", "/shop/", "/item/"].contains(where: { path.contains($0) }) {
+            return .note(kind: "Product page")
+        }
+        return .article
+    }
+
+    /// True when the entry goes to Library: he left "Article" picked on a link guessed as one.
+    /// "Note" keeps it a note (D195); a video, post or shop page never reaches Library.
+    static func routesToLibrary(url: String?, pickedArticle: Bool) -> Bool {
+        pickedArticle && guess(url) == .article
     }
 }
 

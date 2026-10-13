@@ -56,7 +56,8 @@ extension PipelineFile {
                     bookTitle: m.bookTitle,
                     bookAuthor: m.bookAuthor,
                     bookChapter: m.bookChapter,
-                    bookPosition: m.bookPosition   // a link note's place (Q372)
+                    bookPosition: m.bookPosition,  // a link note's place (Q372)
+                    bookURL: m.bookURL             // an article quote's page (Q355)
                 )
             },
             sharedContent: sc,
@@ -67,6 +68,7 @@ extension PipelineFile {
             // `.note` + `mediaSource: "typed"` here, which alone would read `Apple-Note`.
             kind: SourceKind.classify(hasBook: !(meta?.bookTitle ?? "").isEmpty,
                                       pdfPage: SourceKind.isPDFPageLabel(meta?.bookChapter),
+                                      article: meta?.bookKind?.lowercased() == "article",
                                       // Q372: a "Send to a note" / "Move to Library" link
                                       sourceLink: SourceKind.sourceLink(metadataData: audioMetadataJSON,
                                                                         body: transcript),

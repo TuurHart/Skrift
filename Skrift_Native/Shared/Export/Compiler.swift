@@ -51,6 +51,8 @@ enum Compiler {
         let bookTitle = trimmedNonEmpty(meta?.bookTitle)
         let bookAuthor = trimmedNonEmpty(meta?.bookAuthor)
         let bookChapter = trimmedNonEmpty(meta?.bookChapter)
+        // Q355 (D138, mock Q351 pick 3): a quote from a Library article carries its page address.
+        let bookURL = bookTitle == nil ? nil : trimmedNonEmpty(meta?.bookURL)
 
         // `source:` reflects the memo's true origin (matches the sidebar glyph +
         // detail "source" label). A video import + an audiobook quote both ride
@@ -59,6 +61,9 @@ enum Compiler {
         if let linkSource = input.kind?.linkExportSource {
             // Q372 (D138): a "Send to a note" / "Move to Library" note links to its source.
             source = linkSource
+        } else if let bookURL {
+            // Q355 (mock Q351 pick 3): an article quote's `source:` is the page it came from.
+            source = bookURL
         } else if bookTitle != nil {
             // Q356 (D138): a quote from a Library PDF says so; its place is "p. N".
             source = SourceKind.isPDFPageLabel(bookChapter) ? "PDF-quote" : "Audiobook-quote"
@@ -118,7 +123,8 @@ enum Compiler {
         // Kept beside `source:` because that is what they describe.
         if let bookTitle { y.append("book: \"\(bookTitle)\"") }
         if let bookAuthor { y.append("bookAuthor: \"\(bookAuthor)\"") }
-        if let bookChapter { y.append("chapter: \"\(bookChapter)\"") }
+        // An article quote's "chapter" is its site, already in the attribution and `source:`.
+        if let bookChapter, bookURL == nil { y.append("chapter: \"\(bookChapter)\"") }
         // `url:` key only for url captures (C3 §compile).
         if input.sourceType == .capture, let url = sc?.url, !url.isEmpty {
             y.append("url: \(url)")
@@ -218,7 +224,7 @@ enum Compiler {
         }
         // Audiobook quote memos italicise the quote + add the attribution line.
         let renderedBody = bookTitle.map {
-            audiobookBody(body, book: $0, author: bookAuthor, chapter: bookChapter)
+            audiobookBody(body, book: $0, author: bookAuthor, chapter: bookChapter, url: bookURL)
         } ?? body
         return frontmatter + renderedBody
     }
@@ -229,7 +235,10 @@ enum Compiler {
     /// authors never enter the names DB, and the Sanitiser ran before compile (and
     /// never touches links it doesn't know), so the link survives untouched. A
     /// capture body without a leading quote block is returned as-is.
-    static func audiobookBody(_ body: String, book: String, author: String?, chapter: String?) -> String {
+    /// Q355: with `url` (a Library article) the place is the site, written as the link:
+    /// `— *Title*, [site](URL)` (mock Q351 pick 3).
+    static func audiobookBody(_ body: String, book: String, author: String?, chapter: String?,
+                              url: String? = nil) -> String {
         guard let split = QuoteProtection.splitLeadingQuote(body) else { return body }
 
         // The block comes from the one splitter (`CaptureQuote.split` via the adapter), so it
@@ -247,8 +256,15 @@ enum Compiler {
         // ONE attribution builder (`CaptureQuote.attributionParts`, `.vault` punctuation): the
         // same empty-author guard and chapter rule as the in-app caption (C60 — a named
         // chapter as-is, only a numeric one gets "ch. ").
-        let attribution = "> " + (CaptureQuote.attribution(book: book, author: author, chapter: chapter, style: .vault)
+        let attribution: String
+        if let url, !url.isEmpty {
+            let named = chapter?.trimmingCharacters(in: .whitespaces) ?? ""
+            let site = named.isEmpty ? (URL(string: url)?.host ?? url) : named
+            attribution = "> — *\(book)*, [\(site)](\(url))"
+        } else {
+            attribution = "> " + (CaptureQuote.attribution(book: book, author: author, chapter: chapter, style: .vault)
                                   ?? "— *\(book)*")
+        }
 
         let block = italicQuote + "\n>\n" + attribution
         return split.ramble.isEmpty ? block : block + "\n\n" + split.ramble
