@@ -2938,14 +2938,14 @@ gate+: yes
 do: Build the engine ICLOUD_MERGE.md §A2 describes: reads a moved-out old memo_cloud.store (merge-from-dev/) read-only, merges into the live Production store by Memo.id in batches of 25 with the rules in §7 (shared notes keep Production; Mac field edits copied only when Production is unchanged since S=2026-09-25; insert Mac-made notes and phone notes recorded after S; never insert phone notes recorded before S, >20 such stops; MemoEnhancement newer enhancedAt wins in place), writes merge-report.txt (inserted ids) and supports unmerge. Confirm from e6245caa code that every Mac write bumps lastEditedAt. Mac tests `DevEraMergeTests` on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DevEraMergeTests.swift`
 
-### Q399 [auto] (todo) merge dry run: StoreCopyTest --merge-dry-run + mac-store-copytest.sh --merge on copies (ICLOUD_MERGE A3)
+### Q399 [auto] (doing) merge dry run: StoreCopyTest --merge-dry-run + mac-store-copytest.sh --merge on copies (ICLOUD_MERGE A3)
 spec: D203
 needs: Q398
 gate+: yes
 do: Extend the Q367 tool: `StoreCopyTest --merge-dry-run` runs DevEraMerge on COPIES of the old store and a downloaded Production store and prints only counts (before/after, duplicate Memo.id groups, Mac-made notes present once with assets, enhancement LWW outcomes, conflicts, any drop → non-zero exit); `plan/release/mac-store-copytest.sh --merge` wires it for Tuur. Self-test on synthetic stores. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `plan/release/mac-store-copytest.sh --self-test`
 
-### Q400 [auto] (todo) one-shot merge alert in the Release Mac app, triggered by a merge-from-dev/ folder (ICLOUD_MERGE A4)
+### Q400 [auto] (doing) one-shot merge alert in the Release Mac app, triggered by a merge-from-dev/ folder (ICLOUD_MERGE A4)
 spec: D203
 needs: Q398
 gate+: yes
@@ -4316,3 +4316,5 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:55 Q398 -> doing — worker out
 - 2026-10-13 23:00 Q396 -> done — gate 48s @0d72e984
 - 2026-10-13 23:11 Q398 -> done — gate 53s @f4aa6b04
+- 2026-10-13 23:11 Q399 -> doing — worker out
+- 2026-10-13 23:11 Q400 -> doing — worker out
