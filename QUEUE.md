@@ -2827,6 +2827,13 @@ gate+: no
 do: Q359's compare (plan/reads/editor-apple/phone-*.png vs Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html at 402 x 874) left: rating pill ~36 pt tall vs mock 26 (balls larger) and the Personal chip ~30 vs 26; on an unrated note the rating + amber fading line + Personal wrap onto two rows (mock: one row); the mock keeps '‹ Notes' in the top bar while typing (phone shows only undo, redo, ⋯, Done); the reading player is a full-width dark ~50 pt capsule (mock: a narrower glass pill, 24 pt radius); the keyboard bar is full-width and flush (mock: a short floating white pill inset ~10 pt with a shadow); phone-7-speakers shows the list, not the opened conversation note. Fix each to the mock (the book quote keeps the locked borderless accent-bar idiom — do NOT add a tinted block, feedback_no_bubbles_on_shared_input). Take shots in LIGHT mode too so colours can be compared. Launch flags: `-seedPhotoMoveMemo`, `-skipOnboarding`.
 check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh EditorFormattingTests`
 
+### Q383 [auto] (doing) install Dev 187 (list, editors, iPad, article reader) on the iPhone 17 Pro and the Mac
+spec: -
+needs: -
+gate+: no
+do: Same recipe as Q374 (finding: phone device builds need `-skipMacroValidation -skipPackagePluginValidation`; iPhone 17 Pro xcodebuild id == devicectl id; binary greps need `/usr/bin/grep -a`). Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q379 literal (`IPadTabControl`) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q360 literal (`MacExportConfirm`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
+check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4123,3 +4130,5 @@ check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 
 - 2026-10-13 15:55 Q382 -> done — gate 38s @9b6aa679
 - 2026-10-13 16:07 Q379 -> done — gate 41s @d88dfa92
 - 2026-10-13 16:08 Q380 -> doing — worker out
+- 2026-10-13 16:08 Q383 added
+- 2026-10-13 16:09 Q383 -> doing — worker out
