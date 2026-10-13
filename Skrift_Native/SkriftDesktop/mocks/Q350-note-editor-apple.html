@@ -431,6 +431,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <li><span class="k">5</span><span><b>The Mac gets one Aa button in its band</b> (Apple Notes has one there), plus ⌘B ⌘I ⌘U ⇧⌘X and a Format section in the right-click menu. No floating selection bar on the Mac.</span></li>
       <li><span class="k">7</span><span><b>The header is three rows, as close to Apple&rsquo;s calm as Skrift&rsquo;s fields allow (D195):</b> one grey line (time · place · weather · length, no chip boxes), the title, then rating · Personal · tags on one row. The summary loses its tinted card and becomes a grey line with a hairline under it. On the Mac the two switches sit at the right end of that same row.</span></li>
       <li><span class="k">8</span><span><b>&ldquo;New person…&rdquo; sits right after B I U S in the selection bar (D184)</b>, tinted so it reads as Skrift&rsquo;s own. To keep the bar one row at 402 pt, Paste moves behind ›. On the Mac it is the last entry of the Format block in the right-click menu.</span></li>
+      <li><span class="k">9</span><span><b>The Mac band copies Apple&rsquo;s idiom:</b> no hairline, plain glass buttons, Aa centred, Export kept but soft-tinted instead of solid purple, ⋯ moved to the far right. The note column goes white and the docked player loses its button boxes.</span></li>
       <li><span class="k">6</span><span><b>Inside a book quote the Aa styles and lists are greyed</b>, so the quote stays a <code>&gt; </code> quote and polish keeps protecting it. B I U S still work there.</span></li>
     </ol>
   </div>
@@ -720,16 +721,17 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<div class="blk p" style="margin-top:12px">That is exactly the spindle thing. I keep rushing the <b>'+M("b")+'test ring'+M("b")+'</b> because I want to drill. Let the PETG tell me.</div></div>'+
       '</div></div><div class="kbwrap">'+fmtPanel(true)+'</div><div class="ftoast" id="ftoast"></div>';
   }
-  function turnsNote(){
+  function turnsBody(){
     var t = function(c,name,slot,txt){ return '<div class="turn"><span class="bar3" style="background:var('+c+')"></span><div><div class="who" style="color:var('+c+')"><i style="background:var('+c+')"></i>'+name+'</div><div class="tt">'+txt+'</div></div></div>'; };
-    return '<div class="scroll"><div>'+metaLine(['Today 11:05', IC.pin+'Marvila', IC.wave+'6:40'])+'<div class="titleA">Gantry plate with Rui</div>'+
-      headerCore(false,{lit:2, dest:"personal", tags:["#cnc"]})+
-      '<div class="body">'+
-      t("--sp0","Tuur Hartog",0,'Can the old spindle mount take the 65 clamp, or do we mill a new plate?')+
+    return t("--sp0","Tuur Hartog",0,'Can the old spindle mount take the 65 clamp, or do we mill a new plate?')+
       t("--sp1","Rui",1,'The old one is '+M("b")+'<b>aluminium 6 mm</b>'+M("b")+'. It flexes. Mill a new one, 10 mm.')+
       t("--sp0","Tuur",0,'Okay. Then the four M6 holes move outward by about 8 mm.')+
-      t("--sp1","Rui",1,'Print the drilling template first. I have the PETG.')+
-      '</div></div></div>'+playerBar()+'<div class="ftoast" id="ftoast"></div>';
+      t("--sp1","Rui",1,'Print the drilling template first. I have the PETG.');
+  }
+  function turnsNote(){
+    return '<div class="scroll"><div>'+metaLine(['Today 11:05', IC.pin+'Marvila', IC.wave+'6:40'])+'<div class="titleA">Gantry plate with Rui</div>'+
+      headerCore(false,{lit:2, dest:"personal", tags:["#cnc"]})+
+      '<div class="body">'+turnsBody()+'</div></div></div>'+playerBar()+'<div class="ftoast" id="ftoast"></div>';
   }
 
   /* ── Mac ── */
@@ -744,7 +746,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       h.push(metaLine(['Today 11:05', IC.pin+'Marvila', IC.wave+'6:40'], true)+'<div class="mtitle">Gantry plate with Rui</div>'+
         headerCore(true,{lit:2, dest:"personal", tags:["#cnc"], split:true})+
         '<div class="body">'+
-        turnsNote().split('<div class="body">')[1].split('</div></div></div>')[0]+'</div></div></div>');
+        turnsBody()+'</div></div></div>');
     } else {
       h.push(metaLine(META_MAIN, true));
       h.push('<div class="mtitle">Spindle clamp, 65 or 52<span class="msug" title="Suggested title, from the recording">'+IC.spark+'suggested</span></div>');
