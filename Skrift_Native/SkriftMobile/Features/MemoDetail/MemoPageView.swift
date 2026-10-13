@@ -896,17 +896,17 @@ struct MemoPageView: View {
         AssetMaterializer.capture(memoID: memo.id, repository: repository)
     }
 
-    /// Markup saved back into a photo/file: re-mirror to CloudKit (the
-    /// size-change capture), re-OCR an inline photo (its manifest text resets
-    /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
-    /// decodes fresh).
-    /// The captured PDF in Quick Look (Markup saves back, like a photo).
-    func presentPDF(_ url: URL) {
+    /// The captured file (a PDF or any other document) in Quick Look; Markup saves back, like a photo.
+    func presentCapturedFile(_ url: URL) {
         markupQuickLook.present(url: url, anchor: nil) { edited in
             if edited { photoWasEdited(marker: nil) }
         }
     }
 
+    /// Markup saved back into a photo/file: re-mirror to CloudKit (the
+    /// size-change capture), re-OCR an inline photo (its manifest text resets
+    /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
+    /// decodes fresh).
     func photoWasEdited(marker: Int?) {
         if let n = marker,
            var meta = memo.metadata, var manifest = meta.imageManifest,
@@ -1464,11 +1464,11 @@ struct MemoPageView: View {
                    let entry = PDFThumbnailLoader.firstPage(
                        at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
                     // D202: the PDF block switches too, SMALL (the shared grey card) by default.
-                    let key = NoteAttachmentStore.pdfFilename(of: memo) ?? url.lastPathComponent
+                    let key = NoteAttachment.capturedFilename(of: memo) ?? url.lastPathComponent
                     let size = NoteAttachment.size(of: key, large: memo.metadata?.largeAttachments)
                     Group {
                         if size == .small {
-                            Button { presentPDF(url) } label: {
+                            Button { presentCapturedFile(url) } label: {
                                 Image(uiImage: NoteAttachmentArt.pdfCard(
                                     name: sc.fileName ?? url.lastPathComponent, pages: entry.pageCount, fileURL: url,
                                     width: UIScreen.main.bounds.width - 2 * Theme.Space.margin,
@@ -1478,7 +1478,7 @@ struct MemoPageView: View {
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("capture-pdf-card")
                         } else {
-                            CapturePDFInlineBlock(entry: entry) { presentPDF(url) }
+                            CapturePDFInlineBlock(entry: entry) { presentCapturedFile(url) }
                         }
                     }
                     .contextMenu {
@@ -1510,60 +1510,24 @@ struct MemoPageView: View {
         }
     }
 
-    /// A NON-PDF shared document capture (or an unreadable PDF): a card showing
-    /// the filename + an Open button that previews it in QuickLook.
-    /// (2026-06-21 "share a PDF and have it live in there"; PDFs themselves
-    /// render inline since 2026-07-07 — CapturePDFInlineBlock.)
+    /// A NON-PDF shared document capture (or an unreadable PDF): the shared grey file card
+    /// (mock Q384 pick 4, D202), the whole card opens Quick Look. It replaced the old capture
+    /// card and its Open button.
     func captureFileCard(sc: SharedContent) -> some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.skAccent.opacity(0.13))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: "doc.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.skAccent)
-                )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(sc.fileName ?? "Document")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.skText)
-                    .lineLimit(2)
-                Text(SourceKind.of(memo).label)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-
-            Spacer(minLength: 4)
-
-            if memo.sharedFileURL != nil {
-                Button {
-                    guard let url = memo.sharedFileURL else { return }
-                    markupQuickLook.present(url: url, anchor: nil) { edited in
-                        if edited { photoWasEdited(marker: nil) }
-                    }
-                } label: {
-                    Text("Open")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.skAccent)
-                        .padding(.horizontal, 9).padding(.vertical, 4)
-                        .background(Color.skAccentSoft, in: .rect(cornerRadius: 6, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .strokeBorder(Color.skAccent.opacity(0.35), lineWidth: 0.5)
-                        )
-                }
-                .accessibilityIdentifier("capture-open-file")
-                .accessibilityLabel("Open document")
-            }
+        let url = memo.sharedFileURL
+        return Button {
+            guard let url else { return }
+            presentCapturedFile(url)
+        } label: {
+            Image(uiImage: NoteAttachmentArt.fileCard(
+                name: sc.fileName ?? url?.lastPathComponent ?? "Document", fileURL: url,
+                width: UIScreen.main.bounds.width - 2 * Theme.Space.margin, dark: colorScheme == .dark))
+            .resizable().aspectRatio(contentMode: .fit)
         }
-        .padding(13)
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .disabled(url == nil)
         .accessibilityIdentifier("capture-file-card")
+        .accessibilityLabel(sc.fileName ?? "Document")
     }
 
     /// A shared link's thumbnail, downloaded on drain (A1 enrichment). The field

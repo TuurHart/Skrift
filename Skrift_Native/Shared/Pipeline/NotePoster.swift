@@ -40,15 +40,6 @@ final class NotePoster: @unchecked Sendable {
         return nil
     }
 
-    /// Forget one file's poster (its bytes changed) or every poster (`url` nil).
-    func forget(_ url: URL? = nil) {
-        lock.lock(); defer { lock.unlock() }
-        guard let url else { frames.removeAll(); failed.removeAll(); return }
-        let k = Self.key(url)
-        frames[k] = nil
-        failed.remove(k)
-    }
-
     private func generate(_ url: URL, key k: String) {
         let gen = AVAssetImageGenerator(asset: AVURLAsset(url: url))
         gen.appliesPreferredTrackTransform = true

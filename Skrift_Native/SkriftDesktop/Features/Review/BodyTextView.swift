@@ -1206,7 +1206,7 @@ struct BodyTextView: NSViewRepresentable {
             let size = NoteAttachment.size(of: info.filename, large: parent.largeAttachments())
             var actions = NoteAttachment.holdMenu(size: size, paragraph: where_.index, count: where_.count,
                                                   hasFile: info.url != nil,
-                                                  isMedia: info.entry.map { $0.kind == NoteAttachment.Kind.video } ?? true,
+                                                  isMedia: NoteAttachment.isMedia(literal: info.literal),
                                                   editing: tv.isEditable)
             if parent.onSetAttachmentSize == nil { actions.removeAll { if case .setSize = $0 { return true }; return false } }
             guard !actions.isEmpty else { return nil }
@@ -1251,12 +1251,13 @@ struct BodyTextView: NSViewRepresentable {
                 NSSharingServicePicker(items: [url]).show(relativeTo: rect, of: tv, preferredEdge: .minY)
             case .copy:
                 guard let url = box.url else { return }
-                NoteBlockFileActions.copy(url, isPicture: NoteAttachment.markers(in: box.literal).isEmpty)
+                NoteBlockFileActions.copy(url, isPicture: NoteAttachment.isPicture(literal: box.literal))
             case .save(let toPhotos):
                 guard let url = box.url else { return }
                 if toPhotos {
-                    let isVideo = NoteAttachment.markers(in: box.literal).first?.kind == NoteAttachment.Kind.video
-                    NoteBlockFileActions.saveToPhotos(url, isVideo: isVideo) { ok in if !ok { NSSound.beep() } }
+                    NoteBlockFileActions.saveToPhotos(url, isVideo: NoteAttachment.isVideo(literal: box.literal)) { ok in
+                        if !ok { NSSound.beep() }
+                    }
                 } else if NoteBlockFileActions.saveToDownloads(url, name: box.name) == nil {
                     NSSound.beep()
                 }

@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import AVFoundation
 
 /// The Mac side of videos and files in a note body (D199, D202): where an attachment added by
 /// drop / paste / Insert is stored, how its synced bytes land on disk, and how the owning `Memo`
@@ -48,12 +47,6 @@ enum MacNoteAttachments {
         !NotePhoto.acceptedExtensions.contains(url.pathExtension.lowercased())
     }
 
-    /// A video's length, read from the file (nil for a file or an unreadable movie).
-    static func duration(of url: URL) -> Double? {
-        let seconds = CMTimeGetSeconds(AVURLAsset(url: url).duration)
-        return seconds.isFinite && seconds > 0 ? seconds : nil
-    }
-
     // MARK: adding
 
     /// Copy `source` into the note as its next attachment and tell the memo. `memo` / `context`
@@ -75,11 +68,8 @@ enum MacNoteAttachments {
         var entries = manifest(memo: memo, working: working)
         let number = entries.count + 1
         let owner = memo?.id ?? UUID(uuidString: pf.id) ?? UUID()
-        let name = source.lastPathComponent
-        let kind = NoteAttachment.kind(forFilename: name)
-        let entry = NoteAttachment.makeEntry(owner: owner, number: number, originalName: name,
-                                             byteCount: data.count,
-                                             durationSeconds: kind == NoteAttachment.Kind.video ? duration(of: source) : nil)
+        let entry = NoteAttachment.makeEntry(owner: owner, number: number, source: source,
+                                             originalName: source.lastPathComponent, uti: nil, byteCount: data.count)
         let dir = folder(in: working)
         let dest = dir.appendingPathComponent(entry.filename)
         do {
@@ -109,25 +99,17 @@ enum MacNoteAttachments {
     /// The filenames drawn large: the memo's synced list, else none (a Mac-only note draws small).
     static func large(memo: Memo?) -> [String]? { memo?.metadata?.largeAttachments }
 
-    /// Every block Set All switches: photos, videos and files (`NoteAttachment.allFilenames`).
-    static func allFilenames(memo: Memo) -> [String] {
-        NoteAttachment.allFilenames(attachments: memo.metadata?.attachmentManifest, photos: memo.metadata?.imageManifest)
-    }
-
-    /// Whether the note's ⋯ menu offers Set All (it holds a photo, video or file).
+    /// Whether the note's ⋯ menu offers Set All (it holds a photo, video, file or captured PDF).
     static func hasBlocks(memo: Memo?) -> Bool {
         guard let memo else { return false }
-        return !allFilenames(memo: memo).isEmpty
+        return !NoteAttachment.allFilenames(of: memo).isEmpty
     }
 
-    /// Switch one attachment, or every one (`filename` nil = the ⋯ menu's Set All).
+    /// Switch one attachment, or every one (`filename` nil = the ⋯ menu's Set All): the shared
+    /// rule, then the save and the redraw notice.
     static func setSize(_ size: NoteAttachment.Size, filename: String?, memo: Memo, allFilenames: [String],
                         context: ModelContext?) {
-        var meta = memo.metadata ?? MemoMetadata()
-        meta.largeAttachments = filename.map { NoteAttachment.setting($0, to: size, in: meta.largeAttachments) }
-            ?? NoteAttachment.settingAll(size, filenames: allFilenames)
-        memo.metadata = meta
-        memo.markEdited(stampWords: false)
+        NoteAttachment.setSize(size, filename: filename, all: allFilenames, on: memo)
         try? context?.save()
         NotificationCenter.default.post(name: sizesChanged, object: nil)
     }

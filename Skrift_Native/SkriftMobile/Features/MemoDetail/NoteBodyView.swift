@@ -1147,11 +1147,11 @@ struct NoteBodyView: UIViewRepresentable {
             }
             // D202: Apple's per-block small/large switch, on a selected video / file block.
             if let literal = attachmentLiteral(in: range, of: tv), let e = attachmentEntry(literal: literal) {
-                let isLarge = NoteAttachment.size(of: e.filename, large: memo.metadata?.largeAttachments) == .large
-                children.append(UIAction(title: isLarge ? NoteAttachment.viewSmallTitle : NoteAttachment.viewLargeTitle,
-                                         image: UIImage(systemName: isLarge ? "rectangle.compress.vertical" : "rectangle.expand.vertical")) { [weak self] _ in
+                let next: NoteAttachment.Size = NoteAttachment.size(of: e.filename, large: memo.metadata?.largeAttachments) == .large ? .small : .large
+                let action = NoteAttachment.BlockAction.setSize(next)
+                children.append(UIAction(title: action.title, image: UIImage(systemName: action.symbol)) { [weak self] _ in
                     guard let self else { return }
-                    NoteAttachmentStore.setSize(isLarge ? .small : .large, filename: e.filename, memo: self.memo)
+                    NoteAttachmentStore.setSize(next, filename: e.filename, memo: self.memo)
                     tv.resignFirstResponder()
                     self.load(force: true)
                 })
@@ -1253,7 +1253,7 @@ struct NoteBodyView: UIViewRepresentable {
             let spot = NoteAttachment.paragraphIndex(of: literal, in: raw) ?? (0, 1)
             let size = NoteAttachment.size(of: filename, large: memo.metadata?.largeAttachments)
             let actions = NoteAttachment.holdMenu(size: size, paragraph: spot.index, count: spot.count,
-                                                  hasFile: blockFileURL(literal) != nil, isMedia: isMediaBlock(literal),
+                                                  hasFile: blockFileURL(literal) != nil, isMedia: NoteAttachment.isMedia(literal: literal),
                                                   editing: currentMode == .editing)
             return UIMenu(children: actions.map { a in
                 UIAction(title: a.title, image: UIImage(systemName: a.symbol),
@@ -1289,13 +1289,14 @@ struct NoteBodyView: UIViewRepresentable {
                 host.present(share, animated: true)
             case .copy:
                 guard let url = blockFileURL(literal) else { return }
-                NoteBlockFileActions.copy(url, isPicture: attachmentEntry(literal: literal) == nil)
+                NoteBlockFileActions.copy(url, isPicture: NoteAttachment.isPicture(literal: literal))
                 Haptics.tap(.light)
             case .save(let toPhotos):
                 guard let url = blockFileURL(literal) else { return }
                 if toPhotos {
-                    let isVideo = attachmentEntry(literal: literal)?.kind == NoteAttachment.Kind.video
-                    NoteBlockFileActions.saveToPhotos(url, isVideo: isVideo) { ok in Haptics.tap(ok ? .light : .rigid) }
+                    NoteBlockFileActions.saveToPhotos(url, isVideo: NoteAttachment.isVideo(literal: literal)) { ok in
+                        Haptics.tap(ok ? .light : .rigid)
+                    }
                 } else if let host = Self.hostController(of: tv) {
                     // Save to Files: the system picker, saving a copy under the file's own name.
                     let named = FileManager.default.temporaryDirectory
@@ -1305,12 +1306,6 @@ struct NoteBodyView: UIViewRepresentable {
                     host.present(UIDocumentPickerViewController(forExporting: [source], asCopy: true), animated: true)
                 }
             }
-        }
-
-        /// A photo or a video block (Save goes to Photos); any other file saves to Files.
-        private func isMediaBlock(_ literal: String) -> Bool {
-            guard let e = attachmentEntry(literal: literal) else { return true }   // a photo marker
-            return e.kind == NoteAttachment.Kind.video
         }
 
         static func hostController(of view: UIView) -> UIViewController? {
@@ -1436,13 +1431,9 @@ struct NoteBodyView: UIViewRepresentable {
             photoDrag = nil
         }
 
-        /// Drop picture `marker` before the paragraph starting at `location` (display offsets),
-        /// through the shared `BodyFormat.movePhoto`, and save now (a move is a decisive act).
-        func movePhoto(marker: Int, toDisplayLocation location: Int) {
-            moveBlock(literal: BodyV2Marker.literal(marker), toDisplayLocation: location)
-        }
-
-        /// Any block (photo, video, file) dropped before the paragraph at `location`.
+        /// Any block (photo, video, file) dropped before the paragraph starting at `location`
+        /// (display offsets), through the shared `BodyFormat.moveBlock`, and saved now (a move
+        /// is a decisive act).
         func moveBlock(literal: String, toDisplayLocation location: Int) {
             let marker = BodyV2Marker.numbers(in: literal).first
             guard let tv = textView, currentMode == .editing,

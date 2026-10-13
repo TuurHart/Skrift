@@ -178,7 +178,7 @@ struct NoteActions: View {
                 ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
                     Button(size == .small ? NoteAttachment.setAllSmallTitle : NoteAttachment.setAllLargeTitle) {
                         MacNoteAttachments.setSize(size, filename: nil, memo: memo,
-                                                   allFilenames: MacNoteAttachments.allFilenames(memo: memo), context: ctx)
+                                                   allFilenames: NoteAttachment.allFilenames(of: memo), context: ctx)
                     }
                 }
             }

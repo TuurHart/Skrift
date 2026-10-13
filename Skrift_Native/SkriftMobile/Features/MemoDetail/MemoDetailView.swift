@@ -173,7 +173,7 @@ struct MemoDetailView: View {
             }
         }
         // D202: Apple's "Set All to Small / Large", on a note that holds a photo, video, file or PDF.
-        if !NoteAttachmentStore.allFilenames(of: memo).isEmpty {
+        if !NoteAttachment.allFilenames(of: memo).isEmpty {
             ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
                 let action = NoteAttachment.BlockAction.setSize(size)
                 Button { setAllSizes(size, memo) } label: {
@@ -567,7 +567,7 @@ struct MemoDetailView: View {
                 Button(LibraryHatch.moveLabel, action: { LibraryHatch.moveToLibrary(memo: memo) })
             }
             // D202: Set All to Small / Large, the same pair the iPad ⋯ menu has.
-            if let memo = currentMemo, !NoteAttachmentStore.allFilenames(of: memo).isEmpty {
+            if let memo = currentMemo, !NoteAttachment.allFilenames(of: memo).isEmpty {
                 Button(NoteAttachment.setAllSmallTitle, action: { setAllSizes(.small, memo) })
                 Button(NoteAttachment.setAllLargeTitle, action: { setAllSizes(.large, memo) })
             }

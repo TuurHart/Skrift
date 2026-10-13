@@ -116,9 +116,10 @@ enum NoteAttachment {
 
     private static let blockRegex = try! NSRegularExpression(pattern: #"[ \t]*\n*[ \t]*(\[\[(?:vid|file)_\d+\]\])[ \t]*\n*"#)
 
-    /// The editors' commit step (both apps): every resolving attachment marker made its own
-    /// paragraph (C10), whatever newlines the editor left around its glyph. Markers with no entry
-    /// stay where they are, as text.
+    /// The phone editor's commit step: every resolving attachment marker made its own paragraph
+    /// (C10), whatever newlines the editor left around its glyph. Markers with no entry stay
+    /// where they are, as text. (The Mac inserts through `inserting` and moves through
+    /// `moving` / `BodyFormat.moveBlock`, which keep the paragraph shape themselves.)
     static func blockShaped(_ text: String, manifest: [NoteAttachmentEntry]) -> String {
         guard !manifest.isEmpty, text.contains("[[vid_") || text.contains("[[file_") else { return text }
         let ns = text as NSString
@@ -276,6 +277,14 @@ enum NoteAttachment {
                     badge: "PDF", badgeHex: 0xc8463d, thumb: false)
     }
 
+    /// A captured (shared) document that is not a PDF (mock pick 4): its name, "DXF drawing · 412 KB".
+    static func capturedFileCard(name: String, byteCount: Int?) -> Card {
+        let e = NoteAttachmentEntry(kind: Kind.file, filename: name, name: name, uti: uti(forFilename: name),
+                                    byteCount: byteCount ?? 0)
+        return Card(title: name, subtitle: [kindLabel(e), byteCount.map(sizeLabel)].compactMap { $0 }.joined(separator: " · "),
+                    badge: badge(e), badgeHex: badgeHex(e), thumb: false)
+    }
+
     // MARK: The block's hold / right-click menu (D202, mock pick 6)
 
     enum BlockAction: Equatable {
@@ -322,6 +331,12 @@ enum NoteAttachment {
             .filter { editing || $0 == .setSize(size == .large ? .small : .large) }
         return fileVerbs + blockVerbs
     }
+
+    /// A held block's facts, read off its marker literal (both apps' Copy and Save): a photo
+    /// marker (`[[img_NNN]]`) is a picture, `[[vid_NNN]]` a video; Save to Photos takes either.
+    static func isPicture(literal: String) -> Bool { markers(in: literal).isEmpty }
+    static func isVideo(literal: String) -> Bool { markers(in: literal).first?.kind == Kind.video }
+    static func isMedia(literal: String) -> Bool { isPicture(literal: literal) || isVideo(literal: literal) }
 
     /// The menu for a block at `size` whose paragraph is at `paragraph` of `count` (both apps).
     static func blockActions(size: Size, paragraph: Int, count: Int, shareable: Bool) -> [BlockAction] {

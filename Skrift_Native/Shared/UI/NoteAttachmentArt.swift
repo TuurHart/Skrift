@@ -49,17 +49,47 @@ enum NoteAttachmentArt {
         return made
     }
 
-    /// A photo drawn small (D202): the grey card with the photo on the right.
+    /// A photo drawn small (D202): the grey card with the photo on the right. Cached per file
+    /// version, so reopening a note decodes no thumbnail.
     static func photoCard(filename: String, fileURL: URL?, width: CGFloat, dark: Bool) -> Image {
-        let bytes = fileURL.flatMap { (try? FileManager.default.attributesOfItem(atPath: $0.path)[.size]) as? Int }
-        let thumb = fileURL.flatMap { loadImage($0) }
-        return card(NoteAttachment.photoCard(filename: filename, byteCount: bytes), width: width, thumb: thumb, dark: dark)
+        let file = stamp(fileURL)
+        return cached("photo|\(filename)|\(Int(width))|\(dark)|\(file.key)") {
+            card(NoteAttachment.photoCard(filename: filename, byteCount: file.bytes), width: width,
+                 thumb: fileURL.flatMap { loadImage($0) }, dark: dark)
+        }
     }
 
     /// The captured PDF drawn small (D202): the grey card, "PDF document · N pages".
     static func pdfCard(name: String, pages: Int?, fileURL: URL?, width: CGFloat, dark: Bool) -> Image {
-        let bytes = fileURL.flatMap { (try? FileManager.default.attributesOfItem(atPath: $0.path)[.size]) as? Int }
-        return card(NoteAttachment.pdfCard(name: name, pages: pages, byteCount: bytes), width: width, thumb: nil, dark: dark)
+        let file = stamp(fileURL)
+        return cached("pdf|\(name)|\(pages ?? -1)|\(Int(width))|\(dark)|\(file.key)") {
+            card(NoteAttachment.pdfCard(name: name, pages: pages, byteCount: file.bytes), width: width, thumb: nil, dark: dark)
+        }
+    }
+
+    /// Any other captured (shared) document drawn as the card (mock pick 4: it replaces the old
+    /// capture card and its Open button): name, kind · size, the file icon.
+    static func fileCard(name: String, fileURL: URL?, width: CGFloat, dark: Bool) -> Image {
+        let file = stamp(fileURL)
+        return cached("file|\(name)|\(Int(width))|\(dark)|\(file.key)") {
+            card(NoteAttachment.capturedFileCard(name: name, byteCount: file.bytes), width: width, thumb: nil, dark: dark)
+        }
+    }
+
+    private static func cached(_ key: String, _ make: () -> Image) -> Image {
+        if let hit = cache.object(forKey: key as NSString) { return hit }
+        let made = make()
+        cache.setObject(made, forKey: key as NSString)
+        return made
+    }
+
+    /// One stat per draw: the size goes on the card, size + change time key the cache (a
+    /// marked-up photo draws fresh).
+    private static func stamp(_ url: URL?) -> (bytes: Int?, key: String) {
+        guard let url, let a = try? FileManager.default.attributesOfItem(atPath: url.path) else { return (nil, "-") }
+        let bytes = a[.size] as? Int
+        let changed = (a[.modificationDate] as? Date)?.timeIntervalSinceReferenceDate ?? 0
+        return (bytes, "\(bytes ?? 0)@\(changed)")
     }
 
     // MARK: drawing shim (one painter, two platforms)
