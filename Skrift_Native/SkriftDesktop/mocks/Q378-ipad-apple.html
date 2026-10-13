@@ -163,13 +163,29 @@ h3.sect{font-size:16px;margin:34px 0 0}
 /* ── SKRIFT iPad ── */
 .sk{background:var(--sk-bg);color:var(--sk-text)}
 .sk .sbar{color:var(--sk-text)}
-.sk .tabs{position:absolute;left:0;right:0;top:24px;height:48px;display:flex;justify-content:center;align-items:center;z-index:3}
-.sk .tabs .tw{display:flex;gap:2px;padding:4px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 2px 10px rgba(0,0,0,.06)}
-.sk .tabs button{height:32px;padding:0 16px;border-radius:16px;font-size:15px;font-weight:600;color:var(--sk-dim)}
-.sk .tabs button[aria-pressed="true"]{background:var(--sk-accent-soft);color:var(--sk-accent-text)}
-.sk.tabsinband .tabs{top:24px;height:60px;left:var(--lw)}
-.sk .cols{position:absolute;left:0;right:0;top:72px;bottom:0;display:flex}
-.sk.tabsinband .cols{top:24px}
+.sk .cols{position:absolute;left:0;right:0;top:24px;bottom:0;display:flex}
+/* option A: compact tab control at the top of the list column, above the list header */
+.sk .ttop{height:60px;flex:none;display:flex;align-items:center;padding:0 9px 0 63px}
+.sk .tseg{flex:1;display:flex;gap:2px;padding:3px;height:44px;border-radius:22px;background:var(--sk-glass);box-shadow:0 0 0 .5px var(--sk-ring),0 2px 10px rgba(0,0,0,.06)}
+.sk .tseg button{flex:1;min-width:0;height:38px;border-radius:19px;font-size:14px;font-weight:600;color:var(--sk-dim);white-space:nowrap}
+.sk .tseg button[aria-pressed="true"]{background:var(--sk-accent-soft);color:var(--sk-accent-text)}
+.sk.optA .lhead{padding-left:16px}
+/* option B: iPadOS sidebar-adaptable tabs, hidden by default, revealed by the sidebar button */
+.sk .tside{width:0;flex:none;overflow:hidden;background:var(--sk-elev);border-right:0 solid var(--sk-ring);transition:width .25s ease}
+.sk.sideon .tside{width:var(--sw);border-right-width:.5px}
+.sk .tsin{width:var(--sw);padding:60px 10px 0;display:flex;flex-direction:column;gap:2px}
+.sk .tsh{font-size:13px;font-weight:600;color:var(--sk-dim);padding:6px 12px 6px}
+.sk .trow{display:flex;align-items:center;gap:11px;height:44px;padding:0 12px;border-radius:12px;font-size:17px;width:100%;text-align:left;color:var(--sk-text)}
+.sk .trow svg{color:var(--sk-accent)}
+.sk .trow.on{background:var(--sk-accent);color:#fff}
+.sk .trow.on svg{color:#fff}
+.sk.sideon:not(.port) .lhead{padding-left:16px}
+.sk.port.optB .tside{position:absolute;left:0;top:0;bottom:0;z-index:7;box-shadow:8px 0 30px rgba(0,0,0,.14)}
+.sk.port.optB:not(.sideon) .tside{box-shadow:none}
+.ab{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:4px 24px;align-items:start}
+.ab > div{min-width:0}
+.trade{font-size:13.5px;line-height:1.45;margin:8px 0 0;max-width:64ch}
+.trade b{color:var(--mark)}
 .sk .lcol{width:var(--lw);flex:none;overflow:hidden;background:var(--sk-bg);border-right:.5px solid var(--sk-ring);transition:width .25s ease;position:relative}
 .sk.nolist .lcol{width:0;border-right-width:0}
 .sk .linner{width:var(--lw);height:100%;display:flex;flex-direction:column}
@@ -177,8 +193,7 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .gl.cap{padding:0 16px}
 .sk .gl.soft{background:var(--sk-accent-soft);color:var(--sk-accent-text);font-weight:600;box-shadow:none}
 .sk .gl.on{background:var(--sk-accent-soft);color:var(--sk-accent-text);box-shadow:none}
-.sk .side-t{position:absolute;left:9px;top:80px;z-index:6}
-.sk.tabsinband .side-t{top:32px}
+.sk .side-t{position:absolute;left:9px;top:32px;z-index:9}
 .sk .lhead{height:60px;flex:none;display:flex;align-items:center;gap:10px;padding:0 9px 0 66px}
 .sk .lhead .tt{flex:1;min-width:0;font-size:15px;line-height:20px;font-weight:600}
 .sk .lhead .tt span{display:block;font-weight:400;color:var(--sk-dim)}
@@ -233,9 +248,8 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .tools > button.on{color:var(--sk-accent)}
 .sk .tools .aa{font-size:20px;font-weight:500;letter-spacing:-.4px}
 .sk .nscroll{flex:1;min-height:0;overflow:hidden;position:relative}
-.sk .ntext{max-width:640px;padding:20px 20px 40px;margin-left:12px}
-.sk.nolist .ntext{max-width:900px;margin:0 auto}
-.sk.wide .ntext{max-width:none;margin:0;padding:20px 68px 40px 32px}
+.sk .ntext{padding:20px 48px 40px}
+.sk.nolist .ntext{padding:20px 89px 40px}
 .sk .ntitle{font-size:28px;line-height:34px;font-weight:700;display:flex;align-items:baseline;gap:8px}
 .sk .ntitle small{font-size:12px;font-weight:500;color:var(--sk-faint);display:inline-flex;gap:3px;align-items:center}
 .sk .meta{display:flex;flex-wrap:wrap;gap:0 6px;align-items:center;margin-top:8px;font-size:13px;line-height:18px;color:var(--sk-dim)}
@@ -319,8 +333,10 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .emenu i{width:1px;height:19px;background:var(--sk-ring);display:block}
 .sk .emenu .newp{color:var(--sk-accent-text);font-weight:600}
 .sk .ssel{background:var(--sk-accent-soft);border-radius:2px;box-shadow:0 0 0 1px var(--sk-accent-soft)}
-.sk .pmenu{position:absolute;top:0;left:104px;width:240px;border-radius:22px;background:var(--sk-surface);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0;z-index:20;display:flex;flex-direction:column}
-.sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
+.sk .pmenu{position:absolute;top:54px;left:20px;width:250px;border-radius:28px;background:var(--sk-glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0 12px;z-index:20;display:flex;flex-direction:column;text-align:left}
+.sk .pmenu .ph{font-size:13px;font-weight:600;color:var(--sk-dim);padding:10px 21px 4px}
+.sk .pmenu .pft{font-size:12px;line-height:16px;color:var(--sk-faint);padding-top:9px;border-top:.5px solid var(--sk-ring);margin:6px 21px 0}
+.sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:13px;padding:0 21px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
 .sk .tools .pmenu button{width:100%}
 .sk .li .bx{display:flex;align-items:center;justify-content:center;color:#fff}
 .sk .dchip.pers{color:var(--sk-dim);background:var(--sk-elev)}
@@ -335,15 +351,14 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
 </style>
 
 <div class="wrap" id="app">
-  <div class="eyebrow">Q378 · mock · D193 D194 D196 D197 · iPad Pro 13" · 1 px = 1 pt</div>
+  <div class="eyebrow">Q378 · mock · D193 D194 D196 D197 D198 · iPad Pro 13" · 1 px = 1 pt</div>
   <h1>Skrift on iPad, beside Apple Notes on iPad</h1>
-  <p class="lede">Seven pairs. In each, the top frame is Apple Notes redrawn by hand from one of Tuur's iPad screenshots at its true size (1376 x 1032 pt, the screenshots are 2752 px wide, so 2 px per point). The frame under it is the proposed Skrift iPad screen in the same state at the same scale. Orange numbers mark the picks you may want to overrule; they are listed at the end.</p>
+  <p class="lede">Seven pairs. In each, the top frame is Apple Notes redrawn by hand from one of Tuur's iPad screenshots at its true size (1376 x 1032 pt, the screenshots are 2752 px wide, so 2 px per point). The frame under it is the proposed Skrift iPad screen in the same state at the same scale. Pair 1 and the portrait pair draw Skrift twice, tab option A next to option B. Orange numbers mark the picks you may want to overrule; they are listed at the end.</p>
 
   <div class="bar" id="bar">
     <div class="grp">View <span class="seg"><button data-v="lay" data-x="stack" aria-pressed="true">Stacked</button><button data-v="lay" data-x="flip" aria-pressed="false">Flip in place</button></span></div>
     <div class="grp">Size <span class="seg"><button data-v="size" data-x="fit" aria-pressed="true">Fit width</button><button data-v="size" data-x="actual" aria-pressed="false">1 : 1 points</button></span></div>
-    <div class="grp">Text width <span class="seg"><button data-v="wide" data-x="0" aria-pressed="true">640 pt<span class="pk">PICK</span></button><button data-v="wide" data-x="1" aria-pressed="false">Full, like Apple</button></span></div>
-    <div class="grp">Tabs <span class="seg"><button data-v="tabs" data-x="row" aria-pressed="true">Own row<span class="pk">PICK</span></button><button data-v="tabs" data-x="band" aria-pressed="false">In the toolbar line</button></span></div>
+    <div class="grp">Tabs in pairs 2 to 6 <span class="seg"><button data-v="tabs" data-x="A" aria-pressed="true">A · top of list</button><button data-v="tabs" data-x="B" aria-pressed="false">B · sidebar</button></span></div>
     <div class="grp">Marks <span class="seg"><button data-v="marks" data-x="1" aria-pressed="true">On</button><button data-v="marks" data-x="0" aria-pressed="false">Off</button></span></div>
   </div>
   <nav class="toc" id="toc"></nav>
@@ -355,29 +370,32 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
 
   <div class="ask">
     <div class="eyebrow" style="color:var(--mark)">The one question</div>
-    <p>On the iPad, should the note's text run the full width of the pane like Apple Notes (about 900 pt in landscape), or stay capped at Skrift's 640 pt reading width, which leaves about 350 pt empty on the right? Flip "Text width" to see both.</p>
+    <p>Tabs on the iPad: A, a compact Notes · Library · Review · Settings control at the top of the list that is always visible but leaves with the list, or B, a sidebar hidden behind ◧ like Apple's folders, which keeps the list tall but hides which tab you are on? Pairs 1 and 8 draw both.</p>
   </div>
 
-  <p class="fine">The Apple Notes frames are redrawn in HTML from Tuur's own iPad screenshots (IMG_5231 to IMG_5238, 2752 x 2064 px, 13 Oct 2026; scale 2752 / 1376 = 2 px per point, confirmed by the 44 pt glass buttons at 88 px and the 340 pt sidebar at 680 px). No screenshot or Apple icon is embedded, the icons are generic strokes, and the note text, folder names and tags are invented to the same line lengths. The Skrift frames follow Shared/UI/NoteCardView.swift (row type 16 / 14 / 12.5, the grey Unrated marker, Portfolio-only line 3, 52 pt thumbnail), SkriftMobile/Features/MemosList/MemosListView.swift (375 pt list column, the pinned list toggle), MemosListView+Header.swift (verb row, Process, chips), Root/AppTabView.swift (Notes, Library, Review, Settings as a top strip), MemoDetail/MemoDetailView.swift (workbench band, 640 pt reading width, docked player), MemoPageView.swift (Take Photo / Choose from Library), NoteBodyView.swift (square checkboxes, "New person…" in the text menu) and the signed mocks Q349, Q350 and ipad-note-chrome-belongs.</p>
+  <p class="fine">The Apple Notes frames are redrawn in HTML from Tuur's own iPad screenshots (IMG_5231 to IMG_5238, 2752 x 2064 px, 13 Oct 2026; scale 2752 / 1376 = 2 px per point, confirmed by the 44 pt glass buttons at 88 px and the 340 pt sidebar at 680 px). No screenshot or Apple icon is embedded, the icons are generic strokes, and the note text, folder names and tags are invented to the same line lengths. The Skrift frames follow Shared/UI/NoteCardView.swift (row type 16 / 14 / 12.5, the grey Unrated marker, Portfolio-only line 3, 52 pt thumbnail), SkriftMobile/Features/MemosList/MemosListView.swift (375 pt list column, the pinned list toggle), MemosListView+Header.swift (verb row, Process, chips), Root/AppTabView.swift (Notes, Library, Review, Settings), MemoDetail/MemoDetailView.swift (workbench band, docked player; the 640 pt reading width is dropped on iPad per D198), Apple's attach menu from IMG_5233 (D198), NoteBodyView.swift (square checkboxes, "New person…" in the text menu) and the signed mocks Q349, Q350 and ipad-note-chrome-belongs.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 (() => {
 /* G = page-wide toggles. Each section keeps its own state (st); renderers read S, which render() points at
    the section being drawn. */
-const G = { lay:'stack', size:'fit', wide:false, tabs:'row', marks:true };
-const base = { tab:'Notes', sel:1, aa:false, list:true, menu:null, block:'p', audio:true, front:'ref', selbar:false, photo:false, refSty:0 };
+const G = { lay:'stack', size:'fit', tabs:'A', marks:true };
+const base = { tab:'Notes', sel:1, aa:false, list:true, menu:null, block:'p', audio:true, front:'ref', selbar:false, photo:false, refSty:0, sideB:false };
 const SEC = [
-  {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{},                           cap:'the list beside an open note'},
+  {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{}, ab:true,                  cap:'the list beside an open note'},
   {id:'aa',     name:'Aa',              shot:'IMG_5234 + 5235', ref:'format', st:{aa:true, refSty:1},             cap:'Aa open: Apple floats a Format panel over a dimmed screen; Skrift drops the Mac popover from the button'},
   {id:'select', name:'Text selected',   shot:'IMG_5232', ref:'select',  st:{selbar:true},                cap:'a sentence selected: the edit menu above it'},
-  {id:'attach', name:'Attach / photo',  shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach (Apple) or photo (Skrift) button opened'},
+  {id:'attach', name:'Attach',          shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach button opened: both add to this note'},
   {id:'check',  name:'Checklist note',  shot:'IMG_5236', ref:'check',   st:{sel:4},                      cap:'a typed note with a checklist'},
   {id:'full',   name:'List hidden',     shot:'IMG_5237', ref:'full',    st:{sel:4, list:false},          cap:'the list closed, the note takes the screen'},
   {id:'folders',name:'Folders column',  shot:'IMG_5238', ref:'folders', st:null,                         cap:'Apple\'s three columns; Skrift has no folders column'}
 ];
-SEC.forEach(s => { if (s.st) s.st = Object.assign({}, base, s.st); });
+SEC.forEach(s => { if (s.st) { if (s.ab) s.stB = Object.assign({}, base, s.st, {sideB:true}); s.st = Object.assign({}, base, s.st); } });
 const PORT = Object.assign({}, base);
+const PORTB = Object.assign({}, base, {sideB:true});
+/* state for a frame: "0" = section 0 (option A or the page-wide pick), "0:B" = its option-B frame, "port" / "port:B" */
+function stFor(key){ const [k, o] = String(key).split(':'); if (k === 'port') return o ? PORTB : PORT; const sec = SEC[+k]; return o && sec.stB ? sec.stB : (sec.st || base); }
 let S = SEC[0].st;
 let shotSpec = null;
 const h = (location.hash || '').slice(1);
@@ -428,6 +446,10 @@ const I = {
   pin:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a3.5 3.5 0 013.5 3.5C9.5 7.2 6 11 6 11S2.5 7.2 2.5 4.5A3.5 3.5 0 016 1z"/></svg>',
   sun:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="2.8"/></svg>',
   hl:'<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M11 2.5l4.5 4.5-6.5 6.5H4.5V9z"/><path d="M2.5 16h13" stroke-linecap="round"/></svg>',
+  tNotes:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="2" width="16" height="18" rx="3"/><path d="M7 7.5h8M7 11h8M7 14.5h5" stroke-linecap="round"/></svg>',
+  tLib:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M2.5 4.5c3-1.3 6-1 8.5.8v13c-2.5-1.8-5.5-2.1-8.5-.8zM19.5 4.5c-3-1.3-6-1-8.5.8v13c2.5-1.8 5.5-2.1 8.5-.8z"/></svg>',
+  tRev:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8.5"/><path d="M7 11.2l2.7 2.7L15 8.5"/></svg>',
+  tSet:'<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="3"/><path d="M11 1.8v3M11 17.2v3M1.8 11h3M17.2 11h3M4.5 4.5l2.1 2.1M15.4 15.4l2.1 2.1M4.5 17.5l2.1-2.1M15.4 6.6l2.1-2.1" stroke-linecap="round"/></svg>',
   tick:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.3l2.3 2.3 4.7-5"/></svg>'
 };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -630,11 +652,16 @@ function nrow(n, first){
   if (n.media && !n.locked) l3 += `<span class="media">${n.media[0]==='mic'?I.micS:n.media[0]==='book'?I.bookS:I.linkS}${esc(n.media[1])}</span>`;
   return `<button class="nrow${sel}" data-sel="${n.id}"><div class="tx"><div class="l1">${title}${pill}${unr}</div><div class="l2">${l2}</div>${l3?`<div class="l3">${l3}</div>`:''}</div>${n.thumb && !n.locked ? `<div class="th" style="background:${n.thumb}"></div>` : ''}</button>`;
 }
-function listCol(){
+const TABS = ['Notes','Library','Review','Settings'];
+const TABI = {Notes:'tNotes', Library:'tLib', Review:'tRev', Settings:'tSet'};
+function tabRowA(){ return `<div class="ttop"><div class="tseg${pick(1)}" role="tablist">${TABS.map(t => `<button role="tab" aria-pressed="${S.tab===t}" data-tab="${t}">${t}</button>`).join('')}</div></div>`; }
+function tabSideB(){ return `<div class="tside" aria-hidden="${!S.sideB}"><div class="tsin${pick(1)}"><div class="tsh">Skrift</div>${TABS.map(t => `<button class="trow${S.tab===t?' on':''}" data-tab="${t}">${I[TABI[t]]}<span>${t}</span></button>`).join('')}</div></div>`; }
+function listCol(opt){
   const groups = []; const idx = {};
   NOTES.forEach(n => { if (!(n.g in idx)) { idx[n.g] = groups.length; groups.push({t:n.g, notes:[]}); } groups[idx[n.g]].notes.push(n); });
   const first = {};
   return `<div class="lcol"><div class="linner">
+    ${opt === 'A' ? tabRowA() : ''}
     <div class="lhead"><div class="tt${pick(3)}">Notes<span>${NOTES.length} notes</span></div><button class="gl cap" data-ack="Select mode (unchanged)">Select</button></div>
     <div class="lscroll">
       <div class="verbs"><button class="verb" data-ack="Import: audio or video from Files, video from Photos, scan a document (unchanged)">${I.plus}Import</button><button class="verb rec" data-ack="Record starts a take (unchanged)"><i></i>Record</button><button class="verb sq" data-ack="New typed note (unchanged)" aria-label="New note">${I.pencil}</button></div>
@@ -672,8 +699,17 @@ function selMenu(){
     <button class="newp" data-ack="New person… opens the person editor with &ldquo;Rui&rdquo; filled in (D196)">New person…</button><i></i><button data-ack="More: Look Up, Translate, Share">${I.chevR}</button>
   </div>`;
 }
+/* attach menu = Apple's in-note attach menu (D198) minus Record Audio, Scan Text and Image Playground */
 function photoMenu(){
-  return `<div class="pmenu${pick(11)}" role="menu"><button data-close data-ack="Camera opens; the photo lands at the caret">${I.cam}<span>Take Photo</span></button><button data-close data-ack="Photo library opens; the photo lands at the caret">${I.photo}<span>Choose from Library</span></button></div>`;
+  const it = (icon, label, ack) => `<button data-close data-ack="${ack}"><span style="width:22px;display:flex;justify-content:center">${icon}</span><span>${label}</span></button>`;
+  return `<div class="pmenu${pick(11)}" role="menu" aria-label="Add to this note">
+    <div class="ph">Add to this note</div>
+    ${it(I.scanD,'Scan Document','Document scanner opens; the scan lands at the caret in this note')}
+    ${it(I.cam,'Take Photo or Video','Camera opens; the photo or video lands at the caret in this note')}
+    ${it(I.photo,'Choose Photo or Video','Photo library opens; the pick lands at the caret in this note')}
+    ${it(I.file,'Attach File','Files opens; the file is attached to this note')}
+    <div class="pft">This adds into the open note. Import (top left) brings in existing files outside any note; ✎ starts a new one.</div>
+  </div>`;
 }
 function audioNote(){
   const sel = S.selbar;
@@ -709,30 +745,46 @@ function typedNote(){
       </div>
     </div></div>`;
 }
-function noteCol(){
+function noteCol(opt){
   const menu = S.menu === 'more' ? `<div class="menu" role="menu"><button class="newi" data-ack="Split speakers lives here now (D196)">Split speakers</button><button data-ack="Find in note">Find in Note</button><button data-ack="Add recording (unchanged)">Add recording</button><button data-ack="Lock note (unchanged)">Lock Note</button><button data-ack="Share (unchanged)">Share Note…</button><button data-ack="Copied as Markdown">Copy as Markdown</button><button class="red" data-ack="Delete asks first (unchanged)">Delete</button></div>` : '';
   const conf = S.menu === 'export' ? `<div class="conf" role="dialog" aria-label="Export"><h5>Export to Portfolio</h5><p>Writes this note to _projects/ in your vault.</p><label><button class="cb${S.audio?'':' off'}" data-audio aria-label="Include audio">${S.audio?I.tick:''}</button>Include audio in export</label><p style="font-size:12px">Remembered for this note.</p><div class="btns"><button data-close>Cancel</button><button class="go" data-ack="Exported (mock). Include audio: remembered for this note" data-close>Export</button></div></div>` : '';
   return `<div class="ncol">
     <div class="nband">
+      ${opt === 'B' ? `<button class="gl" data-list aria-label="${S.list?'Hide':'Show'} the notes list">${S.list?I.expand:I.shrink}</button>` : ''}
       <span class="sp"></span>
-      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button class="${S.photo?'on':''}" data-photo aria-label="Photo">${I.photo}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}${S.photo ? photoMenu() : ''}</div>
+      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button class="${S.photo?'on':''}" data-photo aria-label="Attach">${I.clip}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}${S.photo ? photoMenu() : ''}</div>
       <div class="wrapr"><button class="gl cap" data-ack="Connections slides in over the note (unchanged)">Connections</button><button class="gl cap soft" data-menu="export">Export</button><button class="gl" data-menu="more" aria-label="More">${I.dots}</button>${menu}${conf}</div>
     </div>
     ${S.sel === 4 ? typedNote() : audioNote()}
   </div>`;
 }
-function skFrame(orient){
-  const cls = ['dev', orient, 'sk'];
+function skFrame(orient, opt){
+  opt = opt || G.tabs;
+  const cls = ['dev', orient, 'sk', 'opt' + opt];
   if (!S.list) cls.push('nolist');
-  if (G.wide) cls.push('wide');
-  if (G.tabs === 'band') cls.push('tabsinband');
-  const tabs = ['Notes','Library','Review','Settings'];
-  const content = S.tab === 'Notes' ? listCol() + noteCol() : `<div class="other">${S.tab} is not part of this mock. Tap Notes.</div>`;
-  return `<div class="${cls.join(' ')}" id="sk-${orient}" style="--lw:375px">
+  if (opt === 'B' && S.sideB) cls.push('sideon');
+  const other = `<div class="other">${S.tab} is not part of this mock. Tap Notes.</div>`;
+  const content = S.tab === 'Notes' ? listCol(opt) + noteCol(opt)
+    : (opt === 'A' ? `<div class="lcol"><div class="linner">${tabRowA()}</div></div>` : '') + other;
+  const sideBtn = opt === 'B'
+    ? `<button class="gl side-t${pick(2)}" data-sideb aria-label="${S.sideB?'Hide':'Show'} the tabs sidebar">${I.side}</button>`
+    : `<button class="gl side-t${pick(2)}" data-list aria-label="${S.list?'Hide':'Show'} the notes list">${I.side}</button>`;
+  return `<div class="${cls.join(' ')}" id="sk-${orient}-${opt}" style="--lw:375px;--sw:200px">
     <div class="sbar"><span>14:23&nbsp;&nbsp;Tue 13 Oct</span><span class="r">${I.wifi}<span class="batt" style="color:var(--sk-text)"><span style="color:var(--sk-bg)">80</span></span></span></div>
-    <div class="tabs"><div class="tw${pick(1)}">${tabs.map(t => `<button aria-pressed="${S.tab===t}" data-tab="${t}">${t}</button>`).join('')}</div></div>
-    <button class="gl side-t${pick(2)}" data-list aria-label="${S.list?'Hide':'Show'} the notes list">${I.side}</button>
-    <div class="cols">${content}</div>
+    ${sideBtn}
+    <div class="cols">${opt === 'B' ? tabSideB() : ''}${content}</div>
+  </div>`;
+}
+const TRADE = {
+  A: 'Tabs always in view and nothing to learn, but they leave with the list when it is hidden, and the list gives up 60 pt of height.',
+  B: 'The list keeps its full height and the tabs sit where Apple keeps folders, but the current tab is invisible until ◧ is tapped, and in portrait the sidebar covers the list.'
+};
+function abPair(orient, keyA, keyB, w, hgt){
+  S = stFor(keyA); const a = fitBox(skFrame(orient, 'A'), w, hgt);
+  S = stFor(keyB); const b = fitBox(skFrame(orient, 'B'), w, hgt);
+  return `<div class="ab">
+    <div data-sec="${keyA}"><div class="flab"><span class="tag new">Option A</span><h2>Tabs on top of the list</h2><span>editor tools keep the top bar</span></div>${a}<p class="trade"><b>A</b> ${esc(TRADE.A)}</p></div>
+    <div data-sec="${keyB}"><div class="flab"><span class="tag new">Option B</span><h2>Tabs in a hidden sidebar</h2><span>drawn open; starts hidden, ◧ toggles it</span></div>${b}<p class="trade"><b>B</b> ${esc(TRADE.B)}</p></div>
   </div>`;
 }
 
@@ -742,10 +794,12 @@ function fitBox(inner, w, hgt){
 }
 function secHTML(sec, i){
   const refLab = `<div class="flab"><span class="tag ref">Reference</span><h2>Apple Notes</h2><span>${sec.shot}, ${esc(sec.cap)}</span></div>`;
-  const skLab = `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift</h2><span>same state, same scale</span></div>`;
+  const skLab = sec.ab ? `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift, two tab options</h2><span>same state, same scale; pick one</span></div>`
+    : `<div class="flab"><span class="tag new">Proposed</span><h2>Skrift</h2><span>same state, same scale; tabs as option ${G.tabs}</span></div>`;
   S = sec.st || base;
   const ref = fitBox(refFrame(sec.ref), 1376, 1032);
-  const sk = sec.st ? fitBox(skFrame('land'), 1376, 1032)
+  const sk = sec.ab ? abPair('land', String(i), i + ':B', 1376, 1032)
+    : sec.st ? fitBox(skFrame('land'), 1376, 1032)
     : `<div class="nosk">Skrift has no folders column: Personal and Portfolio are the only split, and both live in the list's chips. Not drawn. If folders come, this is the layout to copy.<span class="pk">PICK 12</span></div>`;
   let body;
   if (G.lay === 'stack' || !sec.st) body = refLab + ref + (sec.st ? skLab : '') + sk;
@@ -755,18 +809,18 @@ function secHTML(sec, i){
 function render(){
   if (shotSpec) {
     const sec = SEC.find(s => s.id === shotSpec.sec);
-    if (shotSpec.sec === 'port') { S = PORT; document.getElementById('stages').innerHTML = `<section data-sec="port">${skFrame('port')}</section>`; return; }
-    S = sec.st || base;
-    document.getElementById('stages').innerHTML = `<section data-sec="${SEC.indexOf(sec)}">${shotSpec.side === 'sk' ? skFrame('land') : refFrame(sec.ref)}</section>`;
+    if (shotSpec.sec === 'port') { const o = shotSpec.side === 'B' ? 'B' : 'A'; S = o === 'B' ? PORTB : PORT; document.getElementById('stages').innerHTML = `<section data-sec="port${o==='B'?':B':''}">${skFrame('port', o)}</section>`; return; }
+    const o = shotSpec.side === 'skB' ? 'B' : 'A';
+    S = o === 'B' && sec.stB ? sec.stB : (sec.st || base);
+    document.getElementById('stages').innerHTML = `<section data-sec="${SEC.indexOf(sec)}${o==='B'?':B':''}">${shotSpec.side.indexOf('sk') === 0 ? skFrame('land', sec.ab ? o : G.tabs) : refFrame(sec.ref)}</section>`;
     return;
   }
   let html = SEC.map(secHTML).join('');
-  S = PORT;
-  html += `<section class="sec" id="s-port" data-sec="port"><h3 class="sect"><span class="sn">8</span>Skrift, portrait</h3><div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, portrait</h2><span>1032 x 1376 pt; the list stays open. No Apple portrait screenshot yet.</span></div>${fitBox(skFrame('port'),1032,1376)}</section>`;
+  html += `<section class="sec" id="s-port" data-sec="port"><h3 class="sect"><span class="sn">8</span>Skrift, portrait</h3><div class="flab"><span class="tag new">Proposed</span><h2>Skrift on iPad, portrait, both tab options</h2><span>1032 x 1376 pt; the list stays open. No Apple portrait screenshot yet.</span></div>${abPair('port','port','port:B',1032,1376)}</section>`;
   document.getElementById('stages').innerHTML = html;
   document.querySelectorAll('#bar [data-v]').forEach(b => {
     const v = b.dataset.v, x = b.dataset.x;
-    const cur = v==='wide' ? (G.wide?'1':'0') : v==='marks' ? (G.marks?'1':'0') : G[v];
+    const cur = v==='marks' ? (G.marks?'1':'0') : G[v];
     b.setAttribute('aria-pressed', String(cur === x));
   });
   fit();
@@ -785,17 +839,17 @@ window.addEventListener('resize', fit);
 document.getElementById('toc').innerHTML = SEC.map((s,i) => `<a href="#s-${s.id}">${i+1} ${esc(s.name)}</a>`).join('') + `<a href="#s-port">8 Portrait</a>`;
 
 const PICKS = [
- ['Tabs keep their own row above both columns', 'Today\'s source and the signed chrome mock put Notes · Library · Review · Settings in a strip under the status bar. Apple Notes has no tabs, so its toolbar sits 48 pt higher. Flip "Tabs" to try them in the toolbar line over the note.'],
- ['One list toggle, pinned top left, Apple\'s size', 'The ◧ stays screen-pinned like today (MemosListView overlay) but grows from a 30 pt chip to Apple\'s 44 pt glass circle at Apple\'s spot (10 pt in).'],
+ ['Tabs: A or B, still open (D198)', 'The centred tab row is gone. A puts Notes · Library · Review · Settings in a 44 pt glass control at the top of the list column. B hides them in a 200 pt sidebar behind ◧, like Apple\'s folders column; it tiles in landscape and slides over the list in portrait. The editor tools keep the top bar in both. Pairs 1 and 8 draw both; flip "Tabs" for pairs 2 to 6.'],
+ ['◧ means a different thing in A and B', 'In A the ◧ (Apple\'s 44 pt glass circle, 10 pt in) hides the list, as today. In B it opens the tabs sidebar, like Apple\'s, and Apple\'s full-screen button at the left of the note toolbar hides the list.'],
  ['List header copies Apple: name over count, Select as a capsule', 'Was "Notes" 22 bold with a plain Select word. Now Notes 15 semibold over "12 notes", like Apple\'s folder name and count. Import · Record · new note, Process, search and the chips stay under it.'],
  ['Rows exactly as Q349 signed', 'One card per group, 16 / 14 type, Portfolio only on line 3, the grey "Unrated" at the end of line 1, status pills only while something runs, 52 pt thumbnails, groups Today / Yesterday / Previous 7 Days / Previous 30 Days / months by recorded date.'],
  ['Note toolbar copies Apple\'s pill', 'One glass pill: Aa · checklist · photo · note link (Skrift\'s four, where Apple has Aa · checklist · table · attach · writing tools). Then Connections, Export in the soft tint, and ⋯. Controls are Apple\'s 44 pt. Search stays in the list; Apple puts it in the note toolbar.'],
  ['Title 28 pt, above the grey line (D196)', 'Apple\'s title is 28 pt bold. Skrift\'s title takes the same size, then the grey time · place · weather · length line, then rating + Portfolio + tags on one row, then the summary.'],
  ['Aa = the Mac\'s full list, as a popover under the button', 'Apple\'s iPad Aa (pair 2) floats a "Format" panel in the middle of a dimmed screen, with the styles in a sideways-scrolling row. Skrift drops the Mac popover from the Aa button instead (D197): B I U S + highlight, Title / Heading / Subheading / Body / Monostyled as a list, Bulleted / Dashed / Numbered, Block Quote, each with the Markdown it writes. No colour dot, no indent buttons.'],
- ['Text stays at the 640 pt reading width', 'Today the note column is capped at 640 pt and sits against the list, so about 350 pt stays empty on the right. Apple runs its text 900 pt wide. This is the question below.'],
+ ['Text runs the full pane width (D198)', 'No 640 pt cap in any state. Margins copy Apple\'s: 48 pt each side beside the list, 89 pt each side when the list is hidden (Apple\'s full-screen note starts at 89 pt).'],
  ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there. Typed notes (pairs 5, 6) have no dock.'],
  ['Selection menu: Apple\'s pill, Skrift\'s items (D196)', 'Pair 3. The same floating glass pill above the selection, holding Cut · Copy · Paste in their normal place, then B I U S, then "New person…" in the accent colour, then ›. Apple\'s writing-tools bar at the bottom is not copied.'],
- ['Photo opens Apple\'s in-place menu', 'Pair 4. Today the phone asks "Add photo" in a bottom dialog. On iPad the photo button grows into a glass menu like Apple\'s attach menu, with Skrift\'s two choices: Take Photo, Choose from Library.'],
+ ['The paperclip opens Apple\'s attach menu, minus Record Audio (D198)', 'Pair 4. The photo button becomes Apple\'s paperclip and opens its glass menu: Scan Document, Take Photo or Video, Choose Photo or Video, Attach File. Headed "Add to this note"; the footnote says Import (top left) brings in existing files and ✎ starts a new note. Scan Text and Image Playground are not copied either.'],
  ['No folders column', 'Pair 7. Apple shows folders and tags in a third column. Skrift draws none on iPad; Personal / Portfolio stay as list chips.'],
  ['Square checkboxes, Skrift purple', 'Pair 5. Apple draws round yellow checkboxes. Skrift keeps its square ones (NoteBodyView: square / checkmark.square.fill) in the accent colour.']
 ];
@@ -807,16 +861,17 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
   if (d.v) { const x = d.x;
-    if (d.v==='wide') G.wide = x==='1'; else if (d.v==='marks') G.marks = x==='1'; else G[d.v] = x;
+    if (d.v==='marks') G.marks = x==='1'; else G[d.v] = x;
     document.body.classList.toggle('nomarks', !G.marks); render(); return; }
   const secEl = b.closest('[data-sec]'); if (!secEl) return;
-  const st = secEl.dataset.sec === 'port' ? PORT : (SEC[+secEl.dataset.sec].st || base);
+  const st = stFor(secEl.dataset.sec);
   const y = window.scrollY;
   const re = () => { render(); window.scrollTo(0, y); };
   if ('flip' in d) { st.front = st.front==='ref' ? 'sk' : 'ref'; re(); return; }
   if (d.rsty != null) { st.refSty = +d.rsty ? 1 : 0; re(); toast('Apple scrolls its style row sideways (reference)'); return; }
   if (d.tab) { st.tab = d.tab; st.menu = null; re(); if (d.tab !== 'Notes') toast(d.tab + ' tab selected (not drawn here)'); return; }
   if ('list' in d) { st.list = !st.list; re(); return; }
+  if ('sideb' in d) { st.sideB = !st.sideB; re(); return; }
   if (d.sel) { const n = +d.sel; if (n === 1 || n === 4) { st.sel = n; re(); } else toast('Selected. This mock draws two sample notes: the clamp note and Groceries.'); return; }
   if ('aa' in d) { st.aa = !st.aa; st.menu = null; st.photo = false; re(); return; }
   if ('photo' in d) { st.photo = !st.photo; st.aa = false; st.menu = null; re(); return; }
