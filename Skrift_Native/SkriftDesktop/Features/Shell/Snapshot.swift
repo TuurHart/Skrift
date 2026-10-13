@@ -790,30 +790,15 @@ enum Snapshot {
         if blocked { plan.blocked = .tooManyPhoneNotesBeforeSplit(count: 212, limit: DevEraMerge.maxPhoneNotesBeforeSplit) }
 
         let alert = MergeAlertWiring.makeAlert(DevMergeTrigger.prompt(for: plan))
-        let appearance = NSAppearance(named: light ? .aqua : .darkAqua) ?? .currentDrawing()
-        alert.window.appearance = appearance
+        alert.window.appearance = NSAppearance(named: light ? .aqua : .darkAqua)
         alert.layout()
         guard let view = alert.window.contentView else { return }
         view.layoutSubtreeIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(0.5))
         guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
-        // The content view is transparent (the window draws the panel behind it): composite it
-        // over the window background, or dark text-on-clear reads as a blank picture.
-        guard let out = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: rep.pixelsWide, pixelsHigh: rep.pixelsHigh,
-                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return }
-        out.size = rep.size
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: out)
-        appearance.performAsCurrentDrawingAppearance {
-            NSColor.windowBackgroundColor.setFill()
-            NSRect(origin: .zero, size: rep.size).fill()
-        }
-        rep.draw(in: NSRect(origin: .zero, size: rep.size))
-        NSGraphicsContext.restoreGraphicsState()
         do {
-            try out.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+            try rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
             FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
         } catch {
             FileHandle.standardError.write(Data("snapshot write FAILED: \(path) — \(error)\n".utf8))
