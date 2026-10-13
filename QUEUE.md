@@ -2660,7 +2660,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html` (the signed version is the spec, not any review page): the D190 groups (Today / Previous 7 Days / Previous 30 Days / months), the calmer row (title, date + first line, folder line as signed), the type size, and D194's picks (no importance on rows; folder line for Portfolio only; one card per group; 16 / 14; pills only while something is happening; an unrated note shows a small grey dot + "Unrated" where importance used to sit, rated notes show nothing there), on phone, iPad and Mac from the shared list core (Shared first). Keep filters, search, locked, fading, rating behaviour and the Q315/Q361 caches and counter tests unchanged. Phone test `ListGroupingTests` (group boundaries at day/7/30/month edges, Europe/Lisbon midnight). Screenshots phone + Mac (`-snapshot`) against the mock, LOOK, `plan/reads/list-apple/`. FEATURES.md row.
 check: `test $(ls plan/reads/list-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q359 [auto] (doing) build the phone and iPad note and toolbar per the Q350 mock
+### Q359 [auto] (done) build the phone and iPad note and toolbar per the Q350 mock
 spec: D193 D115 D112 C113 C234
 needs: Q350
 gate+: yes
@@ -4115,3 +4115,4 @@ check: `test $(ls plan/reads/editor-apple/phone-*.png | wc -l) -ge 7 && perl -e 
 - 2026-10-13 15:17 Q378 -> done — signed D198: full width, Apple attach menu minus Record Audio, tabs option A ('A')
 - 2026-10-13 15:17 Q381 -> doing — worker out
 - 2026-10-13 15:19 Q382 added
+- 2026-10-13 15:24 Q359 -> done — gate 37s @bc9277f0
