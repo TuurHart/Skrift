@@ -2618,7 +2618,7 @@ gate+: yes
 do: Build the phone tab to `Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html` (signed, D134/D135): tab label "Library" (`AppTabView.swift`), the shelf of tiles where a tap plays/opens and the '❝ N' pill opens that source's notes, the empty tab's four doors (audiobook, podcast, ePub or PDF, article). Add an optional `kind` (book, episode, pdf, article; nil = book) to `Audiobook` INSIDE the existing synced carrier blob, so no CloudKit schema change; old entries decode as books. Doors for kinds not built yet open their importer once Q353-Q355 land; until then a door shows nothing dead (hide it). iPad shelf grid stays (C229). Phone test `LibraryShelfTests` (kind round-trips, nil decodes as book, empty state lists four doors). Screenshots of shelf + empty tab against the mock, LOOK, into `plan/reads/library-tab/`. FEATURES.md row.
 check: `test $(ls plan/reads/library-tab/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryShelfTests`
 
-### Q353 [auto] (doing) Library: podcast episodes from a link or RSS feed, with the episode player
+### Q353 [auto] (done) Library: podcast episodes from a link or RSS feed, with the episode player
 spec: D90 D144 C229
 needs: Q352
 gate+: yes
@@ -3978,3 +3978,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:38 Q362 -> stuck — merge conflict onto claude/skrift-parity-audit-e9fa0c
 - 2026-10-13 10:43 Q362 -> done — gate 73s @5201903e
 - 2026-10-13 10:46 Q365 -> done — gate 71s @7cd7a694
+- 2026-10-13 10:57 Q353 -> done — gate 65s @53c3e7a2
