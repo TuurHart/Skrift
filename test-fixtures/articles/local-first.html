@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!-- Q355 fixture: an essay page shaped like a real long-read (site menu, cookie bar, newsletter
+     box, footnotes, footer). The body text is example text written for the Q351 mock, not the
+     real article's words. Saved by hand; the tests never touch the network. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Local-first software: You own your data, in spite of the cloud | Ink &amp; Switch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A set of principles for software that keeps your data on your own devices first.">
+  <meta name="author" content="Martin Kleppmann, Adam Wiggins, Peter van Hardenberg, Mark McGranaghan">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Ink &amp; Switch">
+  <meta property="og:title" content="Local-first software">
+  <meta property="og:url" content="https://www.inkandswitch.com/local-first/">
+  <meta property="og:image" content="https://www.inkandswitch.com/local-first/static/cover.png">
+  <meta property="article:published_time" content="2019-04-15T09:00:00Z">
+  <link rel="stylesheet" href="/static/site.css">
+  <style>body{font-family:Georgia,serif}.cookie{position:fixed;bottom:0}</style>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());</script>
+</head>
+<body>
+  <div class="cookie" role="dialog">
+    <p>We use cookies to understand how people read our essays. You can say no and nothing breaks.</p>
+    <button>Accept</button><button>Decline</button>
+  </div>
+  <header class="site-header">
+    <nav>
+      <a href="/">Ink &amp; Switch</a>
+      <ul><li><a href="/essays">Essays</a></li><li><a href="/about">About the lab and the people in it</a></li></ul>
+    </nav>
+  </header>
+  <main>
+    <article>
+      <h1>Local-first software</h1>
+      <p class="byline">Martin Kleppmann, Adam Wiggins, Peter van Hardenberg, Mark McGranaghan</p>
+      <p class="date">April 2019</p>
+      <h2>Why the cloud feels fragile</h2>
+      <p>Most apps keep your work on someone else&rsquo;s server and hand you a view of it. When the server goes away, so does the work, however carefully you made it. That trade made sense when phones were slow and storage was dear.</p>
+      <p>Neither is true any more. Your data should live on your own device first, and the network should only carry copies. Then the app works on a plane, in a tunnel, or ten years after the company folds.</p>
+      <figure><img src="/static/fig1.png" alt="Diagram"><figcaption>Figure 1. The server as the only real copy, which is the setup this essay argues against.</figcaption></figure>
+      <h2>What it asks of the software</h2>
+      <p>Two devices will edit the same thing while apart, so the app has to merge without asking you to pick a winner. That is the hard part, and most of this piece is about it. The rest is ordinary craft: fast saves, plain files, and an export you can read without the app.</p>
+      <p>None of this is free. Sync becomes the product&rsquo;s spine, and every new feature has to say how it merges. We think the cost is worth it for anything a person means to keep.</p>
+      <aside class="footnotes">
+        <p>1. An earlier version of this section appeared in a talk given at a conference in the spring of 2018.</p>
+      </aside>
+      <form class="newsletter">
+        <p>Get our next essay by email. One message every few months, never anything else, we promise.</p>
+        <input type="email"><button>Sign up</button>
+      </form>
+    </article>
+  </main>
+  <footer>
+    <p>Ink &amp; Switch is an independent research lab exploring the future of tools for thought.</p>
+  </footer>
+</body>
+</html>

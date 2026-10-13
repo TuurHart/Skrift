@@ -93,6 +93,8 @@ test-fixtures/*
 !test-fixtures/mac-authored-memos/
 # Q353: the saved NRC Het Uur feed (trimmed, public RSS) the phone podcast tests parse.
 !test-fixtures/podcasts/
+# Q355: two saved article pages + one video page (hand-written, small) the phone article tests parse.
+!test-fixtures/articles/
 
 # Archived old apps (post-convergence move 2026-06) — re-ignore the build
 # artifacts + personal config that the anchored root patterns above no longer
