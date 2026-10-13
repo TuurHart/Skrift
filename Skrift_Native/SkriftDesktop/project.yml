@@ -290,6 +290,60 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_REQUIRED: NO
 
+  # Q367: the Mac store copy-test CLI (`plan/release/mac-store-copytest.sh`). Opens a COPY of the
+  # prod stores with this build's models, CloudKit off, and prints counts only. Same MLX-free
+  # source set as SkriftDesktopTests (known to compile without the app), plus the app's
+  # MemoCloudContainer.swift so the synced store opens with the ONE `MemoCloudStore.schema`.
+  StoreCopyTest:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Tools/StoreCopyTest
+      - path: App/MemoCloudContainer.swift
+      - path: Models
+      - path: Pipeline
+      - path: Features/Review/NoteMeasure.swift
+      - path: Features/Review/NoteFindBar.swift
+      - path: Features/Review/MacTypingWork.swift
+      - path: Features/Review/MacEditorFormatting.swift
+      - path: Engines/MacRecorder.swift
+      - path: Features/Import/AppleNotesTriageModel.swift
+      - path: Engines/RecorderDiscardAsk.swift
+      - path: Features/Shell/MacFeedbackScreens.swift
+      - path: ../Shared/Naming
+      - path: ../Shared/Export
+      - path: ../Shared/Model
+      - path: ../Shared/Pipeline
+      - path: ../Shared/BodyV2
+      - path: ../Shared/Corpus
+      - path: ../Shared/Recording
+      - path: ../Shared/Metadata
+      - path: ../Shared/Retrieval
+      - path: ../Shared/UI/Palette.swift
+      - path: ../Shared/UI/AppShortcuts.swift
+      - path: ../Shared/UI/NoteCardView.swift
+      - path: ../Shared/UI/ConnectionsPanelShared.swift
+      - path: ../Shared/UI/NoteCardBuilder.swift
+      - path: ../Shared/UI/SharedCopy.swift
+      - path: ../Shared/UI/SettingsCopy.swift
+      - path: ../Shared/UI/DateChipText.swift
+      - path: ../Shared/UI/NotesListModel.swift
+      - path: ../Shared/UI/TagRules.swift
+      - path: ../Shared/UI/NoteMenu.swift
+      - path: ../Shared/UI/DurationFormat.swift
+      - path: ../Shared/UI/PlaybackRates.swift
+      - path: ../Shared/Session/NoteVisibility.swift
+      - path: ../Shared/Session/LockPolicy.swift
+    settings:
+      base:
+        PRODUCT_NAME: StoreCopyTest
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.storecopytest
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
   SkriftDesktopUITests:
     type: bundle.ui-testing
     platform: macOS
@@ -333,3 +387,11 @@ schemes:
       config: Debug
       targets:
         - SkriftDesktopTests
+
+  # Q367: builds the store copy-test CLI only (Debug: the synthetic seeder is DEBUG-only).
+  StoreCopyTest:
+    build:
+      targets:
+        StoreCopyTest: all
+    run:
+      config: Debug

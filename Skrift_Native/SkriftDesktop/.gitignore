@@ -7,3 +7,6 @@ DerivedData/
 *.xcuserstate
 
 build-release/
+# Q367 store copy-test CLI
+build-copytest/
+build-copytest.log
