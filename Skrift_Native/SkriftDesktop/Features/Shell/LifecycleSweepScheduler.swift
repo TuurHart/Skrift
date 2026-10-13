@@ -44,16 +44,18 @@ enum MacFadingSweep {
 enum LifecycleSweepScheduler {
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "lifecycle")
     private static var started = false
+    /// A person opened the app (launch / activation) and the sweep has not run for it yet.
+    private static var openPending = false
 
     static func start() {
         guard !started else { return }
         started = true
 
-        runNow()   // launch is an open
+        noteOpen()   // launch is an open
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
-        ) { _ in Task { @MainActor in runNow() } }
+        ) { _ in Task { @MainActor in noteOpen() } }
 
         #if DEBUG
         // `-poke-sweep <sec>`: run the sweep after <sec> seconds, for headless
@@ -78,10 +80,34 @@ enum LifecycleSweepScheduler {
     /// the same `cloudKitMacSyncEnabled` gate, so a sweep never mutates the
     /// user's memos while they've explicitly left Mac sync off.
     private static func runNow() {
+        openPending = false
         guard let cloud = MemoCloudStore.syncContainer else { return }
         let ctx = ModelContext(cloud)
         let all = (try? ctx.fetch(FetchDescriptor<Memo>())) ?? []
         MacFadingSweep.run(memos: all, context: ctx)
         log.log("lifecycle sweep ran over \(all.count, privacy: .public) memos")
+    }
+
+    /// An open (launch / activation). The same open fires the reconcile (`MemoCloudReconciler
+    /// .reconcileSoon`, ~1 s coalesced), which hands its fresh memo snapshot to
+    /// `reconcileDidFetch` — so the sweep runs on that snapshot instead of a second full
+    /// `Memo` fetch on the main actor (g-mac-pipeline G12, Q364). If no reconcile arrives
+    /// within 5 s (it was refused, or is wedged), the sweep fetches for itself.
+    private static func noteOpen() {
+        openPending = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if openPending { runNow() }
+        }
+    }
+
+    /// Called by every reconcile with the memos it fetched through its fresh context. Sweeps
+    /// only when a person opened the app since the last sweep (v3 doctrine: the final doors
+    /// move only while you're looking); a CloudKit-import reconcile alone does nothing.
+    static func reconcileDidFetch(memos: [Memo], context: ModelContext) {
+        guard started, openPending else { return }
+        openPending = false
+        MacFadingSweep.run(memos: memos, context: context)
+        log.log("lifecycle sweep ran over \(memos.count, privacy: .public) memos (reconcile snapshot)")
     }
 }

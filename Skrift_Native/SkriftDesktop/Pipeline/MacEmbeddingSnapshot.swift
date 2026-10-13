@@ -15,6 +15,12 @@ enum MacEmbeddingSnapshot {
     static func snapshots(files: [PipelineFile], cloud: ModelContext?) -> [MemoSnapshot] {
         let memos = cloud.flatMap { try? $0.fetch(FetchDescriptor<Memo>()) } ?? []
         let rows = cloud.flatMap { try? $0.fetch(FetchDescriptor<MemoEnhancement>()) } ?? []
+        return snapshots(files: files, memos: memos, enhancements: rows)
+    }
+
+    /// The same, over memos + enhancements the caller already fetched (the reconcile pass
+    /// hands its own, Q364), so a reconcile does not fetch the whole store twice.
+    static func snapshots(files: [PipelineFile], memos: [Memo], enhancements rows: [MemoEnhancement]) -> [MemoSnapshot] {
         var memosByID: [UUID: Memo] = [:]
         for memo in memos { memosByID[memo.id] = memo }
         let enhancementsByMemo = Dictionary(grouping: rows, by: \.memoID)

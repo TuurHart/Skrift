@@ -119,18 +119,32 @@ final class ConnectionsIndexService {
     /// Hash-diff sweep of the whole queue (trash excluded). Debounced by
     /// `sweeping`; rides every cloud reconcile + pipeline run, so a redundant
     /// call is nearly free (hash matches skip).
-    func sweepSoon(_ context: ModelContext) {
+    /// What a caller already fetched (the reconcile pass, Q364 / g-mac-pipeline G11): the
+    /// local rows of `context` plus the memos and enhancements from a FRESH cloud context.
+    struct Reuse {
+        var files: [PipelineFile]
+        var memos: [Memo]
+        var enhancements: [MemoEnhancement]
+    }
+
+    func sweepSoon(_ context: ModelContext, reuse: Reuse? = nil) {
         guard isActive, !sweeping else { return }
         guard !LaunchArgs.isXCTest else { return }
 
-        let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         // Consent-gated membership (NoteConsent.joinsConnectionsIndex): live +
         // rated. Rows absent from this set are REMOVED by the sweep's orphan
         // pass, so un-rating a note also withdraws it from the graph.
         // Q168: the TEXT comes from the synced Memo + MemoEnhancement (the phone's rule), so
         // one note embeds the same words on both devices. A fresh context sees CloudKit imports.
-        let cloud = MemoCloudStore.container.map { ModelContext($0) }
-        let snapshots = MacEmbeddingSnapshot.snapshots(files: files, cloud: cloud)
+        let snapshots: [MemoSnapshot]
+        if let reuse {
+            snapshots = MacEmbeddingSnapshot.snapshots(files: reuse.files, memos: reuse.memos,
+                                                       enhancements: reuse.enhancements)
+        } else {
+            let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+            let cloud = MemoCloudStore.container.map { ModelContext($0) }
+            snapshots = MacEmbeddingSnapshot.snapshots(files: files, cloud: cloud)
+        }
         let index = resolvedIndex()
         sweeping = true
         sweepProgress = (0, snapshots.count)

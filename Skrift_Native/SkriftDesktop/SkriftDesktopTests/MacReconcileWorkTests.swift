@@ -34,9 +34,9 @@ final class MacReconcileWorkTests: XCTestCase {
 
     /// 2,000 rated phone monologues: trusted transcript, an audio asset, no diarization,
     /// no word timings, some metadata. The shape every real library is mostly made of.
-    private func seedMonologues(_ cloud: ModelContext) throws {
+    private func seedMonologues(_ cloud: ModelContext, count: Int = 2_000) throws {
         let meta = Data(#"{"dayPeriod":"morning","steps":1200}"#.utf8)
-        for i in 0..<noteCount {
+        for i in 0..<count {
             let memo = Memo(id: UUID(), audioFilename: "memo_\(i).m4a",
                             recordedAt: Date(timeIntervalSince1970: 1_700_000_000 + Double(i)),
                             transcript: "Words of note \(i).", transcriptStatus: .done,
@@ -101,16 +101,16 @@ final class MacReconcileWorkTests: XCTestCase {
     /// Connections snapshot reuse it instead of fetching every Memo again.
     func testPassReturnsItsMemoSnapshot() throws {
         let s = try stores()
-        try seedMonologues(s.cloud)
+        try seedMonologues(s.cloud, count: 50)
         let outcome = try pass(s)
-        XCTAssertEqual(outcome.memos.count, noteCount)
+        XCTAssertEqual(outcome.memos.count, 50)
     }
 
     /// The short-circuit must not cost the heal: a `diar` asset that lands AFTER ingest is
     /// still adopted on the next pass, and only that note's assets are read.
     func testLateDiarizationStillAdoptedWithoutTouchingOtherBlobs() throws {
         let s = try stores()
-        try seedMonologues(s.cloud)
+        try seedMonologues(s.cloud, count: 50)
         _ = try pass(s)
 
         let target = try XCTUnwrap(try s.cloud.fetch(FetchDescriptor<Memo>()).first)
@@ -130,7 +130,7 @@ final class MacReconcileWorkTests: XCTestCase {
     /// A metadata change on the phone still reaches the row (the cache must not hide it).
     func testChangedMetadataStillReflects() throws {
         let s = try stores()
-        try seedMonologues(s.cloud)
+        try seedMonologues(s.cloud, count: 50)
         _ = try pass(s)
 
         let target = try XCTUnwrap(try s.cloud.fetch(FetchDescriptor<Memo>()).first)
