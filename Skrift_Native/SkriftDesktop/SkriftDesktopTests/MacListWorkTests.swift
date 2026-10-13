@@ -75,7 +75,7 @@ final class MacListWorkTests: XCTestCase {
                       case .memo(let m): return WayOutRules.displayTitle(m)
                       }
                   },
-                  dayLabel: { MemoDate.group($0) })
+                  dayLabel: { MemoDate.bucket($0) })
     }
 
     /// The pre-cache path, run straight through the shared rules (what `SidebarView.entries` did).

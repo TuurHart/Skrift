@@ -141,6 +141,8 @@ enum SharedCopy {
     /// The note screen of a locked note. `authName` is the platform's prompt word
     /// ("Face ID" on the phone, "Touch ID or your password" on the Mac). C161/C213.
     static let lockedTitleFallback = "Locked note"
+    /// Q358: a locked list row's line 2 after the date (the note's words never show).
+    static let lockedRowLine = "Locked"
     static func lockedBody(authName: String) -> String {
         "Locked notes stay out of Obsidian publish and need \(authName) here. They're hidden, not encrypted."
     }
@@ -190,6 +192,10 @@ enum ListChrome {
     static let headerSize: Double = 11.5
     static let headerKerning: Double = 0.5
     static let subtitleSize: Double = 11
+    /// D190 / Q349: the date-group headers ("Today", "Previous 7 Days", "September") read like
+    /// Apple Notes' — bold, title case, primary colour, bigger than the caps RELATED header.
+    static let groupHeaderSizePhone: Double = 19
+    static let groupHeaderSizeMac: Double = 13
     static let relatedHeader = "RELATED"
     static let relatedSubtitle = "similar in meaning"
 }

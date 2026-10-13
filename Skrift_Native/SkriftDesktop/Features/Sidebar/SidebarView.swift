@@ -51,7 +51,7 @@ struct SidebarView: View {
                   addedAtByID: model.addedAtByID, processedIDs: model.processedIDs),
             params: .init(chip: model.filter, query: debouncedQuery, from: model.dateFrom, to: model.dateTo,
                           dateField: model.dateField, sort: model.sort, unlocked: LockGate.shared.unlockedIDs),
-            fileTitle: { $0.queueTitle }, entryTitle: { $0.title }, dayLabel: { MemoDate.group($0) })
+            fileTitle: { $0.queueTitle }, entryTitle: { $0.title }, dayLabel: { MemoDate.bucket($0) })
     }
     /// The pipeline rows as drawn, minus a quiet local take (unrated, error-free Mac recording —
     /// the unrated-take doctrine, 2026-07-28): it never renders as a lit `QueueRowView`, so it
@@ -634,7 +634,7 @@ struct SidebarView: View {
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
-            // D136: day groups, new on the Mac — the SAME `MemoDate.group` key the
+            // D136: day groups, new on the Mac — the SAME `MemoDate.bucket` key the
             // phone/iPad use, via the shared `NotesListModel.dayGroups`, so a day
             // header reads the same word everywhere.
             let inner = Group {
@@ -651,28 +651,33 @@ struct SidebarView: View {
                     // Q95: the day header PINS at the top of the scroll like the phone's
                     // (`pinnedViews: [.sectionHeaders]` on the LazyVStack below). The header
                     // carries the sidebar's own ground so cards scroll UNDER it, not through it.
+                    // D194: one card per group, hairlines between rows — each row draws its slice.
+                    let firstID = group.items.first?.id, lastID = group.items.last?.id
+                    let lone = group.items.count == 1
                     Section {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 0) {
                             ForEach(group.items) { entry in
+                                let position: NoteCardModel.GroupPosition = lone ? .only
+                                    : entry.id == firstID ? .first : entry.id == lastID ? .last : .middle
                                 switch entry {
                                 case .file(let f):
-                                    QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                                    QueueRowView(file: f, selected: model.selection.contains(f.id), position: position) {
                                         model.handleClick(f.id, displayOrder: displayedIDs, selectable: Set(orderedIDs))
                                     }
                                     .contextMenu { rowMenu(f) }
                                 case .memo(let m):
-                                    quietMemoRow(m)
+                                    quietMemoRow(m, position: position)
                                 }
                             }
                         }
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 4)
                     } header: {
+                        // D190 / Q349: Apple Notes' group header — bold, title case, primary colour.
                         if !group.title.isEmpty {
-                            Text(group.title.uppercased())
-                                .font(.system(size: ListChrome.headerSize, weight: .bold))
-                                .kerning(ListChrome.headerKerning)
-                                .foregroundStyle(Theme.textSecondary)
-                                .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 6)
+                            Text(group.title)
+                                .font(.system(size: ListChrome.groupHeaderSizeMac, weight: .bold))
+                                .foregroundStyle(Theme.textPrimary)
+                                .padding(.horizontal, 6).padding(.top, 6).padding(.bottom, 5)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Theme.sidebarGround)
                         }
@@ -783,9 +788,11 @@ struct SidebarView: View {
     // notes join only while searching (no-bad-info, 2026-07-21). One list, two row kinds,
     // interleaved by the active sort (Newest = added date, Q105): `derived.entries`.
 
-    private func quietMemoRow(_ memo: Memo) -> some View {
+    private func quietMemoRow(_ memo: Memo, position: NoteCardModel.GroupPosition = .only) -> some View {
         let selected = model.selection.contains(memo.id.uuidString)
-        return NoteCardView(model: quietCardModel(memo, selected: selected), style: .mac)
+        var card = quietCardModel(memo, selected: selected)
+        card.position = position
+        return NoteCardView(model: card, style: .mac)
             .contentShape(Rectangle())
             .onTapGesture { openInPane(memo) }
             .contextMenu {
@@ -1278,6 +1285,8 @@ final class PromiseDropView: NSView {
 private struct QueueRowView: View {
     let file: PipelineFile
     let selected: Bool
+    /// Q358: where the row sits in its group's one card (D194).
+    var position: NoteCardModel.GroupPosition = .only
     let onTap: () -> Void
     @State private var hovering = false
 
@@ -1297,17 +1306,20 @@ private struct QueueRowView: View {
     private var cardModel: NoteCardModel {
         // D135: the Mac's stamp gains the time + day word ("Today · 14:32"),
         // matching the phone/iPad instead of the old lowercase "today".
-        var m = NoteCardModel(stamp: MemoDate.label(file.uploadedAt))
+        // D190: line 2 leads with the list date ("09:41", "Yesterday", "Friday", "27 Sep").
+        var m = NoteCardModel(stamp: MemoDate.listDate(file.uploadedAt))
         m.selected = selected
+        m.position = position
         m.balls = ThreeBallScale.step(for: file.significance)
+        m.portfolio = file.destination.isPortfolio
+        // D194: a pill only while something is happening — the always-on Ready / Exported /
+        // Transcribed pill is gone, so both widths follow the phone's rule.
         let st = file.queueStatus
-        let kind: NoteCardModel.Pill.Kind = switch st {
-        case .error: .error
-        case .queued, .transcribing, .enhancing: .progress
-        case .exported: .done
-        case .transcribed, .ready: .done
+        switch st {
+        case .error: m.statusPill = .init(label: st.label, kind: .error, pulses: st.pulses)
+        case .queued, .transcribing, .enhancing: m.statusPill = .init(label: st.label, kind: .progress, pulses: st.pulses)
+        case .exported, .transcribed, .ready: break
         }
-        m.statusPill = .init(label: st.label, kind: kind, pulses: st.pulses)
         // D139: two versions replace Enhancing (and every other state) in the pill slot.
         if let id = UUID(uuidString: file.id), EditConflictWatch.shared.ids.contains(id) {
             m.statusPill = .twoVersions
@@ -1329,6 +1341,7 @@ private struct QueueRowView: View {
         m.apply(MacRowSnippetCache.shared.value(id: "pf-" + file.id, version: file.cardVersion) {
             NoteCardBuilder.content(for: file.cardFacts)
         })
+        m.media = NoteCardBuilder.media(for: file.cardFacts)
         return m
     }
 }
@@ -1345,7 +1358,11 @@ extension NoteCardStyle {
         // D136: rows become white cards on the sidebar's new grey ground (was a
         // near-transparent wash meant to blend into the old white sidebar).
         surface: Theme.surface,
-        border: Theme.hairline.opacity(0.16))
+        border: Theme.hairline.opacity(0.16),
+        // Q349 Mac sizes: 14 / 12.5 / 11.5, a 40 pt thumbnail, tighter padding.
+        titleSize: 14, lineSize: 12.5, folderSize: 11.5, thumbSize: 40, thumbRadius: 5,
+        spacing: 9, padding: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 10),
+        cornerRadius: 9)
 }
 
 extension SidebarEntry {

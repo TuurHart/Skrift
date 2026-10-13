@@ -40,7 +40,7 @@ enum NotesListModel {
     /// Day-group a list into `(title, items)` buckets, in the order items already
     /// arrive (so the caller's own sort decides group order) — ONE grouping pass
     /// instead of a hand-rolled reduce per app. `dayLabel` is each app's own
-    /// `MemoDate.group` call over whatever date field it groups by.
+    /// `MemoDate.bucket` call over whatever date field it groups by.
     static func dayGroups<T>(_ items: [T], dayLabel: (T) -> String) -> [(title: String, items: [T])] {
         var order: [String] = []
         var bucket: [String: [T]] = [:]

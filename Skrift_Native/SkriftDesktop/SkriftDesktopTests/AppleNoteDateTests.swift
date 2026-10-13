@@ -44,7 +44,7 @@ final class AppleNoteDateTests: XCTestCase {
         XCTAssertTrue(MemoDate.isUnknown(pf.uploadedAt))
         XCTAssertLessThan(pf.uploadedAt, before.addingTimeInterval(-86_400 * 365), "nowhere near the import moment")
         XCTAssertEqual(MemoDate.label(pf.uploadedAt), "Date unknown")
-        XCTAssertEqual(MemoDate.group(pf.uploadedAt), "Date unknown")
+        XCTAssertEqual(MemoDate.bucket(pf.uploadedAt), "Date unknown")
     }
 
     func testTheExportFolderFileDatesDoNotDateTheNote() async throws {

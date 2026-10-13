@@ -19,24 +19,10 @@ final class MemoListGroupingTests: XCTestCase {
     func testRecentlyAddedGroupsByRecordedDateNotArrival() {
         let m = arrivedYesterday()
         let date = NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: false)
-        XCTAssertEqual(MemoDate.group(date, now: now), MemoDate.group(daysAgo(21), now: now))
-        XCTAssertNotEqual(MemoDate.group(date, now: now), "Yesterday")
+        XCTAssertEqual(MemoDate.bucket(date, now: now), MemoDate.bucket(daysAgo(21), now: now))
+        XCTAssertNotEqual(MemoDate.bucket(date, now: now), "Yesterday")
     }
-
-    func testDayGroupsOverArrivalDayMemosKeepTheirRealDay() {
-        let old = arrivedYesterday()
-        let fresh = Memo(recordedAt: daysAgo(1), createdAt: daysAgo(1))
-        let groups = NotesListModel.dayGroups([old, fresh]) {
-            MemoDate.group(NotesListModel.groupDate(recordedAt: $0.recordedAt, lastEditedAt: $0.lastEditedAt,
-                                                    byEditTime: false), now: now)
-        }
-        XCTAssertEqual(groups.count, 2, "the 3-week-old note must not share Yesterday's header")
-        XCTAssertEqual(groups.first { $0.title == "Yesterday" }?.items.count, 1)
-    }
-
-    func testRecentlyEditedStillGroupsByEditTime() {
-        let m = Memo(recordedAt: daysAgo(21), createdAt: daysAgo(21), editedAt: daysAgo(1))
-        let date = NotesListModel.groupDate(recordedAt: m.recordedAt, lastEditedAt: m.lastEditedAt, byEditTime: true)
-        XCTAssertEqual(MemoDate.group(date, now: now), "Yesterday")
-    }
+    // Q358 (D190): the "Yesterday" day group is deleted, and with it the two tests that asserted
+    // it. Their invariants (arrival day never groups, Recently-edited groups by edit day) are
+    // re-asserted against the D190 buckets in ListGroupingTests.
 }

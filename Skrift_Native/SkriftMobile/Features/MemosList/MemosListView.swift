@@ -436,13 +436,18 @@ struct MemosListView: View {
                 ForEach(d.groups) { group in
                     Section {
                         DayHeaderRow(title: group.title)   // D180: scrolls with the notes, never pins
+                        // D194: one card per group — each row draws its slice of it.
+                        let firstID = group.memos.first?.id, lastID = group.memos.last?.id
+                        let lone = group.memos.count == 1
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, enhancedTitle: d.enhancedTitleByMemoID[memo.id],
                                     fading: d.searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
                                     quiet: isUnratedLive(memo),
                                     selected: memo.id == selectedMemoID,
-                                    regularWidth: isRegular) {
+                                    regularWidth: isRegular,
+                                    position: lone ? .only : memo.id == firstID ? .first
+                                        : memo.id == lastID ? .last : .middle) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
                                 // (text range, or the photo whose OCR hit).
@@ -457,7 +462,7 @@ struct MemosListView: View {
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                                 .accessibilityIdentifier("memo-row-\(d.flatIndex[memo.id] ?? 0)")
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) { deleteMemo(memo) } label: {

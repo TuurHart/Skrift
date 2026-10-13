@@ -21,6 +21,8 @@ struct MemoRow: View {
     /// Regular width (the tap drives the detail pane instead of pushing). Only here so a row whose
     /// tap closure was built for the other width is not reused after a rotation.
     var regularWidth: Bool = false
+    /// Q358: where the row sits in its group's one card (D194).
+    var position: NoteCardModel.GroupPosition = .only
     let onTap: () -> Void
     @Environment(\.editMode) var editMode
 
@@ -35,10 +37,12 @@ struct MemoRow: View {
         var quiet: Bool
         var selected: Bool
         var regularWidth: Bool
+        var position: NoteCardModel.GroupPosition
     }
     var inputs: Inputs {
         Inputs(memo: ObjectIdentifier(memo), enhancedTitle: enhancedTitle, fading: fading,
-               clockLine: clockLine, quiet: quiet, selected: selected, regularWidth: regularWidth)
+               clockLine: clockLine, quiet: quiet, selected: selected, regularWidth: regularWidth,
+               position: position)
     }
 
     var body: some View {
@@ -47,7 +51,7 @@ struct MemoRow: View {
         let editing = editMode?.wrappedValue.isEditing == true
         let card = MemoCard(memo: memo, enhancedTitle: enhancedTitle, fading: fading,
                             clockLine: clockLine, quiet: quiet,
-                            selected: editing ? false : selected)
+                            selected: editing ? false : selected, position: position)
         if editing {
             card
         } else {
@@ -92,6 +96,8 @@ struct MemoCard: View {
     /// iPad split view (m1): the selected row (its note is in the detail pane)
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
+    /// Q358: where the row sits in its group's one card.
+    var position: NoteCardModel.GroupPosition = .only
 
     /// m2 adapter (2026-08-19, chunk 2 of the un-twinning): every derivation this
     /// card owned now FEEDS the shared `NoteCardView` instead of a hand-built
@@ -106,7 +112,9 @@ struct MemoCard: View {
     }
 
     var cardModel: NoteCardModel {
-        var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
+        // D190: line 2 leads with the list date ("09:41", "Yesterday", "Friday", "27 Sep").
+        var m = NoteCardModel(stamp: MemoDate.listDate(memo.recordedAt))
+        m.position = position
         m.fadingLine = clockLine ?? (fading ? "fading" : nil)
         m.quiet = quiet
         m.selected = selected
@@ -127,7 +135,10 @@ struct MemoCard: View {
         }
         // Q106 (C115): title, quote, snippet and chips come from the ONE shared builder
         // the Mac's rows call too (`NoteCardBuilder`); only the chrome above is this app's.
-        m.apply(NoteCardBuilder.content(for: memo.cardFacts(generatedTitle: enhancedTitle)))
+        let facts = memo.cardFacts(generatedTitle: enhancedTitle)
+        m.apply(NoteCardBuilder.content(for: facts))
+        m.media = NoteCardBuilder.media(for: facts)
+        m.portfolio = memo.destination.isPortfolio
         if let filename = memo.thumbnailPhotoFilename,
            let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
             m.thumb = Image(uiImage: img)
