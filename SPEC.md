@@ -671,7 +671,8 @@ Ingress:
   ingress P6, P5.2. — scenarios #8 #9
 - C145 [auto] Open-in and AirDrop show the same slim sheet (rating + sender) before the jump
   and date from the filename (C70); the in-app Files importer offers the One-note / N-notes
-  chooser for several audio files. || check: AirDropped Signal `.aac`; three m4a via Files.
+  chooser for several audio files; audio of an hour or more is offered as Audiobook or Voice
+  note at Open-in and in the Files importer (Q150). || check: AirDropped Signal `.aac`; three m4a via Files.
   ⚠ required difference — scenarios #11 #12
 - C146 [auto] A `.skriftbook` arriving through the share sheet goes to the book importer, never
   a file card. || check: ingress P18-via-share. — scenarios #14
@@ -1101,8 +1102,8 @@ Ingress:
   tags, destination Personal); a Maps link → location + place chip, no fetch;
   `maps.app.goo.gl` short links stay plain cards by design. || check: `SharePayloadLoader`
   fixtures. — A67, A68, A69
-- C199 [auto] Open-in accepts what the share sheet accepts (`.ogg/.oga/.m4b/.pdf` are silently
-  ignored today); in-app Import has three doors (Files, Video from Photos, Scan); an
+- C199 [auto] Open-in accepts what the share sheet accepts (one `ImportKinds` list, Q133;
+  `.m4b`/`.epub` open the Books import, Q255); in-app Import has three doors (Files, Video from Photos, Scan); an
   audio-only `.mp4` is probed for a video track (D-B26). || check: `AppURLHandler` tests.
   ⚠ required difference — A70
 - C200 [auto] Whether FluidAudio decodes ogg-opus on device is UNVERIFIED (the doc promises a
@@ -1186,7 +1187,7 @@ Recording and audio (out of the rewrite):
 - C220 [auto] Mac live transcription: the note pane IS the draft; settled text is the user's
   (editable mid-take, the engine only appends), the wet tail is the engine's; settle = TEXT
   STABILITY (two identical tail decodes); the RMS/VAD lane is DEAD on his mic — never re-tune
-  levels, extend stability; Mac rotates at 7 s, the phone keeps its 25 s; an edited take lands
+  levels, extend stability; Mac rotates at 20 s (pause-triggered), the phone keeps its 25 s; an edited take lands
   `transcriptUserEdited`. || check: `LiveRecordingDraft/Finalize` tests. — A109
 - C221 [auto] The recorder survives every route change and interruption: the tap is reinstalled
   in the current hardware input format (validated with inputFormat, never outputFormat), never
@@ -1221,7 +1222,8 @@ Audiobooks (out of the rewrite):
   file-local; a quote span never crosses a file boundary; a cancelled chunk redoes the same
   frontier; the speed estimate comes only from the measured per-device RTF. — A120
 - C229 [tuur] Tab IA = Notes · Books · Review · Settings (Highlights cut, Library → Books,
-  "Journal" → "Review"); Notes-tab book presence = card-at-rest / pill-when-live; the iPad
+  "Journal" → "Review"); Notes-tab book presence = the mini bar while a book plays (the
+  card-at-rest is removed, D190); Books → Library per the Q6 mock (D134); the iPad
   shelf grid stays; ONE player at every width. — A121
 
 Search and Connections (out of the rewrite):
