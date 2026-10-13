@@ -175,14 +175,22 @@ struct MemosListView: View {
             // the note's bar when closed) simply changes hands beneath it, the
             // iPadOS-26 sidebar pattern. It's the only panel glyph on screen.
             .overlay(alignment: .topLeading) {
-                PanelToggle(icon: "sidebar.left", on: listVisible,
-                            label: NoteLook.listToggleLabel(listVisible: listVisible),
-                            id: "ipad-toggle-list") {
+                // Q379 (mock Q378): a 44 pt glass ◧, 9 pt in, centred on the 60 pt top line
+                // (the tab row while the list is open, the note toolbar while it is hidden).
+                Button {
                     withAnimation(Theme.Motion.snappy) { listVisible.toggle() }
+                } label: {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(Color.skText)
+                        .frame(width: IPadLayout.glassHeight, height: IPadLayout.glassHeight)
+                        .ipadGlass(in: Circle())
                 }
-                // Centered on the 48pt chrome-bar line (30pt chip → 9pt inset),
-                // 14pt from the leading edge — the fixed pixel it holds forever.
-                .padding(.leading, 14).padding(.top, 9)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("ipad-toggle-list")
+                .accessibilityLabel(NoteLook.listToggleLabel(listVisible: listVisible))
+                .padding(.leading, IPadLayout.toggleLeading)
+                .padding(.top, (IPadLayout.rowHeight - IPadLayout.glassHeight) / 2)
             }
             // The pane never opens EMPTY (Tuur, live round b130: "when you open
             // the app… empty. strange"): no selection → show the newest note.
@@ -225,7 +233,8 @@ struct MemosListView: View {
                 Color.skBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    if isRegular { macStyleHeader } else { headerRow }
+                    // Q379 tabs option A: the tab control tops the list column and leaves with it.
+                    if isRegular { IPadTabRow(); macStyleHeader } else { headerRow }
                     verbRow
                     if isRegular { processRow }
                     if memos.isEmpty {
