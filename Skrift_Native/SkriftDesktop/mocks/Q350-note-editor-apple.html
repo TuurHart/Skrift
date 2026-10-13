@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: question + picks on top, a sticky device/state bar, then each state as Skrift beside a hand-drawn reference panel; must-keeps list at the end. */
+/* Layout: picks on top, a sticky device/state bar, then each state as Skrift beside a hand-drawn reference panel; must-keeps list at the end. */
 :root{
   --pg-bg:#f3f2f7; --pg-ink:#1d1b26; --pg-dim:#615d72; --pg-faint:#9892ab; --pg-line:#dcd9e6;
   --pg-card:#ffffff; --pg-accent:#6c5ce0; --pg-accent-soft:#6c5ce01f; --pg-warn:#c2410c; --pg-warn-soft:#c2410c14;
@@ -54,13 +54,6 @@ h2{font-size:16px;margin:0;text-wrap:balance}
 p{margin:0;max-width:70ch}
 code{font-family:var(--mono);font-size:.84em;background:var(--pg-accent-soft);padding:0 4px;border-radius:4px;word-break:break-word}
 .lede{color:var(--pg-dim);font-size:14px}
-.q{background:var(--pg-card);border:1.5px solid var(--pg-accent);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
-.q .n{font-family:var(--mono);font-weight:600;color:var(--pg-accent)}
-.q .qt{font-size:18px;font-weight:600;text-wrap:balance}
-.q .qs{font-size:14px;color:var(--pg-dim)}
-.picks{display:flex;flex-wrap:wrap;gap:8px}
-.picks button{font:600 15px var(--sys);min-height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--pg-line);background:var(--pg-bg);color:var(--pg-ink);cursor:pointer;text-align:left}
-.picks button[aria-pressed="true"]{background:var(--pg-accent);border-color:var(--pg-accent);color:var(--on-accent)}
 .mine{border:1.5px dashed var(--pg-warn);background:var(--pg-warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .mine h2{color:var(--pg-warn);font-size:15px}
 .mine ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
@@ -112,26 +105,35 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .nav .nb{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;color:var(--a-dim);border-radius:9px}
 .nav .done{height:30px;padding:0 13px;border-radius:9px;background:var(--a-accent-soft);color:var(--a-accent);font-size:13.5px;font-weight:600;margin-left:4px}
 .scroll{position:absolute;left:0;right:0;top:91px;bottom:0;overflow:hidden}
-.titleA{font-size:22px;font-weight:700;line-height:1.2;padding:4px 20px 0;display:flex;align-items:center;gap:8px}
-.titleA .spark{width:28px;height:28px;border-radius:8px;background:var(--a-accent-soft);color:var(--a-accent);display:inline-flex;align-items:center;justify-content:center;flex:none}
-.hcore{padding:8px 20px 0}
+.titleA{font-size:22px;font-weight:700;line-height:1.2;padding:2px 20px 0;display:flex;align-items:center;gap:6px}
+.titleA .spark{width:22px;height:22px;color:color-mix(in srgb,var(--a-accent) 70%,transparent);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hcore{padding:10px 20px 0}
+/* D195: one quiet grey line for time, place, weather, length (no chip fills), rating + Personal on one row */
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;padding:8px 20px 2px;font-size:12.5px;line-height:18px;color:var(--a-dim)}
+.meta .mi{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.meta .ic{width:9px;height:9px;opacity:.8}
+.msep{color:var(--a-faint)}
+.tagtx{font-size:13px;font-weight:500;color:var(--a-accent-text);white-space:nowrap}
+.addtx{font-size:12.5px;color:var(--a-faint);white-space:nowrap}
+.dopen{display:flex;flex-direction:column;gap:7px;margin-top:10px}
 .flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:13px;color:var(--a-dim);background:var(--a-chip);padding:2px 7px;border-radius:7px;white-space:nowrap}
 .ic{width:10px;height:10px;flex:none}
 .tchip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-accent-text);font-size:13px;font-weight:500}
 .addtag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-size:12px}
-.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px}
+.pillrow{display:flex;flex-wrap:wrap;align-items:center;gap:7px 10px}
+.pillrow .sp{flex:1}
 .app .pill{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:var(--a-accent-soft);font-size:12px;font-weight:600;color:var(--a-accent-text);white-space:nowrap}
 .app .pill.none{background:var(--a-surface);box-shadow:inset 0 0 0 1px var(--a-border);color:var(--a-dim);font-weight:500}
 .pill .pbs{display:inline-flex;gap:3px}
 .pill .pb{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--a-ring)}
 .pill .pb.lit{background:var(--a-accent);box-shadow:none}
-.app .dchip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:99px;font-size:11.5px;font-weight:600;line-height:14px;color:var(--a-accent-text);background:var(--a-accent-soft);box-shadow:inset 0 0 0 1px var(--a-accent-line)}
-.app .dchip.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
+.app .dchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 9px;border-radius:99px;font-size:12px;font-weight:600;color:var(--a-accent-text);background:var(--a-accent-soft);white-space:nowrap}
+.app .dchip.arc{color:var(--a-amber);background:var(--a-amber-soft)}
 .dchip .dd{width:6px;height:6px;border-radius:50%;background:var(--a-accent)}
 .dchip.arc .dd{background:var(--a-amber)}
 .dchip .dv{font-size:8px;opacity:.55;font-weight:700}
-.dfolder{font-family:var(--mono);font-size:10.5px;color:var(--a-amber)}
+.dfolder{font-family:var(--mono);font-size:10.5px;color:var(--a-amber);margin-left:-4px;white-space:nowrap}
 .dsegs{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:260px}
 .dfam{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:260px;font-size:9px;font-weight:700;letter-spacing:.8px;color:var(--a-faint);text-align:center}
 .app .dseg{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0;border-radius:11px;background:var(--a-chip);box-shadow:inset 0 0 0 1px var(--a-border);font-size:11px;font-weight:600;color:var(--a-dim)}
@@ -140,9 +142,9 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .dseg.on .dd{background:var(--a-accent)}
 .app .dseg.on.arc{color:var(--a-amber);background:var(--a-amber-soft);box-shadow:inset 0 0 0 1px var(--a-amber-line)}
 .dseg.on.arc .dd{background:var(--a-amber)}
-.summ{margin:14px 20px 0;padding:12px;border-radius:13px;background:color-mix(in srgb,var(--a-accent-soft) 50%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a-accent) 22%,transparent)}
-.summ .sh{display:flex;align-items:center;gap:5px;color:var(--a-accent);font-size:11px;font-weight:700;letter-spacing:.5px}
-.summ p{font-size:13.5px;color:var(--a-dim);margin-top:5px}
+.summ{margin:12px 20px 0;padding:0 0 12px;border-bottom:.5px solid var(--a-border);font-size:13.5px;line-height:1.45;color:var(--a-dim)}
+.summ .sh{display:inline-flex;align-items:center;gap:4px;color:var(--a-accent-text);font-weight:600;margin-right:2px}
+.summ .sh svg{width:11px;height:11px}
 .body{padding:12px 20px 140px;font-size:15.5px;line-height:1.55}
 .blk{position:relative;border-radius:6px;margin:0 -6px;padding:1px 6px}
 .blk + .blk{margin-top:7px}
@@ -241,13 +243,19 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 .app .gl.prim{background:var(--a-accent);color:#fff}
 .mscroll{flex:1;overflow:hidden;position:relative}
 .mcol{max-width:640px;margin:0 auto;padding:26px 0 30px}
-.mtitle{font-size:19px;font-weight:700}
+.mtitle{font-size:20px;font-weight:700;margin-top:10px;display:flex;align-items:baseline;gap:8px}
+.msug{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;color:var(--a-faint)}
+.msug svg{width:10px;height:10px}
+.mmeta{padding:0;font-size:12px}
+.mhdr{margin-top:10px}
+.mac .summ{margin:14px 0 0}
+.mac .dchip{height:22px;font-size:11.5px}
 .msrc{font-size:11.5px;color:var(--a-dim);margin-top:3px;display:flex;gap:10px}
 .msrc b{color:var(--a-accent);font-weight:600}
 .mrow{margin-top:10px}
 .mac .tchip,.mac .addtag{height:22px;padding:0 9px;font-size:12px}
 .mac .pill{height:22px;font-size:11.5px}
-.mswitch{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--a-dim)}
+.mswitch{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--a-dim);white-space:nowrap}
 .sw{width:26px;height:15px;border-radius:99px;background:var(--a-accent);position:relative;flex:none;display:inline-block;vertical-align:middle;margin-right:5px}
 .sw::after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#fff}
 .sw.off{background:var(--a-ring)} .sw.off::after{right:auto;left:2px}
@@ -409,15 +417,6 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     <p class="lede">Phone and Mac. Each state shows Skrift on one side and a reference panel of Apple Notes on the other, redrawn by hand in HTML from Tuur&rsquo;s own iOS 27 screenshots of a throwaway folder (phone) and his macOS screenshots (Mac). No screenshot is embedded, there is no Apple branding, and the note text in the reference is invented. Tap things: tabs, play, the pill, the destination chip, Aa, the checklist boxes, the photo (press and hold, then drag).</p>
   </header>
 
-  <div class="q" id="question">
-    <div class="qt"><span class="n">1.</span> Where does the note&rsquo;s title live?</div>
-    <div class="qs">Apple Notes has no title field: the first line of the text is the title. Skrift keeps a separate title (synced on its own, with the suggested-title choice). Both versions are live in the frames below; pick one and the frames follow.</div>
-    <div class="picks" role="group" aria-label="Pick a title model">
-      <button id="pick-a" data-pick="a" aria-pressed="true">A · its own line on top, then the header, then the text (my pick)</button>
-      <button id="pick-b" data-pick="b" aria-pressed="false">B · header on top, the text starts with a Title line, as in Apple Notes</button>
-    </div>
-  </div>
-
   <div class="mine" id="mine">
     <h2>Picked for you. Overrule any of these.</h2>
     <ol>
@@ -426,6 +425,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       <li><span class="k">3</span><span><b>Underline writes <code>&lt;u&gt;…&lt;/u&gt;</code></b>, because Markdown has no underline. Obsidian renders it; in Skrift the tags show dim like every other mark.</span></li>
       <li><span class="k">4</span><span><b>The title is no longer pinned</b> and grows from 17 to 22 pt; it scrolls with the note. The pin was for swiping between notes, which is off (Q314).</span></li>
       <li><span class="k">5</span><span><b>The Mac gets one Aa button in its band</b> (Apple Notes has one there), plus ⌘B ⌘I ⌘U ⇧⌘X and a Format section in the right-click menu. No floating selection bar on the Mac.</span></li>
+      <li><span class="k">7</span><span><b>The header is three rows, as close to Apple&rsquo;s calm as Skrift&rsquo;s fields allow (D195):</b> one grey line (time · place · weather · length, no chip boxes), the title, then rating · Personal · tags on one row. The summary loses its tinted card and becomes a grey line with a hairline under it. On the Mac the two switches sit at the right end of that same row.</span></li>
       <li><span class="k">6</span><span><b>Inside a book quote the Aa styles and lists are greyed</b>, so the quote stays a <code>&gt; </code> quote and polish keeps protecting it. B I U S still work there.</span></li>
     </ol>
   </div>
@@ -474,7 +474,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   "use strict";
   var TIERS = ["Not rated","Passing","Useful","Important"];
   var S = {
-    dev:"phone", st:"read", mst:"m-note", ref:true, marks:true, md:false, title:"a",
+    dev:"phone", st:"read", mst:"m-note", ref:true, marks:true, md:false,
     rate:2, dest:"personal", destOpen:false, playing:false, word:-1,
     caret:1, sel:{b:6, w:"spindle"}, lifted:false, macPop:false, flash:false
   };
@@ -555,7 +555,6 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   }
   function mdText(){
     var t = [], n = 0;
-    if (S.title === "b") t.push("# Spindle clamp, 65 or 52");
     blocks.forEach(function(b){
       if (b.k !== "num") n = 0;
       var md = b.md ? b.md.replace(/\{(\w+)\}/g,"$1").replace(/\[([^\]]+)\]/g,"[[memo:…|$1]]") : "";
@@ -599,36 +598,36 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   function pk(k){ return ' pick" data-k="'+k; }
 
   function statusBar(){ return '<div class="sbar"><span>9:41</span><i>iPhone 17 Pro · 402 pt</i><span>􀛨</span></div>'.replace("􀛨","▮▮"); }
-  function headerCore(mac){
-    var lit = S.rate;
+  /* D195 header: one grey meta line (time · place · weather · length), then ONE row: rating pill + Personal/Portfolio + tags.
+     o.lit / o.dest / o.tags / o.split override for the quote, speakers and Mac-speakers notes (static there). */
+  function metaLine(items, mac){
+    return '<div class="meta'+(mac?" mmeta":"")+pk(7)+'">'+items.map(function(x){ return '<span class="mi">'+x+'</span>'; }).join('<span class="msep">·</span>')+'</div>';
+  }
+  var META_MAIN = ['Today 14:29', IC.pin+'Alfama', IC.cloud+'22°', IC.wave+'2:14'];
+  function headerCore(mac, o){
+    o = o || {};
+    var live = o.lit == null;
+    var lit = live ? S.rate : o.lit;
     var balls = [1,2,3].map(function(i){ return '<span class="pb'+(i<=lit?" lit":"")+'"></span>'; }).join("");
-    var pill = '<button class="pill'+(lit===0?" none":"")+'" data-act="rate"><span class="pbs">'+balls+'</span>'+TIERS[lit]+'</button>';
-    var arc = S.dest === "portfolio";
-    var dest;
-    if (S.destOpen){
-      dest = '<div class="dfam"><span>PRIVATE</span><span>PORTFOLIO</span></div><div class="dsegs">'+
+    var pill = live ? '<button class="pill'+(lit===0?" none":"")+'" data-act="rate"><span class="pbs">'+balls+'</span>'+TIERS[lit]+'</button>'
+                    : '<span class="pill"><span class="pbs">'+balls+'</span>'+TIERS[lit]+'</span>';
+    var arc = (live ? S.dest : o.dest) === "portfolio";
+    var inner = '<span class="dd"></span>'+(arc?"Portfolio":"Personal")+'<span class="dv">⌄</span>';
+    var chip = live ? '<button class="dchip'+(arc?" arc":"")+'" data-act="destopen">'+inner+'</button>' : '<span class="dchip'+(arc?" arc":"")+'">'+inner+'</span>';
+    if (arc) chip += '<span class="dfolder">→ _projects/</span>';
+    var tags = (o.tags || ["#cnc","#workshop"]).map(function(t){ return '<span class="tagtx">'+t+'</span>'; }).join("")+'<span class="addtx">+ tag</span>';
+    var sw = mac ? '<span class="sp"></span><span class="mswitch"><span><i class="sw"></i>Audio in export</span><span><i class="sw'+(o.split?"":" off")+'"></i>Split speakers</span></span>' : "";
+    var open = "";
+    if (live && S.destOpen){
+      open = '<div class="dopen"><div class="dfam"><span>PRIVATE</span><span>PORTFOLIO</span></div><div class="dsegs">'+
         '<button class="dseg'+(arc?"":" on")+'" data-act="dest" data-v="personal"><span class="dd"></span>Personal</button>'+
-        '<button class="dseg'+(arc?" on arc":"")+'" data-act="dest" data-v="portfolio"><span class="dd"></span>Portfolio</button></div>';
-    } else {
-      dest = '<div class="flow"><button class="dchip'+(arc?" arc":"")+'" data-act="destopen"><span class="dd"></span>'+(arc?"Portfolio":"Personal")+'<span class="dv">⌄</span></button>'+(arc?'<span style="font-size:11px;color:var(--a-faint)">→</span><span class="dfolder">_projects/</span>':"")+'</div>';
+        '<button class="dseg'+(arc?" on arc":"")+'" data-act="dest" data-v="portfolio"><span class="dd"></span>Portfolio</button></div></div>';
     }
-    var chips = '<div class="flow"><span class="cchip">Today · 14:29</span><span class="cchip">'+IC.pin+'Alfama</span><span class="cchip">'+IC.cloud+'22°</span><span class="cchip">'+IC.wave+'2:14</span></div>';
-    var tags = '<div class="flow" style="margin-top:8px"><span class="tchip">#cnc</span><span class="tchip">#workshop</span><span class="addtag">+ tag</span></div>';
-    if (mac){
-      return '<div class="mrow">'+chips+'</div>'+tags.replace('margin-top:8px','margin-top:10px')+
-        '<div class="mrow pillrow">'+pill+'</div><div class="mrow" style="display:flex;flex-direction:column;gap:7px">'+dest+'</div>'+
-        '<div class="mrow mswitch"><span><i class="sw"></i>Include audio in export</span><span><i class="sw off"></i>Split speakers</span></div>';
-    }
-    return '<div class="hcore">'+chips+tags+'<div class="pillrow" style="margin-top:8px">'+pill+'</div><div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">'+dest+'</div></div>';
+    return '<div class="'+(mac?"mhdr":"hcore")+'"><div class="pillrow'+pk(7)+'">'+pill+chip+tags+sw+'</div>'+open+'</div>';
   }
   var SUMMARY = "Leaning to the 65 mm clamp. Test-print a PETG ring and check runout before drilling the gantry plate.";
   function titleBlock(editing){
-    if (S.title === "b") return "";
-    return '<div class="titleA'+pk(4)+'" style="margin:0 14px;padding-left:6px;padding-right:6px">Spindle clamp, 65 or 52<span class="spark">'+IC.spark+'</span></div>';
-  }
-  function titleLineB(){
-    if (S.title !== "b") return "";
-    return '<div class="blk h1" style="margin-top:4px">'+M("h1")+'<span class="tx kara">Spindle clamp, 65 or 52</span></div>';
+    return '<div class="titleA'+pk(4)+'" style="margin:0 14px;padding-left:6px;padding-right:6px">Spindle clamp, 65 or 52<span class="spark" title="Suggested title">'+IC.spark+'</span></div>';
   }
   function navRead(){
     return '<div class="nav"><button class="back" data-act="ack" data-msg="Back to the notes list">‹ Notes</button><span class="sp"></span>'+
@@ -690,10 +689,11 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     var off = 0;
     if (st==="type") off = -250; if (st==="select") off = -360; if (st==="aa") off = -300; if (st==="drag") off = -330;
     h.push('<div class="scroll"><div style="transform:translateY('+off+'px)">');
+    h.push(metaLine(META_MAIN));
     h.push(titleBlock(editing));
     h.push(headerCore(false));
-    h.push('<div class="summ"><div class="sh">'+IC.spark+'SUMMARY</div><p>'+SUMMARY+'</p></div>');
-    h.push('<div class="body" id="pbody">'+titleLineB()+bodyHTML({caret:editing, caretBar:st==="type"||st==="aa", drop:S.dropAt})+'</div>');
+    h.push('<div class="summ"><span class="sh">'+IC.spark+'Summary</span> '+SUMMARY+'</div>');
+    h.push('<div class="body" id="pbody">'+bodyHTML({caret:editing, caretBar:st==="type"||st==="aa", drop:S.dropAt})+'</div>');
     h.push('</div></div>');
     if (st==="read"||st==="drag") h.push(playerBar());
     if (st==="type") h.push('<div class="kbwrap">'+accBar()+keyboard()+'</div>');
@@ -707,22 +707,19 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
   function quoteNote(){
     var b = {k:"quote"};
     return '<div class="scroll"><div style="transform:translateY(-120px)">'+
-      (S.title==="b"?"":'<div class="titleA" style="padding-top:4px">On attention and craft</div>')+
-      '<div class="hcore"><div class="flow"><span class="cchip">Yesterday · 22:10</span><span class="cchip">'+IC.book+'Quote · Slow Hands</span><span class="cchip">'+IC.wave+'1:02</span></div>'+
-      '<div class="pillrow" style="margin-top:8px"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb lit"></span></span>Important</span></div>'+
-      '<div style="margin-top:12px"><span class="dchip arc"><span class="dd"></span>Portfolio<span class="dv">⌄</span></span> <span style="font-size:11px;color:var(--a-faint)">→</span> <span class="dfolder">_projects/</span></div></div>'+
-      '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'On attention and craft</div>':"")+
+      metaLine(['Yesterday 22:10', IC.book+'Slow Hands', IC.wave+'1:02'])+
+      '<div class="titleA">On attention and craft</div>'+
+      headerCore(false,{lit:3, dest:"portfolio", tags:["#craft"]})+
+      '<div class="body">'+
       '<div class="quote blk cur"><div class="qt">'+M("q")+'The craftsman dwells in the work; the pace of good work is set by the material, not the clock.<span class="caret"></span></div><div class="qc">— A. Marlow, Slow Hands · ch. 3</div></div>'+
       '<div class="blk p" style="margin-top:12px">That is exactly the spindle thing. I keep rushing the <b>'+M("b")+'test ring'+M("b")+'</b> because I want to drill. Let the PETG tell me.</div></div>'+
       '</div></div><div class="kbwrap">'+fmtPanel(true)+'</div><div class="ftoast" id="ftoast"></div>';
   }
   function turnsNote(){
     var t = function(c,name,slot,txt){ return '<div class="turn"><span class="bar3" style="background:var('+c+')"></span><div><div class="who" style="color:var('+c+')"><i style="background:var('+c+')"></i>'+name+'</div><div class="tt">'+txt+'</div></div></div>'; };
-    return '<div class="scroll"><div>'+(S.title==="b"?"":'<div class="titleA">Gantry plate with Rui</div>')+
-      '<div class="hcore"><div class="flow"><span class="cchip">Today · 11:05</span><span class="cchip">'+IC.pin+'Marvila</span><span class="cchip">'+IC.wave+'6:40</span></div>'+
-      '<div class="pillrow" style="margin-top:8px"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span></div>'+
-      '<div style="margin-top:12px"><span class="dchip"><span class="dd"></span>Personal<span class="dv">⌄</span></span></div></div>'+
-      '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'Gantry plate with Rui</div>':"")+
+    return '<div class="scroll"><div>'+metaLine(['Today 11:05', IC.pin+'Marvila', IC.wave+'6:40'])+'<div class="titleA">Gantry plate with Rui</div>'+
+      headerCore(false,{lit:2, dest:"personal", tags:["#cnc"]})+
+      '<div class="body">'+
       t("--sp0","Tuur Hartog",0,'Can the old spindle mount take the 65 clamp, or do we mill a new plate?')+
       t("--sp1","Rui",1,'The old one is '+M("b")+'<b>aluminium 6 mm</b>'+M("b")+'. It flexes. Mill a new one, 10 mm.')+
       t("--sp0","Tuur",0,'Okay. Then the four M6 holes move outward by about 8 mm.')+
@@ -739,16 +736,16 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
       '<span class="gl prim">Export</span><button class="gl" data-act="ack" data-msg="The note menu (unchanged)">'+IC.dots+'</button><span class="gl">Connections</span></div>');
     h.push('<div class="mscroll"><div class="mcol"'+(st==="m-select"?' style="transform:translateY(-330px)"':'')+'>');
     if (st === "m-turns"){
-      h.push((S.title==="b"?"":'<div class="mtitle">Gantry plate with Rui</div>')+'<div class="mrow flow"><span class="cchip">Today · 11:05</span><span class="cchip">'+IC.pin+'Marvila</span><span class="cchip">'+IC.wave+'6:40</span></div>'+
-        '<div class="mrow pillrow"><span class="pill"><span class="pbs"><span class="pb lit"></span><span class="pb lit"></span><span class="pb"></span></span>Useful</span></div>'+
-        '<div class="mrow mswitch"><span><i class="sw"></i>Include audio in export</span><span><i class="sw"></i>Split speakers</span></div>'+
-        '<div class="body">'+(S.title==="b"?'<div class="blk h1">'+M("h1")+'Gantry plate with Rui</div>':"")+
+      h.push(metaLine(['Today 11:05', IC.pin+'Marvila', IC.wave+'6:40'], true)+'<div class="mtitle">Gantry plate with Rui</div>'+
+        headerCore(true,{lit:2, dest:"personal", tags:["#cnc"], split:true})+
+        '<div class="body">'+
         turnsNote().split('<div class="body">')[1].split('</div></div></div>')[0]+'</div></div></div>');
     } else {
-      h.push(S.title==="b" ? "" : '<div class="mtitle">Spindle clamp, 65 or 52</div><div class="msrc"><b>Suggested</b><span>From recording</span></div>');
+      h.push(metaLine(META_MAIN, true));
+      h.push('<div class="mtitle">Spindle clamp, 65 or 52<span class="msug" title="Suggested title, from the recording">'+IC.spark+'suggested</span></div>');
       h.push(headerCore(true));
-      h.push('<div class="maside">'+SUMMARY+'</div>');
-      h.push('<div class="body" id="mbody">'+titleLineB()+bodyHTML({caret:true, caretBar:st==="m-note", mac:true})+'</div>');
+      h.push('<div class="summ">'+'<span class="sh">'+IC.spark+'Summary</span> '+SUMMARY+'</div>');
+      h.push('<div class="body" id="mbody">'+bodyHTML({caret:true, caretBar:st==="m-note", mac:true})+'</div>');
       h.push('</div></div>');
     }
     h.push('<div class="mdock"><span class="sk">'+IC.b10+'</span><button class="play" data-act="play">'+(S.playing?IC.pause:IC.play)+'</button><span class="sk">'+IC.f10+'</span><span class="t">0:24</span><span class="track"><b style="width:'+(S.word<0?18:Math.min(98,18+S.word*1.2))+'%"></b></span><span class="t">2:14</span><span class="rate">1×</span></div>');
@@ -858,7 +855,6 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     if (S.playing) wrapWords();
     document.getElementById("mdwrap").hidden = !S.md;
     document.getElementById("mdout").textContent = mdText();
-    document.querySelectorAll(".picks button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.pick === S.title)); });
     fit();
   }
   function placeEMenu(){
@@ -942,7 +938,7 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
 
   /* ── Events ── */
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-act],[data-st],[data-dev],[data-pick],[data-keep]");
+    var t = e.target.closest("[data-act],[data-st],[data-dev],[data-keep]");
     if (!t) {
       var blk = e.target.closest("#sk .blk[data-b]");
       if (blk && (["type","aa","select"].indexOf(S.st) >= 0 || S.dev === "mac")){ S.caret = +blk.dataset.b; render(); return; }
@@ -952,7 +948,6 @@ footer{font-size:13px;color:var(--pg-faint);border-top:1px solid var(--pg-line);
     }
     if (t.dataset.st){ S.menu = false; S.macPop = false; if (S.dev === "mac") S.mst = t.dataset.st; else S.st = t.dataset.st; if (S.st==="aa") S.caret = 1; render(); return; }
     if (t.dataset.dev){ S.dev = t.dataset.dev; document.querySelectorAll("[data-dev]").forEach(function(b){ b.setAttribute("aria-pressed", String(b === t)); }); setPlaying(false); return; }
-    if (t.dataset.pick){ S.title = t.dataset.pick; render(); pageToast(S.title === "a" ? "A: title on its own line. Say it in the sitting." : "B: the text starts with the Title line. Say it in the sitting."); return; }
     if (t.dataset.keep){ var k = KEEPS[+t.dataset.keep]; var st = k[1]; if (st.indexOf("m-") === 0){ S.dev = "mac"; S.mst = st; } else { S.dev = "phone"; S.st = st; }
       document.querySelectorAll("[data-dev]").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.dev === S.dev)); });
       render(); document.getElementById("stage").scrollIntoView({behavior:"smooth", block:"start"}); return; }
