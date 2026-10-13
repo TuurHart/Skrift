@@ -109,7 +109,7 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .rf .stitle span{display:block;font-weight:400;color:var(--rf-dim)}
 .rf .gh{position:absolute;font-size:20px;line-height:24px;font-weight:700}
 .rf .chev{position:absolute;color:var(--rf-ink)}
-.rf .row{display:block;position:absolute;width:308px;height:60px;border-radius:18px;text-align:left;padding:8px 0 0 28px}
+.rf .row{display:block;position:absolute;width:308px;height:60px;border-radius:18px;text-align:left;padding:5px 0 0 28px}
 .rf .row.sel{background:var(--rf-tint);color:#fff}
 .rf .row.gsel{background:var(--rf-gsel)}
 .rf .row .t{font-size:17px;line-height:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:205px}
@@ -369,7 +369,7 @@ const G = { lay:'stack', size:'fit', wide:false, tabs:'row', marks:true };
 const base = { tab:'Notes', sel:1, aa:false, list:true, menu:null, block:'p', audio:true, front:'ref', selbar:false, photo:false, refSty:0 };
 const SEC = [
   {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{},                           cap:'the list beside an open note'},
-  {id:'aa',     name:'Aa',              shot:'IMG_5234 + 5235', ref:'format', st:{aa:true},             cap:'Aa open: Apple floats a Format panel over a dimmed screen; Skrift drops the Mac popover from the button'},
+  {id:'aa',     name:'Aa',              shot:'IMG_5234 + 5235', ref:'format', st:{aa:true, refSty:1},             cap:'Aa open: Apple floats a Format panel over a dimmed screen; Skrift drops the Mac popover from the button'},
   {id:'select', name:'Text selected',   shot:'IMG_5232', ref:'select',  st:{selbar:true},                cap:'a sentence selected: the edit menu above it'},
   {id:'attach', name:'Attach / photo',  shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach (Apple) or photo (Skrift) button opened'},
   {id:'check',  name:'Checklist note',  shot:'IMG_5236', ref:'check',   st:{sel:4},                      cap:'a typed note with a checklist'},
@@ -516,7 +516,7 @@ function refSelect(){
     </div>
     <div class="gmenu" style="left:373px;top:961px;width:630px;height:44px;border-radius:22px;z-index:4;font-size:17px">
       <button class="it" style="left:35px" ${ackR('Keyboard language')}>${I.kbd}</button>
-      <button class="it" style="left:152px" ${ackR('Proofread')}>${I.magS}Proofread</button><span class="vs" style="left:284px"></span>
+      <button class="it" style="left:172px" ${ackR('Proofread')}>${I.magS}Proofread</button><span class="vs" style="left:284px"></span>
       <button class="it" style="left:396px" ${ackR('Rewrite')}>${I.rw}Rewrite</button><span class="vs" style="left:504px"></span>
       <button class="it" style="left:535px" ${ackR('Writing tools')}>${I.spark.replace('width="24" height="24"','width="20" height="20"')}</button>
       <button class="it" style="left:594px" ${ackR('Dictation')}>${I.mic}</button>
