@@ -88,6 +88,7 @@ struct MemoPageView: View {
     @State var pickedPhoto: PhotosPickerItem?
     @State var showPhotoSourceDialog = false
     @State var showCameraCapture = false
+    @State var showAttachFiles = false
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
     @State var showMemoLinkPicker = false
     /// Track B: the full extracted-PDF-text reader (wave-2 mock m3).
@@ -171,24 +172,33 @@ struct MemoPageView: View {
         // insert at the caret + register the new file for CloudKit (same
         // manifest/asset conventions as recording). Camera-less environments
         // (simulator) skip the dialog and go straight to the library.
-        .confirmationDialog("Add photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
-            Button("Take Photo") { showCameraCapture = true }
-            Button("Choose from Library") { showPhotoPicker = true }
+        // D198/D199: Apple's attach items (minus Record Audio and Scan, which live on iPad's menu):
+        // a picture goes in as a photo, a video or any other file as its own block.
+        .confirmationDialog(IPadLayout.attachHeader, isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+            if CameraImagePicker.isAvailable {
+                Button(IPadLayout.AttachItem.takePhoto.title) { showCameraCapture = true }
+            }
+            Button(IPadLayout.AttachItem.choosePhoto.title) { showPhotoPicker = true }
+            Button(IPadLayout.AttachItem.attachFile.title) { showAttachFiles = true }
         }
         .fullScreenCover(isPresented: $showCameraCapture) {
-            CameraImagePicker { insertPickedPhoto($0) }
+            CameraImagePicker(onCapture: { insertPickedPhoto($0) },
+                              onMovie: { insertPickedFile($0, name: nil, uti: nil) })
                 .ignoresSafeArea()
         }
-        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: .images)
+        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: NoteAttachIntake.libraryFilter)
         .onChange(of: pickedPhoto) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
-                    insertPickedPhoto(image)
-                }
+                await NoteAttachIntake.load(item, image: { insertPickedPhoto($0) },
+                                            file: { insertPickedFile($0, name: $1, uti: $2) })
                 pickedPhoto = nil
             }
+        }
+        .fileImporter(isPresented: $showAttachFiles, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            NoteAttachIntake.importFile(url, image: { insertPickedPhoto($0) },
+                                        file: { insertPickedFile($0, name: $1, uti: $2) })
         }
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
@@ -483,6 +493,11 @@ struct MemoPageView: View {
                         if edited { photoWasEdited(marker: n) }
                     }
                 },
+                onTapAttachment: { entry in
+                    // D199: Quick Look opens a file and plays a video (inline play is the next step).
+                    guard NoteAttachmentStore.fileExists(entry) else { return }
+                    markupQuickLook.present(url: NoteAttachmentStore.fileURL(entry), anchor: nil) { _ in }
+                },
                 onTapMemoLink: { id in onOpenMemo(id) },
                 onRequestMemoLink: {
                     // Q320: the titles are built off the main actor first (instant when this
@@ -493,10 +508,7 @@ struct MemoPageView: View {
                     }
                 },
                 linkTitle: { liveLinkTitle($0) },
-                onRequestPhoto: {
-                    if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }
-                    else { showPhotoPicker = true }
-                },
+                onRequestPhoto: { showPhotoSourceDialog = true },
                 proxy: bodyProxy,
                 // iPad regular width: size inline images to the 640 reading column,
                 // not the full screen (the note column is reading-measure-capped).
@@ -875,6 +887,12 @@ struct MemoPageView: View {
         bodyProxy.insertPhoto(image)
         AssetMaterializer.capture(memoID: memo.id, repository: repository)
         PhotoTextIndexer.run(repository)
+    }
+
+    /// D199: a picked video or file → its block at the caret, mirrored to CloudKit.
+    func insertPickedFile(_ url: URL, name: String?, uti: String?) {
+        bodyProxy.insertAttachment(fileURL: url, originalName: name, uti: uti)
+        AssetMaterializer.capture(memoID: memo.id, repository: repository)
     }
 
     /// Markup saved back into a photo/file: re-mirror to CloudKit (the

@@ -129,6 +129,26 @@ enum NoteAttachment {
         return (stored, found.location == NSNotFound ? spot : found.location)
     }
 
+    private static let blockRegex = try! NSRegularExpression(pattern: #"[ \t]*\n*[ \t]*(\[\[(?:vid|file)_\d+\]\])[ \t]*\n*"#)
+
+    /// The editors' commit step (both apps): every resolving attachment marker made its own
+    /// paragraph (C10), whatever newlines the editor left around its glyph. Markers with no entry
+    /// stay where they are, as text.
+    static func blockShaped(_ text: String, manifest: [NoteAttachmentEntry]) -> String {
+        guard !manifest.isEmpty, text.contains("[[vid_") || text.contains("[[file_") else { return text }
+        let ns = text as NSString
+        var edits: [(NSRange, String)] = []
+        for m in blockRegex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+            let lit = ns.substring(with: m.range(at: 1))
+            guard let marker = markers(in: lit).first,
+                  entry(kind: marker.kind, number: marker.number, manifest: manifest) != nil else { continue }
+            let atStart = m.range.location == 0
+            let atEnd = NSMaxRange(m.range) >= ns.length
+            edits.append((m.range, (atStart ? "" : "\n\n") + lit + (atEnd ? "" : "\n\n")))
+        }
+        return edits.isEmpty ? text : BodyV2Text.normalised(Sanitiser.nsReplace(text, edits: edits))
+    }
+
     // MARK: Small / large (D202: Apple's switch, SMALL by default, synced per attachment)
 
     enum Size: String, Equatable { case small, large }

@@ -166,6 +166,15 @@ struct MemoDetailView: View {
                 Label(LibraryHatch.moveLabel, systemImage: "books.vertical")
             }
         }
+        // D202: Apple's "Set All to Small / Large", on a note that holds a video or file.
+        if !(memo.metadata?.attachmentManifest ?? []).isEmpty {
+            Button { NoteAttachmentStore.setSize(.small, filename: nil, memo: memo); NoteEditorChrome.shared.current?.load(force: true) } label: {
+                Label(NoteAttachment.setAllSmallTitle, systemImage: "rectangle.compress.vertical")
+            }
+            Button { NoteAttachmentStore.setSize(.large, filename: nil, memo: memo); NoteEditorChrome.shared.current?.load(force: true) } label: {
+                Label(NoteAttachment.setAllLargeTitle, systemImage: "rectangle.expand.vertical")
+            }
+        }
         Button { toggleLock(memo) } label: { menuLabel(NoteMenuItem.lockItem(isLocked: memo.locked)) }
         Button { showShare = true } label: { menuLabel(.share) }
         Button(action: copyTranscript) { menuLabel(.copyTranscript) }

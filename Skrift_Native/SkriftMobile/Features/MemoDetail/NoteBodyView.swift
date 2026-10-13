@@ -65,6 +65,8 @@ struct NoteBodyView: UIViewRepresentable {
     var a11yHidden: Bool = false
     /// A focus-gaining tap landed on an inline photo → the page opens the viewer.
     var onTapImage: (Int) -> Void = { _ in }
+    /// D199: a tap on a video / file block → the page opens it (Quick Look plays a video).
+    var onTapAttachment: (NoteAttachmentEntry) -> Void = { _ in }
     /// A focus-gaining tap landed on a memo-link chip → the page opens that memo.
     var onTapMemoLink: (UUID) -> Void = { _ in }
     /// "[[" was typed → the page presents the memo picker; the pick comes back
@@ -147,6 +149,7 @@ struct NoteBodyView: UIViewRepresentable {
         c.onTapName = onTapName
         c.onNewPersonFromSelection = onNewPersonFromSelection
         c.onTapImage = onTapImage
+        c.onTapAttachment = onTapAttachment
         c.onTapMemoLink = onTapMemoLink
         c.onRequestPhoto = onRequestPhoto
         c.onRequestMemoLink = onRequestMemoLink
@@ -205,6 +208,7 @@ struct NoteBodyView: UIViewRepresentable {
         var onTapName: (NameSpan) -> Void = { _ in }
         var onNewPersonFromSelection: (String) -> Void = { _ in }
         var onTapImage: (Int) -> Void = { _ in }
+        var onTapAttachment: (NoteAttachmentEntry) -> Void = { _ in }
         var onTapMemoLink: (UUID) -> Void = { _ in }
         var onRequestPhoto: () -> Void = {}
         var onRequestMemoLink: () -> Void = {}
@@ -262,6 +266,8 @@ struct NoteBodyView: UIViewRepresentable {
         /// Custom attribute tagging an attachment with its 1-based image-marker
         /// index, so the transcript string round-trips from the attributed text.
         static let markerKey = NSAttributedString.Key("skriftImgMarker")
+        /// D199: a video / file block's glyph; value = its marker literal (`[[vid_001]]`).
+        static let attachmentKey = NSAttributedString.Key("skriftAttachmentMarker")
         /// Custom attribute tagging a checkbox attachment with its checked state
         /// — reconstructs to Obsidian task syntax ("- [ ]" / "- [x]").
         static let taskKey = NSAttributedString.Key("skriftTask")
@@ -1064,6 +1070,11 @@ struct NoteBodyView: UIViewRepresentable {
                     tv.resignFirstResponder()
                     onTapImage(marker)
                     return
+                case .openAttachment(let literal):
+                    editingBeganAt = nil
+                    tv.resignFirstResponder()
+                    if let e = attachmentEntry(literal: literal) { onTapAttachment(e) }
+                    return
                 case nil:
                     break
                 }
@@ -1117,6 +1128,17 @@ struct NoteBodyView: UIViewRepresentable {
                 // First, so B I U S sit on the bar's first page (mock Q350). Appended after
                 // the system's Cut/Copy/Replace/AutoFill they landed behind the › overflow.
                 children.insert(UIMenu(options: .displayInline, children: actions), at: 0)
+            }
+            // D202: Apple's per-block small/large switch, on a selected video / file block.
+            if let literal = attachmentLiteral(in: range, of: tv), let e = attachmentEntry(literal: literal) {
+                let isLarge = NoteAttachment.size(of: e.filename, large: memo.metadata?.largeAttachments) == .large
+                children.append(UIAction(title: isLarge ? NoteAttachment.viewSmallTitle : NoteAttachment.viewLargeTitle,
+                                         image: UIImage(systemName: isLarge ? "rectangle.compress.vertical" : "rectangle.expand.vertical")) { [weak self] _ in
+                    guard let self else { return }
+                    NoteAttachmentStore.setSize(isLarge ? .small : .large, filename: e.filename, memo: self.memo)
+                    tv.resignFirstResponder()
+                    self.load(force: true)
+                })
             }
             if let name = newPersonOffer(for: range, in: tv) {
                 let item = UIAction(title: NameActionLabel.newPerson,
@@ -1244,6 +1266,7 @@ struct NoteBodyView: UIViewRepresentable {
             case toggleTask(at: Int)
             case openImage(marker: Int)
             case openMemo(UUID)
+            case openAttachment(String)
         }
 
         /// The attachment action for a touch at `touch` (view coordinates), or
@@ -1276,6 +1299,10 @@ struct NoteBodyView: UIViewRepresentable {
                                                   effectiveRange: nil) as? Int,
                    hits(slopX: 0, slopY: 0) {
                     return .openImage(marker: marker)
+                }
+                if let literal = storage.attribute(Self.attachmentKey, at: probe, effectiveRange: nil) as? String,
+                   hits(slopX: 0, slopY: 0) {
+                    return .openAttachment(literal)
                 }
             }
             return nil
@@ -1632,8 +1659,73 @@ struct NoteBodyView: UIViewRepresentable {
         /// is never rewritten (`load` skips a first-responder / dirty editor).
         func committedBody(_ text: String) -> String {
             let manifest = memo.metadata?.imageManifest ?? []
-            return BodyV2.committed(BodyV2.Input(text: text, manifest: manifest,
-                                                 source: memo.bodyV2Source, userEdited: true))
+            let stored = BodyV2.committed(BodyV2.Input(text: text, manifest: manifest,
+                                                       source: memo.bodyV2Source, userEdited: true))
+            return NoteAttachment.blockShaped(stored, manifest: memo.metadata?.attachmentManifest ?? [])
+        }
+
+        // MARK: D199 videos and files
+
+        func attachmentEntry(literal: String) -> NoteAttachmentEntry? {
+            guard let m = NoteAttachment.markers(in: literal).first else { return nil }
+            return NoteAttachment.entry(kind: m.kind, number: m.number, manifest: memo.metadata?.attachmentManifest ?? [])
+        }
+
+        private func attachmentLiteral(in range: NSRange, of tv: UITextView) -> String? {
+            let storage = tv.textStorage
+            var found: String?
+            let r = NSIntersectionRange(range, NSRange(location: 0, length: storage.length))
+            storage.enumerateAttribute(Self.attachmentKey, in: r) { v, _, stop in
+                if let s = v as? String { found = s; stop.pointee = true }
+            }
+            return found
+        }
+
+        /// The block's glyph: the art for its current size, at the column width.
+        private func attachmentPiece(_ entry: NoteAttachmentEntry, literal: String) -> NSAttributedString {
+            let att = NSTextAttachment()
+            let url = NoteAttachmentStore.fileExists(entry) ? NoteAttachmentStore.fileURL(entry) : nil
+            let size = NoteAttachment.size(of: entry.filename, large: memo.metadata?.largeAttachments)
+            let dark = textView?.traitCollection.userInterfaceStyle == .dark
+            let img = NoteAttachmentArt.image(entry, size: size, width: contentWidth, fileURL: url, dark: dark)
+            att.image = img
+            att.bounds = CGRect(x: 0, y: -4, width: img.size.width, height: img.size.height)
+            let a = NSMutableAttributedString(attachment: att)
+            a.addAttribute(Self.attachmentKey, value: literal, range: NSRange(location: 0, length: a.length))
+            return a
+        }
+
+        /// Plain text with any resolving `[[vid_NNN]]` / `[[file_NNN]]` drawn as its block.
+        private func appendText(_ s: String, to result: NSMutableAttributedString, base: [NSAttributedString.Key: Any]) {
+            let manifest = memo.metadata?.attachmentManifest ?? []
+            let ns = s as NSString
+            var cursor = 0
+            for m in NoteAttachment.markers(in: s) {
+                guard let e = NoteAttachment.entry(kind: m.kind, number: m.number, manifest: manifest) else { continue }
+                if m.range.location > cursor {
+                    result.append(NSAttributedString(string: ns.substring(with: NSRange(location: cursor, length: m.range.location - cursor)), attributes: base))
+                }
+                result.append(attachmentPiece(e, literal: ns.substring(with: m.range)))
+                cursor = NSMaxRange(m.range)
+            }
+            if cursor < ns.length { result.append(NSAttributedString(string: ns.substring(from: cursor), attributes: base)) }
+        }
+
+        /// The attach menu's video / file (D199): copied into the note, its block put at the caret
+        /// the menu captured, then stored and mirrored like a photo.
+        func insertAttachment(fileURL: URL, originalName: String?, uti: String?) {
+            guard let tv = textView, currentMode == .editing,
+                  let added = NoteAttachmentStore.add(fileURL: fileURL, originalName: originalName, uti: uti, to: memo) else { return }
+            let at = min(pendingPhotoLocation ?? tv.selectedRange.location, tv.textStorage.length)
+            pendingPhotoLocation = nil
+            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
+            piece.append(attachmentPiece(added.entry, literal: NoteAttachment.literal(kind: added.entry.kind, number: added.number)))
+            piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
+            tv.textStorage.insert(piece, at: at)
+            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            textViewDidChange(tv)
+            commitDraft()
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
         }
 
         // MARK: attributed text ⇄ marker string (round-trip)
@@ -1652,7 +1744,7 @@ struct NoteBodyView: UIViewRepresentable {
             for piece in BodyTransform.pieces(of: transcript) {
                 switch piece.segment {
                 case .text(let s):
-                    result.append(NSAttributedString(string: s, attributes: base))
+                    appendText(s, to: result, base: base)
                 case .image(let n):
                     // A picture is its own paragraph in the stored body (C10): the
                     // marker becomes one glyph, no display-only breaks (C17).
@@ -1703,6 +1795,8 @@ struct NoteBodyView: UIViewRepresentable {
                     // Match the writer's zero-padded format (`BodyV2Marker` %03d) —
                     // the old editor re-emitted "[[img_1]]" and drifted the format.
                     out.append(BodyV2Marker.literal(marker))
+                } else if let literal = attrs[Self.attachmentKey] as? String, run == "\u{FFFC}" {
+                    out.append(literal)
                 } else if let checked = attrs[Self.taskKey] as? Bool, run == "\u{FFFC}" {
                     out.append(BodyTransform.rawTask(checked: checked))
                 } else if let payload = attrs[Self.memoLinkKey] as? String, run == "\u{FFFC}" {
@@ -1772,6 +1866,9 @@ struct NoteBodyView: UIViewRepresentable {
 final class NoteBodyProxy {
     weak var coordinator: NoteBodyView.Coordinator?
     func insertPhoto(_ image: UIImage) { coordinator?.insertPhoto(image) }
+    func insertAttachment(fileURL: URL, originalName: String?, uti: String?) {
+        coordinator?.insertAttachment(fileURL: fileURL, originalName: originalName, uti: uti)
+    }
     func insertMemoLink(id: UUID, title: String) { coordinator?.insertMemoLink(id: id, title: title) }
     /// Rebuild the attributed text so attachment thumbnails re-decode (after
     /// a markup save-back rewrote a photo file). Caret carries across.
