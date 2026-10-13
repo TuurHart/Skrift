@@ -2793,7 +2793,7 @@ gate+: yes
 do: D197 on top of Q358's list (Shared/Model/MemoDate.swift `MemoDate.bucket`, Shared/UI/NotesListModel.swift, phone ListDerivedCache, Mac MacListDerivedCache): (1) add a Yesterday bucket between Today and Previous 7 Days (Europe/Lisbon calendar day); (2) sections group by the note's recorded date by default, or by its added date when the Recorded/Added date picker (Q105, C70) is on Added; within a section, newest of that same date first — an old note imported today lands in its real month. Same rule phone, iPad and Mac from the one shared bucket function. Extend ListGroupingTests (phone) and MacListWorkTests stays green (port only if needed, D163). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListGroupingTests && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q378 [tuur] (tuur) mockup: iPad list + open note next to Apple Notes on iPad
+### Q378 [tuur] (done) mockup: iPad list + open note next to Apple Notes on iPad
 spec: D193 D194 D196 D197
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html`: Skrift on iPad (landscape 1376 x 1032 pt for iPad Pro 13", plus portrait) beside an Apple Notes iPad reference redrawn from Tuur's screenshot(s) in '/Users/tiurihartog/Downloads/apple notes ui/ipad/' at the same scale (two columns: list with Pinned/Today groups + open note; one toolbar pill Aa · checklist · table · attach · writing tools, then markup, share, ⋯, Search field). The Skrift side applies the signed picks: list per D194/D197 (Q349 mock), note per D196 (Q350 mock), Mac-style full Aa list (D197) since iPad has a hardware keyboard; keep Skrift's verbs (Import · Record · New) and tabs. Frames must be laid against the screenshot at the same scale before publishing (one agent on the file). Current Skrift parts from source (C117).
@@ -2803,7 +2803,7 @@ check: Tuur clicked through it and said go.
 spec: D193
 needs: Q378 Q358 Q359
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html` (the signed version) on the iPad width of the universal phone target: list column + open note side by side, the toolbar as signed, the full Aa list (D197). Reuse Q358's shared list row and Q359's editor; iPad-only layout code only. Screenshots on the iPad simulator next to the mock frames at the same scale into plan/reads/ipad-apple/. Phone test `IPadLayoutTests` for the size-class switch.
+do: Signed per D198: note text full pane width (48 pt margins beside the list, 89 pt full screen); Apple's in-note attach menu (Scan Document, Take Photo or Video, Choose Photo or Video, Attach File; no Record Audio) under 'Add to this note'; tabs = option A, a slim glass control at the top of the list column; no folders column. Build to `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html` (the signed version) on the iPad width of the universal phone target: list column + open note side by side, the toolbar as signed, the full Aa list (D197). Reuse Q358's shared list row and Q359's editor; iPad-only layout code only. Screenshots on the iPad simulator next to the mock frames at the same scale into plan/reads/ipad-apple/. Phone test `IPadLayoutTests` for the size-class switch.
 check: `test $(ls plan/reads/ipad-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh IPadLayoutTests`
 
 ### Q380 [auto] (todo) dead-code sweep after the rebuild: delete what Q352-Q379 left unused, Periphery on both apps
@@ -2813,7 +2813,7 @@ gate+: yes
 do: Remove means delete (no hidden or kept-just-in-case code). Known leftovers from the workers' findings in plan/RUN.md: ChipFlow.swift + ChipLineBreakerTests + Snapshot.renderCardChips (Q358, row draws no chips); NoteCardModel fields balls/chips/quiet/quietLine kept only for parity tests (Q358) — move the parity tests onto the drawn fields and delete the dead ones; the old phone Aa grid / header chip views and the Mac header audio + split-speakers switches replaced by Q359/Q360; `.feedbackScreen("Books")` → "Library" with FeedbackQ341ScreenTagUITests (Q352); the Mac always-on status pill code (Q358). Then run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on SkriftMobile and the full SkriftDesktop scheme, and delete every finding introduced since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment, never delete a synced field). Protected tests: only ported or deleted with the code they covered (D163; list them as needs hand-merge). Update FEATURES.md rows that name deleted files. Write the before/after counts into plan/periphery.md.
 check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift' && grep -q 'Q380\|2026-10' plan/periphery.md`
 
-### Q381 [auto] (todo) article reader + article note match the signed Q351 mock (Q355's difference list)
+### Q381 [auto] (doing) article reader + article note match the signed Q351 mock (Q355's difference list)
 spec: D195 D138
 needs: Q355
 gate+: no
@@ -4105,3 +4105,5 @@ check: `test $(ls plan/reads/library-tab/q355-pair-*.png | wc -l) -ge 5 && perl 
 - 2026-10-13 15:10 Q381 added
 - 2026-10-13 15:15 Q355 -> done — hand-merged (D163/Q371 pattern: LibraryShelfTests asserts the built article door; conductor resolved the Q371 conflict)
 - 2026-10-13 15:17 Q378 -> tuur — built @07672798, gate 59s — awaiting sitting
+- 2026-10-13 15:17 Q378 -> done — signed D198: full width, Apple attach menu minus Record Audio, tabs option A ('A')
+- 2026-10-13 15:17 Q381 -> doing — worker out
