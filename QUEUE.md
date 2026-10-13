@@ -2896,7 +2896,7 @@ gate+: no
 do: From plan/reads/q385-review.md: (1) the Mac capture card `CaptureViews.fileCard` still has its own purple Open button — replace it with the shared grey card from Shared/UI/NoteAttachmentArt.swift (whole card opens Quick Look), as the phone now does (D202 pick 4); (2) the phone page and the iPad toolbar each chain the same three pickers (camera, library, files) — one shared intake (NoteAttachIntake) both call; (3) the captured PDF's context menu lacks Save — add it from the shared hold-menu list. Mac `-snapshot` + phone shot of the file card next to the Q384 mock frame; LOOK. Never run SkriftDesktopUITests.
 check: `! grep -q 'captureFileCard' -r Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
-### Q393 [auto] (doing) plan (no execution): bring the prod Mac's Development-iCloud data into Production safely
+### Q393 [auto] (done) plan (no execution): bring the prod Mac's Development-iCloud data into Production safely
 spec: D201
 needs: -
 gate+: no
@@ -4309,3 +4309,4 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 22:39 Q401 added
 - 2026-10-13 22:40 Q401 -> tuur — awaiting Tuur
 - 2026-10-13 22:42 Q397 -> doing — worker out
+- 2026-10-13 22:43 Q393 -> done — gate skipped, no code: path touched @fdd6ec41
