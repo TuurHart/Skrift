@@ -2237,7 +2237,7 @@ gate+: yes
 do: Tuur 2026-10-03 (D177): the audiobook jump-back (Q151/Q273, `AudiobookSession.isJumpBack`, `beginJumpBack(to:)`) also appears on non-book notes that have a source position — PDF captures and podcast clips. Keep the '❝ N' Library capsule. Phone test `JumpBackNonBookTests`. Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh JumpBackNonBookTests && ./gate.sh`
 
-### Q298 [tuur] (tuur) promotion (Q186 + Q287): deploy the CloudKit prod schema for the new synced Memo.includeAudioInExport (and MemoAsset kind video once Q287 lands) before promoting either app
+### Q298 [tuur] (done) promotion (Q186 + Q287): deploy the CloudKit prod schema for the new synced Memo.includeAudioInExport (and MemoAsset kind video once Q287 lands) before promoting either app
 spec: -
 needs: Q366
 do: (fill in)
@@ -2742,7 +2742,7 @@ spec: -
 needs: Q298 Q368 Q369
 do: -
 check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
-ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
+ask: Prod is idle? Then: you switch on the new synced fields in the CloudKit console (steps in plan/release/RELEASE.md, ~10 min, agreed in Q298), I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
 
 ### Q371 [tuur] (tuur) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
 spec: -
@@ -2758,7 +2758,7 @@ gate+: yes
 do: From Q356's report: a "Send to a note" / "Move to Library" note is capture metadata (`bookID` + `bookPosition`, PDF page as "p. N" in `bookChapter`) with no quote; `LibraryHatch.isSourceLink` tells it apart on the phone, but `SourceKind.classify` (Shared/Pipeline/SourceTaxonomy.swift) cannot see that, so the Mac card and the export still say Audiobook/PDF quote (`source: Audiobook-quote`) with no quote. Make the shared classifier recognise the source-link shape (one rule in Shared, used by phone, Mac and both exporters) and export it as a link line to the source (`— *Title*, p. N` / `— *Show*, mm:ss` per D138) with `source:` naming the source kind, never an empty quote block. And D90: "Move to Library" moves the PDF, so the note's CloudKit `document` MemoAsset is removed once the Library copy exists (never before; no data loss if the move fails midway). New tests: Mac `SourceLinkExportTests` in SkriftDesktopTests (classify + exported markdown for book, PDF and episode link notes), phone `LibraryHatchMoveTests` (asset removed only after the Library copy is written). Never run SkriftDesktopUITests. FEATURES.md rows.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/SourceLinkExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryHatchMoveTests`
 
-### Q373 [tuur] (tuur) decide: exported source spelling for Library link notes (Q372 picked PDF-link / Episode-link / Audiobook-link / Article-link)
+### Q373 [tuur] (done) decide: exported source spelling for Library link notes (Q372 picked PDF-link / Episode-link / Audiobook-link / Article-link)
 spec: D138
 needs: -
 do: -
@@ -4048,3 +4048,5 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:04 Q350 -> todo — revise per D195: Personal pill beside the rating pill (phone + Mac), calmer header, smaller Aa buttons, add-person in the selection menu
 - 2026-10-13 14:04 Q355 -> doing — worker out
 - 2026-10-13 14:04 Q350 -> doing — mockup revision out
+- 2026-10-13 14:08 Q373 -> done — Tuur: keep PDF-link / Episode-link / Audiobook-link / Article-link
+- 2026-10-13 14:08 Q298 -> done — Tuur: yes — same-day release, Mac copy-test first, ~10 min in the CloudKit console at Q370
