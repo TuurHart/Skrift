@@ -166,7 +166,8 @@ struct MemosListView: View {
                     // safe-area bleed → black bands above/below the list (Tuur,
                     // live round b130). Paint the SURFACE bleed OUTSIDE the clip;
                     // the window's 0-width collapse takes it along.
-                    .background(Color.skSurface.ignoresSafeArea(edges: .vertical))
+                    // Q379: the list's own grey, so no band shows under the last card.
+                    .background(Color.skBg.ignoresSafeArea(edges: .vertical))
                 noteStack
             }
             // ONE screen-pinned ◧ (signed mock ipad-note-chrome-belongs.html):

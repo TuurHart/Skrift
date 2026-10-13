@@ -8,14 +8,23 @@ final class IPadAppleQ379ScreenshotUITests: XCTestCase {
 
     private func capture(_ app: XCUIApplication, _ name: String) {
         Thread.sleep(forTimeInterval: 1.0)
-        let shot = app.screenshot()
+        // The window's own shot: a rotated iPad sim's `app.screenshot()` comes back in the
+        // portrait buffer, cropped and turned sideways.
+        let shot = app.windows.firstMatch.screenshot()
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
         if let dir = ProcessInfo.processInfo.environment["SKRIFT_SHOT_DIR"] {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-            try? shot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+            // Bake the orientation in and draw at 1 px = 1 pt, the mock's scale.
+            let image = shot.image
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let flat = UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+                image.draw(in: CGRect(origin: .zero, size: image.size))
+            }
+            try? flat.pngData()?.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
         }
     }
 
@@ -25,15 +34,20 @@ final class IPadAppleQ379ScreenshotUITests: XCTestCase {
 
     func testIPadListNoteAaAttachHiddenPortrait() throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { throw XCTSkip("iPad layout only") }
-        XCUIDevice.shared.orientation = .landscapeLeft
         let app = XCUIApplication()
-        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos", "-selectFirstMemo", "-destinationsOn"]
+        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos", "-selectFirstMemo", "-destinationsOn",
+                               "-skipOnboarding", "-appTheme", "light"]   // the mock is drawn light
         app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        Thread.sleep(forTimeInterval: 2)
+        let frame = app.windows.firstMatch.frame
+        XCTAssertGreaterThan(frame.width, frame.height, "the iPad did not turn to landscape: \(frame)")
 
         // Tabs option A: the control tops the list column; the note's tools sit in its top bar.
-        XCTAssertTrue(element(app, "ipad-tab-control").waitForExistence(timeout: 30), "tab control missing")
-        XCTAssertTrue(element(app, "ipad-tab-Notes").exists)
-        XCTAssertTrue(element(app, "ipad-note-tools").waitForExistence(timeout: 15), "note toolbar missing")
+        XCTAssertTrue(element(app, "ipad-tab-Notes").waitForExistence(timeout: 30), "tab control missing")
+        XCTAssertTrue(element(app, "ipad-tab-Settings").exists)
+        XCTAssertTrue(element(app, "ipad-tool-format").waitForExistence(timeout: 15), "toolbar Aa missing")
+        XCTAssertTrue(element(app, "ipad-tool-attach").exists, "toolbar attach missing")
         capture(app, "ipad-1-list-note")
 
         // Aa: the full list drops from the button (D197).
