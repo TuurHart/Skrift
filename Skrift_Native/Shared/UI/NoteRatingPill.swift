@@ -24,6 +24,8 @@ struct NoteRatingPillStyle {
     /// The touch target is taller than the pill on the phone (44 pt).
     var hitHeight: CGFloat
     var animation: Animation
+    /// Q386: the header row wraps onto a second line (the phone) or stays one line (the Mac).
+    var rowWraps: Bool = true
 }
 
 /// One toast line for the host to render at screen level (like the tag Undo pill).
@@ -108,9 +110,11 @@ struct RatingToastView: View {
     }
 }
 
-/// The header's pill row: the pill, and beside it the orange fading line when the
-/// note is unrated. Both apps' headers place this identically.
-struct NoteRatingRow: View {
+/// THE note header's rating row (Q386, signed mock Q350 pick 7 — the phone layout wins): the pill,
+/// then whatever the host puts beside it (destination, tags) on ONE row, and under that row the
+/// orange fading line when the note is unrated. The phone's note page, the Mac's properties, the
+/// quick note, the capture and share sheets all draw this one view; only the style differs.
+struct NoteRatingRow<Trailing: View>: View {
     @Binding var value: Double?
     var style: NoteRatingPillStyle
     var enabled: Bool = true
@@ -123,11 +127,23 @@ struct NoteRatingRow: View {
     var onToast: (RatingToast) -> Void = { _ in }
     /// Off-screen pager pages suffix their identifiers (see `MemoPageView.noteHeaderCore`).
     var idSuffix: String = ""
+    /// What sits beside the pill on its row (the destination row, the tag editor).
+    @ViewBuilder var trailing: () -> Trailing
+
+    /// The phone's row wraps (narrow screen); the Mac's is one line that hands the tag editor
+    /// the remaining width so its own chips wrap.
+    private var rowLayout: AnyLayout {
+        style.rowWraps ? AnyLayout(FlowLayout(spacing: 10, lineSpacing: 7))
+                       : AnyLayout(HStackLayout(alignment: .center, spacing: 10))
+    }
 
     var body: some View {
-        HStack(spacing: 9) {
-            NoteRatingPill(value: $value, style: style, enabled: enabled,
-                           onTap: onTap, onCommit: onCommit, onToast: onToast, idSuffix: idSuffix)
+        VStack(alignment: .leading, spacing: 8) {
+            rowLayout {
+                NoteRatingPill(value: $value, style: style, enabled: enabled,
+                               onTap: onTap, onCommit: onCommit, onToast: onToast, idSuffix: idSuffix)
+                trailing()
+            }
             if let fadingLine {
                 Text(fadingLine)
                     .font(.system(size: lineFont))
@@ -138,5 +154,17 @@ struct NoteRatingRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension NoteRatingRow where Trailing == EmptyView {
+    /// The row with nothing beside the pill (the quick note, capture and share sheets).
+    init(value: Binding<Double?>, style: NoteRatingPillStyle, enabled: Bool = true,
+         fadingLine: String?, lineFont: CGFloat = 11.5, lineColor: Color,
+         onTap: @escaping () -> Void = {}, onCommit: @escaping () -> Void = {},
+         onToast: @escaping (RatingToast) -> Void = { _ in }, idSuffix: String = "") {
+        self.init(value: value, style: style, enabled: enabled, fadingLine: fadingLine,
+                  lineFont: lineFont, lineColor: lineColor, onTap: onTap, onCommit: onCommit,
+                  onToast: onToast, idSuffix: idSuffix, trailing: { EmptyView() })
     }
 }

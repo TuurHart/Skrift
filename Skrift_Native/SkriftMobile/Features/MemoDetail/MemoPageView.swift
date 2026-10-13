@@ -543,20 +543,19 @@ struct MemoPageView: View {
             metaLine
                 .padding(.top, 6)
 
-            FlowLayout(spacing: 10, lineSpacing: 7) {
             // Q85 (signed mock Q75-note-header-final, behaviour A): the importance card is
             // ONE pill — each tap steps Not rated → Passing → Useful → Important → Not
-            // rated (C88 un-rating), a toast names the step. When the note is unrated the
-            // orange fading line sits beside it (the note narrates its own lifecycle,
-            // 2026-07-21: one clock, only rating/holds hide it). Flag-to-process: 0 = the
-            // Mac ignores it, >0 = polish.
-            // Q382 (mock Q350 pick 7): the pill, Personal and the tags are ONE row even when
-            // the note is unrated, so the pill stands alone here and the fading line drops to
-            // its own line under the row (below). The Mac and the quick note keep `NoteRatingRow`.
-            NoteRatingPill(
+            // rated (C88 un-rating), a toast names the step. Flag-to-process: 0 = the Mac
+            // ignores it, >0 = polish. Q382 / Q386 (mock Q350 pick 7): the SHARED header row —
+            // pill, Personal and the tags on ONE row, and the orange fading line (unrated notes
+            // only; the note narrates its own lifecycle, 2026-07-21) on its own line under it.
+            // The Mac's properties and the quick note draw the same `NoteRatingRow`.
+            NoteRatingRow(
                 value: Binding(get: { memo.significance == 0 ? nil : memo.significance },
                                set: { memo.significance = $0 ?? 0 }),
                 style: .phone,
+                fadingLine: fadingLine,
+                lineColor: Color.skAmber.opacity(0.9),
                 onTap: { Haptics.tap(.light) },
                 onCommit: {
                     repository.save()
@@ -564,7 +563,7 @@ struct MemoPageView: View {
                     WallPrinter.shared.ratingCommitted(memo, repository: repository)
                 },
                 onToast: { ratingToast = $0 },
-                idSuffix: suffix)
+                idSuffix: suffix) {
 
             // WHERE this note goes when it leaves — the shared `DestinationRowView`
             // (signed mock note-destination-tags.html, version B collapsed), beside the
@@ -599,18 +598,6 @@ struct MemoPageView: View {
                 .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
             }
             .padding(.top, 10)
-
-            // The orange fading line (unrated notes only, nil otherwise): a quiet line of its
-            // own under the pill row, so the row above never wraps.
-            if let fadingLine {
-                Text(fadingLine)
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Color.skAmber.opacity(0.9))
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 8)
-                    .accessibilityIdentifier("detail-lifecycle-line" + suffix)
-            }
 
             // Mac's polish: the summary (when present) above the body, as a grey line.
             if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -1414,8 +1401,7 @@ struct MemoPageView: View {
         if memo.isBookCapture, memo.captureQuote != nil,
            let title = memo.metadata?.bookTitle?.trimmingCharacters(in: .whitespaces) {
             let quoteKind = SourceKind.of(memo)   // Q356: a PDF quote says so
-            chips.append(MetaChip(text: SharedCopy.quoteChip(bookTitle: title, kind: quoteKind),
-                                  symbol: ((quoteKind == .pdfQuote || quoteKind == .articleQuote) ? quoteKind : SourceKind.audiobookQuote).glyph))
+            chips.append(MetaChip(text: quoteKind.bookChip(title: title), symbol: quoteKind.bookKind.glyph))
             if memo.duration > 0 {
                 chips.append(MetaChip(text: DurationFormat.label(seconds: memo.duration), symbol: "waveform"))
             }

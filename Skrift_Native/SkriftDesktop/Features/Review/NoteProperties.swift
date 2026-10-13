@@ -77,14 +77,14 @@ struct NoteProperties: View {
         VStack(alignment: .leading, spacing: 10) {
             titleSection
             metaLine
-            HStack(alignment: .center, spacing: 10) {
-                // Q85: importance is ONE pill, each tap steps Not rated → Passing → Useful →
-                // Important → Not rated (C88); the orange fading line sits beside it when unrated.
-                NoteRatingRow(value: $file.significance, style: .mac,
-                              fadingLine: fadingLine, lineFont: 11.5,
-                              lineColor: Theme.amber.opacity(0.9),
-                              onToast: onRatingToast)
-                    .fixedSize()
+            // Q85: importance is ONE pill, each tap steps Not rated → Passing → Useful →
+            // Important → Not rated (C88). Q386: the SHARED header row (the phone's layout,
+            // mock Q350 pick 7): pill · destination · tags on one line, the orange fading line
+            // under it when unrated.
+            NoteRatingRow(value: $file.significance, style: .mac,
+                          fadingLine: fadingLine, lineFont: 11.5,
+                          lineColor: Theme.amber.opacity(0.9),
+                          onToast: onRatingToast) {
                 // WHERE this note goes when it leaves — the SHARED `DestinationRowView`
                 // (D189 Personal · Portfolio). Hidden until destinations are switched on.
                 if DestinationSettings.isEnabled {
@@ -280,7 +280,7 @@ struct NoteProperties: View {
         // Image / Text / File / Apple Note) — plus the extras this surface shows:
         // the book title for an audiobook quote, and the provenance for a capture.
         let base = file.sourceTypeLabel
-        if let book = file.bookCapture { return SharedCopy.quoteChip(bookTitle: book.title, kind: file.sourceKind) }
+        if let book = file.bookCapture { return file.sourceKind.bookChip(title: book.title) }
         if file.sourceType == .capture {
             let metaObj = (try? JSONSerialization.jsonObject(with: file.audioMetadataJSON ?? Data())) as? [String: Any]
             let sourceStr = (metaObj?["source"] as? String).map { " · \($0)" } ?? " · phone"

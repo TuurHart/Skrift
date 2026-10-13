@@ -108,8 +108,7 @@ enum NoteCardBuilder {
         }
         let length = f.durationSeconds.flatMap { $0 > 0 ? duration(seconds: $0) : nil }
         if let book = f.book {
-            let glyphKind: SourceKind = f.kind.isSourceLink ? f.kind
-                : (f.kind == .pdfQuote ? .pdfQuote : .audiobookQuote)
+            let glyphKind = f.kind.bookKind   // Q386: an article quote shows its own glyph too
             let text = [CaptureQuote.chapterLabel(book.chapter), length].compactMap { $0 }.joined(separator: " · ")
             return text.isEmpty ? nil : .init(text: text, systemImage: glyphKind.glyph)
         }

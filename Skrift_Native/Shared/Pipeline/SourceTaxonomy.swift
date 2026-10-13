@@ -78,6 +78,43 @@ enum SourceKind: Equatable {
         }
     }
 
+    /// Q386: what a book-backed note shows itself as (header chip, line-3 marker): a source
+    /// link or a PDF / article quote as itself, anything else carrying book metadata as an
+    /// audiobook quote. The one rule the phone chip, the Mac source line and the card marker share.
+    var bookKind: SourceKind {
+        switch self {
+        case .pdfQuote, .articleQuote, .audiobookLink, .episodeLink, .pdfLink, .articleLink: return self
+        default: return .audiobookQuote
+        }
+    }
+
+    /// Q386: the source itself as one word ("Audiobook", "Episode", "PDF", "Article"), for the
+    /// Library link card and the hatch copy. nil for kinds that are not a Library source.
+    var sourceName: String? {
+        switch self {
+        case .audiobookQuote, .audiobookLink: return "Audiobook"
+        case .episodeLink:                    return "Episode"
+        case .pdfQuote, .pdfLink:             return "PDF"
+        case .articleQuote, .articleLink:     return "Article"
+        default:                              return nil
+        }
+    }
+
+    /// Q386: the noun in "N notes from this book" / "The episode's own place is not moved".
+    var sourceNoun: String? {
+        switch self {
+        case .audiobookQuote, .audiobookLink: return "book"
+        case .episodeLink:                    return "episode"
+        case .pdfQuote, .pdfLink:             return "PDF"
+        case .articleQuote, .articleLink:     return "article"
+        default:                              return nil
+        }
+    }
+
+    /// The header chip / source line of a book-backed note: "Audiobook quote · <title>",
+    /// "PDF quote · <title>", "PDF link · <title>" (Q187, Q355, Q356, Q372).
+    func bookChip(title: String) -> String { "\(bookKind.label) · \(title)" }
+
     /// The Mac capture strip's line: the kind label, plus the domain when a link has one
     /// ("Link · swiftwithmajid.com"). The strip used to hardcode its own "Shared link", and the
     /// phone chip another: three spellings of one fact. Both now read `label`.
