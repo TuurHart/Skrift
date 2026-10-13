@@ -2711,7 +2711,7 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacEx
 
 ### Q366 [auto] (todo) release prep: version bump, Release builds of both apps, the synced-field list for Q298
 spec: D186
-needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365
+needs: Q352 Q353 Q354 Q355 Q356 Q357 Q358 Q359 Q360 Q361 Q362 Q363 Q364 Q365 Q380
 gate+: no
 do: Write `plan/release/RELEASE.md`. Bump CFBundleVersion in both project.yml files. Build the phone Release archive config and the Mac Release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`), string-grep a literal from Q357/Q358 in each product, record the paths. List every synced field and asset kind added since the installed prod build (diff the SwiftData `Memo`/`MemoAsset`/carrier models against the prod tag or commit; at least `Memo.includeAudioInExport` and MemoAsset kind `video`/`thumbnail`) with the CloudKit console steps for Q298. List the open device checks (Q17 Q63 Q64 Q272 Q280 Q281 Q302 Q304 Q309 Q311) for Tuur to clear or wave. Install nothing; never touch /Applications/Skrift.app or real data.
 check: `grep -q 'includeAudioInExport' plan/release/RELEASE.md && grep -q 'build-release' plan/release/RELEASE.md`
@@ -2805,6 +2805,13 @@ needs: Q378 Q358 Q359
 gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html` (the signed version) on the iPad width of the universal phone target: list column + open note side by side, the toolbar as signed, the full Aa list (D197). Reuse Q358's shared list row and Q359's editor; iPad-only layout code only. Screenshots on the iPad simulator next to the mock frames at the same scale into plan/reads/ipad-apple/. Phone test `IPadLayoutTests` for the size-class switch.
 check: `test $(ls plan/reads/ipad-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh IPadLayoutTests`
+
+### Q380 [auto] (todo) dead-code sweep after the rebuild: delete what Q352-Q379 left unused, Periphery on both apps
+spec: -
+needs: Q355 Q358 Q359 Q360 Q377 Q379
+gate+: yes
+do: Remove means delete (no hidden or kept-just-in-case code). Known leftovers from the workers' findings in plan/RUN.md: ChipFlow.swift + ChipLineBreakerTests + Snapshot.renderCardChips (Q358, row draws no chips); NoteCardModel fields balls/chips/quiet/quietLine kept only for parity tests (Q358) — move the parity tests onto the drawn fields and delete the dead ones; the old phone Aa grid / header chip views and the Mac header audio + split-speakers switches replaced by Q359/Q360; `.feedbackScreen("Books")` → "Library" with FeedbackQ341ScreenTagUITests (Q352); the Mac always-on status pill code (Q358). Then run Periphery 2.21.2 (~/bin, flags in plan/periphery.md) on SkriftMobile and the full SkriftDesktop scheme, and delete every finding introduced since 4519b3ea that is truly unused (keep Codable/synced fields with a why-comment, never delete a synced field). Protected tests: only ported or deleted with the code they covered (D163; list them as needs hand-merge). Update FEATURES.md rows that name deleted files. Write the before/after counts into plan/periphery.md.
+check: `! grep -rq 'ChipFlow\|renderCardChips' Skrift_Native --include='*.swift' && grep -q 'Q380\|2026-10' plan/periphery.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4081,3 +4088,4 @@ check: `test $(ls plan/reads/ipad-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1
 - 2026-10-13 14:25 Q378 added
 - 2026-10-13 14:25 Q379 added
 - 2026-10-13 14:26 Q378 -> doing — mockup out
+- 2026-10-13 14:40 Q380 added
