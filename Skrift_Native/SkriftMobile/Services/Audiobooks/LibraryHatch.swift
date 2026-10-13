@@ -174,6 +174,7 @@ enum LibraryHatch {
     }
 
     /// True when every file of the moved source is on disk in the Library.
+    @MainActor
     static func libraryCopyExists(_ book: Audiobook, store: AudiobookLibraryStore) -> Bool {
         !book.files.isEmpty && book.files.allSatisfy {
             FileManager.default.fileExists(atPath: store.folder(for: book.id).appendingPathComponent($0).path)
