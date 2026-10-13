@@ -26,8 +26,8 @@ final class FeedbackQ341ScreenTagUITests: XCTestCase {
         assertSheetSays("Notes", in: launch())
     }
 
-    func testBooksSaysBooks() throws {
-        assertSheetSays("Books", in: launch(extra: ["-openTab", "books"]))
+    func testLibrarySaysLibrary() throws {
+        assertSheetSays("Library", in: launch(extra: ["-openTab", "books"]))
     }
 
     func testSettingsSaysSettings() throws {
