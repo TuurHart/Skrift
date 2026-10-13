@@ -2744,7 +2744,7 @@ do: -
 check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
 ask: Prod is idle? Then: you switch on the new synced fields in the CloudKit console (steps in plan/release/RELEASE.md, ~10 min, agreed in Q298), I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
 
-### Q371 [tuur] (tuur) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
+### Q371 [tuur] (done) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
 spec: -
 needs: -
 do: -
@@ -4052,3 +4052,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:08 Q298 -> done — Tuur: yes — same-day release, Mac copy-test first, ~10 min in the CloudKit console at Q370
 - 2026-10-13 14:15 Q272 -> done — Tuur: yes, keep all three
 - 2026-10-13 14:15 Q350 -> tuur — built @5012ab7c, gate 50s — awaiting sitting
+- 2026-10-13 14:17 Q371 -> done — hand-merged (Tuur 2026-10-13: approve Q371 (door assertions follow the built doors))
