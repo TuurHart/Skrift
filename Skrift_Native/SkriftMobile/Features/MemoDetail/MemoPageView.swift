@@ -547,12 +547,13 @@ struct MemoPageView: View {
             // orange fading line sits beside it (the note narrates its own lifecycle,
             // 2026-07-21: one clock, only rating/holds hide it). Flag-to-process: 0 = the
             // Mac ignores it, >0 = polish.
-            NoteRatingRow(
+            // Q382 (mock Q350 pick 7): the pill, Personal and the tags are ONE row even when
+            // the note is unrated, so the pill stands alone here and the fading line drops to
+            // its own line under the row (below). The Mac and the quick note keep `NoteRatingRow`.
+            NoteRatingPill(
                 value: Binding(get: { memo.significance == 0 ? nil : memo.significance },
                                set: { memo.significance = $0 ?? 0 }),
                 style: .phone,
-                fadingLine: fadingLine,
-                lineColor: Color.skAmber.opacity(0.9),
                 onTap: { Haptics.tap(.light) },
                 onCommit: {
                     repository.save()
@@ -595,6 +596,18 @@ struct MemoPageView: View {
                 .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
             }
             .padding(.top, 10)
+
+            // The orange fading line (unrated notes only, nil otherwise): a quiet line of its
+            // own under the pill row, so the row above never wraps.
+            if let fadingLine {
+                Text(fadingLine)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skAmber.opacity(0.9))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
+                    .accessibilityIdentifier("detail-lifecycle-line" + suffix)
+            }
 
             // Mac's polish: the summary (when present) above the body, as a grey line.
             if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),

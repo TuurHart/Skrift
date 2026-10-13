@@ -305,7 +305,7 @@ struct RootView: View {
         } else if LaunchFlags.seedNameLinking {
             // The seeded "Studio afternoon" memo, into the in-place name-linking surface.
             return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) })
-        } else if LaunchFlags.seedPolished {
+        } else if LaunchFlags.seedPolished, !LaunchFlags.routeViaList {
             // The seeded polished memo (Phase 4 display).
             return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) })
         } else if LaunchFlags.journalMemoDemo {

@@ -44,6 +44,9 @@ struct DestinationRowStyle {
     /// The resting chip's 1 pt ring. The Q350 note mock has a flat tinted chip (no ring), so the
     /// phone turns it off; the Mac keeps its look until Q360 decides.
     var chipOutlined: Bool = true
+    /// Q382: a fixed resting-chip height (the Q350 phone mock: 26 pt, 12 pt text, level with the
+    /// 26 pt rating pill beside it). nil = the Mac's padded 11.5 pt chip, unchanged.
+    var chipHeight: CGFloat? = nil
 }
 
 struct DestinationRowView: View {
@@ -141,13 +144,15 @@ struct DestinationRowView: View {
                     .fill(destination.isPortfolio ? style.portfolio : style.accent)
                     .frame(width: 6, height: 6)
                 Text(destination.label)
-                    .font(.system(size: 11.5, weight: .semibold))
+                    .font(.system(size: style.chipHeight == nil ? 11.5 : 12, weight: .semibold))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .bold))
                     .opacity(0.55)
             }
             .foregroundStyle(destination.isPortfolio ? style.portfolio : style.accentText)
-            .padding(.horizontal, 9).padding(.vertical, 5)
+            .padding(.horizontal, style.chipHeight == nil ? 9 : 10)
+            .padding(.vertical, style.chipHeight == nil ? 5 : 0)
+            .frame(height: style.chipHeight)
             .background(destination.isPortfolio ? style.portfolioSoft : style.accentSoft, in: .capsule)
             .overlay {
                 if style.chipOutlined {

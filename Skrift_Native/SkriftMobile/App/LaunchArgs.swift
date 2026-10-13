@@ -111,6 +111,9 @@ enum LaunchFlags {
     /// copy-edit/title/summary) + the name roster, and open its detail — so the Phase-4
     /// polished-text display can be screenshot-verified.
     static var seedPolished: Bool { args.boolFlag("-seedPolished") }
+    /// Q382 (DEBUG): with `-seedPolished`, DON'T open its detail as a root route — land on the
+    /// list so a UI test taps the row and the note is PUSHED (the back button + tab bar are real).
+    static var routeViaList: Bool { args.boolFlag("-routeViaList") }
     /// Wipe the local names.json at launch so a conversation/voice test starts from a
     /// known-empty names slate (names.json persists across sim runs, unlike the SwiftData
     /// store — `-inMemoryStore` doesn't reset it). Used by the diarization-split and

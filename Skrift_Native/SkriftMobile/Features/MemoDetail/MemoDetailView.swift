@@ -678,14 +678,18 @@ struct MemoDetailView: View {
         // `.ultraThinMaterial` is only the fallback for iOS < 26.
         if #available(iOS 26.0, *) {
             GlassEffectContainer {
+                // Q382 (mock Q350): a 54 pt pill with a 24 pt radius (NOT a full capsule) and the
+                // mock's soft drop shadow.
                 playerBarStack()
+                    .frame(height: 54)
                     // .clear (not .regular) = the lensed, refractive look — .regular
                     // reads as frosted. (Device must have full Liquid Glass on: Reduce
                     // Motion / Reduce Transparency OFF, Liquid Glass = Clear.)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .shadow(color: .black.opacity(0.28), radius: 9, y: 6)
                     // A hairline + top specular highlight so the glass reads as an EDGE.
                     .overlay(
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.04)],
                                                startPoint: .top, endPoint: .bottom),
@@ -696,6 +700,7 @@ struct MemoDetailView: View {
             .padding(.bottom, 6)
         } else {
             playerBarStack()
+                .frame(height: 54)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
                 .shadow(color: .black.opacity(0.28), radius: 18, y: 6)
