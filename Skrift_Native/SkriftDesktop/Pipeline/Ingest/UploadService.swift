@@ -181,7 +181,7 @@ struct UploadService: Sendable {
             prepared.transcript = memo.annotationText ?? ""
         }
 
-        prepared.metadataJSON = MemoCloudIngest.metadataJSON(for: memo)   // → pf.audioMetadataJSON
+        prepared.metadataJSON = MemoCloudIngest.cachedMetadataJSON(for: memo)   // → pf.audioMetadataJSON
         if case .capture = shape {
             // A capture keeps the upload-time date and carries no title of its own.
         } else {
@@ -209,7 +209,7 @@ struct UploadService: Sendable {
     /// SwiftData touch — the app marshals this onto the main actor with the UI's
     /// own `mainContext`, so phone uploads appear live via @Query.
     @discardableResult
-    func commit(_ prepared: [PreparedUpload], into context: ModelContext) throws -> [PipelineFile] {
+    func commit(_ prepared: [PreparedUpload], into context: ModelContext, save: Bool = true) throws -> [PipelineFile] {
         var created: [PipelineFile] = []
         for p in prepared {
             let pf = PipelineFile(id: p.id, filename: p.filename, path: p.path,
@@ -228,7 +228,8 @@ struct UploadService: Sendable {
             context.insert(pf)
             created.append(pf)
         }
-        try context.save()
+        // `save: false` — the reconcile's batched ingest (Q364) saves once for the whole batch.
+        if save { try context.save() }
         return created
     }
 

@@ -37,12 +37,20 @@ enum MemoCloudIngest {
                                allowFilenameMatch: allowFilenameMatch) else { return nil }
 
         let pf = try upload.ingest(memo: memo, assets: assets, into: context)
+        if let pf { finishIngest(pf, memo: memo) }
+        return pf
+    }
+
+    /// Everything a FRESH row takes from its memo beyond what `UploadService` carries. Shared
+    /// by the one-shot `ingest` above and the reconcile's batched ingest (Q364), so both
+    /// produce the identical row.
+    static func finishIngest(_ pf: PipelineFile, memo: Memo) {
         // Baseline the live-sync watermark to the memo's current edit time, so a LATER phone
         // edit (newer `lastEditedAt`) is detected by `MemoCloudUpdate` (Part B, phone→Mac).
-        pf?.syncedSourceEditedAt = memo.lastEditedAt
+        pf.syncedSourceEditedAt = memo.lastEditedAt
         // Typed row mirrors `UploadService` doesn't carry (lock / reminder / photo OCR) —
         // `MemoCloudUpdate` keeps them fresh on later phone edits.
-        if let pf {
+        do {
             pf.imageOCRText = ocrText(for: memo)
             // Every mirrored row field `UploadService` doesn't carry — lock, reminder,
             // tags, importance, destination — adopted from the ONE declaration
@@ -55,7 +63,6 @@ enum MemoCloudIngest {
             // Q186: the note's include-audio-in-export switch, one value on every device.
             ExportAudioMirror.pull(memo, into: pf)
         }
-        return pf
     }
 
     /// Flat OCR text for search — the phone's Vision text on each photo
@@ -103,13 +110,19 @@ enum MemoCloudIngest {
     /// OWN timings, which the `wordTimingsJSON` empty-guard also protects from clobber.
     /// The cheap guards run before `fetchAssets()` so the steady-state sweep still never
     /// faults asset blobs (the sweep's standing rule).
+    ///
+    /// `assetKinds` (Q364): the kinds of asset this memo HAS, from the sweep's one blob-free
+    /// index fetch. nil = unknown (look). A note with no `wordTimings` asset returns before
+    /// `fetchAssets()` — the guards above alone pass for every typed note forever.
     static func adoptLateWordTimings(memo: Memo, pf: PipelineFile,
+                                     assetKinds: (() -> Set<String>)? = nil,
                                      fetchAssets: () -> [MemoAsset]) -> Bool {
         guard memo.deletedAt == nil,
               pf.wordTimingsJSON?.isEmpty ?? true,
               pf.transcribeStatus == .done,
               !(pf.transcript ?? "").isEmpty
         else { return false }
+        if let assetKinds, !assetKinds().contains(MemoAsset.Kind.wordTimings) { return false }
         guard let wt = fetchAssets().first(where: { $0.kind == MemoAsset.Kind.wordTimings }),
               !wt.blob.isEmpty,
               let words = try? JSONDecoder().decode([WordTiming].self, from: wt.blob),
@@ -125,13 +138,19 @@ enum MemoCloudIngest {
     /// needs the segments) and the review screen with no turns to show.
     ///
     /// Lands in `pf.diarizationSegments`, which is what voice enrollment reads.
+    ///
+    /// `assetKinds` as in `adoptLateWordTimings`: every monologue passes the guards below
+    /// forever (the setter stores nil for no segments), so without it every sweep faulted
+    /// every monologue's audio blob (g-mac-pipeline G1, h-shared-data M1).
     static func adoptLateDiarization(memo: Memo, pf: PipelineFile,
+                                     assetKinds: (() -> Set<String>)? = nil,
                                      fetchAssets: () -> [MemoAsset]) -> Bool {
         guard memo.deletedAt == nil,
               pf.diarizationSegmentsJSON?.isEmpty ?? true,
               pf.transcribeStatus == .done,
               !(pf.transcript ?? "").isEmpty
         else { return false }
+        if let assetKinds, !assetKinds().contains(MemoAsset.Kind.diarization) { return false }
         guard let dz = fetchAssets().first(where: { $0.kind == MemoAsset.Kind.diarization }),
               !dz.blob.isEmpty,
               let data = try? JSONDecoder().decode(PhoneDiarizationBlob.self, from: dz.blob),
@@ -151,6 +170,7 @@ enum MemoCloudIngest {
     /// uses, so every downstream read (`PhoneMetadata`, `SharedContent.decode`, the trust
     /// gate) sees identical content.
     static func metadataJSON(for memo: Memo) -> Data {
+        ReconcileWork.bump(\.metadataSerialisations)
         var dict: [String: Any] = [:]
         if let blob = memo.metadataData,
            let obj = (try? JSONSerialization.jsonObject(with: blob)) as? [String: Any] {
@@ -181,5 +201,55 @@ enum MemoCloudIngest {
         // keys in (randomized) dictionary order, so the same memo would produce different
         // bytes each ingest (decoded content identical, but not reproducible / diffable).
         return (try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys])) ?? Data("{}".utf8)
+    }
+
+    /// Every memo field `metadataJSON(for:)` reads — the cache key. Equal inputs build equal
+    /// bytes (the builder is deterministic, `.sortedKeys`), so an equal key returns the stored
+    /// output without the two JSON parses and the sorted re-serialise.
+    struct MetadataInputs: Equatable {
+        var metadataData: Data?
+        var sharedContentData: Data?
+        var tags: [String]
+        var recordedAt: Date
+        var duration: TimeInterval
+        var transcriptUserEdited: Bool
+        var transcriptMarkersInjected: Bool
+        var transcriptConfidence: Double?
+        var title: String?
+        var significance: Double
+        var annotationText: String?
+
+        init(_ memo: Memo) {
+            metadataData = memo.metadataData
+            sharedContentData = memo.sharedContentData
+            tags = memo.tags
+            recordedAt = memo.recordedAt
+            duration = memo.duration
+            transcriptUserEdited = memo.transcriptUserEdited
+            transcriptMarkersInjected = memo.transcriptMarkersInjected
+            transcriptConfidence = memo.transcriptConfidence
+            title = memo.title
+            significance = memo.significance
+            annotationText = memo.annotationText
+        }
+    }
+
+    private static let metadataCacheLock = NSLock()
+    private static var metadataCache: [UUID: (inputs: MetadataInputs, json: Data)] = [:]
+
+    /// Q364 (g-mac-pipeline G4, h-shared-data M2): `metadataJSON(for:)` once per distinct
+    /// input, not once per memo per sweep. The reconcile compares the result byte-for-byte to
+    /// the row exactly as before; only an unchanged memo skips the rebuild.
+    static func cachedMetadataJSON(for memo: Memo) -> Data {
+        let inputs = MetadataInputs(memo)
+        metadataCacheLock.lock()
+        let hit = metadataCache[memo.id]
+        metadataCacheLock.unlock()
+        if let hit, hit.inputs == inputs { return hit.json }
+        let json = metadataJSON(for: memo)
+        metadataCacheLock.lock()
+        metadataCache[memo.id] = (inputs, json)
+        metadataCacheLock.unlock()
+        return json
     }
 }

@@ -71,15 +71,18 @@ extension MemoCloudReconciler {
     /// CloudKit names + vocabulary carriers into the Mac's local stores. No-op unless the user
     /// enabled CloudKit-Mac sync AND the CloudKit container is available. Returns the count of
     /// memos ingested.
+    /// `deferIngest` (default, the app's triggers): never-seen memos ingest on a BACKGROUND
+    /// context (blob reads + working-folder writes off the main actor), committed in one
+    /// batch with one save (g-mac-pipeline G3, Q364). The headless harness passes false to
+    /// get the old synchronous ingest, so its returned count is the rows just created.
     @discardableResult
-    static func reconcile() -> Int {
-        // The Connections index sweep rides every reconcile trigger (launch /
-        // foreground / CloudKit import) — AFTER the cloud work, so just-imported
-        // memos index in the same pass. Self-gated (consent + model on disk) and
-        // hash-diffed ⇒ a redundant fire is nearly free. Runs even when cloud
-        // sync is off: locally-ingested files need indexing too.
-        defer { ConnectionsIndexService.shared.sweepSoon(SharedStore.container.mainContext) }
-        guard let cloud = MemoCloudStore.syncContainer else { return 0 }
+    static func reconcile(deferIngest: Bool = true) -> Int {
+        guard let cloud = MemoCloudStore.syncContainer else {
+            // The Connections index sweep rides every reconcile trigger — even with cloud
+            // sync off: locally-ingested files need indexing too.
+            ConnectionsIndexService.shared.sweepSoon(SharedStore.container.mainContext)
+            return 0
+        }
         let settings = SettingsStore.shared.load()
         // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the
         // Bonjour /api/names path). Both are guarded + idempotent, so running them on every
@@ -102,11 +105,30 @@ extension MemoCloudReconciler {
         // 2026-07-15 device test). A brand-new context has an empty row cache, so every fetch hits
         // the store and reads the latest import.
         let cloudContext = ModelContext(cloud)
-        let outcome = sweep(from: cloudContext, into: local,
-                            people: NamesStore.shared.livePeople(), author: settings.authorName,
-                            thisDeviceID: DeviceID.current())
+        let people = NamesStore.shared.livePeople()
+        let thisDevice = DeviceID.current()
+        // The sweep, the reflect save, and Q5 (2026-07-21): the Mac AUTHORS a Memo for any
+        // local PipelineFile that doesn't have one yet (the +Upload button / drag-drop / folder
+        // import — none of those mint a Memo at ingest time) and reflects a Mac-completed
+        // transcript onto an already-authored Memo so it reaches the phone. One Memo fetch for
+        // all of it (`MemoCloudReconciler.pass`). Author/reflect failures are logged inside and
+        // never take down the ingest/reflect sweep this function exists for.
+        let pass: PassOutcome
+        do {
+            pass = try MemoCloudReconciler.pass(from: cloudContext, into: local, people: people,
+                                                author: settings.authorName, thisDeviceID: thisDevice,
+                                                deferNewIngest: deferIngest)
+        } catch {
+            AppLog.cloudkit.error("reconcile: pass FAILED: \(error)")
+            return 0
+        }
+        let outcome = pass.sweep
         AppLog.cloudkit.log(
-            "reconcile: ingested \(outcome.created, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
+            "reconcile: ingested \(outcome.created, privacy: .public), pending \(outcome.pendingNewIDs.count, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
+        if pass.authored > 0 || pass.reflectedTranscripts > 0 {
+            AppLog.cloudkit.log(
+                "reconcile: authored \(pass.authored, privacy: .public), reflected-transcripts \(pass.reflectedTranscripts, privacy: .public)")
+        }
         // UNRATED memos never become a `PipelineFile`, so nothing about them changes
         // `files.count` — the one thing the sidebar watched. A phone memo you hadn't
         // rated therefore stayed invisible on the Mac until the app was RELAUNCHED
@@ -114,36 +136,56 @@ extension MemoCloudReconciler {
         // sweep so surfaces that read cloud memos directly — the Queue band's unrated
         // list / one-trash count — refresh live. Cheap: the observers just re-fetch.
         NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
-        // A phone edit re-linked + recompiled an existing row (Part B). Persist it, and if it
+        // A phone edit re-linked + recompiled an existing row (Part B, saved by the pass). If it
         // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
         if !outcome.updatedIDs.isEmpty {
-            do { try local.save() }
-            catch {
-                AppLog.cloudkit
-                    .error("reconcile: reflect save FAILED — phone edits not persisted: \(error)")
-            }
             reexportEdited(outcome.updatedIDs, in: local, cloud: cloudContext, settings: settings)
         }
+        // The lifecycle sweep reuses this pass's memo snapshot on an open (G12) instead of its
+        // own full fetch; it still runs only when a person opened the app (v3 doctrine).
+        LifecycleSweepScheduler.reconcileDidFetch(memos: pass.memos, context: cloudContext)
+        // The Connections index sweep, AFTER the cloud work, so just-imported memos index in
+        // the same pass — from the rows + memos this pass already fetched (G11). Self-gated
+        // (consent + model on disk) and hash-diffed ⇒ a redundant fire is nearly free.
+        ConnectionsIndexService.shared.sweepSoon(
+            local, reuse: .init(files: pass.localFiles, memos: pass.memos, enhancements: pass.enhancements))
 
-        // Q5 (2026-07-21): the Mac AUTHORS a Memo for any local PipelineFile that doesn't have
-        // one yet (the +Upload button / drag-drop / folder import — none of those mint a Memo at
-        // ingest time), and reflects a Mac-completed transcript onto an already-authored Memo so
-        // it reaches the phone. Same gate as everything above (already passed). Best-effort: a
-        // failure here must never take down the ingest/reflect sweep this function exists for.
-        let localFiles = (try? local.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        do {
-            let authored = try MacMemoAuthor.backfill(files: localFiles, into: cloudContext)
-            let reflected = try MacMemoAuthor.reflectTranscripts(files: localFiles, into: cloudContext)
-            if authored > 0 || reflected > 0 {
-                AppLog.cloudkit.log(
-                    "reconcile: authored \(authored, privacy: .public), reflected-transcripts \(reflected, privacy: .public)")
-            }
-        } catch {
-            AppLog.cloudkit
-                .error("reconcile: author/reflect FAILED: \(error)")
+        if !outcome.pendingNewIDs.isEmpty {
+            ingestInBackground(outcome.pendingNewIDs, container: cloud, people: people,
+                               author: settings.authorName, thisDeviceID: thisDevice)
         }
-
         return outcome.created
+    }
+
+    /// G3: read the new memos' blobs + write their working folders on a background context,
+    /// then insert all rows on the main actor with ONE save. `ingestInFlight` keeps an
+    /// overlapping sweep from ingesting the same memo meanwhile.
+    private static let backgroundIngestBatch = 50
+
+    private static func ingestInBackground(_ ids: [UUID], container: ModelContainer, people: [Person],
+                                           author: String, thisDeviceID: String) {
+        ingestInFlight.formUnion(ids)
+        let upload = UploadService()
+        Task { @MainActor in
+            let local = SharedStore.container.mainContext
+            var created = 0
+            // Batches of 50: each gets a fresh background context (so at most 50 memos' blobs
+            // are held at once on a first-enable backlog) and ONE main-actor save.
+            for start in stride(from: 0, to: ids.count, by: backgroundIngestBatch) {
+                let chunk = Array(ids[start..<min(start + backgroundIngestBatch, ids.count)])
+                let prepared = await MemoCloudReconciler.prepareInBackground(ids: chunk, container: container,
+                                                                             upload: upload)
+                let outcome = MemoCloudReconciler.commitPrepared(prepared, cloud: ModelContext(container),
+                                                                 into: local, people: people, author: author,
+                                                                 thisDeviceID: thisDeviceID, upload: upload)
+                ingestInFlight.subtract(chunk)
+                created += outcome.created
+                AppLog.cloudkit.log(
+                    "reconcile: background ingest \(outcome.created, privacy: .public) of \(chunk.count, privacy: .public), stranded \(outcome.stranded, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
+                NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
+            }
+            if created > 0 { ConnectionsIndexService.shared.sweepSoon(local) }
+        }
     }
 
     /// Re-export the vault markdown for rows a phone edit just changed — but only those already

@@ -763,7 +763,7 @@ enum RunFile {
             try cloudCtx.save()
 
             // The REAL sweep — same call the launch/foreground/import triggers make.
-            let created = MemoCloudReconciler.reconcile()
+            let created = MemoCloudReconciler.reconcile(deferIngest: false)   // synchronous ingest: the row is checked next
             log(">>> reconcile ingested \(created)")
 
             let id = memo.id.uuidString

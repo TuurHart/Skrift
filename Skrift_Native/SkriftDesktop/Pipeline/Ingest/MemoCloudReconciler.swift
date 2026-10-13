@@ -33,6 +33,8 @@ enum MemoCloudReconciler {
         /// stay 0. Non-zero is a real hole worth a log line, not a statistic: it is what
         /// a note that looks deleted but isn't counts as (Tuur, 2026-08-19).
         var stranded = 0
+        /// Never-seen memos a `deferNewIngest` sweep left for the background ingest (Q364).
+        var pendingNewIDs: [UUID] = []
     }
 
     /// Sweep every `Memo` in `cloudContext` into `localContext` (the pipeline store): fetch each
@@ -49,13 +51,42 @@ enum MemoCloudReconciler {
                       people: [Person] = [], author: String = "", thisDeviceID: String = "",
                       now: Date = Date(),
                       upload: UploadService = UploadService()) -> SweepOutcome {
+        sweepCore(from: cloudContext, into: localContext, people: people, author: author,
+                  thisDeviceID: thisDeviceID, now: now, upload: upload, deferNewIngest: false).outcome
+    }
+
+    /// What one sweep fetched, handed back so the rest of the pass (author/reflect, the
+    /// lifecycle sweep, the Connections snapshot) reuses it instead of fetching again (Q364).
+    struct SweepSnapshot {
+        /// Every `Memo` row as fetched (duplicates included — the lifecycle sweep's input).
+        var allMemos: [Memo] = []
+        /// The keeper per id (`MemoDuplicates.canonicalRows`) — what the sweep iterated.
+        var memos: [Memo] = []
+        var enhancements: [MemoEnhancement] = []
+        /// The local rows after the sweep (pre-sweep fetch + rows this sweep created).
+        var localFiles: [PipelineFile] = []
+    }
+
+    /// The memo ids whose blob-reading ingest runs on a background context right now
+    /// (`prepareInBackground` → `commitPrepared`). A sweep in between skips them, so two
+    /// overlapping reconciles can never ingest one memo twice.
+    static var ingestInFlight: Set<UUID> = []
+
+    /// The sweep. `deferNewIngest` (the app's reconcile): never-seen memos are NOT ingested
+    /// here on the main actor; their ids come back in `pendingNewIDs` for the background
+    /// ingest. false (tests, the headless harness): they ingest here, as one batch, one save.
+    static func sweepCore(from cloudContext: ModelContext, into localContext: ModelContext,
+                          people: [Person], author: String, thisDeviceID: String,
+                          now: Date, upload: UploadService,
+                          deferNewIngest: Bool) -> (outcome: SweepOutcome, snapshot: SweepSnapshot) {
         // Duplicate-tolerant: the cloud DB can hold same-id rows (the 2026-07-12 clone
         // incident; divergent pairs are never auto-healed). Collapse each id onto its
         // keeper (shared `MemoDuplicates` rule — the same row the phone's deduper keeps),
         // else two rows would take turns rewriting ONE PipelineFile every sweep
         // (recompile + re-export churn, forever).
-        let memos = MemoDuplicates.canonicalRows(
-            (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? [])
+        ReconcileWork.bump(\.memoFetches)
+        let allMemos = (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? []
+        let memos = MemoDuplicates.canonicalRows(allMemos)
         var outcome = SweepOutcome()
         // C98/D139: a note edited on two devices while apart is a conflict — its row keeps
         // the Mac's words (no reflect of the newest-wins `Memo` row over them) and waits.
@@ -66,7 +97,7 @@ enum MemoCloudReconciler {
         // needs its blobs: asset rows fault-fill their multi-MB audio/photo
         // blobs on touch (row-level faulting, no external storage under
         // CloudKit), so the steady-state sweep must never realize them.
-        let localFiles = (try? localContext.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var localFiles = (try? localContext.fetch(FetchDescriptor<PipelineFile>())) ?? []
         var fileByID: [String: PipelineFile] = [:]
         var fileByFilename: [String: PipelineFile] = [:]
         for pf in localFiles {
@@ -80,12 +111,18 @@ enum MemoCloudReconciler {
         let enhancements = (try? cloudContext.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
         let enhancementByMemo = Dictionary(enhancements.map { ($0.memoID, $0) },
                                            uniquingKeysWith: { a, _ in a })
+        // Q364: which asset KINDS each memo has, from ONE blob-free fetch, built only when a
+        // late-asset heal first asks. A memo with no `diar` / `wordTimings` asset — every
+        // monologue, every typed note — then never reaches `fetchAssets()`.
+        let assetKinds = AssetKindIndex(cloudContext)
+        var newMemos: [Memo] = []
         for memo in memos {
             let memoID = memo.id
             let id = memo.id.uuidString
             let filename = MemoCloudIngest.audioFilename(for: memo)
             let fetchAssets: () -> [MemoAsset] = {
-                (try? cloudContext.fetch(
+                ReconcileWork.bump(\.assetBlobFetches)
+                return (try? cloudContext.fetch(
                     FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
             }
 
@@ -118,62 +155,238 @@ enum MemoCloudReconciler {
                 // Same late-asset hole, karaoke-flavored: adopt a `wordTimings` asset that
                 // synced AFTER first ingest (guards inside keep the steady-state sweep from
                 // faulting blobs; never clobbers Mac-ASR timings).
-                let timingsHealed = MemoCloudIngest.adoptLateWordTimings(memo: memo, pf: pf,
-                                                                         fetchAssets: fetchAssets)
+                let timingsHealed = MemoCloudIngest.adoptLateWordTimings(
+                    memo: memo, pf: pf, assetKinds: { assetKinds.kinds(memoID) }, fetchAssets: fetchAssets)
                 // …and the diarization twin (a late `diar` asset otherwise leaves the Mac
                 // unable to enroll a voice from a phone-diarized conversation).
-                let diarHealed = MemoCloudIngest.adoptLateDiarization(memo: memo, pf: pf,
-                                                                      fetchAssets: fetchAssets)
+                let diarHealed = MemoCloudIngest.adoptLateDiarization(
+                    memo: memo, pf: pf, assetKinds: { assetKinds.kinds(memoID) }, fetchAssets: fetchAssets)
                 let anyHeal = healed || timingsHealed || diarHealed
                 if anyHeal && !applied { pf.lastActivityAt = now }
                 if applied || anyHeal { outcome.updatedIDs.append(pf.id) }
-            } else {
-                // nil = gated/trashed (a legitimate no-op); a THROW is a real failure —
-                // previously `try?`-swallowed, making a memo that fails every sweep an
-                // invisible black hole. Count + name it for the reconcile summary.
-                do {
-                    if let created = try MemoCloudIngest.ingest(memo: memo, assets: fetchAssets(),
-                                                                upload: upload,
-                                                                into: localContext,
-                                                                // …so this memo gets its OWN row
-                                                                // instead of being silently dropped.
-                                                                allowFilenameMatch: !filenameRowIsAnothersMemo) {
-                        outcome.created += 1
-                        // Give the FRESH row everything the cloud already knows — above all a
-                        // `MemoEnhancement` that exists while the row does not, which is the
-                        // only copy of that polish anywhere. Without this the note surfaces
-                        // raw and waits for the NEXT sweep, where the self-echo guard throws
-                        // this Mac's own enhancement away for good (`isFreshRow` turns that
-                        // guard off exactly here, and nowhere else).
-                        if MemoCloudUpdate.apply(memo: memo, enhancement: enhancementByMemo[memoID],
-                                                 to: created, people: people, author: author,
-                                                 thisDeviceID: thisDeviceID, now: now,
-                                                 isFreshRow: true) {
-                            outcome.updatedIDs.append(created.id)
-                        }
-                        // Keep the lookup maps live so a same-sweep duplicate
-                        // (Bonjour-era filename twin) can't double-ingest.
-                        if fileByID[created.id] == nil { fileByID[created.id] = created }
-                        if !created.filename.isEmpty, fileByFilename[created.filename] == nil {
-                            fileByFilename[created.filename] = created
-                        }
-                    } else if memo.deletedAt == nil, NoteConsent.isRated(memo) {
-                        // Rated, live, and STILL no row: the memo renders in no list section
-                        // at all. Every known cause is fixed (a typed note ingests as a text
-                        // row now); what remains is a genuine wait — a voice memo whose audio
-                        // blob hasn't synced yet — so name it rather than let the next one be
-                        // silent for a day.
-                        outcome.stranded += 1
-                        AppLog.cloudkit
-                            .error("STRANDED: rated memo \(memo.id, privacy: .public) has no row after ingest — invisible in every list section")
-                    }
-                } catch {
-                    outcome.ingestFailures += 1
-                    AppLog.cloudkit
-                        .error("ingest FAILED memo \(memo.id, privacy: .public): \(error)")
-                }
+            } else if memo.deletedAt == nil, NoteConsent.isRated(memo), !ingestInFlight.contains(memoID) {
+                // Never seen, live and rated: ingest (the gates `MemoCloudIngest.ingest`
+                // applies; a trashed or unrated memo is a legitimate no-op). The sweep's maps
+                // already proved there is no row by id, and none by filename this memo may
+                // claim, so the batch skips `alreadyIngested`'s per-memo fetch (G3).
+                newMemos.append(memo)
             }
         }
+
+        if deferNewIngest {
+            outcome.pendingNewIDs = newMemos.map(\.id)
+        } else if !newMemos.isEmpty {
+            // Inline batch: prepare each (blob reads + disk writes), then ONE commit + save.
+            let items = newMemos.map { memo -> PreparedNew in
+                let mid = memo.id
+                do {
+                    let assets = (try? cloudContext.fetch(FetchDescriptor<MemoAsset>(
+                        predicate: #Predicate { $0.memoID == mid }))) ?? []
+                    ReconcileWork.bump(\.assetBlobFetches)
+                    return PreparedNew(memoID: memo.id, prepared: try upload.prepare(memo: memo, assets: assets),
+                                       failure: nil)
+                } catch {
+                    return PreparedNew(memoID: memo.id, prepared: nil, failure: String(describing: error))
+                }
+            }
+            let created = commit(items, memosByID: Dictionary(newMemos.map { ($0.id, $0) },
+                                                              uniquingKeysWith: { a, _ in a }),
+                                 enhancementByMemo: enhancementByMemo, into: localContext,
+                                 people: people, author: author, thisDeviceID: thisDeviceID,
+                                 now: now, upload: upload, outcome: &outcome)
+            localFiles.append(contentsOf: created)
+        }
+        let snapshot = SweepSnapshot(allMemos: allMemos, memos: memos, enhancements: enhancements,
+                                     localFiles: localFiles)
+        return (outcome, snapshot)
+    }
+
+    /// One never-seen memo after its disk phase: the row descriptor, nil when there is
+    /// nothing to ingest yet (a voice memo whose audio blob hasn't synced), or a failure.
+    struct PreparedNew: Sendable {
+        let memoID: UUID
+        let prepared: UploadService.PreparedUpload?
+        let failure: String?
+    }
+
+    /// Commit a batch of prepared memos as rows: ONE `UploadService.commit`, the fresh-row
+    /// finish (`MemoCloudIngest.finishIngest`) and the fresh-row reflect for each, ONE save.
+    /// Same per-memo outcome as the old one-at-a-time ingest: created, stranded, failed.
+    @discardableResult
+    static func commit(_ items: [PreparedNew], memosByID: [UUID: Memo],
+                       enhancementByMemo: [UUID: MemoEnhancement], into localContext: ModelContext,
+                       people: [Person], author: String, thisDeviceID: String, now: Date,
+                       upload: UploadService, outcome: inout SweepOutcome) -> [PipelineFile] {
+        var ready: [(memo: Memo, prepared: UploadService.PreparedUpload)] = []
+        for item in items {
+            guard let memo = memosByID[item.memoID] else { continue }
+            if let failure = item.failure {
+                // A THROW is a real failure — previously `try?`-swallowed, making a memo that
+                // fails every sweep an invisible black hole. Count + name it.
+                outcome.ingestFailures += 1
+                AppLog.cloudkit.error("ingest FAILED memo \(memo.id, privacy: .public): \(failure)")
+            } else if let prepared = item.prepared {
+                ready.append((memo, prepared))
+            } else if memo.deletedAt == nil, NoteConsent.isRated(memo) {
+                // Rated, live, and STILL no row: the memo renders in no list section
+                // at all. Every known cause is fixed (a typed note ingests as a text
+                // row now); what remains is a genuine wait — a voice memo whose audio
+                // blob hasn't synced yet — so name it rather than let the next one be
+                // silent for a day.
+                outcome.stranded += 1
+                AppLog.cloudkit
+                    .error("STRANDED: rated memo \(memo.id, privacy: .public) has no row after ingest — invisible in every list section")
+            }
+        }
+        guard !ready.isEmpty else { return [] }
+        let rows: [PipelineFile]
+        do {
+            rows = try upload.commit(ready.map(\.prepared), into: localContext, save: false)
+        } catch {
+            outcome.ingestFailures += ready.count
+            AppLog.cloudkit.error("ingest batch FAILED (\(ready.count, privacy: .public) memos): \(error)")
+            return []
+        }
+        for (row, entry) in zip(rows, ready) {
+            MemoCloudIngest.finishIngest(row, memo: entry.memo)
+            outcome.created += 1
+            // Give the FRESH row everything the cloud already knows — above all a
+            // `MemoEnhancement` that exists while the row does not, which is the
+            // only copy of that polish anywhere. Without this the note surfaces
+            // raw and waits for the NEXT sweep, where the self-echo guard throws
+            // this Mac's own enhancement away for good (`isFreshRow` turns that
+            // guard off exactly here, and nowhere else).
+            if MemoCloudUpdate.apply(memo: entry.memo, enhancement: enhancementByMemo[entry.memo.id],
+                                     to: row, people: people, author: author,
+                                     thisDeviceID: thisDeviceID, now: now, isFreshRow: true) {
+                outcome.updatedIDs.append(row.id)
+            }
+        }
+        do {
+            ReconcileWork.bump(\.saves)
+            try localContext.save()
+        } catch {
+            AppLog.cloudkit.error("ingest batch save FAILED (\(rows.count, privacy: .public) rows): \(error)")
+        }
+        return rows
+    }
+
+    /// The background half of the app's ingest (g-mac-pipeline G3): read each new memo's
+    /// asset blobs and write its working folder on a BACKGROUND context, off the main actor.
+    /// Returns Sendable descriptors; `commitPrepared` inserts them on the main actor.
+    nonisolated static func prepareInBackground(ids: [UUID], container: ModelContainer,
+                                                upload: UploadService) async -> [PreparedNew] {
+        await Task.detached(priority: .userInitiated) {
+            let ctx = ModelContext(container)
+            let memos = (try? ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { ids.contains($0.id) }))) ?? []
+            let byID = Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            return ids.compactMap { id -> PreparedNew? in
+                guard let memo = byID[id] else { return nil }
+                let assets = (try? ctx.fetch(FetchDescriptor<MemoAsset>(
+                    predicate: #Predicate { $0.memoID == id }))) ?? []
+                do {
+                    return PreparedNew(memoID: id, prepared: try upload.prepare(memo: memo, assets: assets),
+                                       failure: nil)
+                } catch {
+                    return PreparedNew(memoID: id, prepared: nil, failure: String(describing: error))
+                }
+            }
+        }.value
+    }
+
+    /// The main-actor half: one memo fetch + one enhancement fetch + one local-row fetch
+    /// for the whole batch (a row that appeared meanwhile is skipped), then `commit`.
+    static func commitPrepared(_ items: [PreparedNew], cloud cloudContext: ModelContext,
+                               into localContext: ModelContext, people: [Person], author: String,
+                               thisDeviceID: String, now: Date = Date(),
+                               upload: UploadService = UploadService()) -> SweepOutcome {
+        var outcome = SweepOutcome()
+        let ids = items.map(\.memoID)
+        guard !ids.isEmpty else { return outcome }
+        let idStrings = ids.map(\.uuidString)
+        let existing = Set(((try? localContext.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { idStrings.contains($0.id) }))) ?? []).map(\.id))
+        ReconcileWork.bump(\.memoFetches)
+        let memos = MemoDuplicates.canonicalRows((try? cloudContext.fetch(FetchDescriptor<Memo>(
+            predicate: #Predicate { ids.contains($0.id) }))) ?? [])
+        let enhancements = (try? cloudContext.fetch(FetchDescriptor<MemoEnhancement>(
+            predicate: #Predicate { ids.contains($0.memoID) }))) ?? []
+        commit(items.filter { !existing.contains($0.memoID.uuidString) },
+               memosByID: Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }),
+               enhancementByMemo: Dictionary(enhancements.map { ($0.memoID, $0) }, uniquingKeysWith: { a, _ in a }),
+               into: localContext, people: people, author: author, thisDeviceID: thisDeviceID,
+               now: now, upload: upload, outcome: &outcome)
         return outcome
+    }
+
+    /// What one reconcile pass did, plus the fetches it made (for reuse by the callers).
+    struct PassOutcome {
+        var sweep: SweepOutcome
+        var authored = 0
+        var reflectedTranscripts = 0
+        /// Every `Memo` row the pass fetched (duplicates included).
+        var memos: [Memo] = []
+        var enhancements: [MemoEnhancement] = []
+        var localFiles: [PipelineFile] = []
+    }
+
+    /// The reconcile pass minus the app wiring (containers, settings, re-export): the sweep,
+    /// a save when it reflected anything, then `MacMemoAuthor.backfill` + `reflectTranscripts`
+    /// over ONE id→Memo dictionary built from the sweep's own fetch (g-mac-pipeline G2,
+    /// h-shared-data M3: was one unindexed `Memo` fetch per local row, twice).
+    /// Author/reflect failures are logged and swallowed, as before: they must never take down
+    /// the ingest/reflect this exists for.
+    @discardableResult
+    static func pass(from cloudContext: ModelContext, into localContext: ModelContext,
+                     people: [Person] = [], author: String = "", thisDeviceID: String = "",
+                     now: Date = Date(), upload: UploadService = UploadService(),
+                     deferNewIngest: Bool = false) throws -> PassOutcome {
+        let (outcome, snapshot) = sweepCore(from: cloudContext, into: localContext, people: people,
+                                            author: author, thisDeviceID: thisDeviceID, now: now,
+                                            upload: upload, deferNewIngest: deferNewIngest)
+        var result = PassOutcome(sweep: outcome, memos: snapshot.allMemos,
+                                 enhancements: snapshot.enhancements, localFiles: snapshot.localFiles)
+        // A phone edit re-linked + recompiled an existing row (Part B). Persist it.
+        if !outcome.updatedIDs.isEmpty {
+            do {
+                ReconcileWork.bump(\.saves)
+                try localContext.save()
+            } catch {
+                AppLog.cloudkit
+                    .error("reconcile: reflect save FAILED — phone edits not persisted: \(error)")
+            }
+        }
+        var memosByID: [UUID: Memo] = [:]
+        for memo in snapshot.memos { memosByID[memo.id] = memo }
+        do {
+            result.authored = try MacMemoAuthor.backfill(files: snapshot.localFiles, into: cloudContext,
+                                                         memosByID: &memosByID)
+            result.reflectedTranscripts = try MacMemoAuthor.reflectTranscripts(
+                files: snapshot.localFiles, into: cloudContext, memosByID: memosByID)
+        } catch {
+            AppLog.cloudkit.error("reconcile: author/reflect FAILED: \(error)")
+        }
+        return result
+    }
+}
+
+/// Q364 (C278): the asset kinds each memo has, from ONE `MemoAsset` fetch that names its
+/// properties — never the blob — built on first use.
+@MainActor
+final class AssetKindIndex {
+    private let context: ModelContext
+    private var map: [UUID: Set<String>]?
+
+    init(_ context: ModelContext) { self.context = context }
+
+    func kinds(_ memoID: UUID) -> Set<String> {
+        if map == nil {
+            ReconcileWork.bump(\.assetIndexFetches)
+            var d = FetchDescriptor<MemoAsset>(); d.propertiesToFetch = [\.memoID, \.kind]
+            var built: [UUID: Set<String>] = [:]
+            for asset in (try? context.fetch(d)) ?? [] { built[asset.memoID, default: []].insert(asset.kind) }
+            map = built
+        }
+        return map?[memoID] ?? []
     }
 }
