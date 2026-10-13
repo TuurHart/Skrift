@@ -2877,10 +2877,17 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 
 ### Q390 [auto] (todo) shared-code + cleanliness review of the attachments build (Q385)
 spec: D202 C239
-needs: Q385
+needs: Q385 Q391
 gate+: yes
 do: A fresh agent reviews everything Q385 changed (`git diff` of its merge) for drift and mess, then fixes it: phone/iPad/Mac twins of attachment logic, labels or sizes → one Shared home; dead code left by the old `captureFileCard` and photo-only attach paths deleted (remove means delete); no new main-thread work on note open or list render (keep NoteOpenWorkTests / MacNoteOpenWorkTests / ListDerivedCacheTests / MacListWorkTests counters green, never loosened); FEATURES.md rows accurate. Run Periphery (flags in plan/periphery.md, on a `git archive` snapshot) for files Q385 touched and delete true dead code. Write a short review note into plan/reads/q385-review.md: what was shared, what was deleted, what stays on purpose (with `twin-ok:` reasons). Full SkriftDesktop build after each deletion. Never run SkriftDesktopUITests.
 check: `test -s plan/reads/q385-review.md && ./plan/twin-check.sh`
+
+### Q391 [auto] (todo) attachments match the Q384 mock: screenshots + the gaps Q385 left
+spec: D202 D199
+needs: Q385
+gate+: yes
+do: Finish Q385 to the signed mock Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html. (1) Posters: AVAssetImageGenerator runs synchronously on the main thread when a note with a large video renders — generate off-main and cache per asset (NoteOpenWorkTests/MacNoteOpenWorkTests stay green, never loosened). (2) Starting an inline video pauses the note's own audio player (mock pick 1). (3) Mac: video/file blocks drag between paragraphs like photos (Shared BodyFormat.moveBlock exists). (4) Hold menu items as the mock: Copy, Share, Save, Delete plus View as Small/Large and move. (5) DEBUG `-seedAttachmentMemo` in DemoDataSeeder (text + [[vid_001]] large with a short AVAssetWriter .mov, [[img_001]], [[file_001]] a DXF, [[file_002]] a PDF), a phone screenshot UI test (`-skipOnboarding -routeViaList -appTheme light`) and a Mac `-snapshot-attachments` route; lay every shot next to the matching mock frame at the same scale into plan/reads/attachments/ and LOOK; fix differences. Never run SkriftDesktopUITests.
+check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4206,3 +4213,4 @@ check: `test -s plan/reads/q385-review.md && ./plan/twin-check.sh`
 - 2026-10-13 19:39 Q390 added
 - 2026-10-13 19:39 Q384 -> done — signed D202: inline play, 420 pt cut, small by default + Set All Small/Large in ⋯; 'very good… nicely done'
 - 2026-10-13 19:39 Q385 -> doing — worker out
+- 2026-10-13 20:20 Q391 added
