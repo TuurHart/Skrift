@@ -138,6 +138,8 @@ struct BodyTextView: NSViewRepresentable {
     }
 
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
+    /// Monostyled (inline `code` + fenced blocks), a step under the body like Apple Notes'.
+    fileprivate static let monoFont = NSFont.monospacedSystemFont(ofSize: 14.5, weight: .regular)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
     fileprivate static let linkRegex = try? NSRegularExpression(pattern: #"\[\[[^\]]+\]\]"#)
     // Heading tiers (H1/H2/H3+; deeper levels reuse the last). Body is 16pt.
@@ -208,6 +210,11 @@ struct BodyTextView: NSViewRepresentable {
         tv.onOpenPhotoAt = { [weak coordinator, weak tv] loc in
             guard let coordinator, let tv else { return }
             coordinator.openPhoto(at: loc, in: tv)
+        }
+        // Q360: a format edit is decisive — commit the model and restyle fully now.
+        tv.onFormatted = { [weak coordinator, weak tv] in
+            guard let coordinator, let tv else { return }
+            coordinator.flushModelCommit(tv)
         }
         coordinator.render(tv, model: text)
         coordinator.gate.accounted(text)
@@ -1077,7 +1084,9 @@ struct BodyTextView: NSViewRepresentable {
             guard scope == nil else {
                 // Cheap path stops here — attachments already carry their own look
                 // (chips/checkboxes/gutter names), so a bare plain-styled edit window
-                // stays legible until the next full pass.
+                // stays legible until the next full pass. Q360: the edited paragraph keeps
+                // its heading and B I U S look while typing (one paragraph's regex, not the note's).
+                applyMarkdownLook(storage, in: window, headings: true)
                 storage.endEditing()
                 return
             }
@@ -1189,6 +1198,8 @@ struct BodyTextView: NSViewRepresentable {
             for r in BodyMarkdown.inlineTags(in: storage.string) {
                 storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: r)
             }
+            // Q360 (D115): B I U S, highlight, code, fenced blocks and block quotes — marks dim, text styled.
+            applyMarkdownLook(storage, in: full, headings: false)
             // SUGGESTED tier: tan text + a dotted underline (mocks/naming-review.html).
             let tan = NSColor(Theme.nameSuggest), line = NSColor(Theme.nameSuggestLine)
             for (_, r) in suggestedRanges(in: storage) {
@@ -1201,6 +1212,59 @@ struct BodyTextView: NSViewRepresentable {
             // The bar + caption are drawn outside the glyph rects (in the reserved
             // paragraph spacing), which an in-place edit doesn't invalidate.
             if parent.quoteAttribution != nil { tv.needsDisplay = true }
+        }
+
+        /// Q360 (D115, C24/C116): the shared `BodyFormat` mark pairs drawn over `window` — both
+        /// marks at the heading marks' 25% ink, the text between bold / italic / underlined /
+        /// struck / highlighted / mono. The characters stay verbatim (the export is this text).
+        func applyMarkdownLook(_ storage: NSTextStorage, in window: NSRange, headings: Bool) {
+            guard window.length > 0, NSMaxRange(window) <= storage.length else { return }
+            let sub = (storage.string as NSString).substring(with: window)
+            let faint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
+            let at: (NSRange) -> NSRange = { NSRange(location: $0.location + window.location, length: $0.length) }
+            if headings {
+                for h in BodyMarkdown.headings(in: sub) {
+                    let tier = min(h.level, BodyTextView.headingFonts.count) - 1
+                    storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: at(h.text))
+                    storage.addAttribute(.foregroundColor, value: faint, range: at(h.marks))
+                }
+            }
+            for s in BodyFormat.inlineMarks(in: sub) {
+                storage.addAttribute(.foregroundColor, value: faint, range: at(s.open))
+                storage.addAttribute(.foregroundColor, value: faint, range: at(s.close))
+                let inner = at(s.content)
+                switch s.mark {
+                case .bold: convertFont(storage, inner, trait: .boldFontMask)
+                case .italic: convertFont(storage, inner, trait: .italicFontMask)
+                case .underline: storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: inner)
+                case .strike: storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: inner)
+                case .highlight:
+                    storage.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.32), range: inner)
+                case .code: storage.addAttribute(.font, value: BodyTextView.monoFont, range: inner)
+                }
+            }
+            for f in BodyFormat.fences(in: sub) {
+                storage.addAttribute(.foregroundColor, value: faint, range: at(f.open))
+                storage.addAttribute(.foregroundColor, value: faint, range: at(f.close))
+                storage.addAttribute(.font, value: BodyTextView.monoFont, range: at(f.content))
+            }
+            // A block quote below the top (the leading one is the audiobook capture's, styled
+            // by `styleLeadingQuote`): the `> ` dims and the words go secondary.
+            let ns = sub as NSString
+            let skip = headings ? 0 : NSMaxRange(BookCapture.quoteLineRanges(in: storage.string).last ?? NSRange(location: 0, length: 0))
+            ns.enumerateSubstrings(in: NSRange(location: 0, length: ns.length), options: .byLines) { line, r, _, _ in
+                guard let line, line.hasPrefix("> "), at(r).location >= skip else { return }
+                storage.addAttribute(.foregroundColor, value: faint, range: at(NSRange(location: r.location, length: 2)))
+                storage.addAttribute(.foregroundColor, value: NSColor(Theme.textSecondary),
+                                     range: at(NSRange(location: r.location + 2, length: r.length - 2)))
+            }
+        }
+
+        private func convertFont(_ storage: NSTextStorage, _ range: NSRange, trait: NSFontTraitMask) {
+            storage.enumerateAttribute(.font, in: range) { value, r, _ in
+                let base = (value as? NSFont) ?? BodyTextView.bodyFont
+                storage.addAttribute(.font, value: NSFontManager.shared.convert(base, toHaveTrait: trait), range: r)
+            }
         }
 
         /// Audiobook-capture presentation for the leading C1 quote block: italic,
@@ -1901,6 +1965,30 @@ final class MemoLinkChipAttachment: NSTextAttachment {
     }
 }
 
+/// Q360: carries a Format command through `NSApp.sendAction` / a menu item's representedObject.
+final class FormatCommandBox: NSObject {
+    let command: MacEditorFormatting.Command
+    init(_ command: MacEditorFormatting.Command) { self.command = command }
+
+    /// Send `command` to the focused note's text (the Format menu and the Aa popover).
+    static func send(_ command: MacEditorFormatting.Command) {
+        NSApp.sendAction(#selector(SelfSizingTextView.applyFormatCommand(_:)), to: nil, from: FormatCommandBox(command))
+    }
+
+    /// The menu-item look for a command: its title in its own style, like Apple's lists.
+    static func styledTitle(_ command: MacEditorFormatting.Command, size: CGFloat = 13) -> NSAttributedString {
+        var attrs: [NSAttributedString.Key: Any] = [.font: NSFont.menuFont(ofSize: size)]
+        switch command {
+        case .bold: attrs[.font] = NSFont.boldSystemFont(ofSize: size)
+        case .italic: attrs[.font] = NSFontManager.shared.convert(NSFont.menuFont(ofSize: size), toHaveTrait: .italicFontMask)
+        case .underline: attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        case .strikethrough: attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+        default: break
+        }
+        return NSAttributedString(string: command.title, attributes: attrs)
+    }
+}
+
 /// NSTextView that reports its laid-out height as `intrinsicContentSize` (so SwiftUI
 /// sizes it to its content; width comes from the parent column) and routes single
 /// clicks for inline name resolution.
@@ -2302,6 +2390,61 @@ final class SelfSizingTextView: NSTextView {
             insertText(piece, replacementRange: NSRange(location: line.location, length: 0))
             setSelectedRange(NSRange(location: caret + piece.length, length: 0))
         }
+    }
+
+    // MARK: formatting (Q360, D115) — Format menu, Aa popover, right-click
+
+    /// The coordinator's hook after a format edit: commit the model now and run the full
+    /// restyle, so the marks dim and the words take their style at once (a decisive edit).
+    var onFormatted: (() -> Void)?
+
+    /// A Format command reaches the focused note's text through the responder chain; the
+    /// sender (a `FormatCommandBox`, or a menu item carrying one) names the command.
+    @objc func applyFormatCommand(_ sender: Any?) {
+        let box = (sender as? FormatCommandBox) ?? ((sender as? NSMenuItem)?.representedObject as? FormatCommandBox)
+        guard let command = box?.command else { return }
+        perform(command)
+    }
+
+    /// Apply one command as the shared `BodyFormat` edits, patched into the storage in place
+    /// (back to front), so photos, chips and boxes elsewhere on the line are never rebuilt.
+    func perform(_ command: MacEditorFormatting.Command) {
+        guard isEditable, let storage = textStorage else { NSSound.beep(); return }
+        if command == .checklist { toggleChecklist(nil); onFormatted?(); return }
+        let result: BodyFormat.Result
+        if let mark = command.mark {
+            result = BodyFormat.toggle(mark, in: storage.string, selection: selectedRange())
+        } else if command == .monostyled {
+            result = BodyFormat.monostyled(in: storage.string, selection: selectedRange())
+        } else if let style = command.lineStyle {
+            // A checklist line holds a box ATTACHMENT here, not "- [ ] ": drop it first.
+            if taskBoxIndex(onLineAt: selectedRange().location) != nil { toggleChecklist(nil) }
+            result = BodyFormat.setStyle(style, in: storage.string, selection: selectedRange())
+        } else {
+            return
+        }
+        guard !result.edits.isEmpty else { return }
+        let attrs = typingAttributes
+        undoManager?.beginUndoGrouping()
+        for edit in result.edits.reversed() {
+            guard NSMaxRange(edit.range) <= storage.length,
+                  shouldChangeText(in: edit.range, replacementString: edit.replacement) else { continue }
+            storage.replaceCharacters(in: edit.range, with: NSAttributedString(string: edit.replacement, attributes: attrs))
+            didChangeText()
+        }
+        undoManager?.endUndoGrouping()
+        let len = (storage.string as NSString).length
+        let sel = NSRange(location: min(result.selection.location, len),
+                          length: min(result.selection.length, len - min(result.selection.location, len)))
+        setSelectedRange(sel)
+        onFormatted?()
+    }
+
+    /// The caret line's style, for the Aa popover's checkmark.
+    var caretLineStyle: MacEditorFormatting.Command {
+        let caret = selectedRange().location
+        let inFence = BodyFormat.fences(in: string).contains { NSLocationInRange(caret, $0.content) }
+        return MacEditorFormatting.checkedStyle(BodyFormat.lineStyle(at: caret, in: string), inFence: inFence)
     }
 
     override func mouseDown(with event: NSEvent) {
