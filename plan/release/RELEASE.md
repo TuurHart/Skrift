@@ -13,10 +13,15 @@ Nothing here is installed. This sheet lists what the promotion needs from Tuur.
 
 | App | Command (run in the app folder after `xcodegen generate`) | Product | Literal grep |
 |---|---|---|---|
-| Mac | `xcodebuild build -scheme SkriftDesktop -configuration Release -destination 'platform=macOS' -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release` | MAC_PRODUCT | MAC_GREP |
-| Phone | `xcodebuild build -scheme SkriftMobile -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation -skipPackagePluginValidation -derivedDataPath build-release -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` | PHONE_PRODUCT | PHONE_GREP |
+| Mac | `xcodebuild build -scheme SkriftDesktop -configuration Release -destination 'platform=macOS' -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release` | `Skrift_Native/SkriftDesktop/build-release/Build/Products/Release/Skrift.app` (com.skrift.desktop, CFBundleVersion 188) | `Include audio in export` (Q360 MacExportConfirm) 1 hit; `Previous 30 Days` (Q358 MemoDate.bucket) 1 hit |
+| Phone | `xcodebuild build -scheme SkriftMobile -configuration Release -destination 'generic/platform=iOS' -skipMacroValidation -skipPackagePluginValidation -derivedDataPath build-release -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` | `Skrift_Native/SkriftMobile/build-release/Build/Products/Release-iphoneos/SkriftMobile.app` (com.skrift.mobile, CFBundleVersion 188, team 9W82X49JZS) | `IPadTabControl` 2 hits; `Previous 30 Days` (Q358) 1 hit |
 
-BUILD_NOTES
+Both built 2026-10-13 from `wt/Q366`, `** BUILD SUCCEEDED **`, exit 0. Greps use `/usr/bin/grep -a -c`
+on the main binary. `ContinueListeningCard` (deleted in Q357) has 0 hits in both binaries.
+Swift strings of 15 bytes or fewer are stored inline in code and never grep (`card-unrated` gives 0),
+and a case-less enum such as `MacExportConfirm` leaves no type name; grep literals of 16+ bytes.
+The phone product is development-signed (`aps-environment` = development); Organizer re-signs for
+distribution at archive time.
 
 For the TestFlight upload, archive from Xcode Organizer (Product > Archive on the SkriftMobile
 scheme, Release) as usual; this build only proves Release compiles and links at 188.
