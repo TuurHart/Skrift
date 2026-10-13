@@ -2917,6 +2917,13 @@ gate+: yes
 do: The shared destination control (Shared/UI/DestinationRowView.swift + the Shared NoteRatingRow trailing slot, Q386) becomes a tap pill: one tap flips Personal ⇄ Portfolio in place, same look and hit area as NoteRatingPill (Q85), no Menu/dropdown/sheet, no list re-layout while choosing. Writes the same synced field as today (NoteDestination; Portfolio keeps its folder/_inbox rules, D189). One shared view for phone, iPad, Mac, quick note and share sheet; delete the menu code (remove means delete). Tests: Mac `DestinationPillTests` in SkriftDesktopTests (tap flips value; no menu path left). Phone + Mac shots of the header before/after into plan/reads/destination-pill/. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/destination-pill/*.png | wc -l) -ge 2 && grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/DestinationPillTests.swift`
 
+### Q396 [auto] (todo) file card kind label: one extension→label table in Shared (same words on phone and Mac)
+spec: D202 C239
+needs: Q392
+gate+: yes
+do: NoteAttachment.kindLabel (Shared/Pipeline/NoteAttachment.swift) uses the system UTType description, so one DXF reads 'DXF · 4 KB' on the Mac, 'DXF file · 4 KB' on the phone and 'DXF drawing' in the Q384 mock. Replace it with one fixed extension→label table in Shared (common office, image, audio, video, archive, CAD and 3D-print types; unknown → uppercase extension + ' file'), so every device says the same words. Mac test `NoteAttachmentKindLabelTests` in SkriftDesktopTests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentKindLabelTests.swift`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4257,3 +4264,4 @@ check: `test $(ls plan/reads/destination-pill/*.png | wc -l) -ge 2 && grep -q 'f
 - 2026-10-13 22:27 Q393 -> doing — worker out
 - 2026-10-13 22:27 Q395 added
 - 2026-10-13 22:29 Q395 -> doing — worker out
+- 2026-10-13 22:31 Q396 added
