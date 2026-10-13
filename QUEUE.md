@@ -2599,13 +2599,13 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (tuur) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (doing) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q351 [tuur] (tuur) mockup: the article reader in Library, highlight to Add note
+### Q351 [tuur] (done) mockup: the article reader in Library, highlight to Add note
 spec: D90 D126 D138 C229
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`, extending `Q6-library-tab.html` (the Q6 mock says the article reader is not drawn): a shared article link lands on the Library shelf as an article tile; the reader shows clean reader-mode text (title, site, byline); select text → "Add note" opens the capture (quote + his voice) and the new note links back with `— *Title*, site` + URL (D138); a non-article link (video, tweet, product page) stays a note (D138). Phone only. Current parts drawn from source (C117).
@@ -2632,11 +2632,11 @@ gate+: yes
 do: Per D126 and the Q6 mock screens "Share a PDF from Mail" and "PDF reader": a PDF shared from another app becomes a Library source (kind `pdf`) with the toast "Added to Library · add to a note instead" (the second half turns it into a note attachment as today); the "+" inside a note still attaches a PDF to that note. A PDFKit reader with text selection opens from the tile and keeps the page; selecting text → "Add note" opens the capture (quote + his voice); the note carries source + page for the jump-back and exports `— *Title*, p. N` (D138). Phone test `LibraryPDFTests` (share routing, page persisted, capture carries page). Screenshots of toast + reader, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryPDFTests`
 
-### Q355 [auto] (todo) Library: articles from a shared link, reader mode, highlight to Add note
+### Q355 [auto] (doing) Library: articles from a shared link, reader mode, highlight to Add note
 spec: D90 D138 C229
 needs: Q351 Q352
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`: a shared article link is fetched once, reader-mode text extracted and stored locally (kind `article`, title, site, byline, URL); non-article links stay notes (D138, the mock's rule). Reader shows the stored text offline; select → "Add note" opens the capture; the note links back and exports `— *Title*, site` + URL. Fixtures: two saved article HTML pages + one video page under test-fixtures/, no network in tests. Phone test `LibraryArticleTests` (extraction, article vs non-article routing, capture link-back). Screenshot the reader against the mock, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html` (signed D195: the share sheet asks Article or Note; picking Note keeps it a note): a shared article link is fetched once, reader-mode text extracted and stored locally (kind `article`, title, site, byline, URL); non-article links stay notes (D138, the mock's rule). Reader shows the stored text offline; select → "Add note" opens the capture; the note links back and exports `— *Title*, site` + URL. Fixtures: two saved article HTML pages + one video page under test-fixtures/, no network in tests. Phone test `LibraryArticleTests` (extraction, article vs non-article routing, capture link-back). Screenshot the reader against the mock, LOOK, `plan/reads/library-tab/`. FEATURES.md row.
 check: `perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryArticleTests`
 
 ### Q356 [auto] (done) Library hatches: Send to a note, Move to Library, jump-back on PDF and podcast notes
@@ -2653,7 +2653,7 @@ gate+: no
 do: D190: the Continue-listening book banner on top of the notes list goes, and goes means deleted. Remove `SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift`, both uses in `MemosListView.swift`, and anything only it used (state, strings, tests, xcodegen entries). The mini player bar while a book plays stays. Grep both apps and Shared for leftovers. FEATURES.md row updated.
 check: `! grep -rq 'ContinueListening' Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh ListDerivedCacheTests`
 
-### Q358 [auto] (todo) build the notes list per the Q349 mock on phone, iPad and Mac
+### Q358 [auto] (doing) build the notes list per the Q349 mock on phone, iPad and Mac
 spec: D190 D193 C113
 needs: Q349 Q357 Q361
 gate+: yes
@@ -2779,7 +2779,7 @@ do: -
 check: Tuur looked; anything off became an item.
 ask: On the phone (Dev): open Library. Add a podcast by pasting an Apple or Spotify episode link; share a PDF from Mail or Files into Skrift; open it, select a sentence, Add note; then from a tile choose Send to a note and tap its card to jump back. Does it all feel right, and does the shelf look good?
 
-### Q376 [tuur] (tuur) feel: the Mac on Dev after the five speed fixes (Q361-Q365)
+### Q376 [tuur] (done) feel: the Mac on Dev after the five speed fixes (Q361-Q365)
 spec: D191 D186
 needs: Q374
 do: -
@@ -4042,3 +4042,9 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 13:53 Q375 -> tuur — awaiting sitting (Dev 186 installed)
 - 2026-10-13 13:53 Q376 -> tuur — awaiting sitting (Dev 186 installed)
 - 2026-10-13 13:55 Q349 -> done — signed: 'this looks actually really fucking good' + D194 picks; unrated = grey dot + word in the importance spot
+- 2026-10-13 13:55 Q358 -> doing — worker out
+- 2026-10-13 14:04 Q351 -> done — signed D195: 'Yo, fucking cool, this is really sick. Nicely done' — share sheet asks Article or Note
+- 2026-10-13 14:04 Q376 -> done — Tuur: the Mac never felt slow on his M4; optimise for slower Macs anyway (D195)
+- 2026-10-13 14:04 Q350 -> todo — revise per D195: Personal pill beside the rating pill (phone + Mac), calmer header, smaller Aa buttons, add-person in the selection menu
+- 2026-10-13 14:04 Q355 -> doing — worker out
+- 2026-10-13 14:04 Q350 -> doing — mockup revision out
