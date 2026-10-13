@@ -50,6 +50,18 @@ struct BookShelfTile: View {
                                 .padding(6)
                             }
                         }
+                    // Q381 (mock `.badge`): the type capsule, top-left of the cover.
+                    if book.sourceKind == .article {
+                        Text("ARTICLE")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .tracking(0.34)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5).padding(.vertical, 4)
+                            .background(Color.black.opacity(0.55), in: .rect(cornerRadius: 5, style: .continuous))
+                            .padding(6)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .accessibilityHidden(true)
+                    }
                     if let syncGlyph {
                         Image(systemName: syncGlyph)
                             .font(.system(size: 10, weight: .semibold))
