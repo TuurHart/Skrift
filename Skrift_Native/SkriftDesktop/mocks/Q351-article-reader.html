@@ -499,7 +499,7 @@ code{font:12.5px ui-monospace,Menlo,monospace}
       </div>
       <div class="pick">
         <div class="ph"><h3><span class="n">3</span>In the vault, the site name is the link</h3><button type="button" class="show" data-go="note">Show</button></div>
-        <p><b>Picked:</b> the attribution exports as <code>— *Title*, [site](URL)</code>, with the URL in <code>source:</code> as well. No author, as D138 wrote it. In Skrift the note shows plain "— <i>Local-first software</i>, inkandswitch.com" plus a jump-back chip.</p>
+        <p><b>Picked:</b> the attribution exports as <code>— *Title*, [site](URL)</code>, with the URL in <code>source:</code> as well. No author, as D138 wrote it. In Skrift the note shows plain "— Local-first software, inkandswitch.com" (today’s quote caption is plain text) plus a jump-back chip.</p>
         <p><b>Instead:</b> the bare URL on its own line under the attribution, or <code>[[Author]]</code> first like a book quote.</p>
         <div class="mdx" aria-label="What the vault gets"><span class="k">---</span>
 <span class="k">date:</span> 2026-10-13
@@ -729,7 +729,7 @@ real copy and iCloud is the courier, not the other way round.</div>
       '<div class="new" style="margin:0 12px;padding-bottom:12px">'+
       '<div class="capintro"><div class="a">Your highlight.</div><div class="b">This is the quote, word for word. Say what you think next.</div></div>'+
       '<div class="capq"><div class="qf"><div class="qt">'+esc(q)+'</div><div class="at">— <i>Local-first software</i>, inkandswitch.com</div></div></div>'+
-      '<div class="linkback"><span aria-hidden="true">↗</span><span><b>Links back to the article</b>, at 31%. In the vault: <code>— *Local-first software*, [inkandswitch.com](URL)</code></span></div>'+
+      '<div class="linkback"><span aria-hidden="true">↗</span><span><b>Links back to the article</b> at 31%. The vault gets the title, the site and the URL (pick 3).</span></div>'+
       '<p class="capsel">Wrong words? ✕, then drag the selection handles in the article.</p></div>';
   }
   function captureDock(){
@@ -746,7 +746,7 @@ real copy and iCloud is the courier, not the other way round.</div>
     return '<div class="pnav"><button type="button" class="nb" data-a="tab" data-t="notes" style="width:auto;padding:0 6px;display:flex!important;gap:2px">'+I.left+'<span>Notes</span></button><span class="pt"></span><button type="button" class="nb" data-a="ack" data-m="Note menu, unchanged" aria-label="More">'+I.dots+'</button></div>'+
       '<div class="ntitle">The network is optional</div><div class="nmeta">Now · 0:18 · in Notes</div>'+
       '<div style="padding:0 20px 12px">'+pill(st.capRate,'caprate')+'</div>'+
-      '<div class="qf"><div class="qt">'+esc(q)+'</div><div class="at">— <i>Local-first software</i>, inkandswitch.com</div>'+
+      '<div class="qf"><div class="qt">'+esc(q)+'</div><div class="at">— Local-first software, inkandswitch.com</div>'+
       '<button type="button" class="back new" data-a="jumpback">↗ Back to it at 31% in Library</button></div>'+
       '<div class="nbody"><p>This is the CloudKit bet in one line. The phone is the real copy and iCloud is the courier, not the other way round.</p></div>'+
       '<p class="hint">The quote frame and caption are today’s audiobook-quote idiom. The vault version is under pick 3 above the phone.</p>';
