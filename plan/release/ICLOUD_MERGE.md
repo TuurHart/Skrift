@@ -75,6 +75,41 @@ Per note id, after collapsing same-id rows on each side with `MemoDuplicates.kee
 | Only in old store, phone-made, `recordedAt` < S | **Do not insert.** Most likely deleted on the phone after S and purged (14-day trash, `Memo.swift:23`). Count it by month. If this count is large (more than 20), Production probably lacks the phone's history: **stop and re-plan**. |
 | Only in Production | Nothing. |
 
+### What the Aug Mac's writes stamp (Q398, read from `git show e6245caa:…`, 2026-10-13)
+
+**Most Aug Mac writes do NOT bump `lastEditedAt`.** Only one path calls `markEdited`:
+
+| Aug Mac write (`e6245caa`) | Fields | Bumps `editedAt`? |
+|---|---|---|
+| `MemoNoteProjection.writeBack` (edits in an unrated note's pane) | title, transcript + `transcriptUserEdited`, tags | **yes** (`markEdited`, content changes only) |
+| same, rating change | significance | no |
+| `MacCloudMetaSync.mirror` / `setRating` / `setTitle` | tags, significance, title | no (doc comment says so on purpose) |
+| `MacCloudDeleteSync.mirror`, `SidebarView`/`JournalView`/`UnpipelinedMemoSheet` delete | `deletedAt`, `trashSeenAt` | no (but `deletedAt` is itself a time) |
+| `LifecycleSweepScheduler` auto-trash | `deletedAt`, `trashSeenAt` | no (same) |
+| `WayOutRules.bringBack` (restore / keep) | `keptAt` = now, `deletedAt` = nil, `trashSeenAt` = nil | no (but `keptAt` is a time) |
+| `MacMemoAuthor.reflectTranscripts` (Mac's own notes, empty transcript only) | transcript, status, confidence | no |
+| `SidebarView` / `UnpipelinedMemoSheet` rate | significance | no |
+
+The phone's rating (`MemoPageView` significance binding) and restore (`NotesRepository.restore`)
+do not stamp either. So for a field neither side timestamps, a difference does not say which side
+changed it. The engine (`SkriftDesktop/Pipeline/Ingest/DevEraMerge.swift`) therefore copies only
+on evidence:
+
+- **Content (title, body, tags):** copied when the old row's `editedAt` > S and Production's
+  `editedAt` ≤ S. Both > S with a difference = conflict, Production kept, id listed. Old `editedAt`
+  ≤ S with a difference = "diverged", Production kept, id + field listed for Tuur (this is where a
+  Mac `setTitle` after S shows up).
+- **Rating:** copied with the content case above only when Production's rating is 0 (never
+  overwrite a rating Production has, since the phone's rating leaves no stamp). Otherwise diverged.
+- **Trash:** old `deletedAt` > S, Production alive and not touched since (`lastEditedAt`, `keptAt`
+  both earlier) = copy `deletedAt` + `trashSeenAt`. Old alive with `keptAt` > S and after
+  Production's pre-S `deletedAt` = a Mac restore, copied. Anything else that differs = diverged.
+- **`keptAt`:** the later one wins (it only delays fading).
+- `editedAt` (not `lastEditedAt`) is the signal: `lastEditedAt` falls back to `createdAt`, which
+  would make every note created after S look edited.
+- "Phone note after S" uses `addedAt` (`createdAt ?? recordedAt`), not `recordedAt`: an imported
+  old video keeps its filming date in `recordedAt` and would otherwise count as "before S".
+
 `MemoEnhancement`, per `memoID` of a note in the merged result: take the newest row on each side
 by `enhancedAt`. If Production has none, insert the old one. If both exist, the newer `enhancedAt`
 wins and is written into the Production row in place, so no second row appears. A tie keeps
