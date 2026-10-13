@@ -346,11 +346,11 @@ struct BodyTextView: NSViewRepresentable {
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).
         private var lastKaraoke: (active: Int, count: Int)?
-        /// Q362 (M5): each storage word's range and its MODEL word index, built once per text (the
-        /// 20 Hz tick used to walk every character on every call) — reset with `lastKaraoke`.
         /// The binding text last compared against the view while playing (see `updateNSView`).
         var karaokeCheckedText: String?
-        private let karaokeMap =KaraokeStorageMapCache<(words: [NSRange], models: [Int])>()
+        /// Q362 (M5): each storage word's range and its MODEL word index, built once per text (the
+        /// 20 Hz tick used to walk every character on every call) — reset with `lastKaraoke`.
+        private let karaokeMap = KaraokeStorageMapCache<(words: [NSRange], models: [Int])>()
         /// Live-people snapshot for the link tooltips applied on every restyle —
         /// refreshed per render (note switch / external change) and per unlink click,
         /// NOT per keystroke (`livePeople()` reads names.json from disk).
