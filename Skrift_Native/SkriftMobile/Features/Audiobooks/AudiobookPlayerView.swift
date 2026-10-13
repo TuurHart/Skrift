@@ -32,6 +32,8 @@ struct AudiobookPlayerView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
     @State private var toast: String?
+    /// Q356: the notes sheet the "N notes from this episode" row opens.
+    @State private var notesSheetBook: Audiobook?
     /// Bookmarks for the current book — reloaded on book change + after a toggle.
     /// Drives the Mark chip's filled/outline state + the read-along margin glyphs.
     @State private var currentBookmarks: [AudiobookBookmark] = []
@@ -89,6 +91,16 @@ struct AudiobookPlayerView: View {
             }
         }
         .sheet(isPresented: $showTextSettings) { TextSettingsSheet() }
+        // Q356: a note in the sheet opens in Notes (they live there); the player steps aside.
+        .sheet(item: $notesSheetBook) { book in
+            BookNotesSheetHost(book: book) { memo in
+                notesSheetBook = nil
+                dismiss()
+                TabSelectionBridge.shared.select(.notes)
+                MemoOpenBridge.shared.open(memo.id)
+            }
+            .presentationDetents([.medium, .large])
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-player")
         .task(id: session.book?.id) {
@@ -176,6 +188,9 @@ struct AudiobookPlayerView: View {
                         scrubber(book, time: time).padding(.bottom, 14)
                         transport.padding(.bottom, 16)
                         utilityRow
+                        // Q356 (mock "this source's notes, in the player").
+                        SourceNotesRow(book: book) { notesSheetBook = book }
+                            .padding(.top, 14)
                     }
                     .padding(.horizontal, Theme.Space.margin)
                     .padding(.top, 14)

@@ -16,6 +16,7 @@ struct LibraryPDFReaderView: View {
     @StateObject private var model = PDFReaderModel()
     @State private var capture: PDFCaptureRequest?
     @State private var movedToNote = false
+    @State private var showNotes = false
 
     private var store: AudiobookLibraryStore { .shared }
     private var url: URL { store.audioURL(of: book, fileIndex: 0) }
@@ -34,9 +35,21 @@ struct LibraryPDFReaderView: View {
                 }
             }
             .frame(maxHeight: .infinity)
+            // Q356 (mock `readerScreen` → `srcNotesRow`): this PDF's notes, above the dock.
+            SourceNotesRow(book: book) { showNotes = true }
+                .padding(.horizontal, 20).padding(.vertical, 8)
             dock
         }
         .background(Color.skBg.ignoresSafeArea())
+        .sheet(isPresented: $showNotes) {
+            BookNotesSheetHost(book: book) { memo in
+                showNotes = false
+                dismiss()
+                TabSelectionBridge.shared.select(.notes)
+                MemoOpenBridge.shared.open(memo.id)
+            }
+            .presentationDetents([.medium, .large])
+        }
         .onChange(of: model.page) { _, page in
             if LibraryPDF.savesPage(jumpBackPage: jumpBackPage, ready: model.ready) {
                 LibraryPDF.savePage(page, bookID: book.id, store: store)

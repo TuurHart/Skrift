@@ -24,6 +24,10 @@ struct AudiobookLibraryView: View {
     @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
     /// Status filter (transient, like the Notes funnel): nil = all books.
     @State private var statusFilter: BookStatusFilter?
+    /// Q356 (Q6 mock chips): the type filter. Falls back to All when its kind leaves the shelf.
+    @State private var typeFilter: LibraryTypeFilter = .all
+    private var typeChips: [LibraryTypeFilter] { LibraryTypeFilter.chips(for: store.books) }
+    private var effectiveTypeFilter: LibraryTypeFilter { typeChips.contains(typeFilter) ? typeFilter : .all }
     private var sort: BookSort { BookSort(rawValue: sortRaw) ?? .recentlyPlayed }
 
     @State private var showImporter = false
@@ -302,6 +306,12 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !typeChips.isEmpty {
+                LibraryTypeChips(chips: typeChips, selection: Binding(get: { effectiveTypeFilter },
+                                                                      set: { typeFilter = $0 }))
+                    .padding(.horizontal, -Theme.Space.margin)
+                    .contentMargins(.horizontal, Theme.Space.margin, for: .scrollContent)
+            }
             HStack {
                 sortFilterChip
                 Spacer()
@@ -383,7 +393,8 @@ struct AudiobookLibraryView: View {
 
     /// The list the rows render: status-filtered, then sorted by the chip's choice.
     private var visibleBooks: [Audiobook] {
-        let filtered = statusFilter.map { f in store.books.filter { f.matches($0) } } ?? store.books
+        let typed = effectiveTypeFilter.apply(store.books)
+        let filtered = statusFilter.map { f in typed.filter { f.matches($0) } } ?? typed
         return sort.sorted(filtered)
     }
 
