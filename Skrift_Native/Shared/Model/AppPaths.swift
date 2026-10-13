@@ -89,6 +89,13 @@ enum AppPaths {
         return appSupportDirectory.appendingPathComponent("memo_cloud.store")
     }
 
+    /// Q397 (ICLOUD_MERGE A1): the `CloudFirstImport` stamp — "the store at
+    /// `memoCloudStoreFile` has finished its first CloudKit import". Names that store file by
+    /// identity, so it stays behind harmlessly when the store family is moved out.
+    static var memoCloudFirstImportStamp: URL {
+        appSupportDirectory.appendingPathComponent("memo_cloud.first-import.json")
+    }
+
     /// Where a Mac RECORDING is written before it is ingested (2026-07-28, the Mac grew a
     /// record button). Same member name as the iOS side on purpose — `RecordingCore` and
     /// `MacRecorder` don't branch on platform to find it. Inside appSupport rather than

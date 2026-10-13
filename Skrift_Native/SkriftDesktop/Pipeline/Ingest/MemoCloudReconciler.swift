@@ -336,11 +336,14 @@ enum MemoCloudReconciler {
     /// h-shared-data M3: was one unindexed `Memo` fetch per local row, twice).
     /// Author/reflect failures are logged and swallowed, as before: they must never take down
     /// the ingest/reflect this exists for.
+    /// `firstImportDone` (Q397, ICLOUD_MERGE A1): has the cloud store finished its first
+    /// CloudKit import (`CloudFirstImport`)? Until then the backfill authors nothing; it
+    /// defaults to false so a caller that forgets it can never mint twins.
     @discardableResult
     static func pass(from cloudContext: ModelContext, into localContext: ModelContext,
                      people: [Person] = [], author: String = "", thisDeviceID: String = "",
                      now: Date = Date(), upload: UploadService = UploadService(),
-                     deferNewIngest: Bool = false) throws -> PassOutcome {
+                     deferNewIngest: Bool = false, firstImportDone: Bool = false) throws -> PassOutcome {
         let (outcome, snapshot) = sweepCore(from: cloudContext, into: localContext, people: people,
                                             author: author, thisDeviceID: thisDeviceID, now: now,
                                             upload: upload, deferNewIngest: deferNewIngest)
@@ -360,7 +363,8 @@ enum MemoCloudReconciler {
         for memo in snapshot.memos { memosByID[memo.id] = memo }
         do {
             result.authored = try MacMemoAuthor.backfill(files: snapshot.localFiles, into: cloudContext,
-                                                         memosByID: &memosByID)
+                                                         memosByID: &memosByID,
+                                                         firstImportDone: firstImportDone)
             result.reflectedTranscripts = try MacMemoAuthor.reflectTranscripts(
                 files: snapshot.localFiles, into: cloudContext, memosByID: memosByID)
         } catch {

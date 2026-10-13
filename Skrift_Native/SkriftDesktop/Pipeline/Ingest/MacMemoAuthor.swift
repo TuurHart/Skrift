@@ -25,7 +25,8 @@ import AVFoundation
 /// (`IngestService`, which mints `UUID().uuidString` ids) — the sweep picks a row up on the next
 /// reconcile, whichever local path created it, without this file ever depending on
 /// `IngestService` or `UploadService`. (`UploadService` only ingests a synced `Memo` and keeps
-/// its id, so it has no local-file caller to hook.)
+/// its id, so it has no local-file caller to hook.) Q397: the sweep authors only rows this Mac
+/// captured (`isLocalCapture`), and only after the cloud store's first import (`mayBackfill`).
 ///
 /// `reflectTranscripts` is the companion: once a Mac-authored memo's `PipelineFile` gets
 /// transcribed by the normal pipeline (BatchRunner), copy that transcript back onto the `Memo` so
@@ -217,16 +218,29 @@ enum MacMemoAuthor {
         return count
     }
 
+    /// Q397 (D203, ICLOUD_MERGE A1): may the reconcile's backfill author a Memo for `pf`? Only
+    /// a row THIS Mac captured (recorded or imported), and only once the cloud store has
+    /// finished its first CloudKit import (`CloudFirstImport`). A row ingested from a phone memo
+    /// carries the phone's id; on a fresh store its Memo simply has not downloaded yet, and
+    /// authoring it would upload a Mac-shaped twin under that id that the phone never heals.
+    static func mayBackfill(_ pf: PipelineFile, firstImportDone: Bool) -> Bool {
+        firstImportDone && pf.isLocalCapture
+    }
+
     /// The reconcile's `backfill` (Q364): a row whose id is already a key in `memosByID` (the
     /// sweep's one Memo fetch) has its memo and is skipped without a store query; only a row
     /// with no memo there reaches `author`, whose own idempotency fetch still guards it. Each
     /// memo authored joins the dictionary, so the same pass's `reflectTranscripts` sees it.
+    /// Q397: only rows `mayBackfill` allows (local captures, after the first import). The
+    /// plain `backfill(files:into:)` above has no such guard and no app caller.
     @discardableResult
     static func backfill(files: [PipelineFile], into ctx: ModelContext,
-                         memosByID: inout [UUID: Memo]) throws -> Int {
+                         memosByID: inout [UUID: Memo], firstImportDone: Bool) throws -> Int {
+        guard firstImportDone else { return 0 }
         var count = 0
         for pf in files {
-            guard let id = UUID(uuidString: pf.id), !pf.path.isEmpty, memosByID[id] == nil else { continue }
+            guard mayBackfill(pf, firstImportDone: firstImportDone),
+                  let id = UUID(uuidString: pf.id), !pf.path.isEmpty, memosByID[id] == nil else { continue }
             if let memo = try author(for: pf, audioURL: resolvedAudioURL(for: pf), into: ctx) {
                 memosByID[id] = memo
                 count += 1
