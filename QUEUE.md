@@ -2834,17 +2834,17 @@ gate+: no
 do: Same recipe as Q374 (finding: phone device builds need `-skipMacroValidation -skipPackagePluginValidation`; iPhone 17 Pro xcodebuild id == devicectl id; binary greps need `/usr/bin/grep -a`). Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q379 literal (`IPadTabControl`) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q360 literal (`MacExportConfirm`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
 
-### Q384 [tuur] (tuur) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
+### Q384 [tuur] (done) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
 spec: D199 D198 D126
 needs: -
 do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots in '/Users/tiurihartog/Downloads/apple notes ui/attatchments/' (iPhone and Mac), laid at the same scale; the iPad frame is drawn from those plus the signed Q378 iPad layout (D200). One agent on the file.
 check: Tuur clicked through it and said go.
 
-### Q385 [auto] (todo) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
+### Q385 [auto] (doing) build video + file attachments in notes per the mock (sync, export, phone/iPad/Mac)
 spec: D199 D126
 needs: Q384 Q379
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html` (signed). Body v2 gets block markers for a video and a file like `[[img_NNN]]` (Shared, one rule both apps); they sync as MemoAsset kinds (`video` exists since Q287; add `file` with original name + UTI) — no new CloudKit record type; list any new synced field for the release's schema step (Q366 RELEASE.md). Attach menu items (Take/Choose Photo or Video, Attach File) insert them on phone/iPad; Mac adds them by drop/paste/Insert like photos (Q325). Export copies the file beside the note and links it (`![[file]]`), same ledger/ExportSession path as photos (Q365). Tests: phone `NoteAttachmentTests`, Mac `NoteAttachmentExportTests`. Never run SkriftDesktopUITests.
+do: Signed per D202: inline video play (⤢ full screen); tall video cut at 420 pt on the phone; each attachment has a small/large switch, SMALL by default (per-attachment size is synced note state), plus 'Set All to Small' / 'Set All to Large' in the note's ⋯ menu; mock picks 4–8 kept. Build every attachment rule (markers, sizes, labels, export) in Skrift_Native/Shared/ once; app targets only draw. Build to `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html` (signed). Body v2 gets block markers for a video and a file like `[[img_NNN]]` (Shared, one rule both apps); they sync as MemoAsset kinds (`video` exists since Q287; add `file` with original name + UTI) — no new CloudKit record type; list any new synced field for the release's schema step (Q366 RELEASE.md). Attach menu items (Take/Choose Photo or Video, Attach File) insert them on phone/iPad; Mac adds them by drop/paste/Insert like photos (Q325). Export copies the file beside the note and links it (`![[file]]`), same ledger/ExportSession path as photos (Q365). Tests: phone `NoteAttachmentTests`, Mac `NoteAttachmentExportTests`. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/NoteAttachmentExportTests.swift && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
 ### Q386 [auto] (done) dead-code sweep part 2: triage the Periphery scans, one shared note header row, SourceKind label twins
@@ -2874,6 +2874,13 @@ needs: -
 do: -
 check: Tuur answered; if the Mac misses phone notes, an item to merge the two CloudKit environments safely is added before Q370.
 ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from this month show up there? The prod Mac build is set up in a way that may sync to a different iCloud environment than your phone, so they might not.
+
+### Q390 [auto] (todo) shared-code + cleanliness review of the attachments build (Q385)
+spec: D202 C239
+needs: Q385
+gate+: yes
+do: A fresh agent reviews everything Q385 changed (`git diff` of its merge) for drift and mess, then fixes it: phone/iPad/Mac twins of attachment logic, labels or sizes → one Shared home; dead code left by the old `captureFileCard` and photo-only attach paths deleted (remove means delete); no new main-thread work on note open or list render (keep NoteOpenWorkTests / MacNoteOpenWorkTests / ListDerivedCacheTests / MacListWorkTests counters green, never loosened); FEATURES.md rows accurate. Run Periphery (flags in plan/periphery.md, on a `git archive` snapshot) for files Q385 touched and delete true dead code. Write a short review note into plan/reads/q385-review.md: what was shared, what was deleted, what stays on purpose (with `twin-ok:` reasons). Full SkriftDesktop build after each deletion. Never run SkriftDesktopUITests.
+check: `test -s plan/reads/q385-review.md && ./plan/twin-check.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4196,3 +4203,6 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 - 2026-10-13 17:54 Q369 -> tuur — awaiting sitting (after Dev checks)
 - 2026-10-13 18:05 Q367 -> done — gate 43s @73c96f38
 - 2026-10-13 18:05 Q368 -> tuur — awaiting sitting: run plan/release/mac-store-copytest.sh after the Dev checks
+- 2026-10-13 19:39 Q390 added
+- 2026-10-13 19:39 Q384 -> done — signed D202: inline play, 420 pt cut, small by default + Set All Small/Large in ⋯; 'very good… nicely done'
+- 2026-10-13 19:39 Q385 -> doing — worker out
