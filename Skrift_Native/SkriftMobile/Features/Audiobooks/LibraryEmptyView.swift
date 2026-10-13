@@ -8,7 +8,7 @@ enum LibrarySourceKind: String, Codable, CaseIterable, Sendable {
 
 /// One door of the empty Library tab. All four are listed in `all`; `visible` is the subset whose
 /// importer exists. A door with nothing behind it is hidden, never shown dead (Q352): flip
-/// `isBuilt` when Q353 (podcast), Q354 (ePub or PDF) and Q355 (article) land their importers.
+/// `isBuilt` when Q354 (ePub or PDF) and Q355 (article) land their importers.
 enum LibraryDoor: String, CaseIterable, Identifiable, Sendable {
     case audiobook, podcast, epubOrPDF, article
 
@@ -45,9 +45,9 @@ enum LibraryDoor: String, CaseIterable, Identifiable, Sendable {
     /// True once the door's importer exists.
     var isBuilt: Bool {
         switch self {
-        case .audiobook: true
+        case .audiobook, .podcast: true
         case .epubOrPDF: true   // Q354: PDFs (an ePub is attached to a book, Book text)
-        case .podcast, .article: false
+        case .article: false
         }
     }
 

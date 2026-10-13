@@ -263,13 +263,15 @@ struct NoteDisplayView: View {
                 playerDock(file)
             }
         }
-        .task(id: file.id) {
-            guard capabilities(for: file).connections else { return }
+        // Q362 (M7): Connections work runs only while the panel is OPEN (`inspectorOpen`), on a note
+        // switch or when the panel is opened; a collapsed panel costs a note open nothing.
+        .task(id: ConnectionsRefreshKey(fileID: file.id, open: inspectorOpen(file))) {
+            guard inspectorOpen(file) else { return }
             await connections.refresh(for: file, context: ctx)
         }
         // A sweep just finished → fresh rows may exist for this note; re-query.
         .onChange(of: ConnectionsIndexService.shared.sweeping) { _, sweeping in
-            guard capabilities(for: file).connections, !sweeping else { return }
+            guard inspectorOpen(file), !sweeping else { return }
             Task { await connections.refresh(for: file, context: ctx) }
         }
     }
@@ -357,15 +359,9 @@ struct NoteDisplayView: View {
     /// The `[[` picker's link targets: every other live memo (id must be a memo UUID; trashed
     /// excluded), most-recent first, with a date subtitle. Built lazily when the picker opens.
     private func linkCandidates(excluding file: PipelineFile) -> [MemoLinkCandidate] {
-        let all: [PipelineFile] = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        let df = DateFormatter(); df.dateStyle = .medium; df.timeStyle = .none
-        return all
-            .filter { $0.id != file.id && $0.deletedAt == nil }
-            .sorted { $0.uploadedAt > $1.uploadedAt }
-            .compactMap { f in
-                guard let id = UUID(uuidString: f.id) else { return nil }   // memo-links key on the memo UUID
-                return MemoLinkCandidate(id: id, title: f.queueTitle, subtitle: df.string(from: f.uploadedAt))
-            }
+        // Q362 (M15): built once per library version (titles + date strings), not per `[[`.
+        MacNoteOpenWork.shared.linkCandidates(excluding: file.id, context: ctx, titleOf: { $0.queueTitle })
+            .map { MemoLinkCandidate(id: $0.id, title: $0.title, subtitle: $0.subtitle) }
     }
 
     /// A memo-link target's CURRENT title (so chips show the live title, not the frozen
@@ -718,4 +714,10 @@ struct NoteDisplayView: View {
         return !file.path.isEmpty
             && FileManager.default.fileExists(atPath: file.path, isDirectory: &isDir) && !isDir.boolValue
     }
+}
+
+/// Q362: what the Connections refresh `.task` restarts on: another note, or the panel opening/closing.
+private struct ConnectionsRefreshKey: Hashable {
+    let fileID: String
+    let open: Bool
 }

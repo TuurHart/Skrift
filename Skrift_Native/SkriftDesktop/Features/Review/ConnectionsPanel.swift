@@ -63,9 +63,13 @@ final class ConnectionsModel {
         if currentFileID != file.id {
             currentFileID = file.id
             related = []          // never show the previous note's rows
+            backlinks = []
         }
-        let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        backlinks = Self.backlinkScan(for: file, in: all)
+        // Q362 (M7): the shared backlink index, built once per library version; the open fetches
+        // only the notes that link here.
+        let hits = await MacNoteOpenWork.shared.backlinks(to: file, context: context, titleOf: { $0.queueTitle })
+        guard currentFileID == file.id else { return }   // switched away while the index built
+        backlinks = hits.map { ConnectionBacklink(id: $0.fileID, title: $0.title, date: $0.date) }
 
         let svc = ConnectionsIndexService.shared
         guard svc.isActive, let uuid = UUID(uuidString: file.id) else {
@@ -77,12 +81,16 @@ final class ConnectionsModel {
         defer { querying = false }
         let scores = await svc.relatedScores(to: uuid)
         guard currentFileID == file.id else { return }   // switched away mid-query
-        let byID = Dictionary(uniqueKeysWithValues: all.compactMap { f in
-            UUID(uuidString: f.id).map { ($0, f) }
-        })
         let hidden = Self.hiddenNeighbours(of: file.id)
-        related = scores
+        let kept = scores
             .filter { $0.score >= RetrievalTuning.relatedFloor && !hidden.contains($0.memoID.uuidString) }
+        // Q362: only the notes that scored are fetched, not the whole library.
+        let keptIDs = kept.map { $0.memoID.uuidString }
+        let scored = (try? context.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { keptIDs.contains($0.id) }))) ?? []
+        let byID = Dictionary(scored.compactMap { f in UUID(uuidString: f.id).map { ($0, f) } },
+                              uniquingKeysWith: { first, _ in first })
+        related = kept
             .compactMap { hit -> ConnectionRow? in
                 guard let f = byID[hit.memoID], f.deletedAt == nil, f.id != file.id else { return nil }
                 return ConnectionRow(
@@ -105,28 +113,6 @@ final class ConnectionsModel {
 
     private static func hiddenNeighbours(of fileID: String) -> Set<String> {
         ConnectionsPanelSpec.hiddenNeighbours(of: fileID)
-    }
-
-    // ── backlinks (the old MemoBacklinks strip's scan, unchanged) ──
-
-    /// Who links HERE: `[[memo:<id>|…]]` in any live body, newest first.
-    static func backlinkScan(for file: PipelineFile, in all: [PipelineFile]) -> [ConnectionBacklink] {
-        // Q120: the shared scan, over every body a link can live in (a phone link sits in the
-        // transcript, a Mac one in the name-linked or copy-edited body). Only a memo UUID can be
-        // a link target; a local file with another id stands in as a throwaway UUID so it still
-        // counts as a linker.
-        guard let target = UUID(uuidString: file.id) else { return [] }
-        var byRowID: [UUID: PipelineFile] = [:]
-        var rows: [Backlinks.Row] = []
-        for f in all where f.id != file.id && f.deletedAt == nil {
-            let rowID = UUID(uuidString: f.id) ?? UUID()
-            byRowID[rowID] = f
-            rows.append(Backlinks.Row(id: rowID, bodies: [f.transcript, f.sanitised, f.enhancedCopyedit]))
-        }
-        return Backlinks.scan(for: target, in: rows)
-            .compactMap { byRowID[$0] }
-            .map { ConnectionBacklink(id: $0.id, title: $0.queueTitle, date: $0.uploadedAt) }
-            .sorted { $0.date > $1.date }
     }
 
     // ── why-chips: the SHARED dumb-v1 overlap heuristic (Shared/Retrieval) ──

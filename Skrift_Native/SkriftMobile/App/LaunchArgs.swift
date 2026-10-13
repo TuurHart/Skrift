@@ -51,6 +51,11 @@ enum LaunchFlags {
     static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
     static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
     static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
+    /// Q353 (DEBUG): one seeded podcast episode (kind `episode`, Het Uur) opened as a paused session
+    /// for the Episode-player screenshot.
+    static var seedEpisode: Bool { args.boolFlag("-seedEpisode") }
+    /// Q353 (DEBUG): present the full player over the open session on launch (render-only hook).
+    static var showPlayer: Bool { args.boolFlag("-showPlayer") }
     /// Device-verify hook (📖 rounds 5–7): open the most recently played REAL
     /// book as a PAUSED session on launch — fires the same book-open
     /// `alignIfNeeded` a library tap would (re-adopt + schema re-align run

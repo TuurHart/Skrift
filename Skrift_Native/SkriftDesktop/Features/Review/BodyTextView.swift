@@ -375,8 +375,9 @@ struct BodyTextView: NSViewRepresentable {
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).
         private var lastKaraoke: (active: Int, count: Int)?
-        /// Model word index of each storage word — built once per text, reset with `lastKaraoke`.
-        private var karaokeModelIndex: [Int]?
+        /// Q362 (M5): each storage word's range and its MODEL word index, built once per text (the
+        /// 20 Hz tick used to walk every character on every call) — reset with `lastKaraoke`.
+        private let karaokeMap = KaraokeStorageMapCache<(words: [NSRange], models: [Int])>()
         /// Live-people snapshot for the link tooltips applied on every restyle —
         /// refreshed per render (note switch / external change) and per unlink click,
         /// NOT per keystroke (`livePeople()` reads names.json from disk).
@@ -705,7 +706,7 @@ struct BodyTextView: NSViewRepresentable {
             spliceMemoLinkChips(tv)   // [[memo:UUID|Title]] → titled chip (model keeps the literal)
             spliceTaskBoxes(tv)       // "- [ ]"/"- [x]" → toggleable checkbox (Obsidian task syntax)
             lastKaraoke = nil   // new text → force the next karaoke recolor
-            karaokeModelIndex = nil
+            karaokeMap.reset()
             // Refresh the roster used to color person links / resolve unlink (injected people
             // for snapshots, else the live names DB). Per-render, not per-keystroke.
             peopleCache = parent.people.isEmpty ? NamesStore.shared.livePeople() : parent.people
@@ -722,13 +723,18 @@ struct BodyTextView: NSViewRepresentable {
         /// index; an attachment can stand for several model words, so it is mapped onto the
         /// STORAGE words first. Skips the work when the highlighted word hasn't moved (called
         /// ~20×/s while playing).
+        private func wordMap(_ storage: NSTextStorage) -> (words: [NSRange], models: [Int]) {
+            karaokeMap.value(length: storage.length) {
+                let words = KaraokeMap.wordRanges(in: storage.string as NSString, countAttachmentOnlyTokens: true)
+                return (words, words.indices.map { modelWordIndex($0, in: storage, words: words) })
+            }
+        }
+
         func applyKaraoke(_ tv: SelfSizingTextView, active modelActive: Int?) {
             guard let storage = tv.textStorage else { return }
-            let words = KaraokeMap.wordRanges(in: storage.string as NSString, countAttachmentOnlyTokens: true)
-            if karaokeModelIndex == nil || karaokeModelIndex?.count != words.count {
-                karaokeModelIndex = words.indices.map { modelWordIndex($0, in: storage, words: words) }
-            }
-            let models = karaokeModelIndex ?? []
+            let map = wordMap(storage)
+            let words = map.words
+            let models = map.models
             // The last storage word that has started: a multi-word attachment holds the
             // highlight until the model index moves past all of it.
             let active: Int? = modelActive.flatMap { m in models.lastIndex(where: { $0 <= m }) }
@@ -1046,7 +1052,7 @@ struct BodyTextView: NSViewRepresentable {
         func restyle(_ tv: SelfSizingTextView, scope: NSRange? = nil) {
             guard let storage = tv.textStorage else { return }
             lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
-            karaokeModelIndex = nil
+            karaokeMap.reset()
             let full = NSRange(location: 0, length: storage.length)
             let window: NSRange
             if let scope {
@@ -1311,7 +1317,7 @@ struct BodyTextView: NSViewRepresentable {
         func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
             // Karaoke: click a word → seek there (the old behavior the user missed).
             if let k = parent.karaoke, let storage = tv.textStorage {
-                let words = KaraokeMap.wordRanges(in: storage.string as NSString, countAttachmentOnlyTokens: true)
+                let words = wordMap(storage).words
                 if let wi = words.firstIndex(where: { NSLocationInRange(idx, $0) || idx == NSMaxRange($0) }) {
                     // Translate to a MODEL word index first — that's what the word-times are
                     // keyed by, and a spliced attachment can stand for several model words.

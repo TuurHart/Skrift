@@ -141,10 +141,11 @@ final class ProcessingCoordinator {
     private func runProcess(fileIDs: [String], context: ModelContext, retranscribeIDs: Set<String> = [],
                             splitIDs: Set<String> = []) async {
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        let wanted = Set(fileIDs)   // Q365 (G13): a Set, not an N x M array scan
         let targets = all
             // A split re-runs a note that is already Ready, so it bypasses the "still needs
             // processing" gate (only a trashed note is refused).
-            .filter { fileIDs.contains($0.id) && (needsProcessing($0) || (splitIDs.contains($0.id) && $0.deletedAt == nil)) }
+            .filter { wanted.contains($0.id) && (needsProcessing($0) || (splitIDs.contains($0.id) && $0.deletedAt == nil)) }
             .sorted { $0.uploadedAt < $1.uploadedAt }   // oldest first, like the backend
         guard !targets.isEmpty else { return }
 
@@ -154,9 +155,10 @@ final class ProcessingCoordinator {
         let settings = SettingsStore.shared.load()
         // Scan the vault for existing tag names so TagMatcher suggests real vault
         // tags (off the main actor — file I/O). Empty when no vault is configured.
+        // Cached across runs (Q365, G10): only files whose modification date moved are re-read.
         let vaultRoot = settings.noteFolder
         let tagWhitelist: [String] = vaultRoot.isEmpty ? [] : await Task.detached(priority: .utility) {
-            VaultTagScanner.scan(root: URL(fileURLWithPath: vaultRoot))
+            VaultTagScanner.cached.scan(root: URL(fileURLWithPath: vaultRoot))
         }.value
         // Seed the roster from the vault's People/ note titles (NAMING_MODEL.md decision 5):
         // the optional Obsidian seed for the portable names DB, so opt-out auto-links people
@@ -277,7 +279,8 @@ final class ProcessingCoordinator {
 
     private func runTranscribe(fileIDs: [String], context: ModelContext) async {
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        let targets = all.filter { fileIDs.contains($0.id) && $0.transcribeStatus != .done }
+        let wanted = Set(fileIDs)
+        let targets = all.filter { wanted.contains($0.id) && $0.transcribeStatus != .done }
         guard !targets.isEmpty else { return }
 
         beginRun(total: targets.count)
@@ -530,17 +533,31 @@ final class ProcessingCoordinator {
     /// awaits each file in turn without blocking the main thread on any one of them;
     /// the `-runfile … -export` headless harness (`RunFile.swift`) awaits it directly.
     func export(_ pf: PipelineFile, context: ModelContext) async {
+        let session = ExportSession()
+        defer { session.finish() }
+        await export(pf, context: context, session: session)
+    }
+
+    /// "Export N to Obsidian" (Q365, G8): ONE run — each destination's ledger decoded once and
+    /// written once at the end, names.json read once — instead of all of it per note.
+    func export(_ files: [PipelineFile], context: ModelContext) async {
+        let session = ExportSession()
+        defer { session.finish() }
+        for pf in files { await export(pf, context: context, session: session) }
+    }
+
+    private func export(_ pf: PipelineFile, context: ModelContext, session: ExportSession) async {
         let settings = SettingsStore.shared.load()
         // The SAME predicate the iPad asks (`ExportGate`, Q156): the first failing gate is
         // named, in the shared words, and stays until dismissed (C194).
         let cloud = MemoCloudStore.syncContainer?.mainContext
-        if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings) {
+        if let failure = VaultExporter.fullGateFailure(for: pf, cloud: cloud, settings: settings, session: session) {
             lastError = ExportOutcomeCopy.refusal(failure, device: .mac).text
             return
         }
         do {
             let result = try await Task.detached(priority: .userInitiated) {
-                try VaultExporter.export(pf, settings: settings)
+                try VaultExporter.export(pf, settings: settings, session: session)
             }.value
             // The engine tells the truth per outcome; the WORDS are shared with the phone
             // (`ExportOutcomeCopy`) so one verb can't mean two things on two devices.

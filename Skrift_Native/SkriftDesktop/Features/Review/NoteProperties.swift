@@ -59,14 +59,15 @@ struct NoteProperties: View {
         fadingLine = nil
         guard interactive, !NoteConsent.isRated(file.significance),
               let id = UUID(uuidString: file.id),
-              let cloud = MemoCloudStore.container,
-              let memos = try? ModelContext(cloud).fetch(FetchDescriptor<Memo>()),
-              let memo = memos.first(where: { $0.id == id }),
-              memo.deletedAt == nil, memo.transcriptStatus == .done else { return }
-        let backlinked = MemoLifecycle.backlinkedIDs(
-            in: memos, copyedits: Backlinks.copyeditsByMemoID(in: ModelContext(cloud)))
-        guard !MemoLifecycle.neverFades(memo, backlinked: backlinked) else { return }
-        fadingLine = SharedCopy.fadingLine(WayOut.oneLiner(for: memo, backlinked: backlinked))
+              let cloud = MemoCloudStore.container else { return }
+        // Q362 (M8): one memo by id plus the cached linked-id set (one pass per library version),
+        // not every memo and every polish on each open of an unrated note.
+        let fileID = file.id
+        Task {
+            let line = await MacNoteOpenWork.shared.fadingLine(forMemoID: id, container: cloud)
+            guard file.id == fileID, !NoteConsent.isRated(file.significance) else { return }   // switched / rated meanwhile
+            fadingLine = line
+        }
     }
 
     var body: some View {
@@ -126,7 +127,7 @@ struct NoteProperties: View {
             refreshFadingLine()
         }
         // Push a Mac tag / importance edit to the phone (widen the Mac→phone channel).
-        .onChange(of: file.tags) { refreshTagCounts(); MacCloudMetaSync.mirror([file]) }
+        .onChange(of: file.tags) { MacLibraryVersion.shared.bump(); refreshTagCounts(); MacCloudMetaSync.mirror([file]) }
         // The rating goes through its OWN call, not the passive mirror: only here do we
         // know a nil means "the user cleared it" rather than "never rated" — and the
         // mirror can't tell those apart, so it declines to guess.
@@ -315,8 +316,8 @@ struct NoteProperties: View {
     /// count (Q41, mock `LIBN`), and the sort key `mostUsedFirst` already used.
     static func counts(_ context: ModelContext?) -> [String: Int] {
         guard let context else { return [:] }
-        let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        return TagRules.counts(files.lazy.filter { $0.deletedAt == nil }.map(\.tags))
+        // Q362 (M15): one pass per library version (a tag edit bumps it), not per open / per `#`.
+        return MacNoteOpenWork.shared.tagCounts(context)
     }
 }
 
