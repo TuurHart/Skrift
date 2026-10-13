@@ -14,7 +14,6 @@ struct IPadNoteToolbar: View {
     @State private var showCamera = false
     @State private var showPhotos = false
     @State private var showFiles = false
-    @State private var pickedPhoto: PhotosPickerItem?
 
     private var editor: NoteBodyView.Coordinator? { NoteEditorChrome.shared.current }
 
@@ -84,23 +83,9 @@ struct IPadNoteToolbar: View {
             }, onCancel: { showScanner = false })
             .ignoresSafeArea()
         }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraImagePicker(onCapture: { insert($0) }, onMovie: { insertFile($0, name: nil, uti: nil) })
-                .ignoresSafeArea()
-        }
         // D199: a video or any file goes in as its own block (`NoteAttachIntake`, same as the phone).
-        .photosPicker(isPresented: $showPhotos, selection: $pickedPhoto, matching: NoteAttachIntake.libraryFilter)
-        .onChange(of: pickedPhoto) { _, item in
-            guard let item else { return }
-            Task {
-                await NoteAttachIntake.load(item, image: { insert($0) }, file: { insertFile($0, name: $1, uti: $2) })
-                pickedPhoto = nil
-            }
-        }
-        .fileImporter(isPresented: $showFiles, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            NoteAttachIntake.importFile(url, image: { insert($0) }, file: { insertFile($0, name: $1, uti: $2) })
-        }
+        .noteAttachPickers(camera: $showCamera, library: $showPhotos, files: $showFiles,
+                           image: { insert($0) }, file: { insertFile($0, name: $1, uti: $2) })
     }
 
     private func tool(_ symbol: String, id: String, label: String, action: @escaping () -> Void) -> some View {

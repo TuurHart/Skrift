@@ -1298,12 +1298,8 @@ struct NoteBodyView: UIViewRepresentable {
                         Haptics.tap(ok ? .light : .rigid)
                     }
                 } else if let host = Self.hostController(of: tv) {
-                    // Save to Files: the system picker, saving a copy under the file's own name.
-                    let named = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(attachmentEntry(literal: literal)?.name ?? url.lastPathComponent)
-                    try? FileManager.default.removeItem(at: named)
-                    let source = (try? FileManager.default.copyItem(at: url, to: named)) != nil ? named : url
-                    host.present(UIDocumentPickerViewController(forExporting: [source], asCopy: true), animated: true)
+                    NoteBlockFileActions.saveToFiles(url, name: attachmentEntry(literal: literal)?.name ?? url.lastPathComponent,
+                                                     from: host)
                 }
             }
         }

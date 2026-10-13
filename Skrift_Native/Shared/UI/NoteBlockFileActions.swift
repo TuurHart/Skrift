@@ -48,6 +48,20 @@ enum NoteBlockFileActions {
         }
     }
 
+    #if canImport(UIKit)
+    /// Save to Files: the system exporter saving a copy under `name`. `host` is the controller
+    /// to present from; nil = the topmost one of the key window.
+    @MainActor
+    static func saveToFiles(_ url: URL, name: String, from host: UIViewController? = nil) {
+        let named = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        try? FileManager.default.removeItem(at: named)
+        let source = (try? FileManager.default.copyItem(at: url, to: named)) != nil ? named : url
+        var top = host ?? UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first?.rootViewController
+        if host == nil { while let presented = top?.presentedViewController { top = presented } }
+        top?.present(UIDocumentPickerViewController(forExporting: [source], asCopy: true), animated: true)
+    }
+    #endif
+
     #if os(macOS)
     /// Save to Downloads: a copy under its own name in ~/Downloads ("name 2.ext" when taken),
     /// selected in Finder. Returns where it went.
