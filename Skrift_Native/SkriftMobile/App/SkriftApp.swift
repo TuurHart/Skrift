@@ -300,12 +300,12 @@ struct RootView: View {
     /// Screenshot routes (Debug only): open a seeded memo straight into its detail.
     private static var seededRoute: AnyView? {
         #if DEBUG
-        if LaunchFlags.seedQuoteMemo {
+        if LaunchFlags.seedQuoteMemo, !LaunchFlags.routeViaList {
             return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.editedQuoteMemoID) })
         } else if LaunchFlags.seedNameLinking {
             // The seeded "Studio afternoon" memo, into the in-place name-linking surface.
             return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) })
-        } else if LaunchFlags.seedPolished {
+        } else if LaunchFlags.seedPolished, !LaunchFlags.routeViaList {
             // The seeded polished memo (Phase 4 display).
             return AnyView(NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) })
         } else if LaunchFlags.journalMemoDemo {
