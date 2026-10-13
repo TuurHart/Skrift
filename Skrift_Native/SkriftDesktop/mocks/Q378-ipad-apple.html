@@ -233,9 +233,8 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .tools > button.on{color:var(--sk-accent)}
 .sk .tools .aa{font-size:20px;font-weight:500;letter-spacing:-.4px}
 .sk .nscroll{flex:1;min-height:0;overflow:hidden;position:relative}
-.sk .ntext{max-width:640px;padding:20px 20px 40px;margin-left:12px}
-.sk.nolist .ntext{max-width:900px;margin:0 auto}
-.sk.wide .ntext{max-width:none;margin:0;padding:20px 68px 40px 32px}
+.sk .ntext{padding:20px 48px 40px}
+.sk.nolist .ntext{padding:20px 89px 40px}
 .sk .ntitle{font-size:28px;line-height:34px;font-weight:700;display:flex;align-items:baseline;gap:8px}
 .sk .ntitle small{font-size:12px;font-weight:500;color:var(--sk-faint);display:inline-flex;gap:3px;align-items:center}
 .sk .meta{display:flex;flex-wrap:wrap;gap:0 6px;align-items:center;margin-top:8px;font-size:13px;line-height:18px;color:var(--sk-dim)}
@@ -342,7 +341,6 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
   <div class="bar" id="bar">
     <div class="grp">View <span class="seg"><button data-v="lay" data-x="stack" aria-pressed="true">Stacked</button><button data-v="lay" data-x="flip" aria-pressed="false">Flip in place</button></span></div>
     <div class="grp">Size <span class="seg"><button data-v="size" data-x="fit" aria-pressed="true">Fit width</button><button data-v="size" data-x="actual" aria-pressed="false">1 : 1 points</button></span></div>
-    <div class="grp">Text width <span class="seg"><button data-v="wide" data-x="0" aria-pressed="true">640 pt<span class="pk">PICK</span></button><button data-v="wide" data-x="1" aria-pressed="false">Full, like Apple</button></span></div>
     <div class="grp">Tabs <span class="seg"><button data-v="tabs" data-x="row" aria-pressed="true">Own row<span class="pk">PICK</span></button><button data-v="tabs" data-x="band" aria-pressed="false">In the toolbar line</button></span></div>
     <div class="grp">Marks <span class="seg"><button data-v="marks" data-x="1" aria-pressed="true">On</button><button data-v="marks" data-x="0" aria-pressed="false">Off</button></span></div>
   </div>
@@ -365,7 +363,7 @@ body.shot .dev{margin:0;box-shadow:none;border-radius:0}
 (() => {
 /* G = page-wide toggles. Each section keeps its own state (st); renderers read S, which render() points at
    the section being drawn. */
-const G = { lay:'stack', size:'fit', wide:false, tabs:'row', marks:true };
+const G = { lay:'stack', size:'fit', tabs:'A', marks:true };
 const base = { tab:'Notes', sel:1, aa:false, list:true, menu:null, block:'p', audio:true, front:'ref', selbar:false, photo:false, refSty:0 };
 const SEC = [
   {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{},                           cap:'the list beside an open note'},
@@ -724,7 +722,6 @@ function noteCol(){
 function skFrame(orient){
   const cls = ['dev', orient, 'sk'];
   if (!S.list) cls.push('nolist');
-  if (G.wide) cls.push('wide');
   if (G.tabs === 'band') cls.push('tabsinband');
   const tabs = ['Notes','Library','Review','Settings'];
   const content = S.tab === 'Notes' ? listCol() + noteCol() : `<div class="other">${S.tab} is not part of this mock. Tap Notes.</div>`;
@@ -766,7 +763,7 @@ function render(){
   document.getElementById('stages').innerHTML = html;
   document.querySelectorAll('#bar [data-v]').forEach(b => {
     const v = b.dataset.v, x = b.dataset.x;
-    const cur = v==='wide' ? (G.wide?'1':'0') : v==='marks' ? (G.marks?'1':'0') : G[v];
+    const cur = v==='marks' ? (G.marks?'1':'0') : G[v];
     b.setAttribute('aria-pressed', String(cur === x));
   });
   fit();
@@ -792,7 +789,7 @@ const PICKS = [
  ['Note toolbar copies Apple\'s pill', 'One glass pill: Aa · checklist · photo · note link (Skrift\'s four, where Apple has Aa · checklist · table · attach · writing tools). Then Connections, Export in the soft tint, and ⋯. Controls are Apple\'s 44 pt. Search stays in the list; Apple puts it in the note toolbar.'],
  ['Title 28 pt, above the grey line (D196)', 'Apple\'s title is 28 pt bold. Skrift\'s title takes the same size, then the grey time · place · weather · length line, then rating + Portfolio + tags on one row, then the summary.'],
  ['Aa = the Mac\'s full list, as a popover under the button', 'Apple\'s iPad Aa (pair 2) floats a "Format" panel in the middle of a dimmed screen, with the styles in a sideways-scrolling row. Skrift drops the Mac popover from the Aa button instead (D197): B I U S + highlight, Title / Heading / Subheading / Body / Monostyled as a list, Bulleted / Dashed / Numbered, Block Quote, each with the Markdown it writes. No colour dot, no indent buttons.'],
- ['Text stays at the 640 pt reading width', 'Today the note column is capped at 640 pt and sits against the list, so about 350 pt stays empty on the right. Apple runs its text 900 pt wide. This is the question below.'],
+ ['Text runs the full pane width (D198)', 'No 640 pt cap in any state. Margins copy Apple\'s: 48 pt each side beside the list, 89 pt each side when the list is hidden (Apple\'s full-screen note starts at 89 pt).'],
  ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there. Typed notes (pairs 5, 6) have no dock.'],
  ['Selection menu: Apple\'s pill, Skrift\'s items (D196)', 'Pair 3. The same floating glass pill above the selection, holding Cut · Copy · Paste in their normal place, then B I U S, then "New person…" in the accent colour, then ›. Apple\'s writing-tools bar at the bottom is not copied.'],
  ['Photo opens Apple\'s in-place menu', 'Pair 4. Today the phone asks "Add photo" in a bottom dialog. On iPad the photo button grows into a glass menu like Apple\'s attach menu, with Skrift\'s two choices: Take Photo, Choose from Library.'],
@@ -807,7 +804,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
   if (d.v) { const x = d.x;
-    if (d.v==='wide') G.wide = x==='1'; else if (d.v==='marks') G.marks = x==='1'; else G[d.v] = x;
+    if (d.v==='marks') G.marks = x==='1'; else G[d.v] = x;
     document.body.classList.toggle('nomarks', !G.marks); render(); return; }
   const secEl = b.closest('[data-sec]'); if (!secEl) return;
   const st = secEl.dataset.sec === 'port' ? PORT : (SEC[+secEl.dataset.sec].st || base);
