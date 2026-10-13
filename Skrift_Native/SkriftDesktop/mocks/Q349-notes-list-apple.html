@@ -1,0 +1,742 @@
+<title>Notes List Beside Apple Notes</title>
+<style>
+/* Layout: a mock bench. Device switch on top, then three panels (reference / today / new)
+   side by side when wide, one at a time behind a switch on a phone. Picks list underneath. */
+:root{
+  /* bench chrome */
+  --bench:#e9e8ee; --bench-ink:#1d1c22; --bench-dim:#66646f; --bench-line:rgba(0,0,0,.12);
+  --pin:#d0355b; --pin-soft:rgba(208,53,91,.10);
+  /* Skrift tokens, from Shared/UI/Palette.swift (phone column) */
+  --sk-bg:#f5f5f7; --sk-surface:#ffffff; --sk-elev:#ebebf0; --sk-border:rgba(0,0,0,.08);
+  --sk-text:#1c1c1e; --sk-dim:#6c6c72; --sk-faint:#a3a3aa;
+  --sk-accent:#6c5ce0; --sk-accent-soft:rgba(108,92,224,.13); --sk-accent-text:#6051c8;
+  --sk-amber:#d97706; --sk-green:#0f9d72; --sk-red:#dc2626;
+  /* reference panel: hand-drawn from the public look of the list app */
+  --ref-bg:#f2f2f7; --ref-card:#ffffff; --ref-text:#000000; --ref-dim:rgba(60,60,67,.62);
+  --ref-sep:rgba(60,60,67,.22); --ref-tint:#c99a06; --ref-fill:rgba(118,118,128,.12);
+  --ref-sel:#f7d65a;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bench:#141318; --bench-ink:#ecebf1; --bench-dim:#9a98a6; --bench-line:rgba(255,255,255,.12);
+  --pin:#ff6f91; --pin-soft:rgba(255,111,145,.12);
+  --sk-bg:#0f1117; --sk-surface:#181a23; --sk-elev:#1e2130; --sk-border:rgba(255,255,255,.08);
+  --sk-text:#e4e4e7; --sk-dim:#8b8b97; --sk-faint:#55556a;
+  --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
+  --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
+  --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#8a6d12;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bench:#141318; --bench-ink:#ecebf1; --bench-dim:#9a98a6; --bench-line:rgba(255,255,255,.12);
+  --pin:#ff6f91; --pin-soft:rgba(255,111,145,.12);
+  --sk-bg:#0f1117; --sk-surface:#181a23; --sk-elev:#1e2130; --sk-border:rgba(255,255,255,.08);
+  --sk-text:#e4e4e7; --sk-dim:#8b8b97; --sk-faint:#55556a;
+  --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
+  --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
+  --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#8a6d12;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bench);color:var(--bench-ink);font-family:var(--ui);margin:0}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:18px 60px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
+svg{display:block}
+
+/* ── bench chrome ─────────────────────────────── */
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--bench-dim)}
+h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
+.lede{color:var(--bench-dim);font-size:14px;line-height:1.45;max-width:68ch;margin:0}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:16px 0 12px}
+.seg{display:inline-flex;background:var(--bench-line);border-radius:9px;padding:3px;gap:2px}
+.seg button{padding:7px 12px;border-radius:7px;font-size:13px;font-weight:600;color:var(--bench-dim);min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--bench);color:var(--bench-ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.opt{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--bench-dim)}
+.opt .seg button{font-size:12px;padding:5px 9px;min-height:30px}
+.opt b{color:var(--bench-ink);font-weight:600}
+.pickmark{font:700 10px/1 var(--mono);color:var(--pin);margin-left:3px}
+.panelswitch{display:none}
+.stage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+.col{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:center}
+.collabel{width:100%;max-width:390px;display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.collabel h2{font-size:14px;margin:0}
+.collabel span{font-size:11.5px;color:var(--bench-dim);text-align:right}
+.reftag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bench-dim);
+  border:1px dashed var(--bench-dim);border-radius:4px;padding:3px 5px}
+.newtag{font:700 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--pin);
+  border:1px solid var(--pin);border-radius:4px;padding:3px 5px}
+@media (max-width: 1080px){
+  .panelswitch{display:inline-flex}
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .col{display:none}
+  .col.on{display:flex}
+}
+
+/* phone frame */
+.phone{width:390px;max-width:100%;height:760px;border-radius:46px;border:10px solid #1b1b1f;
+  overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+@media (max-width:440px){ .phone{border-width:6px;border-radius:34px;height:720px} }
+.status{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-weight:600;font-size:15px}
+.status i{width:96px;height:26px;border-radius:14px;background:#000;display:block}
+.status .r{width:40px}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;min-height:0}
+/* mac frame */
+.mac{width:292px;max-width:100%;height:700px;border-radius:11px;overflow:hidden;position:relative;display:flex;flex-direction:column;
+  box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 10px 30px rgba(0,0,0,.18)}
+.lights{position:absolute;top:13px;left:13px;display:flex;gap:8px;z-index:2}
+.lights i{width:12px;height:12px;border-radius:50%;background:rgba(128,128,140,.45);display:block}
+
+/* ── annotation pins ──────────────────────────── */
+.pinned{position:relative}
+.pin{position:absolute;z-index:5;min-width:18px;height:18px;border-radius:9px;background:var(--pin);color:#fff;
+  font:700 10.5px/18px var(--mono);text-align:center;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.25);pointer-events:auto}
+.noanno .pin,.noanno .gone{display:none}
+.pin.ip{position:static;display:inline-block;flex:none;margin-left:2px;vertical-align:middle}
+.gone{margin:4px 16px 2px;border:1.5px dashed var(--pin);border-radius:12px;padding:8px 10px;color:var(--pin);
+  background:var(--pin-soft);font-size:11.5px;line-height:1.3;display:flex;gap:8px;align-items:center}
+.gone s{opacity:.8}
+
+/* ── REFERENCE (hand-drawn) ───────────────────── */
+.ref{background:var(--ref-bg);color:var(--ref-text)}
+.ref .nav{display:flex;justify-content:space-between;align-items:center;padding:4px 16px 0;color:var(--ref-tint);font-size:17px;height:40px}
+.ref .navbtn{width:34px;height:34px;border-radius:17px;background:var(--ref-fill);display:grid;place-items:center}
+.ref h3{font-size:34px;font-weight:700;margin:2px 16px 8px;letter-spacing:.2px}
+.ref .search{margin:0 16px 6px;background:var(--ref-fill);border-radius:10px;height:36px;display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--ref-dim)}
+.ref .search input{flex:1;min-width:0;border:0;background:none;font:17px var(--ui);color:var(--ref-text);outline:none}
+.ref .search input::placeholder{color:var(--ref-dim)}
+.ref .gh{font-size:20px;font-weight:700;margin:18px 16px 7px}
+.ref .group{background:var(--ref-card);border-radius:10px;margin:0 16px;overflow:hidden}
+.ref .row{display:flex;gap:10px;align-items:center;padding:10px 16px 10px 16px;position:relative;width:100%;text-align:left}
+.ref .row + .row::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ref-sep)}
+.ref .row:active{background:var(--ref-fill)}
+.ref .tx{flex:1;min-width:0}
+.ref .t{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.ref .l2{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35;color:var(--ref-dim)}
+.ref .l2 b{font-weight:400;color:var(--ref-text);margin-right:6px}
+.ref .l3{font-size:14px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:1.35;margin-top:1px}
+.ref .th{width:56px;height:56px;border-radius:6px;flex:none}
+.ref .tool{flex:none;height:46px;display:flex;align-items:center;justify-content:center;position:relative;font-size:11px;color:var(--ref-text);border-top:.5px solid var(--ref-sep);background:var(--ref-bg)}
+.ref .tool button{position:absolute;right:18px;top:9px;color:var(--ref-tint)}
+.ref.macref .bar2{height:52px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 14px;color:var(--ref-dim);border-bottom:.5px solid var(--ref-sep)}
+.ref.macref .gh{font-size:13px;margin:14px 18px 4px}
+.ref.macref .group{background:none;margin:0 8px;border-radius:0;overflow:visible}
+.ref.macref .row{padding:8px 10px;border-radius:7px}
+.ref.macref .row + .row::before{left:10px;right:10px}
+.ref.macref .row.sel{background:var(--ref-sel)}
+.ref.macref .row.sel::before,.ref.macref .row.sel + .row::before{display:none}
+.ref.macref .t{font-size:13px;font-weight:700}
+.ref.macref .l2{font-size:12px}
+.ref.macref .l3{font-size:12px}
+.ref.macref .th{width:42px;height:42px;border-radius:5px}
+
+/* ── SKRIFT shared chrome (from source) ───────── */
+.sk{background:var(--sk-bg);color:var(--sk-text)}
+.sk .hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px}
+.sk .hdr h3{font-size:30px;font-weight:700;margin:0}
+.sk .hdr button{font-size:16px;color:var(--sk-accent)}
+.verbs{display:flex;gap:7px;padding:0 14px 2px}
+.verb{flex:1;min-height:44px;border-radius:8px;background:var(--sk-elev);display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12.5px;font-weight:600;color:var(--sk-text)}
+.verb.rec{color:var(--sk-red)}
+.verb.rec i{width:9px;height:9px;border-radius:50%;background:var(--sk-red);display:block}
+.verb.sq{flex:none;width:44px}
+.skSearch{margin:4px 16px 6px;display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:11px;color:var(--sk-faint)}
+.skSearch input{flex:1;min-width:0;border:0;background:none;font:14px var(--ui);color:var(--sk-text);outline:none;padding:0}
+.skSearch input::placeholder{color:var(--sk-faint)}
+.chips{display:flex;gap:8px;align-items:center;padding:2px 16px 4px}
+.chips .scr{display:flex;gap:5px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.chips .scr::-webkit-scrollbar{display:none}
+.chip{font-size:11px;white-space:nowrap;color:var(--sk-dim);padding:4px 9px;border-radius:6px;border:1px solid transparent;display:flex;gap:3px}
+.chip b{font-weight:600}
+.chip[aria-pressed="true"]{color:var(--sk-accent);background:var(--sk-accent-soft);border-color:color-mix(in srgb,var(--sk-accent) 22%,transparent)}
+.chip.date{border:1px dashed color-mix(in srgb,var(--sk-dim) 35%,transparent)}
+.sortw{font-size:11px;font-weight:600;color:var(--sk-dim);white-space:nowrap}
+.tabbar{flex:none;height:62px;display:flex;justify-content:space-around;align-items:flex-start;padding-top:7px;border-top:.5px solid var(--sk-border);background:color-mix(in srgb,var(--sk-surface) 88%,transparent)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:500;color:var(--sk-faint);width:70px}
+.tabbar button[aria-pressed="true"]{color:var(--sk-accent)}
+/* continue-listening card (today only) */
+.cont{margin:2px 16px 8px;display:flex;align-items:center;gap:12px;padding:12px 13px;background:var(--sk-surface);border-radius:16px;border:1px solid color-mix(in srgb,var(--sk-accent) 25%,transparent)}
+.cont .cv{width:48px;height:48px;border-radius:10px;flex:none;background:linear-gradient(150deg,#26435c,#8fb3c9 60%,#e9e2cf)}
+.cont .k{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--sk-accent-text)}
+.cont .bt{font-size:14px;font-weight:600}
+.cont .tl{font-size:11.5px;color:var(--sk-dim);font-variant-numeric:tabular-nums}
+.cont .x{width:26px;height:32px;color:var(--sk-faint);display:grid;place-items:center}
+.cont .pl{width:44px;height:44px;border-radius:22px;background:var(--sk-accent);display:grid;place-items:center;color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--sk-accent) 40%,transparent);flex:none}
+/* TODAY: the m2 card (Shared/UI/NoteCardView.swift) */
+.dayh{font-size:11.5px;font-weight:700;letter-spacing:.5px;color:var(--sk-dim);padding:24px 16px 3px}
+.card{display:flex;gap:10px;align-items:flex-start;padding:10px;margin:5px 16px;background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:10px;width:calc(100% - 32px);text-align:left}
+.card.quiet{opacity:.62}
+.card.sel{background:var(--sk-accent-soft);border-color:color-mix(in srgb,var(--sk-accent) 55%,transparent)}
+.card .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.stamp{display:flex;align-items:center;gap:6px;font-size:10.5px}
+.stamp .s{font-weight:600;color:var(--sk-faint);white-space:nowrap}
+.stamp .f{color:var(--sk-amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stamp .sp{flex:1}
+.balls{display:flex;gap:3px}
+.balls i{width:7px;height:7px;border-radius:50%;border:1.2px solid var(--sk-border);display:block}
+.balls i.on{background:var(--sk-accent);border-color:var(--sk-accent)}
+.pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap;display:inline-flex;gap:3px;align-items:center}
+.pill.progress{color:var(--sk-accent-text);background:color-mix(in srgb,var(--sk-accent-text) 12%,transparent)}
+.pill.done{color:var(--sk-green);background:color-mix(in srgb,var(--sk-green) 12%,transparent)}
+.pill.error{color:var(--sk-red);background:color-mix(in srgb,var(--sk-red) 12%,transparent)}
+.pill.amber{color:var(--sk-amber);background:color-mix(in srgb,var(--sk-amber) 12%,transparent)}
+.pill.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+@media (prefers-reduced-motion: reduce){.pill.pulse{animation:none}}
+.card .t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px}
+.card .q{display:flex;gap:8px;font-size:11.5px;font-style:italic;color:var(--sk-dim);padding-top:1px}
+.card .q i{width:3px;border-radius:1.5px;background:var(--sk-accent);flex:none}
+.card .q span,.card .sn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .sn{font-size:11.5px;color:var(--sk-dim);padding-top:1px;line-height:1.3}
+.cchips{display:flex;flex-wrap:wrap;gap:4px;padding-top:4px;max-height:44px;overflow:hidden}
+.cchip{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--sk-elev);color:var(--sk-dim);display:inline-flex;gap:3px;align-items:center;white-space:nowrap}
+.cchip.tag{background:var(--sk-accent-soft);color:var(--sk-accent-text)}
+.card .th{width:44px;height:44px;border-radius:6px;margin-top:14px;flex:none}
+.lockt{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--sk-text)}
+.lockt svg{color:var(--sk-dim)}
+
+/* NEW: the Apple-shaped row */
+.gh2{font-size:19px;font-weight:700;padding:18px 16px 7px;color:var(--sk-text)}
+.grp{background:var(--sk-surface);border-radius:12px;margin:0 16px;overflow:hidden;border:1px solid var(--sk-border)}
+.nrow{display:flex;gap:12px;align-items:center;padding:11px 14px 11px 16px;position:relative;width:100%;text-align:left}
+.nrow + .nrow::before{content:"";position:absolute;left:16px;right:0;top:0;height:1px;background:var(--sk-border)}
+.nrow:active{background:var(--sk-accent-soft)}
+.nrow.sel{background:var(--sk-accent-soft)}
+.nrow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nrow .l1{display:flex;align-items:center;gap:6px;min-width:0}
+.nrow .t{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:1.3}
+.nrow .t.lk{display:flex;gap:6px;align-items:center}
+.nrow .l2{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sk-dim);line-height:1.35}
+.nrow .l2 b{font-weight:400;color:var(--sk-text);margin-right:6px;font-variant-numeric:tabular-nums}
+.nrow .l2 em{font-style:italic}
+.nrow .l2 .qbar{display:inline-block;width:2.5px;height:.95em;background:var(--sk-accent);border-radius:1px;vertical-align:-1px;margin-right:5px}
+.nrow .l2 .busy{color:var(--sk-accent-text)}
+.nrow .l3{font-size:12.5px;color:var(--sk-faint);display:flex;align-items:center;gap:5px;line-height:1.35;margin-top:1px;min-width:0}
+.nrow .l3 .dot{width:6px;height:6px;border-radius:50%;background:var(--sk-accent);flex:none}
+.nrow .l3 .dot.pf{background:var(--sk-amber)}
+.nrow .l3 .dw{color:var(--sk-dim)}
+.nrow .l3 .pfw{color:var(--sk-amber)}
+.nrow .l3 .fade{color:var(--sk-amber)}
+.nrow .l3 .media{margin-left:auto;display:flex;gap:4px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-variant-numeric:tabular-nums}
+.nrow .l3 .media span{overflow:hidden;text-overflow:ellipsis}
+.nrow .th{width:52px;height:52px;border-radius:7px;flex:none}
+.cards .grp{background:none;border:0;overflow:visible;margin:0}
+.cards .nrow{background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:10px;margin:0 16px 8px;width:calc(100% - 32px)}
+.cards .nrow + .nrow::before{display:none}
+.sk.big .nrow .t{font-size:17px}.sk.big .nrow .l2{font-size:15px}.sk.big .nrow .l3{font-size:13.5px}
+.foot{height:24px}
+.empty{padding:30px 20px;text-align:center;color:var(--sk-dim);font-size:13px}
+
+/* Mac Skrift */
+.mac.sk{background:var(--sk-bg)}
+.surf{display:flex;gap:3px;padding:3px;margin:38px 10px 0;border-radius:8px;background:color-mix(in srgb,var(--sk-text) 5%,transparent)}
+.surf button{flex:1;font-size:11.5px;font-weight:600;padding:5px 0;border-radius:6px;color:var(--sk-faint)}
+.surf button[aria-pressed="true"]{background:var(--sk-surface);color:var(--sk-text);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.mhead{padding:12px 12px 11px;display:flex;flex-direction:column;gap:12px;border-bottom:.5px solid var(--sk-border)}
+.brand{display:flex;align-items:center;justify-content:space-between}
+.brand span{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:700}
+.brand i{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#8e7dff,#6a59ef);color:#fff;font:900 13px/22px var(--ui);font-style:normal;text-align:center}
+.brand button{color:var(--sk-dim)}
+.mverbs{display:flex;gap:7px}
+.mverb{flex:1;padding:7px 0;border-radius:8px;background:color-mix(in srgb,var(--sk-text) 6%,transparent);font-size:12.5px;font-weight:600;display:flex;gap:6px;justify-content:center;align-items:center}
+.mverb.rec{color:var(--sk-red)}
+.mverb.rec i{width:9px;height:9px;border-radius:50%;background:var(--sk-red)}
+.mverb.sq{flex:none;width:34px}
+.proc{width:100%;padding:7px 0;border-radius:8px;background:var(--sk-accent);color:#fff;font-size:12.5px;font-weight:600;display:flex;gap:5px;justify-content:center;align-items:center}
+.proc b{font-weight:700;opacity:.8;font-variant-numeric:tabular-nums}
+.msearch{display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:7px;background:var(--sk-surface);border:1px solid var(--sk-border);color:var(--sk-faint)}
+.msearch input{flex:1;min-width:0;border:0;background:none;font:12px var(--ui);color:var(--sk-text);outline:none;padding:0}
+.mac .chips{padding:0}
+.mac .card{margin:5px 10px;width:calc(100% - 20px)}
+.mac .dayh{padding:16px 12px 3px}
+.mac .gh2{font-size:13px;padding:14px 14px 5px}
+.mac .grp{margin:0 8px;border-radius:9px}
+.mac .nrow{padding:8px 10px 8px 12px;gap:9px}
+.mac .nrow + .nrow::before{left:12px}
+.mac .nrow .t{font-size:14px}
+.mac .nrow .l2{font-size:12.5px}
+.mac .nrow .l3{font-size:11.5px}
+.mac .nrow .th{width:40px;height:40px;border-radius:5px}
+.mac .cards .nrow{margin:0 8px 6px;width:calc(100% - 16px)}
+.sk.big .mac .nrow .t, .mac.big .nrow .t{font-size:15px}
+
+/* ── picks list ───────────────────────────────── */
+.picks{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.pk{border:1px solid var(--bench-line);border-radius:12px;padding:13px 14px;display:flex;gap:11px;align-items:flex-start;background:color-mix(in srgb,var(--bench) 60%,transparent)}
+.pk .n{flex:none;width:22px;height:22px;border-radius:11px;background:var(--pin);color:#fff;font:700 11px/22px var(--mono);text-align:center}
+.pk h4{margin:0 0 4px;font-size:14px;line-height:1.3}
+.pk p{margin:0;font-size:13px;line-height:1.45;color:var(--bench-dim)}
+.pk .src{display:block;margin-top:6px;font:11px/1.4 var(--mono);color:var(--bench-dim)}
+.sect{font-size:16px;margin:36px 0 2px}
+.ask{margin-top:26px;border:2px solid var(--pin);border-radius:14px;padding:14px 16px;max-width:760px}
+.ask .eyebrow{color:var(--pin)}
+.ask p{margin:6px 0 0;font-size:15px;line-height:1.45}
+.fine{margin-top:22px;font-size:12px;color:var(--bench-dim);line-height:1.5;max-width:80ch}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;
+  background:#1d1c22;color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;max-width:min(92vw,460px);transition:.2s;pointer-events:none;z-index:50;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<div class="wrap" id="app">
+  <div class="eyebrow">Q349 · mock · D190 D193 C113</div>
+  <h1>The notes list, beside Apple Notes</h1>
+  <p class="lede">Three panels per width: the Apple Notes reference (hand-drawn, not Skrift), Skrift as it is built today (drawn from source), and the proposed Skrift list. Pink numbers point at the picks underneath. Every note here is invented.</p>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Width">
+      <button id="dev-phone" aria-pressed="true" data-dev="phone">Phone</button>
+      <button id="dev-mac" aria-pressed="false" data-dev="mac">Mac sidebar</button>
+    </div>
+    <div class="seg panelswitch" role="group" aria-label="Panel">
+      <button id="pan-ref" aria-pressed="false" data-pan="ref">Apple Notes</button>
+      <button id="pan-today" aria-pressed="false" data-pan="today">Skrift today</button>
+      <button id="pan-new" aria-pressed="true" data-pan="new">Skrift new</button>
+    </div>
+  </div>
+  <div class="bar opt">
+    <span><b>Folder line</b></span>
+    <div class="seg" role="group" aria-label="Folder line">
+      <button id="fold-all" aria-pressed="true" data-fold="all">Every row<span class="pickmark">PICK</span></button>
+      <button id="fold-pf" aria-pressed="false" data-fold="pf">Portfolio only</button>
+      <button id="fold-none" aria-pressed="false" data-fold="none">None</button>
+    </div>
+    <span><b>Rows</b></span>
+    <div class="seg" role="group" aria-label="Rows">
+      <button id="rows-grp" aria-pressed="true" data-rows="grp">One card per group<span class="pickmark">PICK</span></button>
+      <button id="rows-card" aria-pressed="false" data-rows="card">A card per row</button>
+    </div>
+    <span><b>Type</b></span>
+    <div class="seg" role="group" aria-label="Type size">
+      <button id="type-mid" aria-pressed="true" data-type="mid">16 / 14<span class="pickmark">PICK</span></button>
+      <button id="type-big" aria-pressed="false" data-type="big">Apple's 17 / 15</button>
+    </div>
+    <div class="seg" role="group" aria-label="Notes">
+      <button id="anno" aria-pressed="true">Pins on</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="ask">
+    <div class="eyebrow">The one question for the sitting</div>
+    <p>The new row drops the three importance balls and the faded look of unrated notes. Rating stays in the open note and the Unrated chip still finds them. Can the list stop showing importance at all?</p>
+  </div>
+
+  <h3 class="sect">Picks that depart from Apple Notes, and why</h3>
+  <div class="picks" id="picks"></div>
+
+  <p class="fine">Reference panels are drawn by hand from the publicly visible look of Apple Notes (list layout, grouping, row lines). They are not screenshots, contain no Apple icons or logos, and use none of Tuur's notes. Skrift panels follow Shared/UI/NoteCardView.swift, Shared/UI/NoteCardBuilder.swift, Shared/Model/MemoDate.swift, Shared/UI/Palette.swift, SkriftMobile/Features/MemosList/*, SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift and SkriftDesktop/Features/Sidebar/SidebarView.swift at session head e294d8e3.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const NOW = new Date(2026, 9, 13, 10, 0); // Tue 13 Oct 2026, 10:00
+const D = (y, m, d, h, mi) => new Date(y, m - 1, d, h, mi);
+
+/* Invented notes. Fields mirror NoteCardFacts + the chrome each adapter adds. */
+const NOTES = [
+ {id:1, at:D(2026,10,13,9,41), kind:'voice', gen:'Tile quote for the bathroom',
+  body:'Called Rui about the bathroom tiles. He can start on the 26th if we confirm the green ones by Friday, otherwise it slips to November.',
+  dur:134, place:'Campo de Ourique', temp:19, tags:[], dest:'personal', balls:2, rated:true, done:false, refFolder:'Home'},
+ {id:2, at:D(2026,10,13,8,12), kind:'voice', status:'transcribing', body:'', dur:48, tags:[], dest:'personal', balls:0, rated:false, done:false, refFolder:'Notes',
+  refTitle:'New note', refLine:'No additional text'},
+ {id:3, at:D(2026,10,13,7,30), kind:'typed', title:'Groceries', body:'Oat milk, eggs, coriander, the good bread from Gleba.', tags:[], dest:'personal', balls:0, rated:false, done:false, refFolder:'Notes'},
+ {id:4, at:D(2026,10,12,21,5), kind:'book', book:'Moby-Dick', ch:'1', quote:'Whenever I find myself growing grim about the mouth, I account it high time to get to sea.',
+  body:'This is exactly the feeling before a long walk along the river.', dur:42, tags:['reading'], dest:'personal', balls:1, rated:true, done:true, refFolder:'Reading'},
+ {id:5, at:D(2026,10,10,16,20), kind:'voice', title:'Lamp idea: paper shade on a robot arm', body:'The arm parks the shade low for reading and lifts it when the room needs light. Ask Joana about the paper.',
+  dur:231, place:'LX Factory', tags:['idea','inspiration'], dest:'portfolio', balls:3, rated:true, done:false, photo:'linear-gradient(140deg,#f3e3c3,#d9a75f 55%,#5b3b1e)', refFolder:'Ideas'},
+ {id:6, at:D(2026,10,9,11,2), kind:'voice', locked:true, title:'Health', dur:300, dest:'personal', balls:2, rated:true, done:true, refFolder:'Notes'},
+ {id:7, at:D(2026,10,7,19,44), kind:'link', capTitle:'How SwiftUI lists diff their rows', domain:'swiftwithmajid.com', ann:'Read before the editor rebuild.',
+  tags:[], dest:'personal', balls:0, rated:false, done:false, fading:'starts fading 17 Oct', refFolder:'Reading'},
+ {id:8, at:D(2026,9,27,10,15), kind:'voice', status:'twoVersions', gen:'Call with Marta about the Porto trip', body:'Marta can host us the second weekend. Train on Friday at 17:09, back Sunday evening.',
+  dur:750, place:'Lisbon', temp:22, tags:['travel'], dest:'personal', balls:2, rated:true, done:false, refFolder:'Notes'},
+ {id:9, at:D(2026,9,24,18,40), kind:'typed', title:'Gift ideas for Pim', body:'Climbing chalk bag, the Moomin book in Dutch, a good headlamp.', tags:['gifts'], dest:'personal', balls:1, rated:true, done:true, refFolder:'Home'},
+ {id:10, at:D(2026,9,15,8,5), kind:'voice', body:'Morning pages. Slept badly again, the neighbours were drilling at seven. Still, the walk to the bakery fixed most of it.',
+  dur:302, tags:[], dest:'personal', balls:1, rated:true, done:true, refFolder:'Journal'},
+ {id:11, at:D(2026,9,11,15,30), kind:'voice', title:'Robot hand grip test', body:'Third finger slips on the glass. Try the softer silicone tip and log grip force at 2 N steps.',
+  dur:250, tags:['project'], dest:'portfolio', balls:3, rated:true, done:true, photo:'linear-gradient(160deg,#c9d6df,#7b8fa1 50%,#2f3b46)', refFolder:'Work'},
+ {id:12, at:D(2026,9,2,12,0), kind:'typed', title:'Workshop sign-up', body:'Saturday 10:00, bring the laptop and the small servo kit.', tags:[], dest:'personal', balls:0, rated:false, done:false, refFolder:'Notes'},
+ {id:13, at:D(2026,8,21,11,10), kind:'voice', title:'Feira da Ladra finds', body:'A brass level, two old postcards of Sintra, a tin of type blocks for the studio wall.',
+  dur:90, place:'Alfama', tags:[], dest:'personal', balls:2, rated:true, done:true, photo:'linear-gradient(130deg,#e8c9a0,#b0743c 50%,#3d2a1c)', refFolder:'Home'},
+ {id:14, at:D(2026,8,3,22,40), kind:'voice', body:'Idea for an icon: a quill drawn out of a waveform, the nib is where the sound stops.',
+  dur:65, tags:['idea'], dest:'portfolio', balls:2, rated:true, done:false, refFolder:'Ideas'},
+ {id:15, at:D(2025,12,24,19,30), kind:'voice', title:'Christmas Eve at the table', body:'Everyone round the table, Oma telling the story about the frozen canal again.',
+  dur:492, tags:[], dest:'personal', balls:3, rated:true, done:true, photo:'linear-gradient(150deg,#3a1f1f,#9c3a2e 45%,#f1c27d)', refFolder:'Family'}
+];
+
+/* ── helpers ── */
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WDL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MOL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const p2 = n => String(n).padStart(2,'0');
+const hm = d => p2(d.getHours()) + ':' + p2(d.getMinutes());
+const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const days = d => Math.round((sod(NOW) - sod(d)) / 864e5);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dur = s => { const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = Math.floor(s%60); return h ? `${h}:${p2(m)}:${p2(x)}` : `${m}:${p2(x)}`; };
+
+/* MemoDate.label — today's stamp */
+function stampToday(d){
+  const n = days(d);
+  if (n <= 0) return 'Today · ' + hm(d);
+  if (n === 1) return 'Yesterday · ' + hm(d);
+  if (n < 7) return WD[d.getDay()] + ' · ' + hm(d);
+  if (d.getFullYear() === NOW.getFullYear()) return d.getDate() + ' ' + MO[d.getMonth()] + ' · ' + hm(d);
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} · ` + hm(d);
+}
+/* MemoDate.group — today's per-day header */
+function groupToday(d){
+  const n = days(d);
+  if (n <= 0) return 'Today';
+  if (n === 1) return 'Yesterday';
+  const s = WD[d.getDay()] + ' ' + d.getDate() + ' ' + MO[d.getMonth()];
+  return d.getFullYear() === NOW.getFullYear() ? s : s + ' ' + d.getFullYear();
+}
+/* D190 grouping: Today / Previous 7 Days / Previous 30 Days / months / years */
+function groupNew(d){
+  const n = days(d);
+  if (n <= 0) return 'Today';
+  if (n <= 7) return 'Previous 7 Days';
+  if (n <= 30) return 'Previous 30 Days';
+  if (d.getFullYear() === NOW.getFullYear()) return MOL[d.getMonth()];
+  return String(d.getFullYear());
+}
+/* Line-2 date: time today, weekday this week, day + month this year, d/m/yyyy older */
+function dateNew(d){
+  const n = days(d);
+  if (n <= 0) return hm(d);
+  if (n === 1) return 'Yesterday';
+  if (n <= 7) return WDL[d.getDay()];
+  if (d.getFullYear() === NOW.getFullYear()) return d.getDate() + ' ' + MO[d.getMonth()];
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+}
+function dateRef(d){
+  const n = days(d);
+  if (n <= 0) return hm(d);
+  if (n === 1) return 'Yesterday';
+  if (n <= 7) return WDL[d.getDay()];
+  return `${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`;
+}
+function groupBy(list, keyFn){
+  const out = []; const idx = {};
+  list.forEach(n => { const k = keyFn(n.at); if (!(k in idx)) { idx[k] = out.length; out.push({title:k, notes:[]}); } out[idx[k]].notes.push(n); });
+  return out;
+}
+const firstSentence = s => { const m = String(s).match(/^(.{8,80}?[.!?])(\s|$)/); return m ? m[1].replace(/[.]$/,'') : String(s).slice(0, 70); };
+
+/* ── icons (generic strokes, no platform glyphs) ── */
+const I = {
+  search:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg>',
+  mic:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="4" y="1" width="4" height="7" rx="2"/><path d="M2.5 6a3.5 3.5 0 007 0M6 9.5V11" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  book:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5h6.5a1 1 0 011 1V11H3a1 1 0 01-1-1z"/></svg>',
+  link:'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 7l2-2M4.2 5.4L3 6.6a2 2 0 002.8 2.8L7 8.2M7.8 6.6L9 5.4A2 2 0 006.2 2.6L5 3.8"/></svg>',
+  pin:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a3.5 3.5 0 013.5 3.5C9.5 7.2 6 11 6 11S2.5 7.2 2.5 4.5A3.5 3.5 0 016 1z"/></svg>',
+  sun:'<svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="2.6"/></svg>',
+  pencil:'<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H3a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7"/><path d="M10.5 1.5l2 2L7 9l-2.6.6L5 7z"/></svg>',
+  pencilBig:'<svg width="24" height="24" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H3a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V7"/><path d="M10.5 1.5l2 2L7 9l-2.6.6L5 7z"/></svg>',
+  plus:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg>',
+  lock:'<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="5.2" width="8" height="6" rx="1.4"/><path d="M4 5.5V4a2 2 0 014 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+  folder:'<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1.5 3.5a1 1 0 011-1h3l1.2 1.4h4.8a1 1 0 011 1v5.6a1 1 0 01-1 1h-9a1 1 0 01-1-1z"/></svg>',
+  chev:'<svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L1.8 8.5 8 15.5"/></svg>',
+  dots:'<svg width="18" height="4" viewBox="0 0 18 4" fill="currentColor"><circle cx="2" cy="2" r="1.8"/><circle cx="9" cy="2" r="1.8"/><circle cx="16" cy="2" r="1.8"/></svg>',
+  x:'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>',
+  play:'<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.5v11l9-5.5z"/></svg>',
+  gear:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke-linecap="round"/></svg>',
+  fork:'<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 1v8M3 5c0-2 4-1.5 4-4M7 1v0"/></svg>',
+  trash:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4h10M6 4V2.5h4V4M4.5 4l.7 9.5h5.6l.7-9.5" stroke-linejoin="round"/></svg>',
+  grid:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>',
+  tabNotes:'<svg width="24" height="22" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="2" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/></svg>',
+  tabBook:'<svg width="24" height="22" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5c-2-1.6-5-2-8-1.6V18c3-.4 6 0 8 1.6 2-1.6 5-2 8-1.6V3.4c-3-.4-6 0-8 1.6zM12 5v14.6"/></svg>',
+  tabReview:'<svg width="24" height="22" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.5 11a7.5 7.5 0 102.2-5.3"/><path d="M4 3v3.6h3.6M12 7v4.3l2.8 1.7"/></svg>',
+  tabGear:'<svg width="24" height="22" viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="11" r="3"/><path d="M12 2.5v2.5M12 17v2.5M3.5 11H6M18 11h2.5M6 5l1.8 1.8M16.2 15.2L18 17M6 17l1.8-1.8M16.2 6.8L18 5" stroke-linecap="round"/></svg>'
+};
+
+/* ── state ── */
+const S = { dev:'phone', pan:'new', fold:'all', rows:'grp', type:'mid', anno:true, q:{ref:'', today:'', new:''}, chip:{today:'All', new:'All'}, sort:{today:0,new:0}, sel:{ref:5, today:5, new:5}, contGone:false, tab:{today:'Notes', new:'Notes'} };
+try { const h = location.hash.slice(1); if (h) { const [a,b] = h.split('-'); if (a === 'mac' || a === 'phone') S.dev = a; if (['ref','today','new'].includes(b)) S.pan = b; } } catch(e){}
+const SORTS = ['Newest','Edited','Recorded','Oldest','Longest'];
+
+function filtered(which){
+  const q = S.q[which].trim().toLowerCase();
+  let list = NOTES.slice();
+  if (which !== 'ref') {
+    const c = S.chip[which];
+    if (c === 'Needs Work') list = list.filter(n => n.rated && !n.done && !n.locked);
+    if (c === 'Done') list = list.filter(n => n.rated && n.done);
+    if (c === 'Unrated') list = list.filter(n => !n.rated);
+    const s = SORTS[S.sort[which]];
+    if (s === 'Oldest') list.reverse();
+    if (s === 'Longest') list.sort((a,b) => (b.dur||0) - (a.dur||0));
+  }
+  if (q) list = list.filter(n => [n.title,n.gen,n.body,n.capTitle,n.ann,n.quote,n.book].join(' ').toLowerCase().includes(q));
+  return list;
+}
+const counts = () => ({ 'Needs Work': NOTES.filter(n => n.rated && !n.done && !n.locked).length, 'Done': NOTES.filter(n => n.rated && n.done).length, 'Unrated': NOTES.filter(n => !n.rated).length });
+
+/* ── REFERENCE row ── */
+function refTitle(n){ if (n.locked) return n.title; return n.refTitle || n.title || n.gen || n.capTitle || (n.book ? n.book + ' quote' : firstSentence(n.body)); }
+function refLine(n){
+  if (n.locked) return 'Locked';
+  if (n.refLine) return n.refLine;
+  if (n.quote) return n.quote;
+  if (n.capTitle) return n.ann;
+  const t = refTitle(n);
+  if (!n.title && !n.gen && n.body.startsWith(t)) return n.body.slice(t.length).replace(/^[.!?]\s*/,'') || 'No additional text';
+  return n.body;
+}
+function refRow(n, mac){
+  const sel = mac && S.sel.ref === n.id ? ' sel' : '';
+  return `<button class="row${sel}" data-open="ref" data-id="${n.id}">
+    <div class="tx"><div class="t">${n.locked ? '<span style="display:inline-flex;gap:5px;align-items:center">'+I.lock+' '+esc(refTitle(n))+'</span>' : esc(refTitle(n))}</div>
+    <div class="l2"><b>${dateRef(n.at)}</b>${esc(refLine(n))}</div>
+    <div class="l3">${I.folder}<span>${esc(n.refFolder)}</span></div></div>
+    ${n.photo && !n.locked ? `<div class="th" style="background:${n.photo}"></div>` : ''}</button>`;
+}
+function refPhone(){
+  const list = filtered('ref');
+  const groups = groupBy(list, groupNew);
+  return `<div class="phone ref pinned" id="ref-phone">
+    <div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+    <div class="scroll">
+      <div class="nav"><button data-ack="Back to the folder list (reference only)" style="display:flex;gap:6px;align-items:center">${I.chev}<span>Folders</span></button><button class="navbtn" data-ack="More menu (reference only)">${I.dots}</button></div>
+      <h3>All Notes</h3>
+      <label class="search">${I.search}<input id="ref-q" placeholder="Search" value="${esc(S.q.ref)}" aria-label="Search the reference list"></label>
+      ${groups.map(g => `<div class="gh">${g.title}</div><div class="group">${g.notes.map(n => refRow(n,false)).join('')}</div>`).join('') || '<div class="empty">No results</div>'}
+      <div class="foot"></div>
+    </div>
+    <div class="tool"><span>${NOTES.length} Notes</span><button data-ack="New note (reference only)">${I.pencilBig}</button></div>
+  </div>`;
+}
+function refMac(){
+  const groups = groupBy(filtered('ref'), groupNew);
+  return `<div class="mac ref macref">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <div class="bar2"><button data-ack="List or gallery view (reference only)">${I.grid}</button><button data-ack="Delete (reference only)">${I.trash}</button><button data-ack="New note (reference only)">${I.pencil}</button><button data-ack="Search sits in the window toolbar (reference only)">${I.search}</button></div>
+    <div class="scroll">${groups.map(g => `<div class="gh">${g.title}</div><div class="group">${g.notes.map(n => refRow(n,true)).join('')}</div>`).join('')}<div class="foot"></div></div>
+  </div>`;
+}
+
+/* ── TODAY: m2 card ── */
+function todayModel(n){
+  const m = { stamp: stampToday(n.at), balls: n.locked ? null : (n.balls||0), quiet: !n.rated, chips: [] };
+  if (n.status === 'transcribing') m.pill = {label:'Transcribing', kind:'progress', pulse:true};
+  if (n.status === 'twoVersions') m.pill = {label:'2 versions', kind:'amber', fork:true};
+  m.fading = n.fading || null;
+  if (n.locked) { m.locked = true; m.title = n.title; return m; }
+  if (n.kind === 'link') {
+    m.title = n.capTitle; m.snippet = n.ann; m.chips.push({t:'Link', g:I.link}, {t:n.domain});
+  } else {
+    const titled = n.title || n.gen;
+    if (titled) { m.title = titled; if (n.quote) m.quote = n.quote; else m.snippet = n.body ? n.body.split('\n')[0] : null; }
+    else if (n.quote) { m.quote = n.quote; m.snippet = n.body; }
+    else m.snippet = n.body || (n.kind === 'typed' ? 'Note' : 'Voice note');
+    if (!n.book && n.kind === 'typed') m.chips.push({t:'Note', g:I.pencil});
+    if (n.book) m.chips.push({t: n.book + ' · ch. ' + n.ch, g:I.book});
+    if (n.dur) m.chips.push({t: dur(n.dur)});
+    if (n.place) m.chips.push({t: n.place, g:I.pin});
+    if (n.temp != null) m.chips.push({t: n.temp + '°', g:I.sun});
+  }
+  (n.tags||[]).forEach(t => m.chips.push({t:'#'+t, tag:true}));
+  m.photo = n.photo;
+  return m;
+}
+function macTodayModel(n){
+  const m = todayModel(n);
+  if (n.rated && !m.pill) { // Mac: rated rows always carry their pipeline state
+    m.pill = n.done ? {label:'Exported', kind:'done'} : {label:'Ready', kind:'done'};
+    m.quiet = false;
+  }
+  return m;
+}
+function card(n, m, sel){
+  const balls = m.balls == null ? '' : `<span class="balls" aria-label="${m.balls ? 'Importance '+m.balls+' of 3' : 'Unrated'}">${[1,2,3].map(i => `<i class="${i<=m.balls?'on':''}"></i>`).join('')}</span>`;
+  const pill = m.pill ? `<span class="pill ${m.pill.kind}${m.pill.pulse?' pulse':''}">${m.pill.fork?I.fork:''}${m.pill.label}</span>` : '';
+  let body;
+  if (m.locked) body = `<div class="lockt">${I.lock}<span>${esc(m.title)}</span></div>`;
+  else body = (m.title ? `<div class="t">${esc(m.title)}</div>` : '') +
+    (m.quote ? `<div class="q"><i></i><span>${esc(m.quote)}</span></div>` : '') +
+    (m.snippet ? `<div class="sn">${esc(m.snippet)}</div>` : '') +
+    (m.chips.length ? `<div class="cchips">${m.chips.map(c => `<span class="cchip${c.tag?' tag':''}">${c.g||''}${esc(c.t)}</span>`).join('')}</div>` : '');
+  return `<button class="card${m.quiet?' quiet':''}${sel?' sel':''}" data-open="today" data-id="${n.id}">
+    <div class="tx"><div class="stamp"><span class="s">${m.stamp}</span>${m.fading?`<span class="f">· ${m.fading}</span>`:''}<span class="sp"></span>${pill}${balls}</div>${body}</div>
+    ${m.photo && !m.locked ? `<div class="th" style="background:${m.photo}"></div>` : ''}</button>`;
+}
+function chipRow(which){
+  const c = counts();
+  return `<div class="chips"><div class="scr">${['All','Needs Work','Done','Unrated'].map(k => `<button class="chip" aria-pressed="${S.chip[which]===k}" data-chip="${which}" data-k="${k}">${k}${c[k]!=null?` <b>${c[k]}</b>`:''}</button>`).join('')}<button class="chip date" data-ack="Date range strip opens here (unchanged)">Date</button></div><button class="sortw" data-sort="${which}">${SORTS[S.sort[which]]} ↓</button></div>`;
+}
+function phoneTop(which){
+  return `<div class="hdr"><h3>Notes</h3><button data-ack="Select mode (unchanged)">Select</button></div>
+    <div class="verbs"><button class="verb" data-ack="Import menu: Files, Photos, Scan (unchanged)">${I.plus}Import</button><button class="verb rec" data-ack="Record starts a take (unchanged)"><i></i>Record</button><button class="verb sq" data-ack="New typed note (unchanged)" aria-label="New note">${I.pencil}</button></div>
+    <label class="skSearch">${I.search}<input id="${which}-q" placeholder="Search memos" value="${esc(S.q[which])}" aria-label="Search notes">${which==='new'?'<span class="pin ip">2</span>':''}</label>
+    ${chipRow(which)}`;
+}
+function tabBar(which){
+  const tabs = [['Notes',I.tabNotes],['Books',I.tabBook],['Review',I.tabReview],['Settings',I.tabGear]];
+  return `<div class="tabbar">${tabs.map(([t,g]) => `<button aria-pressed="${S.tab[which]===t}" data-tab="${which}" data-t="${t}">${g}<span>${t}</span></button>`).join('')}</div>`;
+}
+function todayPhone(){
+  const list = filtered('today');
+  const groups = groupBy(list, groupToday);
+  const cont = S.contGone ? '' : `<div class="cont pinned"><span class="pin" style="left:-8px;top:-8px">1</span><button style="display:flex;gap:12px;align-items:center;flex:1;min-width:0;text-align:left" data-ack="Opens the book player"><div class="cv"></div><div style="min-width:0"><div class="k">CONTINUE LISTENING</div><div class="bt">Moby-Dick</div><div class="tl">14:22:08 left</div></div></button><button class="x" data-cont-x aria-label="Hide for today">${I.x}</button><button class="pl" data-ack="Resumes the book" aria-label="Resume">${I.play}</button></div>`;
+  return `<div class="phone sk">
+    <div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+    <div class="scroll">${phoneTop('today')}${cont}
+      ${groups.map(g => `<div class="dayh">${g.title.toUpperCase()}</div>${g.notes.map(n => card(n, todayModel(n), false)).join('')}`).join('') || '<div class="empty">No notes match.</div>'}
+      <div class="foot"></div></div>
+    ${tabBar('today')}</div>`;
+}
+function macTop(which){
+  return `<div class="surf"><button aria-pressed="true" data-ack="Notes surface">Notes</button><button aria-pressed="false" data-ack="Review surface (not drawn)">Review</button></div>
+    <div class="mhead"><div class="brand"><span><i>S</i>Skrift</span><button data-ack="Settings (unchanged)" aria-label="Settings">${I.gear}</button></div>
+    <div class="mverbs"><button class="mverb" data-ack="Import (unchanged)">${I.plus}Import</button><button class="mverb rec" data-ack="Record on this Mac (unchanged)"><i></i>Record</button><button class="mverb sq" data-ack="New typed note (unchanged)" aria-label="New note">${I.pencil}</button></div>
+    <button class="proc" data-ack="Process runs the pile (unchanged)">${I.play.replace('width="16" height="16"','width="10" height="10"')}Process <b>3</b></button>
+    <label class="msearch">${I.search}<input id="${which}-mq" placeholder="Search memos" value="${esc(S.q[which])}" aria-label="Search notes"></label>
+    ${chipRow(which)}</div>`;
+}
+function todayMac(){
+  const groups = groupBy(filtered('today'), groupToday);
+  return `<div class="mac sk"><div class="lights"><i></i><i></i><i></i></div>${macTop('today')}
+    <div class="scroll">${groups.map(g => `<div class="dayh">${g.title.toUpperCase()}</div>${g.notes.map(n => card(n, macTodayModel(n), S.sel.today===n.id)).join('')}`).join('')}<div class="foot"></div></div></div>`;
+}
+
+/* ── NEW: Apple-shaped row ── */
+function newModel(n){
+  const m = { date: dateNew(n.at) };
+  if (n.status === 'transcribing') m.pill = {label:'Transcribing', kind:'progress', pulse:true};
+  if (n.status === 'twoVersions') m.pill = {label:'2 versions', kind:'amber', fork:true};
+  if (n.locked) { m.locked = true; m.title = n.title; m.line = 'Locked'; return m; }
+  // Title ladder: his title → the Mac's generated title → the first sentence (Apple's rule) → the kind word
+  if (n.kind === 'link') { m.title = n.capTitle; m.line = n.ann || n.domain; m.media = {g:I.link, t:n.domain}; }
+  else {
+    m.title = n.title || n.gen || (n.book ? n.book : null) || (n.body ? firstSentence(n.body) : (n.kind === 'typed' ? 'Note' : 'Voice note'));
+    if (n.quote) { m.quote = n.quote; }
+    else if (!n.title && !n.gen && n.body) { const rest = n.body.slice(m.title.length).replace(/^[.!?]\s*/,''); m.line = rest || 'No more text'; }
+    else m.line = n.body || null;
+    if (n.status === 'transcribing') m.busy = 'Transcribing…';
+    if (n.book) m.media = {g:I.book, t:'ch. ' + n.ch + ' · ' + dur(n.dur)};
+    else if (n.dur) m.media = {g:I.mic, t:dur(n.dur)};
+  }
+  m.fading = n.fading; m.photo = n.photo; m.dest = n.dest;
+  return m;
+}
+let PIN = {};
+const ip = (k) => (PIN[k] ? '' : (PIN[k] = 1, `<span class="pin ip">${k}</span>`));
+function nrow(n, which, mac){
+  const m = newModel(n);
+  const sel = mac && S.sel.new === n.id ? ' sel' : '';
+  const pill = m.pill ? `<span class="pill ${m.pill.kind}${m.pill.pulse?' pulse':''}">${m.pill.fork?I.fork:''}${m.pill.label}</span>` : '';
+  const title = m.locked ? `<div class="t lk">${I.lock}<span>${esc(m.title)}</span></div>` : `<div class="t">${esc(m.title)}</div>`;
+  let l2 = `<b>${m.date}</b>`;
+  if (m.busy) l2 += `<span class="busy">${m.busy}</span>`;
+  else if (m.quote) l2 += `<span class="qbar"></span><em>${esc(m.quote)}</em>`;
+  else if (m.line) l2 += esc(m.line);
+  let fold = '';
+  const showDest = !m.locked && (S.fold === 'all' || (S.fold === 'pf' && m.dest === 'portfolio'));
+  if (showDest) fold += (m.dest === 'portfolio' ? `<span class="dot pf"></span><span class="pfw">Portfolio</span>` : `<span class="dot"></span><span class="dw">Personal</span>`) + ip(5);
+  if (m.fading && !m.locked) fold += `<span class="fade">${showDest?'· ':''}${m.fading}</span>`;
+  if (m.media && !m.locked) fold += `<span class="media">${m.media.g}<span>${esc(m.media.t)}</span>${ip(6)}</span>`;
+  const pinT = m.pill ? ip(11) : (!m.locked ? ip(10) + ip(7) : '');
+  return `<button class="nrow${sel}" data-open="new" data-id="${n.id}">
+    <div class="tx"><div class="l1">${title}${pill}${pinT}</div><div class="l2">${l2}</div>${fold?`<div class="l3">${fold}</div>`:''}</div>
+    ${m.photo && !m.locked ? `<div class="th" style="background:${m.photo}"></div>` : ''}</button>`;
+}
+function newGroups(mac){
+  PIN = {};
+  const groups = groupBy(filtered('new'), groupNew);
+  if (!groups.length) return '<div class="empty">No notes match.</div>';
+  return `<div class="${S.rows==='card'?'cards':''}">${groups.map((g,i) => `<div class="gh2 pinned">${g.title}${i===0?'<span class="pin ip" style="margin-left:8px">3</span><span class="pin ip">4</span>':''}</div><div class="grp pinned">${g.notes.map(n => nrow(n,'new',mac)).join('')}</div>`).join('')}</div>`;
+}
+function newPhone(){
+  return `<div class="phone sk${S.type==='big'?' big':''}">
+    <div class="status"><span>09:41</span><i></i><span class="r"></span></div>
+    <div class="scroll">${phoneTop('new')}
+      <div class="gone"><span class="pin" style="position:static">1</span><span><s>Continue listening card</s> removed, and its code deleted (D190).</span></div>
+      ${newGroups(false)}<div class="foot"></div></div>
+    ${tabBar('new')}</div>`;
+}
+function newMac(){
+  return `<div class="mac sk${S.type==='big'?' big':''}"><div class="lights"><i></i><i></i><i></i></div>${macTop('new')}
+    <div class="scroll">${newGroups(true)}<div class="foot"></div></div></div>`;
+}
+
+/* ── picks ── */
+const PICKS = [
+ ['Continue-listening card removed', 'D190 asks for it gone, code included. Nothing replaces it at the top of the list. The mini player that appears at the bottom while a book plays is not part of this mock.', 'ContinueListeningCard.swift, MemosListView.swift:236 and :450'],
+ ['Search, verbs and chips stay on top', 'Apple Notes has one search field and nothing else above the list. Skrift keeps Import / Record / new note and the All / Needs Work / Done / Unrated chips because they drive capture and the Mac pile. D190 says search stays for now, so only rows and grouping change.', 'MemosListView+Header.swift verbRow, filterChips'],
+ ['Groups copy Apple: Today, Previous 7 Days, Previous 30 Days, then months, then years', 'Same buckets and the same bold title-case headers. Day headers like "SAT 10 OCT" go. The line-2 date carries the detail instead: the time today, the weekday this week, "27 Sep" this year, 24/12/2025 older.', 'replaces MemoDate.group and the caps DayHeaderRow'],
+ ['One card per group with hairlines, like Apple', 'Today every note is its own bordered card. The new list puts a group into one surface with hairline separators, which is most of the calm. Flip "Rows" above to see the new row inside separate cards.', 'NoteCardView .background + .overlay per row'],
+ ['Folder line = Personal or Portfolio on every row', 'Apple shows the folder on line 3 when a list mixes folders. Skrift has two destinations and they are the privacy line (D189), so every row says which side it is on: a purple dot for Personal, amber for Portfolio, the colours the destination chip already uses. Flip "Folder line" to try Portfolio only or nothing.', 'NoteDestination.swift, DestinationRowView.swift'],
+ ['Audio length sits at the right end of the folder line', 'Apple has no audio. A recording shows a mic and its length, a book capture shows the chapter and its length, a link shows its domain. Typed notes show nothing there. Line 2 stays Apple\'s date + first line.', 'was the duration chip in NoteCardBuilder.content'],
+ ['Importance balls and the unrated fade are gone from the row', 'Apple rows carry no rating. D190 names importance and colour as what makes Skrift read worse. Rating stays in the open note; the Unrated and Needs Work chips still find notes by it. This is the question for the sitting.', 'NoteCardView.ballsView, MemoCard quiet 0.62'],
+ ['Tag, place and weather chips leave the row', 'Apple shows no tags in the list. Search still finds tags and places. A book quote keeps the accent bar and italics on line 2, the idiom for quoted text.', 'NoteCardView.chipsRow'],
+ ['Photos: Apple\'s thumbnail, a bit bigger', 'Apple already shows the first image on the right. Skrift keeps that, 52 pt on the phone (was 44) and 40 pt on the Mac, centred on the row.', 'NoteCardView thumb 44 pt'],
+ ['A reliable title line', 'Apple\'s rule: the first line is the title. Skrift uses his title, then the Mac\'s generated title, then the first sentence of the transcript, then "Voice note". Line 2 continues after that sentence. No row is ever without a bold first line.', 'NoteCardBuilder untitled branch (snippet only, no title)'],
+ ['Status pill only when something is happening', 'Transcribing, error and 2 versions keep a pill at the end of the title line. On the Mac, the always-on Ready / Exported / Transcribed pill goes, so both widths follow the phone rule.', 'SidebarView.swift QueueRowView.cardModel'],
+ ['Type: 16 / 14 / 12.5 on the phone, 14 / 12.5 / 11.5 on the Mac', 'Today is 13 / 11.5. Apple uses 17 / 15 on the phone. 16 / 14 is the "slightly bigger" D190 asks for and keeps about one more row on screen than Apple\'s sizes. Flip "Type" to compare.', 'NoteCardView titleLine 13, snippetLines 11.5']
+];
+
+/* ── render ── */
+const stage = document.getElementById('stage');
+function render(){
+  const ph = S.dev === 'phone';
+  const label = (k) => ({
+    ref: `<div class="collabel"><h2>Apple Notes</h2><span class="reftag">Reference · hand-drawn</span></div>`,
+    today: `<div class="collabel"><h2>Skrift today</h2><span>${ph ? 'MemosListView + NoteCardView' : 'SidebarView + NoteCardView'}</span></div>`,
+    new: `<div class="collabel"><h2>Skrift new</h2><span class="newtag">Proposed</span></div>`
+  }[k]);
+  const pan = { ref: ph ? refPhone() : refMac(), today: ph ? todayPhone() : todayMac(), new: ph ? newPhone() : newMac() };
+  // keep scroll positions across re-render
+  const pos = [...stage.querySelectorAll('.scroll')].map(s => s.scrollTop);
+  stage.innerHTML = ['ref','today','new'].map(k => `<div class="col${S.pan===k?' on':''}" data-col="${k}">${label(k)}${pan[k]}</div>`).join('');
+  stage.querySelectorAll('.scroll').forEach((s,i) => { if (pos[i]) s.scrollTop = pos[i]; });
+  document.getElementById('app').classList.toggle('noanno', !S.anno);
+  document.querySelectorAll('[data-dev]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dev === S.dev));
+  document.querySelectorAll('[data-pan]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pan === S.pan));
+  document.querySelectorAll('[data-fold]').forEach(b => b.setAttribute('aria-pressed', b.dataset.fold === S.fold));
+  document.querySelectorAll('[data-rows]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rows === S.rows));
+  document.querySelectorAll('[data-type]').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === S.type));
+  const an = document.getElementById('anno'); an.setAttribute('aria-pressed', S.anno); an.textContent = S.anno ? 'Pins on' : 'Pins off';
+}
+document.getElementById('picks').innerHTML = PICKS.map((p,i) => `<div class="pk"><span class="n">${i+1}</span><div><h4>${esc(p[0])}</h4><p>${esc(p[1])}</p><span class="src">${esc(p[2])}</span></div></div>`).join('');
+
+let tt;
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.dev) { S.dev = b.dataset.dev; render(); return; }
+  if (b.dataset.pan) { S.pan = b.dataset.pan; render(); return; }
+  if (b.dataset.fold) { S.fold = b.dataset.fold; render(); return; }
+  if (b.dataset.rows) { S.rows = b.dataset.rows; render(); return; }
+  if (b.dataset.type) { S.type = b.dataset.type; render(); return; }
+  if (b.id === 'anno') { S.anno = !S.anno; render(); return; }
+  if (b.dataset.chip) { S.chip[b.dataset.chip] = b.dataset.k; render(); return; }
+  if (b.dataset.sort) { const w = b.dataset.sort; S.sort[w] = (S.sort[w] + 1) % SORTS.length; render(); toast('Sort: ' + SORTS[S.sort[w]]); return; }
+  if (b.dataset.tab) { if (b.dataset.t !== 'Notes') toast(b.dataset.t + ' tab is not part of this mock'); return; }
+  if (b.hasAttribute('data-cont-x')) { S.contGone = true; render(); toast('Hidden for today (this is the card D190 deletes)'); return; }
+  if (b.dataset.open) {
+    const w = b.dataset.open, id = +b.dataset.id;
+    if (S.dev === 'mac') { S.sel[w] = id; render(); }
+    const n = NOTES.find(x => x.id === id);
+    toast(n.locked ? 'Asks for Face ID, then opens the note' : 'Opens the note. The open note gets its own side-by-side mock.');
+    return;
+  }
+  if (b.dataset.ack) toast(b.dataset.ack);
+});
+document.addEventListener('input', e => {
+  const id = e.target.id; if (!id) return;
+  const w = id.startsWith('ref') ? 'ref' : id.startsWith('today') ? 'today' : id.startsWith('new') ? 'new' : null; if (!w) return;
+  S.q[w] = e.target.value; const caret = e.target.selectionStart; render();
+  const el = document.getElementById(id); if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch(_){} }
+});
+render();
+})();
+</script>
