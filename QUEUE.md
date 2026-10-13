@@ -2605,7 +2605,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q351 [tuur] (doing) mockup: the article reader in Library, highlight to Add note
+### Q351 [tuur] (tuur) mockup: the article reader in Library, highlight to Add note
 spec: D90 D126 D138 C229
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`, extending `Q6-library-tab.html` (the Q6 mock says the article reader is not drawn): a shared article link lands on the Library shelf as an article tile; the reader shows clean reader-mode text (title, site, byline); select text → "Add note" opens the capture (quote + his voice) and the new note links back with `— *Title*, site` + URL (D138); a non-article link (video, tweet, product page) stays a note (D138). Phone only. Current parts drawn from source (C117).
@@ -3964,3 +3964,6 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:19 Q364 -> doing — worker out
 - 2026-10-13 10:19 Q349 -> tuur — built @6d563ec6, gate 156s — awaiting sitting
 - 2026-10-13 10:20 Q361 -> done — gate 62s @7cd49253
+- 2026-10-13 10:20 Q365 -> doing — worker out
+- 2026-10-13 10:21 Q365 -> todo — waits for a free worker slot (3 out)
+- 2026-10-13 10:21 Q351 -> tuur — built @3924ad30, gate 34s — awaiting sitting
