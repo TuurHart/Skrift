@@ -74,6 +74,13 @@ struct MemoDetailView: View {
         return m
     }
 
+    /// Q381: a note with no audio (a share capture, an article/PDF quote note, a typed note) gets no
+    /// player bar: an empty play / 0:00 / 1x control has nothing to play.
+    var hidesPlayerBar: Bool {
+        guard let m = currentMemo else { return false }
+        return m.isShareCapture || m.audioFilename.isEmpty
+    }
+
     /// Open `id` in place (a memo-link / related-note hop, or the delete-then-neighbour move): no
     /// sideways slide, one page. Ignored when the target is not a live note.
     func open(_ id: UUID) {
@@ -371,7 +378,7 @@ struct MemoDetailView: View {
                         // stops at the docked player (the sibling below).
                         if showConnections { connectionsSheet }
                     }
-                    if currentMemo?.isShareCapture != true {
+                    if !hidesPlayerBar {
                         dockedPlayer
                     }
                 }
@@ -619,7 +626,7 @@ struct MemoDetailView: View {
         // ipad-note-chrome-belongs.html) so the Connections visitor sheet can
         // stop above it — see `dockedPlayer`.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if hSize != .regular, currentMemo?.isShareCapture != true {
+            if hSize != .regular, !hidesPlayerBar {
                 bottomChrome
             }
         }
