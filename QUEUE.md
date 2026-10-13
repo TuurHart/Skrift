@@ -2716,7 +2716,7 @@ gate+: no
 do: Write `plan/release/RELEASE.md`. Bump CFBundleVersion in both project.yml files. Build the phone Release archive config and the Mac Release (`-configuration Release -skipMacroValidation ARCHS=arm64 ONLY_ACTIVE_ARCH=YES -derivedDataPath build-release`), string-grep a literal from Q357/Q358 in each product, record the paths. List every synced field and asset kind added since the installed prod build (diff the SwiftData `Memo`/`MemoAsset`/carrier models against the prod tag or commit; at least `Memo.includeAudioInExport` and MemoAsset kind `video`/`thumbnail`) with the CloudKit console steps for Q298. List the open device checks (Q17 Q63 Q64 Q272 Q280 Q281 Q302 Q304 Q309 Q311) for Tuur to clear or wave. Install nothing; never touch /Applications/Skrift.app or real data.
 check: `grep -q 'includeAudioInExport' plan/release/RELEASE.md && grep -q 'build-release' plan/release/RELEASE.md`
 
-### Q367 [auto] (doing) Mac store copy-test: open a COPY of the prod Mac store with the new build, print counts only
+### Q367 [auto] (done) Mac store copy-test: open a COPY of the prod Mac store with the new build, print counts only
 spec: -
 needs: Q366
 gate+: no
@@ -4194,3 +4194,4 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 - 2026-10-13 17:52 Q387 -> done — gate 37s @fa4ddbe0
 - 2026-10-13 17:54 Q367 -> doing — worker out
 - 2026-10-13 17:54 Q369 -> tuur — awaiting sitting (after Dev checks)
+- 2026-10-13 18:05 Q367 -> done — gate 43s @73c96f38
