@@ -2806,7 +2806,7 @@ gate+: yes
 do: Signed per D198: note text full pane width (48 pt margins beside the list, 89 pt full screen); Apple's in-note attach menu (Scan Document, Take Photo or Video, Choose Photo or Video, Attach File; no Record Audio) under 'Add to this note'; tabs = option A, a slim glass control at the top of the list column; no folders column. Build to `Skrift_Native/SkriftDesktop/mocks/Q378-ipad-apple.html` (the signed version) on the iPad width of the universal phone target: list column + open note side by side, the toolbar as signed, the full Aa list (D197). Reuse Q358's shared list row and Q359's editor; iPad-only layout code only. Screenshots on the iPad simulator next to the mock frames at the same scale into plan/reads/ipad-apple/. Phone test `IPadLayoutTests` for the size-class switch.
 check: `test $(ls plan/reads/ipad-apple/*.png | wc -l) -ge 2 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh IPadLayoutTests`
 
-### Q380 [auto] (doing) dead-code sweep after the rebuild: delete what Q352-Q379 left unused, Periphery on both apps
+### Q380 [auto] (done) dead-code sweep after the rebuild: delete what Q352-Q379 left unused, Periphery on both apps
 spec: -
 needs: Q355 Q358 Q359 Q360 Q377 Q379
 gate+: yes
@@ -4156,3 +4156,4 @@ check: `grep -q 'Q386\|part 2' plan/periphery.md && ./plan/twin-check.sh`
 - 2026-10-13 16:10 Q385 added
 - 2026-10-13 16:17 Q383 -> done — gate 38s @3c3cc8f2
 - 2026-10-13 16:34 Q386 added
+- 2026-10-13 16:37 Q380 -> done — hand-merged (D163 blanket: protected tests only deleted with the chip/quiet code or call sites ported)
