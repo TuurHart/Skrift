@@ -2889,7 +2889,7 @@ gate+: yes
 do: Finish Q385 to the signed mock Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html. (1) Posters: AVAssetImageGenerator runs synchronously on the main thread when a note with a large video renders — generate off-main and cache per asset (NoteOpenWorkTests/MacNoteOpenWorkTests stay green, never loosened). (2) Starting an inline video pauses the note's own audio player (mock pick 1). (3) Mac: video/file blocks drag between paragraphs like photos (Shared BodyFormat.moveBlock exists). (4) Hold menu items as the mock: Copy, Share, Save, Delete plus View as Small/Large and move. (5) DEBUG `-seedAttachmentMemo` in DemoDataSeeder (text + [[vid_001]] large with a short AVAssetWriter .mov, [[img_001]], [[file_001]] a DXF, [[file_002]] a PDF), a phone screenshot UI test (`-skipOnboarding -routeViaList -appTheme light`) and a Mac `-snapshot-attachments` route; lay every shot next to the matching mock frame at the same scale into plan/reads/attachments/ and LOOK; fix differences. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
-### Q392 [auto] (doing) attachments follow-ups from the Q390 review: Mac grey file card, one picker chain, Save on the captured PDF
+### Q392 [auto] (todo) attachments follow-ups from the Q390 review: Mac grey file card, one picker chain, Save on the captured PDF
 spec: D202
 needs: Q390
 gate+: no
@@ -4228,3 +4228,4 @@ check: `! grep -q 'captureFileCard' -r Skrift_Native --include='*.swift' && perl
 - 2026-10-13 21:11 Q392 added
 - 2026-10-13 21:14 Q390 -> done — gate 45s @281eb28b
 - 2026-10-13 21:14 Q392 -> doing — worker out
+- 2026-10-13 21:18 Q392 -> todo — paused by Tuur (gaming); wip on wt/Q392 in agent-a5b75aec6775df775 — redispatch from it
