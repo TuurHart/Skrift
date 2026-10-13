@@ -2834,7 +2834,7 @@ gate+: no
 do: Same recipe as Q374 (finding: phone device builds need `-skipMacroValidation -skipPackagePluginValidation`; iPhone 17 Pro xcodebuild id == devicectl id; binary greps need `/usr/bin/grep -a`). Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q379 literal (`IPadTabControl`) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q360 literal (`MacExportConfirm`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run Dev 187 (worker reports both grep hits).
 
-### Q384 [tuur] (doing) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
+### Q384 [tuur] (tuur) mockup: a video and a file inside a note, next to Apple Notes (phone, iPad, Mac)
 spec: D199 D198 D126
 needs: -
 do: One clickable page `Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html`: inside an open Skrift note (Q350/Q378 frames as signed), an inline video block (poster frame, play, duration; tap plays inline, full screen on expand) and a file card (icon, name, size; tap opens Quick Look), plus the existing photo and PDF blocks, on phone, iPad and Mac; long-press moves any block like a photo (D112). Apple Notes reference panels from Tuur's screenshots in '/Users/tiurihartog/Downloads/apple notes ui/attatchments/' (iPhone and Mac), laid at the same scale; the iPad frame is drawn from those plus the signed Q378 iPad layout (D200). One agent on the file.
@@ -4190,3 +4190,4 @@ ask: Open the real Skrift on the Mac (not Dev). Do your newest phone notes from 
 - 2026-10-13 17:36 Q389 -> tuur — awaiting sitting
 - 2026-10-13 17:36 Q388 -> doing — worker out
 - 2026-10-13 17:44 Q388 -> done — gate 73s @5efc20c4
+- 2026-10-13 17:48 Q384 -> tuur — built @0480185c, gate 55s — awaiting sitting
