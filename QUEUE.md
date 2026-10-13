@@ -2058,7 +2058,7 @@ do: -
 check: Undated Apple Note imports now carry a 1970 date. An older installed build would fade them at once. Promote phone and Mac together before importing Apple Notes, agreed?
 ask: Undated Apple Note imports get a 1970 date, which an older build would fade at once. Release phone and Mac together?
 
-### Q272 [tuur] (tuur) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
+### Q272 [tuur] (done) review Q187/Q185 look picks: the phone memo-link chip now uses the Mac look ('🗒 Title', bordered; was '→ Title' accent-soft) based on Mac-only mocks; inline photos on the Mac now fill the column with a 320pt cap; one transcribe-book battery sentence; phone record waveform silent-bar floor 0.12. Glance at both apps on Dev
 spec: -
 needs: -
 do: -
@@ -4050,3 +4050,4 @@ ask: On the Mac (Skrift Dev, with the test notes filled in Settings): click thro
 - 2026-10-13 14:04 Q350 -> doing — mockup revision out
 - 2026-10-13 14:08 Q373 -> done — Tuur: keep PDF-link / Episode-link / Audiobook-link / Article-link
 - 2026-10-13 14:08 Q298 -> done — Tuur: yes — same-day release, Mac copy-test first, ~10 min in the CloudKit console at Q370
+- 2026-10-13 14:15 Q272 -> done — Tuur: yes, keep all three
