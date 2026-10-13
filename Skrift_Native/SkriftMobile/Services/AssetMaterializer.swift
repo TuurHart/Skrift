@@ -169,6 +169,11 @@ enum AssetMaterializer {
             if captureFile(entry.filename, kind: MemoAsset.Kind.photo, memoID: memo.id,
                            existing: existing, context: context) { dirty = true }
         }
+        // D199: the videos and files inside the body, one asset each, kind from the manifest.
+        for entry in memo.metadata?.attachmentManifest ?? [] {
+            if captureFile(entry.filename, kind: entry.kind, memoID: memo.id,
+                           existing: existing, context: context) { dirty = true }
+        }
         // A shared `.file` capture's document (e.g. a PDF) → a document asset, so the actual
         // file reaches the Mac (3b), not just the text A6 already put in `sharedContent.text`.
         // C63 / C148 / D188: a video's source movie (<= 200 MB, `MemoSaver.keepMovie`) syncs

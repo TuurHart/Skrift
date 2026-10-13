@@ -8,6 +8,8 @@ import UIKit
 /// callers gate on `isAvailable`.
 struct CameraImagePicker: UIViewControllerRepresentable {
     var onCapture: (UIImage) -> Void
+    /// D199 "Take Photo or Video": set → the camera also records video, handed over as a file.
+    var onMovie: ((URL) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     static var isAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
@@ -15,6 +17,7 @@ struct CameraImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+        if onMovie != nil { picker.mediaTypes = ["public.image", "public.movie"] }
         picker.delegate = context.coordinator
         return picker
     }
@@ -29,7 +32,9 @@ struct CameraImagePicker: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage {
+            if let movie = info[.mediaURL] as? URL, let onMovie = parent.onMovie {
+                onMovie(movie)
+            } else if let image = info[.originalImage] as? UIImage {
                 parent.onCapture(image)
             }
             parent.dismiss()

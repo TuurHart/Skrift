@@ -66,6 +66,8 @@ PipelineFile, MemoEmbedding (`cloudKitDatabase: .none`).
 | `MemoAsset.kind` value `thumbnail` | value in existing String field | Q260 | no |
 | `MemoAsset.kind` value `video` (movie ≤ ~200 MB in the existing `blob` field) | value in existing field | Q287 | no |
 | `Memo.metadataData` JSON keys `bookKind`, `bookURL`, `clipManifest`, `importFileName`, `videoFilename`, `testLibrary`, `mediaSource` | inside existing Bytes blob | various | no |
+| `MemoAsset.kind` value `file` (a file attached to a note, any type, in the existing `blob` field) | value in existing field | Q385 | no |
+| `Memo.metadataData` JSON keys `attachmentManifest` (videos + files in the note: kind, filename, name, uti, byteCount, durationSeconds) and `largeAttachments` (filenames switched to large) | inside existing Bytes blob | Q385 (D199, D202) | no |
 | `Memo.nameResolutionsData` now synced both ways | existing field, new use | Q116 | no |
 | `Memo.remindAt` | existing field, now unused (D185), kept | — | no |
 | `AudiobookSyncRecord.blob` keys `kind`, `publishedAt`, `sourceURL`, `site` | inside existing blob | Q352–Q355 | no |

@@ -85,23 +85,21 @@ struct IPadNoteToolbar: View {
             .ignoresSafeArea()
         }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraImagePicker { insert($0) }.ignoresSafeArea()
+            CameraImagePicker(onCapture: { insert($0) }, onMovie: { insertFile($0, name: nil, uti: nil) })
+                .ignoresSafeArea()
         }
-        .photosPicker(isPresented: $showPhotos, selection: $pickedPhoto, matching: .images)
+        // D199: a video or any file goes in as its own block (`NoteAttachIntake`, same as the phone).
+        .photosPicker(isPresented: $showPhotos, selection: $pickedPhoto, matching: NoteAttachIntake.libraryFilter)
         .onChange(of: pickedPhoto) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                    insert(image)
-                }
+                await NoteAttachIntake.load(item, image: { insert($0) }, file: { insertFile($0, name: $1, uti: $2) })
                 pickedPhoto = nil
             }
         }
-        .fileImporter(isPresented: $showFiles, allowedContentTypes: [.image], allowsMultipleSelection: false) { result in
+        .fileImporter(isPresented: $showFiles, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let url = urls.first else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if let data = try? Data(contentsOf: url), let image = UIImage(data: data) { insert(image) }
+            NoteAttachIntake.importFile(url, image: { insert($0) }, file: { insertFile($0, name: $1, uti: $2) })
         }
     }
 
@@ -133,5 +131,10 @@ struct IPadNoteToolbar: View {
         editor?.insertPhoto(image)
         AssetMaterializer.capture(memoID: memo.id, repository: NotesRepository.shared)
         PhotoTextIndexer.run(NotesRepository.shared)
+    }
+
+    private func insertFile(_ url: URL, name: String?, uti: String?) {
+        editor?.insertAttachment(fileURL: url, originalName: name, uti: uti)
+        AssetMaterializer.capture(memoID: memo.id, repository: NotesRepository.shared)
     }
 }

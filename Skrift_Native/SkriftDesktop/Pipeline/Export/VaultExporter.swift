@@ -317,6 +317,13 @@ enum VaultExporter {
             (finalMarkdown, _) = profile.convertPictureMarkers(finalMarkdown, manifest: [], stem: safe)
         }
 
+        // D199: videos and files in the body go beside the note like photos, through the same
+        // placer (the ownership copy, or the Q365 dry run).
+        let (withAttachments, attachmentCount) = MacNoteAttachments.convertMarkers(
+            finalMarkdown, working: pf.workingFolder, safe: safe, into: attDir, profile: profile, place: place)
+        finalMarkdown = withAttachments
+        imageCount += attachmentCount
+
         // Apple-Note attachments: copy the note's `Attachments/` into the vault
         // attachments folder and convert `(Attachments/<name>)` refs → Obsidian
         // `![[<name>]]` embeds (robust to the renamed files' spaces).

@@ -171,7 +171,12 @@ struct NoteBody: View {
             onAddPhoto: addPhoto,
             onPhotoMarkup: photoMarkedUp,
             photoToken: file.lastActivityAt,
-            noteID: file.id
+            noteID: file.id,
+            attachments: { MacNoteAttachments.manifest(memo: cloudMemo(), working: file.workingFolder) },
+            attachmentURL: { MacNoteAttachments.fileURL($0, working: file.workingFolder) },
+            largeAttachments: { MacNoteAttachments.large(memo: cloudMemo()) },
+            onAddAttachment: addAttachment,
+            onSetAttachmentSize: setAttachmentSize
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -233,6 +238,28 @@ struct NoteBody: View {
         let ctx = cloudContext
         let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
         return MacNotePhotos.add(imageData: data, to: file, memo: memo, context: ctx)
+    }
+
+    // MARK: videos and files (D199, D202)
+
+    /// The synced memo behind this note (nil for a local-only note or with CloudKit off).
+    private func cloudMemo() -> Memo? {
+        cloudContext.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+    }
+
+    /// A dropped / pasted / inserted video or file: copied in, mirrored to the phone.
+    private func addAttachment(_ url: URL) -> MacNoteAttachments.Added? {
+        let ctx = cloudContext
+        return MacNoteAttachments.add(fileURL: url, to: file, memo: ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) },
+                                      context: ctx)
+    }
+
+    /// One block (a filename) or every block (nil, the ⋯ menu's Set All) to small / large.
+    private func setAttachmentSize(_ filename: String?, _ size: NoteAttachment.Size) {
+        guard let memo = cloudMemo() else { return }
+        MacNoteAttachments.setSize(size, filename: filename, memo: memo,
+                                   allFilenames: MacNoteAttachments.allFilenames(memo: memo),
+                                   context: cloudContext)
     }
 
     /// Quick Look's Markup saved into a photo: the phone gets the marked-up file.

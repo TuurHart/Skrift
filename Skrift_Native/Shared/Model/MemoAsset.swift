@@ -79,6 +79,10 @@ final class MemoAsset {
         /// <= ~200 MB, `VideoKeep`) so the portfolio export can copy it from whichever device
         /// exports. Named by `MemoMetadata.videoFilename`; absent on every other memo. Additive.
         static let video = "video"
+        /// D199: a file attached inside a note body (`[[file_NNN]]`). Its shown name and type ride
+        /// the note's `MemoMetadata.attachmentManifest`; a video attached in the body is a `video`
+        /// row named by that manifest (not `videoFilename`). Additive.
+        static let file = "file"
         /// The relative filename a link capture's thumbnail travels under, or nil when the
         /// field is empty or a legacy remote URL (never fetched — the offline rule).
         static func linkThumbnailFilename(_ shared: SharedContent?) -> String? {

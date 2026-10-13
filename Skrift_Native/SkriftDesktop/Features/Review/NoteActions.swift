@@ -167,6 +167,24 @@ struct NoteActions: View {
         }
     }
 
+    /// D202: Apple's "Attachment View ›" with Set All to Small / Large, on a synced note that
+    /// holds a photo, video or file (the size is synced memo state, so a Mac-only note has none).
+    @ViewBuilder private var attachmentViewItems: some View {
+        let body = file.bestBodyText
+        if body.contains("[[img_") || body.contains("[[vid_") || body.contains("[[file_"),
+           let ctx = MemoCloudStore.container?.mainContext,
+           let memo = MacCloudWriteBack.resolve(for: file, in: ctx), MacNoteAttachments.hasBlocks(memo: memo) {
+            Menu(NoteAttachment.attachmentViewTitle) {
+                ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
+                    Button(size == .small ? NoteAttachment.setAllSmallTitle : NoteAttachment.setAllLargeTitle) {
+                        MacNoteAttachments.setSize(size, filename: nil, memo: memo,
+                                                   allFilenames: MacNoteAttachments.allFilenames(memo: memo), context: ctx)
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder private var fullOverflowItems: some View {
         // D173 (Q290): record a take onto THIS note. The shell owns the one live session, so
         // the ⋯ asks it (`RootView`) rather than holding a recorder of its own.
@@ -199,6 +217,7 @@ struct NoteActions: View {
             }
         }
         undoTidyUpItem
+        attachmentViewItems
         Divider()
         copyItems
         Button(NoteMenuItem.revealInFinder.label) { revealInFinder() }

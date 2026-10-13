@@ -293,7 +293,11 @@ enum BodyFormat {
     /// WITHOUT it (0 = the top, past the end = the bottom). Every other paragraph, and every
     /// other marker, keeps its order; an absent marker leaves the body as it was.
     static func movePhoto(marker: Int, in body: String, toParagraph index: Int) -> String {
-        let literal = BodyV2Marker.literal(marker)
+        moveBlock(literal: BodyV2Marker.literal(marker), in: body, toParagraph: index)
+    }
+
+    /// Any block (photo `[[img_NNN]]`, video `[[vid_NNN]]`, file `[[file_NNN]]`) moved the same way.
+    static func moveBlock(literal: String, in body: String, toParagraph index: Int) -> String {
         var paras = body.components(separatedBy: "\n\n")
         guard let from = paras.firstIndex(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines) == literal })
         else { return body }

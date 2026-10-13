@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import ImageIO
 import QuickLookUI
+import AVKit
 
 /// What the gutter's naming popover needs from its host (Q87, mock Q86-split-speakers.html).
 struct SpeakerAssign {
@@ -108,6 +109,17 @@ struct BodyTextView: NSViewRepresentable {
     /// a debounced commit still pending at a switch is written to the note it was typed in
     /// before the new note renders. nil = the host shows one fixed text (snapshots).
     var noteID: String? = nil
+    /// D199: the note's videos and files (`[[vid_NNN]]` / `[[file_NNN]]`, N into this list), read
+    /// at render time only when the body holds a marker. Empty = markers stay text.
+    var attachments: () -> [NoteAttachmentEntry] = { [] }
+    /// The file an attachment entry points at, when it is on disk.
+    var attachmentURL: (NoteAttachmentEntry) -> URL? = { _ in nil }
+    /// D202: the filenames drawn LARGE (photos, videos, files); nil = all small. Read at render.
+    var largeAttachments: () -> [String]? = { nil }
+    /// D199: copy a dropped / pasted / inserted non-picture file into the note. nil = no attachments.
+    var onAddAttachment: ((URL) -> MacNoteAttachments.Added?)? = nil
+    /// D202: switch one block (a filename) or every block (nil) to small / large.
+    var onSetAttachmentSize: ((String?, NoteAttachment.Size) -> Void)? = nil
 
     /// Everything the full `restyle` reads besides the text: when none of it changed, an
     /// update (a resize frame, re-created closures) skips the restyle (Q363, M6).
@@ -203,6 +215,7 @@ struct BodyTextView: NSViewRepresentable {
         }
         tv.quoteAttribution = quoteAttribution
         let coordinator = context.coordinator
+        coordinator.textView = tv
         tv.onAddPhotoData = { [weak coordinator, weak tv] data, loc in
             guard let coordinator, let tv else { return }
             coordinator.addPhoto(data, at: loc, in: tv)
@@ -215,6 +228,11 @@ struct BodyTextView: NSViewRepresentable {
         tv.onMovePhoto = { [weak coordinator, weak tv] number, from, to in
             guard let coordinator, let tv else { return }
             coordinator.movePhoto(number, from: from, toParagraph: to, in: tv)
+        }
+        // D199: a non-picture file dropped / pasted / inserted becomes a video or file block.
+        tv.onAddAttachmentFile = { [weak coordinator, weak tv] url, loc in
+            guard let coordinator, let tv else { return }
+            coordinator.addAttachment(url, at: loc, in: tv)
         }
         // Q360: a format edit is decisive — commit the model and restyle fully now.
         tv.onFormatted = { [weak coordinator, weak tv] in
@@ -239,6 +257,7 @@ struct BodyTextView: NSViewRepresentable {
         // callback stay bound to the first note shown.
         context.coordinator.parent = self
         tv.takesPhotos = onAddPhoto != nil
+        tv.takesAttachments = onAddAttachment != nil
         if tv.quoteAttribution != quoteAttribution {
             tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
             tv.invalidateIntrinsicContentSize()
@@ -401,7 +420,22 @@ struct BodyTextView: NSViewRepresentable {
                     uniquingKeysWith: { first, _ in first })
             }
         }
-        init(_ parent: BodyTextView) { self.parent = parent }
+        init(_ parent: BodyTextView) {
+            self.parent = parent
+            super.init()
+            // D202: a Set All from the ⋯ menu (another view) redraws this body's blocks.
+            sizesObserver = NotificationCenter.default.addObserver(forName: MacNoteAttachments.sizesChanged, object: nil,
+                                                                   queue: .main) { [weak self] _ in
+                guard let self, let tv = self.textView else { return }
+                MainActor.assumeIsolated {
+                    self.render(tv, model: self.flushModelCommit(tv))
+                    tv.invalidateIntrinsicContentSize()
+                }
+            }
+        }
+        deinit { if let sizesObserver { NotificationCenter.default.removeObserver(sizesObserver) } }
+        private var sizesObserver: NSObjectProtocol?
+        weak var textView: SelfSizingTextView?
 
         /// R90: the pending debounced model commit — `modelString` (an O(document)
         /// attachment walk) and the write into `parent.text` (the SwiftData model)
@@ -429,6 +463,7 @@ struct BodyTextView: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? SelfSizingTextView else { return }
+            stopInlineVideo()   // the frame would drift off its block while the text moves
             searchHits = []    // offsets drift while typing — the pen comes off at the first edit
             tv.selectedPhotoLoc = nil
             // In-place, LOCAL recolor only — see `restyle`'s doc. The model write and
@@ -652,6 +687,8 @@ struct BodyTextView: NSViewRepresentable {
         /// name, or an ALIAS of any existing person. The reliable, user-driven way to
         /// grow the names graph (you pick the exact words; no flaky auto-detection).
         func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            // D202 (mock pick 6): right-click a photo / video / file block → its own menu.
+            if let tv = view as? SelfSizingTextView, let blockMenu = blockMenu(at: charIndex, in: tv) { return blockMenu }
             let r = view.selectedRange()
             let ns = view.string as NSString
             guard r.length > 0, r.location + r.length <= ns.length else { return menu }
@@ -770,6 +807,8 @@ struct BodyTextView: NSViewRepresentable {
             peopleCache = parent.people.isEmpty ? NamesStore.shared.livePeople() : parent.people
             spliceSpeakerGutters(tv)  // `**Name:**` → the gutter name (needs peopleCache)
             spliceWaitingPhotos(tv)   // a marker whose file hasn't arrived → the phone's card (Q325)
+            stopInlineVideo()
+            spliceAttachmentBlocks(tv) // [[vid_NNN]] / [[file_NNN]] → the shared block art (D199)
             restyle(tv)
             tv.typingAttributes = [.font: BodyTextView.bodyFont, .foregroundColor: primary]
             loadThumbnails(into: tv, model: model)
@@ -1024,6 +1063,156 @@ struct BodyTextView: NSViewRepresentable {
             tv.undoManager?.setActionName("Insert Photo")
         }
 
+        // MARK: videos and files (D199, D202, mock Q384) — rules in Shared `NoteAttachment`
+
+        private var inlinePlayer: AVPlayerView?
+
+        func stopInlineVideo() {
+            inlinePlayer?.player?.pause()
+            inlinePlayer?.removeFromSuperview()
+            inlinePlayer = nil
+        }
+
+        /// Every resolving `[[vid_NNN]]` / `[[file_NNN]]` → its block, drawn by the shared painter
+        /// at its size (small card by default), 720 / 520 pt wide at most, left-aligned (pick 8).
+        private func spliceAttachmentBlocks(_ tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage else { return }
+            let text = storage.string
+            guard text.contains("[[vid_") || text.contains("[[file_") else { return }
+            let manifest = parent.attachments()
+            guard !manifest.isEmpty else { return }
+            let large = parent.largeAttachments()
+            let pad = tv.textContainer?.lineFragmentPadding ?? 0
+            var column = (tv.textContainer?.size.width ?? 0) - 2 * pad
+            if column <= 0 || column > 4000 { column = tv.bounds.width - 2 * pad }
+            if column < 200 { column = NoteAttachment.wideMediaMaxWidth }
+            let dark = tv.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            storage.beginEditing()
+            for m in NoteAttachment.markers(in: text).reversed() {
+                guard let e = NoteAttachment.entry(kind: m.kind, number: m.number, manifest: manifest) else { continue }
+                let url = parent.attachmentURL(e)
+                let size = NoteAttachment.size(of: e.filename, large: large)
+                let media = size == .large && url != nil && e.kind == NoteAttachment.Kind.video
+                let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: media)
+                let img = NoteAttachmentArt.image(e, size: size, width: w,
+                                                  maxVideoHeight: NoteAttachment.videoMaxHeight(wide: true),
+                                                  fileURL: url, dark: dark)
+                let att = NoteBlockAttachment(literal: (text as NSString).substring(with: m.range), entry: e)
+                att.image = img
+                att.bounds = CGRect(origin: .zero, size: img.size)
+                storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+            }
+            storage.endEditing()
+        }
+
+        /// A non-picture file dropped / pasted / inserted at storage `loc`: the host copies it in
+        /// (`MacNoteAttachments.add`); its marker goes in as its own paragraph (shared rule, C10).
+        func addAttachment(_ url: URL, at loc: Int, in tv: SelfSizingTextView) {
+            guard let add = parent.onAddAttachment, tv.isEditable else { return }
+            let before = flushModelCommit(tv)
+            guard let added = add(url) else { NSSound.beep(); return }
+            let caret = modelOffset(ofStorage: loc, in: tv)
+            let stored = NoteAttachment.inserting(kind: added.entry.kind, number: added.number, into: before, atOffset: caret)
+            show(model: stored.text, in: tv)
+            tv.undoManager?.registerUndo(withTarget: self) { [weak tv] target in
+                guard let tv else { return }
+                target.restore(model: before, redo: stored.text, in: tv)
+            }
+            tv.undoManager?.setActionName("Insert Attachment")
+        }
+
+        /// A click on a block: a large video plays right there (AVKit's inline controls carry the
+        /// ⤢ full-screen button); a small video or a file opens in Quick Look.
+        func openBlock(_ block: NoteBlockAttachment, at loc: Int, in tv: SelfSizingTextView) {
+            guard let url = parent.attachmentURL(block.entry) else { return }
+            let size = NoteAttachment.size(of: block.entry.filename, large: parent.largeAttachments())
+            if block.entry.kind == NoteAttachment.Kind.video, size == .large, let rect = tv.attachmentRect(at: loc) {
+                stopInlineVideo()
+                let view = AVPlayerView(frame: rect)
+                view.controlsStyle = .inline
+                view.showsFullScreenToggleButton = true
+                view.wantsLayer = true
+                view.layer?.cornerRadius = NoteAttachment.mediaCornerRadius
+                view.layer?.masksToBounds = true
+                view.player = AVPlayer(url: url)
+                tv.addSubview(view)
+                inlinePlayer = view
+                view.player?.play()
+                return
+            }
+            MainActor.assumeIsolated {
+                NotePhotoViewer.shared.show(url: url,
+                                            sourceFrame: { [weak tv] in tv?.screenRect(ofCharacterAt: loc) ?? .zero },
+                                            sourceImage: block.image) { _ in }
+            }
+        }
+
+        /// What a block at `loc` is: its marker literal, its filename and its file. Photos and
+        /// video / file blocks alike; nil for a card whose file has not arrived.
+        private func blockInfo(at loc: Int, in tv: SelfSizingTextView) -> (literal: String, filename: String, url: URL?)? {
+            guard let storage = tv.textStorage, loc >= 0, loc < storage.length else { return nil }
+            let v = storage.attribute(.attachment, at: loc, effectiveRange: nil)
+            if let photo = v as? ImageMarkerAttachment, !photo.isCard, let url = parent.imageURL(photo.imgNumber) {
+                return (BodyV2Marker.literal(photo.imgNumber), url.lastPathComponent, url)
+            }
+            if let block = v as? NoteBlockAttachment {
+                return (block.literal, block.entry.filename, parent.attachmentURL(block.entry))
+            }
+            return nil
+        }
+
+        /// The right-click menu of a block (mock pick 6 + D202's View as Small / Large).
+        func blockMenu(at loc: Int, in tv: SelfSizingTextView) -> NSMenu? {
+            guard let info = blockInfo(at: loc, in: tv) else { return nil }
+            let model = modelString(tv)
+            let where_ = NoteAttachment.paragraphIndex(of: info.literal, in: model) ?? (0, 1)
+            let size = NoteAttachment.size(of: info.filename, large: parent.largeAttachments())
+            var actions = NoteAttachment.blockActions(size: size, paragraph: where_.index, count: where_.count,
+                                                      shareable: info.url != nil)
+            if parent.onSetAttachmentSize == nil { actions.removeAll { if case .setSize = $0 { return true }; return false } }
+            if !tv.isEditable { actions.removeAll { $0 != .share } }
+            guard !actions.isEmpty else { return nil }
+            let menu = NSMenu()
+            for a in actions {
+                if a == .delete || a == .share { menu.addItem(.separator()) }
+                let item = NSMenuItem(title: a.title, action: #selector(blockAction(_:)), keyEquivalent: "")
+                item.target = self
+                item.image = NSImage(systemSymbolName: a.symbol, accessibilityDescription: nil)
+                item.representedObject = BlockActionBox(action: a, literal: info.literal, filename: info.filename,
+                                                        url: info.url, loc: loc, tv: tv)
+                menu.addItem(item)
+            }
+            return menu
+        }
+
+        @objc private func blockAction(_ sender: NSMenuItem) {
+            guard let box = sender.representedObject as? BlockActionBox, let tv = box.tv else { return }
+            switch box.action {
+            case .setSize(let s):
+                parent.onSetAttachmentSize?(box.filename, s)
+                render(tv, model: flushModelCommit(tv))
+                tv.invalidateIntrinsicContentSize()
+            case .moveUp, .moveDown:
+                let model = flushModelCommit(tv)
+                let moved = NoteAttachment.moving(box.literal, by: box.action == .moveUp ? -1 : 1, in: model)
+                if moved != model { show(model: moved, in: tv) }
+            case .delete:
+                let model = flushModelCommit(tv)
+                let left = NoteAttachment.deleting(box.literal, in: model)
+                if left != model {
+                    show(model: left, in: tv)
+                    tv.undoManager?.registerUndo(withTarget: self) { [weak tv] target in
+                        guard let tv else { return }
+                        target.restore(model: model, redo: left, in: tv)
+                    }
+                    tv.undoManager?.setActionName("Delete")
+                }
+            case .share:
+                guard let url = box.url, let rect = tv.attachmentRect(at: box.loc) else { return }
+                NSSharingServicePicker(items: [url]).show(relativeTo: rect, of: tv, preferredEdge: .minY)
+            }
+        }
+
         /// Put `model` on screen AND in the note (the binding writes it to the file and the
         /// Mac→phone edit sync), as one decisive act.
         private func show(model: String, in tv: SelfSizingTextView) {
@@ -1079,13 +1268,25 @@ struct BodyTextView: NSViewRepresentable {
             let full = storage.string as NSString
             let sel = tv.selectedRanges
             let column = columnWidth(tv)
+            let large = parent.largeAttachments()
+            let dark = tv.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             storage.beginEditing()
             for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
                 let num = Int(full.substring(with: m.range(at: 1))) ?? 0
                 guard let img = thumbs[num] else { continue }
                 let att = ImageMarkerAttachment(imgNumber: num)
+                // D202: a photo is SMALL (the grey card) until the person switches it to large.
+                if let url = parent.imageURL(num),
+                   NoteAttachment.size(of: url.lastPathComponent, large: large) == .small {
+                    let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: false)
+                    att.image = NoteAttachmentArt.photoCard(filename: url.lastPathComponent, fileURL: url, width: w, dark: dark)
+                    att.bounds = CGRect(x: 0, y: 0, width: w, height: NoteAttachment.cardMinHeight)
+                    storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+                    continue
+                }
                 att.image = img
-                att.bounds = CGRect(origin: .zero, size: NoteLook.photoSize(image: img.size, columnWidth: column))
+                att.bounds = CGRect(origin: .zero, size: NoteLook.photoSize(image: img.size,
+                                                                           columnWidth: min(column, NoteAttachment.wideMediaMaxWidth)))
                 storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
             }
             storage.endEditing()
@@ -1386,6 +1587,9 @@ struct BodyTextView: NSViewRepresentable {
             storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
                 if value is ImageMarkerAttachment {
                     locs.append((modelLoc, 10)); modelLoc += 11
+                } else if let block = value as? NoteBlockAttachment {
+                    let len = (block.literal as NSString).length
+                    locs.append((modelLoc, len - 1)); modelLoc += len
                 } else if let chip = value as? MemoLinkChipAttachment {
                     let len = (chip.literal as NSString).length
                     locs.append((modelLoc, len - 1)); modelLoc += len
@@ -1426,6 +1630,13 @@ struct BodyTextView: NSViewRepresentable {
                 guard !att.isCard else { return true }
                 tv.window?.makeFirstResponder(tv)
                 tv.selectedPhotoLoc = idx
+                return true
+            }
+            // D199/D202: a video plays in the note (⤢ full screen in its controls), a file opens
+            // in Quick Look. A block whose file has not arrived stays inert.
+            if idx < storage.length,
+               let block = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? NoteBlockAttachment {
+                openBlock(block, at: idx, in: tv)
                 return true
             }
             // Memo-link chip → open that memo in the detail pane (read-only v1).
@@ -1585,6 +1796,8 @@ struct BodyTextView: NSViewRepresentable {
             storage.enumerateAttribute(.attachment, in: span) { value, range, _ in
                 if let att = value as? ImageMarkerAttachment {
                     out += BodyV2Marker.literal(att.imgNumber)
+                } else if let block = value as? NoteBlockAttachment {
+                    out += block.literal
                 } else if let chip = value as? MemoLinkChipAttachment {
                     out += chip.literal
                 } else if let gutter = value as? SpeakerGutterAttachment {
@@ -1833,6 +2046,30 @@ final class ImageMarkerAttachment: NSTextAttachment {
     required init?(coder: NSCoder) { self.imgNumber = 0; super.init(coder: coder) }
 }
 
+/// A video or file block standing in for its `[[vid_NNN]]` / `[[file_NNN]]` marker (D199).
+final class NoteBlockAttachment: NSTextAttachment {
+    let literal: String
+    let entry: NoteAttachmentEntry
+    init(literal: String, entry: NoteAttachmentEntry) {
+        self.literal = literal; self.entry = entry
+        super.init(data: nil, ofType: nil)
+    }
+    required init?(coder: NSCoder) { nil }
+}
+
+/// One block-menu item's payload (the action and the block it acts on).
+private final class BlockActionBox {
+    let action: NoteAttachment.BlockAction
+    let literal: String
+    let filename: String
+    let url: URL?
+    let loc: Int
+    weak var tv: SelfSizingTextView?
+    init(action: NoteAttachment.BlockAction, literal: String, filename: String, url: URL?, loc: Int, tv: SelfSizingTextView) {
+        self.action = action; self.literal = literal; self.filename = filename; self.url = url; self.loc = loc; self.tv = tv
+    }
+}
+
 /// A checklist checkbox standing in for a line-start `- [ ]` / `- [x]` (the shared
 /// `BodyTransform` task syntax). One storage char; `modelString` reconstructs the
 /// raw prefix, so a toggle is a real text edit that exports + syncs.
@@ -2037,6 +2274,22 @@ final class SelfSizingTextView: NSTextView {
     var selectedPhotoLoc: Int? { didSet { if oldValue != selectedPhotoLoc { needsDisplay = true } } }
 
     private var canTakePhotos: Bool { takesPhotos && isEditable && onAddPhotoData != nil }
+    /// D199: the host takes videos and files too (drop, paste, Insert).
+    var takesAttachments = false
+    var onAddAttachmentFile: ((URL, Int) -> Void)?
+    private var canTakeAttachments: Bool { takesAttachments && isEditable && onAddAttachmentFile != nil }
+
+    /// Where any attachment glyph at `loc` is drawn, in view coordinates (the inline player's frame).
+    func attachmentRect(at loc: Int) -> NSRect? {
+        guard let lm = layoutManager, let tc = textContainer, let storage = textStorage, loc < storage.length,
+              let att = storage.attribute(.attachment, at: loc, effectiveRange: nil) as? NSTextAttachment else { return nil }
+        let glyph = lm.glyphIndexForCharacter(at: loc)
+        let line = lm.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: tc)
+        let size = att.bounds.size
+        // The glyph sits on the line's baseline: its picture is the bottom `size.height` of the box.
+        return NSRect(x: line.minX + textContainerOrigin.x, y: line.maxY - size.height + textContainerOrigin.y,
+                      width: size.width, height: size.height)
+    }
     /// Audiobook capture: the attribution caption drawn under the leading C1 quote
     /// block (plus the accent bar beside it). nil = no quote decoration.
     var quoteAttribution: String? {
@@ -2169,6 +2422,13 @@ final class SelfSizingTextView: NSTextView {
 
     /// Paste an image (or a copied image file) as a photo at the caret; text pastes as text.
     override func paste(_ sender: Any?) {
+        if canTakeAttachments {
+            let files = NotePhotoPayload.attachmentFiles(NSPasteboard.general)
+            if !files.isEmpty {
+                for url in files { onAddAttachmentFile?(url, selectedRange().location) }
+                return
+            }
+        }
         if canTakePhotos {
             let photos = NotePhotoPayload.photos(NSPasteboard.general)
             if !photos.isEmpty {
@@ -2182,23 +2442,29 @@ final class SelfSizingTextView: NSTextView {
     /// An image-only pasteboard must still enable Edit > Paste (and ⌘V).
     override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
         var types = super.readablePasteboardTypes
-        if canTakePhotos { types += [.png, .tiff, .fileURL].filter { !types.contains($0) } }
+        if canTakePhotos || canTakeAttachments { types += [.png, .tiff, .fileURL].filter { !types.contains($0) } }
         return types
     }
 
     /// NSTextView registers string types only (plain text); add pictures and files for drops.
     override func updateDragTypeRegistration() {
         super.updateDragTypeRegistration()
-        if takesPhotos { registerForDraggedTypes(registeredDraggedTypes + [.fileURL, .png, .tiff]) }
+        if takesPhotos || takesAttachments { registerForDraggedTypes(registeredDraggedTypes + [.fileURL, .png, .tiff]) }
+    }
+
+    /// A drag this view turns into photos or attachment blocks.
+    private func takesDrop(_ pb: NSPasteboard) -> Bool {
+        (canTakePhotos && !NotePhotoPayload.photos(pb).isEmpty)
+            || (canTakeAttachments && !NotePhotoPayload.attachmentFiles(pb).isEmpty)
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        if canTakePhotos, !NotePhotoPayload.photos(sender.draggingPasteboard).isEmpty { return .copy }
+        if takesDrop(sender.draggingPasteboard) { return .copy }
         return super.draggingEntered(sender)
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        if canTakePhotos, !NotePhotoPayload.photos(sender.draggingPasteboard).isEmpty {
+        if takesDrop(sender.draggingPasteboard) {
             // The photo lands where the pointer is: show the caret there while dragging.
             setSelectedRange(NSRange(location: characterIndexForInsertion(at: convert(sender.draggingLocation, from: nil)),
                                      length: 0))
@@ -2208,6 +2474,19 @@ final class SelfSizingTextView: NSTextView {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        if canTakeAttachments {
+            let files = NotePhotoPayload.attachmentFiles(sender.draggingPasteboard)
+            if !files.isEmpty {
+                var loc = characterIndexForInsertion(at: convert(sender.draggingLocation, from: nil))
+                for url in files {
+                    setSelectedRange(NSRange(location: loc, length: 0))
+                    onAddAttachmentFile?(url, loc)
+                    loc = selectedRange().location
+                }
+                // Pictures in the same drop still go in as photos below.
+                if NotePhotoPayload.photos(sender.draggingPasteboard).isEmpty || !canTakePhotos { return true }
+            }
+        }
         if canTakePhotos {
             let photos = NotePhotoPayload.photos(sender.draggingPasteboard)
             if !photos.isEmpty {
@@ -2222,10 +2501,11 @@ final class SelfSizingTextView: NSTextView {
 
     /// Edit > Insert Photo… (⇧⌘I): choose picture files; each lands at the caret (D181: no toolbar button).
     @objc func insertPhoto(_ sender: Any?) {
-        guard canTakePhotos, let window else { NSSound.beep(); return }
+        guard canTakePhotos || canTakeAttachments, let window else { NSSound.beep(); return }
         let panel = NSOpenPanel()
-        panel.title = "Add Photo"
-        panel.allowedContentTypes = [.image]
+        // D199: any file — a picture goes in as a photo, a video or other file as its block.
+        panel.title = canTakeAttachments ? "Attach File" : "Add Photo"
+        panel.allowedContentTypes = canTakeAttachments ? [.item] : [.image]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         let at = selectedRange().location
@@ -2233,9 +2513,14 @@ final class SelfSizingTextView: NSTextView {
             guard response == .OK, let self else { return }
             var loc = at
             for url in panel.urls {
-                guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
                 self.setSelectedRange(NSRange(location: loc, length: 0))
-                self.onAddPhotoData?(data, loc)
+                if MacNoteAttachments.isAttachment(url) {
+                    guard self.canTakeAttachments else { continue }
+                    self.onAddAttachmentFile?(url, loc)
+                } else {
+                    guard self.canTakePhotos, let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
+                    self.onAddPhotoData?(data, loc)
+                }
                 loc = self.selectedRange().location
             }
         }

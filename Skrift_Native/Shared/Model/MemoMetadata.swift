@@ -80,6 +80,15 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// every real note; an older decoder ignores the key.
     var testLibrary: Bool?
 
+    /// D199: the videos and files in the note body, in marker order (`[[vid_NNN]]` /
+    /// `[[file_NNN]]` = the Nth entry, `NoteAttachment`). Their bytes sync as `MemoAsset` kinds
+    /// `video` / `file`. ADDITIVE + optional - nil on every note without one.
+    var attachmentManifest: [NoteAttachmentEntry]?
+
+    /// D202: the filenames of the attachments the person switched to LARGE (Apple's small/large
+    /// switch, small by default). ADDITIVE + optional - nil = every attachment small.
+    var largeAttachments: [String]?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -248,4 +257,22 @@ struct ImageManifestEntry: Codable, Equatable, Sendable {
     /// "" = indexed and no text found. Additive — old payloads decode fine,
     /// and it rides the synced metadata blob to every device.
     var text: String? = nil
+}
+
+/// One video or file inside a note body (D199, D202; rules in `NoteAttachment`). Rides the synced
+/// metadata blob (`attachmentManifest`, ADDITIVE), so no new CloudKit field: the bytes travel as a
+/// `MemoAsset` of kind `video` / `file` named `filename`. Lives here, not beside `NoteAttachment`,
+/// because the extensions compile Shared/Model without Shared/Pipeline.
+struct NoteAttachmentEntry: Codable, Equatable, Sendable {
+    /// `NoteAttachment.Kind.video` / `.file`.
+    var kind: String
+    /// The on-disk + `MemoAsset` filename (`NoteAttachment.filename`).
+    var filename: String
+    /// The name the file came in with: the card's title and the exported file's name.
+    var name: String
+    /// The file's uniform type identifier ("com.adobe.pdf"), for the card's kind label and icon.
+    var uti: String
+    var byteCount: Int
+    /// A video's length, for the duration label (pick 5). nil for a file.
+    var durationSeconds: Double? = nil
 }
