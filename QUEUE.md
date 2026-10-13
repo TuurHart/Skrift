@@ -2744,7 +2744,7 @@ do: -
 check: Mac Release installed at /Applications/Skrift.app (literal grep matches), phone build on TestFlight and installed, branch merged and pushed to main.
 ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone build through Xcode Organizer to TestFlight, and I merge to main. Go?
 
-### Q371 [tuur] (todo) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
+### Q371 [tuur] (tuur) approve: LibraryShelfTests door assertions follow the built doors (podcast now, PDF after Q354)
 spec: -
 needs: -
 do: -
@@ -3987,3 +3987,4 @@ ask: Q352 added a protected test saying the podcast and PDF doors stay hidden; Q
 - 2026-10-13 10:46 Q365 -> done — gate 71s @7cd7a694
 - 2026-10-13 10:57 Q353 -> done — gate 65s @53c3e7a2
 - 2026-10-13 10:57 Q371 added
+- 2026-10-13 10:58 Q371 -> tuur — awaiting sitting
