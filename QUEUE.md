@@ -2599,7 +2599,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q349-notes-list-apple.html`: for each width (phone, Mac sidebar) an Apple Notes reference panel beside the Skrift list drawn to D190: groups Today / Previous 7 Days / Previous 30 Days / then months; calmer, slightly bigger rows of title line, date + first line, folder line (pick what Skrift's "folder" is: Personal/Portfolio destination, or nothing); no Continue-listening card; search stays on top. Draw Apple Notes from public reference images only, never from Tuur's own Notes; label it as a reference, no Apple names or icons as Skrift branding (D193). Current Skrift parts drawn from source (C117). Name each pick that departs from Apple Notes and why (audio, rating, photos).
 check: Tuur clicked through it and said go.
 
-### Q350 [tuur] (doing) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
+### Q350 [tuur] (tuur) mockup: the open note and its editing toolbar next to Apple Notes, phone and Mac
 spec: D193 D115 C113 C234
 needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`: the open note on phone and Mac beside an Apple Notes reference panel (public reference images only, never Tuur's Notes; no Apple names or icons as branding). Draw D115: selection bar (bold, italic, underline, strikethrough) and an "Aa" menu (Title, Heading, Body, lists, checklists) over Skrift's dim-visible markdown marks; keep what Apple Notes lacks: audio + karaoke player, inline photo blocks (long-press drag, D112), capture quotes, speaker turns, Personal/Portfolio, polish, rating pill. Every C234 must-keep visible in at least one frame. No new toolbar buttons beyond what Apple Notes has (D181). Current Skrift parts drawn from source (C117).
@@ -3968,3 +3968,4 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:21 Q365 -> todo — waits for a free worker slot (3 out)
 - 2026-10-13 10:21 Q351 -> tuur — built @3924ad30, gate 34s — awaiting sitting
 - 2026-10-13 10:21 Q363 -> done — gate 34s @c82c4c49
+- 2026-10-13 10:22 Q350 -> tuur — built @03123eb9, gate 32s — awaiting sitting
