@@ -318,8 +318,10 @@ h3.sect{font-size:16px;margin:34px 0 0}
 .sk .emenu i{width:1px;height:19px;background:var(--sk-ring);display:block}
 .sk .emenu .newp{color:var(--sk-accent-text);font-weight:600}
 .sk .ssel{background:var(--sk-accent-soft);border-radius:2px;box-shadow:0 0 0 1px var(--sk-accent-soft)}
-.sk .pmenu{position:absolute;top:0;left:104px;width:240px;border-radius:22px;background:var(--sk-surface);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0;z-index:20;display:flex;flex-direction:column}
-.sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
+.sk .pmenu{position:absolute;top:54px;left:20px;width:250px;border-radius:28px;background:var(--sk-glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 0 0 .5px var(--sk-ring),0 10px 40px rgba(0,0,0,.18);padding:6px 0 12px;z-index:20;display:flex;flex-direction:column;text-align:left}
+.sk .pmenu .ph{font-size:13px;font-weight:600;color:var(--sk-dim);padding:10px 21px 4px}
+.sk .pmenu .pft{font-size:12px;line-height:16px;color:var(--sk-faint);padding-top:9px;border-top:.5px solid var(--sk-ring);margin:6px 21px 0}
+.sk .pmenu button{width:100%;height:44px;display:flex;align-items:center;gap:13px;padding:0 21px;font-size:15px;text-align:left;justify-content:flex-start;color:var(--sk-text);border-radius:0}
 .sk .tools .pmenu button{width:100%}
 .sk .li .bx{display:flex;align-items:center;justify-content:center;color:#fff}
 .sk .dchip.pers{color:var(--sk-dim);background:var(--sk-elev)}
@@ -369,7 +371,7 @@ const SEC = [
   {id:'list',   name:'List and note',   shot:'IMG_5231', ref:'list',    st:{},                           cap:'the list beside an open note'},
   {id:'aa',     name:'Aa',              shot:'IMG_5234 + 5235', ref:'format', st:{aa:true, refSty:1},             cap:'Aa open: Apple floats a Format panel over a dimmed screen; Skrift drops the Mac popover from the button'},
   {id:'select', name:'Text selected',   shot:'IMG_5232', ref:'select',  st:{selbar:true},                cap:'a sentence selected: the edit menu above it'},
-  {id:'attach', name:'Attach / photo',  shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach (Apple) or photo (Skrift) button opened'},
+  {id:'attach', name:'Attach',          shot:'IMG_5233', ref:'attach',  st:{photo:true},                 cap:'the attach button opened: both add to this note'},
   {id:'check',  name:'Checklist note',  shot:'IMG_5236', ref:'check',   st:{sel:4},                      cap:'a typed note with a checklist'},
   {id:'full',   name:'List hidden',     shot:'IMG_5237', ref:'full',    st:{sel:4, list:false},          cap:'the list closed, the note takes the screen'},
   {id:'folders',name:'Folders column',  shot:'IMG_5238', ref:'folders', st:null,                         cap:'Apple\'s three columns; Skrift has no folders column'}
@@ -670,8 +672,17 @@ function selMenu(){
     <button class="newp" data-ack="New person… opens the person editor with &ldquo;Rui&rdquo; filled in (D196)">New person…</button><i></i><button data-ack="More: Look Up, Translate, Share">${I.chevR}</button>
   </div>`;
 }
+/* attach menu = Apple's in-note attach menu (D198) minus Record Audio, Scan Text and Image Playground */
 function photoMenu(){
-  return `<div class="pmenu${pick(11)}" role="menu"><button data-close data-ack="Camera opens; the photo lands at the caret">${I.cam}<span>Take Photo</span></button><button data-close data-ack="Photo library opens; the photo lands at the caret">${I.photo}<span>Choose from Library</span></button></div>`;
+  const it = (icon, label, ack) => `<button data-close data-ack="${ack}"><span style="width:22px;display:flex;justify-content:center">${icon}</span><span>${label}</span></button>`;
+  return `<div class="pmenu${pick(11)}" role="menu" aria-label="Add to this note">
+    <div class="ph">Add to this note</div>
+    ${it(I.scanD,'Scan Document','Document scanner opens; the scan lands at the caret in this note')}
+    ${it(I.cam,'Take Photo or Video','Camera opens; the photo or video lands at the caret in this note')}
+    ${it(I.photo,'Choose Photo or Video','Photo library opens; the pick lands at the caret in this note')}
+    ${it(I.file,'Attach File','Files opens; the file is attached to this note')}
+    <div class="pft">For a new note from a file or recording, use Import, top left.</div>
+  </div>`;
 }
 function audioNote(){
   const sel = S.selbar;
@@ -713,7 +724,7 @@ function noteCol(){
   return `<div class="ncol">
     <div class="nband">
       <span class="sp"></span>
-      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button class="${S.photo?'on':''}" data-photo aria-label="Photo">${I.photo}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}${S.photo ? photoMenu() : ''}</div>
+      <div class="gl tools${pick(5)}"><button class="aa${S.aa?' on':''}" data-aa aria-label="Format">Aa</button><button data-ack="Checklist on this line (unchanged)" aria-label="Checklist">${I.check}</button><button class="${S.photo?'on':''}" data-photo aria-label="Attach">${I.clip}</button><button data-ack="Link to another note (unchanged)" aria-label="Note link">${I.link}</button>${S.aa ? aaPop() : ''}${S.photo ? photoMenu() : ''}</div>
       <div class="wrapr"><button class="gl cap" data-ack="Connections slides in over the note (unchanged)">Connections</button><button class="gl cap soft" data-menu="export">Export</button><button class="gl" data-menu="more" aria-label="More">${I.dots}</button>${menu}${conf}</div>
     </div>
     ${S.sel === 4 ? typedNote() : audioNote()}
@@ -792,7 +803,7 @@ const PICKS = [
  ['Text runs the full pane width (D198)', 'No 640 pt cap in any state. Margins copy Apple\'s: 48 pt each side beside the list, 89 pt each side when the list is hidden (Apple\'s full-screen note starts at 89 pt).'],
  ['The docked player stays under the note', 'Skrift-only and kept: ⟲10 · play · 10⟳ · position · rate across the bottom of the note pane. Apple has nothing there. Typed notes (pairs 5, 6) have no dock.'],
  ['Selection menu: Apple\'s pill, Skrift\'s items (D196)', 'Pair 3. The same floating glass pill above the selection, holding Cut · Copy · Paste in their normal place, then B I U S, then "New person…" in the accent colour, then ›. Apple\'s writing-tools bar at the bottom is not copied.'],
- ['Photo opens Apple\'s in-place menu', 'Pair 4. Today the phone asks "Add photo" in a bottom dialog. On iPad the photo button grows into a glass menu like Apple\'s attach menu, with Skrift\'s two choices: Take Photo, Choose from Library.'],
+ ['The paperclip opens Apple\'s attach menu, minus Record Audio (D198)', 'Pair 4. The photo button becomes Apple\'s paperclip and opens its glass menu: Scan Document, Take Photo or Video, Choose Photo or Video, Attach File. Headed "Add to this note"; the footnote points to Import for new notes. Scan Text and Image Playground are not copied either.'],
  ['No folders column', 'Pair 7. Apple shows folders and tags in a third column. Skrift draws none on iPad; Personal / Portfolio stay as list chips.'],
  ['Square checkboxes, Skrift purple', 'Pair 5. Apple draws round yellow checkboxes. Skrift keeps its square ones (NoteBodyView: square / checkmark.square.fill) in the accent colour.']
 ];
