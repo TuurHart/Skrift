@@ -2611,7 +2611,7 @@ needs: -
 do: One clickable HTML page, `Skrift_Native/SkriftDesktop/mocks/Q351-article-reader.html`, extending `Q6-library-tab.html` (the Q6 mock says the article reader is not drawn): a shared article link lands on the Library shelf as an article tile; the reader shows clean reader-mode text (title, site, byline); select text → "Add note" opens the capture (quote + his voice) and the new note links back with `— *Title*, site` + URL (D138); a non-article link (video, tweet, product page) stays a note (D138). Phone only. Current parts drawn from source (C117).
 check: Tuur clicked through it and said go.
 
-### Q352 [auto] (doing) the Books tab becomes Library: shelf and empty tab per the Q6 mock
+### Q352 [auto] (done) the Books tab becomes Library: shelf and empty tab per the Q6 mock
 spec: C229 D90 D128 D134 D135
 needs: -
 gate+: yes
@@ -2702,7 +2702,7 @@ gate+: yes
 do: From plan/perf2/g-mac-pipeline.md G1-G7 G11 G12, f-mac-ui.md M10 and h-shared-data.md M1-M3 X1; re-check each first. `adoptLateDiarization` and `adoptLateWordTimings` short-circuit for a note with nothing to adopt and never fault asset blobs; `MacMemoAuthor.backfill/reflectTranscripts` use one id→Memo dictionary per sweep instead of a fetch per row; new memos ingest on a background context in batches with one save; `MemoCloudUpdate.apply` skips the JSON re-serialise when the metadata is unchanged; the lifecycle sweep and the Connections snapshot reuse the reconcile's memo snapshot; `NoteActions.workInputs` is computed once per body. Keep every sync rule identical (C-contract: raw transcript in, LWW by `enhancedAt`). New counter test `MacReconcileWorkTests` in SkriftDesktopTests: a sweep over 2,000 already-ingested monologues fetches no blob and does O(1) Memo fetches; a second sweep with no change writes nothing. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MacReconcileWorkTests.swift`
 
-### Q365 [auto] (todo) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
+### Q365 [auto] (doing) Mac perf: Process and export read the vault tags and the ledger once per run and skip unchanged files
 spec: D191 D186
 needs: -
 gate+: yes
@@ -3969,3 +3969,5 @@ ask: Prod is idle? Then: I swap the Mac app in /Applications, you send the phone
 - 2026-10-13 10:21 Q351 -> tuur — built @3924ad30, gate 34s — awaiting sitting
 - 2026-10-13 10:21 Q363 -> done — gate 34s @c82c4c49
 - 2026-10-13 10:22 Q350 -> tuur — built @03123eb9, gate 32s — awaiting sitting
+- 2026-10-13 10:27 Q365 -> doing — worker out
+- 2026-10-13 10:33 Q352 -> done — gate 78s @1f68eade
