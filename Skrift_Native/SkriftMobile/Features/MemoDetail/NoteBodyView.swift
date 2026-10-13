@@ -851,18 +851,26 @@ struct NoteBodyView: UIViewRepresentable {
             func dim(_ r: NSRange) {
                 storage.addAttributes([.foregroundColor: markColor, .font: base, Self.mdKey: true], range: shift(r))
             }
-            for h in BodyMarkdown.headings(in: sub) {
-                let f = h.level == 1 ? Coordinator.titleFont()
-                    : h.level == 2 ? Coordinator.headingFont()
-                    : UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16.5, weight: .semibold))
-                storage.addAttribute(.font, value: f, range: shift(h.text))
-                dim(NSRange(location: h.marks.location, length: h.marks.length + 1))
-            }
-            for s in BodyFormat.inlineMarks(in: sub) {
-                let c = shift(s.content)
-                switch s.mark {
-                case .bold, .italic:
-                    let trait: UIFontDescriptor.SymbolicTraits = s.mark == .bold ? .traitBold : .traitItalic
+            // Q380: WHICH ranges get styled is the shared `MarkdownLook` (the Mac reads the same
+            // spans); only the fonts and colours below are the phone's.
+            let spans = MarkdownLook.spans(in: sub)
+            for span in spans where span.role != .mark {
+                let c = shift(span.range)
+                switch span.role {
+                case .mark:
+                    break
+                case .heading(let level):
+                    let f = level == 1 ? Coordinator.titleFont()
+                        : level == 2 ? Coordinator.headingFont()
+                        : UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16.5, weight: .semibold))
+                    storage.addAttribute(.font, value: f, range: c)
+                case .fenceContent:
+                    storage.addAttributes([.font: UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular),
+                                           Self.mdKey: true], range: c)
+                case .quoteText:
+                    storage.addAttributes([.foregroundColor: UIColor(Color.skTextDim), Self.mdKey: true], range: c)
+                case .inline(let mark) where mark == .bold || mark == .italic:
+                    let trait: UIFontDescriptor.SymbolicTraits = mark == .bold ? .traitBold : .traitItalic
                     storage.enumerateAttribute(.font, in: c) { f, r, _ in
                         let font = (f as? UIFont) ?? base
                         var traits = font.fontDescriptor.symbolicTraits
@@ -871,21 +879,20 @@ struct NoteBodyView: UIViewRepresentable {
                             storage.addAttribute(.font, value: UIFont(descriptor: d, size: font.pointSize), range: r)
                         }
                     }
-                case .underline:
+                case .inline(.underline):
                     storage.addAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
-                case .strike:
+                case .inline(.strike):
                     storage.addAttributes([.strikethroughStyle: NSUnderlineStyle.single.rawValue, Self.mdKey: true], range: c)
-                case .highlight:
+                case .inline(.highlight):
                     // Written on the Mac (Q360); the phone shows it, its Aa set stays D115's.
                     storage.addAttributes([.backgroundColor: UIColor(Color.skAmber).withAlphaComponent(0.22),
                                            Self.mdKey: true], range: c)
-                case .code:
+                case .inline:   // .code (bold / italic handled above)
                     storage.addAttributes([.font: UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular),
                                            Self.mdKey: true], range: c)
                 }
-                dim(s.open)
-                dim(s.close)
             }
+            for span in spans where span.role == .mark { dim(span.range) }
             storage.endEditing()
         }
 

@@ -1137,7 +1137,7 @@ struct BodyTextView: NSViewRepresentable {
                 // (chips/checkboxes/gutter names), so a bare plain-styled edit window
                 // stays legible until the next full pass. Q360: the edited paragraph keeps
                 // its heading and B I U S look while typing (one paragraph's regex, not the note's).
-                applyMarkdownLook(storage, in: window, headings: true)
+                applyMarkdownLook(storage, in: window, quoteFloor: 0)
                 storage.endEditing()
                 return
             }
@@ -1236,21 +1236,15 @@ struct BodyTextView: NSViewRepresentable {
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
                 }
             }
-            // Markdown headings render as real TITLES (`# ` big, `## ` smaller) and
-            // inline #tags accent — the WHAT comes from the shared `BodyMarkdown`
-            // (one rule set with the phone), the LOOK is local. Characters stay
-            // verbatim — the export is already markdown.
-            let headingFaint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
-            for h in BodyMarkdown.headings(in: storage.string) {
-                let tier = min(h.level, BodyTextView.headingFonts.count) - 1
-                storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: h.text)
-                storage.addAttribute(.foregroundColor, value: headingFaint, range: h.marks)
-            }
+            // Inline #tags accent (the shared `BodyMarkdown` rule); headings, B I U S, highlight,
+            // code, fences and block quotes come from the shared `MarkdownLook` below. The leading
+            // audiobook quote keeps its own look (`styleLeadingQuote`).
             for r in BodyMarkdown.inlineTags(in: storage.string) {
                 storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: r)
             }
-            // Q360 (D115): B I U S, highlight, code, fenced blocks and block quotes — marks dim, text styled.
-            applyMarkdownLook(storage, in: full, headings: false)
+            applyMarkdownLook(storage, in: full,
+                              quoteFloor: NSMaxRange(BookCapture.quoteLineRanges(in: storage.string).last
+                                                     ?? NSRange(location: 0, length: 0)))
             // SUGGESTED tier: tan text + a dotted underline (mocks/naming-review.html).
             let tan = NSColor(Theme.nameSuggest), line = NSColor(Theme.nameSuggestLine)
             for (_, r) in suggestedRanges(in: storage) {
@@ -1265,49 +1259,32 @@ struct BodyTextView: NSViewRepresentable {
             if parent.quoteAttribution != nil { tv.needsDisplay = true }
         }
 
-        /// Q360 (D115, C24/C116): the shared `BodyFormat` mark pairs drawn over `window` — both
-        /// marks at the heading marks' 25% ink, the text between bold / italic / underlined /
-        /// struck / highlighted / mono. The characters stay verbatim (the export is this text).
-        func applyMarkdownLook(_ storage: NSTextStorage, in window: NSRange, headings: Bool) {
+        /// Q360 (D115, C24/C116) + Q380: the shared `MarkdownLook` spans drawn over `window` — every
+        /// mark at 25% ink, headings in their tier font, the text between a pair bold / italic /
+        /// underlined / struck / highlighted / mono, fences mono, quotes secondary. WHICH ranges is
+        /// the shared rule (the phone reads the same spans); only the look is the Mac's. The
+        /// characters stay verbatim (the export is this text). `quoteFloor` is absolute.
+        func applyMarkdownLook(_ storage: NSTextStorage, in window: NSRange, quoteFloor: Int) {
             guard window.length > 0, NSMaxRange(window) <= storage.length else { return }
             let sub = (storage.string as NSString).substring(with: window)
             let faint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
             let at: (NSRange) -> NSRange = { NSRange(location: $0.location + window.location, length: $0.length) }
-            if headings {
-                for h in BodyMarkdown.headings(in: sub) {
-                    let tier = min(h.level, BodyTextView.headingFonts.count) - 1
-                    storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: at(h.text))
-                    storage.addAttribute(.foregroundColor, value: faint, range: at(h.marks))
+            for span in MarkdownLook.spans(in: sub, quoteFloor: quoteFloor - window.location) {
+                let r = at(span.range)
+                switch span.role {
+                case .mark: storage.addAttribute(.foregroundColor, value: faint, range: r)
+                case .heading(let level):
+                    let tier = min(level, BodyTextView.headingFonts.count) - 1
+                    storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: r)
+                case .inline(.bold): convertFont(storage, r, trait: .boldFontMask)
+                case .inline(.italic): convertFont(storage, r, trait: .italicFontMask)
+                case .inline(.underline): storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: r)
+                case .inline(.strike): storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: r)
+                case .inline(.highlight):
+                    storage.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.32), range: r)
+                case .inline(.code), .fenceContent: storage.addAttribute(.font, value: BodyTextView.monoFont, range: r)
+                case .quoteText: storage.addAttribute(.foregroundColor, value: NSColor(Theme.textSecondary), range: r)
                 }
-            }
-            for s in BodyFormat.inlineMarks(in: sub) {
-                storage.addAttribute(.foregroundColor, value: faint, range: at(s.open))
-                storage.addAttribute(.foregroundColor, value: faint, range: at(s.close))
-                let inner = at(s.content)
-                switch s.mark {
-                case .bold: convertFont(storage, inner, trait: .boldFontMask)
-                case .italic: convertFont(storage, inner, trait: .italicFontMask)
-                case .underline: storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: inner)
-                case .strike: storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: inner)
-                case .highlight:
-                    storage.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.32), range: inner)
-                case .code: storage.addAttribute(.font, value: BodyTextView.monoFont, range: inner)
-                }
-            }
-            for f in BodyFormat.fences(in: sub) {
-                storage.addAttribute(.foregroundColor, value: faint, range: at(f.open))
-                storage.addAttribute(.foregroundColor, value: faint, range: at(f.close))
-                storage.addAttribute(.font, value: BodyTextView.monoFont, range: at(f.content))
-            }
-            // A block quote below the top (the leading one is the audiobook capture's, styled
-            // by `styleLeadingQuote`): the `> ` dims and the words go secondary.
-            let ns = sub as NSString
-            let skip = headings ? 0 : NSMaxRange(BookCapture.quoteLineRanges(in: storage.string).last ?? NSRange(location: 0, length: 0))
-            ns.enumerateSubstrings(in: NSRange(location: 0, length: ns.length), options: .byLines) { line, r, _, _ in
-                guard let line, line.hasPrefix("> "), at(r).location >= skip else { return }
-                storage.addAttribute(.foregroundColor, value: faint, range: at(NSRange(location: r.location, length: 2)))
-                storage.addAttribute(.foregroundColor, value: NSColor(Theme.textSecondary),
-                                     range: at(NSRange(location: r.location + 2, length: r.length - 2)))
             }
         }
 
