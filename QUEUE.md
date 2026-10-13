@@ -2889,6 +2889,13 @@ gate+: yes
 do: Finish Q385 to the signed mock Skrift_Native/SkriftDesktop/mocks/Q384-note-attachments.html. (1) Posters: AVAssetImageGenerator runs synchronously on the main thread when a note with a large video renders — generate off-main and cache per asset (NoteOpenWorkTests/MacNoteOpenWorkTests stay green, never loosened). (2) Starting an inline video pauses the note's own audio player (mock pick 1). (3) Mac: video/file blocks drag between paragraphs like photos (Shared BodyFormat.moveBlock exists). (4) Hold menu items as the mock: Copy, Share, Save, Delete plus View as Small/Large and move. (5) DEBUG `-seedAttachmentMemo` in DemoDataSeeder (text + [[vid_001]] large with a short AVAssetWriter .mov, [[img_001]], [[file_001]] a DXF, [[file_002]] a PDF), a phone screenshot UI test (`-skipOnboarding -routeViaList -appTheme light`) and a Mac `-snapshot-attachments` route; lay every shot next to the matching mock frame at the same scale into plan/reads/attachments/ and LOOK; fix differences. Never run SkriftDesktopUITests.
 check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
 
+### Q392 [auto] (todo) attachments follow-ups from the Q390 review: Mac grey file card, one picker chain, Save on the captured PDF
+spec: D202
+needs: Q390
+gate+: no
+do: From plan/reads/q385-review.md: (1) the Mac capture card `CaptureViews.fileCard` still has its own purple Open button — replace it with the shared grey card from Shared/UI/NoteAttachmentArt.swift (whole card opens Quick Look), as the phone now does (D202 pick 4); (2) the phone page and the iPad toolbar each chain the same three pickers (camera, library, files) — one shared intake (NoteAttachIntake) both call; (3) the captured PDF's context menu lacks Save — add it from the shared hold-menu list. Mac `-snapshot` + phone shot of the file card next to the Q384 mock frame; LOOK. Never run SkriftDesktopUITests.
+check: `! grep -q 'captureFileCard' -r Skrift_Native --include='*.swift' && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh NoteAttachmentTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4218,3 +4225,4 @@ check: `test $(ls plan/reads/attachments/*.png | wc -l) -ge 4 && perl -e 'alarm 
 - 2026-10-13 20:24 Q391 -> doing — worker out
 - 2026-10-13 20:54 Q391 -> done — gate 42s @c82b12b7
 - 2026-10-13 20:54 Q390 -> doing — worker out
+- 2026-10-13 21:11 Q392 added
