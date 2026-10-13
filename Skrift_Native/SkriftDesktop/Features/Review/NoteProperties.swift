@@ -91,10 +91,8 @@ struct NoteProperties: View {
                     DestinationRowView(
                         destination: Binding(get: { file.destination },
                                              set: { file.destination = $0 }),
-                        folderLabel: { $0.portfolioFolder.map { "\($0)/" } },
                         onPick: { MacCloudMetaSync.setDestination($0, for: file) },
                         style: .mac)
-                        .fixedSize()
                 }
                 // Tags (D139, `tag-ui-revamp.html`): inline field, `✕` on hover, library-wide
                 // case fold. `.onChange(of: file.tags)` below mirrors any edit to the phone.

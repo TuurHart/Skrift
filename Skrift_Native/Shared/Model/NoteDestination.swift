@@ -34,6 +34,20 @@ enum NoteDestination: String, CaseIterable, Codable, Sendable {
     /// export profile, so a glance answers which side of the line a note is on.
     var isPortfolio: Bool { self == .portfolio }
 
+    /// D204: the other side of the line. The destination pill is a tap toggle, and this is its
+    /// whole step (two destinations since D189).
+    var toggled: NoteDestination { isPortfolio ? .personal : .portfolio }
+
+    /// One tap on the pill: flip `current` in place and report the new value once. The shared
+    /// `DestinationRowView` calls this; the Mac test drives it without a view.
+    @discardableResult
+    static func tapped(_ current: inout NoteDestination, onPick: (NoteDestination) -> Void) -> NoteDestination {
+        let next = current.toggled
+        current = next
+        onPick(next)
+        return next
+    }
+
     /// The folder the portfolio destination writes into, relative to the picked portfolio root.
     /// `nil` for `.personal`, which uses the existing Obsidian vault bookmark instead.
     var portfolioFolder: String? {

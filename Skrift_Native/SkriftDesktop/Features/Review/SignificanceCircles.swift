@@ -62,11 +62,6 @@ extension DestinationRowStyle {
             accentSoft: Theme.accent.opacity(0.16),
             accentText: Theme.accentText,
             portfolio: Theme.amber,
-            portfolioSoft: Theme.amber.opacity(0.13),
-            text: Theme.textPrimary,
-            textDim: Theme.textSecondary,
-            textFaint: Theme.textMuted,
-            border: Theme.hairline.opacity(0.16),
-            chipFill: Theme.hairline.opacity(0.07))
+            portfolioSoft: Theme.amber.opacity(0.13))
     }
 }
