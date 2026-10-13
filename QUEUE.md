@@ -2585,7 +2585,7 @@ gate+: yes
 do: Found by Q345 (2026-10-11) from feedback note 2b8bc952's screenshot (~/.feedback/skrift/2026-10/2b8bc952-b169-4ff9-b6a5-96b7e5587a52.png): the quote block shows a literal '> ' inside the italic quote text, i.e. the stored body is '> > The first…'. Q345 hid it in titles; find where the audiobook quote capture (QuoteCaptureFlowView / MergedCaptureView / the quote text source: book transcript sentences or read-along text) adds the second marker, fix it at the source, and make the display/export of an existing doubled quote show one marker. Test: `QuoteMarkerSourceTests` (phone).
 check: `plan/mtest.sh QuoteMarkerSourceTests`
 
-### Q348 [auto] (todo) MacMainThreadCostTests: a wall-clock budget in the gate fails under machine load
+### Q348 [auto] (done) MacMainThreadCostTests: a wall-clock budget in the gate fails under machine load
 spec: -
 needs: -
 gate+: no
@@ -3796,3 +3796,4 @@ check: `./gate.sh`
 - 2026-10-13 09:12 Q278 -> done — folded into Q298: release phone and Mac together, Mac upgrade tested on a copy first
 - 2026-10-13 09:12 Q279 -> stuck — not a question for Tuur: Claude fixes the SPEC wording at the next /2-plan
 - 2026-10-13 09:12 Q335 -> stuck — waits for the release to the real Skrift; Tuur does it then
+- 2026-10-13 09:18 Q348 -> done — hand-merged (Tuur 2026-10-13: approve Q348 (timing limit 200 → 1000 ms))
