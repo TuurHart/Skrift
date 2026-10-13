@@ -73,6 +73,9 @@ struct NoteFormatPanel: View {
         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.skSurface)
+        // .contain keeps the container's id off its buttons (a bare id on a stack stamped
+        // 'format-panel' on every child, so 'format-B' was never findable).
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("format-panel")
     }
 

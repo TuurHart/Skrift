@@ -648,7 +648,9 @@ struct MemoDetailView: View {
         // ipad-note-chrome-belongs.html) so the Connections visitor sheet can
         // stop above it — see `dockedPlayer`.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if hSize != .regular, currentMemo?.isShareCapture != true {
+            // Q359 (mock Q350): the player shows in Reading only; while typing the keyboard bar
+            // owns the bottom edge.
+            if hSize != .regular, currentMemo?.isShareCapture != true, !editorChrome.isEditing {
                 bottomChrome
             }
         }

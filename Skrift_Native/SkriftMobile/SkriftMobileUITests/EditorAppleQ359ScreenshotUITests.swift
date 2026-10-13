@@ -26,6 +26,13 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
         return app
     }
 
+    /// Seeds with several notes open on the list at phone width: tap the newest row.
+    private func openFirstNote(_ app: XCUIApplication) {
+        if app.textViews["transcript-editor"].waitForExistence(timeout: 6) { return }
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        if row.waitForExistence(timeout: 10) { row.tap() }
+    }
+
     func testReadingTypingSelectionAndAa() {
         let app = launch("-seedPolished")
         let editor = app.textViews["transcript-editor"]
@@ -56,6 +63,7 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
 
     func testMoveAPhoto() {
         let app = launch("-seedPhotoTextMemo")
+        openFirstNote(app)
         let editor = app.textViews["transcript-editor"]
         XCTAssertTrue(editor.waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-5-photo-before")
@@ -66,12 +74,14 @@ final class EditorAppleQ359ScreenshotUITests: XCTestCase {
 
     func testBookQuote() {
         let app = launch("-seedQuoteMemo")
+        openFirstNote(app)
         XCTAssertTrue(app.textViews["transcript-editor"].waitForExistence(timeout: 25), "editor missing")
         capture(app, "phone-6-quote")
     }
 
     func testSpeakers() {
         let app = launch("-seedConversationMemo")
+        openFirstNote(app)
         XCTAssertTrue(app.buttons["detail-menu"].waitForExistence(timeout: 25), "note missing")
         capture(app, "phone-7-speakers")
     }
