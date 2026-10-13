@@ -1355,7 +1355,9 @@ struct MemoPageView: View {
         }
         // Q187 (books-109): a quote note carries the Mac's two extra chips — the book
         // ("Audiobook quote · <title>") and the length — in the Mac's order.
-        if memo.isBookCapture, let title = memo.metadata?.bookTitle?.trimmingCharacters(in: .whitespaces) {
+        // Q356: a note sent from a source (no quote, only the link card) is not a quote note.
+        if memo.isBookCapture, memo.captureQuote != nil,
+           let title = memo.metadata?.bookTitle?.trimmingCharacters(in: .whitespaces) {
             let quoteKind = SourceKind.of(memo)   // Q356: a PDF quote says so
             chips.append(MetaChip(text: SharedCopy.quoteChip(bookTitle: title, kind: quoteKind),
                                   symbol: (quoteKind == .pdfQuote ? SourceKind.pdfQuote : .audiobookQuote).glyph))
