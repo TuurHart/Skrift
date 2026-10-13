@@ -14,7 +14,7 @@
   /* reference panel: hand-drawn from the public look of the list app */
   --ref-bg:#f2f2f7; --ref-card:#ffffff; --ref-text:#000000; --ref-dim:rgba(60,60,67,.62);
   --ref-sep:rgba(60,60,67,.36); --ref-tint:#d4a72c; --ref-fill:rgba(118,118,128,.12);
-  --ref-sel:#f6e496; --ref-glass:rgba(255,255,255,.82); --ref-rim:rgba(0,0,0,.10);
+  --ref-sel:#55b13f; --ref-glass:rgba(255,255,255,.82); --ref-rim:rgba(0,0,0,.10);
   --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
@@ -26,7 +26,7 @@
   --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
   --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
   --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
-  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#6b5512; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#3f8f30; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -37,7 +37,7 @@
   --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
   --sk-amber:#f59e0b; --sk-green:#34d399; --sk-red:#ef4444;
   --ref-bg:#000000; --ref-card:#1c1c1e; --ref-text:#ffffff; --ref-dim:rgba(235,235,245,.6);
-  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#6b5512; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
+  --ref-sep:rgba(84,84,88,.6); --ref-tint:#e6b422; --ref-fill:rgba(118,118,128,.24); --ref-sel:#3f8f30; --ref-glass:rgba(44,44,46,.85); --ref-rim:rgba(255,255,255,.14);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -134,26 +134,29 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
 .ref .dock .search .mic{color:var(--ref-text)}
 .ref .dock .glass{width:49px;height:49px;border-radius:25px;flex:none}
 .ref .foot{height:110px}
-/* Mac list column: redrawn from Apple's Notes for Mac guide (macOS 27 edition image). Column header
-   = folder name 13 bold + count 11 gray + a glass "…" circle; no icon bar (compose, search and the
-   format tools live over the note pane). Group header ~14 bold; rows ~58 pt, 28 pt left gutter,
-   title 13 bold, line 2 date + preview 12 gray, line 3 folder glyph + folder 12 gray; selection =
-   a rounded yellow fill inset 7 pt; 44 pt thumbnail right. */
+/* Mac list column: redrawn from Tuur's macOS screenshots (13 Oct 2026). Column header = folder name
+   13 bold + count 11 gray + a glass "…" circle; no icon bar (compose, format tools, share, search sit
+   over the note pane). Group header 15 bold with a hairline under it; rows ~56 pt, text 25 pt in from
+   the selection edge; title 13 bold, line 2 = time in the primary colour + preview 12 gray; selection =
+   a rounded fill in HIS system accent (green) with white text, inset 9 pt, gray when the list is not
+   focused; 44 pt thumbnail right. The folder line (line 3) comes from Apple's Mac guide image, which
+   shows it in All iCloud; his shots are a single folder, where it drops. */
 .ref.macref{background:var(--ref-card)}
-.ref.macref .mh{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 12px 4px 20px;flex:none}
+.ref.macref .mh{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 10px 4px 18px;flex:none}
 .ref.macref .mh b{display:block;font-size:13px}
 .ref.macref .mh span{display:block;font-size:11px;color:var(--ref-dim);margin-top:2px}
-.ref.macref .mh .glass{width:30px;height:30px;min-width:30px;border-radius:15px}
-.ref.macref .gh{font-size:14px;margin:14px 18px 6px}
-.ref.macref .group{background:none;margin:0 7px;border-radius:0;overflow:visible}
-.ref.macref .row{min-height:58px;padding:7px 9px 7px 28px;border-radius:10px;gap:8px}
-.ref.macref .row + .row::before{left:28px;right:9px;transform:none;height:.5px}
+.ref.macref .mh .glass{width:34px;height:34px;min-width:34px;border-radius:17px}
+.ref.macref .gh{font-size:15px;margin:12px 15px 6px;padding:0 0 8px 3px;border-bottom:.5px solid var(--ref-sep)}
+.ref.macref .group{background:none;margin:0 9px;border-radius:0;overflow:visible}
+.ref.macref .row{min-height:56px;padding:7px 9px 7px 25px;border-radius:8px;gap:8px}
+.ref.macref .row + .row::before{left:25px;right:9px;transform:none;height:.5px}
 .ref.macref .row .gut{left:8px;top:9px}
-.ref.macref .row.sel{background:var(--ref-sel)}
+.ref.macref .row.sel{background:var(--ref-sel);color:#fff}
+.ref.macref .row.sel .l2,.ref.macref .row.sel .l2 b,.ref.macref .row.sel .l3,.ref.macref .row.sel .gut{color:#fff}
 .ref.macref .row.sel::before,.ref.macref .row.sel + .row::before{display:none}
 .ref.macref .t{font-size:13px;font-weight:700;line-height:1.3}
 .ref.macref .l2{font-size:12px;line-height:1.35;margin-top:0}
-.ref.macref .l2 b{margin-right:7px}
+.ref.macref .l2 b{margin-right:7px;color:var(--ref-text)}
 .ref.macref .l3{font-size:12px;color:var(--ref-dim);display:flex;gap:4px;align-items:center;line-height:1.35}
 .ref.macref .th{width:44px;height:44px;border-radius:4px}
 .ref.macref .l3 svg{width:13px;height:13px}
@@ -356,7 +359,7 @@ h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
   <h3 class="sect">Picks that depart from Apple Notes, and why</h3>
   <div class="picks" id="picks"></div>
 
-  <p class="fine">Reference panels are redrawn by hand in HTML from real screenshots; no screenshot is embedded, no Apple icon or logo is used, and every note in them is invented. Phone: Tuur's own iOS 27 screenshots of a throwaway folder (iPhone 17 Pro, 13 Oct 2026), cross-checked against the list screenshot on Apple's App Store page for Notes (<a href="https://apps.apple.com/us/app/notes/id1110145109">apps.apple.com/us/app/notes/id1110145109</a>). Mac column: the "View your notes" image in Apple's Notes for Mac guide (<a href="https://support.apple.com/guide/notes/apd8b73d28be/mac">support.apple.com/guide/notes/apd8b73d28be/mac</a>, macOS 27 edition). Sizes are measured off those images and are approximate to about a point. Skrift panels follow Shared/UI/NoteCardView.swift, Shared/UI/NoteCardBuilder.swift, Shared/Model/MemoDate.swift, Shared/UI/Palette.swift, SkriftMobile/Features/MemosList/*, SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift and SkriftDesktop/Features/Sidebar/SidebarView.swift at session head e294d8e3.</p>
+  <p class="fine">Reference panels are redrawn by hand in HTML from real screenshots; no screenshot is embedded, no Apple icon or logo is used, and every note in them is invented. Phone: Tuur's own iOS 27 screenshots of a throwaway folder (iPhone 17 Pro, 13 Oct 2026), cross-checked against the list screenshot on Apple's App Store page for Notes (<a href="https://apps.apple.com/us/app/notes/id1110145109">apps.apple.com/us/app/notes/id1110145109</a>). Mac column: Tuur's own macOS screenshots of the same throwaway folder (13 Oct 2026); the folder line on line 3 is from the "View your notes" image in Apple's Notes for Mac guide (<a href="https://support.apple.com/guide/notes/apd8b73d28be/mac">support.apple.com/guide/notes/apd8b73d28be/mac</a>, macOS 27 edition). Sizes are measured off those images and are approximate to about a point. Skrift panels follow Shared/UI/NoteCardView.swift, Shared/UI/NoteCardBuilder.swift, Shared/Model/MemoDate.swift, Shared/UI/Palette.swift, SkriftMobile/Features/MemosList/*, SkriftMobile/Features/Audiobooks/ContinueListeningCard.swift and SkriftDesktop/Features/Sidebar/SidebarView.swift at session head e294d8e3.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -731,7 +734,7 @@ const stage = document.getElementById('stage');
 function render(){
   const ph = S.dev === 'phone';
   const label = (k) => ({
-    ref: `<div class="collabel"><h2>Apple Notes</h2><span class="reftag">${ph ? 'Reference · Apple Notes · redrawn from Tuur\'s iOS 27 screenshots' : 'Reference · Apple Notes · redrawn from Apple\'s Notes for Mac guide, macOS 27'}</span></div>`,
+    ref: `<div class="collabel"><h2>Apple Notes</h2><span class="reftag">${ph ? 'Reference · Apple Notes · redrawn from Tuur\'s iOS 27 screenshots' : 'Reference · Apple Notes · redrawn from Tuur\'s macOS screenshots'}</span></div>`,
     today: `<div class="collabel"><h2>Skrift today</h2><span>${ph ? 'MemosListView + NoteCardView' : 'SidebarView + NoteCardView'}</span></div>`,
     new: `<div class="collabel"><h2>Skrift new</h2><span class="newtag">Proposed</span></div>`
   }[k]);
