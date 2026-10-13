@@ -92,6 +92,10 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// Q353: an episode's release date from its feed (nil for every book). Rides in the same
     /// blob as `kind`, so the synced carrier needs no schema change.
     var publishedAt: Date? = nil
+    /// Q355: an article's page address and site ("inkandswitch.com"). nil for every other kind. Ride
+    /// the same blob as `kind`, so the synced carrier needs no schema change.
+    var sourceURL: String? = nil
+    var site: String? = nil
 
     /// The kind to show and branch on: nil means a book.
     var sourceKind: LibrarySourceKind { kind ?? .book }
@@ -218,7 +222,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         // (the Odyssey device report). The sync blob still never carries them: every
         // send path encodes `sanitizedForSync()`, which nils all of them first.
         case epubFilename, epubFilenames, epubChapters
-        case kind, publishedAt
+        case kind, publishedAt, sourceURL, site
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -237,6 +241,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         epubFilenames = try c.decodeIfPresent([String].self, forKey: .epubFilenames)
         epubChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .epubChapters)
         publishedAt = try c.decodeIfPresent(Date.self, forKey: .publishedAt)
+        sourceURL = try c.decodeIfPresent(String.self, forKey: .sourceURL)
+        site = try c.decodeIfPresent(String.self, forKey: .site)
         // An unknown raw value (a kind a newer build wrote) reads as nil = book, never a failed decode.
         kind = (try? c.decodeIfPresent(LibrarySourceKind.self, forKey: .kind)) ?? nil
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
@@ -279,6 +285,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(epubChapters, forKey: .epubChapters)
         try c.encodeIfPresent(kind, forKey: .kind)
         try c.encodeIfPresent(publishedAt, forKey: .publishedAt)
+        try c.encodeIfPresent(sourceURL, forKey: .sourceURL)
+        try c.encodeIfPresent(site, forKey: .site)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
@@ -295,6 +303,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// 6-page PDF finished on page 1).
     var isFinished: Bool {
         if sourceKind == .pdf { return duration > 0 && position >= duration }
+        // Q355: an article counts words; finished = scrolled to the end.
+        if sourceKind == .article { return duration > 0 && position >= duration }
         return duration > 0 && timeLeft <= BookStatusFilter.finishedTail
     }
 

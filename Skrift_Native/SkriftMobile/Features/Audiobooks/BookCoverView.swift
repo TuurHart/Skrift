@@ -21,6 +21,8 @@ struct BookCoverView: View {
                         .clipped()
                 } else if book.sourceKind == .pdf {
                     pdfPaper(width: geo.size.width)
+                } else if book.sourceKind == .article {
+                    articlePaper(width: geo.size.width)
                 } else {
                     LinearGradient(
                         colors: Self.gradient(for: book),
@@ -71,6 +73,36 @@ struct BookCoverView: View {
 
     /// A PDF with no page-1 image (mock `.cv.pdf`): paper, the title at the top in sans, four
     /// faint text lines, a folded top-right corner.
+    /// Q355 (mock Q351 `.cv.art`): warm paper, the site in small mono caps at the top, the title in
+    /// a bold serif at the bottom.
+    private func articlePaper(width w: CGFloat) -> some View {
+        let dark = UITraitCollection.current.userInterfaceStyle == .dark
+        let paper = Color(hex: dark ? 0x2a261d : 0xefe7d6)
+        let ink = Color(hex: dark ? 0xefe4cc : 0x2a2418)
+        let site = book.site ?? book.sourceURL.flatMap(URL.init(string:)).map(ArticleExtractor.site(of:)) ?? ""
+        return VStack(alignment: .leading, spacing: 0) {
+            if showsPlaceholderTitle {
+                Text(site.uppercased())
+                    .font(.system(size: max(5, w / 18), weight: .semibold, design: .monospaced))
+                    .kerning(0.06 * max(5, w / 18))
+                    .opacity(0.7)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text(book.title)
+                    .font(.system(size: max(6, w / 11), weight: .bold, design: .serif))
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.6)
+                    .multilineTextAlignment(.leading)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .foregroundStyle(ink)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(w / 10)
+        .background(paper)
+    }
+
     private func pdfPaper(width w: CGFloat) -> some View {
         let ink = Color(hex: 0x2b2b30)
         return ZStack(alignment: .topTrailing) {

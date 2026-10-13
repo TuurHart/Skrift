@@ -47,7 +47,7 @@ enum LibraryDoor: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .audiobook, .podcast: true
         case .epubOrPDF: true   // Q354: PDFs (an ePub is attached to a book, Book text)
-        case .article: false
+        case .article: true     // Q355: paste a link (a shared link comes in through the share sheet)
         }
     }
 

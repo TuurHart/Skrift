@@ -47,6 +47,9 @@ struct AudiobookLibraryView: View {
     /// Q354: the "ePub or PDF" door's picker, and the PDF a tapped tile opens (`LibraryPDFHost`).
     @State private var showPDFImporter = false
     @State private var pdfReaderBook: Audiobook?
+    /// Q355: the article reader a tile opens, and the "Article" door's paste-a-link sheet.
+    @State private var articleReaderBook: Audiobook?
+    @State private var showArticleSheet = false
     /// A0 (mock book-text-unified.html): the once-per-book "Give this book text"
     /// prompt, presented right after an import confirms. `a0Candidate` parks the
     /// just-imported book until the confirm sheet is off-screen — presenting from
@@ -135,6 +138,7 @@ struct AudiobookLibraryView: View {
         }
         .animation(Theme.Motion.spring, value: session.isActive)
         .libraryPDFs(isImporting: $showPDFImporter, reader: $pdfReaderBook)   // Q354
+        .libraryArticles(reader: $articleReaderBook, showLinkSheet: $showArticleSheet)   // Q355
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             // Multi-select imports ONE book: a file-per-chapter folder's mp3s
             // become its ordered chapters (Bound-style).
@@ -284,6 +288,10 @@ struct AudiobookLibraryView: View {
                     Label("PDF from Files…", systemImage: "doc.text")
                 }
                 .accessibilityIdentifier("library-add-pdf")
+                Button { showArticleSheet = true } label: {   // Q355
+                    Label("Article link\u{2026}", systemImage: "newspaper")
+                }
+                .accessibilityIdentifier("library-add-article")
             } label: {
                 if importing {
                     ProgressView()
@@ -459,13 +467,14 @@ struct AudiobookLibraryView: View {
         case .audiobook: showImporter = true
         case .podcast: showPodcastSheet = true
         case .epubOrPDF: showPDFImporter = true       // Q354
-        case .article: break   // hidden until Q355 lands its importer
+        case .article: showArticleSheet = true       // Q355
         }
     }
 
     /// Tap-to-play/resume (2026-07-06 convention) — the shelf tile's tap.
     private func openOrPlay(_ book: Audiobook, syncState: BookSyncState?) {
         if book.sourceKind == .pdf { pdfReaderBook = book; return }   // Q354: a PDF opens its reader
+        if book.sourceKind == .article { articleReaderBook = book; return }   // Q355: an article opens its reader
         if session.open(book, autoplay: true) {
             showPlayer = true
         } else if syncState == .downloadAvailable {
@@ -500,7 +509,7 @@ struct AudiobookLibraryView: View {
                 }
             }
             Divider()
-            if book.sourceKind != .pdf {   // Q354: a PDF has no transcript, book text or audio to sync
+            if book.sourceKind != .pdf, book.sourceKind != .article {   // Q354/Q355: no transcript, book text or audio to sync
             Button {
                 bookTextSheetBook = book
             } label: {

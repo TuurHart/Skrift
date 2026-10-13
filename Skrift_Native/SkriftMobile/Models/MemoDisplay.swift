@@ -146,7 +146,13 @@ extension Memo {
     /// chapter *name*) passes through as-is, matching `bookCaptionLabel`.
     /// NO `[[..]]` — the wikilinked attribution stays Mac-export-side.
     var quoteAttributionLabel: String? {
-        CaptureQuote.attribution(book: metadata?.bookTitle,
+        // Q355 (mock Q351): an article quote reads "— Title, site" (no author, D138).
+        if metadata?.bookKind?.lowercased() == "article", let title = metadata?.bookTitle?.trimmingCharacters(in: .whitespaces),
+           !title.isEmpty {
+            let site = metadata?.bookChapter?.trimmingCharacters(in: .whitespaces) ?? ""
+            return site.isEmpty ? "— \(title)" : "— \(title), \(site)"
+        }
+        return CaptureQuote.attribution(book: metadata?.bookTitle,
                                  author: metadata?.bookAuthor,
                                  chapter: metadata?.bookChapter)
     }

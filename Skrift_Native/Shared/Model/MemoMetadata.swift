@@ -44,6 +44,9 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     /// and "Move to Library" so the export can write `— *Show*, episode, mm:ss` for an episode.
     /// ADDITIVE + optional (nil on captures and every other memo; an older decoder ignores it).
     var bookKind: String?
+    /// Q355 (D138): the page address of the Library ARTICLE a quote came from, so the export can
+    /// write `— *Title*, [site](URL)` and `source: URL`. ADDITIVE + optional (nil on every other memo).
+    var bookURL: String?
 
     /// How the memo entered Skrift, when it's NOT an ordinary voice recording —
     /// the first marker of the deferred "unified source taxonomy" (voice memo /
@@ -157,6 +160,9 @@ extension MemoMetadata {
         var bookChapter: String?
         /// Q372: a source-link note's place (seconds, or a PDF page), for its export link line.
         var bookPosition: Double?
+        /// Q355: the source kind ("article" for a quote from a Library article) and its page address.
+        var bookKind: String?
+        var bookURL: String?
         var importFileName: String?   // D176
     }
 

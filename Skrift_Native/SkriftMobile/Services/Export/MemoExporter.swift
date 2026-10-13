@@ -110,7 +110,8 @@ enum MemoExporter {
             steps: m.steps,
             recordedAt: nil,                                   // date supplied via the `date:` override
             bookTitle: m.bookTitle, bookAuthor: m.bookAuthor, bookChapter: m.bookChapter,
-            bookPosition: m.bookPosition                       // a link note's place (Q372)
+            bookPosition: m.bookPosition,                      // a link note's place (Q372)
+            bookURL: m.bookURL                                 // an article quote's page (Q355)
         )
     }
 
