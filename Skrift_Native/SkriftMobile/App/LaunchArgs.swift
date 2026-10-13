@@ -46,6 +46,9 @@ enum LaunchFlags {
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
     /// Q352: four seeded books (two with capture notes) for the Library shelf screenshot.
     static var seedLibraryShelf: Bool { args.boolFlag("-seedLibraryShelf") }
+    /// Q356 (DEBUG): with `-seedLibraryShelf`, "Send to a note" on the first book and open that note
+    /// (the link-card screenshot).
+    static var showSentNote: Bool { args.boolFlag("-showSentNote") }
     /// Q354: two PDFs on the Library shelf; `-showPDFReader` opens one on page 4 with text selected,
     /// `-showPDFToast` raises the "Added to Library" toast. Screenshots only.
     static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
