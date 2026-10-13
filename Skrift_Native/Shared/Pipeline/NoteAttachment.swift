@@ -155,6 +155,10 @@ enum NoteAttachment {
         size == .small || filenames.isEmpty ? nil : filenames
     }
 
+    /// Posted when an inline video starts in a note (pick 1): the note's own audio pauses, so only
+    /// one thing makes sound. The phone editor owns its player and pauses it directly.
+    static let inlineVideoStarted = Notification.Name("NoteAttachment.inlineVideoStarted")
+
     /// The Mac ⋯ submenu holding the two, Apple's name for it.
     static let attachmentViewTitle = "Attachment View"
     static let setAllSmallTitle = "Set All to Small"

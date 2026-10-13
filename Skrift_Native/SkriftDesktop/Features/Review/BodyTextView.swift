@@ -1171,6 +1171,7 @@ struct BodyTextView: NSViewRepresentable {
                 view.player = AVPlayer(url: url)
                 tv.addSubview(view)
                 inlinePlayer = view
+                NotificationCenter.default.post(name: NoteAttachment.inlineVideoStarted, object: nil)   // pick 1
                 view.player?.play()
                 return
             }
@@ -1646,6 +1647,14 @@ struct BodyTextView: NSViewRepresentable {
         /// a LINKED `[[Name]]` opens the prune/fix popover. Returns true when handled.
         func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
             // Karaoke: click a word → seek there (the old behavior the user missed).
+            // D199/D202: a video plays in the note (⤢ full screen in its controls), a file opens in
+            // Quick Look; a block whose file has not arrived stays inert. Ahead of the karaoke
+            // click-to-seek, so a video clicked while the note plays starts (the note pauses, pick 1).
+            if let storage = tv.textStorage, idx < storage.length,
+               let block = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? NoteBlockAttachment {
+                openBlock(block, at: idx, in: tv)
+                return true
+            }
             if let k = parent.karaoke, let storage = tv.textStorage {
                 let words = wordMap(storage).words
                 if let wi = words.firstIndex(where: { NSLocationInRange(idx, $0) || idx == NSMaxRange($0) }) {
@@ -1664,13 +1673,6 @@ struct BodyTextView: NSViewRepresentable {
                 guard !att.isCard else { return true }
                 tv.window?.makeFirstResponder(tv)
                 tv.selectedPhotoLoc = idx
-                return true
-            }
-            // D199/D202: a video plays in the note (⤢ full screen in its controls), a file opens
-            // in Quick Look. A block whose file has not arrived stays inert.
-            if idx < storage.length,
-               let block = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? NoteBlockAttachment {
-                openBlock(block, at: idx, in: tv)
                 return true
             }
             // Memo-link chip → open that memo in the detail pane (read-only v1).

@@ -587,6 +587,11 @@ struct NoteBodyView: UIViewRepresentable {
             let point = gr.location(in: tv)
             // Taps on the hosted header/footer belong to their SwiftUI content.
             guard !tv.pointIsInAccessory(point) else { return }
+            // Pick 1: a video tapped while the note plays starts the video (which pauses the note).
+            if case .openAttachment(let literal)? = attachmentAction(at: point) {
+                openAttachmentBlock(literal)
+                return
+            }
             guard let charIndex = tv.characterIndex(at: point),
                   let local = KaraokeMap.wordIndex(at: charIndex, in: wordRanges) else { return }
             // The same shared track the highlight reads, so a tap seeks to the word that
@@ -1317,6 +1322,8 @@ struct NoteBodyView: UIViewRepresentable {
             tv.addSubview(vc.view)
             vc.didMove(toParent: host)
             inlineVideo = vc
+            // Pick 1: only one thing makes sound — the note's own recording pauses.
+            if player?.isPlaying == true { player?.pause() }
             vc.player?.play()
         }
 
