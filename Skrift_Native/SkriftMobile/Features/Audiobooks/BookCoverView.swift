@@ -112,6 +112,7 @@ struct BookCoverView: View {
             Color(hex: 0xf4f1ea)
             VStack(alignment: .leading, spacing: w * 0.06) {
                 if showsPlaceholderTitle {
+                    if reservesBadge { Color.clear.frame(height: w * 0.1) }   // Q403: the badge sits above the title
                     Text(book.title)
                         .font(.system(size: max(5, w / 13), weight: .bold))
                         .foregroundStyle(ink)

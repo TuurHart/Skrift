@@ -314,6 +314,16 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Q403 (D207, mock `.cont`): what you played or opened last, above the chips.
+            let continueItems = LibraryContinue.items(from: store.books)
+            if !continueItems.isEmpty {
+                LibraryContinueRow(books: continueItems, currentID: session.book?.id) { book in
+                    openOrPlay(book, syncState: bookSyncState(book))
+                }
+                .padding(.horizontal, -Theme.Space.margin)
+                .contentMargins(.horizontal, Theme.Space.margin, for: .scrollContent)
+                .padding(.bottom, 4)
+            }
             if !typeChips.isEmpty {
                 LibraryTypeChips(chips: typeChips, selection: Binding(get: { effectiveTypeFilter },
                                                                       set: { typeFilter = $0 }))

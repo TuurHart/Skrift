@@ -102,7 +102,8 @@ struct AppTabView: View {
             #if DEBUG
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen(); seeded = true }
             else if LaunchFlags.seedLibraryShelf { AudiobookSeeder.seedShelf(); seeded = true }
-            else if LaunchFlags.seedEpisode { AudiobookSeeder.seedEpisode(); seeded = true }
+            // Q403: `-seedEpisode` also runs on top of `-seedLibraryShelf` (the shelf + the mini player).
+            if LaunchFlags.seedEpisode { AudiobookSeeder.seedEpisode(); seeded = true }
             if LaunchFlags.showPlayer { showSeededPlayer = true }
             if LaunchFlags.showSentNote, let first = AudiobookLibraryStore.shared.sortedByRecent.first,
                let id = LibraryHatch.sendToNote(book: first) {
