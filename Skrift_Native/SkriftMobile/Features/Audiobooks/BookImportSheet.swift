@@ -87,21 +87,15 @@ struct BookImportSheet: View {
     private func unpack() {
         failure = nil
         phase = .unpacking
-        let url = pending.url
-        let manifest = pending.manifest
-        let library = AudiobookLibraryStore.shared
-        let folder = library.folder(for: manifest.book.id)
+        let pending = self.pending
 
         task = Task {
             do {
-                let landed = try await Task.detached(priority: .userInitiated) {
-                    try BookBundle.unpack(at: url, manifest: manifest, into: folder,
-                                          library: library) { fraction in
-                        Task { @MainActor in unpackedFraction = fraction }
-                    }
-                }.value
+                // Re-checks the library right before unpacking (C270/R83).
+                try await BookImportBridge.shared.importPending(pending) { fraction in
+                    Task { @MainActor in unpackedFraction = fraction }
+                }
                 guard !Task.isCancelled else { return }
-                library.add(landed)
                 dismiss()
             } catch {
                 phase = .offering

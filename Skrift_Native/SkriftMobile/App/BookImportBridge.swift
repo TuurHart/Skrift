@@ -44,4 +44,27 @@ final class BookImportBridge: ObservableObject {
                 ?? "This file couldn't be opened as a Skrift book."
         }
     }
+
+    /// Unpack an offered book. Re-checks the library immediately before touching
+    /// disk (C270/R83): the offer-time `alreadyHave` can be stale by the time the
+    /// user taps "Add" (a synced copy may have arrived), and `unpack` overwrites
+    /// the book folder file by file. Throws `alreadyInLibrary` and writes nothing.
+    @discardableResult
+    func importPending(_ pending: Pending,
+                       library: AudiobookLibraryStore = .shared,
+                       progress: (@Sendable (Double) -> Void)? = nil) async throws -> Audiobook {
+        guard !BookBundleRules.alreadyImported(
+            pending.manifest, existing: library.books.map(\.id)) else {
+            throw BookBundle.BundleError.alreadyInLibrary
+        }
+        let url = pending.url
+        let manifest = pending.manifest
+        let folder = library.folder(for: manifest.book.id)
+        let landed = try await Task.detached(priority: .userInitiated) {
+            try BookBundle.unpack(at: url, manifest: manifest, into: folder,
+                                  library: library, progress: progress)
+        }.value
+        library.add(landed)
+        return landed
+    }
 }
