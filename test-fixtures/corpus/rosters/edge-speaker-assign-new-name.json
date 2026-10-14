@@ -1,0 +1,24 @@
+{
+  "_schema": "Q420 (C257/R66), read by SpeakerAssignNewNameTests. `existing` is a names.json (byte-compatible schema) that does NOT hold `typed`. `typed` is the name the user types into the assign sheet (phone) / gutter popover (Mac) for a diarized 'Speaker 2'. `voiceprint` is the embedding learned from that speaker's turns. `expect`: after naming, the new person exists with `canonical`, at least `minAliases` aliases that include every entry of `aliasesContain`, and keeps the voiceprint; the existing roster is untouched.",
+  "existing": {
+    "lastModifiedAt": "2026-09-01T09:00:00Z",
+    "people": [
+      {
+        "aliases": ["Lotte"],
+        "canonical": "[[Lotte Vos]]",
+        "lastModifiedAt": "2026-09-01T09:00:00Z",
+        "short": "Lotte"
+      }
+    ]
+  },
+  "displayed": "Speaker 2",
+  "typed": "Marieke de Boer",
+  "typedFirstWordOnly": "Marieke",
+  "voiceprint": { "addedAt": "2026-09-02T10:00:00Z", "condition": "conversation", "vector": [0.12, 0.34, 0.56] },
+  "expect": {
+    "canonical": "[[Marieke de Boer]]",
+    "minAliases": 1,
+    "aliasesContain": ["Marieke de Boer", "Marieke"],
+    "voiceprints": 1
+  }
+}
