@@ -3232,7 +3232,7 @@ needs: Q408
 do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65).
 check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 
-### Q443 [tuur] (todo) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
+### Q443 [tuur] (tuur) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
@@ -4642,3 +4642,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 14:54 Q412 -> done — gate 77s @4f9fbf99
 - 2026-10-14 14:55 Q420 -> doing — worker out
 - 2026-10-14 14:56 Q410 -> done — gate 55s @87312352
+- 2026-10-14 14:56 Q443 -> tuur — awaiting sitting
