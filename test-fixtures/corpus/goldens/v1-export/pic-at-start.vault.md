@@ -10,7 +10,10 @@ people:
 significance: 0.7
 location:
 lastTouched: <stamp>
---- This is what the blue looks like at cone five, straight out of the kiln, before I touched it.
+skriftID: 7E246814-C6AF-50EB-BC38-4851EA4F45BC
+skriftHash: <stamp>
+---
 
 ![[This is what the blue looks like at cone five, straight out of the kiln, before I touched it_001.jpg]]
 
+ This is what the blue looks like at cone five, straight out of the kiln, before I touched it.
