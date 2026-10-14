@@ -5,7 +5,7 @@
   "lang": "en",
   "shape": [
     "typed",
-    "destination-idea"
+    "destination-portfolio"
   ],
   "title": null,
   "recordedAt": "2026-07-11T19:00:00+01:00",
@@ -23,7 +23,7 @@
     "idea",
     "studio"
   ],
-  "destination": "idea",
+  "destination": "portfolio",
   "locked": false,
   "deletedAt": null,
   "trashSeenAt": null,
@@ -46,6 +46,6 @@
   "diarization": null,
   "enhancement": null,
   "expect": {
-    "note": "Idea → portfolio `_ideas/`."
+    "note": "Portfolio + `idea` tag (D189) → `<portfolio root>/_inbox/<slug>.md`."
   }
 }
