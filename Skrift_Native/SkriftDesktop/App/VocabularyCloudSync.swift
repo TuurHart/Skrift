@@ -38,13 +38,19 @@ enum VocabularyCloudSync {
             prewarm = true
         }
 
-        let localWords = settings.customWords
-        let outcome = VocabularySyncCore.reconcile(
-            localWords: localWords,
-            localModifiedAt: settings.customVocabularyModifiedAt ?? .distantPast,
+        // Per-word merge with the carrier (C267): an offline add here and one on the phone
+        // both survive; a removal on either side still removes.
+        let vocab = VocabularySyncCore.sync(
+            local: settings.localVocab,
             records: records,
             insert: { context.insert($0) },
             delete: { context.delete($0) })
+        if vocab.localChanged {
+            settings.localVocab = vocab.local
+            dirty = true
+        }
+        // Re-warm the booster so newly-synced words boost the NEXT transcription.
+        if vocab.wordsChanged { prewarm = true }
 
         // The LANGUAGE mode rides the same carrier on its OWN stamp (2026-07-26), so a
         // vocab edit here and a language change on the phone can't clobber each other.
@@ -63,19 +69,6 @@ enum VocabularyCloudSync {
             break
         }
 
-        switch outcome {
-        case .adoptRemote(let words, let ts):
-            settings.customVocabulary = words
-            settings.customVocabularyModifiedAt = ts
-            dirty = true
-            // Re-warm the booster so the newly-synced words boost the NEXT transcription.
-            prewarm = true
-        case .pushedLocal(let ts, seededLocalStamp: true):
-            settings.customVocabularyModifiedAt = ts
-            dirty = true
-        case .pushedLocal, .noop:
-            break
-        }
         // The "Separate destinations" switch rides the same carrier on a THIRD stamp
         // (Q98 / D162). Re-fetch: the vocab reconcile above may just have inserted the row.
         DestinationSettings.seedStampIfNeeded()

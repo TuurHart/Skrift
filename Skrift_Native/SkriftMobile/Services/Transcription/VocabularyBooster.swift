@@ -7,7 +7,8 @@ import FluidAudio
 /// words Parakeet routinely mis-hears. Settings → Transcription → Custom words.
 /// Stays a per-device UserDefaults list for the booster's synchronous (off-main)
 /// reads; `VocabularyCloudSync` syncs it across the user's devices (Phase 1f) via a
-/// CloudKit carrier, LWW by `modifiedAt` so a delete on one device propagates.
+/// CloudKit carrier, merged per word (`VocabularyLedger`) so offline adds on two devices
+/// both survive and a delete on one device propagates.
 enum CustomVocabularyStore {
     #if DEBUG
     // Q313: the perf library keeps its own (empty) word list, never the real one.
@@ -28,16 +29,50 @@ enum CustomVocabularyStore {
         (defaults.object(forKey: modifiedAtKey) as? Date) ?? .distantPast
     }
 
-    static func save(_ words: [String], defaults: UserDefaults = .standard) {
-        defaults.set(clean(words), forKey: defaultsKey)
-        defaults.set(Date(), forKey: modifiedAtKey)   // user edit → bump for LWW
+    #if DEBUG
+    static var ledgerKey: String { PerfLibrary.isActive ? "perf.customVocabularyLedger" : "customVocabularyLedger" }
+    #else
+    static let ledgerKey = "customVocabularyLedger"
+    #endif
+
+    /// Per-word add/remove stamps (`VocabularyLedger`, C267). nil = never written (pre-ledger).
+    static func ledger(defaults: UserDefaults = .standard) -> VocabularyLedger? {
+        VocabularyLedger.decode(defaults.data(forKey: ledgerKey))
     }
 
-    /// Adopt a list that arrived from another device — writes the words AND the
-    /// remote `modifiedAt` (does NOT bump to now, so the timestamps stay comparable).
-    static func adoptSynced(_ words: [String], modifiedAt: Date, defaults: UserDefaults = .standard) {
-        defaults.set(clean(words), forKey: defaultsKey)
-        defaults.set(modifiedAt, forKey: modifiedAtKey)
+    /// The whole local state the shared sync core works on.
+    static func local(defaults: UserDefaults = .standard) -> VocabularySyncCore.LocalVocab {
+        .init(words: words(defaults: defaults), modifiedAt: modifiedAt(defaults: defaults),
+              ledger: ledger(defaults: defaults))
+    }
+
+    /// A whole-list user edit: the difference from the stored list goes into the ledger as
+    /// adds and removals stamped now.
+    static func save(_ words: [String], defaults: UserDefaults = .standard) {
+        let now = Date()
+        let old = local(defaults: defaults)
+        let cleaned = clean(words)
+        var ledger = old.ledger ?? VocabularyLedger.seeded(from: old.words, at: old.modifiedAt)
+        ledger.record(from: old.words, to: cleaned, at: now)
+        write(.init(words: cleaned, modifiedAt: now, ledger: ledger), defaults: defaults)   // bump for sync
+    }
+
+    /// Adds or removes one word against the list stored NOW (re-read here, never a copy the
+    /// screen loaded on open), so a word that synced in meanwhile is kept (C267). Returns
+    /// false when nothing changed (empty or duplicate add).
+    @discardableResult
+    static func apply(_ edit: VocabularySyncCore.Edit, defaults: UserDefaults = .standard) -> Bool {
+        guard let next = VocabularySyncCore.applying(edit, to: local(defaults: defaults)) else { return false }
+        write(next, defaults: defaults)
+        return true
+    }
+
+    /// Writes a state the sync core produced (merged or adopted from another device) with
+    /// its own stamp, not now, so stamps stay comparable across devices.
+    static func write(_ state: VocabularySyncCore.LocalVocab, defaults: UserDefaults = .standard) {
+        defaults.set(clean(state.words), forKey: defaultsKey)
+        defaults.set(state.modifiedAt, forKey: modifiedAtKey)
+        if let ledger = state.ledger { defaults.set(ledger.encoded(), forKey: ledgerKey) }
     }
 
     /// Trimmed, de-duplicated (case-insensitive), order-preserving.

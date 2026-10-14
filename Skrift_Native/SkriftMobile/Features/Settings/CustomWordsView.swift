@@ -37,9 +37,8 @@ struct CustomWordsView: View {
                         Text(word)
                     }
                     .onDelete { offsets in
-                        words.remove(atOffsets: offsets)
-                        CustomVocabularyStore.save(words)
-                        VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit now
+                        let removed = offsets.map { words[$0] }
+                        commit(removed.map { .remove($0) })
                     }
                 }
             }
@@ -56,14 +55,19 @@ struct CustomWordsView: View {
         // The shared add rule (Q172). Empty input keeps the field as typed (whitespace);
         // a duplicate clears it — the phone's behaviour before the fold.
         guard !newWord.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard let updated = VocabularySyncCore.adding(newWord, to: words) else {
-            newWord = ""
-            return
-        }
-        words = updated
-        CustomVocabularyStore.save(words)
-        VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit so other devices get it now
+        commit([.add(newWord)])
         newWord = ""
         fieldFocused = true   // keep the keyboard for rapid entry
+    }
+
+    /// Pull the latest synced list first, apply the edit to the STORED list (not the copy
+    /// this screen loaded), then push, so a word another device added meanwhile is kept
+    /// (C267). A duplicate add changes nothing.
+    private func commit(_ edits: [VocabularySyncCore.Edit]) {
+        VocabularyCloudSync.run(NotesRepository.shared)
+        var changed = false
+        for edit in edits where CustomVocabularyStore.apply(edit) { changed = true }
+        if changed { VocabularyCloudSync.run(NotesRepository.shared) }
+        words = CustomVocabularyStore.words()
     }
 }

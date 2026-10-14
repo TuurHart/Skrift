@@ -12,27 +12,22 @@ enum VocabularyCloudSync {
         #if DEBUG
         guard !PerfLibrary.isActive else { return }   // Q313
         #endif
-        let localWords = CustomVocabularyStore.words(defaults: defaults)
         let records = repository.allVocabularyRecords()
-        let outcome = VocabularySyncCore.reconcile(
-            localWords: localWords,
-            localModifiedAt: CustomVocabularyStore.modifiedAt(defaults: defaults),
+        var vocabInserted = false
+        let vocab = VocabularySyncCore.sync(
+            local: CustomVocabularyStore.local(defaults: defaults),
             records: records,
-            insert: { repository.context.insert($0) },
+            insert: { vocabInserted = true; repository.context.insert($0) },
             delete: { repository.context.delete($0) })
 
-        switch outcome {
-        case .adoptRemote(let words, let ts):
-            CustomVocabularyStore.adoptSynced(words, modifiedAt: ts, defaults: defaults)
-            DevLog.log("vocab: adopted \(words.count) synced words")
+        if vocab.localChanged { CustomVocabularyStore.write(vocab.local, defaults: defaults) }
+        if vocab.wordsChanged {
+            let words = vocab.local.words
+            DevLog.log("vocab: merged synced list, now \(words.count) words")
             // Re-warm the booster so a word synced in mid-session (not just at cold
             // launch) boosts the NEXT transcription — matches the Mac adapter
             // (SkriftDesktop/App/VocabularyCloudSync.swift), sweep E finding #2.
             Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: words) }
-        case .pushedLocal(let ts, seededLocalStamp: true):
-            CustomVocabularyStore.adoptSynced(localWords, modifiedAt: ts, defaults: defaults)
-        case .pushedLocal, .noop:
-            break
         }
 
         // The LANGUAGE mode rides the same carrier on its own stamp (2026-07-26), so the
@@ -101,7 +96,7 @@ enum VocabularyCloudSync {
             break
         }
         // Fresh device with nothing anywhere: no carrier was touched, nothing to save.
-        if records.isEmpty, outcome == .noop, !destinationsTouched, !authorTouched, !weatherKeyTouched { return }
+        if records.isEmpty, !vocabInserted, !destinationsTouched, !authorTouched, !weatherKeyTouched { return }
         repository.save()
     }
 }
