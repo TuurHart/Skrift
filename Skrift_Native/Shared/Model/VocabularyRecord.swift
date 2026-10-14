@@ -52,6 +52,12 @@ final class VocabularyRecord {
     var weatherKey: String = ""
     var weatherKeyModifiedAt: Date = Date.distantPast
 
+    /// The word list's per-word add/remove stamps (`VocabularyLedger` as JSON; C267 / R80),
+    /// so two devices' offline edits merge instead of one list overwriting the other. Empty =
+    /// written by a build from before the ledger: `VocabularySyncCore.sync` then falls back to
+    /// whole-list last-write-wins once and seeds it.
+    var wordLedger: Data = Data()
+
     init(words: [String], modifiedAt: Date = Date(),
          multilingual: Bool = false, languageModifiedAt: Date = Date.distantPast,
          destinationsEnabled: Bool = false, destinationsModifiedAt: Date = Date.distantPast,
