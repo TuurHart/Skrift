@@ -2987,6 +2987,13 @@ gate+: no
 do: Tuur 2026-10-14: the 'Record your thoughts' button (capture screen: book quote, PDF and article capture — MergedCaptureView and the text-capture sheet) is 'an ugly color'. Make it the app's plain solid accent fill like the other primary buttons (no gradient), same shape and size, white label + mic glyph; one shared style used by every capture screen. Only this button — the capture-screen design pause (CLAUDE.md) still holds for everything else. Before/after shots into plan/reads/library-tab/q405-*.png.
 check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 
+### Q406 [auto] (doing) player: 15/15 skips, purple play button without glow; confirm the controls tuck away while playing (D208)
+spec: D208
+needs: -
+gate+: no
+do: In the one book/episode player (AudiobookPlayerView and the mini player): back skip 15 s and forward skip 15 s (was 15/30), icons to match; the play/pause button keeps the purple fill but drops its glow/shadow; keep the small header and the text space as they are. Check in code whether the reading-mode controls already hide while playing and come back on a tap/pull (the audiobook-player-reading-mode work, 2026-06-19); report yes/no with file:line — do not build it if missing, just report. Shot of the player before/after into plan/reads/library-tab/q406-*.png (`-openTab books -seedEpisode -showPlayer -appTheme light -skipOnboarding`).
+check: `test $(ls plan/reads/library-tab/q406-*.png | wc -l) -ge 2`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4363,3 +4370,5 @@ check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 - 2026-10-14 10:23 Q403 -> done — gate 109s @536dc0c8
 - 2026-10-14 10:30 Q405 -> done — gate 38s @3a3cbbb9
 - 2026-10-14 10:33 Q404 -> done — gate 42s @0325fa15
+- 2026-10-14 11:14 Q406 added
+- 2026-10-14 11:15 Q406 -> doing — worker out
