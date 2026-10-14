@@ -2998,28 +2998,28 @@ gate+: no
 do: Same recipe as Q394 (findings Q374/Q383/Q394: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal; quit 'Skrift Dev' via osascript in a script file). Bump to 190 in both project.yml files (SKRIFT_BUILD / CURRENT_PROJECT_VERSION). Phone: Debug → devicectl install com.skrift.mobile.dev; grep `Original page` or `Reading view` in SkriftMobile.debug.dylib; confirm with `xcrun devicectl device info apps --bundle-id com.skrift.mobile.dev` showing 190. Mac: Debug → quit Skrift Dev, ditto to /Applications/Skrift Dev.app, open; grep a Q402/Q395 literal (e.g. `PortfolioTagPresets`) in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. If the phone is unavailable, install the Mac anyway and report the exact devicectl error.
 check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the devicectl build number).
 
-### Q408 [auto] (todo) an edit that empties a note never lands silently
+### Q408 [auto] (doing) an edit that empties a note never lands silently
 spec: C261 R70
 needs: -
 gate+: yes
 do: Today (2026-10-14 read): no such guard exists; the only destructive confirm in Shared is `Shared/Naming/NameDeleteConfirm.swift` (reuse its style). When an editor commit would turn a non-empty raw transcript or the Mac's polished copy into empty text (phone, iPad and Mac editors), show a confirm in the existing destructive-confirm style (as C262/C266 shipped); Cancel keeps the prior text. The "nets to empty" decision is one function in `Skrift_Native/Shared/`. Test `EmptyCommitGuardTests` (desktop target) covers both fields (`editor-clear-raw`, `editor-clear-polished`).
 check: `grep -rqE "class EmptyCommitGuardTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q409 [auto] (todo) a .transcribing note orphaned on a gone device is adopted
+### Q409 [auto] (doing) a .transcribing note orphaned on a gone device is adopted
 spec: C264 C154 C97 C263 R75
 needs: -
 gate+: yes
 do: Today: `MemoSaver.swift` `ownsForRecovery` re-runs only this device's memos; the C263 user-edited skip already exists there; the Mac has no `.transcribing` sweep. A memo left in `.transcribing` by another device is taken over after 30 minutes when its audio blob is present (C154), on the phone and by the Mac sweep as the backstop. Younger than 30 minutes stays untouched (C97); a `transcriptUserEdited` memo is never re-transcribed (C263). The age rule is one shared function in `Skrift_Native/Shared/`. Test `OrphanedTranscribingTests` (desktop target): a 31-minute orphan with audio is adopted, a 5-minute one and a user-edited one are not.
 check: `grep -rqE "class OrphanedTranscribingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q410 [auto] (todo) a word-list edit merges with the latest synced list at write time
+### Q410 [auto] (doing) a word-list edit merges with the latest synced list at write time
 spec: C267 C103 R80
 needs: -
 gate+: yes
 do: Today: `VocabularyCloudSync.swift` calls `VocabularySyncCore.reconcile` (whole-list LWW); the additive union runs only once as a migration. Custom vocabulary saves re-read the latest synced state immediately before writing and merge additively (phone and Mac, `VocabularyCloudSync` and the phone's twin), instead of saving the snapshot loaded when the screen opened. A removal on one device still removes. Test `VocabConcurrentAddTests` (desktop target): two devices each add a word offline, both words survive the sync.
 check: `grep -rqE "class VocabConcurrentAddTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q411 [auto] (todo) removing a book's download waits for its iCloud upload
+### Q411 [auto] (done) removing a book's download waits for its iCloud upload
 spec: C268 R81
 needs: -
 gate+: yes
@@ -3068,7 +3068,7 @@ gate+: yes
 do: Today: `CaptureVoiceAnnotate.swift` deletes the audio and fires the success haptic when the transcript is empty. A voice annotation or capture whose transcription returns no text stays in the note with a "No words heard" line in the existing secondary-text style until he saves or discards it; the success haptic never deletes it. Test `EmptyTranscriptKeptTests` (phone target): `voice-annotation-empty-transcript-kept`.
 check: `plan/mtest.sh EmptyTranscriptKeptTests`
 
-### Q418 [auto] (todo) same full name is the same person: merge and say so
+### Q418 [auto] (doing) same full name is the same person: merge and say so
 spec: C254 R62
 needs: -
 gate+: yes
@@ -4609,3 +4609,9 @@ check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corp
 - 2026-10-14 12:06 Q407 -> doing — worker out
 - 2026-10-14 12:13 Q407 -> done — gate 39s @9458721b
 - 2026-10-14 13:25 plan: resync from plan/reads/spec-coverage-2026-10-14.md — Q408–Q441 added (data-loss C261–C274, names C254–C260, targets 2–4, import layer); Q370 needs Q408–Q422; Q280 Q281 Q302 Q304 Q309 Q311 filled; Q17 Q64 on the iPhone 17 Pro
+- 2026-10-14 14:19 Q408 -> doing — worker out
+- 2026-10-14 14:19 Q418 -> doing — worker out
+- 2026-10-14 14:19 Q411 -> doing — worker out
+- 2026-10-14 14:31 Q409 -> doing — worker out
+- 2026-10-14 14:36 Q410 -> doing — worker out
+- 2026-10-14 14:36 Q411 -> done — gate 118s @cd682edc
