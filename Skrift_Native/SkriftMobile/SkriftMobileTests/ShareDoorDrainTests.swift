@@ -51,7 +51,7 @@ final class ShareDoorDrainTests: XCTestCase {
 
         await CaptureInboxDrainer.drain(into: repo)
 
-        XCTAssertEqual(repo.memo(id: named)?.metadata?.importFileName, "kiln idea.m4a")
+        XCTAssertEqual(repo.memo(id: named)?.metadata?.importFileName, "kiln idea", "stored without the extension (D176)")
         XCTAssertNotNil(repo.memo(id: messenger))
         XCTAssertNil(repo.memo(id: messenger)?.metadata?.importFileName, "a messenger name is never a title")
         _ = MemoOpenBridge.shared.consume()
