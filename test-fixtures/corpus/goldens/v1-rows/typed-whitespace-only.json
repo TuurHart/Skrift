@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 7,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "3F838C7B-E27E-5864-99BB-99D68CF61EA4",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-07T04:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-07T03:00:00.000Z",
+      "significance" : 0.29999999999999999,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "3F838C7B-E27E-5864-99BB-99D68CF61EA4.md",
+    "id" : "3F838C7B-E27E-5864-99BB-99D68CF61EA4",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/3F838C7B-E27E-5864-99BB-99D68CF61EA4_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.29999999999999999,
+    "size" : 7,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-07T03:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "  \n\n\t \n",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-07T03:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-whitespace-only"
+}

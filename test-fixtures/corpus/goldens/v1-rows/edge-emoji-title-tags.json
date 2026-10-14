@@ -1,0 +1,182 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 41927,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "9B6482ED-3322-5684-A8A9-EA8D54BDFDA2",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-09T16:00:00+01:00",
+      "duration" : 6.1799999999999997,
+      "recordedAt" : "2026-07-09T15:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "🔥",
+        "glaze"
+      ],
+      "title" : "🔥 Kiln day",
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "🔥 Kiln day",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_9B6482ED-3322-5684-A8A9-EA8D54BDFDA2.m4a",
+    "id" : "9B6482ED-3322-5684-A8A9-EA8D54BDFDA2",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/9B6482ED-3322-5684-A8A9-EA8D54BDFDA2_memo_9B6482ED-3322-5684-A8A9-EA8D54BDFDA2.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 41927,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-09T15:00:00.000Z",
+    "tags" : [
+      "🔥",
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Kiln day. Loaded at seven, firing to cone five, the blue bowl is in the middle where it is most even.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-09T15:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27400000000000002,
+        "start" : 0,
+        "word" : "Kiln"
+      },
+      {
+        "end" : 0.56899999999999995,
+        "start" : 0.29399999999999998,
+        "word" : "day."
+      },
+      {
+        "end" : 0.86299999999999999,
+        "start" : 0.58899999999999997,
+        "word" : "Loaded"
+      },
+      {
+        "end" : 1.157,
+        "start" : 0.88300000000000001,
+        "word" : "at"
+      },
+      {
+        "end" : 1.4510000000000001,
+        "start" : 1.177,
+        "word" : "seven,"
+      },
+      {
+        "end" : 1.746,
+        "start" : 1.4710000000000001,
+        "word" : "firing"
+      },
+      {
+        "end" : 2.04,
+        "start" : 1.766,
+        "word" : "to"
+      },
+      {
+        "end" : 2.3340000000000001,
+        "start" : 2.0600000000000001,
+        "word" : "cone"
+      },
+      {
+        "end" : 2.629,
+        "start" : 2.3540000000000001,
+        "word" : "five,"
+      },
+      {
+        "end" : 2.923,
+        "start" : 2.649,
+        "word" : "the"
+      },
+      {
+        "end" : 3.2170000000000001,
+        "start" : 2.9430000000000001,
+        "word" : "blue"
+      },
+      {
+        "end" : 3.5110000000000001,
+        "start" : 3.2370000000000001,
+        "word" : "bowl"
+      },
+      {
+        "end" : 3.806,
+        "start" : 3.5310000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 4.0999999999999996,
+        "start" : 3.8260000000000001,
+        "word" : "in"
+      },
+      {
+        "end" : 4.3940000000000001,
+        "start" : 4.1200000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 4.6890000000000001,
+        "start" : 4.4139999999999997,
+        "word" : "middle"
+      },
+      {
+        "end" : 4.9829999999999997,
+        "start" : 4.7089999999999996,
+        "word" : "where"
+      },
+      {
+        "end" : 5.2770000000000001,
+        "start" : 5.0030000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 5.5709999999999997,
+        "start" : 5.2969999999999997,
+        "word" : "is"
+      },
+      {
+        "end" : 5.8659999999999997,
+        "start" : 5.5910000000000002,
+        "word" : "most"
+      },
+      {
+        "end" : 6.1600000000000001,
+        "start" : 5.8860000000000001,
+        "word" : "even."
+      }
+    ]
+  },
+  "slug" : "edge-emoji-title-tags"
+}

@@ -1,0 +1,380 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109034,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "1348CED4-5FDF-5024-BB78-D332643F10CE",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-22T10:00:00+01:00",
+      "duration" : 16.73,
+      "recordedAt" : "2026-07-22T09:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "conversation"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : [
+      {
+        "end" : 3.5219999999999998,
+        "speaker" : 0,
+        "start" : 0
+      },
+      {
+        "end" : 8.218,
+        "speaker" : 1,
+        "start" : 3.5219999999999998
+      },
+      {
+        "end" : 11.74,
+        "speaker" : 0,
+        "start" : 8.218
+      },
+      {
+        "end" : 16.73,
+        "speaker" : 1,
+        "start" : 11.74
+      }
+    ],
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_1348CED4-5FDF-5024-BB78-D332643F10CE.m4a",
+    "id" : "1348CED4-5FDF-5024-BB78-D332643F10CE",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/1348CED4-5FDF-5024-BB78-D332643F10CE_memo_1348CED4-5FDF-5024-BB78-D332643F10CE.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 109034,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-22T09:00:00.000Z",
+    "tags" : [
+      "conversation"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "**Fenna de Wit:** So if we do the Saturday, who is cleaning the bike side?\n\n**Lotte Vos:** You are. I did the last one and I found a chain under the clay table.\n\n**Fenna de Wit:** Fair. Friday night then. Can Hendrik bring the trailer for the boards?\n\n**Lotte Vos:** If you ask him before Wednesday. After that he says he is busy and he is not.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-22T09:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27400000000000002,
+        "start" : 0,
+        "word" : "So"
+      },
+      {
+        "end" : 0.56699999999999995,
+        "start" : 0.29399999999999998,
+        "word" : "if"
+      },
+      {
+        "end" : 0.86099999999999999,
+        "start" : 0.58699999999999997,
+        "word" : "we"
+      },
+      {
+        "end" : 1.1539999999999999,
+        "start" : 0.88100000000000001,
+        "word" : "do"
+      },
+      {
+        "end" : 1.448,
+        "start" : 1.1739999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 1.7410000000000001,
+        "start" : 1.468,
+        "word" : "Saturday,"
+      },
+      {
+        "end" : 2.0350000000000001,
+        "start" : 1.7609999999999999,
+        "word" : "who"
+      },
+      {
+        "end" : 2.3279999999999998,
+        "start" : 2.0550000000000002,
+        "word" : "is"
+      },
+      {
+        "end" : 2.6219999999999999,
+        "start" : 2.3479999999999999,
+        "word" : "cleaning"
+      },
+      {
+        "end" : 2.915,
+        "start" : 2.6419999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 3.2090000000000001,
+        "start" : 2.9350000000000001,
+        "word" : "bike"
+      },
+      {
+        "end" : 3.5019999999999998,
+        "start" : 3.2290000000000001,
+        "word" : "side?"
+      },
+      {
+        "end" : 3.7959999999999998,
+        "start" : 3.5219999999999998,
+        "word" : "You"
+      },
+      {
+        "end" : 4.0890000000000004,
+        "start" : 3.8159999999999998,
+        "word" : "are."
+      },
+      {
+        "end" : 4.383,
+        "start" : 4.109,
+        "word" : "I"
+      },
+      {
+        "end" : 4.6760000000000002,
+        "start" : 4.4029999999999996,
+        "word" : "did"
+      },
+      {
+        "end" : 4.9699999999999998,
+        "start" : 4.6959999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 5.2629999999999999,
+        "start" : 4.9900000000000002,
+        "word" : "last"
+      },
+      {
+        "end" : 5.5570000000000004,
+        "start" : 5.2830000000000004,
+        "word" : "one"
+      },
+      {
+        "end" : 5.8499999999999996,
+        "start" : 5.577,
+        "word" : "and"
+      },
+      {
+        "end" : 6.1440000000000001,
+        "start" : 5.8700000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 6.4370000000000003,
+        "start" : 6.1639999999999997,
+        "word" : "found"
+      },
+      {
+        "end" : 6.7309999999999999,
+        "start" : 6.4569999999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 7.024,
+        "start" : 6.7510000000000003,
+        "word" : "chain"
+      },
+      {
+        "end" : 7.3179999999999996,
+        "start" : 7.0439999999999996,
+        "word" : "under"
+      },
+      {
+        "end" : 7.6109999999999998,
+        "start" : 7.3380000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 7.9050000000000002,
+        "start" : 7.6310000000000002,
+        "word" : "clay"
+      },
+      {
+        "end" : 8.1980000000000004,
+        "start" : 7.9249999999999998,
+        "word" : "table."
+      },
+      {
+        "end" : 8.4920000000000009,
+        "start" : 8.218,
+        "word" : "Fair."
+      },
+      {
+        "end" : 8.7850000000000001,
+        "start" : 8.5120000000000005,
+        "word" : "Friday"
+      },
+      {
+        "end" : 9.0790000000000006,
+        "start" : 8.8049999999999997,
+        "word" : "night"
+      },
+      {
+        "end" : 9.3719999999999999,
+        "start" : 9.0990000000000002,
+        "word" : "then."
+      },
+      {
+        "end" : 9.6660000000000004,
+        "start" : 9.3919999999999995,
+        "word" : "Can"
+      },
+      {
+        "end" : 9.9589999999999996,
+        "start" : 9.6859999999999999,
+        "word" : "Hendrik"
+      },
+      {
+        "end" : 10.253,
+        "start" : 9.9789999999999992,
+        "word" : "bring"
+      },
+      {
+        "end" : 10.545999999999999,
+        "start" : 10.273,
+        "word" : "the"
+      },
+      {
+        "end" : 10.84,
+        "start" : 10.566000000000001,
+        "word" : "trailer"
+      },
+      {
+        "end" : 11.132999999999999,
+        "start" : 10.859999999999999,
+        "word" : "for"
+      },
+      {
+        "end" : 11.427,
+        "start" : 11.153,
+        "word" : "the"
+      },
+      {
+        "end" : 11.720000000000001,
+        "start" : 11.446999999999999,
+        "word" : "boards?"
+      },
+      {
+        "end" : 12.013999999999999,
+        "start" : 11.74,
+        "word" : "If"
+      },
+      {
+        "end" : 12.307,
+        "start" : 12.034000000000001,
+        "word" : "you"
+      },
+      {
+        "end" : 12.601000000000001,
+        "start" : 12.327,
+        "word" : "ask"
+      },
+      {
+        "end" : 12.894,
+        "start" : 12.621,
+        "word" : "him"
+      },
+      {
+        "end" : 13.188000000000001,
+        "start" : 12.914,
+        "word" : "before"
+      },
+      {
+        "end" : 13.481,
+        "start" : 13.208,
+        "word" : "Wednesday."
+      },
+      {
+        "end" : 13.775,
+        "start" : 13.500999999999999,
+        "word" : "After"
+      },
+      {
+        "end" : 14.068,
+        "start" : 13.795,
+        "word" : "that"
+      },
+      {
+        "end" : 14.362,
+        "start" : 14.087999999999999,
+        "word" : "he"
+      },
+      {
+        "end" : 14.654999999999999,
+        "start" : 14.382,
+        "word" : "says"
+      },
+      {
+        "end" : 14.949,
+        "start" : 14.675000000000001,
+        "word" : "he"
+      },
+      {
+        "end" : 15.242000000000001,
+        "start" : 14.968999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 15.536,
+        "start" : 15.262,
+        "word" : "busy"
+      },
+      {
+        "end" : 15.829000000000001,
+        "start" : 15.555999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 16.123000000000001,
+        "start" : 15.849,
+        "word" : "he"
+      },
+      {
+        "end" : 16.416,
+        "start" : 16.143000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 16.710000000000001,
+        "start" : 16.436,
+        "word" : "not."
+      }
+    ]
+  },
+  "slug" : "conv-two-named"
+}

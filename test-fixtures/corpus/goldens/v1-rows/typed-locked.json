@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 102,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "E0B0EBD3-F084-5780-A3E0-3750945CD777",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-10T00:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-09T23:00:00.000Z",
+      "significance" : 0.90000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "privé"
+      ],
+      "title" : "Privé",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Privé",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "E0B0EBD3-F084-5780-A3E0-3750945CD777.md",
+    "id" : "E0B0EBD3-F084-5780-A3E0-3750945CD777",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : true,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/E0B0EBD3-F084-5780-A3E0-3750945CD777_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.90000000000000002,
+    "size" : 102,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-09T23:00:00.000Z",
+    "tags" : [
+      "privé"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Dit is een vergrendelde notitie over geld en over Hendrik. Hoort nergens in de vault terecht te komen.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-09T23:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-locked"
+}

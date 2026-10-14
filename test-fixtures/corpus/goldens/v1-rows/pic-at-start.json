@@ -1,0 +1,183 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 124,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 43771,
+      "file" : "images/photo_7E246814-C6AF-50EB-BC38-4851EA4F45BC_001.jpg"
+    },
+    {
+      "bytes" : 38791,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "7E246814-C6AF-50EB-BC38-4851EA4F45BC",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-12T16:00:00+01:00",
+      "duration" : 5.4299999999999997,
+      "imageManifest" : [
+        {
+          "filename" : "photo_7E246814-C6AF-50EB-BC38-4851EA4F45BC_001.jpg",
+          "offsetSeconds" : 0.40000000000000002
+        }
+      ],
+      "recordedAt" : "2026-08-12T15:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_7E246814-C6AF-50EB-BC38-4851EA4F45BC.m4a",
+    "id" : "7E246814-C6AF-50EB-BC38-4851EA4F45BC",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/7E246814-C6AF-50EB-BC38-4851EA4F45BC_memo_7E246814-C6AF-50EB-BC38-4851EA4F45BC.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 38791,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-12T15:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "[[img_001]] This is what the blue looks like at cone five, straight out of the kiln, before I touched it.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-12T15:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.26600000000000001,
+        "start" : 0,
+        "word" : "This"
+      },
+      {
+        "end" : 0.55200000000000005,
+        "start" : 0.28599999999999998,
+        "word" : "is"
+      },
+      {
+        "end" : 0.83699999999999997,
+        "start" : 0.57199999999999995,
+        "word" : "what"
+      },
+      {
+        "end" : 1.123,
+        "start" : 0.85699999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 1.409,
+        "start" : 1.143,
+        "word" : "blue"
+      },
+      {
+        "end" : 1.6950000000000001,
+        "start" : 1.429,
+        "word" : "looks"
+      },
+      {
+        "end" : 1.9810000000000001,
+        "start" : 1.7150000000000001,
+        "word" : "like"
+      },
+      {
+        "end" : 2.266,
+        "start" : 2.0009999999999999,
+        "word" : "at"
+      },
+      {
+        "end" : 2.552,
+        "start" : 2.286,
+        "word" : "cone"
+      },
+      {
+        "end" : 2.8380000000000001,
+        "start" : 2.5720000000000001,
+        "word" : "five,"
+      },
+      {
+        "end" : 3.1240000000000001,
+        "start" : 2.8580000000000001,
+        "word" : "straight"
+      },
+      {
+        "end" : 3.4089999999999998,
+        "start" : 3.1440000000000001,
+        "word" : "out"
+      },
+      {
+        "end" : 3.6949999999999998,
+        "start" : 3.4289999999999998,
+        "word" : "of"
+      },
+      {
+        "end" : 3.9809999999999999,
+        "start" : 3.7149999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 4.2670000000000003,
+        "start" : 4.0010000000000003,
+        "word" : "kiln,"
+      },
+      {
+        "end" : 4.5529999999999999,
+        "start" : 4.2869999999999999,
+        "word" : "before"
+      },
+      {
+        "end" : 4.8380000000000001,
+        "start" : 4.5730000000000004,
+        "word" : "I"
+      },
+      {
+        "end" : 5.1239999999999997,
+        "start" : 4.8579999999999997,
+        "word" : "touched"
+      },
+      {
+        "end" : 5.4100000000000001,
+        "start" : 5.1440000000000001,
+        "word" : "it."
+      }
+    ]
+  },
+  "slug" : "pic-at-start"
+}

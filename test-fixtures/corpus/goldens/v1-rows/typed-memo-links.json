@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 357,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-15T16:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-15T15:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "money"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167.md",
+    "id" : "EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 357,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-15T15:00:00.000Z",
+    "tags" : [
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Pricing again. Same argument as [[memo:9FFAEC30-619B-55A0-A841-C5EBB3C439F6|Two businesses in one room]] but with numbers this time: overhaul €140 → €160, tune-up stays €35.\n\nSee also [[memo:AE9D9978-31DC-511D-A056-180D903EE183|Pricing ramble on the walk]] and the thing I never wrote: [[memo:794356DB-D0D0-507F-AD91-3B6A446EC4A0|The missing note]].",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-15T15:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-memo-links"
+}

@@ -1,0 +1,350 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109201,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "5C18EB46-234E-57F4-8E14-EFA45C2F1525",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-30T09:00:00+01:00",
+      "dayPeriod" : "morning",
+      "duration" : 17.32,
+      "location" : {
+        "latitude" : 51.913899999999998,
+        "longitude" : 4.476,
+        "placeName" : "Werkplaats, Rotterdam-Zuid"
+      },
+      "recordedAt" : "2026-08-30T08:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "workshop"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_5C18EB46-234E-57F4-8E14-EFA45C2F1525.m4a",
+    "id" : "5C18EB46-234E-57F4-8E14-EFA45C2F1525",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/5C18EB46-234E-57F4-8E14-EFA45C2F1525_memo_5C18EB46-234E-57F4-8E14-EFA45C2F1525.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 109201,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-30T08:00:00.000Z",
+    "tags" : [
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Dus ik zat te denken, the Saturday workshop, als we dat doen dan moet de fietskant echt schoon zijn, like properly clean, niet gewoon een doek erover. Mariam brengt twee collega's mee, so that's six people, zes mensen, en ik heb maar vier planken. Bruno heeft er misschien nog, ik vraag het hem morgen.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-30T08:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.30099999999999999,
+        "start" : 0,
+        "word" : "Dus"
+      },
+      {
+        "end" : 0.621,
+        "start" : 0.32100000000000001,
+        "word" : "ik"
+      },
+      {
+        "end" : 0.94199999999999995,
+        "start" : 0.64100000000000001,
+        "word" : "zat"
+      },
+      {
+        "end" : 1.2629999999999999,
+        "start" : 0.96199999999999997,
+        "word" : "te"
+      },
+      {
+        "end" : 1.5840000000000001,
+        "start" : 1.2829999999999999,
+        "word" : "denken,"
+      },
+      {
+        "end" : 1.9039999999999999,
+        "start" : 1.6040000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.2250000000000001,
+        "start" : 1.9239999999999999,
+        "word" : "Saturday"
+      },
+      {
+        "end" : 2.5459999999999998,
+        "start" : 2.2450000000000001,
+        "word" : "workshop,"
+      },
+      {
+        "end" : 2.867,
+        "start" : 2.5659999999999998,
+        "word" : "als"
+      },
+      {
+        "end" : 3.1869999999999998,
+        "start" : 2.887,
+        "word" : "we"
+      },
+      {
+        "end" : 3.508,
+        "start" : 3.2069999999999999,
+        "word" : "dat"
+      },
+      {
+        "end" : 3.8290000000000002,
+        "start" : 3.528,
+        "word" : "doen"
+      },
+      {
+        "end" : 4.1500000000000004,
+        "start" : 3.8490000000000002,
+        "word" : "dan"
+      },
+      {
+        "end" : 4.4699999999999998,
+        "start" : 4.1699999999999999,
+        "word" : "moet"
+      },
+      {
+        "end" : 4.7910000000000004,
+        "start" : 4.4900000000000002,
+        "word" : "de"
+      },
+      {
+        "end" : 5.1120000000000001,
+        "start" : 4.8109999999999999,
+        "word" : "fietskant"
+      },
+      {
+        "end" : 5.4329999999999998,
+        "start" : 5.1319999999999997,
+        "word" : "echt"
+      },
+      {
+        "end" : 5.7530000000000001,
+        "start" : 5.4530000000000003,
+        "word" : "schoon"
+      },
+      {
+        "end" : 6.0739999999999998,
+        "start" : 5.7729999999999997,
+        "word" : "zijn,"
+      },
+      {
+        "end" : 6.3949999999999996,
+        "start" : 6.0940000000000003,
+        "word" : "like"
+      },
+      {
+        "end" : 6.7160000000000002,
+        "start" : 6.415,
+        "word" : "properly"
+      },
+      {
+        "end" : 7.0359999999999996,
+        "start" : 6.7359999999999998,
+        "word" : "clean,"
+      },
+      {
+        "end" : 7.3570000000000002,
+        "start" : 7.056,
+        "word" : "niet"
+      },
+      {
+        "end" : 7.6779999999999999,
+        "start" : 7.3769999999999998,
+        "word" : "gewoon"
+      },
+      {
+        "end" : 7.9989999999999997,
+        "start" : 7.6980000000000004,
+        "word" : "een"
+      },
+      {
+        "end" : 8.3190000000000008,
+        "start" : 8.0190000000000001,
+        "word" : "doek"
+      },
+      {
+        "end" : 8.6400000000000006,
+        "start" : 8.3390000000000004,
+        "word" : "erover."
+      },
+      {
+        "end" : 8.9610000000000003,
+        "start" : 8.6600000000000001,
+        "word" : "Mariam"
+      },
+      {
+        "end" : 9.2810000000000006,
+        "start" : 8.9809999999999999,
+        "word" : "brengt"
+      },
+      {
+        "end" : 9.6020000000000003,
+        "start" : 9.3010000000000002,
+        "word" : "twee"
+      },
+      {
+        "end" : 9.923,
+        "start" : 9.6219999999999999,
+        "word" : "collega's"
+      },
+      {
+        "end" : 10.244,
+        "start" : 9.9429999999999996,
+        "word" : "mee,"
+      },
+      {
+        "end" : 10.564,
+        "start" : 10.263999999999999,
+        "word" : "so"
+      },
+      {
+        "end" : 10.885,
+        "start" : 10.584,
+        "word" : "that's"
+      },
+      {
+        "end" : 11.206,
+        "start" : 10.904999999999999,
+        "word" : "six"
+      },
+      {
+        "end" : 11.526999999999999,
+        "start" : 11.226000000000001,
+        "word" : "people,"
+      },
+      {
+        "end" : 11.847,
+        "start" : 11.547000000000001,
+        "word" : "zes"
+      },
+      {
+        "end" : 12.167999999999999,
+        "start" : 11.867000000000001,
+        "word" : "mensen,"
+      },
+      {
+        "end" : 12.489000000000001,
+        "start" : 12.188000000000001,
+        "word" : "en"
+      },
+      {
+        "end" : 12.81,
+        "start" : 12.509,
+        "word" : "ik"
+      },
+      {
+        "end" : 13.130000000000001,
+        "start" : 12.83,
+        "word" : "heb"
+      },
+      {
+        "end" : 13.451000000000001,
+        "start" : 13.15,
+        "word" : "maar"
+      },
+      {
+        "end" : 13.772,
+        "start" : 13.471,
+        "word" : "vier"
+      },
+      {
+        "end" : 14.093,
+        "start" : 13.792,
+        "word" : "planken."
+      },
+      {
+        "end" : 14.413,
+        "start" : 14.113,
+        "word" : "Bruno"
+      },
+      {
+        "end" : 14.734,
+        "start" : 14.433,
+        "word" : "heeft"
+      },
+      {
+        "end" : 15.055,
+        "start" : 14.754,
+        "word" : "er"
+      },
+      {
+        "end" : 15.375999999999999,
+        "start" : 15.074999999999999,
+        "word" : "misschien"
+      },
+      {
+        "end" : 15.696,
+        "start" : 15.396000000000001,
+        "word" : "nog,"
+      },
+      {
+        "end" : 16.016999999999999,
+        "start" : 15.715999999999999,
+        "word" : "ik"
+      },
+      {
+        "end" : 16.338000000000001,
+        "start" : 16.036999999999999,
+        "word" : "vraag"
+      },
+      {
+        "end" : 16.658999999999999,
+        "start" : 16.358000000000001,
+        "word" : "het"
+      },
+      {
+        "end" : 16.978999999999999,
+        "start" : 16.678999999999998,
+        "word" : "hem"
+      },
+      {
+        "end" : 17.300000000000001,
+        "start" : 16.998999999999999,
+        "word" : "morgen."
+      }
+    ]
+  },
+  "slug" : "voice-mix-code-switch"
+}

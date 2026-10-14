@@ -1,0 +1,149 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 39309,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "0CEAE094-5C11-5C3D-9D08-CBFC242ED49D",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-13T05:00:00+01:00",
+      "duration" : 5.7599999999999998,
+      "recordedAt" : "2026-07-13T04:00:00.000Z",
+      "significance" : 0.80000000000000004,
+      "source" : "mobile",
+      "tags" : [
+        "thinking"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_0CEAE094-5C11-5C3D-9D08-CBFC242ED49D.m4a",
+    "id" : "0CEAE094-5C11-5C3D-9D08-CBFC242ED49D",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/0CEAE094-5C11-5C3D-9D08-CBFC242ED49D_memo_0CEAE094-5C11-5C3D-9D08-CBFC242ED49D.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.80000000000000004,
+    "size" : 39309,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-13T04:00:00.000Z",
+    "tags" : [
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Private thought. Not sure the studio makes me happy or just busy. Personal, vault only.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-13T04:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.36399999999999999,
+        "start" : 0,
+        "word" : "Private"
+      },
+      {
+        "end" : 0.748,
+        "start" : 0.38400000000000001,
+        "word" : "thought."
+      },
+      {
+        "end" : 1.1319999999999999,
+        "start" : 0.76800000000000002,
+        "word" : "Not"
+      },
+      {
+        "end" : 1.516,
+        "start" : 1.1519999999999999,
+        "word" : "sure"
+      },
+      {
+        "end" : 1.8999999999999999,
+        "start" : 1.536,
+        "word" : "the"
+      },
+      {
+        "end" : 2.2839999999999998,
+        "start" : 1.9199999999999999,
+        "word" : "studio"
+      },
+      {
+        "end" : 2.6680000000000001,
+        "start" : 2.3039999999999998,
+        "word" : "makes"
+      },
+      {
+        "end" : 3.052,
+        "start" : 2.6880000000000002,
+        "word" : "me"
+      },
+      {
+        "end" : 3.4359999999999999,
+        "start" : 3.0720000000000001,
+        "word" : "happy"
+      },
+      {
+        "end" : 3.8199999999999998,
+        "start" : 3.456,
+        "word" : "or"
+      },
+      {
+        "end" : 4.2039999999999997,
+        "start" : 3.8399999999999999,
+        "word" : "just"
+      },
+      {
+        "end" : 4.5880000000000001,
+        "start" : 4.2240000000000002,
+        "word" : "busy."
+      },
+      {
+        "end" : 4.9720000000000004,
+        "start" : 4.6079999999999997,
+        "word" : "Personal,"
+      },
+      {
+        "end" : 5.3559999999999999,
+        "start" : 4.992,
+        "word" : "vault"
+      },
+      {
+        "end" : 5.7400000000000002,
+        "start" : 5.3760000000000003,
+        "word" : "only."
+      }
+    ]
+  },
+  "slug" : "dest-personal"
+}

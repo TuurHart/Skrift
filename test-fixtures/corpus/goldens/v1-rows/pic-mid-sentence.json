@@ -1,0 +1,234 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 123,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 44995,
+      "file" : "images/photo_7DE3F39D-EEFB-5EA3-B496-0298D738D840_001.jpg"
+    },
+    {
+      "bytes" : 44950,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "7DE3F39D-EEFB-5EA3-B496-0298D738D840",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-13T09:00:00+01:00",
+      "dayPeriod" : "afternoon",
+      "duration" : 6.6900000000000004,
+      "imageManifest" : [
+        {
+          "filename" : "photo_7DE3F39D-EEFB-5EA3-B496-0298D738D840_001.jpg",
+          "offsetSeconds" : 2.8700000000000001
+        }
+      ],
+      "location" : {
+        "latitude" : 51.913899999999998,
+        "longitude" : 4.476,
+        "placeName" : "Werkplaats, Rotterdam-Zuid"
+      },
+      "recordedAt" : "2026-08-13T08:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_7DE3F39D-EEFB-5EA3-B496-0298D738D840.m4a",
+    "id" : "7DE3F39D-EEFB-5EA3-B496-0298D738D840",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/7DE3F39D-EEFB-5EA3-B496-0298D738D840_memo_7DE3F39D-EEFB-5EA3-B496-0298D738D840.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 44950,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-13T08:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "The crack runs from the rim all the way down to the [[img_001]] foot, so it is the body not the glaze. I will fire the next one slower.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-13T08:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.219,
+        "start" : 0,
+        "word" : "The"
+      },
+      {
+        "end" : 0.45800000000000002,
+        "start" : 0.23899999999999999,
+        "word" : "crack"
+      },
+      {
+        "end" : 0.69699999999999995,
+        "start" : 0.47799999999999998,
+        "word" : "runs"
+      },
+      {
+        "end" : 0.93600000000000005,
+        "start" : 0.71699999999999997,
+        "word" : "from"
+      },
+      {
+        "end" : 1.175,
+        "start" : 0.95599999999999996,
+        "word" : "the"
+      },
+      {
+        "end" : 1.4139999999999999,
+        "start" : 1.1950000000000001,
+        "word" : "rim"
+      },
+      {
+        "end" : 1.653,
+        "start" : 1.4339999999999999,
+        "word" : "all"
+      },
+      {
+        "end" : 1.891,
+        "start" : 1.673,
+        "word" : "the"
+      },
+      {
+        "end" : 2.1299999999999999,
+        "start" : 1.911,
+        "word" : "way"
+      },
+      {
+        "end" : 2.3690000000000002,
+        "start" : 2.1499999999999999,
+        "word" : "down"
+      },
+      {
+        "end" : 2.6080000000000001,
+        "start" : 2.3889999999999998,
+        "word" : "to"
+      },
+      {
+        "end" : 2.847,
+        "start" : 2.6280000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 3.0859999999999999,
+        "start" : 2.867,
+        "word" : "foot,"
+      },
+      {
+        "end" : 3.3250000000000002,
+        "start" : 3.1059999999999999,
+        "word" : "so"
+      },
+      {
+        "end" : 3.5640000000000001,
+        "start" : 3.3450000000000002,
+        "word" : "it"
+      },
+      {
+        "end" : 3.8029999999999999,
+        "start" : 3.5840000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 4.0419999999999998,
+        "start" : 3.823,
+        "word" : "the"
+      },
+      {
+        "end" : 4.2809999999999997,
+        "start" : 4.0620000000000003,
+        "word" : "body"
+      },
+      {
+        "end" : 4.5199999999999996,
+        "start" : 4.3010000000000002,
+        "word" : "not"
+      },
+      {
+        "end" : 4.7590000000000003,
+        "start" : 4.54,
+        "word" : "the"
+      },
+      {
+        "end" : 4.9980000000000002,
+        "start" : 4.7789999999999999,
+        "word" : "glaze."
+      },
+      {
+        "end" : 5.2359999999999998,
+        "start" : 5.0179999999999998,
+        "word" : "I"
+      },
+      {
+        "end" : 5.4749999999999996,
+        "start" : 5.2560000000000002,
+        "word" : "will"
+      },
+      {
+        "end" : 5.7140000000000004,
+        "start" : 5.4950000000000001,
+        "word" : "fire"
+      },
+      {
+        "end" : 5.9530000000000003,
+        "start" : 5.734,
+        "word" : "the"
+      },
+      {
+        "end" : 6.1920000000000002,
+        "start" : 5.9729999999999999,
+        "word" : "next"
+      },
+      {
+        "end" : 6.431,
+        "start" : 6.2119999999999997,
+        "word" : "one"
+      },
+      {
+        "end" : 6.6699999999999999,
+        "start" : 6.4509999999999996,
+        "word" : "slower."
+      }
+    ]
+  },
+  "slug" : "pic-mid-sentence"
+}

@@ -1,0 +1,3 @@
+{
+  "_schema": "Q428: slug -> array of SPEC.md ids (R# / C#) for which a sweep engine's Mac row is EXPECTED to differ from v1's recorded row golden (goldens/v1-rows/<slug>.json). ReconcileDiffHarnessTests (C5): a diff on a slug listed here is expected-different (pass); the SAME slug with no diff is a matched bug (fail); a diff on an unlisted slug is unexplained (fail). Empty: v1 is the only registered engine."
+}

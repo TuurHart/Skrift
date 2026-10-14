@@ -1,0 +1,81 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 54409,
+      "file" : "files/capture_quote_kiln.pdf"
+    }
+  ],
+  "memoID" : "FDA21613-E326-5919-98D2-8205AD1580C2",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.",
+      "capturedAt" : "2026-07-27T09:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-27T08:00:00.000Z",
+      "sharedContent" : {
+        "fileName" : "Offerte kiln lijn.pdf",
+        "filePath" : "capture_quote_kiln.pdf",
+        "mimeType" : "application/pdf",
+        "type" : "file"
+      },
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "studio",
+        "money"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_FDA21613-E326-5919-98D2-8205AD1580C2",
+    "id" : "FDA21613-E326-5919-98D2-8205AD1580C2",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_FDA21613-E326-5919-98D2-8205AD1580C2",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-27T08:00:00.000Z",
+    "tags" : [
+      "studio",
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-file-pdf"
+}

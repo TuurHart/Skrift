@@ -1,0 +1,185 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 123,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 39868,
+      "file" : "images/photo_FCC313B3-F5BF-5922-9A07-411451726DDE_001.jpg"
+    },
+    {
+      "bytes" : 45084,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "FCC313B3-F5BF-5922-9A07-411451726DDE",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-12T12:00:00+01:00",
+      "duration" : 6.6399999999999997,
+      "imageManifest" : [
+        {
+          "filename" : "photo_FCC313B3-F5BF-5922-9A07-411451726DDE_001.jpg",
+          "offsetSeconds" : 4.1900000000000004
+        }
+      ],
+      "recordedAt" : "2026-07-12T11:00:00.000Z",
+      "significance" : 0.90000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "glaze",
+        "project"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "portfolio",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_FCC313B3-F5BF-5922-9A07-411451726DDE.m4a",
+    "id" : "FCC313B3-F5BF-5922-9A07-411451726DDE",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/FCC313B3-F5BF-5922-9A07-411451726DDE_memo_FCC313B3-F5BF-5922-9A07-411451726DDE.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.90000000000000002,
+    "size" : 45084,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-12T11:00:00.000Z",
+    "tags" : [
+      "glaze",
+      "project"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Finished the wide blue bowl, the first one that came out right. [[img_001]] Cone five, grey body, blue number three.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-12T11:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.32900000000000001,
+        "start" : 0,
+        "word" : "Finished"
+      },
+      {
+        "end" : 0.67900000000000005,
+        "start" : 0.34899999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 1.028,
+        "start" : 0.69899999999999995,
+        "word" : "wide"
+      },
+      {
+        "end" : 1.3779999999999999,
+        "start" : 1.048,
+        "word" : "blue"
+      },
+      {
+        "end" : 1.7270000000000001,
+        "start" : 1.3979999999999999,
+        "word" : "bowl,"
+      },
+      {
+        "end" : 2.077,
+        "start" : 1.7470000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.4260000000000002,
+        "start" : 2.097,
+        "word" : "first"
+      },
+      {
+        "end" : 2.7759999999999998,
+        "start" : 2.4460000000000002,
+        "word" : "one"
+      },
+      {
+        "end" : 3.125,
+        "start" : 2.7959999999999998,
+        "word" : "that"
+      },
+      {
+        "end" : 3.4750000000000001,
+        "start" : 3.145,
+        "word" : "came"
+      },
+      {
+        "end" : 3.8239999999999998,
+        "start" : 3.4950000000000001,
+        "word" : "out"
+      },
+      {
+        "end" : 4.1740000000000004,
+        "start" : 3.8439999999999999,
+        "word" : "right."
+      },
+      {
+        "end" : 4.5229999999999997,
+        "start" : 4.194,
+        "word" : "Cone"
+      },
+      {
+        "end" : 4.8730000000000002,
+        "start" : 4.5430000000000001,
+        "word" : "five,"
+      },
+      {
+        "end" : 5.2220000000000004,
+        "start" : 4.8929999999999998,
+        "word" : "grey"
+      },
+      {
+        "end" : 5.5720000000000001,
+        "start" : 5.242,
+        "word" : "body,"
+      },
+      {
+        "end" : 5.9210000000000003,
+        "start" : 5.5919999999999996,
+        "word" : "blue"
+      },
+      {
+        "end" : 6.2709999999999999,
+        "start" : 5.9409999999999998,
+        "word" : "number"
+      },
+      {
+        "end" : 6.6200000000000001,
+        "start" : 6.2910000000000004,
+        "word" : "three."
+      }
+    ]
+  },
+  "slug" : "dest-project"
+}

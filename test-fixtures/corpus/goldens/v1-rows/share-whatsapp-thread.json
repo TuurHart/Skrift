@@ -1,0 +1,462 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 67712,
+      "file" : "images/photo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_001.jpg"
+    },
+    {
+      "bytes" : 133556,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-14T18:30:44+01:00",
+      "clips" : [
+        {
+          "sentAt" : "2026-09-14T18:30:44+01:00"
+        },
+        {
+          "sentAt" : "2026-09-14T18:31:10+01:00"
+        },
+        {
+          "sentAt" : "2026-09-14T18:32:02+01:00"
+        },
+        {
+          "sentAt" : "2026-09-14T18:35:40+01:00"
+        },
+        {
+          "sentAt" : "2026-09-14T18:36:05+01:00"
+        }
+      ],
+      "duration" : 21.129999999999999,
+      "imageManifest" : [
+        {
+          "filename" : "photo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_001.jpg",
+          "offsetSeconds" : 12.5
+        }
+      ],
+      "mediaSource" : "share-audio",
+      "recordedAt" : "2026-09-14T17:30:44.000Z",
+      "sender" : "Hendrik Vos",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "studio"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30.m4a",
+    "id" : "B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "share-audio",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_memo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 133556,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-16T08:12:00.000Z",
+    "tags" : [
+      "studio"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Hé Fenna, ik heb de oven bekeken, die bedrading achter is echt niet oké.\n\nEn de aansluiting in de meterkast is ook te licht voor wat jij erop wilt zetten.\n\nKijk, dit is wat ik bedoel, zie je die verkleuring bij de klemmen?\n\n[[img_001]]\n\nOkay so if you want I can come by Thursday with Marco, he said he has an hour.\n\nLet me know, and don't fire it before then, please.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-14T17:30:44.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27800000000000002,
+        "start" : 0,
+        "word" : "Hé"
+      },
+      {
+        "end" : 0.57499999999999996,
+        "start" : 0.29799999999999999,
+        "word" : "Fenna,"
+      },
+      {
+        "end" : 0.873,
+        "start" : 0.59499999999999997,
+        "word" : "ik"
+      },
+      {
+        "end" : 1.1699999999999999,
+        "start" : 0.89300000000000002,
+        "word" : "heb"
+      },
+      {
+        "end" : 1.468,
+        "start" : 1.1899999999999999,
+        "word" : "de"
+      },
+      {
+        "end" : 1.766,
+        "start" : 1.488,
+        "word" : "oven"
+      },
+      {
+        "end" : 2.0630000000000002,
+        "start" : 1.786,
+        "word" : "bekeken,"
+      },
+      {
+        "end" : 2.3610000000000002,
+        "start" : 2.0830000000000002,
+        "word" : "die"
+      },
+      {
+        "end" : 2.6579999999999999,
+        "start" : 2.3809999999999998,
+        "word" : "bedrading"
+      },
+      {
+        "end" : 2.956,
+        "start" : 2.6779999999999999,
+        "word" : "achter"
+      },
+      {
+        "end" : 3.254,
+        "start" : 2.976,
+        "word" : "is"
+      },
+      {
+        "end" : 3.5510000000000002,
+        "start" : 3.274,
+        "word" : "echt"
+      },
+      {
+        "end" : 3.8490000000000002,
+        "start" : 3.5710000000000002,
+        "word" : "niet"
+      },
+      {
+        "end" : 4.1459999999999999,
+        "start" : 3.8690000000000002,
+        "word" : "oké."
+      },
+      {
+        "end" : 4.444,
+        "start" : 4.1660000000000004,
+        "word" : "En"
+      },
+      {
+        "end" : 4.742,
+        "start" : 4.4640000000000004,
+        "word" : "de"
+      },
+      {
+        "end" : 5.0389999999999997,
+        "start" : 4.7619999999999996,
+        "word" : "aansluiting"
+      },
+      {
+        "end" : 5.3369999999999997,
+        "start" : 5.0590000000000002,
+        "word" : "in"
+      },
+      {
+        "end" : 5.6349999999999998,
+        "start" : 5.3570000000000002,
+        "word" : "de"
+      },
+      {
+        "end" : 5.9320000000000004,
+        "start" : 5.6550000000000002,
+        "word" : "meterkast"
+      },
+      {
+        "end" : 6.2300000000000004,
+        "start" : 5.952,
+        "word" : "is"
+      },
+      {
+        "end" : 6.5270000000000001,
+        "start" : 6.25,
+        "word" : "ook"
+      },
+      {
+        "end" : 6.8250000000000002,
+        "start" : 6.5469999999999997,
+        "word" : "te"
+      },
+      {
+        "end" : 7.1230000000000002,
+        "start" : 6.8449999999999998,
+        "word" : "licht"
+      },
+      {
+        "end" : 7.4199999999999999,
+        "start" : 7.1429999999999998,
+        "word" : "voor"
+      },
+      {
+        "end" : 7.718,
+        "start" : 7.4400000000000004,
+        "word" : "wat"
+      },
+      {
+        "end" : 8.0150000000000006,
+        "start" : 7.7380000000000004,
+        "word" : "jij"
+      },
+      {
+        "end" : 8.3130000000000006,
+        "start" : 8.0350000000000001,
+        "word" : "erop"
+      },
+      {
+        "end" : 8.6110000000000007,
+        "start" : 8.3330000000000002,
+        "word" : "wilt"
+      },
+      {
+        "end" : 8.9079999999999995,
+        "start" : 8.6310000000000002,
+        "word" : "zetten."
+      },
+      {
+        "end" : 9.2059999999999995,
+        "start" : 8.9280000000000008,
+        "word" : "Kijk,"
+      },
+      {
+        "end" : 9.5030000000000001,
+        "start" : 9.2260000000000009,
+        "word" : "dit"
+      },
+      {
+        "end" : 9.8010000000000002,
+        "start" : 9.5229999999999997,
+        "word" : "is"
+      },
+      {
+        "end" : 10.099,
+        "start" : 9.8209999999999997,
+        "word" : "wat"
+      },
+      {
+        "end" : 10.396000000000001,
+        "start" : 10.119,
+        "word" : "ik"
+      },
+      {
+        "end" : 10.694000000000001,
+        "start" : 10.416,
+        "word" : "bedoel,"
+      },
+      {
+        "end" : 10.991,
+        "start" : 10.714,
+        "word" : "zie"
+      },
+      {
+        "end" : 11.289,
+        "start" : 11.010999999999999,
+        "word" : "je"
+      },
+      {
+        "end" : 11.587,
+        "start" : 11.308999999999999,
+        "word" : "die"
+      },
+      {
+        "end" : 11.884,
+        "start" : 11.606999999999999,
+        "word" : "verkleuring"
+      },
+      {
+        "end" : 12.182,
+        "start" : 11.904,
+        "word" : "bij"
+      },
+      {
+        "end" : 12.478999999999999,
+        "start" : 12.202,
+        "word" : "de"
+      },
+      {
+        "end" : 12.776999999999999,
+        "start" : 12.499000000000001,
+        "word" : "klemmen?"
+      },
+      {
+        "end" : 13.074999999999999,
+        "start" : 12.797000000000001,
+        "word" : "Okay"
+      },
+      {
+        "end" : 13.372,
+        "start" : 13.095000000000001,
+        "word" : "so"
+      },
+      {
+        "end" : 13.67,
+        "start" : 13.391999999999999,
+        "word" : "if"
+      },
+      {
+        "end" : 13.967000000000001,
+        "start" : 13.69,
+        "word" : "you"
+      },
+      {
+        "end" : 14.265000000000001,
+        "start" : 13.987,
+        "word" : "want"
+      },
+      {
+        "end" : 14.563000000000001,
+        "start" : 14.285,
+        "word" : "I"
+      },
+      {
+        "end" : 14.859999999999999,
+        "start" : 14.583,
+        "word" : "can"
+      },
+      {
+        "end" : 15.157999999999999,
+        "start" : 14.880000000000001,
+        "word" : "come"
+      },
+      {
+        "end" : 15.455,
+        "start" : 15.178000000000001,
+        "word" : "by"
+      },
+      {
+        "end" : 15.753,
+        "start" : 15.475,
+        "word" : "Thursday"
+      },
+      {
+        "end" : 16.050999999999998,
+        "start" : 15.773,
+        "word" : "with"
+      },
+      {
+        "end" : 16.347999999999999,
+        "start" : 16.071000000000002,
+        "word" : "Marco,"
+      },
+      {
+        "end" : 16.646000000000001,
+        "start" : 16.367999999999999,
+        "word" : "he"
+      },
+      {
+        "end" : 16.943999999999999,
+        "start" : 16.666,
+        "word" : "said"
+      },
+      {
+        "end" : 17.241,
+        "start" : 16.963999999999999,
+        "word" : "he"
+      },
+      {
+        "end" : 17.539000000000001,
+        "start" : 17.260999999999999,
+        "word" : "has"
+      },
+      {
+        "end" : 17.835999999999999,
+        "start" : 17.559000000000001,
+        "word" : "an"
+      },
+      {
+        "end" : 18.134,
+        "start" : 17.856000000000002,
+        "word" : "hour."
+      },
+      {
+        "end" : 18.431999999999999,
+        "start" : 18.154,
+        "word" : "Let"
+      },
+      {
+        "end" : 18.728999999999999,
+        "start" : 18.452000000000002,
+        "word" : "me"
+      },
+      {
+        "end" : 19.027000000000001,
+        "start" : 18.748999999999999,
+        "word" : "know,"
+      },
+      {
+        "end" : 19.324000000000002,
+        "start" : 19.047000000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 19.622,
+        "start" : 19.344000000000001,
+        "word" : "don't"
+      },
+      {
+        "end" : 19.920000000000002,
+        "start" : 19.641999999999999,
+        "word" : "fire"
+      },
+      {
+        "end" : 20.216999999999999,
+        "start" : 19.940000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 20.515000000000001,
+        "start" : 20.236999999999998,
+        "word" : "before"
+      },
+      {
+        "end" : 20.812000000000001,
+        "start" : 20.535,
+        "word" : "then,"
+      },
+      {
+        "end" : 21.109999999999999,
+        "start" : 20.832000000000001,
+        "word" : "please."
+      }
+    ]
+  },
+  "slug" : "share-whatsapp-thread"
+}

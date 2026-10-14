@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "",
+      "capturedAt" : "2026-08-01T08:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-08-01T07:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://www.instagram.com/p/C0rpusExample/"
+      },
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "inspiration"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "portfolio",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+    "id" : "99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-01T07:00:00.000Z",
+    "tags" : [
+      "inspiration"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-url-instagram"
+}

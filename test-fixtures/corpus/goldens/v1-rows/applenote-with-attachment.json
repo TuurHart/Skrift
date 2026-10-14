@@ -1,0 +1,88 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 50490,
+      "file" : "images/photo_942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5_001.jpg"
+    },
+    {
+      "bytes" : 125,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-13T22:00:00+01:00",
+      "duration" : 0,
+      "imageManifest" : [
+        {
+          "filename" : "photo_942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5_001.jpg",
+          "offsetSeconds" : 0
+        }
+      ],
+      "mediaSource" : "applenote",
+      "recordedAt" : "2026-07-13T21:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "studio"
+      ],
+      "title" : "Kiln shelf layout",
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Kiln shelf layout",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5.md",
+    "id" : "942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "applenote",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 125,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-13T21:00:00.000Z",
+    "tags" : [
+      "studio"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "How the shelves go back in after cleaning. Photo from the manual.\n\n[[img_001]]\n\nBottom shelf gets the posts at 15 cm, not 10.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-13T21:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "applenote-with-attachment"
+}

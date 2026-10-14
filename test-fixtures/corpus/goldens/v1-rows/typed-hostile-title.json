@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 112,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "24D79D47-EC48-5922-885C-AFDC6534D686",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-02T22:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-02T21:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "money"
+      ],
+      "title" : "Q4: plan / budget * draft? <v2> \"final\" | really",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Q4: plan / budget * draft? <v2> \"final\" | really",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "24D79D47-EC48-5922-885C-AFDC6534D686.md",
+    "id" : "24D79D47-EC48-5922-885C-AFDC6534D686",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/24D79D47-EC48-5922-885C-AFDC6534D686_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 112,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-02T21:00:00.000Z",
+    "tags" : [
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "The title is the test. Slashes, colons, stars, quotes and a pipe — the vault filename must be safe and stable.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-02T21:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-hostile-title"
+}

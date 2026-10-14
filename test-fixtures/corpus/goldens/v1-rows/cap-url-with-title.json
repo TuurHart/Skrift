@@ -1,0 +1,76 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "F01EAE04-8833-5D90-B94E-554AD80F3644",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Ines sent this. The bit about iron migrating at cone 6 explains the green edge.",
+      "capturedAt" : "2026-08-03T11:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-08-03T10:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://en.wikipedia.org/wiki/Ceramic_glaze",
+        "urlDescription" : "A ceramic glaze is an impervious layer or coating applied to bisqueware...",
+        "urlTitle" : "Ceramic glaze - Wikipedia"
+      },
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_F01EAE04-8833-5D90-B94E-554AD80F3644",
+    "id" : "F01EAE04-8833-5D90-B94E-554AD80F3644",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_F01EAE04-8833-5D90-B94E-554AD80F3644",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-03T10:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Ines sent this. The bit about iron migrating at cone 6 explains the green edge.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-url-with-title"
+}

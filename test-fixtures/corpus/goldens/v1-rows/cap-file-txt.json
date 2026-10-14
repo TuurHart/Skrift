@@ -1,0 +1,79 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 89,
+      "file" : "files/capture_recipe.txt"
+    }
+  ],
+  "memoID" : "43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "",
+      "capturedAt" : "2026-07-26T16:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-26T15:00:00.000Z",
+      "sharedContent" : {
+        "fileName" : "blue-3.txt",
+        "filePath" : "capture_recipe.txt",
+        "mimeType" : "text/plain",
+        "type" : "file"
+      },
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+    "id" : "43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-26T15:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-file-txt"
+}

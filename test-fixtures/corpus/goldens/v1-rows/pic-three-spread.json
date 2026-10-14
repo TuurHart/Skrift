@@ -1,0 +1,320 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 338,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 45803,
+      "file" : "images/photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_001.jpg"
+    },
+    {
+      "bytes" : 49020,
+      "file" : "images/photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_002.jpg"
+    },
+    {
+      "bytes" : 45998,
+      "file" : "images/photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_003.jpg"
+    },
+    {
+      "bytes" : 91293,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "D525FEA1-0644-5DF1-9023-7D2FBC1D9989",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-10T13:00:00+01:00",
+      "dayPeriod" : "evening",
+      "duration" : 13.93,
+      "imageManifest" : [
+        {
+          "filename" : "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_001.jpg",
+          "offsetSeconds" : 3.3199999999999998
+        },
+        {
+          "filename" : "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_002.jpg",
+          "offsetSeconds" : 6.96
+        },
+        {
+          "filename" : "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_003.jpg",
+          "offsetSeconds" : 13.27
+        }
+      ],
+      "location" : {
+        "latitude" : 51.913899999999998,
+        "longitude" : 4.476,
+        "placeName" : "Werkplaats, Rotterdam-Zuid"
+      },
+      "recordedAt" : "2026-08-10T12:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "workshop"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989.m4a",
+    "id" : "D525FEA1-0644-5DF1-9023-7D2FBC1D9989",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/D525FEA1-0644-5DF1-9023-7D2FBC1D9989_memo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 91293,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-10T12:00:00.000Z",
+    "tags" : [
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Walking the workshop before the Saturday. Bike side first, [[img_001]] this all has to be covered. Then the wheel, which is fine. [[img_002]] Then the shelf where the glazed pieces go, which is not fine, it is full of Hendrik's tools. [[img_003]] Friday night job.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-10T12:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.312,
+        "start" : 0,
+        "word" : "Walking"
+      },
+      {
+        "end" : 0.64300000000000002,
+        "start" : 0.33200000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 0.97499999999999998,
+        "start" : 0.66300000000000003,
+        "word" : "workshop"
+      },
+      {
+        "end" : 1.3069999999999999,
+        "start" : 0.995,
+        "word" : "before"
+      },
+      {
+        "end" : 1.6379999999999999,
+        "start" : 1.327,
+        "word" : "the"
+      },
+      {
+        "end" : 1.97,
+        "start" : 1.6579999999999999,
+        "word" : "Saturday."
+      },
+      {
+        "end" : 2.302,
+        "start" : 1.99,
+        "word" : "Bike"
+      },
+      {
+        "end" : 2.633,
+        "start" : 2.3220000000000001,
+        "word" : "side"
+      },
+      {
+        "end" : 2.9649999999999999,
+        "start" : 2.653,
+        "word" : "first,"
+      },
+      {
+        "end" : 3.2970000000000002,
+        "start" : 2.9849999999999999,
+        "word" : "this"
+      },
+      {
+        "end" : 3.6280000000000001,
+        "start" : 3.3170000000000002,
+        "word" : "all"
+      },
+      {
+        "end" : 3.96,
+        "start" : 3.6480000000000001,
+        "word" : "has"
+      },
+      {
+        "end" : 4.2919999999999998,
+        "start" : 3.98,
+        "word" : "to"
+      },
+      {
+        "end" : 4.6230000000000002,
+        "start" : 4.3120000000000003,
+        "word" : "be"
+      },
+      {
+        "end" : 4.9550000000000001,
+        "start" : 4.6429999999999998,
+        "word" : "covered."
+      },
+      {
+        "end" : 5.2869999999999999,
+        "start" : 4.9749999999999996,
+        "word" : "Then"
+      },
+      {
+        "end" : 5.6180000000000003,
+        "start" : 5.3070000000000004,
+        "word" : "the"
+      },
+      {
+        "end" : 5.9500000000000002,
+        "start" : 5.6379999999999999,
+        "word" : "wheel,"
+      },
+      {
+        "end" : 6.282,
+        "start" : 5.9699999999999998,
+        "word" : "which"
+      },
+      {
+        "end" : 6.6130000000000004,
+        "start" : 6.3019999999999996,
+        "word" : "is"
+      },
+      {
+        "end" : 6.9450000000000003,
+        "start" : 6.633,
+        "word" : "fine."
+      },
+      {
+        "end" : 7.2770000000000001,
+        "start" : 6.9649999999999999,
+        "word" : "Then"
+      },
+      {
+        "end" : 7.6079999999999997,
+        "start" : 7.2969999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 7.9400000000000004,
+        "start" : 7.6280000000000001,
+        "word" : "shelf"
+      },
+      {
+        "end" : 8.2720000000000002,
+        "start" : 7.96,
+        "word" : "where"
+      },
+      {
+        "end" : 8.6029999999999998,
+        "start" : 8.2919999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 8.9350000000000005,
+        "start" : 8.6229999999999993,
+        "word" : "glazed"
+      },
+      {
+        "end" : 9.2669999999999995,
+        "start" : 8.9550000000000001,
+        "word" : "pieces"
+      },
+      {
+        "end" : 9.5980000000000008,
+        "start" : 9.2870000000000008,
+        "word" : "go,"
+      },
+      {
+        "end" : 9.9299999999999997,
+        "start" : 9.6180000000000003,
+        "word" : "which"
+      },
+      {
+        "end" : 10.262,
+        "start" : 9.9499999999999993,
+        "word" : "is"
+      },
+      {
+        "end" : 10.593,
+        "start" : 10.282,
+        "word" : "not"
+      },
+      {
+        "end" : 10.925000000000001,
+        "start" : 10.613,
+        "word" : "fine,"
+      },
+      {
+        "end" : 11.257,
+        "start" : 10.945,
+        "word" : "it"
+      },
+      {
+        "end" : 11.587999999999999,
+        "start" : 11.276999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 11.92,
+        "start" : 11.608000000000001,
+        "word" : "full"
+      },
+      {
+        "end" : 12.252000000000001,
+        "start" : 11.94,
+        "word" : "of"
+      },
+      {
+        "end" : 12.583,
+        "start" : 12.272,
+        "word" : "Hendrik's"
+      },
+      {
+        "end" : 12.914999999999999,
+        "start" : 12.603,
+        "word" : "tools."
+      },
+      {
+        "end" : 13.247,
+        "start" : 12.935,
+        "word" : "Friday"
+      },
+      {
+        "end" : 13.577999999999999,
+        "start" : 13.266999999999999,
+        "word" : "night"
+      },
+      {
+        "end" : 13.91,
+        "start" : 13.598000000000001,
+        "word" : "job."
+      }
+    ]
+  },
+  "slug" : "pic-three-spread"
+}

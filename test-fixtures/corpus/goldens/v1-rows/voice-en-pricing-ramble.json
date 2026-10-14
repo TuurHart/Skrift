@@ -1,0 +1,501 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 164309,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "AE9D9978-31DC-511D-A056-180D903EE183",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-31T19:00:00+01:00",
+      "dayPeriod" : "evening",
+      "duration" : 26.280000000000001,
+      "location" : {
+        "latitude" : 51.922499999999999,
+        "longitude" : 4.4791999999999996,
+        "placeName" : "Rotterdam"
+      },
+      "recordedAt" : "2026-08-31T18:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "steps" : 4300,
+      "tags" : [
+        "money"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false,
+      "weather" : {
+        "conditions" : "Clear",
+        "temperature" : 17,
+        "temperatureUnit" : "°C"
+      }
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_AE9D9978-31DC-511D-A056-180D903EE183.m4a",
+    "id" : "AE9D9978-31DC-511D-A056-180D903EE183",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/AE9D9978-31DC-511D-A056-180D903EE183_memo_AE9D9978-31DC-511D-A056-180D903EE183.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 164309,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-31T18:00:00.000Z",
+    "tags" : [
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Okay so, um, walking back from the shop and I think I've decided on the prices. Overhauls go to one sixty, um, tune-ups stay where they are. Jack said fifteen percent across the board but I don't want to, I don't want to lose the regulars over a tune-up. Lotte agrees, I think. Uh, the other thing is I should write the promised date on the, on the tag and also in the calendar, both, because the tag gets lost. Yeah. That's it.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-31T18:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.29699999999999999,
+        "start" : 0,
+        "word" : "Okay"
+      },
+      {
+        "end" : 0.61299999999999999,
+        "start" : 0.317,
+        "word" : "so,"
+      },
+      {
+        "end" : 0.93000000000000005,
+        "start" : 0.63300000000000001,
+        "word" : "um,"
+      },
+      {
+        "end" : 1.2470000000000001,
+        "start" : 0.94999999999999996,
+        "word" : "walking"
+      },
+      {
+        "end" : 1.5629999999999999,
+        "start" : 1.2669999999999999,
+        "word" : "back"
+      },
+      {
+        "end" : 1.8799999999999999,
+        "start" : 1.583,
+        "word" : "from"
+      },
+      {
+        "end" : 2.1960000000000002,
+        "start" : 1.8999999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 2.5129999999999999,
+        "start" : 2.2160000000000002,
+        "word" : "shop"
+      },
+      {
+        "end" : 2.8300000000000001,
+        "start" : 2.5329999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 3.1459999999999999,
+        "start" : 2.8500000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 3.4630000000000001,
+        "start" : 3.1659999999999999,
+        "word" : "think"
+      },
+      {
+        "end" : 3.7799999999999998,
+        "start" : 3.4830000000000001,
+        "word" : "I've"
+      },
+      {
+        "end" : 4.0960000000000001,
+        "start" : 3.7999999999999998,
+        "word" : "decided"
+      },
+      {
+        "end" : 4.4130000000000003,
+        "start" : 4.1159999999999997,
+        "word" : "on"
+      },
+      {
+        "end" : 4.7290000000000001,
+        "start" : 4.4329999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 5.0460000000000003,
+        "start" : 4.7489999999999997,
+        "word" : "prices."
+      },
+      {
+        "end" : 5.3630000000000004,
+        "start" : 5.0659999999999998,
+        "word" : "Overhauls"
+      },
+      {
+        "end" : 5.6790000000000003,
+        "start" : 5.383,
+        "word" : "go"
+      },
+      {
+        "end" : 5.9960000000000004,
+        "start" : 5.6989999999999998,
+        "word" : "to"
+      },
+      {
+        "end" : 6.3129999999999997,
+        "start" : 6.016,
+        "word" : "one"
+      },
+      {
+        "end" : 6.6289999999999996,
+        "start" : 6.3330000000000002,
+        "word" : "sixty,"
+      },
+      {
+        "end" : 6.9459999999999997,
+        "start" : 6.649,
+        "word" : "um,"
+      },
+      {
+        "end" : 7.2619999999999996,
+        "start" : 6.9660000000000002,
+        "word" : "tune-ups"
+      },
+      {
+        "end" : 7.5789999999999997,
+        "start" : 7.282,
+        "word" : "stay"
+      },
+      {
+        "end" : 7.8959999999999999,
+        "start" : 7.5990000000000002,
+        "word" : "where"
+      },
+      {
+        "end" : 8.2119999999999997,
+        "start" : 7.9160000000000004,
+        "word" : "they"
+      },
+      {
+        "end" : 8.5289999999999999,
+        "start" : 8.2319999999999993,
+        "word" : "are."
+      },
+      {
+        "end" : 8.8460000000000001,
+        "start" : 8.5489999999999995,
+        "word" : "Jack"
+      },
+      {
+        "end" : 9.1620000000000008,
+        "start" : 8.8659999999999997,
+        "word" : "said"
+      },
+      {
+        "end" : 9.4789999999999992,
+        "start" : 9.1820000000000004,
+        "word" : "fifteen"
+      },
+      {
+        "end" : 9.7949999999999999,
+        "start" : 9.4990000000000006,
+        "word" : "percent"
+      },
+      {
+        "end" : 10.112,
+        "start" : 9.8149999999999995,
+        "word" : "across"
+      },
+      {
+        "end" : 10.429,
+        "start" : 10.132,
+        "word" : "the"
+      },
+      {
+        "end" : 10.744999999999999,
+        "start" : 10.449,
+        "word" : "board"
+      },
+      {
+        "end" : 11.061999999999999,
+        "start" : 10.765000000000001,
+        "word" : "but"
+      },
+      {
+        "end" : 11.379,
+        "start" : 11.082000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 11.695,
+        "start" : 11.398999999999999,
+        "word" : "don't"
+      },
+      {
+        "end" : 12.012,
+        "start" : 11.715,
+        "word" : "want"
+      },
+      {
+        "end" : 12.327999999999999,
+        "start" : 12.032,
+        "word" : "to,"
+      },
+      {
+        "end" : 12.645,
+        "start" : 12.348000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 12.962,
+        "start" : 12.664999999999999,
+        "word" : "don't"
+      },
+      {
+        "end" : 13.278,
+        "start" : 12.981999999999999,
+        "word" : "want"
+      },
+      {
+        "end" : 13.595000000000001,
+        "start" : 13.298,
+        "word" : "to"
+      },
+      {
+        "end" : 13.912000000000001,
+        "start" : 13.615,
+        "word" : "lose"
+      },
+      {
+        "end" : 14.228,
+        "start" : 13.932,
+        "word" : "the"
+      },
+      {
+        "end" : 14.545,
+        "start" : 14.247999999999999,
+        "word" : "regulars"
+      },
+      {
+        "end" : 14.861000000000001,
+        "start" : 14.565,
+        "word" : "over"
+      },
+      {
+        "end" : 15.178000000000001,
+        "start" : 14.881,
+        "word" : "a"
+      },
+      {
+        "end" : 15.494999999999999,
+        "start" : 15.198,
+        "word" : "tune-up."
+      },
+      {
+        "end" : 15.811,
+        "start" : 15.515000000000001,
+        "word" : "Lotte"
+      },
+      {
+        "end" : 16.128,
+        "start" : 15.831,
+        "word" : "agrees,"
+      },
+      {
+        "end" : 16.445,
+        "start" : 16.148,
+        "word" : "I"
+      },
+      {
+        "end" : 16.760999999999999,
+        "start" : 16.465,
+        "word" : "think."
+      },
+      {
+        "end" : 17.077999999999999,
+        "start" : 16.780999999999999,
+        "word" : "Uh,"
+      },
+      {
+        "end" : 17.393999999999998,
+        "start" : 17.097999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 17.710999999999999,
+        "start" : 17.414000000000001,
+        "word" : "other"
+      },
+      {
+        "end" : 18.027999999999999,
+        "start" : 17.731000000000002,
+        "word" : "thing"
+      },
+      {
+        "end" : 18.344000000000001,
+        "start" : 18.047999999999998,
+        "word" : "is"
+      },
+      {
+        "end" : 18.661000000000001,
+        "start" : 18.364000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 18.978000000000002,
+        "start" : 18.681000000000001,
+        "word" : "should"
+      },
+      {
+        "end" : 19.294,
+        "start" : 18.998000000000001,
+        "word" : "write"
+      },
+      {
+        "end" : 19.611000000000001,
+        "start" : 19.314,
+        "word" : "the"
+      },
+      {
+        "end" : 19.927,
+        "start" : 19.631,
+        "word" : "promised"
+      },
+      {
+        "end" : 20.244,
+        "start" : 19.946999999999999,
+        "word" : "date"
+      },
+      {
+        "end" : 20.561,
+        "start" : 20.263999999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 20.876999999999999,
+        "start" : 20.581,
+        "word" : "the,"
+      },
+      {
+        "end" : 21.193999999999999,
+        "start" : 20.896999999999998,
+        "word" : "on"
+      },
+      {
+        "end" : 21.510999999999999,
+        "start" : 21.213999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 21.827000000000002,
+        "start" : 21.530999999999999,
+        "word" : "tag"
+      },
+      {
+        "end" : 22.143999999999998,
+        "start" : 21.847000000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 22.460000000000001,
+        "start" : 22.164000000000001,
+        "word" : "also"
+      },
+      {
+        "end" : 22.777000000000001,
+        "start" : 22.48,
+        "word" : "in"
+      },
+      {
+        "end" : 23.094000000000001,
+        "start" : 22.797000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 23.41,
+        "start" : 23.114000000000001,
+        "word" : "calendar,"
+      },
+      {
+        "end" : 23.727,
+        "start" : 23.43,
+        "word" : "both,"
+      },
+      {
+        "end" : 24.044,
+        "start" : 23.747,
+        "word" : "because"
+      },
+      {
+        "end" : 24.359999999999999,
+        "start" : 24.064,
+        "word" : "the"
+      },
+      {
+        "end" : 24.677,
+        "start" : 24.379999999999999,
+        "word" : "tag"
+      },
+      {
+        "end" : 24.992999999999999,
+        "start" : 24.696999999999999,
+        "word" : "gets"
+      },
+      {
+        "end" : 25.309999999999999,
+        "start" : 25.013000000000002,
+        "word" : "lost."
+      },
+      {
+        "end" : 25.626999999999999,
+        "start" : 25.329999999999998,
+        "word" : "Yeah."
+      },
+      {
+        "end" : 25.943000000000001,
+        "start" : 25.646999999999998,
+        "word" : "That's"
+      },
+      {
+        "end" : 26.260000000000002,
+        "start" : 25.963000000000001,
+        "word" : "it."
+      }
+    ]
+  },
+  "slug" : "voice-en-pricing-ramble"
+}

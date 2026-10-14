@@ -1,0 +1,237 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 51958,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "C6DD134F-4B24-5A67-A07B-0B427A469228",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-22T14:00:00+01:00",
+      "dayPeriod" : "night",
+      "duration" : 7.8499999999999996,
+      "location" : {
+        "latitude" : 51.913899999999998,
+        "longitude" : 4.476,
+        "placeName" : "Werkplaats, Rotterdam-Zuid"
+      },
+      "recordedAt" : "2026-08-22T13:00:00.000Z",
+      "significance" : 1,
+      "source" : "mobile",
+      "tags" : [
+        "thinking",
+        "glaze"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_C6DD134F-4B24-5A67-A07B-0B427A469228.m4a",
+    "id" : "C6DD134F-4B24-5A67-A07B-0B427A469228",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/C6DD134F-4B24-5A67-A07B-0B427A469228_memo_C6DD134F-4B24-5A67-A07B-0B427A469228.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 1,
+    "size" : 51958,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-22T13:00:00.000Z",
+    "tags" : [
+      "thinking",
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "This is the one. If the studio only ever makes one thing it should be the blue bowl, the wide one, and everything else is a way to pay for that.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-22T13:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.23300000000000001,
+        "start" : 0,
+        "word" : "This"
+      },
+      {
+        "end" : 0.48599999999999999,
+        "start" : 0.253,
+        "word" : "is"
+      },
+      {
+        "end" : 0.73999999999999999,
+        "start" : 0.50600000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 0.99299999999999999,
+        "start" : 0.76000000000000001,
+        "word" : "one."
+      },
+      {
+        "end" : 1.246,
+        "start" : 1.0129999999999999,
+        "word" : "If"
+      },
+      {
+        "end" : 1.4990000000000001,
+        "start" : 1.266,
+        "word" : "the"
+      },
+      {
+        "end" : 1.7529999999999999,
+        "start" : 1.5189999999999999,
+        "word" : "studio"
+      },
+      {
+        "end" : 2.0059999999999998,
+        "start" : 1.7729999999999999,
+        "word" : "only"
+      },
+      {
+        "end" : 2.2589999999999999,
+        "start" : 2.0259999999999998,
+        "word" : "ever"
+      },
+      {
+        "end" : 2.512,
+        "start" : 2.2789999999999999,
+        "word" : "makes"
+      },
+      {
+        "end" : 2.7650000000000001,
+        "start" : 2.532,
+        "word" : "one"
+      },
+      {
+        "end" : 3.0190000000000001,
+        "start" : 2.7850000000000001,
+        "word" : "thing"
+      },
+      {
+        "end" : 3.2719999999999998,
+        "start" : 3.0390000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 3.5249999999999999,
+        "start" : 3.2919999999999998,
+        "word" : "should"
+      },
+      {
+        "end" : 3.778,
+        "start" : 3.5449999999999999,
+        "word" : "be"
+      },
+      {
+        "end" : 4.032,
+        "start" : 3.798,
+        "word" : "the"
+      },
+      {
+        "end" : 4.2850000000000001,
+        "start" : 4.0519999999999996,
+        "word" : "blue"
+      },
+      {
+        "end" : 4.5380000000000003,
+        "start" : 4.3049999999999997,
+        "word" : "bowl,"
+      },
+      {
+        "end" : 4.7910000000000004,
+        "start" : 4.5579999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 5.0449999999999999,
+        "start" : 4.8109999999999999,
+        "word" : "wide"
+      },
+      {
+        "end" : 5.298,
+        "start" : 5.0650000000000004,
+        "word" : "one,"
+      },
+      {
+        "end" : 5.5510000000000002,
+        "start" : 5.3179999999999996,
+        "word" : "and"
+      },
+      {
+        "end" : 5.8040000000000003,
+        "start" : 5.5709999999999997,
+        "word" : "everything"
+      },
+      {
+        "end" : 6.0570000000000004,
+        "start" : 5.8239999999999998,
+        "word" : "else"
+      },
+      {
+        "end" : 6.3109999999999999,
+        "start" : 6.077,
+        "word" : "is"
+      },
+      {
+        "end" : 6.5640000000000001,
+        "start" : 6.3310000000000004,
+        "word" : "a"
+      },
+      {
+        "end" : 6.8170000000000002,
+        "start" : 6.5839999999999996,
+        "word" : "way"
+      },
+      {
+        "end" : 7.0700000000000003,
+        "start" : 6.8369999999999997,
+        "word" : "to"
+      },
+      {
+        "end" : 7.3239999999999998,
+        "start" : 7.0899999999999999,
+        "word" : "pay"
+      },
+      {
+        "end" : 7.577,
+        "start" : 7.3440000000000003,
+        "word" : "for"
+      },
+      {
+        "end" : 7.8300000000000001,
+        "start" : 7.5970000000000004,
+        "word" : "that."
+      }
+    ]
+  },
+  "slug" : "voice-en-rated-max"
+}

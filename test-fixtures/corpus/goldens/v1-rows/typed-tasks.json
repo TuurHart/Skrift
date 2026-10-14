@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 252,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "933D1FAA-3994-534B-B46A-68C9B8337147",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-17T19:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-17T18:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "todo"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "933D1FAA-3994-534B-B46A-68C9B8337147.md",
+    "id" : "933D1FAA-3994-534B-B46A-68C9B8337147",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/933D1FAA-3994-534B-B46A-68C9B8337147_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 252,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-17T18:00:00.000Z",
+    "tags" : [
+      "todo"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Deze week\n\n- [ ] Marco bellen over de bedrading (echt)\n- [x] Order the grey clay body\n- [ ] Rose the website feedback\n- [ ] Mariam: yes to the Saturday, propose 18 Oct\n- [x] Chain for the Gazelle, black\n- [ ] Blue glaze test at cone 6 with the new body",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-17T18:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-tasks"
+}

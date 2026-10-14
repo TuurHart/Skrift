@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "",
+      "capturedAt" : "2026-07-30T05:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-30T04:00:00.000Z",
+      "sharedContent" : {
+        "text" : "Why iron makes blue glazes go green\n\nMost studio potters meet this the same way: a cobalt blue that looks perfect on a white body turns olive at the edges on a darker one. The culprit is usually not the glaze at all but iron oxide in the clay body migrating into the glaze layer during the melt.\n\nAt cone 6 the migration is stronger than at cone 5, which is why the same glaze can look right at the lower temperature and wrong at the higher one. Two fixes exist: switch to a lower-iron body, or add a slip layer that seals the body under the glaze.\n\nNeither is free. A new body means re-testing every glaze you own, and a slip adds a step to every piece. But it is the difference between a blue and a green.",
+        "type" : "text"
+      },
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+    "id" : "D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-30T04:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-text-article"
+}

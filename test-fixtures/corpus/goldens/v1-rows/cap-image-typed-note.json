@@ -1,0 +1,89 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 75677,
+      "file" : "images/photo_F1922133-BE45-58AF-B6B2-BEABBB91BA00_001.jpg"
+    }
+  ],
+  "memoID" : "F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Whiteboard van het overleg met Lotte: de indeling van de zaterdag.",
+      "capturedAt" : "2026-07-28T02:00:00+01:00",
+      "duration" : 0,
+      "imageManifest" : [
+        {
+          "filename" : "photo_F1922133-BE45-58AF-B6B2-BEABBB91BA00_001.jpg",
+          "offsetSeconds" : 0,
+          "text" : "10:00 KLEI / 11:00 VORM"
+        }
+      ],
+      "recordedAt" : "2026-07-28T01:00:00.000Z",
+      "sharedContent" : {
+        "fileName" : "whiteboard.jpg",
+        "mimeType" : "image/jpeg",
+        "type" : "image"
+      },
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "workshop"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+    "id" : "F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+    "imageOCRText" : "10:00 KLEI / 11:00 VORM",
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-28T01:00:00.000Z",
+    "tags" : [
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Whiteboard van het overleg met Lotte: de indeling van de zaterdag.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-image-typed-note"
+}

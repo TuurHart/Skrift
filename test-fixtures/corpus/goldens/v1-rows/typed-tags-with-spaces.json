@@ -1,0 +1,79 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 71,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "827DC02F-4CE1-5A3B-9C78-9DAFABD1D352",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-11T10:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-11T09:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "blue glaze",
+        "#studio",
+        "bike repair",
+        "Workshop"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "827DC02F-4CE1-5A3B-9C78-9DAFABD1D352.md",
+    "id" : "827DC02F-4CE1-5A3B-9C78-9DAFABD1D352",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/827DC02F-4CE1-5A3B-9C78-9DAFABD1D352_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 71,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-11T09:00:00.000Z",
+    "tags" : [
+      "blue glaze",
+      "#studio",
+      "bike repair",
+      "Workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Tags with spaces and hashes: does the export keep them as one tag each?",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-11T09:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-tags-with-spaces"
+}

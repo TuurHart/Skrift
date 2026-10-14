@@ -1,0 +1,185 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 123,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 44574,
+      "file" : "images/photo_10EE558A-6EA4-52D7-9B29-24107D7ED074_001.jpg"
+    },
+    {
+      "bytes" : 47085,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "10EE558A-6EA4-52D7-9B29-24107D7ED074",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-05T14:00:00+01:00",
+      "duration" : 6.8700000000000001,
+      "imageManifest" : [
+        {
+          "filename" : "photo_10EE558A-6EA4-52D7-9B29-24107D7ED074_001.jpg",
+          "offsetSeconds" : 4.3399999999999999
+        }
+      ],
+      "recordedAt" : "2026-08-05T13:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "cargo",
+        "todo"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_10EE558A-6EA4-52D7-9B29-24107D7ED074.m4a",
+    "id" : "10EE558A-6EA4-52D7-9B29-24107D7ED074",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/10EE558A-6EA4-52D7-9B29-24107D7ED074_memo_10EE558A-6EA4-52D7-9B29-24107D7ED074.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 47085,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-05T13:00:00.000Z",
+    "tags" : [
+      "cargo",
+      "todo"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Parts to order for the cargo bike:\n\n- [ ] chain, 1/8\n- [ ] the rear hub, this one [[img_001]]\n- [ ] brake pads, four\n- [x] new bell",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-05T13:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.34200000000000003,
+        "start" : 0,
+        "word" : "Parts"
+      },
+      {
+        "end" : 0.70299999999999996,
+        "start" : 0.36199999999999999,
+        "word" : "to"
+      },
+      {
+        "end" : 1.0649999999999999,
+        "start" : 0.72299999999999998,
+        "word" : "order"
+      },
+      {
+        "end" : 1.4259999999999999,
+        "start" : 1.085,
+        "word" : "for"
+      },
+      {
+        "end" : 1.788,
+        "start" : 1.446,
+        "word" : "the"
+      },
+      {
+        "end" : 2.149,
+        "start" : 1.8080000000000001,
+        "word" : "cargo"
+      },
+      {
+        "end" : 2.5110000000000001,
+        "start" : 2.169,
+        "word" : "bike:"
+      },
+      {
+        "end" : 2.8730000000000002,
+        "start" : 2.5310000000000001,
+        "word" : "chain,"
+      },
+      {
+        "end" : 3.234,
+        "start" : 2.8929999999999998,
+        "word" : "1/8"
+      },
+      {
+        "end" : 3.5960000000000001,
+        "start" : 3.254,
+        "word" : "the"
+      },
+      {
+        "end" : 3.9569999999999999,
+        "start" : 3.6160000000000001,
+        "word" : "rear"
+      },
+      {
+        "end" : 4.319,
+        "start" : 3.9769999999999999,
+        "word" : "hub,"
+      },
+      {
+        "end" : 4.681,
+        "start" : 4.3390000000000004,
+        "word" : "this"
+      },
+      {
+        "end" : 5.0419999999999998,
+        "start" : 4.7009999999999996,
+        "word" : "one"
+      },
+      {
+        "end" : 5.4039999999999999,
+        "start" : 5.0620000000000003,
+        "word" : "brake"
+      },
+      {
+        "end" : 5.7649999999999997,
+        "start" : 5.4240000000000004,
+        "word" : "pads,"
+      },
+      {
+        "end" : 6.1269999999999998,
+        "start" : 5.7850000000000001,
+        "word" : "four"
+      },
+      {
+        "end" : 6.4880000000000004,
+        "start" : 6.1470000000000002,
+        "word" : "new"
+      },
+      {
+        "end" : 6.8499999999999996,
+        "start" : 6.508,
+        "word" : "bell"
+      }
+    ]
+  },
+  "slug" : "pic-in-task-list"
+}

@@ -18,9 +18,9 @@ enum MemoCloudReconciler {
     /// only once.
     static var didStart = false
 
-    /// The one pending coalesced sweep (see `reconcileSoon` in the app wiring) —
-    /// stored here because extensions can't hold stored statics.
-    @MainActor static var pendingReconcile: Task<Void, Never>?
+    /// C52: the ONE coalescer every trigger goes through (see `reconcileSoon` in the app
+    /// wiring, which creates it) — stored here because extensions can't hold stored statics.
+    @MainActor static var coalescer: ReconcileCoalescer?
 
     /// What a sweep did: how many NEW rows were ingested, and the ids of EXISTING rows a phone
     /// edit updated (Part B) — the latter drive a re-export so the vault reflects the edit too.
@@ -35,6 +35,10 @@ enum MemoCloudReconciler {
         var stranded = 0
         /// Never-seen memos a `deferNewIngest` sweep left for the background ingest (Q364).
         var pendingNewIDs: [UUID] = []
+        /// R40 / C168: the cloud (or local) store could not be read, so this sweep pulled
+        /// nothing. Logged here and shown by the app (`MacSyncMonitor.reportSweep`), never
+        /// swallowed into an empty memo list that looks like "nothing new".
+        var fetchFailure: String?
     }
 
     /// Sweep every `Memo` in `cloudContext` into `localContext` (the pipeline store): fetch each
@@ -50,9 +54,25 @@ enum MemoCloudReconciler {
     static func sweep(from cloudContext: ModelContext, into localContext: ModelContext,
                       people: [Person] = [], author: String = "", thisDeviceID: String = "",
                       now: Date = Date(),
-                      upload: UploadService = UploadService()) -> SweepOutcome {
+                      upload: UploadService = UploadService(),
+                      fetchMemos: (ModelContext) throws -> [Memo] = MemoCloudReconciler.fetchAllMemos) -> SweepOutcome {
         sweepCore(from: cloudContext, into: localContext, people: people, author: author,
-                  thisDeviceID: thisDeviceID, now: now, upload: upload, deferNewIngest: false).outcome
+                  thisDeviceID: thisDeviceID, now: now, upload: upload, deferNewIngest: false,
+                  fetchMemos: fetchMemos).outcome
+    }
+
+    /// The sweep's one full `Memo` fetch. A parameter of `sweep`/`pass` only so a test can
+    /// inject a failing store (R40).
+    nonisolated static func fetchAllMemos(_ context: ModelContext) throws -> [Memo] {
+        try context.fetch(FetchDescriptor<Memo>())
+    }
+
+    /// R40: log a failed sweep fetch and hand back the outcome that says so.
+    private static func fetchFailed(_ what: String, _ error: Error) -> (outcome: SweepOutcome, snapshot: SweepSnapshot) {
+        AppLog.cloudkit.error("reconcile: sweep could not read the \(what, privacy: .public), nothing pulled this pass: \(error)")
+        var outcome = SweepOutcome()
+        outcome.fetchFailure = "\(what): \(error.localizedDescription)"
+        return (outcome, SweepSnapshot())
     }
 
     /// What one sweep fetched, handed back so the rest of the pass (author/reflect, the
@@ -78,14 +98,19 @@ enum MemoCloudReconciler {
     static func sweepCore(from cloudContext: ModelContext, into localContext: ModelContext,
                           people: [Person], author: String, thisDeviceID: String,
                           now: Date, upload: UploadService,
-                          deferNewIngest: Bool) -> (outcome: SweepOutcome, snapshot: SweepSnapshot) {
+                          deferNewIngest: Bool,
+                          fetchMemos: (ModelContext) throws -> [Memo] = MemoCloudReconciler.fetchAllMemos)
+        -> (outcome: SweepOutcome, snapshot: SweepSnapshot) {
         // Duplicate-tolerant: the cloud DB can hold same-id rows (the 2026-07-12 clone
         // incident; divergent pairs are never auto-healed). Collapse each id onto its
         // keeper (shared `MemoDuplicates` rule — the same row the phone's deduper keeps),
         // else two rows would take turns rewriting ONE PipelineFile every sweep
         // (recompile + re-export churn, forever).
         ReconcileWork.bump(\.memoFetches)
-        let allMemos = (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? []
+        // R40: a failed fetch used to read as an empty store (`try? … ?? []`), so the Mac
+        // silently stopped pulling phone notes. It is now a logged, surfaced failure.
+        let allMemos: [Memo]
+        do { allMemos = try fetchMemos(cloudContext) } catch { return fetchFailed("cloud store", error) }
         let memos = MemoDuplicates.canonicalRows(allMemos)
         var outcome = SweepOutcome()
         // C98/D139: a note edited on two devices while apart is a conflict — its row keeps
@@ -97,7 +122,11 @@ enum MemoCloudReconciler {
         // needs its blobs: asset rows fault-fill their multi-MB audio/photo
         // blobs on touch (row-level faulting, no external storage under
         // CloudKit), so the steady-state sweep must never realize them.
-        var localFiles = (try? localContext.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        // A local fetch read as empty would re-ingest every memo, and an enhancement fetch
+        // read as empty would drop every polish. Both fail the sweep the same way.
+        var localFiles: [PipelineFile]
+        do { localFiles = try localContext.fetch(FetchDescriptor<PipelineFile>()) }
+        catch { return fetchFailed("local pipeline store", error) }
         var fileByID: [String: PipelineFile] = [:]
         var fileByFilename: [String: PipelineFile] = [:]
         for pf in localFiles {
@@ -108,7 +137,9 @@ enum MemoCloudReconciler {
         // here must never be claimed by a DIFFERENT memo via the filename arm — that is what
         // let two memos sharing an `audioFilename` overwrite one row forever.
         let memoOwnedRowIDs = Set(memos.map(\.id.uuidString))
-        let enhancements = (try? cloudContext.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+        let enhancements: [MemoEnhancement]
+        do { enhancements = try cloudContext.fetch(FetchDescriptor<MemoEnhancement>()) }
+        catch { return fetchFailed("cloud store enhancements", error) }
         let enhancementByMemo = Dictionary(enhancements.map { ($0.memoID, $0) },
                                            uniquingKeysWith: { a, _ in a })
         // Q364: which asset KINDS each memo has, from ONE blob-free fetch, built only when a
@@ -343,12 +374,16 @@ enum MemoCloudReconciler {
     static func pass(from cloudContext: ModelContext, into localContext: ModelContext,
                      people: [Person] = [], author: String = "", thisDeviceID: String = "",
                      now: Date = Date(), upload: UploadService = UploadService(),
-                     deferNewIngest: Bool = false, firstImportDone: Bool = false) throws -> PassOutcome {
+                     deferNewIngest: Bool = false, firstImportDone: Bool = false,
+                     fetchMemos: (ModelContext) throws -> [Memo] = MemoCloudReconciler.fetchAllMemos) throws -> PassOutcome {
         let (outcome, snapshot) = sweepCore(from: cloudContext, into: localContext, people: people,
                                             author: author, thisDeviceID: thisDeviceID, now: now,
-                                            upload: upload, deferNewIngest: deferNewIngest)
+                                            upload: upload, deferNewIngest: deferNewIngest,
+                                            fetchMemos: fetchMemos)
         var result = PassOutcome(sweep: outcome, memos: snapshot.allMemos,
                                  enhancements: snapshot.enhancements, localFiles: snapshot.localFiles)
+        // R40: nothing was read, so there is nothing to author or reflect from.
+        if outcome.fetchFailure != nil { return result }
         // A phone edit re-linked + recompiled an existing row (Part B). Persist it.
         if !outcome.updatedIDs.isEmpty {
             do {

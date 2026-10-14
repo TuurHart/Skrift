@@ -1,0 +1,77 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 163,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "290E7570-5EE7-56B1-9F19-B5AD83F23897",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-10T17:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-10T16:00:00.000Z",
+      "significance" : 0.80000000000000004,
+      "source" : "mobile",
+      "tags" : [
+        "idea",
+        "inspiration",
+        "glaze"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "portfolio",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "290E7570-5EE7-56B1-9F19-B5AD83F23897.md",
+    "id" : "290E7570-5EE7-56B1-9F19-B5AD83F23897",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/290E7570-5EE7-56B1-9F19-B5AD83F23897_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.80000000000000004,
+    "size" : 163,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-10T16:00:00.000Z",
+    "tags" : [
+      "idea",
+      "inspiration",
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Saw a hand-thrown lamp base at the Saturday market with the exact matte blue I want. The seller fires in an electric kiln at cone 5. So it IS possible without gas.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-10T16:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-reserved-word-tags"
+}

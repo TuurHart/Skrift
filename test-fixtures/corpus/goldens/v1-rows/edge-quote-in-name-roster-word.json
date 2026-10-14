@@ -1,0 +1,179 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 38889,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "72DC1326-1B1D-5326-9DD7-32C89B2AA727",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-08T23:00:00+01:00",
+      "duration" : 5.5700000000000003,
+      "recordedAt" : "2026-07-08T22:00:00.000Z",
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "huis"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_72DC1326-1B1D-5326-9DD7-32C89B2AA727.m4a",
+    "id" : "72DC1326-1B1D-5326-9DD7-32C89B2AA727",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/72DC1326-1B1D-5326-9DD7-32C89B2AA727_memo_72DC1326-1B1D-5326-9DD7-32C89B2AA727.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 38889,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-08T22:00:00.000Z",
+    "tags" : [
+      "huis"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "The rose bushes by the door will need cutting back and I will do it Sunday. Sam is coming Sunday too.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-08T22:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.245,
+        "start" : 0,
+        "word" : "The"
+      },
+      {
+        "end" : 0.51000000000000001,
+        "start" : 0.26500000000000001,
+        "word" : "rose"
+      },
+      {
+        "end" : 0.77600000000000002,
+        "start" : 0.53000000000000003,
+        "word" : "bushes"
+      },
+      {
+        "end" : 1.0409999999999999,
+        "start" : 0.79600000000000004,
+        "word" : "by"
+      },
+      {
+        "end" : 1.306,
+        "start" : 1.0609999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 1.571,
+        "start" : 1.3260000000000001,
+        "word" : "door"
+      },
+      {
+        "end" : 1.837,
+        "start" : 1.591,
+        "word" : "will"
+      },
+      {
+        "end" : 2.1019999999999999,
+        "start" : 1.857,
+        "word" : "need"
+      },
+      {
+        "end" : 2.367,
+        "start" : 2.1219999999999999,
+        "word" : "cutting"
+      },
+      {
+        "end" : 2.6320000000000001,
+        "start" : 2.387,
+        "word" : "back"
+      },
+      {
+        "end" : 2.8980000000000001,
+        "start" : 2.6520000000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 3.1629999999999998,
+        "start" : 2.9180000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 3.4279999999999999,
+        "start" : 3.1829999999999998,
+        "word" : "will"
+      },
+      {
+        "end" : 3.6930000000000001,
+        "start" : 3.448,
+        "word" : "do"
+      },
+      {
+        "end" : 3.9590000000000001,
+        "start" : 3.7130000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 4.2240000000000002,
+        "start" : 3.9790000000000001,
+        "word" : "Sunday."
+      },
+      {
+        "end" : 4.4889999999999999,
+        "start" : 4.2439999999999998,
+        "word" : "Sam"
+      },
+      {
+        "end" : 4.7539999999999996,
+        "start" : 4.5090000000000003,
+        "word" : "is"
+      },
+      {
+        "end" : 5.0199999999999996,
+        "start" : 4.774,
+        "word" : "coming"
+      },
+      {
+        "end" : 5.2850000000000001,
+        "start" : 5.04,
+        "word" : "Sunday"
+      },
+      {
+        "end" : 5.5499999999999998,
+        "start" : 5.3049999999999997,
+        "word" : "too."
+      }
+    ]
+  },
+  "slug" : "edge-quote-in-name-roster-word"
+}

@@ -1,0 +1,214 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 56025,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "8878ECD5-04AF-512B-B0AB-F2AF747A1E0B",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-28T06:00:00+01:00",
+      "duration" : 8.1699999999999999,
+      "recordedAt" : "2026-08-28T05:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "cargo"
+      ],
+      "transcriptConfidence" : 0.52000000000000002,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : true
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_8878ECD5-04AF-512B-B0AB-F2AF747A1E0B.m4a",
+    "id" : "8878ECD5-04AF-512B-B0AB-F2AF747A1E0B",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/8878ECD5-04AF-512B-B0AB-F2AF747A1E0B_memo_8878ECD5-04AF-512B-B0AB-F2AF747A1E0B.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 56025,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-12T19:10:00.000Z",
+    "tags" : [
+      "cargo"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Wind noise, but I fixed the text by hand: the chain on the cargo bike skips under load, and the front light flickers when the dynamo is cold.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-28T05:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27200000000000002,
+        "start" : 0,
+        "word" : "Wind"
+      },
+      {
+        "end" : 0.56399999999999995,
+        "start" : 0.29199999999999998,
+        "word" : "noise,"
+      },
+      {
+        "end" : 0.85499999999999998,
+        "start" : 0.58399999999999996,
+        "word" : "but"
+      },
+      {
+        "end" : 1.147,
+        "start" : 0.875,
+        "word" : "I"
+      },
+      {
+        "end" : 1.4390000000000001,
+        "start" : 1.167,
+        "word" : "fixed"
+      },
+      {
+        "end" : 1.7310000000000001,
+        "start" : 1.4590000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.0219999999999998,
+        "start" : 1.7509999999999999,
+        "word" : "text"
+      },
+      {
+        "end" : 2.3140000000000001,
+        "start" : 2.0419999999999998,
+        "word" : "by"
+      },
+      {
+        "end" : 2.6059999999999999,
+        "start" : 2.3340000000000001,
+        "word" : "hand:"
+      },
+      {
+        "end" : 2.8980000000000001,
+        "start" : 2.6259999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 3.1899999999999999,
+        "start" : 2.9180000000000001,
+        "word" : "chain"
+      },
+      {
+        "end" : 3.4809999999999999,
+        "start" : 3.21,
+        "word" : "on"
+      },
+      {
+        "end" : 3.7730000000000001,
+        "start" : 3.5009999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 4.0650000000000004,
+        "start" : 3.7930000000000001,
+        "word" : "cargo"
+      },
+      {
+        "end" : 4.3570000000000002,
+        "start" : 4.085,
+        "word" : "bike"
+      },
+      {
+        "end" : 4.649,
+        "start" : 4.3769999999999998,
+        "word" : "skips"
+      },
+      {
+        "end" : 4.9400000000000004,
+        "start" : 4.6689999999999996,
+        "word" : "under"
+      },
+      {
+        "end" : 5.2320000000000002,
+        "start" : 4.96,
+        "word" : "load,"
+      },
+      {
+        "end" : 5.524,
+        "start" : 5.2519999999999998,
+        "word" : "and"
+      },
+      {
+        "end" : 5.8159999999999998,
+        "start" : 5.5439999999999996,
+        "word" : "the"
+      },
+      {
+        "end" : 6.1070000000000002,
+        "start" : 5.8360000000000003,
+        "word" : "front"
+      },
+      {
+        "end" : 6.399,
+        "start" : 6.1269999999999998,
+        "word" : "light"
+      },
+      {
+        "end" : 6.6909999999999998,
+        "start" : 6.4189999999999996,
+        "word" : "flickers"
+      },
+      {
+        "end" : 6.9829999999999997,
+        "start" : 6.7110000000000003,
+        "word" : "when"
+      },
+      {
+        "end" : 7.2750000000000004,
+        "start" : 7.0030000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 7.5659999999999998,
+        "start" : 7.2949999999999999,
+        "word" : "dynamo"
+      },
+      {
+        "end" : 7.8579999999999997,
+        "start" : 7.5860000000000003,
+        "word" : "is"
+      },
+      {
+        "end" : 8.1500000000000004,
+        "start" : 7.8780000000000001,
+        "word" : "cold."
+      }
+    ]
+  },
+  "slug" : "voice-en-untrusted-but-edited"
+}

@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "6A3AE681-57AD-5464-9AF2-1094C838025E",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+      "capturedAt" : "2026-07-30T22:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-30T21:00:00.000Z",
+      "sharedContent" : {
+        "text" : "Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.",
+        "type" : "text"
+      },
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "studio"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_6A3AE681-57AD-5464-9AF2-1094C838025E",
+    "id" : "6A3AE681-57AD-5464-9AF2-1094C838025E",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_6A3AE681-57AD-5464-9AF2-1094C838025E",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-30T21:00:00.000Z",
+    "tags" : [
+      "studio"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-text-plain"
+}

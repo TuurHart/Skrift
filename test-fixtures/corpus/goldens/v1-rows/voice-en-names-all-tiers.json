@@ -1,0 +1,437 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 132957,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-29T16:00:00+01:00",
+      "dayPeriod" : "evening",
+      "duration" : 21.219999999999999,
+      "location" : {
+        "latitude" : 51.913899999999998,
+        "longitude" : 4.476,
+        "placeName" : "Werkplaats, Rotterdam-Zuid"
+      },
+      "recordedAt" : "2026-08-29T15:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "studio",
+        "people"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87.m4a",
+    "id" : "C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87_memo_C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 132957,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-29T15:00:00.000Z",
+    "tags" : [
+      "studio",
+      "people"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Long day. Lotte opened up, Hendrik brought the trailer, and Jack, the Morrow one, dropped off his bike again. Then Rose came by with the website and I said rose gold is not a colour for a bike shop. Will was supposed to come but he will not be here until Thursday. Sam texted, no idea which Sam, I need to check. Kai from next door wants to borrow the stand.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-29T15:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27900000000000003,
+        "start" : 0,
+        "word" : "Long"
+      },
+      {
+        "end" : 0.57799999999999996,
+        "start" : 0.29899999999999999,
+        "word" : "day."
+      },
+      {
+        "end" : 0.877,
+        "start" : 0.59799999999999998,
+        "word" : "Lotte"
+      },
+      {
+        "end" : 1.175,
+        "start" : 0.89700000000000002,
+        "word" : "opened"
+      },
+      {
+        "end" : 1.474,
+        "start" : 1.1950000000000001,
+        "word" : "up,"
+      },
+      {
+        "end" : 1.7729999999999999,
+        "start" : 1.494,
+        "word" : "Hendrik"
+      },
+      {
+        "end" : 2.0720000000000001,
+        "start" : 1.7929999999999999,
+        "word" : "brought"
+      },
+      {
+        "end" : 2.371,
+        "start" : 2.0920000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.6699999999999999,
+        "start" : 2.391,
+        "word" : "trailer,"
+      },
+      {
+        "end" : 2.9689999999999999,
+        "start" : 2.6899999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 3.2679999999999998,
+        "start" : 2.9889999999999999,
+        "word" : "Jack,"
+      },
+      {
+        "end" : 3.5659999999999998,
+        "start" : 3.2879999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 3.8650000000000002,
+        "start" : 3.5859999999999999,
+        "word" : "Morrow"
+      },
+      {
+        "end" : 4.1639999999999997,
+        "start" : 3.8849999999999998,
+        "word" : "one,"
+      },
+      {
+        "end" : 4.4630000000000001,
+        "start" : 4.1840000000000002,
+        "word" : "dropped"
+      },
+      {
+        "end" : 4.7619999999999996,
+        "start" : 4.4829999999999997,
+        "word" : "off"
+      },
+      {
+        "end" : 5.0609999999999999,
+        "start" : 4.782,
+        "word" : "his"
+      },
+      {
+        "end" : 5.3600000000000003,
+        "start" : 5.0810000000000004,
+        "word" : "bike"
+      },
+      {
+        "end" : 5.6589999999999998,
+        "start" : 5.3799999999999999,
+        "word" : "again."
+      },
+      {
+        "end" : 5.9569999999999999,
+        "start" : 5.6790000000000003,
+        "word" : "Then"
+      },
+      {
+        "end" : 6.2560000000000002,
+        "start" : 5.9770000000000003,
+        "word" : "Rose"
+      },
+      {
+        "end" : 6.5549999999999997,
+        "start" : 6.2759999999999998,
+        "word" : "came"
+      },
+      {
+        "end" : 6.8540000000000001,
+        "start" : 6.5750000000000002,
+        "word" : "by"
+      },
+      {
+        "end" : 7.1529999999999996,
+        "start" : 6.8739999999999997,
+        "word" : "with"
+      },
+      {
+        "end" : 7.452,
+        "start" : 7.173,
+        "word" : "the"
+      },
+      {
+        "end" : 7.7510000000000003,
+        "start" : 7.4720000000000004,
+        "word" : "website"
+      },
+      {
+        "end" : 8.0500000000000007,
+        "start" : 7.7709999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 8.3480000000000008,
+        "start" : 8.0700000000000003,
+        "word" : "I"
+      },
+      {
+        "end" : 8.6470000000000002,
+        "start" : 8.3680000000000003,
+        "word" : "said"
+      },
+      {
+        "end" : 8.9459999999999997,
+        "start" : 8.6669999999999998,
+        "word" : "rose"
+      },
+      {
+        "end" : 9.2449999999999992,
+        "start" : 8.9659999999999993,
+        "word" : "gold"
+      },
+      {
+        "end" : 9.5440000000000005,
+        "start" : 9.2650000000000006,
+        "word" : "is"
+      },
+      {
+        "end" : 9.843,
+        "start" : 9.5640000000000001,
+        "word" : "not"
+      },
+      {
+        "end" : 10.141999999999999,
+        "start" : 9.8629999999999995,
+        "word" : "a"
+      },
+      {
+        "end" : 10.441000000000001,
+        "start" : 10.162000000000001,
+        "word" : "colour"
+      },
+      {
+        "end" : 10.739000000000001,
+        "start" : 10.461,
+        "word" : "for"
+      },
+      {
+        "end" : 11.038,
+        "start" : 10.759,
+        "word" : "a"
+      },
+      {
+        "end" : 11.337,
+        "start" : 11.058,
+        "word" : "bike"
+      },
+      {
+        "end" : 11.635999999999999,
+        "start" : 11.356999999999999,
+        "word" : "shop."
+      },
+      {
+        "end" : 11.935,
+        "start" : 11.656000000000001,
+        "word" : "Will"
+      },
+      {
+        "end" : 12.234,
+        "start" : 11.955,
+        "word" : "was"
+      },
+      {
+        "end" : 12.532999999999999,
+        "start" : 12.254,
+        "word" : "supposed"
+      },
+      {
+        "end" : 12.832000000000001,
+        "start" : 12.553000000000001,
+        "word" : "to"
+      },
+      {
+        "end" : 13.130000000000001,
+        "start" : 12.852,
+        "word" : "come"
+      },
+      {
+        "end" : 13.429,
+        "start" : 13.15,
+        "word" : "but"
+      },
+      {
+        "end" : 13.728,
+        "start" : 13.449,
+        "word" : "he"
+      },
+      {
+        "end" : 14.026999999999999,
+        "start" : 13.747999999999999,
+        "word" : "will"
+      },
+      {
+        "end" : 14.326000000000001,
+        "start" : 14.047000000000001,
+        "word" : "not"
+      },
+      {
+        "end" : 14.625,
+        "start" : 14.346,
+        "word" : "be"
+      },
+      {
+        "end" : 14.923999999999999,
+        "start" : 14.645,
+        "word" : "here"
+      },
+      {
+        "end" : 15.223000000000001,
+        "start" : 14.944000000000001,
+        "word" : "until"
+      },
+      {
+        "end" : 15.521000000000001,
+        "start" : 15.243,
+        "word" : "Thursday."
+      },
+      {
+        "end" : 15.82,
+        "start" : 15.541,
+        "word" : "Sam"
+      },
+      {
+        "end" : 16.119,
+        "start" : 15.84,
+        "word" : "texted,"
+      },
+      {
+        "end" : 16.417999999999999,
+        "start" : 16.138999999999999,
+        "word" : "no"
+      },
+      {
+        "end" : 16.716999999999999,
+        "start" : 16.437999999999999,
+        "word" : "idea"
+      },
+      {
+        "end" : 17.015999999999998,
+        "start" : 16.736999999999998,
+        "word" : "which"
+      },
+      {
+        "end" : 17.315000000000001,
+        "start" : 17.036000000000001,
+        "word" : "Sam,"
+      },
+      {
+        "end" : 17.614000000000001,
+        "start" : 17.335000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 17.911999999999999,
+        "start" : 17.634,
+        "word" : "need"
+      },
+      {
+        "end" : 18.210999999999999,
+        "start" : 17.931999999999999,
+        "word" : "to"
+      },
+      {
+        "end" : 18.510000000000002,
+        "start" : 18.231000000000002,
+        "word" : "check."
+      },
+      {
+        "end" : 18.809000000000001,
+        "start" : 18.530000000000001,
+        "word" : "Kai"
+      },
+      {
+        "end" : 19.108000000000001,
+        "start" : 18.829000000000001,
+        "word" : "from"
+      },
+      {
+        "end" : 19.407,
+        "start" : 19.128,
+        "word" : "next"
+      },
+      {
+        "end" : 19.706,
+        "start" : 19.427,
+        "word" : "door"
+      },
+      {
+        "end" : 20.004999999999999,
+        "start" : 19.725999999999999,
+        "word" : "wants"
+      },
+      {
+        "end" : 20.303000000000001,
+        "start" : 20.024999999999999,
+        "word" : "to"
+      },
+      {
+        "end" : 20.602,
+        "start" : 20.323,
+        "word" : "borrow"
+      },
+      {
+        "end" : 20.901,
+        "start" : 20.622,
+        "word" : "the"
+      },
+      {
+        "end" : 21.199999999999999,
+        "start" : 20.920999999999999,
+        "word" : "stand."
+      }
+    ]
+  },
+  "slug" : "voice-en-names-all-tiers"
+}

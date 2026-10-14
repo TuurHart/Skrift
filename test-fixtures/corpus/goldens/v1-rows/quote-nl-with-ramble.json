@@ -1,0 +1,259 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 67772,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "391B226E-7EDB-54CD-AEAF-1DCF889D50D5",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "bookAuthor" : "Joris van Dalen",
+      "bookChapter" : "Hoofdstuk 2 — De hand",
+      "bookID" : "6E1A9C5F-3B7D-4F2C-8D4E-8A9B0C1D2E3F",
+      "bookPosition" : 987,
+      "bookTitle" : "Het Ambacht",
+      "capturedAt" : "2026-07-18T04:00:00+01:00",
+      "duration" : 10.449999999999999,
+      "recordedAt" : "2026-07-18T03:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "reading"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_391B226E-7EDB-54CD-AEAF-1DCF889D50D5.m4a",
+    "id" : "391B226E-7EDB-54CD-AEAF-1DCF889D50D5",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/391B226E-7EDB-54CD-AEAF-1DCF889D50D5_memo_391B226E-7EDB-54CD-AEAF-1DCF889D50D5.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 67772,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-18T03:00:00.000Z",
+    "tags" : [
+      "reading"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> Een goede reparatie is er een die je over een jaar niet meer ziet.\n\nDat is precies het probleem met de website: die laat de reparaties zien. Niemand wil reparaties zien. Ze willen de fiets zien.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-18T03:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.27000000000000002,
+        "start" : 0,
+        "word" : "Een"
+      },
+      {
+        "end" : 0.56100000000000005,
+        "start" : 0.28999999999999998,
+        "word" : "goede"
+      },
+      {
+        "end" : 0.85099999999999998,
+        "start" : 0.58099999999999996,
+        "word" : "reparatie"
+      },
+      {
+        "end" : 1.141,
+        "start" : 0.871,
+        "word" : "is"
+      },
+      {
+        "end" : 1.431,
+        "start" : 1.161,
+        "word" : "er"
+      },
+      {
+        "end" : 1.722,
+        "start" : 1.4510000000000001,
+        "word" : "een"
+      },
+      {
+        "end" : 2.012,
+        "start" : 1.742,
+        "word" : "die"
+      },
+      {
+        "end" : 2.302,
+        "start" : 2.032,
+        "word" : "je"
+      },
+      {
+        "end" : 2.5920000000000001,
+        "start" : 2.3220000000000001,
+        "word" : "over"
+      },
+      {
+        "end" : 2.883,
+        "start" : 2.6120000000000001,
+        "word" : "een"
+      },
+      {
+        "end" : 3.173,
+        "start" : 2.903,
+        "word" : "jaar"
+      },
+      {
+        "end" : 3.4630000000000001,
+        "start" : 3.1930000000000001,
+        "word" : "niet"
+      },
+      {
+        "end" : 3.754,
+        "start" : 3.4830000000000001,
+        "word" : "meer"
+      },
+      {
+        "end" : 4.0439999999999996,
+        "start" : 3.774,
+        "word" : "ziet."
+      },
+      {
+        "end" : 4.3339999999999996,
+        "start" : 4.0640000000000001,
+        "word" : "Dat"
+      },
+      {
+        "end" : 4.6239999999999997,
+        "start" : 4.3540000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 4.915,
+        "start" : 4.6440000000000001,
+        "word" : "precies"
+      },
+      {
+        "end" : 5.2050000000000001,
+        "start" : 4.9349999999999996,
+        "word" : "het"
+      },
+      {
+        "end" : 5.4950000000000001,
+        "start" : 5.2249999999999996,
+        "word" : "probleem"
+      },
+      {
+        "end" : 5.7859999999999996,
+        "start" : 5.5149999999999997,
+        "word" : "met"
+      },
+      {
+        "end" : 6.0759999999999996,
+        "start" : 5.806,
+        "word" : "de"
+      },
+      {
+        "end" : 6.3659999999999997,
+        "start" : 6.0960000000000001,
+        "word" : "website:"
+      },
+      {
+        "end" : 6.6559999999999997,
+        "start" : 6.3860000000000001,
+        "word" : "die"
+      },
+      {
+        "end" : 6.9470000000000001,
+        "start" : 6.6760000000000002,
+        "word" : "laat"
+      },
+      {
+        "end" : 7.2370000000000001,
+        "start" : 6.9669999999999996,
+        "word" : "de"
+      },
+      {
+        "end" : 7.5270000000000001,
+        "start" : 7.2569999999999997,
+        "word" : "reparaties"
+      },
+      {
+        "end" : 7.8170000000000002,
+        "start" : 7.5469999999999997,
+        "word" : "zien."
+      },
+      {
+        "end" : 8.1080000000000005,
+        "start" : 7.8369999999999997,
+        "word" : "Niemand"
+      },
+      {
+        "end" : 8.3979999999999997,
+        "start" : 8.1280000000000001,
+        "word" : "wil"
+      },
+      {
+        "end" : 8.6880000000000006,
+        "start" : 8.4179999999999993,
+        "word" : "reparaties"
+      },
+      {
+        "end" : 8.9789999999999992,
+        "start" : 8.7080000000000002,
+        "word" : "zien."
+      },
+      {
+        "end" : 9.2690000000000001,
+        "start" : 8.9990000000000006,
+        "word" : "Ze"
+      },
+      {
+        "end" : 9.5589999999999993,
+        "start" : 9.2889999999999997,
+        "word" : "willen"
+      },
+      {
+        "end" : 9.8490000000000002,
+        "start" : 9.5790000000000006,
+        "word" : "de"
+      },
+      {
+        "end" : 10.140000000000001,
+        "start" : 9.8689999999999998,
+        "word" : "fiets"
+      },
+      {
+        "end" : 10.43,
+        "start" : 10.16,
+        "word" : "zien."
+      }
+    ]
+  },
+  "slug" : "quote-nl-with-ramble"
+}

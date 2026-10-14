@@ -1,0 +1,76 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Throwing wide bowls, the trick at 4:10 with the rib.",
+      "capturedAt" : "2026-08-02T01:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-08-02T00:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "urlThumbnailUrl" : "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+        "urlTitle" : "Throwing a wide bowl — studio demo"
+      },
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "throwing"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+    "id" : "EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-02T00:00:00.000Z",
+    "tags" : [
+      "throwing"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Throwing wide bowls, the trick at 4:10 with the rib.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-url-youtube"
+}

@@ -1,0 +1,188 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 107,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 49327,
+      "file" : "images/photo_1E2B2F90-3ABD-5B61-84B2-A6393B952358_001.jpg"
+    },
+    {
+      "bytes" : 41726,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "1E2B2F90-3ABD-5B61-84B2-A6393B952358",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-08T10:00:00+01:00",
+      "duration" : 6.1299999999999999,
+      "imageManifest" : [
+        {
+          "filename" : "photo_1E2B2F90-3ABD-5B61-84B2-A6393B952358_001.jpg",
+          "offsetSeconds" : 12
+        }
+      ],
+      "recordedAt" : "2026-08-08T09:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_1E2B2F90-3ABD-5B61-84B2-A6393B952358.m4a",
+    "id" : "1E2B2F90-3ABD-5B61-84B2-A6393B952358",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/1E2B2F90-3ABD-5B61-84B2-A6393B952358_memo_1E2B2F90-3ABD-5B61-84B2-A6393B952358.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 41726,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-08T09:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Recorded on an older build that did not inject markers yet. The photo is in the manifest at twelve seconds.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-08T09:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.28599999999999998,
+        "start" : 0,
+        "word" : "Recorded"
+      },
+      {
+        "end" : 0.59299999999999997,
+        "start" : 0.30599999999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 0.89900000000000002,
+        "start" : 0.61299999999999999,
+        "word" : "an"
+      },
+      {
+        "end" : 1.206,
+        "start" : 0.91900000000000004,
+        "word" : "older"
+      },
+      {
+        "end" : 1.512,
+        "start" : 1.226,
+        "word" : "build"
+      },
+      {
+        "end" : 1.819,
+        "start" : 1.532,
+        "word" : "that"
+      },
+      {
+        "end" : 2.1259999999999999,
+        "start" : 1.839,
+        "word" : "did"
+      },
+      {
+        "end" : 2.4319999999999999,
+        "start" : 2.1459999999999999,
+        "word" : "not"
+      },
+      {
+        "end" : 2.738,
+        "start" : 2.452,
+        "word" : "inject"
+      },
+      {
+        "end" : 3.0449999999999999,
+        "start" : 2.758,
+        "word" : "markers"
+      },
+      {
+        "end" : 3.3519999999999999,
+        "start" : 3.0649999999999999,
+        "word" : "yet."
+      },
+      {
+        "end" : 3.6579999999999999,
+        "start" : 3.3719999999999999,
+        "word" : "The"
+      },
+      {
+        "end" : 3.964,
+        "start" : 3.6779999999999999,
+        "word" : "photo"
+      },
+      {
+        "end" : 4.2709999999999999,
+        "start" : 3.984,
+        "word" : "is"
+      },
+      {
+        "end" : 4.5780000000000003,
+        "start" : 4.2910000000000004,
+        "word" : "in"
+      },
+      {
+        "end" : 4.8840000000000003,
+        "start" : 4.5979999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 5.1909999999999998,
+        "start" : 4.9039999999999999,
+        "word" : "manifest"
+      },
+      {
+        "end" : 5.4969999999999999,
+        "start" : 5.21,
+        "word" : "at"
+      },
+      {
+        "end" : 5.8040000000000003,
+        "start" : 5.5170000000000003,
+        "word" : "twelve"
+      },
+      {
+        "end" : 6.1100000000000003,
+        "start" : 5.8239999999999998,
+        "word" : "seconds."
+      }
+    ]
+  },
+  "slug" : "pic-manifest-no-marker"
+}

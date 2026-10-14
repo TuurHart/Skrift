@@ -1,0 +1,259 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 84653,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "3B6912FA-AAD7-5203-96C4-D7D2B1050AAA",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-19T18:00:00+01:00",
+      "duration" : 13.33,
+      "recordedAt" : "2026-08-19T17:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "workshop"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : "---\ntitle: \"Saturday workshop debrief\"\ndate: 2026-08-19\nauthor: Corpus Author\nsource: Voice-memo\nsummary: \"Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45.\"\ntags:\n  - workshop\npeople: [[Mariam Haddad]]\nsignificance: 0.7\nlocation:\nlastTouched:\n---\n\nThe Saturday went well: six people, and nobody leaned on a chain. [[Mariam Haddad]]'s colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : "The Saturday went well: six people, and nobody leaned on a chain. Mariam's colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
+    "enhancedSummary" : "Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45.",
+    "enhancedTitle" : "Saturday workshop debrief",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_3B6912FA-AAD7-5203-96C4-D7D2B1050AAA.m4a",
+    "id" : "3B6912FA-AAD7-5203-96C4-D7D2B1050AAA",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : "2026-01-01T00:00:00.000Z",
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/3B6912FA-AAD7-5203-96C4-D7D2B1050AAA_memo_3B6912FA-AAD7-5203-96C4-D7D2B1050AAA.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : "The Saturday went well: six people, and nobody leaned on a chain. [[Mariam Haddad]]'s colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
+    "sanitiseStatus" : "done",
+    "significance" : 0.69999999999999996,
+    "size" : 84653,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-14T07:12:00.000Z",
+    "tags" : [
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Um so the, the Saturday went well actually, six people, um, nobody leaned on a chain. Mariam's, uh, Mariam's colleagues want to come back for the glazing evening. I think we charge forty five and, and see.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-19T17:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.34000000000000002,
+        "start" : 0,
+        "word" : "Um"
+      },
+      {
+        "end" : 0.70099999999999996,
+        "start" : 0.35999999999999999,
+        "word" : "so"
+      },
+      {
+        "end" : 1.0609999999999999,
+        "start" : 0.72099999999999997,
+        "word" : "the,"
+      },
+      {
+        "end" : 1.421,
+        "start" : 1.081,
+        "word" : "the"
+      },
+      {
+        "end" : 1.7809999999999999,
+        "start" : 1.4410000000000001,
+        "word" : "Saturday"
+      },
+      {
+        "end" : 2.1419999999999999,
+        "start" : 1.8009999999999999,
+        "word" : "went"
+      },
+      {
+        "end" : 2.5019999999999998,
+        "start" : 2.1619999999999999,
+        "word" : "well"
+      },
+      {
+        "end" : 2.8620000000000001,
+        "start" : 2.5219999999999998,
+        "word" : "actually,"
+      },
+      {
+        "end" : 3.222,
+        "start" : 2.8820000000000001,
+        "word" : "six"
+      },
+      {
+        "end" : 3.5830000000000002,
+        "start" : 3.242,
+        "word" : "people,"
+      },
+      {
+        "end" : 3.9430000000000001,
+        "start" : 3.6030000000000002,
+        "word" : "um,"
+      },
+      {
+        "end" : 4.3029999999999999,
+        "start" : 3.9630000000000001,
+        "word" : "nobody"
+      },
+      {
+        "end" : 4.6639999999999997,
+        "start" : 4.3230000000000004,
+        "word" : "leaned"
+      },
+      {
+        "end" : 5.024,
+        "start" : 4.6840000000000002,
+        "word" : "on"
+      },
+      {
+        "end" : 5.3840000000000003,
+        "start" : 5.0439999999999996,
+        "word" : "a"
+      },
+      {
+        "end" : 5.7439999999999998,
+        "start" : 5.4039999999999999,
+        "word" : "chain."
+      },
+      {
+        "end" : 6.1050000000000004,
+        "start" : 5.7640000000000002,
+        "word" : "Mariam's,"
+      },
+      {
+        "end" : 6.4649999999999999,
+        "start" : 6.125,
+        "word" : "uh,"
+      },
+      {
+        "end" : 6.8250000000000002,
+        "start" : 6.4850000000000003,
+        "word" : "Mariam's"
+      },
+      {
+        "end" : 7.1849999999999996,
+        "start" : 6.8449999999999998,
+        "word" : "colleagues"
+      },
+      {
+        "end" : 7.5460000000000003,
+        "start" : 7.2050000000000001,
+        "word" : "want"
+      },
+      {
+        "end" : 7.9059999999999997,
+        "start" : 7.5659999999999998,
+        "word" : "to"
+      },
+      {
+        "end" : 8.266,
+        "start" : 7.9260000000000002,
+        "word" : "come"
+      },
+      {
+        "end" : 8.6259999999999994,
+        "start" : 8.2859999999999996,
+        "word" : "back"
+      },
+      {
+        "end" : 8.9870000000000001,
+        "start" : 8.6460000000000008,
+        "word" : "for"
+      },
+      {
+        "end" : 9.3469999999999995,
+        "start" : 9.0069999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 9.7070000000000007,
+        "start" : 9.3670000000000009,
+        "word" : "glazing"
+      },
+      {
+        "end" : 10.068,
+        "start" : 9.7270000000000003,
+        "word" : "evening."
+      },
+      {
+        "end" : 10.428000000000001,
+        "start" : 10.087999999999999,
+        "word" : "I"
+      },
+      {
+        "end" : 10.788,
+        "start" : 10.448,
+        "word" : "think"
+      },
+      {
+        "end" : 11.148,
+        "start" : 10.808,
+        "word" : "we"
+      },
+      {
+        "end" : 11.509,
+        "start" : 11.167999999999999,
+        "word" : "charge"
+      },
+      {
+        "end" : 11.869,
+        "start" : 11.529,
+        "word" : "forty"
+      },
+      {
+        "end" : 12.228999999999999,
+        "start" : 11.888999999999999,
+        "word" : "five"
+      },
+      {
+        "end" : 12.589,
+        "start" : 12.249000000000001,
+        "word" : "and,"
+      },
+      {
+        "end" : 12.949999999999999,
+        "start" : 12.609,
+        "word" : "and"
+      },
+      {
+        "end" : 13.31,
+        "start" : 12.970000000000001,
+        "word" : "see."
+      }
+    ]
+  },
+  "slug" : "voice-en-with-mac-polish"
+}

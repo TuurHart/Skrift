@@ -1,0 +1,129 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 23074,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "1255822E-0BD2-5670-B214-7A9BA89F20CB",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "bookAuthor" : "Ada Wren",
+      "bookChapter" : "7",
+      "bookID" : "5D0F8B4E-2A6C-4E1B-9C3D-7F8A9B0C1D2E",
+      "bookPosition" : 8102,
+      "bookTitle" : "The Shape of Clay",
+      "capturedAt" : "2026-07-17T11:00:00+01:00",
+      "duration" : 3.02,
+      "recordedAt" : "2026-07-17T10:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "reading"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_1255822E-0BD2-5670-B214-7A9BA89F20CB.m4a",
+    "id" : "1255822E-0BD2-5670-B214-7A9BA89F20CB",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/1255822E-0BD2-5670-B214-7A9BA89F20CB_memo_1255822E-0BD2-5670-B214-7A9BA89F20CB.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 23074,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-17T10:00:00.000Z",
+    "tags" : [
+      "reading"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> Price is what you say when you have stopped apologising.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-17T10:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.28199999999999997,
+        "start" : 0,
+        "word" : "Price"
+      },
+      {
+        "end" : 0.58399999999999996,
+        "start" : 0.30199999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 0.88600000000000001,
+        "start" : 0.60399999999999998,
+        "word" : "what"
+      },
+      {
+        "end" : 1.1879999999999999,
+        "start" : 0.90600000000000003,
+        "word" : "you"
+      },
+      {
+        "end" : 1.49,
+        "start" : 1.208,
+        "word" : "say"
+      },
+      {
+        "end" : 1.792,
+        "start" : 1.51,
+        "word" : "when"
+      },
+      {
+        "end" : 2.0939999999999999,
+        "start" : 1.8120000000000001,
+        "word" : "you"
+      },
+      {
+        "end" : 2.3959999999999999,
+        "start" : 2.1139999999999999,
+        "word" : "have"
+      },
+      {
+        "end" : 2.698,
+        "start" : 2.4159999999999999,
+        "word" : "stopped"
+      },
+      {
+        "end" : 3,
+        "start" : 2.718,
+        "word" : "apologising."
+      }
+    ]
+  },
+  "slug" : "quote-only-no-ramble"
+}
