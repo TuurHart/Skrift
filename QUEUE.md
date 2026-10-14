@@ -3226,7 +3226,7 @@ gate+: yes
 do: An `.eml` / Mail share becomes a text capture: title = Subject, body = plain text, `recordedAt` = the Date header, sender per C123, attachments as files (C142). Selected text with its page URL is a text capture carrying the url and title, no fetch; a Maps link is a link capture with the place as location and title, no fetch (C144). Fixtures `ingress/email`, `ingress/selected-text`, `ingress/maps-link`; cases in `IngressDispatchTests`.
 check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corpus/ingress/maps-link`
 
-### Q442 [tuur] (todo) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
+### Q442 [tuur] (tuur) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
 spec: C261 D163
 needs: Q408
 do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65).
@@ -4628,3 +4628,4 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 - 2026-10-14 14:44 Q419 -> doing — worker out
 - 2026-10-14 14:44 Q412 -> doing — worker out
 - 2026-10-14 14:45 Q408 -> done — gate 57s @4f93d12d
+- 2026-10-14 14:45 Q442 -> tuur — awaiting sitting
