@@ -1,0 +1,88 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 44481,
+      "file" : "images/photo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_001.jpg"
+    },
+    {
+      "bytes" : 9664,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-23T03:00:00+01:00",
+      "duration" : 0.88,
+      "imageManifest" : [
+        {
+          "filename" : "photo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_001.jpg",
+          "offsetSeconds" : 0
+        }
+      ],
+      "recordedAt" : "2026-07-23T02:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "sourceType" : "video",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65.m4a",
+    "id" : "51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "video",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_memo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 9664,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-23T02:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "[[img_001]]",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-23T02:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "video-no-speech"
+}

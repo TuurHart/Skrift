@@ -1,0 +1,89 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 12788,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-14T02:00:00+01:00",
+      "duration" : 1.25,
+      "recordedAt" : "2026-08-14T01:00:00.000Z",
+      "significance" : 0.29999999999999999,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD.m4a",
+    "id" : "68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD_memo_68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.29999999999999999,
+    "size" : 12788,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-14T01:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Order kiln wash.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-14T01:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.39700000000000002,
+        "start" : 0,
+        "word" : "Order"
+      },
+      {
+        "end" : 0.81299999999999994,
+        "start" : 0.41699999999999998,
+        "word" : "kiln"
+      },
+      {
+        "end" : 1.23,
+        "start" : 0.83299999999999996,
+        "word" : "wash."
+      }
+    ]
+  },
+  "slug" : "voice-en-three-words"
+}

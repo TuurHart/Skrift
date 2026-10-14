@@ -1,0 +1,233 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 48082,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "9FF0A9E9-BB9A-5033-B1FB-303172664B5E",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-16T22:00:00+01:00",
+      "daylight" : {
+        "hoursOfLight" : 12.35,
+        "sunrise" : "07:21",
+        "sunset" : "19:42"
+      },
+      "dayPeriod" : "morning",
+      "duration" : 6.9199999999999999,
+      "location" : {
+        "latitude" : 51.931100000000001,
+        "longitude" : 4.5094000000000003,
+        "placeName" : "Kralingse Plas"
+      },
+      "pressure" : {
+        "hPa" : 1004,
+        "trend" : "falling"
+      },
+      "recordedAt" : "2026-08-16T21:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "steps" : 210,
+      "tags" : [
+        "thinking",
+        "website"
+      ],
+      "title" : "Rain ride to Kralingen",
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false,
+      "weather" : {
+        "conditions" : "Rain",
+        "temperature" : 11,
+        "temperatureUnit" : "°C"
+      }
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Rain ride to Kralingen",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_9FF0A9E9-BB9A-5033-B1FB-303172664B5E.m4a",
+    "id" : "9FF0A9E9-BB9A-5033-B1FB-303172664B5E",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/9FF0A9E9-BB9A-5033-B1FB-303172664B5E_memo_9FF0A9E9-BB9A-5033-B1FB-303172664B5E.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 48082,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-16T21:00:00.000Z",
+    "tags" : [
+      "thinking",
+      "website"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Rode out to the lake in the rain to think. The website should have the bikes on the front page. Rose is right about the fonts though.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-16T21:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.23599999999999999,
+        "start" : 0,
+        "word" : "Rode"
+      },
+      {
+        "end" : 0.49299999999999999,
+        "start" : 0.25600000000000001,
+        "word" : "out"
+      },
+      {
+        "end" : 0.749,
+        "start" : 0.51300000000000001,
+        "word" : "to"
+      },
+      {
+        "end" : 1.0049999999999999,
+        "start" : 0.76900000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 1.2609999999999999,
+        "start" : 1.0249999999999999,
+        "word" : "lake"
+      },
+      {
+        "end" : 1.518,
+        "start" : 1.2809999999999999,
+        "word" : "in"
+      },
+      {
+        "end" : 1.774,
+        "start" : 1.538,
+        "word" : "the"
+      },
+      {
+        "end" : 2.0299999999999998,
+        "start" : 1.794,
+        "word" : "rain"
+      },
+      {
+        "end" : 2.2869999999999999,
+        "start" : 2.0499999999999998,
+        "word" : "to"
+      },
+      {
+        "end" : 2.5430000000000001,
+        "start" : 2.3069999999999999,
+        "word" : "think."
+      },
+      {
+        "end" : 2.7989999999999999,
+        "start" : 2.5630000000000002,
+        "word" : "The"
+      },
+      {
+        "end" : 3.056,
+        "start" : 2.819,
+        "word" : "website"
+      },
+      {
+        "end" : 3.3119999999999998,
+        "start" : 3.0760000000000001,
+        "word" : "should"
+      },
+      {
+        "end" : 3.5680000000000001,
+        "start" : 3.3319999999999999,
+        "word" : "have"
+      },
+      {
+        "end" : 3.8239999999999998,
+        "start" : 3.5880000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 4.0810000000000004,
+        "start" : 3.8439999999999999,
+        "word" : "bikes"
+      },
+      {
+        "end" : 4.3369999999999997,
+        "start" : 4.101,
+        "word" : "on"
+      },
+      {
+        "end" : 4.593,
+        "start" : 4.3570000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 4.8499999999999996,
+        "start" : 4.6130000000000004,
+        "word" : "front"
+      },
+      {
+        "end" : 5.1059999999999999,
+        "start" : 4.8700000000000001,
+        "word" : "page."
+      },
+      {
+        "end" : 5.3620000000000001,
+        "start" : 5.1260000000000003,
+        "word" : "Rose"
+      },
+      {
+        "end" : 5.6189999999999998,
+        "start" : 5.3819999999999997,
+        "word" : "is"
+      },
+      {
+        "end" : 5.875,
+        "start" : 5.6390000000000002,
+        "word" : "right"
+      },
+      {
+        "end" : 6.1310000000000002,
+        "start" : 5.8949999999999996,
+        "word" : "about"
+      },
+      {
+        "end" : 6.3869999999999996,
+        "start" : 6.1509999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 6.6440000000000001,
+        "start" : 6.407,
+        "word" : "fonts"
+      },
+      {
+        "end" : 6.9000000000000004,
+        "start" : 6.6639999999999997,
+        "word" : "though."
+      }
+    ]
+  },
+  "slug" : "voice-en-full-context"
+}

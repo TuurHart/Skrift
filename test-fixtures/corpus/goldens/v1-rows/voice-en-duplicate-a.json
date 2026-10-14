@@ -1,0 +1,129 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 41558,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-05T10:00:00+01:00",
+      "duration" : 5.9400000000000004,
+      "recordedAt" : "2026-09-05T09:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090.m4a",
+    "id" : "BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090_memo_BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 41558,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-05T09:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Duplicate check. Same words twice, two different recordings, forty seconds apart.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-05T09:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.52000000000000002,
+        "start" : 0,
+        "word" : "Duplicate"
+      },
+      {
+        "end" : 1.0600000000000001,
+        "start" : 0.54000000000000004,
+        "word" : "check."
+      },
+      {
+        "end" : 1.6000000000000001,
+        "start" : 1.0800000000000001,
+        "word" : "Same"
+      },
+      {
+        "end" : 2.1400000000000001,
+        "start" : 1.6200000000000001,
+        "word" : "words"
+      },
+      {
+        "end" : 2.6800000000000002,
+        "start" : 2.1600000000000001,
+        "word" : "twice,"
+      },
+      {
+        "end" : 3.2200000000000002,
+        "start" : 2.7000000000000002,
+        "word" : "two"
+      },
+      {
+        "end" : 3.7599999999999998,
+        "start" : 3.2400000000000002,
+        "word" : "different"
+      },
+      {
+        "end" : 4.2999999999999998,
+        "start" : 3.7799999999999998,
+        "word" : "recordings,"
+      },
+      {
+        "end" : 4.8399999999999999,
+        "start" : 4.3200000000000003,
+        "word" : "forty"
+      },
+      {
+        "end" : 5.3799999999999999,
+        "start" : 4.8600000000000003,
+        "word" : "seconds"
+      },
+      {
+        "end" : 5.9199999999999999,
+        "start" : 5.4000000000000004,
+        "word" : "apart."
+      }
+    ]
+  },
+  "slug" : "voice-en-duplicate-a"
+}

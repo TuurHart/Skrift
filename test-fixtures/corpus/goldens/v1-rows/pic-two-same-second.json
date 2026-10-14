@@ -1,0 +1,191 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 244,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 46871,
+      "file" : "images/photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_001.jpg"
+    },
+    {
+      "bytes" : 43310,
+      "file" : "images/photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_002.jpg"
+    },
+    {
+      "bytes" : 32955,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "B6B21BA8-CC34-5667-B92B-2D8D3CAD959A",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-11T06:00:00+01:00",
+      "duration" : 4.5999999999999996,
+      "imageManifest" : [
+        {
+          "filename" : "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_001.jpg",
+          "offsetSeconds" : 1.6899999999999999
+        },
+        {
+          "filename" : "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_002.jpg",
+          "offsetSeconds" : 1.6899999999999999
+        }
+      ],
+      "recordedAt" : "2026-08-11T05:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A.m4a",
+    "id" : "B6B21BA8-CC34-5667-B92B-2D8D3CAD959A",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_memo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 32955,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-11T05:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Front and back of the same bowl, [[img_001]] [[img_002]] the green edge is only on the side that faced the element.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-11T05:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.222,
+        "start" : 0,
+        "word" : "Front"
+      },
+      {
+        "end" : 0.46400000000000002,
+        "start" : 0.24199999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 0.70599999999999996,
+        "start" : 0.48399999999999999,
+        "word" : "back"
+      },
+      {
+        "end" : 0.94799999999999995,
+        "start" : 0.72599999999999998,
+        "word" : "of"
+      },
+      {
+        "end" : 1.1910000000000001,
+        "start" : 0.96799999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 1.4330000000000001,
+        "start" : 1.2110000000000001,
+        "word" : "same"
+      },
+      {
+        "end" : 1.675,
+        "start" : 1.4530000000000001,
+        "word" : "bowl,"
+      },
+      {
+        "end" : 1.917,
+        "start" : 1.6950000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.1589999999999998,
+        "start" : 1.9370000000000001,
+        "word" : "green"
+      },
+      {
+        "end" : 2.4009999999999998,
+        "start" : 2.1789999999999998,
+        "word" : "edge"
+      },
+      {
+        "end" : 2.6429999999999998,
+        "start" : 2.4209999999999998,
+        "word" : "is"
+      },
+      {
+        "end" : 2.8849999999999998,
+        "start" : 2.6629999999999998,
+        "word" : "only"
+      },
+      {
+        "end" : 3.1269999999999998,
+        "start" : 2.9049999999999998,
+        "word" : "on"
+      },
+      {
+        "end" : 3.3690000000000002,
+        "start" : 3.1469999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 3.6120000000000001,
+        "start" : 3.3889999999999998,
+        "word" : "side"
+      },
+      {
+        "end" : 3.8540000000000001,
+        "start" : 3.6320000000000001,
+        "word" : "that"
+      },
+      {
+        "end" : 4.0960000000000001,
+        "start" : 3.8740000000000001,
+        "word" : "faced"
+      },
+      {
+        "end" : 4.3380000000000001,
+        "start" : 4.1159999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 4.5800000000000001,
+        "start" : 4.3579999999999997,
+        "word" : "element."
+      }
+    ]
+  },
+  "slug" : "pic-two-same-second"
+}

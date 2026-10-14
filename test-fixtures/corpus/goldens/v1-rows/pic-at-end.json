@@ -1,0 +1,153 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 41997,
+      "file" : "images/photo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_001.jpg"
+    },
+    {
+      "bytes" : 39558,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-11T23:00:00+01:00",
+      "duration" : 5.5300000000000002,
+      "imageManifest" : [
+        {
+          "filename" : "photo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_001.jpg",
+          "offsetSeconds" : 5.96
+        }
+      ],
+      "recordedAt" : "2026-08-11T22:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "studio"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3.m4a",
+    "id" : "1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_memo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 39558,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-11T22:00:00.000Z",
+    "tags" : [
+      "studio"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Finished the Gazelle overhaul, new chain, new cables, wheels trued. Here it is. [[img_001]]",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-11T22:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.40500000000000003,
+        "start" : 0,
+        "word" : "Finished"
+      },
+      {
+        "end" : 0.83099999999999996,
+        "start" : 0.42499999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 1.256,
+        "start" : 0.85099999999999998,
+        "word" : "Gazelle"
+      },
+      {
+        "end" : 1.6819999999999999,
+        "start" : 1.276,
+        "word" : "overhaul,"
+      },
+      {
+        "end" : 2.1070000000000002,
+        "start" : 1.702,
+        "word" : "new"
+      },
+      {
+        "end" : 2.532,
+        "start" : 2.1269999999999998,
+        "word" : "chain,"
+      },
+      {
+        "end" : 2.9580000000000002,
+        "start" : 2.552,
+        "word" : "new"
+      },
+      {
+        "end" : 3.383,
+        "start" : 2.9780000000000002,
+        "word" : "cables,"
+      },
+      {
+        "end" : 3.8079999999999998,
+        "start" : 3.403,
+        "word" : "wheels"
+      },
+      {
+        "end" : 4.234,
+        "start" : 3.8279999999999998,
+        "word" : "trued."
+      },
+      {
+        "end" : 4.6589999999999998,
+        "start" : 4.2539999999999996,
+        "word" : "Here"
+      },
+      {
+        "end" : 5.085,
+        "start" : 4.6790000000000003,
+        "word" : "it"
+      },
+      {
+        "end" : 5.5099999999999998,
+        "start" : 5.1050000000000004,
+        "word" : "is."
+      }
+    ]
+  },
+  "slug" : "pic-at-end"
+}

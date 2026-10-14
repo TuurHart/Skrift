@@ -1,0 +1,76 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 175,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "EF2C2219-5AA6-5A43-BE5F-08031A1589DC",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-06T11:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-06T10:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "studio",
+        "money"
+      ],
+      "title" : "Kiln wiring — what Marco said",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Kiln wiring — what Marco said",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "EF2C2219-5AA6-5A43-BE5F-08031A1589DC.md",
+    "id" : "EF2C2219-5AA6-5A43-BE5F-08031A1589DC",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/EF2C2219-5AA6-5A43-BE5F-08031A1589DC_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 175,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-06T10:00:00.000Z",
+    "tags" : [
+      "studio",
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "He needs a dedicated 16 A line from the fuse box, about nine metres, and he will not touch the old junction box. Quote: €640 plus the box. He can do it the week of the 12th.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-06T10:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-title-set"
+}

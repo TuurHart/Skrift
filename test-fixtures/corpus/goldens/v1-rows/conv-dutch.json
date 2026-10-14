@@ -1,0 +1,225 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 54677,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "BC0AF34C-CFCC-5E51-903B-A74800EAA566",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-20T07:00:00+01:00",
+      "duration" : 8.2400000000000002,
+      "recordedAt" : "2026-07-20T06:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "conversation"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : [
+      {
+        "end" : 2.5350000000000001,
+        "speaker" : 0,
+        "start" : 0
+      },
+      {
+        "end" : 5.7050000000000001,
+        "speaker" : 1,
+        "start" : 2.5350000000000001
+      },
+      {
+        "end" : 7.6059999999999999,
+        "speaker" : 0,
+        "start" : 5.7050000000000001
+      },
+      {
+        "end" : 8.2400000000000002,
+        "speaker" : 1,
+        "start" : 7.6059999999999999
+      }
+    ],
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_BC0AF34C-CFCC-5E51-903B-A74800EAA566.m4a",
+    "id" : "BC0AF34C-CFCC-5E51-903B-A74800EAA566",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/BC0AF34C-CFCC-5E51-903B-A74800EAA566_memo_BC0AF34C-CFCC-5E51-903B-A74800EAA566.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 54677,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-20T06:00:00.000Z",
+    "tags" : [
+      "conversation"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "**Lotte Vos:** Heb je Marco nou gebeld over de bedrading?\n\n**Fenna de Wit:** Nee. Maar het staat in de app dus het telt.\n\n**Lotte Vos:** Het telt niet. Bel hem gewoon.\n\n**Fenna de Wit:** Morgen. Echt.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-20T06:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.29699999999999999,
+        "start" : 0,
+        "word" : "Heb"
+      },
+      {
+        "end" : 0.61399999999999999,
+        "start" : 0.317,
+        "word" : "je"
+      },
+      {
+        "end" : 0.93100000000000005,
+        "start" : 0.63400000000000001,
+        "word" : "Marco"
+      },
+      {
+        "end" : 1.248,
+        "start" : 0.95099999999999996,
+        "word" : "nou"
+      },
+      {
+        "end" : 1.5649999999999999,
+        "start" : 1.268,
+        "word" : "gebeld"
+      },
+      {
+        "end" : 1.8819999999999999,
+        "start" : 1.585,
+        "word" : "over"
+      },
+      {
+        "end" : 2.198,
+        "start" : 1.9019999999999999,
+        "word" : "de"
+      },
+      {
+        "end" : 2.5150000000000001,
+        "start" : 2.218,
+        "word" : "bedrading?"
+      },
+      {
+        "end" : 2.8319999999999999,
+        "start" : 2.5350000000000001,
+        "word" : "Nee."
+      },
+      {
+        "end" : 3.149,
+        "start" : 2.8519999999999999,
+        "word" : "Maar"
+      },
+      {
+        "end" : 3.4660000000000002,
+        "start" : 3.169,
+        "word" : "het"
+      },
+      {
+        "end" : 3.7829999999999999,
+        "start" : 3.4860000000000002,
+        "word" : "staat"
+      },
+      {
+        "end" : 4.0999999999999996,
+        "start" : 3.8029999999999999,
+        "word" : "in"
+      },
+      {
+        "end" : 4.4169999999999998,
+        "start" : 4.1200000000000001,
+        "word" : "de"
+      },
+      {
+        "end" : 4.734,
+        "start" : 4.4370000000000003,
+        "word" : "app"
+      },
+      {
+        "end" : 5.0510000000000002,
+        "start" : 4.7539999999999996,
+        "word" : "dus"
+      },
+      {
+        "end" : 5.3680000000000003,
+        "start" : 5.0709999999999997,
+        "word" : "het"
+      },
+      {
+        "end" : 5.6849999999999996,
+        "start" : 5.3879999999999999,
+        "word" : "telt."
+      },
+      {
+        "end" : 6.0019999999999998,
+        "start" : 5.7050000000000001,
+        "word" : "Het"
+      },
+      {
+        "end" : 6.3179999999999996,
+        "start" : 6.0220000000000002,
+        "word" : "telt"
+      },
+      {
+        "end" : 6.6349999999999998,
+        "start" : 6.3380000000000001,
+        "word" : "niet."
+      },
+      {
+        "end" : 6.952,
+        "start" : 6.6550000000000002,
+        "word" : "Bel"
+      },
+      {
+        "end" : 7.2690000000000001,
+        "start" : 6.9720000000000004,
+        "word" : "hem"
+      },
+      {
+        "end" : 7.5860000000000003,
+        "start" : 7.2889999999999997,
+        "word" : "gewoon."
+      },
+      {
+        "end" : 7.9029999999999996,
+        "start" : 7.6059999999999999,
+        "word" : "Morgen."
+      },
+      {
+        "end" : 8.2200000000000006,
+        "start" : 7.923,
+        "word" : "Echt."
+      }
+    ]
+  },
+  "slug" : "conv-dutch"
+}

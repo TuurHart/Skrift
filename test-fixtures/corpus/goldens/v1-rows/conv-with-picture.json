@@ -1,0 +1,304 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 45219,
+      "file" : "images/photo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3_001.jpg"
+    },
+    {
+      "bytes" : 84292,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-19T14:00:00+01:00",
+      "duration" : 13.17,
+      "imageManifest" : [
+        {
+          "filename" : "photo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3_001.jpg",
+          "offsetSeconds" : 1.73
+        }
+      ],
+      "recordedAt" : "2026-07-19T13:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "conversation"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : [
+      {
+        "end" : 4.5060000000000002,
+        "speaker" : 0,
+        "start" : 0
+      },
+      {
+        "end" : 9.0109999999999992,
+        "speaker" : 1,
+        "start" : 4.5060000000000002
+      },
+      {
+        "end" : 12.130000000000001,
+        "speaker" : 0,
+        "start" : 9.0109999999999992
+      },
+      {
+        "end" : 13.516999999999999,
+        "speaker" : 1,
+        "start" : 12.130000000000001
+      }
+    ],
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3.m4a",
+    "id" : "ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3_memo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 84292,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-19T13:00:00.000Z",
+    "tags" : [
+      "conversation"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "**Fenna de Wit:** Look at the edge on this one. [[img_001]] That is the green again.\n\n**Lotte Vos:** That is the iron. Same as Ines said. Different clay or a slip.\n\n**Fenna de Wit:** A slip is one more step on every piece.\n\n**Lotte Vos:** Then a different clay.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-19T13:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.32700000000000001,
+        "start" : 0,
+        "word" : "Look"
+      },
+      {
+        "end" : 0.67300000000000004,
+        "start" : 0.34699999999999998,
+        "word" : "at"
+      },
+      {
+        "end" : 1.02,
+        "start" : 0.69299999999999995,
+        "word" : "the"
+      },
+      {
+        "end" : 1.3660000000000001,
+        "start" : 1.04,
+        "word" : "edge"
+      },
+      {
+        "end" : 1.7130000000000001,
+        "start" : 1.3859999999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 2.0590000000000002,
+        "start" : 1.7330000000000001,
+        "word" : "this"
+      },
+      {
+        "end" : 2.4060000000000001,
+        "start" : 2.0790000000000002,
+        "word" : "one."
+      },
+      {
+        "end" : 2.7530000000000001,
+        "start" : 2.4260000000000002,
+        "word" : "[[img_001]]"
+      },
+      {
+        "end" : 3.0990000000000002,
+        "start" : 2.7730000000000001,
+        "word" : "That"
+      },
+      {
+        "end" : 3.4460000000000002,
+        "start" : 3.1190000000000002,
+        "word" : "is"
+      },
+      {
+        "end" : 3.7919999999999998,
+        "start" : 3.4660000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 4.1390000000000002,
+        "start" : 3.8119999999999998,
+        "word" : "green"
+      },
+      {
+        "end" : 4.4859999999999998,
+        "start" : 4.1589999999999998,
+        "word" : "again."
+      },
+      {
+        "end" : 4.8319999999999999,
+        "start" : 4.5060000000000002,
+        "word" : "That"
+      },
+      {
+        "end" : 5.1790000000000003,
+        "start" : 4.8520000000000003,
+        "word" : "is"
+      },
+      {
+        "end" : 5.5250000000000004,
+        "start" : 5.1989999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 5.8719999999999999,
+        "start" : 5.5449999999999999,
+        "word" : "iron."
+      },
+      {
+        "end" : 6.218,
+        "start" : 5.8920000000000003,
+        "word" : "Same"
+      },
+      {
+        "end" : 6.5650000000000004,
+        "start" : 6.2380000000000004,
+        "word" : "as"
+      },
+      {
+        "end" : 6.9119999999999999,
+        "start" : 6.585,
+        "word" : "Ines"
+      },
+      {
+        "end" : 7.258,
+        "start" : 6.9320000000000004,
+        "word" : "said."
+      },
+      {
+        "end" : 7.6050000000000004,
+        "start" : 7.2779999999999996,
+        "word" : "Different"
+      },
+      {
+        "end" : 7.9509999999999996,
+        "start" : 7.625,
+        "word" : "clay"
+      },
+      {
+        "end" : 8.298,
+        "start" : 7.9710000000000001,
+        "word" : "or"
+      },
+      {
+        "end" : 8.6440000000000001,
+        "start" : 8.3179999999999996,
+        "word" : "a"
+      },
+      {
+        "end" : 8.9909999999999997,
+        "start" : 8.6639999999999997,
+        "word" : "slip."
+      },
+      {
+        "end" : 9.3379999999999992,
+        "start" : 9.0109999999999992,
+        "word" : "A"
+      },
+      {
+        "end" : 9.6839999999999993,
+        "start" : 9.3580000000000005,
+        "word" : "slip"
+      },
+      {
+        "end" : 10.031000000000001,
+        "start" : 9.7040000000000006,
+        "word" : "is"
+      },
+      {
+        "end" : 10.377000000000001,
+        "start" : 10.051,
+        "word" : "one"
+      },
+      {
+        "end" : 10.724,
+        "start" : 10.397,
+        "word" : "more"
+      },
+      {
+        "end" : 11.071,
+        "start" : 10.744,
+        "word" : "step"
+      },
+      {
+        "end" : 11.417,
+        "start" : 11.090999999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 11.763999999999999,
+        "start" : 11.436999999999999,
+        "word" : "every"
+      },
+      {
+        "end" : 12.109999999999999,
+        "start" : 11.784000000000001,
+        "word" : "piece."
+      },
+      {
+        "end" : 12.457000000000001,
+        "start" : 12.130000000000001,
+        "word" : "Then"
+      },
+      {
+        "end" : 12.803000000000001,
+        "start" : 12.477,
+        "word" : "a"
+      },
+      {
+        "end" : 13.15,
+        "start" : 12.823,
+        "word" : "different"
+      },
+      {
+        "end" : 13.497,
+        "start" : 13.17,
+        "word" : "clay."
+      }
+    ]
+  },
+  "slug" : "conv-with-picture"
+}

@@ -1,0 +1,84 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 10260,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "0A20647A-7FA7-575B-A20A-97DADF20488D",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-19T01:00:00+01:00",
+      "duration" : 0.93000000000000005,
+      "recordedAt" : "2026-08-19T00:00:00.000Z",
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_0A20647A-7FA7-575B-A20A-97DADF20488D.m4a",
+    "id" : "0A20647A-7FA7-575B-A20A-97DADF20488D",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/0A20647A-7FA7-575B-A20A-97DADF20488D_memo_0A20647A-7FA7-575B-A20A-97DADF20488D.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 10260,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-19T00:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Kiln wash.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-19T00:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.44500000000000001,
+        "start" : 0,
+        "word" : "Kiln"
+      },
+      {
+        "end" : 0.91000000000000003,
+        "start" : 0.46500000000000002,
+        "word" : "wash."
+      }
+    ]
+  },
+  "slug" : "voice-en-processed-no-content"
+}

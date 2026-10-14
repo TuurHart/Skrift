@@ -1,0 +1,226 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 230,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 48728,
+      "file" : "images/photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_001.jpg"
+    },
+    {
+      "bytes" : 50663,
+      "file" : "images/photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_002.jpg"
+    },
+    {
+      "bytes" : 56164,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "D3C33F34-092D-51B2-9A97-72AB6E1A3BA0",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-06T07:00:00+01:00",
+      "duration" : 8.3100000000000005,
+      "imageManifest" : [
+        {
+          "filename" : "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_001.jpg",
+          "offsetSeconds" : 1.28
+        },
+        {
+          "filename" : "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_002.jpg",
+          "offsetSeconds" : 3.8399999999999999
+        }
+      ],
+      "recordedAt" : "2026-08-06T06:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : true
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0.m4a",
+    "id" : "D3C33F34-092D-51B2-9A97-72AB6E1A3BA0",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_memo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 56164,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-13T20:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Moved the markers myself in the editor so they sit on sentence ends.\n\n[[img_001]]\n\nThis paragraph is after the first picture.\n\n[[img_002]]\n\nAnd this one after the second.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-06T06:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.29999999999999999,
+        "start" : 0,
+        "word" : "Moved"
+      },
+      {
+        "end" : 0.61899999999999999,
+        "start" : 0.32000000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 0.93899999999999995,
+        "start" : 0.63900000000000001,
+        "word" : "markers"
+      },
+      {
+        "end" : 1.258,
+        "start" : 0.95899999999999996,
+        "word" : "myself"
+      },
+      {
+        "end" : 1.5780000000000001,
+        "start" : 1.278,
+        "word" : "in"
+      },
+      {
+        "end" : 1.8979999999999999,
+        "start" : 1.5980000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 2.2170000000000001,
+        "start" : 1.9179999999999999,
+        "word" : "editor"
+      },
+      {
+        "end" : 2.5369999999999999,
+        "start" : 2.2370000000000001,
+        "word" : "so"
+      },
+      {
+        "end" : 2.8570000000000002,
+        "start" : 2.5569999999999999,
+        "word" : "they"
+      },
+      {
+        "end" : 3.1760000000000002,
+        "start" : 2.8769999999999998,
+        "word" : "sit"
+      },
+      {
+        "end" : 3.496,
+        "start" : 3.1960000000000002,
+        "word" : "on"
+      },
+      {
+        "end" : 3.8149999999999999,
+        "start" : 3.516,
+        "word" : "sentence"
+      },
+      {
+        "end" : 4.1349999999999998,
+        "start" : 3.835,
+        "word" : "ends."
+      },
+      {
+        "end" : 4.4550000000000001,
+        "start" : 4.1550000000000002,
+        "word" : "This"
+      },
+      {
+        "end" : 4.774,
+        "start" : 4.4749999999999996,
+        "word" : "paragraph"
+      },
+      {
+        "end" : 5.0940000000000003,
+        "start" : 4.7939999999999996,
+        "word" : "is"
+      },
+      {
+        "end" : 5.4130000000000003,
+        "start" : 5.1139999999999999,
+        "word" : "after"
+      },
+      {
+        "end" : 5.7329999999999997,
+        "start" : 5.4329999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 6.0529999999999999,
+        "start" : 5.7530000000000001,
+        "word" : "first"
+      },
+      {
+        "end" : 6.3719999999999999,
+        "start" : 6.0730000000000004,
+        "word" : "picture."
+      },
+      {
+        "end" : 6.6920000000000002,
+        "start" : 6.3920000000000003,
+        "word" : "And"
+      },
+      {
+        "end" : 7.0119999999999996,
+        "start" : 6.7119999999999997,
+        "word" : "this"
+      },
+      {
+        "end" : 7.3310000000000004,
+        "start" : 7.032,
+        "word" : "one"
+      },
+      {
+        "end" : 7.6509999999999998,
+        "start" : 7.351,
+        "word" : "after"
+      },
+      {
+        "end" : 7.9699999999999998,
+        "start" : 7.6710000000000003,
+        "word" : "the"
+      },
+      {
+        "end" : 8.2899999999999991,
+        "start" : 7.9900000000000002,
+        "word" : "second."
+      }
+    ]
+  },
+  "slug" : "pic-user-snapped-markers"
+}

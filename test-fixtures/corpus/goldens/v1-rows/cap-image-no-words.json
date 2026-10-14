@@ -1,0 +1,88 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 39538,
+      "file" : "images/photo_ACFA1AE3-DA64-5250-808C-8F22D251F927_001.jpg"
+    }
+  ],
+  "memoID" : "ACFA1AE3-DA64-5250-808C-8F22D251F927",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "",
+      "capturedAt" : "2026-07-29T12:00:00+01:00",
+      "duration" : 0,
+      "imageManifest" : [
+        {
+          "filename" : "photo_ACFA1AE3-DA64-5250-808C-8F22D251F927_001.jpg",
+          "offsetSeconds" : 0
+        }
+      ],
+      "recordedAt" : "2026-07-29T11:00:00.000Z",
+      "sharedContent" : {
+        "fileName" : "IMG_4471.jpg",
+        "mimeType" : "image/jpeg",
+        "type" : "image"
+      },
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_ACFA1AE3-DA64-5250-808C-8F22D251F927",
+    "id" : "ACFA1AE3-DA64-5250-808C-8F22D251F927",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_ACFA1AE3-DA64-5250-808C-8F22D251F927",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-29T11:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-image-no-words"
+}

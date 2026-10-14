@@ -1,0 +1,76 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 317,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "3DB849B8-7591-5789-B53A-628A08DBD661",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-15T08:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "applenote",
+      "recordedAt" : "2026-07-15T07:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "bikes",
+        "project"
+      ],
+      "title" : "Touring bike build",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Touring bike build",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "3DB849B8-7591-5789-B53A-628A08DBD661.md",
+    "id" : "3DB849B8-7591-5789-B53A-628A08DBD661",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "applenote",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/3DB849B8-7591-5789-B53A-628A08DBD661_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 317,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-15T07:00:00.000Z",
+    "tags" : [
+      "bikes",
+      "project"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "# Touring bike build\n\nBudget €2,400 all in.\n\n## Frame\n\nLugged steel from Porto (Bruno's guy). Deposit €400.\n\n## Parts\n\n- [x] Brooks saddle (have one)\n- [ ] Dynamo hub\n- [ ] Racks, front and rear\n- [ ] Bar-end shifters — Pieter-Jan has a spare set\n\n**Pros:** it will last forever.\n**Cons:** it will take forever.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-15T07:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "applenote-headings-checklist"
+}

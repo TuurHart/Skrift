@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 220,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-14T06:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-14T05:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "thinking"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC.md",
+    "id" : "EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 220,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-14T05:00:00.000Z",
+    "tags" : [
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> The pot you want is the pot you can't make yet.\n\nSomeone said that at the fair and I wrote it on my hand. It is exactly the blue-glaze problem.\n\n> Also: stop apologising to customers for the price. Just say the number.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-14T05:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-blockquote-ordinary"
+}

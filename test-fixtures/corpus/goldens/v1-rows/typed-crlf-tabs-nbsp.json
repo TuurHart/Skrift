@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 141,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "27A8A34C-16B5-502A-97CB-60EFBE63A66D",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-03T15:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-03T14:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "27A8A34C-16B5-502A-97CB-60EFBE63A66D.md",
+    "id" : "27A8A34C-16B5-502A-97CB-60EFBE63A66D",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/27A8A34C-16B5-502A-97CB-60EFBE63A66D_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 141,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-03T14:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Line one with a trailing space \r\nLine two after CRLF\r\n\r\n\tIndented with a tab\n\nNon breaking spaces here and three blank lines follow\n\n\n\nEnd.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-03T14:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-crlf-tabs-nbsp"
+}

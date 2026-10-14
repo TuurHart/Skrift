@@ -1,0 +1,215 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 58989,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "1C63ED4A-69E3-542C-B989-1E95EA8F5FEE",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-14T19:00:00+01:00",
+      "duration" : 8.9199999999999999,
+      "recordedAt" : "2026-08-14T18:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "title" : "memo_raw_title_should_not_leak",
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "memo_raw_title_should_not_leak",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_1C63ED4A-69E3-542C-B989-1E95EA8F5FEE.m4a",
+    "id" : "1C63ED4A-69E3-542C-B989-1E95EA8F5FEE",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/1C63ED4A-69E3-542C-B989-1E95EA8F5FEE_memo_1C63ED4A-69E3-542C-B989-1E95EA8F5FEE.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 58989,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-14T18:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "A voice note whose stored title looks like a raw filename. The list must not show memo_ garbage; a generated or first-line title wins over a raw one.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-14T18:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.29899999999999999,
+        "start" : 0,
+        "word" : "A"
+      },
+      {
+        "end" : 0.61699999999999999,
+        "start" : 0.31900000000000001,
+        "word" : "voice"
+      },
+      {
+        "end" : 0.93600000000000005,
+        "start" : 0.63700000000000001,
+        "word" : "note"
+      },
+      {
+        "end" : 1.254,
+        "start" : 0.95599999999999996,
+        "word" : "whose"
+      },
+      {
+        "end" : 1.573,
+        "start" : 1.274,
+        "word" : "stored"
+      },
+      {
+        "end" : 1.891,
+        "start" : 1.593,
+        "word" : "title"
+      },
+      {
+        "end" : 2.21,
+        "start" : 1.911,
+        "word" : "looks"
+      },
+      {
+        "end" : 2.5289999999999999,
+        "start" : 2.23,
+        "word" : "like"
+      },
+      {
+        "end" : 2.847,
+        "start" : 2.5489999999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 3.1659999999999999,
+        "start" : 2.867,
+        "word" : "raw"
+      },
+      {
+        "end" : 3.484,
+        "start" : 3.1859999999999999,
+        "word" : "filename."
+      },
+      {
+        "end" : 3.8029999999999999,
+        "start" : 3.504,
+        "word" : "The"
+      },
+      {
+        "end" : 4.1210000000000004,
+        "start" : 3.823,
+        "word" : "list"
+      },
+      {
+        "end" : 4.4400000000000004,
+        "start" : 4.141,
+        "word" : "must"
+      },
+      {
+        "end" : 4.7590000000000003,
+        "start" : 4.46,
+        "word" : "not"
+      },
+      {
+        "end" : 5.077,
+        "start" : 4.7789999999999999,
+        "word" : "show"
+      },
+      {
+        "end" : 5.3959999999999999,
+        "start" : 5.0970000000000004,
+        "word" : "memo_"
+      },
+      {
+        "end" : 5.7140000000000004,
+        "start" : 5.4160000000000004,
+        "word" : "garbage;"
+      },
+      {
+        "end" : 6.0330000000000004,
+        "start" : 5.734,
+        "word" : "a"
+      },
+      {
+        "end" : 6.351,
+        "start" : 6.0529999999999999,
+        "word" : "generated"
+      },
+      {
+        "end" : 6.6699999999999999,
+        "start" : 6.3710000000000004,
+        "word" : "or"
+      },
+      {
+        "end" : 6.9889999999999999,
+        "start" : 6.6900000000000004,
+        "word" : "first-line"
+      },
+      {
+        "end" : 7.3070000000000004,
+        "start" : 7.0090000000000003,
+        "word" : "title"
+      },
+      {
+        "end" : 7.6260000000000003,
+        "start" : 7.327,
+        "word" : "wins"
+      },
+      {
+        "end" : 7.944,
+        "start" : 7.6459999999999999,
+        "word" : "over"
+      },
+      {
+        "end" : 8.2629999999999999,
+        "start" : 7.9640000000000004,
+        "word" : "a"
+      },
+      {
+        "end" : 8.5809999999999995,
+        "start" : 8.2829999999999995,
+        "word" : "raw"
+      },
+      {
+        "end" : 8.9000000000000004,
+        "start" : 8.6010000000000009,
+        "word" : "one."
+      }
+    ]
+  },
+  "slug" : "voice-en-raw-title"
+}

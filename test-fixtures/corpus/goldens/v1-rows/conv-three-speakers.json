@@ -1,0 +1,330 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 104534,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "BA79D0B0-727C-518C-86D7-AEDC173F3B1A",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-21T00:00:00+01:00",
+      "duration" : 18.940000000000001,
+      "recordedAt" : "2026-07-20T23:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "conversation"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : [
+      {
+        "end" : 2.5249999999999999,
+        "speaker" : 0,
+        "start" : 0
+      },
+      {
+        "end" : 7.1550000000000002,
+        "speaker" : 1,
+        "start" : 2.5249999999999999
+      },
+      {
+        "end" : 12.627000000000001,
+        "speaker" : 2,
+        "start" : 7.1550000000000002
+      },
+      {
+        "end" : 15.151999999999999,
+        "speaker" : 0,
+        "start" : 12.627000000000001
+      },
+      {
+        "end" : 16.414999999999999,
+        "speaker" : 1,
+        "start" : 15.151999999999999
+      },
+      {
+        "end" : 18.940000000000001,
+        "speaker" : 2,
+        "start" : 16.414999999999999
+      }
+    ],
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_BA79D0B0-727C-518C-86D7-AEDC173F3B1A.m4a",
+    "id" : "BA79D0B0-727C-518C-86D7-AEDC173F3B1A",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/BA79D0B0-727C-518C-86D7-AEDC173F3B1A_memo_BA79D0B0-727C-518C-86D7-AEDC173F3B1A.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 104534,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-20T23:00:00.000Z",
+    "tags" : [
+      "conversation"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "**Fenna de Wit:** Okay, price for the workshop. Rose?\n\n**Rose Aldana:** Forty-five. Anything more and people compare it to the big studios.\n\n**Lotte Vos:** Sixty. Clay, firing twice, two evenings of your time. Forty-five is a loss.\n\n**Fenna de Wit:** So fifty and we stop arguing.\n\n**Rose Aldana:** Fifty is fine.\n\n**Lotte Vos:** Fifty is a loss but fine.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-20T23:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.40100000000000002,
+        "start" : 0,
+        "word" : "Okay,"
+      },
+      {
+        "end" : 0.82199999999999995,
+        "start" : 0.42099999999999999,
+        "word" : "price"
+      },
+      {
+        "end" : 1.2430000000000001,
+        "start" : 0.84199999999999997,
+        "word" : "for"
+      },
+      {
+        "end" : 1.6639999999999999,
+        "start" : 1.2629999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 2.0840000000000001,
+        "start" : 1.6839999999999999,
+        "word" : "workshop."
+      },
+      {
+        "end" : 2.5049999999999999,
+        "start" : 2.1040000000000001,
+        "word" : "Rose?"
+      },
+      {
+        "end" : 2.9260000000000002,
+        "start" : 2.5249999999999999,
+        "word" : "Forty-five."
+      },
+      {
+        "end" : 3.347,
+        "start" : 2.9460000000000002,
+        "word" : "Anything"
+      },
+      {
+        "end" : 3.7679999999999998,
+        "start" : 3.367,
+        "word" : "more"
+      },
+      {
+        "end" : 4.1890000000000001,
+        "start" : 3.7879999999999998,
+        "word" : "and"
+      },
+      {
+        "end" : 4.6100000000000003,
+        "start" : 4.2089999999999996,
+        "word" : "people"
+      },
+      {
+        "end" : 5.0309999999999997,
+        "start" : 4.6299999999999999,
+        "word" : "compare"
+      },
+      {
+        "end" : 5.452,
+        "start" : 5.0510000000000002,
+        "word" : "it"
+      },
+      {
+        "end" : 5.8719999999999999,
+        "start" : 5.4720000000000004,
+        "word" : "to"
+      },
+      {
+        "end" : 6.2930000000000001,
+        "start" : 5.8920000000000003,
+        "word" : "the"
+      },
+      {
+        "end" : 6.7140000000000004,
+        "start" : 6.3129999999999997,
+        "word" : "big"
+      },
+      {
+        "end" : 7.1349999999999998,
+        "start" : 6.734,
+        "word" : "studios."
+      },
+      {
+        "end" : 7.556,
+        "start" : 7.1550000000000002,
+        "word" : "Sixty."
+      },
+      {
+        "end" : 7.9770000000000003,
+        "start" : 7.5759999999999996,
+        "word" : "Clay,"
+      },
+      {
+        "end" : 8.3979999999999997,
+        "start" : 7.9969999999999999,
+        "word" : "firing"
+      },
+      {
+        "end" : 8.8190000000000008,
+        "start" : 8.4179999999999993,
+        "word" : "twice,"
+      },
+      {
+        "end" : 9.2400000000000002,
+        "start" : 8.8390000000000004,
+        "word" : "two"
+      },
+      {
+        "end" : 9.6600000000000001,
+        "start" : 9.2599999999999998,
+        "word" : "evenings"
+      },
+      {
+        "end" : 10.081,
+        "start" : 9.6799999999999997,
+        "word" : "of"
+      },
+      {
+        "end" : 10.502000000000001,
+        "start" : 10.101000000000001,
+        "word" : "your"
+      },
+      {
+        "end" : 10.923,
+        "start" : 10.522,
+        "word" : "time."
+      },
+      {
+        "end" : 11.343999999999999,
+        "start" : 10.943,
+        "word" : "Forty-five"
+      },
+      {
+        "end" : 11.765000000000001,
+        "start" : 11.364000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 12.186,
+        "start" : 11.785,
+        "word" : "a"
+      },
+      {
+        "end" : 12.606999999999999,
+        "start" : 12.206,
+        "word" : "loss."
+      },
+      {
+        "end" : 13.028,
+        "start" : 12.627000000000001,
+        "word" : "So"
+      },
+      {
+        "end" : 13.448,
+        "start" : 13.048,
+        "word" : "fifty"
+      },
+      {
+        "end" : 13.869,
+        "start" : 13.468,
+        "word" : "and"
+      },
+      {
+        "end" : 14.289999999999999,
+        "start" : 13.888999999999999,
+        "word" : "we"
+      },
+      {
+        "end" : 14.711,
+        "start" : 14.31,
+        "word" : "stop"
+      },
+      {
+        "end" : 15.132,
+        "start" : 14.731,
+        "word" : "arguing."
+      },
+      {
+        "end" : 15.553000000000001,
+        "start" : 15.151999999999999,
+        "word" : "Fifty"
+      },
+      {
+        "end" : 15.974,
+        "start" : 15.573,
+        "word" : "is"
+      },
+      {
+        "end" : 16.395,
+        "start" : 15.994,
+        "word" : "fine."
+      },
+      {
+        "end" : 16.815999999999999,
+        "start" : 16.414999999999999,
+        "word" : "Fifty"
+      },
+      {
+        "end" : 17.236000000000001,
+        "start" : 16.835999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 17.657,
+        "start" : 17.256,
+        "word" : "a"
+      },
+      {
+        "end" : 18.077999999999999,
+        "start" : 17.677,
+        "word" : "loss"
+      },
+      {
+        "end" : 18.498999999999999,
+        "start" : 18.097999999999999,
+        "word" : "but"
+      },
+      {
+        "end" : 18.920000000000002,
+        "start" : 18.518999999999998,
+        "word" : "fine."
+      }
+    ]
+  },
+  "slug" : "conv-three-speakers"
+}

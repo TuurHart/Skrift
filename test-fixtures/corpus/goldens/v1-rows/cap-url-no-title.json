@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Bookmarking this before I lose it.",
+      "capturedAt" : "2026-08-02T18:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-08-02T17:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://app.example-glaze-calc.com/#/recipe/8813"
+      },
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+    "id" : "5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-02T17:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Bookmarking this before I lose it.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-url-no-title"
+}

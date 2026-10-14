@@ -1,0 +1,73 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 67,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "5E8EA60A-9C08-5BA7-A980-C3250A1988C6",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-10T09:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-07-10T08:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "5E8EA60A-9C08-5BA7-A980-C3250A1988C6.md",
+    "id" : "5E8EA60A-9C08-5BA7-A980-C3250A1988C6",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/5E8EA60A-9C08-5BA7-A980-C3250A1988C6_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 67,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-10T08:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "I typed [[img_001]] by hand to see what happens. There is no photo.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-10T08:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "edge-literal-marker-typed"
+}

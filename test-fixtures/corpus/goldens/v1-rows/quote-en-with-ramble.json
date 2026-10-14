@@ -1,0 +1,276 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 71867,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "18D54AB6-67EB-5AEC-BB42-DB228B00D25D",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "bookAuthor" : "Ada Wren",
+      "bookChapter" : "4",
+      "bookID" : "5D0F8B4E-2A6C-4E1B-9C3D-7F8A9B0C1D2E",
+      "bookPosition" : 4321.5,
+      "bookTitle" : "The Shape of Clay",
+      "capturedAt" : "2026-07-18T21:00:00+01:00",
+      "duration" : 10.91,
+      "recordedAt" : "2026-07-18T20:00:00.000Z",
+      "significance" : 0.80000000000000004,
+      "source" : "mobile",
+      "tags" : [
+        "reading",
+        "thinking"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_18D54AB6-67EB-5AEC-BB42-DB228B00D25D.m4a",
+    "id" : "18D54AB6-67EB-5AEC-BB42-DB228B00D25D",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/18D54AB6-67EB-5AEC-BB42-DB228B00D25D_memo_18D54AB6-67EB-5AEC-BB42-DB228B00D25D.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.80000000000000004,
+    "size" : 71867,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-18T20:00:00.000Z",
+    "tags" : [
+      "reading",
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> The potter's wheel does not care what you meant to make. It records what your hands did.\n\nThis is the whole studio in two sentences. I keep meaning the blue bowl and my hands keep making the safe one.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-18T20:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.26000000000000001,
+        "start" : 0,
+        "word" : "The"
+      },
+      {
+        "end" : 0.53900000000000003,
+        "start" : 0.28000000000000003,
+        "word" : "potter's"
+      },
+      {
+        "end" : 0.81899999999999995,
+        "start" : 0.55900000000000005,
+        "word" : "wheel"
+      },
+      {
+        "end" : 1.099,
+        "start" : 0.83899999999999997,
+        "word" : "does"
+      },
+      {
+        "end" : 1.379,
+        "start" : 1.119,
+        "word" : "not"
+      },
+      {
+        "end" : 1.6579999999999999,
+        "start" : 1.399,
+        "word" : "care"
+      },
+      {
+        "end" : 1.9379999999999999,
+        "start" : 1.6779999999999999,
+        "word" : "what"
+      },
+      {
+        "end" : 2.218,
+        "start" : 1.958,
+        "word" : "you"
+      },
+      {
+        "end" : 2.4980000000000002,
+        "start" : 2.238,
+        "word" : "meant"
+      },
+      {
+        "end" : 2.7770000000000001,
+        "start" : 2.5179999999999998,
+        "word" : "to"
+      },
+      {
+        "end" : 3.0569999999999999,
+        "start" : 2.7970000000000002,
+        "word" : "make."
+      },
+      {
+        "end" : 3.3370000000000002,
+        "start" : 3.077,
+        "word" : "It"
+      },
+      {
+        "end" : 3.617,
+        "start" : 3.3570000000000002,
+        "word" : "records"
+      },
+      {
+        "end" : 3.8959999999999999,
+        "start" : 3.637,
+        "word" : "what"
+      },
+      {
+        "end" : 4.1760000000000002,
+        "start" : 3.9159999999999999,
+        "word" : "your"
+      },
+      {
+        "end" : 4.4560000000000004,
+        "start" : 4.1959999999999997,
+        "word" : "hands"
+      },
+      {
+        "end" : 4.7359999999999998,
+        "start" : 4.476,
+        "word" : "did."
+      },
+      {
+        "end" : 5.0149999999999997,
+        "start" : 4.7560000000000002,
+        "word" : "This"
+      },
+      {
+        "end" : 5.2949999999999999,
+        "start" : 5.0350000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 5.5750000000000002,
+        "start" : 5.3150000000000004,
+        "word" : "the"
+      },
+      {
+        "end" : 5.8550000000000004,
+        "start" : 5.5949999999999998,
+        "word" : "whole"
+      },
+      {
+        "end" : 6.1340000000000003,
+        "start" : 5.875,
+        "word" : "studio"
+      },
+      {
+        "end" : 6.4139999999999997,
+        "start" : 6.1539999999999999,
+        "word" : "in"
+      },
+      {
+        "end" : 6.694,
+        "start" : 6.4340000000000002,
+        "word" : "two"
+      },
+      {
+        "end" : 6.9740000000000002,
+        "start" : 6.7140000000000004,
+        "word" : "sentences."
+      },
+      {
+        "end" : 7.2530000000000001,
+        "start" : 6.9939999999999998,
+        "word" : "I"
+      },
+      {
+        "end" : 7.5330000000000004,
+        "start" : 7.2729999999999997,
+        "word" : "keep"
+      },
+      {
+        "end" : 7.8129999999999997,
+        "start" : 7.5529999999999999,
+        "word" : "meaning"
+      },
+      {
+        "end" : 8.093,
+        "start" : 7.8330000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 8.3719999999999999,
+        "start" : 8.1129999999999995,
+        "word" : "blue"
+      },
+      {
+        "end" : 8.6519999999999992,
+        "start" : 8.3919999999999995,
+        "word" : "bowl"
+      },
+      {
+        "end" : 8.9320000000000004,
+        "start" : 8.6720000000000006,
+        "word" : "and"
+      },
+      {
+        "end" : 9.2119999999999997,
+        "start" : 8.952,
+        "word" : "my"
+      },
+      {
+        "end" : 9.4909999999999997,
+        "start" : 9.2319999999999993,
+        "word" : "hands"
+      },
+      {
+        "end" : 9.7710000000000008,
+        "start" : 9.5109999999999992,
+        "word" : "keep"
+      },
+      {
+        "end" : 10.051,
+        "start" : 9.7910000000000004,
+        "word" : "making"
+      },
+      {
+        "end" : 10.331,
+        "start" : 10.071,
+        "word" : "the"
+      },
+      {
+        "end" : 10.609999999999999,
+        "start" : 10.351000000000001,
+        "word" : "safe"
+      },
+      {
+        "end" : 10.890000000000001,
+        "start" : 10.630000000000001,
+        "word" : "one."
+      }
+    ]
+  },
+  "slug" : "quote-en-with-ramble"
+}

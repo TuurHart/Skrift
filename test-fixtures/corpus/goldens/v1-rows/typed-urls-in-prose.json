@@ -1,0 +1,75 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 277,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "33ADEB73-4F7D-597C-83D8-F9B4E09A96A1",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-12T20:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-12T19:00:00.000Z",
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "glaze",
+        "links"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "33ADEB73-4F7D-597C-83D8-F9B4E09A96A1.md",
+    "id" : "33ADEB73-4F7D-597C-83D8-F9B4E09A96A1",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/33ADEB73-4F7D-597C-83D8-F9B4E09A96A1_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 277,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-12T19:00:00.000Z",
+    "tags" : [
+      "glaze",
+      "links"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Glaze chemistry links Ines sent: https://digitalfire.com/glossary/iron+oxide and the cone chart at https://en.wikipedia.org/wiki/Pyrometric_cone. The second one has the table I keep re-googling.\n\nBruno's shop: www.castelcycles.pt — ask him about the Portuguese frame builder.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-12T19:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-urls-in-prose"
+}

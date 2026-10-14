@@ -1,0 +1,74 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 161,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "5210FEAE-7C4E-5974-9926-1FA90C36497F",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-14T15:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "applenote",
+      "recordedAt" : "2026-07-14T14:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "lotte"
+      ],
+      "title" : "Verjaardag Lotte",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Verjaardag Lotte",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "5210FEAE-7C4E-5974-9926-1FA90C36497F.md",
+    "id" : "5210FEAE-7C4E-5974-9926-1FA90C36497F",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : true,
+    "mediaSource" : "applenote",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/5210FEAE-7C4E-5974-9926-1FA90C36497F_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 161,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-14T14:00:00.000Z",
+    "tags" : [
+      "lotte"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Ideeën\n\n- de Ålesund-appeltaart laten bezorgen (kan dat?)\n- een dag zonder werkplaats\n- de blauwe kom, als hij lukt\n\nNiet: gereedschap. Nooit meer gereedschap.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-14T14:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "applenote-dutch"
+}

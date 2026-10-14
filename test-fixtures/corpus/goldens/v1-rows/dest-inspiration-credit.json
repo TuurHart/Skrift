@@ -1,0 +1,77 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "7768BEA5-AC15-549E-8E29-23602152D2F3",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "Nadia's friend's studio in Antwerp does exactly the glazing-evening format I want.",
+      "capturedAt" : "2026-07-11T02:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-11T01:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://example-studio.be/avonden",
+        "urlTitle" : "Glazuuravonden — Studio Noord"
+      },
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "inspiration",
+        "workshop"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "portfolio",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_7768BEA5-AC15-549E-8E29-23602152D2F3",
+    "id" : "7768BEA5-AC15-549E-8E29-23602152D2F3",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_7768BEA5-AC15-549E-8E29-23602152D2F3",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-11T01:00:00.000Z",
+    "tags" : [
+      "inspiration",
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Nadia's friend's studio in Antwerp does exactly the glazing-evening format I want.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "dest-inspiration-credit"
+}

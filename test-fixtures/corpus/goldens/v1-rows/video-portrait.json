@@ -1,0 +1,184 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 35980,
+      "file" : "images/photo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682_001.jpg"
+    },
+    {
+      "bytes" : 44302,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "4A17A76D-6ECF-5B59-81AC-6872C5C4B682",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-02T19:30:00+01:00",
+      "duration" : 6.3200000000000003,
+      "imageManifest" : [
+        {
+          "filename" : "photo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682_001.jpg",
+          "offsetSeconds" : 0
+        }
+      ],
+      "recordedAt" : "2026-08-02T18:30:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "sourceType" : "video",
+      "tags" : [
+        "thinking"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682.m4a",
+    "id" : "4A17A76D-6ECF-5B59-81AC-6872C5C4B682",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "video",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/4A17A76D-6ECF-5B59-81AC-6872C5C4B682_memo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 44302,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-16T09:00:00.000Z",
+    "tags" : [
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "[[img_001]]\n\nAdvice to future me, recorded on the balcony: do not say yes to a workshop before checking the calendar.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-02T18:30:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.313,
+        "start" : 0,
+        "word" : "Advice"
+      },
+      {
+        "end" : 0.64500000000000002,
+        "start" : 0.33300000000000002,
+        "word" : "to"
+      },
+      {
+        "end" : 0.97799999999999998,
+        "start" : 0.66500000000000004,
+        "word" : "future"
+      },
+      {
+        "end" : 1.3109999999999999,
+        "start" : 0.998,
+        "word" : "me,"
+      },
+      {
+        "end" : 1.643,
+        "start" : 1.331,
+        "word" : "recorded"
+      },
+      {
+        "end" : 1.976,
+        "start" : 1.663,
+        "word" : "on"
+      },
+      {
+        "end" : 2.3079999999999998,
+        "start" : 1.996,
+        "word" : "the"
+      },
+      {
+        "end" : 2.641,
+        "start" : 2.3279999999999998,
+        "word" : "balcony:"
+      },
+      {
+        "end" : 2.9740000000000002,
+        "start" : 2.661,
+        "word" : "do"
+      },
+      {
+        "end" : 3.306,
+        "start" : 2.9940000000000002,
+        "word" : "not"
+      },
+      {
+        "end" : 3.6389999999999998,
+        "start" : 3.3260000000000001,
+        "word" : "say"
+      },
+      {
+        "end" : 3.972,
+        "start" : 3.6589999999999998,
+        "word" : "yes"
+      },
+      {
+        "end" : 4.3040000000000003,
+        "start" : 3.992,
+        "word" : "to"
+      },
+      {
+        "end" : 4.6369999999999996,
+        "start" : 4.3239999999999998,
+        "word" : "a"
+      },
+      {
+        "end" : 4.9690000000000003,
+        "start" : 4.657,
+        "word" : "workshop"
+      },
+      {
+        "end" : 5.3019999999999996,
+        "start" : 4.9889999999999999,
+        "word" : "before"
+      },
+      {
+        "end" : 5.6349999999999998,
+        "start" : 5.3220000000000001,
+        "word" : "checking"
+      },
+      {
+        "end" : 5.9669999999999996,
+        "start" : 5.6550000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 6.2999999999999998,
+        "start" : 5.9870000000000001,
+        "word" : "calendar."
+      }
+    ]
+  },
+  "slug" : "video-portrait"
+}

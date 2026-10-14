@@ -1,0 +1,124 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 25079,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "685C1D7B-3CE7-59D9-BDFE-BDD26954A411",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-23T07:00:00+01:00",
+      "duration" : 3.25,
+      "recordedAt" : "2026-08-23T06:00:00.000Z",
+      "significance" : 0.10000000000000001,
+      "source" : "mobile",
+      "tags" : [
+
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_685C1D7B-3CE7-59D9-BDFE-BDD26954A411.m4a",
+    "id" : "685C1D7B-3CE7-59D9-BDFE-BDD26954A411",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/685C1D7B-3CE7-59D9-BDFE-BDD26954A411_memo_685C1D7B-3CE7-59D9-BDFE-BDD26954A411.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.10000000000000001,
+    "size" : 25079,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-23T06:00:00.000Z",
+    "tags" : [
+
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Barely worth keeping. The valve on the blue pump leaks.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-23T06:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.30499999999999999,
+        "start" : 0,
+        "word" : "Barely"
+      },
+      {
+        "end" : 0.63,
+        "start" : 0.32500000000000001,
+        "word" : "worth"
+      },
+      {
+        "end" : 0.95499999999999996,
+        "start" : 0.65000000000000002,
+        "word" : "keeping."
+      },
+      {
+        "end" : 1.28,
+        "start" : 0.97499999999999998,
+        "word" : "The"
+      },
+      {
+        "end" : 1.605,
+        "start" : 1.3,
+        "word" : "valve"
+      },
+      {
+        "end" : 1.9299999999999999,
+        "start" : 1.625,
+        "word" : "on"
+      },
+      {
+        "end" : 2.2549999999999999,
+        "start" : 1.95,
+        "word" : "the"
+      },
+      {
+        "end" : 2.5800000000000001,
+        "start" : 2.2749999999999999,
+        "word" : "blue"
+      },
+      {
+        "end" : 2.9049999999999998,
+        "start" : 2.6000000000000001,
+        "word" : "pump"
+      },
+      {
+        "end" : 3.23,
+        "start" : 2.9249999999999998,
+        "word" : "leaks."
+      }
+    ]
+  },
+  "slug" : "voice-en-rated-floor"
+}

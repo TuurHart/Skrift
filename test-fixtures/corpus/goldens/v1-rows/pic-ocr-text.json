@@ -1,0 +1,159 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 109,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 78419,
+      "file" : "images/photo_C9CEC17D-4A3B-5A70-AE05-02867C62125A_001.jpg"
+    },
+    {
+      "bytes" : 33241,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "C9CEC17D-4A3B-5A70-AE05-02867C62125A",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-09T20:00:00+01:00",
+      "duration" : 4.6900000000000004,
+      "imageManifest" : [
+        {
+          "filename" : "photo_C9CEC17D-4A3B-5A70-AE05-02867C62125A_001.jpg",
+          "offsetSeconds" : 3.02,
+          "text" : "GREY BODY 20KG 31.50"
+        }
+      ],
+      "recordedAt" : "2026-08-09T19:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "money"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_C9CEC17D-4A3B-5A70-AE05-02867C62125A.m4a",
+    "id" : "C9CEC17D-4A3B-5A70-AE05-02867C62125A",
+    "imageOCRText" : "GREY BODY 20KG 31.50",
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/C9CEC17D-4A3B-5A70-AE05-02867C62125A_memo_C9CEC17D-4A3B-5A70-AE05-02867C62125A.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 33241,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-09T19:00:00.000Z",
+    "tags" : [
+      "money"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Snapped the supplier's price board so I stop guessing. [[img_001]] Grey body went up again.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-09T19:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.315,
+        "start" : 0,
+        "word" : "Snapped"
+      },
+      {
+        "end" : 0.65000000000000002,
+        "start" : 0.33500000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 0.98499999999999999,
+        "start" : 0.67000000000000004,
+        "word" : "supplier's"
+      },
+      {
+        "end" : 1.3200000000000001,
+        "start" : 1.0049999999999999,
+        "word" : "price"
+      },
+      {
+        "end" : 1.655,
+        "start" : 1.3400000000000001,
+        "word" : "board"
+      },
+      {
+        "end" : 1.99,
+        "start" : 1.675,
+        "word" : "so"
+      },
+      {
+        "end" : 2.3250000000000002,
+        "start" : 2.0099999999999998,
+        "word" : "I"
+      },
+      {
+        "end" : 2.6600000000000001,
+        "start" : 2.3450000000000002,
+        "word" : "stop"
+      },
+      {
+        "end" : 2.9950000000000001,
+        "start" : 2.6800000000000002,
+        "word" : "guessing."
+      },
+      {
+        "end" : 3.3300000000000001,
+        "start" : 3.0150000000000001,
+        "word" : "Grey"
+      },
+      {
+        "end" : 3.665,
+        "start" : 3.3500000000000001,
+        "word" : "body"
+      },
+      {
+        "end" : 4,
+        "start" : 3.6850000000000001,
+        "word" : "went"
+      },
+      {
+        "end" : 4.335,
+        "start" : 4.0199999999999996,
+        "word" : "up"
+      },
+      {
+        "end" : 4.6699999999999999,
+        "start" : 4.3550000000000004,
+        "word" : "again."
+      }
+    ]
+  },
+  "slug" : "pic-ocr-text"
+}

@@ -1,0 +1,214 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 50987,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "FF3AEE2F-2713-5D0F-ACF7-BD347E20E733",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-16T18:00:00+01:00",
+      "duration" : 7.4800000000000004,
+      "recordedAt" : "2026-07-16T17:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "reading"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_FF3AEE2F-2713-5D0F-ACF7-BD347E20E733.m4a",
+    "id" : "FF3AEE2F-2713-5D0F-ACF7-BD347E20E733",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/FF3AEE2F-2713-5D0F-ACF7-BD347E20E733_memo_FF3AEE2F-2713-5D0F-ACF7-BD347E20E733.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 50987,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-16T17:00:00.000Z",
+    "tags" : [
+      "reading"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> Fire it slower than you think you need to.\n\nThe June bug: this reached the Mac with an EMPTY metadata blob and rendered as a raw > wall.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-16T17:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.247,
+        "start" : 0,
+        "word" : "Fire"
+      },
+      {
+        "end" : 0.51400000000000001,
+        "start" : 0.26700000000000002,
+        "word" : "it"
+      },
+      {
+        "end" : 0.78100000000000003,
+        "start" : 0.53400000000000003,
+        "word" : "slower"
+      },
+      {
+        "end" : 1.0489999999999999,
+        "start" : 0.80100000000000005,
+        "word" : "than"
+      },
+      {
+        "end" : 1.3160000000000001,
+        "start" : 1.069,
+        "word" : "you"
+      },
+      {
+        "end" : 1.583,
+        "start" : 1.3360000000000001,
+        "word" : "think"
+      },
+      {
+        "end" : 1.8500000000000001,
+        "start" : 1.603,
+        "word" : "you"
+      },
+      {
+        "end" : 2.117,
+        "start" : 1.8700000000000001,
+        "word" : "need"
+      },
+      {
+        "end" : 2.3839999999999999,
+        "start" : 2.137,
+        "word" : "to."
+      },
+      {
+        "end" : 2.6509999999999998,
+        "start" : 2.4039999999999999,
+        "word" : "The"
+      },
+      {
+        "end" : 2.919,
+        "start" : 2.6709999999999998,
+        "word" : "June"
+      },
+      {
+        "end" : 3.1859999999999999,
+        "start" : 2.9390000000000001,
+        "word" : "bug:"
+      },
+      {
+        "end" : 3.4529999999999998,
+        "start" : 3.206,
+        "word" : "this"
+      },
+      {
+        "end" : 3.7200000000000002,
+        "start" : 3.4729999999999999,
+        "word" : "reached"
+      },
+      {
+        "end" : 3.9870000000000001,
+        "start" : 3.7400000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 4.2539999999999996,
+        "start" : 4.0069999999999997,
+        "word" : "Mac"
+      },
+      {
+        "end" : 4.5209999999999999,
+        "start" : 4.274,
+        "word" : "with"
+      },
+      {
+        "end" : 4.7889999999999997,
+        "start" : 4.5410000000000004,
+        "word" : "an"
+      },
+      {
+        "end" : 5.056,
+        "start" : 4.8090000000000002,
+        "word" : "EMPTY"
+      },
+      {
+        "end" : 5.3230000000000004,
+        "start" : 5.0759999999999996,
+        "word" : "metadata"
+      },
+      {
+        "end" : 5.5899999999999999,
+        "start" : 5.343,
+        "word" : "blob"
+      },
+      {
+        "end" : 5.8570000000000002,
+        "start" : 5.6100000000000003,
+        "word" : "and"
+      },
+      {
+        "end" : 6.1239999999999997,
+        "start" : 5.8769999999999998,
+        "word" : "rendered"
+      },
+      {
+        "end" : 6.391,
+        "start" : 6.1440000000000001,
+        "word" : "as"
+      },
+      {
+        "end" : 6.6589999999999998,
+        "start" : 6.4109999999999996,
+        "word" : "a"
+      },
+      {
+        "end" : 6.9260000000000002,
+        "start" : 6.6790000000000003,
+        "word" : "raw"
+      },
+      {
+        "end" : 7.1929999999999996,
+        "start" : 6.9459999999999997,
+        "word" : ">"
+      },
+      {
+        "end" : 7.46,
+        "start" : 7.2130000000000001,
+        "word" : "wall."
+      }
+    ]
+  },
+  "slug" : "quote-missing-book-metadata"
+}

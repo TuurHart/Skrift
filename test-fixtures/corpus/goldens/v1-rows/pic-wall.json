@@ -1,0 +1,3698 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 244,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 43174,
+      "file" : "images/photo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94_001.jpg"
+    },
+    {
+      "bytes" : 42106,
+      "file" : "images/photo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94_002.jpg"
+    },
+    {
+      "bytes" : 1198910,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "2E3B1074-6825-5FB0-B5FA-A757F9D48D94",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-07T00:00:00+01:00",
+      "duration" : 193.52000000000001,
+      "imageManifest" : [
+        {
+          "filename" : "photo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94_001.jpg",
+          "offsetSeconds" : 139.75999999999999
+        },
+        {
+          "filename" : "photo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94_002.jpg",
+          "offsetSeconds" : 193.52000000000001
+        }
+      ],
+      "recordedAt" : "2026-08-06T23:00:00.000Z",
+      "significance" : 0.90000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "studio",
+        "thinking"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94.m4a",
+    "id" : "2E3B1074-6825-5FB0-B5FA-A757F9D48D94",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/2E3B1074-6825-5FB0-B5FA-A757F9D48D94_memo_2E3B1074-6825-5FB0-B5FA-A757F9D48D94.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.90000000000000002,
+    "size" : 1198910,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-06T23:00:00.000Z",
+    "tags" : [
+      "studio",
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Okay so the thing I keep circling back to with the workshop is that we are trying to run two businesses out of one room and pretending it is one business. The bikes pay the rent and the ceramics pay for nothing yet, but the ceramics are the reason I get up in the morning, and Lotte says that is fine as long as I admit it out loud, which I am now doing, into a note, so it counts. The numbers from August are not terrible. Forty-one repairs, nine of them full overhauls, and the overhauls are where the margin is. If I could get that to fifteen overhauls a month I could drop the walk-in tune-ups entirely, which are the ones that eat a whole afternoon for thirty euros and a complaint about the price of brake pads. Hendrik came by on Tuesday and looked at the kiln for about a minute and said the same thing he said in March, which is that the wiring in the back room was never meant for it and that I should get Marco to look at it before something melts. He is right. I have been not calling Marco for six months because I know what Marco is going to say and what it is going to cost. The other thing is the website. Rose sent over the mockups and they are genuinely good, better than I expected, but they show the studio as a ceramics studio with a bike repair on the side, and that is the opposite of where the money comes from. I do not know if that is a problem or if that is the point. Maybe the website should show the thing I want to be and the door should show the thing I am. Jack thinks I should just raise the prices on everything by fifteen percent and see who leaves. Jack also thinks the euro is a scam and that we should be invoicing in something else, so I take his business advice with a certain amount of salt, but on the prices he might be right. Nobody has left over a price yet. People leave when the bike is not ready on the day I said. [[img_001]] Which brings me to scheduling, which is the actual problem. I write the promised day on the tag and then I forget the tag exists. Lotte wants me to use the calendar and I keep saying I will and I keep not doing it. If this app ends up being the place where I say things out loud then maybe it should also be the place where the tags live, I do not know, that is a different note. Mariam asked whether we would do a Saturday workshop in October, hand-building, six people, two hours. I said yes before I thought about it and now I have to think about it. Six people means six wheels or six slabs, clay for that is not the problem, the problem is that the bike side of the room has to be clean enough that nobody leans on a chain. That is a Friday night of work before every Saturday. [[img_002]] And the glaze. I still do not have the blue right. It goes green at the edges when I fire at the higher cone and it goes matte when I fire lower, and Ines says it is the iron in the clay body not the glaze, and she is probably right, and that means switching bodies, which means re-testing every glaze I have. I am going to do it anyway because the blue is the whole reason I started this. So the plan, to the extent that there is one: call Marco this week, actually this week. Raise overhaul prices, leave tune-ups alone for now. Tell Rose the website is good and ask for one more version where the bikes are on the front page too. Say yes to Mariam and put the Friday clean-up in the calendar. Order a bag of the other clay body and test it with the blue before anything else. If I read this back in a month and none of it happened, that is fine too, at least it will be written down somewhere that is not the back of a repair tag.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-06T23:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.249,
+        "start" : 0,
+        "word" : "Okay"
+      },
+      {
+        "end" : 0.51800000000000002,
+        "start" : 0.26900000000000002,
+        "word" : "so"
+      },
+      {
+        "end" : 0.78600000000000003,
+        "start" : 0.53800000000000003,
+        "word" : "the"
+      },
+      {
+        "end" : 1.0549999999999999,
+        "start" : 0.80600000000000005,
+        "word" : "thing"
+      },
+      {
+        "end" : 1.3240000000000001,
+        "start" : 1.075,
+        "word" : "I"
+      },
+      {
+        "end" : 1.593,
+        "start" : 1.3440000000000001,
+        "word" : "keep"
+      },
+      {
+        "end" : 1.861,
+        "start" : 1.613,
+        "word" : "circling"
+      },
+      {
+        "end" : 2.1299999999999999,
+        "start" : 1.881,
+        "word" : "back"
+      },
+      {
+        "end" : 2.399,
+        "start" : 2.1499999999999999,
+        "word" : "to"
+      },
+      {
+        "end" : 2.6680000000000001,
+        "start" : 2.419,
+        "word" : "with"
+      },
+      {
+        "end" : 2.9369999999999998,
+        "start" : 2.6880000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 3.2050000000000001,
+        "start" : 2.9569999999999999,
+        "word" : "workshop"
+      },
+      {
+        "end" : 3.4740000000000002,
+        "start" : 3.2250000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 3.7429999999999999,
+        "start" : 3.4940000000000002,
+        "word" : "that"
+      },
+      {
+        "end" : 4.0119999999999996,
+        "start" : 3.7629999999999999,
+        "word" : "we"
+      },
+      {
+        "end" : 4.2800000000000002,
+        "start" : 4.032,
+        "word" : "are"
+      },
+      {
+        "end" : 4.5490000000000004,
+        "start" : 4.2999999999999998,
+        "word" : "trying"
+      },
+      {
+        "end" : 4.8179999999999996,
+        "start" : 4.569,
+        "word" : "to"
+      },
+      {
+        "end" : 5.0869999999999997,
+        "start" : 4.8380000000000001,
+        "word" : "run"
+      },
+      {
+        "end" : 5.3559999999999999,
+        "start" : 5.1070000000000002,
+        "word" : "two"
+      },
+      {
+        "end" : 5.6239999999999997,
+        "start" : 5.3760000000000003,
+        "word" : "businesses"
+      },
+      {
+        "end" : 5.8929999999999998,
+        "start" : 5.6440000000000001,
+        "word" : "out"
+      },
+      {
+        "end" : 6.1619999999999999,
+        "start" : 5.9130000000000003,
+        "word" : "of"
+      },
+      {
+        "end" : 6.431,
+        "start" : 6.1820000000000004,
+        "word" : "one"
+      },
+      {
+        "end" : 6.6989999999999998,
+        "start" : 6.4509999999999996,
+        "word" : "room"
+      },
+      {
+        "end" : 6.968,
+        "start" : 6.7190000000000003,
+        "word" : "and"
+      },
+      {
+        "end" : 7.2370000000000001,
+        "start" : 6.9880000000000004,
+        "word" : "pretending"
+      },
+      {
+        "end" : 7.5060000000000002,
+        "start" : 7.2569999999999997,
+        "word" : "it"
+      },
+      {
+        "end" : 7.7750000000000004,
+        "start" : 7.5259999999999998,
+        "word" : "is"
+      },
+      {
+        "end" : 8.0429999999999993,
+        "start" : 7.7949999999999999,
+        "word" : "one"
+      },
+      {
+        "end" : 8.3119999999999994,
+        "start" : 8.0630000000000006,
+        "word" : "business."
+      },
+      {
+        "end" : 8.5809999999999995,
+        "start" : 8.3320000000000007,
+        "word" : "The"
+      },
+      {
+        "end" : 8.8499999999999996,
+        "start" : 8.6010000000000009,
+        "word" : "bikes"
+      },
+      {
+        "end" : 9.1180000000000003,
+        "start" : 8.8699999999999992,
+        "word" : "pay"
+      },
+      {
+        "end" : 9.3870000000000005,
+        "start" : 9.1379999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 9.6560000000000006,
+        "start" : 9.407,
+        "word" : "rent"
+      },
+      {
+        "end" : 9.9250000000000007,
+        "start" : 9.6760000000000002,
+        "word" : "and"
+      },
+      {
+        "end" : 10.194000000000001,
+        "start" : 9.9450000000000003,
+        "word" : "the"
+      },
+      {
+        "end" : 10.462,
+        "start" : 10.214,
+        "word" : "ceramics"
+      },
+      {
+        "end" : 10.731,
+        "start" : 10.481999999999999,
+        "word" : "pay"
+      },
+      {
+        "end" : 11,
+        "start" : 10.750999999999999,
+        "word" : "for"
+      },
+      {
+        "end" : 11.269,
+        "start" : 11.02,
+        "word" : "nothing"
+      },
+      {
+        "end" : 11.537000000000001,
+        "start" : 11.289,
+        "word" : "yet,"
+      },
+      {
+        "end" : 11.805999999999999,
+        "start" : 11.557,
+        "word" : "but"
+      },
+      {
+        "end" : 12.074999999999999,
+        "start" : 11.826000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 12.343999999999999,
+        "start" : 12.095000000000001,
+        "word" : "ceramics"
+      },
+      {
+        "end" : 12.613,
+        "start" : 12.364000000000001,
+        "word" : "are"
+      },
+      {
+        "end" : 12.881,
+        "start" : 12.632999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 13.15,
+        "start" : 12.901,
+        "word" : "reason"
+      },
+      {
+        "end" : 13.419,
+        "start" : 13.17,
+        "word" : "I"
+      },
+      {
+        "end" : 13.688000000000001,
+        "start" : 13.439,
+        "word" : "get"
+      },
+      {
+        "end" : 13.956,
+        "start" : 13.708,
+        "word" : "up"
+      },
+      {
+        "end" : 14.225,
+        "start" : 13.976000000000001,
+        "word" : "in"
+      },
+      {
+        "end" : 14.494,
+        "start" : 14.244999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 14.763,
+        "start" : 14.513999999999999,
+        "word" : "morning,"
+      },
+      {
+        "end" : 15.032,
+        "start" : 14.782999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 15.300000000000001,
+        "start" : 15.052,
+        "word" : "Lotte"
+      },
+      {
+        "end" : 15.569000000000001,
+        "start" : 15.32,
+        "word" : "says"
+      },
+      {
+        "end" : 15.837999999999999,
+        "start" : 15.589,
+        "word" : "that"
+      },
+      {
+        "end" : 16.106999999999999,
+        "start" : 15.858000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 16.375,
+        "start" : 16.126999999999999,
+        "word" : "fine"
+      },
+      {
+        "end" : 16.643999999999998,
+        "start" : 16.395,
+        "word" : "as"
+      },
+      {
+        "end" : 16.913,
+        "start" : 16.664000000000001,
+        "word" : "long"
+      },
+      {
+        "end" : 17.181999999999999,
+        "start" : 16.933,
+        "word" : "as"
+      },
+      {
+        "end" : 17.451000000000001,
+        "start" : 17.202000000000002,
+        "word" : "I"
+      },
+      {
+        "end" : 17.719000000000001,
+        "start" : 17.471,
+        "word" : "admit"
+      },
+      {
+        "end" : 17.988,
+        "start" : 17.739000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 18.257000000000001,
+        "start" : 18.007999999999999,
+        "word" : "out"
+      },
+      {
+        "end" : 18.526,
+        "start" : 18.277000000000001,
+        "word" : "loud,"
+      },
+      {
+        "end" : 18.794,
+        "start" : 18.545999999999999,
+        "word" : "which"
+      },
+      {
+        "end" : 19.062999999999999,
+        "start" : 18.814,
+        "word" : "I"
+      },
+      {
+        "end" : 19.332000000000001,
+        "start" : 19.082999999999998,
+        "word" : "am"
+      },
+      {
+        "end" : 19.600999999999999,
+        "start" : 19.352,
+        "word" : "now"
+      },
+      {
+        "end" : 19.870000000000001,
+        "start" : 19.620999999999999,
+        "word" : "doing,"
+      },
+      {
+        "end" : 20.138000000000002,
+        "start" : 19.890000000000001,
+        "word" : "into"
+      },
+      {
+        "end" : 20.407,
+        "start" : 20.158000000000001,
+        "word" : "a"
+      },
+      {
+        "end" : 20.675999999999998,
+        "start" : 20.427,
+        "word" : "note,"
+      },
+      {
+        "end" : 20.945,
+        "start" : 20.696000000000002,
+        "word" : "so"
+      },
+      {
+        "end" : 21.213000000000001,
+        "start" : 20.965,
+        "word" : "it"
+      },
+      {
+        "end" : 21.481999999999999,
+        "start" : 21.233000000000001,
+        "word" : "counts."
+      },
+      {
+        "end" : 21.751000000000001,
+        "start" : 21.501999999999999,
+        "word" : "The"
+      },
+      {
+        "end" : 22.02,
+        "start" : 21.771000000000001,
+        "word" : "numbers"
+      },
+      {
+        "end" : 22.289000000000001,
+        "start" : 22.039999999999999,
+        "word" : "from"
+      },
+      {
+        "end" : 22.556999999999999,
+        "start" : 22.309000000000001,
+        "word" : "August"
+      },
+      {
+        "end" : 22.826000000000001,
+        "start" : 22.577000000000002,
+        "word" : "are"
+      },
+      {
+        "end" : 23.094999999999999,
+        "start" : 22.846,
+        "word" : "not"
+      },
+      {
+        "end" : 23.364000000000001,
+        "start" : 23.114999999999998,
+        "word" : "terrible."
+      },
+      {
+        "end" : 23.632000000000001,
+        "start" : 23.384,
+        "word" : "Forty-one"
+      },
+      {
+        "end" : 23.901,
+        "start" : 23.652000000000001,
+        "word" : "repairs,"
+      },
+      {
+        "end" : 24.170000000000002,
+        "start" : 23.920999999999999,
+        "word" : "nine"
+      },
+      {
+        "end" : 24.439,
+        "start" : 24.190000000000001,
+        "word" : "of"
+      },
+      {
+        "end" : 24.707999999999998,
+        "start" : 24.459,
+        "word" : "them"
+      },
+      {
+        "end" : 24.975999999999999,
+        "start" : 24.728000000000002,
+        "word" : "full"
+      },
+      {
+        "end" : 25.245000000000001,
+        "start" : 24.995999999999999,
+        "word" : "overhauls,"
+      },
+      {
+        "end" : 25.513999999999999,
+        "start" : 25.265000000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 25.783000000000001,
+        "start" : 25.533999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 26.050999999999998,
+        "start" : 25.803000000000001,
+        "word" : "overhauls"
+      },
+      {
+        "end" : 26.32,
+        "start" : 26.071000000000002,
+        "word" : "are"
+      },
+      {
+        "end" : 26.588999999999999,
+        "start" : 26.34,
+        "word" : "where"
+      },
+      {
+        "end" : 26.858000000000001,
+        "start" : 26.609000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 27.126999999999999,
+        "start" : 26.878,
+        "word" : "margin"
+      },
+      {
+        "end" : 27.395,
+        "start" : 27.146999999999998,
+        "word" : "is."
+      },
+      {
+        "end" : 27.664000000000001,
+        "start" : 27.414999999999999,
+        "word" : "If"
+      },
+      {
+        "end" : 27.933,
+        "start" : 27.684000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 28.202000000000002,
+        "start" : 27.952999999999999,
+        "word" : "could"
+      },
+      {
+        "end" : 28.469999999999999,
+        "start" : 28.222000000000001,
+        "word" : "get"
+      },
+      {
+        "end" : 28.739000000000001,
+        "start" : 28.489999999999998,
+        "word" : "that"
+      },
+      {
+        "end" : 29.007999999999999,
+        "start" : 28.759,
+        "word" : "to"
+      },
+      {
+        "end" : 29.277000000000001,
+        "start" : 29.027999999999999,
+        "word" : "fifteen"
+      },
+      {
+        "end" : 29.545999999999999,
+        "start" : 29.297000000000001,
+        "word" : "overhauls"
+      },
+      {
+        "end" : 29.814,
+        "start" : 29.565999999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 30.082999999999998,
+        "start" : 29.834,
+        "word" : "month"
+      },
+      {
+        "end" : 30.352,
+        "start" : 30.103000000000002,
+        "word" : "I"
+      },
+      {
+        "end" : 30.620999999999999,
+        "start" : 30.372,
+        "word" : "could"
+      },
+      {
+        "end" : 30.888999999999999,
+        "start" : 30.640999999999998,
+        "word" : "drop"
+      },
+      {
+        "end" : 31.158000000000001,
+        "start" : 30.908999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 31.427,
+        "start" : 31.178000000000001,
+        "word" : "walk-in"
+      },
+      {
+        "end" : 31.696000000000002,
+        "start" : 31.446999999999999,
+        "word" : "tune-ups"
+      },
+      {
+        "end" : 31.965,
+        "start" : 31.716000000000001,
+        "word" : "entirely,"
+      },
+      {
+        "end" : 32.232999999999997,
+        "start" : 31.984999999999999,
+        "word" : "which"
+      },
+      {
+        "end" : 32.502000000000002,
+        "start" : 32.253,
+        "word" : "are"
+      },
+      {
+        "end" : 32.771000000000001,
+        "start" : 32.521999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 33.039999999999999,
+        "start" : 32.790999999999997,
+        "word" : "ones"
+      },
+      {
+        "end" : 33.308,
+        "start" : 33.060000000000002,
+        "word" : "that"
+      },
+      {
+        "end" : 33.576999999999998,
+        "start" : 33.328000000000003,
+        "word" : "eat"
+      },
+      {
+        "end" : 33.845999999999997,
+        "start" : 33.597000000000001,
+        "word" : "a"
+      },
+      {
+        "end" : 34.115000000000002,
+        "start" : 33.866,
+        "word" : "whole"
+      },
+      {
+        "end" : 34.384,
+        "start" : 34.134999999999998,
+        "word" : "afternoon"
+      },
+      {
+        "end" : 34.652000000000001,
+        "start" : 34.404000000000003,
+        "word" : "for"
+      },
+      {
+        "end" : 34.920999999999999,
+        "start" : 34.671999999999997,
+        "word" : "thirty"
+      },
+      {
+        "end" : 35.189999999999998,
+        "start" : 34.941000000000003,
+        "word" : "euros"
+      },
+      {
+        "end" : 35.459000000000003,
+        "start" : 35.210000000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 35.726999999999997,
+        "start" : 35.478999999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 35.996000000000002,
+        "start" : 35.747,
+        "word" : "complaint"
+      },
+      {
+        "end" : 36.265000000000001,
+        "start" : 36.015999999999998,
+        "word" : "about"
+      },
+      {
+        "end" : 36.533999999999999,
+        "start" : 36.284999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 36.802999999999997,
+        "start" : 36.554000000000002,
+        "word" : "price"
+      },
+      {
+        "end" : 37.070999999999998,
+        "start" : 36.823,
+        "word" : "of"
+      },
+      {
+        "end" : 37.340000000000003,
+        "start" : 37.091000000000001,
+        "word" : "brake"
+      },
+      {
+        "end" : 37.609000000000002,
+        "start" : 37.359999999999999,
+        "word" : "pads."
+      },
+      {
+        "end" : 37.878,
+        "start" : 37.628999999999998,
+        "word" : "Hendrik"
+      },
+      {
+        "end" : 38.146000000000001,
+        "start" : 37.898000000000003,
+        "word" : "came"
+      },
+      {
+        "end" : 38.414999999999999,
+        "start" : 38.165999999999997,
+        "word" : "by"
+      },
+      {
+        "end" : 38.683999999999997,
+        "start" : 38.435000000000002,
+        "word" : "on"
+      },
+      {
+        "end" : 38.953000000000003,
+        "start" : 38.704000000000001,
+        "word" : "Tuesday"
+      },
+      {
+        "end" : 39.222000000000001,
+        "start" : 38.972999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 39.490000000000002,
+        "start" : 39.241999999999997,
+        "word" : "looked"
+      },
+      {
+        "end" : 39.759,
+        "start" : 39.509999999999998,
+        "word" : "at"
+      },
+      {
+        "end" : 40.027999999999999,
+        "start" : 39.779000000000003,
+        "word" : "the"
+      },
+      {
+        "end" : 40.296999999999997,
+        "start" : 40.048000000000002,
+        "word" : "kiln"
+      },
+      {
+        "end" : 40.564999999999998,
+        "start" : 40.317,
+        "word" : "for"
+      },
+      {
+        "end" : 40.834000000000003,
+        "start" : 40.585000000000001,
+        "word" : "about"
+      },
+      {
+        "end" : 41.103000000000002,
+        "start" : 40.853999999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 41.372,
+        "start" : 41.122999999999998,
+        "word" : "minute"
+      },
+      {
+        "end" : 41.640999999999998,
+        "start" : 41.392000000000003,
+        "word" : "and"
+      },
+      {
+        "end" : 41.908999999999999,
+        "start" : 41.661000000000001,
+        "word" : "said"
+      },
+      {
+        "end" : 42.177999999999997,
+        "start" : 41.929000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 42.447000000000003,
+        "start" : 42.198,
+        "word" : "same"
+      },
+      {
+        "end" : 42.716000000000001,
+        "start" : 42.466999999999999,
+        "word" : "thing"
+      },
+      {
+        "end" : 42.984000000000002,
+        "start" : 42.735999999999997,
+        "word" : "he"
+      },
+      {
+        "end" : 43.253,
+        "start" : 43.003999999999998,
+        "word" : "said"
+      },
+      {
+        "end" : 43.521999999999998,
+        "start" : 43.273000000000003,
+        "word" : "in"
+      },
+      {
+        "end" : 43.790999999999997,
+        "start" : 43.542000000000002,
+        "word" : "March,"
+      },
+      {
+        "end" : 44.060000000000002,
+        "start" : 43.811,
+        "word" : "which"
+      },
+      {
+        "end" : 44.328000000000003,
+        "start" : 44.079999999999998,
+        "word" : "is"
+      },
+      {
+        "end" : 44.597000000000001,
+        "start" : 44.347999999999999,
+        "word" : "that"
+      },
+      {
+        "end" : 44.866,
+        "start" : 44.616999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 45.134999999999998,
+        "start" : 44.886000000000003,
+        "word" : "wiring"
+      },
+      {
+        "end" : 45.402999999999999,
+        "start" : 45.155000000000001,
+        "word" : "in"
+      },
+      {
+        "end" : 45.671999999999997,
+        "start" : 45.423000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 45.941000000000003,
+        "start" : 45.692,
+        "word" : "back"
+      },
+      {
+        "end" : 46.210000000000001,
+        "start" : 45.960999999999999,
+        "word" : "room"
+      },
+      {
+        "end" : 46.478999999999999,
+        "start" : 46.229999999999997,
+        "word" : "was"
+      },
+      {
+        "end" : 46.747,
+        "start" : 46.499000000000002,
+        "word" : "never"
+      },
+      {
+        "end" : 47.015999999999998,
+        "start" : 46.767000000000003,
+        "word" : "meant"
+      },
+      {
+        "end" : 47.284999999999997,
+        "start" : 47.036000000000001,
+        "word" : "for"
+      },
+      {
+        "end" : 47.554000000000002,
+        "start" : 47.305,
+        "word" : "it"
+      },
+      {
+        "end" : 47.822000000000003,
+        "start" : 47.573999999999998,
+        "word" : "and"
+      },
+      {
+        "end" : 48.091000000000001,
+        "start" : 47.841999999999999,
+        "word" : "that"
+      },
+      {
+        "end" : 48.359999999999999,
+        "start" : 48.110999999999997,
+        "word" : "I"
+      },
+      {
+        "end" : 48.628999999999998,
+        "start" : 48.380000000000003,
+        "word" : "should"
+      },
+      {
+        "end" : 48.898000000000003,
+        "start" : 48.649000000000001,
+        "word" : "get"
+      },
+      {
+        "end" : 49.165999999999997,
+        "start" : 48.917999999999999,
+        "word" : "Marco"
+      },
+      {
+        "end" : 49.435000000000002,
+        "start" : 49.186,
+        "word" : "to"
+      },
+      {
+        "end" : 49.704000000000001,
+        "start" : 49.454999999999998,
+        "word" : "look"
+      },
+      {
+        "end" : 49.972999999999999,
+        "start" : 49.723999999999997,
+        "word" : "at"
+      },
+      {
+        "end" : 50.241,
+        "start" : 49.993000000000002,
+        "word" : "it"
+      },
+      {
+        "end" : 50.509999999999998,
+        "start" : 50.261000000000003,
+        "word" : "before"
+      },
+      {
+        "end" : 50.779000000000003,
+        "start" : 50.530000000000001,
+        "word" : "something"
+      },
+      {
+        "end" : 51.048000000000002,
+        "start" : 50.798999999999999,
+        "word" : "melts."
+      },
+      {
+        "end" : 51.317,
+        "start" : 51.067999999999998,
+        "word" : "He"
+      },
+      {
+        "end" : 51.585000000000001,
+        "start" : 51.337000000000003,
+        "word" : "is"
+      },
+      {
+        "end" : 51.853999999999999,
+        "start" : 51.604999999999997,
+        "word" : "right."
+      },
+      {
+        "end" : 52.122999999999998,
+        "start" : 51.874000000000002,
+        "word" : "I"
+      },
+      {
+        "end" : 52.392000000000003,
+        "start" : 52.143000000000001,
+        "word" : "have"
+      },
+      {
+        "end" : 52.659999999999997,
+        "start" : 52.411999999999999,
+        "word" : "been"
+      },
+      {
+        "end" : 52.929000000000002,
+        "start" : 52.68,
+        "word" : "not"
+      },
+      {
+        "end" : 53.198,
+        "start" : 52.948999999999998,
+        "word" : "calling"
+      },
+      {
+        "end" : 53.466999999999999,
+        "start" : 53.218000000000004,
+        "word" : "Marco"
+      },
+      {
+        "end" : 53.735999999999997,
+        "start" : 53.487000000000002,
+        "word" : "for"
+      },
+      {
+        "end" : 54.003999999999998,
+        "start" : 53.756,
+        "word" : "six"
+      },
+      {
+        "end" : 54.273000000000003,
+        "start" : 54.024000000000001,
+        "word" : "months"
+      },
+      {
+        "end" : 54.542000000000002,
+        "start" : 54.292999999999999,
+        "word" : "because"
+      },
+      {
+        "end" : 54.811,
+        "start" : 54.561999999999998,
+        "word" : "I"
+      },
+      {
+        "end" : 55.079000000000001,
+        "start" : 54.831000000000003,
+        "word" : "know"
+      },
+      {
+        "end" : 55.347999999999999,
+        "start" : 55.098999999999997,
+        "word" : "what"
+      },
+      {
+        "end" : 55.616999999999997,
+        "start" : 55.368000000000002,
+        "word" : "Marco"
+      },
+      {
+        "end" : 55.886000000000003,
+        "start" : 55.637,
+        "word" : "is"
+      },
+      {
+        "end" : 56.155000000000001,
+        "start" : 55.905999999999999,
+        "word" : "going"
+      },
+      {
+        "end" : 56.423000000000002,
+        "start" : 56.174999999999997,
+        "word" : "to"
+      },
+      {
+        "end" : 56.692,
+        "start" : 56.442999999999998,
+        "word" : "say"
+      },
+      {
+        "end" : 56.960999999999999,
+        "start" : 56.712000000000003,
+        "word" : "and"
+      },
+      {
+        "end" : 57.229999999999997,
+        "start" : 56.981000000000002,
+        "word" : "what"
+      },
+      {
+        "end" : 57.497999999999998,
+        "start" : 57.25,
+        "word" : "it"
+      },
+      {
+        "end" : 57.767000000000003,
+        "start" : 57.518000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 58.036000000000001,
+        "start" : 57.786999999999999,
+        "word" : "going"
+      },
+      {
+        "end" : 58.305,
+        "start" : 58.055999999999997,
+        "word" : "to"
+      },
+      {
+        "end" : 58.573999999999998,
+        "start" : 58.325000000000003,
+        "word" : "cost."
+      },
+      {
+        "end" : 58.841999999999999,
+        "start" : 58.594000000000001,
+        "word" : "The"
+      },
+      {
+        "end" : 59.110999999999997,
+        "start" : 58.862000000000002,
+        "word" : "other"
+      },
+      {
+        "end" : 59.380000000000003,
+        "start" : 59.131,
+        "word" : "thing"
+      },
+      {
+        "end" : 59.649000000000001,
+        "start" : 59.399999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 59.917000000000002,
+        "start" : 59.668999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 60.186,
+        "start" : 59.936999999999998,
+        "word" : "website."
+      },
+      {
+        "end" : 60.454999999999998,
+        "start" : 60.206000000000003,
+        "word" : "Rose"
+      },
+      {
+        "end" : 60.723999999999997,
+        "start" : 60.475000000000001,
+        "word" : "sent"
+      },
+      {
+        "end" : 60.993000000000002,
+        "start" : 60.744,
+        "word" : "over"
+      },
+      {
+        "end" : 61.261000000000003,
+        "start" : 61.012999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 61.530000000000001,
+        "start" : 61.280999999999999,
+        "word" : "mockups"
+      },
+      {
+        "end" : 61.798999999999999,
+        "start" : 61.549999999999997,
+        "word" : "and"
+      },
+      {
+        "end" : 62.067999999999998,
+        "start" : 61.819000000000003,
+        "word" : "they"
+      },
+      {
+        "end" : 62.335999999999999,
+        "start" : 62.088000000000001,
+        "word" : "are"
+      },
+      {
+        "end" : 62.604999999999997,
+        "start" : 62.356000000000002,
+        "word" : "genuinely"
+      },
+      {
+        "end" : 62.874000000000002,
+        "start" : 62.625,
+        "word" : "good,"
+      },
+      {
+        "end" : 63.143000000000001,
+        "start" : 62.893999999999998,
+        "word" : "better"
+      },
+      {
+        "end" : 63.411999999999999,
+        "start" : 63.162999999999997,
+        "word" : "than"
+      },
+      {
+        "end" : 63.68,
+        "start" : 63.432000000000002,
+        "word" : "I"
+      },
+      {
+        "end" : 63.948999999999998,
+        "start" : 63.700000000000003,
+        "word" : "expected,"
+      },
+      {
+        "end" : 64.218000000000004,
+        "start" : 63.969000000000001,
+        "word" : "but"
+      },
+      {
+        "end" : 64.486999999999995,
+        "start" : 64.238,
+        "word" : "they"
+      },
+      {
+        "end" : 64.754999999999995,
+        "start" : 64.507000000000005,
+        "word" : "show"
+      },
+      {
+        "end" : 65.024000000000001,
+        "start" : 64.775000000000006,
+        "word" : "the"
+      },
+      {
+        "end" : 65.293000000000006,
+        "start" : 65.043999999999997,
+        "word" : "studio"
+      },
+      {
+        "end" : 65.561999999999998,
+        "start" : 65.313000000000002,
+        "word" : "as"
+      },
+      {
+        "end" : 65.831000000000003,
+        "start" : 65.581999999999994,
+        "word" : "a"
+      },
+      {
+        "end" : 66.099000000000004,
+        "start" : 65.850999999999999,
+        "word" : "ceramics"
+      },
+      {
+        "end" : 66.367999999999995,
+        "start" : 66.119,
+        "word" : "studio"
+      },
+      {
+        "end" : 66.637,
+        "start" : 66.388000000000005,
+        "word" : "with"
+      },
+      {
+        "end" : 66.906000000000006,
+        "start" : 66.656999999999996,
+        "word" : "a"
+      },
+      {
+        "end" : 67.174000000000007,
+        "start" : 66.926000000000002,
+        "word" : "bike"
+      },
+      {
+        "end" : 67.442999999999998,
+        "start" : 67.194000000000003,
+        "word" : "repair"
+      },
+      {
+        "end" : 67.712000000000003,
+        "start" : 67.462999999999994,
+        "word" : "on"
+      },
+      {
+        "end" : 67.980999999999995,
+        "start" : 67.731999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 68.25,
+        "start" : 68.001000000000005,
+        "word" : "side,"
+      },
+      {
+        "end" : 68.518000000000001,
+        "start" : 68.269999999999996,
+        "word" : "and"
+      },
+      {
+        "end" : 68.787000000000006,
+        "start" : 68.537999999999997,
+        "word" : "that"
+      },
+      {
+        "end" : 69.055999999999997,
+        "start" : 68.807000000000002,
+        "word" : "is"
+      },
+      {
+        "end" : 69.325000000000003,
+        "start" : 69.075999999999993,
+        "word" : "the"
+      },
+      {
+        "end" : 69.593000000000004,
+        "start" : 69.344999999999999,
+        "word" : "opposite"
+      },
+      {
+        "end" : 69.861999999999995,
+        "start" : 69.613,
+        "word" : "of"
+      },
+      {
+        "end" : 70.131,
+        "start" : 69.882000000000005,
+        "word" : "where"
+      },
+      {
+        "end" : 70.400000000000006,
+        "start" : 70.150999999999996,
+        "word" : "the"
+      },
+      {
+        "end" : 70.668999999999997,
+        "start" : 70.420000000000002,
+        "word" : "money"
+      },
+      {
+        "end" : 70.936999999999998,
+        "start" : 70.688999999999993,
+        "word" : "comes"
+      },
+      {
+        "end" : 71.206000000000003,
+        "start" : 70.956999999999994,
+        "word" : "from."
+      },
+      {
+        "end" : 71.474999999999994,
+        "start" : 71.225999999999999,
+        "word" : "I"
+      },
+      {
+        "end" : 71.744,
+        "start" : 71.495000000000005,
+        "word" : "do"
+      },
+      {
+        "end" : 72.012,
+        "start" : 71.763999999999996,
+        "word" : "not"
+      },
+      {
+        "end" : 72.281000000000006,
+        "start" : 72.031999999999996,
+        "word" : "know"
+      },
+      {
+        "end" : 72.549999999999997,
+        "start" : 72.301000000000002,
+        "word" : "if"
+      },
+      {
+        "end" : 72.819000000000003,
+        "start" : 72.569999999999993,
+        "word" : "that"
+      },
+      {
+        "end" : 73.087999999999994,
+        "start" : 72.838999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 73.355999999999995,
+        "start" : 73.108000000000004,
+        "word" : "a"
+      },
+      {
+        "end" : 73.625,
+        "start" : 73.376000000000005,
+        "word" : "problem"
+      },
+      {
+        "end" : 73.894000000000005,
+        "start" : 73.644999999999996,
+        "word" : "or"
+      },
+      {
+        "end" : 74.162999999999997,
+        "start" : 73.914000000000001,
+        "word" : "if"
+      },
+      {
+        "end" : 74.430999999999997,
+        "start" : 74.183000000000007,
+        "word" : "that"
+      },
+      {
+        "end" : 74.700000000000003,
+        "start" : 74.450999999999993,
+        "word" : "is"
+      },
+      {
+        "end" : 74.968999999999994,
+        "start" : 74.719999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 75.238,
+        "start" : 74.989000000000004,
+        "word" : "point."
+      },
+      {
+        "end" : 75.507000000000005,
+        "start" : 75.257999999999996,
+        "word" : "Maybe"
+      },
+      {
+        "end" : 75.775000000000006,
+        "start" : 75.527000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 76.043999999999997,
+        "start" : 75.795000000000002,
+        "word" : "website"
+      },
+      {
+        "end" : 76.313000000000002,
+        "start" : 76.063999999999993,
+        "word" : "should"
+      },
+      {
+        "end" : 76.581999999999994,
+        "start" : 76.332999999999998,
+        "word" : "show"
+      },
+      {
+        "end" : 76.849999999999994,
+        "start" : 76.602000000000004,
+        "word" : "the"
+      },
+      {
+        "end" : 77.119,
+        "start" : 76.870000000000005,
+        "word" : "thing"
+      },
+      {
+        "end" : 77.388000000000005,
+        "start" : 77.138999999999996,
+        "word" : "I"
+      },
+      {
+        "end" : 77.656999999999996,
+        "start" : 77.408000000000001,
+        "word" : "want"
+      },
+      {
+        "end" : 77.926000000000002,
+        "start" : 77.677000000000007,
+        "word" : "to"
+      },
+      {
+        "end" : 78.194000000000003,
+        "start" : 77.945999999999998,
+        "word" : "be"
+      },
+      {
+        "end" : 78.462999999999994,
+        "start" : 78.213999999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 78.731999999999999,
+        "start" : 78.483000000000004,
+        "word" : "the"
+      },
+      {
+        "end" : 79.001000000000005,
+        "start" : 78.751999999999995,
+        "word" : "door"
+      },
+      {
+        "end" : 79.269000000000005,
+        "start" : 79.021000000000001,
+        "word" : "should"
+      },
+      {
+        "end" : 79.537999999999997,
+        "start" : 79.289000000000001,
+        "word" : "show"
+      },
+      {
+        "end" : 79.807000000000002,
+        "start" : 79.558000000000007,
+        "word" : "the"
+      },
+      {
+        "end" : 80.075999999999993,
+        "start" : 79.826999999999998,
+        "word" : "thing"
+      },
+      {
+        "end" : 80.344999999999999,
+        "start" : 80.096000000000004,
+        "word" : "I"
+      },
+      {
+        "end" : 80.613,
+        "start" : 80.364999999999995,
+        "word" : "am."
+      },
+      {
+        "end" : 80.882000000000005,
+        "start" : 80.632999999999996,
+        "word" : "Jack"
+      },
+      {
+        "end" : 81.150999999999996,
+        "start" : 80.902000000000001,
+        "word" : "thinks"
+      },
+      {
+        "end" : 81.420000000000002,
+        "start" : 81.171000000000006,
+        "word" : "I"
+      },
+      {
+        "end" : 81.688000000000002,
+        "start" : 81.439999999999998,
+        "word" : "should"
+      },
+      {
+        "end" : 81.956999999999994,
+        "start" : 81.707999999999998,
+        "word" : "just"
+      },
+      {
+        "end" : 82.225999999999999,
+        "start" : 81.977000000000004,
+        "word" : "raise"
+      },
+      {
+        "end" : 82.495000000000005,
+        "start" : 82.245999999999995,
+        "word" : "the"
+      },
+      {
+        "end" : 82.763999999999996,
+        "start" : 82.515000000000001,
+        "word" : "prices"
+      },
+      {
+        "end" : 83.031999999999996,
+        "start" : 82.784000000000006,
+        "word" : "on"
+      },
+      {
+        "end" : 83.301000000000002,
+        "start" : 83.052000000000007,
+        "word" : "everything"
+      },
+      {
+        "end" : 83.569999999999993,
+        "start" : 83.320999999999998,
+        "word" : "by"
+      },
+      {
+        "end" : 83.838999999999999,
+        "start" : 83.590000000000003,
+        "word" : "fifteen"
+      },
+      {
+        "end" : 84.106999999999999,
+        "start" : 83.858999999999995,
+        "word" : "percent"
+      },
+      {
+        "end" : 84.376000000000005,
+        "start" : 84.126999999999995,
+        "word" : "and"
+      },
+      {
+        "end" : 84.644999999999996,
+        "start" : 84.396000000000001,
+        "word" : "see"
+      },
+      {
+        "end" : 84.914000000000001,
+        "start" : 84.665000000000006,
+        "word" : "who"
+      },
+      {
+        "end" : 85.183000000000007,
+        "start" : 84.933999999999997,
+        "word" : "leaves."
+      },
+      {
+        "end" : 85.450999999999993,
+        "start" : 85.203000000000003,
+        "word" : "Jack"
+      },
+      {
+        "end" : 85.719999999999999,
+        "start" : 85.471000000000004,
+        "word" : "also"
+      },
+      {
+        "end" : 85.989000000000004,
+        "start" : 85.739999999999995,
+        "word" : "thinks"
+      },
+      {
+        "end" : 86.257999999999996,
+        "start" : 86.009,
+        "word" : "the"
+      },
+      {
+        "end" : 86.525999999999996,
+        "start" : 86.278000000000006,
+        "word" : "euro"
+      },
+      {
+        "end" : 86.795000000000002,
+        "start" : 86.546000000000006,
+        "word" : "is"
+      },
+      {
+        "end" : 87.063999999999993,
+        "start" : 86.814999999999998,
+        "word" : "a"
+      },
+      {
+        "end" : 87.332999999999998,
+        "start" : 87.084000000000003,
+        "word" : "scam"
+      },
+      {
+        "end" : 87.602000000000004,
+        "start" : 87.352999999999994,
+        "word" : "and"
+      },
+      {
+        "end" : 87.870000000000005,
+        "start" : 87.622,
+        "word" : "that"
+      },
+      {
+        "end" : 88.138999999999996,
+        "start" : 87.890000000000001,
+        "word" : "we"
+      },
+      {
+        "end" : 88.408000000000001,
+        "start" : 88.159000000000006,
+        "word" : "should"
+      },
+      {
+        "end" : 88.677000000000007,
+        "start" : 88.427999999999997,
+        "word" : "be"
+      },
+      {
+        "end" : 88.944999999999993,
+        "start" : 88.697000000000003,
+        "word" : "invoicing"
+      },
+      {
+        "end" : 89.213999999999999,
+        "start" : 88.965000000000003,
+        "word" : "in"
+      },
+      {
+        "end" : 89.483000000000004,
+        "start" : 89.233999999999995,
+        "word" : "something"
+      },
+      {
+        "end" : 89.751999999999995,
+        "start" : 89.503,
+        "word" : "else,"
+      },
+      {
+        "end" : 90.021000000000001,
+        "start" : 89.772000000000006,
+        "word" : "so"
+      },
+      {
+        "end" : 90.289000000000001,
+        "start" : 90.040999999999997,
+        "word" : "I"
+      },
+      {
+        "end" : 90.558000000000007,
+        "start" : 90.308999999999997,
+        "word" : "take"
+      },
+      {
+        "end" : 90.826999999999998,
+        "start" : 90.578000000000003,
+        "word" : "his"
+      },
+      {
+        "end" : 91.096000000000004,
+        "start" : 90.846999999999994,
+        "word" : "business"
+      },
+      {
+        "end" : 91.364000000000004,
+        "start" : 91.116,
+        "word" : "advice"
+      },
+      {
+        "end" : 91.632999999999996,
+        "start" : 91.384,
+        "word" : "with"
+      },
+      {
+        "end" : 91.902000000000001,
+        "start" : 91.653000000000006,
+        "word" : "a"
+      },
+      {
+        "end" : 92.171000000000006,
+        "start" : 91.921999999999997,
+        "word" : "certain"
+      },
+      {
+        "end" : 92.439999999999998,
+        "start" : 92.191000000000003,
+        "word" : "amount"
+      },
+      {
+        "end" : 92.707999999999998,
+        "start" : 92.459999999999994,
+        "word" : "of"
+      },
+      {
+        "end" : 92.977000000000004,
+        "start" : 92.727999999999994,
+        "word" : "salt,"
+      },
+      {
+        "end" : 93.245999999999995,
+        "start" : 92.997,
+        "word" : "but"
+      },
+      {
+        "end" : 93.515000000000001,
+        "start" : 93.266000000000005,
+        "word" : "on"
+      },
+      {
+        "end" : 93.783000000000001,
+        "start" : 93.534999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 94.052000000000007,
+        "start" : 93.802999999999997,
+        "word" : "prices"
+      },
+      {
+        "end" : 94.320999999999998,
+        "start" : 94.072000000000003,
+        "word" : "he"
+      },
+      {
+        "end" : 94.590000000000003,
+        "start" : 94.340999999999994,
+        "word" : "might"
+      },
+      {
+        "end" : 94.858999999999995,
+        "start" : 94.609999999999999,
+        "word" : "be"
+      },
+      {
+        "end" : 95.126999999999995,
+        "start" : 94.879000000000005,
+        "word" : "right."
+      },
+      {
+        "end" : 95.396000000000001,
+        "start" : 95.147000000000006,
+        "word" : "Nobody"
+      },
+      {
+        "end" : 95.665000000000006,
+        "start" : 95.415999999999997,
+        "word" : "has"
+      },
+      {
+        "end" : 95.933999999999997,
+        "start" : 95.685000000000002,
+        "word" : "left"
+      },
+      {
+        "end" : 96.201999999999998,
+        "start" : 95.953999999999994,
+        "word" : "over"
+      },
+      {
+        "end" : 96.471000000000004,
+        "start" : 96.221999999999994,
+        "word" : "a"
+      },
+      {
+        "end" : 96.739999999999995,
+        "start" : 96.491,
+        "word" : "price"
+      },
+      {
+        "end" : 97.009,
+        "start" : 96.760000000000005,
+        "word" : "yet."
+      },
+      {
+        "end" : 97.278000000000006,
+        "start" : 97.028999999999996,
+        "word" : "People"
+      },
+      {
+        "end" : 97.546000000000006,
+        "start" : 97.298000000000002,
+        "word" : "leave"
+      },
+      {
+        "end" : 97.814999999999998,
+        "start" : 97.566000000000003,
+        "word" : "when"
+      },
+      {
+        "end" : 98.084000000000003,
+        "start" : 97.834999999999994,
+        "word" : "the"
+      },
+      {
+        "end" : 98.352999999999994,
+        "start" : 98.103999999999999,
+        "word" : "bike"
+      },
+      {
+        "end" : 98.620999999999995,
+        "start" : 98.373000000000005,
+        "word" : "is"
+      },
+      {
+        "end" : 98.890000000000001,
+        "start" : 98.641000000000005,
+        "word" : "not"
+      },
+      {
+        "end" : 99.159000000000006,
+        "start" : 98.909999999999997,
+        "word" : "ready"
+      },
+      {
+        "end" : 99.427999999999997,
+        "start" : 99.179000000000002,
+        "word" : "on"
+      },
+      {
+        "end" : 99.697000000000003,
+        "start" : 99.447999999999993,
+        "word" : "the"
+      },
+      {
+        "end" : 99.965000000000003,
+        "start" : 99.716999999999999,
+        "word" : "day"
+      },
+      {
+        "end" : 100.23399999999999,
+        "start" : 99.984999999999999,
+        "word" : "I"
+      },
+      {
+        "end" : 100.503,
+        "start" : 100.254,
+        "word" : "said."
+      },
+      {
+        "end" : 100.77200000000001,
+        "start" : 100.523,
+        "word" : "Which"
+      },
+      {
+        "end" : 101.04000000000001,
+        "start" : 100.792,
+        "word" : "brings"
+      },
+      {
+        "end" : 101.309,
+        "start" : 101.06,
+        "word" : "me"
+      },
+      {
+        "end" : 101.578,
+        "start" : 101.32899999999999,
+        "word" : "to"
+      },
+      {
+        "end" : 101.84699999999999,
+        "start" : 101.598,
+        "word" : "scheduling,"
+      },
+      {
+        "end" : 102.116,
+        "start" : 101.867,
+        "word" : "which"
+      },
+      {
+        "end" : 102.384,
+        "start" : 102.136,
+        "word" : "is"
+      },
+      {
+        "end" : 102.65300000000001,
+        "start" : 102.404,
+        "word" : "the"
+      },
+      {
+        "end" : 102.922,
+        "start" : 102.673,
+        "word" : "actual"
+      },
+      {
+        "end" : 103.191,
+        "start" : 102.94199999999999,
+        "word" : "problem."
+      },
+      {
+        "end" : 103.459,
+        "start" : 103.211,
+        "word" : "I"
+      },
+      {
+        "end" : 103.72799999999999,
+        "start" : 103.479,
+        "word" : "write"
+      },
+      {
+        "end" : 103.997,
+        "start" : 103.748,
+        "word" : "the"
+      },
+      {
+        "end" : 104.26600000000001,
+        "start" : 104.017,
+        "word" : "promised"
+      },
+      {
+        "end" : 104.535,
+        "start" : 104.286,
+        "word" : "day"
+      },
+      {
+        "end" : 104.803,
+        "start" : 104.55500000000001,
+        "word" : "on"
+      },
+      {
+        "end" : 105.072,
+        "start" : 104.82299999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 105.34099999999999,
+        "start" : 105.092,
+        "word" : "tag"
+      },
+      {
+        "end" : 105.61,
+        "start" : 105.361,
+        "word" : "and"
+      },
+      {
+        "end" : 105.878,
+        "start" : 105.63,
+        "word" : "then"
+      },
+      {
+        "end" : 106.14700000000001,
+        "start" : 105.898,
+        "word" : "I"
+      },
+      {
+        "end" : 106.416,
+        "start" : 106.167,
+        "word" : "forget"
+      },
+      {
+        "end" : 106.685,
+        "start" : 106.43600000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 106.95399999999999,
+        "start" : 106.705,
+        "word" : "tag"
+      },
+      {
+        "end" : 107.22199999999999,
+        "start" : 106.974,
+        "word" : "exists."
+      },
+      {
+        "end" : 107.491,
+        "start" : 107.242,
+        "word" : "Lotte"
+      },
+      {
+        "end" : 107.76000000000001,
+        "start" : 107.511,
+        "word" : "wants"
+      },
+      {
+        "end" : 108.029,
+        "start" : 107.78,
+        "word" : "me"
+      },
+      {
+        "end" : 108.297,
+        "start" : 108.04900000000001,
+        "word" : "to"
+      },
+      {
+        "end" : 108.566,
+        "start" : 108.31699999999999,
+        "word" : "use"
+      },
+      {
+        "end" : 108.83499999999999,
+        "start" : 108.586,
+        "word" : "the"
+      },
+      {
+        "end" : 109.104,
+        "start" : 108.855,
+        "word" : "calendar"
+      },
+      {
+        "end" : 109.373,
+        "start" : 109.124,
+        "word" : "and"
+      },
+      {
+        "end" : 109.64100000000001,
+        "start" : 109.393,
+        "word" : "I"
+      },
+      {
+        "end" : 109.91,
+        "start" : 109.661,
+        "word" : "keep"
+      },
+      {
+        "end" : 110.179,
+        "start" : 109.93000000000001,
+        "word" : "saying"
+      },
+      {
+        "end" : 110.44799999999999,
+        "start" : 110.199,
+        "word" : "I"
+      },
+      {
+        "end" : 110.71599999999999,
+        "start" : 110.468,
+        "word" : "will"
+      },
+      {
+        "end" : 110.985,
+        "start" : 110.736,
+        "word" : "and"
+      },
+      {
+        "end" : 111.254,
+        "start" : 111.005,
+        "word" : "I"
+      },
+      {
+        "end" : 111.523,
+        "start" : 111.274,
+        "word" : "keep"
+      },
+      {
+        "end" : 111.792,
+        "start" : 111.54300000000001,
+        "word" : "not"
+      },
+      {
+        "end" : 112.06,
+        "start" : 111.812,
+        "word" : "doing"
+      },
+      {
+        "end" : 112.32899999999999,
+        "start" : 112.08,
+        "word" : "it."
+      },
+      {
+        "end" : 112.598,
+        "start" : 112.349,
+        "word" : "If"
+      },
+      {
+        "end" : 112.867,
+        "start" : 112.61799999999999,
+        "word" : "this"
+      },
+      {
+        "end" : 113.13500000000001,
+        "start" : 112.887,
+        "word" : "app"
+      },
+      {
+        "end" : 113.404,
+        "start" : 113.155,
+        "word" : "ends"
+      },
+      {
+        "end" : 113.673,
+        "start" : 113.42400000000001,
+        "word" : "up"
+      },
+      {
+        "end" : 113.94199999999999,
+        "start" : 113.693,
+        "word" : "being"
+      },
+      {
+        "end" : 114.211,
+        "start" : 113.962,
+        "word" : "the"
+      },
+      {
+        "end" : 114.479,
+        "start" : 114.23099999999999,
+        "word" : "place"
+      },
+      {
+        "end" : 114.748,
+        "start" : 114.499,
+        "word" : "where"
+      },
+      {
+        "end" : 115.017,
+        "start" : 114.768,
+        "word" : "I"
+      },
+      {
+        "end" : 115.286,
+        "start" : 115.03700000000001,
+        "word" : "say"
+      },
+      {
+        "end" : 115.554,
+        "start" : 115.306,
+        "word" : "things"
+      },
+      {
+        "end" : 115.82299999999999,
+        "start" : 115.574,
+        "word" : "out"
+      },
+      {
+        "end" : 116.092,
+        "start" : 115.843,
+        "word" : "loud"
+      },
+      {
+        "end" : 116.361,
+        "start" : 116.11199999999999,
+        "word" : "then"
+      },
+      {
+        "end" : 116.63,
+        "start" : 116.381,
+        "word" : "maybe"
+      },
+      {
+        "end" : 116.898,
+        "start" : 116.65000000000001,
+        "word" : "it"
+      },
+      {
+        "end" : 117.167,
+        "start" : 116.91800000000001,
+        "word" : "should"
+      },
+      {
+        "end" : 117.43600000000001,
+        "start" : 117.187,
+        "word" : "also"
+      },
+      {
+        "end" : 117.705,
+        "start" : 117.456,
+        "word" : "be"
+      },
+      {
+        "end" : 117.973,
+        "start" : 117.72499999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 118.242,
+        "start" : 117.99299999999999,
+        "word" : "place"
+      },
+      {
+        "end" : 118.511,
+        "start" : 118.262,
+        "word" : "where"
+      },
+      {
+        "end" : 118.78,
+        "start" : 118.53100000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 119.04900000000001,
+        "start" : 118.8,
+        "word" : "tags"
+      },
+      {
+        "end" : 119.31699999999999,
+        "start" : 119.069,
+        "word" : "live,"
+      },
+      {
+        "end" : 119.586,
+        "start" : 119.337,
+        "word" : "I"
+      },
+      {
+        "end" : 119.855,
+        "start" : 119.60599999999999,
+        "word" : "do"
+      },
+      {
+        "end" : 120.124,
+        "start" : 119.875,
+        "word" : "not"
+      },
+      {
+        "end" : 120.392,
+        "start" : 120.14400000000001,
+        "word" : "know,"
+      },
+      {
+        "end" : 120.661,
+        "start" : 120.41200000000001,
+        "word" : "that"
+      },
+      {
+        "end" : 120.93000000000001,
+        "start" : 120.681,
+        "word" : "is"
+      },
+      {
+        "end" : 121.199,
+        "start" : 120.95,
+        "word" : "a"
+      },
+      {
+        "end" : 121.468,
+        "start" : 121.21899999999999,
+        "word" : "different"
+      },
+      {
+        "end" : 121.736,
+        "start" : 121.488,
+        "word" : "note."
+      },
+      {
+        "end" : 122.005,
+        "start" : 121.756,
+        "word" : "Mariam"
+      },
+      {
+        "end" : 122.274,
+        "start" : 122.02500000000001,
+        "word" : "asked"
+      },
+      {
+        "end" : 122.54300000000001,
+        "start" : 122.294,
+        "word" : "whether"
+      },
+      {
+        "end" : 122.81100000000001,
+        "start" : 122.563,
+        "word" : "we"
+      },
+      {
+        "end" : 123.08,
+        "start" : 122.831,
+        "word" : "would"
+      },
+      {
+        "end" : 123.349,
+        "start" : 123.09999999999999,
+        "word" : "do"
+      },
+      {
+        "end" : 123.61799999999999,
+        "start" : 123.369,
+        "word" : "a"
+      },
+      {
+        "end" : 123.887,
+        "start" : 123.63800000000001,
+        "word" : "Saturday"
+      },
+      {
+        "end" : 124.155,
+        "start" : 123.907,
+        "word" : "workshop"
+      },
+      {
+        "end" : 124.42400000000001,
+        "start" : 124.175,
+        "word" : "in"
+      },
+      {
+        "end" : 124.693,
+        "start" : 124.444,
+        "word" : "October,"
+      },
+      {
+        "end" : 124.962,
+        "start" : 124.71299999999999,
+        "word" : "hand-building,"
+      },
+      {
+        "end" : 125.23,
+        "start" : 124.982,
+        "word" : "six"
+      },
+      {
+        "end" : 125.499,
+        "start" : 125.25,
+        "word" : "people,"
+      },
+      {
+        "end" : 125.768,
+        "start" : 125.51900000000001,
+        "word" : "two"
+      },
+      {
+        "end" : 126.03700000000001,
+        "start" : 125.788,
+        "word" : "hours."
+      },
+      {
+        "end" : 126.306,
+        "start" : 126.057,
+        "word" : "I"
+      },
+      {
+        "end" : 126.574,
+        "start" : 126.32599999999999,
+        "word" : "said"
+      },
+      {
+        "end" : 126.843,
+        "start" : 126.59399999999999,
+        "word" : "yes"
+      },
+      {
+        "end" : 127.11199999999999,
+        "start" : 126.863,
+        "word" : "before"
+      },
+      {
+        "end" : 127.381,
+        "start" : 127.13200000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 127.649,
+        "start" : 127.401,
+        "word" : "thought"
+      },
+      {
+        "end" : 127.91800000000001,
+        "start" : 127.669,
+        "word" : "about"
+      },
+      {
+        "end" : 128.18700000000001,
+        "start" : 127.938,
+        "word" : "it"
+      },
+      {
+        "end" : 128.45599999999999,
+        "start" : 128.20699999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 128.72499999999999,
+        "start" : 128.476,
+        "word" : "now"
+      },
+      {
+        "end" : 128.99299999999999,
+        "start" : 128.745,
+        "word" : "I"
+      },
+      {
+        "end" : 129.262,
+        "start" : 129.01300000000001,
+        "word" : "have"
+      },
+      {
+        "end" : 129.53100000000001,
+        "start" : 129.28200000000001,
+        "word" : "to"
+      },
+      {
+        "end" : 129.80000000000001,
+        "start" : 129.55099999999999,
+        "word" : "think"
+      },
+      {
+        "end" : 130.06800000000001,
+        "start" : 129.81999999999999,
+        "word" : "about"
+      },
+      {
+        "end" : 130.33699999999999,
+        "start" : 130.08799999999999,
+        "word" : "it."
+      },
+      {
+        "end" : 130.60599999999999,
+        "start" : 130.357,
+        "word" : "Six"
+      },
+      {
+        "end" : 130.875,
+        "start" : 130.626,
+        "word" : "people"
+      },
+      {
+        "end" : 131.14400000000001,
+        "start" : 130.89500000000001,
+        "word" : "means"
+      },
+      {
+        "end" : 131.41200000000001,
+        "start" : 131.16399999999999,
+        "word" : "six"
+      },
+      {
+        "end" : 131.68100000000001,
+        "start" : 131.43199999999999,
+        "word" : "wheels"
+      },
+      {
+        "end" : 131.94999999999999,
+        "start" : 131.70099999999999,
+        "word" : "or"
+      },
+      {
+        "end" : 132.21899999999999,
+        "start" : 131.97,
+        "word" : "six"
+      },
+      {
+        "end" : 132.48699999999999,
+        "start" : 132.239,
+        "word" : "slabs,"
+      },
+      {
+        "end" : 132.756,
+        "start" : 132.50700000000001,
+        "word" : "clay"
+      },
+      {
+        "end" : 133.02500000000001,
+        "start" : 132.77600000000001,
+        "word" : "for"
+      },
+      {
+        "end" : 133.29400000000001,
+        "start" : 133.04499999999999,
+        "word" : "that"
+      },
+      {
+        "end" : 133.56299999999999,
+        "start" : 133.31399999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 133.83099999999999,
+        "start" : 133.583,
+        "word" : "not"
+      },
+      {
+        "end" : 134.09999999999999,
+        "start" : 133.851,
+        "word" : "the"
+      },
+      {
+        "end" : 134.369,
+        "start" : 134.12,
+        "word" : "problem,"
+      },
+      {
+        "end" : 134.63800000000001,
+        "start" : 134.38900000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 134.90600000000001,
+        "start" : 134.65799999999999,
+        "word" : "problem"
+      },
+      {
+        "end" : 135.17500000000001,
+        "start" : 134.92599999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 135.44399999999999,
+        "start" : 135.19499999999999,
+        "word" : "that"
+      },
+      {
+        "end" : 135.71299999999999,
+        "start" : 135.464,
+        "word" : "the"
+      },
+      {
+        "end" : 135.982,
+        "start" : 135.733,
+        "word" : "bike"
+      },
+      {
+        "end" : 136.25,
+        "start" : 136.00200000000001,
+        "word" : "side"
+      },
+      {
+        "end" : 136.51900000000001,
+        "start" : 136.27000000000001,
+        "word" : "of"
+      },
+      {
+        "end" : 136.78800000000001,
+        "start" : 136.53899999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 137.05699999999999,
+        "start" : 136.80799999999999,
+        "word" : "room"
+      },
+      {
+        "end" : 137.32499999999999,
+        "start" : 137.077,
+        "word" : "has"
+      },
+      {
+        "end" : 137.59399999999999,
+        "start" : 137.345,
+        "word" : "to"
+      },
+      {
+        "end" : 137.863,
+        "start" : 137.614,
+        "word" : "be"
+      },
+      {
+        "end" : 138.13200000000001,
+        "start" : 137.88300000000001,
+        "word" : "clean"
+      },
+      {
+        "end" : 138.40100000000001,
+        "start" : 138.15199999999999,
+        "word" : "enough"
+      },
+      {
+        "end" : 138.66900000000001,
+        "start" : 138.42099999999999,
+        "word" : "that"
+      },
+      {
+        "end" : 138.93799999999999,
+        "start" : 138.68899999999999,
+        "word" : "nobody"
+      },
+      {
+        "end" : 139.20699999999999,
+        "start" : 138.958,
+        "word" : "leans"
+      },
+      {
+        "end" : 139.476,
+        "start" : 139.227,
+        "word" : "on"
+      },
+      {
+        "end" : 139.744,
+        "start" : 139.49600000000001,
+        "word" : "a"
+      },
+      {
+        "end" : 140.01300000000001,
+        "start" : 139.76400000000001,
+        "word" : "chain."
+      },
+      {
+        "end" : 140.28200000000001,
+        "start" : 140.03299999999999,
+        "word" : "That"
+      },
+      {
+        "end" : 140.55099999999999,
+        "start" : 140.30199999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 140.81999999999999,
+        "start" : 140.571,
+        "word" : "a"
+      },
+      {
+        "end" : 141.08799999999999,
+        "start" : 140.84,
+        "word" : "Friday"
+      },
+      {
+        "end" : 141.357,
+        "start" : 141.108,
+        "word" : "night"
+      },
+      {
+        "end" : 141.626,
+        "start" : 141.37700000000001,
+        "word" : "of"
+      },
+      {
+        "end" : 141.89500000000001,
+        "start" : 141.64599999999999,
+        "word" : "work"
+      },
+      {
+        "end" : 142.16300000000001,
+        "start" : 141.91499999999999,
+        "word" : "before"
+      },
+      {
+        "end" : 142.43199999999999,
+        "start" : 142.18299999999999,
+        "word" : "every"
+      },
+      {
+        "end" : 142.70099999999999,
+        "start" : 142.452,
+        "word" : "Saturday."
+      },
+      {
+        "end" : 142.97,
+        "start" : 142.721,
+        "word" : "And"
+      },
+      {
+        "end" : 143.239,
+        "start" : 142.99000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 143.50700000000001,
+        "start" : 143.25899999999999,
+        "word" : "glaze."
+      },
+      {
+        "end" : 143.77600000000001,
+        "start" : 143.52699999999999,
+        "word" : "I"
+      },
+      {
+        "end" : 144.04499999999999,
+        "start" : 143.79599999999999,
+        "word" : "still"
+      },
+      {
+        "end" : 144.31399999999999,
+        "start" : 144.065,
+        "word" : "do"
+      },
+      {
+        "end" : 144.58199999999999,
+        "start" : 144.334,
+        "word" : "not"
+      },
+      {
+        "end" : 144.851,
+        "start" : 144.602,
+        "word" : "have"
+      },
+      {
+        "end" : 145.12,
+        "start" : 144.87100000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 145.38900000000001,
+        "start" : 145.13999999999999,
+        "word" : "blue"
+      },
+      {
+        "end" : 145.65799999999999,
+        "start" : 145.40899999999999,
+        "word" : "right."
+      },
+      {
+        "end" : 145.92599999999999,
+        "start" : 145.678,
+        "word" : "It"
+      },
+      {
+        "end" : 146.19499999999999,
+        "start" : 145.946,
+        "word" : "goes"
+      },
+      {
+        "end" : 146.464,
+        "start" : 146.215,
+        "word" : "green"
+      },
+      {
+        "end" : 146.733,
+        "start" : 146.48400000000001,
+        "word" : "at"
+      },
+      {
+        "end" : 147.001,
+        "start" : 146.75299999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 147.27000000000001,
+        "start" : 147.02099999999999,
+        "word" : "edges"
+      },
+      {
+        "end" : 147.53899999999999,
+        "start" : 147.28999999999999,
+        "word" : "when"
+      },
+      {
+        "end" : 147.80799999999999,
+        "start" : 147.559,
+        "word" : "I"
+      },
+      {
+        "end" : 148.077,
+        "start" : 147.828,
+        "word" : "fire"
+      },
+      {
+        "end" : 148.345,
+        "start" : 148.09700000000001,
+        "word" : "at"
+      },
+      {
+        "end" : 148.614,
+        "start" : 148.36500000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 148.88300000000001,
+        "start" : 148.63399999999999,
+        "word" : "higher"
+      },
+      {
+        "end" : 149.15199999999999,
+        "start" : 148.90299999999999,
+        "word" : "cone"
+      },
+      {
+        "end" : 149.41999999999999,
+        "start" : 149.172,
+        "word" : "and"
+      },
+      {
+        "end" : 149.68899999999999,
+        "start" : 149.44,
+        "word" : "it"
+      },
+      {
+        "end" : 149.958,
+        "start" : 149.709,
+        "word" : "goes"
+      },
+      {
+        "end" : 150.227,
+        "start" : 149.97800000000001,
+        "word" : "matte"
+      },
+      {
+        "end" : 150.49600000000001,
+        "start" : 150.24700000000001,
+        "word" : "when"
+      },
+      {
+        "end" : 150.76400000000001,
+        "start" : 150.51599999999999,
+        "word" : "I"
+      },
+      {
+        "end" : 151.03299999999999,
+        "start" : 150.78399999999999,
+        "word" : "fire"
+      },
+      {
+        "end" : 151.30199999999999,
+        "start" : 151.053,
+        "word" : "lower,"
+      },
+      {
+        "end" : 151.571,
+        "start" : 151.322,
+        "word" : "and"
+      },
+      {
+        "end" : 151.839,
+        "start" : 151.59100000000001,
+        "word" : "Ines"
+      },
+      {
+        "end" : 152.108,
+        "start" : 151.85900000000001,
+        "word" : "says"
+      },
+      {
+        "end" : 152.37700000000001,
+        "start" : 152.12799999999999,
+        "word" : "it"
+      },
+      {
+        "end" : 152.64599999999999,
+        "start" : 152.39699999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 152.91499999999999,
+        "start" : 152.666,
+        "word" : "the"
+      },
+      {
+        "end" : 153.18299999999999,
+        "start" : 152.935,
+        "word" : "iron"
+      },
+      {
+        "end" : 153.452,
+        "start" : 153.203,
+        "word" : "in"
+      },
+      {
+        "end" : 153.721,
+        "start" : 153.47200000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 153.99000000000001,
+        "start" : 153.74100000000001,
+        "word" : "clay"
+      },
+      {
+        "end" : 154.25800000000001,
+        "start" : 154.00999999999999,
+        "word" : "body"
+      },
+      {
+        "end" : 154.52699999999999,
+        "start" : 154.27799999999999,
+        "word" : "not"
+      },
+      {
+        "end" : 154.79599999999999,
+        "start" : 154.547,
+        "word" : "the"
+      },
+      {
+        "end" : 155.065,
+        "start" : 154.816,
+        "word" : "glaze,"
+      },
+      {
+        "end" : 155.334,
+        "start" : 155.08500000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 155.602,
+        "start" : 155.35400000000001,
+        "word" : "she"
+      },
+      {
+        "end" : 155.87100000000001,
+        "start" : 155.62200000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 156.13999999999999,
+        "start" : 155.89099999999999,
+        "word" : "probably"
+      },
+      {
+        "end" : 156.40899999999999,
+        "start" : 156.16,
+        "word" : "right,"
+      },
+      {
+        "end" : 156.67699999999999,
+        "start" : 156.429,
+        "word" : "and"
+      },
+      {
+        "end" : 156.946,
+        "start" : 156.697,
+        "word" : "that"
+      },
+      {
+        "end" : 157.215,
+        "start" : 156.96600000000001,
+        "word" : "means"
+      },
+      {
+        "end" : 157.48400000000001,
+        "start" : 157.23500000000001,
+        "word" : "switching"
+      },
+      {
+        "end" : 157.75299999999999,
+        "start" : 157.50399999999999,
+        "word" : "bodies,"
+      },
+      {
+        "end" : 158.02099999999999,
+        "start" : 157.773,
+        "word" : "which"
+      },
+      {
+        "end" : 158.28999999999999,
+        "start" : 158.041,
+        "word" : "means"
+      },
+      {
+        "end" : 158.559,
+        "start" : 158.31,
+        "word" : "re-testing"
+      },
+      {
+        "end" : 158.828,
+        "start" : 158.57900000000001,
+        "word" : "every"
+      },
+      {
+        "end" : 159.096,
+        "start" : 158.84800000000001,
+        "word" : "glaze"
+      },
+      {
+        "end" : 159.36500000000001,
+        "start" : 159.11600000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 159.63399999999999,
+        "start" : 159.38499999999999,
+        "word" : "have."
+      },
+      {
+        "end" : 159.90299999999999,
+        "start" : 159.654,
+        "word" : "I"
+      },
+      {
+        "end" : 160.172,
+        "start" : 159.923,
+        "word" : "am"
+      },
+      {
+        "end" : 160.44,
+        "start" : 160.19200000000001,
+        "word" : "going"
+      },
+      {
+        "end" : 160.709,
+        "start" : 160.46000000000001,
+        "word" : "to"
+      },
+      {
+        "end" : 160.97800000000001,
+        "start" : 160.72900000000001,
+        "word" : "do"
+      },
+      {
+        "end" : 161.24700000000001,
+        "start" : 160.99799999999999,
+        "word" : "it"
+      },
+      {
+        "end" : 161.51499999999999,
+        "start" : 161.267,
+        "word" : "anyway"
+      },
+      {
+        "end" : 161.78399999999999,
+        "start" : 161.535,
+        "word" : "because"
+      },
+      {
+        "end" : 162.053,
+        "start" : 161.804,
+        "word" : "the"
+      },
+      {
+        "end" : 162.322,
+        "start" : 162.07300000000001,
+        "word" : "blue"
+      },
+      {
+        "end" : 162.59100000000001,
+        "start" : 162.34200000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 162.85900000000001,
+        "start" : 162.61099999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 163.12799999999999,
+        "start" : 162.87899999999999,
+        "word" : "whole"
+      },
+      {
+        "end" : 163.39699999999999,
+        "start" : 163.148,
+        "word" : "reason"
+      },
+      {
+        "end" : 163.666,
+        "start" : 163.417,
+        "word" : "I"
+      },
+      {
+        "end" : 163.934,
+        "start" : 163.68600000000001,
+        "word" : "started"
+      },
+      {
+        "end" : 164.203,
+        "start" : 163.95400000000001,
+        "word" : "this."
+      },
+      {
+        "end" : 164.47200000000001,
+        "start" : 164.22300000000001,
+        "word" : "So"
+      },
+      {
+        "end" : 164.74100000000001,
+        "start" : 164.49199999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 165.00999999999999,
+        "start" : 164.761,
+        "word" : "plan,"
+      },
+      {
+        "end" : 165.27799999999999,
+        "start" : 165.03,
+        "word" : "to"
+      },
+      {
+        "end" : 165.547,
+        "start" : 165.298,
+        "word" : "the"
+      },
+      {
+        "end" : 165.816,
+        "start" : 165.56700000000001,
+        "word" : "extent"
+      },
+      {
+        "end" : 166.08500000000001,
+        "start" : 165.83600000000001,
+        "word" : "that"
+      },
+      {
+        "end" : 166.35300000000001,
+        "start" : 166.10499999999999,
+        "word" : "there"
+      },
+      {
+        "end" : 166.62200000000001,
+        "start" : 166.37299999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 166.89099999999999,
+        "start" : 166.642,
+        "word" : "one:"
+      },
+      {
+        "end" : 167.16,
+        "start" : 166.911,
+        "word" : "call"
+      },
+      {
+        "end" : 167.429,
+        "start" : 167.18000000000001,
+        "word" : "Marco"
+      },
+      {
+        "end" : 167.697,
+        "start" : 167.44900000000001,
+        "word" : "this"
+      },
+      {
+        "end" : 167.96600000000001,
+        "start" : 167.71700000000001,
+        "word" : "week,"
+      },
+      {
+        "end" : 168.23500000000001,
+        "start" : 167.98599999999999,
+        "word" : "actually"
+      },
+      {
+        "end" : 168.50399999999999,
+        "start" : 168.255,
+        "word" : "this"
+      },
+      {
+        "end" : 168.77199999999999,
+        "start" : 168.524,
+        "word" : "week."
+      },
+      {
+        "end" : 169.041,
+        "start" : 168.792,
+        "word" : "Raise"
+      },
+      {
+        "end" : 169.31,
+        "start" : 169.06100000000001,
+        "word" : "overhaul"
+      },
+      {
+        "end" : 169.57900000000001,
+        "start" : 169.33000000000001,
+        "word" : "prices,"
+      },
+      {
+        "end" : 169.84800000000001,
+        "start" : 169.59899999999999,
+        "word" : "leave"
+      },
+      {
+        "end" : 170.11600000000001,
+        "start" : 169.86799999999999,
+        "word" : "tune-ups"
+      },
+      {
+        "end" : 170.38499999999999,
+        "start" : 170.136,
+        "word" : "alone"
+      },
+      {
+        "end" : 170.654,
+        "start" : 170.405,
+        "word" : "for"
+      },
+      {
+        "end" : 170.923,
+        "start" : 170.67400000000001,
+        "word" : "now."
+      },
+      {
+        "end" : 171.191,
+        "start" : 170.94300000000001,
+        "word" : "Tell"
+      },
+      {
+        "end" : 171.46000000000001,
+        "start" : 171.21100000000001,
+        "word" : "Rose"
+      },
+      {
+        "end" : 171.72900000000001,
+        "start" : 171.47999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 171.99799999999999,
+        "start" : 171.749,
+        "word" : "website"
+      },
+      {
+        "end" : 172.267,
+        "start" : 172.018,
+        "word" : "is"
+      },
+      {
+        "end" : 172.535,
+        "start" : 172.28700000000001,
+        "word" : "good"
+      },
+      {
+        "end" : 172.804,
+        "start" : 172.55500000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 173.07300000000001,
+        "start" : 172.82400000000001,
+        "word" : "ask"
+      },
+      {
+        "end" : 173.34200000000001,
+        "start" : 173.09299999999999,
+        "word" : "for"
+      },
+      {
+        "end" : 173.61000000000001,
+        "start" : 173.36199999999999,
+        "word" : "one"
+      },
+      {
+        "end" : 173.87899999999999,
+        "start" : 173.63,
+        "word" : "more"
+      },
+      {
+        "end" : 174.148,
+        "start" : 173.899,
+        "word" : "version"
+      },
+      {
+        "end" : 174.417,
+        "start" : 174.16800000000001,
+        "word" : "where"
+      },
+      {
+        "end" : 174.68600000000001,
+        "start" : 174.43700000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 174.95400000000001,
+        "start" : 174.70599999999999,
+        "word" : "bikes"
+      },
+      {
+        "end" : 175.22300000000001,
+        "start" : 174.97399999999999,
+        "word" : "are"
+      },
+      {
+        "end" : 175.49199999999999,
+        "start" : 175.24299999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 175.761,
+        "start" : 175.512,
+        "word" : "the"
+      },
+      {
+        "end" : 176.029,
+        "start" : 175.78100000000001,
+        "word" : "front"
+      },
+      {
+        "end" : 176.298,
+        "start" : 176.04900000000001,
+        "word" : "page"
+      },
+      {
+        "end" : 176.56700000000001,
+        "start" : 176.31800000000001,
+        "word" : "too."
+      },
+      {
+        "end" : 176.83600000000001,
+        "start" : 176.58699999999999,
+        "word" : "Say"
+      },
+      {
+        "end" : 177.10499999999999,
+        "start" : 176.85599999999999,
+        "word" : "yes"
+      },
+      {
+        "end" : 177.37299999999999,
+        "start" : 177.125,
+        "word" : "to"
+      },
+      {
+        "end" : 177.642,
+        "start" : 177.393,
+        "word" : "Mariam"
+      },
+      {
+        "end" : 177.911,
+        "start" : 177.66200000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 178.18000000000001,
+        "start" : 177.93100000000001,
+        "word" : "put"
+      },
+      {
+        "end" : 178.44800000000001,
+        "start" : 178.19999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 178.71700000000001,
+        "start" : 178.46799999999999,
+        "word" : "Friday"
+      },
+      {
+        "end" : 178.98599999999999,
+        "start" : 178.73699999999999,
+        "word" : "clean-up"
+      },
+      {
+        "end" : 179.255,
+        "start" : 179.006,
+        "word" : "in"
+      },
+      {
+        "end" : 179.524,
+        "start" : 179.27500000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 179.792,
+        "start" : 179.54400000000001,
+        "word" : "calendar."
+      },
+      {
+        "end" : 180.06100000000001,
+        "start" : 179.81200000000001,
+        "word" : "Order"
+      },
+      {
+        "end" : 180.33000000000001,
+        "start" : 180.08099999999999,
+        "word" : "a"
+      },
+      {
+        "end" : 180.59899999999999,
+        "start" : 180.34999999999999,
+        "word" : "bag"
+      },
+      {
+        "end" : 180.86699999999999,
+        "start" : 180.619,
+        "word" : "of"
+      },
+      {
+        "end" : 181.136,
+        "start" : 180.887,
+        "word" : "the"
+      },
+      {
+        "end" : 181.405,
+        "start" : 181.15600000000001,
+        "word" : "other"
+      },
+      {
+        "end" : 181.67400000000001,
+        "start" : 181.42500000000001,
+        "word" : "clay"
+      },
+      {
+        "end" : 181.94300000000001,
+        "start" : 181.69399999999999,
+        "word" : "body"
+      },
+      {
+        "end" : 182.21100000000001,
+        "start" : 181.96299999999999,
+        "word" : "and"
+      },
+      {
+        "end" : 182.47999999999999,
+        "start" : 182.23099999999999,
+        "word" : "test"
+      },
+      {
+        "end" : 182.749,
+        "start" : 182.5,
+        "word" : "it"
+      },
+      {
+        "end" : 183.018,
+        "start" : 182.76900000000001,
+        "word" : "with"
+      },
+      {
+        "end" : 183.286,
+        "start" : 183.03800000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 183.55500000000001,
+        "start" : 183.30600000000001,
+        "word" : "blue"
+      },
+      {
+        "end" : 183.82400000000001,
+        "start" : 183.57499999999999,
+        "word" : "before"
+      },
+      {
+        "end" : 184.09299999999999,
+        "start" : 183.84399999999999,
+        "word" : "anything"
+      },
+      {
+        "end" : 184.36199999999999,
+        "start" : 184.113,
+        "word" : "else."
+      },
+      {
+        "end" : 184.63,
+        "start" : 184.38200000000001,
+        "word" : "If"
+      },
+      {
+        "end" : 184.899,
+        "start" : 184.65000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 185.16800000000001,
+        "start" : 184.91900000000001,
+        "word" : "read"
+      },
+      {
+        "end" : 185.43700000000001,
+        "start" : 185.18799999999999,
+        "word" : "this"
+      },
+      {
+        "end" : 185.70500000000001,
+        "start" : 185.45699999999999,
+        "word" : "back"
+      },
+      {
+        "end" : 185.97399999999999,
+        "start" : 185.72499999999999,
+        "word" : "in"
+      },
+      {
+        "end" : 186.24299999999999,
+        "start" : 185.994,
+        "word" : "a"
+      },
+      {
+        "end" : 186.512,
+        "start" : 186.26300000000001,
+        "word" : "month"
+      },
+      {
+        "end" : 186.78100000000001,
+        "start" : 186.53200000000001,
+        "word" : "and"
+      },
+      {
+        "end" : 187.04900000000001,
+        "start" : 186.80099999999999,
+        "word" : "none"
+      },
+      {
+        "end" : 187.31800000000001,
+        "start" : 187.06899999999999,
+        "word" : "of"
+      },
+      {
+        "end" : 187.58699999999999,
+        "start" : 187.33799999999999,
+        "word" : "it"
+      },
+      {
+        "end" : 187.85599999999999,
+        "start" : 187.607,
+        "word" : "happened,"
+      },
+      {
+        "end" : 188.124,
+        "start" : 187.876,
+        "word" : "that"
+      },
+      {
+        "end" : 188.393,
+        "start" : 188.14400000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 188.66200000000001,
+        "start" : 188.41300000000001,
+        "word" : "fine"
+      },
+      {
+        "end" : 188.93100000000001,
+        "start" : 188.68199999999999,
+        "word" : "too,"
+      },
+      {
+        "end" : 189.19999999999999,
+        "start" : 188.95099999999999,
+        "word" : "at"
+      },
+      {
+        "end" : 189.46799999999999,
+        "start" : 189.22,
+        "word" : "least"
+      },
+      {
+        "end" : 189.73699999999999,
+        "start" : 189.488,
+        "word" : "it"
+      },
+      {
+        "end" : 190.006,
+        "start" : 189.75700000000001,
+        "word" : "will"
+      },
+      {
+        "end" : 190.27500000000001,
+        "start" : 190.02600000000001,
+        "word" : "be"
+      },
+      {
+        "end" : 190.54300000000001,
+        "start" : 190.29499999999999,
+        "word" : "written"
+      },
+      {
+        "end" : 190.81200000000001,
+        "start" : 190.56299999999999,
+        "word" : "down"
+      },
+      {
+        "end" : 191.08099999999999,
+        "start" : 190.83199999999999,
+        "word" : "somewhere"
+      },
+      {
+        "end" : 191.34999999999999,
+        "start" : 191.101,
+        "word" : "that"
+      },
+      {
+        "end" : 191.619,
+        "start" : 191.37,
+        "word" : "is"
+      },
+      {
+        "end" : 191.887,
+        "start" : 191.63900000000001,
+        "word" : "not"
+      },
+      {
+        "end" : 192.15600000000001,
+        "start" : 191.90700000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 192.42500000000001,
+        "start" : 192.17599999999999,
+        "word" : "back"
+      },
+      {
+        "end" : 192.69399999999999,
+        "start" : 192.44499999999999,
+        "word" : "of"
+      },
+      {
+        "end" : 192.96199999999999,
+        "start" : 192.714,
+        "word" : "a"
+      },
+      {
+        "end" : 193.23099999999999,
+        "start" : 192.982,
+        "word" : "repair"
+      },
+      {
+        "end" : 193.5,
+        "start" : 193.251,
+        "word" : "tag."
+      }
+    ]
+  },
+  "slug" : "pic-wall"
+}

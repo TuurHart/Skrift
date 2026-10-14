@@ -1,0 +1,89 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 44392,
+      "file" : "images/photo_5C6FF01E-C7B6-542B-877C-952A269B857A_001.jpg"
+    },
+    {
+      "bytes" : 51,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "5C6FF01E-C7B6-542B-877C-952A269B857A",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-05T01:00:00+01:00",
+      "duration" : 0,
+      "imageManifest" : [
+        {
+          "filename" : "photo_5C6FF01E-C7B6-542B-877C-952A269B857A_001.jpg",
+          "offsetSeconds" : 0,
+          "text" : "cone 6"
+        }
+      ],
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-05T00:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze"
+      ],
+      "title" : "Glaze test",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "Glaze test",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "5C6FF01E-C7B6-542B-877C-952A269B857A.md",
+    "id" : "5C6FF01E-C7B6-542B-877C-952A269B857A",
+    "imageOCRText" : "cone 6",
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/5C6FF01E-C7B6-542B-877C-952A269B857A_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 51,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-05T00:00:00.000Z",
+    "tags" : [
+      "glaze"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Cone 6, grey body, blue #3. Edges went green again.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-05T00:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-same-title-a"
+}

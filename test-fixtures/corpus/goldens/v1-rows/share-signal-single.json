@@ -1,0 +1,171 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 41462,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-04-13T18:15:24+01:00",
+      "duration" : 5.9000000000000004,
+      "mediaSource" : "share-audio",
+      "recordedAt" : "2026-04-13T17:15:24.000Z",
+      "sender" : "Rose Aldana",
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "tags" : [
+        "website"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D.m4a",
+    "id" : "54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "share-audio",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D_memo_54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 41462,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-16T08:15:00.000Z",
+    "tags" : [
+      "website"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Rose here. The website mock is in your inbox, look at the fonts before you look at anything else.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-04-13T17:15:24.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.29099999999999998,
+        "start" : 0,
+        "word" : "Rose"
+      },
+      {
+        "end" : 0.60099999999999998,
+        "start" : 0.311,
+        "word" : "here."
+      },
+      {
+        "end" : 0.91200000000000003,
+        "start" : 0.621,
+        "word" : "The"
+      },
+      {
+        "end" : 1.222,
+        "start" : 0.93200000000000005,
+        "word" : "website"
+      },
+      {
+        "end" : 1.5329999999999999,
+        "start" : 1.242,
+        "word" : "mock"
+      },
+      {
+        "end" : 1.843,
+        "start" : 1.5529999999999999,
+        "word" : "is"
+      },
+      {
+        "end" : 2.1539999999999999,
+        "start" : 1.863,
+        "word" : "in"
+      },
+      {
+        "end" : 2.464,
+        "start" : 2.1739999999999999,
+        "word" : "your"
+      },
+      {
+        "end" : 2.7749999999999999,
+        "start" : 2.484,
+        "word" : "inbox,"
+      },
+      {
+        "end" : 3.085,
+        "start" : 2.7949999999999999,
+        "word" : "look"
+      },
+      {
+        "end" : 3.3959999999999999,
+        "start" : 3.105,
+        "word" : "at"
+      },
+      {
+        "end" : 3.706,
+        "start" : 3.4159999999999999,
+        "word" : "the"
+      },
+      {
+        "end" : 4.0170000000000003,
+        "start" : 3.726,
+        "word" : "fonts"
+      },
+      {
+        "end" : 4.327,
+        "start" : 4.0369999999999999,
+        "word" : "before"
+      },
+      {
+        "end" : 4.6379999999999999,
+        "start" : 4.3470000000000004,
+        "word" : "you"
+      },
+      {
+        "end" : 4.9480000000000004,
+        "start" : 4.6580000000000004,
+        "word" : "look"
+      },
+      {
+        "end" : 5.2590000000000003,
+        "start" : 4.968,
+        "word" : "at"
+      },
+      {
+        "end" : 5.569,
+        "start" : 5.2789999999999999,
+        "word" : "anything"
+      },
+      {
+        "end" : 5.8799999999999999,
+        "start" : 5.5890000000000004,
+        "word" : "else."
+      }
+    ]
+  },
+  "slug" : "share-signal-single"
+}

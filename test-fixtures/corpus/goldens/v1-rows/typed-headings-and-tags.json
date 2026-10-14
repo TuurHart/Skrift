@@ -1,0 +1,76 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 506,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "2D5EB17D-660A-58AF-987F-E56C0975ACB7",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-18T12:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-18T11:00:00.000Z",
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "studio",
+        "workshop"
+      ],
+      "title" : "October workshop plan",
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : "October workshop plan",
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "2D5EB17D-660A-58AF-987F-E56C0975ACB7.md",
+    "id" : "2D5EB17D-660A-58AF-987F-E56C0975ACB7",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/2D5EB17D-660A-58AF-987F-E56C0975ACB7_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 506,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-18T11:00:00.000Z",
+    "tags" : [
+      "studio",
+      "workshop"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "# October workshop\n\nSix people, hand-building, two hours. Mariam is bringing two friends from her office.\n\n## Before\n\nClean the bike side on Friday night. Cover the stands. #studio #workshop\n\n## Materials\n\nTwo bags of the grey body, slip, the small wooden ribs. Check we have enough boards — last time we ran out.\n\n## After\n\nDry a week, bisque, then invite everyone back to glaze. That second evening is the part people remember.\n\n### Open\n\nPrice? Rose says €45, Lotte says €60. Somewhere in between.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-18T11:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-headings-and-tags"
+}

@@ -1,0 +1,270 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 73539,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "4900B798-B207-5DE3-AA10-1BCDCC9535B7",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-21T17:00:00+01:00",
+      "duration" : 11.43,
+      "recordedAt" : "2026-07-21T16:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "conversation"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : [
+      {
+        "end" : 2.9390000000000001,
+        "speaker" : 0,
+        "start" : 0
+      },
+      {
+        "end" : 7.1849999999999996,
+        "speaker" : 1,
+        "start" : 2.9390000000000001
+      },
+      {
+        "end" : 7.8380000000000001,
+        "speaker" : 0,
+        "start" : 7.1849999999999996
+      },
+      {
+        "end" : 11.43,
+        "speaker" : 1,
+        "start" : 7.8380000000000001
+      }
+    ],
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_4900B798-B207-5DE3-AA10-1BCDCC9535B7.m4a",
+    "id" : "4900B798-B207-5DE3-AA10-1BCDCC9535B7",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/4900B798-B207-5DE3-AA10-1BCDCC9535B7_memo_4900B798-B207-5DE3-AA10-1BCDCC9535B7.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 73539,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-21T16:00:00.000Z",
+    "tags" : [
+      "conversation"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "**Fenna de Wit:** What did the frame builder say about the lugs?\n\n**Speaker 2:** He can do them but not before spring, and he wants a deposit.\n\n**Fenna de Wit:** How much?\n\n**Speaker 2:** Four hundred. And he only takes a bank transfer, no card.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-21T16:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.307,
+        "start" : 0,
+        "word" : "What"
+      },
+      {
+        "end" : 0.63300000000000001,
+        "start" : 0.32700000000000001,
+        "word" : "did"
+      },
+      {
+        "end" : 0.95999999999999996,
+        "start" : 0.65300000000000002,
+        "word" : "the"
+      },
+      {
+        "end" : 1.286,
+        "start" : 0.97999999999999998,
+        "word" : "frame"
+      },
+      {
+        "end" : 1.613,
+        "start" : 1.306,
+        "word" : "builder"
+      },
+      {
+        "end" : 1.9390000000000001,
+        "start" : 1.633,
+        "word" : "say"
+      },
+      {
+        "end" : 2.266,
+        "start" : 1.9590000000000001,
+        "word" : "about"
+      },
+      {
+        "end" : 2.593,
+        "start" : 2.286,
+        "word" : "the"
+      },
+      {
+        "end" : 2.919,
+        "start" : 2.613,
+        "word" : "lugs?"
+      },
+      {
+        "end" : 3.246,
+        "start" : 2.9390000000000001,
+        "word" : "He"
+      },
+      {
+        "end" : 3.5720000000000001,
+        "start" : 3.266,
+        "word" : "can"
+      },
+      {
+        "end" : 3.899,
+        "start" : 3.5920000000000001,
+        "word" : "do"
+      },
+      {
+        "end" : 4.2249999999999996,
+        "start" : 3.919,
+        "word" : "them"
+      },
+      {
+        "end" : 4.5519999999999996,
+        "start" : 4.2450000000000001,
+        "word" : "but"
+      },
+      {
+        "end" : 4.8789999999999996,
+        "start" : 4.5720000000000001,
+        "word" : "not"
+      },
+      {
+        "end" : 5.2050000000000001,
+        "start" : 4.899,
+        "word" : "before"
+      },
+      {
+        "end" : 5.532,
+        "start" : 5.2249999999999996,
+        "word" : "spring,"
+      },
+      {
+        "end" : 5.8579999999999997,
+        "start" : 5.5519999999999996,
+        "word" : "and"
+      },
+      {
+        "end" : 6.1849999999999996,
+        "start" : 5.8780000000000001,
+        "word" : "he"
+      },
+      {
+        "end" : 6.5110000000000001,
+        "start" : 6.2050000000000001,
+        "word" : "wants"
+      },
+      {
+        "end" : 6.8380000000000001,
+        "start" : 6.5309999999999997,
+        "word" : "a"
+      },
+      {
+        "end" : 7.165,
+        "start" : 6.8579999999999997,
+        "word" : "deposit."
+      },
+      {
+        "end" : 7.4909999999999997,
+        "start" : 7.1849999999999996,
+        "word" : "How"
+      },
+      {
+        "end" : 7.8179999999999996,
+        "start" : 7.5110000000000001,
+        "word" : "much?"
+      },
+      {
+        "end" : 8.1440000000000001,
+        "start" : 7.8380000000000001,
+        "word" : "Four"
+      },
+      {
+        "end" : 8.4710000000000001,
+        "start" : 8.1639999999999997,
+        "word" : "hundred."
+      },
+      {
+        "end" : 8.7970000000000006,
+        "start" : 8.4909999999999997,
+        "word" : "And"
+      },
+      {
+        "end" : 9.1240000000000006,
+        "start" : 8.8170000000000002,
+        "word" : "he"
+      },
+      {
+        "end" : 9.4510000000000005,
+        "start" : 9.1440000000000001,
+        "word" : "only"
+      },
+      {
+        "end" : 9.7769999999999992,
+        "start" : 9.4710000000000001,
+        "word" : "takes"
+      },
+      {
+        "end" : 10.103999999999999,
+        "start" : 9.7970000000000006,
+        "word" : "a"
+      },
+      {
+        "end" : 10.43,
+        "start" : 10.124000000000001,
+        "word" : "bank"
+      },
+      {
+        "end" : 10.757,
+        "start" : 10.449999999999999,
+        "word" : "transfer,"
+      },
+      {
+        "end" : 11.083,
+        "start" : 10.776999999999999,
+        "word" : "no"
+      },
+      {
+        "end" : 11.41,
+        "start" : 11.103,
+        "word" : "card."
+      }
+    ]
+  },
+  "slug" : "conv-one-unnamed"
+}

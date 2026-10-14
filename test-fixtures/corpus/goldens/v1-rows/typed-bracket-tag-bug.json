@@ -1,0 +1,75 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 105,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "A92F032B-5B64-5618-A7F0-B79BECC7A445",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-09-12T03:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-09-12T02:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "[]",
+        "studio"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "A92F032B-5B64-5618-A7F0-B79BECC7A445.md",
+    "id" : "A92F032B-5B64-5618-A7F0-B79BECC7A445",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/A92F032B-5B64-5618-A7F0-B79BECC7A445_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 105,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-09-12T02:00:00.000Z",
+    "tags" : [
+      "[]",
+      "studio"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Test note whose tag list carries a literal [] entry — the 2026-07-27 shape that archived as a real tag.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-09-12T02:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "typed-bracket-tag-bug"
+}

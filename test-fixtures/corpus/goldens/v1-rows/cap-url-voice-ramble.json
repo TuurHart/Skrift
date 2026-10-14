@@ -1,0 +1,75 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+
+  ],
+  "memoID" : "7E905A2D-71A7-51DD-A133-4D9E285F9877",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "annotationText" : "So Bruno, um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.",
+      "capturedAt" : "2026-07-31T15:00:00+01:00",
+      "duration" : 0,
+      "recordedAt" : "2026-07-31T14:00:00.000Z",
+      "sharedContent" : {
+        "type" : "url",
+        "url" : "https://example-frames.pt/lugged",
+        "urlTitle" : "Lugged steel frames — handmade in Porto"
+      },
+      "significance" : 0.69999999999999996,
+      "source" : "mobile",
+      "tags" : [
+        "bikes"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "capture_7E905A2D-71A7-51DD-A133-4D9E285F9877",
+    "id" : "7E905A2D-71A7-51DD-A133-4D9E285F9877",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/capture_7E905A2D-71A7-51DD-A133-4D9E285F9877",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.69999999999999996,
+    "size" : 0,
+    "sourceType" : "capture",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-31T14:00:00.000Z",
+    "tags" : [
+      "bikes"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "So Bruno, um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "$WALL_CLOCK",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "cap-url-voice-ramble"
+}

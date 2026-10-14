@@ -1,0 +1,268 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 83614,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "44747ED7-2AB0-5B76-9A41-674FA3376049",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-27T13:00:00+01:00",
+      "duration" : 13.1,
+      "recordedAt" : "2026-08-27T12:00:00.000Z",
+      "significance" : 0.59999999999999998,
+      "source" : "mobile",
+      "tags" : [
+        "glaze",
+        "bikes",
+        "lotte"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_44747ED7-2AB0-5B76-9A41-674FA3376049.m4a",
+    "id" : "44747ED7-2AB0-5B76-9A41-674FA3376049",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/44747ED7-2AB0-5B76-9A41-674FA3376049_memo_44747ED7-2AB0-5B76-9A41-674FA3376049.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.59999999999999998,
+    "size" : 83614,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-27T12:00:00.000Z",
+    "tags" : [
+      "glaze",
+      "bikes",
+      "lotte"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "First thought. The blue is closer at cone five than at six.\n\nSecond thought, unrelated. Bruno's frame builder in Porto does lugged steel and I want one.\n\nThird. Lotte's birthday is in three weeks and I have nothing.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-27T12:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.32500000000000001,
+        "start" : 0,
+        "word" : "First"
+      },
+      {
+        "end" : 0.66900000000000004,
+        "start" : 0.34499999999999997,
+        "word" : "thought."
+      },
+      {
+        "end" : 1.014,
+        "start" : 0.68899999999999995,
+        "word" : "The"
+      },
+      {
+        "end" : 1.359,
+        "start" : 1.034,
+        "word" : "blue"
+      },
+      {
+        "end" : 1.704,
+        "start" : 1.379,
+        "word" : "is"
+      },
+      {
+        "end" : 2.048,
+        "start" : 1.724,
+        "word" : "closer"
+      },
+      {
+        "end" : 2.3929999999999998,
+        "start" : 2.0680000000000001,
+        "word" : "at"
+      },
+      {
+        "end" : 2.738,
+        "start" : 2.4129999999999998,
+        "word" : "cone"
+      },
+      {
+        "end" : 3.0830000000000002,
+        "start" : 2.758,
+        "word" : "five"
+      },
+      {
+        "end" : 3.427,
+        "start" : 3.1030000000000002,
+        "word" : "than"
+      },
+      {
+        "end" : 3.7719999999999998,
+        "start" : 3.4470000000000001,
+        "word" : "at"
+      },
+      {
+        "end" : 4.117,
+        "start" : 3.7919999999999998,
+        "word" : "six."
+      },
+      {
+        "end" : 4.4619999999999997,
+        "start" : 4.1369999999999996,
+        "word" : "Second"
+      },
+      {
+        "end" : 4.806,
+        "start" : 4.4820000000000002,
+        "word" : "thought,"
+      },
+      {
+        "end" : 5.1509999999999998,
+        "start" : 4.8259999999999996,
+        "word" : "unrelated."
+      },
+      {
+        "end" : 5.4960000000000004,
+        "start" : 5.1710000000000003,
+        "word" : "Bruno's"
+      },
+      {
+        "end" : 5.8410000000000002,
+        "start" : 5.516,
+        "word" : "frame"
+      },
+      {
+        "end" : 6.1849999999999996,
+        "start" : 5.8609999999999998,
+        "word" : "builder"
+      },
+      {
+        "end" : 6.5300000000000002,
+        "start" : 6.2050000000000001,
+        "word" : "in"
+      },
+      {
+        "end" : 6.875,
+        "start" : 6.5499999999999998,
+        "word" : "Porto"
+      },
+      {
+        "end" : 7.2190000000000003,
+        "start" : 6.8949999999999996,
+        "word" : "does"
+      },
+      {
+        "end" : 7.5640000000000001,
+        "start" : 7.2389999999999999,
+        "word" : "lugged"
+      },
+      {
+        "end" : 7.9089999999999998,
+        "start" : 7.5839999999999996,
+        "word" : "steel"
+      },
+      {
+        "end" : 8.2539999999999996,
+        "start" : 7.9290000000000003,
+        "word" : "and"
+      },
+      {
+        "end" : 8.5980000000000008,
+        "start" : 8.2739999999999991,
+        "word" : "I"
+      },
+      {
+        "end" : 8.9429999999999996,
+        "start" : 8.6180000000000003,
+        "word" : "want"
+      },
+      {
+        "end" : 9.2880000000000003,
+        "start" : 8.9629999999999992,
+        "word" : "one."
+      },
+      {
+        "end" : 9.6329999999999991,
+        "start" : 9.3079999999999998,
+        "word" : "Third."
+      },
+      {
+        "end" : 9.9770000000000003,
+        "start" : 9.6530000000000005,
+        "word" : "Lotte's"
+      },
+      {
+        "end" : 10.321999999999999,
+        "start" : 9.9969999999999999,
+        "word" : "birthday"
+      },
+      {
+        "end" : 10.667,
+        "start" : 10.342000000000001,
+        "word" : "is"
+      },
+      {
+        "end" : 11.012,
+        "start" : 10.686999999999999,
+        "word" : "in"
+      },
+      {
+        "end" : 11.356,
+        "start" : 11.032,
+        "word" : "three"
+      },
+      {
+        "end" : 11.701000000000001,
+        "start" : 11.375999999999999,
+        "word" : "weeks"
+      },
+      {
+        "end" : 12.045999999999999,
+        "start" : 11.721,
+        "word" : "and"
+      },
+      {
+        "end" : 12.391,
+        "start" : 12.066000000000001,
+        "word" : "I"
+      },
+      {
+        "end" : 12.734999999999999,
+        "start" : 12.411,
+        "word" : "have"
+      },
+      {
+        "end" : 13.08,
+        "start" : 12.755000000000001,
+        "word" : "nothing."
+      }
+    ]
+  },
+  "slug" : "voice-en-paragraphed-by-pauses"
+}

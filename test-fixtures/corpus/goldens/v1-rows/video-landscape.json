@@ -1,0 +1,189 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 106,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 44507,
+      "file" : "images/photo_80426BF7-A423-5FC2-BA1B-EFEE489DF617_001.jpg"
+    },
+    {
+      "bytes" : 38607,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "80426BF7-A423-5FC2-BA1B-EFEE489DF617",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-23T20:00:00+01:00",
+      "duration" : 5.6699999999999999,
+      "imageManifest" : [
+        {
+          "filename" : "photo_80426BF7-A423-5FC2-BA1B-EFEE489DF617_001.jpg",
+          "offsetSeconds" : 0
+        }
+      ],
+      "recordedAt" : "2026-07-23T19:00:00.000Z",
+      "significance" : 0.40000000000000002,
+      "source" : "mobile",
+      "sourceType" : "video",
+      "tags" : [
+        "throwing"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_80426BF7-A423-5FC2-BA1B-EFEE489DF617.m4a",
+    "id" : "80426BF7-A423-5FC2-BA1B-EFEE489DF617",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "video",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/80426BF7-A423-5FC2-BA1B-EFEE489DF617_memo_80426BF7-A423-5FC2-BA1B-EFEE489DF617.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.40000000000000002,
+    "size" : 38607,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-23T19:00:00.000Z",
+    "tags" : [
+      "throwing"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "[[img_001]]\n\nKorte video van het draaien van de brede schaal, voor Ines, zodat ze ziet wat er misgaat bij de rand.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-23T19:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.26300000000000001,
+        "start" : 0,
+        "word" : "Korte"
+      },
+      {
+        "end" : 0.54700000000000004,
+        "start" : 0.28299999999999997,
+        "word" : "video"
+      },
+      {
+        "end" : 0.82999999999999996,
+        "start" : 0.56699999999999995,
+        "word" : "van"
+      },
+      {
+        "end" : 1.1140000000000001,
+        "start" : 0.84999999999999998,
+        "word" : "het"
+      },
+      {
+        "end" : 1.397,
+        "start" : 1.1339999999999999,
+        "word" : "draaien"
+      },
+      {
+        "end" : 1.681,
+        "start" : 1.417,
+        "word" : "van"
+      },
+      {
+        "end" : 1.964,
+        "start" : 1.7010000000000001,
+        "word" : "de"
+      },
+      {
+        "end" : 2.2480000000000002,
+        "start" : 1.984,
+        "word" : "brede"
+      },
+      {
+        "end" : 2.5310000000000001,
+        "start" : 2.2679999999999998,
+        "word" : "schaal,"
+      },
+      {
+        "end" : 2.8149999999999999,
+        "start" : 2.5510000000000002,
+        "word" : "voor"
+      },
+      {
+        "end" : 3.0979999999999999,
+        "start" : 2.835,
+        "word" : "Ines,"
+      },
+      {
+        "end" : 3.3820000000000001,
+        "start" : 3.1179999999999999,
+        "word" : "zodat"
+      },
+      {
+        "end" : 3.665,
+        "start" : 3.4020000000000001,
+        "word" : "ze"
+      },
+      {
+        "end" : 3.9489999999999998,
+        "start" : 3.6850000000000001,
+        "word" : "ziet"
+      },
+      {
+        "end" : 4.2320000000000002,
+        "start" : 3.9689999999999999,
+        "word" : "wat"
+      },
+      {
+        "end" : 4.516,
+        "start" : 4.2519999999999998,
+        "word" : "er"
+      },
+      {
+        "end" : 4.7999999999999998,
+        "start" : 4.5359999999999996,
+        "word" : "misgaat"
+      },
+      {
+        "end" : 5.0830000000000002,
+        "start" : 4.819,
+        "word" : "bij"
+      },
+      {
+        "end" : 5.367,
+        "start" : 5.1029999999999998,
+        "word" : "de"
+      },
+      {
+        "end" : 5.6500000000000004,
+        "start" : 5.3860000000000001,
+        "word" : "rand."
+      }
+    ]
+  },
+  "slug" : "video-landscape"
+}

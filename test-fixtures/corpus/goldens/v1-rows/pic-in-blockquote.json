@@ -1,0 +1,203 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 123,
+      "file" : "image_manifest.json"
+    },
+    {
+      "bytes" : 46522,
+      "file" : "images/photo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9_001.jpg"
+    },
+    {
+      "bytes" : 38029,
+      "file" : "original.m4a"
+    }
+  ],
+  "memoID" : "6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-08-04T21:00:00+01:00",
+      "duration" : 5.4800000000000004,
+      "imageManifest" : [
+        {
+          "filename" : "photo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9_001.jpg",
+          "offsetSeconds" : 2.6200000000000001
+        }
+      ],
+      "recordedAt" : "2026-08-04T20:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "thinking"
+      ],
+      "transcriptConfidence" : 0.93999999999999995,
+      "transcriptMarkersInjected" : true,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "memo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9.m4a",
+    "id" : "6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : null,
+    "nameResolutionsData" : null,
+    "path" : "$OUT/6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9_memo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9.m4a/original.m4a",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 38029,
+    "sourceType" : "audio",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-08-04T20:00:00.000Z",
+    "tags" : [
+      "thinking"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "> The pot you want is the pot you can't make yet. [[img_001]]\n\nSaw it written on the wall at the fair and photographed it.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-08-04T20:00:00.000Z",
+    "wordTimingsJSON" : [
+      {
+        "end" : 0.218,
+        "start" : 0,
+        "word" : "The"
+      },
+      {
+        "end" : 0.45700000000000002,
+        "start" : 0.23799999999999999,
+        "word" : "pot"
+      },
+      {
+        "end" : 0.69499999999999995,
+        "start" : 0.47699999999999998,
+        "word" : "you"
+      },
+      {
+        "end" : 0.93300000000000005,
+        "start" : 0.71499999999999997,
+        "word" : "want"
+      },
+      {
+        "end" : 1.171,
+        "start" : 0.95299999999999996,
+        "word" : "is"
+      },
+      {
+        "end" : 1.4099999999999999,
+        "start" : 1.1910000000000001,
+        "word" : "the"
+      },
+      {
+        "end" : 1.6479999999999999,
+        "start" : 1.4299999999999999,
+        "word" : "pot"
+      },
+      {
+        "end" : 1.8859999999999999,
+        "start" : 1.6679999999999999,
+        "word" : "you"
+      },
+      {
+        "end" : 2.1240000000000001,
+        "start" : 1.9059999999999999,
+        "word" : "can't"
+      },
+      {
+        "end" : 2.363,
+        "start" : 2.1440000000000001,
+        "word" : "make"
+      },
+      {
+        "end" : 2.601,
+        "start" : 2.383,
+        "word" : "yet."
+      },
+      {
+        "end" : 2.839,
+        "start" : 2.621,
+        "word" : "Saw"
+      },
+      {
+        "end" : 3.077,
+        "start" : 2.859,
+        "word" : "it"
+      },
+      {
+        "end" : 3.3159999999999998,
+        "start" : 3.097,
+        "word" : "written"
+      },
+      {
+        "end" : 3.5539999999999998,
+        "start" : 3.3359999999999999,
+        "word" : "on"
+      },
+      {
+        "end" : 3.7919999999999998,
+        "start" : 3.5739999999999998,
+        "word" : "the"
+      },
+      {
+        "end" : 4.0300000000000002,
+        "start" : 3.8119999999999998,
+        "word" : "wall"
+      },
+      {
+        "end" : 4.2690000000000001,
+        "start" : 4.0499999999999998,
+        "word" : "at"
+      },
+      {
+        "end" : 4.5069999999999997,
+        "start" : 4.2889999999999997,
+        "word" : "the"
+      },
+      {
+        "end" : 4.7450000000000001,
+        "start" : 4.5270000000000001,
+        "word" : "fair"
+      },
+      {
+        "end" : 4.9829999999999997,
+        "start" : 4.7649999999999997,
+        "word" : "and"
+      },
+      {
+        "end" : 5.2220000000000004,
+        "start" : 5.0030000000000001,
+        "word" : "photographed"
+      },
+      {
+        "end" : 5.46,
+        "start" : 5.242,
+        "word" : "it."
+      }
+    ]
+  },
+  "slug" : "pic-in-blockquote"
+}

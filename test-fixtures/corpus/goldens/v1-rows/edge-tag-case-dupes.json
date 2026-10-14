@@ -1,0 +1,77 @@
+{
+  "expectsRow" : true,
+  "folder" : [
+    {
+      "bytes" : 54,
+      "file" : "original.md"
+    }
+  ],
+  "memoID" : "C19EDFDE-C842-5460-83E5-6D59EFE10FFE",
+  "row" : {
+    "ambiguousNamesJSON" : null,
+    "appleNoteID" : null,
+    "audioMetadataJSON" : {
+      "capturedAt" : "2026-07-08T06:00:00+01:00",
+      "duration" : 0,
+      "mediaSource" : "typed",
+      "recordedAt" : "2026-07-08T05:00:00.000Z",
+      "significance" : 0.5,
+      "source" : "mobile",
+      "tags" : [
+        "Glaze",
+        "glaze",
+        "GLAZE"
+      ],
+      "transcriptMarkersInjected" : false,
+      "transcriptUserEdited" : false
+    },
+    "compiledText" : null,
+    "deletedAt" : null,
+    "destinationRaw" : "personal",
+    "diarizationSegmentsJSON" : null,
+    "diarizeRequested" : false,
+    "enhancedCopyedit" : null,
+    "enhancedSummary" : null,
+    "enhancedTitle" : null,
+    "enhanceStatus" : "pending",
+    "error" : null,
+    "exported" : null,
+    "exportStatus" : "pending",
+    "filename" : "C19EDFDE-C842-5460-83E5-6D59EFE10FFE.md",
+    "id" : "C19EDFDE-C842-5460-83E5-6D59EFE10FFE",
+    "imageOCRText" : null,
+    "includeAudioInExport" : true,
+    "isLocalImport" : false,
+    "isLocalRecording" : false,
+    "lastActivityAt" : null,
+    "legacyNamePicksJSON" : null,
+    "legacyUnlinkedNames" : [
+
+    ],
+    "locked" : false,
+    "mediaSource" : "typed",
+    "nameResolutionsData" : null,
+    "path" : "$OUT/C19EDFDE-C842-5460-83E5-6D59EFE10FFE_note/original.md",
+    "remindAt" : null,
+    "sanitised" : null,
+    "sanitiseStatus" : "pending",
+    "significance" : 0.5,
+    "size" : 54,
+    "sourceType" : "note",
+    "syncedSourceDeletedAt" : null,
+    "syncedSourceEditedAt" : "2026-07-08T05:00:00.000Z",
+    "tags" : [
+      "Glaze",
+      "glaze",
+      "GLAZE"
+    ],
+    "tagSuggestions" : null,
+    "titleSuggested" : null,
+    "transcribeStatus" : "done",
+    "transcript" : "Tag case: Glaze and glaze and GLAZE typed three times.",
+    "transcriptUserEdited" : false,
+    "uploadedAt" : "2026-07-08T05:00:00.000Z",
+    "wordTimingsJSON" : null
+  },
+  "slug" : "edge-tag-case-dupes"
+}
