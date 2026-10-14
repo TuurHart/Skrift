@@ -120,6 +120,8 @@ struct BodyTextView: NSViewRepresentable {
     var onAddAttachment: ((URL) -> MacNoteAttachments.Added?)? = nil
     /// D202: switch one block (a filename) or every block (nil) to small / large.
     var onSetAttachmentSize: ((String?, NoteAttachment.Size) -> Void)? = nil
+    /// C261 / R70: which stored body an emptying commit would wipe (names the confirm).
+    var clearField: EmptyCommitGuard.Field = .raw
 
     /// Everything the full `restyle` reads besides the text: when none of it changed, an
     /// update (a resize frame, re-created closures) skips the restyle (Q363, M6).
@@ -467,6 +469,9 @@ struct BodyTextView: NSViewRepresentable {
             let ms = modelString(tv)
             let binding = parent.$text
             guard ms != binding.wrappedValue else { return }
+            // C261: a pending commit that would empty the note is dropped here, never written
+            // unasked (the session-end confirm in `textDidEndEditing` is the one place that asks).
+            guard !EmptyCommitGuard.netsToEmpty(prior: binding.wrappedValue, proposed: ms) else { return }
             DispatchQueue.main.async { binding.wrappedValue = ms }
         }
 
@@ -502,7 +507,11 @@ struct BodyTextView: NSViewRepresentable {
             commitTask?.cancel()
             commitTask = nil
             let ms = modelString(tv)
-            if ms != parent.text { parent.text = ms }   // attachments → [[img_NNN]] markers
+            // C261 / R70: a commit that nets to empty is NOT written here (the 1 s debounce would
+            // blank the note mid-retype); `textDidEndEditing` asks, once, when the session ends.
+            if ms != parent.text, !EmptyCommitGuard.netsToEmpty(prior: parent.text, proposed: ms) {
+                parent.text = ms   // attachments → [[img_NNN]] markers
+            }
             gate.accounted(ms)                           // our own text: no re-render for it
             restyle(tv)                                // full pass — links/headings/turns/suggested catch up
             return ms
@@ -650,8 +659,43 @@ struct BodyTextView: NSViewRepresentable {
             // The session is ending — flush any still-pending debounced commit NOW,
             // don't wait out the rest of the 1s window (R90).
             let current = flushModelCommit(tv)
+            // C261 / R70: the session ends on an empty body over a non-empty note → ask first.
+            if emptyGuard.request(parent.clearField, prior: parent.text, proposed: current) == false {
+                askBeforeClearing(tv)
+                return
+            }
             let committed = BodyV2.committed(BodyV2.Input(text: current, source: .typed))
             if committed != current { parent.text = committed }
+        }
+
+        private var emptyGuard = EmptyCommitGuard()
+
+        /// The destructive confirm, as a sheet on the note's window (`NameDeleteConfirm` style).
+        /// Cancel puts the prior text back on screen; with no window to ask in, the prior text stays.
+        private func askBeforeClearing(_ tv: SelfSizingTextView) {
+            guard let pending = emptyGuard.pending else { return }
+            guard let window = tv.window else { resolveEmptyCommit(confirm: false, in: tv); return }
+            let alert = NSAlert()
+            alert.messageText = EmptyCommitGuard.title(for: pending.field)
+            alert.informativeText = EmptyCommitGuard.message(for: pending.field)
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: EmptyCommitGuard.cancelLabel)          // default: keep the text
+            let clear = alert.addButton(withTitle: EmptyCommitGuard.confirmLabel)
+            clear.hasDestructiveAction = true
+            alert.beginSheetModal(for: window) { [weak self, weak tv] response in
+                guard let self, let tv else { return }
+                self.resolveEmptyCommit(confirm: response == .alertSecondButtonReturn, in: tv)
+            }
+        }
+
+        private func resolveEmptyCommit(confirm: Bool, in tv: SelfSizingTextView) {
+            if confirm, let parked = emptyGuard.confirm() {
+                show(model: parked.proposed, in: tv)
+            } else if let parked = emptyGuard.cancel() {
+                gate.accounted(parked.prior)
+                render(tv, model: parked.prior)           // the prior text, back on screen
+                tv.invalidateIntrinsicContentSize()
+            }
         }
 
         /// The `[[` trigger (phone chunk-5 parity): when the two chars just before the caret are

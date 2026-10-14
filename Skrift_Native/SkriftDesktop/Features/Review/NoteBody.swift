@@ -176,7 +176,8 @@ struct NoteBody: View {
             attachmentURL: { MacNoteAttachments.fileURL($0, working: file.workingFolder) },
             largeAttachments: { MacNoteAttachments.large(memo: cloudMemo()) },
             onAddAttachment: addAttachment,
-            onSetAttachmentSize: setAttachmentSize
+            onSetAttachmentSize: setAttachmentSize,
+            clearField: (file.sanitised != nil || file.enhancedCopyedit != nil) ? .polished : .raw
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

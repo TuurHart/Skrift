@@ -192,6 +192,7 @@ struct NoteBodyView: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ uiView: NoteBodyTextView, coordinator: Coordinator) {
+        coordinator.tearingDown = true          // an emptying draft cannot ask: the prior text stays
         coordinator.commitDraft()
         coordinator.teardown()
     }
@@ -1680,7 +1681,7 @@ struct NoteBodyView: UIViewRepresentable {
             commitTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
-                self?.commitDraft()
+                self?.commitDraft(debounced: true)
             }
         }
 
@@ -1800,15 +1801,90 @@ struct NoteBodyView: UIViewRepresentable {
         /// Persist the draft: reconstruct the marker string from the attributed
         /// text and write it to the model (quote-protected for captures, the
         /// copy-edit binding for polished bodies), flag the user edit, save.
-        func commitDraft() {
+        func commitDraft(debounced: Bool = false) {
+            guard !emptyGuard.isPending else { return }   // a clear is waiting on its answer
             commitTask?.cancel()
             commitTask = nil
             guard draftDirty, let tv = textView else { return }
-            draftDirty = false
             let target = draftTarget ?? (polishedBinding.map { .polished($0) } ?? .raw)
-            draftTarget = nil
             let text = committedBody(reconstruct(tv.attributedText))
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // C261 / R70: an edit that nets to empty never lands silently. Mid-typing (the 1 s
+            // debounce) it waits: the draft stays dirty, nothing is written, the user may still
+            // retype. When the session ends it asks; Cancel puts the prior text back.
+            if let (field, prior) = emptyingCommit(target: target, text: text) {
+                if debounced { return }
+                draftDirty = false
+                draftTarget = nil
+                askBeforeClearing(field: field, prior: prior, proposed: text, target: target, tv: tv)
+                return
+            }
+            draftDirty = false
+            draftTarget = nil
+            write(text, trimmed: trimmed, target: target)
+        }
+
+        /// The (field, prior text) this commit would wipe, or nil when it does not net to empty.
+        /// A capture's quote is never part of the editor text, so its ramble may be cleared freely.
+        private func emptyingCommit(target: DraftTarget, text: String) -> (EmptyCommitGuard.Field, String)? {
+            switch target {
+            case .polished(let binding):
+                let prior = binding.wrappedValue
+                return EmptyCommitGuard.netsToEmpty(prior: prior, proposed: text) ? (.polished, prior) : nil
+            case .raw where memo.captureQuote != nil:
+                return nil
+            case .raw:
+                let prior = memo.transcript
+                return EmptyCommitGuard.netsToEmpty(prior: prior, proposed: text) ? (.raw, prior ?? "") : nil
+            }
+        }
+
+        var tearingDown = false
+        private var emptyGuard = EmptyCommitGuard()
+        private var emptyTarget: DraftTarget?
+
+        /// The destructive confirm (`NameDeleteConfirm` style). If it cannot be shown (the app is
+        /// resigning, the editor is gone) the prior text simply stays: nothing is written.
+        private func askBeforeClearing(field: EmptyCommitGuard.Field, prior: String, proposed: String,
+                                       target: DraftTarget, tv: UITextView) {
+            _ = emptyGuard.request(field, prior: prior, proposed: proposed)
+            emptyTarget = target
+            guard !tearingDown, tv.window != nil, UIApplication.shared.applicationState == .active,
+                  let presenter = Self.topViewController(from: tv.window?.rootViewController) else {
+                resolveEmptyCommit(confirm: false)
+                return
+            }
+            let alert = UIAlertController(title: EmptyCommitGuard.title(for: field),
+                                          message: EmptyCommitGuard.message(for: field),
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: EmptyCommitGuard.cancelLabel, style: .cancel) { [weak self] _ in
+                MainActor.assumeIsolated { self?.resolveEmptyCommit(confirm: false) }
+            })
+            alert.addAction(UIAlertAction(title: EmptyCommitGuard.confirmLabel, style: .destructive) { [weak self] _ in
+                MainActor.assumeIsolated { self?.resolveEmptyCommit(confirm: true) }
+            })
+            presenter.present(alert, animated: true)
+        }
+
+        private func resolveEmptyCommit(confirm: Bool) {
+            let target = emptyTarget
+            emptyTarget = nil
+            if confirm, let parked = emptyGuard.confirm(), let target {
+                write(parked.proposed, trimmed: "", target: target)
+            } else {
+                _ = emptyGuard.cancel()
+                load(force: true)              // the prior text, back on screen
+            }
+        }
+
+        private static func topViewController(from root: UIViewController?) -> UIViewController? {
+            var top = root
+            while let next = top?.presentedViewController { top = next }
+            return top
+        }
+
+        /// The write half of a commit: model, flags, `onCommit`.
+        private func write(_ text: String, trimmed: String, target: DraftTarget) {
             // C98: only the `.raw` targets touch `memo.transcript` (the words hash) —
             // `.polished` writes the copy-edit and stamps its OWN conflict record via
             // `recordPolishedEdit` (the binding's setter), so `onCommit` must not also
