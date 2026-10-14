@@ -1,0 +1,3 @@
+{
+  "_schema": "Q424 ADDITIVE companion to expected-differences-copyedit.json (protected): slug -> [SPEC clause id] for notes where copy-edit v2's title/summary/body differs from v1's golden (goldens/v1-copyedit) because a confirmed clause requires it. Read only by CopyEditV2HarnessTests.swift, merged with the Q423 file. Same stale rule: a slug listed here whose v2 record equals the golden fails."
+}
