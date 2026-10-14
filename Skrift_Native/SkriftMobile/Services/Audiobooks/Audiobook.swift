@@ -96,6 +96,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// the same blob as `kind`, so the synced carrier needs no schema change.
     var sourceURL: String? = nil
     var site: String? = nil
+    /// Q404 (D207): highlights without a note on a PDF or an article. Synced: they ride this same
+    /// blob (never stripped by `sanitizedForSync`), so the carrier needs no schema change.
+    var highlights: [SourceHighlight]? = nil
 
     /// The kind to show and branch on: nil means a book.
     var sourceKind: LibrarySourceKind { kind ?? .book }
@@ -222,7 +225,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         // (the Odyssey device report). The sync blob still never carries them: every
         // send path encodes `sanitizedForSync()`, which nils all of them first.
         case epubFilename, epubFilenames, epubChapters
-        case kind, publishedAt, sourceURL, site
+        case kind, publishedAt, sourceURL, site, highlights
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -243,6 +246,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         publishedAt = try c.decodeIfPresent(Date.self, forKey: .publishedAt)
         sourceURL = try c.decodeIfPresent(String.self, forKey: .sourceURL)
         site = try c.decodeIfPresent(String.self, forKey: .site)
+        highlights = (try? c.decodeIfPresent([SourceHighlight].self, forKey: .highlights)) ?? nil
         // An unknown raw value (a kind a newer build wrote) reads as nil = book, never a failed decode.
         kind = (try? c.decodeIfPresent(LibrarySourceKind.self, forKey: .kind)) ?? nil
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
@@ -287,6 +291,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(publishedAt, forKey: .publishedAt)
         try c.encodeIfPresent(sourceURL, forKey: .sourceURL)
         try c.encodeIfPresent(site, forKey: .site)
+        try c.encodeIfPresent(highlights, forKey: .highlights)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)

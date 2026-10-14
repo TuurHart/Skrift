@@ -8,9 +8,13 @@ import Foundation
 /// Never synced: a second device with the same source fetches its own copy (`LibraryArticle.complete`).
 struct ArticleDoc: Codable, Equatable, Sendable {
     struct Block: Codable, Equatable, Sendable {
-        enum Kind: String, Codable, Sendable { case heading, paragraph }
+        /// Q404: `row` (a two-column table line, cells joined by a tab) and `page` (a PDF's
+        /// "Page N" break) come only from a PDF's reading view, never from an article.
+        enum Kind: String, Codable, Sendable { case heading, paragraph, row, page }
         var kind: Kind
         var text: String
+        /// Q404: the 1-based PDF page a reading-view block comes from (nil for an article).
+        var page: Int? = nil
     }
 
     var url: String
