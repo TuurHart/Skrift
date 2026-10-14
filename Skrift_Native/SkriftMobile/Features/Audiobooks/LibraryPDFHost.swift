@@ -129,6 +129,22 @@ struct LibraryPDFToast: View {
 @MainActor
 enum LibraryPDFDebug {
     private static var sampleSelection: String { "Sensor integration and field tests: €18,000" }
+    /// Q404: what the screenshots select (the mock's selection, beside the stored highlight).
+    private static var originalSelection: String { "The project runs for eighteen months." }
+    private static var readingSelection: String { "project runs for eighteen months. Costs below" }
+
+    /// Q404: on `-showPDFReader`, select the mock's words in the reading view and raise its menu.
+    static func readingAppeared(model: ArticleReaderModel) async {
+        guard LaunchFlags.showPDFReader else { return }
+        try? await Task.sleep(for: .milliseconds(900))
+        guard let tv = model.textView else { return }
+        let r = (tv.text as NSString).range(of: readingSelection)
+        guard r.location != NSNotFound else { return }
+        tv.becomeFirstResponder()
+        tv.selectedRange = r
+        try? await Task.sleep(for: .milliseconds(300))
+        model.showSelectionMenu?()
+    }
 
     static func run(store: AudiobookLibraryStore, reader: Binding<Audiobook?>, arrival: LibraryPDFArrival) {
         guard LaunchFlags.seedLibraryPDF || LaunchFlags.showPDFReader || LaunchFlags.showPDFToast else { return }
@@ -141,17 +157,26 @@ enum LibraryPDFDebug {
         if budget == nil, let url = makeSimplePDF(pages: 6) {
             budget = LibraryPDF.importPDF(from: url, displayName: "Sensor budget, revised.pdf", store: store)
         }
-        if LaunchFlags.showPDFReader { reader.wrappedValue = grant }
+        if let g = grant, LibraryHighlights.list(g.id, store: store).isEmpty {
+            // Q404: the mock's stored yellow highlight on the budget line.
+            LibraryHighlights.add(sampleSelection, page: 4, word: 0, bookID: g.id, store: store)
+            grant = store.book(id: g.id)
+        }
+        if LaunchFlags.showPDFReader, let g = grant {
+            // Q404: `-pdfOriginal` opens the real page; otherwise the reading view.
+            PDFReaderMode.setPrefersOriginal(ProcessInfo.processInfo.arguments.contains("-pdfOriginal"), bookID: g.id)
+            reader.wrappedValue = g
+        }
         if LaunchFlags.showPDFToast, let budget { arrival.post(bookID: budget.id) }
     }
 
     /// Selects the budget line on the open reader so the callout can be screenshotted.
     static func selectSampleIfAsked(in view: PDFView, model: PDFReaderModel) {
         guard LaunchFlags.showPDFReader, let doc = view.document else { return }
-        for match in doc.findString(sampleSelection, withOptions: [.literal]).prefix(1) {
+        for match in doc.findString(originalSelection, withOptions: [.literal]).prefix(1) {
             view.setCurrentSelection(match, animate: false)
             // A programmatic selection is not drawn without a first responder; a touch selection is.
-            match.color = UIColor.systemYellow.withAlphaComponent(0.45)
+            match.color = UIColor.systemBlue.withAlphaComponent(0.25)
             view.highlightedSelections = [match]
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
@@ -176,14 +201,22 @@ enum LibraryPDFDebug {
                         "",
                         sampleSelection + " covers two test sites",
                         "and the replacement parts we expect to burn through.",
-                        "",
-                        "Personnel  €42,000      Travel  €3,200      Total phase one  €63,200",
-                        "",
-                        "We ask the panel to note that the field tests carry most of the technical risk.",
                     ]
                     for (i, line) in lines.enumerated() {
                         (line as NSString).draw(at: CGPoint(x: 56, y: 96 + CGFloat(i) * 20), withAttributes: [.font: body])
                     }
+                    // Q404: the mock's two-column table (label left, amount right-aligned).
+                    let rows = [("Personnel", "€42,000"), ("Sensor integration and field tests", "€18,000"),
+                                ("Travel", "€3,200"), ("Total phase one", "€63,200")]
+                    for (i, row) in rows.enumerated() {
+                        let y = 216 + CGFloat(i) * 20
+                        (row.0 as NSString).draw(at: CGPoint(x: 56, y: y), withAttributes: [.font: body])
+                        let amount = row.1 as NSString
+                        let w = amount.size(withAttributes: [.font: body]).width
+                        amount.draw(at: CGPoint(x: 400 - w, y: y), withAttributes: [.font: body])
+                    }
+                    ("We ask the panel to note that the field tests carry most of the technical risk." as NSString)
+                        .draw(at: CGPoint(x: 56, y: 312), withAttributes: [.font: body])
                 } else if p == 1 {
                     ("GFR grant application, draft 3" as NSString).draw(
                         in: CGRect(x: 56, y: 120, width: 500, height: 120),
@@ -193,7 +226,14 @@ enum LibraryPDFDebug {
                             .draw(at: CGPoint(x: 56, y: 280 + CGFloat(i) * 22), withAttributes: [.font: body])
                     }
                 } else {
-                    ("Page \(p)" as NSString).draw(at: CGPoint(x: 56, y: 60), withAttributes: [.font: head])
+                    ("Section \(p)" as NSString).draw(at: CGPoint(x: 56, y: 60), withAttributes: [.font: head])
+                    // A text layer on every page, so the reading view is offered (Q404 quality rule).
+                    let filler = ["This section sets out the plan for one part of the work and who carries it,",
+                                  "with the dates the panel asked for and the risks we see in each step.",
+                                  "The figures are in the budget section; nothing here changes them."]
+                    for (i, line) in filler.enumerated() {
+                        (line as NSString).draw(at: CGPoint(x: 56, y: 96 + CGFloat(i) * 20), withAttributes: [.font: body])
+                    }
                 }
             }
         }

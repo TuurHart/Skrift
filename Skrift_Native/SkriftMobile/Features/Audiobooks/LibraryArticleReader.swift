@@ -22,6 +22,7 @@ struct LibraryArticleReaderView: View {
     @State private var capture: ArticleCaptureRequest?
     @State private var showNotes = false
     @State private var showTextSettings = false
+    @State private var highlights: [SourceHighlight] = []
 
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
            sort: \Memo.recordedAt, order: .reverse) private var liveMemos: [Memo]
@@ -38,10 +39,18 @@ struct LibraryArticleReaderView: View {
                 if let doc {
                     ArticleNotesFeed(bookID: book.id) { quotes in
                         ArticleTextView(doc: doc, fontSize: fontSize, lineHeight: lineHeight,
-                                        noteQuotes: quotes, highlights: ArticleHighlights.load(book.id, store: store),
+                                        noteQuotes: quotes, highlights: highlights,
                                         startWord: jumpBackWord ?? Int(current.position), model: model,
                                         onAddNote: startCapture(selection:),
-                                        onHighlight: { text in ArticleHighlights.add(text, bookID: book.id, store: store) },
+                                        onHighlight: { picked in
+                                            LibraryHighlights.add(picked.text, page: nil, word: picked.word,
+                                                                  bookID: book.id, store: store)
+                                            highlights = LibraryHighlights.list(book.id, store: store)
+                                        },
+                                        onRemoveHighlight: { id in
+                                            LibraryHighlights.remove(id, bookID: book.id, store: store)
+                                            highlights = LibraryHighlights.list(book.id, store: store)
+                                        },
                                         onOpenNote: openNote)
                     }
                 } else {
@@ -69,6 +78,8 @@ struct LibraryArticleReaderView: View {
         .background(Color.skBg.ignoresSafeArea())
         .task {
             doc = LibraryArticle.doc(of: book, store: store)
+            LibraryHighlights.adoptLegacyFile(bookID: book.id, doc: doc, store: store)
+            highlights = LibraryHighlights.list(book.id, store: store)
             if doc == nil { await fetchText() }
         }
         .onChange(of: model.topWord) { _, word in
@@ -248,31 +259,6 @@ private struct ArticleNotesFeed<Content: View>: View {
     }
 }
 
-// MARK: - Highlights without a note
-
-/// "Highlight" (mock callout): a yellow mark that stays in the article, no note made. Local to the
-/// device, beside the stored text (`highlights.json`).
-@MainActor
-enum ArticleHighlights {
-    static func url(_ bookID: UUID, store: AudiobookLibraryStore) -> URL {
-        store.folder(for: bookID).appendingPathComponent("highlights.json")
-    }
-
-    static func load(_ bookID: UUID, store: AudiobookLibraryStore) -> [String] {
-        guard let data = try? Data(contentsOf: url(bookID, store: store)) else { return [] }
-        return (try? JSONDecoder().decode([String].self, from: data)) ?? []
-    }
-
-    static func add(_ text: String, bookID: UUID, store: AudiobookLibraryStore) {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty else { return }
-        var all = load(bookID, store: store)
-        guard !all.contains(t) else { return }
-        all.append(t)
-        if let data = try? JSONEncoder().encode(all) { try? data.write(to: url(bookID, store: store), options: .atomic) }
-    }
-}
-
 // MARK: - Reader state
 
 @MainActor
@@ -281,6 +267,8 @@ final class ArticleReaderModel: ObservableObject {
     @Published var topWord = 0
     @Published var selection: ArticleSelection?
     weak var textView: UITextView?
+    /// Q404 screenshot hook: shows the selection menu over the current selection.
+    var showSelectionMenu: (() -> Void)?
     /// False until the view has landed on its start word: nothing is saved before that.
     var ready = false
     /// UTF-16 offset of the first body character and of each body word in the text view's string.
@@ -323,7 +311,9 @@ final class ArticleReaderModel: ObservableObject {
 // MARK: - The text
 
 /// One `UITextView` (not editable, selectable): header + body as attributed text, so selection,
-/// the system edit menu and scrolling are the platform's own.
+/// the system edit menu and scrolling are the platform's own. Q404: the PDF reading view reuses it
+/// (no header, serif body, two-column rows, "Page N" breaks), and both readers share the menu
+/// Copy · Highlight · ❝ Add note; a tap on a highlight opens its own menu (Copy · Remove highlight).
 struct ArticleTextView: UIViewRepresentable {
     struct NoteQuote: Equatable {
         let text: String
@@ -334,19 +324,34 @@ struct ArticleTextView: UIViewRepresentable {
     let fontSize: Double
     let lineHeight: Double
     let noteQuotes: [NoteQuote]
-    let highlights: [String]
+    let highlights: [SourceHighlight]
     let startWord: Int
     let model: ArticleReaderModel
+    /// Q404: the PDF reading view has no article header and sets its body in the serif face (Q6 mock).
+    var header: Bool = true
+    var serifBody: Bool = false
     let onAddNote: (ArticleSelection?) -> Void
-    let onHighlight: (String) -> Void
+    let onHighlight: (ArticleSelection) -> Void
+    let onRemoveHighlight: (UUID) -> Void
     let onOpenNote: (UUID) -> Void
 
     static let noteKey = NSAttributedString.Key("skriftNoteID")
+    /// Q404: a stored highlight's id on its painted range (a tap there opens its menu).
+    static let highlightKey = NSAttributedString.Key("skriftHighlightID")
+    /// Q404: "below:<n>" / "above:<n>" — a hairline under a table row or over a page break.
+    static let ruleKey = NSAttributedString.Key("skriftRule")
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView()
+        // TextKit 1 with our layout manager (it draws the rows' and page breaks' hairlines).
+        let storage = NSTextStorage()
+        let layout = ReaderLayoutManager()
+        storage.addLayoutManager(layout)
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        layout.addTextContainer(container)
+        let tv = ReaderTextView(frame: .zero, textContainer: container)
         tv.isEditable = false
         tv.isSelectable = true
         tv.backgroundColor = .clear
@@ -361,7 +366,19 @@ struct ArticleTextView: UIViewRepresentable {
             tap.cancelsTouchesInView = false
             return tap
         }())
+        let menu = UIEditMenuInteraction(delegate: context.coordinator)
+        tv.addInteraction(menu)
+        context.coordinator.menu = menu
+        let coordinator = context.coordinator
+        tv.onWidthChange = { [weak coordinator, weak tv] in
+            guard let coordinator, let tv else { return }
+            coordinator.widthChanged(tv)
+        }
         model.textView = tv
+        model.showSelectionMenu = { [weak coordinator, weak tv] in
+            guard let coordinator, let tv else { return }
+            coordinator.presentSelectionMenu(tv)
+        }
         context.coordinator.render(tv)
         // Land on the start word once the text is laid out.
         DispatchQueue.main.async {
@@ -384,16 +401,35 @@ struct ArticleTextView: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, UIEditMenuInteractionDelegate {
         var parent: ArticleTextView
+        weak var menu: UIEditMenuInteraction?
+        /// What the next `menu` presentation is for: a tapped highlight, or (screenshots) the selection.
+        private var tappedHighlight: (id: UUID, text: String)?
+        private var renderedWidth: CGFloat = 0
         init(_ parent: ArticleTextView) { self.parent = parent }
 
+        private func textWidth(_ tv: UITextView) -> CGFloat {
+            let w = tv.bounds.width > 0 ? tv.bounds.width : 390
+            return max(100, w - tv.textContainerInset.left - tv.textContainerInset.right)
+        }
+
         func render(_ tv: UITextView) {
+            renderedWidth = textWidth(tv)
             let built = ArticleLayout.build(parent.doc, fontSize: parent.fontSize, lineHeight: parent.lineHeight,
-                                            noteQuotes: parent.noteQuotes, highlights: parent.highlights)
+                                            noteQuotes: parent.noteQuotes, highlights: parent.highlights,
+                                            header: parent.header, serifBody: parent.serifBody, width: renderedWidth)
             tv.attributedText = built.text
             parent.model.wordStarts = built.wordStarts
             parent.model.wordCount = parent.doc.wordCount
+        }
+
+        /// The rows' right column is a tab stop at the text width: re-lay out when the width moves.
+        func widthChanged(_ tv: UITextView) {
+            guard abs(textWidth(tv) - renderedWidth) > 0.5, parent.doc.blocks.contains(where: { $0.kind == .row }) else { return }
+            let keep = parent.model.topWord
+            render(tv)
+            if parent.model.ready { DispatchQueue.main.async { self.scroll(tv, toWord: keep) } }
         }
 
         func scroll(_ tv: UITextView, toWord word: Int) {
@@ -432,37 +468,121 @@ struct ArticleTextView: UIViewRepresentable {
             return ArticleSelection(text: text, word: parent.model.word(atCharacter: r.location))
         }
 
-        /// The mock's callout: Copy · Highlight · ❝ Add note (the system menu, with our items).
-        func textView(_ tv: UITextView, editMenuForTextIn range: NSRange,
-                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+        /// The stored highlight a selection sits in (its first character), if any.
+        private func highlightID(in tv: UITextView, range: NSRange) -> UUID? {
+            guard range.location < tv.textStorage.length else { return nil }
+            return tv.textStorage.attribute(ArticleTextView.highlightKey, at: range.location, effectiveRange: nil) as? UUID
+        }
+
+        /// The mocks' callout: Copy · Highlight · ❝ Add note (the system menu, with our items);
+        /// inside a stored highlight, Highlight becomes Remove highlight.
+        private func selectionMenu(_ tv: UITextView, range: NSRange) -> UIMenu? {
             guard range.length > 0 else { return nil }
             let picked = selection(in: tv)
             let text = (tv.text as NSString).substring(with: range)
-            let copy = UIAction(title: "Copy") { _ in UIPasteboard.general.string = text }
-            var items: [UIMenuElement] = [copy]
-            if let picked {
-                items.append(UIAction(title: "Highlight") { [weak self] _ in
-                    self?.parent.onHighlight(picked.text)
+            let inside = highlightID(in: tv, range: range)
+            var items: [UIMenuElement] = [UIAction(title: SourceMenu.copy) { _ in UIPasteboard.general.string = text }]
+            if let inside {
+                items.append(UIAction(title: SourceMenu.removeHighlight) { [weak self] _ in
+                    self?.parent.onRemoveHighlight(inside)
                     tv.selectedRange = NSRange(location: range.location, length: 0)
                 })
-                items.append(UIAction(title: "\u{275D} Add note") { [weak self] _ in self?.parent.onAddNote(picked) })
+            } else if let picked {
+                items.append(UIAction(title: SourceMenu.highlight) { [weak self] _ in
+                    self?.parent.onHighlight(picked)
+                    tv.selectedRange = NSRange(location: range.location, length: 0)
+                })
+            }
+            if let picked {
+                items.append(UIAction(title: SourceMenu.addNote) { [weak self] _ in self?.parent.onAddNote(picked) })
             }
             return UIMenu(children: items)
         }
 
-        /// A tap on a note's highlight opens that note.
+        func textView(_ tv: UITextView, editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            selectionMenu(tv, range: range)
+        }
+
+        /// A tap on a note's highlight opens that note; a tap on a plain highlight opens its menu.
         @objc func tapped(_ gesture: UITapGestureRecognizer) {
             guard let tv = gesture.view as? UITextView, tv.selectedRange.length == 0 else { return }
-            var point = gesture.location(in: tv)
+            let location = gesture.location(in: tv)
+            var point = location
             point.x -= tv.textContainerInset.left
             point.y -= tv.textContainerInset.top
             let index = tv.layoutManager.characterIndex(for: point, in: tv.textContainer,
                                                         fractionOfDistanceBetweenInsertionPoints: nil)
-            guard index < tv.textStorage.length,
-                  let id = tv.textStorage.attribute(ArticleTextView.noteKey, at: index, effectiveRange: nil) as? UUID
-            else { return }
-            parent.onOpenNote(id)
+            guard index < tv.textStorage.length else { return }
+            if let id = tv.textStorage.attribute(ArticleTextView.noteKey, at: index, effectiveRange: nil) as? UUID {
+                parent.onOpenNote(id)
+                return
+            }
+            var range = NSRange()
+            if let id = tv.textStorage.attribute(ArticleTextView.highlightKey, at: index, effectiveRange: &range) as? UUID {
+                tappedHighlight = (id, (tv.text as NSString).substring(with: range))
+                menu?.presentEditMenu(with: UIEditMenuConfiguration(identifier: nil, sourcePoint: location))
+            }
         }
+
+        /// Screenshot hook: the selection menu over the current selection, without a long press.
+        func presentSelectionMenu(_ tv: UITextView) {
+            guard tv.selectedRange.length > 0, let range = tv.selectedTextRange else { return }
+            tappedHighlight = nil
+            let rect = tv.firstRect(for: range)
+            menu?.presentEditMenu(with: UIEditMenuConfiguration(identifier: nil, sourcePoint: CGPoint(x: rect.midX, y: rect.minY)))
+        }
+
+        func editMenuInteraction(_ interaction: UIEditMenuInteraction, menuFor configuration: UIEditMenuConfiguration,
+                                 suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard let tv = interaction.view as? UITextView else { return nil }
+            guard let hit = tappedHighlight else { return selectionMenu(tv, range: tv.selectedRange) }
+            tappedHighlight = nil
+            return UIMenu(children: [
+                UIAction(title: SourceMenu.copy) { _ in UIPasteboard.general.string = hit.text },
+                UIAction(title: SourceMenu.removeHighlight, attributes: .destructive) { [weak self] _ in
+                    self?.parent.onRemoveHighlight(hit.id)
+                },
+            ])
+        }
+    }
+}
+
+/// The reader's text view: tells the coordinator when its width changes (the rows' tab stop).
+final class ReaderTextView: UITextView {
+    var onWidthChange: (() -> Void)?
+    private var lastWidth: CGFloat = 0
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if abs(bounds.width - lastWidth) > 0.5 {
+            lastWidth = bounds.width
+            onWidthChange?()
+        }
+    }
+}
+
+/// Q404: draws the hairline under each table row and over each "Page N" break (`ruleKey`).
+final class ReaderLayoutManager: NSLayoutManager {
+    override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
+        super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+        guard let storage = textStorage, let ctx = UIGraphicsGetCurrentContext() else { return }
+        let chars = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
+        ctx.saveGState()
+        ctx.setFillColor(ArticleLayout.ruleColor.resolvedColor(with: UITraitCollection.current).cgColor)
+        storage.enumerateAttribute(ArticleTextView.ruleKey, in: chars) { value, range, _ in
+            guard let tag = value as? String else { return }
+            let glyphs = self.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            var first: CGRect?, last: CGRect?
+            self.enumerateLineFragments(forGlyphRange: glyphs) { rect, used, _, _, _ in
+                if first == nil { first = CGRect(x: rect.minX, y: used.minY, width: rect.width, height: used.height) }
+                last = rect
+            }
+            guard let f = first, let l = last else { return }
+            let y = tag.hasPrefix("above") ? f.minY : l.maxY - 0.5
+            ctx.fill(CGRect(x: origin.x + l.minX, y: origin.y + y, width: l.width, height: 0.5))
+        }
+        ctx.restoreGState()
     }
 }
 
@@ -479,12 +599,28 @@ enum ArticleLayout {
             : UIColor(red: 1, green: 0.8, blue: 0, alpha: 0.42) }
     }
 
+    static var ruleColor: UIColor { UIColor(Color.skBorder) }
+
+    /// UTF-16 offsets of each whitespace-split word from `from` on.
+    static func wordStarts(_ s: NSString, from: Int) -> [Int] {
+        var starts: [Int] = []
+        var inWord = false
+        for i in from..<s.length {
+            let ch = s.character(at: i)
+            let space = ch == 32 || ch == 10 || ch == 9 || ch == 13 || ch == 0xA0
+            if !space, !inWord { starts.append(i) }
+            inWord = !space
+        }
+        return starts
+    }
+
     static func build(_ doc: ArticleDoc, fontSize: Double, lineHeight: Double,
-                      noteQuotes: [ArticleTextView.NoteQuote], highlights: [String]) -> Built {
+                      noteQuotes: [ArticleTextView.NoteQuote], highlights: [SourceHighlight],
+                      header: Bool = true, serifBody: Bool = false, width: CGFloat = 0) -> Built {
         let out = NSMutableAttributedString()
         let text = UIColor(Color.skText), dim = UIColor(Color.skTextDim), faint = UIColor(Color.skTextFaint)
 
-        func para(spacing: CGFloat, before: CGFloat = 0, lineHeight: CGFloat? = nil) -> NSParagraphStyle {
+        func para(spacing: CGFloat, before: CGFloat = 0, lineHeight: CGFloat? = nil) -> NSMutableParagraphStyle {
             let p = NSMutableParagraphStyle()
             p.paragraphSpacing = spacing
             p.paragraphSpacingBefore = before
@@ -492,51 +628,85 @@ enum ArticleLayout {
             return p
         }
 
-        // Header (mock `.rdhead`): site · article, title, byline, date · read time · Original page ↗.
-        let kicker = "\(doc.site.uppercased()) \u{00B7} ARTICLE\n"
-        out.append(NSAttributedString(string: kicker, attributes: [
-            .font: UIFont.monospacedSystemFont(ofSize: 10.5, weight: .semibold), .kern: 0.7,
-            .foregroundColor: faint, .paragraphStyle: para(spacing: 6)]))
-        out.append(NSAttributedString(string: doc.title + "\n", attributes: [
-            .font: UIFont.systemFont(ofSize: 27, weight: .bold), .kern: -0.3,
-            .foregroundColor: text, .paragraphStyle: para(spacing: 6, lineHeight: 31)]))
-        if let by = [doc.publisher, doc.byline].compactMap({ $0 }).uniqued().joined(separator: " \u{00B7} ").nonEmpty {
-            out.append(NSAttributedString(string: by + "\n", attributes: [
-                .font: UIFont.systemFont(ofSize: 13), .foregroundColor: dim, .paragraphStyle: para(spacing: 6)]))
+        if header {
+            // Header (mock `.rdhead`): site · article, title, byline, date · read time · Original page ↗.
+            let kicker = "\(doc.site.uppercased()) \u{00B7} ARTICLE\n"
+            out.append(NSAttributedString(string: kicker, attributes: [
+                .font: UIFont.monospacedSystemFont(ofSize: 10.5, weight: .semibold), .kern: 0.7,
+                .foregroundColor: faint, .paragraphStyle: para(spacing: 6)]))
+            out.append(NSAttributedString(string: doc.title + "\n", attributes: [
+                .font: UIFont.systemFont(ofSize: 27, weight: .bold), .kern: -0.3,
+                .foregroundColor: text, .paragraphStyle: para(spacing: 6, lineHeight: 31)]))
+            if let by = [doc.publisher, doc.byline].compactMap({ $0 }).uniqued().joined(separator: " \u{00B7} ").nonEmpty {
+                out.append(NSAttributedString(string: by + "\n", attributes: [
+                    .font: UIFont.systemFont(ofSize: 13), .foregroundColor: dim, .paragraphStyle: para(spacing: 6)]))
+            }
+            var meta: [String] = []
+            if let d = doc.published { meta.append(d.formatted(.dateTime.month(.abbreviated).year())) }
+            meta.append("\(doc.readMinutes) min read")
+            let metaLine = NSMutableAttributedString(string: meta.joined(separator: "   ") + "   ", attributes: [
+                .font: UIFont.systemFont(ofSize: 11.5), .foregroundColor: faint])
+            if let url = URL(string: doc.url) {
+                metaLine.append(NSAttributedString(string: "Original page \u{2197}", attributes: [
+                    .font: UIFont.systemFont(ofSize: 11.5, weight: .semibold), .link: url]))
+            }
+            metaLine.append(NSAttributedString(string: "\n"))
+            metaLine.addAttribute(.paragraphStyle, value: para(spacing: 22), range: NSRange(location: 0, length: metaLine.length))
+            out.append(metaLine)
         }
-        var meta: [String] = []
-        if let d = doc.published { meta.append(d.formatted(.dateTime.month(.abbreviated).year())) }
-        meta.append("\(doc.readMinutes) min read")
-        let metaLine = NSMutableAttributedString(string: meta.joined(separator: "   ") + "   ", attributes: [
-            .font: UIFont.systemFont(ofSize: 11.5), .foregroundColor: faint])
-        if let url = URL(string: doc.url) {
-            metaLine.append(NSAttributedString(string: "Original page \u{2197}", attributes: [
-                .font: UIFont.systemFont(ofSize: 11.5, weight: .semibold), .link: url]))
-        }
-        metaLine.append(NSAttributedString(string: "\n"))
-        metaLine.addAttribute(.paragraphStyle, value: para(spacing: 22), range: NSRange(location: 0, length: metaLine.length))
-        out.append(metaLine)
 
         // Body (mock `.rdbody`): the Aa size and line height; paragraphs 0.9 em apart, headings 1.06 em.
         let size = CGFloat(fontSize)
-        let body = UIFont.systemFont(ofSize: size)
+        let sans = UIFont.systemFont(ofSize: size)
+        let body = serifBody
+            ? UIFont(descriptor: sans.fontDescriptor.withDesign(.serif) ?? sans.fontDescriptor, size: size)
+            : sans
         let head = UIFont.systemFont(ofSize: size * 1.06, weight: .bold)
+        let rowFont = UIFont.systemFont(ofSize: size * 0.9)
+        let markFont = UIFont.systemFont(ofSize: 11.5, weight: .semibold)
         let lh = size * CGFloat(lineHeight)
         let bodyStart = out.length
+        var pageRanges: [Int: NSRange] = [:]
         for (i, block) in doc.blocks.enumerated() {
             let last = i == doc.blocks.count - 1
+            let previous = i > 0 ? doc.blocks[i - 1].kind : nil
             let s = block.text + (last ? "" : "\n")
-            if block.kind == .heading {
+            let at = out.length
+            switch block.kind {
+            case .heading:
+                let first = i == 0 || previous == .page
                 out.append(NSAttributedString(string: s, attributes: [
                     .font: head, .foregroundColor: text,
-                    .paragraphStyle: para(spacing: size * 0.5, before: i == 0 ? 0 : size * 0.7, lineHeight: size * 1.06 * 1.35)]))
-            } else {
+                    .paragraphStyle: para(spacing: size * 0.5, before: first ? 0 : size * 0.7, lineHeight: size * 1.06 * 1.35)]))
+            case .paragraph:
                 out.append(NSAttributedString(string: s, attributes: [
-                    .font: body, .foregroundColor: text, .paragraphStyle: para(spacing: size * 0.9, lineHeight: lh)]))
+                    .font: body, .foregroundColor: text,
+                    .paragraphStyle: para(spacing: size * 0.9, before: previous == .row ? size * 0.9 : 0, lineHeight: lh)]))
+            case .row:
+                // Q6 mock table: label left, value right, a hairline under each row.
+                let rowHeight = size * 2.35
+                let p = para(spacing: 0, before: previous == .row ? 0 : size * 0.2, lineHeight: rowHeight)
+                p.tabStops = [NSTextTab(textAlignment: .right, location: max(120, width - 2))]
+                p.lineBreakMode = .byTruncatingMiddle
+                out.append(NSAttributedString(string: s, attributes: [
+                    .font: rowFont, .foregroundColor: text, .paragraphStyle: p,
+                    .baselineOffset: (rowHeight - rowFont.lineHeight) / 2 - 1,
+                    ArticleTextView.ruleKey: "below:\(i)"]))
+            case .page:
+                // A PDF page break: "Page N", small and faint, under a hairline.
+                out.append(NSAttributedString(string: s, attributes: [
+                    .font: markFont, .foregroundColor: faint, .kern: 0.2,
+                    .paragraphStyle: para(spacing: size * 0.7, before: size * 1.1, lineHeight: 30),
+                    .baselineOffset: -3,
+                    ArticleTextView.ruleKey: "above:\(i)"]))
+            }
+            if let page = block.page {
+                let r = NSRange(location: at, length: out.length - at)
+                pageRanges[page] = pageRanges[page].map { NSUnionRange($0, r) } ?? r
             }
         }
 
-        // Yellow: notes first (they open their note), then plain highlights.
+        // Yellow: notes first (they open their note), then stored highlights (they open their menu).
         let ns = out.string as NSString
         let bodyRange = NSRange(location: bodyStart, length: ns.length - bodyStart)
         var glyphs: [(at: Int, memo: UUID)] = []
@@ -546,9 +716,16 @@ enum ArticleLayout {
             out.addAttributes([.backgroundColor: highlightColor(), ArticleTextView.noteKey: q.memoID], range: r)
             glyphs.append((r.location + r.length, q.memoID))
         }
+        let starts = wordStarts(ns, from: bodyStart)
         for h in highlights {
-            let r = ns.range(of: h, options: [], range: bodyRange)
-            if r.location != NSNotFound { out.addAttribute(.backgroundColor, value: highlightColor(), range: r) }
+            var within = bodyRange
+            if let page = h.page {
+                guard let r = pageRanges[page] else { continue }
+                within = r
+            }
+            guard let r = SourceHighlights.range(of: h.text, near: h.word, in: out.string,
+                                                 wordStarts: starts, within: within) else { continue }
+            out.addAttributes([.backgroundColor: highlightColor(), ArticleTextView.highlightKey: h.id], range: r)
         }
         // Q381 (mock `.hlq`): a ❝ after the end of a noted sentence, accent colour, 0.8 em, no
         // background; it opens the note too. Hair space (not a word break) keeps the word count.
@@ -558,18 +735,8 @@ enum ArticleLayout {
                 .foregroundColor: UIColor(Color.skAccentText),
                 ArticleTextView.noteKey: g.memo]), at: g.at)
         }
-        let final = out.string as NSString
-
         // Word starts in the body (whitespace-split, the same count `ArticleDoc.wordCount` makes).
-        var starts: [Int] = []
-        var inWord = false
-        for i in bodyStart..<final.length {
-            let ch = final.character(at: i)
-            let space = ch == 32 || ch == 10 || ch == 9 || ch == 13 || ch == 0xA0
-            if !space, !inWord { starts.append(i) }
-            inWord = !space
-        }
-        return Built(text: out, wordStarts: starts)
+        return Built(text: out, wordStarts: wordStarts(out.string as NSString, from: bodyStart))
     }
 }
 
