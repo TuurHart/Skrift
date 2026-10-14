@@ -3002,105 +3002,105 @@ check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the d
 spec: C261 R70
 needs: -
 gate+: yes
-do: When an editor commit would turn a non-empty raw transcript or the Mac's polished copy into empty text (phone, iPad and Mac editors), show a confirm in the existing destructive-confirm style (as C262/C266 shipped); Cancel keeps the prior text. The "nets to empty" decision is one function in `Skrift_Native/Shared/`. Test `EmptyCommitGuardTests` (desktop target) covers both fields (`editor-clear-raw`, `editor-clear-polished`).
+do: Today (2026-10-14 read): no such guard exists; the only destructive confirm in Shared is `Shared/Naming/NameDeleteConfirm.swift` (reuse its style). When an editor commit would turn a non-empty raw transcript or the Mac's polished copy into empty text (phone, iPad and Mac editors), show a confirm in the existing destructive-confirm style (as C262/C266 shipped); Cancel keeps the prior text. The "nets to empty" decision is one function in `Skrift_Native/Shared/`. Test `EmptyCommitGuardTests` (desktop target) covers both fields (`editor-clear-raw`, `editor-clear-polished`).
 check: `grep -rqE "class EmptyCommitGuardTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q409 [auto] (todo) a .transcribing note orphaned on a gone device is adopted
 spec: C264 C154 C97 C263 R75
 needs: -
 gate+: yes
-do: A memo left in `.transcribing` by another device is taken over after 30 minutes when its audio blob is present (C154), on the phone and by the Mac sweep as the backstop. Younger than 30 minutes stays untouched (C97); a `transcriptUserEdited` memo is never re-transcribed (C263). The age rule is one shared function in `Skrift_Native/Shared/`. Test `OrphanedTranscribingTests` (desktop target): a 31-minute orphan with audio is adopted, a 5-minute one and a user-edited one are not.
+do: Today: `MemoSaver.swift` `ownsForRecovery` re-runs only this device's memos; the C263 user-edited skip already exists there; the Mac has no `.transcribing` sweep. A memo left in `.transcribing` by another device is taken over after 30 minutes when its audio blob is present (C154), on the phone and by the Mac sweep as the backstop. Younger than 30 minutes stays untouched (C97); a `transcriptUserEdited` memo is never re-transcribed (C263). The age rule is one shared function in `Skrift_Native/Shared/`. Test `OrphanedTranscribingTests` (desktop target): a 31-minute orphan with audio is adopted, a 5-minute one and a user-edited one are not.
 check: `grep -rqE "class OrphanedTranscribingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q410 [auto] (todo) a word-list edit merges with the latest synced list at write time
 spec: C267 C103 R80
 needs: -
 gate+: yes
-do: Custom vocabulary saves re-read the latest synced state immediately before writing and merge additively (phone and Mac, `VocabularyCloudSync` and the phone's twin), instead of saving the snapshot loaded when the screen opened. A removal on one device still removes. Test `VocabConcurrentAddTests` (desktop target): two devices each add a word offline, both words survive the sync.
+do: Today: `VocabularyCloudSync.swift` calls `VocabularySyncCore.reconcile` (whole-list LWW); the additive union runs only once as a migration. Custom vocabulary saves re-read the latest synced state immediately before writing and merge additively (phone and Mac, `VocabularyCloudSync` and the phone's twin), instead of saving the snapshot loaded when the screen opened. A removal on one device still removes. Test `VocabConcurrentAddTests` (desktop target): two devices each add a word offline, both words survive the sync.
 check: `grep -rqE "class VocabConcurrentAddTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q411 [auto] (todo) removing a book's download waits for its iCloud upload
 spec: C268 R81
 needs: -
 gate+: yes
-do: On the phone, Remove download is disabled with a "Still uploading to iCloud" line in the existing secondary-text style until `AudiobookCloudSync` reports the book's upload complete; no code path frees the local file before that. Test `RemoveDownloadUploadGateTests` (phone target).
+do: Today: `AudiobookCloudSync.removeDownload` deletes files once the book is synced, without checking the upload finished; the buttons in `SyncedAudiobooksView` and `AudiobookLibraryView` are never disabled. On the phone, Remove download is disabled with a "Still uploading to iCloud" line in the existing secondary-text style until `AudiobookCloudSync` reports the book's upload complete; no code path frees the local file before that. Test `RemoveDownloadUploadGateTests` (phone target).
 check: `plan/mtest.sh RemoveDownloadUploadGateTests`
 
 ### Q412 [auto] (todo) removing a bookmark removes the nearest one and says so
 spec: C269 R82
 needs: -
 gate+: yes
-do: Every bookmark removal path on the phone (player tap, swipe in the bookmarks sheet) removes exactly the one bookmark nearest the tap, breaks a tie by the earlier one, and shows a "Removed 1 bookmark at <time>" notice with Undo in the existing toast style. Test `BookmarkRemovalTests` (phone target): `bookmark-delete-near-tie` removes one, `bookmark-swipe-no-confirm` shows the notice.
+do: Today: `AudiobookPlayerView` removes every bookmark in the tapped line's span and toasts "Unfolded"; the swipe delete in `ChaptersBookmarksSheet` shows nothing. Every bookmark removal path on the phone (player tap, swipe in the bookmarks sheet) removes exactly the one bookmark nearest the tap, breaks a tie by the earlier one, and shows a "Removed 1 bookmark at <time>" notice with Undo in the existing toast style. Test `BookmarkRemovalTests` (phone target): `bookmark-delete-near-tie` removes one, `bookmark-swipe-no-confirm` shows the notice.
 check: `plan/mtest.sh BookmarkRemovalTests`
 
 ### Q413 [auto] (todo) a shared-book import re-checks the library right before unpacking
 spec: C270 R83
 needs: -
 gate+: yes
-do: `BookImportBridge` checks `alreadyImported` again immediately before it unpacks a `.skriftbook`, not only when it offers the import; a book that arrived in between is never overwritten. Test `BookImportRecheckTests` (phone target): the same book imported between offer and unpack yields one library entry and its files unchanged.
+do: Today: `alreadyImported` is checked only at offer (`BookImportBridge.swift`); `BookImportSheet.unpack()` and `BookBundle.unpack` do not re-check. `BookImportBridge` checks `alreadyImported` again immediately before it unpacks a `.skriftbook`, not only when it offers the import; a book that arrived in between is never overwritten. Test `BookImportRecheckTests` (phone target): the same book imported between offer and unpack yields one library entry and its files unchanged.
 check: `plan/mtest.sh BookImportRecheckTests`
 
 ### Q414 [auto] (todo) a capture-inbox entry is deleted only after its note is saved
 spec: C271 C147 R84
 needs: -
 gate+: yes
-do: `CaptureInboxDrainer` deletes an inbox entry only after the memo it produced is saved; a failed import leaves the entry for the next drain, and a re-drain is idempotent (memo id from the entry, so no duplicate note). Applies to every capture type. Test `CaptureInboxRetryTests` (phone target): an import that throws keeps the entry; the next drain makes exactly one note.
+do: Today: notes and files already delete the entry after insert+save with an id dedup; the video, audio and podcast-URL branches of `CaptureInboxDrainer` still delete it before importing. Fix those three. `CaptureInboxDrainer` deletes an inbox entry only after the memo it produced is saved; a failed import leaves the entry for the next drain, and a re-drain is idempotent (memo id from the entry, so no duplicate note). Applies to every capture type. Test `CaptureInboxRetryTests` (phone target): an import that throws keeps the entry; the next drain makes exactly one note.
 check: `plan/mtest.sh CaptureInboxRetryTests`
 
 ### Q415 [auto] (todo) a failed reprint keeps the note's printedAt
 spec: C272 R85
 needs: -
 gate+: yes
-do: `WallPrinter` writes the new `printedAt` only after the reprint succeeds; a failed or cancelled reprint leaves the previous stamp as it was. Test `WallReprintStampTests` (phone target).
+do: Today: `WallPrinter.printCard` calls `ledger.removeValue` before printing. `WallPrinter` writes the new `printedAt` only after the reprint succeeds; a failed or cancelled reprint leaves the previous stamp as it was. Test `WallReprintStampTests` (phone target).
 check: `plan/mtest.sh WallReprintStampTests`
 
 ### Q416 [auto] (todo) Markup keeps the original photo recoverable
 spec: C273 R86
 needs: -
 gate+: yes
-do: Before `MarkupQuickLook` presents `.updateContents`, the untouched photo is kept as a second `MemoAsset` blob (additive, synced, C96); the photo's menu offers "Revert to original" as a plain menu item. Only the first markup saves the original; later markups keep it. Test `MarkupOriginalTests` (phone target): markup then revert gives back the original bytes.
+do: Today: `MarkupQuickLook` edits in place with `.updateContents`; no original is kept. Before `MarkupQuickLook` presents `.updateContents`, the untouched photo is kept as a second `MemoAsset` blob (additive, synced, C96); the photo's menu offers "Revert to original" as a plain menu item. Only the first markup saves the original; later markups keep it. Test `MarkupOriginalTests` (phone target): markup then revert gives back the original bytes.
 check: `plan/mtest.sh MarkupOriginalTests`
 
 ### Q417 [auto] (todo) a capture whose transcription is empty is kept and says so
 spec: C274 R87
 needs: -
 gate+: yes
-do: A voice annotation or capture whose transcription returns no text stays in the note with a "No words heard" line in the existing secondary-text style until he saves or discards it; the success haptic never deletes it. Test `EmptyTranscriptKeptTests` (phone target): `voice-annotation-empty-transcript-kept`.
+do: Today: `CaptureVoiceAnnotate.swift` deletes the audio and fires the success haptic when the transcript is empty. A voice annotation or capture whose transcription returns no text stays in the note with a "No words heard" line in the existing secondary-text style until he saves or discards it; the success haptic never deletes it. Test `EmptyTranscriptKeptTests` (phone target): `voice-annotation-empty-transcript-kept`.
 check: `plan/mtest.sh EmptyTranscriptKeptTests`
 
 ### Q418 [auto] (todo) same full name is the same person: merge and say so
 spec: C254 R62
 needs: -
 gate+: yes
-do: Adding a person whose full name matches an existing one, case-insensitively, merges into that row (aliases and voiceprints unioned) on every add path: Settings on both apps, the sync merge in `NamesData`, the speaker assign sheet. The UI shows "Merged into <name>" in the existing toast style. Add corpus fixture `roster-duplicate-canonical`. Test `RosterDuplicateMergeTests` (desktop target): one row, notice raised. `names.json` stays byte-compatible across apps.
+do: Today: only `NamesStore.upsert` merges by name (case-insensitive) and it replaces voiceprints instead of unioning; the sync merge `NamesData.mergeByCanonical` keys on the exact canonical, so case variants never merge. Adding a person whose full name matches an existing one, case-insensitively, merges into that row (aliases and voiceprints unioned) on every add path: Settings on both apps, the sync merge in `NamesData`, the speaker assign sheet. The UI shows "Merged into <name>" in the existing toast style. Add corpus fixture `roster-duplicate-canonical`. Test `RosterDuplicateMergeTests` (desktop target): one row, notice raised. `names.json` stays byte-compatible across apps.
 check: `grep -rqE "class RosterDuplicateMergeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q419 [auto] (todo) name matching: Dutch bare possessive, diacritics, tags never split
 spec: C255 C256 C260 R69 R68 R65
 needs: -
 gate+: yes
-do: In the shared matcher (`Skrift_Native/Shared/Naming/`): an alias plus a bare `s` (`Wims`, `Lottes`) links like `Wim's`, unless that word is itself a roster alias; matching folds diacritics both ways (Ines/Inés, Månsson/Mansson); a `#tag` is never split or linked even when it equals an alias. Add corpus fixtures `edge-name-dutch-possessive`, `edge-name-diacritics`, `edge-name-is-tag`. Test `NameMatcherEdgeTests` (desktop target).
+do: Today: `Sanitiser.swift` handles only `'s` / `’s`; no diacritic folding; the `\b` boundary does not protect `#tags`. In the shared matcher (`Skrift_Native/Shared/Naming/`): an alias plus a bare `s` (`Wims`, `Lottes`) links like `Wim's`, unless that word is itself a roster alias; matching folds diacritics both ways (Ines/Inés, Månsson/Mansson); a `#tag` is never split or linked even when it equals an alias. Add corpus fixtures `edge-name-dutch-possessive`, `edge-name-diacritics`, `edge-name-is-tag`. Test `NameMatcherEdgeTests` (desktop target).
 check: `grep -rqE "class NameMatcherEdgeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q420 [auto] (todo) naming an unknown speaker seeds the alias
 spec: C257 R66
 needs: -
 gate+: yes
-do: Naming a speaker with a name not on the roster creates the person with that typed name as an alias, or opens the person editor; an alias-less person is never created. Same rule on phone and Mac, in one shared function. Add corpus fixture `edge-speaker-assign-new-name`. Test `SpeakerAssignNewNameTests` (desktop target): the new person has at least one alias.
+do: Today: the phone uses `PersonEditCore.createIfNeeded` (`SpeakerAssignSheet`), the Mac its own inline upsert in `ProcessingCoordinator`; `NamesStore.addVoiceEmbedding` can also create a person with `aliases: []` (e.g. from `VoiceEnroller.enroll`) — close that path too. Naming a speaker with a name not on the roster creates the person with that typed name as an alias, or opens the person editor; an alias-less person is never created. Same rule on phone and Mac, in one shared function. Add corpus fixture `edge-speaker-assign-new-name`. Test `SpeakerAssignNewNameTests` (desktop target): the new person has at least one alias.
 check: `grep -rqE "class SpeakerAssignNewNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q421 [auto] (todo) a synced roster change re-derives the open note at once
 spec: C258
 needs: -
 gate+: yes
-do: When a roster change arrives by sync while a note is open (phone, iPad, Mac), that note's name spans are re-derived immediately, not on the next open. Test `OpenNoteRosterRefreshTests` (desktop target): an open note's model re-derives after a simulated synced rename.
+do: Today: only the Settings/names screens observe `.namesDidChangeFromSync`; no open-note view does. When a roster change arrives by sync while a note is open (phone, iPad, Mac), that note's name spans are re-derived immediately, not on the next open. Test `OpenNoteRosterRefreshTests` (desktop target): an open note's model re-derives after a simulated synced rename.
 check: `grep -rqE "class OpenNoteRosterRefreshTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q422 [auto] (todo) a deleted person's voiceprints go with the tombstone
 spec: C259 C208 R63
 needs: -
 gate+: yes
-do: Deleting a person drops its voiceprints in the tombstone; the `NamesMerge` LWW merge never unions embeddings onto a tombstone. Add corpus fixture `roster-delete-with-voiceprint`. Test `RosterTombstoneVoiceprintTests` (desktop target).
+do: Today: a new tombstone already drops its voiceprints, but `NamesData.mergeByCanonical` unions voiceprints onto the winner even when it is a tombstone, and `NamesStore.addVoiceEmbedding` sets `deleted = nil` (revives a tombstone). Fix both. Deleting a person drops its voiceprints in the tombstone; the `NamesMerge` LWW merge never unions embeddings onto a tombstone. Add corpus fixture `roster-delete-with-voiceprint`. Test `RosterTombstoneVoiceprintTests` (desktop target).
 check: `grep -rqE "class RosterTombstoneVoiceprintTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q423 [auto] (todo) copy-edit harness: recorded model outputs, v1 goldens, tests for C30 C35 C40
@@ -3203,7 +3203,7 @@ check: `git rev-parse -q --verify refs/tags/v1-export >/dev/null`
 spec: C238 C198 C67 C69 C75 C125 C141 R4 R22
 needs: -
 gate+: yes
-do: Write `Skrift_Native/Shared/Ingress/`: a pure dispatcher that takes every extension item and every provider (UTI plus file or text) and returns one import plan (kind, clips in order, pictures, texts in order, url, title) or an honest refusal. Order per C198 (audio → web URL → movie → images → text → document); audio outranks the URL and odd UTIs reroute by extension (C69); several texts keep their order (C125); a photo's caption is kept (C141); an empty payload refuses (C75). Fixtures in `test-fixtures/corpus/ingress/<door>/` (providers manifest + `expect.json`): WhatsApp 3 items, Signal 4 providers, 2 texts among clips and a picture, URL-as-text, photo with caption, empty payload. Test `IngressDispatchTests` (desktop target).
+do: Today: only the accepted-type list is shared (`Shared/Pipeline/ImportKinds.swift`); `SharePayloadLoader.swift` and the Mac `IngestService.swift` each branch by type on their own. Write `Skrift_Native/Shared/Ingress/`: a pure dispatcher that takes every extension item and every provider (UTI plus file or text) and returns one import plan (kind, clips in order, pictures, texts in order, url, title) or an honest refusal. Order per C198 (audio → web URL → movie → images → text → document); audio outranks the URL and odd UTIs reroute by extension (C69); several texts keep their order (C125); a photo's caption is kept (C141); an empty payload refuses (C75). Fixtures in `test-fixtures/corpus/ingress/<door>/` (providers manifest + `expect.json`): WhatsApp 3 items, Signal 4 providers, 2 texts among clips and a picture, URL-as-text, photo with caption, empty payload. Test `IngressDispatchTests` (desktop target).
 check: `test $(ls -d test-fixtures/corpus/ingress/*/ | wc -l) -ge 6 && grep -rqE "class IngressDispatchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q439 [auto] (todo) the phone share extension and the Mac importer use the shared dispatcher
