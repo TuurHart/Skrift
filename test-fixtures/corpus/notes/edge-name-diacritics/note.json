@@ -1,0 +1,82 @@
+{
+  "id": "93272C40-794D-593A-A06D-2E47DC9E87A2",
+  "slug": "edge-name-diacritics",
+  "kind": "typed",
+  "lang": "mix",
+  "shape": ["typed", "name-matching", "diacritics"],
+  "title": null,
+  "recordedAt": "2026-10-14T09:05:00+02:00",
+  "createdAt": "2026-10-14T09:05:00+02:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Ines belde gisteren en Mansson kwam langs.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": { "capturedAt": "2026-10-14T09:05:00+02:00", "tags": [], "mediaSource": "typed" },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "_schema": "Q419 (C256/R68), read by NameMatcherEdgeTests. Same shape as edge-name-dutch-possessive: every case has its own `roster`, runs Sanitiser.process over `text`, and must produce exactly `sanitised`. Accents are written as \\u escapes where the composed/decomposed form matters.",
+    "cases": [
+      {
+        "name": "alias Inés, text Ines",
+        "text": "Ines belde gisteren.",
+        "roster": [{ "canonical": "[[Inés Moreau]]", "aliases": ["Inés"], "short": "Inés" }],
+        "sanitised": "[[Inés Moreau]] belde gisteren."
+      },
+      {
+        "name": "alias Ines, text Inés",
+        "text": "Inés belde gisteren.",
+        "roster": [{ "canonical": "[[Ines Moreau]]", "aliases": ["Ines"], "short": "Ines" }],
+        "sanitised": "[[Ines Moreau]] belde gisteren."
+      },
+      {
+        "name": "alias Månsson, text Mansson",
+        "text": "Mansson kwam langs.",
+        "roster": [{ "canonical": "[[Karl Månsson]]", "aliases": ["Månsson"], "short": "Månsson" }],
+        "sanitised": "[[Karl Månsson]] kwam langs."
+      },
+      {
+        "name": "alias Mansson, text Månsson",
+        "text": "Månsson kwam langs.",
+        "roster": [{ "canonical": "[[Karl Mansson]]", "aliases": ["Mansson"], "short": "Mansson" }],
+        "sanitised": "[[Karl Mansson]] kwam langs."
+      },
+      {
+        "name": "decomposed text (e + combining acute) matches the plain alias",
+        "text": "Inés belde gisteren.",
+        "roster": [{ "canonical": "[[Ines Moreau]]", "aliases": ["Ines"], "short": "Ines" }],
+        "sanitised": "[[Ines Moreau]] belde gisteren."
+      },
+      {
+        "name": "accent-folded possessive and a later mention demote",
+        "text": "Ines belde. Inés's tas lag er nog.",
+        "roster": [{ "canonical": "[[Inés Moreau]]", "aliases": ["Inés"], "short": "Inés" }],
+        "sanitised": "[[Inés Moreau]] belde. Inés's tas lag er nog."
+      },
+      {
+        "name": "a different name is not folded into a match",
+        "text": "Inez belde gisteren.",
+        "roster": [{ "canonical": "[[Inés Moreau]]", "aliases": ["Inés"], "short": "Inés" }],
+        "sanitised": "Inez belde gisteren."
+      }
+    ]
+  }
+}
