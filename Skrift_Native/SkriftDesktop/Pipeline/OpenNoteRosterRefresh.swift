@@ -18,7 +18,8 @@ final class OpenNoteRosterRefresh {
 
     private let people: () -> [Person]
     private let author: () -> String
-    private let afterRefresh: (PipelineFile) -> Void
+    /// Set by the view once it has its model context (an `@State` initialiser cannot read the environment).
+    var afterRefresh: (PipelineFile) -> Void
     private var token: NSObjectProtocol?
     private let center: NotificationCenter
 

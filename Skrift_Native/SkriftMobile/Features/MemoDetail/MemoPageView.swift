@@ -254,6 +254,13 @@ struct MemoPageView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardVisible = false
         }
+        // Q421 (C258): a roster change that arrives by sync re-derives the open note's name spans
+        // at once, not on the next open.
+        .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)
+            .receive(on: RunLoop.main)) { _ in
+            people = NamesStore.shared.livePeople()
+            recomputeSpans()
+        }
     }
 
     // MARK: - Page kinds (B2 pinned title + body)

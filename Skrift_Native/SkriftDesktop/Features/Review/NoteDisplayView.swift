@@ -45,6 +45,8 @@ struct NoteDisplayView: View {
     /// of the note's override sets, so undo just restores them + re-derives. Stays until
     /// dismissed/undone; cleared on note switch.
     @State private var namingUndo: NamingUndo?
+    /// Q421 (C258): re-derives the open note's name links when a roster change arrives by sync.
+    @State private var rosterRefresh = OpenNoteRosterRefresh()
     /// A tag removal's Undo pill (Q41) — hoisted to the note COLUMN (the
     /// `GeometryReader`'s own `.overlay`, below `unlockedContent`), not
     /// `TagEditorRow`'s own bounds, which run narrower than the column.
@@ -108,6 +110,8 @@ struct NoteDisplayView: View {
                     .task(id: file.id) { audio.load(path: file.path) }
                     .onChange(of: file.id, initial: true) { _, _ in
                         namingUndo = nil
+                        rosterRefresh.afterRefresh = { f in f.lastActivityAt = Date(); try? ctx.save() }
+                        rosterRefresh.open(file)
                         // C10/D4 + Q40: old body + polish (local and the synced row) → v2 once, at first open
                         file.normaliseBodyOnce(cloud: MemoCloudStore.syncContainer?.mainContext)
                     }
@@ -118,6 +122,7 @@ struct NoteDisplayView: View {
                     }
             } else {
                 emptyState
+                    .onAppear { rosterRefresh.open(nil) }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
