@@ -3033,7 +3033,7 @@ gate+: yes
 do: Today: `AudiobookPlayerView` removes every bookmark in the tapped line's span and toasts "Unfolded"; the swipe delete in `ChaptersBookmarksSheet` shows nothing. Every bookmark removal path on the phone (player tap, swipe in the bookmarks sheet) removes exactly the one bookmark nearest the tap, breaks a tie by the earlier one, and shows a "Removed 1 bookmark at <time>" notice with Undo in the existing toast style. Test `BookmarkRemovalTests` (phone target): `bookmark-delete-near-tie` removes one, `bookmark-swipe-no-confirm` shows the notice.
 check: `plan/mtest.sh BookmarkRemovalTests`
 
-### Q413 [auto] (doing) a shared-book import re-checks the library right before unpacking
+### Q413 [auto] (done) a shared-book import re-checks the library right before unpacking
 spec: C270 R83
 needs: -
 gate+: yes
@@ -3047,7 +3047,7 @@ gate+: yes
 do: Today: notes and files already delete the entry after insert+save with an id dedup; the video, audio and podcast-URL branches of `CaptureInboxDrainer` still delete it before importing. Fix those three. `CaptureInboxDrainer` deletes an inbox entry only after the memo it produced is saved; a failed import leaves the entry for the next drain, and a re-drain is idempotent (memo id from the entry, so no duplicate note). Applies to every capture type. Test `CaptureInboxRetryTests` (phone target): an import that throws keeps the entry; the next drain makes exactly one note.
 check: `plan/mtest.sh CaptureInboxRetryTests`
 
-### Q415 [auto] (todo) a failed reprint keeps the note's printedAt
+### Q415 [auto] (doing) a failed reprint keeps the note's printedAt
 spec: C272 R85
 needs: -
 gate+: yes
@@ -4645,3 +4645,5 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 14:56 Q443 -> tuur — awaiting sitting
 - 2026-10-14 14:58 Q419 -> done — gate 104s @32f35397
 - 2026-10-14 14:58 Q421 -> doing — worker out
+- 2026-10-14 15:00 Q415 -> doing — worker out
+- 2026-10-14 15:07 Q413 -> done — gate 114s @95280a27
