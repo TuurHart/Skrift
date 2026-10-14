@@ -3110,7 +3110,7 @@ gate+: yes
 do: Record v1 copy-edit for every corpus note with the MLX build on a scratch store seeded by `-corpus` (never the live Dev store; quit Dev first, C166). Store each model call's output as `test-fixtures/corpus/goldens/model/<sha256(prompt+input)>.txt` (C7, C286) and v1's shipped body, title and summary as `test-fixtures/corpus/goldens/v1-copyedit/<slug>.txt`. `CopyEditDiffHarnessTests` (MLX-free, desktop target) replays the recorded outputs through each registered engine and classes identical / expected-different / unexplained (C5); a cache miss fails and prints its key. Pin C30 (`pic-wall`, `pic-three-spread`: each picture returns after the same-index paragraph; v1 registered expected-different, R3), C35 (every number, name and non-filler word of `voice-en-pricing-ramble` and `voice-mix-code-switch` survives), C40 (Process on an unrated note floors it to 0.1).
 check: `test $(ls test-fixtures/corpus/goldens/v1-copyedit | wc -l) -ge 100 && grep -rqE "class CopyEditDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q424 [auto] (doing) copy-edit v2 beside v1
+### Q424 [auto] (done) copy-edit v2 beside v1
 spec: C28 C29 C30 C31 C32 C33 C34 C36 C37 C38 C39 C177 C178 C285 C2 C3
 needs: Q423
 gate+: yes
@@ -4719,3 +4719,4 @@ check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 16:40 Q448 -> done — gate 53s @a68e370b
 - 2026-10-14 16:41 Q423 -> done — gate 50s @e2ce3b28
 - 2026-10-14 16:41 Q424 -> doing — worker out
+- 2026-10-14 17:07 Q424 -> done — gate 53s @2a4feffb
