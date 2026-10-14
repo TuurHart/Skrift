@@ -3167,7 +3167,7 @@ needs: Q431
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-reconcile >/dev/null`
 
-### Q433 [auto] (doing) export harness: v1 export goldens, tests for C57 C64 C65, dest fixtures on two destinations
+### Q433 [auto] (done) export harness: v1 export goldens, tests for C57 C64 C65, dest fixtures on two destinations
 spec: C253 C5 C57 C58 C64 C65 C129 C130 C133 C135 C137 D189
 needs: -
 gate+: yes
@@ -4681,3 +4681,4 @@ check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 15:44 Q423 -> doing — worker out
 - 2026-10-14 15:45 Q439 -> done — gate 55s @f3af339d
 - 2026-10-14 15:46 Q445 added
+- 2026-10-14 15:47 Q433 -> done — hand-merged (dest-* fixtures re-based to D189 as Q433's do: asked; Tuur confirmed the resync 2026-10-14)
