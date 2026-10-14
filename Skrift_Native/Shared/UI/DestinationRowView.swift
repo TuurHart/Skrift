@@ -13,8 +13,9 @@ import SwiftUI
 /// line is this note on". The folder Portfolio writes to (`_inbox/`) is spoken to VoiceOver and
 /// shown as the Mac tooltip, not drawn: a folder label appearing on the tap would move the row.
 ///
-/// The idea / inspiration / project presets are plain tags, offered by `TagEditorRow(presets:)`
-/// beside `+ add tag` while the note is Portfolio.
+/// Portfolio adds no tag (D205). idea / inspiration / project are plain tags, offered as quiet
+/// suggestions by `TagEditorRow(presets:)` (`PortfolioTagPresets.suggestions`) while the note is
+/// Portfolio and has none of them.
 struct DestinationRowStyle {
     /// The private family (`.personal`) — the app accent.
     var accent: Color
