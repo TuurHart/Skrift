@@ -3061,7 +3061,7 @@ gate+: yes
 do: Today: `MarkupQuickLook` edits in place with `.updateContents`; no original is kept. Before `MarkupQuickLook` presents `.updateContents`, the untouched photo is kept as a second `MemoAsset` blob (additive, synced, C96); the photo's menu offers "Revert to original" as a plain menu item. Only the first markup saves the original; later markups keep it. Test `MarkupOriginalTests` (phone target): markup then revert gives back the original bytes.
 check: `plan/mtest.sh MarkupOriginalTests`
 
-### Q417 [auto] (doing) a capture whose transcription is empty is kept and says so
+### Q417 [auto] (done) a capture whose transcription is empty is kept and says so
 spec: C274 R87
 needs: -
 gate+: yes
@@ -3206,7 +3206,7 @@ gate+: yes
 do: Today: only the accepted-type list is shared (`Shared/Pipeline/ImportKinds.swift`); `SharePayloadLoader.swift` and the Mac `IngestService.swift` each branch by type on their own. Write `Skrift_Native/Shared/Ingress/`: a pure dispatcher that takes every extension item and every provider (UTI plus file or text) and returns one import plan (kind, clips in order, pictures, texts in order, url, title) or an honest refusal. Order per C198 (audio → web URL → movie → images → text → document); audio outranks the URL and odd UTIs reroute by extension (C69); several texts keep their order (C125); a photo's caption is kept (C141); an empty payload refuses (C75). Fixtures in `test-fixtures/corpus/ingress/<door>/` (providers manifest + `expect.json`): WhatsApp 3 items, Signal 4 providers, 2 texts among clips and a picture, URL-as-text, photo with caption, empty payload. Test `IngressDispatchTests` (desktop target).
 check: `test $(ls -d test-fixtures/corpus/ingress/*/ | wc -l) -ge 6 && grep -rqE "class IngressDispatchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q439 [auto] (todo) the phone share extension and the Mac importer use the shared dispatcher
+### Q439 [auto] (doing) the phone share extension and the Mac importer use the shared dispatcher
 spec: C238 C67 C77 C75
 needs: Q438
 do: `SharePayloadLoader` / `ShareViewController` on the phone and the Mac file importer call the Q438 dispatcher; their own per-type branching is deleted, not left beside it. Behaviour on today's working doors stays the same (`ShareSheetView` tests still pass).
@@ -4660,3 +4660,5 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:26 Q422 -> done — gate 46s @082e4d42
 - 2026-10-14 15:29 Q433 -> doing — worker out
 - 2026-10-14 15:30 Q438 -> done — gate 43s @206f215b
+- 2026-10-14 15:32 Q439 -> doing — worker out
+- 2026-10-14 15:33 Q417 -> done — gate 41s @51628e50
