@@ -81,6 +81,8 @@ struct SharePayload {
     /// C142: a shared email's Date header - the capture's `recordedAt` (the entry's `sharedAt`
     /// is what the drain dates the note by). nil = the share moment.
     var sharedAt: Date?
+    /// Q448 / C142: a shared email's attachments (non-empty parts only), kept as note attachments.
+    var emailAttachments: [EmailShare.Attachment] = []
 }
 
 /// What the share extension shows for a share: the sheet, or an honest no (C75).
@@ -229,7 +231,8 @@ enum SharePayloadLoader {
                 // body, the Date header = recordedAt. The .eml copy is not kept. A .eml that
                 // cannot be read as a message falls through to a file card (never a husk).
                 return SharePayload(type: .text, urlTitle: mail.subject, text: mail.body.isEmpty ? nil : mail.body,
-                                    sharedAt: mail.date)
+                                    sharedAt: mail.date,
+                                    emailAttachments: mail.attachments.filter { !$0.data.isEmpty })
             }
             if plan.bookFile != nil {
                 // C146 (Q440): the book route sits inside the document branch, as ImportKinds

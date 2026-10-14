@@ -135,6 +135,36 @@ enum CaptureInboxDrainer {
         await Task.detached(priority: .userInitiated) { work() }.value
     }
 
+    /// Q448 / C142: copy a shared email's attachments from the inbox entry into the recordings
+    /// folder under their `NoteAttachment` filenames (owner = the memo's id) and return their
+    /// manifest entries, in attachment order (empty = nothing to store). The names and entries
+    /// are the shared `NoteAttachment.emailFiles`, the same ones the Mac makes.
+    static func storeEmailAttachments(_ entry: CaptureInboxEntry, entryDir: URL, memoID: UUID,
+                                      into folder: URL = AppPaths.recordingsDirectory) async -> [NoteAttachmentEntry] {
+        guard entry.type == "text", let stored = entry.emailAttachmentFileNames, !stored.isEmpty else { return [] }
+        let shown = entry.emailAttachmentNames ?? []
+        return await offMain { () -> [NoteAttachmentEntry] in
+            var parts: [EmailShare.Attachment] = []
+            for (i, name) in stored.enumerated() {
+                guard let data = try? Data(contentsOf: entryDir.appendingPathComponent(name)) else { continue }
+                parts.append(EmailShare.Attachment(name: i < shown.count ? shown[i] : "attachment",
+                                                   mimeType: "", data: data))
+            }
+            let files = NoteAttachment.emailFiles(parts, owner: memoID)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            var kept: [NoteAttachmentEntry] = []
+            for f in files {
+                do {
+                    try f.data.write(to: folder.appendingPathComponent(f.entry.filename), options: .atomic)
+                    kept.append(f.entry)
+                } catch {
+                    DevLog.log("drain: email attachment \(f.entry.name) not stored: \(error)")
+                }
+            }
+            return kept
+        }
+    }
+
     /// HEAD sniff for extensionless PDF links (C5): true when the server says the
     /// resource is a PDF. The magic-byte check in `downloadPDF` stays the real gate.
     private static func headSaysPDF(_ remote: URL) async -> Bool {
@@ -759,11 +789,16 @@ enum CaptureInboxDrainer {
 
         // Build MemoMetadata when the capture carries any: an image manifest
         // (image captures) and/or a place (D6 Maps shares).
+        // Q448 / C142: a shared email's attachments become the note's file attachments, the way
+        // a picked file is (Q385): each under its unique recordings name, the manifest in the
+        // metadata, one marker paragraph per file after the body (the asset sweep syncs them).
+        let emailEntries = await Self.storeEmailAttachments(entry, entryDir: entryDir, memoID: memoID)
         var metadata: MemoMetadata?
-        if imageManifest != nil || placeInfo != nil {
+        if imageManifest != nil || placeInfo != nil || !emailEntries.isEmpty {
             var m = MemoMetadata()
             m.imageManifest = imageManifest
             m.location = placeInfo
+            if !emailEntries.isEmpty { m.attachmentManifest = emailEntries }
             metadata = m
         }
 
@@ -782,6 +817,10 @@ enum CaptureInboxDrainer {
             // Body v2 (C10): the share capture's body is committed once, here.
             annotation = BodyV2.committed(BodyV2.Input(text: annotation, manifest: manifest,
                                                        source: .shareCapture))
+        }
+
+        if !emailEntries.isEmpty {
+            annotation = NoteAttachment.appendingMarkers(to: annotation, entries: emailEntries)
         }
 
         let memo = Memo.make(
