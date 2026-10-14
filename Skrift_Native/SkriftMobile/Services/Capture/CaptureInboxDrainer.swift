@@ -577,7 +577,8 @@ enum CaptureInboxDrainer {
             let isPDF: Bool
             if remote.pathExtension.lowercased() == "pdf" {
                 isPDF = true
-            } else if remote.scheme?.hasPrefix("http") == true {
+            } else if remote.scheme?.hasPrefix("http") == true, PlaceLink.parse(raw) == nil {
+                // (C144: a Maps link with a place is never sniffed - no fetch for it.)
                 isPDF = await headSaysPDF(remote)
             } else {
                 isPDF = false

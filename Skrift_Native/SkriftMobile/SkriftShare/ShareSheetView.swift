@@ -873,7 +873,8 @@ struct ShareSheetView: View {
             // Q355: an article share carries no thought and no rating (the sheet hid both).
             annotationText: toLibrary ? nil : trimmedThought,
             significance: toLibrary ? 0 : significance,
-            sharedAt: ISO8601.string(from: Date()),
+            // C142: a shared email dates the note by its Date header.
+            sharedAt: ISO8601.string(from: payload.sharedAt ?? Date()),
             // The names array carries EVERY image (single included) — the write
             // path stores them all from `imageDatas`, index-aligned.
             imageFileNames: images.fileNames,

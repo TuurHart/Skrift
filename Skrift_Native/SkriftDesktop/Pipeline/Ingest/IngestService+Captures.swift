@@ -23,6 +23,22 @@ extension IngestService {
                                      into: context)
     }
 
+    // MARK: - Email (.eml) → text capture (C142)
+
+    /// A dropped `.eml`: a text capture whose title is the Subject, whose body is the plain text
+    /// and whose date is the Date header (not the drop moment). Nil when the file is not a
+    /// readable message; the caller then keeps it as a document, never a husk.
+    func ingestEmailCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+        let mail = await Task.detached(priority: .userInitiated) { () -> EmailShare.Message? in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return EmailShare.parse(data)
+        }.value
+        guard let mail else { return nil }
+        return try await makeCapture(shared: SharedContent(type: .text, urlTitle: mail.subject),
+                                     body: mail.body, location: nil, document: nil, thumbnail: nil,
+                                     recordedAt: mail.date, into: context)
+    }
+
     // MARK: - PDF / other document → file capture (C73)
 
     /// A dropped document: copied under the capture's `files/` (the Mac opens the real file),
@@ -85,6 +101,7 @@ extension IngestService {
     /// transcript (so transcription is `.done`, there is nothing to hear), unrated (D159).
     private func makeCapture(shared initial: SharedContent, body: String, location: LocationInfo?,
                              document: (data: Data, ext: String)?, thumbnail: Data?,
+                             recordedAt: Date? = nil,
                              into context: ModelContext) async throws -> PipelineFile {
         let id = UUID().uuidString
         let folder = outputDir.appendingPathComponent("capture_\(id)", isDirectory: true)
@@ -123,6 +140,7 @@ extension IngestService {
 
         let pf = PipelineFile(id: id, filename: "capture_\(id)", path: folder.path,
                               size: body.utf8.count, sourceType: .capture)
+        if let recordedAt { pf.uploadedAt = recordedAt }
         pf.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: meta, options: [.sortedKeys])
         pf.transcript = body
         pf.transcribeStatus = .done
