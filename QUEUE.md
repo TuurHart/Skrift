@@ -3005,7 +3005,7 @@ gate+: yes
 do: Today (2026-10-14 read): no such guard exists; the only destructive confirm in Shared is `Shared/Naming/NameDeleteConfirm.swift` (reuse its style). When an editor commit would turn a non-empty raw transcript or the Mac's polished copy into empty text (phone, iPad and Mac editors), show a confirm in the existing destructive-confirm style (as C262/C266 shipped); Cancel keeps the prior text. The "nets to empty" decision is one function in `Skrift_Native/Shared/`. Test `EmptyCommitGuardTests` (desktop target) covers both fields (`editor-clear-raw`, `editor-clear-polished`).
 check: `grep -rqE "class EmptyCommitGuardTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q409 [auto] (doing) a .transcribing note orphaned on a gone device is adopted
+### Q409 [auto] (done) a .transcribing note orphaned on a gone device is adopted
 spec: C264 C154 C97 C263 R75
 needs: -
 gate+: yes
@@ -4629,3 +4629,4 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 - 2026-10-14 14:44 Q412 -> doing — worker out
 - 2026-10-14 14:45 Q408 -> done — gate 57s @4f93d12d
 - 2026-10-14 14:45 Q442 -> tuur — awaiting sitting
+- 2026-10-14 14:47 Q409 -> done — gate 110s @e8fe0df6
