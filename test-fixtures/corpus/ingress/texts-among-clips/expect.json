@@ -1,0 +1,11 @@
+{
+  "kind": "audio",
+  "parts": [
+    { "clip": "PTT-20241005-WA0001.opus" },
+    { "text": "Meet at the station at nine." },
+    { "picture": "IMG-20241005-WA0002.jpg" },
+    { "clip": "PTT-20241005-WA0003.opus" },
+    { "text": "Bring the blue folder." }
+  ],
+  "file": null, "url": null, "title": null
+}

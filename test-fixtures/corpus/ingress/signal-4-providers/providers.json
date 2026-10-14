@@ -1,0 +1,12 @@
+{
+  "door": "signal-4-providers",
+  "about": "C67/C69: Signal ships 4 voice notes as 4 providers of ONE item, on a UTI that is not public.audio. The .aac extension reroutes each to audio.",
+  "items": [
+    { "providers": [
+      { "uti": ["org.whispersystems.signal.attachment", "public.data"], "file": "signal-2024-10-03-120001.aac" },
+      { "uti": ["org.whispersystems.signal.attachment", "public.data"], "file": "signal-2024-10-03-120214.aac" },
+      { "uti": ["org.whispersystems.signal.attachment", "public.data"], "file": "signal-2024-10-03-120530.aac" },
+      { "uti": ["org.whispersystems.signal.attachment", "public.data"], "file": "signal-2024-10-03-121002.aac" }
+    ] }
+  ]
+}

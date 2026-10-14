@@ -1,0 +1,10 @@
+{
+  "kind": "audio",
+  "parts": [
+    { "clip": "signal-2024-10-03-120001.aac" },
+    { "clip": "signal-2024-10-03-120214.aac" },
+    { "clip": "signal-2024-10-03-120530.aac" },
+    { "clip": "signal-2024-10-03-121002.aac" }
+  ],
+  "file": null, "url": null, "title": null
+}

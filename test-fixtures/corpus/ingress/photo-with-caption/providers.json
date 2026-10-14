@@ -1,0 +1,10 @@
+{
+  "door": "photo-with-caption",
+  "about": "C141/R22: a WhatsApp photo + caption - the caption is kept as the annotation above the picture.",
+  "items": [
+    { "providers": [
+      { "uti": ["public.jpeg"], "file": "IMG-20241006-WA0011.jpg" },
+      { "uti": ["public.plain-text"], "text": "The view from the bridge" }
+    ] }
+  ]
+}
