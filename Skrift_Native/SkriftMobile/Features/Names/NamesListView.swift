@@ -29,6 +29,8 @@ struct NamesListView: View {
         .onAppear(perform: reload)
         // A names reconcile merged people in/out (R67) — re-read, do not wait for the next appear.
         .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)) { _ in reload() }
+        // C254/R62: an add whose full name matches an existing person merged into it — say so.
+        .rosterMergeToast(fill: Color.black.opacity(0.85), alignment: .bottom)
     }
 
     @ViewBuilder private var content: some View {

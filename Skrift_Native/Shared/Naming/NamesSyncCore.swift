@@ -24,7 +24,10 @@ enum NamesSyncCore {
     /// Tell open UI the roster changed under it. Posts only when the merge changed the local
     /// roster (an unchanged reconcile must not re-render every names screen on each sweep).
     /// `center` is injectable for tests.
+    /// A same-name fold (C254) is announced ("Merged into John Smith") whether or not this
+    /// device's roster changed — it was a merge either way.
     static func notifyIfChanged(_ outcome: Outcome, center: NotificationCenter = .default) {
+        for canonical in outcome.mergedInto { RosterMergeNotice.post(into: canonical, center: center) }
         guard outcome.localChanged else { return }
         center.post(name: .namesDidChangeFromSync, object: nil)
     }
@@ -34,6 +37,8 @@ enum NamesSyncCore {
         let merged: NamesData
         /// True when the merge differs from the local roster → caller saves + notifies.
         let localChanged: Bool
+        /// Canonicals that absorbed a same-name case variant in this reconcile (C254/R62).
+        var mergedInto: [String] = []
     }
 
     /// Deterministic `NamesData` (sorted people, max timestamp) — the carrier payload and
@@ -60,9 +65,12 @@ enum NamesSyncCore {
         // Fold local + every carrier row (handles the rare duplicate-carrier case — two
         // devices each created one before syncing). Commutative enough (LWW + union) to converge.
         var people = localPeople
+        var mergedInto: [String] = []
         for record in records {
             guard let remote = try? JSONDecoder().decode(NamesData.self, from: record.blob) else { continue }
-            people = NamesMerge.mergeByCanonical(local: people, remote: remote.people)
+            let step = NamesMerge.mergeReporting(local: people, remote: remote.people)
+            people = step.people
+            for c in step.mergedInto where !mergedInto.contains(c) { mergedInto.append(c) }
         }
 
         let merged = normalized(people)
@@ -79,6 +87,6 @@ enum NamesSyncCore {
         } else {
             insert(NamesRecord(blob: mergedBlob))
         }
-        return Outcome(merged: merged, localChanged: localChanged)
+        return Outcome(merged: merged, localChanged: localChanged, mergedInto: mergedInto)
     }
 }

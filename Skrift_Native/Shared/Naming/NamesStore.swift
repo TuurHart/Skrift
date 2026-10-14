@@ -188,7 +188,10 @@ final class NamesStore {
         guard !c.isEmpty, !embedding.vector.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
         var data = unlockedLoad()
-        if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
+        // Same full name = same person (C254): a live row of any case wins, else the exact one.
+        let key = NamesMerge.matchKey(c)
+        if let idx = data.people.firstIndex(where: { !$0.isDeleted && NamesMerge.matchKey($0.canonical) == key })
+            ?? data.people.firstIndex(where: { $0.canonical == c }) {
             var p = data.people[idx]
             p.voiceEmbeddings = NamesMerge.unionEmbeddings(p.voiceEmbeddings, [embedding]) ?? [embedding]
             p.deleted = nil
@@ -202,28 +205,48 @@ final class NamesStore {
     }
 
     /// Add a person by canonical (quick-add flow and tests). NEVER overwrites a live person's
-    /// aliases/short: an existing person is left exactly as it is (setexp-107: the Add Person
-    /// sheet used to wipe them). A tombstone is resurrected IN PLACE (keeping voiceprints) with
-    /// the given aliases/short. To edit a person deliberately use `upsert(_:replacing:)`.
-    func upsert(canonical: String, aliases: [String], short: String?) {
+    /// aliases/short (setexp-107: the Add Person sheet used to wipe them): a live person with
+    /// the same full name, any case (C254), is MERGED into — new aliases unioned in, short kept —
+    /// and the merge is announced (`RosterMergeNotice`). A tombstone is resurrected IN PLACE
+    /// (keeping voiceprints) with the given aliases/short. To edit a person deliberately use
+    /// `upsert(_:replacing:)`. Returns the surviving canonical when it merged, else nil.
+    @discardableResult
+    func upsert(canonical: String, aliases: [String], short: String?) -> String? {
         let c = NamesMerge.normaliseCanonical(canonical)
-        guard !c.isEmpty else { return }
-        lock.lock(); defer { lock.unlock() }
-        var data = unlockedLoad()
-        let cleanedAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        let cleanedShort = (short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
-        if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
-            var p = data.people[idx]
-            guard p.isDeleted else { return }   // live person: keep their aliases/short untouched
-            p.aliases = cleanedAliases
-            p.short = cleanedShort
-            p.lastModifiedAt = ISO8601.now()
-            p.deleted = nil
-            data.people[idx] = p
-        } else {
-            data.people.append(Person(canonical: c, aliases: cleanedAliases, short: cleanedShort, lastModifiedAt: ISO8601.now()))
-        }
-        _ = unlockedSave(data)
+        guard !c.isEmpty else { return nil }
+        let mergedInto: String? = {
+            lock.lock(); defer { lock.unlock() }
+            var data = unlockedLoad()
+            let cleanedAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            let cleanedShort = (short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
+            let key = NamesMerge.matchKey(c)
+            if let idx = data.people.firstIndex(where: { !$0.isDeleted && NamesMerge.matchKey($0.canonical) == key }) {
+                // Live person, same full name: union the aliases in, keep their short.
+                var p = data.people[idx]
+                let union = NamesMerge.unionAliases(p.aliases, cleanedAliases)
+                if union != p.aliases {
+                    p.aliases = union
+                    p.lastModifiedAt = ISO8601.now()
+                    data.people[idx] = p
+                    _ = unlockedSave(data)
+                }
+                return p.canonical
+            }
+            if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
+                var p = data.people[idx]
+                p.aliases = cleanedAliases
+                p.short = cleanedShort
+                p.lastModifiedAt = ISO8601.now()
+                p.deleted = nil
+                data.people[idx] = p
+            } else {
+                data.people.append(Person(canonical: c, aliases: cleanedAliases, short: cleanedShort, lastModifiedAt: ISO8601.now()))
+            }
+            _ = unlockedSave(data)
+            return nil
+        }()
+        if let mergedInto { RosterMergeNotice.post(into: mergedInto) }
+        return mergedInto
     }
 
     /// Insert or update ONE person from the detail editor (mocks/opt-in-naming.html panel 3),
@@ -231,28 +254,43 @@ final class NamesStore {
     /// name REPLACES the old entry instead of duplicating it. Falls back to matching the new
     /// canonical (a no-rename edit) or appending (a brand-new person). Persists + syncs via
     /// `writeWithSmartBumps` (which also carries forward voiceprints the editor doesn't round-trip).
-    func upsert(_ person: Person, replacing originalCanonical: String?) {
-        lock.lock(); defer { lock.unlock() }
-        var people = unlockedLivePeople()
-        let newKey = NamesMerge.matchKey(person.canonical)
-        if let orig = originalCanonical, let i = people.firstIndex(where: { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(orig) }) {
-            // An EDIT (incl. rename): full replace, so removing an alias actually takes effect.
-            people[i] = person
-        } else if let i = people.firstIndex(where: { NamesMerge.matchKey($0.canonical) == newKey }) {
-            // ADD whose name collides with an existing person → MERGE rather than clobber:
-            // union the new aliases in, keep the existing short/voice when the add didn't set
-            // them. (A deliberate edit goes through the `replacing` branch above and replaces.)
-            var merged = people[i]
-            for a in person.aliases where !merged.aliases.contains(where: { $0.caseInsensitiveCompare(a) == .orderedSame }) {
-                merged.aliases.append(a)
+    /// Same full name = same person (C254): an ADD, or a rename onto another person's full name,
+    /// whose name matches a live row case-insensitively MERGES into that row (aliases and
+    /// voiceprints unioned, the row's own spelling kept) and announces it (`RosterMergeNotice`).
+    /// Returns the surviving canonical when it merged, else nil.
+    @discardableResult
+    func upsert(_ person: Person, replacing originalCanonical: String?) -> String? {
+        let mergedInto: String? = {
+            lock.lock(); defer { lock.unlock() }
+            var people = unlockedLivePeople()
+            let newKey = NamesMerge.matchKey(person.canonical)
+            let editIndex = originalCanonical.flatMap { orig in
+                people.firstIndex(where: { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(orig) })
             }
-            if let s = person.short, !s.isEmpty { merged.short = s }
-            merged.voiceEmbeddings = person.voiceEmbeddings ?? merged.voiceEmbeddings
-            people[i] = merged
-        } else {
-            people.append(person)
-        }
-        _ = unlockedWriteWithSmartBumps(people)
+            let sameName = people.indices.first { $0 != editIndex && NamesMerge.matchKey(people[$0].canonical) == newKey }
+            var merged: String?
+            if let i = sameName {
+                // ADD (or rename) onto an existing person's full name → MERGE rather than clobber
+                // or duplicate: union aliases + voiceprints, take a short the add set.
+                var into = people[i]
+                into.aliases = NamesMerge.unionAliases(into.aliases, person.aliases)
+                if let s = person.short, !s.isEmpty { into.short = s }
+                into.voiceEmbeddings = NamesMerge.unionEmbeddings(into.voiceEmbeddings, person.voiceEmbeddings)
+                people[i] = into
+                // A renamed person folds away; `writeWithSmartBumps` tombstones its old canonical.
+                if let e = editIndex { people.remove(at: e) }
+                merged = into.canonical
+            } else if let i = editIndex {
+                // An EDIT (incl. rename): full replace, so removing an alias actually takes effect.
+                people[i] = person
+            } else {
+                people.append(person)
+            }
+            _ = unlockedWriteWithSmartBumps(people)
+            return merged
+        }()
+        if let mergedInto { RosterMergeNotice.post(into: mergedInto) }
+        return mergedInto
     }
 
     /// Seed the roster from `People/` note titles (chunk 2, archive/state-2026-09/NAMING_MODEL.md decision 5).

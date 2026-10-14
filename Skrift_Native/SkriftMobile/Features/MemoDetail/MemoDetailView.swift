@@ -371,7 +371,11 @@ struct MemoDetailView: View {
         }
     }
 
-    var body: some View { screenBody.feedbackScreen("Note") }   // Q299
+    var body: some View {
+        screenBody.feedbackScreen("Note")   // Q299
+            // C254/R62: a speaker named with an existing person's full name merged into them.
+            .rosterMergeToast(fill: Color.black.opacity(0.85), alignment: .bottom)
+    }
     @ViewBuilder private var screenBody: some View {
         Group {
             if hSize == .regular {

@@ -516,10 +516,11 @@ struct NoteDisplayView: View {
     /// collision the add may have introduced (NAMING_MODEL.md build-guard).
     private func savePerson(_ original: String?, _ person: Person, for file: PipelineFile) {
         let before = NamesStore.shared.livePeople()
-        NamesStore.shared.upsert(person, replacing: original)
+        let mergedInto = NamesStore.shared.upsert(person, replacing: original)
         coordinator.resanitiseForNames(file, context: ctx)
         coordinator.rescanRoster(previousPeople: before, context: ctx)
-        coordinator.flash("Saved “\(NamesMerge.keyName(person.canonical))”")
+        coordinator.flash(mergedInto.map(RosterMergeNotice.message(into:))
+                          ?? "Saved “\(NamesMerge.keyName(person.canonical))”")
     }
 
     /// Add a body selection as an ALIAS of an existing person (right-click → "Add … as

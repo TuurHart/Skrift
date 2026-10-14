@@ -95,6 +95,8 @@ struct SettingsView: View {
         // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,
         // so the list doesn't sit stale while it's open.
         .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)) { _ in reloadNames() }
+        // C254/R62: "Merged into John Smith" — the sheet covers the window's own toast.
+        .rosterMergeToast(fill: Theme.accent, alignment: .top)
         .sheet(item: $editorRequest) { req in
             PersonEditor(request: req,
                          onSave: { original, person in
