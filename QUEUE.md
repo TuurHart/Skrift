@@ -3244,7 +3244,7 @@ needs: Q417
 do: Same recipe as Q407: bump SKRIFT_BUILD to 191 in both project.yml files, build the Dev (Debug) iOS app for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; resolve its xcodebuild UDID first, the old iPhone 13 UDID in CLAUDE.md is stale) with `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic`, install with devicectl, string-grep a Q408 literal (`EmptyCommitGuard`) in the installed binary. Mac: Debug build, quit Skrift Dev, ditto to `/Applications/Skrift Dev.app`, never two Dev instances, never touch prod `/Applications/Skrift.app`, never `open -a`. If the phone is locked or unplugged, report blocked.
 check: Report shows build 191 installed on the phone (devicectl app list) and the Mac Dev app's CFBundleVersion is 191.
 
-### Q445 [auto] (doing) v1 export: a note opening with a picture fuses the closing --- and loses the stamp (pic-at-start)
+### Q445 [auto] (done) v1 export: a note opening with a picture fuses the closing --- and loses the stamp (pic-at-start)
 spec: C55 C56 C130 C193
 needs: Q433
 gate+: yes
@@ -4693,3 +4693,4 @@ check: `plan/mtest.sh PicAtStartPublisherTests`
 - 2026-10-14 15:49 Q445 -> doing — worker out
 - 2026-10-14 15:49 Q444 -> done — gate 43s @641560e0
 - 2026-10-14 15:53 Q446 added
+- 2026-10-14 15:55 Q445 -> done — hand-merged (two pic-at-start goldens re-recorded as Q445's do: asked)
