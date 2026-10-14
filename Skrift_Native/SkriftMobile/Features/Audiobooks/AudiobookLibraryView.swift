@@ -254,12 +254,17 @@ struct AudiobookLibraryView: View {
                     AudiobookCloudSync.removeDownload(bookID: book.id)
                     syncToggleTick += 1
                 }
+                // C268: the local copy is the only copy until the iCloud upload finishes.
+                .disabled(!AudiobookCloudSync.isUploadComplete(bookID: book.id, monitor: cloudSync))
             } else {
                 Button("Remove", role: .destructive) { delete(book) }
             }
             Button("Cancel", role: .cancel) {}
         } message: { book in
-            Text(BookTileState.deleteMessage(synced: AudiobookCloudSync.isSynced(bookID: book.id)))
+            let synced = AudiobookCloudSync.isSynced(bookID: book.id)
+            let uploading = synced && !AudiobookCloudSync.isUploadComplete(bookID: book.id, monitor: cloudSync)
+            Text(BookTileState.deleteMessage(synced: synced)
+                 + (uploading ? "\n\(AudiobookCloudSync.stillUploadingNote)." : ""))
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-library")
