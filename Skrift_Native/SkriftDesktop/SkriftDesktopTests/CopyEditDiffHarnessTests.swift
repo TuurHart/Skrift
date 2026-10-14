@@ -132,17 +132,21 @@ final class CopyEditDiffHarnessTests: XCTestCase {
 
     private static let pictureLine = "^\\[\\[img_\\d+\\]\\]$"
 
-    /// Each picture marker → how many text paragraphs precede it (nil: not its own paragraph).
-    static func pictureIndex(_ text: String) -> [String: Int?] {
-        var out: [String: Int?] = [:]
+    /// Each picture marker → the number of text paragraphs it returns after, and whether it
+    /// stands as its own paragraph. A picture paragraph returns after the text paragraphs before
+    /// it; a marker inline in text paragraph i (v1's Mac rows keep phone markers inline) belongs
+    /// to that paragraph, so it returns after i + 1.
+    static func pictureIndex(_ text: String) -> [String: (after: Int, standalone: Bool)] {
+        var out: [String: (after: Int, standalone: Bool)] = [:]
         var textParas = 0
         for block in text.components(separatedBy: "\n\n") {
             let t = block.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !t.isEmpty else { continue }
-            if t.range(of: pictureLine, options: .regularExpression) != nil { out[t] = textParas; continue }
-            let markers = t.matches(of: #/\[\[img_\d+\]\]/#).map { String(t[$0.range]) }
-            for m in markers { out[m] = .some(nil) }
+            if t.range(of: pictureLine, options: .regularExpression) != nil {
+                out[t] = (textParas, true); continue
+            }
             textParas += 1
+            for m in t.matches(of: #/\[\[img_\d+\]\]/#) { out[String(t[m.range])] = (textParas, false) }
         }
         return out
     }
@@ -156,11 +160,11 @@ final class CopyEditDiffHarnessTests: XCTestCase {
             return !t.isEmpty && t.range(of: pictureLine, options: .regularExpression) == nil
         }.count
         var bad: [String] = []
-        for (marker, k) in inIdx.sorted(by: { $0.key < $1.key }) {
-            guard let k else { continue }
-            guard let placed = outIdx[marker] else { bad.append("\(marker) missing"); continue }
-            guard let got = placed else { bad.append("\(marker) inside a paragraph"); continue }
-            if got != min(k, outText) { bad.append("\(marker) after paragraph \(got), input had \(k)") }
+        for (marker, want) in inIdx.sorted(by: { $0.key < $1.key }) {
+            guard let got = outIdx[marker] else { bad.append("\(marker) missing"); continue }
+            guard got.standalone else { bad.append("\(marker) inside a paragraph"); continue }
+            let k = min(want.after, outText)
+            if got.after != k { bad.append("\(marker) after paragraph \(got.after), input had \(k)") }
         }
         return bad
     }
@@ -198,6 +202,11 @@ final class CopyEditDiffHarnessTests: XCTestCase {
                        ["[[img_001]] after paragraph 2, input had 1"])
         XCTAssertEqual(Self.c30Violations(input: input, output: "One [[img_001]] two.\n\nThree.\n\nFive."),
                        ["[[img_001]] inside a paragraph", "[[img_002]] missing"])
+        // A marker inline in input paragraph 1 returns after output paragraph 1 (v1's Mac rows).
+        let inline = "One [[img_001]] two. Three [[img_002]] four."
+        XCTAssertEqual(Self.c30Violations(input: inline, output: "One two.\n\n[[img_001]]\n\n[[img_002]]\n\nThree four."), [])
+        XCTAssertEqual(Self.c30Violations(input: inline, output: "One two.\n\n[[img_001]]\n\nThree four.\n\n[[img_002]]"),
+                       ["[[img_002]] after paragraph 2, input had 1"])
     }
 
     // MARK: - C35: numbers, names and every non-filler word survive
@@ -226,7 +235,13 @@ final class CopyEditDiffHarnessTests: XCTestCase {
 
     /// Words v1's recorded copy-edit drops on the C35 notes (self-expiring: a word v1 keeps
     /// again fails the test until removed here).
-    static let v1KnownC35Losses: [String: Set<String>] = [:]
+    /// Recorded 2026-10-14: v1 drops the discourse words of the English ramble and TRANSLATES
+    /// the English half of the code-switch note into Dutch ("the" → "de", "so that's six
+    /// people" → "dat zijn zes mensen") — a C35 break ("nothing translated").
+    static let v1KnownC35Losses: [String: Set<String>] = [
+        "voice-en-pricing-ramble": ["okay", "so", "yeah"],
+        "voice-mix-code-switch": ["the", "like", "so", "that's", "six", "people"],
+    ]
 
     func testNumbersNamesAndWordsSurvive_C35() async throws {
         for engine in Self.engines {
