@@ -3251,7 +3251,7 @@ gate+: yes
 do: Found by Q433: the corpus note `pic-at-start` (body opens with `[[img_001]]`) exports a broken frontmatter on BOTH profiles today: the closing `---` is fused onto the first sentence and `skriftID`/`skriftHash` are lost, so the vault file is no longer recognised as ours. Likely cause: `BodyV2Legacy.shown` runs over the whole compiled markdown in `VaultExporter.export` instead of the body only. Fix it in the v1 exporter (this is live until export v2 swaps in), keep the closing `---` on its own line and the stamp trio intact, and add `PicAtStartExportTests` (desktop target) asserting the frontmatter parses and carries skriftID/skriftHash for `pic-at-start` on both profiles. Then re-record the two `pic-at-start` goldens in `test-fixtures/corpus/goldens/v1-export/` and drop their C130 entry from `expected-differences-export.json` (report both as needs hand-merge).
 check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q446 [auto] (todo) iPad export: the same pic-at-start frontmatter fusion in ObsidianPublisher (Q445 twin)
+### Q446 [auto] (doing) iPad export: the same pic-at-start frontmatter fusion in ObsidianPublisher (Q445 twin)
 spec: C55 C56 C193 C239
 needs: Q445
 gate+: yes
@@ -4694,3 +4694,4 @@ check: `plan/mtest.sh PicAtStartPublisherTests`
 - 2026-10-14 15:49 Q444 -> done — gate 43s @641560e0
 - 2026-10-14 15:53 Q446 added
 - 2026-10-14 15:55 Q445 -> done — hand-merged (two pic-at-start goldens re-recorded as Q445's do: asked)
+- 2026-10-14 15:56 Q446 -> doing — worker out
