@@ -163,11 +163,24 @@ enum NamesMerge {
         return out.isEmpty ? nil : out
     }
 
-    /// Per-canonical last-write-wins. Scalar fields: newer `lastModifiedAt` wins,
-    /// ties default to remote. `voiceEmbeddings` are ADDITIVE — unioned across
-    /// both sides regardless of which scalar version won, so an enrollment on one
-    /// device is never clobbered by a newer name edit on the other.
+    /// Per-canonical last-write-wins, then same-name folding (C254). Scalar fields: newer
+    /// `lastModifiedAt` wins, ties default to remote. `voiceEmbeddings` are ADDITIVE — unioned
+    /// across both sides regardless of which scalar version won, so an enrollment on one
+    /// device is never clobbered by a newer name edit on the other. Two LIVE rows whose full
+    /// names differ only in case are one person: they fold into one row (see `mergeReporting`).
     static func mergeByCanonical(local localPeople: [Person], remote remotePeople: [Person]) -> [Person] {
+        mergeReporting(local: localPeople, remote: remotePeople).people
+    }
+
+    /// `mergeByCanonical` plus the canonicals that absorbed a same-name case variant, so the
+    /// caller can say so ("Merged into John Smith", R62).
+    static func mergeReporting(local localPeople: [Person], remote remotePeople: [Person])
+        -> (people: [Person], mergedInto: [String]) {
+        foldSameName(lwwByCanonical(local: localPeople, remote: remotePeople))
+    }
+
+    /// Stage 1: per exact canonical last-write-wins (the original contract merge).
+    private static func lwwByCanonical(local localPeople: [Person], remote remotePeople: [Person]) -> [Person] {
         var localBy: [String: Person] = [:]
         for p in localPeople where !p.canonical.isEmpty { localBy[p.canonical] = p }
         var remoteBy: [String: Person] = [:]
@@ -195,6 +208,51 @@ enum NamesMerge {
 
             winner.voiceEmbeddings = unionEmbeddings(local?.voiceEmbeddings, remote?.voiceEmbeddings)
             out.append(winner)
+        }
+        return out
+    }
+
+    /// Stage 2 (C254): LIVE rows sharing a `matchKey` fold into one, at the first one's place.
+    /// The newest row wins canonical spelling + short + timestamp (ties: the smaller canonical,
+    /// so every device picks the same one); aliases and voiceprints are unioned. Tombstones are
+    /// left alone — a deletion only ever removes its own exact canonical.
+    private static func foldSameName(_ people: [Person]) -> (people: [Person], mergedInto: [String]) {
+        var liveByKey: [String: [Person]] = [:]
+        for p in people where !p.isDeleted { liveByKey[matchKey(p.canonical), default: []].append(p) }
+        guard liveByKey.values.contains(where: { $0.count > 1 }) else { return (people, []) }
+
+        var out: [Person] = []
+        var mergedInto: [String] = []
+        var emitted = Set<String>()
+        for p in people {
+            guard !p.isDeleted else { out.append(p); continue }
+            let key = matchKey(p.canonical)
+            guard let group = liveByKey[key], group.count > 1 else { out.append(p); continue }
+            guard !emitted.contains(key) else { continue }
+            emitted.insert(key)
+            let folded = foldGroup(group)
+            out.append(folded)
+            mergedInto.append(folded.canonical)
+        }
+        return (out, mergedInto)
+    }
+
+    /// One row out of several live same-name rows (see `foldSameName`).
+    static func foldGroup(_ group: [Person]) -> Person {
+        var winner = group.max { a, b in
+            a.lastModifiedAt != b.lastModifiedAt ? a.lastModifiedAt < b.lastModifiedAt : a.canonical > b.canonical
+        }!
+        winner.aliases = unionAliases(winner.aliases, group.flatMap(\.aliases))
+        winner.voiceEmbeddings = group.reduce(nil as [VoiceEmbedding]?) { unionEmbeddings($0, $1.voiceEmbeddings) }
+        winner.deleted = nil
+        return winner
+    }
+
+    /// `base`, then each alias of `more` not already there (trimmed, case-insensitive, no blanks).
+    static func unionAliases(_ base: [String], _ more: [String]) -> [String] {
+        var out: [String] = []
+        for a in (base + more).map({ $0.trimmingCharacters(in: .whitespaces) }) where !a.isEmpty {
+            if !out.contains(where: { aliasKey($0) == aliasKey(a) }) { out.append(a) }
         }
         return out
     }

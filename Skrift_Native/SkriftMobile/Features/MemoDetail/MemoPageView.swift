@@ -195,7 +195,7 @@ struct MemoPageView: View {
                 people: NamesStore.shared.livePeople(),
                 onAssignPerson: { assign(target.speaker, to: $0.displayName, slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
-                onNewName: { assign(target.speaker, to: $0, slot: target.slot, turnSlots: target.turnSlots) }
+                onNewName: { assign(target.speaker, to: $0, slot: target.slot, turnSlots: target.turnSlots, typed: true) }
             )
         }
         // Tap a name in the transcript → resolve it (the native confirmationDialog idiom,
@@ -1037,8 +1037,13 @@ struct MemoPageView: View {
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
     /// assigning to a real person (not merging into another Speaker N) — learn the
     /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
-    func assign(_ old: String, to newName: String, slot: Int?, turnSlots: [Int]) {
-        let new = newName.trimmingCharacters(in: .whitespaces)
+    /// `typed`: the name came from the sheet's "New person" field (not picked from People), so a
+    /// match with an existing person is a merge and is announced (C254).
+    func assign(_ old: String, to newName: String, slot: Int?, turnSlots: [Int], typed: Bool = false) {
+        let typedName = newName.trimmingCharacters(in: .whitespaces)
+        // Same full name = same person (C254): a typed case variant takes the person's own spelling.
+        let new = NamesStore.shared.livePeople()
+            .first { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(typedName) }?.displayName ?? typedName
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
         // The shared naming rule (`SpeakerNaming`, the Mac's too): slot-aware while the per-turn
         // slot map still lines up, else every turn whose header resolves to the same speaker.
@@ -1050,7 +1055,7 @@ struct MemoPageView: View {
         // The person exists BEFORE enrolment is attempted (R12/C83): a clip too short to
         // embed, or a missing diarization sidecar, must not leave a named speaker with no
         // person. Born through the shared door, so aliases are `[full, first]`.
-        if PersonEditCore.createIfNeeded(fullName: new, in: NamesStore.shared) != nil {
+        if PersonEditCore.createIfNeeded(fullName: new, announceMerge: typed, in: NamesStore.shared) != nil {
             NamesCloudSync.run(NotesRepository.shared)
             people = NamesStore.shared.livePeople()
         }

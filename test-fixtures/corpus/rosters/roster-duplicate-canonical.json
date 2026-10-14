@@ -1,0 +1,46 @@
+{
+  "_schema": "Q418 (C254/R62), read by RosterDuplicateMergeTests. `existing` is a names.json (byte-compatible schema). `add` is a person added in Settings / the assign sheet whose full name matches an existing row case-insensitively. `remote` is a carrier roster holding a case variant of the same full name (the sync add path). `expect`: after either add there is ONE live row with that full name, spelled as `canonical`, holding every alias and voiceprint of both rows, and the notice reads `notice`.",
+  "existing": {
+    "lastModifiedAt": "2026-09-01T09:00:00Z",
+    "people": [
+      {
+        "aliases": ["John", "Johnny"],
+        "canonical": "[[John Smith]]",
+        "lastModifiedAt": "2026-09-01T09:00:00Z",
+        "short": "John",
+        "voiceEmbeddings": [{ "addedAt": "2026-09-01T09:00:00Z", "condition": "phone-mic", "vector": [0.11, 0.22, 0.33] }]
+      },
+      {
+        "aliases": ["Lotte"],
+        "canonical": "[[Lotte Vos]]",
+        "lastModifiedAt": "2026-09-01T09:00:00Z",
+        "short": "Lotte"
+      }
+    ]
+  },
+  "add": {
+    "aliases": ["john smith", "Smithy"],
+    "canonical": "[[john smith]]",
+    "lastModifiedAt": "",
+    "short": null,
+    "voiceEmbeddings": [{ "addedAt": "2026-09-02T10:00:00Z", "condition": "conversation", "vector": [0.44, 0.55, 0.66] }]
+  },
+  "remote": {
+    "lastModifiedAt": "2026-09-02T10:00:00Z",
+    "people": [
+      {
+        "aliases": ["JS", "Smithy"],
+        "canonical": "[[JOHN SMITH]]",
+        "lastModifiedAt": "2026-08-01T10:00:00Z",
+        "short": "JS",
+        "voiceEmbeddings": [{ "addedAt": "2026-08-01T10:00:00Z", "condition": "airpods", "vector": [0.44, 0.55, 0.66] }]
+      }
+    ]
+  },
+  "expect": {
+    "canonical": "[[John Smith]]",
+    "aliasesContain": ["John", "Johnny", "Smithy"],
+    "voiceprints": 2,
+    "notice": "Merged into John Smith"
+  }
+}
