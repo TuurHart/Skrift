@@ -2998,7 +2998,7 @@ gate+: no
 do: Same recipe as Q394 (findings Q374/Q383/Q394: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal; quit 'Skrift Dev' via osascript in a script file). Bump to 190 in both project.yml files (SKRIFT_BUILD / CURRENT_PROJECT_VERSION). Phone: Debug → devicectl install com.skrift.mobile.dev; grep `Original page` or `Reading view` in SkriftMobile.debug.dylib; confirm with `xcrun devicectl device info apps --bundle-id com.skrift.mobile.dev` showing 190. Mac: Debug → quit Skrift Dev, ditto to /Applications/Skrift Dev.app, open; grep a Q402/Q395 literal (e.g. `PortfolioTagPresets`) in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. If the phone is unavailable, install the Mac anyway and report the exact devicectl error.
 check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the devicectl build number).
 
-### Q408 [auto] (stuck) an edit that empties a note never lands silently
+### Q408 [auto] (done) an edit that empties a note never lands silently
 spec: C261 R70
 needs: -
 gate+: yes
@@ -3026,7 +3026,7 @@ gate+: yes
 do: Today: `AudiobookCloudSync.removeDownload` deletes files once the book is synced, without checking the upload finished; the buttons in `SyncedAudiobooksView` and `AudiobookLibraryView` are never disabled. On the phone, Remove download is disabled with a "Still uploading to iCloud" line in the existing secondary-text style until `AudiobookCloudSync` reports the book's upload complete; no code path frees the local file before that. Test `RemoveDownloadUploadGateTests` (phone target).
 check: `plan/mtest.sh RemoveDownloadUploadGateTests`
 
-### Q412 [auto] (todo) removing a bookmark removes the nearest one and says so
+### Q412 [auto] (doing) removing a bookmark removes the nearest one and says so
 spec: C269 R82
 needs: -
 gate+: yes
@@ -3075,7 +3075,7 @@ gate+: yes
 do: Today: only `NamesStore.upsert` merges by name (case-insensitive) and it replaces voiceprints instead of unioning; the sync merge `NamesData.mergeByCanonical` keys on the exact canonical, so case variants never merge. Adding a person whose full name matches an existing one, case-insensitively, merges into that row (aliases and voiceprints unioned) on every add path: Settings on both apps, the sync merge in `NamesData`, the speaker assign sheet. The UI shows "Merged into <name>" in the existing toast style. Add corpus fixture `roster-duplicate-canonical`. Test `RosterDuplicateMergeTests` (desktop target): one row, notice raised. `names.json` stays byte-compatible across apps.
 check: `grep -rqE "class RosterDuplicateMergeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q419 [auto] (todo) name matching: Dutch bare possessive, diacritics, tags never split
+### Q419 [auto] (doing) name matching: Dutch bare possessive, diacritics, tags never split
 spec: C255 C256 C260 R69 R68 R65
 needs: -
 gate+: yes
@@ -4625,3 +4625,6 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 - 2026-10-14 14:37 Q408 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-14 14:37 Q442 added
 - 2026-10-14 14:41 Q418 -> done — gate 135s @33256737
+- 2026-10-14 14:44 Q419 -> doing — worker out
+- 2026-10-14 14:44 Q412 -> doing — worker out
+- 2026-10-14 14:45 Q408 -> done — gate 57s @4f93d12d
