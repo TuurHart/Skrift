@@ -3061,7 +3061,7 @@ gate+: yes
 do: Today: `MarkupQuickLook` edits in place with `.updateContents`; no original is kept. Before `MarkupQuickLook` presents `.updateContents`, the untouched photo is kept as a second `MemoAsset` blob (additive, synced, C96); the photo's menu offers "Revert to original" as a plain menu item. Only the first markup saves the original; later markups keep it. Test `MarkupOriginalTests` (phone target): markup then revert gives back the original bytes.
 check: `plan/mtest.sh MarkupOriginalTests`
 
-### Q417 [auto] (todo) a capture whose transcription is empty is kept and says so
+### Q417 [auto] (doing) a capture whose transcription is empty is kept and says so
 spec: C274 R87
 needs: -
 gate+: yes
@@ -3082,7 +3082,7 @@ gate+: yes
 do: Today: `Sanitiser.swift` handles only `'s` / `’s`; no diacritic folding; the `\b` boundary does not protect `#tags`. In the shared matcher (`Skrift_Native/Shared/Naming/`): an alias plus a bare `s` (`Wims`, `Lottes`) links like `Wim's`, unless that word is itself a roster alias; matching folds diacritics both ways (Ines/Inés, Månsson/Mansson); a `#tag` is never split or linked even when it equals an alias. Add corpus fixtures `edge-name-dutch-possessive`, `edge-name-diacritics`, `edge-name-is-tag`. Test `NameMatcherEdgeTests` (desktop target).
 check: `grep -rqE "class NameMatcherEdgeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q420 [auto] (doing) naming an unknown speaker seeds the alias
+### Q420 [auto] (done) naming an unknown speaker seeds the alias
 spec: C257 R66
 needs: -
 gate+: yes
@@ -4650,3 +4650,5 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:08 Q416 -> doing — worker out
 - 2026-10-14 15:12 Q422 -> doing — worker out
 - 2026-10-14 15:13 Q414 -> done — gate 174s @67c0b41a
+- 2026-10-14 15:13 Q417 -> doing — worker out
+- 2026-10-14 15:14 Q420 -> done — gate 69s @4eedce8a
