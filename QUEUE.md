@@ -3258,6 +3258,12 @@ gate+: yes
 do: Q445 fixed the Mac (`VaultExporter.shownBody` splits off the frontmatter and runs `BodyV2Legacy.shown` on the body only). The iPad/phone exporter has the same pattern: `Skrift_Native/SkriftMobile/Services/Export/ObsidianPublisher.swift` runs `BodyV2Legacy.shown(markdown).text` over the whole compiled markdown, so a note opening with a picture fuses the closing `---` onto the first sentence and loses the stamp. Move the body-only split into ONE shared function in `Skrift_Native/Shared/Export/` used by both exporters (C239, no twin), delete the Mac-only copy. Test `PicAtStartPublisherTests` (phone target) on corpus `pic-at-start`; keep `PicAtStartExportTests` green.
 check: `plan/mtest.sh PicAtStartPublisherTests`
 
+### Q447 [tuur] (tuur) decide: may a messenger filename ever be a title? C126 says never; D176 keeps it on the Files importer
+spec: C126 D176
+needs: -
+do: -
+check: Tuur picked one: (a) C126 everywhere — the Files importer also drops "WhatsApp Audio 2025-12-18 at 18.30.44" style names (then `ImportFileNameTitleTests` flips, an approved assertion change), or (b) keep D176 on Files/Open-in and C126 only on the share sheet (as Q440 built). His answer lands in SPEC Decisions.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4695,3 +4701,5 @@ check: `plan/mtest.sh PicAtStartPublisherTests`
 - 2026-10-14 15:53 Q446 added
 - 2026-10-14 15:55 Q445 -> done — hand-merged (two pic-at-start goldens re-recorded as Q445's do: asked)
 - 2026-10-14 15:56 Q446 -> doing — worker out
+- 2026-10-14 16:17 Q447 added
+- 2026-10-14 16:17 Q447 -> tuur — awaiting sitting
