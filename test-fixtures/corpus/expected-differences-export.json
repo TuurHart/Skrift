@@ -1,3 +1,303 @@
 {
-  "_schema": "`<slug>.<vault|portfolio>` -> array of SPEC ids (R# required-difference rows, or the clause id C130 where no R row exists). Read by ExportDiffHarnessTests (Q433, C5): a v2 export that differs from goldens/v1-export/<key>.md on a key listed here is expected-different; the SAME key with no diff is a matched-bug (fail); a diff on an unlisted key is unexplained (fail). The C130/R51 ids on `.portfolio` keys must equal v1's own frontmatter breaches exactly (testV1PortfolioFrontmatterBreachesAreExactlyTheRegisteredRows)."
+  "_schema": "`<slug>.<vault|portfolio>` -> array of SPEC ids (R# required-difference rows, or the clause id C130 where no R row exists). Read by ExportDiffHarnessTests (Q433, C5): a v2 export that differs from goldens/v1-export/<key>.md on a key listed here is expected-different; the SAME key with no diff is a matched-bug (fail); a diff on an unlisted key is unexplained (fail). The C130/R51 ids on `.portfolio` keys must equal v1's own frontmatter breaches exactly (testV1PortfolioFrontmatterBreachesAreExactlyTheRegisteredRows).",
+  "_notes": {
+    "C130": "v1's portfolio frontmatter breaches C130: `title:` is written on every note though C130 allows it only when HE gave one (the corpus rows are unpolished, so it is the row's filename stem), and `url:` / `book:` / `chapter:` / `bookAuthor:` are keys outside the C130 list; pic-at-start (body opens with [[img_001]]) exports with its closing `---` fused onto the first sentence and skriftID/skriftHash lost, on BOTH profiles (found by Q433). No R row exists for these; the clause is the registration.",
+    "R51": "`people:` written inline (`people: [[A]], [[B]]`) instead of a block list of plain names; and cap-image-no-words' `![[…]]` embed on the portfolio."
+  },
+  "applenote-headings-checklist.portfolio": [
+    "R51"
+  ],
+  "cap-file-pdf.portfolio": [
+    "C130"
+  ],
+  "cap-file-txt.portfolio": [
+    "C130"
+  ],
+  "cap-image-no-words.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "cap-image-typed-note.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "cap-image-voice-ramble.portfolio": [
+    "C130"
+  ],
+  "cap-text-article.portfolio": [
+    "C130"
+  ],
+  "cap-text-plain.portfolio": [
+    "C130"
+  ],
+  "cap-url-dutch-annotation.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "cap-url-instagram.portfolio": [
+    "C130"
+  ],
+  "cap-url-link-only.portfolio": [
+    "C130"
+  ],
+  "cap-url-no-title.portfolio": [
+    "C130"
+  ],
+  "cap-url-voice-ramble.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "cap-url-with-title.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "cap-url-youtube.portfolio": [
+    "C130"
+  ],
+  "conv-dutch.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "conv-one-unnamed.portfolio": [
+    "C130"
+  ],
+  "conv-three-speakers.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "conv-two-named.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "conv-with-picture.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "dest-idea.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "dest-inspiration-credit.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "dest-personal.portfolio": [
+    "C130"
+  ],
+  "dest-project.portfolio": [
+    "C130"
+  ],
+  "edge-literal-marker-typed.portfolio": [
+    "C130"
+  ],
+  "edge-old-rated-never-exported.portfolio": [
+    "C130"
+  ],
+  "edge-quote-in-name-roster-word.portfolio": [
+    "C130"
+  ],
+  "edge-tag-case-dupes.portfolio": [
+    "C130"
+  ],
+  "pic-at-end.portfolio": [
+    "C130"
+  ],
+  "pic-at-start.portfolio": [
+    "C130"
+  ],
+  "pic-in-blockquote.portfolio": [
+    "C130"
+  ],
+  "pic-in-task-list.portfolio": [
+    "C130"
+  ],
+  "pic-manifest-no-marker.portfolio": [
+    "C130"
+  ],
+  "pic-mid-sentence.portfolio": [
+    "C130"
+  ],
+  "pic-missing-file.portfolio": [
+    "C130"
+  ],
+  "pic-nl.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "pic-ocr-text.portfolio": [
+    "C130"
+  ],
+  "pic-shared-no-timestamp.portfolio": [
+    "C130"
+  ],
+  "pic-three-spread.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "pic-two-same-second.portfolio": [
+    "C130"
+  ],
+  "pic-user-snapped-markers.portfolio": [
+    "C130"
+  ],
+  "pic-wall.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "quote-en-with-ramble.portfolio": [
+    "C130"
+  ],
+  "quote-missing-book-metadata.portfolio": [
+    "C130"
+  ],
+  "quote-nl-with-ramble.portfolio": [
+    "C130"
+  ],
+  "quote-only-no-ramble.portfolio": [
+    "C130"
+  ],
+  "quote-with-names.portfolio": [
+    "C130"
+  ],
+  "share-signal-single.portfolio": [
+    "C130"
+  ],
+  "share-whatsapp-thread.portfolio": [
+    "C130"
+  ],
+  "typed-blockquote-ordinary.portfolio": [
+    "C130"
+  ],
+  "typed-bracket-tag-bug.portfolio": [
+    "C130"
+  ],
+  "typed-crlf-tabs-nbsp.portfolio": [
+    "C130"
+  ],
+  "typed-heading-only.portfolio": [
+    "C130"
+  ],
+  "typed-headings-and-tags.portfolio": [
+    "R51"
+  ],
+  "typed-memo-links.portfolio": [
+    "C130"
+  ],
+  "typed-numbered-list.portfolio": [
+    "C130"
+  ],
+  "typed-reminder.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "typed-reserved-word-tags.portfolio": [
+    "C130"
+  ],
+  "typed-tags-with-spaces.portfolio": [
+    "C130"
+  ],
+  "typed-tasks.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "typed-title-derived.portfolio": [
+    "C130"
+  ],
+  "typed-two-liner.portfolio": [
+    "C130"
+  ],
+  "typed-unicode-emoji.portfolio": [
+    "R51"
+  ],
+  "typed-urls-in-prose.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "typed-user-wikilink.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "typed-wall-7k.portfolio": [
+    "R51"
+  ],
+  "typed-wall-one-paragraph.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "typed-whitespace-only.portfolio": [
+    "C130"
+  ],
+  "video-landscape.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "video-no-speech.portfolio": [
+    "C130"
+  ],
+  "video-portrait.portfolio": [
+    "C130"
+  ],
+  "voice-en-asr-wall.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-duplicate-a.portfolio": [
+    "C130"
+  ],
+  "voice-en-duplicate-b.portfolio": [
+    "C130"
+  ],
+  "voice-en-eight-minutes.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-failed.portfolio": [
+    "C130"
+  ],
+  "voice-en-names-all-tiers.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-paragraphed-by-pauses.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-pricing-ramble.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-processed-no-content.portfolio": [
+    "C130"
+  ],
+  "voice-en-rated-floor.portfolio": [
+    "C130"
+  ],
+  "voice-en-rated-max.portfolio": [
+    "C130"
+  ],
+  "voice-en-three-words.portfolio": [
+    "C130"
+  ],
+  "voice-en-triple-blank-lines.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-en-untrusted-but-edited.portfolio": [
+    "C130"
+  ],
+  "voice-en-untrusted.portfolio": [
+    "C130"
+  ],
+  "voice-en-with-mac-polish.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-mix-code-switch.portfolio": [
+    "C130",
+    "R51"
+  ],
+  "voice-nl-kiln.portfolio": [
+    "C130",
+    "R51"
+  ]
 }

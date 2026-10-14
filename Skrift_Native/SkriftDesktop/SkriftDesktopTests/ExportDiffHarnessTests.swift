@@ -13,7 +13,11 @@ import SwiftData
 ///
 /// The path is the Mac's real one: `CorpusSeed` → `MemoCloudReconciler.sweep` (ingest, polish
 /// adoption, name-linking) → `VaultExporter.export` into a temp vault / temp portfolio root. A note
-/// the Mac never exports (trashed, unrated, locked) is recorded as the refusal it gets.
+/// the Mac never exports (trashed, unrated, locked) is recorded as the refusal it gets. The model
+/// steps of processing (copy-edit, title, summary) cannot run in this bundle, so a row exports with
+/// the polish the corpus synced (`enhancement`) or none: an unpolished row's `title:` is its
+/// filename stem (`memo_<UUID>`), exactly what v1 writes for such a row. Name-linking (the
+/// deterministic step) does run — see `nameLink`.
 ///
 /// RE-RECORDING (host-less bundle: `TEST_RUNNER_` env vars do not reach it — Q9/Q23 finding):
 /// `xcodebuild build-for-testing -scheme UnitTests ...`, then
@@ -23,6 +27,7 @@ import SwiftData
 /// registered rows), C57 (`typed-same-title-a/b` get distinct image files), C64 (a 23:30 note's
 /// `date:` is the same day on the phone path and the Mac path), C65 (no exporter snaps the body),
 /// C133/C135/C137 on the `dest-*` and `cap-image-no-words` rows.
+@MainActor
 final class ExportDiffHarnessTests: XCTestCase {
 
     // MARK: - profiles, outputs, engines
@@ -39,7 +44,7 @@ final class ExportDiffHarnessTests: XCTestCase {
         var path: String?
     }
 
-    protocol ExportEngine {
+    @MainActor protocol ExportEngine {
         var name: String { get }
         /// `slug.profile` → output, for every note in `manifest.json`.
         func exports(corpus root: URL, scratch: URL) throws -> [String: Output]
@@ -64,6 +69,7 @@ final class ExportDiffHarnessTests: XCTestCase {
                                       thisDeviceID: "corpus-mac-0001",
                                       upload: UploadService(outputDir: scratch.appendingPathComponent("mac-work")))
             let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
+            ExportDiffHarnessTests.nameLink(rows, people: roster)
             let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             let memos = Dictionary(try cloud.fetch(FetchDescriptor<Memo>()).map { ($0.id.uuidString, $0) },
                                    uniquingKeysWith: { a, _ in a })
@@ -110,6 +116,22 @@ final class ExportDiffHarnessTests: XCTestCase {
 
     /// Registered engines — a v2 exporter lands here, never by editing `V1Engine`.
     static let engines: [ExportEngine] = [V1Engine()]
+
+    /// The deterministic tail of the Mac's processing (`BatchRunner` step 4, the only part that
+    /// needs no model): name-link the working body — the copy-edit when the sweep adopted one,
+    /// else the transcript — with the same conversation routing. A row that already carries a
+    /// `sanitised` body keeps it. Without this every exported note would read unlinked, which
+    /// no processed note on the Mac ever does.
+    static func nameLink(_ rows: [PipelineFile], people: [Person]) {
+        for pf in rows where pf.sanitised == nil {
+            let copyedit = (pf.enhancedCopyedit ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let working = copyedit.isEmpty ? (pf.transcript ?? "") : (pf.enhancedCopyedit ?? "")
+            guard !working.isEmpty else { continue }
+            pf.relinkNames(working: working,
+                           isConversation: SpeakerTranscript.isConversation(pf.transcript, source: pf.noteSource),
+                           people: people)
+        }
+    }
 
     // MARK: - corpus + goldens
 
@@ -289,12 +311,13 @@ final class ExportDiffHarnessTests: XCTestCase {
             let breaches = Self.c130Violations(o.markdown, heGaveTitle: gave)
             let ids = Set(breaches.map(\.id))
             if !ids.isEmpty { found[key] = ids }
-            let registered = Set((expected[key] ?? []).filter { $0 == "C130" || $0 == "R51" })
+            let registered = Set(expected[key] ?? [])
             for b in breaches where !registered.contains(b.id) {
                 unregistered.append("\(key): \(b.id) \(b.what)")
             }
-            for id in registered where !ids.contains(id) {
-                stale.append("\(key): registered \(id) but v1's frontmatter does not breach it")
+            // R51 also covers the body's `![[…]]` (C129), so only a C130 registration can go stale here.
+            if registered.contains("C130"), !ids.contains("C130") {
+                stale.append("\(key): registered C130 but v1's frontmatter does not breach it")
             }
         }
         if !unregistered.isEmpty {
@@ -316,7 +339,15 @@ final class ExportDiffHarnessTests: XCTestCase {
             XCTAssertEqual(parts.count, 2, "\(slug): flat, no folder per entry — got \(path)")
             XCTAssertEqual(parts.first, "_inbox", "\(slug): every Portfolio note lands in _inbox/ (C133)")
             XCTAssertTrue(path.hasSuffix(".md"), path)
-            XCTAssertFalse(o.markdown.contains("![["), "\(slug): portfolio embeds are ![](file), never ![[…]] (C129)")
+            if slug == "cap-image-no-words" {
+                // SPEC R51, pre-registered: a picture-only capture writes `![[…]]` on the portfolio
+                // (`Compiler.captureSharedBlock` takes no profile). Goes red the day it is fixed.
+                XCTExpectFailure("R51: captureSharedBlock writes ![[…]] whatever the profile") {
+                    XCTAssertFalse(o.markdown.contains("![["), "\(slug): portfolio embeds are ![](file) (C129)")
+                }
+            } else {
+                XCTAssertFalse(o.markdown.contains("![["), "\(slug): portfolio embeds are ![](file), never ![[…]] (C129)")
+            }
         }
         // Personal never reaches the portfolio: its vault file is under Skrift/, its own destination.
         let personal = try XCTUnwrap(v1["dest-personal.vault"]?.path)
@@ -339,28 +370,64 @@ final class ExportDiffHarnessTests: XCTestCase {
     func testBarePictureExportsWithoutInventedWords() throws {
         let md = try XCTUnwrap(try v1Outputs()["cap-image-no-words.portfolio"]).markdown
         let body = md.components(separatedBy: "\n---\n").dropFirst().joined(separator: "\n---\n")
-        let words = body.replacingOccurrences(of: #"!\[\]\([^)]*\)"#, with: "", options: .regularExpression)
+        // Either embed form counts as the picture (which form is R51's business, not C135's).
+        let words = body.replacingOccurrences(of: #"!\[\]\([^)]*\)|!\[\[[^\]]*\]\]"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         XCTAssertEqual(words, "", "only the picture, no words\n\(md)")
     }
 
     // MARK: - C57: same-titled notes get distinct image files
 
+    /// R6: `typed-same-title-a/b` (both titled "Glaze test", one photo each) exported into ONE
+    /// vault / ONE portfolio must embed two different image files, both present on disk.
+    ///
+    /// v1 drops a typed note's manifest-only photo (the text has no `[[img_001]]` marker — the
+    /// recorded goldens show both notes exporting without a picture), so this test gives each
+    /// body its marker first: C57 is about how the picture is NAMED, and that is what runs here.
     func testSameTitleNotesGetDistinctImageFiles() throws {
-        let v1 = try v1Outputs()
+        let root = Self.corpusRoot
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path))
+        let work = try scratch()
+        let cloud = ModelContext(try ModelContainer(
+            for: Memo.self, MemoAsset.self, MemoEnhancement.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
+        let pipeline = ModelContext(try ModelContainer(
+            for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+        try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: work.appendingPathComponent("phone"))
+        MemoCloudReconciler.sweep(from: cloud, into: pipeline, upload: UploadService(outputDir: work.appendingPathComponent("mac")))
+        let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
+        let ids = try Self.manifest(root).notes.filter { $0.slug.hasPrefix("typed-same-title-") }.map(\.id)
+        let pair = ids.compactMap { id in rows.first { $0.id == id } }
+        XCTAssertEqual(pair.count, 2, "both same-title notes ingest")
+        for pf in pair {
+            pf.transcript = (pf.transcript ?? "") + "\n\n[[img_001]]"
+            pf.sanitised = nil
+        }
         for profile in Profile.allCases {
-            func embeds(_ slug: String) throws -> [String] {
-                let md = try XCTUnwrap(v1["\(slug).\(profile.rawValue)"]?.markdown, slug)
+            let exportRoot = work.appendingPathComponent("c57-\(profile.rawValue)", isDirectory: true)
+            var settings = AppSettings.default
+            settings.noteFolder = profile == .vault ? exportRoot.path : ""
+            settings.portfolioRoot = profile == .portfolio ? exportRoot.path : ""
+            let session = ExportSession(people: [])
+            var embeds: [[String]] = []
+            for pf in pair {
+                pf.destination = profile.destination
+                let r = try VaultExporter.export(pf, settings: settings, session: session)
+                let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
                 let pattern = profile == .vault ? #"!\[\[([^\]]+)\]\]"# : #"!\[\]\(([^)]+)\)"#
                 let re = try NSRegularExpression(pattern: pattern)
-                return re.matches(in: md, range: NSRange(md.startIndex..., in: md)).map {
+                embeds.append(re.matches(in: md, range: NSRange(md.startIndex..., in: md)).map {
                     (md as NSString).substring(with: $0.range(at: 1))
-                }
+                })
             }
-            let a = try embeds("typed-same-title-a"), b = try embeds("typed-same-title-b")
-            XCTAssertFalse(a.isEmpty, "\(profile): a embeds its picture")
-            XCTAssertFalse(b.isEmpty, "\(profile): b embeds its picture")
-            XCTAssertTrue(Set(a).isDisjoint(with: Set(b)), "\(profile): R6 — same title, shared image file \(a) / \(b)")
+            XCTAssertEqual(embeds.map(\.count), [1, 1], "\(profile): each note embeds its one picture — \(embeds)")
+            XCTAssertTrue(Set(embeds[0]).isDisjoint(with: Set(embeds[1])),
+                          "\(profile): R6 — same title, shared image file \(embeds)")
+            let onDisk = Set((FileManager.default.enumerator(atPath: exportRoot.path)?.allObjects as? [String] ?? [])
+                .map { ($0 as NSString).lastPathComponent })
+            for name in embeds.joined() {
+                XCTAssertTrue(onDisk.contains(name), "\(profile): \(name) was written")
+            }
         }
     }
 

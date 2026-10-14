@@ -1,0 +1,21 @@
+---
+title: "memo_C9CEC17D-4A3B-5A70-AE05-02867C62125A"
+date: 2026-08-09
+author: Tiuri
+source: Voice-memo
+summary:
+tags:
+  - money
+people:
+significance: 0.5
+location:
+lastTouched: <stamp>
+skriftID: C9CEC17D-4A3B-5A70-AE05-02867C62125A
+skriftHash: <stamp>
+---
+
+Snapped the supplier's price board so I stop guessing.
+
+![[Snapped the supplier's price board so I stop guessing. Grey body went up again_001.jpg]]
+
+ Grey body went up again.

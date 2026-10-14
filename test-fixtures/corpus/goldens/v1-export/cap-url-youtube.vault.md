@@ -1,0 +1,20 @@
+---
+title: "capture_EE54A5E9-43F8-55C4-AFBC-82808A875F53"
+date: 2026-08-02
+author: Tiuri
+source: capture-url
+url: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+summary:
+tags:
+  - throwing
+people:
+significance: 0.5
+location:
+lastTouched: <stamp>
+skriftID: EE54A5E9-43F8-55C4-AFBC-82808A875F53
+skriftHash: <stamp>
+---
+
+**Throwing a wide bowl — studio demo**
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+Throwing wide bowls, the trick at 4:10 with the rib.
