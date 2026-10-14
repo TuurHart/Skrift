@@ -1,0 +1,10 @@
+slug: dest-inspiration-credit
+row: yes
+significance: 0.6
+error: nil
+--- title
+Antwerp Studio Offers Desired Glazing-Evening Format
+--- summary
+Reflecting on Nadia's friend's studio in Antwerp, finding perfect glazing-evening format. Considering visiting to see how they manage it.
+--- body
+[[Nadia Elharrak]]'s friend's studio in Antwerp does exactly the glazing-evening format I want.

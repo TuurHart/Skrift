@@ -1,0 +1,10 @@
+slug: voice-nl-kiln
+row: yes
+significance: 0.5
+error: nil
+--- title
+Ovenproblemen en blauw glazuur: een korte update.
+--- summary
+
+--- body
+Even snel over de oven. [[Hendrik Vos]] is langs geweest en hij zegt weer dat de bedrading achter niet goed is en dat ik Marco moet bellen. Ik ga Marco bellen deze week. En de blauwe glazuur, de rand wordt groen bij cone zes. [[Ines Månsson]] denkt dat het het ijzer in de klei is en niet de glazuur zelf. Dus andere klei proberen. Dat is het.

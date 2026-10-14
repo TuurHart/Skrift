@@ -1,0 +1,14 @@
+slug: pic-nl
+row: yes
+significance: 0.6
+error: nil
+--- title
+De scheur in de klei van het aardewerk.
+--- summary
+
+--- body
+Dit is de scheur waar [[Hendrik Vos]] het over had, van de rand tot aan de voet. 
+
+[[img_001]]
+
+Ik denk de klei, niet de glazuur. Volgende keer langzamer stoken.

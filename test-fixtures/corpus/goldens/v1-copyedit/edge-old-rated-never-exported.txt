@@ -1,0 +1,10 @@
+slug: edge-old-rated-never-exported
+row: yes
+significance: 0.6
+error: nil
+--- title
+June Rating: Mac Off All Summer, Needs Row and Polish
+--- summary
+
+--- body
+Rated in June, never processed because the Mac was off all summer. Should still get a row and a polish now.

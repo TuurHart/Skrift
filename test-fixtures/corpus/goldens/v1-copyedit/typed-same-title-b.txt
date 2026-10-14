@@ -1,0 +1,10 @@
+slug: typed-same-title-b
+row: yes
+significance: 0.8
+error: nil
+--- title
+Glaze test
+--- summary
+
+--- body
+Cone 5, grey body, blue #3. Matte, but the colour is right.

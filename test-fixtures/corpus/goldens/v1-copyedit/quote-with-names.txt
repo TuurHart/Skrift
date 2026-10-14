@@ -1,0 +1,12 @@
+slug: quote-with-names
+row: yes
+significance: 0.5
+error: nil
+--- title
+The Workshop's "Jack": The Absent Expert and Management Issues
+--- summary
+
+--- body
+> Every workshop has a Jack: the one who knows a better way and never shows up.
+
+Mine has two. Rose says that is a management problem, not a Jack problem.

@@ -1,0 +1,10 @@
+slug: dest-personal
+row: yes
+significance: 0.8
+error: nil
+--- title
+Private thoughts on studio happiness versus busyness.
+--- summary
+
+--- body
+Private thought. Not sure the studio makes me happy or just busy. Personal, vault only.

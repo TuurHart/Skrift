@@ -1,0 +1,10 @@
+slug: typed-two-liner
+row: yes
+significance: 0.3
+error: nil
+--- title
+Call the clay supplier about the 20 kg bags and grey body.
+--- summary
+
+--- body
+Call the clay supplier about the 20 kg bags. Ask if they still do the grey body.

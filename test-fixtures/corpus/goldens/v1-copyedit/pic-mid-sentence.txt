@@ -1,0 +1,14 @@
+slug: pic-mid-sentence
+row: yes
+significance: 0.6
+error: nil
+--- title
+Crack runs from rim to foot; body, not glaze, is the issue.
+--- summary
+
+--- body
+The crack runs from the rim all the way down to the foot, so it is the body, not the glaze. 
+
+[[img_001]]
+
+I will fire the next one slower.

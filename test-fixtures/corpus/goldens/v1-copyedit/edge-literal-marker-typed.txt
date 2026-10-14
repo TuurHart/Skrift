@@ -1,0 +1,14 @@
+slug: edge-literal-marker-typed
+row: yes
+significance: 0.5
+error: nil
+--- title
+Typing by hand to see what happens with the image.
+--- summary
+
+--- body
+I typed by hand to see what happens. 
+
+[[img_001]]
+
+There is no photo.

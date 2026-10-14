@@ -1,0 +1,10 @@
+slug: typed-locked
+row: yes
+significance: 0.9
+error: nil
+--- title
+Privé
+--- summary
+
+--- body
+Dit is een vergrendelde notitie over geld en over [[Hendrik Vos]]. Hoort nergens in de vault terecht te komen.

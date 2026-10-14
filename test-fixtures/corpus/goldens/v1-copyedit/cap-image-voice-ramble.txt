@@ -1,0 +1,10 @@
+slug: cap-image-voice-ramble
+row: yes
+significance: 0.8
+error: nil
+--- title
+Matte Blue Lamp Base from the Market, Cone Five
+--- summary
+Reflecting on lamp base from market, noting matte blue finish. Trying to figure out cone five for electric kiln.
+--- body
+This is the, the lamp base from the market, the matte blue, um, electric kiln cone five he said.

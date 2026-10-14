@@ -1,0 +1,10 @@
+slug: cap-url-with-title
+row: yes
+significance: 0.6
+error: nil
+--- title
+Iron Migration at Cone 6 Explains the Green Edge
+--- summary
+Reflecting on Ines's note, understanding iron migration at cone 6 explains green edge. Need to incorporate this insight into current work.
+--- body
+[[Ines Månsson]] sent this. The bit about iron migrating at cone 6 explains the green edge.

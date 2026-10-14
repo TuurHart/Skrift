@@ -1,0 +1,14 @@
+slug: pic-at-start
+row: yes
+significance: 0.7
+error: nil
+--- title
+Blue glaze at cone five, straight out of the kiln.
+--- summary
+
+--- body
+
+
+[[img_001]]
+
+This is what the blue looks like at cone five, straight out of the kiln, before I touched it.

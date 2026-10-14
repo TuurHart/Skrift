@@ -1,0 +1,10 @@
+slug: cap-file-pdf
+row: yes
+significance: 0.7
+error: nil
+--- title
+Marco's Quote for the Kiln Line: Nine Metres, 16 A, €640
+--- summary
+Reflecting on kiln line quote from Marco: nine metres, dedicated 16 A, costing €640 plus box. Need to confirm this pricing for next steps.
+--- body
+Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.

@@ -1,0 +1,10 @@
+slug: voice-en-raw-title
+row: yes
+significance: 0.5
+error: nil
+--- title
+memo_raw_title_should_not_leak
+--- summary
+
+--- body
+The list must not show memo garbage; a generated or first-line title wins over a raw one.

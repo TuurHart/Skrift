@@ -1,0 +1,16 @@
+slug: applenote-dutch
+row: yes
+significance: 0.6
+error: nil
+--- title
+Verjaardag Lotte
+--- summary
+
+--- body
+Ideeën:
+
+- De Ålesund-appeltaart laten bezorgen (kan dat?)
+- Een dag zonder werkplaats.
+- De blauwe kom, als hij lukt.
+
+Niet: gereedschap. Nooit meer gereedschap.

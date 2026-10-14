@@ -1,0 +1,14 @@
+slug: video-landscape
+row: yes
+significance: 0.4
+error: nil
+--- title
+Korte video van het draaien van de brede schaal voor Ines.
+--- summary
+
+--- body
+
+
+[[img_001]]
+
+Korte video van het draaien van de brede schaal, voor [[Ines Månsson]], zodat ze ziet wat er misgaat bij de rand.

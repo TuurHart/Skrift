@@ -1,0 +1,10 @@
+slug: voice-en-with-mac-polish
+row: yes
+significance: 0.7
+error: nil
+--- title
+Saturday workshop debrief
+--- summary
+
+--- body
+The Saturday went well actually. Six people, nobody leaned on a chain. [[Mariam Haddad]]'s colleagues want to come back for the glazing evening. I think we charge forty-five.

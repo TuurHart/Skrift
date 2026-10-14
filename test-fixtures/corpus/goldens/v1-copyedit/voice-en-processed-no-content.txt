@@ -1,0 +1,10 @@
+slug: voice-en-processed-no-content
+row: yes
+significance: 0.4
+error: nil
+--- title
+Kiln Wash
+--- summary
+
+--- body
+Kiln wash.

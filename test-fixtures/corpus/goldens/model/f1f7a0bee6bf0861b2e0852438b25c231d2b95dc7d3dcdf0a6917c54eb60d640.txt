@@ -1,0 +1,1 @@
+Reflecting on Ines's note, understanding iron migration at cone 6 explains green edge. Need to incorporate this insight into current work.

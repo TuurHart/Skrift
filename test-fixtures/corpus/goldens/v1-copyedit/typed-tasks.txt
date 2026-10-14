@@ -1,0 +1,17 @@
+slug: typed-tasks
+row: yes
+significance: 0.5
+error: nil
+--- title
+Taken voor deze week: Bedrading, klei, website, en keramische projecten.
+--- summary
+
+--- body
+Deze week:
+
+- Marco bellen over de bedrading (echt).
+- Order the grey clay body.
+- Rose the website feedback.
+- [[Mariam Haddad]]: yes to the Saturday, propose 18 Oct.
+- Chain for the Gazelle, black.
+- Blue glaze test at cone 6 with the new body.

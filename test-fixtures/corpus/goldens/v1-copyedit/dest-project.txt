@@ -1,0 +1,14 @@
+slug: dest-project
+row: yes
+significance: 0.9
+error: nil
+--- title
+Finished the wide blue bowl, the first one that came out right.
+--- summary
+
+--- body
+Finished the wide blue bowl, the first one that came out right.
+
+[[img_001]]
+
+ Cone five, grey body, blue number three.

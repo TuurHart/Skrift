@@ -1,0 +1,19 @@
+slug: pic-in-task-list
+row: yes
+significance: 0.5
+error: nil
+--- title
+Parts to order for the cargo bike
+--- summary
+
+--- body
+Parts to order for the cargo bike:
+
+- [ ] chain, 1/8
+- [ ] the rear hub, this one
+
+[[img_001]]
+
+
+- [ ] brake pads, four
+- [x] new bell

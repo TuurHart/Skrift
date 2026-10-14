@@ -1,0 +1,14 @@
+slug: voice-en-paragraphed-by-pauses
+row: yes
+significance: 0.6
+error: nil
+--- title
+Thoughts on color, bike builders, and Lotte's birthday.
+--- summary
+
+--- body
+The blue is closer at cone five than at six.
+
+[[Bruno Castel]]'s frame builder in Porto does lugged steel, and I want one.
+
+[[Lotte Vos]]'s birthday is in three weeks, and I have nothing.

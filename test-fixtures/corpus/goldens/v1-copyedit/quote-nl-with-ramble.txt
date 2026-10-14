@@ -1,0 +1,12 @@
+slug: quote-nl-with-ramble
+row: yes
+significance: 0.6
+error: nil
+--- title
+Reparaties verbergen de fiets: het probleem met de website.
+--- summary
+
+--- body
+> Een goede reparatie is er een die je over een jaar niet meer ziet.
+
+Dat is precies het probleem met de website: die laat de reparaties zien. Niemand wil reparaties zien. Ze willen de fiets zien.

@@ -1,0 +1,10 @@
+slug: cap-url-link-only
+row: yes
+significance: 0.3
+error: nil
+--- title
+Iron Oxide - Digitalfire
+--- summary
+(nil)
+--- body
+

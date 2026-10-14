@@ -1,0 +1,12 @@
+slug: quote-en-with-ramble
+row: yes
+significance: 0.8
+error: nil
+--- title
+The Potter's Wheel Records What Your Hands Did
+--- summary
+
+--- body
+> The potter's wheel does not care what you meant to make. It records what your hands did.
+
+This is the whole studio in two sentences. I keep meaning the blue bowl, and my hands keep making the safe one.

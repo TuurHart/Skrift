@@ -1,0 +1,14 @@
+slug: voice-en-triple-blank-lines
+row: yes
+significance: 0.5
+error: nil
+--- title
+Trailer Hitch and Hendrik's Invoice Discussion
+--- summary
+
+--- body
+Part one about the trailer hitch.
+
+Part two. After a very long pause, about the invoice for [[Hendrik Vos]].
+
+Part three.

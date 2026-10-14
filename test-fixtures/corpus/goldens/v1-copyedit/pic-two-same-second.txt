@@ -1,0 +1,18 @@
+slug: pic-two-same-second
+row: yes
+significance: 0.6
+error: nil
+--- title
+Green Edge on Bowl: Observing Heat Exposure
+--- summary
+
+--- body
+Front and back of the same bowl,
+
+[[img_001]]
+
+ 
+
+[[img_002]]
+
+the green edge is only on the side that faced the element.

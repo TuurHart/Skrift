@@ -1,0 +1,10 @@
+slug: quote-only-no-ramble
+row: yes
+significance: 0.5
+error: nil
+--- title
+Price is what you say when you have stopped apologising.
+--- summary
+
+--- body
+> Price is what you say when you have stopped apologising.

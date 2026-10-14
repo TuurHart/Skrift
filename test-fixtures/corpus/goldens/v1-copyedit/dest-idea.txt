@@ -1,0 +1,10 @@
+slug: dest-idea
+row: yes
+significance: 0.7
+error: nil
+--- title
+Repair Diary Card: Documenting Every Bike Overhaul
+--- summary
+
+--- body
+Idea: a ''repair diary' card that goes home with every overhauled bike—what was done, photos, the date. [[Lotte Vos]] says people would keep it.
