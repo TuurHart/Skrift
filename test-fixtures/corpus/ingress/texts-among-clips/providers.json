@@ -1,0 +1,11 @@
+{
+  "door": "texts-among-clips",
+  "about": "C125/R22: a mixed chat selection - clip, text, picture, clip, text. Both texts survive, in order among the clips and the picture.",
+  "items": [
+    { "providers": [ { "uti": ["org.xiph.opus", "public.url"], "file": "PTT-20241005-WA0001.opus", "url": "https://wa.me/p/0001" } ] },
+    { "providers": [ { "uti": ["public.plain-text"], "text": "Meet at the station at nine." } ] },
+    { "providers": [ { "uti": ["public.jpeg"], "file": "IMG-20241005-WA0002.jpg" } ] },
+    { "providers": [ { "uti": ["org.xiph.opus", "public.url"], "file": "PTT-20241005-WA0003.opus", "url": "https://wa.me/p/0003" } ] },
+    { "providers": [ { "uti": ["public.plain-text"], "text": "Bring the blue folder." } ] }
+  ]
+}

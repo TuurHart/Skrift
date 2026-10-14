@@ -92,6 +92,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Ingress: the ONE share / drop dispatcher (C238, C198), shared with the phone.
+      - path: ../Shared/Ingress
       # Body v2 (Q11): beside v1 until the swap (C2).
       - path: ../Shared/BodyV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
@@ -227,6 +229,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Q438: the ONE share / drop dispatcher (pure, Foundation + UTType), IngressDispatchTests.
+      - path: ../Shared/Ingress
       # Body v2 (Q11): beside v1 until the swap (C2).
       - path: ../Shared/BodyV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).

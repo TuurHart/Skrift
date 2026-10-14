@@ -1,0 +1,9 @@
+{
+  "door": "whatsapp-3-items",
+  "about": "C67/R4: WhatsApp ships a 3-voice-note multi-select as 3 extension items, each with an audio file AND a URL representation. Audio outranks the URL (C69); every clip survives, in chat order.",
+  "items": [
+    { "providers": [ { "uti": ["org.xiph.opus", "public.url"], "file": "PTT-20241003-WA0007.opus", "url": "https://wa.me/p/0007" } ] },
+    { "providers": [ { "uti": ["org.xiph.opus", "public.url"], "file": "PTT-20241003-WA0008.opus", "url": "https://wa.me/p/0008" } ] },
+    { "providers": [ { "uti": ["public.mpeg-4-audio", "public.url"], "file": "PTT-20241003-WA0009.m4a", "url": "https://wa.me/p/0009" } ] }
+  ]
+}

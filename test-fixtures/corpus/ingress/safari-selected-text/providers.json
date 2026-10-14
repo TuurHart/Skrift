@@ -1,0 +1,10 @@
+{
+  "door": "safari-selected-text",
+  "about": "C198/A3: Safari shares a selected quote AND the page URL - the text wins, the URL and page title ride along.",
+  "items": [
+    { "title": "How rivers carve canyons", "providers": [
+      { "uti": ["public.url"], "url": "https://example.org/rivers" },
+      { "uti": ["public.plain-text"], "text": "Water is patient; rock is not." }
+    ] }
+  ]
+}

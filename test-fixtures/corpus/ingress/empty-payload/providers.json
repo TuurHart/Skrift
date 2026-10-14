@@ -1,0 +1,9 @@
+{
+  "door": "empty-payload",
+  "about": "C75: nothing usable (no providers, a blank text, a provider with nothing loaded) refuses - never a husk.",
+  "items": [
+    { "providers": [] },
+    { "providers": [ { "uti": ["public.plain-text"], "text": "   \n" } ] },
+    { "providers": [ { "uti": ["public.data"] } ] }
+  ]
+}

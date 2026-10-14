@@ -1,0 +1,7 @@
+{
+  "door": "url-as-text",
+  "about": "C69/D16: a text share whose whole text is a web link becomes a link capture, not a text note.",
+  "items": [
+    { "providers": [ { "uti": ["public.plain-text"], "text": "  https://example.com/article/42  \n" } ] }
+  ]
+}
