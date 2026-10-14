@@ -2966,6 +2966,20 @@ gate+: yes
 do: Today choosing Portfolio (the Q395 tap pill) adds all three preset tags idea/inspiration/project to the note. Change: flipping to Portfolio adds NO tags; the tag row shows the three as quiet suggestion chips (the existing tag-suggestion look) only while the note is Portfolio and has none of them; tapping one adds just that tag; flipping back to Personal removes nothing the user added. One shared rule in Skrift_Native/Shared/ (phone, iPad, Mac, quick note). Mac test `PortfolioPresetTests` in SkriftDesktopTests (flip adds none; tap adds one; flip back keeps tags). Phone + Mac shots into plan/reads/destination-pill/portfolio-*.png. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/PortfolioPresetTests.swift`
 
+### Q403 [auto] (doing) Library shelf: Continue row, mini player, type badge on every cover (D207, Q6 mock)
+spec: D207 C229
+needs: -
+gate+: yes
+do: Build to the signed Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html 'Library' screen, using plan/reads/library-tab/compare-q6-lib.png (mock left, app right) as the gap list: (1) the 'Continue' row above the chips — the last few sources you played/opened (any kind), horizontally scrolling cards with cover, kind label, title, progress and time/pages left, tap resumes; (2) the mini player docked above the tab bar while a book/episode plays (cover, back 15, play/pause, forward 15, 'Add note') — reuse the existing AudiobookMiniPlayerBar if it exists, don't write a second player; (3) a type badge (AUDIOBOOK, EPISODE, ARTICLE, PDF) on every cover kind. Keep the author line under tile titles and the iOS 26 floating glass tab bar (D207). Shared code first (labels from SourceKind). Phone test `LibraryContinueRowTests` (order = most recently played/opened, kinds mixed, finished sources drop out). Shot next to the mock at 402 x 874 into plan/reads/library-tab/q403-*.png; LOOK.
+check: `test $(ls plan/reads/library-tab/q403-*.png | wc -l) -ge 1 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryContinueRowTests`
+
+### Q404 [auto] (doing) PDF reader: reflowed reading view from the text layer, real page one tap away; Highlight in PDF + article selection menus (D207)
+spec: D207 D126
+needs: -
+gate+: yes
+do: Build to the signed Q6 mock 'PDF reader' screen (plan/reads/library-tab/compare-q6-reader.png shows the gap): when a PDF has a usable text layer (PDFKit page strings; the existing PDFTextExtract), the reader shows a reflowed reading view — the page's text in the reader font and size (same Aa settings as the article reader), headings and paragraphs kept, simple two-column tables as rows, page breaks marked 'Page N' — with an 'Original page' toggle back to the PDFKit page (remembered per PDF). No text layer or a poor extraction (heuristic: too few words/page, garbled ratio) → the real page only, no toggle. Selection in the reading view → the same Copy · Highlight · Add note menu; capture still carries source + page (Q354). Add Highlight to both menus (PDF + article): a highlight is a stored range on the source (no note) drawn as the mock's yellow, removable from its own menu, synced inside the Library item's blob. Shared text-shaping rules in Skrift_Native/Shared/. Phone tests `PDFReflowTests` (reflow keeps order and page markers; scanned PDF → no toggle) + `SourceHighlightTests`. Shots next to the mock into plan/reads/library-tab/q404-*.png.
+check: `test $(ls plan/reads/library-tab/q404-*.png | wc -l) -ge 1 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PDFReflowTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4333,3 +4347,7 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/Portf
 - 2026-10-14 09:29 Q402 -> doing — worker out
 - 2026-10-14 09:31 Q394 -> done — gate 50s @7766c1fe
 - 2026-10-14 09:43 Q402 -> done — gate 46s @5d500b5e
+- 2026-10-14 09:59 Q403 added
+- 2026-10-14 09:59 Q404 added
+- 2026-10-14 10:00 Q403 -> doing — worker out
+- 2026-10-14 10:00 Q404 -> doing — worker out
