@@ -1,0 +1,14 @@
+slug: pic-at-end
+row: yes
+significance: 0.5
+error: nil
+--- title
+Gazelle Overhaul Complete: New Chain, Cables, and Trued Wheels
+--- summary
+
+--- body
+Finished the Gazelle overhaul: new chain, new cables, wheels trued. Here it is.
+
+[[img_001]]
+
+

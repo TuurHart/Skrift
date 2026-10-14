@@ -1,0 +1,10 @@
+slug: cap-url-voice-ramble
+row: yes
+significance: 0.7
+error: nil
+--- title
+Frame builder in Porto: A lugged steel option for the touring bike.
+--- summary
+Reflecting on Bruno's frame builder from Porto, considering lugged steel for touring bike. Examining seat cluster closely to confirm suitability.
+--- body
+So [[Bruno Castel]], um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.

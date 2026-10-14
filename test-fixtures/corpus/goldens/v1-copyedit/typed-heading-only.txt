@@ -1,0 +1,10 @@
+slug: typed-heading-only
+row: yes
+significance: 0.3
+error: nil
+--- title
+Just a heading
+--- summary
+
+--- body
+Just a heading

@@ -1,0 +1,12 @@
+slug: typed-unicode-emoji
+row: yes
+significance: 0.4
+error: nil
+--- title
+IJsselmeer weekend 🚲
+--- summary
+
+--- body
+Rondje IJsselmeer met [[Lotte Vos]] — 3 dagen, ± 260 km. [[Ines Månsson]]’ tip: de veerpont bij Enkhuizen gaat om 10:15 en 14:15, niet vaker.
+
+Don’t forget: “the good pump”, the Ortlieb bags, and [[Pieter-Jan Claes]]’s spare tube. Café Ålesund heeft de beste appeltaart 🍎.

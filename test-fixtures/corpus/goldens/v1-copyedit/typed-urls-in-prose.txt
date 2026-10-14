@@ -1,0 +1,12 @@
+slug: typed-urls-in-prose
+row: yes
+significance: 0.4
+error: nil
+--- title
+Glaze Chemistry, Iron Oxide, and Pyrometric Cone Chart Connections
+--- summary
+
+--- body
+Glaze chemistry links: [[Ines Månsson]] sent https://digitalfire.com/glossary/iron+oxide and the cone chart at https://en.wikipedia.org/wiki/Pyrometric_cone. The second one has the table I keep re-googling.
+
+[[Bruno Castel]]'s shop: www.castelcycles.pt — ask him about the Portuguese frame builder.

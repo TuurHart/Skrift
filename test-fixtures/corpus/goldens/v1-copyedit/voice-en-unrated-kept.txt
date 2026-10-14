@@ -1,0 +1,10 @@
+slug: voice-en-unrated-kept
+row: yes
+significance: 0.1
+error: nil
+--- title
+Keeping the Unrated on the Fading Shelf
+--- summary
+
+--- body
+Unrated, but I pressed Keep on it in the fading shelf, so it never fades again.

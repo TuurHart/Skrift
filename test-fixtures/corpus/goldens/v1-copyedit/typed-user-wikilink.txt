@@ -1,0 +1,10 @@
+slug: typed-user-wikilink
+row: yes
+significance: 0.5
+error: nil
+--- title
+Update on Saturday plans with Lotte Vos and potential attendees
+--- summary
+
+--- body
+Talked to [[Lotte Vos]] Vos about the Saturday, and she is in. Jack might come too, the Ferreira one, not Morrow.

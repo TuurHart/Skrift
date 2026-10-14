@@ -1,0 +1,10 @@
+slug: cap-file-txt
+row: yes
+significance: 0.5
+error: nil
+--- title
+blue-3.txt
+--- summary
+(nil)
+--- body
+

@@ -1,0 +1,10 @@
+slug: typed-same-title-a
+row: yes
+significance: 0.6
+error: nil
+--- title
+Glaze test
+--- summary
+
+--- body
+Cone 6, grey body, blue #3. Edges went green again.

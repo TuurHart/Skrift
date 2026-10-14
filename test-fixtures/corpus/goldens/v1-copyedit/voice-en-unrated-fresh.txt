@@ -1,0 +1,10 @@
+slug: voice-en-unrated-fresh
+row: yes
+significance: 0.1
+error: nil
+--- title
+Just Captured, Not Judged Yet: Ask Nadia About the Panniers
+--- summary
+
+--- body
+Just captured, not judged yet. Remember to ask [[Nadia Elharrak]] about the panniers.

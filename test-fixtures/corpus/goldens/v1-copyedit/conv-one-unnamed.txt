@@ -1,0 +1,16 @@
+slug: conv-one-unnamed
+row: yes
+significance: 0.6
+error: nil
+--- title
+Frame builder's terms for lugs: deposit and bank transfer.
+--- summary
+
+--- body
+**Fenna de Wit:** What did the frame builder say about the lugs?
+
+**Speaker 2:** He can do them but not before spring, and he wants a deposit.
+
+**Fenna de Wit:** How much?
+
+**Speaker 2:** Four hundred. And he only takes a bank transfer, no card.

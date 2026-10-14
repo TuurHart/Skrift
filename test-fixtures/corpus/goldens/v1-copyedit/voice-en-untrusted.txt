@@ -1,0 +1,10 @@
+slug: voice-en-untrusted
+row: yes
+significance: 0.5
+error: nil
+--- title
+Cargo bike chain and flickering front light issues in windy conditions.
+--- summary
+
+--- body
+Wind noise the whole way, so this is probably garbage. Something about the chain on the cargo bike and the front light that flickers.

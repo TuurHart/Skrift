@@ -1,0 +1,14 @@
+slug: typed-dutch-boodschappen
+row: yes
+significance: 0.1
+error: nil
+--- title
+Boodschappenlijst voor zaterdag en een herinnering
+--- summary
+
+--- body
+Boodschappen voor zaterdag:
+
+Kaas (jong belegen, niet die oude), brood van de Turkse bakker, 3 kg klei-gips, iets voor tante Ria's verjaardag, bier voor Jack.
+
+Niet vergeten: de fietstassen van [[Nadia Elharrak]] liggen nog achter.

@@ -1,0 +1,10 @@
+slug: voice-en-rated-floor
+row: yes
+significance: 0.1
+error: nil
+--- title
+Blue pump valve leaks, barely worth keeping.
+--- summary
+
+--- body
+Barely worth keeping. The valve on the blue pump leaks.

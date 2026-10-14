@@ -1,0 +1,14 @@
+slug: video-portrait
+row: yes
+significance: 0.5
+error: nil
+--- title
+Advice to Future Me: Don't Say Yes to Workshops Without Checking the Calendar
+--- summary
+
+--- body
+
+
+[[img_001]]
+
+Advice to future me, recorded on the balcony: do not say yes to a workshop before checking the calendar.

@@ -1,0 +1,12 @@
+slug: cap-text-article
+row: yes
+significance: 0.6
+error: nil
+--- title
+Why iron makes blue glazes go green
+
+Most studio…
+--- summary
+(nil)
+--- body
+

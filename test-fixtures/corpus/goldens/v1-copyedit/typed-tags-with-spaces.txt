@@ -1,0 +1,10 @@
+slug: typed-tags-with-spaces
+row: yes
+significance: 0.5
+error: nil
+--- title
+Does the Export Keep Tags as One Tag Each?
+--- summary
+
+--- body
+Does the export keep them as one tag each?

@@ -1,0 +1,16 @@
+slug: conv-two-named
+row: yes
+significance: 0.6
+error: nil
+--- title
+Planning logistics: Bike cleaning and trailer arrangements for the weekend.
+--- summary
+
+--- body
+**Fenna de Wit:** So if we do the Saturday, who is cleaning the bike side?
+
+**[[Lotte Vos]]:** You are. I did the last one and I found a chain under the clay table.
+
+**Fenna de Wit:** Fair. Friday night then. Can [[Hendrik Vos|Hendrik]] bring the trailer for the boards?
+
+**Lotte:** If you ask him before Wednesday. After that he says he is busy and he is not.

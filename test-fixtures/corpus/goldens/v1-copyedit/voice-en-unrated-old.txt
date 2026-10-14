@@ -1,0 +1,10 @@
+slug: voice-en-unrated-old
+row: yes
+significance: 0.1
+error: nil
+--- title
+A Note from June About Nothing Much and Kiln Wash
+--- summary
+
+--- body
+A note from June about nothing much. The kiln shelf needs kiln wash.

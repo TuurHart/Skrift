@@ -1,0 +1,14 @@
+slug: typed-blockquote-ordinary
+row: yes
+significance: 0.5
+error: nil
+--- title
+The Blue-Glaze Problem and Stopping Price Apologies
+--- summary
+
+--- body
+> The pot you want is the pot you can't make yet.
+
+Someone said that at the fair, and I wrote it on my hand. It is exactly the blue-glaze problem.
+
+Also: stop apologizing to customers for the price. Just say the number.

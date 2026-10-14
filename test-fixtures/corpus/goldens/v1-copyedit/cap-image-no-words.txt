@@ -1,0 +1,10 @@
+slug: cap-image-no-words
+row: yes
+significance: 0.5
+error: nil
+--- title
+IMG_4471.jpg
+--- summary
+(nil)
+--- body
+

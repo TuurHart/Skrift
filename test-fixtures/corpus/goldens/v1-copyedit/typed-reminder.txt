@@ -1,0 +1,10 @@
+slug: typed-reminder
+row: yes
+significance: 0.3
+error: nil
+--- title
+Pick up the fired pieces from Ines before she closes for the holidays.
+--- summary
+
+--- body
+Pick up the fired pieces from [[Ines Månsson]] before she closes for the holidays.

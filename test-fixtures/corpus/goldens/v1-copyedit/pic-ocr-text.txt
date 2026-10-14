@@ -1,0 +1,14 @@
+slug: pic-ocr-text
+row: yes
+significance: 0.5
+error: nil
+--- title
+Supplier's Price Board Snapped to Stop Guessing
+--- summary
+
+--- body
+Snapped the supplier's price board so I stop guessing.
+
+[[img_001]]
+
+ Grey body went up again.

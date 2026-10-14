@@ -1,0 +1,5 @@
+{
+  "_schema": "Q423: slug -> array of SPEC.md ids (R# / C#) for which a copy-edit engine's title/summary/body is EXPECTED to differ from v1's recorded golden (goldens/v1-copyedit/<slug>.txt). CopyEditDiffHarnessTests (C5): for every engine but v1 (v1 IS the golden), a diff on a slug listed here is expected-different (pass); the SAME slug with no diff is a matched bug (fail); a diff on an unlisted slug is unexplained (fail).",
+  "pic-wall": ["R3", "C30"],
+  "pic-three-spread": ["R3", "C30"]
+}

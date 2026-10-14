@@ -1,0 +1,10 @@
+slug: voice-nl-names
+row: yes
+significance: 0.5
+error: nil
+--- title
+PJ, Sam en Rose helpen met de wielen en de nieuwe site.
+--- summary
+
+--- body
+[[Pieter-Jan Claes]], of Pieter-Jan zoals iedereen hem noemt, komt zaterdag helpen met de wielen. Sam ook, de Zweedse Sam, niet die andere. En Rose stuurt de nieuwe versie van de site door.

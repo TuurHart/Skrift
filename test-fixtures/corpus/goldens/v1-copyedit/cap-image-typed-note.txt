@@ -1,0 +1,10 @@
+slug: cap-image-typed-note
+row: yes
+significance: 0.6
+error: nil
+--- title
+Whiteboard van het overleg met Lotte: de indeling van de zaterdag
+--- summary
+Reflecting on meeting with Lotte, trying to figure out Saturday's layout. Need to finalize plan for weekend schedule.
+--- body
+Whiteboard van het overleg met [[Lotte Vos]]: de indeling van de zaterdag.

@@ -1,0 +1,18 @@
+slug: typed-headings-and-tags
+row: yes
+significance: 0.7
+error: nil
+--- title
+October workshop plan
+--- summary
+Reflecting on October workshop, planning hand-building session with Mariam and friends. Trying to figure out pricing between €45 and €60. Need to clean bike side Friday and check material stock.
+--- body
+October workshop. Six people, hand-building, two hours. [[Mariam Haddad]] is bringing two friends from her office.
+
+Before: Clean the bike side on Friday night. Cover the stands. #studio #workshop.
+
+Materials: Two bags of the grey body, slip, the small wooden ribs. Check we have enough boards—last time we ran out.
+
+After: Dry a week, bisque, then invite everyone back to glaze. That second evening is the part people remember.
+
+Open: Price? Rose says €45, [[Lotte Vos]] says €60. Somewhere in between.

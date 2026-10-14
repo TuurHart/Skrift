@@ -1,0 +1,10 @@
+slug: share-voicememo-named
+row: yes
+significance: 0.7
+error: nil
+--- title
+kiln idea
+--- summary
+
+--- body
+Kiln idea, quick. What if the glazing evening is the product and the workshop is the free part? People pay to come back.

@@ -1,0 +1,10 @@
+slug: cap-url-youtube
+row: yes
+significance: 0.5
+error: nil
+--- title
+Throwing wide bowls, the trick at 4:10 with the rib.
+--- summary
+Reflecting on throwing wide bowls, trying to nail trick at 4:10 with rib. Focusing on consistency in those throws.
+--- body
+Throwing wide bowls, the trick at 4:10 with the rib.

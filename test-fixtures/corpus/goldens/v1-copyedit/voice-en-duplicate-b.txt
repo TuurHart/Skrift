@@ -1,0 +1,10 @@
+slug: voice-en-duplicate-b
+row: yes
+significance: 0.5
+error: nil
+--- title
+Duplicate Check: Same Words Twice, Two Different Recordings
+--- summary
+
+--- body
+Duplicate check. Same words twice, two different recordings, forty seconds apart.

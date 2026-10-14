@@ -1,0 +1,20 @@
+slug: conv-three-speakers
+row: yes
+significance: 0.7
+error: nil
+--- title
+Negotiating the Price for the Workshop
+--- summary
+
+--- body
+**Fenna de Wit:** Okay, price for the workshop. Rose?
+
+**[[Rose Aldana]]:** Forty-five. Anything more and people compare it to the big studios.
+
+**[[Lotte Vos]]:** Sixty. Clay, firing twice, two evenings of your time. Forty-five is a loss.
+
+**Fenna de Wit:** So fifty and we stop arguing.
+
+**Rose:** Fifty is fine.
+
+**Lotte:** Fifty is a loss but fine.

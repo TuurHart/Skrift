@@ -1,0 +1,14 @@
+slug: pic-missing-file
+row: yes
+significance: 0.5
+error: nil
+--- title
+Placeholder Image Handling: Preventing Crashes and Marker Drops
+--- summary
+
+--- body
+The photo for this one never made it across.
+
+[[img_001]]
+
+ Should show a placeholder, not crash, not drop the marker.

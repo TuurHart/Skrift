@@ -1,0 +1,10 @@
+slug: typed-empty-body
+row: yes
+significance: 0.1
+error: nil
+--- title
+(nil)
+--- summary
+(nil)
+--- body
+

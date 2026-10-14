@@ -1,0 +1,10 @@
+slug: voice-en-rated-max
+row: yes
+significance: 1.0
+error: nil
+--- title
+The Blue Bowl: The Studio's Essential Creation
+--- summary
+
+--- body
+This is the one. If the studio only ever makes one thing, it should be the blue bowl, the wide one, and everything else is a way to pay for that.

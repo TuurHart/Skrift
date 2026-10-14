@@ -1,0 +1,10 @@
+slug: edge-emoji-title-tags
+row: yes
+significance: 0.6
+error: nil
+--- title
+🔥 Kiln day
+--- summary
+
+--- body
+Kiln day. Loaded at seven, firing to cone five. The blue bowl is in the middle where it is most even.

@@ -1,0 +1,16 @@
+slug: conv-dutch
+row: yes
+significance: 0.6
+error: nil
+--- title
+Bel Marco over de bedrading, zegt Lotte.
+--- summary
+
+--- body
+**[[Lotte Vos]]:** Heb je Marco nou gebeld over de bedrading?
+
+**Fenna de Wit:** Nee. Maar het staat in de app dus het telt.
+
+**Lotte:** Het telt niet. Bel hem gewoon.
+
+**Fenna de Wit:** Morgen. Echt.

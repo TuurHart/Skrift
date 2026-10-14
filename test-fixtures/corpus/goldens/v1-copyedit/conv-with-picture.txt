@@ -1,0 +1,16 @@
+slug: conv-with-picture
+row: yes
+significance: 0.6
+error: nil
+--- title
+Discussing the difference between green and iron in pottery.
+--- summary
+
+--- body
+**Fenna de Wit:** Look at the edge on this one. [[img_001]] That is the green again.
+
+**[[Lotte Vos]]:** That is the iron. Same as [[Ines Månsson|Ines]] said. Different clay or a slip.
+
+**Fenna de Wit:** A slip is one more step on every piece.
+
+**Lotte:** Then a different clay.

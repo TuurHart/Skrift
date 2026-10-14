@@ -1,0 +1,14 @@
+slug: pic-shared-no-timestamp
+row: yes
+significance: 0.7
+error: nil
+--- title
+Lamp Base Fired at Cone Five for Matte Blue Finish
+--- summary
+
+--- body
+Talking
+
+[[img_001]]
+
+ about the lamp base I saw at the market, the seller fires electric at cone five, so the matte blue is possible without gas.

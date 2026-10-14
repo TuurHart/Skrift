@@ -1,0 +1,10 @@
+slug: cap-url-dutch-annotation
+row: yes
+significance: 0.4
+error: nil
+--- title
+Veerpont bij Enkhuizen voor het IJsselmeer-weekend met Lotte.
+--- summary
+Reflecting on Enkhuizen bridge, noting times for upcoming IJsselmeer weekend with Lotte. Planning logistics for weekend trip.
+--- body
+Dit is die veerpont bij Enkhuizen, tijden staan onderaan. Voor het IJsselmeer-weekend met [[Lotte Vos]].

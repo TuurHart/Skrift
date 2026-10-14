@@ -1,0 +1,22 @@
+slug: pic-user-snapped-markers
+row: yes
+significance: 0.6
+error: nil
+--- title
+Moving Markers in the Editor to Sentence Ends
+--- summary
+
+--- body
+Moved the markers myself in the editor so they sit on sentence ends.
+
+This paragraph is after the first picture.
+
+
+[[img_001]]
+
+
+
+
+[[img_002]]
+
+And this one after the second.

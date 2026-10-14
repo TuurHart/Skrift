@@ -1,0 +1,10 @@
+slug: cap-url-no-title
+row: yes
+significance: 0.4
+error: nil
+--- title
+Bookmarking this before I lose it.
+--- summary
+Reflecting on importance of clear communication in team projects. Trying to figure out best way to structure feedback sessions with Sarah and Mark. Need to schedule follow-up meeting next week.
+--- body
+Bookmarking this before I lose it.

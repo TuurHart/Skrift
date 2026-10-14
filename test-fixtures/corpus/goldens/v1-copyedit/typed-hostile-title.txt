@@ -1,0 +1,10 @@
+slug: typed-hostile-title
+row: yes
+significance: 0.6
+error: nil
+--- title
+Q4: plan / budget * draft? <v2> "final" | really
+--- summary
+
+--- body
+The title is the test. Slashes, colons, stars, quotes, and a pipe—the vault filename must be safe and stable.

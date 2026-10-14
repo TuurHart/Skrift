@@ -1,0 +1,12 @@
+slug: quote-missing-book-metadata
+row: yes
+significance: 0.5
+error: nil
+--- title
+June Bug Reaches Mac with Empty Metadata Blob
+--- summary
+
+--- body
+> Fire it slower than you think you need to.
+
+The June bug reached the Mac with an empty metadata blob and rendered as a raw wall.

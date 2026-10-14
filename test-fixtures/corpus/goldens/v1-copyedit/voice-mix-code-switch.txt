@@ -1,0 +1,10 @@
+slug: voice-mix-code-switch
+row: yes
+significance: 0.5
+error: nil
+--- title
+Voorbereidingen voor de zaterdag workshop: fietskant schoonmaken en materiaalcheck.
+--- summary
+
+--- body
+Dus ik zat te denken, de Saturday workshop. Als we dat doen, dan moet de fietskant echt schoon zijn, properly clean, niet gewoon een doek erover. [[Mariam Haddad]] brengt twee collega's mee, dat zijn zes mensen, en ik heb maar vier planken. [[Bruno Castel]] heeft er misschien nog, ik vraag het hem morgen.

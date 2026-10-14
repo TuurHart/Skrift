@@ -1,0 +1,10 @@
+slug: share-signal-single
+row: yes
+significance: 0.4
+error: nil
+--- title
+Review the website mock, focusing on the fonts first.
+--- summary
+
+--- body
+Rose here. The website mock is in your inbox. Look at the fonts before you look at anything else.

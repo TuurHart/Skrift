@@ -1,0 +1,10 @@
+slug: typed-reserved-word-tags
+row: yes
+significance: 0.8
+error: nil
+--- title
+Hand-thrown lamp base found at market, fired in electric kiln.
+--- summary
+
+--- body
+Saw a hand-thrown lamp base at the Saturday market with the exact matte blue I want. The seller fires in an electric kiln at cone 5, so it is possible without gas.
