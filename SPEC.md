@@ -308,9 +308,10 @@ suite is retired; the unit suite IS the gate (D85).
   iOS auto-publishes; bookmarks never export. || check: `PublishCoordinatorTests`; corpus
   `typed-locked` and `applenote-dutch` (both locked) never appear in the vault. — ledgers:128-131,
   L C13, L:367
-- C62 [auto] Four destinations, one per note: Personal → vault; Project → `_projects/`; Idea →
-  `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; Project lands in `_projects/Skrift/`
-  (Tuur 2026-09-22; v1 writes flat `_projects/` — ⚠ required difference, D41); the portfolio keeps
+- C62 [auto] Two destinations, one per note (D189): Personal → vault; Portfolio →
+  `<portfolio root>/_inbox/<slug>.md`, media beside it; idea / inspiration / project are ordinary
+  tags, offered as one-tap presets when Portfolio is picked, and `needs: - credit` keys on the
+  `inspiration` tag; old stored `idea` / `inspiration` / `project` decode as Portfolio plus that tag; the portfolio keeps
   `[[names]]` and `people:`, plainifies place LINKS, drops weather, significance, SUMMARY,
   `author`, `type`, `source` (C130); writes `capture:` and `voice:` (set by each app, never
   derived) and `date:` = the recording date (never `added:`, D94); `location:` stays (C137); flat,
@@ -322,7 +323,7 @@ suite is retired; the unit suite IS the gate (D85).
 - C63 [auto] No video goes to the Obsidian vault: a video note exports markdown + audio + the
   frame there. Every video keeps its source movie as a SYNCED asset (D188)
   (cap ~200 MB, D44, C148), so the portfolio export copies it from whichever device exports
-  (Tuur 2026-08-28, "that is gold") for Inspiration / Idea / Project; a Personal video's movie syncs but is never exported (D188). || check: corpus
+  (Tuur 2026-08-28, "that is gold") for a Portfolio note (D189); a Personal video's movie syncs but is never exported (D188). || check: corpus
   `video-*`; `video-project-portfolio` (owed). — ledgers:153, code-core K:248, D44
 - C64 [auto] `date:` = the RECORDING'S LOCAL DAY on every device — one timezone rule, no
   per-device reinterpretation (D13).
@@ -560,7 +561,7 @@ suite is retired; the unit suite IS the gate (D85).
   URL fetch on drain, both stated in-app AND in the README (D29). || check: no other host in
   the network log of a corpus run; the two calls named on a Settings screen. — decisions:539, D29
 - C121 [auto] Personal notes never land in a folder a CLOUD AI reads; the destination is a stored
-  field, one of four. The privacy boundary is cloud vs local: a local assistant in Skrift may
+  field, Personal or Portfolio (D189). The privacy boundary is cloud vs local: a local assistant in Skrift may
   read everything, Claude only the portfolio (Tuur 2026-09-22). || check: corpus `dest-personal`
   never under the portfolio root.
 - C122 [auto] The corpus is synthetic; agents never read his vault and never screenshot the live
@@ -601,7 +602,7 @@ and `_projects/` READMEs, `docs/SKRIFT-REQUEST.md`, roadmap ideas i14/i16/i29/i4
 The interview loop, sorting into item folders, links and layers happen on the portfolio side,
 never in Skrift ("then you can't have immediate AI back and forth" — rejected).
 
-- C129 [auto] What Skrift writes for Inspiration / Idea / Project is exactly what the portfolio
+- C129 [auto] What Skrift writes for a Portfolio note (D189) is exactly what the portfolio
   stores: one flat markdown file, media beside it sharing its basename, no folder per entry;
   `![](file)` relative embeds only, never `![[…]]`. || check: `PortfolioExportTests`; corpus
   `dest-*`. — portfolio/README, _ideas/README
@@ -628,21 +629,21 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   (`2026-08-26-142312.md`) only when there is no title at all. Tuur 2026-09-22: a generated
   title is as good a name as a typed one. = v1 (`VaultWrite.swift:112-115`); the portfolio's
   own docs are to be relaxed to match. || check: `dest-idea` → slug of its title. — D39
-- C133 [auto] Destination is one of four, single-select; "Personal" never reaches the
-  portfolio; Project → `_projects/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
-  that is also true rides as an ordinary tag. The line between Idea and Inspiration is
+- C133 [auto] Destination is Personal or Portfolio, single-select (D189); "Personal" never
+  reaches the portfolio; every Portfolio note lands in `_inbox/`; idea / inspiration / project
+  ride as ordinary tags, any combination. The line between the `idea` and `inspiration` tags is
   INTENT: a want of his in the entry makes it an idea even when the object is someone
   else's. || check: corpus `dest-*`. — _inbox/README, rules:537-547
 - C134 [auto] Credit is captured as a PHOTOGRAPH, not typed: an extra picture of the label
-  travels with the entry; an Inspiration, or an Idea tagged `inspiration`, carries
+  travels with the entry; a Portfolio note tagged `inspiration` carries
   `needs: - credit` so a later portfolio pass fills `credit:` or keeps the need. Skrift never
   guesses a maker. || check: `dest-inspiration-credit`, `typed-reserved-word-tags`.
   — rules:549-569
 - C135 [auto] Empty body is a valid, common portfolio state (a bare picture); Skrift exports
-  it without inventing a sentence. || check: `cap-image-no-words` with destination idea.
+  it without inventing a sentence. || check: `cap-image-no-words` with destination Portfolio.
 - C136 [auto] The portfolio-bound export carries the ORIGINAL audio beside the note (he
-  reuses audio in videos), and the source movie too when the note is a video filed Inspiration /
-  Idea / Project (D44, C63); a video never reaches the Obsidian vault. || check:
+  reuses audio in videos), and the source movie too when the note is a video filed Portfolio
+  (D44, C63, D189); a video never reaches the Obsidian vault. || check:
   `dest-project` export folder. — D44
 - C137 [auto] `people:`, `[[names]]` and `location:` stay in portfolio exports (public site, credit
   his friends; C62, C130 agree). || check: corpus `dest-idea` frontmatter carries all three. — Tuur
@@ -679,7 +680,7 @@ Ingress:
 - C147 [auto] A share entry is deleted only after its memo is saved, for every type; a re-drain
   is idempotent (memo id from the entry). || check: drainer test that throws after the delete.
   ⚠ required difference (a kill in that window loses the clips today) — scenarios #19
-- C148 [tuur] A video filed Inspiration / Idea / Project keeps the source movie as a synced asset so
+- C148 [tuur] A video filed Portfolio (D189) keeps the source movie as a synced asset so
   the portfolio gets it (cap ~200 MB); Personal videos keep and sync it too, never exported (D188). — scenarios #18, D44
 
 Recording and copy-edit:
