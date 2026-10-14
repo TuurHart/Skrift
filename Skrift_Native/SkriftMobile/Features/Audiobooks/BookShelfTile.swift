@@ -50,18 +50,10 @@ struct BookShelfTile: View {
                                 .padding(6)
                             }
                         }
-                    // Q381 (mock `.badge`): the type capsule, top-left of the cover.
-                    if book.sourceKind == .article {
-                        Text("ARTICLE")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .tracking(0.34)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5).padding(.vertical, 4)
-                            .background(Color.black.opacity(0.55), in: .rect(cornerRadius: 5, style: .continuous))
-                            .padding(6)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .accessibilityHidden(true)
-                    }
+                    // Q381/Q403 (mock `.badge`): the type capsule, top-left of EVERY cover.
+                    LibraryTypeBadge(kind: book.sourceKind)
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     if let syncGlyph {
                         Image(systemName: syncGlyph)
                             .font(.system(size: 10, weight: .semibold))
@@ -173,26 +165,15 @@ struct BookShelfTile: View {
     private var progressStatusLine: some View {
         HStack {
             // Q354: a PDF counts pages, not minutes ("p. 4 of 18" · "14 pages left").
-            if book.sourceKind == .pdf {
-                Text(LibraryPDF.progressLine(book))
-                Spacer(minLength: 4)
-                Text(LibraryPDF.leftLine(book))
-            } else if book.sourceKind == .article {
-                // Q355 (mock Q351): "new · 41 min read", "31%" · "29 min left", "finished";
-                // "saving for offline" while the text is still on its way.
-                if LibraryArticle.isFetching(book, store: .shared) {
-                    Text("saving for offline")
-                } else {
-                    Text(LibraryArticle.progressLine(book))
-                    Spacer(minLength: 4)
-                    if book.position > 0, !book.isFinished { Text(LibraryArticle.leftLine(book)) }
-                }
+            // The words are `LibraryContinue`'s, shared with the Continue card (Q403). Q355 (mock
+            // Q351): "new · 41 min read", "31%" · "29 min left", "finished"; "saving for offline"
+            // while an article's text is still on its way.
+            if book.sourceKind == .article, LibraryArticle.isFetching(book, store: .shared) {
+                Text("saving for offline")
             } else {
-                Text(Self.progressLabel(for: book))
+                Text(LibraryContinue.progressLine(book))
                 Spacer(minLength: 4)
-                if !book.isFinished {
-                    Text(AudiobookTime.clock(book.timeLeft) + " left")
-                }
+                if let left = LibraryContinue.leftLine(book) { Text(left) }
             }
         }
         .font(.system(size: 10))
