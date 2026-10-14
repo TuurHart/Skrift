@@ -242,13 +242,13 @@ enum SharePayloadLoader {
         } else if conforms(.plainText) {
             // Selected text arrives as a String; a text FILE (.txt / .md from Files) as its file
             // URL, copied out INSIDE the closure (the URL is transient) — a document (D4).
+            let suggested = provider.suggestedName
             let value: (text: String?, copy: Copied?) = await withCheckedContinuation { cont in
                 provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { data, _ in
                     switch data {
                     case let s as String: cont.resume(returning: (s, nil))
                     case let d as Data: cont.resume(returning: (String(data: d, encoding: .utf8), nil))
-                    case let u as URL: cont.resume(returning: (nil, copyOut(u, suggested: provider.suggestedName,
-                                                                            defaultExt: "txt")))
+                    case let u as URL: cont.resume(returning: (nil, copyOut(u, suggested: suggested, defaultExt: "txt")))
                     default: cont.resume(returning: (nil, nil))
                     }
                 }
@@ -284,9 +284,10 @@ enum SharePayloadLoader {
     /// our own temp — a file copy, never an in-memory load, so a large movie or PDF can't blow
     /// the extension's memory ceiling.
     private static func copyFile(_ provider: NSItemProvider, typeID: String, defaultExt: String) async -> Copied? {
-        await withCheckedContinuation { cont in
+        let suggested = provider.suggestedName
+        return await withCheckedContinuation { cont in
             provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
-                cont.resume(returning: url.flatMap { copyOut($0, suggested: provider.suggestedName, defaultExt: defaultExt) })
+                cont.resume(returning: url.flatMap { copyOut($0, suggested: suggested, defaultExt: defaultExt) })
             }
         }
     }
