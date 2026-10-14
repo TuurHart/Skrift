@@ -27,7 +27,9 @@ extension IngestService {
 
     /// A dropped `.eml`: a text capture whose title is the Subject, whose body is the plain text
     /// and whose date is the Date header (not the drop moment). Nil when the file is not a
-    /// readable message; the caller then keeps it as a document, never a husk.
+    /// readable message; the caller then keeps it as a document, never a husk. Q448: the
+    /// message's attachments are stored as the note's file attachments (`[[file_NNN]]` after
+    /// the body, in attachment order), the way a picked file is since Q385.
     func ingestEmailCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let mail = await Task.detached(priority: .userInitiated) { () -> EmailShare.Message? in
             guard let data = try? Data(contentsOf: url) else { return nil }
@@ -36,7 +38,7 @@ extension IngestService {
         guard let mail else { return nil }
         return try await makeCapture(shared: SharedContent(type: .text, urlTitle: mail.subject),
                                      body: mail.body, location: nil, document: nil, thumbnail: nil,
-                                     recordedAt: mail.date, into: context)
+                                     recordedAt: mail.date, emailAttachments: mail.attachments, into: context)
     }
 
     // MARK: - PDF / other document → file capture (C73)
@@ -102,8 +104,12 @@ extension IngestService {
     private func makeCapture(shared initial: SharedContent, body: String, location: LocationInfo?,
                              document: (data: Data, ext: String)?, thumbnail: Data?,
                              recordedAt: Date? = nil,
+                             emailAttachments: [EmailShare.Attachment] = [],
                              into context: ModelContext) async throws -> PipelineFile {
         let id = UUID().uuidString
+        // Q448: the files the note carries, owned by the row's id (it IS the memo's id once authored).
+        let attached = NoteAttachment.emailFiles(emailAttachments, owner: UUID(uuidString: id) ?? UUID())
+        let body = NoteAttachment.appendingMarkers(to: body, entries: attached.map(\.entry))
         let folder = outputDir.appendingPathComponent("capture_\(id)", isDirectory: true)
         var shared = initial
         let extractor = pdfExtractor
@@ -120,6 +126,13 @@ extension IngestService {
                 try document.data.write(to: dest)
                 filePath = name
                 if document.ext == "pdf" { text = extractor.text(of: dest) }
+            }
+            if !attached.isEmpty {
+                let dir = MacNoteAttachments.folder(in: folder)
+                try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+                for f in attached { try f.data.write(to: dir.appendingPathComponent(f.entry.filename), options: .atomic) }
+                try JSONEncoder().encode(attached.map(\.entry))
+                    .write(to: folder.appendingPathComponent(MacNoteAttachments.manifestName), options: .atomic)
             }
             if let thumbnail {
                 let name = "linkthumb_\(id).jpg"

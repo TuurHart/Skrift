@@ -882,7 +882,11 @@ struct ShareSheetView: View {
             imageOriginalNames: images.originalNames,
             imageSelectionPositions: images.selectionPositions,
             // Q355: "Article" picked on a link guessed as one: the app fetches it into Library.
-            routeToLibrary: toLibrary ? true : nil
+            routeToLibrary: toLibrary ? true : nil,
+            // Q448: a shared email's attachments ride in the entry folder, in order.
+            emailAttachmentFileNames: payload.emailAttachments.isEmpty ? nil
+                : payload.emailAttachments.indices.map { "emailatt_\($0)" },
+            emailAttachmentNames: payload.emailAttachments.isEmpty ? nil : payload.emailAttachments.map(\.name)
         )
     }
 }

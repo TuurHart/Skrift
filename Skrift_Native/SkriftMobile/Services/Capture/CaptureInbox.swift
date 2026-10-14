@@ -90,6 +90,12 @@ struct CaptureInboxEntry: Codable {
     /// Q355: on a `url` entry, true = he picked "Article" in the share sheet; the app fetches the
     /// page and adds it to Library (kind `article`), or saves a note when it has no article text.
     var routeToLibrary: Bool? = nil
+    /// Q448 / C142: on a `text` entry that is a shared EMAIL, its attachments: the stored names
+    /// (relative to the entry folder, in attachment order) and the names they came in with,
+    /// index-aligned. The drain stores each as a note attachment after the body. Optional so
+    /// older entries decode.
+    var emailAttachmentFileNames: [String]? = nil
+    var emailAttachmentNames: [String]? = nil
 }
 
 extension CaptureInboxEntry {
@@ -229,7 +235,8 @@ enum CaptureInbox {
     @discardableResult
     static func write(_ entry: CaptureInboxEntry,
                       videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
-                      audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil) -> Bool {
+                      audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil,
+                      emailAttachmentDatas: [Data]? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -239,6 +246,12 @@ enum CaptureInbox {
             // Multi-photo capture (B2): write every image, names aligned by index.
             if let imageDatas, let names = entry.imageFileNames {
                 for (data, name) in zip(imageDatas, names) {
+                    try data.write(to: entryDir.appendingPathComponent(name), options: .atomic)
+                }
+            }
+            // Q448: a shared email's attachments, names aligned by index.
+            if let emailAttachmentDatas, let names = entry.emailAttachmentFileNames {
+                for (data, name) in zip(emailAttachmentDatas, names) {
                     try data.write(to: entryDir.appendingPathComponent(name), options: .atomic)
                 }
             }

@@ -180,7 +180,9 @@ final class ShareViewController: UIViewController {
                                         videoFileURL: entry.videoFileName != nil ? payload.videoURL : nil,
                                         fileSourceURL: entry.fileName != nil ? payload.fileURL : nil,
                                         audioFileURLs: audioFileURLs,
-                                        imageDatas: entry.imageFileNames != nil ? imageDatas : nil)
+                                        imageDatas: entry.imageFileNames != nil ? imageDatas : nil,
+                                        emailAttachmentDatas: entry.emailAttachmentFileNames != nil
+                                            ? payload.emailAttachments.map(\.data) : nil)
             allOK = allOK && ok
         }
         guard allOK else {
