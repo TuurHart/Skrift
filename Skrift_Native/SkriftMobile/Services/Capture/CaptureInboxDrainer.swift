@@ -38,6 +38,17 @@ enum CaptureInboxDrainer {
     /// Where a shared PDF that routes to the Library lands (Q354). Tests point it at a temp store.
     static var libraryStore: AudiobookLibraryStore = .shared
 
+    /// Runs right before an entry's memo import (C147 / C271, Q414). A throw = that import
+    /// failed: the entry stays in the inbox for the next drain. Tests make it throw.
+    static var beforeImport: (CaptureInboxEntry) throws -> Void = { _ in }
+
+    private static func importAllowed(_ entry: CaptureInboxEntry) -> Bool {
+        do { try beforeImport(entry); return true } catch {
+            DevLog.log("drain: import of \(entry.id) failed (\(error))")
+            return false
+        }
+    }
+
     // MARK: - Q94 / C70 — dating a shared bundle by the shared filename ladder
 
     /// ISO8601 entry array element at `i`, nil when absent / blank / malformed.
@@ -228,11 +239,19 @@ enum CaptureInboxDrainer {
                                 into repository: NotesRepository) async -> UUID? {
         let memoID = entry.id
 
+        // C147 / C271 (Q414): every branch below that makes a memo gives it the ENTRY's id and
+        // deletes the entry only after the memo is saved. A memo with this id already exists =
+        // the app died between that save and the delete: finish the delete, import nothing.
+        if entry.type == "video" || entry.type == "audio", repository.memo(id: memoID) != nil {
+            DevLog.log("drain: \(entry.type) entry \(entry.id) already imported — removing the entry")
+            CaptureInbox.delete(entryDir: entryDir)
+            return nil
+        }
+
         // Shared VIDEO → import as a normal voice memo (audio + a frame
         // thumbnail + transcribe), NOT a capture item. Copy it out of the
-        // inbox, delete the entry FIRST (a re-drain must not double-import —
-        // importVideo mints its OWN memo UUID, so the id-dup guard below
-        // wouldn't catch it), then import from the app-owned temp.
+        // inbox to an app-owned temp, import from there under the entry's id,
+        // and delete the entry only once the memo is saved (C147).
         if entry.type == "video" {
             let src0 = CaptureInbox.videoURL(for: entry, entryDir: entryDir)
             DevLog.log("drain: video entry \(entry.id); src present=\(src0.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)")
@@ -245,12 +264,15 @@ enum CaptureInboxDrainer {
                     try? FileManager.default.removeItem(at: temp)
                     return (try? FileManager.default.copyItem(at: src, to: temp)) != nil
                 }
-                DevLog.log("drain: video copied=\(copied) → \(temp.lastPathComponent); deleting entry + importing")
-                CaptureInbox.delete(entryDir: entryDir)
+                DevLog.log("drain: video copied=\(copied) → \(temp.lastPathComponent); importing")
+                guard copied, importAllowed(entry) else {
+                    DevLog.log("drain: video entry \(entry.id) not imported — entry kept for the next drain")
+                    return nil
+                }
                 // Land the user on the imported memo: it relocates to the
                 // video's filming date, so otherwise it "vanishes" from the
                 // top of the list (user-confirmed via DevLog 2026-06-14).
-                if copied, let mid = MemoSaver(repository: repository).importVideo(from: temp) {
+                if let mid = MemoSaver(repository: repository).importVideo(from: temp, id: memoID) {
                     // E1: the sheet's typed thought + significance ride the entry
                     // now (the silent import lost both — A13's hole).
                     if let memo = repository.memo(id: mid) {
@@ -260,6 +282,7 @@ enum CaptureInboxDrainer {
                         if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()
                     }
+                    CaptureInbox.delete(entryDir: entryDir)   // the memo is saved (C147)
                     return mid
                 }
             } else {
@@ -350,8 +373,11 @@ enum CaptureInboxDrainer {
                 // Oldest clip's original date (index-aligned array) → the memo's
                 // recordedAt seed; the import upgrades to the embedded asset
                 // date when one exists (round-1: memos dated to upload time).
-                DevLog.log("drain: audio copied=\(temps.count) clip(s) + \(imageTemps.count) photo(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
-                CaptureInbox.delete(entryDir: entryDir)
+                DevLog.log("drain: audio copied=\(temps.count) clip(s) + \(imageTemps.count) photo(s); dates=\(entry.audioRecordedAts ?? []); importing")
+                guard !temps.isEmpty, importAllowed(entry) else {
+                    DevLog.log("drain: audio entry \(entry.id) not imported — entry kept for the next drain")
+                    return nil
+                }
                 // E2: the sheet routed this ≥1h share to the Books tab — import as
                 // an audiobook (clips = parts of ONE book). On failure fall through
                 // to the memo import: the audio must never be lost.
@@ -361,6 +387,7 @@ enum CaptureInboxDrainer {
                         let pending = try await AudiobookImporter.importBook(
                             from: temps, libraryDirectory: store.directory)
                         store.add(pending.book)
+                        CaptureInbox.delete(entryDir: entryDir)   // the book is stored (C271)
                         DevLog.log("drain: audio entry \(entry.id) → Books ('\(pending.book.title)')")
                         return nil   // a book, not a note — no jump target
                     } catch {
@@ -368,7 +395,8 @@ enum CaptureInboxDrainer {
                     }
                 }
                 if let mid = MemoSaver(repository: repository).importAudioClips(
-                    from: temps, recordedAt: clipDate, clipDates: temps.map { plan.clipDates[$0] }) {
+                    from: temps, recordedAt: clipDate, clipDates: temps.map { plan.clipDates[$0] },
+                    id: memoID) {
                     // B3: bundled photos land under the memo's own id — the manifest
                     // is set BEFORE the transcription result arrives, so the shared
                     // BodyV2 pass drops [[img_NNN]] into the transcript exactly
@@ -407,8 +435,10 @@ enum CaptureInboxDrainer {
                         if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()
                     }
+                    CaptureInbox.delete(entryDir: entryDir)   // the memo is saved (C147)
                     return mid
                 }
+                DevLog.log("drain: audio entry \(entry.id) import failed — entry kept for the next drain")
             } else {
                 DevLog.log("drain: audio entry \(entry.id) — no clip files, discarding")
                 CaptureInbox.delete(entryDir: entryDir)
@@ -455,9 +485,9 @@ enum CaptureInboxDrainer {
         if entry.type == "url", let link = entry.url,
            CaptureInboxEntry.routesPodcastToLibrary(url: link, thought: entry.annotationText,
                                                     significance: entry.significance) {
-            CaptureInbox.delete(entryDir: entryDir)
             DevLog.log("drain: podcast link \(entry.id) → Library")
             PodcastLinkArrival.shared.post(link)
+            CaptureInbox.delete(entryDir: entryDir)   // after the hand-off, never before (C271)
             TabSelectionBridge.shared.select(.books)
             return nil
         }
@@ -570,6 +600,11 @@ enum CaptureInboxDrainer {
                     DevLog.log("drain: text file \(entry.id) → note body (\(trimmed.count) chars)")
                 }
             }
+        }
+
+        guard importAllowed(entry) else {
+            DevLog.log("drain: \(entry.type) entry \(entry.id) not imported — entry kept for the next drain")
+            return nil
         }
 
         if let markdownBody {

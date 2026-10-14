@@ -71,8 +71,8 @@ struct MemoSaver {
     /// No contextual metadata (the memo wasn't recorded here/now). Returns the
     /// new memo id, or nil if the file couldn't be copied.
     @discardableResult
-    func importAudio(from source: URL, recordedAt: Date? = nil) -> UUID? {
-        let id = UUID()
+    func importAudio(from source: URL, recordedAt: Date? = nil, id given: UUID? = nil) -> UUID? {
+        let id = given ?? UUID()   // C147: a share drain passes its inbox entry id
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let filename = RecordingCore.filename(id: id, ext: ext)
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
@@ -135,11 +135,12 @@ struct MemoSaver {
     /// transcribed once — one continuous transcript/karaoke, exactly like an
     /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
     @discardableResult
-    func importAudioClips(from sources: [URL], recordedAt: Date? = nil, clipDates: [Date?] = []) -> UUID? {
+    func importAudioClips(from sources: [URL], recordedAt: Date? = nil, clipDates: [Date?] = [],
+                          id given: UUID? = nil) -> UUID? {
         guard !sources.isEmpty else { return nil }
-        if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt) }
+        if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt, id: given) }
 
-        let id = UUID()
+        let id = given ?? UUID()   // C147: a share drain passes its inbox entry id
         let filename = RecordingCore.filename(id: id)
         repository.insert(Memo(
             id: id,
@@ -253,8 +254,8 @@ struct MemoSaver {
     /// Fire-and-forget: persists the memo immediately (`.transcribing`) and runs audio
     /// extraction + transcription in the background; the memo updates in place.
     @discardableResult
-    func importVideo(from source: URL, creationDate: Date? = nil) -> UUID? {
-        let id = UUID()
+    func importVideo(from source: URL, creationDate: Date? = nil, id given: UUID? = nil) -> UUID? {
+        let id = given ?? UUID()   // C147: a share drain passes its inbox entry id
         let filename = RecordingCore.filename(id: id)
 
         // Insert a placeholder memo right away so the UI shows it while the audio
