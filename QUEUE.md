@@ -2998,7 +2998,7 @@ gate+: no
 do: Same recipe as Q394 (findings Q374/Q383/Q394: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal; quit 'Skrift Dev' via osascript in a script file). Bump to 190 in both project.yml files (SKRIFT_BUILD / CURRENT_PROJECT_VERSION). Phone: Debug → devicectl install com.skrift.mobile.dev; grep `Original page` or `Reading view` in SkriftMobile.debug.dylib; confirm with `xcrun devicectl device info apps --bundle-id com.skrift.mobile.dev` showing 190. Mac: Debug → quit Skrift Dev, ditto to /Applications/Skrift Dev.app, open; grep a Q402/Q395 literal (e.g. `PortfolioTagPresets`) in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. If the phone is unavailable, install the Mac anyway and report the exact devicectl error.
 check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the devicectl build number).
 
-### Q408 [auto] (doing) an edit that empties a note never lands silently
+### Q408 [auto] (stuck) an edit that empties a note never lands silently
 spec: C261 R70
 needs: -
 gate+: yes
@@ -3068,7 +3068,7 @@ gate+: yes
 do: Today: `CaptureVoiceAnnotate.swift` deletes the audio and fires the success haptic when the transcript is empty. A voice annotation or capture whose transcription returns no text stays in the note with a "No words heard" line in the existing secondary-text style until he saves or discards it; the success haptic never deletes it. Test `EmptyTranscriptKeptTests` (phone target): `voice-annotation-empty-transcript-kept`.
 check: `plan/mtest.sh EmptyTranscriptKeptTests`
 
-### Q418 [auto] (doing) same full name is the same person: merge and say so
+### Q418 [auto] (stuck) same full name is the same person: merge and say so
 spec: C254 R62
 needs: -
 gate+: yes
@@ -3225,6 +3225,12 @@ needs: Q439
 gate+: yes
 do: An `.eml` / Mail share becomes a text capture: title = Subject, body = plain text, `recordedAt` = the Date header, sender per C123, attachments as files (C142). Selected text with its page URL is a text capture carrying the url and title, no fetch; a Maps link is a link capture with the place as location and title, no fetch (C144). Fixtures `ingress/email`, `ingress/selected-text`, `ingress/maps-link`; cases in `IngressDispatchTests`.
 check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corpus/ingress/maps-link`
+
+### Q442 [tuur] (todo) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
+spec: C261 D163
+needs: Q408
+do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65).
+check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4615,3 +4621,6 @@ check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corp
 - 2026-10-14 14:31 Q409 -> doing — worker out
 - 2026-10-14 14:36 Q410 -> doing — worker out
 - 2026-10-14 14:36 Q411 -> done — gate 118s @cd682edc
+- 2026-10-14 14:36 Q418 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-10-14 14:37 Q408 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-10-14 14:37 Q442 added
