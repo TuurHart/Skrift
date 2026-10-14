@@ -171,7 +171,7 @@ final class Memo {
     /// The install that RECORDED this memo (`DeviceID.current`). With CloudKit a memo
     /// can arrive on another device still `.transcribing`; the receiver must NOT
     /// re-transcribe it (the recording device owns that, and the transcript will sync)
-    /// — `recoverStuckTranscriptions` skips memos another device recorded. Additive,
+    /// — until it has been quiet 30 minutes (`OrphanedTranscribing`, C154/C264). Additive,
     /// nil default → legacy/local memos (nil) stay recoverable. Syncs as a plain field.
     var recordingDeviceID: String? = nil
 
