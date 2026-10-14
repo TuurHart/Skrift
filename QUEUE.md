@@ -3264,6 +3264,13 @@ needs: -
 do: -
 check: Tuur picked one: (a) C126 everywhere — the Files importer also drops "WhatsApp Audio 2025-12-18 at 18.30.44" style names (then `ImportFileNameTitleTests` flips, an approved assertion change), or (b) keep D176 on Files/Open-in and C126 only on the share sheet (as Q440 built). His answer lands in SPEC Decisions.
 
+### Q448 [auto] (todo) an email share keeps its attachments as note attachments; Mac folder ingest takes .eml too
+spec: C142 C77
+needs: Q441
+gate+: yes
+do: Q441 parses `.eml` attachments (`EmailShare.Message.attachments` in `Skrift_Native/Shared/Ingress/EmailShare.swift`) but stores none, on phone or Mac. Store each attachment the way a note's file attachments are stored since Q385 (the same synced asset kind and `[[file_…]]`-style body marker the attachments lane uses; read FEATURES.md "attachments" and the Q385/Q392 findings in plan/RUN.md first), placed after the email body in attachment order. Also route `.eml` through `ingestEmailCapture` in the Mac folder-ingest path (`IngestService.swift`, the folder walk) like the direct drop. Test `EmailAttachmentsTests` (desktop target) on the `ingress/email` fixture with two attachments: the note carries both, in order.
+check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4706,3 +4713,4 @@ check: Tuur picked one: (a) C126 everywhere — the Files importer also drops "W
 - 2026-10-14 16:18 Q440 -> done — gate 59s @9a52fa53
 - 2026-10-14 16:18 Q441 -> doing — worker out
 - 2026-10-14 16:20 Q446 -> done — gate 49s @913d4c8c
+- 2026-10-14 16:29 Q448 added
