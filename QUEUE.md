@@ -4331,3 +4331,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/Portf
 - 2026-10-14 09:28 Q401 -> done — Tuur: not a fresh install — Quick Start or iCloud backup, doesn't remember which (D206)
 - 2026-10-14 09:28 Q394 -> done — Dev 189 on Mac (grep 'Set All to Large') and iPhone 17 Pro (devicectl: com.skrift.mobile.dev 0.2.0 189; grep 'Add to this note')
 - 2026-10-14 09:29 Q402 -> doing — worker out
+- 2026-10-14 09:31 Q394 -> done — gate 50s @7766c1fe
