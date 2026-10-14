@@ -175,7 +175,40 @@ extension MemoCloudReconciler {
             ingestInBackground(outcome.pendingNewIDs, container: cloud, people: people,
                                author: settings.authorName, thisDeviceID: thisDevice)
         }
+        if !perfLibrary {
+            adoptOrphanedTranscriptions(pass.memos, container: cloud, context: cloudContext,
+                                        thisDevice: thisDevice)
+        }
         return outcome.created
+    }
+
+    /// C264 backstop: a memo another device left `.transcribing` and went quiet on for 30
+    /// minutes (`OrphanedTranscribing`) is transcribed here from its synced audio, so it never
+    /// spins forever. User-edited ones are only released (C263). Skipped while a pipeline run
+    /// holds the engine; the next reconcile retries.
+    private static func adoptOrphanedTranscriptions(_ memos: [Memo], container: ModelContainer,
+                                                    context: ModelContext, thisDevice: String) {
+        let kinds = AssetKindIndex(context)
+        let plan = MacOrphanTranscription.plan(
+            memos: memos, hasAudio: { kinds.kinds($0).contains(MemoAsset.Kind.audio) },
+            thisDevice: thisDevice, now: Date())
+        if !plan.release.isEmpty {
+            do { try MacOrphanTranscription.release(plan.release, in: context) }
+            catch { AppLog.cloudkit.error("reconcile: orphan release FAILED: \(error)") }
+        }
+        guard !plan.rerun.isEmpty, !TranscriptionActivity.isActive else { return }
+        Task { @MainActor in
+            TranscriptionActivity.begin()
+            let landed = await MacOrphanTranscription.adopt(plan.rerun, in: ModelContext(container),
+                                                            transcriber: TranscriptionService.shared,
+                                                            thisDevice: thisDevice)
+            TranscriptionActivity.end()
+            // Nothing else loaded the model for this, so nothing else would free it.
+            if !TranscriptionActivity.isActive { await TranscriptionService.shared.unload() }
+            AppLog.cloudkit.log(
+                "reconcile: adopted \(landed, privacy: .public) of \(plan.rerun.count, privacy: .public) orphaned transcription(s)")
+            if landed > 0 { reconcileSoon() }
+        }
     }
 
     /// G3: read the new memos' blobs + write their working folders on a background context,

@@ -601,7 +601,10 @@ struct MemoSaver {
         DevLog.log("append start memo \(memoID) priorStatus=\(priorStatus) priorBodyLen=\((memo.transcript ?? "").count)")
 
         // Make the append visible immediately — a cold model can take a while.
+        // The edit stamp restarts the quiet clock other devices read (`OrphanedTranscribing`,
+        // C97): without it an old note's append looks 30 minutes orphaned the moment it starts.
         memo.transcriptStatus = .transcribing
+        memo.markEdited(stampWords: false)
         repository.save()
 
         // Move the clip to a stable name; it must survive until its text landed.
@@ -960,18 +963,22 @@ struct MemoSaver {
     /// Read-only discovery for `recoverStuckTranscriptions`, on any context. Live memos only
     /// (the old `allMemos()`); `transcriptStatus` is checked first so the metadata decode
     /// behind `isBookCapture` only runs for the few `.transcribing` rows.
-    nonisolated static func stuckTranscriptionPlan(in context: ModelContext) -> StuckTranscriptionPlan {
+    /// Ownership + age come from the shared `OrphanedTranscribing` rule (C264/C154/C97): this
+    /// device's memos at once, another device's only after 30 quiet minutes.
+    nonisolated static func stuckTranscriptionPlan(in context: ModelContext,
+                                                   thisDevice: String = DeviceID.current(),
+                                                   now: Date = Date()) -> StuckTranscriptionPlan {
         var plan = StuckTranscriptionPlan()
         let live = (try? context.fetch(FetchDescriptor<Memo>(
             predicate: #Predicate { $0.deletedAt == nil },
             sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]))) ?? []
         for memo in live where memo.transcriptStatus == .transcribing {
-            if isStuckButUserEdited(memo) {
+            if isStuckButUserEdited(memo, thisDevice: thisDevice, now: now) {
                 plan.release.append(memo.id)
             } else if !memo.transcriptUserEdited
                         && !memo.audioFilename.isEmpty
                         && !memo.isBookCapture
-                        && ownsForRecovery(memo.recordingDeviceID)
+                        && OrphanedTranscribing.mayRecover(memo, thisDevice: thisDevice, now: now)
                         && FileManager.default.fileExists(
                             atPath: AppPaths.recordingsDirectory
                                 .appendingPathComponent(memo.audioFilename).path) {
@@ -1014,10 +1021,11 @@ struct MemoSaver {
 
     /// A memo the launch transcription recovery would pick up, except the user
     /// edited its transcript (C263).
-    nonisolated static func isStuckButUserEdited(_ memo: Memo) -> Bool {
+    nonisolated static func isStuckButUserEdited(_ memo: Memo, thisDevice: String = DeviceID.current(),
+                                                 now: Date = Date()) -> Bool {
         memo.transcriptStatus == .transcribing && memo.transcriptUserEdited
             && !memo.audioFilename.isEmpty && !memo.isBookCapture
-            && ownsForRecovery(memo.recordingDeviceID)
+            && OrphanedTranscribing.mayRecover(memo, thisDevice: thisDevice, now: now)
     }
 
     /// Split an already-saved memo into speakers (the detail's "Split speakers" button):
