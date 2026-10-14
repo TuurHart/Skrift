@@ -2966,7 +2966,7 @@ gate+: yes
 do: Today choosing Portfolio (the Q395 tap pill) adds all three preset tags idea/inspiration/project to the note. Change: flipping to Portfolio adds NO tags; the tag row shows the three as quiet suggestion chips (the existing tag-suggestion look) only while the note is Portfolio and has none of them; tapping one adds just that tag; flipping back to Personal removes nothing the user added. One shared rule in Skrift_Native/Shared/ (phone, iPad, Mac, quick note). Mac test `PortfolioPresetTests` in SkriftDesktopTests (flip adds none; tap adds one; flip back keeps tags). Phone + Mac shots into plan/reads/destination-pill/portfolio-*.png. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/PortfolioPresetTests.swift`
 
-### Q403 [auto] (doing) Library shelf: Continue row, mini player, type badge on every cover (D207, Q6 mock)
+### Q403 [auto] (done) Library shelf: Continue row, mini player, type badge on every cover (D207, Q6 mock)
 spec: D207 C229
 needs: -
 gate+: yes
@@ -4360,3 +4360,4 @@ check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 - 2026-10-14 10:00 Q404 -> doing — worker out
 - 2026-10-14 10:14 Q405 added
 - 2026-10-14 10:16 Q405 -> doing — worker out
+- 2026-10-14 10:23 Q403 -> done — gate 109s @536dc0c8
