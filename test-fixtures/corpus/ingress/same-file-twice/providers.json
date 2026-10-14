@@ -1,0 +1,7 @@
+{
+  "door": "same-file-twice",
+  "about": "C127 / D36: the same WhatsApp voice note shared twice. Each share dispatches the same plan; first-share/ and second-share/ hold the same bytes under the names WhatsApp gave them each time, so the ledger fingerprint matches and the second share is 'Already in Skrift'. different.opus differs by one byte.",
+  "items": [
+    { "providers": [ { "uti": ["org.xiph.opus", "public.url"], "file": "PTT-20241007-WA0012.opus", "url": "https://wa.me/p/0012" } ] }
+  ]
+}

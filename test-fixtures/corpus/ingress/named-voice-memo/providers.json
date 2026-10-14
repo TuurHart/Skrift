@@ -1,0 +1,7 @@
+{
+  "door": "named-voice-memo",
+  "about": "C126: Voice Memos shares a recording under the name the user gave it. The name is the note's title; a messenger name (WhatsApp PTT-…, Signal signal-…, Telegram voice_N) never is.",
+  "items": [
+    { "providers": [ { "uti": ["com.apple.m4a-audio"], "file": "kiln idea.m4a" } ] }
+  ]
+}

@@ -66,12 +66,21 @@ enum IngressDispatch {
         var file: String?
         /// The web link (kind `.url`, or riding along a selected text).
         var url: String?
-        /// The page title, only beside a URL (no fetch).
+        /// The page title beside a URL (no fetch), or (C126) a lone clip's own name, when it
+        /// is a name the user gave it and not a messenger's or Skrift's machine name.
         var title: String?
 
         var clips: [String] { parts.compactMap { if case .clip(let n) = $0 { return n } else { return nil } } }
         var pictures: [String] { parts.compactMap { if case .picture(let n) = $0 { return n } else { return nil } } }
         var texts: [String] { parts.compactMap { if case .text(let t) = $0 { return t } else { return nil } } }
+
+        /// C146: the document is a book (a `.skriftbook`, an `.m4b` or `.epub` that arrived
+        /// as plain data): it goes to the book importer, never a file card. The split stays
+        /// inside `.document`, as `ImportKinds` draws it for a Mac drop (Q439).
+        var bookFile: String? {
+            guard kind == .document, let file else { return nil }
+            return IngressDispatch.isBookFile(file) ? file : nil
+        }
     }
 
     enum Outcome: Equatable, Sendable {
@@ -129,6 +138,49 @@ enum IngressDispatch {
         return t
     }
 
+    /// The book bundle's extensions: `ImportKinds` names the prod one; a Dev build packs
+    /// `.skriftbookdev` (project.yml `SKRIFT_BOOK_EXT`, data safety), which must not fall to a
+    /// file card either.
+    static let bookBundleExtensions: Set<String> = ["skriftbook", "skriftbookdev"]
+
+    static func isBookFile(_ name: String) -> Bool {
+        let ext = (name as NSString).pathExtension.lowercased()
+        return ImportKinds.kind(forExtension: ext) == .book || bookBundleExtensions.contains(ext)
+    }
+
+    // MARK: Clip title (C126)
+
+    /// Names a messenger, the system or Skrift itself gives a file. Never a note title (C126):
+    /// WhatsApp (`PTT-20241003-WA0007`, `AUD-…`, `WhatsApp Audio 2024-…`), Signal
+    /// (`signal-2024-10-03-120001`), Telegram (`voice_1`, `audio_2024-10-03_12-00-01`),
+    /// Messenger (`audioclip1234567890`), Skrift's own temp copies (`shared_<uuid>`,
+    /// `capture_<uuid>`, `shared_import_…`) and any name carrying a UUID.
+    static let machineNamePatterns: [String] = [
+        #"^(PTT|AUD|VID|IMG|DOC|STK)-\d{8}-WA\d+"#,
+        #"^WhatsApp (Audio|Ptt|Voice|Video|Image)\b"#,
+        #"^signal-\d{4}-\d{2}-\d{2}"#,
+        #"^(voice([\s_-]?(message|note|memo))?|audio([\s_-]?(message|clip|file))?|ptt|msg|telegram|file)[\s_.-]*[\d\s_.-]*$"#,
+        #"^(shared|capture|shared_import|shared_import_img)_"#,
+        #"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"#,
+    ]
+
+    /// C126: a shared clip's ORIGINAL file name as the note's title, extension stripped, or nil
+    /// when it is a machine name (above) or has no letters at all (a bare date / number). A
+    /// Voice Memo shared as "kiln idea.m4a" titles its note "kiln idea". Generic defaults
+    /// ("New Recording 3") are `NoteTitle.importName`'s call downstream (D176).
+    static func clipTitle(_ fileName: String?) -> String? {
+        guard var name = fileName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+        let ext = (name as NSString).pathExtension
+        if !ext.isEmpty, ext.count <= 5, !ext.contains(" ") {
+            name = (name as NSString).deletingPathExtension.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard !name.isEmpty, name.contains(where: \.isLetter) else { return nil }
+        for p in machineNamePatterns where name.range(of: p, options: [.regularExpression, .caseInsensitive]) != nil {
+            return nil
+        }
+        return name
+    }
+
     // MARK: Dispatch
 
     static func dispatch(_ items: [Item]) -> Outcome {
@@ -160,7 +212,10 @@ enum IngressDispatch {
                 default: return nil
                 }
             }
-            return .plan(Plan(kind: .audio, parts: parts))
+            // C126: one clip under its own name keeps that name as the title.
+            let clipNames = parts.compactMap { if case .clip(let n) = $0 { return n } else { return nil } }
+            let named = clipNames.count == 1 ? clipTitle(clipNames[0]) : nil
+            return .plan(Plan(kind: .audio, parts: parts, title: named))
         }
         // 2. Web URL: a selected text wins, the link rides along.
         if let link = links.first {
