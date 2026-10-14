@@ -3103,7 +3103,7 @@ gate+: yes
 do: Today: a new tombstone already drops its voiceprints, but `NamesData.mergeByCanonical` unions voiceprints onto the winner even when it is a tombstone, and `NamesStore.addVoiceEmbedding` sets `deleted = nil` (revives a tombstone). Fix both. Deleting a person drops its voiceprints in the tombstone; the `NamesMerge` LWW merge never unions embeddings onto a tombstone. Add corpus fixture `roster-delete-with-voiceprint`. Test `RosterTombstoneVoiceprintTests` (desktop target).
 check: `grep -rqE "class RosterTombstoneVoiceprintTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q423 [auto] (doing) copy-edit harness: recorded model outputs, v1 goldens, tests for C30 C35 C40
+### Q423 [auto] (done) copy-edit harness: recorded model outputs, v1 goldens, tests for C30 C35 C40
 spec: C253 C5 C7 C30 C35 C40 C286 C166
 needs: -
 gate+: yes
@@ -4717,3 +4717,4 @@ check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 16:30 Q441 -> done — gate 57s @c3d4c3fb
 - 2026-10-14 16:30 Q448 -> doing — worker out
 - 2026-10-14 16:40 Q448 -> done — gate 53s @a68e370b
+- 2026-10-14 16:41 Q423 -> done — gate 50s @e2ce3b28
