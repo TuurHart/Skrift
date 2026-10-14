@@ -68,7 +68,7 @@ struct EmptyCommitGuard: Equatable {
     static func message(for field: Field) -> String {
         switch field {
         case .raw: return "This removes all of the text. Cancel keeps what was there."
-        case .polished: return "This removes the polished copy on every device. Cancel keeps what was there."
+        case .polished: return "This clears the polished text on every device. Cancel keeps what was there."
         }
     }
 
