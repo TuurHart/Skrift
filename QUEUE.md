@@ -3264,7 +3264,7 @@ needs: -
 do: -
 check: Tuur picked one: (a) C126 everywhere — the Files importer also drops "WhatsApp Audio 2025-12-18 at 18.30.44" style names (then `ImportFileNameTitleTests` flips, an approved assertion change), or (b) keep D176 on Files/Open-in and C126 only on the share sheet (as Q440 built). His answer lands in SPEC Decisions.
 
-### Q448 [auto] (todo) an email share keeps its attachments as note attachments; Mac folder ingest takes .eml too
+### Q448 [auto] (doing) an email share keeps its attachments as note attachments; Mac folder ingest takes .eml too
 spec: C142 C77
 needs: Q441
 gate+: yes
@@ -4715,3 +4715,4 @@ check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 16:20 Q446 -> done — gate 49s @913d4c8c
 - 2026-10-14 16:29 Q448 added
 - 2026-10-14 16:30 Q441 -> done — gate 57s @c3d4c3fb
+- 2026-10-14 16:30 Q448 -> doing — worker out
