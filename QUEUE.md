@@ -3068,7 +3068,7 @@ gate+: yes
 do: Today: `CaptureVoiceAnnotate.swift` deletes the audio and fires the success haptic when the transcript is empty. A voice annotation or capture whose transcription returns no text stays in the note with a "No words heard" line in the existing secondary-text style until he saves or discards it; the success haptic never deletes it. Test `EmptyTranscriptKeptTests` (phone target): `voice-annotation-empty-transcript-kept`.
 check: `plan/mtest.sh EmptyTranscriptKeptTests`
 
-### Q418 [auto] (stuck) same full name is the same person: merge and say so
+### Q418 [auto] (done) same full name is the same person: merge and say so
 spec: C254 R62
 needs: -
 gate+: yes
@@ -4624,3 +4624,4 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 - 2026-10-14 14:36 Q418 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-14 14:37 Q408 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-14 14:37 Q442 added
+- 2026-10-14 14:41 Q418 -> done — gate 135s @33256737
