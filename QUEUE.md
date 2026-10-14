@@ -3012,7 +3012,7 @@ gate+: yes
 do: Today: `MemoSaver.swift` `ownsForRecovery` re-runs only this device's memos; the C263 user-edited skip already exists there; the Mac has no `.transcribing` sweep. A memo left in `.transcribing` by another device is taken over after 30 minutes when its audio blob is present (C154), on the phone and by the Mac sweep as the backstop. Younger than 30 minutes stays untouched (C97); a `transcriptUserEdited` memo is never re-transcribed (C263). The age rule is one shared function in `Skrift_Native/Shared/`. Test `OrphanedTranscribingTests` (desktop target): a 31-minute orphan with audio is adopted, a 5-minute one and a user-edited one are not.
 check: `grep -rqE "class OrphanedTranscribingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q410 [auto] (doing) a word-list edit merges with the latest synced list at write time
+### Q410 [auto] (done) a word-list edit merges with the latest synced list at write time
 spec: C267 C103 R80
 needs: -
 gate+: yes
@@ -3082,7 +3082,7 @@ gate+: yes
 do: Today: `Sanitiser.swift` handles only `'s` / `’s`; no diacritic folding; the `\b` boundary does not protect `#tags`. In the shared matcher (`Skrift_Native/Shared/Naming/`): an alias plus a bare `s` (`Wims`, `Lottes`) links like `Wim's`, unless that word is itself a roster alias; matching folds diacritics both ways (Ines/Inés, Månsson/Mansson); a `#tag` is never split or linked even when it equals an alias. Add corpus fixtures `edge-name-dutch-possessive`, `edge-name-diacritics`, `edge-name-is-tag`. Test `NameMatcherEdgeTests` (desktop target).
 check: `grep -rqE "class NameMatcherEdgeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q420 [auto] (todo) naming an unknown speaker seeds the alias
+### Q420 [auto] (doing) naming an unknown speaker seeds the alias
 spec: C257 R66
 needs: -
 gate+: yes
@@ -4640,3 +4640,5 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 14:52 Q414 -> doing — worker out
 - 2026-10-14 14:52 Q443 added
 - 2026-10-14 14:54 Q412 -> done — gate 77s @4f9fbf99
+- 2026-10-14 14:55 Q420 -> doing — worker out
+- 2026-10-14 14:56 Q410 -> done — gate 55s @87312352
