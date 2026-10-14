@@ -100,7 +100,7 @@ struct TagEditorRow: View {
         } label: {
             Text("#\(tag)").font(.system(size: 12))
                 .foregroundStyle(style.dimTextColor)
-                .padding(.horizontal, style.chipHPad).frame(height: style.chipHeight)
+                .padding(.horizontal, max(style.chipHPad, 10)).frame(height: style.chipHeight)
                 .background(style.fieldBackground, in: .capsule)
                 .overlay(Capsule().strokeBorder(style.fieldBorder, lineWidth: 1))
                 .contentShape(.capsule)
