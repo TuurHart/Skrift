@@ -3238,6 +3238,12 @@ needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
 check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger`.
 
+### Q444 [auto] (todo) install Dev 191 (Q408–Q422) on the iPhone 17 Pro and the Mac
+spec: -
+needs: Q417
+do: Same recipe as Q407: bump SKRIFT_BUILD to 191 in both project.yml files, build the Dev (Debug) iOS app for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; resolve its xcodebuild UDID first, the old iPhone 13 UDID in CLAUDE.md is stale) with `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic`, install with devicectl, string-grep a Q408 literal (`EmptyCommitGuard`) in the installed binary. Mac: Debug build, quit Skrift Dev, ditto to `/Applications/Skrift Dev.app`, never two Dev instances, never touch prod `/Applications/Skrift.app`, never `open -a`. If the phone is locked or unplugged, report blocked.
+check: Report shows build 191 installed on the phone (devicectl app list) and the Mac Dev app's CFBundleVersion is 191.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4662,3 +4668,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:30 Q438 -> done — gate 43s @206f215b
 - 2026-10-14 15:32 Q439 -> doing — worker out
 - 2026-10-14 15:33 Q417 -> done — gate 41s @51628e50
+- 2026-10-14 15:34 Q444 added
