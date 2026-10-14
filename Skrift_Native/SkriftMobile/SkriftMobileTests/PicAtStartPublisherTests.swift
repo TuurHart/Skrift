@@ -10,6 +10,8 @@ final class PicAtStartPublisherTests: XCTestCase {
     private var sandbox: URL!
     private var portfolioRoot: URL!
     private var ledger: ExportLedger!
+    /// Kept alive: a SwiftData model traps once its context is gone.
+    private var repo: NotesRepository!
 
     override func setUpWithError() throws {
         sandbox = FileManager.default.temporaryDirectory.appendingPathComponent("q446-\(UUID().uuidString)")
@@ -27,7 +29,7 @@ final class PicAtStartPublisherTests: XCTestCase {
         let root = CorpusSeed.fixtureRoot(file: #filePath)
         try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path),
                           "corpus not generated")
-        let repo = NotesRepository(inMemory: true)
+        repo = NotesRepository(inMemory: true)
         let recordings = sandbox.appendingPathComponent("rec")
         try CorpusSeed.seed(from: root, into: repo.context, recordingsDirectory: recordings)
         let id = try XCTUnwrap(UUID(uuidString: "7E246814-C6AF-50EB-BC38-4851EA4F45BC"))
@@ -61,14 +63,14 @@ final class PicAtStartPublisherTests: XCTestCase {
 
     @MainActor
     func testBodyOpeningWithAPictureKeepsItsFrontmatterOnBothProfiles() throws {
-        for (destination, label, root, embed) in [
+        for (destination, label, root, embed) in [(NoteDestination, String, URL, String)]([
             (NoteDestination.personal, "vault", sandbox.appendingPathComponent("vault"), "![["),
-            (.portfolio, "portfolio", portfolioRoot!, "![](")] {
+            (.portfolio, "portfolio", portfolioRoot, "![](")]) {
             let (memo, photos) = try corpusMemo()
             memo.destination = destination
             memo.tags = []
             let report = try publisher(photos: photos).publishReport(memo)
-            let md = try written(report, under: root!)
+            let md = try written(report, under: root)
 
             let lines = md.components(separatedBy: "\n")
             XCTAssertEqual(lines.first, "---", "\(label): opens with a fence")
@@ -83,8 +85,8 @@ final class PicAtStartPublisherTests: XCTestCase {
             XCTAssertEqual(parts.count, 2, "\(label): exactly one closing fence")
             XCTAssertTrue(parts.last?.trimmingCharacters(in: .newlines).hasPrefix(embed) == true,
                           "\(label): the body opens with the picture:\n\(md)")
-            try? FileManager.default.removeItem(at: root!)
-            try FileManager.default.createDirectory(at: root!, withIntermediateDirectories: true)
+            try? FileManager.default.removeItem(at: root)
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("ledger-\(label).json"))
         }
     }
