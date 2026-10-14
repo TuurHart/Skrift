@@ -16,6 +16,8 @@ enum BookBundle {
         case missingManifest
         case unsupportedBundle
         case missingAudio(String)
+        /// The same book landed in the library (e.g. via sync) after it was offered.
+        case alreadyInLibrary
 
         var errorDescription: String? {
             switch self {
@@ -23,6 +25,7 @@ enum BookBundle {
             case .missingManifest:    return "This book file is missing its details."
             case .unsupportedBundle:  return "This book was shared from a newer version of Skrift."
             case .missingAudio(let n): return "The audio file \(n) is missing from this book."
+            case .alreadyInLibrary:   return "This book is already in your books."
             }
         }
     }
