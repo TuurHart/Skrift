@@ -64,9 +64,23 @@ enum PersonEditCore {
         return (person, renamedFrom)
     }
 
-    /// The ONE door for "a person who does not exist yet" on the phone: speaker naming
-    /// (`MemoPageView.assign`) and the Add Person sheet. Every new person is born the way the
-    /// Mac's `nameSpeaker` makes one: aliases `[full, first word]`, `short` = the typed short
+    /// The aliases every NEW person is born with when the user typed only a name: `[full, first
+    /// word]` (de-duped, case-insensitive). C257/R66: a person with no alias never links, so no
+    /// path that creates a person (speaker naming on either app, Add Person, voice enrolment of an
+    /// unknown name) may leave `aliases` empty. One copy: `createIfNeeded` and
+    /// `NamesStore.addVoiceEmbedding` both seed from here.
+    static func defaultAliases(forName name: String) -> [String] {
+        let plain = NamesMerge.bareName(NamesMerge.normaliseCanonical(name.trimmingCharacters(in: .whitespaces)))
+        guard !plain.isEmpty else { return [] }
+        var out = [plain]
+        if let first = plain.split(separator: " ").first.map(String.init),
+           first.caseInsensitiveCompare(plain) != .orderedSame { out.append(first) }
+        return out
+    }
+
+    /// The ONE door for "a person who does not exist yet", on BOTH apps: speaker naming (phone
+    /// `MemoPageView.assign`, Mac `ProcessingCoordinator.nameSpeaker`) and the Add Person sheet.
+    /// Every new person is born with aliases `[full, first word]`, `short` = the typed short
     /// or the first word (R12/C83: an alias-less person never links). Runs BEFORE any voice
     /// enrolment, so a short clip or a missing sidecar still leaves the person behind.
     /// An existing live person is never overwritten: with no typed short it is returned
@@ -86,7 +100,7 @@ enum PersonEditCore {
             return existing
         }
         let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
-        guard let r = materialise(fullName: trimmed, aliases: [trimmed, first],
+        guard let r = materialise(fullName: trimmed, aliases: defaultAliases(forName: trimmed),
                                   short: typedShort.isEmpty ? first : typedShort,
                                   original: nil) else { return nil }
         store.upsert(r.person, replacing: nil)

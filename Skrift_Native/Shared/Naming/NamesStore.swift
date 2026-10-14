@@ -181,7 +181,7 @@ final class NamesStore {
 
     /// Append a voiceprint to a person (de-duped by vector, union — multi-embedding,
     /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new,
-    /// resurrects a tombstone. Alias-SAFE (never touches aliases/short). Mirrors the
+    /// resurrects a tombstone. Alias-SAFE (never touches an existing person's aliases/short; a NEW person is seeded with its name as alias, C257). Mirrors the
     /// phone's `NamesStore.addVoiceEmbedding` — Mac-originated enrollment syncs back.
     func addVoiceEmbedding(canonical: String, embedding: VoiceEmbedding) {
         let c = NamesMerge.normaliseCanonical(canonical)
@@ -198,7 +198,9 @@ final class NamesStore {
             p.lastModifiedAt = ISO8601.now()
             data.people[idx] = p
         } else {
-            data.people.append(Person(canonical: c, aliases: [], short: nil,
+            // C257/R66: an unknown name is born with its typed name as the alias, never `[]`
+            // (an alias-less person never links). An existing person is never touched above.
+            data.people.append(Person(canonical: c, aliases: PersonEditCore.defaultAliases(forName: c), short: nil,
                                       voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
         }
         _ = unlockedSave(data)
