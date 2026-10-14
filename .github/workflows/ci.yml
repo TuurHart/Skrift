@@ -9,8 +9,7 @@ name: CI
 on:
   push:
     branches:
-      - main
-      - "claude/**"
+      - main   # claude/** branches stopped 2026-10-14: every session push mailed a failing run (Tuur)
   pull_request:
     branches: [main]
   workflow_dispatch:
