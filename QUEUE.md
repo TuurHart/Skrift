@@ -3047,7 +3047,7 @@ gate+: yes
 do: Today: notes and files already delete the entry after insert+save with an id dedup; the video, audio and podcast-URL branches of `CaptureInboxDrainer` still delete it before importing. Fix those three. `CaptureInboxDrainer` deletes an inbox entry only after the memo it produced is saved; a failed import leaves the entry for the next drain, and a re-drain is idempotent (memo id from the entry, so no duplicate note). Applies to every capture type. Test `CaptureInboxRetryTests` (phone target): an import that throws keeps the entry; the next drain makes exactly one note.
 check: `plan/mtest.sh CaptureInboxRetryTests`
 
-### Q415 [auto] (doing) a failed reprint keeps the note's printedAt
+### Q415 [auto] (done) a failed reprint keeps the note's printedAt
 spec: C272 R85
 needs: -
 gate+: yes
@@ -4653,3 +4653,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:13 Q417 -> doing — worker out
 - 2026-10-14 15:14 Q420 -> done — gate 69s @4eedce8a
 - 2026-10-14 15:15 Q421 -> done — gate 74s @71a62049
+- 2026-10-14 15:22 Q415 -> done — gate 120s @0f1a9b79
