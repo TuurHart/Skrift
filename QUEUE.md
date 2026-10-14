@@ -3244,6 +3244,13 @@ needs: Q417
 do: Same recipe as Q407: bump SKRIFT_BUILD to 191 in both project.yml files, build the Dev (Debug) iOS app for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; resolve its xcodebuild UDID first, the old iPhone 13 UDID in CLAUDE.md is stale) with `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic`, install with devicectl, string-grep a Q408 literal (`EmptyCommitGuard`) in the installed binary. Mac: Debug build, quit Skrift Dev, ditto to `/Applications/Skrift Dev.app`, never two Dev instances, never touch prod `/Applications/Skrift.app`, never `open -a`. If the phone is locked or unplugged, report blocked.
 check: Report shows build 191 installed on the phone (devicectl app list) and the Mac Dev app's CFBundleVersion is 191.
 
+### Q445 [auto] (todo) v1 export: a note opening with a picture fuses the closing --- and loses the stamp (pic-at-start)
+spec: C55 C56 C130 C193
+needs: Q433
+gate+: yes
+do: Found by Q433: the corpus note `pic-at-start` (body opens with `[[img_001]]`) exports a broken frontmatter on BOTH profiles today: the closing `---` is fused onto the first sentence and `skriftID`/`skriftHash` are lost, so the vault file is no longer recognised as ours. Likely cause: `BodyV2Legacy.shown` runs over the whole compiled markdown in `VaultExporter.export` instead of the body only. Fix it in the v1 exporter (this is live until export v2 swaps in), keep the closing `---` on its own line and the stamp trio intact, and add `PicAtStartExportTests` (desktop target) asserting the frontmatter parses and carries skriftID/skriftHash for `pic-at-start` on both profiles. Then re-record the two `pic-at-start` goldens in `test-fixtures/corpus/goldens/v1-export/` and drop their C130 entry from `expected-differences-export.json` (report both as needs hand-merge).
+check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4673,3 +4680,4 @@ check: Report shows build 191 installed on the phone (devicectl app list) and th
 - 2026-10-14 15:41 Q428 -> done — gate 114s @3c6001f4
 - 2026-10-14 15:44 Q423 -> doing — worker out
 - 2026-10-14 15:45 Q439 -> done — gate 55s @f3af339d
+- 2026-10-14 15:46 Q445 added
