@@ -13,8 +13,8 @@ import Foundation
 /// The local copy is what makes the merge safe against CloudKit itself: when two devices
 /// both rewrite the carrier, CloudKit keeps one, but each device's own ledger still holds
 /// its word and puts it back on the next sync.
-struct VocabularyLedger: Codable, Equatable {
-    struct Entry: Codable, Equatable {
+struct VocabularyLedger: Codable, Equatable, Sendable {
+    struct Entry: Codable, Equatable, Sendable {
         /// The spelling from the latest add.
         var word: String
         var addedAt: Date

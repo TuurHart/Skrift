@@ -725,8 +725,7 @@ struct SettingsView: View {
                     Spacer()
                     if interactive {
                         Button {
-                            settings.customVocabulary = settings.customWords.filter { $0 != word }
-                            commitVocabEdit()
+                            commitVocabEdit(.remove(word))
                         } label: {
                             Image(systemName: "xmark").font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Theme.textMuted)
@@ -743,18 +742,25 @@ struct SettingsView: View {
 
     private func addCustomWord() {
         // The shared add rule (Q172): trim, refuse empty / case-insensitive duplicate.
-        guard let updated = VocabularySyncCore.adding(newCustomWord, to: settings.customWords)
-        else { newCustomWord = ""; return }
-        settings.customVocabulary = updated
+        let typed = newCustomWord
         newCustomWord = ""
-        commitVocabEdit()
+        commitVocabEdit(.add(typed))
     }
 
-    /// A vocab edit is a dated LWW write: stamp it, persist NOW (`.onChange` fires only
-    /// after this event), and push it to CloudKit (no-op if CloudKit-Mac sync is off) —
-    /// mirroring the names push-on-edit above.
-    private func commitVocabEdit() {
-        settings.customVocabularyModifiedAt = Date()
+    /// A vocab edit: pull the latest synced list, apply the edit to the list on disk NOW
+    /// (never this sheet's load-time copy, C267), persist it (`.onChange` fires only after
+    /// this event), and push it to CloudKit (no-op if CloudKit-Mac sync is off), mirroring
+    /// the names push-on-edit above.
+    private func commitVocabEdit(_ edit: VocabularySyncCore.Edit) {
+        VocabularyCloudSync.run()
+        let fresh = SettingsStore.shared.load().localVocab
+        guard let next = VocabularySyncCore.applying(edit, to: fresh) else {
+            // Nothing to add or remove; still show what synced in.
+            settings.localVocab = fresh
+            savedBaseline.localVocab = fresh
+            return
+        }
+        settings.localVocab = next
         persist()
         VocabularyCloudSync.run()
     }

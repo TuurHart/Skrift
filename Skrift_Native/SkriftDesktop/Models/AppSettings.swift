@@ -67,6 +67,20 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// The DEBUG `-runfile -vocab` harness deliberately does NOT stamp this, so
     /// harness-injected words can never win LWW over a real device's list.
     var customVocabularyModifiedAt: Date? = nil
+    /// Per-word add/remove stamps for the list (`VocabularyLedger`, C267), so an offline add
+    /// here and one on the phone both survive the sync. nil = pre-ledger settings file.
+    var customVocabularyLedger: VocabularyLedger? = nil
+
+    /// The vocab state the shared sync core works on.
+    var localVocab: VocabularySyncCore.LocalVocab {
+        get { .init(words: customWords, modifiedAt: customVocabularyModifiedAt ?? .distantPast,
+                    ledger: customVocabularyLedger) }
+        set {
+            customVocabulary = newValue.words
+            customVocabularyModifiedAt = newValue.modifiedAt == .distantPast ? nil : newValue.modifiedAt
+            customVocabularyLedger = newValue.ledger
+        }
+    }
 
     /// Transcription language mode — `false` = English (see `ASRLanguageMode`, shared).
     /// The Mac had NO such setting until 2026-07-26: it built `AsrManager(config:

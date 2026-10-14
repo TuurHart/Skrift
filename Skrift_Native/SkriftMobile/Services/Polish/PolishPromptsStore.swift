@@ -55,7 +55,7 @@ enum PolishPromptsStore {
     }
 
     /// Adopt a synced blob without minting a new edit stamp (LWW discipline —
-    /// mirrors `CustomVocabularyStore.adoptSynced`).
+    /// mirrors `CustomVocabularyStore.write`).
     static func adoptSynced(_ blob: PolishPromptsSyncCore.Blob, modifiedAt: Date,
                             defaults: UserDefaults = .standard) {
         for kind in PolishPromptKind.allCases { store(blob[kind], for: kind, defaults: defaults) }

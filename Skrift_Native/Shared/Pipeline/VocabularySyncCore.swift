@@ -65,7 +65,9 @@ enum VocabularySyncCore {
         let carrier = inserted ?? records.max(by: { $0.modifiedAt < $1.modifiedAt })
         switch outcome {
         case .adoptRemote(let words, let ts):
-            let ledger = VocabularyLedger.seeded(from: words, at: ts)
+            // A ledgered carrier hands over its own ledger (its removals included).
+            let ledger = VocabularyLedger.decode(carrier?.wordLedger)
+                ?? VocabularyLedger.seeded(from: words, at: ts)
             carrier?.wordLedger = ledger.encoded()
             return SyncResult(local: LocalVocab(words: words, modifiedAt: ts, ledger: ledger),
                               localChanged: true, wordsChanged: words != local.words)
