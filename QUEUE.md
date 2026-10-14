@@ -3167,7 +3167,7 @@ needs: Q431
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-reconcile >/dev/null`
 
-### Q433 [auto] (todo) export harness: v1 export goldens, tests for C57 C64 C65, dest fixtures on two destinations
+### Q433 [auto] (doing) export harness: v1 export goldens, tests for C57 C64 C65, dest fixtures on two destinations
 spec: C253 C5 C57 C58 C64 C65 C129 C130 C133 C135 C137 D189
 needs: -
 gate+: yes
@@ -3199,7 +3199,7 @@ needs: Q436
 do: Tag the current commit `v1-export`, then in ONE commit delete `Shared/Export/Compiler.swift`'s v1 paths and the tests that pin them. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-export >/dev/null`
 
-### Q438 [auto] (doing) one shared share dispatcher with ingress fixtures
+### Q438 [auto] (done) one shared share dispatcher with ingress fixtures
 spec: C238 C198 C67 C69 C75 C125 C141 R4 R22
 needs: -
 gate+: yes
@@ -4658,3 +4658,5 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:24 Q428 -> doing — worker out
 - 2026-10-14 15:25 Q416 -> done — gate 65s @f4510f09
 - 2026-10-14 15:26 Q422 -> done — gate 46s @082e4d42
+- 2026-10-14 15:29 Q433 -> doing — worker out
+- 2026-10-14 15:30 Q438 -> done — gate 43s @206f215b
