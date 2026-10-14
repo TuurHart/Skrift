@@ -2736,7 +2736,7 @@ ask: On the Dev build with the perf library, record the 7-minute flow on the iPh
 
 ### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
-needs: Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393 Q397 Q398 Q399 Q400 Q401 Q408 Q409 Q410 Q411 Q412 Q413 Q414 Q415 Q416 Q417 Q418 Q419 Q420 Q421 Q422
+needs: Q443 Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393 Q397 Q398 Q399 Q400 Q401 Q408 Q409 Q410 Q411 Q412 Q413 Q414 Q415 Q416 Q417 Q418 Q419 Q420 Q421 Q422
 do: -
 check: The production Skrift on Tuur's phone runs build 188+ (literal grep matches the installed build), the prod Mac app likewise if he chose it, and his notes/names are intact after the upgrade.
 ask: Dev checks pass. Ready to put the updated production Skrift on your phone (I install the Release build to the prod app over USB, you switch on the new synced fields in the iCloud console first — RELEASE.md), and the Mac's /Applications/Skrift.app too, or phone only for now?
@@ -3026,21 +3026,21 @@ gate+: yes
 do: Today: `AudiobookCloudSync.removeDownload` deletes files once the book is synced, without checking the upload finished; the buttons in `SyncedAudiobooksView` and `AudiobookLibraryView` are never disabled. On the phone, Remove download is disabled with a "Still uploading to iCloud" line in the existing secondary-text style until `AudiobookCloudSync` reports the book's upload complete; no code path frees the local file before that. Test `RemoveDownloadUploadGateTests` (phone target).
 check: `plan/mtest.sh RemoveDownloadUploadGateTests`
 
-### Q412 [auto] (doing) removing a bookmark removes the nearest one and says so
+### Q412 [auto] (done) removing a bookmark removes the nearest one and says so
 spec: C269 R82
 needs: -
 gate+: yes
 do: Today: `AudiobookPlayerView` removes every bookmark in the tapped line's span and toasts "Unfolded"; the swipe delete in `ChaptersBookmarksSheet` shows nothing. Every bookmark removal path on the phone (player tap, swipe in the bookmarks sheet) removes exactly the one bookmark nearest the tap, breaks a tie by the earlier one, and shows a "Removed 1 bookmark at <time>" notice with Undo in the existing toast style. Test `BookmarkRemovalTests` (phone target): `bookmark-delete-near-tie` removes one, `bookmark-swipe-no-confirm` shows the notice.
 check: `plan/mtest.sh BookmarkRemovalTests`
 
-### Q413 [auto] (todo) a shared-book import re-checks the library right before unpacking
+### Q413 [auto] (doing) a shared-book import re-checks the library right before unpacking
 spec: C270 R83
 needs: -
 gate+: yes
 do: Today: `alreadyImported` is checked only at offer (`BookImportBridge.swift`); `BookImportSheet.unpack()` and `BookBundle.unpack` do not re-check. `BookImportBridge` checks `alreadyImported` again immediately before it unpacks a `.skriftbook`, not only when it offers the import; a book that arrived in between is never overwritten. Test `BookImportRecheckTests` (phone target): the same book imported between offer and unpack yields one library entry and its files unchanged.
 check: `plan/mtest.sh BookImportRecheckTests`
 
-### Q414 [auto] (todo) a capture-inbox entry is deleted only after its note is saved
+### Q414 [auto] (doing) a capture-inbox entry is deleted only after its note is saved
 spec: C271 C147 R84
 needs: -
 gate+: yes
@@ -3231,6 +3231,12 @@ spec: C261 D163
 needs: Q408
 do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65).
 check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
+
+### Q443 [tuur] (todo) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
+spec: D201
+needs: Q410
+do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
+check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger`.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4630,3 +4636,7 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
 - 2026-10-14 14:45 Q408 -> done — gate 57s @4f93d12d
 - 2026-10-14 14:45 Q442 -> tuur — awaiting sitting
 - 2026-10-14 14:47 Q409 -> done — gate 110s @e8fe0df6
+- 2026-10-14 14:52 Q413 -> doing — worker out
+- 2026-10-14 14:52 Q414 -> doing — worker out
+- 2026-10-14 14:52 Q443 added
+- 2026-10-14 14:54 Q412 -> done — gate 77s @4f9fbf99
