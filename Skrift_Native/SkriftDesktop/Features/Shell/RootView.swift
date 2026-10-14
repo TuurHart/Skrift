@@ -165,6 +165,10 @@ struct RootView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: coordinator.toast)
+        // C254/R62: a same-name add (any path, incl. the names sync) folded into an existing person.
+        .onReceive(NotificationCenter.default.publisher(for: .namesMergedDuplicate).receive(on: RunLoop.main)) { note in
+            if let line = RosterMergeNotice.message(from: note) { coordinator.flash(line) }
+        }
         .task {
             // C99 / Q163: a take an earlier run never finished (kill, crash, dead battery)
             // becomes a note now. Its own Task: the rebuilt take is transcribed, which can

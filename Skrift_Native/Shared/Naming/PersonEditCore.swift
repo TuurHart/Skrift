@@ -72,12 +72,19 @@ enum PersonEditCore {
     /// An existing live person is never overwritten: with no typed short it is returned
     /// untouched; with one, `upsert(_, replacing: nil)` merges (unions aliases, sets short).
     /// Returns the stored person, or nil for an empty name.
+    /// Same full name = same person (C254): a typed name matching a live person, any case, is
+    /// a merge and is announced (`RosterMergeNotice`). `announceMerge: false` is for callers
+    /// that PICKED the existing person (the assign sheet's People list), where nothing merged.
     @discardableResult
-    static func createIfNeeded(fullName: String, short: String = "", in store: NamesStore) -> Person? {
+    static func createIfNeeded(fullName: String, short: String = "", announceMerge: Bool = true,
+                               in store: NamesStore) -> Person? {
         let trimmed = fullName.trimmingCharacters(in: .whitespaces)
         let existing = store.livePeople().first { NamesMerge.matchKey($0.canonical) == NamesMerge.matchKey(trimmed) }
         let typedShort = short.trimmingCharacters(in: .whitespaces)
-        if let existing, typedShort.isEmpty { return existing }
+        if let existing, typedShort.isEmpty {
+            if announceMerge { RosterMergeNotice.post(into: existing.canonical) }
+            return existing
+        }
         let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
         guard let r = materialise(fullName: trimmed, aliases: [trimmed, first],
                                   short: typedShort.isEmpty ? first : typedShort,

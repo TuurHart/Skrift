@@ -49,11 +49,16 @@ struct SyncedAudiobooksView: View {
 
     private func row(_ book: Audiobook) -> some View {
         let removed = AudiobookCloudSync.isDownloadRemoved(bookID: book.id)
+        let uploading = !AudiobookCloudSync.isUploadComplete(bookID: book.id)
         return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(book.title).font(.system(size: 14, weight: .medium)).foregroundStyle(Color.skText).lineLimit(1)
                 Text("\(book.author) · \(fmt(sizeBytes(book)))" + (removed ? " · not on this device" : ""))
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim).lineLimit(1)
+                if uploading && !removed {
+                    Text(AudiobookCloudSync.stillUploadingNote)
+                        .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim).lineLimit(1)
+                }
             }
             Spacer()
             Menu {
@@ -65,6 +70,7 @@ struct SyncedAudiobooksView: View {
                     Button { AudiobookCloudSync.removeDownload(bookID: book.id); tick += 1 } label: {
                         Label("Remove download", systemImage: "arrow.down.circle.dotted")
                     }
+                    .disabled(uploading)
                 }
                 Button(role: .destructive) { Task { await AudiobookCloudSync.disableSync(bookID: book.id); tick += 1 } } label: {
                     Label("Stop syncing", systemImage: "icloud.slash")

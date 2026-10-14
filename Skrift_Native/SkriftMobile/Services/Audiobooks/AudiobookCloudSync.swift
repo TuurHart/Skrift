@@ -134,12 +134,34 @@ enum AudiobookCloudSync {
         removedDownloads(defaults).contains(bookID.uuidString)
     }
 
+    /// Secondary-text line shown under a synced book whose Remove download is disabled.
+    static let stillUploadingNote = "Still uploading to iCloud"
+
+    /// True once the book's audio is safely in iCloud: the carrier carries
+    /// `audioUploadedAt` (stamped only after the raw-CloudKit upload returned) and no
+    /// upload is in flight. C268: until then the local file may be the only copy.
+    static func isUploadComplete(bookID: UUID, repository: NotesRepository = .shared,
+                                 monitor: CloudSyncMonitor = .shared) -> Bool {
+        guard let record = repository.audiobookRecord(bookID: bookID),
+              record.audioUploadedAt != nil else { return false }
+        if let t = monitor.bookTransfers[bookID], t.direction == .up { return false }
+        return true
+    }
+
+    /// Whether Remove download may run: synced AND its upload is complete.
+    static func canRemoveDownload(bookID: UUID, repository: NotesRepository = .shared,
+                                  monitor: CloudSyncMonitor = .shared) -> Bool {
+        isSynced(bookID: bookID, repository: repository)
+            && isUploadComplete(bookID: bookID, repository: repository, monitor: monitor)
+    }
+
     /// Free a SYNCED book's local audio on this device (keeps the record → still synced,
     /// re-downloadable). Guarded to synced books so it can never delete a local-only
-    /// book's only copy. The cloud records stay (re-downloadable).
+    /// book's only copy, and (C268) to books whose upload to iCloud has completed — a
+    /// still-uploading book's local file may be the only copy. The cloud records stay.
     static func removeDownload(bookID: UUID, library: AudiobookLibraryStore = .shared,
                                repository: NotesRepository = .shared, defaults: UserDefaults = .standard) {
-        guard isSynced(bookID: bookID, repository: repository) else { return }
+        guard canRemoveDownload(bookID: bookID, repository: repository) else { return }
         // Supersede any in-flight download's late callbacks (same reason disableSync
         // does) so a pull racing this can't re-materialize the files we just freed.
         CloudSyncMonitor.shared.cancelBookTransfer(bookID)

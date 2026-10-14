@@ -496,6 +496,11 @@ final class ProcessingCoordinator {
         MacCloudEditSync.shared.note(pf)
         reflectSplitToMemo(pf)
         flash("\(displayed) is \(canonical) now")
+        // C254: a typed case variant of an existing person's full name is a merge — say so.
+        // (A name picked from the popover's list arrives spelled exactly; nothing merged.)
+        if let known, NamesMerge.keyName(known.canonical) != trimmed {
+            RosterMergeNotice.post(into: known.canonical)
+        }
         if let slot, !pf.path.isEmpty, !pf.diarizationSegments.isEmpty {
             let audio = URL(fileURLWithPath: pf.path), segments = pf.diarizationSegments
             Task.detached(priority: .utility) {
