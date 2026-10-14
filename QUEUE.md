@@ -2903,7 +2903,7 @@ gate+: no
 do: Facts (Tuur 2026-10-13, Q389): the real Skrift on the Mac shows phone notes only up to 25/26 Sep 2026; the phone's newest is Sun 11 Oct; he switched to the iPhone 17 Pro around 1 Oct. The prod Mac app (Aug, e6245caa) is development-signed with no icloud-container-environment → CloudKit DEVELOPMENT of iCloud.com.skrift.mobile; the new phone's prod build is TestFlight/App-Store-signed → PRODUCTION. So since ~late Sep the phone writes Production and the Mac writes Development. Write plan/release/ICLOUD_MERGE.md: what lives where (phone local store + Production; Mac local store + Development: Mac-made notes, MemoEnhancement polish, names/vocab edits since 25 Sep), and the safest way to end with ONE Production copy and zero loss or duplicates — e.g. what NSPersistentCloudKitContainer/SwiftData does when the same local store is opened under a different environment (re-upload? metadata reset? — research with sources, plan/research/), how ids dedupe (Memo.id UUIDs, MemoDeduper, NamesMerge LWW union), MemoEnhancement LWW by enhancedAt, a dry run on a COPY first (extend plan/release/mac-store-copytest.sh if needed), and the exact steps Tuur does vs the agent. NEVER read his real data; no CloudKit writes; code reading + research only.
 check: `test -s plan/release/ICLOUD_MERGE.md`
 
-### Q394 [auto] (doing) install Dev 189 (attachments, Q385-Q392) on the iPhone 17 Pro and the Mac
+### Q394 [auto] (done) install Dev 189 (attachments, Q385-Q392) on the iPhone 17 Pro and the Mac
 spec: -
 needs: Q392
 gate+: no
@@ -2952,12 +2952,19 @@ gate+: yes
 do: Per ICLOUD_MERGE.md §A4: when the Release Mac app finds ~/Library/Application Support/Skrift/merge-from-dev/ and the first Production import is done, it shows one alert with the dry-run numbers and Yes/Not now; Yes runs DevEraMerge, writes merge-report.txt, renames the folder to merged-<date>/. Never automatic. Mac test `MergeAlertTests` (folder present + import done → alert once; absent → never). Snapshot of the alert. See plan/release/ICLOUD_MERGE.md (Q393) for the full plan and section numbers; read it first. NEVER read the user's real data or touch CloudKit; tests and copies only. Never run SkriftDesktopUITests.
 check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/MergeAlertTests.swift`
 
-### Q401 [tuur] (tuur) question: how did the iPhone 17 Pro get your notes — Quick Start/device transfer, an iCloud backup restore, or a fresh install that downloaded them?
+### Q401 [tuur] (done) question: how did the iPhone 17 Pro get your notes — Quick Start/device transfer, an iCloud backup restore, or a fresh install that downloaded them?
 spec: D203
 needs: -
 do: -
 check: Tuur answered (ICLOUD_MERGE F2).
 ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Start / phone-to-phone transfer, restore from an iCloud backup, or install Skrift fresh and let it download? Did your old notes appear on the new phone right away?
+
+### Q402 [auto] (doing) Portfolio adds no tags by itself; idea/inspiration/project become suggestions to pick one (D205)
+spec: D205 D189
+needs: -
+gate+: yes
+do: Today choosing Portfolio (the Q395 tap pill) adds all three preset tags idea/inspiration/project to the note. Change: flipping to Portfolio adds NO tags; the tag row shows the three as quiet suggestion chips (the existing tag-suggestion look) only while the note is Portfolio and has none of them; tapping one adds just that tag; flipping back to Personal removes nothing the user added. One shared rule in Skrift_Native/Shared/ (phone, iPad, Mac, quick note). Mac test `PortfolioPresetTests` in SkriftDesktopTests (flip adds none; tap adds one; flip back keeps tags). Phone + Mac shots into plan/reads/destination-pill/portfolio-*.png. Never run SkriftDesktopUITests.
+check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/PortfolioPresetTests.swift`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4320,3 +4327,7 @@ ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Sta
 - 2026-10-13 23:11 Q400 -> doing — worker out
 - 2026-10-13 23:22 Q399 -> done — gate 41s @31a892aa
 - 2026-10-13 23:24 Q400 -> done — gate 46s @66274e7d
+- 2026-10-14 09:28 Q402 added
+- 2026-10-14 09:28 Q401 -> done — Tuur: not a fresh install — Quick Start or iCloud backup, doesn't remember which (D206)
+- 2026-10-14 09:28 Q394 -> done — Dev 189 on Mac (grep 'Set All to Large') and iPhone 17 Pro (devicectl: com.skrift.mobile.dev 0.2.0 189; grep 'Add to this note')
+- 2026-10-14 09:29 Q402 -> doing — worker out
