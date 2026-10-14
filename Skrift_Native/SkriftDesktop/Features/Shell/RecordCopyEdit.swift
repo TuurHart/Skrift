@@ -21,6 +21,14 @@ extension RunFile {
             let settings = AppSettings()
             log("== RECORDCOPYEDIT model \(settings.enhancementModelRepo) → \(root.path)")
             try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo)
+            // `-corpus` also seeds the app's own in-memory store at launch, and its sweep marks
+            // the same memo ids in flight (`ingestInFlight`) — which our scratch sweep skips.
+            // Let that launch ingest settle first.
+            for _ in 0..<240 where !MemoCloudReconciler.ingestInFlight.isEmpty {
+                try await Task.sleep(for: .milliseconds(500))
+            }
+            try await Task.sleep(for: .seconds(2))
+            guard MemoCloudReconciler.ingestInFlight.isEmpty else { log(">>> launch ingest never settled"); exit(1) }
             let enhancer = GenerateEnhancer(generate: cache.recording(EnhancementService.shared.generator))
             let scratch = FileManager.default.temporaryDirectory
                 .appendingPathComponent("q423-record-\(UUID().uuidString)", isDirectory: true)

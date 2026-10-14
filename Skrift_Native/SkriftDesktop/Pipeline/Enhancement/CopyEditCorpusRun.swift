@@ -70,6 +70,12 @@ enum CopyEditCorpusRun {
         }
     }
 
+    struct RowlessNotes: LocalizedError {
+        let slugs: [String]
+        let outcome: String
+        var errorDescription: String? { "live notes without a Mac row after the sweep: \(slugs) (\(outcome))" }
+    }
+
     /// Hands a row back the corpus's own words (no ASR in the copy-edit harness).
     struct CorpusTranscriber: Transcribing {
         let text: String
@@ -105,12 +111,19 @@ enum CopyEditCorpusRun {
         }
         try cloud.save()
         let upload = UploadService(outputDir: scratch.appendingPathComponent("out"))
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local, people: people, author: author,
-                                      thisDeviceID: device, now: now, upload: upload)
+        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, people: people, author: author,
+                                                thisDeviceID: device, now: now, upload: upload)
 
         let memoByID = Dictionary(memos.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { a, _ in a })
         let rows = try local.fetch(FetchDescriptor<PipelineFile>())
         let rowByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        // Every live memo is rated now, so every one must hold a row. A missing row means the
+        // sweep skipped it (e.g. the app's own launch ingest still had the same corpus ids in
+        // flight) — a golden recorded from that would be wrong, so stop.
+        let rowless = manifest.notes.filter { e in
+            memoByID[e.id].map { $0.deletedAt == nil } == true && rowByID[e.id] == nil
+        }.map(\.slug)
+        guard rowless.isEmpty else { throw RowlessNotes(slugs: rowless, outcome: String(describing: outcome)) }
         var settings = AppSettings()
         settings.authorName = author
         var out: [Result] = []
