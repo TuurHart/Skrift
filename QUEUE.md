@@ -3103,7 +3103,7 @@ gate+: yes
 do: Today: a new tombstone already drops its voiceprints, but `NamesData.mergeByCanonical` unions voiceprints onto the winner even when it is a tombstone, and `NamesStore.addVoiceEmbedding` sets `deleted = nil` (revives a tombstone). Fix both. Deleting a person drops its voiceprints in the tombstone; the `NamesMerge` LWW merge never unions embeddings onto a tombstone. Add corpus fixture `roster-delete-with-voiceprint`. Test `RosterTombstoneVoiceprintTests` (desktop target).
 check: `grep -rqE "class RosterTombstoneVoiceprintTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q423 [auto] (todo) copy-edit harness: recorded model outputs, v1 goldens, tests for C30 C35 C40
+### Q423 [auto] (doing) copy-edit harness: recorded model outputs, v1 goldens, tests for C30 C35 C40
 spec: C253 C5 C7 C30 C35 C40 C286 C166
 needs: -
 gate+: yes
@@ -3206,7 +3206,7 @@ gate+: yes
 do: Today: only the accepted-type list is shared (`Shared/Pipeline/ImportKinds.swift`); `SharePayloadLoader.swift` and the Mac `IngestService.swift` each branch by type on their own. Write `Skrift_Native/Shared/Ingress/`: a pure dispatcher that takes every extension item and every provider (UTI plus file or text) and returns one import plan (kind, clips in order, pictures, texts in order, url, title) or an honest refusal. Order per C198 (audio → web URL → movie → images → text → document); audio outranks the URL and odd UTIs reroute by extension (C69); several texts keep their order (C125); a photo's caption is kept (C141); an empty payload refuses (C75). Fixtures in `test-fixtures/corpus/ingress/<door>/` (providers manifest + `expect.json`): WhatsApp 3 items, Signal 4 providers, 2 texts among clips and a picture, URL-as-text, photo with caption, empty payload. Test `IngressDispatchTests` (desktop target).
 check: `test $(ls -d test-fixtures/corpus/ingress/*/ | wc -l) -ge 6 && grep -rqE "class IngressDispatchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q439 [auto] (doing) the phone share extension and the Mac importer use the shared dispatcher
+### Q439 [auto] (done) the phone share extension and the Mac importer use the shared dispatcher
 spec: C238 C67 C77 C75
 needs: Q438
 do: `SharePayloadLoader` / `ShareViewController` on the phone and the Mac file importer call the Q438 dispatcher; their own per-type branching is deleted, not left beside it. Behaviour on today's working doors stays the same (`ShareSheetView` tests still pass).
@@ -4671,3 +4671,5 @@ check: Report shows build 191 installed on the phone (devicectl app list) and th
 - 2026-10-14 15:34 Q444 added
 - 2026-10-14 15:39 Q444 -> doing — worker out
 - 2026-10-14 15:41 Q428 -> done — gate 114s @3c6001f4
+- 2026-10-14 15:44 Q423 -> doing — worker out
+- 2026-10-14 15:45 Q439 -> done — gate 55s @f3af339d
