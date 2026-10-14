@@ -2994,6 +2994,13 @@ gate+: no
 do: In the one book/episode player (AudiobookPlayerView and the mini player): back skip 15 s and forward skip 15 s (was 15/30), icons to match; the play/pause button keeps the purple fill but drops its glow/shadow; keep the small header and the text space as they are. Check in code whether the reading-mode controls already hide while playing and come back on a tap/pull (the audiobook-player-reading-mode work, 2026-06-19); report yes/no with file:line — do not build it if missing, just report. Shot of the player before/after into plan/reads/library-tab/q406-*.png (`-openTab books -seedEpisode -showPlayer -appTheme light -skipOnboarding`).
 check: `test $(ls plan/reads/library-tab/q406-*.png | wc -l) -ge 2`
 
+### Q407 [auto] (doing) install Dev 190 (Library shelf, PDF reading view, Highlight, tap pill, Portfolio fix, player) on the iPhone 17 Pro and the Mac
+spec: -
+needs: -
+gate+: no
+do: Same recipe as Q394 (findings Q374/Q383/Q394: phone builds need `-skipMacroValidation -skipPackagePluginValidation`; xcodebuild id == devicectl id 00008150-001658662223C01C; grep the .debug.dylib with `/usr/bin/grep -a` and a 16+ byte literal; quit 'Skrift Dev' via osascript in a script file). Bump to 190 in both project.yml files (SKRIFT_BUILD / CURRENT_PROJECT_VERSION). Phone: Debug → devicectl install com.skrift.mobile.dev; grep `Original page` or `Reading view` in SkriftMobile.debug.dylib; confirm with `xcrun devicectl device info apps --bundle-id com.skrift.mobile.dev` showing 190. Mac: Debug → quit Skrift Dev, ditto to /Applications/Skrift Dev.app, open; grep a Q402/Q395 literal (e.g. `PortfolioTagPresets`) in 'Skrift Dev.debug.dylib'. Never touch /Applications/Skrift.app or prod data. If the phone is unavailable, install the Mac anyway and report the exact devicectl error.
+check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the devicectl build number).
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4373,3 +4380,5 @@ check: `test $(ls plan/reads/library-tab/q406-*.png | wc -l) -ge 2`
 - 2026-10-14 11:14 Q406 added
 - 2026-10-14 11:15 Q406 -> doing — worker out
 - 2026-10-14 11:25 Q406 -> done — gate 38s @3a783b7f
+- 2026-10-14 12:05 Q407 added
+- 2026-10-14 12:06 Q407 -> doing — worker out
