@@ -6,7 +6,7 @@
   "shape": [
     "voice",
     "pictures",
-    "destination-project"
+    "destination-portfolio"
   ],
   "title": null,
   "recordedAt": "2026-07-12T12:00:00+01:00",
@@ -24,7 +24,7 @@
     "glaze",
     "project"
   ],
-  "destination": "project",
+  "destination": "portfolio",
   "locked": false,
   "deletedAt": null,
   "trashSeenAt": null,
@@ -57,6 +57,6 @@
   "diarization": null,
   "enhancement": null,
   "expect": {
-    "note": "Project → portfolio `_projects/`; the portfolio KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."
+    "note": "Portfolio + `project` tag (D189) → `<portfolio root>/_inbox/<slug>.md`, picture beside it; the portfolio KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."
   }
 }

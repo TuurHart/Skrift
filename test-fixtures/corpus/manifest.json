@@ -1274,7 +1274,7 @@
       "shape": [
         "voice",
         "pictures",
-        "destination-project"
+        "destination-portfolio"
       ],
       "folder": "099-dest-project"
     },
@@ -1286,7 +1286,7 @@
       "lang": "en",
       "shape": [
         "typed",
-        "destination-idea"
+        "destination-portfolio"
       ],
       "folder": "100-dest-idea"
     },
@@ -1299,7 +1299,7 @@
       "shape": [
         "capture",
         "url",
-        "destination-inspiration"
+        "destination-portfolio"
       ],
       "folder": "101-dest-inspiration-credit"
     },
