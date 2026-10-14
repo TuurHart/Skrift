@@ -35,6 +35,10 @@ enum CopyEditCorpusRun {
         /// The shipped body: sanitised → copy-edit → transcript (the compiler's precedence).
         let body: String?
         let error: String?
+        /// The Process pass ran on this row (it still needed processing).
+        var processed = false
+        /// The row would still be picked up after the pass (C40: never, the Mac never re-polishes).
+        var needsProcessingAfter = false
 
         /// The golden text (`goldens/v1-copyedit/<slug>.txt`).
         var record: String {
@@ -127,8 +131,9 @@ enum CopyEditCorpusRun {
             } ?? []
             let runner = BatchRunner(transcriber: CorpusTranscriber(text: note.transcript ?? "", words: words),
                                      enhancer: enhancer, settings: settings, people: people, tagWhitelist: [])
-            var error: String?
-            if WayOutRules.needsProcessing(pf) {
+            var failure: String?
+            let processed = WayOutRules.needsProcessing(pf)
+            if processed {
                 let hasAudio = pf.sourceType == .audio && !pf.path.isEmpty
                     && FileManager.default.fileExists(atPath: pf.path)
                 do {
@@ -138,13 +143,14 @@ enum CopyEditCorpusRun {
                 } catch let miss as ModelOutputCache.Miss {
                     throw miss
                 } catch {
-                    error = String(describing: error)
+                    failure = String(describing: error)
                 }
             }
             out.append(Result(slug: entry.slug, significance: significance, hasRow: true,
                               input: pf.transcript,
                               title: pf.enhancedTitle, summary: pf.enhancedSummary,
-                              body: pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript, error: error))
+                              body: pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript, error: failure,
+                              processed: processed, needsProcessingAfter: WayOutRules.needsProcessing(pf)))
         }
         return out
     }
