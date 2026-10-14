@@ -112,7 +112,7 @@ Rules:
 - **`SPEC.md`** — ⭐ THE constitution, confirmed by Tuur 2026-09-22: Point, done-means, 298
   marked clauses, R1–R94 required differences (bugs v2 must fix), every decision with its verdict.
   `./gate.sh` is the gate. Live state = `SPEC.md` + `QUEUE.md` (from `/2-plan`).
-  **Work = `QUEUE.md` (resync 2026-10-13: Library tab, Apple-Notes list + editor, Mac speed, release = Q349–Q370) → every session runs `/3-session`.** `plan/queue.sh` is its only state writer; `plan/accept.sh` merges. Subagents run on Sonnet (his budget); Fable conducts.
+  **Work = `QUEUE.md` (Q349–Q407 landed 2026-10-13/14; next: `/2-plan` resync from `plan/reads/spec-coverage-2026-10-14.md` — data-loss + names fixes first, then rewrite targets 2–4) → every session runs `/3-session`.** `plan/queue.sh` is its only state writer; `plan/accept.sh` merges. Subagents run on Sonnet (his budget); Fable conducts.
   Sources: `plan/extraction/*.md`. Corpus: `test-fixtures/corpus/` (synthetic, `-corpus <path>`).
   The old state docs (`backlog.md`, SSOT, STANDALONE_PLAN, NAMING_MODEL, AUDIT_*, …) are frozen
   under `archive/state-2026-09/` — read for the why, never for what to build.
