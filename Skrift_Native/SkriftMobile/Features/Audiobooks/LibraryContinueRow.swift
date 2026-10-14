@@ -89,6 +89,9 @@ struct LibraryContinueRow: View {
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
+        // A horizontal ScrollView is vertically greedy; without this it splits the screen's
+        // spare height with the shelf below and leaves a gap above and below the cards.
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Continue")
         .accessibilityIdentifier("library-continue-row")

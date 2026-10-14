@@ -32,7 +32,7 @@ struct AudiobookMiniPlayerBar: View {
                 } label: {
                     BookCoverView(book: book, showsPlaceholderTitle: false)
                         .frame(width: 48, height: 48)
-                        .clipShape(.rect(cornerRadius: 10, style: .continuous))
+                        .clipShape(.circle)   // Q403 (mock `.mini .cv`: radius 24 on 48)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("mini-player-cover")
@@ -72,9 +72,10 @@ struct AudiobookMiniPlayerBar: View {
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .fixedSize(horizontal: true, vertical: false)
-                    .foregroundStyle(Color.skAccentText)
+                    // Q403 (mock `.addnote`): solid accent, white words; the 20% wash vanished on the glass.
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.skAccent.opacity(0.2), in: .capsule)
+                    .background(Color.skAccent, in: .capsule)
                 }
                 .accessibilityIdentifier("mini-player-capture")
                 .accessibilityLabel("Add note — pauses the book and builds a quote from what you just heard")
