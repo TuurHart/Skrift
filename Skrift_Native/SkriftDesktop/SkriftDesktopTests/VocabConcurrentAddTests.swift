@@ -11,7 +11,7 @@ import SwiftData
 @MainActor
 final class VocabConcurrentAddTests: XCTestCase {
 
-    private final class Device {
+    @MainActor private final class Device {
         let container: ModelContainer
         var local = VocabularySyncCore.LocalVocab(words: [], modifiedAt: .distantPast, ledger: nil)
         var context: ModelContext { container.mainContext }
