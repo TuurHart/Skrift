@@ -2973,7 +2973,7 @@ gate+: yes
 do: Build to the signed Skrift_Native/SkriftDesktop/mocks/Q6-library-tab.html 'Library' screen, using plan/reads/library-tab/compare-q6-lib.png (mock left, app right) as the gap list: (1) the 'Continue' row above the chips — the last few sources you played/opened (any kind), horizontally scrolling cards with cover, kind label, title, progress and time/pages left, tap resumes; (2) the mini player docked above the tab bar while a book/episode plays (cover, back 15, play/pause, forward 15, 'Add note') — reuse the existing AudiobookMiniPlayerBar if it exists, don't write a second player; (3) a type badge (AUDIOBOOK, EPISODE, ARTICLE, PDF) on every cover kind. Keep the author line under tile titles and the iOS 26 floating glass tab bar (D207). Shared code first (labels from SourceKind). Phone test `LibraryContinueRowTests` (order = most recently played/opened, kinds mixed, finished sources drop out). Shot next to the mock at 402 x 874 into plan/reads/library-tab/q403-*.png; LOOK.
 check: `test $(ls plan/reads/library-tab/q403-*.png | wc -l) -ge 1 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh LibraryContinueRowTests`
 
-### Q404 [auto] (doing) PDF reader: reflowed reading view from the text layer, real page one tap away; Highlight in PDF + article selection menus (D207)
+### Q404 [auto] (done) PDF reader: reflowed reading view from the text layer, real page one tap away; Highlight in PDF + article selection menus (D207)
 spec: D207 D126
 needs: -
 gate+: yes
@@ -4362,3 +4362,4 @@ check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 - 2026-10-14 10:16 Q405 -> doing — worker out
 - 2026-10-14 10:23 Q403 -> done — gate 109s @536dc0c8
 - 2026-10-14 10:30 Q405 -> done — gate 38s @3a3cbbb9
+- 2026-10-14 10:33 Q404 -> done — gate 42s @0325fa15
