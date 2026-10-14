@@ -78,6 +78,9 @@ struct SharePayload {
     /// C127: the share's bytes (`ShareFingerprint`), nil for a link or a text. The host looks it
     /// up in the `ShareLedger` before the sheet and records it on save.
     var fingerprint: String?
+    /// C142: a shared email's Date header - the capture's `recordedAt` (the entry's `sharedAt`
+    /// is what the drain dates the note by). nil = the share moment.
+    var sharedAt: Date?
 }
 
 /// What the share extension shows for a share: the sheet, or an honest no (C75).
@@ -220,6 +223,14 @@ enum SharePayloadLoader {
                                 videoBytes: VideoKeep.byteCount(of: url))
         case .document:
             guard let r = plan.file.flatMap({ byName[$0] }), let url = r.fileURL else { return SharePayload(type: .file) }
+            if plan.emailFile != nil, let data = try? Data(contentsOf: url),
+               let mail = EmailShare.parse(data) {
+                // C142 (Q441): an email is a TEXT capture - Subject = title, the plain text =
+                // body, the Date header = recordedAt. The .eml copy is not kept. A .eml that
+                // cannot be read as a message falls through to a file card (never a husk).
+                return SharePayload(type: .text, urlTitle: mail.subject, text: mail.body.isEmpty ? nil : mail.body,
+                                    sharedAt: mail.date)
+            }
             if plan.bookFile != nil {
                 // C146 (Q440): the book route sits inside the document branch, as ImportKinds
                 // splits it for a Mac drop. A book goes to the book importer, never a file card.
@@ -284,14 +295,17 @@ enum SharePayloadLoader {
             if value.copy != nil || value.text == nil {
                 adopt(value.copy, into: &r)
             }
-        } else if conforms(.pdf) || conforms(.data) || conforms(.fileURL) {
+        } else if conforms(.pdf) || conforms(.data) || conforms(.fileURL) || conforms(.emailMessage) {
             // A document (PDF or any other file) from Files / Books: a concrete data type,
             // never a url / text alias.
+            // C142: a Mail share is `public.email-message` (not a `public.data` type); its copy
+            // is named `.eml`, which is how the dispatcher knows it for an email.
             let typeID = utis.first {
                 guard let t = UTType($0) else { return false }
                 return t.conforms(to: .data) && !t.conforms(to: .url) && !t.conforms(to: .text)
-            } ?? UTType.pdf.identifier
-            adopt(await copyFile(provider, typeID: typeID, defaultExt: "pdf"), into: &r)
+            } ?? (conforms(.emailMessage) ? UTType.emailMessage.identifier : UTType.pdf.identifier)
+            adopt(await copyFile(provider, typeID: typeID, defaultExt: conforms(.emailMessage) ? "eml" : "pdf"),
+                  into: &r)
         }
         return r
     }

@@ -543,6 +543,9 @@ struct IngestService: Sendable {
     /// no Mac ingest here and anything outside the accepted list is refused; both are reported
     /// as skipped, never silently.
     private func ingestDocument(_ url: URL, ext: String, into context: ModelContext) async throws -> PipelineFile? {
+        // C142 (Q441): an `.eml` is a text capture (Subject, body, Date header), as on the phone.
+        if EmailShare.isEmailFile(url.lastPathComponent),
+           let pf = try await ingestEmailCapture(url, into: context) { return pf }
         switch ImportKinds.kind(forExtension: ext) {
         case .text:
             // C73 / D22: a `.txt` shared on the phone becomes a text capture whose BODY is the

@@ -74,6 +74,17 @@ enum IngressDispatch {
         var pictures: [String] { parts.compactMap { if case .picture(let n) = $0 { return n } else { return nil } } }
         var texts: [String] { parts.compactMap { if case .text(let t) = $0 { return t } else { return nil } } }
 
+        /// C142: the document is an email (`.eml`): a text capture built from `EmailShare`
+        /// (Subject = title, Date header = recordedAt), never a file card.
+        var emailFile: String? {
+            guard kind == .document, let file else { return nil }
+            return EmailShare.isEmailFile(file) ? file : nil
+        }
+
+        /// C144: a Maps link with coordinates in the URL names a place - the capture's location
+        /// and title - with no fetch. A short `maps.app.goo.gl` link is opaque and has none.
+        var place: PlaceLink.Place? { kind == .url ? url.flatMap(PlaceLink.parse) : nil }
+
         /// C146: the document is a book (a `.skriftbook`, an `.m4b` or `.epub` that arrived
         /// as plain data): it goes to the book importer, never a file card. The split stays
         /// inside `.document`, as `ImportKinds` draws it for a Mac drop (Q439).
@@ -219,7 +230,9 @@ enum IngressDispatch {
         }
         // 2. Web URL: a selected text wins, the link rides along.
         if let link = links.first {
-            return .plan(Plan(kind: texts > 0 ? .text : .url, parts: textParts, url: link, title: title))
+            // C144: a Maps link with no page title takes the place's name as its title.
+            let placeName = texts > 0 ? nil : PlaceLink.parse(link)?.name
+            return .plan(Plan(kind: texts > 0 ? .text : .url, parts: textParts, url: link, title: title ?? placeName))
         }
         // 3. Movie (before images, so a poster frame is not an image capture). Texts kept.
         if let movie = movies.first {

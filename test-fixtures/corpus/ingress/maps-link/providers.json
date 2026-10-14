@@ -1,0 +1,9 @@
+{
+  "door": "maps-link",
+  "about": "C144/D6: an Apple Maps share is a link capture; the place (name + pin) is its location and its title, read from the URL alone with no fetch.",
+  "items": [
+    { "providers": [
+      { "uti": ["public.url"], "url": "https://maps.apple.com/?ll=38.7107,-9.1426&q=Pastelaria%20Aloma" }
+    ] }
+  ]
+}

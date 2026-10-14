@@ -398,6 +398,10 @@ targets:
       - path: ../Shared/Ingress/IngressDispatch.swift
       # Q440 / C127: the share ledger (same bytes shared twice = one note).
       - path: ../Shared/Ingress/ShareLedger.swift
+      # Q441 / C142: the .eml reader (Subject, Date, body, attachments), and C144's Maps-link
+      # parser (`IngressDispatch.Plan.place`) - both pure Foundation.
+      - path: ../Shared/Ingress/EmailShare.swift
+      - path: ../Shared/Pipeline/PlaceLink.swift
       # C63 / C148: the ONE video-keep rule (cap + share-card wording).
       - path: ../Shared/Pipeline/VideoKeep.swift
       # C68 / C145: the ONE One-note / N-notes chooser wording (`AudioImportChoice`) - the share
