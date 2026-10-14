@@ -922,6 +922,13 @@ struct IngestService: Sendable {
             let isDir = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             if isDir { continue }   // an Apple Notes export's `Attachments/` is not a note
             let ext = item.pathExtension.lowercased()
+            // Q448 / C142: an `.eml` in a folder is an email capture, as when dropped directly
+            // (`ImportKinds` does not list it; `ingestDocument` takes it by name first).
+            if EmailShare.isEmailFile(item.lastPathComponent) {
+                if let pf = try await ingestFile(item, into: context) { created.append(pf) }
+                else { skipped.append((item, ImportReport.unreadable)) }
+                continue
+            }
             guard let kind = ImportKinds.kind(forExtension: ext), [.text, .audio, .video, .document].contains(kind) else {
                 // Said, never dropped: a picture / book / unknown file in a folder.
                 skipped.append((item, ImportKinds.kind(forExtension: ext) == .image

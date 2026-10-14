@@ -105,6 +105,11 @@ enum MacMemoAuthor {
             guard let blob = try? Data(contentsOf: photo.source) else { continue }
             ctx.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.photo, filename: photo.filename, blob: blob))
         }
+        // Q448: the note's videos and files (an email's attachments) ride along as their own assets.
+        for file in shape.attachments {
+            guard let blob = try? Data(contentsOf: file.source), !blob.isEmpty else { continue }
+            ctx.insert(MemoAsset(memoID: id, kind: file.kind, filename: file.filename, blob: blob))
+        }
         // A `.file` capture's document (a dropped PDF): the real file rides along as the phone's
         // own `document` asset, so it reaches the phone and not just its extracted text.
         if let name = capture?.filePath, !name.isEmpty, let folder = pf.workingFolder,
@@ -269,6 +274,9 @@ enum MacMemoAuthor {
         var hasAudio: Bool
         var metadataData: Data?
         var photos: [(source: URL, filename: String)]
+        /// Q448: the files of the note's attachment manifest (an email's attachments, D199 files),
+        /// each synced as a `MemoAsset` of its entry's kind. Their names are already unique.
+        var attachments: [(source: URL, filename: String, kind: String)] = []
     }
 
     /// The phone-shaped memo for a Mac row.
@@ -300,7 +308,18 @@ enum MacMemoAuthor {
 
         var meta = MemoMetadata()
         var photos: [(source: URL, filename: String)] = []
+        var attachments: [(source: URL, filename: String, kind: String)] = []
         if let folder = pf.workingFolder {
+            // Q448: a note whose folder holds an attachment manifest (an email's files) carries it
+            // as the synced manifest; the entries are already named `file_<memo id>_NNN.<ext>`.
+            let entries = MacNoteAttachments.manifest(in: folder)
+            if !entries.isEmpty {
+                meta.attachmentManifest = entries
+                for e in entries {
+                    let source = MacNoteAttachments.folder(in: folder).appendingPathComponent(e.filename)
+                    if FileManager.default.fileExists(atPath: source.path) { attachments.append((source, e.filename, e.kind)) }
+                }
+            }
             if let data = try? Data(contentsOf: folder.appendingPathComponent("image_manifest.json")),
                let entries = try? JSONDecoder().decode([ImageManifestEntry].self, from: data), !entries.isEmpty {
                 let images = folder.appendingPathComponent("images", isDirectory: true)
@@ -336,11 +355,11 @@ enum MacMemoAuthor {
         guard meta != MemoMetadata() || !media.isEmpty,
               let encoded = try? JSONEncoder().encode(meta),
               var obj = (try? JSONSerialization.jsonObject(with: encoded)) as? [String: Any] else {
-            return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: nil, photos: photos)
+            return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: nil, photos: photos, attachments: attachments)
         }
         if !media.isEmpty { obj["mediaSource"] = media }
         let data = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])
-        return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: data, photos: photos)
+        return AuthoredShape(audioFilename: audioFilename, hasAudio: hasAudio, metadataData: data, photos: photos, attachments: attachments)
     }
 
     /// A place the row's own metadata blob already holds. Never a fresh fix: an import's place
