@@ -3212,7 +3212,7 @@ needs: Q438
 do: `SharePayloadLoader` / `ShareViewController` on the phone and the Mac file importer call the Q438 dispatcher; their own per-type branching is deleted, not left beside it. Behaviour on today's working doors stays the same (`ShareSheetView` tests still pass).
 check: `grep -rqE "IngressDispatch|ShareDispatch" Skrift_Native/SkriftMobile/SkriftShare && grep -rqE "IngressDispatch|ShareDispatch" Skrift_Native/SkriftDesktop`
 
-### Q440 [auto] (doing) a Voice Memo keeps its name, the same file twice is one note, a .skriftbook goes to Books
+### Q440 [auto] (done) a Voice Memo keeps its name, the same file twice is one note, a .skriftbook goes to Books
 spec: C126 C127 C146
 needs: Q439
 gate+: yes
@@ -4703,3 +4703,4 @@ check: Tuur picked one: (a) C126 everywhere — the Files importer also drops "W
 - 2026-10-14 15:56 Q446 -> doing — worker out
 - 2026-10-14 16:17 Q447 added
 - 2026-10-14 16:17 Q447 -> tuur — awaiting sitting
+- 2026-10-14 16:18 Q440 -> done — gate 59s @9a52fa53
