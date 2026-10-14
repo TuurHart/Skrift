@@ -85,8 +85,9 @@ final class WallPrinter: ObservableObject {
     /// ⋯ → "Print Card": manual path — prints (or reprints) immediately.
     func printCard(_ memo: Memo, repository: NotesRepository) {
         if !queue.contains(memo.id.uuidString) { queue.append(memo.id.uuidString) }
-        // Manual = allowed to reprint: clear the ledger stamp first.
-        ledger.removeValue(forKey: memo.id.uuidString)
+        // Manual = allowed to reprint. The prior stamp stays until the drain confirms
+        // this print (C272/R85): `drain` overwrites it on success, a failed or
+        // cancelled reprint leaves it as it was. The drain never consults the ledger.
         Task { await tryDrain(repository) }
     }
 

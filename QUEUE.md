@@ -3040,7 +3040,7 @@ gate+: yes
 do: Today: `alreadyImported` is checked only at offer (`BookImportBridge.swift`); `BookImportSheet.unpack()` and `BookBundle.unpack` do not re-check. `BookImportBridge` checks `alreadyImported` again immediately before it unpacks a `.skriftbook`, not only when it offers the import; a book that arrived in between is never overwritten. Test `BookImportRecheckTests` (phone target): the same book imported between offer and unpack yields one library entry and its files unchanged.
 check: `plan/mtest.sh BookImportRecheckTests`
 
-### Q414 [auto] (doing) a capture-inbox entry is deleted only after its note is saved
+### Q414 [auto] (done) a capture-inbox entry is deleted only after its note is saved
 spec: C271 C147 R84
 needs: -
 gate+: yes
@@ -3054,14 +3054,14 @@ gate+: yes
 do: Today: `WallPrinter.printCard` calls `ledger.removeValue` before printing. `WallPrinter` writes the new `printedAt` only after the reprint succeeds; a failed or cancelled reprint leaves the previous stamp as it was. Test `WallReprintStampTests` (phone target).
 check: `plan/mtest.sh WallReprintStampTests`
 
-### Q416 [auto] (todo) Markup keeps the original photo recoverable
+### Q416 [auto] (doing) Markup keeps the original photo recoverable
 spec: C273 R86
 needs: -
 gate+: yes
 do: Today: `MarkupQuickLook` edits in place with `.updateContents`; no original is kept. Before `MarkupQuickLook` presents `.updateContents`, the untouched photo is kept as a second `MemoAsset` blob (additive, synced, C96); the photo's menu offers "Revert to original" as a plain menu item. Only the first markup saves the original; later markups keep it. Test `MarkupOriginalTests` (phone target): markup then revert gives back the original bytes.
 check: `plan/mtest.sh MarkupOriginalTests`
 
-### Q417 [auto] (todo) a capture whose transcription is empty is kept and says so
+### Q417 [auto] (doing) a capture whose transcription is empty is kept and says so
 spec: C274 R87
 needs: -
 gate+: yes
@@ -3082,21 +3082,21 @@ gate+: yes
 do: Today: `Sanitiser.swift` handles only `'s` / `’s`; no diacritic folding; the `\b` boundary does not protect `#tags`. In the shared matcher (`Skrift_Native/Shared/Naming/`): an alias plus a bare `s` (`Wims`, `Lottes`) links like `Wim's`, unless that word is itself a roster alias; matching folds diacritics both ways (Ines/Inés, Månsson/Mansson); a `#tag` is never split or linked even when it equals an alias. Add corpus fixtures `edge-name-dutch-possessive`, `edge-name-diacritics`, `edge-name-is-tag`. Test `NameMatcherEdgeTests` (desktop target).
 check: `grep -rqE "class NameMatcherEdgeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q420 [auto] (doing) naming an unknown speaker seeds the alias
+### Q420 [auto] (done) naming an unknown speaker seeds the alias
 spec: C257 R66
 needs: -
 gate+: yes
 do: Today: the phone uses `PersonEditCore.createIfNeeded` (`SpeakerAssignSheet`), the Mac its own inline upsert in `ProcessingCoordinator`; `NamesStore.addVoiceEmbedding` can also create a person with `aliases: []` (e.g. from `VoiceEnroller.enroll`) — close that path too. Naming a speaker with a name not on the roster creates the person with that typed name as an alias, or opens the person editor; an alias-less person is never created. Same rule on phone and Mac, in one shared function. Add corpus fixture `edge-speaker-assign-new-name`. Test `SpeakerAssignNewNameTests` (desktop target): the new person has at least one alias.
 check: `grep -rqE "class SpeakerAssignNewNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q421 [auto] (doing) a synced roster change re-derives the open note at once
+### Q421 [auto] (done) a synced roster change re-derives the open note at once
 spec: C258
 needs: -
 gate+: yes
 do: Today: only the Settings/names screens observe `.namesDidChangeFromSync`; no open-note view does. When a roster change arrives by sync while a note is open (phone, iPad, Mac), that note's name spans are re-derived immediately, not on the next open. Test `OpenNoteRosterRefreshTests` (desktop target): an open note's model re-derives after a simulated synced rename.
 check: `grep -rqE "class OpenNoteRosterRefreshTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q422 [auto] (todo) a deleted person's voiceprints go with the tombstone
+### Q422 [auto] (doing) a deleted person's voiceprints go with the tombstone
 spec: C259 C208 R63
 needs: -
 gate+: yes
@@ -4647,3 +4647,9 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 14:58 Q421 -> doing — worker out
 - 2026-10-14 15:00 Q415 -> doing — worker out
 - 2026-10-14 15:07 Q413 -> done — gate 114s @95280a27
+- 2026-10-14 15:08 Q416 -> doing — worker out
+- 2026-10-14 15:12 Q422 -> doing — worker out
+- 2026-10-14 15:13 Q414 -> done — gate 174s @67c0b41a
+- 2026-10-14 15:13 Q417 -> doing — worker out
+- 2026-10-14 15:14 Q420 -> done — gate 69s @4eedce8a
+- 2026-10-14 15:15 Q421 -> done — gate 74s @71a62049

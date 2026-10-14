@@ -485,8 +485,8 @@ final class ProcessingCoordinator {
         guard !trimmed.isEmpty else { return }
         let known = before.first { NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(trimmed) == .orderedSame }
         if known == nil {
-            let first = trimmed.split(separator: " ").first.map(String.init) ?? trimmed
-            NamesStore.shared.upsert(canonical: trimmed, aliases: [trimmed, first], short: first)
+            // The shared door (C257/R66): the same birth rule as the phone's assign sheet.
+            PersonEditCore.createIfNeeded(fullName: trimmed, announceMerge: false, in: NamesStore.shared)
         }
         let canonical = known.map { NamesMerge.keyName($0.canonical) } ?? trimmed
         let slot = Self.diarizationSlot(of: displayed)

@@ -180,10 +180,11 @@ final class NamesStore {
     }
 
     /// Append a voiceprint to a person (de-duped by vector, union — multi-embedding,
-    /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new.
-    /// Never revives a tombstone (C259/R63): naming a deleted person's voice again starts a
-    /// FRESH person holding only this voiceprint, none of the deleted one's aliases/short/
-    /// voiceprints. Alias-SAFE on a live person (never touches aliases/short). Mirrors the
+    /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new,
+    /// seeded with its name as alias (C257). Never revives a tombstone (C259/R63): naming a
+    /// deleted person's voice again starts a FRESH person holding only this voiceprint, none
+    /// of the deleted one's aliases/short/voiceprints. Alias-SAFE on a live person (never
+    /// touches its aliases/short). Mirrors the
     /// phone's `NamesStore.addVoiceEmbedding` — Mac-originated enrollment syncs back.
     func addVoiceEmbedding(canonical: String, embedding: VoiceEmbedding) {
         let c = NamesMerge.normaliseCanonical(canonical)
@@ -200,7 +201,9 @@ final class NamesStore {
         } else {
             // The fresh row replaces this canonical's tombstone (newer stamp, so it wins LWW).
             data.people.removeAll { $0.isDeleted && $0.canonical == c }
-            data.people.append(Person(canonical: c, aliases: [], short: nil,
+            // C257/R66: an unknown name is born with its typed name as the alias, never `[]`
+            // (an alias-less person never links). An existing person is never touched above.
+            data.people.append(Person(canonical: c, aliases: PersonEditCore.defaultAliases(forName: c), short: nil,
                                       voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
         }
         _ = unlockedSave(data)
