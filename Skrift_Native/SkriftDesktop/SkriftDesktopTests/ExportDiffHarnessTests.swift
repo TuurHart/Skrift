@@ -1,0 +1,427 @@
+import XCTest
+import SwiftData
+
+/// Q433 (C5, C253): the export harness, the sibling of the body harness (`BodyDiffHarnessTests`,
+/// `BodyV2HarnessTests`). v1's export of EVERY corpus note on BOTH profiles is recorded once under
+/// `test-fixtures/corpus/goldens/v1-export/<slug>.<vault|portfolio>.md` (+ `_paths.json`, where each
+/// file landed), and every registered export engine is classed against it:
+///   - identical           engine output == v1's golden;
+///   - expected-different  differs AND the row carries an id in `expected-differences-export.json`;
+///   - unexplained         differs with no registered id — FAILS (C5);
+///   - matched-bug         a registered row a non-v1 engine leaves equal to v1 — FAILS (C5).
+/// v1 is the detector, never the judge: it must reproduce its own golden byte for byte.
+///
+/// The path is the Mac's real one: `CorpusSeed` → `MemoCloudReconciler.sweep` (ingest, polish
+/// adoption, name-linking) → `VaultExporter.export` into a temp vault / temp portfolio root. A note
+/// the Mac never exports (trashed, unrated, locked) is recorded as the refusal it gets.
+///
+/// RE-RECORDING (host-less bundle: `TEST_RUNNER_` env vars do not reach it — Q9/Q23 finding):
+/// `xcodebuild build-for-testing -scheme UnitTests ...`, then
+/// `SKRIFT_RECORD_EXPORT_GOLDENS=1 xcrun xctest -XCTest SkriftDesktopTests.ExportDiffHarnessTests/testEngineClassificationAgainstV1Golden <bundle>.xctest`.
+///
+/// Also here: C130 (portfolio frontmatter is flat YAML — v1's violations must be EXACTLY the
+/// registered rows), C57 (`typed-same-title-a/b` get distinct image files), C64 (a 23:30 note's
+/// `date:` is the same day on the phone path and the Mac path), C65 (no exporter snaps the body),
+/// C133/C135/C137 on the `dest-*` and `cap-image-no-words` rows.
+final class ExportDiffHarnessTests: XCTestCase {
+
+    // MARK: - profiles, outputs, engines
+
+    enum Profile: String, CaseIterable {
+        case vault, portfolio
+        var destination: NoteDestination { self == .vault ? .personal : .portfolio }
+    }
+
+    /// One exported note: the file's text (stamp normalised) and where it landed, relative to the
+    /// export root (the vault folder picked / the portfolio root). A refusal has no path.
+    struct Output: Equatable {
+        var markdown: String
+        var path: String?
+    }
+
+    protocol ExportEngine {
+        var name: String { get }
+        /// `slug.profile` → output, for every note in `manifest.json`.
+        func exports(corpus root: URL, scratch: URL) throws -> [String: Output]
+    }
+
+    static let fixedZone = TimeZone(identifier: "Europe/Lisbon")!
+
+    /// v1 = the shipping Mac exporter, run over the seeded corpus.
+    struct V1Engine: ExportEngine {
+        let name = "v1"
+
+        func exports(corpus root: URL, scratch: URL) throws -> [String: Output] {
+            let cloud = ModelContext(try ModelContainer(
+                for: Memo.self, MemoAsset.self, MemoEnhancement.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
+            let pipeline = ModelContext(try ModelContainer(
+                for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+            try CorpusSeed.seed(from: root, into: cloud,
+                                recordingsDirectory: scratch.appendingPathComponent("phone-recordings"))
+            let roster = try ExportDiffHarnessTests.roster(root)
+            MemoCloudReconciler.sweep(from: cloud, into: pipeline, people: roster, author: "Tiuri",
+                                      thisDeviceID: "corpus-mac-0001",
+                                      upload: UploadService(outputDir: scratch.appendingPathComponent("mac-work")))
+            let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
+            let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let memos = Dictionary(try cloud.fetch(FetchDescriptor<Memo>()).map { ($0.id.uuidString, $0) },
+                                   uniquingKeysWith: { a, _ in a })
+
+            var out: [String: Output] = [:]
+            for profile in Profile.allCases {
+                let exportRoot = scratch.appendingPathComponent("export-\(profile.rawValue)", isDirectory: true)
+                try FileManager.default.createDirectory(at: exportRoot, withIntermediateDirectories: true)
+                var settings = AppSettings.default
+                settings.authorName = "Tiuri"
+                settings.noteFolder = profile == .vault ? exportRoot.path : ""
+                settings.portfolioRoot = profile == .portfolio ? exportRoot.path : ""
+                let session = ExportSession(people: roster)
+                for entry in try ExportDiffHarnessTests.manifest(root).notes {
+                    let key = "\(entry.slug).\(profile.rawValue)"
+                    guard let pf = byID[entry.id] else {
+                        let memo = memos[entry.id]
+                        let why = memo?.deletedAt != nil ? "trashed" : (memo.map(NoteConsent.isRated) == false ? "unrated" : "not ingested")
+                        out[key] = Output(markdown: "<not exported: \(why) — the Mac never ingests it>\n", path: nil)
+                        continue
+                    }
+                    let kept = pf.destinationRaw
+                    pf.destination = profile.destination
+                    defer { pf.destinationRaw = kept }
+                    do {
+                        let r = try VaultExporter.export(pf, settings: settings, session: session)
+                        let md = (try? String(contentsOf: r.markdownURL, encoding: .utf8)) ?? ""
+                        let rel = String(r.markdownURL.standardizedFileURL.path
+                            .dropFirst(exportRoot.standardizedFileURL.path.count + 1))
+                        switch r.outcome {
+                        case .created, .updated, .unchanged:
+                            out[key] = Output(markdown: ExportDiffHarnessTests.normalised(md), path: rel)
+                        default:
+                            out[key] = Output(markdown: "<not exported: \(r.outcome)>\n", path: nil)
+                        }
+                    } catch {
+                        out[key] = Output(markdown: "<not exported: \(error)>\n", path: nil)
+                    }
+                }
+            }
+            return out
+        }
+    }
+
+    /// Registered engines — a v2 exporter lands here, never by editing `V1Engine`.
+    static let engines: [ExportEngine] = [V1Engine()]
+
+    // MARK: - corpus + goldens
+
+    static var corpusRoot: URL { CorpusSeed.fixtureRoot(file: #filePath) }
+    static var goldenDir: URL { corpusRoot.appendingPathComponent("goldens/v1-export", isDirectory: true) }
+    static var pathsURL: URL { goldenDir.appendingPathComponent("_paths.json") }
+
+    static func manifest(_ root: URL) throws -> CorpusSeed.Manifest {
+        try JSONDecoder().decode(CorpusSeed.Manifest.self, from: Data(contentsOf: root.appendingPathComponent("manifest.json")))
+    }
+
+    static func note(_ root: URL, folder: String) throws -> CorpusSeed.Note {
+        try JSONDecoder().decode(CorpusSeed.Note.self, from: Data(contentsOf:
+            root.appendingPathComponent("notes").appendingPathComponent(folder).appendingPathComponent("note.json")))
+    }
+
+    static func roster(_ root: URL) throws -> [Person] {
+        try JSONDecoder().decode([Person].self, from: Data(contentsOf: root.appendingPathComponent("names.json")))
+    }
+
+    /// The stamp's two volatile lines (`lastTouched` is the write time, `skriftHash` covers it).
+    static func normalised(_ md: String) -> String {
+        md.components(separatedBy: "\n").map { line in
+            if line.hasPrefix("\(VaultStamp.touchedKey):") { return "\(VaultStamp.touchedKey): <stamp>" }
+            if line.hasPrefix("\(VaultStamp.hashKey):") { return "\(VaultStamp.hashKey): <stamp>" }
+            return line
+        }.joined(separator: "\n")
+    }
+
+    /// `slug.profile` → [R or C id]. Keys starting with `_` are documentation.
+    static func loadExpectedDifferences() throws -> [String: [String]] {
+        let url = corpusRoot.appendingPathComponent("expected-differences-export.json")
+        let obj = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any] ?? [:]
+        var out: [String: [String]] = [:]
+        for (key, value) in obj where !key.hasPrefix("_") { out[key] = (value as? [String]) ?? [] }
+        return out
+    }
+
+    func scratch() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("Q433-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        return dir
+    }
+
+    private var savedZone: TimeZone?
+    override func setUp() {
+        super.setUp()
+        savedZone = NSTimeZone.default
+        NSTimeZone.default = Self.fixedZone   // `date:` (C64) reads the device zone
+    }
+    override func tearDown() {
+        if let savedZone { NSTimeZone.default = savedZone }
+        super.tearDown()
+    }
+
+    /// v1's outputs, computed once per test (the sweep + 2 × 116 exports take a few seconds).
+    func v1Outputs() throws -> [String: Output] {
+        let root = Self.corpusRoot
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path),
+                          "corpus not generated — run test-fixtures/corpus/generate.py")
+        return try V1Engine().exports(corpus: root, scratch: try scratch())
+    }
+
+    // MARK: - C5: classification against v1's golden
+
+    func testEngineClassificationAgainstV1Golden() throws {
+        let root = Self.corpusRoot
+        let v1 = try v1Outputs()
+        let record = ProcessInfo.processInfo.environment["SKRIFT_RECORD_EXPORT_GOLDENS"] == "1"
+        if record {
+            try FileManager.default.createDirectory(at: Self.goldenDir, withIntermediateDirectories: true)
+            for (key, o) in v1 {
+                try o.markdown.write(to: Self.goldenDir.appendingPathComponent("\(key).md"), atomically: true, encoding: .utf8)
+            }
+            var paths: [String: Any] = [:]
+            for (key, o) in v1 { paths[key] = o.path ?? NSNull() }
+            try JSONSerialization.data(withJSONObject: paths, options: [.prettyPrinted, .sortedKeys])
+                .write(to: Self.pathsURL)
+        }
+        let goldenPaths = (try? JSONSerialization.jsonObject(with: Data(contentsOf: Self.pathsURL))) as? [String: Any] ?? [:]
+        let expected = try Self.loadExpectedDifferences()
+
+        func golden(_ key: String) -> Output? {
+            guard let md = try? String(contentsOf: Self.goldenDir.appendingPathComponent("\(key).md"), encoding: .utf8)
+            else { return nil }
+            return Output(markdown: md, path: goldenPaths[key] as? String)
+        }
+
+        var missing: [String] = [], drift: [String] = [], unexplained: [String] = [], matchedBug: [String] = []
+        var identical = 0, expectedDifferent = 0
+        let keys = try Self.manifest(root).notes.flatMap { e in Profile.allCases.map { "\(e.slug).\($0.rawValue)" } }
+        for engine in Self.engines {
+            let outputs = engine.name == "v1" ? v1 : try engine.exports(corpus: root, scratch: try scratch())
+            for key in keys {
+                guard let g = golden(key) else { missing.append(key); continue }
+                let o = outputs[key]
+                if engine.name == "v1" {
+                    // v1 reproduces its own recording or the recording is stale.
+                    if o != g { drift.append("\(key): v1 no longer matches its recorded golden") }
+                    continue
+                }
+                let ids = expected[key] ?? []
+                if o == g {
+                    identical += 1
+                    if !ids.isEmpty { matchedBug.append("\(key) (\(engine.name)): still equals v1 on registered \(ids)") }
+                } else if ids.isEmpty {
+                    unexplained.append("\(key) (\(engine.name)): differs from v1 with no registered id")
+                } else {
+                    expectedDifferent += 1
+                }
+            }
+        }
+        print("Export harness: \(keys.count) rows, identical \(identical), expected-different \(expectedDifferent), unexplained \(unexplained.count)")
+        XCTAssertTrue(missing.isEmpty, "no golden recorded — see the RE-RECORDING note:\n" + missing.joined(separator: "\n"))
+        XCTAssertTrue(drift.isEmpty, drift.joined(separator: "\n"))
+        XCTAssertTrue(unexplained.isEmpty, "unexplained (C5):\n" + unexplained.joined(separator: "\n"))
+        XCTAssertTrue(matchedBug.isEmpty, "unfixed pre-registered bugs (C5):\n" + matchedBug.joined(separator: "\n"))
+        XCTAssertGreaterThanOrEqual(keys.count, 200, "every corpus note on both profiles")
+    }
+
+    // MARK: - C130: portfolio frontmatter is flat YAML
+
+    static let c130Allowed: Set<String> = ["title", "date", "capture", "voice", "tags", "people", "location",
+                                           "credit", "needs", "lastTouched", "skriftID", "skriftHash"]
+    static let c130Forbidden: Set<String> = ["type", "source", "author", "summary", "confidence", "status",
+                                             "layer", "shortlist", "added", "destination"]
+
+    static func frontmatter(_ md: String) -> [String]? {
+        let lines = md.components(separatedBy: "\n")
+        guard lines.first == "---", let end = lines.dropFirst().firstIndex(of: "---") else { return nil }
+        return Array(lines[1..<end])
+    }
+
+    /// Every C130 breach in one portfolio file, each tagged with the SPEC id it falls under:
+    /// R51 for `people:` written inline (`[[A]], [[B]]` — the portfolio parser garbles it),
+    /// C130 for the rest. `heGaveTitle` = the note carries his own title.
+    static func c130Violations(_ md: String, heGaveTitle: Bool) -> [(id: String, what: String)] {
+        guard let fm = frontmatter(md) else { return [("C130", "no frontmatter")] }
+        var out: [(String, String)] = []
+        var listOpen = false
+        for line in fm {
+            if line.hasPrefix("  - ") {
+                if !listOpen { out.append(("C130", "list item under a key with a value: \(line)")) }
+                continue
+            }
+            if line.hasPrefix(" ") || line.hasPrefix("\t") { out.append(("C130", "nested line: \(line)")); continue }
+            guard let colon = line.firstIndex(of: ":") else { out.append(("C130", "not key: value: \(line)")); continue }
+            let key = String(line[..<colon])
+            let value = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+            listOpen = value.isEmpty
+            if c130Forbidden.contains(key) { out.append(("C130", "forbidden key \(key)")) }
+            else if !c130Allowed.contains(key) { out.append(("C130", "unlisted key \(key)")) }
+            if key == "title", !heGaveTitle { out.append(("C130", "title written though he gave none")) }
+            if value.hasPrefix("[") {
+                out.append((key == "people" ? "R51" : "C130", "inline list on \(key): \(value)"))
+            } else if !value.hasPrefix("\""), value.contains(": ") {
+                out.append(("C130", "`: ` inside a plain value on \(key)"))
+            }
+        }
+        return out
+    }
+
+    /// v1's C130 breaches must be EXACTLY the registered rows: an unregistered breach is
+    /// unexplained, a registered row v1 already satisfies is a stale registration.
+    func testV1PortfolioFrontmatterBreachesAreExactlyTheRegisteredRows() throws {
+        let root = Self.corpusRoot
+        let v1 = try v1Outputs()
+        let expected = try Self.loadExpectedDifferences()
+        var unregistered: [String] = [], stale: [String] = []
+        var found: [String: Set<String>] = [:]
+        for entry in try Self.manifest(root).notes {
+            let key = "\(entry.slug).portfolio"
+            guard let o = v1[key], o.path != nil else { continue }
+            let note = try Self.note(root, folder: entry.folder)
+            let gave = !(note.title ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+            let breaches = Self.c130Violations(o.markdown, heGaveTitle: gave)
+            let ids = Set(breaches.map(\.id))
+            if !ids.isEmpty { found[key] = ids }
+            let registered = Set((expected[key] ?? []).filter { $0 == "C130" || $0 == "R51" })
+            for b in breaches where !registered.contains(b.id) {
+                unregistered.append("\(key): \(b.id) \(b.what)")
+            }
+            for id in registered where !ids.contains(id) {
+                stale.append("\(key): registered \(id) but v1's frontmatter does not breach it")
+            }
+        }
+        if !unregistered.isEmpty {
+            // The exact registration lines, for a reviewer (never auto-applied).
+            print("C130 v1 breaches: " + found.keys.sorted().map { "\"\($0)\": \(found[$0]!.sorted())" }.joined(separator: ", "))
+        }
+        XCTAssertTrue(unregistered.isEmpty, "unregistered C130 breaches:\n" + unregistered.joined(separator: "\n"))
+        XCTAssertTrue(stale.isEmpty, stale.joined(separator: "\n"))
+    }
+
+    // MARK: - dest-* on the two destinations (C129, C133, C135, C137)
+
+    func testPortfolioNotesLandFlatInInbox() throws {
+        let v1 = try v1Outputs()
+        for slug in ["dest-project", "dest-idea", "dest-inspiration-credit", "cap-image-no-words"] {
+            let o = try XCTUnwrap(v1["\(slug).portfolio"], slug)
+            let path = try XCTUnwrap(o.path, "\(slug) did not export to the portfolio: \(o.markdown)")
+            let parts = path.split(separator: "/")
+            XCTAssertEqual(parts.count, 2, "\(slug): flat, no folder per entry — got \(path)")
+            XCTAssertEqual(parts.first, "_inbox", "\(slug): every Portfolio note lands in _inbox/ (C133)")
+            XCTAssertTrue(path.hasSuffix(".md"), path)
+            XCTAssertFalse(o.markdown.contains("![["), "\(slug): portfolio embeds are ![](file), never ![[…]] (C129)")
+        }
+        // Personal never reaches the portfolio: its vault file is under Skrift/, its own destination.
+        let personal = try XCTUnwrap(v1["dest-personal.vault"]?.path)
+        XCTAssertTrue(personal.hasPrefix("Skrift/"), personal)
+        // The inspiration tag carries the credit need (D189).
+        XCTAssertTrue(try XCTUnwrap(v1["dest-inspiration-credit.portfolio"]).markdown.contains("needs:\n  - credit"))
+    }
+
+    /// C137: `people:`, a `[[name]]` in the body and `location:` stay in the `dest-idea` export.
+    func testDestIdeaKeepsPeopleNamesAndLocation() throws {
+        let md = try XCTUnwrap(try v1Outputs()["dest-idea.portfolio"]).markdown
+        let fm = try XCTUnwrap(Self.frontmatter(md))
+        XCTAssertTrue(fm.contains { $0.hasPrefix("people:") && $0.contains("Lotte") }, "people: carries Lotte\n\(md)")
+        XCTAssertTrue(fm.contains { $0.hasPrefix("location:") }, "location: stays\n\(md)")
+        let body = md.components(separatedBy: "\n---\n").dropFirst().joined(separator: "\n---\n")
+        XCTAssertTrue(body.contains("[[Lotte"), "the body keeps the [[name]]\n\(md)")
+    }
+
+    /// C135: a bare picture on the portfolio exports with no invented sentence.
+    func testBarePictureExportsWithoutInventedWords() throws {
+        let md = try XCTUnwrap(try v1Outputs()["cap-image-no-words.portfolio"]).markdown
+        let body = md.components(separatedBy: "\n---\n").dropFirst().joined(separator: "\n---\n")
+        let words = body.replacingOccurrences(of: #"!\[\]\([^)]*\)"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertEqual(words, "", "only the picture, no words\n\(md)")
+    }
+
+    // MARK: - C57: same-titled notes get distinct image files
+
+    func testSameTitleNotesGetDistinctImageFiles() throws {
+        let v1 = try v1Outputs()
+        for profile in Profile.allCases {
+            func embeds(_ slug: String) throws -> [String] {
+                let md = try XCTUnwrap(v1["\(slug).\(profile.rawValue)"]?.markdown, slug)
+                let pattern = profile == .vault ? #"!\[\[([^\]]+)\]\]"# : #"!\[\]\(([^)]+)\)"#
+                let re = try NSRegularExpression(pattern: pattern)
+                return re.matches(in: md, range: NSRange(md.startIndex..., in: md)).map {
+                    (md as NSString).substring(with: $0.range(at: 1))
+                }
+            }
+            let a = try embeds("typed-same-title-a"), b = try embeds("typed-same-title-b")
+            XCTAssertFalse(a.isEmpty, "\(profile): a embeds its picture")
+            XCTAssertFalse(b.isEmpty, "\(profile): b embeds its picture")
+            XCTAssertTrue(Set(a).isDisjoint(with: Set(b)), "\(profile): R6 — same title, shared image file \(a) / \(b)")
+        }
+    }
+
+    // MARK: - C64: one `date:` rule on the phone path and the Mac path
+
+    /// A note recorded at 23:30 local. The PHONE path is `MemoExporter.markdown` (`date:` =
+    /// `ExportNaming.localDay(memo.recordedAt)` passed as the override, `MemoExporter.swift:23`);
+    /// the phone test `ExportDateC64Tests` pins the same literals on the real phone code. The MAC
+    /// path is the real one: sweep → `PipelineFile` (recordedAt stored as UTC text) → compile.
+    func testLateNightNoteHasOneDateOnPhoneAndMac() throws {
+        let root = Self.corpusRoot
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.appendingPathComponent("manifest.json").path))
+        let cases: [(zone: String, recorded: String, day: String)] = [
+            ("Europe/Lisbon", "2026-09-14T23:30:00+01:00", "2026-09-14"),
+            ("Asia/Tokyo", "2026-09-14T23:30:00+09:00", "2026-09-14"),
+            ("America/Los_Angeles", "2026-09-14T23:30:00-07:00", "2026-09-14"),
+        ]
+        let entry = try XCTUnwrap(try Self.manifest(root).notes.first { $0.slug == "typed-two-liner" })
+        let note = try Self.note(root, folder: entry.folder)
+        for c in cases {
+            NSTimeZone.default = TimeZone(identifier: c.zone)!
+            let recorded = try XCTUnwrap(CorpusSeed.date(c.recorded))
+            let cloud = ModelContext(try ModelContainer(
+                for: Memo.self, MemoAsset.self, MemoEnhancement.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
+            let pipeline = ModelContext(try ModelContainer(
+                for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+            let memo = CorpusSeed.makeMemo(note, id: UUID())
+            memo.recordedAt = recorded
+            memo.createdAt = recorded
+            cloud.insert(memo)
+            try cloud.save()
+            MemoCloudReconciler.sweep(from: cloud, into: pipeline, upload: UploadService(outputDir: try scratch()))
+            let pf = try XCTUnwrap(try pipeline.fetch(FetchDescriptor<PipelineFile>()).first, "\(c.zone): not ingested")
+
+            let phoneDay = ExportNaming.localDay(memo.recordedAt)   // MemoExporter.dateString
+            let mac = Compiler.compile(file: pf, author: "")
+            let macDay = mac.components(separatedBy: "\n").first { $0.hasPrefix("date: ") }.map { String($0.dropFirst(6)) }
+            XCTAssertEqual(phoneDay, c.day, "\(c.zone): phone date")
+            XCTAssertEqual(macDay, c.day, "\(c.zone): Mac date (R15)")
+        }
+    }
+
+    // MARK: - C65: no exporter snaps the body
+
+    func testNoExporterSnapsTheBody() throws {
+        let native = Self.corpusRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Skrift_Native", isDirectory: true)
+        let dirs = ["Shared/Export", "SkriftDesktop/Pipeline/Export", "SkriftMobile/Services/Export"]
+        var scanned = 0
+        for dir in dirs {
+            let url = native.appendingPathComponent(dir, isDirectory: true)
+            let files = try FileManager.default.contentsOfDirectory(atPath: url.path).filter { $0.hasSuffix(".swift") }
+            for f in files {
+                let src = try String(contentsOf: url.appendingPathComponent(f), encoding: .utf8)
+                scanned += 1
+                for needle in ["snappedImageBody", "snapImage", ".snapped("] {
+                    XCTAssertFalse(src.contains(needle), "\(dir)/\(f) calls \(needle) — export must not transform the body (C65)")
+                }
+            }
+        }
+        XCTAssertGreaterThanOrEqual(scanned, 15, "the exporter sources were found")
+    }
+}

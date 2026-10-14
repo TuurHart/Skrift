@@ -1,0 +1,3 @@
+{
+  "_schema": "`<slug>.<vault|portfolio>` -> array of SPEC ids (R# required-difference rows, or the clause id C130 where no R row exists). Read by ExportDiffHarnessTests (Q433, C5): a v2 export that differs from goldens/v1-export/<key>.md on a key listed here is expected-different; the SAME key with no diff is a matched-bug (fail); a diff on an unlisted key is unexplained (fail). The C130/R51 ids on `.portfolio` keys must equal v1's own frontmatter breaches exactly (testV1PortfolioFrontmatterBreachesAreExactlyTheRegisteredRows)."
+}
