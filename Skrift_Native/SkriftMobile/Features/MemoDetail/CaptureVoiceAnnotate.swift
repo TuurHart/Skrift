@@ -7,8 +7,8 @@ import SwiftUI
 /// engine, no new audio code); stop = the words transcribe on-device and
 /// append below the typed ramble, then the pill demotes to "Add another".
 ///
-/// The AUDIO is consumed after transcription (the shipped capture-dictation
-/// model). Keeping it attached as playable memo audio flips the Mac's
+/// The AUDIO is consumed after a transcription that has words (the shipped
+/// capture-dictation model); an empty transcript keeps it (C274). Keeping it attached as playable memo audio flips the Mac's
 /// capture-ingest discriminator (capture = memo WITHOUT audio) — that half
 /// waits for the Mac counterpart (ledgered, backlog Wave-2 round 3).
 struct CaptureVoiceAnnotate: View {
@@ -19,6 +19,8 @@ struct CaptureVoiceAnnotate: View {
     @State private var transcribing = false
     @State private var addedThisSession = false
     @State private var micUnavailable = false
+    /// C274: a clip whose transcription had no words, kept until discarded or retried.
+    @State private var unheardClip: URL?
     /// The ASR model's warm-up state — a cold engine means the live caption
     /// takes a while; say so instead of a mute "Listening…" (Tuur, build 69).
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
@@ -68,6 +70,20 @@ struct CaptureVoiceAnnotate: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("capture-voice-annotate")
+
+            if let clip = unheardClip {
+                HStack(spacing: 10) {
+                    Text(VoiceAnnotationOutcome.noWordsHeardLine)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.skTextDim)
+                        .accessibilityIdentifier("capture-voice-no-words")
+                    Button("Try again") { transcribeClip(clip, liveCaption: "") }
+                        .accessibilityIdentifier("capture-voice-retry")
+                    Button("Discard") { discardUnheard() }
+                        .accessibilityIdentifier("capture-voice-discard")
+                }
+                .font(.system(size: 13, weight: .semibold))
+            }
 
             if micUnavailable {
                 Text("The microphone isn't available right now")
@@ -162,16 +178,23 @@ struct CaptureVoiceAnnotate: View {
             try? FileManager.default.removeItem(at: result.url)
             return
         }
+        transcribeClip(result.url, liveCaption: result.liveCaption)
+    }
+
+    /// C274 / R87: words append and the clip is consumed; an empty transcript KEEPS the clip
+    /// (`unheardClip`) and shows "No words heard" until the user discards it or tries again.
+    private func transcribeClip(_ url: URL, liveCaption: String) {
         transcribing = true
+        unheardClip = nil
         Task { @MainActor in
-            var text = result.liveCaption.trimmingCharacters(in: .whitespacesAndNewlines)
             // Full-quality pass over the clip; the live caption is the fallback.
-            if let r = try? await TranscriberFactory.make().transcribe(audioURL: result.url,
+            var full: String?
+            if let r = try? await TranscriberFactory.make().transcribe(audioURL: url,
                                                                        imageManifest: []) {
-                let t = r.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !t.isEmpty { text = t }
+                full = r.text
             }
-            if !text.isEmpty {
+            let outcome = VoiceAnnotationOutcome.resolve(live: liveCaption, full: full)
+            if case .append(let text) = outcome {
                 let existing = memo.annotationText ?? ""
                 // Body v2 (C10): the combined annotation is an edit — every picture keeps its place.
                 memo.annotationText = BodyV2.committed(BodyV2.Input(
@@ -180,11 +203,21 @@ struct CaptureVoiceAnnotate: View {
                 memo.markEdited(stampWords: false)   // annotationText isn't title/body/tags (C98)
                 repository.save()
             }
-            try? FileManager.default.removeItem(at: result.url)   // dictation model: text stays, audio goes
+            if outcome.deletesClip {
+                try? FileManager.default.removeItem(at: url)   // dictation model: text stays, audio goes
+            } else {
+                unheardClip = url
+            }
             transcribing = false
             addedThisSession = true
-            Haptics.success()
+            if outcome.firesSuccessHaptic { Haptics.success() }
         }
+    }
+
+    private func discardUnheard() {
+        if let url = unheardClip { try? FileManager.default.removeItem(at: url) }
+        unheardClip = nil
+        Haptics.tap(.light)
     }
 
     private func clock(_ t: TimeInterval) -> String {
