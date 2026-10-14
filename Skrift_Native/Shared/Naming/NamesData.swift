@@ -165,8 +165,9 @@ enum NamesMerge {
 
     /// Per-canonical last-write-wins, then same-name folding (C254). Scalar fields: newer
     /// `lastModifiedAt` wins, ties default to remote. `voiceEmbeddings` are ADDITIVE — unioned
-    /// across both sides regardless of which scalar version won, so an enrollment on one
-    /// device is never clobbered by a newer name edit on the other. Two LIVE rows whose full
+    /// across both LIVE sides regardless of which scalar version won, so an enrollment on one
+    /// device is never clobbered by a newer name edit on the other. A winning tombstone
+    /// carries no voiceprints, and a tombstone never contributes any (C259). Two LIVE rows whose full
     /// names differ only in case are one person: they fold into one row (see `mergeReporting`).
     static func mergeByCanonical(local localPeople: [Person], remote remotePeople: [Person]) -> [Person] {
         mergeReporting(local: localPeople, remote: remotePeople).people
@@ -206,7 +207,11 @@ enum NamesMerge {
                 winner = local!
             }
 
-            winner.voiceEmbeddings = unionEmbeddings(local?.voiceEmbeddings, remote?.voiceEmbeddings)
+            // C259/R63: a tombstone carries nothing. A deletion that wins drops every voiceprint,
+            // and a losing tombstone (legacy rows may still hold some) contributes none.
+            winner.voiceEmbeddings = winner.isDeleted ? nil : unionEmbeddings(
+                local.flatMap { $0.isDeleted ? nil : $0.voiceEmbeddings },
+                remote.flatMap { $0.isDeleted ? nil : $0.voiceEmbeddings })
             out.append(winner)
         }
         return out

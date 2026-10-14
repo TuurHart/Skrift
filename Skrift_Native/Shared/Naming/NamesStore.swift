@@ -180,24 +180,26 @@ final class NamesStore {
     }
 
     /// Append a voiceprint to a person (de-duped by vector, union — multi-embedding,
-    /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new,
-    /// resurrects a tombstone. Alias-SAFE (never touches aliases/short). Mirrors the
+    /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new.
+    /// Never revives a tombstone (C259/R63): naming a deleted person's voice again starts a
+    /// FRESH person holding only this voiceprint, none of the deleted one's aliases/short/
+    /// voiceprints. Alias-SAFE on a live person (never touches aliases/short). Mirrors the
     /// phone's `NamesStore.addVoiceEmbedding` — Mac-originated enrollment syncs back.
     func addVoiceEmbedding(canonical: String, embedding: VoiceEmbedding) {
         let c = NamesMerge.normaliseCanonical(canonical)
         guard !c.isEmpty, !embedding.vector.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
         var data = unlockedLoad()
-        // Same full name = same person (C254): a live row of any case wins, else the exact one.
+        // Same full name = same person (C254): a live row of any case.
         let key = NamesMerge.matchKey(c)
-        if let idx = data.people.firstIndex(where: { !$0.isDeleted && NamesMerge.matchKey($0.canonical) == key })
-            ?? data.people.firstIndex(where: { $0.canonical == c }) {
+        if let idx = data.people.firstIndex(where: { !$0.isDeleted && NamesMerge.matchKey($0.canonical) == key }) {
             var p = data.people[idx]
             p.voiceEmbeddings = NamesMerge.unionEmbeddings(p.voiceEmbeddings, [embedding]) ?? [embedding]
-            p.deleted = nil
             p.lastModifiedAt = ISO8601.now()
             data.people[idx] = p
         } else {
+            // The fresh row replaces this canonical's tombstone (newer stamp, so it wins LWW).
+            data.people.removeAll { $0.isDeleted && $0.canonical == c }
             data.people.append(Person(canonical: c, aliases: [], short: nil,
                                       voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
         }
