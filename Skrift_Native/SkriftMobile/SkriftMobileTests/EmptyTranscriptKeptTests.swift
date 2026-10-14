@@ -45,6 +45,6 @@ final class EmptyTranscriptKeptTests: XCTestCase {
             .appendingPathComponent("Features/MemoDetail/CaptureVoiceAnnotate.swift")
         let src = try String(contentsOf: url, encoding: .utf8)
         XCTAssertTrue(src.contains("VoiceAnnotationOutcome.resolve"))
-        XCTAssertFalse(src.contains("dictation model: text stays, audio goes"))
+        XCTAssertTrue(src.contains("if outcome.deletesClip"))
     }
 }
