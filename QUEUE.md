@@ -3075,7 +3075,7 @@ gate+: yes
 do: Today: only `NamesStore.upsert` merges by name (case-insensitive) and it replaces voiceprints instead of unioning; the sync merge `NamesData.mergeByCanonical` keys on the exact canonical, so case variants never merge. Adding a person whose full name matches an existing one, case-insensitively, merges into that row (aliases and voiceprints unioned) on every add path: Settings on both apps, the sync merge in `NamesData`, the speaker assign sheet. The UI shows "Merged into <name>" in the existing toast style. Add corpus fixture `roster-duplicate-canonical`. Test `RosterDuplicateMergeTests` (desktop target): one row, notice raised. `names.json` stays byte-compatible across apps.
 check: `grep -rqE "class RosterDuplicateMergeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q419 [auto] (doing) name matching: Dutch bare possessive, diacritics, tags never split
+### Q419 [auto] (done) name matching: Dutch bare possessive, diacritics, tags never split
 spec: C255 C256 C260 R69 R68 R65
 needs: -
 gate+: yes
@@ -4643,3 +4643,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 14:55 Q420 -> doing — worker out
 - 2026-10-14 14:56 Q410 -> done — gate 55s @87312352
 - 2026-10-14 14:56 Q443 -> tuur — awaiting sitting
+- 2026-10-14 14:58 Q419 -> done — gate 104s @32f35397
