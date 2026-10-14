@@ -11,6 +11,8 @@ struct ChaptersBookmarksSheet: View {
     @State private var tab: Tab = .chapters
     @State private var bookmarks: [AudiobookBookmark] = []
     private let store = BookmarkStore()
+    /// C269/R82: the "Removed 1 bookmark at <time>" notice + Undo after a swipe.
+    @State private var removalToast: BookmarkRemovedToast?
 
     enum Tab { case chapters, bookmarks }
 
@@ -32,6 +34,20 @@ struct ChaptersBookmarksSheet: View {
         }
         .background(Color.skBg.ignoresSafeArea())
         .onAppear { bookmarks = store.load(bookID: book.id) }
+        .overlay(alignment: .bottom) {
+            if let toast = removalToast {
+                BookmarkRemovedToastView(toast: toast, onUndo: {
+                    toast.undo()
+                    withAnimation(.easeIn(duration: 0.3)) { removalToast = nil }
+                })
+                .padding(.bottom, 24)
+                .transition(.opacity)
+                .task(id: toast.id) {
+                    try? await Task.sleep(nanoseconds: 4_000_000_000)
+                    if removalToast?.id == toast.id { withAnimation(.easeIn(duration: 0.3)) { removalToast = nil } }
+                }
+            }
+        }
         .accessibilityIdentifier("toc-sheet")
     }
 
@@ -83,8 +99,20 @@ struct ChaptersBookmarksSheet: View {
                     .listRowBackground(Color.skBg)
                 }
                 .onDelete { offsets in
-                    for i in offsets { bookmarks = store.remove(id: bookmarks[i].id, bookID: book.id) }
-                    AudiobookCloudSync.bookmarksChanged(bookID: book.id)   // push-on-edit (synced books)
+                    // C269/R82: remove exactly the swiped row, then say so (with Undo).
+                    let bookID = book.id
+                    let ids = offsets.map { bookmarks[$0].id }
+                    for id in ids {
+                        guard let removal = store.removeOne(id: id, bookID: bookID) else { continue }
+                        bookmarks = removal.list
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            removalToast = BookmarkRemovedToast(text: removal.notice, undo: {
+                                bookmarks = store.restore(removal, bookID: bookID)
+                                AudiobookCloudSync.bookmarksChanged(bookID: bookID)
+                            })
+                        }
+                    }
+                    AudiobookCloudSync.bookmarksChanged(bookID: bookID)   // push-on-edit (synced books)
                 }
             }
             .listStyle(.plain)
