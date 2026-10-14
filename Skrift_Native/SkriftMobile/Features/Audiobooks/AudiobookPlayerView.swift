@@ -32,6 +32,8 @@ struct AudiobookPlayerView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
     @State private var toast: String?
+    /// C269/R82: the "Removed 1 bookmark at <time>" notice + Undo.
+    @State private var removalToast: BookmarkRemovedToast?
     /// Q356: the notes sheet the "N notes from this episode" row opens.
     @State private var notesSheetBook: Audiobook?
     /// Bookmarks for the current book — reloaded on book change + after a toggle.
@@ -59,7 +61,21 @@ struct AudiobookPlayerView: View {
             } else {
                 Color.clear.onAppear { dismiss() }
             }
-            if let toast {
+            if let removalToast {
+                BookmarkRemovedToastView(toast: removalToast, onUndo: {
+                    removalToast.undo()
+                    withAnimation(.easeIn(duration: 0.3)) { self.removalToast = nil }
+                })
+                .transition(.opacity)
+                .padding(.bottom, 120)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .task(id: removalToast.id) {
+                    try? await Task.sleep(nanoseconds: 4_000_000_000)
+                    if self.removalToast?.id == removalToast.id {
+                        withAnimation(.easeIn(duration: 0.3)) { self.removalToast = nil }
+                    }
+                }
+            } else if let toast {
                 Text(toast)
                     .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
                     .padding(.horizontal, 16).padding(.vertical, 10)
@@ -489,14 +505,25 @@ struct AudiobookPlayerView: View {
     /// whole GLOBAL span [start, end]: if ANY bookmark sits inside it, lift it (that's
     /// the one the line's glyph shows — wherever in the sentence it landed); else add
     /// one at the start. (Span match, not ±start — the "tapping never removed it" fix.)
+    /// A lift removes only the nearest bookmark in the span (C269/R82).
     private func toggleBookmark(inSpan start: TimeInterval, _ end: TimeInterval) {
         guard let book = session.book else { return }
         noteInteraction()
         let inSpan = currentBookmarks.filter { $0.position >= start - 0.5 && $0.position <= end + 0.5 }
         if !inSpan.isEmpty {
-            for bm in inSpan { currentBookmarks = bookmarks.remove(id: bm.id, bookID: book.id) }
-            Haptics.tap()
-            showToast("Unfolded")
+            // C269/R82: exactly ONE bookmark goes — the one nearest the tapped line's
+            // start (an exact tie → the earlier) — and the notice says which, with Undo.
+            if let removal = bookmarks.removeNearest(to: start, among: inSpan, bookID: book.id) {
+                currentBookmarks = removal.list
+                Haptics.tap()
+                let bookID = book.id
+                withAnimation(.easeOut(duration: 0.2)) {
+                    removalToast = BookmarkRemovedToast(text: removal.notice, undo: {
+                        currentBookmarks = bookmarks.restore(removal, bookID: bookID)
+                        AudiobookCloudSync.bookmarksChanged(bookID: bookID)
+                    })
+                }
+            }
         } else {
             currentBookmarks = bookmarks.add(
                 AudiobookBookmark(position: start, chapterLabel: book.shortChapterLabel(at: start)),
