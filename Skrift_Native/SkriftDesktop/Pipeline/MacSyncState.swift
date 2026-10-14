@@ -15,11 +15,13 @@ enum MacSyncState: Equatable, CaseIterable {
 
     /// The rule. Order matters: a switched-off Mac is "Off" whatever the account says (it never
     /// touches CloudKit); a signed-out account explains more than a container that did not open.
+    /// `sweepFailed` (R40, C52): the last reconcile sweep could not read the store, so the Mac
+    /// is pulling nothing from the phone. That is a failure the user sees, never a silent one.
     static func resolve(switchOn: Bool, containerOpened: Bool,
-                        account: MacSyncAccount, inFlight: Bool) -> MacSyncState {
+                        account: MacSyncAccount, inFlight: Bool, sweepFailed: Bool = false) -> MacSyncState {
         guard switchOn else { return .off }
         if account == .noAccount { return .signedOut }
-        if account == .restricted || !containerOpened { return .failed }
+        if account == .restricted || !containerOpened || sweepFailed { return .failed }
         return inFlight ? .syncing : .upToDate
     }
 
@@ -66,10 +68,11 @@ enum MacSyncState: Equatable, CaseIterable {
     }
 
     /// The small mono line under the "couldn't start" alert.
-    static func failureDetail(account: MacSyncAccount) -> String {
-        account == .restricted
-            ? "iCloud is restricted on this Mac (CKAccountStatus.restricted)"
-            : "memo_cloud.store · ModelContainer init failed"
+    /// `sweepFailure` (R40): the failed reconcile fetch's own text, which beats the generic line.
+    static func failureDetail(account: MacSyncAccount, sweepFailure: String? = nil) -> String {
+        if account == .restricted { return "iCloud is restricted on this Mac (CKAccountStatus.restricted)" }
+        if let sweepFailure { return MemoCloudReconciler.fetchFailureText(sweepFailure) }
+        return "memo_cloud.store · ModelContainer init failed"
     }
 
     /// The line under the switch when it is off.

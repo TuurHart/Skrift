@@ -24,6 +24,9 @@ final class MacSyncMonitor {
     private var account: MacSyncAccount = .unknown
     private var inFlight: Set<UUID> = []
     private var syncing = false
+    /// R40 / C52: the last reconcile sweep's fetch failure (nil = it read the store). Set by
+    /// every sweep, so the next good sweep clears it.
+    private var sweepFailure: String?
     @ObservationIgnored private var hideTask: Task<Void, Never>?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
@@ -95,11 +98,18 @@ final class MacSyncMonitor {
         }
     }
 
+    /// R40: what the last reconcile sweep did — nil read the store, a string is why it could not.
+    func reportSweep(failure: String?) {
+        guard sweepFailure != failure else { return }
+        sweepFailure = failure
+        recompute()
+    }
+
     private func recompute() {
         let opened = switchOn ? (MemoCloudStore.container != nil) : true
         let new = MacSyncState.resolve(switchOn: switchOn, containerOpened: opened,
-                                       account: account, inFlight: syncing)
-        let detail = MacSyncState.failureDetail(account: account)
+                                       account: account, inFlight: syncing, sweepFailed: sweepFailure != nil)
+        let detail = MacSyncState.failureDetail(account: account, sweepFailure: sweepFailure)
         if state != new { state = new }
         if failureDetail != detail { failureDetail = detail }
     }

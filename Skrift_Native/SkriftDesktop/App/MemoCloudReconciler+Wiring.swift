@@ -47,7 +47,7 @@ extension MemoCloudReconciler {
                 // this store file (idempotent after that).
                 CloudFirstImport.markDone(storeURL: AppPaths.memoCloudStoreFile,
                                           stampURL: AppPaths.memoCloudFirstImportStamp)
-                Task { @MainActor in reconcileSoon() }
+                Task { @MainActor in reconcileSoon(.cloudKitImport) }
             }
         }
 
@@ -55,10 +55,12 @@ extension MemoCloudReconciler {
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { _ in
-            Task { @MainActor in reconcileSoon() }
+            Task { @MainActor in reconcileSoon(.activation) }
         }
 
-        Task { @MainActor in _ = reconcile() }   // launch sweep — async, doesn't block App.init()
+        // Launch sweep — async, doesn't block App.init(). C52: coalesced like the other two, so
+        // launch and the first activation (they fire together) run ONE sweep, not two.
+        Task { @MainActor in reconcileSoon(.launch) }
     }
 
     /// Q397 (ICLOUD_MERGE A1): may the reconcile's backfill author yet? True once the cloud
@@ -75,16 +77,14 @@ extension MemoCloudReconciler {
                                        stampURL: AppPaths.memoCloudFirstImportStamp)
     }
 
-    /// One pending sweep, re-armed per trigger: CloudKit import events land in
-    /// bursts (see the phone's identical coalescing in CloudSyncMonitor), and
-    /// each used to dispatch its own full-store sweep back-to-back.
-    @MainActor static func reconcileSoon() {
-        pendingReconcile?.cancel()
-        pendingReconcile = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
-            _ = reconcile()
-        }
+    /// One pending sweep, re-armed per trigger (`ReconcileCoalescer`, C52): CloudKit import
+    /// events land in bursts (see the phone's identical coalescing in CloudSyncMonitor), and
+    /// each used to dispatch its own full-store sweep back-to-back. No timer anywhere: a sweep
+    /// only ever follows a trigger.
+    @MainActor static func reconcileSoon(_ trigger: ReconcileTrigger = .localChange) {
+        let c = coalescer ?? ReconcileCoalescer { _ = reconcile() }
+        coalescer = c
+        c.request(trigger)
     }
 
     /// Pull every eligible synced memo into the local pipeline store, and reconcile the
@@ -124,7 +124,7 @@ extension MemoCloudReconciler {
         // first-seen memo is fresh — which is exactly why Mac→phone synced but phone→Mac didn't,
         // 2026-07-15 device test). A brand-new context has an empty row cache, so every fetch hits
         // the store and reads the latest import.
-        let cloudContext = ModelContext(cloud)
+        let cloudContext = MemoCloudReconciler.freshCloudContext(cloud)
         let people = NamesStore.shared.livePeople()
         let thisDevice = DeviceID.current()
         // The sweep, the reflect save, and Q5 (2026-07-21): the Mac AUTHORS a Memo for any
@@ -141,9 +141,15 @@ extension MemoCloudReconciler {
                                                 firstImportDone: firstCloudImportDone)
         } catch {
             AppLog.cloudkit.error("reconcile: pass FAILED: \(error)")
+            MacSyncMonitor.shared.reportSweep(failure: error.localizedDescription)
             return 0
         }
         let outcome = pass.sweep
+        // R40 / C168: a sweep that could not read the store pulled nothing. The sweep logged it;
+        // the sync state shows it ("couldn't start" + this text as the detail line) until a
+        // later sweep reads the store again. Nothing below has a snapshot to work from.
+        MacSyncMonitor.shared.reportSweep(failure: outcome.fetchFailure)
+        if outcome.fetchFailure != nil { return 0 }
         AppLog.cloudkit.log(
             "reconcile: ingested \(outcome.created, privacy: .public), pending \(outcome.pendingNewIDs.count, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
         if pass.authored > 0 || pass.reflectedTranscripts > 0 {
