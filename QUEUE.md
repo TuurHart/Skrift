@@ -3251,6 +3251,13 @@ gate+: yes
 do: Found by Q433: the corpus note `pic-at-start` (body opens with `[[img_001]]`) exports a broken frontmatter on BOTH profiles today: the closing `---` is fused onto the first sentence and `skriftID`/`skriftHash` are lost, so the vault file is no longer recognised as ours. Likely cause: `BodyV2Legacy.shown` runs over the whole compiled markdown in `VaultExporter.export` instead of the body only. Fix it in the v1 exporter (this is live until export v2 swaps in), keep the closing `---` on its own line and the stamp trio intact, and add `PicAtStartExportTests` (desktop target) asserting the frontmatter parses and carries skriftID/skriftHash for `pic-at-start` on both profiles. Then re-record the two `pic-at-start` goldens in `test-fixtures/corpus/goldens/v1-export/` and drop their C130 entry from `expected-differences-export.json` (report both as needs hand-merge).
 check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q446 [auto] (todo) iPad export: the same pic-at-start frontmatter fusion in ObsidianPublisher (Q445 twin)
+spec: C55 C56 C193 C239
+needs: Q445
+gate+: yes
+do: Q445 fixed the Mac (`VaultExporter.shownBody` splits off the frontmatter and runs `BodyV2Legacy.shown` on the body only). The iPad/phone exporter has the same pattern: `Skrift_Native/SkriftMobile/Services/Export/ObsidianPublisher.swift` runs `BodyV2Legacy.shown(markdown).text` over the whole compiled markdown, so a note opening with a picture fuses the closing `---` onto the first sentence and loses the stamp. Move the body-only split into ONE shared function in `Skrift_Native/Shared/Export/` used by both exporters (C239, no twin), delete the Mac-only copy. Test `PicAtStartPublisherTests` (phone target) on corpus `pic-at-start`; keep `PicAtStartExportTests` green.
+check: `plan/mtest.sh PicAtStartPublisherTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4685,3 +4692,4 @@ check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 15:49 Q440 -> doing — worker out
 - 2026-10-14 15:49 Q445 -> doing — worker out
 - 2026-10-14 15:49 Q444 -> done — gate 43s @641560e0
+- 2026-10-14 15:53 Q446 added
