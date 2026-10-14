@@ -3219,7 +3219,7 @@ gate+: yes
 do: A Voice Memo shared under its own name keeps that name as the note title; a messenger filename never becomes one (C126). Sharing the same bytes twice yields the existing note and an "Already in Skrift" state in `ShareFeedbackView` beside its existing states (C127). A `.skriftbook` arriving through the share sheet goes to the book importer (C146). Fixtures `ingress/named-voice-memo`, `ingress/same-file-twice`, `ingress/skriftbook-via-share`; cases added to `IngressDispatchTests`.
 check: `test -d test-fixtures/corpus/ingress/same-file-twice && test -d test-fixtures/corpus/ingress/skriftbook-via-share`
 
-### Q441 [auto] (doing) email, selected-text and Maps shares
+### Q441 [auto] (done) email, selected-text and Maps shares
 spec: C142 C144 C123
 needs: Q439
 gate+: yes
@@ -4714,3 +4714,4 @@ check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 16:18 Q441 -> doing — worker out
 - 2026-10-14 16:20 Q446 -> done — gate 49s @913d4c8c
 - 2026-10-14 16:29 Q448 added
+- 2026-10-14 16:30 Q441 -> done — gate 57s @c3d4c3fb
