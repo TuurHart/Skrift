@@ -3089,7 +3089,7 @@ gate+: yes
 do: Today: the phone uses `PersonEditCore.createIfNeeded` (`SpeakerAssignSheet`), the Mac its own inline upsert in `ProcessingCoordinator`; `NamesStore.addVoiceEmbedding` can also create a person with `aliases: []` (e.g. from `VoiceEnroller.enroll`) — close that path too. Naming a speaker with a name not on the roster creates the person with that typed name as an alias, or opens the person editor; an alias-less person is never created. Same rule on phone and Mac, in one shared function. Add corpus fixture `edge-speaker-assign-new-name`. Test `SpeakerAssignNewNameTests` (desktop target): the new person has at least one alias.
 check: `grep -rqE "class SpeakerAssignNewNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q421 [auto] (doing) a synced roster change re-derives the open note at once
+### Q421 [auto] (done) a synced roster change re-derives the open note at once
 spec: C258
 needs: -
 gate+: yes
@@ -4652,3 +4652,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:13 Q414 -> done — gate 174s @67c0b41a
 - 2026-10-14 15:13 Q417 -> doing — worker out
 - 2026-10-14 15:14 Q420 -> done — gate 69s @4eedce8a
+- 2026-10-14 15:15 Q421 -> done — gate 74s @71a62049
