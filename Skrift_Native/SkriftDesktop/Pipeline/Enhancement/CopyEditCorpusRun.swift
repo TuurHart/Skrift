@@ -89,9 +89,13 @@ enum CopyEditCorpusRun {
         }
     }
 
-    /// Run every manifest note of `corpus` through v1's Process with `enhancer`.
+    /// One row's Process: (row, v1's runner, audio, picture manifest, clip starts). nil = v1's
+    /// `BatchRunner.run`; copy-edit v2 passes `CopyEditV2Mac.corpusStep` (Q424).
+    typealias RowStep = @MainActor (PipelineFile, BatchRunner, URL?, [ImageManifestEntry], [Double]) async throws -> Void
+
+    /// Run every manifest note of `corpus` through v1's Process with `enhancer` (or `step`).
     /// `scratch` holds the in-memory store's media + the Mac rows' working folders.
-    static func run(corpus: URL, enhancer: Enhancing, scratch: URL,
+    static func run(corpus: URL, enhancer: Enhancing, scratch: URL, step: RowStep? = nil,
                     progress: (String) -> Void = { _ in }) async throws -> [Result] {
         let cloud = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
@@ -149,10 +153,15 @@ enum CopyEditCorpusRun {
             if processed {
                 let hasAudio = pf.sourceType == .audio && !pf.path.isEmpty
                     && FileManager.default.fileExists(atPath: pf.path)
+                let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
+                let manifest = hasAudio ? imageManifest(for: pf.path) : []
+                let clips = hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : []
                 do {
-                    try await runner.run(pf, audioURL: hasAudio ? URL(fileURLWithPath: pf.path) : nil,
-                                         imageManifest: hasAudio ? imageManifest(for: pf.path) : [],
-                                         clipStarts: hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : [])
+                    if let step {
+                        try await step(pf, runner, audioURL, manifest, clips)
+                    } else {
+                        try await runner.run(pf, audioURL: audioURL, imageManifest: manifest, clipStarts: clips)
+                    }
                 } catch let miss as ModelOutputCache.Miss {
                     throw miss
                 } catch {

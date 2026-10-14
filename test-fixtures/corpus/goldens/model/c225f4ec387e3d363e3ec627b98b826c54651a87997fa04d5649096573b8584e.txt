@@ -1,0 +1,1 @@
+Moving Markers in the Editor to Sentence Ends
