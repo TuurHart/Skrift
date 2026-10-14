@@ -2994,7 +2994,7 @@ gate+: no
 do: In the one book/episode player (AudiobookPlayerView and the mini player): back skip 15 s and forward skip 15 s (was 15/30), icons to match; the play/pause button keeps the purple fill but drops its glow/shadow; keep the small header and the text space as they are. Check in code whether the reading-mode controls already hide while playing and come back on a tap/pull (the audiobook-player-reading-mode work, 2026-06-19); report yes/no with file:line — do not build it if missing, just report. Shot of the player before/after into plan/reads/library-tab/q406-*.png (`-openTab books -seedEpisode -showPlayer -appTheme light -skipOnboarding`).
 check: `test $(ls plan/reads/library-tab/q406-*.png | wc -l) -ge 2`
 
-### Q407 [auto] (doing) install Dev 190 (Library shelf, PDF reading view, Highlight, tap pill, Portfolio fix, player) on the iPhone 17 Pro and the Mac
+### Q407 [auto] (done) install Dev 190 (Library shelf, PDF reading view, Highlight, tap pill, Portfolio fix, player) on the iPhone 17 Pro and the Mac
 spec: -
 needs: -
 gate+: no
@@ -4382,3 +4382,4 @@ check: Tuur's phone and Mac run Dev 190 (worker reports both grep hits and the d
 - 2026-10-14 11:25 Q406 -> done — gate 38s @3a783b7f
 - 2026-10-14 12:05 Q407 added
 - 2026-10-14 12:06 Q407 -> doing — worker out
+- 2026-10-14 12:13 Q407 -> done — gate 39s @9458721b
