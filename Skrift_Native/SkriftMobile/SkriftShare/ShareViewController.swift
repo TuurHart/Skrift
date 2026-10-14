@@ -37,51 +37,22 @@ final class ShareViewController: UIViewController {
         // light (white cards on the dark surface).
         overrideUserInterfaceStyle = .dark
 
-        // Load the share payload asynchronously and then present the sheet — or,
-        // for a shared video, skip the sheet and import it as a voice memo.
-        // Audio DOES get the sheet (slim: card + significance, no ramble —
-        // signed mock share-ingest-wave1.html state 1; 2+ clips add the chooser).
-        // Every terminal path goes through a feedback state (A12/A16, signed
-        // mock state 4) — no silent exits that look identical to success.
+        // Load the share and present the sheet (Q439 / C238: the ONE shared
+        // `IngressDispatch` decides what the share is, inside the loader). Every
+        // kind gets the sheet: audio slim (card + significance, no ramble — signed
+        // mock share-ingest-wave1.html state 1; 2+ clips add the chooser), video and
+        // documents with a typed thought (E1, mocks m1/m2). Every terminal path goes
+        // through a feedback state (A12/A16, signed mock state 4) — no silent exits
+        // that look identical to success, and an empty share never saves a husk (C75).
         Task { @MainActor in
-            let payload = await SharePayloadLoader.load(from: extensionContext)
-            if payload.isAudio {
-                if !payload.audioItems.isEmpty {
-                    presentSheet(payload: payload)
-                } else {
-                    presentState(.error(message: "The voice note couldn't be read from the share.",
-                                        canRetry: false))
-                }
-            } else if payload.isVideo {
-                // E1 (Wave 2, mock m1): video gets the SHEET — preview + typed
-                // thought + significance. The silent import lost both (A13).
-                if payload.videoURL != nil {
-                    presentSheet(payload: payload)
-                } else {
-                    presentState(.error(message: "The video couldn't be read from the share.",
-                                        canRetry: false))
-                }
-            } else if payload.type == .file, payload.fileURL != nil {
-                // E1 (mock m2): documents get the sheet too.
+            switch await SharePayloadLoader.load(from: extensionContext) {
+            case .sheet(let payload):
                 presentSheet(payload: payload)
-            } else if Self.isEmptyPayload(payload) {
-                // A16: unknown/empty payloads used to fall into an empty text
-                // sheet whose Save minted a husk note.
+            case .failed(let message):
+                presentState(.error(message: message, canRetry: false))
+            case .unsupported:
                 presentState(.unsupported(detail: "This share didn't contain anything Skrift understands — no text, link, image or audio arrived."))
-            } else {
-                presentSheet(payload: payload)
             }
-        }
-    }
-
-    /// True when the loader fell through with nothing usable (unknown payloads
-    /// land as an empty `.text`; a failed image load as empty `imageItems`).
-    private static func isEmptyPayload(_ p: SharePayload) -> Bool {
-        switch p.type {
-        case .url:   return (p.url ?? "").isEmpty
-        case .text:  return (p.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .image: return p.imageItems.isEmpty
-        case .file:  return p.fileURL == nil
         }
     }
 

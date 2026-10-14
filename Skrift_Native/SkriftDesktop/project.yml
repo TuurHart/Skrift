@@ -320,6 +320,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Q439: IngestService calls the shared dispatcher.
+      - path: ../Shared/Ingress
       - path: ../Shared/BodyV2
       - path: ../Shared/Corpus
       - path: ../Shared/Recording

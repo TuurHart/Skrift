@@ -8,12 +8,6 @@ import SwiftData
 /// thing are the same note kind with the same title.
 extension IngestService {
 
-    /// An http(s) URL (a link dragged in from a browser), as opposed to a file.
-    static func isWebURL(_ url: URL) -> Bool {
-        guard !url.isFileURL, let scheme = url.scheme?.lowercased() else { return false }
-        return scheme == "http" || scheme == "https"
-    }
-
     // MARK: - Text file → text capture (D22)
 
     /// A dropped `.txt`: the file's text IS the body of a text capture, no document kept. An
@@ -54,7 +48,7 @@ extension IngestService {
     /// times with backoff (`RetryingLinkFetcher`, Q266) before the drop settles for that card.
     func ingestLink(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let linkFetcher = RetryingLinkFetcher(base: self.linkFetcher, sleep: linkRetrySleep)
-        guard Self.isWebURL(url) else { return nil }
+        guard Self.dispatchPlan(for: url)?.kind == .url else { return nil }   // Q439: the shared dispatcher
         let raw = url.absoluteString
         var shared = SharedContent(type: .url, url: raw)
         var location: LocationInfo?

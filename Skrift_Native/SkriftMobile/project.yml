@@ -89,6 +89,8 @@ targets:
       # `AudiobookCostTests` can exercise the extension's concurrent-load fix
       # (Q57/C218) — there's no separate SkriftShareTests bundle.
       - path: SkriftShare/SharePayloadLoader.swift
+      # Q439 / C238: the ONE share dispatcher the loader calls (shared with the Mac).
+      - path: ../Shared/Ingress
       # Shared cross-app source (one physical copy → no phone↔Mac drift). Naming
       # types (Person/NamesMerge/NamesData) live here; engine + more land in Phase 0.
       # Export adds the shared Compiler + neutral CompilerInput DTO (standalone Phase 2).
@@ -392,6 +394,8 @@ targets:
       - path: ../Shared/Pipeline/FilenameDate.swift
       # C238: the ONE accepted-types list (the loader's audio-by-extension reroute).
       - path: ../Shared/Pipeline/ImportKinds.swift
+      # Q439 / C238 / C67: the ONE share dispatcher - every item and provider goes in.
+      - path: ../Shared/Ingress/IngressDispatch.swift
       # C63 / C148: the ONE video-keep rule (cap + share-card wording).
       - path: ../Shared/Pipeline/VideoKeep.swift
       # C68 / C145: the ONE One-note / N-notes chooser wording (`AudioImportChoice`) - the share

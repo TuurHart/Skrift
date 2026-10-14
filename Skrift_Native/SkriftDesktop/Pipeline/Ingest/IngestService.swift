@@ -181,8 +181,9 @@ struct IngestService: Sendable {
                 if let pf { report.add(pf) }
                 continue
             }
-            // Q136: a web link dragged in from a browser is a link capture, not a file.
-            if Self.isWebURL(url) {
+            // Q136: a web link dragged in from a browser is a link capture, not a file
+            // (Q439: the shared dispatcher's `.url`).
+            if Self.dispatchPlan(for: url)?.kind == .url {
                 if let pf = try await ingestLink(url, into: context) { report.created.append(pf) }
                 else { report.skipped.append(url); report.reasons[url] = ImportReport.notAWebLink }
                 continue
@@ -501,20 +502,48 @@ struct IngestService: Sendable {
     /// an actual video track: if present, its audio is extracted; if absent (an
     /// audio-only `.mp4`/`.mov`), it's ingested as plain audio.
     func ingestFile(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+        // Q439 / C238: what the file IS is the ONE shared dispatcher's call (a phone share of
+        // the same file goes through it too); a refusal is an honest skip (C77).
+        guard let plan = Self.dispatchPlan(for: url) else { return nil }
         let ext = url.pathExtension.lowercased()
-        if Self.supportedVideo.contains(ext),
-           await Task.detached(operation: { Self.hasVideoTrack(url) }).value {
-            do { return try await ingestVideo(url, into: context) }
-            catch VideoIngestError.noAudioTrack {
-                // C202: a silent video is a visible failed note, like the phone's.
-                return try await ingestFailedVideo(url, title: ImportReport.noAudioTrack, into: context)
+        switch plan.kind {
+        case .audio, .movie:
+            // A movie container is probed for a video track: with one it is a video, without
+            // it is an audio-only container (`supportedAudio` holds mp4/mov for exactly that).
+            if Self.supportedVideo.contains(ext),
+               await Task.detached(operation: { Self.hasVideoTrack(url) }).value {
+                do { return try await ingestVideo(url, into: context) }
+                catch VideoIngestError.noAudioTrack {
+                    // C202: a silent video is a visible failed note, like the phone's.
+                    return try await ingestFailedVideo(url, title: ImportReport.noAudioTrack, into: context)
+                }
             }
-        }
-        // C238: dispatch on the ONE shared kind. A `.video` that carried no video track gets
-        // here as an audio-only container (`supportedAudio` holds mp4/mov for exactly that).
-        switch ImportKinds.kind(forExtension: ext) {
-        case .audio, .video:
             return Self.supportedAudio.contains(ext) ? try await ingestAudio(url, into: context) : nil
+        // Pictures are bundled before this point; a lone link is the link door's.
+        case .image, .url, .text:
+            return nil
+        case .document:
+            return try await ingestDocument(url, ext: ext, into: context)
+        }
+    }
+
+    /// The dispatcher's plan for ONE dropped file or link (one item, one provider), nil when it
+    /// refuses. A file is given by name only, so its kind comes from the shared `ImportKinds`
+    /// list exactly as the phone's odd-UTI reroute does.
+    static func dispatchPlan(for url: URL) -> IngressDispatch.Plan? {
+        let provider: IngressDispatch.Provider = url.isFileURL
+            ? .init(uti: [], file: url.lastPathComponent)
+            : .init(uti: [UTType.url.identifier], url: url.absoluteString)
+        guard case .plan(let plan) = IngressDispatch.dispatch([.init(providers: [provider])]) else { return nil }
+        return plan
+    }
+
+    /// The dispatcher's `.document`: a text file becomes what `ImportKinds.textRole` says (the
+    /// phone's drainer applies the same rule), a PDF / document a document capture. A book has
+    /// no Mac ingest here and anything outside the accepted list is refused; both are reported
+    /// as skipped, never silently.
+    private func ingestDocument(_ url: URL, ext: String, into context: ModelContext) async throws -> PipelineFile? {
+        switch ImportKinds.kind(forExtension: ext) {
         case .text:
             // C73 / D22: a `.txt` shared on the phone becomes a text capture whose BODY is the
             // file's text; the same file dropped here does the same. D171: a plain `.md` is a
@@ -531,9 +560,8 @@ struct IngestService: Sendable {
             }
         case .document:
             return try await ingestDocumentCapture(url, into: context)
-        // Pictures are bundled before this point; a book has no Mac ingest here (the drop
-        // reports it as skipped, never silently).
-        case .image, .book, .none: return nil
+        // The dispatcher never names an audio / video / picture file a document.
+        case .book, .none, .audio, .video, .image: return nil
         }
     }
 
