@@ -168,7 +168,11 @@ final class CopyEditV2HarnessTests: XCTestCase {
             let kind = try Self.note(entry).kind
             guard let r = recs[entry.slug], r.hasRow, let input = r.input, let body = r.body else { continue }
             if kind == "conversation" || kind == "capture" {
-                XCTAssertEqual(H.c35Lost(input: input, output: body), [], "\(entry.slug): its words are untouched")
+                // Name-linking may wrap "Nadia's" as "[[Nadia Okafor]]'s": read possessives as their name.
+                let lost = H.c35Lost(input: input, output: body).filter { w in
+                    !(w.hasSuffix("'s") && H.words(body).contains(String(w.dropLast(2))))
+                }
+                XCTAssertEqual(lost, [], "\(entry.slug): its words are untouched")
             }
         }
         XCTAssertEqual(CopyEditCorpusRun.Result.fields(of: try XCTUnwrap(recs["voice-en-three-words"]).record)["summary"], "",

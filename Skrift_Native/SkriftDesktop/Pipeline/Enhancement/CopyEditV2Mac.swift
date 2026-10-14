@@ -34,8 +34,10 @@ enum CopyEditV2Mac {
         }
         if pass.discarded { pf.enhanceStatus = .pending; return }   // C38: an edit during the run wins
         if src != .share { pf.enhancedCopyedit = pass.copyedit }
-        pf.titleSuggested = pass.titleSuggested
-        pf.enhancedTitle = pass.title
+        if !pass.titleSuggested.isEmpty {   // no words → no model title; the row keeps what it had
+            pf.titleSuggested = pass.titleSuggested
+            pf.enhancedTitle = pass.title
+        }
         if src != .share || !body.isEmpty { pf.enhancedSummary = pass.summary }
 
         let working = pass.working(body: body)

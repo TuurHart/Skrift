@@ -59,19 +59,19 @@ extension CopyEditV2 {
                         bodyChanged: () -> Bool = { false }) async throws -> Pass {
         var pass = Pass()
         let body = input.body
-        let annotated = !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         func adopt(_ suggested: String) {
             pass.titleSuggested = suggested
             let current = (input.currentTitle ?? "").trimmingCharacters(in: .whitespaces)
             pass.title = current.isEmpty ? suggested : current
         }
-        guard annotated else {
-            // Nothing to read: no model call. A share capture still gets its derived title.
+        let prose = Self.prose(input.source == .share ? body.trimmingCharacters(in: .whitespacesAndNewlines) : body)
+        guard !prose.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            // No words (blank, or pictures only): no model call — a model given nothing invents
+            // a note (C177). A share capture still gets its derived title.
             if input.source == .share { adopt(input.fallbackTitle ?? "Capture") }
             else { pass.title = input.currentTitle ?? "" }
             return pass
         }
-        let prose = Self.prose(input.source == .share ? body.trimmingCharacters(in: .whitespacesAndNewlines) : body)
         switch input.source {
         case .spoken, .typed:
             let edit = try await copyEdit(body, spoken: input.source == .spoken,
