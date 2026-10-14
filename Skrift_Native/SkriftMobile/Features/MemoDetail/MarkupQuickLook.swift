@@ -10,7 +10,8 @@ import UIKit
 /// dismissal). Markup runs in `.updateContents`; the edit chain is reported
 /// ON DISMISS only — the round-3 erase crash was the editor rebuilding under
 /// a live markup session. A nil anchor (the shared-file card) presents with
-/// the standard animation.
+/// the standard animation. A photo's caller passes a `MarkupOriginal.Session`
+/// made before presenting, so the un-annotated original stays recoverable (C273).
 @MainActor
 final class MarkupQuickLook: NSObject, QLPreviewControllerDataSource, QLPreviewControllerDelegate {
     typealias Anchor = (container: UIView, rect: CGRect, image: UIImage?)
@@ -19,21 +20,27 @@ final class MarkupQuickLook: NSObject, QLPreviewControllerDataSource, QLPreviewC
     private var transitionView: UIImageView?
     private var edited = false
     private var onDismiss: ((_ edited: Bool) -> Void)?
+    /// C273: the photo's original, kept aside by the caller BEFORE presenting (Markup writes
+    /// into the file); ended on dismiss, so only a real edit keeps it as a synced asset.
+    private var original: MarkupOriginal.Session?
 
     /// State setup + controller construction, separated from presentation so
     /// tests can drive the delegate without putting QuickLook on screen.
-    func prepare(url: URL, onDismiss: @escaping (_ edited: Bool) -> Void) -> QLPreviewController {
+    func prepare(url: URL, original: MarkupOriginal.Session? = nil,
+                 onDismiss: @escaping (_ edited: Bool) -> Void) -> QLPreviewController {
         self.url = url
         self.edited = false
         self.onDismiss = onDismiss
+        self.original = original
         let ql = QLPreviewController()
         ql.dataSource = self
         ql.delegate = self
         return ql
     }
 
-    func present(url: URL, anchor: Anchor?, onDismiss: @escaping (_ edited: Bool) -> Void) {
-        let ql = prepare(url: url, onDismiss: onDismiss)
+    func present(url: URL, anchor: Anchor?, original: MarkupOriginal.Session? = nil,
+                 onDismiss: @escaping (_ edited: Bool) -> Void) {
+        let ql = prepare(url: url, original: original, onDismiss: onDismiss)
         if let anchor {
             // Laid exactly over the drawn attachment (same scale-to-fill the
             // attachment renderer uses) so the zoom appears to lift the photo
@@ -91,6 +98,8 @@ final class MarkupQuickLook: NSObject, QLPreviewControllerDataSource, QLPreviewC
         let wasEdited = edited
         edited = false
         url = nil
+        original?.end(edited: wasEdited)
+        original = nil
         let callback = onDismiss
         onDismiss = nil
         callback?(wasEdited)

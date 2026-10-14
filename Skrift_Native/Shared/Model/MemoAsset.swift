@@ -65,6 +65,10 @@ final class MemoAsset {
     enum Kind {
         static let audio = "audio"
         static let photo = "photo"
+        /// C273: a photo's un-annotated original, kept before its first Markup (`MarkupOriginal`,
+        /// phone) so "Revert to Original" works on every device. Named `<stem>.original.<ext>`.
+        /// Its own kind, never `photo`: it must not join the image manifest. Additive.
+        static let photoOriginal = "photoOriginal"
         static let wordTimings = "wordTimings"
         static let diarization = "diarization"
         /// A shared `.file` capture's document (e.g. a PDF) — so the actual file, not just

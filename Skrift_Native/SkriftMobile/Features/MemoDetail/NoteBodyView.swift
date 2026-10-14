@@ -66,6 +66,10 @@ struct NoteBodyView: UIViewRepresentable {
     var a11yHidden: Bool = false
     /// A focus-gaining tap landed on an inline photo → the page opens the viewer.
     var onTapImage: (Int) -> Void = { _ in }
+    /// C273: photo marker n has a kept pre-Markup original → its hold menu offers the revert.
+    var hasPhotoOriginal: (Int) -> Bool = { _ in false }
+    /// C273: "Revert to Original" on photo marker n.
+    var onRevertPhoto: (Int) -> Void = { _ in }
     /// D199: a tap on a video / file block → the page opens it (Quick Look plays a video).
     var onTapAttachment: (NoteAttachmentEntry) -> Void = { _ in }
     /// A focus-gaining tap landed on a memo-link chip → the page opens that memo.
@@ -150,6 +154,8 @@ struct NoteBodyView: UIViewRepresentable {
         c.onTapName = onTapName
         c.onNewPersonFromSelection = onNewPersonFromSelection
         c.onTapImage = onTapImage
+        c.hasPhotoOriginal = hasPhotoOriginal
+        c.onRevertPhoto = onRevertPhoto
         c.onTapAttachment = onTapAttachment
         c.onTapMemoLink = onTapMemoLink
         c.onRequestPhoto = onRequestPhoto
@@ -210,6 +216,8 @@ struct NoteBodyView: UIViewRepresentable {
         var onTapName: (NameSpan) -> Void = { _ in }
         var onNewPersonFromSelection: (String) -> Void = { _ in }
         var onTapImage: (Int) -> Void = { _ in }
+        var hasPhotoOriginal: (Int) -> Bool = { _ in false }
+        var onRevertPhoto: (Int) -> Void = { _ in }
         var onTapAttachment: (NoteAttachmentEntry) -> Void = { _ in }
         var onTapMemoLink: (UUID) -> Void = { _ in }
         var onRequestPhoto: () -> Void = {}
@@ -271,6 +279,8 @@ struct NoteBodyView: UIViewRepresentable {
         static let markerKey = NSAttributedString.Key("skriftImgMarker")
         /// D199: a video / file block's glyph; value = its marker literal (`[[vid_001]]`).
         static let attachmentKey = NSAttributedString.Key("skriftAttachmentMarker")
+        /// C273: the photo hold-menu item that restores the pre-Markup original.
+        static let revertToOriginalTitle = "Revert to Original"
         /// Custom attribute tagging a checkbox attachment with its checked state
         /// — reconstructs to Obsidian task syntax ("- [ ]" / "- [x]").
         static let taskKey = NSAttributedString.Key("skriftTask")
@@ -1256,12 +1266,21 @@ struct NoteBodyView: UIViewRepresentable {
             let actions = NoteAttachment.holdMenu(size: size, paragraph: spot.index, count: spot.count,
                                                   hasFile: blockFileURL(literal) != nil, isMedia: NoteAttachment.isMedia(literal: literal),
                                                   editing: currentMode == .editing)
-            return UIMenu(children: actions.map { a in
+            var children: [UIMenuElement] = actions.map { a in
                 UIAction(title: a.title, image: UIImage(systemName: a.symbol),
                          attributes: a == .delete ? .destructive : []) { [weak self] _ in
                     self?.performBlockAction(a, literal: literal, filename: filename, at: configuration.sourcePoint)
                 }
-            })
+            }
+            // C273: a photo that was marked up keeps its original; offer it back, plain (not destructive).
+            if attachmentEntry(literal: literal) == nil, let n = BodyV2Marker.numbers(in: literal).first,
+               hasPhotoOriginal(n) {
+                children.append(UIAction(title: Self.revertToOriginalTitle,
+                                         image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in
+                    self?.onRevertPhoto(n)
+                })
+            }
+            return UIMenu(children: children)
         }
 
         private func performBlockAction(_ a: NoteAttachment.BlockAction, literal: String, filename: String, at point: CGPoint) {

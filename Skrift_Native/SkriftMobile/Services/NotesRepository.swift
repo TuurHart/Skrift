@@ -151,6 +151,9 @@ final class NotesRepository {
         if let fileURL = memo.sharedFileURL { try? FileManager.default.removeItem(at: fileURL) }
         memo.metadata?.imageManifest?.forEach {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
+            // C273: the photo's kept pre-Markup original, if any.
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory
+                .appendingPathComponent(MarkupOriginal.originalFilename(for: $0.filename)))
         }
         // C63 / C148: a kept source movie is a file of its own (up to ~200 MB).
         if let name = memo.metadata?.videoFilename, !name.isEmpty {
