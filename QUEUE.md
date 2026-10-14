@@ -2980,7 +2980,7 @@ gate+: yes
 do: Build to the signed Q6 mock 'PDF reader' screen (plan/reads/library-tab/compare-q6-reader.png shows the gap): when a PDF has a usable text layer (PDFKit page strings; the existing PDFTextExtract), the reader shows a reflowed reading view — the page's text in the reader font and size (same Aa settings as the article reader), headings and paragraphs kept, simple two-column tables as rows, page breaks marked 'Page N' — with an 'Original page' toggle back to the PDFKit page (remembered per PDF). No text layer or a poor extraction (heuristic: too few words/page, garbled ratio) → the real page only, no toggle. Selection in the reading view → the same Copy · Highlight · Add note menu; capture still carries source + page (Q354). Add Highlight to both menus (PDF + article): a highlight is a stored range on the source (no note) drawn as the mock's yellow, removable from its own menu, synced inside the Library item's blob. Shared text-shaping rules in Skrift_Native/Shared/. Phone tests `PDFReflowTests` (reflow keeps order and page markers; scanned PDF → no toggle) + `SourceHighlightTests`. Shots next to the mock into plan/reads/library-tab/q404-*.png.
 check: `test $(ls plan/reads/library-tab/q404-*.png | wc -l) -ge 1 && perl -e 'alarm 1800; exec @ARGV' plan/mtest.sh PDFReflowTests`
 
-### Q405 [auto] (doing) capture screen: 'Record your thoughts' button in plain solid accent, no purple gradient (D207)
+### Q405 [auto] (done) capture screen: 'Record your thoughts' button in plain solid accent, no purple gradient (D207)
 spec: D207
 needs: -
 gate+: no
@@ -4361,3 +4361,4 @@ check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 - 2026-10-14 10:14 Q405 added
 - 2026-10-14 10:16 Q405 -> doing — worker out
 - 2026-10-14 10:23 Q403 -> done — gate 109s @536dc0c8
+- 2026-10-14 10:30 Q405 -> done — gate 38s @3a3cbbb9
