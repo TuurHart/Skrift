@@ -1,0 +1,12 @@
+{
+  "door": "selected-text",
+  "about": "C144/C198: the page URL and the selected quote arrive as two separate items (the title rides the second). The quote is a text capture carrying the URL and the page title; nothing is fetched.",
+  "items": [
+    { "providers": [
+      { "uti": ["public.url"], "url": "https://example.org/slow-ceramics/glaze-faults" }
+    ] },
+    { "title": "Slow ceramics: why glaze fails", "providers": [
+      { "uti": ["public.plain-text"], "text": "Crawling happens when the glaze will not wet the bisque; see https://example.org/dust for the dust fix." }
+    ] }
+  ]
+}

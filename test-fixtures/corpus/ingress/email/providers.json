@@ -1,0 +1,9 @@
+{
+  "door": "email",
+  "about": "C142: Mail shares one .eml. It is a document file to the dispatcher (never audio / image / link); EmailShare reads it into a text capture: Subject = title, plain text = body, Date header = recordedAt, From = sender, the attachment kept as a file.",
+  "items": [
+    { "providers": [
+      { "uti": ["public.email-message"], "file": "Kiln firing schedule.eml" }
+    ] }
+  ]
+}

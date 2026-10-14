@@ -1,0 +1,34 @@
+From: =?UTF-8?Q?Ana_Concei=C3=A7=C3=A3o?= <ana.conceicao@example.org>
+To: Tuur <tuur@example.com>
+Subject: =?UTF-8?B?S2lsbiBmaXJpbmcgc2NoZWR1bGUg4oCUIHRoaXMgd2Vlaw==?=
+Date: Tue, 8 Oct 2024 09:15:30 +0100
+Message-ID: <kiln-1@example.org>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="MIX-7f3a"
+
+--MIX-7f3a
+Content-Type: multipart/alternative; boundary="ALT-91c2"
+
+--ALT-91c2
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hi Tuur,
+
+The kiln is booked for Tuesday (bisque) and Friday (glaze). Caf=C3=A9 after =
+the unloading, my treat.
+
+Ana
+--ALT-91c2
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Hi Tuur,</p><p>The kiln HTML copy that must not win.</p></body></html>
+--ALT-91c2--
+
+--MIX-7f3a
+Content-Type: text/plain; charset=utf-8; name="schedule.txt"
+Content-Disposition: attachment; filename="schedule.txt"
+Content-Transfer-Encoding: base64
+
+S2lsbiBzY2hlZHVsZSBmb3IgdGhlIHdlZWs6IFR1ZXNkYXkgYmlzcXVlLCBGcmlkYXkgZ2xhemUuCg==
+--MIX-7f3a--

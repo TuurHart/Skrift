@@ -1,0 +1,15 @@
+{
+  "kind": "document",
+  "parts": [],
+  "file": "Kiln firing schedule.eml", "url": null, "title": null,
+  "email": {
+    "file": "message.eml",
+    "subject": "Kiln firing schedule — this week",
+    "senderName": "Ana Conceição",
+    "senderAddress": "ana.conceicao@example.org",
+    "recordedAt": "2024-10-08T08:15:30Z",
+    "bodyContains": ["Hi Tuur,", "Friday (glaze). Café after the unloading, my treat.", "Ana"],
+    "bodyExcludes": ["HTML copy"],
+    "attachments": [ { "name": "schedule.txt", "mimeType": "text/plain", "text": "Kiln schedule for the week: Tuesday bisque, Friday glaze.\n" } ]
+  }
+}
