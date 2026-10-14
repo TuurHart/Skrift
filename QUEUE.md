@@ -3096,7 +3096,7 @@ gate+: yes
 do: Today: only the Settings/names screens observe `.namesDidChangeFromSync`; no open-note view does. When a roster change arrives by sync while a note is open (phone, iPad, Mac), that note's name spans are re-derived immediately, not on the next open. Test `OpenNoteRosterRefreshTests` (desktop target): an open note's model re-derives after a simulated synced rename.
 check: `grep -rqE "class OpenNoteRosterRefreshTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q422 [auto] (doing) a deleted person's voiceprints go with the tombstone
+### Q422 [auto] (done) a deleted person's voiceprints go with the tombstone
 spec: C259 C208 R63
 needs: -
 gate+: yes
@@ -4657,3 +4657,4 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:23 Q438 -> doing — worker out
 - 2026-10-14 15:24 Q428 -> doing — worker out
 - 2026-10-14 15:25 Q416 -> done — gate 65s @f4510f09
+- 2026-10-14 15:26 Q422 -> done — gate 46s @082e4d42
