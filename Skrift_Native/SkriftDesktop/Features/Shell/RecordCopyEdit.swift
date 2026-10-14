@@ -2,33 +2,31 @@
 import Foundation
 
 extension RunFile {
-    /// `-recordcopyedit <goldensRoot> -corpus <corpusRoot> -isolatedRun` (Q423, C7/C286/C166):
-    /// run v1's Process over every corpus note with the LIVE MLX model on an in-memory scratch
-    /// store, record each model call's raw output as `<goldensRoot>/model/<sha256(prompt+input)>.txt`
-    /// and each note's shipped title / summary / body as `<goldensRoot>/v1-copyedit/<slug>.txt`.
+    /// `-recordcopyedit <corpusRoot> -isolatedRun` (Q423, C7/C286/C166): seed a scratch
+    /// in-memory store from the synthetic corpus, run v1's Process over every note with the LIVE
+    /// MLX model, record each model call's raw output as
+    /// `<corpusRoot>/goldens/model/<sha256(prompt+input)>.txt` and each note's shipped title /
+    /// summary / body as `<corpusRoot>/goldens/v1-copyedit/<slug>.txt`.
+    ///
+    /// The corpus path is this flag's value, NOT `-corpus`: `-corpus` also seeds the app's own
+    /// store at launch, and that launch sweep holds the same memo ids in the process-wide
+    /// `MemoCloudReconciler.ingestInFlight`, so the scratch sweep skipped every rated note.
     /// Refuses without `-isolatedRun` (never the live Dev store). Run the RAW binary from the
     /// build's derived data, never `open -a`.
     nonisolated static func runRecordCopyEditIfRequested() {
-        guard let out = Harness.value("-recordcopyedit") else { return }
+        guard let path = Harness.value("-recordcopyedit") else { return }
         Harness.main {
             let log = Harness.log
             guard LaunchArgs.isolatedRun else { log(">>> -recordcopyedit needs -isolatedRun"); exit(2) }
-            guard let corpus = CorpusSeed.launchPath else { log(">>> -recordcopyedit needs -corpus <path>"); exit(2) }
-            let root = URL(fileURLWithPath: (out as NSString).expandingTildeInPath, isDirectory: true)
+            guard !LaunchArgs.has("-corpus") else { log(">>> -recordcopyedit takes the corpus path itself; drop -corpus"); exit(2) }
+            let corpus = URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
+            let root = corpus.appendingPathComponent("goldens", isDirectory: true)
             let cache = ModelOutputCache(directory: root.appendingPathComponent("model", isDirectory: true))
             let goldens = root.appendingPathComponent("v1-copyedit", isDirectory: true)
             try FileManager.default.createDirectory(at: goldens, withIntermediateDirectories: true)
             let settings = AppSettings()
             log("== RECORDCOPYEDIT model \(settings.enhancementModelRepo) → \(root.path)")
             try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo)
-            // `-corpus` also seeds the app's own in-memory store at launch, and its sweep marks
-            // the same memo ids in flight (`ingestInFlight`) — which our scratch sweep skips.
-            // Let that launch ingest settle first.
-            for _ in 0..<240 where !MemoCloudReconciler.ingestInFlight.isEmpty {
-                try await Task.sleep(for: .milliseconds(500))
-            }
-            try await Task.sleep(for: .seconds(2))
-            guard MemoCloudReconciler.ingestInFlight.isEmpty else { log(">>> launch ingest never settled"); exit(1) }
             let enhancer = GenerateEnhancer(generate: cache.recording(EnhancementService.shared.generator))
             let scratch = FileManager.default.temporaryDirectory
                 .appendingPathComponent("q423-record-\(UUID().uuidString)", isDirectory: true)

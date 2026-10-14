@@ -12,7 +12,7 @@ import XCTest
 ///
 /// Re-record (v1 only, synthetic corpus only, in-memory store, MLX app built in Debug):
 /// `"<derived data>/Build/Products/Debug/Skrift Dev.app/Contents/MacOS/Skrift Dev"
-///  -isolatedRun -corpus <repo>/test-fixtures/corpus -recordcopyedit <repo>/test-fixtures/corpus/goldens`
+///  -isolatedRun -recordcopyedit <repo>/test-fixtures/corpus`
 @MainActor
 final class CopyEditDiffHarnessTests: XCTestCase {
 
