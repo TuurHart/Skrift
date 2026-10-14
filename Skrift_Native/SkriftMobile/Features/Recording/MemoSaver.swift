@@ -71,7 +71,8 @@ struct MemoSaver {
     /// No contextual metadata (the memo wasn't recorded here/now). Returns the
     /// new memo id, or nil if the file couldn't be copied.
     @discardableResult
-    func importAudio(from source: URL, recordedAt: Date? = nil, id given: UUID? = nil) -> UUID? {
+    func importAudio(from source: URL, recordedAt: Date? = nil, id given: UUID? = nil,
+                     fileName: String? = nil) -> UUID? {
         let id = given ?? UUID()   // C147: a share drain passes its inbox entry id
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let filename = RecordingCore.filename(id: id, ext: ext)
@@ -99,7 +100,9 @@ struct MemoSaver {
         let seed = recordedAt ?? FilenameDate.ladder(embedded: nil, fileAt: source) ?? Date()
         // D176 / C25: a REAL file name ("Interview with Jan") shows as the title until the note
         // has words; a generic default ("New Recording 22", "Audio 3") is not kept (→ "Voice note").
-        let keptName = NoteTitle.importName(source.lastPathComponent)
+        // C126 (Q440): a share drain imports a temp copy (`shared_import_<id>_0.m4a`), so it hands
+        // the clip's ORIGINAL name in `fileName` ("" when that name is a messenger's, never a title).
+        let keptName = NoteTitle.importName(fileName ?? source.lastPathComponent)
         repository.insert(Memo.make(
             id: id,
             audioFilename: filename,
@@ -136,9 +139,11 @@ struct MemoSaver {
     /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
     @discardableResult
     func importAudioClips(from sources: [URL], recordedAt: Date? = nil, clipDates: [Date?] = [],
-                          id given: UUID? = nil) -> UUID? {
+                          id given: UUID? = nil, fileName: String? = nil) -> UUID? {
         guard !sources.isEmpty else { return nil }
-        if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt, id: given) }
+        if sources.count == 1 {
+            return importAudio(from: sources[0], recordedAt: recordedAt, id: given, fileName: fileName)
+        }
 
         let id = given ?? UUID()   // C147: a share drain passes its inbox entry id
         let filename = RecordingCore.filename(id: id)

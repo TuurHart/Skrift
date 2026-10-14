@@ -63,6 +63,15 @@ enum CaptureInboxDrainer {
         return all[i]
     }
 
+    /// C126 (Q440): the name a ONE-clip share titles its note by — the clip's original name when
+    /// `IngressDispatch.clipTitle` calls it the user's own ("kiln idea.m4a"), else "" (a messenger
+    /// or machine name is never a title; "" also stops the temp copy's name being used).
+    static func clipFileName(_ entry: CaptureInboxEntry) -> String {
+        guard entry.audioFileNames?.count == 1, let original = name(entry.audioOriginalNames, 0),
+              IngressDispatch.clipTitle(original) != nil else { return "" }
+        return original
+    }
+
     /// The bundle's items, dated by the C70 ladder, in the order MixedBundle starts from.
     struct SharePlan {
         /// Clips + pictures for `MixedBundle.compose`.
@@ -210,6 +219,15 @@ enum CaptureInboxDrainer {
             }
         }
         CaptureDrainState.shared.end()
+        pruneShareLedger(repository: repository)
+    }
+
+    /// C127 (Q440): a ledger row whose note is gone (deleted, or never made) is dropped, so the
+    /// same file can be shared in again. Rows of entries still waiting in the inbox stay.
+    static func pruneShareLedger(repository: NotesRepository) {
+        guard let ledger = ShareLedger.inContainer(CaptureInbox.containerURL) else { return }
+        let pending = Set(CaptureInbox.pendingEntries().map(\.entry.id))
+        ledger.prune { pending.contains($0) || repository.memo(id: $0) != nil || libraryStore.book(id: $0) != nil }
     }
 
     /// D171 (Q286): the typed note a shared `.md` becomes. Body = the file (a typed thought from
@@ -396,7 +414,7 @@ enum CaptureInboxDrainer {
                 }
                 if let mid = MemoSaver(repository: repository).importAudioClips(
                     from: temps, recordedAt: clipDate, clipDates: temps.map { plan.clipDates[$0] },
-                    id: memoID) {
+                    id: memoID, fileName: Self.clipFileName(entry)) {
                     // B3: bundled photos land under the memo's own id — the manifest
                     // is set BEFORE the transcription result arrives, so the shared
                     // BodyV2 pass drops [[img_NNN]] into the transcript exactly
@@ -444,6 +462,41 @@ enum CaptureInboxDrainer {
                 CaptureInbox.delete(entryDir: entryDir)
             }
             return nil
+        }
+
+        // C146 (Q440): a book shared through the share sheet goes to the book importer, never a
+        // file card — the same doors as an Open-in (`AppURLHandler`): a `.skriftbook` raises the
+        // import offer, an audiobook file the Books import; the Books tab comes forward. The file
+        // is copied out of the inbox first (the importer reads it when he taps Add).
+        if entry.type == "book" {
+            defer { CaptureInbox.delete(entryDir: entryDir) }
+            guard let src = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
+                  FileManager.default.fileExists(atPath: src.path) else {
+                DevLog.log("drain: book entry \(entry.id) — no file, discarding")
+                return nil
+            }
+            let name = entry.fileDisplayName.flatMap { $0.isEmpty ? nil : ($0 as NSString).lastPathComponent }
+                ?? src.lastPathComponent
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("shared_book_\(entry.id.uuidString)", isDirectory: true)
+            let dest = dir.appendingPathComponent(name)
+            let copied = await offMain { () -> Bool in
+                try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+                try? FileManager.default.removeItem(at: dest)
+                return (try? FileManager.default.copyItem(at: src, to: dest)) != nil
+            }
+            guard copied else {
+                DevLog.log("drain: book entry \(entry.id) — copy failed, discarding")
+                return nil
+            }
+            if BookBundle.isBookBundle(dest) {
+                BookImportBridge.shared.offer(dest)
+            } else if BookOpenInRouting.decision(for: dest) == .importAudiobook {
+                BookFileImportBridge.shared.offer(dest)
+            }
+            TabSelectionBridge.shared.select(.books)
+            DevLog.log("drain: book entry \(entry.id) → Books ('\(name)')")
+            return nil   // a book, not a note — no jump target
         }
 
         // Q354 / D126: a bare shared PDF becomes a Library source (kind `pdf`), not a note; the

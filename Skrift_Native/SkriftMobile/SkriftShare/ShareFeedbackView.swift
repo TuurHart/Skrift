@@ -7,12 +7,15 @@ import SwiftUI
 /// - **Couldn't save** — failures used to close silently and the item was just
 ///   *gone*; now they say so, with a retry when one is possible;
 /// - **Can't import** — unknown payloads used to fall into an EMPTY text sheet
-///   whose Save minted a husk note (A16); now they get an honest dead end.
+///   whose Save minted a husk note (A16); now they get an honest dead end;
+/// - **Already in Skrift** — the same bytes were shared before (C127, Q440): that
+///   note is the share, nothing new is saved.
 struct ShareFeedbackView: View {
     enum Kind {
         case saved(summary: String)
         case error(message: String, canRetry: Bool)
         case unsupported(detail: String)
+        case alreadyInSkrift
     }
 
     let kind: Kind
@@ -70,6 +73,11 @@ struct ShareFeedbackView: View {
                 Image(systemName: "nosign")
                     .font(.system(size: 19, weight: .semibold))
             }
+        case .alreadyInSkrift:
+            stateCircle(color: Color.skAccent) {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 19, weight: .semibold))
+            }
         }
     }
 
@@ -85,6 +93,7 @@ struct ShareFeedbackView: View {
         case .saved: return "Saved to Skrift"
         case .error: return "Couldn't save this"
         case .unsupported: return "Skrift can't import this"
+        case .alreadyInSkrift: return "Already in Skrift"
         }
     }
 
@@ -96,6 +105,8 @@ struct ShareFeedbackView: View {
             return message + "\nNothing was saved."
         case .unsupported(let detail):
             return detail
+        case .alreadyInSkrift:
+            return "You shared this file before, so it's the same note.\nNothing new was saved."
         }
     }
 
@@ -114,7 +125,7 @@ struct ShareFeedbackView: View {
                 }
             }
             .padding(.horizontal, 16)
-        case .unsupported:
+        case .unsupported, .alreadyInSkrift:
             feedbackButton("Close", prominent: false, action: onClose)
                 .frame(maxWidth: 140)
                 .accessibilityIdentifier("share-feedback-close")
@@ -138,6 +149,7 @@ struct ShareFeedbackView: View {
         case .saved: return "saved"
         case .error: return "error"
         case .unsupported: return "unsupported"
+        case .alreadyInSkrift: return "already"
         }
     }
 }

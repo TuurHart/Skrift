@@ -1,0 +1,7 @@
+{
+  "door": "skriftbook-via-share",
+  "about": "C146 / scenarios #14: a .skriftbook (a zip under Skrift's own type) arrives through the share sheet. It is a document by name, and the plan's bookFile sends it to the book importer, never a file card.",
+  "items": [
+    { "providers": [ { "uti": ["com.skrift.book", "public.zip-archive"], "file": "The Potter's Year.skriftbook" } ] }
+  ]
+}

@@ -47,12 +47,52 @@ final class ShareViewController: UIViewController {
         Task { @MainActor in
             switch await SharePayloadLoader.load(from: extensionContext) {
             case .sheet(let payload):
-                presentSheet(payload: payload)
+                if payload.isBook {
+                    handBookToApp(payload)
+                } else if let fp = payload.fingerprint, Self.ledger?.existing(fp) != nil {
+                    // C127 (Q440): these exact bytes were shared before — that note IS the
+                    // share. Nothing new is written; the temps go.
+                    Self.dropTemps(of: payload)
+                    presentState(.alreadyInSkrift)
+                } else {
+                    presentSheet(payload: payload)
+                }
             case .failed(let message):
                 presentState(.error(message: message, canRetry: false))
             case .unsupported:
                 presentState(.unsupported(detail: "This share didn't contain anything Skrift understands — no text, link, image or audio arrived."))
             }
+        }
+    }
+
+    /// C127: the share ledger beside the inbox (nil without the App Group container).
+    private static var ledger: ShareLedger? { ShareLedger.inContainer(CaptureInbox.containerURL) }
+
+    private static func dropTemps(of payload: SharePayload) {
+        for item in payload.audioItems { try? FileManager.default.removeItem(at: item.url) }
+        if let v = payload.videoURL { try? FileManager.default.removeItem(at: v) }
+        if let f = payload.fileURL { try? FileManager.default.removeItem(at: f) }
+    }
+
+    /// C146 (Q440): a book goes straight to the app's book importer — no note sheet, no file
+    /// card. The entry carries the file; the drain raises the importer on the Books tab.
+    private func handBookToApp(_ payload: SharePayload) {
+        guard let src = payload.fileURL else {
+            presentState(.error(message: "The share couldn't be read.", canRetry: false))
+            return
+        }
+        let ext = src.pathExtension.isEmpty ? "skriftbook" : src.pathExtension
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "book", url: nil, urlTitle: nil, text: nil, imageFileName: nil, mimeType: nil,
+            annotationText: nil, significance: 0, sharedAt: ISO8601DateFormatter().string(from: Date()),
+            fileName: "book_\(id.uuidString).\(ext)", fileDisplayName: payload.fileName)
+        if CaptureInbox.write(entry, fileSourceURL: src) {
+            Self.dropTemps(of: payload)
+            presentState(.saved(summary: "Book → Books"))
+        } else {
+            presentState(.error(message: "The share couldn't be handed to Skrift.", canRetry: true),
+                         retry: { [weak self] in self?.handBookToApp(payload) })
         }
     }
 
@@ -152,10 +192,12 @@ final class ShareViewController: UIViewController {
                          })
             return
         }
+        // C127: these bytes now have a note (the first entry's id is its memo id, C147).
+        if let fp = payload.fingerprint, let first = entries.first {
+            Self.ledger?.record(fp, id: first.id)
+        }
         // Everything is copied into the inbox now — drop the extension-temp files.
-        for item in payload.audioItems { try? FileManager.default.removeItem(at: item.url) }
-        if let v = payload.videoURL { try? FileManager.default.removeItem(at: v) }
-        if let f = payload.fileURL { try? FileManager.default.removeItem(at: f) }
+        Self.dropTemps(of: payload)
         presentState(.saved(summary: Self.savedSummary(for: entries, payload: payload)))
     }
 

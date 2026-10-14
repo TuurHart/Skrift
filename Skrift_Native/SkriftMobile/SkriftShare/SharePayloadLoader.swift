@@ -71,6 +71,13 @@ struct SharePayload {
     /// oldest→newest when clip dates are readable.
     var isAudio: Bool = false
     var audioItems: [SharedAudioItem] = []
+    /// C146: the shared document is a book (`IngressDispatch.Plan.bookFile`) — a `.skriftbook`
+    /// (or an `.m4b` / `.epub` that arrived as plain data). `fileURL` / `fileName` carry it; the
+    /// host hands it to the app's book importer with no sheet, never a file card.
+    var isBook: Bool = false
+    /// C127: the share's bytes (`ShareFingerprint`), nil for a link or a text. The host looks it
+    /// up in the `ShareLedger` before the sheet and records it on save.
+    var fingerprint: String?
 }
 
 /// What the share extension shows for a share: the sheet, or an honest no (C75).
@@ -143,7 +150,8 @@ enum SharePayloadLoader {
         case .refuse:
             load = resolved.contains(where: \.failed) ? .failed("The share couldn't be read.") : .unsupported
         case .plan(let plan):
-            let payload = await payload(for: plan, byName: byName)
+            var payload = await payload(for: plan, byName: byName)
+            payload.fingerprint = fingerprint(of: payload, texts: plan.texts)
             for u in [payload.videoURL, payload.fileURL].compactMap({ $0 }) + payload.audioItems.map(\.url) {
                 kept.insert(u)
             }
@@ -152,6 +160,19 @@ enum SharePayloadLoader {
         // Copies the plan did not keep (a movie beside a link, a document beside a clip): drop.
         for r in resolved { if let u = r.fileURL, !kept.contains(u) { try? FileManager.default.removeItem(at: u) } }
         return load
+    }
+
+    // MARK: - Fingerprint (C127)
+
+    /// The kept bytes of a file-carrying share, plus its texts (a new caption on the same photo is
+    /// a new share). nil for a link or a text share, and for a book (the book importer has its
+    /// own "Already in your books").
+    private static func fingerprint(of payload: SharePayload, texts: [String]) -> String? {
+        guard !payload.isBook else { return nil }
+        let files = payload.audioItems.map(\.url) + [payload.videoURL, payload.fileURL].compactMap { $0 }
+        let pictures = payload.imageItems.map(\.data)
+        guard !files.isEmpty || !pictures.isEmpty else { return nil }
+        return ShareFingerprint.of(files: files, datas: pictures + texts.map { Data($0.utf8) })
     }
 
     // MARK: - Plan → payload
@@ -199,6 +220,12 @@ enum SharePayloadLoader {
                                 videoBytes: VideoKeep.byteCount(of: url))
         case .document:
             guard let r = plan.file.flatMap({ byName[$0] }), let url = r.fileURL else { return SharePayload(type: .file) }
+            if plan.bookFile != nil {
+                // C146 (Q440): the book route sits inside the document branch, as ImportKinds
+                // splits it for a Mac drop. A book goes to the book importer, never a file card.
+                return SharePayload(type: .file, fileURL: url, fileName: r.originalName ?? url.lastPathComponent,
+                                    isBook: true)
+            }
             let ext = url.pathExtension.lowercased()
             let mime = UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
             // E1 preview-card metadata (mock m2): page count for PDFs, size for all.
