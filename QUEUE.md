@@ -3229,8 +3229,8 @@ check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corp
 ### Q442 [tuur] (tuur) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
 spec: C261 D163
 needs: Q408
-do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65).
-check: Tuur said yes and `plan/mtest.sh NoteBodyTests` exits 0.
+do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65). Same sitting, same kind: `AudioShareDrainTests.testTextFileBecomesNoteBody` (phone) still expects a shared `.md` to become a `.text` capture, but D171/Q286 made it a typed note; it has been red since Q286 (found by Q414). Flip it to the typed-note shape on the same yes.
+check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioShareDrainTests` exit 0.
 
 ### Q443 [tuur] (tuur) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
 spec: D201
