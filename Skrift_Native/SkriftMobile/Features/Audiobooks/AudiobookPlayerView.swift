@@ -371,8 +371,8 @@ struct AudiobookPlayerView: View {
 
     // MARK: - Play (flat accent circle — matches the memo-detail floating play)
 
-    /// The play/pause control: a clean flat accent circle (no gradient sphere — the
-    /// user found the sphere look off), with a soft glow. Centred in the transport
+    /// The play/pause control: a clean flat accent circle (no gradient sphere, and no
+    /// glow or shadow: D208). Centred in the transport
     /// when controls are up; floats bottom-right when chrome recedes.
     private func playButton(size: CGFloat) -> some View {
         Button { noteInteraction(); session.togglePlay() } label: {
@@ -380,7 +380,6 @@ struct AudiobookPlayerView: View {
                 Circle()
                     .fill(Color.skAccent)
                     .frame(width: size, height: size)
-                    .shadow(color: Color.skAccent.opacity(0.35), radius: 8, y: 3)
                 Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: size * 0.4)).foregroundStyle(.white)
             }
@@ -389,22 +388,22 @@ struct AudiobookPlayerView: View {
         .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
     }
 
-    // MARK: - Transport (just ⟲15 ▶ 30⟳ — speed + sleep moved to the utility row)
+    // MARK: - Transport (just ⟲15 ▶ 15⟳ — speed + sleep moved to the utility row)
 
     private var transport: some View {
         HStack(spacing: 0) {
             Spacer()
-            Button { noteInteraction(); session.skip(-AudiobookSession.skipBack) } label: {
+            Button { noteInteraction(); session.skip(-AudiobookSession.skipInterval) } label: {
                 Image(systemName: "gobackward.15").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-back-15").accessibilityLabel("Back 15 seconds")
             Spacer().frame(width: 28)
             playButton(size: 56)
             Spacer().frame(width: 28)
-            Button { noteInteraction(); session.skip(AudiobookSession.skipForward) } label: {
-                Image(systemName: "goforward.30").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
+            Button { noteInteraction(); session.skip(AudiobookSession.skipInterval) } label: {
+                Image(systemName: "goforward.15").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
-            .accessibilityIdentifier("player-forward-30").accessibilityLabel("Forward 30 seconds")
+            .accessibilityIdentifier("player-forward-15").accessibilityLabel("Forward 15 seconds")
             Spacer()
         }
     }

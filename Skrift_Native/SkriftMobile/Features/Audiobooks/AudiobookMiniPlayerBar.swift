@@ -177,7 +177,6 @@ struct AudiobookMiniPill: View {
                         Circle()
                             .fill(Color.skAccent)
                             .frame(width: 42, height: 42)
-                            .shadow(color: Color.skAccent.opacity(0.4), radius: 6, y: 2)
                         Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(.white)
