@@ -1348,10 +1348,16 @@ enum Snapshot {
                 }
             }
             Divider().opacity(0.2)
-            Text("PORTFOLIO TAG ROW — presets beside + tag").font(.system(size: 9, weight: .bold))
+            Text("PORTFOLIO, NO PRESET TAG YET — suggestions beside + tag (D205)").font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Theme.textMuted)
+            TagEditorRow(tags: .constant(["lisbon"]), library: ["lisbon", "idea"],
+                         style: .mac,
+                         presets: PortfolioTagPresets.suggestions(destination: .portfolio, tags: ["lisbon"], enabled: true))
+            Text("PORTFOLIO, idea PICKED — suggestions gone").font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Theme.textMuted)
             TagEditorRow(tags: .constant(["lisbon", "idea"]), library: ["lisbon", "idea"],
-                         style: .mac, presets: PortfolioTagPresets.all)
+                         style: .mac,
+                         presets: PortfolioTagPresets.suggestions(destination: .portfolio, tags: ["lisbon", "idea"], enabled: true))
         }
         .padding(28)
         .frame(width: width, alignment: .leading)

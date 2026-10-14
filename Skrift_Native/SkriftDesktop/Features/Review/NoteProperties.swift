@@ -99,8 +99,9 @@ struct NoteProperties: View {
                 TagEditorRow(tags: $file.tags, library: tagLibrary,
                              style: .mac, libraryCounts: tagCounts,
                              onToast: onTagToast,
-                             presets: DestinationSettings.isEnabled && file.destination.isPortfolio
-                                 ? PortfolioTagPresets.all : [])
+                             presets: PortfolioTagPresets.suggestions(
+                                 destination: file.destination, tags: file.tags,
+                                 enabled: DestinationSettings.isEnabled))
             }
             // Q87: the Split speakers confirm / progress, opened from the ⋯ menu (D196).
             if file.sourceType == .audio {

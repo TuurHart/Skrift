@@ -587,8 +587,9 @@ struct MemoPageView: View {
                          // screen, not this row's own narrower bounds.
                          onToast: { tagToast = $0 },
                          // D189: idea / inspiration / project, one tap each, Portfolio only.
-                         presets: DestinationSettings.isEnabled && memo.destination.isPortfolio
-                             ? PortfolioTagPresets.all : [])
+                         presets: PortfolioTagPresets.suggestions(
+                             destination: memo.destination, tags: memo.tags,
+                             enabled: DestinationSettings.isEnabled))
                 // An old stored idea / inspiration / project becomes Portfolio + that tag.
                 .task(id: memo.id) { if memo.adoptLegacyDestination() { repository.save() } }
             }

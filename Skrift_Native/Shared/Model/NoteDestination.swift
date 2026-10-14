@@ -85,11 +85,30 @@ enum NoteDestination: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// The one-tap tag presets offered beside `+ add tag` while a note is Portfolio. Plain tags:
+/// The tag SUGGESTIONS offered beside `+ tag` while a note is Portfolio (D205). Choosing Portfolio
+/// adds NO tag by itself: these are quiet chips he taps to add one, or ignores. Plain tags:
 /// typing `idea` in the tag field is the same thing and routes nothing. Any combination is
 /// allowed: an idea sparked by someone else's lamp is `idea` + `inspiration`.
 enum PortfolioTagPresets {
     static let all: [String] = NoteDestination.legacyPortfolioWords
+
+    /// THE rule, read by the phone, iPad, Mac and quick note alike. The three show only while
+    /// destinations are on, the note is Portfolio, and it carries none of them yet: once he has
+    /// picked one the suggestion has done its job, and flipping back to Personal removes nothing
+    /// (the tags are his), the chips just leave.
+    static func suggestions(destination: NoteDestination, tags: [String], enabled: Bool) -> [String] {
+        guard enabled, destination.isPortfolio else { return [] }
+        let hasOne = all.contains { p in tags.contains { $0.caseInsensitiveCompare(p) == .orderedSame } }
+        return hasOne ? [] : all
+    }
+
+    /// A tap on one suggestion: add just that tag (case-insensitive, never duplicated). Anything
+    /// that is not one of the three is ignored.
+    static func picked(_ tag: String, into tags: [String]) -> [String] {
+        guard let preset = all.first(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) else { return tags }
+        return NoteDestination.withTag(preset, in: tags)
+    }
+
     /// The tag that raises `needs: - credit` in the portfolio profile (someone else's work).
     static let inspiration = "inspiration"
 }
