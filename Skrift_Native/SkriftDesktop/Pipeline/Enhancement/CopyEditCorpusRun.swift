@@ -91,7 +91,7 @@ enum CopyEditCorpusRun {
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
         let local = ModelContext(try ModelContainer(
-            for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+            for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
         try CorpusSeed.seed(from: corpus, into: cloud, recordingsDirectory: scratch.appendingPathComponent("rec"))
         let people = try JSONDecoder().decode([Person].self,
                                               from: Data(contentsOf: corpus.appendingPathComponent("names.json")))
