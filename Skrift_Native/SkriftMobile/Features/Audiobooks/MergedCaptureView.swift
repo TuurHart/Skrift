@@ -326,31 +326,7 @@ struct MergedCaptureView: View {
     // MARK: - Record bar (pinned)
 
     private var recordBar: some View {
-        Button {
-            recordThoughts()
-        } label: {
-            HStack(spacing: 12) {
-                if building {
-                    ProgressView().controlSize(.small).frame(width: 34, height: 34)
-                } else {
-                    Image(systemName: "mic")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(.white.opacity(0.18), in: .circle)
-                }
-                Text(building ? "Preparing\u{2026}" : "Record your thoughts")
-                    .font(.system(size: 14.5, weight: .bold))
-                    .foregroundStyle(.white)
-                Spacer(minLength: 0)
-            }
-            .padding(EdgeInsets(top: 13, leading: 16, bottom: 13, trailing: 16))
-            .background(
-                LinearGradient(colors: [Color(hex: 0x8e7dff), Color(hex: 0x6a59ef)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: .rect(cornerRadius: 14, style: .continuous)
-            )
-        }
+        RecordThoughtsButton(busy: building) { recordThoughts() }
         .disabled(building || !isReady)
         .opacity(isReady ? 1 : 0.45)
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 18)
