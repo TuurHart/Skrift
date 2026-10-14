@@ -3212,7 +3212,7 @@ needs: Q438
 do: `SharePayloadLoader` / `ShareViewController` on the phone and the Mac file importer call the Q438 dispatcher; their own per-type branching is deleted, not left beside it. Behaviour on today's working doors stays the same (`ShareSheetView` tests still pass).
 check: `grep -rqE "IngressDispatch|ShareDispatch" Skrift_Native/SkriftMobile/SkriftShare && grep -rqE "IngressDispatch|ShareDispatch" Skrift_Native/SkriftDesktop`
 
-### Q440 [auto] (todo) a Voice Memo keeps its name, the same file twice is one note, a .skriftbook goes to Books
+### Q440 [auto] (doing) a Voice Memo keeps its name, the same file twice is one note, a .skriftbook goes to Books
 spec: C126 C127 C146
 needs: Q439
 gate+: yes
@@ -3244,7 +3244,7 @@ needs: Q417
 do: Same recipe as Q407: bump SKRIFT_BUILD to 191 in both project.yml files, build the Dev (Debug) iOS app for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; resolve its xcodebuild UDID first, the old iPhone 13 UDID in CLAUDE.md is stale) with `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic`, install with devicectl, string-grep a Q408 literal (`EmptyCommitGuard`) in the installed binary. Mac: Debug build, quit Skrift Dev, ditto to `/Applications/Skrift Dev.app`, never two Dev instances, never touch prod `/Applications/Skrift.app`, never `open -a`. If the phone is locked or unplugged, report blocked.
 check: Report shows build 191 installed on the phone (devicectl app list) and the Mac Dev app's CFBundleVersion is 191.
 
-### Q445 [auto] (todo) v1 export: a note opening with a picture fuses the closing --- and loses the stamp (pic-at-start)
+### Q445 [auto] (doing) v1 export: a note opening with a picture fuses the closing --- and loses the stamp (pic-at-start)
 spec: C55 C56 C130 C193
 needs: Q433
 gate+: yes
@@ -4682,3 +4682,5 @@ check: `grep -rqE "class PicAtStartExportTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 15:45 Q439 -> done — gate 55s @f3af339d
 - 2026-10-14 15:46 Q445 added
 - 2026-10-14 15:47 Q433 -> done — hand-merged (dest-* fixtures re-based to D189 as Q433's do: asked; Tuur confirmed the resync 2026-10-14)
+- 2026-10-14 15:49 Q440 -> doing — worker out
+- 2026-10-14 15:49 Q445 -> doing — worker out
