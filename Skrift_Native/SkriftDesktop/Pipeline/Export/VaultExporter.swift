@@ -222,7 +222,7 @@ enum VaultExporter {
         // The body is exported as stored (C65): body v2 already made every picture its
         // own paragraph at write time. Only a body stored before v2 goes through the Q13
         // read-only fallback (`BodyV2Legacy`, Q14 removes it), so it still exports as it reads.
-        let compiled = Self.shownBody(markdown)
+        let compiled = ExportBody.shown(markdown)
         let attDir = imageDestination(vaultURL: vaultURL, relativePath: relPath, profile: profile)
 
         // Q365 (G9): the skip check BEFORE any picture is placed. When the ledger says we wrote
@@ -277,20 +277,6 @@ enum VaultExporter {
                                   audio: audio, documents: documents)
         return Result(outcome: r.outcome, markdownURL: r.markdownURL,
                       audioURL: r.audioURL, imageCount: imageCount)
-    }
-
-    /// Q445: the Q13 fallback over the BODY only. Run over the whole compiled markdown, a body
-    /// opening with a picture reads the frontmatter's closing `---` as the sentence before the
-    /// marker, defers the photo to that sentence's end and fuses the fence onto the first
-    /// sentence, so the note lost its stamp. The frontmatter block and the blank lines after it
-    /// pass through untouched.
-    static func shownBody(_ markdown: String) -> String {
-        guard markdown.hasPrefix("---\n"),
-              let close = markdown.range(of: "\n---\n", range: markdown.index(markdown.startIndex, offsetBy: 3)..<markdown.endIndex)
-        else { return BodyV2Legacy.shown(markdown).text }
-        var split = close.upperBound
-        while split < markdown.endIndex, markdown[split] == "\n" { split = markdown.index(after: split) }
-        return String(markdown[..<split]) + BodyV2Legacy.shown(String(markdown[split...])).text
     }
 
     /// Places one picture/attachment: `(source file, preferred name, folder) -> URL written`
