@@ -480,9 +480,23 @@ struct MemoPageView: View {
                 a11yHidden: !isCurrent,
                 onTapImage: { n in
                     guard let url = memo.imageURL(markerIndex: n) else { return }
-                    markupQuickLook.present(url: url, anchor: bodyProxy.photoAnchor(marker: n)) { edited in
+                    // C273: Markup writes into this file — keep the original aside first.
+                    let original = MarkupOriginal.begin(memoID: memo.id, filename: url.lastPathComponent,
+                                                        repository: repository)
+                    markupQuickLook.present(url: url, anchor: bodyProxy.photoAnchor(marker: n),
+                                            original: original) { edited in
                         if edited { photoWasEdited(marker: n) }
                     }
+                },
+                hasPhotoOriginal: { n in
+                    guard let name = memo.imageURL(markerIndex: n)?.lastPathComponent else { return false }
+                    return MarkupOriginal.hasOriginal(for: name, memoID: memo.id, repository: repository)
+                },
+                onRevertPhoto: { n in
+                    guard let name = memo.imageURL(markerIndex: n)?.lastPathComponent,
+                          MarkupOriginal.revert(memoID: memo.id, filename: name, repository: repository)
+                    else { return }
+                    photoWasEdited(marker: n)
                 },
                 onTapAttachment: { entry in
                     // D199: Quick Look opens a file and plays a video (inline play is the next step).
