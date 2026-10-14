@@ -2959,7 +2959,7 @@ do: -
 check: Tuur answered (ICLOUD_MERGE F2).
 ask: When you moved to the iPhone 17 Pro around 1 October: did you use Quick Start / phone-to-phone transfer, restore from an iCloud backup, or install Skrift fresh and let it download? Did your old notes appear on the new phone right away?
 
-### Q402 [auto] (doing) Portfolio adds no tags by itself; idea/inspiration/project become suggestions to pick one (D205)
+### Q402 [auto] (done) Portfolio adds no tags by itself; idea/inspiration/project become suggestions to pick one (D205)
 spec: D205 D189
 needs: -
 gate+: yes
@@ -4332,3 +4332,4 @@ check: `grep -q 'func test' Skrift_Native/SkriftDesktop/SkriftDesktopTests/Portf
 - 2026-10-14 09:28 Q394 -> done — Dev 189 on Mac (grep 'Set All to Large') and iPhone 17 Pro (devicectl: com.skrift.mobile.dev 0.2.0 189; grep 'Add to this note')
 - 2026-10-14 09:29 Q402 -> doing — worker out
 - 2026-10-14 09:31 Q394 -> done — gate 50s @7766c1fe
+- 2026-10-14 09:43 Q402 -> done — gate 46s @5d500b5e
