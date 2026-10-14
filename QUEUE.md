@@ -3054,7 +3054,7 @@ gate+: yes
 do: Today: `WallPrinter.printCard` calls `ledger.removeValue` before printing. `WallPrinter` writes the new `printedAt` only after the reprint succeeds; a failed or cancelled reprint leaves the previous stamp as it was. Test `WallReprintStampTests` (phone target).
 check: `plan/mtest.sh WallReprintStampTests`
 
-### Q416 [auto] (doing) Markup keeps the original photo recoverable
+### Q416 [auto] (done) Markup keeps the original photo recoverable
 spec: C273 R86
 needs: -
 gate+: yes
@@ -3135,7 +3135,7 @@ needs: Q426
 do: Tag the current commit `v1-copyedit`, then in ONE commit delete the v1 copy-edit code (`PolishEscrow`, the anchor code in `ImageMarkerReinsert`, v1's paths in `EnhancementService`) and the tests that pin it. This touches protected tests on purpose, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-copyedit >/dev/null && ! grep -rqE "extractAnchors" Skrift_Native --include='*.swift'`
 
-### Q428 [auto] (todo) reconcile harness: v1 row goldens and the C52 test
+### Q428 [auto] (doing) reconcile harness: v1 row goldens and the C52 test
 spec: C253 C5 C44 C52 C41 C6 R40
 needs: -
 gate+: yes
@@ -3199,7 +3199,7 @@ needs: Q436
 do: Tag the current commit `v1-export`, then in ONE commit delete `Shared/Export/Compiler.swift`'s v1 paths and the tests that pin them. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-export >/dev/null`
 
-### Q438 [auto] (todo) one shared share dispatcher with ingress fixtures
+### Q438 [auto] (doing) one shared share dispatcher with ingress fixtures
 spec: C238 C198 C67 C69 C75 C125 C141 R4 R22
 needs: -
 gate+: yes
@@ -4654,3 +4654,6 @@ check: Tuur deployed the schema and the console's Production schema shows `Vocab
 - 2026-10-14 15:14 Q420 -> done — gate 69s @4eedce8a
 - 2026-10-14 15:15 Q421 -> done — gate 74s @71a62049
 - 2026-10-14 15:22 Q415 -> done — gate 120s @0f1a9b79
+- 2026-10-14 15:23 Q438 -> doing — worker out
+- 2026-10-14 15:24 Q428 -> doing — worker out
+- 2026-10-14 15:25 Q416 -> done — gate 65s @f4510f09
