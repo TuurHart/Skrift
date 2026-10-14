@@ -2987,7 +2987,7 @@ gate+: no
 do: Tuur 2026-10-14: the 'Record your thoughts' button (capture screen: book quote, PDF and article capture — MergedCaptureView and the text-capture sheet) is 'an ugly color'. Make it the app's plain solid accent fill like the other primary buttons (no gradient), same shape and size, white label + mic glyph; one shared style used by every capture screen. Only this button — the capture-screen design pause (CLAUDE.md) still holds for everything else. Before/after shots into plan/reads/library-tab/q405-*.png.
 check: `test $(ls plan/reads/library-tab/q405-*.png | wc -l) -ge 2`
 
-### Q406 [auto] (doing) player: 15/15 skips, purple play button without glow; confirm the controls tuck away while playing (D208)
+### Q406 [auto] (done) player: 15/15 skips, purple play button without glow; confirm the controls tuck away while playing (D208)
 spec: D208
 needs: -
 gate+: no
@@ -4372,3 +4372,4 @@ check: `test $(ls plan/reads/library-tab/q406-*.png | wc -l) -ge 2`
 - 2026-10-14 10:33 Q404 -> done — gate 42s @0325fa15
 - 2026-10-14 11:14 Q406 added
 - 2026-10-14 11:15 Q406 -> doing — worker out
+- 2026-10-14 11:25 Q406 -> done — gate 38s @3a783b7f
