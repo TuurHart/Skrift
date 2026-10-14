@@ -57,7 +57,7 @@ enum CopyEditV2 {
             return Result(text: body, fallback: nil, ledger: nil, calledModel: false)
         }
         let ramble = try await editProse(split.ramble, spoken: spoken, prompt: prompt, generate: generate)
-        guard ramble.fallback == nil else {
+        if let why = ramble.fallback, [.truncated, .shrank, .linkLost].contains(why) {   // C31-C33: the whole body
             return Result(text: body, fallback: ramble.fallback, ledger: ramble.ledger, calledModel: ramble.calledModel)
         }
         let joined = QuoteProtection.reassemble(quote: split.quote, ramble: ramble.text)
@@ -65,7 +65,7 @@ enum CopyEditV2 {
             log.warning("copy-edit v2: \(Fallback.quoteChanged.rawValue, privacy: .public) — unedited")
             return Result(text: body, fallback: .quoteChanged, ledger: ramble.ledger, calledModel: true)
         }
-        return Result(text: joined, fallback: nil, ledger: ramble.ledger, calledModel: true)
+        return Result(text: joined, fallback: ramble.fallback, ledger: ramble.ledger, calledModel: ramble.calledModel)
     }
 
     private static func editProse(_ text: String, spoken: Bool, prompt: String,
@@ -78,20 +78,32 @@ enum CopyEditV2 {
         let cap = PolishPrompts.copyEditTokenBudget(forInput: input)
         let out = try await generate(prompt, input, cap).trimmingCharacters(in: .whitespacesAndNewlines)
         let inParas = paragraphs(input).count, modelParas = paragraphs(out).count
+        /// C31 / C32 / C33: the ORIGINAL body, byte for byte.
         func unedited(_ why: Fallback) -> Result {
             log.warning("copy-edit v2: \(why.rawValue, privacy: .public) — unedited (\(input.count) → \(out.count) chars)")
             return Result(text: text, fallback: why,
                           ledger: Ledger(input: inParas, model: modelParas, shipped: inParas), calledModel: true)
         }
-        if out.isEmpty { return unedited(.empty) }
+        /// A failed post-condition (C177, C35, C34): the author's words unedited, still shaped by
+        /// the deterministic rules that edit no word — a spoken wall broken (C34), each picture its
+        /// own paragraph by index (C30).
+        func uneditedWords(_ why: Fallback) -> Result {
+            let shaped = spoken ? PolishPrompts.ensureParagraphs(input) : input
+            guard let linked = held.reattachLinks(shaped) else { return unedited(why) }
+            log.warning("copy-edit v2: \(why.rawValue, privacy: .public) — the words ship unedited")
+            return Result(text: held.placePictures(linked), fallback: why,
+                          ledger: Ledger(input: inParas, model: modelParas, shipped: paragraphs(shaped).count),
+                          calledModel: true)
+        }
+        if out.isEmpty { return uneditedWords(.empty) }
         if PolishPrompts.looksTruncated(output: out, cap: cap) { return unedited(.truncated) }
         if PolishPrompts.lostTooMuch(input: input, output: out) { return unedited(.shrank) }
-        if let why = Gate.check(input: input, output: out) { return unedited(why) }
+        if let why = Gate.check(input: input, output: out) { return uneditedWords(why) }
         // C34: the deterministic wall break is for SPOKEN text only; a typed note keeps its own.
         let shaped = spoken ? PolishPrompts.ensureParagraphs(out) : out
         let shipped = paragraphs(shaped).count
-        if spoken, shipped < inParas { return unedited(.paragraphsLost) }
-        if !spoken, shipped != inParas { return unedited(.typedReparagraphed) }
+        if spoken, shipped < inParas { return uneditedWords(.paragraphsLost) }
+        if !spoken, shipped != inParas { return uneditedWords(.typedReparagraphed) }
         guard let linked = held.reattachLinks(shaped) else { return unedited(.linkLost) }
         let ledger = Ledger(input: inParas, model: modelParas, shipped: shipped)
         log.log("copy-edit v2 paragraphs: \(ledger.line, privacy: .public) (pictures: \(held.pictures.count))")
