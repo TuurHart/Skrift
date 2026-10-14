@@ -1,0 +1,10 @@
+{
+  "_schema": "Q419 ADDITIVE manifest: the C255/C256/C260 name-matching edge fixtures (R69/R68/R65). Same shape as `manifest.json`'s `notes` array; `folder` names match exactly (no NNN- prefix). Hand-authored, read by NameMatcherEdgeTests only (never seeded into a store - the cases live in each note's `expect`).",
+  "generatedBy": "hand-authored for Q419 (not generate.py)",
+  "count": 3,
+  "notes": [
+    { "index": 1, "slug": "edge-name-dutch-possessive", "id": "1CF7D574-67BF-518E-B6B4-9BE331DE6AC7", "kind": "typed", "lang": "nl", "shape": ["typed", "dutch", "name-matching", "possessive"], "folder": "edge-name-dutch-possessive" },
+    { "index": 2, "slug": "edge-name-diacritics", "id": "93272C40-794D-593A-A06D-2E47DC9E87A2", "kind": "typed", "lang": "mix", "shape": ["typed", "name-matching", "diacritics"], "folder": "edge-name-diacritics" },
+    { "index": 3, "slug": "edge-name-is-tag", "id": "C79CE4E9-9CA0-529D-883E-978932325DB5", "kind": "typed", "lang": "nl", "shape": ["typed", "name-matching", "inline-tags"], "folder": "edge-name-is-tag" }
+  ]
+}

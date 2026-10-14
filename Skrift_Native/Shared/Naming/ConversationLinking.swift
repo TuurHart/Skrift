@@ -131,7 +131,7 @@ extension Sanitiser {
                 // Not linked yet. Only a distinctive (non-FP-prone) alias — or a force-picked
                 // one — may auto-commit a NEW inline link; a common-word/too-short-only,
                 // unpicked person stays plain (suggested).
-                guard let first = firstSafeMatch(of: linkAliases, in: text) else { continue }  // no SAFE mention in this block
+                guard let first = firstSafeMatch(of: linkAliases, in: text, roster: ov.rosterWords) else { continue }  // no SAFE mention in this block
                 text = nsReplace(text, first.range, with: display + possText(first, in: text))
                 seen.insert(keyLower)
             }
@@ -140,7 +140,7 @@ extension Sanitiser {
             // "every later mention demotes" holds even for a single-token name).
             let demotion = short.isEmpty ? canonKey : short
             guard !demotion.isEmpty else { continue }
-            text = demoteMentions(of: unambiguous, to: demotion, in: text)
+            text = demoteMentions(of: unambiguous, to: demotion, in: text, roster: ov.rosterWords)
         }
         return text
     }
@@ -158,8 +158,7 @@ extension Sanitiser {
         let prot = nonProseRanges(in: text)
         var out: [AmbiguousOccurrence] = []
         func record(alias: String, candidates: [Person], capitalizedOnly: Bool) {
-            guard let rx = wordRegex(alias) else { return }
-            for m in rx.matches(in: text, range: fullRange(text)) {
+            for m in matches(of: alias, in: text, roster: ov.rosterWords) {
                 let loc = m.range.location
                 if !eligible(text, loc, prot) { continue }
                 if capitalizedOnly, !startsUppercase(text, at: loc) { continue }

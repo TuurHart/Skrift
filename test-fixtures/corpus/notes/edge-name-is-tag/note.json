@@ -1,0 +1,65 @@
+{
+  "id": "C79CE4E9-9CA0-529D-883E-978932325DB5",
+  "slug": "edge-name-is-tag",
+  "kind": "typed",
+  "lang": "nl",
+  "shape": ["typed", "name-matching", "inline-tags"],
+  "title": null,
+  "recordedAt": "2026-10-14T09:10:00+02:00",
+  "createdAt": "2026-10-14T09:10:00+02:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Notities #Wim en #wim/ideeen vandaag.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": ["Wim"],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": { "capturedAt": "2026-10-14T09:10:00+02:00", "tags": ["Wim"], "mediaSource": "typed" },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "_schema": "Q419 (C260/R65), read by NameMatcherEdgeTests. Same shape as edge-name-dutch-possessive (`roster` default, per-case `roster` override, `sanitised`, `ambiguous` count). A name inside an inline #tag is never linked, demoted or suggested.",
+    "roster": [{ "canonical": "[[Wim Jansen]]", "aliases": ["Wim"], "short": "Wim" }],
+    "cases": [
+      { "name": "tag equal to the alias is left whole", "text": "Notities #Wim en #wim/ideeen vandaag.", "sanitised": "Notities #Wim en #wim/ideeen vandaag." },
+      { "name": "tag first, real mention second", "text": "#Wim eerst, daarna Wim.", "sanitised": "#Wim eerst, daarna [[Wim Jansen]]." },
+      { "name": "a tag between mentions is not demoted or linked", "text": "Wim kwam. #wim noteer dit. Wim ging.", "sanitised": "[[Wim Jansen]] kwam. #wim noteer dit. Wim ging." },
+      { "name": "a heading is not a tag", "text": "# Wim\nWim kwam.", "sanitised": "# [[Wim Jansen]]\nWim kwam." },
+      {
+        "name": "an ambiguous alias inside a tag is not suggested",
+        "text": "Over #Sam vandaag.",
+        "roster": [
+          { "canonical": "[[Sam Ruiz]]", "aliases": ["Sam"], "short": "Sam" },
+          { "canonical": "[[Sam Lindqvist]]", "aliases": ["Sam"], "short": "Sam" }
+        ],
+        "sanitised": "Over #Sam vandaag.",
+        "ambiguous": 0
+      },
+      {
+        "name": "the same ambiguous alias as a plain word IS suggested",
+        "text": "Over Sam vandaag.",
+        "roster": [
+          { "canonical": "[[Sam Ruiz]]", "aliases": ["Sam"], "short": "Sam" },
+          { "canonical": "[[Sam Lindqvist]]", "aliases": ["Sam"], "short": "Sam" }
+        ],
+        "sanitised": "Over Sam vandaag.",
+        "ambiguous": 1
+      }
+    ]
+  }
+}

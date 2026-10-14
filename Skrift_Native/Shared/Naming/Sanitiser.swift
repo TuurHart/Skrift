@@ -34,7 +34,10 @@ enum Sanitiser {
         let ambiguous: [AmbiguousOccurrence]
     }
 
-    static let possPattern = "(?<poss>(?:'s|’s)?)"
+    /// The possessive tail of an alias match: `'s` / `’s`, the Dutch BARE `s` (`Wims`, `Lottes`,
+    /// C255), or nothing. The empty alternative keeps the old `\b` after the alias. A bare `s`
+    /// that spells another roster alias is NOT a possessive — see `matches(of:in:roster:)`.
+    static let possPattern = "(?<poss>'s|’s|s\\b|\\b)"
 
     /// Pre-computed per-note naming overrides, shared by `process` + `processConversation`.
     /// LINKABLE = live people minus the pruned ones (these auto-link + are ambiguity
@@ -49,6 +52,9 @@ enum Sanitiser {
         let aliasMap: [String: [Person]]    // linkable alias map (link + ambiguity)
         let ambiguousAliases: Set<String>
         let prunedAliasMap: [String: [Person]]
+        /// Every live person's aliases, diacritic-folded + lowercased (`Sanitiser.fold`). A word
+        /// in here is a name of its own, so `alias + "s"` spelling one is not a bare possessive.
+        let rosterWords: Set<String>
 
         static func key(_ p: Person) -> String {
             NamesMerge.matchKey(p.canonical)
@@ -57,6 +63,7 @@ enum Sanitiser {
         init(people: [Person], neverLink: Set<String>, namePicks: [String: String]) {
             let liveAll = people.filter { !$0.isDeleted }
             live = liveAll
+            rosterWords = Set(liveAll.flatMap { $0.aliases }.map { Sanitiser.fold($0) }.filter { !$0.isEmpty })
             let pruned = Set(neverLink.map { NamesMerge.matchKey($0) })
 
             var f: [String: Person] = [:]
@@ -170,14 +177,14 @@ enum Sanitiser {
                 if !short.isEmpty {
                     for link in existingLinks.dropFirst().reversed() { text = nsReplace(text, link.range, with: short) }
                 }
-            } else if let first = firstSafeMatch(of: linkAliases, in: text) {
+            } else if let first = firstSafeMatch(of: linkAliases, in: text, roster: ov.rosterWords) {
                 text = nsReplace(text, first.range, with: linkText + possText(first, in: text))
                 isLinked = true
             }
             if isLinked { linkedKeys.insert(canonKey.lowercased()) }
 
             guard isLinked, !short.isEmpty else { continue }
-            text = demoteMentions(of: unambiguous, to: short, in: text)
+            text = demoteMentions(of: unambiguous, to: short, in: text, roster: ov.rosterWords)
         }
 
         let suggested = suggestedOccurrences(in: text, overrides: ov, linkedKeys: linkedKeys)
@@ -190,12 +197,12 @@ enum Sanitiser {
     /// inside a link nor a non-prose span (e.g. a leading audiobook quote), then the earliest of
     /// those. `prot` = `nonProseRanges(in: text)` when the caller already has it.
     static func firstSafeMatch(of aliases: [String], in text: String,
-                               prot: [NSRange]? = nil) -> NSTextCheckingResult? {
+                               prot: [NSRange]? = nil, roster: Set<String>) -> NSTextCheckingResult? {
         guard !aliases.isEmpty else { return nil }
         let prot = prot ?? nonProseRanges(in: text)
         var earliest: NSTextCheckingResult?
-        for rx in aliases.compactMap({ wordRegex($0) }) {
-            for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
+        for alias in aliases {
+            for m in matches(of: alias, in: text, roster: roster) where eligible(text, m.range.location, prot) {
                 if earliest == nil || m.range.location < earliest!.range.location { earliest = m }
                 break
             }
@@ -206,11 +213,12 @@ enum Sanitiser {
     /// Every eligible mention of `aliases` in `text` becomes `replacement` (the possessive stays
     /// outside it). The caller picks the string: `process` the short name, `linkInline` the short
     /// or, with none defined, the canonical.
-    static func demoteMentions(of aliases: [String], to replacement: String, in text: String) -> String {
+    static func demoteMentions(of aliases: [String], to replacement: String, in text: String,
+                               roster: Set<String>) -> String {
         var text = text
         let prot = nonProseRanges(in: text)
-        for rx in aliases.compactMap({ wordRegex($0) }) {
-            for m in rx.matches(in: text, range: fullRange(text)).reversed() {
+        for alias in aliases {
+            for m in matches(of: alias, in: text, roster: roster).reversed() {
                 if !eligible(text, m.range.location, prot) { continue }
                 text = nsReplace(text, m.range, with: replacement + possText(m, in: text))
             }
@@ -257,6 +265,9 @@ enum Sanitiser {
             guard let rx = try? NSRegularExpression(pattern: pattern) else { continue }
             for m in rx.matches(in: text, range: fullRange(text)) { ranges.append(m.range) }
         }
+        // Inline `#tags` (C260): a tag is one token, so a name inside it (`#Wim`, `#work/wim`) is
+        // never linked, demoted or suggested — that would split the tag into `#[[Name]]`.
+        for m in tagRegex.matches(in: text, range: fullRange(text)) { ranges.append(m.range) }
         // Memo↔memo links: an alias inside a link TITLE must never be
         // name-linked (nested [[…]] would corrupt the syntax).
         for occ in MemoLinkSyntax.occurrences(in: text) { ranges.append(occ.range) }
@@ -282,13 +293,68 @@ enum Sanitiser {
     /// fresh NSRegularExpression per alias. NSCache = thread-safe.
     static let wordRegexCache = NSCache<NSString, NSRegularExpression>()
 
+    /// An Obsidian inline tag: `#` not glued to a preceding word character, then tag characters.
+    /// A `# heading` (space after the hash) is not a tag.
+    static let tagRegex = try! NSRegularExpression(pattern: #"(?<![\p{L}\p{N}_&])#[\p{L}\p{N}_\-/]+"#)
+
+    /// The alias with diacritics and case dropped — the one fold every "same name?" comparison
+    /// uses (Ines/Inés, Månsson/Mansson). Both sides fold, so the match works both ways.
+    static func fold(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespaces)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+    }
+
+    /// base letter (lowercase) → every Latin letter that folds to it (À…ɏ, Ḁ…ỿ), built once.
+    static let diacriticVariants: [Character: String] = {
+        var out: [Character: String] = [:]
+        for range in [0x00C0...0x024F, 0x1E00...0x1EFF] {
+            for v in range {
+                guard let u = Unicode.Scalar(v) else { continue }
+                let ch = String(Character(u))
+                let f = ch.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+                guard f.count == 1, let base = f.first, base != Character(ch.lowercased()) else { continue }
+                out[base, default: ""] += ch.lowercased()
+            }
+        }
+        return out
+    }()
+
+    /// Regex source for `alias`: every letter also matches its accented variants (composed, or
+    /// followed by a combining mark), so an accented alias matches plain text and the reverse.
+    static func foldedPattern(_ alias: String) -> String {
+        let plain = alias.folding(options: [.diacriticInsensitive], locale: nil)
+        var out = ""
+        for ch in plain {
+            let lower = Character(String(ch).lowercased())
+            if ch.isLetter, let extra = diacriticVariants[lower] {
+                out += "(?:[" + NSRegularExpression.escapedPattern(for: String(lower) + extra) + "]\\p{M}*)"
+            } else {
+                out += NSRegularExpression.escapedPattern(for: String(ch))
+            }
+        }
+        return out
+    }
+
     static func wordRegex(_ alias: String) -> NSRegularExpression? {
         let key = alias as NSString
         if let hit = wordRegexCache.object(forKey: key) { return hit }
-        let pat = "\\b\(NSRegularExpression.escapedPattern(for: alias))\\b\(possPattern)"
+        let pat = "\\b\(foldedPattern(alias))\(possPattern)"
         guard let rx = try? NSRegularExpression(pattern: pat, options: [.caseInsensitive]) else { return nil }
         wordRegexCache.setObject(rx, forKey: key)
         return rx
+    }
+
+    /// Every match of `alias` in `text`, minus the Dutch bare-`s` ones that spell another roster
+    /// alias ("Wims" is its own person when Wims is on the roster, not Wim's). `roster` =
+    /// `Overrides.rosterWords`.
+    static func matches(of alias: String, in text: String, roster: Set<String>) -> [NSTextCheckingResult] {
+        guard let rx = wordRegex(alias) else { return [] }
+        return rx.matches(in: text, range: fullRange(text)).filter { m in
+            let poss = m.range(withName: "poss")
+            guard poss.location != NSNotFound, poss.length == 1,
+                  nsSub(text, poss.location, poss.location + 1).lowercased() == "s" else { return true }
+            return !roster.contains(fold(nsSub(text, m.range.location, m.range.location + m.range.length)))
+        }
     }
 
     static func possText(_ m: NSTextCheckingResult, in text: String) -> String {

@@ -47,9 +47,11 @@ extension Sanitiser {
         // Drop a trailing possessive from a recorded occurrence's range (the
         // `suggestedOccurrences` length INCLUDES the `'s`), so the span text is the bare
         // spoken word and the resolution key is clean.
-        func stripPoss(offset: Int, length: Int) -> NSRange {
+        func stripPoss(offset: Int, length: Int, alias: String) -> NSRange {
             let s = nsSub(raw, offset, offset + length) as NSString
-            for suffix in ["'s", "\u{2019}s"] where s.hasSuffix(suffix) {
+            // A span that IS the alias (Chris, ending in a real `s`) has no possessive to strip.
+            if fold(s as String) == fold(alias) { return NSRange(location: offset, length: length) }
+            for suffix in ["'s", "\u{2019}s", "s", "S"] where s.hasSuffix(suffix) {
                 return NSRange(location: offset, length: length - (suffix as NSString).length)
             }
             return NSRange(location: offset, length: length)
@@ -72,7 +74,7 @@ extension Sanitiser {
                 linkedKeys.insert(canonKey.lowercased())
                 continue
             }
-            guard let m = firstSafeMatch(of: linkAliases, in: raw, prot: prot) else { continue }
+            guard let m = firstSafeMatch(of: linkAliases, in: raw, prot: prot, roster: ov.rosterWords) else { continue }
             let r = nameOnly(m)
             let shownAlias = nsSub(raw, r.location, r.location + r.length)
             let cands = sharers(of: shownAlias)
@@ -87,7 +89,7 @@ extension Sanitiser {
         // is the SURFACE form (`Jack`, not `jack`), so read it back from the raw text
         // (possessive stripped).
         for occ in suggestedOccurrences(in: raw, overrides: ov, linkedKeys: linkedKeys) {
-            let r = stripPoss(offset: occ.offset, length: occ.length)
+            let r = stripPoss(offset: occ.offset, length: occ.length, alias: occ.alias)
             spans.append(NameSpan(offset: r.location, length: r.length,
                                   alias: nsSub(raw, r.location, r.location + r.length),
                                   tier: occ.candidates.count >= 2 ? .ambiguous : .suggested,
@@ -102,9 +104,9 @@ extension Sanitiser {
         for (rawAlias, canon) in namePicks where canon.trimmingCharacters(in: .whitespaces).isEmpty {
             let alias = rawAlias.trimmingCharacters(in: .whitespaces)
             let cands = sharers(of: alias)
-            guard !cands.isEmpty, let rx = wordRegex(alias) else { continue }
-            for m in rx.matches(in: raw, range: fullRange(raw)) where eligible(raw, m.range.location, prot) {
-                let r = stripPoss(offset: m.range.location, length: m.range.length)
+            guard !cands.isEmpty else { continue }
+            for m in matches(of: alias, in: raw, roster: ov.rosterWords) where eligible(raw, m.range.location, prot) {
+                let r = stripPoss(offset: m.range.location, length: m.range.length, alias: alias)
                 spans.append(NameSpan(offset: r.location, length: r.length,
                                       alias: nsSub(raw, r.location, r.location + r.length),
                                       tier: .plain, canonical: nil, candidates: cands.map(candidate)))

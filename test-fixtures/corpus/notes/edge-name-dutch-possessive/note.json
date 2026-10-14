@@ -1,0 +1,58 @@
+{
+  "id": "1CF7D574-67BF-518E-B6B4-9BE331DE6AC7",
+  "slug": "edge-name-dutch-possessive",
+  "kind": "typed",
+  "lang": "nl",
+  "shape": ["typed", "dutch", "name-matching", "possessive"],
+  "title": null,
+  "recordedAt": "2026-10-14T09:00:00+02:00",
+  "createdAt": "2026-10-14T09:00:00+02:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Wims auto stond voor de deur en Lottes fiets lag ernaast.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": { "capturedAt": "2026-10-14T09:00:00+02:00", "tags": [], "mediaSource": "typed" },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "_schema": "Q419 (C255/R69), read by NameMatcherEdgeTests. Each case runs Sanitiser.process over `text` with `roster` (default: `roster` below) and must produce exactly `sanitised`; `ambiguous` is the expected count of suggested/ambiguous occurrences (default 0). The bare possessive `s` stays OUTSIDE the link, like `'s`.",
+    "roster": [
+      { "canonical": "[[Wim Jansen]]", "aliases": ["Wim"], "short": "Wim" },
+      { "canonical": "[[Lotte Vos]]", "aliases": ["Lotte"], "short": "Lotte" }
+    ],
+    "cases": [
+      { "name": "bare s links like Wim's", "text": "Wims auto stond voor de deur.", "sanitised": "[[Wim Jansen]]s auto stond voor de deur." },
+      { "name": "apostrophe form still works", "text": "Wim's auto stond voor de deur.", "sanitised": "[[Wim Jansen]]'s auto stond voor de deur." },
+      { "name": "two people, both bare", "text": "Wims auto stond voor de deur en Lottes fiets lag ernaast.", "sanitised": "[[Wim Jansen]]s auto stond voor de deur en [[Lotte Vos]]s fiets lag ernaast." },
+      { "name": "later bare possessive demotes to the short name", "text": "Wim zag Wims auto.", "sanitised": "[[Wim Jansen]] zag Wims auto." },
+      { "name": "a longer word is not a possessive", "text": "Wimsey kwam langs.", "sanitised": "Wimsey kwam langs." },
+      {
+        "name": "a word that is itself a roster alias is its own person",
+        "text": "Wims auto stond voor de deur.",
+        "roster": [
+          { "canonical": "[[Wim Jansen]]", "aliases": ["Wim"], "short": "Wim" },
+          { "canonical": "[[Wims Barkley]]", "aliases": ["Wims"], "short": "Wims" }
+        ],
+        "sanitised": "[[Wims Barkley]] auto stond voor de deur."
+      }
+    ]
+  }
+}
