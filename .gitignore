@@ -95,6 +95,8 @@ test-fixtures/*
 !test-fixtures/podcasts/
 # Q355: two saved article pages + one video page (hand-written, small) the phone article tests parse.
 !test-fixtures/articles/
+# Q458 (D213): generated real-shaped PDFs + their expected reading text (generate.py, synthetic).
+!test-fixtures/pdf/
 
 # Archived old apps (post-convergence move 2026-06) — re-ignore the build
 # artifacts + personal config that the anchored root patterns above no longer

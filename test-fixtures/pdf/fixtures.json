@@ -1,0 +1,31 @@
+{
+  "_schema": "fixture -> {leaks: strings (running header, footer, page number) that must not appear in the reading view}. Written by generate.py.",
+  "book-page": {
+    "leaks": []
+  },
+  "figure-caption": {
+    "leaks": []
+  },
+  "report-headers": {
+    "leaks": [
+      "Harbour Survey Annual Report 2025",
+      "Draft for board review",
+      "Page 1 of 2",
+      "Page 2 of 2"
+    ]
+  },
+  "scanned-page": {
+    "leaks": []
+  },
+  "table-5col": {
+    "leaks": []
+  },
+  "two-column-paper": {
+    "leaks": [
+      "Journal of Quiet Harbours 7 (2025)",
+      "Okafor and Velde",
+      "113",
+      "114"
+    ]
+  }
+}
