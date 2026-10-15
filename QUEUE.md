@@ -3278,7 +3278,7 @@ gate+: yes
 do: Tuur rejected Q424's all-or-nothing gate (D209): a model that drops a small word is the price of having a model. Loosen `CopyEditV2Gate` in `Skrift_Native/Shared/CopyEditV2/`: ship the model's edit even when it drops ordinary words; ship the original words unedited ONLY when the edit translates (language flip), loses a name or a number, invents a proper noun, re-paragraphs a typed note, or the C33 shrink guard fires. Keep fillers um/uh/eh removable. Re-run the harness, update `expected-differences-copyedit-v2.json` (still 0 unexplained; the code-switch translation must still be caught), and rewrite `plan/reads/copyedit-v2.md` so it lists which notes now ship the model's edit and which still fall back, with why.
 check: `grep -q 'D209' plan/reads/copyedit-v2.md`
 
-### Q450 [auto] (doing) flip the two stale phone tests Tuur approved (Q442)
+### Q450 [auto] (done) flip the two stale phone tests Tuur approved (Q442)
 spec: C261 D171 D163
 needs: -
 do: Tuur said yes (Q442, 2026-10-15). In `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` change `testClearingBodyCommitsNilTranscript` to assert the C261 behaviour (clearing the body does NOT commit nil; the prior transcript stays, e.g. `XCTAssertEqual(coordinator.memo.transcript, "hello world")`), and in `AudioShareDrainTests.swift` change `testTextFileBecomesNoteBody` to expect the D171 typed-note shape for a shared .md. Touch nothing else. Report needs hand-merge: both files.
@@ -4866,3 +4866,4 @@ check: `plan/mtest.sh ShareSheetSenderTests`
 - 2026-10-15 09:08 Q454 -> doing — worker out
 - 2026-10-15 09:10 Q455 -> done — Tuur 2026-10-15: beautiful — pick A, rows below
 - 2026-10-15 09:10 Q464 added
+- 2026-10-15 09:26 Q450 -> done — hand-merged (Tuur approved both flips on Q442 (2026-10-15))
