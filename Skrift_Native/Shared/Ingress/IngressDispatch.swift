@@ -166,11 +166,26 @@ enum IngressDispatch {
     /// (`signal-2024-10-03-120001`), Telegram (`voice_1`, `audio_2024-10-03_12-00-01`),
     /// Messenger (`audioclip1234567890`), Skrift's own temp copies (`shared_<uuid>`,
     /// `capture_<uuid>`, `shared_import_…`) and any name carrying a UUID.
-    static let machineNamePatterns: [String] = [
+    /// The names a MESSENGER gives a shared file (WhatsApp, Signal, Telegram). Q464 / C123: a
+    /// share carrying one is from a chat, so the share sheet offers its "From" row.
+    static let messengerNamePatterns: [String] = [
         #"^(PTT|AUD|VID|IMG|DOC|STK)-\d{8}-WA\d+"#,
         #"^WhatsApp (Audio|Ptt|Voice|Video|Image)\b"#,
         #"^signal-\d{4}-\d{2}-\d{2}"#,
         #"^(voice([\s_-]?(message|note|memo))?|audio([\s_-]?(message|clip|file))?|ptt|msg|telegram|file)[\s_.-]*[\d\s_.-]*$"#,
+    ]
+
+    /// True when a shared file's original name is a messenger's (`messengerNamePatterns`).
+    static func isMessengerFileName(_ fileName: String?) -> Bool {
+        guard var name = fileName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return false }
+        let ext = (name as NSString).pathExtension
+        if !ext.isEmpty, ext.count <= 5, !ext.contains(" ") { name = (name as NSString).deletingPathExtension }
+        return messengerNamePatterns.contains {
+            name.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil
+        }
+    }
+
+    static let machineNamePatterns: [String] = messengerNamePatterns + [
         #"^(shared|capture|shared_import|shared_import_img)_"#,
         #"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"#,
     ]

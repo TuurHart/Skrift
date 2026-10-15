@@ -1,21 +1,20 @@
 import SwiftUI
 
-/// Terminal feedback states of the share extension (mock `share-ingest-wave1.html`
-/// state 4, signed 2026-07-10):
-/// - **Saved ✓** — every successful share flashes proof before the sheet closes
-///   (the old instant close looked identical to a failure);
-/// - **Couldn't save** — failures used to close silently and the item was just
-///   *gone*; now they say so, with a retry when one is possible;
-/// - **Can't import** — unknown payloads used to fall into an EMPTY text sheet
-///   whose Save minted a husk note (A16); now they get an honest dead end;
-/// - **Already in Skrift** — the same bytes were shared before (C127, Q440): that
-///   note is the share, nothing new is saved.
+/// The share extension's full screens where nothing new is saved (Q464, mock
+/// `mocks/Q455-share-sheet.html`), in the sheet's calm look:
+/// - **Already in Skrift** — the same bytes were shared before (C127): the note it already is,
+///   drawn as a notes-list row, and Done;
+/// - **Can't import** — the standard iOS empty state (C75: never a husk);
+/// - **Couldn't save** — a failed write, the same empty state with Try again;
+/// - **Saved** — only the book hand-off (no sheet) still flashes this before closing; every
+///   other save shows its receipt in place on the sheet.
 struct ShareFeedbackView: View {
     enum Kind {
         case saved(summary: String)
         case error(message: String, canRetry: Bool)
         case unsupported(detail: String)
-        case alreadyInSkrift
+        /// The note these bytes became: its title and its list line, when the app has seen it.
+        case alreadyInSkrift(title: String?, line: String?)
     }
 
     let kind: Kind
@@ -23,125 +22,112 @@ struct ShareFeedbackView: View {
     let onClose: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ShareTheme.backdrop
-                .ignoresSafeArea()
-            card
-        }
-        .preferredColorScheme(.dark)
-    }
-
-    private var card: some View {
         VStack(spacing: 0) {
-            icon
-                .padding(.top, 26)
-                .padding(.bottom, 12)
-            Text(title)
-                .font(.system(size: 15.5, weight: .bold))
-                .foregroundStyle(Color.skText)
-                .padding(.bottom, 5)
-            Text(subtitle)
-                .font(.system(size: 12))
-                .foregroundStyle(Color.skTextDim)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 18)
-            buttons
-                .padding(.bottom, 18)
+            ShareNavBar {
+                if case .error(_, true) = kind {
+                    Button("Cancel", action: onClose)
+                        .buttonStyle(ShareNavButtonStyle(kind: .glass))
+                        .accessibilityIdentifier("share-feedback-cancel")
+                }
+            } trailing: {
+                trailing
+            }
+            content
         }
-        .frame(maxWidth: .infinity)
-        .shareSheetSurface()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.skBg.ignoresSafeArea())
         .accessibilityIdentifier("share-feedback-\(a11yKind)")
     }
 
-    // MARK: - Pieces
-
-    @ViewBuilder private var icon: some View {
+    @ViewBuilder private var trailing: some View {
         switch kind {
         case .saved:
-            stateCircle(color: .green) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 20, weight: .bold))
+            HStack(spacing: 5) {
+                Image(systemName: "checkmark").font(.system(size: 14, weight: .bold))
+                Text("Saved")
             }
-        case .error:
-            stateCircle(color: .red) {
-                Image(systemName: "exclamationmark")
-                    .font(.system(size: 20, weight: .bold))
-            }
-        case .unsupported:
-            stateCircle(color: Color.skTextDim) {
-                Image(systemName: "nosign")
-                    .font(.system(size: 19, weight: .semibold))
-            }
-        case .alreadyInSkrift:
-            stateCircle(color: Color.skAccent) {
-                Image(systemName: "doc.on.doc")
-                    .font(.system(size: 19, weight: .semibold))
-            }
-        }
-    }
-
-    private func stateCircle(color: Color, @ViewBuilder content: () -> some View) -> some View {
-        Circle()
-            .fill(color.opacity(0.14))
-            .frame(width: 52, height: 52)
-            .overlay(content().foregroundStyle(color))
-    }
-
-    private var title: String {
-        switch kind {
-        case .saved: return "Saved to Skrift"
-        case .error: return "Couldn't save this"
-        case .unsupported: return "Skrift can't import this"
-        case .alreadyInSkrift: return "Already in Skrift"
-        }
-    }
-
-    private var subtitle: String {
-        switch kind {
-        case .saved(let summary):
-            return summary + "\nSkrift opens on it next time"
-        case .error(let message, _):
-            return message + "\nNothing was saved."
-        case .unsupported(let detail):
-            return detail
-        case .alreadyInSkrift:
-            return "You shared this file before, so it's the same note.\nNothing new was saved."
-        }
-    }
-
-    @ViewBuilder private var buttons: some View {
-        switch kind {
-        case .saved:
-            // Auto-dismisses (~0.9 s) — no buttons; the flash IS the receipt.
-            EmptyView()
+            .modifier(StaticNavButton(kind: .done))
         case .error(_, let canRetry):
-            HStack(spacing: 8) {
-                feedbackButton("Cancel", prominent: false, action: onClose)
-                    .accessibilityIdentifier("share-feedback-cancel")
-                if canRetry {
-                    feedbackButton("Try again", prominent: true, action: onRetry)
-                        .accessibilityIdentifier("share-feedback-retry")
+            if canRetry {
+                Button("Try again", action: onRetry)
+                    .buttonStyle(ShareNavButtonStyle(kind: .primary))
+                    .accessibilityIdentifier("share-feedback-retry")
+            } else {
+                doneButton
+            }
+        case .unsupported, .alreadyInSkrift:
+            doneButton
+        }
+    }
+
+    private var doneButton: some View {
+        Button("Done", action: onClose)
+            .buttonStyle(ShareNavButtonStyle(kind: .glass))
+            .accessibilityIdentifier("share-feedback-close")
+    }
+
+    @ViewBuilder private var content: some View {
+        switch kind {
+        case .alreadyInSkrift(let title, let line):
+            VStack(alignment: .leading, spacing: 8) {
+                Text("ALREADY IN SKRIFT")
+                    .font(.system(size: 13))
+                    .tracking(0.26)
+                    .foregroundStyle(Color.skTextDim)
+                    .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
+                    .accessibilityAddTraits(.isHeader)
+                ShareCard {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title ?? "A note in Skrift")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                        Text(line ?? "Waiting for Skrift to open")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("share-already-row")
                 }
+                ShareFooter(text: "You shared this file before, so it's the same note. Nothing new was saved.")
             }
             .padding(.horizontal, 16)
-        case .unsupported, .alreadyInSkrift:
-            feedbackButton("Close", prominent: false, action: onClose)
-                .frame(maxWidth: 140)
-                .accessibilityIdentifier("share-feedback-close")
+            .padding(.top, 6)
+        case .saved(let summary):
+            emptyState(symbol: "checkmark.circle", tint: .skGreen, title: "Saved to Skrift",
+                       detail: summary + ". Skrift opens on it next time.")
+        case .error(let message, _):
+            emptyState(symbol: "exclamationmark.triangle", tint: .skTextFaint, title: "Couldn't save this",
+                       detail: message + " Nothing was saved.")
+        case .unsupported(let detail):
+            emptyState(symbol: "nosign", tint: .skTextFaint, title: "Skrift can't import this", detail: detail)
         }
     }
 
-    private func feedbackButton(_ label: String, prominent: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 13.5, weight: .bold))
-                .foregroundStyle(prominent ? .white : Color.skTextDim)
-                .frame(maxWidth: .infinity)
-                .frame(height: 42)
-                .background(prominent ? Color.skAccent : Color.white.opacity(0.06),
-                            in: .rect(cornerRadius: 12, style: .continuous))
+    /// The standard iOS empty state: a grey symbol, one title, one line.
+    private func emptyState(symbol: String, tint: Color, title: String, detail: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 50, weight: .regular))
+                .foregroundStyle(tint)
+                .padding(.bottom, 6)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(Color.skText)
+                .multilineTextAlignment(.center)
+            Text(detail)
+                .font(.system(size: 15))
+                .foregroundStyle(Color.skTextDim)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.horizontal, 40)
+        .padding(.bottom, 120)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var a11yKind: String {
@@ -151,5 +137,18 @@ struct ShareFeedbackView: View {
         case .unsupported: return "unsupported"
         case .alreadyInSkrift: return "already"
         }
+    }
+}
+
+/// A nav-bar badge that looks like the button but takes no taps (the green Saved).
+private struct StaticNavButton: ViewModifier {
+    let kind: ShareNavButtonStyle.Kind
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(Color.skGreen, in: .capsule)
     }
 }
