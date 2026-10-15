@@ -14,6 +14,10 @@ struct ShareLedger {
     struct Row: Codable, Equatable {
         var fingerprint: String
         var id: UUID
+        /// Q464: the note's title and its notes-list line, refreshed by the app on every drain so
+        /// the "Already in Skrift" screen can draw the note it already is. nil until the app saw it.
+        var title: String? = nil
+        var line: String? = nil
     }
 
     /// Newest last; the oldest rows fall off past this.
@@ -35,7 +39,25 @@ struct ShareLedger {
 
     /// The note an earlier share of these exact bytes made, or nil.
     func existing(_ fingerprint: String) -> UUID? {
-        rows().last { $0.fingerprint == fingerprint }?.id
+        existingRow(fingerprint)?.id
+    }
+
+    func existingRow(_ fingerprint: String) -> Row? {
+        rows().last { $0.fingerprint == fingerprint }
+    }
+
+    /// Q464: refresh each row's title + list line from its note (`describe` answers nil for a
+    /// row whose note the app has not made yet; that row keeps what it had).
+    func describe(_ describe: (UUID) -> (title: String, line: String)?) {
+        let all = rows()
+        let next = all.map { row -> Row in
+            guard let d = describe(row.id) else { return row }
+            var r = row
+            r.title = d.title
+            r.line = d.line
+            return r
+        }
+        if next != all { write(next) }
     }
 
     @discardableResult

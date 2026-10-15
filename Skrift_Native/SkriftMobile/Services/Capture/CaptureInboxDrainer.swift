@@ -250,6 +250,23 @@ enum CaptureInboxDrainer {
         }
         CaptureDrainState.shared.end()
         pruneShareLedger(repository: repository)
+        mirrorRosterForShareSheet()
+    }
+
+    /// C123 / D37 (Q464): the share sheet's From row autocompletes from the roster, but the
+    /// extension cannot read `names.json`, so every drain mirrors the live NAMES (canonical +
+    /// aliases, nothing else) into the App Group.
+    static func mirrorRosterForShareSheet(people: [Person] = NamesStore.shared.livePeople()) {
+        let names = people.filter { !$0.isDeleted }
+            .map { ShareRosterName(name: $0.displayName, aliases: $0.aliases) }
+        ShareRosterSnapshot.write(names, container: CaptureInbox.containerURL)
+    }
+
+    /// C123 (Q464): an audio or video note carries the sender in its lead text (the annotation
+    /// that leads the note above the transcript), as a person mention.
+    static func applySender(_ entry: CaptureInboxEntry, to memo: Memo) {
+        guard ShareSender.clean(entry.senderName) != nil else { return }
+        memo.annotationText = ShareSender.appending(entry.senderName, to: memo.annotationText)
     }
 
     /// C127 (Q440): a ledger row whose note is gone (deleted, or never made) is dropped, so the
@@ -258,6 +275,13 @@ enum CaptureInboxDrainer {
         guard let ledger = ShareLedger.inContainer(CaptureInbox.containerURL) else { return }
         let pending = Set(CaptureInbox.pendingEntries().map(\.entry.id))
         ledger.prune { pending.contains($0) || repository.memo(id: $0) != nil || libraryStore.book(id: $0) != nil }
+        // Q464: the "Already in Skrift" screen draws the note as a notes-list row.
+        ledger.describe { id in
+            guard let memo = repository.memo(id: id) else { return nil }
+            let snippet = (memo.isShareCapture ? memo.shareCaptureSnippet : memo.firstTranscriptLine) ?? ""
+            let date = memo.recordedAt.formatted(.dateTime.day().month(.abbreviated))
+            return (memo.displayTitle, snippet.isEmpty ? date : "\(date)  \(snippet)")
+        }
     }
 
     /// D171 (Q286): the typed note a shared `.md` becomes. Body = the file (a typed thought from
@@ -327,6 +351,7 @@ enum CaptureInboxDrainer {
                         if let thought = entry.annotationText, !thought.isEmpty {
                             memo.annotationText = thought
                         }
+                        applySender(entry, to: memo)
                         if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()
                     }
@@ -479,6 +504,7 @@ enum CaptureInboxDrainer {
                         if let chat = MixedBundle.annotation(fromTexts: [entry.text ?? ""]) {
                             memo.annotationText = chat
                         }
+                        applySender(entry, to: memo)
                         // The sheet's significance circles apply to the imported memo.
                         if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()
@@ -695,6 +721,7 @@ enum CaptureInboxDrainer {
             let memo = typedNoteMemo(id: memoID, markdown: markdownBody,
                                      fileName: entry.fileDisplayName ?? entry.fileName ?? "",
                                      thought: entry.annotationText, significance: entry.significance)
+            memo.transcript = ShareSender.appending(entry.senderName, to: memo.transcript)
             repository.insert(memo)
             CaptureInbox.delete(entryDir: entryDir)
             return memoID
@@ -822,6 +849,8 @@ enum CaptureInboxDrainer {
         if !emailEntries.isEmpty {
             annotation = NoteAttachment.appendingMarkers(to: annotation, entries: emailEntries)
         }
+        // C123 (Q464): the sender is a person mention in the body like any other.
+        annotation = ShareSender.appending(entry.senderName, to: annotation) ?? ""
 
         let memo = Memo.make(
             id: memoID,
