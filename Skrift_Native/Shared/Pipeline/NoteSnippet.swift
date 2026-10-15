@@ -8,7 +8,7 @@ enum NoteSnippet {
     /// Q361 (M9): the five patterns are compiled ONCE (they were recompiled on every call, five
     /// times per row, over the whole body).
     private static let rules: [(NSRegularExpression, String)] = [
-        (#"\[\[img_\d+\]\]"#, ""),                                    // picture marker
+        (#"\[\[(?:img|vid|file)_\d+\]\]"#, ""),                       // picture / video / file block (Q454)
         (#"\[\[memo:[0-9A-Fa-f\-]{36}\|([^\]\n]*)\]\]"#, "$1"),         // memo link → its title
         (#"\[\[([^\]\|\n]*)\|([^\]\n]*)\]\]"#, "$2"),                   // [[Canonical|spoken]] → spoken
         (#"\[\[([^\]\n]*)\]\]"#, "$1"),                                 // [[Name]] → Name

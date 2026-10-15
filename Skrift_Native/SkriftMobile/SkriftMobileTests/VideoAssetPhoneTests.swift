@@ -62,9 +62,9 @@ final class VideoAssetPhoneTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: recordings(name)), try Data(contentsOf: source),
                        "the user's own file is copied, byte for byte")
         XCTAssertTrue(fm.fileExists(atPath: source.path), "the source is never moved or deleted")
-        // Still a normal note: audio, frame, transcript.
+        // Still a normal note: audio, transcript, and the movie as its one video block (D210).
         XCTAssertEqual(repo.memo(id: id)?.metadata?.sourceType, MemoMetadata.Source.video)
-        XCTAssertEqual(repo.memo(id: id)?.metadata?.imageManifest?.count, 1)
+        XCTAssertEqual(repo.memo(id: id)?.metadata?.attachmentManifest?.map(\.filename), [name])
     }
 
     func testAMovieOverTheCapIsRefused() async throws {

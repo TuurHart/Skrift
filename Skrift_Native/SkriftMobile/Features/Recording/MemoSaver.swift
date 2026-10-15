@@ -333,11 +333,25 @@ struct MemoSaver {
         if let f = try? AVAudioFile(forReading: dest) {
             duration = f.seconds
         }
-        DevLog.log("processVideo[\(id)] duration=\(duration); grabbing frame")
+        // C63 / C148 / D172: keep the movie beside the memo (a copy: the user's own file is
+        // never touched). Over the cap it is refused - the note and transcript stay, the movie
+        // does not (the share card said so before the import, `VideoKeep.tooLargeMessage`).
+        let keptName = await Self.keepMovie(source: source, memoID: id)
 
-        // One representative frame → photo_<id>_001.jpg → [[img_001]] at offset 0.
+        // D210: the kept movie IS the note's inline video attachment (its frame is the block's
+        // poster, never a photo card); `runTranscription` puts its marker at the top. Only a
+        // movie that could not be kept falls back to one frame as a picture, so the note still
+        // shows what was filmed.
         var manifest: [ImageManifestEntry] = []
-        if let frame = await Self.representativeFrame(of: asset) {
+        var attachments: [NoteAttachmentEntry] = []
+        if let keptName {
+            let kept = AppPaths.recordingsDirectory.appendingPathComponent(keptName)
+            attachments.append(NoteAttachment.keptMovieEntry(
+                filename: keptName, originalName: IngressDispatch.shownVideoName(source),
+                byteCount: Int(VideoKeep.byteCount(of: kept) ?? 0),
+                durationSeconds: NoteAttachment.videoDuration(of: kept) ?? (duration > 0 ? duration : nil)))
+        } else if let frame = await Self.representativeFrame(of: asset) {
+            // One representative frame → photo_<id>_001.jpg → [[img_001]] at offset 0.
             let photoName = "photo_\(id.uuidString)_001.jpg"
             let photoDest = AppPaths.recordingsDirectory.appendingPathComponent(photoName)
             try? FileManager.default.removeItem(at: photoDest)
@@ -345,7 +359,7 @@ struct MemoSaver {
                 manifest.append(ImageManifestEntry(filename: photoName, offsetSeconds: 0))
             }
         }
-        DevLog.log("processVideo[\(id)] frame done; manifest=\(manifest.count)")
+        DevLog.log("processVideo[\(id)] duration=\(duration); kept=\(keptName ?? "nil") frames=\(manifest.count)")
 
         guard let memo = repository.memo(id: id) else {
             DevLog.log("processVideo[\(id)] memo GONE after extract (something deleted it)")
@@ -354,15 +368,13 @@ struct MemoSaver {
         memo.recordedAt = recorded
         memo.duration = duration
         // Mark the source as video (the first entry of the unified source taxonomy)
-        // so the list row shows a video glyph — set ALWAYS, even when no frame was
-        // grabbed (a silent/odd clip), preserving the frame manifest when present.
+        // so the list row shows a video glyph — set ALWAYS, even when no movie or frame
+        // was kept (a silent/odd clip).
         var meta = memo.metadata ?? MemoMetadata()
         meta.sourceType = MemoMetadata.Source.video
         if !manifest.isEmpty { meta.imageManifest = manifest }
-        // C63 / C148 / D172: keep the movie beside the memo (a copy: the user's own file is
-        // never touched). Over the cap it is refused - the note and transcript stay, the movie
-        // does not (the share card said so before the import, `VideoKeep.tooLargeMessage`).
-        meta.videoFilename = await Self.keepMovie(source: source, memoID: id)
+        if !attachments.isEmpty { meta.attachmentManifest = attachments }
+        meta.videoFilename = keptName
         memo.metadata = meta
         repository.save()
         DevLog.log("processVideo[\(id)] memo updated; recordedAt=\(recorded) now=\(Date()) → transcribe")
@@ -915,10 +927,12 @@ struct MemoSaver {
             // Body v2 (C10, C20): speech paragraphs first, then every picture as its own
             // paragraph placed from its moment (D140). Karaoke is newline-aware, so
             // word-timing alignment holds. `.speech` only with real word times.
-            memo.transcript = text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
+            // D210: a video note's movie leads the body as its inline video block.
+            memo.transcript = NoteAttachment.leadingKeptMovie(text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
                 text: storedText, words: storedTimings, manifest: manifest,
                 source: storedTimings.isEmpty ? .typed : .speech,
-                clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? [])))
+                clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? []))),
+                manifest: memo.metadata?.attachmentManifest ?? [])
             memo.transcriptConfidence = result.confidence
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done

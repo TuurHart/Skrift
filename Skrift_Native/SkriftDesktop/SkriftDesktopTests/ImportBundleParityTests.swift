@@ -253,7 +253,10 @@ final class ImportBundleParityTests: XCTestCase {
             .ingest(localURLs: [video], into: ctx)
         let pf = try XCTUnwrap(created.first)
         XCTAssertEqual(pf.mediaSource, "video")
-        XCTAssertEqual(try manifest(of: pf), [ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 0)])
+        // D210: its kept movie is its one inline video block; the frame is the poster, not a picture.
+        let folder = try XCTUnwrap(pf.workingFolder)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("image_manifest.json").path))
+        XCTAssertEqual(MacNoteAttachments.manifest(in: folder).map(\.kind), [NoteAttachment.Kind.video])
     }
 
     // MARK: - Include audio in export (setexp-92)
