@@ -122,7 +122,7 @@ struct MemoDetailView: View {
         }
         adoptDraftIfTyped()
         draft.leave(context: repository.context)
-        DispatchQueue.main.async { _ = draft.adoptIfTyped(context: NotesRepository.shared.context) }
+        Task { @MainActor in _ = draft.adoptIfTyped(context: NotesRepository.shared.context) }
     }
 
     /// Q381: a note with no audio (a share capture, an article/PDF quote note, a typed note) gets no
