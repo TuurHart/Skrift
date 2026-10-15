@@ -33,7 +33,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private var videoDevice: AVCaptureDevice?
     private var videoInput: AVCaptureDeviceInput?
     /// `videoZoomFactor` that frames display 1x on the active device (sessionQueue only).
-    private var zoomBase: CGFloat = 1
+    private nonisolated(unsafe) var zoomBase: CGFloat = 1
     private var lastCaptureAt: Date?
     /// Session inputs/outputs are built once; configure() after a stop() just
     /// restarts the session. Touched only on `sessionQueue`, like the session.
