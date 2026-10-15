@@ -26,7 +26,7 @@ enum ExportBody {
     /// DROPPED, never printed (C196).
     static func convertAttachmentMarkers(_ markdown: String, manifest: [NoteAttachmentEntry], stem: String,
                                          profile: ExportProfile,
-                                         poster: ((_ keptMovie: String, _ preferredName: String) -> String?)? = nil,
+                                         poster: (_ keptMovie: String, _ preferredName: String) -> String? = { _, _ in nil },
                                          place: (_ source: String, _ preferredName: String) -> String?)
         -> (markdown: String, placed: Int) {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
@@ -36,7 +36,7 @@ enum ExportBody {
         // answers the written name, nil = no frame), else it drops like a missing file's. Both engines.
         return NoteAttachment.convertMarkers(markdown, manifest: manifest, stem: stem, profile: profile) { source, preferred in
             NoteAttachment.isKeptMovie(source)
-                ? poster?(source, VideoExportFrame.exportName(stem: stem))
+                ? poster(source, VideoExportFrame.exportName(stem: stem))
                 : place(source, preferred)
         }
     }

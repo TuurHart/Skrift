@@ -282,13 +282,13 @@ struct ObsidianPublisher {
         // when this device has the movie to take the frame from, else the marker drops.
         var posterEmbed: String?
         let hasMovie = posterProvider != nil || movieProvider(memo) != nil
-        let posterPlace: ((String, String) -> String?)? = hasMovie ? { _, preferred in
-            posterEmbed = preferred
-            return preferred
-        } : nil
         let (converted, _) = ExportBody.convertAttachmentMarkers(
             photoConverted, manifest: attachmentEntries, stem: stem, profile: profile,
-            poster: posterPlace) { source, preferred in
+            poster: { _, preferred in
+                guard hasMovie else { return nil }
+                posterEmbed = preferred
+                return preferred
+            }) { source, preferred in
             guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
             attachmentPlan.append((entry, preferred))
             return preferred
