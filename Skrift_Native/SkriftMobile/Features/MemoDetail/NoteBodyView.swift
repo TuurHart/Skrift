@@ -1708,6 +1708,7 @@ struct NoteBodyView: UIViewRepresentable {
             refreshAccessory()
             detectLinkTrigger(tv)
             (tv as? NoteBodyTextView)?.setNeedsAccessoryLayout()
+            if tv.isFirstResponder { (tv as? NoteBodyTextView)?.followCaretWhileTyping() }   // Q466
             commitTask?.cancel()
             commitTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(1))
@@ -1717,6 +1718,7 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         func textViewDidEndEditing(_ tv: UITextView) {
+            (tv as? NoteBodyTextView)?.releaseTypingRoom()      // Q466
             commitDraft()
             if NoteEditorChrome.shared.current === self { NoteEditorChrome.shared.isEditing = false }
             if tv.inputView != nil {             // the next edit opens on the keyboard again
@@ -2308,7 +2310,7 @@ final class NoteBodyTextView: UITextView {
             footerHeight = ceil(footerHost.sizeThatFits(in: fit).height)
             let insets = UIEdgeInsets(top: baseTextInsets.top + headerHeight,
                                       left: baseTextInsets.left,
-                                      bottom: baseTextInsets.bottom + footerHeight,
+                                      bottom: baseTextInsets.bottom + footerHeight + typingRoom,
                                       right: baseTextInsets.right)
             if textContainerInset != insets {
                 // An inset write REFLOWS the whole text — if this fires while
@@ -2326,7 +2328,7 @@ final class NoteBodyTextView: UITextView {
         if headerHost.view.frame != headerFrame { headerHost.view.frame = headerFrame }
         // The text ends at contentSize.height − bottom inset; the footer sits in
         // the reserved bottom inset (no full-document layout pass needed).
-        let footerY = contentSize.height - baseTextInsets.bottom - footerHeight + 8
+        let footerY = contentSize.height - typingRoom - baseTextInsets.bottom - footerHeight + 8
         let footerFrame = CGRect(x: 0, y: max(footerY, headerHeight),
                                  width: width, height: footerHeight)
         if footerHost.view.frame != footerFrame { footerHost.view.frame = footerFrame }
@@ -2335,6 +2337,67 @@ final class NoteBodyTextView: UITextView {
         let probeFrame = CGRect(x: 0, y: textContainerInset.top, width: width, height: 1)
         if firstLineProbe.frame != probeFrame { firstLineProbe.frame = probeFrame }
         #endif
+    }
+
+    // MARK: typing scroll (Q466, mock Q452 option B)
+
+    /// Blank room added under the text (inside the text container inset, so it is CONTENT, not a
+    /// scroll-view inset: UITextView's own caret-follow treats `contentInset.bottom` as covered
+    /// screen and would scroll the text up out of view) while typing, so a SHORT note can still
+    /// scroll its header out. Returned when editing ends.
+    private(set) var typingRoom: CGFloat = 0
+
+    /// After an edit with the keyboard up: scroll the note so the header is out of the way and
+    /// the caret sits above the keyboard bar. Does nothing once the header is already off the top
+    /// (UIKit's own caret-follow then keeps the caret in view). `keyboardOverlap` is how far the
+    /// keyboard + its bar cover the bottom of this view (0 when SwiftUI already shrank the frame).
+    func followCaretWhileTyping(keyboardOverlap: CGFloat? = nil, animated: Bool = true) {
+        guard bounds.height > 0, let end = selectedTextRange?.end else { return }
+        let caret = caretRect(for: end)
+        guard !caret.isNull, !caret.isInfinite else { return }
+        let cover = adjustedContentInset.bottom + (keyboardOverlap ?? currentKeyboardOverlap())
+        let target = TypingScroll.targetOffset(
+            current: contentOffset.y, headerHeight: headerHeight, adjustedTop: adjustedContentInset.top,
+            caretBottom: caret.maxY, boundsHeight: bounds.height, bottomCover: cover)
+        guard let y = target else { return }
+        let room = TypingScroll.roomNeeded(offset: y, contentHeight: contentSize.height - typingRoom,
+                                           boundsHeight: bounds.height, bottomCover: cover)
+        if abs(room - typingRoom) > 0.5 {
+            typingRoom = room
+            needsAccessoryLayout = true
+            setNeedsLayout()
+            layoutIfNeeded()
+        }
+        setContentOffset(CGPoint(x: contentOffset.x, y: y), animated: animated)
+    }
+
+    /// While typing room is held, UITextView's own `_scrollToSelectionIfNeeded` (sim, Q466) pushed
+    /// the caret line to the TOP of the view on every Return, because the room under the text made
+    /// that offset reachable. A caret that is already on screen needs no scroll: leave it.
+    /// A caret off screen (typing past the visible area) still gets UIKit's own follow.
+    override func scrollRectToVisible(_ rect: CGRect, animated: Bool) {
+        if typingRoom > 0, let end = selectedTextRange?.end {
+            let caret = caretRect(for: end)
+            let visible = bounds.inset(by: adjustedContentInset)
+            if !caret.isNull, !caret.isInfinite, visible.contains(caret) { return }
+        }
+        super.scrollRectToVisible(rect, animated: animated)
+    }
+
+    /// Editing ended: give the borrowed room back.
+    func releaseTypingRoom() {
+        guard typingRoom > 0 else { return }
+        typingRoom = 0
+        setNeedsAccessoryLayout()
+    }
+
+    /// How far the keyboard (with its accessory bar) covers the bottom of this view right now.
+    private func currentKeyboardOverlap() -> CGFloat {
+        guard let window else { return 0 }
+        let kb = window.keyboardLayoutGuide.layoutFrame
+        let mine = convert(bounds, to: window)
+        let covered = mine.maxY - kb.minY
+        return kb.height > 0 ? max(0, min(covered, mine.height)) : 0
     }
 
     // MARK: geometry helpers (TextKit-2 first, TextKit-1 fallback)
@@ -2376,5 +2439,29 @@ final class NoteBodyTextView: UITextView {
         if !rects.isEmpty { return rects }
         let first = firstRect(for: textRange)
         return (first.isEmpty || first.isInfinite || first.isNull) ? [] : [first]
+    }
+}
+
+/// Q466: where the note scrolls to while typing (mock Q452 option B, Tuur's pick): the header
+/// scrolls away like Apple Notes, nothing folds. Pure arithmetic so a test can drive it.
+enum TypingScroll {
+    /// The gap kept between the caret's line and the keyboard bar.
+    static let caretMargin: CGFloat = 12
+
+    /// The offset to scroll to, or nil when the header is already off the top.
+    /// The first text line goes to the top edge of the visible area; if the caret would then
+    /// sit under the keyboard, scroll further so the caret stays just above it.
+    static func targetOffset(current: CGFloat, headerHeight: CGFloat, adjustedTop: CGFloat,
+                             caretBottom: CGFloat, boundsHeight: CGFloat, bottomCover: CGFloat) -> CGFloat? {
+        let headerOff = headerHeight - adjustedTop
+        guard current < headerOff - 1 else { return nil }
+        let caretFits = caretBottom + caretMargin - boundsHeight + bottomCover
+        return max(headerOff, caretFits)
+    }
+
+    /// The extra bottom inset that lets `offset` be reached when the content is shorter than that.
+    static func roomNeeded(offset: CGFloat, contentHeight: CGFloat, boundsHeight: CGFloat,
+                           bottomCover: CGFloat) -> CGFloat {
+        max(0, offset + boundsHeight - bottomCover - contentHeight)
     }
 }
