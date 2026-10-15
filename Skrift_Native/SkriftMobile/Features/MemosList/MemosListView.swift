@@ -205,15 +205,9 @@ struct MemosListView: View {
             // Phone (and iPad compact / Split View): today's stack, byte-for-byte.
             NavigationStack(path: $path) {
                 notesRoot
+                    // Q451: a new note and a stored note are the SAME screen.
                     .navigationDestination(for: NoteRoute.self) { route in
-                        switch route {
-                        case .draft:
-                            QuickNoteView {
-                                if !path.isEmpty { path.removeLast() }
-                            }
-                        case .memo(let id):
-                            MemoDetailView(initialID: id)
-                        }
+                        MemoDetailView.screen(for: route)
                     }
             }
         }
@@ -335,16 +329,9 @@ struct MemosListView: View {
     var noteStack: some View {
         NavigationStack {
             if let route = selectedRoute {
-                switch route {
-                case .draft(let id):
-                    QuickNoteView {
-                        selectedRoute = nil
-                    }
-                    .id(id)
-                case .memo(let id):
-                    MemoDetailView(initialID: id, listVisible: $listVisible)
-                        .id(id)
-                }
+                // Q451: the same screen for a new note and a stored one.
+                MemoDetailView.screen(for: route, listVisible: $listVisible)
+                    .id(route.id)
             } else {
                 ZStack {
                     Color.skBg.ignoresSafeArea()

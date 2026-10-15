@@ -31,7 +31,7 @@ final class QuickNoteHeaderQ88UITests: XCTestCase {
         let newNote = app.buttons["ipad-new-note-button"]
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the new-note button never appeared")
         newNote.tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
         let tip = app.buttons["Continue"]
         if tip.waitForExistence(timeout: 2) { tip.tap() }
 
@@ -46,7 +46,7 @@ final class QuickNoteHeaderQ88UITests: XCTestCase {
         pill.tap()
         XCTAssertTrue(pill.label.contains("Not rated") || pill.label.contains("Importance"))
 
-        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
+        let body = app.descendants(matching: .any).matching(identifier: "transcript-editor").firstMatch
         body.tap()
         body.typeText("a first line")
         capture(app, "quicknote-3-typed-unrated-line")

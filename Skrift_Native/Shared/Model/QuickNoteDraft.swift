@@ -27,9 +27,40 @@ final class QuickNoteDraft {
     /// open pane's id is already the note's id when the first keystroke creates the row.
     private let id: UUID?
 
+    /// Q451 (the phone's ONE note screen): the not-yet-inserted typed note the note screen edits
+    /// from its first frame — same header, same editor as a reopened note. `adoptIfTyped` puts it
+    /// in the store at the first text; until then nothing exists to list or sync (D91).
+    private(set) var pending: Memo?
+
     init(metadataProvider: (any MetadataProviding)? = nil, id: UUID? = nil) {
         self.metadataProvider = metadataProvider
         self.id = id
+    }
+
+    /// Q451: a draft whose note screen edits `pending` directly (title, body, tags, rating,
+    /// destination all land on it); `adoptIfTyped` replaces `edited` as the creation step.
+    init(pendingID id: UUID, metadataProvider: (any MetadataProviding)? = nil, now: Date = Date()) {
+        self.metadataProvider = metadataProvider
+        self.id = id
+        self.pending = Memo.typed(now: now, id: id)
+    }
+
+    /// True while the screen shows a note that is not in the store yet.
+    var isPending: Bool { pending != nil && memo == nil }
+
+    /// Q451: insert the pending note the moment it holds text (title or body) — the first
+    /// keystroke's rule (D91), whatever the user already picked in the header rides along
+    /// because it was set on this same object. Returns true when this call created the row.
+    @discardableResult
+    func adoptIfTyped(context: ModelContext) -> Bool {
+        guard memo == nil, let pending, pending.modelContext == nil,
+              !isBlank(pending.title) || !isBlank(pending.transcript) else { return false }
+        context.insert(pending)
+        pending.markEdited()
+        try? context.save()
+        memo = pending
+        startCapture(for: pending)
+        return true
     }
 
     /// Call on every title/body change. A no-op until the first non-empty
@@ -85,6 +116,7 @@ final class QuickNoteDraft {
             captureTask?.cancel()
             context.delete(memo)
             try? context.save()
+            pending = nil   // a deleted row is never adopted again
         }
         self.memo = nil
     }
@@ -105,6 +137,7 @@ final class QuickNoteDraft {
         }
         try? context.save()
         memo = nil
+        pending = nil
     }
 
     private func isBlank(_ s: String?) -> Bool {

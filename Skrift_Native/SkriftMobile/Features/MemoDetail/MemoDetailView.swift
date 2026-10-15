@@ -62,6 +62,13 @@ struct MemoDetailView: View {
     /// inline photos size to the full pane.
     @State var ipadPaneWidth: CGFloat?
 
+    /// Q451: a new note (✎, widget, Control Center, Siri) is THIS screen too — the same page,
+    /// header and editor as a reopened note — over a typed `Memo` that is not in the store yet
+    /// (`QuickNoteDraft`, D91). The first text inserts it; an untouched one is never saved.
+    @State var draft: QuickNoteDraft?
+    /// Mirrors `draft.isPending` as view state, so the top bar redraws when the row is born.
+    @State var isPendingDraft = false
+
     init(initialID: UUID, listVisible: Binding<Bool>? = nil) {
         self.listVisible = listVisible
         _selection = State(initialValue: initialID)
@@ -69,11 +76,53 @@ struct MemoDetailView: View {
         _pageMemo = State(initialValue: opened?.deletedAt == nil ? opened : nil)
     }
 
+    /// Q451: the new-note screen. `id` is the route's fresh draft id; the note is born with it.
+    init(newNoteID id: UUID, listVisible: Binding<Bool>? = nil) {
+        self.listVisible = listVisible
+        let draft = QuickNoteDraft(pendingID: id, metadataProvider: MetadataProviderFactory.make())
+        _selection = State(initialValue: id)
+        _pageMemo = State(initialValue: draft.pending)
+        _draft = State(initialValue: draft)
+        _isPendingDraft = State(initialValue: true)
+    }
+
+    /// The ONE screen for every open note (Q451): a new draft and a stored note both resolve here.
+    static func screen(for route: NoteRoute, listVisible: Binding<Bool>? = nil) -> MemoDetailView {
+        switch route {
+        case .draft(let id): return MemoDetailView(newNoteID: id, listVisible: listVisible)
+        case .memo(let id): return MemoDetailView(initialID: id, listVisible: listVisible)
+        }
+    }
+
+    /// D200: the phone hides the tab bar in EVERY open-note state (new, reopened, typing, after
+    /// Done); the iPad's regular width keeps its own tab control.
+    static func tabBarVisibility(regular: Bool) -> Visibility { regular ? .automatic : .hidden }
+
     /// The open note — nil once it is trashed or deleted underneath the screen (the old pager's
-    /// live-only `@Query` dropped such a page the same way).
+    /// live-only `@Query` dropped such a page the same way). A pending new note has no context yet.
     var currentMemo: Memo? {
-        guard let m = pageMemo, m.modelContext != nil, m.deletedAt == nil, m.id == selection else { return nil }
+        guard let m = pageMemo, m.modelContext != nil || (draft?.pending === m && draft?.isPending == true),
+              m.deletedAt == nil, m.id == selection else { return nil }
         return m
+    }
+
+    /// Q451: put the new note in the store once it holds text (title or body).
+    func adoptDraftIfTyped() {
+        guard let draft, draft.isPending else { return }
+        if draft.adoptIfTyped(context: repository.context) { isPendingDraft = false }
+    }
+
+    /// Q451 (D91): leaving a new note. The editor's pending debounced text is flushed first, so the
+    /// empty check sees what was typed; a note left empty is removed without a trace. A commit
+    /// that only lands when the editor is torn down still adopts the note on the next turn.
+    func leaveDraft() {
+        guard let draft else { return }
+        if let editor = NoteEditorChrome.shared.current, editor.memo === draft.pending {
+            editor.commitDraft()
+        }
+        adoptDraftIfTyped()
+        draft.leave(context: repository.context)
+        DispatchQueue.main.async { _ = draft.adoptIfTyped(context: NotesRepository.shared.context) }
     }
 
     /// Q381: a note with no audio (a share capture, an article/PDF quote note, a typed note) gets no
@@ -233,16 +282,19 @@ struct MemoDetailView: View {
                     .accessibilityLabel(showConnections ? "Hide Connections" : "Show Connections")
                 }
 
-                processControl(memo)
+                // Q451: a new note has nothing to process or act on until its first text.
+                if !isPendingDraft {
+                    processControl(memo)
 
-                Menu { noteOverflowItems(memo) } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Color.skText)
-                        .frame(width: IPadLayout.glassHeight, height: IPadLayout.glassHeight)
-                        .ipadGlass(in: Circle())
+                    Menu { noteOverflowItems(memo) } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Color.skText)
+                            .frame(width: IPadLayout.glassHeight, height: IPadLayout.glassHeight)
+                            .ipadGlass(in: Circle())
+                    }
+                    .accessibilityIdentifier("note-overflow-button")
                 }
-                .accessibilityIdentifier("note-overflow-button")
             }
             .padding(.leading, listHidden ? IPadLayout.toggleLeading + IPadLayout.glassHeight + 13 : 10)
             .padding(.trailing, 10)
@@ -414,7 +466,7 @@ struct MemoDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(hSize != .regular)
         // Q387 (D200): the phone note hides the tab bar, like Apple Notes; it returns on the list.
-        .toolbar(hSize == .regular ? .automatic : .hidden, for: .tabBar)
+        .toolbar(Self.tabBarVisibility(regular: hSize == .regular), for: .tabBar)
         .background { if hSize != .regular { SwipeBackRestorer().frame(width: 0, height: 0) } }
         .toolbar {
             // Q382: "‹ Notes" stays in the phone's top bar, typing included (mock Q350).
@@ -447,7 +499,8 @@ struct MemoDetailView: View {
                         .accessibilityLabel("Redo")
                     }
                     .foregroundStyle(Color.skTextDim)
-                } else if hSize != .regular, currentMemo?.isShareCapture != true {
+                } else if hSize != .regular, !isPendingDraft, currentMemo?.isShareCapture != true {
+                    // Q451: a new note gets + and ⋯ once its first text makes it a note.
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .semibold))
@@ -459,7 +512,7 @@ struct MemoDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize != .regular {
+                if hSize != .regular, !isPendingDraft {
                     Button { showActions = true } label: {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 16, weight: .semibold))
@@ -649,7 +702,10 @@ struct MemoDetailView: View {
         // normal append — which also moves the duration — never interrupts playback.
         .onChange(of: currentMemo?.duration) { _, _ in reloadIfAudioMissing() }
         .onChange(of: currentMemo?.transcriptStatus) { _, _ in reloadIfAudioMissing() }
-        .onDisappear { player.stopAndClear(); repository.save() }
+        // Q451: a new note becomes a stored note at its first text (title or body).
+        .onChange(of: currentMemo?.title) { _, _ in adoptDraftIfTyped() }
+        .onChange(of: currentMemo?.transcript) { _, _ in adoptDraftIfTyped() }
+        .onDisappear { leaveDraft(); player.stopAndClear(); repository.save() }
     }
 
     /// The horizontal pager (one page per memo) + the floating glass player bar.
@@ -661,6 +717,7 @@ struct MemoDetailView: View {
         Group {
             if let memo = currentMemo {
                 MemoPageView(memo: memo, player: player, isCurrent: true,
+                             startTyping: draft != nil,
                              onOpenMemo: { id in open(id) })
                     // C98/D139: two versions → prompt on open, banner after
                     // "Later", read-only until picked.
