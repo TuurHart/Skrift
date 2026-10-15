@@ -123,9 +123,9 @@ final class VideoIngestTests: XCTestCase {
     }
 
     func testIngestVideoWritesThumbnailAndManifest() async throws {
-        // Video ingest grabs ONE representative frame into `images/img_001.jpg` and
-        // writes a phone-shaped `image_manifest.json` (offset 0) — so the existing
-        // [[img_001]] marker pipeline renders + exports the frame.
+        // D210 (supersedes C71's frame picture): the kept movie is the note's ONE inline video
+        // attachment (`attachment_manifest.json`, the phone's shape); its frame is the block's
+        // poster, so no `images/img_001.jpg` / `image_manifest.json` is written.
         let work = makeTempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
@@ -137,11 +137,15 @@ final class VideoIngestTests: XCTestCase {
         let folder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
 
         let thumb = folder.appendingPathComponent("images").appendingPathComponent("img_001.jpg")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: thumb.path), "representative frame missing")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumb.path), "the frame is the poster, never a picture")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("image_manifest.json").path))
 
-        let manifestData = try Data(contentsOf: folder.appendingPathComponent("image_manifest.json"))
-        let entries = try JSONDecoder().decode([ImageManifestEntry].self, from: manifestData)
-        XCTAssertEqual(entries, [ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 0)])
+        let entries = MacNoteAttachments.manifest(in: folder)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.kind, NoteAttachment.Kind.video)
+        XCTAssertEqual(entries.first?.filename,
+                       VideoKeep.filename(memoID: try XCTUnwrap(UUID(uuidString: pf.id)), sourceExtension: "mov"))
+        XCTAssertEqual(NoteAttachment.leadingKeptMovie("words", manifest: entries), "[[vid_001]]\n\nwords")
     }
 
     func testThumbnailFailureDoesNotFailIngest() async throws {

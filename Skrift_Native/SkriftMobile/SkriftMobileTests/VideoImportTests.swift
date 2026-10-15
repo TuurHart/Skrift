@@ -131,19 +131,22 @@ final class VideoImportTests: XCTestCase {
         // Audio extracted into the memo's m4a.
         let audio = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path), "audio not extracted")
-        // One frame thumbnail captured + manifested.
-        XCTAssertEqual(memo?.metadata?.imageManifest?.count, 1)
-        XCTAssertEqual(memo?.metadata?.imageManifest?.first?.filename, "photo_\(id.uuidString)_001.jpg")
+        // D210: the kept movie is the ONE inline video attachment; no frame photo (poster only).
+        XCTAssertTrue(memo?.metadata?.imageManifest?.isEmpty ?? true)
+        XCTAssertEqual(memo?.metadata?.attachmentManifest?.count, 1)
+        XCTAssertEqual(memo?.metadata?.attachmentManifest?.first?.kind, NoteAttachment.Kind.video)
+        XCTAssertEqual(memo?.metadata?.attachmentManifest?.first?.filename, memo?.metadata?.videoFilename)
         // Marked as a VIDEO source → the list row shows the video glyph.
         XCTAssertEqual(memo?.metadata?.sourceType, MemoMetadata.Source.video)
         XCTAssertTrue(memo?.isVideoImport ?? false)
         let frame = AppPaths.recordingsDirectory.appendingPathComponent("photo_\(id.uuidString)_001.jpg")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: frame.path), "frame thumbnail not written")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: frame.path), "D210: the frame is the poster, never a photo")
         // Embedded recording date used (not import time).
         XCTAssertEqual(memo?.recordedAt.timeIntervalSince1970 ?? 0, embedded.timeIntervalSince1970, accuracy: 2.0)
-        // Transcript landed (with the [[img_001]] marker from the manifest).
+        // Transcript landed, led by the video block's [[vid_001]] marker (D210).
         XCTAssertEqual(memo?.transcriptStatus, .done)
-        XCTAssertTrue(memo?.transcript?.contains("[[img_001]]") ?? false)
+        XCTAssertTrue(memo?.transcript?.hasPrefix("[[vid_001]]") ?? false)
+        XCTAssertFalse(memo?.transcript?.contains("[[img_") ?? true)
 
         // The extracted m4a must be playable by the DETAIL player (AVAudioPlayer),
         // not just readable by the transcriber — the "video transcribes fine but
