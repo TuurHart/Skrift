@@ -86,11 +86,11 @@ final class CopyEditV2D209Tests: XCTestCase {
             guard note.kind != "capture", note.kind != "conversation" else { continue }   // no copy-edit (C36)
             let body = note.transcript ?? ""
             guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
-            var output = ""
+            let outputs = CopyEditV2HarnessTests.Calls()   // (prompt, model output)
             let replay = H.cache.replay
             let generate: CopyEditV2.Generate = { p, t, cap in
                 let o = try await replay(p, t, cap)
-                if p == PolishPrompts.copyEdit { output = o }
+                outputs.add(p, o)
                 return o
             }
             let r: CopyEditV2.Result
@@ -98,11 +98,12 @@ final class CopyEditV2D209Tests: XCTestCase {
                 r = try await CopyEditV2.copyEdit(body, spoken: note.kind != "typed", prompt: PolishPrompts.copyEdit,
                                                   generate: generate)
             } catch is ModelOutputCache.Miss {
-                continue   // a body the corpus "ASR" rewrote before the model read it: covered by the harness
+                print("D209 SKIP \(entry.slug): the corpus run rewrites this body before the model reads it")
+                continue   // covered by CopyEditV2HarnessTests
             }
             guard r.calledModel else { continue }
             let input = CopyEditV2.prose(QuoteProtection.splitLeadingQuote(body)?.ramble ?? body)
-            let out = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            let out = (outputs.all.first?.input ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let dropped = G.lostWords(input: input, output: out)
             let damage = G.lostNamesOrNumbers(input: input, output: out) + G.newProperNouns(input: input, output: out)
             if let why = r.fallback {
