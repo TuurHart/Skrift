@@ -3324,7 +3324,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (Q221 confirmed): in the capture camera sheet pinch zoom is very jumpy (it compounds); the sheet shows a grab-handle pill at its top that drags nothing; and the recording status draws twice on top of itself (`Recording · 0:17 — still listening` over a second `Recording`). Fix: pinch sets zoom from the zoom factor at gesture start × scale, clamped to the device range (no compounding); remove the pill or make the sheet actually draggable (remove it); render one status line. Phone test `CaptureCameraZoomTests` for the zoom math. Camera hardware can't be proven on the sim; say so and leave the device feel to Tuur.
 check: `plan/mtest.sh CaptureCameraZoomTests`
 
-### Q457 [auto] (doing) a messenger filename is never a title, on every door (D211)
+### Q457 [auto] (done) a messenger filename is never a title, on every door (D211)
 spec: C126 D211
 needs: -
 gate+: yes
@@ -4951,3 +4951,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:06 Q471 -> doing — worker out
 - 2026-10-15 12:10 Q462 -> doing — mockup agent out
 - 2026-10-15 12:32 Q465 -> done — gate 278s @facc651b
+- 2026-10-15 12:35 Q457 -> done — hand-merged (Tuur Q447 (a) 2026-10-15 → D211: ImportFileNameTitleTests WhatsApp-name assertion flipped)
