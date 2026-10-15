@@ -349,7 +349,8 @@ struct MemoSaver {
             attachments.append(NoteAttachment.keptMovieEntry(
                 filename: keptName, originalName: IngressDispatch.shownVideoName(source),
                 byteCount: Int(VideoKeep.byteCount(of: kept) ?? 0),
-                durationSeconds: NoteAttachment.videoDuration(of: kept) ?? (duration > 0 ? duration : nil)))
+                durationSeconds: NoteAttachment.videoDuration(of: kept) ?? (duration > 0 ? duration : nil),
+                capturedAt: recorded))
         } else if let frame = await Self.representativeFrame(of: asset) {
             // One representative frame → photo_<id>_001.jpg → [[img_001]] at offset 0.
             let photoName = "photo_\(id.uuidString)_001.jpg"

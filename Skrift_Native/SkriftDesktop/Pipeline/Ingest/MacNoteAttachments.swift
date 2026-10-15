@@ -150,6 +150,20 @@ enum MacNoteAttachments {
 
     // MARK: export
 
+    /// The kept movie's poster frame as a file in the working folder (`poster.jpg`), made once and
+    /// reused, so the export's dry run (Q365) and its real write place the same bytes. nil when the
+    /// note has no kept movie or its frame cannot be read.
+    static func posterFrame(in working: URL) -> URL? {
+        let url = working.appendingPathComponent(posterName)
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        guard let movie = VaultExporter.keptSourceVideo(in: working),
+              let data = VideoExportFrame.jpeg(from: movie),
+              (try? data.write(to: url, options: .atomic)) != nil else { return nil }
+        return url
+    }
+
+    static let posterName = "poster.jpg"
+
     /// Replace `[[vid_NNN]]` / `[[file_NNN]]` with embeds of the files copied beside the note
     /// (`NoteAttachment.convertMarkers`), through the same placer photos use (C58 ownership copy,
     /// the Q365 dry run). Returns the markdown and the copy count.
@@ -158,8 +172,13 @@ enum MacNoteAttachments {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
         let entries = working.map { manifest(in: $0) } ?? []
         let dir = working.map { folder(in: $0) }
-        // The kept-movie drop (C63) lives in the shared `ExportBody.convertAttachmentMarkers`.
-        let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
+        // The kept movie never goes to the vault (C63); its poster frame does, in its place (D210).
+        // Both live in the shared `ExportBody.convertAttachmentMarkers`.
+        let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile,
+                                                    poster: { _, preferred in
+            guard let working, let frame = posterFrame(in: working) else { return nil }
+            return place(frame, preferred, attDir)?.lastPathComponent
+        }) { source, preferred in
             guard let dir else { return nil }
             let file = dir.appendingPathComponent(source)
             guard FileManager.default.fileExists(atPath: file.path) else { return nil }

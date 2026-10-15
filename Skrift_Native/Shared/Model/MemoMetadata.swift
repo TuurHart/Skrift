@@ -275,4 +275,8 @@ struct NoteAttachmentEntry: Codable, Equatable, Sendable {
     var byteCount: Int
     /// A video's length, for the duration label (pick 5). nil for a file.
     var durationSeconds: Double? = nil
+    /// A kept movie that came in under a machine name (`shared_<uuid>.mov`): when it was filmed
+    /// (ISO 8601), so its card is titled by the date instead of the bare word "Video" (Q468).
+    /// nil for everything else; additive, so older entries decode unchanged.
+    var capturedAt: String? = nil
 }

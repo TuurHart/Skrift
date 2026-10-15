@@ -163,6 +163,9 @@ struct ObsidianPublisher {
         let url = AppPaths.recordingsDirectory.appendingPathComponent(name)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
+    /// C63 / D210: the poster frame (JPEG) a video note puts in the vault in place of its movie.
+    /// nil = make it from `movieProvider`'s file. Asked only when a write actually happens.
+    var posterProvider: ((Memo) -> Data?)? = nil
     /// Test hook — nil uses the per-root default ledger.
     var ledgerOverride: ExportLedger? = nil
 
@@ -275,8 +278,17 @@ struct ObsidianPublisher {
         // through the same shared conversion the Mac runs. Names come from the manifest alone.
         let attachmentEntries = memo.metadata?.attachmentManifest ?? []
         var attachmentPlan: [(entry: NoteAttachmentEntry, embedName: String)] = []
+        // C63 / D210: the kept movie never goes to the vault; its poster frame does, in its place -
+        // when this device has the movie to take the frame from, else the marker drops.
+        var posterEmbed: String?
+        let hasMovie = posterProvider != nil || movieProvider(memo) != nil
         let (converted, _) = ExportBody.convertAttachmentMarkers(
-            photoConverted, manifest: attachmentEntries, stem: stem, profile: profile) { source, preferred in
+            photoConverted, manifest: attachmentEntries, stem: stem, profile: profile,
+            poster: { _, preferred in
+                guard hasMovie else { return nil }
+                posterEmbed = preferred
+                return preferred
+            }) { source, preferred in
             guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
             attachmentPlan.append((entry, preferred))
             return preferred
@@ -304,6 +316,10 @@ struct ObsidianPublisher {
             if let source = attachmentProvider(memo, entry) {
                 attachments.append(VaultAsset(name: embedName, source: source))
             }
+        }
+        if let posterEmbed,
+           let frame = posterProvider?(memo) ?? movieProvider(memo).flatMap({ VideoExportFrame.jpeg(from: $0) }) {
+            attachments.append(VaultAsset(name: posterEmbed, source: .data(frame)))
         }
         var audio: VaultAsset?
         if memo.includeAudioInExport, !memo.audioFilename.isEmpty, let blob = audioProvider(memo.id) {
