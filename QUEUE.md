@@ -3291,7 +3291,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (screenshots): a brand-new note shows tag, rating and Personal stacked on three rows, and tapping Done on the keyboard bar reveals the bottom tab bar (Notes/Library/Review/Settings) over the note; the same note reopened shows the signed layout (title, grey meta line, then `○○○ Not rated · Personal · + tag` on ONE row) with no tab bar. Two code paths draw the open note. Make the new-note path use the exact same view as the reopened note (the Q358 build of `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`) and delete the duplicate; the tab bar is hidden in every open-note state. Then grep for any other place that draws a note differently for new vs existing (quick note, capture, share-opened, iPad) and fold those into the same view; list what you found. Phone test `NoteScreenParityTests`: the new-note and reopened-note screens build the same header view type and hide the tab bar. Screenshot both states on the iPhone 17 sim, LOOK, put them in `plan/reads/note-parity/`.
 check: `plan/mtest.sh NoteScreenParityTests`
 
-### Q452 [tuur] (todo) mockup: more typing space when the keyboard is up
+### Q452 [tuur] (doing) mockup: more typing space when the keyboard is up
 spec: C113 C234
 needs: Q451
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
@@ -3304,14 +3304,14 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (Q311 failed): record a voice note, ⋯ › Add recording, say more, stop, play from before the join: playback STOPS at the old end; only after leaving and reopening the note does the player play the appended audio. The player keeps the old asset/duration after the append. Make the open note's player reload the merged audio (and the shifted word timings, C223) as soon as the append lands, on phone and iPad (and check the Mac Add recording path does the same). Phone test `AppendPlayerReloadTests`: after an append the open note's player item duration equals the merged file's.
 check: `plan/mtest.sh AppendPlayerReloadTests`
 
-### Q454 [auto] (todo) a shared video lands as an inline video attachment like Apple Notes, not a 'Photo' file card (D210)
+### Q454 [auto] (doing) a shared video lands as an inline video attachment like Apple Notes, not a 'Photo' file card (D210)
 spec: C71 C63 D210 D202
 needs: -
 gate+: yes
 do: Tuur 2026-10-15 on Dev 191: sharing a video into Skrift Dev makes a note that says Video but shows a `Photo · JPEG image · 117 KB` FILE CARD at the top (the frame), not the video. D210: a shared or imported video becomes the same inline video attachment a note gets from the Q385 attachments build (inline play, small by default, D202), with its transcript as the body; the frame is the attachment's poster, never a separate photo card. The synced `source.<ext>` movie (D188) is that attachment's file. Same on the Mac import path. Phone test `SharedVideoAttachmentTests`: a shared movie yields one video attachment marker and no photo card. Screenshot the note on the sim, LOOK.
 check: `plan/mtest.sh SharedVideoAttachmentTests`
 
-### Q455 [tuur] (doing) mockup: the share sheet and its 'Saved' confirmation, redrawn
+### Q455 [tuur] (tuur) mockup: the share sheet and its 'Saved' confirmation, redrawn
 spec: C66 C75 C127
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
@@ -4854,3 +4854,6 @@ check: `plan/mtest.sh PDFAnnotationExportTests`
 - 2026-10-15 08:58 Q453 -> doing — worker out
 - 2026-10-15 09:03 Q451 -> done — hand-merged (D163: deleted QuickNoteBodyTextViewTests with the deleted view; PortfolioPresetTests source-scan path ported)
 - 2026-10-15 09:05 Q425 -> tuur — awaiting sitting (re-read after D209)
+- 2026-10-15 09:08 Q455 -> tuur — mock https://claude.ai/artifact/KTg3QUv6mJqCZPd8NnEuoc — question: rating + sender placement A or B
+- 2026-10-15 09:08 Q452 -> doing — worker out
+- 2026-10-15 09:08 Q454 -> doing — worker out
