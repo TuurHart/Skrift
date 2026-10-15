@@ -58,6 +58,10 @@ final class TypingScrollTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(tv.contentOffset.y, headerOff - 1,
                                         "the first line of text scrolls the whole header off the top")
             XCTAssertGreaterThan(tv.typingRoom, 0, "a one-line note borrows room so the header can leave")
+            XCTAssertEqual(tv.contentInset.bottom, 0,
+                           "room is blank CONTENT: a bottom contentInset makes UITextView's own caret-follow scroll the text away (Q466 sim)")
+            type(4, into: tv)
+            XCTAssertEqual(tv.contentOffset.y, headerOff, accuracy: 1, "five short lines: the text stays at the top, not scrolled past")
             type(30, into: tv)
             XCTAssertLessThanOrEqual(caretBottomOnScreen(tv), screen.height - keyboard,
                                      "typing past the visible area keeps the caret above the keyboard bar")

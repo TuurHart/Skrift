@@ -2310,7 +2310,7 @@ final class NoteBodyTextView: UITextView {
             footerHeight = ceil(footerHost.sizeThatFits(in: fit).height)
             let insets = UIEdgeInsets(top: baseTextInsets.top + headerHeight,
                                       left: baseTextInsets.left,
-                                      bottom: baseTextInsets.bottom + footerHeight,
+                                      bottom: baseTextInsets.bottom + footerHeight + typingRoom,
                                       right: baseTextInsets.right)
             if textContainerInset != insets {
                 // An inset write REFLOWS the whole text — if this fires while
@@ -2328,7 +2328,7 @@ final class NoteBodyTextView: UITextView {
         if headerHost.view.frame != headerFrame { headerHost.view.frame = headerFrame }
         // The text ends at contentSize.height − bottom inset; the footer sits in
         // the reserved bottom inset (no full-document layout pass needed).
-        let footerY = contentSize.height - baseTextInsets.bottom - footerHeight + 8
+        let footerY = contentSize.height - typingRoom - baseTextInsets.bottom - footerHeight + 8
         let footerFrame = CGRect(x: 0, y: max(footerY, headerHeight),
                                  width: width, height: footerHeight)
         if footerHost.view.frame != footerFrame { footerHost.view.frame = footerFrame }
@@ -2341,8 +2341,10 @@ final class NoteBodyTextView: UITextView {
 
     // MARK: typing scroll (Q466, mock Q452 option B)
 
-    /// Extra bottom inset held only while typing, so a SHORT note can still scroll its header
-    /// out (the content is shorter than the screen otherwise and UIKit refuses the offset).
+    /// Blank room added under the text (inside the text container inset, so it is CONTENT, not a
+    /// scroll-view inset: UITextView's own caret-follow treats `contentInset.bottom` as covered
+    /// screen and would scroll the text up out of view) while typing, so a SHORT note can still
+    /// scroll its header out. Returned when editing ends.
     private(set) var typingRoom: CGFloat = 0
 
     /// After an edit with the keyboard up: scroll the note so the header is out of the way and
@@ -2353,19 +2355,18 @@ final class NoteBodyTextView: UITextView {
         guard bounds.height > 0, let end = selectedTextRange?.end else { return }
         let caret = caretRect(for: end)
         guard !caret.isNull, !caret.isInfinite else { return }
-        let overlap = keyboardOverlap ?? currentKeyboardOverlap()
-        let baseBottom = adjustedContentInset.bottom - typingRoom
+        let cover = adjustedContentInset.bottom + (keyboardOverlap ?? currentKeyboardOverlap())
         let target = TypingScroll.targetOffset(
             current: contentOffset.y, headerHeight: headerHeight, adjustedTop: adjustedContentInset.top,
-            caretBottom: caret.maxY, boundsHeight: bounds.height, bottomCover: baseBottom + overlap)
+            caretBottom: caret.maxY, boundsHeight: bounds.height, bottomCover: cover)
         guard let y = target else { return }
-        let room = TypingScroll.roomNeeded(offset: y, contentHeight: contentSize.height,
-                                           boundsHeight: bounds.height, bottomCover: baseBottom + overlap)
+        let room = TypingScroll.roomNeeded(offset: y, contentHeight: contentSize.height - typingRoom,
+                                           boundsHeight: bounds.height, bottomCover: cover)
         if abs(room - typingRoom) > 0.5 {
             typingRoom = room
-            var inset = contentInset
-            inset.bottom = room
-            contentInset = inset
+            needsAccessoryLayout = true
+            setNeedsLayout()
+            layoutIfNeeded()
         }
         setContentOffset(CGPoint(x: contentOffset.x, y: y), animated: animated)
     }
@@ -2374,9 +2375,7 @@ final class NoteBodyTextView: UITextView {
     func releaseTypingRoom() {
         guard typingRoom > 0 else { return }
         typingRoom = 0
-        var inset = contentInset
-        inset.bottom = 0
-        contentInset = inset
+        setNeedsAccessoryLayout()
     }
 
     /// How far the keyboard (with its accessory bar) covers the bottom of this view right now.
