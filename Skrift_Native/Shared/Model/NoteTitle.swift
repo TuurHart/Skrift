@@ -76,6 +76,8 @@ enum NoteTitle {
     /// Mac (the working file's own name).
     static func importName(_ fileName: String?) -> String? {
         guard var name = fileName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+        // D211 (supersedes D176 for these): a messenger / machine name is never a title, on any door.
+        if IngressDispatch.isMachineFileName(name) { return nil }
         if let dot = name.lastIndex(of: "."), !name[name.index(after: dot)...].contains("/"),
            name[name.index(after: dot)...].count <= 5, dot != name.startIndex {
             name = String(name[..<dot]).trimmingCharacters(in: .whitespacesAndNewlines)

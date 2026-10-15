@@ -190,6 +190,18 @@ enum IngressDispatch {
         #"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"#,
     ]
 
+    /// D211: true when a file's name is a messenger's or a machine's (`machineNamePatterns`), on
+    /// any door. `NoteTitle.importName` asks this so a Files / Open-in / AirDrop / Mac import is
+    /// never titled by "WhatsApp Audio …" or a UUID, exactly like the share sheet's `clipTitle`.
+    static func isMachineFileName(_ fileName: String?) -> Bool {
+        guard var name = fileName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return false }
+        let ext = (name as NSString).pathExtension
+        if !ext.isEmpty, ext.count <= 5, !ext.contains(" ") { name = (name as NSString).deletingPathExtension }
+        return machineNamePatterns.contains {
+            name.range(of: $0, options: [.regularExpression, .caseInsensitive]) != nil
+        }
+    }
+
     /// C126: a shared clip's ORIGINAL file name as the note's title, extension stripped, or nil
     /// when it is a machine name (above) or has no letters at all (a bare date / number). A
     /// Voice Memo shared as "kiln idea.m4a" titles its note "kiln idea". Generic defaults
