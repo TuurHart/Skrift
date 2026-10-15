@@ -86,9 +86,11 @@ extension LibraryPDF {
 
     /// A recognised line's box hugs its glyphs, so a line without descenders is shorter than its
     /// neighbour in the same type, and `PDFReflow` would read that as a font change (a paragraph
-    /// break). Lines within `sameTypeShare` of the page's median height get the median height
-    /// around their own centre; a heading's larger type stays larger.
+    /// break). Lines from `smallTypeShare` below to `sameTypeShare` above the page's median height
+    /// get the median height around their own centre (a short word with no descender, "ties.",
+    /// boxes far smaller than its type); a heading's larger type stays larger.
     static let sameTypeShare = 0.2
+    static let smallTypeShare = 0.45
 
     static func evenedHeights(_ lines: [PDFReflow.Line]) -> [PDFReflow.Line] {
         let heights = lines.map { $0.maxY - $0.minY }.sorted()
@@ -97,7 +99,7 @@ extension LibraryPDF {
         guard median > 0 else { return lines }
         return lines.map { line in
             let h = line.maxY - line.minY, centre = (line.minY + line.maxY) / 2
-            guard abs(h - median) <= median * sameTypeShare else { return line }
+            guard h <= median * (1 + sameTypeShare), h >= median * (1 - smallTypeShare) else { return line }
             var out = line
             out.minY = centre - median / 2
             out.maxY = centre + median / 2
@@ -145,7 +147,15 @@ extension LibraryPDF {
         let words = zip(ranges, boxes).map { r, b in
             PDFReflow.Word(text: String(text[r]), minX: Double(b!.minX) * width, maxX: Double(b!.maxX) * width)
         }
-        return PDFReflow.Line(words: words, minY: Double(lineBox.minY) * height, maxY: Double(lineBox.maxY) * height)
+        // On a crooked scan the axis-aligned box of a long line is taller than its type (0.6° over
+        // a full line adds ~7 pt), so its height and centre come from the line's own corners.
+        let o = observation
+        let lineHeight = Double((o.topLeft.y - o.bottomLeft.y) + (o.topRight.y - o.bottomRight.y)) / 2 * height
+        let centre = Double(o.topLeft.y + o.topRight.y + o.bottomLeft.y + o.bottomRight.y) / 4 * height
+        guard lineHeight > 0 else {
+            return PDFReflow.Line(words: words, minY: Double(lineBox.minY) * height, maxY: Double(lineBox.maxY) * height)
+        }
+        return PDFReflow.Line(words: words, minY: centre - lineHeight / 2, maxY: centre + lineHeight / 2)
     }
 
     /// The whitespace-separated words of `text`, as ranges.

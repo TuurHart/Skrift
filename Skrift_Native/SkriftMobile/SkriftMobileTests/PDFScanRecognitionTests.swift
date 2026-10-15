@@ -36,8 +36,11 @@ extension PDFReadingGoldenTests {
     /// The scanned letter reads as heading + three paragraphs, like its expect.md.
     func testScannedLetterReadsAsItsParagraphs() throws {
         let doc = try XCTUnwrap(LibraryPDF.readingDoc(url: Self.scanFixture))
+        let page = try XCTUnwrap(PDFDocument(url: Self.scanFixture)?.page(at: 0))
+        let geometry = LibraryPDF.recognisedLayout(of: page).lines.sorted { $0.maxY > $1.maxY }
+            .map { String(format: "%.1f–%.1f %@", $0.minY, $0.maxY, String($0.text.prefix(24))) }
         XCTAssertEqual(doc.blocks.map(\.kind), [.heading, .paragraph, .paragraph, .paragraph],
-                       doc.blocks.map(\.text).joined(separator: "\n"))
+                       (doc.blocks.map(\.text) + geometry).joined(separator: "\n"))
     }
 
     func testScannedPageIsRecognisedIntoLinesTopDown() throws {
