@@ -41,6 +41,9 @@ enum LaunchFlags {
     /// `-seedAttachmentLarge` every block starts large (Set All to Large).
     static var seedAttachmentMemo: Bool { args.boolFlag("-seedAttachmentMemo") }
     static var seedAttachmentLarge: Bool { args.boolFlag("-seedAttachmentLarge") }
+    /// Q454 (DEBUG): a shared video's note in the D210 shape `MemoSaver.processVideo` leaves —
+    /// the kept movie as the one inline video block at the top, the transcript below it.
+    static var seedSharedVideoMemo: Bool { args.boolFlag("-seedSharedVideoMemo") }
     /// Seed back-dated memos with locations for the Journal tab (Looking-back
     /// cards, calendar dot density, place clusters) — screenshot verification.
     static var seedJournal: Bool { args.boolFlag("-seedJournal") }

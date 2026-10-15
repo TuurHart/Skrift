@@ -28,6 +28,7 @@ enum DemoDataSeeder {
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedAttachmentMemo { repo.insert(attachmentMemo(allLarge: LaunchFlags.seedAttachmentLarge)); return }
+        if LaunchFlags.seedSharedVideoMemo { repo.insert(sharedVideoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
         if LaunchFlags.seedPolished { seedPolished(repo); return }
         if LaunchFlags.seedJournal { seedJournal(repo); return }
@@ -139,6 +140,32 @@ enum DemoDataSeeder {
             recordedAt: Date().addingTimeInterval(-600),
             syncStatus: .waiting,
             transcript: NoteAttachmentFixture.body,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: meta
+        )
+    }
+
+    /// Q454: Tuur's shared clip ("Well I might", 0:06) as `processVideo` stores it (D210).
+    static func sharedVideoMemo() -> Memo {
+        let id = UUID()
+        let kept = VideoKeep.filename(memoID: id, sourceExtension: "mov")
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(kept)
+        NoteAttachmentFixture.writeMovie(to: url, seconds: 6)
+        var meta = MemoMetadata(sourceType: MemoMetadata.Source.video)
+        meta.videoFilename = kept
+        meta.attachmentManifest = [NoteAttachment.keptMovieEntry(
+            filename: kept, originalName: "Video", byteCount: Int(VideoKeep.byteCount(of: url) ?? 0),
+            durationSeconds: 6)]
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 6,
+            recordedAt: Date().addingTimeInterval(-3_600),
+            syncStatus: .waiting,
+            transcript: NoteAttachment.leadingKeptMovie(
+                "Well I might try the glaze on the small bowls first and see how it runs.",
+                manifest: meta.attachmentManifest ?? []),
             transcriptStatus: .done,
             transcriptConfidence: 0.9,
             metadata: meta
