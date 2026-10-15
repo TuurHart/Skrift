@@ -3386,7 +3386,7 @@ gate+: yes
 do: Found by Q456: the capture camera uses builtInWideAngleCamera (min zoom 1.0), so the .5x chip Tuur sees on the iPhone 17 Pro never reaches the ultra-wide. Switch the back camera to the virtual device (builtInTripleCamera, else builtInDualWideCamera, else wide) so zoom factors map to the real lenses, keep the Q456 gesture-start pinch, and show only the chips the device can do (.5x only when the virtual device exposes the ultra-wide). Phone test `CameraLensChipsTests` for the chip list per device type. Device feel is Tuur's.
 check: `plan/mtest.sh CameraLensChipsTests`
 
-### Q466 [auto] (doing) typing: the note follows the caret so the header scrolls away like Apple Notes (Q452 pick)
+### Q466 [auto] (done) typing: the note follows the caret so the header scrolls away like Apple Notes (Q452 pick)
 spec: C113 C234
 needs: Q452
 gate+: yes
@@ -4943,3 +4943,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 11:59 Q464 -> done — gate 102s @1960c00a
 - 2026-10-15 11:59 Q457 -> doing — worker out
 - 2026-10-15 11:59 Q470 -> doing — worker out
+- 2026-10-15 12:01 Q466 -> done — gate 59s @440764fe
