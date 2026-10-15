@@ -38,10 +38,10 @@ final class QuickNoteQ47UITests: XCTestCase {
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the ✎ new-note button never appeared")
         newNote.tap()
 
-        let back = app.buttons["quick-note-back"]
+        let back = app.buttons["note-back-button"]
         XCTAssertTrue(back.waitForExistence(timeout: 10), "the quick-note screen did not open")
 
-        let dateChip = app.descendants(matching: .any).matching(identifier: "quick-note-date").firstMatch
+        let dateChip = app.descendants(matching: .any).matching(identifier: "detail-meta-line").firstMatch
         XCTAssertTrue(dateChip.waitForExistence(timeout: 5), "the date chip is missing")
 
         let continueTip = app.buttons["Continue"]
@@ -51,7 +51,7 @@ final class QuickNoteQ47UITests: XCTestCase {
 
         // Type a line so the Memo exists, then confirm the chrome carries
         // straight through (no reset, no flicker back to "just a text field").
-        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
+        let body = app.descendants(matching: .any).matching(identifier: "transcript-editor").firstMatch
         if body.waitForExistence(timeout: 5) { body.tap(); body.typeText("Tram 28 idea") }
 
         capture(app, "phone-quick-note-full-chrome-typed")

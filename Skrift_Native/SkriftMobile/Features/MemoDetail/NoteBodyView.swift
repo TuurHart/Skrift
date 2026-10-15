@@ -91,6 +91,8 @@ struct NoteBodyView: UIViewRepresentable {
     /// inline images size to the 640 column, not the full iPad screen. Width cap
     /// ONLY — no scroll/selection behaviour changes.
     var readingWidthCap: CGFloat? = nil
+    /// Q451 (D134): a brand-new note opens with the caret in the body and the keyboard up.
+    var focusOnAppear: Bool = false
 
     @AppStorage(PrefKey.karaokeTapToSeek) private var tapToSeek = PrefKey.karaokeTapToSeekDefault
 
@@ -119,6 +121,7 @@ struct NoteBodyView: UIViewRepresentable {
         tv.keyboardDismissMode = .interactive
         tv.delegate = context.coordinator
         tv.accessibilityIdentifier = "transcript-editor"
+        tv.focusOnWindow = focusOnAppear
         tv.installAccessoryHosts()
         context.coordinator.installAccessoryBar(on: tv)
 
@@ -2224,6 +2227,16 @@ final class NoteBodyTextView: UITextView {
 
     /// Insets the TEXT keeps clear regardless of accessories (set once at make).
     var baseTextInsets = UIEdgeInsets(top: 10, left: 20, bottom: 24, right: 20)
+
+    /// Q451: become first responder once, when the view first lands in a window (a new note).
+    var focusOnWindow = false
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard focusOnWindow, window != nil else { return }
+        focusOnWindow = false
+        DispatchQueue.main.async { [weak self] in _ = self?.becomeFirstResponder() }
+    }
 
     /// Touch-down point of the most recent touch, view coordinates — the
     /// selection delegate gates attachment taps on the glyph's DRAWN rect

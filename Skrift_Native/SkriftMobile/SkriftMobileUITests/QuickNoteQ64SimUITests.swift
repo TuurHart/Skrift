@@ -96,30 +96,30 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the ✎ never appeared")
         newNote.tap()   // immediately: the recovery sweep races this tap
 
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10), "quick-note did not open")
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10), "quick-note did not open")
         dismissKeyboardTip(app)
         // A NEW empty draft: no trailing memo actions yet (they only exist once a Memo
         // does), and none of the recovered note's title anywhere on the screen.
-        XCTAssertFalse(any(app, "quick-note-menu").exists, "✎ opened an existing note (it has a menu)")
-        XCTAssertFalse(any(app, "quick-note-add-recording").exists, "✎ opened an existing note")
+        XCTAssertFalse(any(app, "detail-menu").exists, "✎ opened an existing note (it has a menu)")
+        XCTAssertFalse(any(app, "add-recording-button").exists, "✎ opened an existing note")
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Recovered recording'")).count, 0,
                        "the recovered note's title is on the quick-note screen")
         XCTAssertEqual(app.textViews.matching(NSPredicate(format: "value CONTAINS 'Recovered'")).count, 0)
-        let title = app.textFields["quick-note-title"]
+        let title = app.descendants(matching: .any).matching(identifier: "detail-title").firstMatch
         if title.exists { XCTAssertFalse(((title.value as? String) ?? "").contains("Recovered"), "title field holds the recovered title") }
         capture(app, "1a-pencil-after-cold-launch-new-empty-draft")
 
         // Back to the list (untouched → no note); wait for the sweep's recovered note
         // so the fixture is proven to have been in play, then ✎ again.
-        app.buttons["quick-note-back"].tap()
+        app.buttons["note-back-button"].tap()
         let recovered = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Recovered recording'")).firstMatch
         XCTAssertTrue(recovered.waitForExistence(timeout: 40), "the recovery sweep never produced the recovered note — fixture not in play")
         capture(app, "1b-list-with-recovered-recording")
 
         app.buttons["ipad-new-note-button"].tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
         dismissKeyboardTip(app)
-        XCTAssertFalse(any(app, "quick-note-menu").exists, "second ✎ (recovered note now present) opened an existing note")
+        XCTAssertFalse(any(app, "detail-menu").exists, "second ✎ (recovered note now present) opened an existing note")
         XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Recovered recording'")).count, 0,
                        "second ✎ shows the recovered note's title")
         capture(app, "1c-pencil-with-recovered-present-new-empty-draft")
@@ -133,14 +133,14 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the ✎ never appeared")
         let rowsBefore = memoRowCount(app)
         newNote.tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
         dismissKeyboardTip(app)
 
-        let body = any(app, "quick-note-body")
+        let body = any(app, "transcript-editor")
         XCTAssertTrue(body.waitForExistence(timeout: 5), "body missing")
 
         func assertChrome(_ when: String) {
-            XCTAssertTrue(any(app, "quick-note-date").exists, "date chip missing \(when)")
+            XCTAssertTrue(any(app, "detail-meta-line").exists, "date chip missing \(when)")
             XCTAssertTrue(any(app, "add-tag-button").exists || any(app, "tag-input").exists, "tags row missing \(when)")
             XCTAssertTrue(any(app, "rating-pill").exists, "importance missing \(when)")
             XCTAssertTrue(app.keyboards.count > 0, "keyboard not up \(when)")
@@ -161,7 +161,7 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         // Back to the list, past the debounce (Q53: 1 s).
         Thread.sleep(forTimeInterval: 1.5)
         app.buttons["accessory-done"].tap()   // dismiss the keyboard first
-        app.buttons["quick-note-back"].tap()
+        app.buttons["note-back-button"].tap()
         XCTAssertTrue(any(app, "memos-list").waitForExistence(timeout: 10), "list did not return")
         let listed = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Tram 28 idea' OR label CONTAINS 'Buy pastel'")).firstMatch
         XCTAssertTrue(listed.waitForExistence(timeout: 10), "the new note is not listed")
@@ -188,10 +188,10 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         capture(app, "4a-list-before")
 
         newNote.tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
         dismissKeyboardTip(app)
         Thread.sleep(forTimeInterval: 1.5)   // longer than the 1 s debounce
-        app.buttons["quick-note-back"].tap()
+        app.buttons["note-back-button"].tap()
         XCTAssertTrue(any(app, "memos-list").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 1.5)
         let after = memoRowCount(app)
@@ -212,9 +212,9 @@ final class QuickNoteQ64SimUITests: XCTestCase {
         let newNote = app.buttons["ipad-new-note-button"]
         XCTAssertTrue(newNote.waitForExistence(timeout: 20))
         newNote.tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
         dismissKeyboardTip(app)
-        let body = any(app, "quick-note-body")
+        let body = any(app, "transcript-editor")
         XCTAssertTrue(body.waitForExistence(timeout: 5))
         body.typeText("Tram 28 idea")
         Thread.sleep(forTimeInterval: 1.5)

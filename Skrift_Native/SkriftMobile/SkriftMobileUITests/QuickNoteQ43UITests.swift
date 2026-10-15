@@ -39,14 +39,14 @@ final class QuickNoteQ43UITests: XCTestCase {
         // "quick-note-view" (the screen's own accessibilityIdentifier) is a
         // container with no AX node of its own — SwiftUI leaked THAT identifier
         // onto every descendant AX element when it was present, clobbering
-        // "quick-note-title"/"quick-note-body" too, so the screen is confirmed
+        // "quick-note-title"/"transcript-editor" too, so the screen is confirmed
         // via its back button instead (Q43 fix: dropped the container identifier).
-        let back = app.buttons["quick-note-back"]
+        let back = app.buttons["note-back-button"]
         XCTAssertTrue(back.waitForExistence(timeout: 10), "the quick-note screen did not open")
-        // The wrapper's own `.accessibilityIdentifier("quick-note-body")` (SwiftUI)
+        // The wrapper's own `.accessibilityIdentifier("transcript-editor")` (SwiftUI)
         // wins over the UIKit-level `tv.accessibilityIdentifier` set inside
         // `makeUIView` — the AX tree only ever shows the outer one.
-        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
+        let body = app.descendants(matching: .any).matching(identifier: "transcript-editor").firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5), "the quick-note body text view is missing")
 
         // A fresh simulator's first-ever keyboard appearance shows Apple's
