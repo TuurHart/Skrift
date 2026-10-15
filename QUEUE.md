@@ -3278,13 +3278,13 @@ gate+: yes
 do: Tuur rejected Q424's all-or-nothing gate (D209): a model that drops a small word is the price of having a model. Loosen `CopyEditV2Gate` in `Skrift_Native/Shared/CopyEditV2/`: ship the model's edit even when it drops ordinary words; ship the original words unedited ONLY when the edit translates (language flip), loses a name or a number, invents a proper noun, re-paragraphs a typed note, or the C33 shrink guard fires. Keep fillers um/uh/eh removable. Re-run the harness, update `expected-differences-copyedit-v2.json` (still 0 unexplained; the code-switch translation must still be caught), and rewrite `plan/reads/copyedit-v2.md` so it lists which notes now ship the model's edit and which still fall back, with why.
 check: `grep -q 'D209' plan/reads/copyedit-v2.md`
 
-### Q450 [auto] (todo) flip the two stale phone tests Tuur approved (Q442)
+### Q450 [auto] (doing) flip the two stale phone tests Tuur approved (Q442)
 spec: C261 D171 D163
 needs: -
 do: Tuur said yes (Q442, 2026-10-15). In `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` change `testClearingBodyCommitsNilTranscript` to assert the C261 behaviour (clearing the body does NOT commit nil; the prior transcript stays, e.g. `XCTAssertEqual(coordinator.memo.transcript, "hello world")`), and in `AudioShareDrainTests.swift` change `testTextFileBecomesNoteBody` to expect the D171 typed-note shape for a shared .md. Touch nothing else. Report needs hand-merge: both files.
 check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh AudioShareDrainTests`
 
-### Q451 [auto] (doing) a new note and a reopened note render through one code path: one header row, no tab bar
+### Q451 [auto] (done) a new note and a reopened note render through one code path: one header row, no tab bar
 spec: C113 C234 C239 D115
 needs: -
 gate+: yes
@@ -3297,7 +3297,7 @@ needs: Q451
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
 check: Tuur clicked through it and picked one.
 
-### Q453 [auto] (todo) after Add recording the open note's player plays across the join without reopening the note
+### Q453 [auto] (doing) after Add recording the open note's player plays across the join without reopening the note
 spec: C223 C26
 needs: -
 gate+: yes
@@ -4850,3 +4850,6 @@ check: `plan/mtest.sh PDFAnnotationExportTests`
 - 2026-10-15 08:50 Q463 added
 - 2026-10-15 08:50 Q447 -> done — Tuur 2026-10-15: (a) never a title, every door → D211
 - 2026-10-15 08:57 Q449 -> done — hand-merged (Tuur D209 2026-10-15: C35 harness test now checks names+numbers only; copy-edit-v2 registry updated)
+- 2026-10-15 08:58 Q450 -> doing — worker out
+- 2026-10-15 08:58 Q453 -> doing — worker out
+- 2026-10-15 09:03 Q451 -> done — hand-merged (D163: deleted QuickNoteBodyTextViewTests with the deleted view; PortfolioPresetTests source-scan path ported)
