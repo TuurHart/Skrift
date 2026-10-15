@@ -35,6 +35,9 @@ final class SenderPeopleExportTests: XCTestCase {
         return pf
     }
 
+    /// The Mac's export input: the row compiled with the live roster, as `Compiler.compile(file:)` does.
+    private func macInput(_ m: Memo) -> CompilerInput { macRow(m).compilerInput(people: [marta]) }
+
     /// The phone's side, as `MemoExporter.compilerInput` builds it (that type is phone-only).
     private func phoneInput(_ m: Memo) -> CompilerInput {
         CompilerInput.make(
@@ -54,7 +57,7 @@ final class SenderPeopleExportTests: XCTestCase {
     }
 
     func testRosterSenderOfVoiceShareExportsInPeopleOnTheMac() {
-        let md = markdown(macRow(voiceShare(lead: "From Marta Silva")).compilerInput)
+        let md = markdown(macInput(voiceShare(lead: "From Marta Silva")))
         XCTAssertEqual(peopleLine(md), "people: [[Marta Silva]]", md)
         XCTAssertTrue(md.contains("From [[Marta Silva]]"), md)
         XCTAssertTrue(md.contains(raw), "the transcript stays the body: \(md)")
@@ -63,18 +66,18 @@ final class SenderPeopleExportTests: XCTestCase {
     func testPhoneAndMacExportTheSameSender() {
         let m = voiceShare(lead: "From Marta Silva")
         let phone = markdown(phoneInput(m))
-        let macMD = markdown(macRow(m).compilerInput)
+        let macMD = markdown(macInput(m))
         XCTAssertEqual(peopleLine(phone), "people: [[Marta Silva]]", phone)
         XCTAssertEqual(peopleLine(phone), peopleLine(macMD))
     }
 
     func testAliasSenderTakesTheCanonical() {
-        let md = markdown(macRow(voiceShare(lead: "From Marta")).compilerInput)
+        let md = markdown(macInput(voiceShare(lead: "From Marta")))
         XCTAssertEqual(peopleLine(md), "people: [[Marta Silva]]", md)
     }
 
     func testUnknownSenderStaysPlain() {
-        let md = markdown(macRow(voiceShare(lead: "From Joana Reis")).compilerInput)
+        let md = markdown(macInput(voiceShare(lead: "From Joana Reis")))
         XCTAssertEqual(peopleLine(md), "people:", md)
         XCTAssertTrue(md.contains("From Joana Reis"), md)
         XCTAssertFalse(md.contains("[[Joana"), md)
@@ -82,7 +85,7 @@ final class SenderPeopleExportTests: XCTestCase {
 
     func testSenderAlreadyLinkedInTranscriptIsNotLinkedTwice() {
         let m = voiceShare(lead: "From Marta", transcript: "Marta says the kiln is broken")
-        let md = markdown(macRow(m).compilerInput)
+        let md = markdown(macInput(m))
         XCTAssertEqual(peopleLine(md), "people: [[Marta Silva]]", md)
         XCTAssertEqual(md.components(separatedBy: "[[Marta Silva").count - 1, 2,
                        "one link in people:, one in the body: \(md)")
@@ -90,14 +93,14 @@ final class SenderPeopleExportTests: XCTestCase {
     }
 
     func testThoughtAboveTheSenderStillFindsIt() {
-        let md = markdown(macRow(voiceShare(lead: "Listen to the end\n\nFrom Marta Silva")).compilerInput)
+        let md = markdown(macInput(voiceShare(lead: "Listen to the end\n\nFrom Marta Silva")))
         XCTAssertEqual(peopleLine(md), "people: [[Marta Silva]]", md)
         XCTAssertFalse(md.contains("Listen to the end"), "only the sender exports from the lead")
     }
 
     func testNoSenderLeavesExportAlone() {
-        let plain = markdown(macRow(voiceShare(lead: nil)).compilerInput)
-        let thought = markdown(macRow(voiceShare(lead: "From the top of the hill")).compilerInput)
+        let plain = markdown(macInput(voiceShare(lead: nil)))
+        let thought = markdown(macInput(voiceShare(lead: "From the top of the hill")))
         XCTAssertFalse(plain.contains("From "), plain)
         XCTAssertEqual(peopleLine(plain), "people:")
         XCTAssertEqual(ShareSender.name(inLead: "From Marta Silva"), "Marta Silva")
