@@ -426,7 +426,8 @@ struct ArticleTextView: UIViewRepresentable {
 
         /// The rows' right column is a tab stop at the text width: re-lay out when the width moves.
         func widthChanged(_ tv: UITextView) {
-            guard abs(textWidth(tv) - renderedWidth) > 0.5, parent.doc.blocks.contains(where: { $0.kind == .row }) else { return }
+            guard abs(textWidth(tv) - renderedWidth) > 0.5,
+                  parent.doc.blocks.contains(where: { $0.kind == .row || $0.kind == .figure }) else { return }
             let keep = parent.model.topWord
             render(tv)
             if parent.model.ready { DispatchQueue.main.async { self.scroll(tv, toWord: keep) } }
@@ -601,13 +602,14 @@ enum ArticleLayout {
 
     static var ruleColor: UIColor { UIColor(Color.skBorder) }
 
-    /// UTF-16 offsets of each whitespace-split word from `from` on.
+    /// UTF-16 offsets of each whitespace-split word from `from` on. Q460: a figure's picture (the
+    /// attachment character) is not a word, so the count stays `ArticleDoc.wordCount`'s.
     static func wordStarts(_ s: NSString, from: Int) -> [Int] {
         var starts: [Int] = []
         var inWord = false
         for i in from..<s.length {
             let ch = s.character(at: i)
-            let space = ch == 32 || ch == 10 || ch == 9 || ch == 13 || ch == 0xA0
+            let space = ch == 32 || ch == 10 || ch == 9 || ch == 13 || ch == 0xA0 || ch == 0xFFFC
             if !space, !inWord { starts.append(i) }
             inWord = !space
         }
@@ -664,6 +666,7 @@ enum ArticleLayout {
         let head = UIFont.systemFont(ofSize: size * 1.06, weight: .bold)
         let rowFont = UIFont.systemFont(ofSize: size * 0.9)
         let markFont = UIFont.systemFont(ofSize: 11.5, weight: .semibold)
+        let captionFont = UIFont.italicSystemFont(ofSize: size * 0.82)
         let lh = size * CGFloat(lineHeight)
         let bodyStart = out.length
         var pageRanges: [Int: NSRange] = [:]
@@ -692,6 +695,26 @@ enum ArticleLayout {
                     .font: rowFont, .foregroundColor: text, .paragraphStyle: p,
                     .baselineOffset: (rowHeight - rowFont.lineHeight) / 2 - 1,
                     ArticleTextView.ruleKey: "below:\(i)"]))
+            case .figure:
+                // Q460: a PDF figure in its place: the picture at the text width (never upscaled
+                // past 2x), then its caption, small, dim and centred.
+                if let data = block.image, let image = UIImage(data: data, scale: 2) {
+                    let attachment = NSTextAttachment()
+                    attachment.image = image
+                    let room = max(80, (width > 0 ? width : 320) - 12)
+                    let w = min(room, image.size.width * 2)
+                    attachment.bounds = CGRect(x: 0, y: 0, width: w, height: w * image.size.height / max(image.size.width, 1))
+                    let picture = NSMutableAttributedString(attachment: attachment)
+                    picture.append(NSAttributedString(string: "\n"))
+                    let p = para(spacing: size * 0.35, before: size * 0.4)
+                    p.alignment = .center
+                    picture.addAttribute(.paragraphStyle, value: p, range: NSRange(location: 0, length: picture.length))
+                    out.append(picture)
+                }
+                let cp = para(spacing: size * 1.1, lineHeight: captionFont.lineHeight * 1.3)
+                cp.alignment = .center
+                out.append(NSAttributedString(string: s, attributes: [
+                    .font: captionFont, .foregroundColor: dim, .paragraphStyle: cp]))
             case .page:
                 // A PDF page break: "Page N", small and faint, under a hairline.
                 out.append(NSAttributedString(string: s, attributes: [

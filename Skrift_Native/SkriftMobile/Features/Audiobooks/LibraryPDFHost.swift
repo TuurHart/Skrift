@@ -147,6 +147,18 @@ enum LibraryPDFDebug {
     }
 
     static func run(store: AudiobookLibraryStore, reader: Binding<Audiobook?>, arrival: LibraryPDFArrival) {
+        if let path = LaunchFlags.showPDFFile {
+            // Q460: a fixture PDF from a path, opened in its reading view.
+            let url = URL(fileURLWithPath: path)
+            let title = url.deletingPathExtension().lastPathComponent
+            let book = store.books.first { $0.title == title }
+                ?? LibraryPDF.importPDF(from: url, displayName: url.lastPathComponent, store: store)
+            if let book {
+                PDFReaderMode.setPrefersOriginal(false, bookID: book.id)
+                reader.wrappedValue = book
+            }
+            return
+        }
         guard LaunchFlags.seedLibraryPDF || LaunchFlags.showPDFReader || LaunchFlags.showPDFToast else { return }
         var grant = store.books.first { $0.title == "GFR grant application, draft 3" }
         var budget = store.books.first { $0.title == "Sensor budget, revised" }
