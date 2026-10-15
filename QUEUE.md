@@ -3317,7 +3317,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
 check: Tuur clicked through it and said go.
 
-### Q456 [auto] (doing) capture camera: smooth pinch zoom, no fake drag handle, one recording status line
+### Q456 [auto] (done) capture camera: smooth pinch zoom, no fake drag handle, one recording status line
 spec: C221 C100
 needs: -
 gate+: yes
@@ -4890,3 +4890,4 @@ check: `plan/mtest.sh TypingScrollTests`
 - 2026-10-15 11:07 Q452 -> done — Tuur 2026-10-15: keep today's header, let it scroll away like Apple Notes
 - 2026-10-15 11:07 Q466 added
 - 2026-10-15 11:07 Q466 -> doing — worker out
+- 2026-10-15 11:08 Q456 -> done — gate 86s @7365e533
