@@ -3349,7 +3349,7 @@ check: `plan/mtest.sh PDFReadingGoldenTests`
 spec: D213
 needs: Q459
 gate+: yes
-do: Images and figures are dropped today. Crop each figure region from the page (PDFKit page image within the figure's bounds, or the embedded image) and show it inline in the reading view at its place, with its caption, using the same image block the article reader uses (Q351 build). Flip the figure fixture in `PDFReadingGoldenTests`. Screenshot the reading view of the figure fixture on the iPhone 17 sim, LOOK, `plan/reads/pdf-reading/`.
+do: Images and figures are dropped today. Also measure (Q459 doubt): each word now costs one PDFSelection; time the reading view of a generated 300-page text PDF and write the number into plan/reads/pdf-reading-structure.md; if it is over ~3 s on the iPhone 17 sim, batch the geometry per line. Crop each figure region from the page (PDFKit page image within the figure's bounds, or the embedded image) and show it inline in the reading view at its place, with its caption, using the same image block the article reader uses (Q351 build). Flip the figure fixture in `PDFReadingGoldenTests`. Screenshot the reading view of the figure fixture on the iPhone 17 sim, LOOK, `plan/reads/pdf-reading/`.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
 ### Q461 [auto] (todo) PDF reading view for scanned PDFs: on-device text recognition
