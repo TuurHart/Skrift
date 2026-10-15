@@ -3359,7 +3359,7 @@ gate+: yes
 do: A scanned or image-only PDF gets no reading view today (`PDFReflow` usable-check fails). Run on-device Vision text recognition (VNRecognizeTextRequest, accurate, languages en + nl, never a network call, C120) per page when PDFKit text is missing or garbled, cache the result beside the library item, show a 'Reading the scan…' progress line while it runs, and feed the recognised lines through the same layout rules. Flip the scan fixture in `PDFReadingGoldenTests`.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q462 [tuur] (doing) mockup: comment on a PDF highlight and share the PDF with your highlights and comments
+### Q462 [tuur] (tuur) mockup: comment on a PDF highlight and share the PDF with your highlights and comments
 spec: D212
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html`, iPhone frames, drawn from source (`LibraryPDFReader.swift`, `SourceHighlight`, Highlight in the reading and page views). Tuur 2026-10-15 (D212): highlights should go INTO the PDF as real annotations with his comments, so he can share the PDF later with his thoughts. Show: adding a comment to a highlight (and editing/removing it), how commented highlights look in the reading view and the page view, and a 'Share PDF with highlights' action (does the library PDF itself carry the annotations, or only the shared copy? show both options and ask). One agent writes this file.
@@ -4969,3 +4969,4 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:56 Q460 -> doing — worker out
 - 2026-10-15 12:56 Q461 -> doing — worker out
 - 2026-10-15 12:59 Q459 -> done — gate 61s @5a70b0ea
+- 2026-10-15 12:59 Q462 -> tuur — mock https://claude.ai/artifact/CefrZozLqfihZdJdZv4scv — A (Library PDF carries highlights) or B (only the shared copy)
