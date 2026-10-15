@@ -21,6 +21,25 @@ extension PDFReadingGoldenTests {
                        "a short title page in a text PDF keeps its text layer")
     }
 
+    func testEvenedHeightsKeepBodyLinesOneTypeAndHeadingsLarger() {
+        func line(_ minY: Double, _ maxY: Double) -> PDFReflow.Line {
+            PDFReflow.Line(words: [PDFReflow.Word(text: "w", minX: 0, maxX: 10)], minY: minY, maxY: maxY)
+        }
+        let out = LibraryPDF.evenedHeights([line(700, 716), line(680, 690), line(660, 670), line(640, 650.5),
+                                            line(620, 630)])
+        XCTAssertEqual(out[0].maxY - out[0].minY, 16, "the heading's larger type stays larger")
+        XCTAssertEqual(out[1], line(680, 690))
+        XCTAssertEqual(out[3].maxY - out[3].minY, 10, accuracy: 1e-9, "a body line gets the median height")
+        XCTAssertEqual((out[3].minY + out[3].maxY) / 2, 645.25, accuracy: 1e-9, "around its own centre")
+    }
+
+    /// The scanned letter reads as heading + three paragraphs, like its expect.md.
+    func testScannedLetterReadsAsItsParagraphs() throws {
+        let doc = try XCTUnwrap(LibraryPDF.readingDoc(url: Self.scanFixture))
+        XCTAssertEqual(doc.blocks.map(\.kind), [.heading, .paragraph, .paragraph, .paragraph],
+                       doc.blocks.map(\.text).joined(separator: "\n"))
+    }
+
     func testScannedPageIsRecognisedIntoLinesTopDown() throws {
         let doc = try XCTUnwrap(PDFDocument(url: Self.scanFixture))
         let page = try XCTUnwrap(doc.page(at: 0))

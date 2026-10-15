@@ -81,7 +81,28 @@ extension LibraryPDF {
         if !languages.isEmpty { request.recognitionLanguages = languages }
         do { try VNImageRequestHandler(cgImage: image, options: [:]).perform([request]) } catch { return empty }
         let lines = (request.results ?? []).compactMap { line(from: $0, width: width, height: height) }
-        return PDFReflow.PageLayout(width: width, height: height, lines: lines)
+        return PDFReflow.PageLayout(width: width, height: height, lines: evenedHeights(lines))
+    }
+
+    /// A recognised line's box hugs its glyphs, so a line without descenders is shorter than its
+    /// neighbour in the same type, and `PDFReflow` would read that as a font change (a paragraph
+    /// break). Lines within `sameTypeShare` of the page's median height get the median height
+    /// around their own centre; a heading's larger type stays larger.
+    static let sameTypeShare = 0.2
+
+    static func evenedHeights(_ lines: [PDFReflow.Line]) -> [PDFReflow.Line] {
+        let heights = lines.map { $0.maxY - $0.minY }.sorted()
+        guard !heights.isEmpty else { return lines }
+        let median = heights[heights.count / 2]
+        guard median > 0 else { return lines }
+        return lines.map { line in
+            let h = line.maxY - line.minY, centre = (line.minY + line.maxY) / 2
+            guard abs(h - median) <= median * sameTypeShare else { return line }
+            var out = line
+            out.minY = centre - median / 2
+            out.maxY = centre + median / 2
+            return out
+        }
     }
 
     /// The page drawn into a white bitmap, PDF y-up (Vision's normalised boxes are y-up too).
