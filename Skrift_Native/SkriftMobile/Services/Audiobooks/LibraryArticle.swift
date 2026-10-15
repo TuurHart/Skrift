@@ -10,11 +10,14 @@ struct ArticleDoc: Codable, Equatable, Sendable {
     struct Block: Codable, Equatable, Sendable {
         /// Q404: `row` (a two-column table line, cells joined by a tab) and `page` (a PDF's
         /// "Page N" break) come only from a PDF's reading view, never from an article.
-        enum Kind: String, Codable, Sendable { case heading, paragraph, row, page }
+        /// Q460: `figure` is a picture with its caption as `text` and the picture as `image`.
+        enum Kind: String, Codable, Sendable { case heading, paragraph, row, page, figure }
         var kind: Kind
         var text: String
         /// Q404: the 1-based PDF page a reading-view block comes from (nil for an article).
         var page: Int? = nil
+        /// Q460: a figure's picture (PNG), cropped from its PDF page. nil for every other kind.
+        var image: Data? = nil
     }
 
     var url: String

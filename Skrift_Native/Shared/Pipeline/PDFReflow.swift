@@ -7,12 +7,21 @@ import Foundation
 /// the real page only). SHARED phone and Mac, pure Foundation, so both apps shape a PDF the same.
 enum PDFReflow {
     struct Block: Equatable, Sendable {
-        enum Kind: String, Sendable { case heading, paragraph, row, page }
+        /// Q460: `figure` = a figure's place; its text is the caption, `region` its area on the page.
+        enum Kind: String, Sendable { case heading, paragraph, row, page, figure }
         var kind: Kind
         /// A row's cells are joined by a tab.
         var text: String
         /// 1-based page the block comes from.
         var page: Int
+        /// Q460: a figure's area on its page, in PDF points from the page's bottom-left corner.
+        var region: Region? = nil
+
+        struct Region: Equatable, Sendable {
+            var minX: Double, minY: Double, maxX: Double, maxY: Double
+            var width: Double { maxX - minX }
+            var height: Double { maxY - minY }
+        }
 
         var cells: [String] { kind == .row ? text.components(separatedBy: "\t") : [text] }
     }
@@ -229,9 +238,107 @@ extension PDFReflow {
         var out: [Block] = []
         for i in pages.indices {
             if i > 0 { out.append(Block(kind: .page, text: pageMarker(i + 1), page: i + 1)) }
-            out.append(contentsOf: blocks(of: readingOrder(kept[i]), page: i + 1))
+            var page = pages[i]
+            page.lines = kept[i]
+            let found = figures(on: page)
+            out.append(contentsOf: blocks(of: readingOrder(found.lines), page: i + 1, figures: found.figures))
         }
         return out
+    }
+
+    // MARK: Figures (Q460)
+
+    /// A figure found on a page: its area (the drawing or picture, without the caption), its
+    /// caption, and the stand-in line the reading order places (caption + area, full figure width).
+    struct Figure: Equatable, Sendable {
+        var region: Block.Region
+        var caption: String
+        var line: Line
+    }
+
+    /// A figure is at least this many body line heights tall.
+    static let minFigureLines = 3.0
+    /// A line shorter than this share of the page's usual line height is a label inside a figure.
+    static let labelShare = 0.85
+
+    /// "Figure 1.", "Fig. 2:", "Chart 3 –", "Plate 4a." at the start of a line.
+    static func isCaptionStart(_ text: String) -> Bool {
+        collapse(text).range(of: #"^(?i:figure|fig\.|chart|plate|illustration|diagram)\s*\d+[a-z]?\s*[.:\u{2013}\u{2014}-]"#,
+                             options: .regularExpression) != nil
+    }
+
+    /// The figures on one page (furniture already dropped) and the page's lines with each figure's
+    /// caption and inside labels replaced by its stand-in line. A figure is a caption line
+    /// ("Figure 1. …", with the tight lines that continue it) next to an area at least
+    /// `minFigureLines` body lines tall that holds nothing but small labels (at least one when the
+    /// area runs to the page edge): above the caption first, else below it. Its area runs the
+    /// page's text width (wider when its labels do).
+    static func figures(on page: PageLayout) -> (lines: [Line], figures: [Figure]) {
+        let lines = page.lines
+        guard !lines.isEmpty, lines.contains(where: { isCaptionStart($0.text) }) else { return (lines, []) }
+        let heights = lines.map(\.height).sorted()
+        let body = heights[heights.count / 2]
+        let areaMin = lines.map(\.minX).min() ?? 0, areaMax = lines.map(\.maxX).max() ?? page.width
+        let topDown = lines.sorted { $0.maxY != $1.maxY ? $0.maxY > $1.maxY : $0.minX < $1.minX }
+        func isLabel(_ l: Line) -> Bool { l.height < labelShare * body }
+        var used = Set<Int>()
+        var figures: [Figure] = []
+        var standIns: [(at: Int, line: Line)] = []
+
+        for c in topDown.indices where !used.contains(c) && isCaptionStart(topDown[c].text) {
+            // The caption: its first line, then lines set tight under it in the same type.
+            var caption = [c]
+            var j = c + 1
+            while j < topDown.count {
+                let prev = topDown[caption.last!], next = topDown[j]
+                if used.contains(j) { break }
+                let sameType = abs(prev.height - next.height) <= 0.12 * max(prev.height, next.height)
+                if !sameType || prev.minY - next.maxY > 0.5 * prev.height { break }
+                caption.append(j)
+                j += 1
+            }
+            let capTop = topDown[c].maxY, capBottom = topDown[caption.last!].minY
+
+            // Above: labels up to the first body line (or the top band).
+            var above: [Int] = []
+            var k = c - 1
+            while k >= 0, !used.contains(k), isLabel(topDown[k]) { above.append(k); k -= 1 }
+            let ceiling = k >= 0 ? topDown[k].minY : page.height * (1 - furnitureBand)
+            // Below: labels down to the next body line (or the bottom band).
+            var below: [Int] = []
+            var m = j
+            while m < topDown.count, !used.contains(m), isLabel(topDown[m]) { below.append(m); m += 1 }
+            let floor = m < topDown.count ? topDown[m].maxY : page.height * furnitureBand
+
+            let inside: [Int]
+            let lo: Double, hi: Double
+            // An area that runs to the page edge must hold a label: blank paper is not a figure.
+            if ceiling - capTop >= minFigureLines * body, k >= 0 || !above.isEmpty {
+                inside = above; lo = capTop; hi = ceiling
+            } else if capBottom - floor >= minFigureLines * body, m < topDown.count || !below.isEmpty {
+                inside = below; lo = floor; hi = capBottom
+            } else {
+                continue
+            }
+            let xs = inside.map { topDown[$0] }
+            let minX = max(0, min(areaMin, xs.map(\.minX).min() ?? areaMin) - 4)
+            let maxX = min(page.width, max(areaMax, xs.map(\.maxX).max() ?? areaMax) + 4)
+            let region = Block.Region(minX: minX, minY: lo + 1, maxX: maxX, maxY: hi - 1)
+            let text = join(caption.map { topDown[$0].text })
+            let stand = Line(words: [Word(text: text, minX: minX, maxX: maxX)],
+                             minY: min(lo, capBottom), maxY: max(hi, capTop))
+            figures.append(Figure(region: region, caption: text, line: stand))
+            standIns.append((c, stand))
+            used.formUnion(caption)
+            used.formUnion(inside)
+        }
+        guard !figures.isEmpty else { return (lines, []) }
+        var out: [Line] = []
+        for (i, line) in topDown.enumerated() {
+            if let s = standIns.first(where: { $0.at == i }) { out.append(s.line) }
+            else if !used.contains(i) { out.append(line) }
+        }
+        return (out, figures)
     }
 
     // MARK: Furniture
@@ -354,9 +461,12 @@ extension PDFReflow {
     /// One page's placed lines: rows first (a run of two or more lines in one column that split
     /// into cells), then headings and paragraphs. A paragraph ends at a font change, at vertical
     /// space wider than the page's usual line gap, or at a line that ends a sentence and is
-    /// clearly shorter than its column.
-    static func blocks(of placed: [Placed], page: Int) -> [Block] {
-        let rowCells: [[String]?] = placed.map { p in
+    /// clearly shorter than its column. Q460: a placed figure stand-in (`figures`) is a figure block.
+    static func blocks(of placed: [Placed], page: Int, figures: [Figure] = []) -> [Block] {
+        let figureAt: [Figure?] = placed.map { p in figures.first { $0.line == p.line } }
+        let rowCells: [[String]?] = placed.indices.map { n in
+            let p = placed[n]
+            if figureAt[n] != nil { return nil }
             let c = cells(of: p.line)
             return c.count >= 2 ? c : PDFReflow.rowCells(p.line.text)
         }
@@ -370,7 +480,8 @@ extension PDFReflow {
         }
         // The page's usual gap between two lines of one column (median), for paragraph spacing.
         var gaps: [Double] = []
-        for n in placed.indices.dropFirst() where placed[n].column == placed[n - 1].column {
+        for n in placed.indices.dropFirst()
+        where placed[n].column == placed[n - 1].column && figureAt[n] == nil && figureAt[n - 1] == nil {
             let g = placed[n - 1].line.minY - placed[n].line.maxY
             if g >= 0, g < 2 * placed[n].line.height { gaps.append(g) }
         }
@@ -385,13 +496,18 @@ extension PDFReflow {
         }
         for (n, p) in placed.enumerated() {
             let line = p.line, text = line.text
+            if let figure = figureAt[n] {
+                flush()
+                out.append(Block(kind: .figure, text: figure.caption, page: page, region: figure.region))
+                continue
+            }
             if isRow[n], let cells = rowCells[n] {
                 flush()
                 out.append(Block(kind: .row, text: cells.joined(separator: "\t"), page: page))
                 continue
             }
             // From the foot of the left column to the head of the right one, a paragraph runs on.
-            if n > 0, !(placed[n - 1].column == 1 && p.column == 2) {
+            if n > 0, figureAt[n - 1] == nil, !(placed[n - 1].column == 1 && p.column == 2) {
                 let prev = placed[n - 1].line
                 let gap = prev.minY - line.maxY
                 let fontChange = abs(prev.height - line.height) > 0.12 * max(prev.height, line.height)
