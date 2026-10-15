@@ -61,9 +61,10 @@ extension CompilerInput {
                      destination: NoteDestination,
                      spoken: Bool,
                      kind: SourceKind? = nil,
-                     linkStems: [UUID: String] = [:]) -> CompilerInput {
+                     linkStems: [UUID: String] = [:],
+                     lead: String? = nil) -> CompilerInput {
         let work = workingBody(raw: raw, copyedit: copyedit)
-        let sanitised: String? = {
+        var sanitised: String? = {
             if let given = linked { return given }
             // Only words that were SPOKEN can be a conversation: a phone typed note passes
             // `sourceType: .audio` with `spoken: false`, which must not route as one.
@@ -71,6 +72,17 @@ extension CompilerInput {
                              people: people, resolutions: resolutions)
             return l.isEmpty ? nil : l
         }()
+        // Q471 (C123): a voice / video share's sender lives in the lead text, which the body
+        // never carries; it joins the body here as a person mention, linked like any other.
+        var raw = raw, copyedit = copyedit
+        if sourceType != .capture, let name = ShareSender.name(inLead: lead) {
+            let line = ShareSender.mentionLine(name)
+            raw = ShareSender.appending(name, to: raw)
+            if work.fromCopyedit { copyedit = ShareSender.appending(name, to: copyedit) }
+            if sanitised != nil || linked == nil {
+                sanitised = appendingMention(line, to: sanitised, people: people, resolutions: resolutions)
+            }
+        }
         var input = CompilerInput(
             filename: filename,
             transcript: raw,
@@ -90,6 +102,18 @@ extension CompilerInput {
             kind: kind)
         input.setLinkStems(linkStems)
         return input
+    }
+
+    /// `body` + the sender's mention line, name-linked. The body links each person once, so a
+    /// sender already linked in it gets the plain line (still exactly one `people:` entry).
+    static func appendingMention(_ line: String, to body: String?, people: [Person],
+                                 resolutions: NameResolutions) -> String {
+        let linkedLine = linkBody(line, source: .note, people: people, resolutions: resolutions)
+        let already = Set(Compiler.peopleLinks(in: body ?? ""))
+        let fresh = Compiler.peopleLinks(in: linkedLine)
+        let useLine = !fresh.isEmpty && fresh.allSatisfy(already.contains) ? line : linkedLine
+        guard let body, !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return useLine }
+        return body + "\n\n" + useLine
     }
 
     /// Memo-link stems: UUID → the linked note's exported stem. Empty → no resolver (links

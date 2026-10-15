@@ -24,7 +24,25 @@ enum ShareSender {
     }
 
     /// The mention line the note carries.
-    static func mentionLine(_ name: String) -> String { "From \(name)" }
+    static func mentionLine(_ name: String) -> String { mentionPrefix + name }
+
+    /// Q471: the sender a spoken note's lead text names. An audio or video share keeps its mention
+    /// in the lead (`annotationText`), which the transcript never carries, so the exporters read it
+    /// back here: the lead's LAST paragraph when it is exactly one mention line ("From Marta
+    /// Silva"), else nil. Editing or deleting that line in the note changes what exports.
+    static func name(inLead lead: String?) -> String? {
+        guard let lead else { return nil }
+        let paragraphs = lead.components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard let last = paragraphs.last, !last.contains("\n"),
+              last.hasPrefix(mentionPrefix) else { return nil }
+        let name = String(last.dropFirst(mentionPrefix.count))
+        guard name.count <= 80, let cleaned = clean(name), cleaned == name else { return nil }
+        return cleaned
+    }
+
+    static let mentionPrefix = "From "
 
     /// `body` with the sender's mention line appended as its own paragraph (the note's own text
     /// stays first, so the title ladder never reads "From …" ahead of his words).

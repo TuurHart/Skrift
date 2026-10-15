@@ -21,7 +21,11 @@ extension PipelineFile {
     /// Map this queue item into the neutral `CompilerInput` the shared `Compiler` consumes.
     /// Decodes the metadata blob through the desktop `PhoneMetadata`/`SharedContent` helpers
     /// exactly as the pre-Shared `Compiler.compile` did, so output stays byte-identical.
-    var compilerInput: CompilerInput {
+    var compilerInput: CompilerInput { compilerInput(people: []) }
+
+    /// Q471: `people` (the live roster) links a voice / video share's sender line, which the
+    /// stored `sanitised` never carries. The rest of the body is never re-linked here.
+    func compilerInput(people: [Person]) -> CompilerInput {
         let meta = MemoMetadata.lenient(from: audioMetadataJSON)
         let sc = SharedContent.decode(from: audioMetadataJSON)
         // The ONE shared builder (Q155): body source, voice and link stems follow the phone's
@@ -33,6 +37,8 @@ extension PipelineFile {
             raw: transcript,
             copyedit: enhancedCopyedit,
             linked: .some(sanitised),
+            people: people,
+            resolutions: nameResolutions,
             // The stored title (rungs 1+2 of the C25 ladder), NOT `exportTitle`: the Mac
             // always sets it before export (BatchRunner), so it equals the filename's title
             // in practice; feeding the ladder here put an un-titled capture's annotation line
@@ -74,7 +80,10 @@ extension PipelineFile {
                                                                         body: transcript),
                                       media: mediaSource, sharedType: sc?.type.rawValue,
                                       isCaptureRow: sourceType == .capture,
-                                      hasAudio: sourceType == .audio && !path.isEmpty))
+                                      hasAudio: sourceType == .audio && !path.isEmpty),
+            // Q471: a voice / video share's sender rides the synced lead text (C123); the
+            // phone's `Memo.annotationText` reaches this row inside the metadata JSON.
+            lead: sourceType == .capture ? nil : Self.rawMetaString(audioMetadataJSON, key: "annotationText"))
     }
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).
@@ -108,7 +117,7 @@ extension Compiler {
     static func compile(file pf: PipelineFile, author: String, date: String? = nil,
                         knownPeople: [Person]? = nil, linkLedger: ExportLedger? = nil,
                         profile: ExportProfile = .obsidian) -> String {
-        var input = pf.compilerInput
+        var input = pf.compilerInput(people: knownPeople ?? [])
         let body = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
         if !MemoLinkSyntax.occurrences(in: body).isEmpty, let context = pf.modelContext {
             let stems = MemoLinkStems.map(context, ledger: linkLedger)
