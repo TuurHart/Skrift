@@ -23,7 +23,7 @@ enum CopyEditV2 {
         case shrank = "output under 55% of the input words (C33)"
         case newProperNoun = "a proper noun absent from the input (C177)"
         case languageFlip = "the language flipped (C177, C35)"
-        case wordLost = "a word that is not a filler was lost (C35)"
+        case nameOrNumberLost = "a name or a number was lost (C35, D209)"
         case paragraphsLost = "fewer paragraphs than the input (C34)"
         case typedReparagraphed = "a typed note was re-paragraphed (C34)"
         case linkLost = "a link did not survive (C31)"

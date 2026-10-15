@@ -21,10 +21,10 @@ final class QuickNoteFastTypingUITests: XCTestCase {
         let newNote = app.buttons["ipad-new-note-button"]
         XCTAssertTrue(newNote.waitForExistence(timeout: 20), "the new-note button never appeared")
         newNote.tap()
-        XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10), "quick note did not open")
+        XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10), "quick note did not open")
         let tip = app.buttons["Continue"]
         if tip.waitForExistence(timeout: 2) { tip.tap() }
-        let body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
+        let body = app.descendants(matching: .any).matching(identifier: "transcript-editor").firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5), "body missing")
         return (app, body)
     }
@@ -70,12 +70,12 @@ final class QuickNoteFastTypingUITests: XCTestCase {
             guard round < 6 else { break }
             let done = app.buttons["accessory-done"]
             if done.exists { done.tap() }
-            app.buttons["quick-note-back"].tap()
+            app.buttons["note-back-button"].tap()
             let newNote = app.buttons["ipad-new-note-button"]
             XCTAssertTrue(newNote.waitForExistence(timeout: 10))
             newNote.tap()
-            XCTAssertTrue(app.buttons["quick-note-back"].waitForExistence(timeout: 10))
-            body = app.descendants(matching: .any).matching(identifier: "quick-note-body").firstMatch
+            XCTAssertTrue(app.buttons["note-back-button"].waitForExistence(timeout: 10))
+            body = app.descendants(matching: .any).matching(identifier: "transcript-editor").firstMatch
             XCTAssertTrue(body.waitForExistence(timeout: 5))
         }
     }

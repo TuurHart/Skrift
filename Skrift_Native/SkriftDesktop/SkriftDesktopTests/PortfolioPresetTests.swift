@@ -75,8 +75,7 @@ final class PortfolioPresetTests: XCTestCase {
 
     func testPhoneIPadMacAndQuickNoteAllUseTheSharedRule() {
         for rel in ["SkriftDesktop/Features/Review/NoteProperties.swift",
-                    "SkriftMobile/Features/MemoDetail/MemoPageView.swift",
-                    "SkriftMobile/Features/QuickNote/QuickNoteView.swift"] {
+                    "SkriftMobile/Features/MemoDetail/MemoPageView.swift"] {   // Q451: the quick note IS this page
             let code = Self.source(rel)
             XCTAssertFalse(code.isEmpty, "could not read \(rel)")
             XCTAssertTrue(code.contains("PortfolioTagPresets.suggestions("), "\(rel) must use the shared rule")

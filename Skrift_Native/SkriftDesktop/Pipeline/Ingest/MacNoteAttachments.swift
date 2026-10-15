@@ -38,6 +38,8 @@ enum MacNoteAttachments {
     /// The file an entry points at, when it is on disk.
     static func fileURL(_ entry: NoteAttachmentEntry, working: URL?) -> URL? {
         guard let working else { return nil }
+        // D210: a video note's own movie is the kept `source.<ext>` beside `original.m4a`.
+        if NoteAttachment.isKeptMovie(entry.filename) { return VaultExporter.keptSourceVideo(in: working) }
         let url = folder(in: working).appendingPathComponent(entry.filename)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
@@ -129,7 +131,9 @@ enum MacNoteAttachments {
         let fm = FileManager.default
         let dir = folder(in: working)
         var wrote = false
-        let missing = Set(entries.map(\.filename).filter { !$0.isEmpty && !fm.fileExists(atPath: dir.appendingPathComponent($0).path) })
+        // D210: the kept movie lands as `source.<ext>` (`MemoPhotoMaterializer`), never here.
+        let missing = Set(entries.map(\.filename).filter { !$0.isEmpty && !NoteAttachment.isKeptMovie($0)
+            && !fm.fileExists(atPath: dir.appendingPathComponent($0).path) })
         if !missing.isEmpty {
             for asset in fetchAssets() where missing.contains(asset.filename)
                 && (asset.kind == MemoAsset.Kind.file || asset.kind == MemoAsset.Kind.video) && !asset.blob.isEmpty {
@@ -154,6 +158,7 @@ enum MacNoteAttachments {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
         let entries = working.map { manifest(in: $0) } ?? []
         let dir = working.map { folder(in: $0) }
+        // The kept-movie drop (C63) lives in the shared `ExportBody.convertAttachmentMarkers`.
         let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
             guard let dir else { return nil }
             let file = dir.appendingPathComponent(source)

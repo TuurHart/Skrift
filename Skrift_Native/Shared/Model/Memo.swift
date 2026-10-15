@@ -410,18 +410,25 @@ final class Memo {
     /// `id` lets the Mac mint the id when the user clicks New note and hand it to the draft,
     /// so the pane keeps showing the same note when the first keystroke creates the row.
     static func newTyped(into ctx: ModelContext, now: Date = Date(), id: UUID = UUID()) throws -> Memo {
-        let marker = try? JSONSerialization.data(withJSONObject: ["mediaSource": "typed"],
-                                                 options: [.sortedKeys])
-        let memo = Memo(id: id,
-                        recordedAt: now,
-                        transcriptStatus: .done,
-                        significance: 0,
-                        createdAt: now,
-                        metadataData: marker,
-                        recordingDeviceID: DeviceID.current())
+        let memo = typed(now: now, id: id)
         ctx.insert(memo)
         try ctx.save()
         return memo
+    }
+
+    /// The same typed note, NOT inserted anywhere (Q451): the phone's one note screen edits it
+    /// from the first frame and `QuickNoteDraft.adoptIfTyped` inserts it at the first text, so an
+    /// untouched new note never reaches the store or CloudKit (D91).
+    static func typed(now: Date = Date(), id: UUID = UUID()) -> Memo {
+        let marker = try? JSONSerialization.data(withJSONObject: ["mediaSource": "typed"],
+                                                 options: [.sortedKeys])
+        return Memo(id: id,
+                    recordedAt: now,
+                    transcriptStatus: .done,
+                    significance: 0,
+                    createdAt: now,
+                    metadataData: marker,
+                    recordingDeviceID: DeviceID.current())
     }
 
     /// Merge a context capture (place / weather / daypart / …) into this memo's metadata

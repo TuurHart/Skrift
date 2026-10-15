@@ -75,6 +75,23 @@ final class PublisherAttachmentMarkerTests: XCTestCase {
         XCTAssertFalse(md.contains("[[file_"), md)
     }
 
+    /// C63 / D210: the note's own kept movie never reaches the vault; its marker drops.
+    func testTheKeptMovieMarkerIsDroppedAndItsFileNotCopied() throws {
+        let memo = Memo(title: "Kept", transcript: "")
+        let kept = NoteAttachmentEntry(kind: NoteAttachment.Kind.video, filename: "video_\(memo.id.uuidString).mov",
+                                       name: "clip.mov", uti: "com.apple.quicktime-movie", byteCount: 3)
+        var meta = memo.metadata ?? MemoMetadata()
+        meta.attachmentManifest = [kept]
+        memo.metadata = meta
+        memo.transcript = "[[vid_001]]\n\nSaid something."
+        _ = try publisher(blobs: [kept.filename: Data("mov".utf8)]).publish(memo)
+        let all = files(under: picked)
+        let md = try String(contentsOf: XCTUnwrap(all.first { $0.pathExtension == "md" }), encoding: .utf8)
+        XCTAssertFalse(md.contains("[[vid_"), md)
+        XCTAssertFalse(md.contains("_video_"), "no embed of the kept movie:\n\(md)")
+        XCTAssertFalse(all.contains { $0.pathExtension == "mov" }, "the movie is not copied into the vault")
+    }
+
     /// C58: a foreign file already at the target name is left alone; ours lands under a suffix.
     func testAForeignFileAtTheTargetNameIsNeverClobbered() throws {
         let (memo, blobs) = memo()

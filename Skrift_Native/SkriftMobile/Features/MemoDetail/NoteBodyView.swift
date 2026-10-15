@@ -91,6 +91,8 @@ struct NoteBodyView: UIViewRepresentable {
     /// inline images size to the 640 column, not the full iPad screen. Width cap
     /// ONLY — no scroll/selection behaviour changes.
     var readingWidthCap: CGFloat? = nil
+    /// Q451 (D134): a brand-new note opens with the caret in the body and the keyboard up.
+    var focusOnAppear: Bool = false
 
     @AppStorage(PrefKey.karaokeTapToSeek) private var tapToSeek = PrefKey.karaokeTapToSeekDefault
 
@@ -119,6 +121,7 @@ struct NoteBodyView: UIViewRepresentable {
         tv.keyboardDismissMode = .interactive
         tv.delegate = context.coordinator
         tv.accessibilityIdentifier = "transcript-editor"
+        tv.focusOnWindow = focusOnAppear
         tv.installAccessoryHosts()
         context.coordinator.installAccessoryBar(on: tv)
 
@@ -386,8 +389,15 @@ struct NoteBodyView: UIViewRepresentable {
             let carried = NSRange(location: location, length: min(selection.length, length - location))
             if tv.selectedRange != carried { tv.selectedRange = carried }
             loaded = t
+            // Q453 (C223): an append landing while the note plays brings new words AND their
+            // shifted timings; read the sidecar again so the karaoke follows across the join.
+            if painting { timings = WordTimingsStore().load(for: memo.id) ?? [] }
             rebuildWordRanges()
             applyTierStyling()
+            if painting, let player {
+                lastActive = nil
+                repaint(at: player.currentTime, full: true)
+            }
             tv.setNeedsAccessoryLayout()
         }
 
@@ -462,7 +472,9 @@ struct NoteBodyView: UIViewRepresentable {
         /// A capture's ramble starts after the quote's spoken words, so its timings are
         /// the sidecar minus the quote's.
         private func currentTrack() -> KaraokeTrack? {
-            if let track { return track }
+            // Q453: the player re-opened a longer file (an append's merge): the proportional
+            // fallback must sweep the new length, so a track built for the old one is stale.
+            if let track, track.duration == (player?.duration ?? 0) { return track }
             guard let tv = textView, !wordRanges.isEmpty else { return nil }
             let text = tv.textStorage.string as NSString
             let displayed = wordRanges.map { text.substring(with: $0) }
@@ -2224,6 +2236,16 @@ final class NoteBodyTextView: UITextView {
 
     /// Insets the TEXT keeps clear regardless of accessories (set once at make).
     var baseTextInsets = UIEdgeInsets(top: 10, left: 20, bottom: 24, right: 20)
+
+    /// Q451: become first responder once, when the view first lands in a window (a new note).
+    var focusOnWindow = false
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard focusOnWindow, window != nil else { return }
+        focusOnWindow = false
+        DispatchQueue.main.async { [weak self] in _ = self?.becomeFirstResponder() }
+    }
 
     /// Touch-down point of the most recent touch, view coordinates — the
     /// selection delegate gates attachment taps on the glyph's DRAWN rect

@@ -97,10 +97,12 @@ enum MacOrphanTranscription {
     static func land(_ result: TranscriptionResult, on memo: Memo, in context: ModelContext) {
         let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let manifest = memo.metadata?.imageManifest ?? []
-        memo.transcript = text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
+        // D210: a video note's movie leads the body as its inline video block, like the phone.
+        memo.transcript = NoteAttachment.leadingKeptMovie(text.isEmpty ? nil : BodyV2.committed(BodyV2.Input(
             text: result.text, words: result.wordTimings, manifest: manifest,
             source: result.wordTimings.isEmpty ? .typed : .speech,
-            clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? [])))
+            clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? []))),
+            manifest: memo.metadata?.attachmentManifest ?? [])
         memo.transcriptConfidence = result.confidence
         memo.transcriptMarkersInjected = result.markersInjected
         memo.transcriptStatus = text.isEmpty ? .failed : .done

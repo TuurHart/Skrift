@@ -356,6 +356,9 @@ struct RecordView: View {
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(Color.skTextDim)
             .padding(.top, 18)
+            // The camera overlay draws its own "Recording · 0:17 — still listening"
+            // strip; hide this one underneath so the status renders once.
+            .opacity(showCamera ? 0 : 1)
 
             if service.liveTranscription {
                 LiveCaptionPane(

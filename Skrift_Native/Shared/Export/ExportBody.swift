@@ -29,6 +29,10 @@ enum ExportBody {
                                          place: (_ source: String, _ preferredName: String) -> String?)
         -> (markdown: String, placed: Int) {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
-        return NoteAttachment.convertMarkers(markdown, manifest: manifest, stem: stem, profile: profile, place: place)
+        // C63 / D210: a video note's own kept movie never goes into the vault (only the portfolio
+        // export copies it, by filename), so its marker drops like a missing file's. Both engines.
+        return NoteAttachment.convertMarkers(markdown, manifest: manifest, stem: stem, profile: profile) { source, preferred in
+            NoteAttachment.isKeptMovie(source) ? nil : place(source, preferred)
+        }
     }
 }

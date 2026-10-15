@@ -3,10 +3,22 @@ import Foundation
 extension CopyEditV2 {
     /// The post-conditions on every copy-edit output (C177, C35), checked against the prose the
     /// model was given. A failed gate ships the unedited body; the prompt is not the cure.
+    /// D209: the gate fails only on real damage — a translation, a lost name or number, an
+    /// invented proper noun. A dropped ordinary word is the price of a model; the edit ships.
     enum Gate {
-        /// The only words a copy-edit may drop outright (C35: "Fillers (um/uh/eh)"). Repeats go
-        /// too: the check is per distinct word, so a word kept once is kept.
+        /// Fillers (C35: "um/uh/eh"). `lostWords` skips them: it reports what else an edit dropped.
         static let fillers: Set<String> = ["um", "uh", "eh", "uhm", "umm", "uhh", "ehm", "erm", "hmm", "mm"]
+
+        /// Number words, English and Dutch (C35: "numbers ... stay"). "een" is left out: in Dutch
+        /// it is the article far more often than the number.
+        static let numberWords: Set<String> = Set("""
+            zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen \
+            fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty \
+            ninety hundred thousand million billion half dozen \
+            nul twee drie vier vijf zes zeven acht negen tien elf twaalf dertien veertien vijftien \
+            zestien zeventien achttien negentien twintig dertig veertig vijftig zestig zeventig tachtig \
+            negentig honderd duizend miljoen half
+            """.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init))
 
         /// Words a language's text carries and the other's does not — the language-flip gauge.
         static let english: Set<String> = Set("""
@@ -23,7 +35,7 @@ extension CopyEditV2 {
         static func check(input: String, output: String) -> Fallback? {
             if !newProperNouns(input: input, output: output).isEmpty { return .newProperNoun }
             if languageFlipped(input: input, output: output) { return .languageFlip }
-            if !lostWords(input: input, output: output).isEmpty { return .wordLost }
+            if !lostNamesOrNumbers(input: input, output: output).isEmpty { return .nameOrNumberLost }
             return nil
         }
 
@@ -35,11 +47,49 @@ extension CopyEditV2 {
                 .filter { !$0.isEmpty }
         }
 
-        /// C35: every distinct word of the input that is not a filler is still in the output.
+        /// Every distinct word of the input, fillers aside, that the output no longer says. A
+        /// report, not a gate (D209): `check` fails only on the names and numbers among them.
         static func lostWords(input: String, output: String) -> [String] {
             let kept = Set(words(output))
             var seen = Set<String>()
             return words(input).filter { !fillers.contains($0) && seen.insert($0).inserted && !kept.contains($0) }
+        }
+
+        /// C35 / D209: the names and numbers of the input the output no longer says. A name is a
+        /// capitalised word inside a sentence (a link reaches the model as its shown text, so a
+        /// linked name counts); its possessive survives as the bare name. A number is a word with
+        /// a digit or a number word.
+        static func lostNamesOrNumbers(input: String, output: String) -> [String] {
+            let out = words(output)
+            let kept = Set(out).union(out.map(stem))
+            var seen = Set<String>(), lost: [String] = []
+            for w in names(in: input) + words(input).filter(isNumber)
+            where seen.insert(w).inserted && !kept.contains(w) && !kept.contains(stem(w)) {
+                lost.append(w)
+            }
+            return lost
+        }
+
+        static func isNumber(_ w: String) -> Bool {
+            w.contains(where: \.isNumber) || numberWords.contains(w)
+        }
+
+        private static func stem(_ w: String) -> String { w.hasSuffix("'s") ? String(w.dropLast(2)) : w }
+
+        /// The capitalised words inside a sentence, lower-cased ("I" aside).
+        static func names(in text: String) -> [String] {
+            let ns = text as NSString
+            return properNounRegex.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { m in
+                guard !startsSentence(ns, at: m.range.location), !followsLetter(ns, m.range.location) else { return nil }
+                let w = words(ns.substring(with: m.range)).first ?? ""
+                return w.isEmpty || ["i", "i'm", "i've", "i'll", "i'd"].contains(w) ? nil : w
+            }
+        }
+
+        private static let properNounRegex = try! NSRegularExpression(pattern: #"\p{Lu}[\p{L}\p{M}\p{N}'’]*"#)
+
+        private static func followsLetter(_ ns: NSString, _ location: Int) -> Bool {
+            location > 0 && CharacterSet.letters.contains(ns.substring(with: NSRange(location: location - 1, length: 1)).unicodeScalars.first!)
         }
 
         /// C177: a capitalised word inside a sentence that the input never says (any casing).

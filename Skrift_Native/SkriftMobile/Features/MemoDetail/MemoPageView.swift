@@ -103,11 +103,15 @@ struct MemoPageView: View {
 
     @ObservedObject var lockGate = LockGate.shared
 
-    init(memo: Memo, player: AudioPlayerModel, isCurrent: Bool = true,
+    /// Q451: a brand-new note (✎, widget, Siri) opens with the caret in the body (D134).
+    var startTyping: Bool = false
+
+    init(memo: Memo, player: AudioPlayerModel, isCurrent: Bool = true, startTyping: Bool = false,
          onOpenMemo: @escaping (UUID) -> Void = { _ in }) {
         self.memo = memo
         self.player = player
         self.isCurrent = isCurrent
+        self.startTyping = startTyping
         self.onOpenMemo = onOpenMemo
         let id = memo.id
         _enhancements = Query(filter: #Predicate<MemoEnhancement> { $0.memoID == id },
@@ -121,14 +125,11 @@ struct MemoPageView: View {
         // owns the scroll, the metadata header scrolls inside it. Conversations and
         // C3 share-captures keep their legacy outer-scroll layout.
         Group {
-            if lockGate.isLocked(memo) {
-                lockedPlaceholder
-            } else if memo.isShareCapture && !isInlineImageCapture {
-                legacyScrollPage { captureContent }
-            } else if SpeakerTranscript.parse(memo.transcript) != nil {
-                legacyScrollPage { conversationContent }
-            } else {
-                editorPage
+            switch Self.pageKind(memo, locked: lockGate.isLocked(memo)) {
+            case .locked: lockedPlaceholder
+            case .capture: legacyScrollPage { captureContent }
+            case .conversation: legacyScrollPage { conversationContent }
+            case .editor: editorPage
             }
         }
         .task(id: memo.id) {
@@ -157,7 +158,11 @@ struct MemoPageView: View {
         .onChange(of: macPolish?.copyedit) { _, _ in recomputeSpans() }
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
-        .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
+        // Q453 (C223): an append writes the clip's shifted timings with its text; re-read them.
+        .onChange(of: memo.transcript) { _, _ in
+            timings = WordTimingsStore().load(for: memo.id) ?? []
+            recomputeSpans()
+        }
         // The viewer for a shared-document (.file) capture and for the editor's inline
         // photos is UIKit-presented (`MarkupQuickLook`, P2#12) — no SwiftUI cover here:
         // the zoom transition needs transitionViewFor, which a cover can't provide. Markup
@@ -421,8 +426,21 @@ struct MemoPageView: View {
     /// [[img_NNN]] pipeline, "like my Monday 22:34 note — just do that"). The
     /// drain writes the markers into the annotation; `captureAnnotationBinding`
     /// makes the body edit annotationText instead of the transcript.
-    var isInlineImageCapture: Bool {
+    var isInlineImageCapture: Bool { Self.isInlineImageCapture(memo) }
+
+    static func isInlineImageCapture(_ memo: Memo) -> Bool {
         memo.sharedContent?.type == .image && memo.transcriptStatus == .done
+    }
+
+    /// Which page a note gets. Every kind draws the same `noteHeaderCore`; a new note and a
+    /// reopened typed note are both `.editor` (Q451).
+    enum PageKind: Equatable { case locked, capture, conversation, editor }
+
+    static func pageKind(_ memo: Memo, locked: Bool) -> PageKind {
+        if locked { return .locked }
+        if memo.isShareCapture && !isInlineImageCapture(memo) { return .capture }
+        if SpeakerTranscript.parse(memo.transcript) != nil { return .conversation }
+        return .editor
     }
 
     var captureAnnotationBinding: Binding<String> {
@@ -519,7 +537,8 @@ struct MemoPageView: View {
                 // not the full screen (the note column is reading-measure-capped).
                 // Q379: at regular width the note runs the full pane (D198) — the workbench
                 // measures it (`ipadPaneWidth`); the 640 cap is only the first-frame fallback.
-                readingWidthCap: hSize == .regular ? (ipadPaneWidth ?? Adaptive.readingMaxWidth) : nil
+                readingWidthCap: hSize == .regular ? (ipadPaneWidth ?? Adaptive.readingMaxWidth) : nil,
+                focusOnAppear: startTyping
             )
         }
     }

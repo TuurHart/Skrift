@@ -303,6 +303,8 @@ final class LiveRecordingSession {
             Self.log.error("append: splice failed — \(String(describing: error), privacy: .public); note untouched")
             return false
         }
+        // Q453: the open note's player re-opens the spliced file now, not at the next open.
+        NotificationCenter.default.post(name: AudioController.audioFileDidChange, object: path)
 
         let settings = SettingsStore.shared.load()
         let memo = cloudContext.flatMap { MacCloudWriteBack.resolve(for: pf, in: $0) }
