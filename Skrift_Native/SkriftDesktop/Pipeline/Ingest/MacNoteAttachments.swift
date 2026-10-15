@@ -158,10 +158,9 @@ enum MacNoteAttachments {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
         let entries = working.map { manifest(in: $0) } ?? []
         let dir = working.map { folder(in: $0) }
-        let r = NoteAttachment.convertMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
-            // C63: a video note's own movie never goes into the vault; only the portfolio export
-            // copies it (`VaultExporter`, by filename). Its marker drops like a missing file's.
-            guard let dir, !NoteAttachment.isKeptMovie(source) else { return nil }
+        // The kept-movie drop (C63) lives in the shared `ExportBody.convertAttachmentMarkers`.
+        let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
+            guard let dir else { return nil }
             let file = dir.appendingPathComponent(source)
             guard FileManager.default.fileExists(atPath: file.path) else { return nil }
             return place(file, preferred, attDir)?.lastPathComponent
