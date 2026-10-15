@@ -40,7 +40,10 @@ enum CopyEditPipeline {
     /// the edit falls the WHOLE body back to unedited.
     private static func editProse(_ text: String, prompts: AppSettings.Prompts,
                                   generate: ModelGenerate) async throws -> String {
-        let (linkStripped, links) = MemoLinkSyntax.escrowForEditing(text)
+        let (linkEscrowed, links) = MemoLinkSyntax.escrowForEditing(text)
+        // Attachment markers ([[vid_/file_NNN]]) never reach the model; they return by paragraph index (Q469).
+        let attachments = AttachmentMarkerEscrow.hold(linkEscrowed)
+        let linkStripped = attachments.prose
         let (stripped, imgNums, anchors) = ImageMarkerReinsert.extractAnchors(linkStripped)
         let input = imgNums.isEmpty ? linkStripped : stripped
         let cap = PolishPrompts.copyEditTokenBudget(forInput: input)
@@ -58,8 +61,9 @@ enum CopyEditPipeline {
         //   log stream --predicate 'subsystem == "com.skrift.desktop" AND category == "paragraphs"'
         Logger(subsystem: "com.skrift.desktop", category: "paragraphs").log(
             "copy-edit paragraphs: in \(breaks(input), privacy: .public) → model \(breaks(edited), privacy: .public) → shipped \(breaks(broken), privacy: .public)  (\(input.count, privacy: .public) → \(broken.count, privacy: .public) chars, images: \(imgNums.count, privacy: .public))")
-        let withImages = imgNums.isEmpty ? broken
-            : ImageMarkerReinsert.reinsert(text: broken, imgNums: imgNums, anchors: anchors)
+        let withAttachments = AttachmentMarkerEscrow.place(attachments.markers, in: broken)
+        let withImages = imgNums.isEmpty ? withAttachments
+            : ImageMarkerReinsert.reinsert(text: withAttachments, imgNums: imgNums, anchors: anchors)
         guard let reattached = MemoLinkSyntax.reattach(edited: withImages, links: links) else {
             log.warning("memo-link title lost during copy-edit — falling back to the unedited body")
             return text

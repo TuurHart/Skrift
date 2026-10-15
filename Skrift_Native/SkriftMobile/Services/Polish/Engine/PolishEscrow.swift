@@ -39,10 +39,13 @@ enum PolishEscrow {
     /// reference — the QuoteProtection pattern). Mirrors `EnhancementService.editProse`.
     private static func editProse(_ text: String,
                                   generate: (String) async throws -> String) async throws -> String {
-        let (linkStripped, links) = MemoLinkSyntax.escrowForEditing(text)
+        let (linkEscrowed, links) = MemoLinkSyntax.escrowForEditing(text)
+        // Attachment markers ([[vid_/file_NNN]]) never reach the model; they return by paragraph index (Q469).
+        let attachments = AttachmentMarkerEscrow.hold(linkEscrowed)
+        let linkStripped = attachments.prose
         let (stripped, imgNums, anchors) = ImageMarkerReinsert.extractAnchors(linkStripped)
         let input = imgNums.isEmpty ? linkStripped : stripped
-        let edited = try await generate(input)
+        let edited = AttachmentMarkerEscrow.place(attachments.markers, in: try await generate(input))
         let withImages = imgNums.isEmpty ? edited
             : ImageMarkerReinsert.reinsert(text: edited, imgNums: imgNums, anchors: anchors)
         guard let reattached = MemoLinkSyntax.reattach(edited: withImages, links: links) else {
