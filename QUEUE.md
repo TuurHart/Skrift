@@ -3331,7 +3331,7 @@ gate+: yes
 do: Tuur picked (a) on Q447 (2026-10-15, D211): a messenger or machine filename (WhatsApp/Signal/Telegram audio names, recorder patterns, UUIDs) is never a note title on ANY door — share sheet (already, Q440 `IngressDispatch.clipTitle`), Files importer, Open-in, AirDrop, Mac drop/folder ingest. Use the one shared rule (`IngressDispatch.clipTitle` or move it to `NoteTitle`) everywhere `NoteTitle.importName` titles from a filename; a real name like "kiln idea.m4a" still becomes the title. Flip `ImportFileNameTitleTests` to D211 (Tuur approved this assertion change in the same answer) and report it as needs hand-merge. Desktop test `MessengerNameNeverTitleTests` covering Files and Mac paths.
 check: `grep -rqE "class MessengerNameNeverTitleTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q458 [auto] (doing) real-shaped PDF fixtures with expected reading text (synthetic, generated)
+### Q458 [auto] (done) real-shaped PDF fixtures with expected reading text (synthetic, generated)
 spec: D213 C4
 needs: -
 gate+: yes
@@ -4952,3 +4952,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:10 Q462 -> doing — mockup agent out
 - 2026-10-15 12:32 Q465 -> done — gate 278s @facc651b
 - 2026-10-15 12:35 Q457 -> done — hand-merged (Tuur Q447 (a) 2026-10-15 → D211: ImportFileNameTitleTests WhatsApp-name assertion flipped)
+- 2026-10-15 12:39 Q458 -> done — gate 53s @7b990562
