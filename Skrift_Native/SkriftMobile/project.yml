@@ -89,6 +89,11 @@ targets:
       # `AudiobookCostTests` can exercise the extension's concurrent-load fix
       # (Q57/C218) — there's no separate SkriftShareTests bundle.
       - path: SkriftShare/SharePayloadLoader.swift
+      # Q464: the share sheet's views too, so the DEBUG `ShareSheetDemoHost` (-shareSheetDemo)
+      # can screenshot every state in the simulator against mocks/Q455-share-sheet.html.
+      - path: SkriftShare/ShareSheetView.swift
+      - path: SkriftShare/ShareFeedbackView.swift
+      - path: SkriftShare/ShareTheme.swift
       # Q439 / C238: the ONE share dispatcher the loader calls (shared with the Mac).
       - path: ../Shared/Ingress
       # Shared cross-app source (one physical copy → no phone↔Mac drift). Naming
@@ -400,6 +405,8 @@ targets:
       - path: ../Shared/Ingress/IngressDispatch.swift
       # Q440 / C127: the share ledger (same bytes shared twice = one note).
       - path: ../Shared/Ingress/ShareLedger.swift
+      # Q464 / C123: the sender rules (From row, roster snapshot, per-chat memory).
+      - path: ../Shared/Ingress/ShareSender.swift
       # Q441 / C142: the .eml reader (Subject, Date, body, attachments), and C144's Maps-link
       # parser (`IngressDispatch.Plan.place`) - both pure Foundation.
       - path: ../Shared/Ingress/EmailShare.swift

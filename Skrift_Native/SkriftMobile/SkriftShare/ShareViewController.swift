@@ -1,4 +1,5 @@
 import UIKit
+import Intents
 import SwiftUI
 
 /// UIKit host for the SwiftUI share sheet. Share extensions MUST subclass
@@ -20,22 +21,13 @@ final class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Opaque dark backdrop: the system share-sheet card behind us renders
-        // a light-gray backdrop the extension can't dim or resize (the sheet
-        // presentation is host-owned) — a translucent scrim over it reads as
-        // washed gray, and the keyboard gap shows it too. #0e0f16, one step
-        // darker than the card surface.
-        view.backgroundColor = ShareTheme.backdropUI
+        // Q464 (mock Q455): the calm sheet paints the whole system sheet in the app's grey and
+        // follows the phone's light/dark (the forced-dark backdrop and card are gone).
+        view.backgroundColor = ShareTheme.backgroundUI
         // Fill the host sheet. The host sizes this remote view to its CONTENT
-        // (intrinsic/preferredContentSize), not the sheet — a compact card
-        // would float at the bottom of an unpaintable gray sheet backdrop.
-        // Ask for more height than any sheet can give; the host clamps it.
+        // (intrinsic/preferredContentSize), not the sheet; ask for more height than any
+        // sheet can give and the host clamps it.
         preferredContentSize = CGSize(width: 0, height: ShareTheme.hostHeight)
-        // The sheet always uses the dark palette (mock spec). SwiftUI's
-        // preferredColorScheme does NOT propagate inside an extension's
-        // UIHostingController — without this the adaptive sk* colors render
-        // light (white cards on the dark surface).
-        overrideUserInterfaceStyle = .dark
 
         // Load the share and present the sheet (Q439 / C238: the ONE shared
         // `IngressDispatch` decides what the share is, inside the loader). Every
@@ -49,18 +41,18 @@ final class ShareViewController: UIViewController {
             case .sheet(let payload):
                 if payload.isBook {
                     handBookToApp(payload)
-                } else if let fp = payload.fingerprint, Self.ledger?.existing(fp) != nil {
+                } else if let fp = payload.fingerprint, let row = Self.ledger?.existingRow(fp) {
                     // C127 (Q440): these exact bytes were shared before — that note IS the
                     // share. Nothing new is written; the temps go.
                     Self.dropTemps(of: payload)
-                    presentState(.alreadyInSkrift)
+                    presentState(.alreadyInSkrift(title: row.title, line: row.line))
                 } else {
                     presentSheet(payload: payload)
                 }
             case .failed(let message):
                 presentState(.error(message: message, canRetry: false))
             case .unsupported:
-                presentState(.unsupported(detail: "This share didn't contain anything Skrift understands — no text, link, image or audio arrived."))
+                presentState(.unsupported(detail: "This share has no text, link, picture or audio in it. Nothing was saved."))
             }
         }
     }
@@ -96,11 +88,50 @@ final class ShareViewController: UIViewController {
         }
     }
 
+    /// C123: the chat this share came from, when the share carries one (a share started from a
+    /// conversation suggestion hands the extension an `INSendMessageIntent`).
+    private var chatHint: String? {
+        guard let intent = extensionContext?.intent as? INSendMessageIntent else { return nil }
+        let chat = intent.speakableGroupName?.spokenPhrase.nonEmptyHint
+            ?? intent.recipients?.first?.displayName.nonEmptyHint
+            ?? intent.conversationIdentifier?.nonEmptyHint
+        guard let chat else { return nil }
+        return ShareChatHint.key(app: intent.serviceName, conversation: chat)
+    }
+
+    /// C123 / D37: the From row shows on a share from a chat — one carrying a chat hint, or a
+    /// file with a messenger's name (`IngressDispatch.isMessengerFileName`).
+    private func senderContext(for payload: SharePayload) -> ShareSenderContext {
+        let hint = chatHint
+        let names = payload.audioItems.map(\.originalName) + payload.imageItems.map(\.originalName)
+            + [payload.fileName]
+        let fromChat = hint != nil || names.contains { IngressDispatch.isMessengerFileName($0) }
+        let memory = ShareSenderMemory.inContainer(CaptureInbox.containerURL)
+        return ShareSenderContext(
+            offered: fromChat,
+            initialName: memory?.name(for: hint),
+            roster: ShareRosterSnapshot.read(container: CaptureInbox.containerURL),
+            remembered: memory?.all() ?? [:])
+    }
+
     private func presentSheet(payload: SharePayload) {
+        let hint = chatHint
         let sheet = ShareSheetView(
             payload: payload,
+            sender: senderContext(for: payload),
             onSave: { [weak self] entries, imageDatas in
-                self?.complete(entries: entries, imageDatas: imageDatas, payload: payload)
+                guard let self else { return false }
+                guard self.complete(entries: entries, imageDatas: imageDatas, payload: payload) else { return false }
+                // C123: remembered per chat when the share carries a hint.
+                if hint != nil {
+                    ShareSenderMemory.inContainer(CaptureInbox.containerURL)?
+                        .remember(entries.first?.senderName, for: hint)
+                }
+                // The receipt shows in place on the sheet; it closes after 0.9 s.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
+                    self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+                }
+                return true
             },
             onCancel: { [weak self] in
                 self?.cancel()
@@ -163,7 +194,8 @@ final class ShareViewController: UIViewController {
     /// Success flashes Saved ✓; a failed write shows the error state with a
     /// retry (temps are kept — they're the retry source). A12: this used to
     /// ignore the write result and complete anyway.
-    private func complete(entries: [CaptureInboxEntry], imageDatas: [Data], payload: SharePayload) {
+    @discardableResult
+    private func complete(entries: [CaptureInboxEntry], imageDatas: [Data], payload: SharePayload) -> Bool {
         var allOK = true
         for (i, entry) in entries.enumerated() {
             var audioFileURLs: [URL]?
@@ -190,9 +222,11 @@ final class ShareViewController: UIViewController {
             // drain dedups by memo UUID.
             presentState(.error(message: "The share couldn't be handed to Skrift.", canRetry: true),
                          retry: { [weak self] in
-                             self?.complete(entries: entries, imageDatas: imageDatas, payload: payload)
+                             guard let self, self.complete(entries: entries, imageDatas: imageDatas, payload: payload)
+                             else { return }
+                             self.presentState(.saved(summary: "Saved"))
                          })
-            return
+            return false
         }
         // C127: these bytes now have a note (the first entry's id is its memo id, C147).
         if let fp = payload.fingerprint, let first = entries.first {
@@ -200,32 +234,18 @@ final class ShareViewController: UIViewController {
         }
         // Everything is copied into the inbox now — drop the extension-temp files.
         Self.dropTemps(of: payload)
-        presentState(.saved(summary: Self.savedSummary(for: entries, payload: payload)))
-    }
-
-    /// One line saying WHAT was saved ("8 voice notes → one note", "4 photos →
-    /// one note", "Link saved") — the mock's receipt copy.
-    private static func savedSummary(for entries: [CaptureInboxEntry], payload: SharePayload) -> String {
-        if payload.isAudio {
-            let clips = payload.audioItems.count
-            if entries.count > 1 { return "\(clips) voice notes → \(entries.count) notes" }
-            if clips > 1 { return "\(clips) voice notes → one note" }
-            return "Voice note → a new note"
-        }
-        if payload.isVideo { return "Video → a new note" }
-        switch payload.type {
-        case .image:
-            let n = payload.imageItems.count
-            return n > 1 ? "\(n) photos → one note" : "Photo saved"
-        case .url:  return "Link saved"
-        case .text: return "Text saved"
-        case .file:
-            if entries.first?.routeToLibrary == true { return "PDF → Library" }
-            return payload.fileName.map { "\($0) saved" } ?? "Document saved"
-        }
+        return true
     }
 
     private func cancel() {
         extensionContext?.cancelRequest(withError: CocoaError(.userCancelled))
+    }
+}
+
+private extension String {
+    /// The string trimmed, nil when that leaves nothing.
+    var nonEmptyHint: String? {
+        let t = trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
     }
 }

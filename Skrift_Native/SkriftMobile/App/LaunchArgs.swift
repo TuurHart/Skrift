@@ -147,4 +147,8 @@ enum LaunchFlags {
     /// (`EditConflicts.debugForceConflict`) so the prompt/banner/pill can be captured
     /// against `mocks/Q4-edit-conflict.html` without two real devices going apart.
     static var forceEditConflict: Bool { args.boolFlag("-forceEditConflict") }
+    /// Q464 (DEBUG): show the share extension's sheet in one state (`ShareSheetDemoHost`) for
+    /// the screenshot check against `mocks/Q455-share-sheet.html`; `-shareSheetDemoDark` for dark.
+    static var shareSheetDemo: String? { args.stringValue("-shareSheetDemo") }
+    static var shareSheetDemoDark: Bool { args.boolFlag("-shareSheetDemoDark") }
 }

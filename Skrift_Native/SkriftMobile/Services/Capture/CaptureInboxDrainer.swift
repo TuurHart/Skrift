@@ -275,6 +275,13 @@ enum CaptureInboxDrainer {
         guard let ledger = ShareLedger.inContainer(CaptureInbox.containerURL) else { return }
         let pending = Set(CaptureInbox.pendingEntries().map(\.entry.id))
         ledger.prune { pending.contains($0) || repository.memo(id: $0) != nil || libraryStore.book(id: $0) != nil }
+        // Q464: the "Already in Skrift" screen draws the note as a notes-list row.
+        ledger.describe { id in
+            guard let memo = repository.memo(id: id) else { return nil }
+            let snippet = (memo.isShareCapture ? memo.shareCaptureSnippet : memo.firstTranscriptLine) ?? ""
+            let date = memo.recordedAt.formatted(.dateTime.day().month(.abbreviated))
+            return (memo.displayTitle, snippet.isEmpty ? date : "\(date)  \(snippet)")
+        }
     }
 
     /// D171 (Q286): the typed note a shared `.md` becomes. Body = the file (a typed thought from

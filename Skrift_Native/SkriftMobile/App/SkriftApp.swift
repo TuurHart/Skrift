@@ -127,7 +127,9 @@ struct SkriftApp: App {
 
     @ViewBuilder private var launchContent: some View {
         #if DEBUG
-        if perfLibrary.isSeeding {
+        if let demo = LaunchFlags.shareSheetDemo {
+            ShareSheetDemoHost(state: demo, dark: LaunchFlags.shareSheetDemoDark)   // Q464 screenshots
+        } else if perfLibrary.isSeeding {
             PerfSeedingView(launch: perfLibrary)
         } else {
             appRoot
