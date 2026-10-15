@@ -1,0 +1,507 @@
+<title>Share Sheet Redrawn</title>
+<style>
+/* Layout: a mock bench. Kind switch + screen switch on top, then three iPhone 17 frames
+   (simulator today / today drawn from source / calmer) side by side when wide, one at a
+   time behind a switch on a phone. The open question and the picks sit underneath. */
+:root{
+  --bench:#e9e8ee; --bench-ink:#1d1c22; --bench-dim:#66646f; --bench-line:rgba(0,0,0,.12);
+  --pin:#d0355b; --pin-soft:rgba(208,53,91,.10);
+  /* Skrift tokens, Shared/UI/Palette.swift phone column (light) */
+  --sk-bg:#f5f5f7; --sk-surface:#ffffff; --sk-elev:#ebebf0; --sk-border:rgba(0,0,0,.09);
+  --sk-text:#1c1c1e; --sk-dim:#6c6c72; --sk-faint:#a3a3aa;
+  --sk-accent:#6c5ce0; --sk-accent-soft:rgba(108,92,224,.13); --sk-accent-text:#6051c8;
+  --sk-amber:#d97706; --sk-green:#0f9d72; --sk-ring:rgba(0,0,0,.18);
+  --sk-glass:rgba(255,255,255,.78); --sk-sep:rgba(60,60,67,.18); --sk-host:#dcdce2;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  /* Today's share extension: ShareTheme.swift + Theme dark column, forced dark */
+  --t-backdrop:#0e0f16; --t-surface:#1b1d28; --t-card:#181a23; --t-elev:#1e2130;
+  --t-text:#e4e4e7; --t-dim:#8b8b97; --t-faint:#55556a; --t-accent:#7c6bf5;
+  --t-accent-text:#b9acff; --t-hair:rgba(255,255,255,.09);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bench:#141318; --bench-ink:#ecebf1; --bench-dim:#9a98a6; --bench-line:rgba(255,255,255,.12);
+  --pin:#ff6f91; --pin-soft:rgba(255,111,145,.12); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bench:#141318; --bench-ink:#ecebf1; --bench-dim:#9a98a6; --bench-line:rgba(255,255,255,.12);
+  --pin:#ff6f91; --pin-soft:rgba(255,111,145,.12); color-scheme:dark;
+}
+/* the phone's own theme (calm frame follows the phone; today's frame is always dark) */
+.phone.dark{
+  --sk-bg:#0f1117; --sk-surface:#181a23; --sk-elev:#1e2130; --sk-border:rgba(255,255,255,.06);
+  --sk-text:#e4e4e7; --sk-dim:#8b8b97; --sk-faint:#55556a;
+  --sk-accent:#7c6bf5; --sk-accent-soft:rgba(124,107,245,.13); --sk-accent-text:#b9acff;
+  --sk-amber:#f59e0b; --sk-green:#34d399; --sk-ring:rgba(255,255,255,.22);
+  --sk-glass:rgba(44,44,50,.78); --sk-sep:rgba(84,84,88,.45); --sk-host:#2a2a30;
+}
+*{box-sizing:border-box}
+body{background:var(--bench);color:var(--bench-ink);font-family:var(--ui);margin:0}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:16px;padding-block:18px 60px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
+svg{display:block}
+
+/* ── bench chrome ───────────────────────── */
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--bench-dim)}
+h1{font-size:22px;line-height:1.2;margin:6px 0 4px;text-wrap:balance}
+h2{font-size:16px;margin:0 0 6px;text-wrap:balance}
+.lede{color:var(--bench-dim);font-size:14px;line-height:1.45;max-width:72ch;margin:0}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:16px 0 8px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--bench-line);border-radius:9px;padding:3px;gap:2px}
+.seg button{padding:7px 11px;border-radius:7px;font-size:13px;font-weight:600;color:var(--bench-dim);min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--bench);color:var(--bench-ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.lbl{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bench-dim);margin-right:6px}
+.grp{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:14px}
+.panel{min-width:0;display:flex;flex-direction:column;gap:8px}
+.ptitle{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ptitle b{font-size:14px}
+.ptitle span{font-size:12px;color:var(--bench-dim)}
+.tag{font:600 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:4px;background:var(--bench-line);color:var(--bench-dim)}
+.tag.new{background:var(--pin-soft);color:var(--pin)}
+.note{font-size:12px;line-height:1.45;color:var(--bench-dim);max-width:60ch}
+.panelswitch{display:none}
+@media (max-width: 900px){
+  .panels{grid-template-columns:minmax(0,1fr)}
+  .panel[data-hide="1"]{display:none}
+  .panelswitch{display:flex}
+}
+.fit{position:relative;width:100%;}
+.fit > .phone{position:absolute;left:0;top:0;transform-origin:top left}
+
+/* question + picks */
+.q{margin-top:28px;border:2px solid var(--pin);border-radius:12px;padding:16px;background:var(--pin-soft)}
+.q h2{color:var(--pin)}
+.q p{margin:0 0 10px;font-size:14px;line-height:1.45;max-width:72ch}
+.picks{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.pick{border:1px solid var(--bench-line);border-radius:10px;padding:14px;min-width:0}
+.pick h3{font-size:14px;margin:0 0 6px;text-wrap:balance}
+.pick p{font-size:13px;line-height:1.45;color:var(--bench-dim);margin:0}
+.pick .n{font:600 11px/1 var(--mono);color:var(--pin);margin-bottom:6px;display:block}
+.ack{font-size:12px;color:var(--pin);min-height:16px;margin-top:6px}
+
+/* ── iPhone 17 frame: 402 × 874 pt ─────── */
+.phone{width:402px;height:874px;border-radius:58px;background:#000;padding:11px;box-shadow:0 0 0 1.5px #3a3a40,0 18px 40px rgba(0,0,0,.25);font-family:var(--ui);-webkit-font-smoothing:antialiased}
+.screen{position:relative;width:100%;height:100%;border-radius:48px;overflow:hidden;background:var(--sk-host)}
+.status{position:absolute;left:0;right:0;top:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:6px 34px 0;font:600 16px/1 var(--ui);color:#fff;z-index:3}
+.island{position:absolute;top:11px;left:50%;width:122px;height:36px;margin-left:-61px;background:#000;border-radius:20px;z-index:4}
+.homebar{position:absolute;bottom:8px;left:50%;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:rgba(255,255,255,.6);z-index:5}
+.light-home .homebar{background:rgba(0,0,0,.75)}
+/* host app peeking behind the sheet */
+.host{position:absolute;inset:0;background:linear-gradient(180deg,#2d3a33 0,#43544a 100%)}
+.host.photos{background:linear-gradient(160deg,#c78b4a 0%,#7d4b2b 45%,#2b1d18 100%)}
+.host.chat{background:#0b141a}
+.host.safari{background:#fafafa}
+.sysSheet{position:absolute;left:0;right:0;top:58px;bottom:0;border-radius:38px 38px 0 0;overflow:hidden}
+.grab{position:absolute;top:6px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:rgba(127,127,135,.55);z-index:6}
+
+/* ── TODAY (from ShareSheetView.swift / ShareFeedbackView.swift) ── */
+.t{position:absolute;inset:0;background:var(--t-backdrop);color:var(--t-text);display:flex;flex-direction:column;justify-content:flex-end}
+.t .card{background:var(--t-surface);border-radius:22px 22px 0 0;box-shadow:0 -10px 36px rgba(0,0,0,.5),inset 0 0 0 .5px rgba(255,255,255,.07);padding:14px 16px 50px}
+.t .hdr{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.t .mk{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#8e7dff,#6a59ef);color:#fff;font:900 12px/24px var(--ui);text-align:center;box-shadow:0 1px 4px rgba(124,107,245,.45)}
+.t .ttl{font:700 14px/1 var(--ui);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t .x{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.07);display:grid;place-items:center;color:var(--t-dim)}
+.t .chrome{background:var(--t-card);border-radius:13px;box-shadow:inset 0 0 0 .5px var(--t-hair)}
+.t .row{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.t .glyph{width:32px;height:32px;border-radius:8px;background:rgba(124,107,245,.14);display:grid;place-items:center;color:var(--t-accent);flex:none}
+.t .glyph.wide{width:46px;height:34px}
+.t .r1{font:600 13px/1.25 var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t .r2{font:400 11px/1.3 var(--ui);color:var(--t-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t .honest{display:flex;align-items:center;gap:6px;padding-left:2px;margin-top:7px;font-size:10.5px;color:var(--t-faint);line-height:1.3}
+.t .honest i{width:6px;height:6px;border-radius:50%;background:rgba(124,107,245,.55);flex:none}
+.t .field{position:relative;margin-top:11px;background:var(--t-card);border-radius:12px;box-shadow:inset 0 0 0 .5px var(--t-hair);min-height:54px}
+.t .field textarea{width:100%;min-height:54px;resize:none;background:transparent;border:0;color:var(--t-text);font:400 14px/1.35 var(--ui);padding:9px 12px;outline:none}
+.t .field textarea::placeholder{color:var(--t-faint);font-size:13px}
+.t .field:focus-within{box-shadow:inset 0 0 0 .5px rgba(124,107,245,.45)}
+.t .hint{font-size:10.5px;color:var(--t-faint);margin:7px 0 0 2px}
+.t .rate{margin-top:12px;margin-bottom:13px;position:relative}
+.t .save{width:100%;height:44px;border-radius:12px;background:var(--t-accent);color:#fff;font:700 14.5px/44px var(--ui);text-align:center;box-shadow:0 1px 8px rgba(124,107,245,.45)}
+.t .choices{display:flex;gap:8px;margin-top:11px}
+.t .choice{flex:1;min-height:64px;padding:10px;border-radius:13px;text-align:left;background:rgba(255,255,255,.02);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+.t .choice.on{background:rgba(124,107,245,.09);box-shadow:inset 0 0 0 .5px rgba(124,107,245,.55)}
+.t .choice .ct{display:flex;justify-content:space-between;font:700 12.5px/1.2 var(--ui);color:var(--t-text)}
+.t .choice.on .ct{color:#fff}
+.t .choice .cs{font-size:10.5px;line-height:1.3;color:var(--t-faint);margin-top:2px}
+.t .choice.on .cs{color:var(--t-dim)}
+.t .radio{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);flex:none;position:relative}
+.t .choice.on .radio{box-shadow:inset 0 0 0 1.5px var(--t-accent)}
+.t .choice.on .radio::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--t-accent)}
+.t .libline{font-size:11.5px;line-height:1.45;color:var(--t-dim);padding:0 2px;margin:12px 0}
+.t .img{height:120px;border-radius:13px;box-shadow:inset 0 0 0 .5px var(--t-hair)}
+.t .fb{background:var(--t-surface);border-radius:22px 22px 0 0;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.07);padding:26px 0 52px;text-align:center}
+.t .circ{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px}
+.t .fbt{font:700 15.5px/1.2 var(--ui);margin-bottom:5px}
+.t .fbs{font-size:12px;line-height:1.45;color:var(--t-dim);padding:0 24px;margin-bottom:18px;white-space:pre-line}
+.t .fbbtn{display:inline-block;width:140px;height:42px;border-radius:12px;background:rgba(255,255,255,.06);color:var(--t-dim);font:700 13.5px/42px var(--ui)}
+/* the shared rating pill, today's dark tokens */
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 8px;border-radius:13px;font:500 12px/1 var(--ui);white-space:nowrap}
+.pill .balls{display:flex;gap:3px}
+.pill .balls i{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.2px var(--ring)}
+.pill .balls i.on{background:var(--acc);box-shadow:inset 0 0 0 1.2px var(--acc)}
+.t .pill{--ring:rgba(255,255,255,.22);--acc:var(--t-accent);background:var(--t-card);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);color:var(--t-dim)}
+.t .pill.lit{background:rgba(124,107,245,.13);box-shadow:none;color:var(--t-accent-text);font-weight:600}
+.toast{position:absolute;left:0;top:-38px;background:rgba(0,0,0,.85);color:#fff;font:400 13px/1 var(--ui);padding:8px 14px;border-radius:16px;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.25);pointer-events:none;z-index:9}
+
+/* ── CALM (proposal) ─────────────────── */
+.c{position:absolute;inset:0;background:var(--sk-bg);color:var(--sk-text);display:flex;flex-direction:column}
+.c .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 8px;min-height:72px}
+.c .navt{font:600 17px/1 var(--ui);position:absolute;left:0;right:0;text-align:center;pointer-events:none}
+.c .gbtn{position:relative;z-index:1;height:44px;min-width:44px;border-radius:22px;background:var(--sk-glass);box-shadow:inset 0 0 0 .5px var(--sk-border),0 1px 3px rgba(0,0,0,.08);display:grid;place-items:center;color:var(--sk-text);font:600 16px/1 var(--ui);padding:0 14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.c .gbtn.icon{padding:0;width:44px}
+.c .gbtn.pri{background:var(--sk-accent);color:#fff;box-shadow:none}
+.c .gbtn.done{background:var(--sk-green);color:#fff}
+.c .body{flex:1;overflow:auto;padding:6px 16px 40px;display:flex;flex-direction:column;gap:8px}
+.c .sech{font:400 13px/1.2 var(--ui);color:var(--sk-dim);text-transform:uppercase;letter-spacing:.02em;padding:14px 16px 4px}
+.c .card{background:var(--sk-surface);border-radius:14px;overflow:hidden}
+.c .item{display:flex;gap:12px;align-items:center;padding:12px 16px}
+.c .item .txt{flex:1;min-width:0}
+.c .i1{font:600 17px/1.25 var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c .i2{font:400 15px/1.3 var(--ui);color:var(--sk-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.c .ico{width:44px;height:44px;border-radius:10px;background:var(--sk-elev);display:grid;place-items:center;color:var(--sk-dim);flex:none}
+.c .sep{height:.5px;background:var(--sk-sep);margin-left:16px}
+.c textarea{width:100%;min-height:84px;resize:none;background:transparent;border:0;color:var(--sk-text);font:400 17px/1.35 var(--ui);padding:12px 16px;outline:none;display:block}
+.c textarea::placeholder{color:var(--sk-faint)}
+.c .foot{font:400 13px/1.4 var(--ui);color:var(--sk-dim);padding:4px 16px 0}
+.c .lrow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 16px;position:relative}
+.c .lrow .k{font:400 17px/1 var(--ui)}
+.c .lrow input{flex:1;min-width:0;text-align:right;border:0;background:transparent;color:var(--sk-text);font:400 17px/1 var(--ui);outline:none;padding:12px 0}
+.c .lrow input::placeholder{color:var(--sk-faint)}
+.c .pill{--ring:var(--sk-ring);--acc:var(--sk-accent);background:var(--sk-surface);box-shadow:inset 0 0 0 1px var(--sk-border);color:var(--sk-dim)}
+.c .pill.lit{background:var(--sk-accent-soft);box-shadow:none;color:var(--sk-accent-text);font-weight:600}
+.c .hdrline{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 16px;position:relative}
+.c .person{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;box-shadow:inset 0 0 0 1px var(--sk-border);font:500 12px/1 var(--ui);color:var(--sk-dim);background:var(--sk-surface)}
+.c .person input{border:0;background:transparent;font:500 13px/1 var(--ui);color:var(--sk-text);width:118px;outline:none;padding:0}
+.c .person input::placeholder{color:var(--sk-faint)}
+.c .sugg{position:absolute;right:16px;top:calc(100% - 4px);z-index:8;background:var(--sk-surface);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18),inset 0 0 0 .5px var(--sk-border);min-width:190px;overflow:hidden}
+.c .sugg button{display:flex;width:100%;justify-content:space-between;gap:12px;padding:11px 14px;font:400 16px/1 var(--ui);color:var(--sk-text);text-align:left}
+.c .sugg button + button{box-shadow:inset 0 .5px 0 var(--sk-sep)}
+.c .sugg small{color:var(--sk-dim);font-size:12px}
+.c .segc{display:flex;background:var(--sk-elev);border-radius:9px;padding:2px;margin:0}
+.c .segc button{flex:1;height:32px;border-radius:7px;font:600 14px/1 var(--ui);color:var(--sk-text)}
+.c .segc button[aria-pressed="true"]{background:var(--sk-surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.c .poster{position:relative;height:214px;background:linear-gradient(170deg,#3c4b5c 0%,#8a6a4e 55%,#c9a06a 100%);display:grid;place-items:center}
+.c .poster .play{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;color:#111}
+.c .poster .dur{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;font:600 12px/1 var(--ui);padding:4px 7px;border-radius:6px}
+.c .photo{height:230px}
+.c .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px 120px;gap:8px}
+.c .empty .big{color:var(--sk-faint);margin-bottom:6px}
+.c .empty b{font:700 22px/1.2 var(--ui)}
+.c .empty p{font:400 15px/1.4 var(--ui);color:var(--sk-dim);margin:0}
+.c .saved{display:flex;align-items:center;gap:8px;color:var(--sk-green);font:600 15px/1.3 var(--ui);padding:4px 16px 0}
+.c .dim{opacity:.45;pointer-events:none;transition:opacity .2s}
+.c .toast{left:16px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Q455 · mockup · iPhone 17 frames, 402 × 874 pt</div>
+  <h1>Share sheet and its "Saved" receipt, redrawn</h1>
+  <p class="lede">Left: the simulator running today's share extension (where I could get it). Middle: today's two screens drawn from <code>ShareSheetView.swift</code> and <code>ShareFeedbackView.swift</code> after Q439/Q440/Q441. Right: a calmer version in the notes list and editor's Apple-style look (D190, D193). Everything taps: the rating pill steps, Save shows the receipt, Article/Note switches.</p>
+
+  <div class="bar">
+    <div class="grp"><span class="lbl">Share</span>
+      <div class="seg" id="kindSeg">
+        <button data-k="voice" aria-pressed="true">Voice memo</button>
+        <button data-k="video">Video</button>
+        <button data-k="link">Link</button>
+        <button data-k="photo">Photo</button>
+        <button data-k="already">Already in Skrift</button>
+        <button data-k="cant">Can't import</button>
+      </div>
+    </div>
+    <div class="grp"><span class="lbl">Screen</span>
+      <div class="seg" id="screenSeg">
+        <button data-s="sheet" aria-pressed="true">Sheet</button>
+        <button data-s="saved">After Save</button>
+      </div>
+    </div>
+    <div class="grp"><span class="lbl">Calm frame</span>
+      <div class="seg" id="themeSeg">
+        <button data-t="light" aria-pressed="true">Light</button>
+        <button data-t="dark">Dark</button>
+      </div>
+    </div>
+    <div class="grp"><span class="lbl">Rating + sender</span>
+      <div class="seg" id="placeSeg">
+        <button data-p="A" aria-pressed="true">A · rows below</button>
+        <button data-p="B">B · header line</button>
+      </div>
+    </div>
+  </div>
+  <div class="bar panelswitch">
+    <div class="grp"><span class="lbl">Frame</span>
+      <div class="seg" id="panelSeg">
+        <button data-v="sim">Simulator</button>
+        <button data-v="today">Today</button>
+        <button data-v="calm" aria-pressed="true">Calmer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <section class="panel" data-panel="sim" data-hide="1">
+      <div class="ptitle"><span class="tag">reference</span><b>Simulator, today</b><span id="simCap"></span></div>
+      <div class="fit" id="fitSim"></div>
+      <p class="note" id="simNote"></p>
+    </section>
+    <section class="panel" data-panel="today" data-hide="1">
+      <div class="ptitle"><span class="tag">today</span><b>Drawn from source</b><span>always dark</span></div>
+      <div class="fit" id="fitToday"></div>
+      <p class="note" id="todayNote"></p>
+    </section>
+    <section class="panel" data-panel="calm">
+      <div class="ptitle"><span class="tag new">proposal</span><b>Calmer</b><span>follows the phone's light/dark</span></div>
+      <div class="fit" id="fitCalm"></div>
+      <p class="note" id="calmNote"></p>
+    </section>
+  </div>
+
+  <div class="q">
+    <h2>Open question: where do the rating and the sender name sit?</h2>
+    <p>Every share offers the rating (C66), and a messenger share can carry who sent it (C123, with roster autocomplete per D37). The sender field does not exist yet in the code; it shows here on the WhatsApp voice memo and photo. Flip <b>Rating + sender</b> above to compare.</p>
+    <p><b>A · rows below:</b> a separate card under the item, Settings style: "Rating" with the pill on the right, "From" with the name typed right-aligned. Reads like a form; every row is one thing.<br>
+    <b>B · header line:</b> one line under the item, the way the open note's header does it (D196): the rating pill, then a person chip you type into. Shorter sheet; matches the note it becomes.</p>
+    <div class="grp">
+      <div class="seg" id="voteSeg"><button data-vote="A">Go with A</button><button data-vote="B">Go with B</button><button data-vote="neither">Neither</button></div>
+    </div>
+    <div class="ack" id="voteAck" aria-live="polite"></div>
+  </div>
+
+  <div class="picks">
+    <div class="pick"><span class="n">PICK 1 · overrule me</span><h3>The sheet fills the system sheet and starts at the top</h3><p>Today the extension paints the whole system sheet near-black (#0e0f16) and parks a small card at the bottom, so most of the screen is a dark void. The calm version starts at the top on the app's grey background, like the share sheet Apple Notes shows, and follows light/dark instead of forcing dark.</p></div>
+    <div class="pick"><span class="n">PICK 2 · overrule me</span><h3>Save moves to the top right; the big purple button goes</h3><p>Close (✕) top left, Save top right, as in every iOS 26 sheet. No Sk monogram, no glow on the button (D208: "we don't need all this glowing"), no purple dots before the small print. The small print becomes a plain grey footer under the card.</p></div>
+    <div class="pick"><span class="n">PICK 3 · overrule me</span><h3>The receipt happens in place, not on a new screen</h3><p>Today Save swaps the sheet for a separate card with a green circle that closes after 0.9 s. Here the Save button turns green "Saved", the fields dim, and the footer says what happened; then the sheet closes after the same 0.9 s. "Already in Skrift" and "can't import" stay full screens because nothing was saved.</p></div>
+  </div>
+</div>
+
+<script>
+/* simulator reference screenshots, inlined at build (scratchpad/Q455/inline.py) */
+const SIM = /*SIM_DATA*/{};
+
+const S = { kind:'voice', screen:'sheet', theme:'light', place:'A', panel:'calm',
+  rT:0, rC:0, article:true, articleC:true, thoughtT:'', thoughtC:'', sender:'' , savedC:false };
+const NAMES = ['Passing','Useful','Important'];
+const ROSTER = [['Marta Silva','WhatsApp: Marta'],['Mark de Vries',''],['Mãe','WhatsApp: Mãe'],['Matthijs','']];
+const label = n => n>0 ? NAMES[n-1] : 'Not rated';
+const toastCopy = (f,t) => t>0 ? `${NAMES[t-1]} · ready to process` : (f>0 ? 'Not rated · out of the queue, no export' : 'Not rated · left alone');
+
+/* ── icons (stand-ins for SF Symbols) ── */
+const I = {
+  wave:(s=14)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 7v2M5 4.5v7M8 2.5v11M11 5v6M14 7v2"/></svg>`,
+  play:(s=13)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>`,
+  globe:(s=14)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2 2 2 10.4 0 12.4M8 1.8c-2 2-2 10.4 0 12.4"/></svg>`,
+  link:(s=9)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 9.5l3-3M5 8l-1.5 1.5a2.5 2.5 0 003.5 3.5L8.5 11.5M11 8l1.5-1.5A2.5 2.5 0 009 3L7.5 4.5"/></svg>`,
+  x:(s=13)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>`,
+  check:(s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>`,
+  dup:(s=19)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="8.5" height="9" rx="1.6"/><path d="M3 11V3.2C3 2.5 3.5 2 4.2 2H10"/></svg>`,
+  no:(s=19)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M3.8 12.2l8.4-8.4"/></svg>`,
+  person:(s=12)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2.5 14c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5z"/></svg>`,
+  excl:(s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="currentColor"><rect x="7" y="2.5" width="2" height="8" rx="1"/><circle cx="8" cy="13" r="1.2"/></svg>`
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* fake payloads */
+const P = {
+  voice:{from:'WhatsApp', title:'Voice note · 0:41', shared:'14:02', host:'chat', sender:true},
+  video:{from:'Photos', dur:'1:12', filmed:'14 Oct 2026 at 18:40', host:'photos', sender:false},
+  link:{from:'Safari', title:'The slow cool: what a kiln teaches about patience', domain:'craftsmag.com', host:'safari', sender:false},
+  photo:{from:'WhatsApp', host:'chat', sender:true},
+};
+const PHOTO_BG = 'background:radial-gradient(circle at 70% 30%,#f2c27b 0 14%,transparent 15%),linear-gradient(180deg,#d98c4f 0%,#a5532f 48%,#3a2a24 49%,#5b4337 100%)';
+
+function pill(n, cls){ return `<button class="pill ${n?'lit':''}" data-act="rate${cls}"><span class="balls">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</span>${label(n)}</button>`; }
+
+/* ───────── TODAY, from source ───────── */
+function todaySheet(){
+  const k = S.kind, p = P[k];
+  if (k==='already') return todayFeedback('already');
+  if (k==='cant') return todayFeedback('cant');
+  if (S.screen==='saved') return todayFeedback('saved');
+  let title = 'Save to Skrift', preview = '', mid = '', saveLbl = 'Save to Skrift';
+  const field = `<div class="field"><textarea id="tThought" rows="2" placeholder="Add a thought (optional)…">${esc(S.thoughtT)}</textarea></div><div class="hint">Voice thoughts? Add them in Skrift after saving — share sheets can't record.</div>`;
+  const rate = `<div class="rate">${pill(S.rT,'T')}<span id="toastT"></span></div>`;
+  if (k==='voice'){
+    preview = `<div class="chrome row"><div class="glyph">${I.wave()}</div><div style="min-width:0"><div class="r1">${p.title}</div><div class="r2">Audio · shared ${p.shared}</div></div></div><div class="honest"><i></i>Transcribes on-device · Skrift opens on it next time</div>`;
+    mid = rate;
+  } else if (k==='video'){
+    preview = `<div class="chrome row"><div class="glyph wide">${I.play()}</div><div style="min-width:0"><div class="r1">Video · ${p.dur}</div><div class="r2">filmed ${p.filmed} · audio becomes the note</div></div></div><div class="honest"><i></i>Transcribes on-device · the movie is kept with the note and syncs through your iCloud</div>`;
+    mid = field + rate;
+  } else if (k==='link'){
+    preview = `<div class="chrome row"><div class="glyph" style="color:#60a5fa">${I.globe()}</div><div style="min-width:0"><div class="r1">${esc(p.title)}</div><div class="r2" style="display:flex;gap:4px;align-items:center">${I.link()}${p.domain}</div></div></div>
+      <div class="choices"><button class="choice ${S.article?'on':''}" data-act="artT1"><div class="ct">Article<span class="radio"></span></div><div class="cs">Read it in Library, highlight to add notes</div></button><button class="choice ${S.article?'':'on'}" data-act="artT0"><div class="ct">Note<span class="radio"></span></div><div class="cs">Save the link as a note</div></button></div>`;
+    if (S.article){ mid = `<div class="libline">Skrift saves the article text for offline reading the next time it opens. If the page turns out to have no article text, it becomes a note instead.</div>`; saveLbl='Add to Library'; }
+    else mid = field + rate;
+  } else if (k==='photo'){
+    preview = `<div class="img" style="${PHOTO_BG}"></div>`;
+    mid = field + rate;
+  }
+  return `<div class="t"><div class="card"><div class="hdr"><div class="mk">Sk</div><div class="ttl">${title}</div><button class="x" aria-label="Dismiss">${I.x()}</button></div>
+    ${preview}${mid.startsWith('<div class="rate')?'<div style="height:11px"></div>'+mid:mid}
+    <button class="save" data-act="saveT">${saveLbl}</button></div></div>`;
+}
+function todayFeedback(which){
+  const k = S.kind;
+  let circ, ttl, sub, btn = '';
+  if (which==='saved'){
+    const sum = {voice:'Voice note → a new note', video:'Video → a new note', link: S.article?'Link saved':'Link saved', photo:'Photo saved'}[k];
+    circ = `<div class="circ" style="background:rgba(52,199,89,.14);color:#34c759">${I.check()}</div>`; ttl='Saved to Skrift'; sub = sum+'\nSkrift opens on it next time';
+  } else if (which==='already'){
+    circ = `<div class="circ" style="background:rgba(124,107,245,.14);color:var(--t-accent)">${I.dup()}</div>`; ttl='Already in Skrift';
+    sub = "You shared this file before, so it's the same note.\nNothing new was saved."; btn = `<button class="fbbtn" data-act="ack">Close</button>`;
+  } else {
+    circ = `<div class="circ" style="background:rgba(139,139,151,.14);color:var(--t-dim)">${I.no()}</div>`; ttl="Skrift can't import this";
+    sub = "This share didn't contain anything Skrift understands — no text, link, image or audio arrived."; btn = `<button class="fbbtn" data-act="ack">Close</button>`;
+  }
+  return `<div class="t"><div class="fb">${circ}<div class="fbt">${ttl}</div><div class="fbs">${esc(sub)}</div>${btn}</div></div>`;
+}
+
+/* ───────── CALM, proposal ───────── */
+function calmSheet(){
+  const k = S.kind, p = P[k];
+  if (k==='already'){
+    return `<div class="c"><div class="nav"><span></span><div class="navt">Skrift</div><button class="gbtn" data-act="ack">Done</button></div>
+      <div class="body"><div class="sech">Already in Skrift</div>
+      <div class="card"><div class="item"><div class="txt"><div class="i1">Kiln idea</div><div class="i2">14 Oct &nbsp;Glaze test at 1240 °C, the slow cool gives…</div></div></div></div>
+      <div class="foot">You shared this file before, so it's the same note. Nothing new was saved.</div></div></div>`;
+  }
+  if (k==='cant'){
+    return `<div class="c"><div class="nav"><span></span><div class="navt">Skrift</div><button class="gbtn" data-act="ack">Done</button></div>
+      <div class="empty"><div class="big">${I.no(54)}</div><b>Skrift can't import this</b><p>This share has no text, link, picture or audio in it. Nothing was saved.</p></div></div>`;
+  }
+  const saved = S.screen==='saved';
+  const dim = saved ? 'dim' : '';
+  let item = '', foot = '', saveLbl = 'Save', showRate = true, thought = true;
+  if (k==='voice'){
+    item = `<div class="item"><div class="ico" style="color:var(--sk-accent)">${I.wave(20)}</div><div class="txt"><div class="i1">Voice note</div><div class="i2">0:41 · from WhatsApp · 14:02</div></div></div>`;
+    foot = 'Transcribes on your iPhone. Skrift opens on it next time.'; thought = false;
+  } else if (k==='video'){
+    item = `<div class="poster"><div class="play">${I.play(20)}</div><div class="dur">1:12</div></div><div class="item" style="padding-top:10px;padding-bottom:10px"><div class="txt"><div class="i2" style="margin:0">Filmed 14 Oct 2026, 18:40</div></div></div>`;
+    foot = 'The audio becomes the note; the video stays in it and syncs through iCloud.';
+  } else if (k==='link'){
+    item = `<div class="item"><div class="ico" style="color:#3b82f6">${I.globe(22)}</div><div class="txt"><div class="i1" style="white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(p.title)}</div><div class="i2">${p.domain}</div></div></div>
+      <div class="sep"></div><div style="padding:10px 16px"><div class="segc"><button data-act="artC1" aria-pressed="${S.articleC}">Article</button><button data-act="artC0" aria-pressed="${!S.articleC}">Note</button></div></div>`;
+    if (S.articleC){ foot='Goes to Library. Skrift saves the article text for offline reading; a page with no article text becomes a note instead.'; saveLbl='Add'; showRate=false; thought=false; }
+    else foot = 'Saves the link as a note.';
+  } else if (k==='photo'){
+    item = `<div class="photo" style="${PHOTO_BG}"></div>`;
+    foot = 'Skrift opens on it next time.';
+  }
+  const tField = thought ? `<div class="sep"></div><textarea id="cThought" rows="3" placeholder="Add a thought">${esc(S.thoughtC)}</textarea>` : '';
+  const senderOn = p.sender;
+  let extra = '';
+  if (showRate){
+    if (S.place==='A'){
+      extra = `<div class="card ${dim}"><div class="lrow"><span class="k">Rating</span><span style="position:relative">${pill(S.rC,'C')}<span id="toastC"></span></span></div>
+        ${senderOn?`<div class="sep"></div><div class="lrow" id="senderRow"><span class="k">From</span><input id="cSender" autocomplete="off" placeholder="Who sent it?" value="${esc(S.sender)}"></div>`:''}</div>`;
+    } else {
+      extra = `<div class="card ${dim}"><div class="hdrline" id="senderRow"><span style="position:relative">${pill(S.rC,'C')}<span id="toastC"></span></span>
+        ${senderOn?`<span class="person">${I.person()}<input id="cSender" autocomplete="off" placeholder="Who sent it?" value="${esc(S.sender)}"></span>`:''}</div></div>`;
+    }
+  }
+  const footer = saved
+    ? `<div class="saved">${I.check(16)} Saved. Skrift opens on it next time.</div>`
+    : `<div class="foot">${foot}</div>`;
+  const right = saved
+    ? `<button class="gbtn done" data-act="noop">${I.check(16)}&nbsp;Saved</button>`
+    : `<button class="gbtn pri" data-act="saveC">${saveLbl}</button>`;
+  return `<div class="c"><div class="nav"><button class="gbtn icon" aria-label="Close" data-act="noop">${I.x(15)}</button><div class="navt">Skrift</div>${right}</div>
+    <div class="body"><div class="card ${dim}">${item}${tField}</div>${extra}${footer}</div></div>`;
+}
+
+/* ───────── frames ───────── */
+function hostFor(){ const p = P[S.kind]; return p ? p.host : 'chat'; }
+function frame(inner, dark, light){
+  return `<div class="phone ${dark?'dark':''} ${light?'light-home':''}"><div class="screen"><div class="host ${hostFor()}"></div><div class="island"></div><div class="status"><span>14:02</span><span style="font-size:13px">●●● 100%</span></div>
+    <div class="sysSheet">${inner}<div class="grab"></div></div><div class="homebar"></div></div></div>`;
+}
+function simFrame(){
+  const key = S.kind + (S.screen==='saved' && !['already','cant'].includes(S.kind) ? '-saved' : '');
+  const src = SIM[key];
+  if (!src) return `<div class="phone"><div class="screen" style="display:grid;place-items:center;background:#1c1c20;color:#9a98a6;font:500 14px/1.45 var(--ui);text-align:center;padding:40px">No simulator shot for this state.<br>See the note below.</div></div>`;
+  return `<div class="phone"><div class="screen"><img src="${src}" alt="Simulator screenshot of today's share sheet" style="width:100%;height:100%;object-fit:cover;display:block"></div></div>`;
+}
+const SIMNOTES = /*SIM_NOTES*/{};
+
+function fitAll(){
+  document.querySelectorAll('.fit').forEach(f=>{
+    const w = f.clientWidth || 402; const s = Math.min(1, w/402);
+    f.style.height = (874*s)+'px';
+    const ph = f.firstElementChild; if (ph) ph.style.transform = `scale(${s})`;
+  });
+}
+function render(){
+  const dark = S.theme==='dark';
+  document.getElementById('fitSim').innerHTML = simFrame();
+  document.getElementById('fitToday').innerHTML = frame(todaySheet(), true, false);
+  document.getElementById('fitCalm').innerHTML = frame(calmSheet(), dark, !dark);
+  const key = S.kind + (S.screen==='saved' && !['already','cant'].includes(S.kind) ? '-saved' : '');
+  document.getElementById('simNote').textContent = SIMNOTES[key] || SIMNOTES._default || '';
+  document.getElementById('simCap').textContent = SIM[key] ? 'iPhone 17 Pro sim, iOS 26.5' : '';
+  document.getElementById('todayNote').textContent =
+    S.kind==='voice' ? 'Audio shares carry no thought field (C66). The sheet title stays "Save to Skrift" for one clip. No sender field exists yet (C123 unbuilt).'
+    : S.kind==='video' ? 'Video gets the thought field plus the "Voice thoughts?" line, the rating, then Save.'
+    : S.kind==='link' ? 'A link guessed as an article asks Article or Note; Article hides the thought and the rating (D195). Tap Note to see them come back.'
+    : S.kind==='photo' ? 'Single photo: a 120 pt thumbnail, the thought field, the rating, Save.'
+    : S.kind==='already' ? 'C127 / Q440: the same bytes were shared before. Shown instead of the sheet.'
+    : 'C75: the loader found nothing it understands. Shown instead of the sheet.';
+  document.getElementById('calmNote').textContent =
+    S.screen==='saved' && !['already','cant'].includes(S.kind) ? 'The receipt in place: Save turns green, the fields dim, the footer says it. The real sheet then closes after 0.9 s, as today.'
+    : (P[S.kind]&&P[S.kind].sender) ? `Shared from ${P[S.kind].from}, so the sender field shows. Type "Ma" for roster suggestions.`
+    : S.kind==='link' ? 'Article/Note becomes a segmented control inside the card. Pick Note to get the thought and the rating.'
+    : S.kind==='video' ? 'D210: a shared video is the video itself, so the card shows its poster frame with play.'
+    : S.kind==='already' ? 'The note it already is, drawn as a notes-list row (D194). Done closes.'
+    : S.kind==='cant' ? 'The standard iOS empty state: grey symbol, one title, one line.' : '';
+  fitAll();
+}
+
+/* ───────── interaction ───────── */
+function setSeg(id, attr, val){ document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute('aria-pressed', String(b.dataset[attr]===val))); }
+function bindSeg(id, attr, fn){ document.getElementById(id).addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; setSeg(id, attr, b.dataset[attr]); fn(b.dataset[attr]); }); }
+bindSeg('kindSeg','k', v=>{ S.kind=v; S.screen='sheet'; setSeg('screenSeg','s','sheet'); render(); });
+bindSeg('screenSeg','s', v=>{ S.screen=v; render(); });
+bindSeg('themeSeg','t', v=>{ S.theme=v; render(); });
+bindSeg('placeSeg','p', v=>{ S.place=v; render(); });
+bindSeg('panelSeg','v', v=>{ S.panel=v; document.querySelectorAll('.panel').forEach(p=>p.dataset.hide = p.dataset.panel===v?'0':'1'); fitAll(); });
+bindSeg('voteSeg','vote', v=>{
+  document.getElementById('voteAck').textContent = v==='neither' ? 'Noted: neither. Say where they go instead.' : `Noted: ${v}. Tell the sitting "go ${v}".`;
+});
+
+function showToast(id, text){
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML = `<span class="toast">${esc(text)}</span>`;
+  clearTimeout(el._t); el._t = setTimeout(()=>{ el.innerHTML=''; }, 1600);
+}
+document.querySelector('.panels').addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const a = b.dataset.act;
+  if (a==='rateT'){ const f=S.rT; S.rT=(S.rT+1)%4; render(); showToast('toastT', toastCopy(f,S.rT)); }
+  else if (a==='rateC'){ if(S.screen==='saved') return; const f=S.rC; S.rC=(S.rC+1)%4; render(); showToast('toastC', toastCopy(f,S.rC)); }
+  else if (a==='artT1'){ S.article=true; render(); } else if (a==='artT0'){ S.article=false; render(); }
+  else if (a==='artC1'){ S.articleC=true; render(); } else if (a==='artC0'){ S.articleC=false; render(); }
+  else if (a==='saveT' || a==='saveC'){ S.screen='saved'; setSeg('screenSeg','s','saved'); render(); }
+  else if (a==='ack'){ b.textContent = 'Closed'; }
+  else if (a==='pickName'){ S.sender=b.dataset.name; render(); }
+});
+document.querySelector('.panels').addEventListener('input', e=>{
+  if (e.target.id==='tThought') S.thoughtT=e.target.value;
+  if (e.target.id==='cThought') S.thoughtC=e.target.value;
+  if (e.target.id==='cSender'){ S.sender=e.target.value; suggest(e.target); }
+});
+document.querySelector('.panels').addEventListener('focusout', e=>{
+  if (e.target.id==='cSender') setTimeout(()=>{ document.querySelectorAll('.sugg').forEach(s=>s.remove()); }, 150);
+});
+function suggest(input){
+  const row = document.getElementById('senderRow'); if(!row) return;
+  row.querySelectorAll('.sugg').forEach(s=>s.remove());
+  const q = input.value.trim().toLowerCase(); if(!q) return;
+  const hits = ROSTER.filter(([n])=>n.toLowerCase().startsWith(q)); if(!hits.length) return;
+  const box = document.createElement('div'); box.className='sugg';
+  box.innerHTML = hits.map(([n,h])=>`<button data-act="pickName" data-name="${esc(n)}"><span>${esc(n)}</span><small>${esc(h||'on your roster')}</small></button>`).join('');
+  box.addEventListener('mousedown', ev=>ev.preventDefault());
+  row.appendChild(box);
+}
+window.addEventListener('resize', fitAll);
+render();
+</script>
