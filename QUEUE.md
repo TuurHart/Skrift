@@ -3338,7 +3338,7 @@ gate+: yes
 do: Tuur 2026-10-15: the PDF reading view is not useful until it handles real layouts (D213), and today nothing proves its quality (only hand-made strings in `PDFReflowTests`). Generate synthetic PDFs (never his files; a script in `test-fixtures/pdf/generate.py` or Swift, committed) into `test-fixtures/pdf/`: two-column paper, report with running headers/footers and page numbers, page with a figure + caption, a 5-column table, a scanned page (text rendered to an image only), a single-column book page as control. Each gets `<name>.expect.md`: the reading text a careful human would want (order, headings, figure place marked `[figure: caption]`, table as rows, no headers/footers). `PDFReadingGoldenTests` (phone target) runs today's reflow on each and records per-fixture word-order similarity + header/footer leakage into `plan/reads/pdf-reading-baseline.md`; register today's failures as expected (C5 style) so later items flip them.
 check: `test $(ls test-fixtures/pdf/*.pdf | wc -l) -ge 6 && plan/mtest.sh PDFReadingGoldenTests`
 
-### Q459 [auto] (stuck) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
+### Q459 [auto] (done) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
 spec: D213
 needs: Q458
 gate+: yes
@@ -4968,3 +4968,4 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:56 Q459 -> stuck — gate weakened: modified QUEUE.md 
 - 2026-10-15 12:56 Q460 -> doing — worker out
 - 2026-10-15 12:56 Q461 -> doing — worker out
+- 2026-10-15 12:59 Q459 -> done — gate 61s @5a70b0ea
