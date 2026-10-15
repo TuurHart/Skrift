@@ -3372,7 +3372,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` with Tuur's sign-off notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
 check: `plan/mtest.sh PDFAnnotationExportTests`
 
-### Q464 [auto] (doing) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
+### Q464 [auto] (done) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
 spec: C66 C75 C123 C127 D37
 needs: Q455
 gate+: yes
@@ -4940,3 +4940,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 11:43 Q467 -> done — gate 62s @5ecf3a79
 - 2026-10-15 11:50 Q468 -> done — gate 59s @fdbc9ce2
 - 2026-10-15 11:54 Q471 added
+- 2026-10-15 11:59 Q464 -> done — gate 102s @1960c00a
