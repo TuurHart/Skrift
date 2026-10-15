@@ -2325,7 +2325,7 @@ gate+: yes
 do: It fails intermittently on the iPhone 17 sim (Vision OCR returns text: nil within the 10 s poll on a freshly erased or loaded simulator) — RUN.md Q13 finding; it blocked Q219's accept on 2026-10-04 though Q219 touched no OCR code. Make the test deterministic: inject a fake OCR recogniser for the save->searchable contract (the real Vision call belongs in a separate, tolerant test), or wait on the index notification instead of a fixed 10 s poll. This edits a protected test: report 'needs hand-merge' with the exact diff; do not weaken what the test proves (a saved photo's text is searchable without relaunch). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh`
 
-### Q311 [tuur] (todo) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
+### Q311 [tuur] (tuur) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 spec: -
 needs: Q453
 do: On the iPhone 17 Pro (Dev 190, Q407): open a voice note, ⋯ > Add recording, say a sentence, stop; play from a few seconds before the join.
@@ -3297,7 +3297,7 @@ needs: Q451
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
 check: Tuur clicked through it and picked one.
 
-### Q453 [auto] (doing) after Add recording the open note's player plays across the join without reopening the note
+### Q453 [auto] (done) after Add recording the open note's player plays across the join without reopening the note
 spec: C223 C26
 needs: -
 gate+: yes
@@ -4870,3 +4870,5 @@ check: `plan/mtest.sh ShareSheetSenderTests`
 - 2026-10-15 09:29 Q452 -> tuur — mock https://claude.ai/artifact/PHfGiLSgsDnECruxvpfFCD — pick A, B or C
 - 2026-10-15 09:29 Q464 -> doing — worker out
 - 2026-10-15 09:29 Q456 -> doing — worker out
+- 2026-10-15 11:03 Q453 -> done — gate green (1905 tests) + AppendPlayerReloadTests rc=0 on merged head 166e88fa, re-run after the session restart killed the first accept
+- 2026-10-15 11:03 Q311 -> tuur — recheck after Q453 (needs Dev 192)
