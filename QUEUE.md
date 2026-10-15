@@ -3421,7 +3421,7 @@ gate+: yes
 do: The gate went red once on `SkriftDesktopTests.DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly` (DevEraMergeTests.swift:448: XCTAssertEqual on a file-size map containing `memo_cloud.store-shm: 32768 bytes`) during the full suite at machine load ~108, while the same class passed 3/3 alone on the same head (2026-10-15). The assertion compares SQLite side-file sizes, which change with checkpoint timing. Make it prove what C/D203 needs (the old store is opened as a COPY only, never written): compare the main store file bytes/hash and mtime, and assert -wal/-shm are untouched only if they existed before; or open the original read-only and check it. Do not weaken it to nothing. Report needs hand-merge: DevEraMergeTests.swift.
 check: `cd Skrift_Native/SkriftDesktop && xcodebuild test -project SkriftDesktop.xcodeproj -scheme UnitTests -destination platform=macOS -skipPackagePluginValidation -skipMacroValidation -only-testing:SkriftDesktopTests/DevEraMergeTests -quiet`
 
-### Q471 [auto] (todo) a voice or video share's sender reaches people: like a capture's
+### Q471 [auto] (doing) a voice or video share's sender reaches people: like a capture's
 spec: C123
 needs: Q464
 gate+: yes
@@ -4948,3 +4948,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:03 Q458 -> doing — worker out
 - 2026-10-15 12:03 Q465 -> doing — worker out
 - 2026-10-15 12:06 Q470 -> tuur — approve: -shm checked by presence only (store + -wal still byte+mtime exact); wt/Q470 a4ab03cc, hand-merge on yes
+- 2026-10-15 12:06 Q471 -> doing — worker out
