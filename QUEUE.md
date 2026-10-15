@@ -3428,13 +3428,6 @@ gate+: yes
 do: Found by Q464: the share sheet's From name is stored as `CaptureInboxEntry.senderName` and the drain appends "From <name>". On a capture it lands in the body, so the Sanitiser links it and `people:` gets it; on an audio or video note it lands in `annotationText`, which `MemoExporter` never exports, so a voice-note sender never reaches `people:` (C123: "exports into people: when linked"). Make the sender a person mention that the name-linker sees and that exports, on both apps, in one shared place. Test `SenderPeopleExportTests` (desktop): a shared voice note with a roster sender exports that canonical in `people:`.
 check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q472 [auto] (doing) install Dev 192 on the iPhone 17 Pro and the Mac
-spec: -
-needs: -
-gate+: yes
-do: Same recipe as Q444 (read `grep -n "finding: Q444" plan/RUN.md`): bump SKRIFT_BUILD to 192 in both project.yml files, Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C, xcodebuild id is the same), install with devicectl, string-grep a Q464 literal (`ShareSender`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or any real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
-check: Report shows build 192 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 192.
-
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4962,5 +4955,3 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:39 Q458 -> done — gate 53s @7b990562
 - 2026-10-15 12:40 Q471 -> done — gate 59s @e1959e07
 - 2026-10-15 12:40 Q459 -> doing — worker out
-- 2026-10-15 12:40 Q472 added
-- 2026-10-15 12:40 Q472 -> doing — worker out
