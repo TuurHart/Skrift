@@ -1,8 +1,6 @@
 {
   "_schema": "fixture -> failing metrics today (order, leak), registered C5 style by Q458. A later item that fixes one removes it here; PDFReadingGoldenTests fails on any unregistered failure and on any registered one that passes.",
-  "_structure": ["figure-caption", "report-headers", "scanned-page", "table-5col", "two-column-paper"],
+  "_structure": ["figure-caption", "scanned-page"],
   "_structure_schema": "Q459: fixtures whose headings, figures and table rows do not match expect.md (PDFReadingStructureTests.swift, an extension of PDFReadingGoldenTests). Same rule: an unregistered failure fails, a registered one that passes fails.",
-  "report-headers": ["leak"],
-  "scanned-page": ["order"],
-  "two-column-paper": ["leak"]
+  "scanned-page": ["order"]
 }
