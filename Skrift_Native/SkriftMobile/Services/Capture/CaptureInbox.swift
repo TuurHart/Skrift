@@ -96,6 +96,10 @@ struct CaptureInboxEntry: Codable {
     /// older entries decode.
     var emailAttachmentFileNames: [String]? = nil
     var emailAttachmentNames: [String]? = nil
+    /// Q464 / C123: who sent the share, typed in the sheet's "From" row (roster autocomplete,
+    /// D37). The drain writes it into the note as a person mention (`ShareSender`). Optional so
+    /// older entries decode.
+    var senderName: String? = nil
 }
 
 extension CaptureInboxEntry {
