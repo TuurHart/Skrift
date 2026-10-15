@@ -273,7 +273,7 @@ function todayOrig(){
 }
 
 /* ---------- shared drawing ---------- */
-function chrome(inner, reading, who){
+function chrome(inner, reading, who, over){
   return `<div class="island"></div><div class="status"><span>9:41</span><span>●●● ▮</span></div>
   <div class="screen">
     <div class="nav"><button class="ib" aria-label="Back">‹</button><div class="t">GFR grant application, draft 3</div>
@@ -284,6 +284,7 @@ function chrome(inner, reading, who){
       <button class="tg" ${who==='flow'?'onclick="flip()"':''}>${reading?'Original page':'Reading view'}</button>
       ${reading?'<span class="aa">Aa</span>':''}
       <span class="add">＋ Add note</span></div>
+    ${over||''}
   </div>`;
 }
 function hl(o){
@@ -401,9 +402,10 @@ function menuHtml(){
 }
 function render(){
   document.getElementById('steps').innerHTML = STEPS.map(([k,l])=>`<button aria-pressed="${S.step===k||(k==='view'&&S.step==='confirm')||(k==='share'&&S.step==='shared')}" onclick="go('${k}')">${l}</button>`).join('');
-  const inner = (mode==='read' ? `<div class="read">${readingBody({})}</div>` : `<div class="pdf">${sheet({})}</div>`) + overlay() + menuHtml()
-    + (S.toast?`<div class="toast">${S.toast}</div>`:'');
-  document.getElementById('phone').innerHTML = chrome(inner, mode==='read', 'flow');
+  const ov = overlay(), inBody = S.step==='tap';
+  const inner = (mode==='read' ? `<div class="read">${readingBody({})}</div>` : `<div class="pdf">${sheet({})}</div>`) + (inBody?ov:'');
+  const over = (inBody?'':ov) + menuHtml() + (S.toast?`<div class="toast">${S.toast}</div>`:'');
+  document.getElementById('phone').innerHTML = chrome(inner, mode==='read', 'flow', over);
   document.getElementById('stepNote').innerHTML = notes();
   if (S.step==='write') { const t=document.getElementById('cbox'); if(t){ t.oninput=()=>{S.draft=t.value}; } }
 }
