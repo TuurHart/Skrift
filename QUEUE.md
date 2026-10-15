@@ -3117,7 +3117,7 @@ gate+: yes
 do: Write copy-edit v2 in `Skrift_Native/Shared/CopyEditV2/`: escrow (C29), pictures back by paragraph index with the 6-word anchor code unused (C30), lost link or changed quote byte ships unedited (C31), token budget and truncation (C32), shrink guard (C33), paragraph ledger and the spoken-wall break (C34), title / summary / share / conversation rules (C36), one `MemoEnhancement` per pass (C37), post-conditions (C177), tail order tags → name-link → compile (C178), one prompt source (C39). Register it in the Q423 harness; the app keeps calling v1 (C2). At most 1,070 lines (40% of 2,674, C3). Write `plan/reads/copyedit-v2.md`: v1 and v2 side by side for every note whose output changed.
 check: `test $(cat Skrift_Native/Shared/CopyEditV2/*.swift | wc -l) -le 1070 && test -s plan/reads/copyedit-v2.md`
 
-### Q425 [tuur] (todo) read the copy-edit v2 corpus output
+### Q425 [tuur] (tuur) read the copy-edit v2 corpus output
 spec: C8 C35
 needs: Q449
 do: -
@@ -4853,3 +4853,4 @@ check: `plan/mtest.sh PDFAnnotationExportTests`
 - 2026-10-15 08:58 Q450 -> doing — worker out
 - 2026-10-15 08:58 Q453 -> doing — worker out
 - 2026-10-15 09:03 Q451 -> done — hand-merged (D163: deleted QuickNoteBodyTextViewTests with the deleted view; PortfolioPresetTests source-scan path ported)
+- 2026-10-15 09:05 Q425 -> tuur — awaiting sitting (re-read after D209)
