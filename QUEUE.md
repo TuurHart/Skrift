@@ -3421,6 +3421,13 @@ gate+: yes
 do: The gate went red once on `SkriftDesktopTests.DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly` (DevEraMergeTests.swift:448: XCTAssertEqual on a file-size map containing `memo_cloud.store-shm: 32768 bytes`) during the full suite at machine load ~108, while the same class passed 3/3 alone on the same head (2026-10-15). The assertion compares SQLite side-file sizes, which change with checkpoint timing. Make it prove what C/D203 needs (the old store is opened as a COPY only, never written): compare the main store file bytes/hash and mtime, and assert -wal/-shm are untouched only if they existed before; or open the original read-only and check it. Do not weaken it to nothing. Report needs hand-merge: DevEraMergeTests.swift.
 check: `cd Skrift_Native/SkriftDesktop && xcodebuild test -project SkriftDesktop.xcodeproj -scheme UnitTests -destination platform=macOS -skipPackagePluginValidation -skipMacroValidation -only-testing:SkriftDesktopTests/DevEraMergeTests -quiet`
 
+### Q471 [auto] (todo) a voice or video share's sender reaches people: like a capture's
+spec: C123
+needs: Q464
+gate+: yes
+do: Found by Q464: the share sheet's From name is stored as `CaptureInboxEntry.senderName` and the drain appends "From <name>". On a capture it lands in the body, so the Sanitiser links it and `people:` gets it; on an audio or video note it lands in `annotationText`, which `MemoExporter` never exports, so a voice-note sender never reaches `people:` (C123: "exports into people: when linked"). Make the sender a person mention that the name-linker sees and that exports, on both apps, in one shared place. Test `SenderPeopleExportTests` (desktop): a shared voice note with a roster sender exports that canonical in `people:`.
+check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4932,3 +4939,4 @@ check: `cd Skrift_Native/SkriftDesktop && xcodebuild test -project SkriftDesktop
 - 2026-10-15 11:40 Q467 -> doing — re-accept after unrelated flake (DevEraMergeTests 3/3 green alone)
 - 2026-10-15 11:43 Q467 -> done — gate 62s @5ecf3a79
 - 2026-10-15 11:50 Q468 -> done — gate 59s @fdbc9ce2
+- 2026-10-15 11:54 Q471 added
