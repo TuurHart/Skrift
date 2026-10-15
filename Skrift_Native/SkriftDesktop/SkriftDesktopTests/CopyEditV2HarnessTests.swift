@@ -115,13 +115,15 @@ final class CopyEditV2HarnessTests: XCTestCase {
         }
     }
 
+    /// C35 as D209 reads it: names and numbers survive; a dropped ordinary word is the price of a model.
     func testNumbersNamesAndWordsSurvive_C35() async throws {
         let recs = try await results()
         for slug in H.c35Slugs {
             let r = try XCTUnwrap(recs[slug], slug)
             let input = try XCTUnwrap(r.input, slug), body = try XCTUnwrap(r.body, slug)
             XCTAssertNil(r.error, slug)
-            XCTAssertEqual(H.c35Lost(input: input, output: body), [], "v2 \(slug) lost words (C35)\n\(body)")
+            XCTAssertEqual(CopyEditV2.Gate.lostNamesOrNumbers(input: CopyEditV2.prose(input), output: CopyEditV2.prose(body)), [],
+                           "v2 \(slug) lost a name or a number (C35, D209)\n\(body)")
         }
     }
 
