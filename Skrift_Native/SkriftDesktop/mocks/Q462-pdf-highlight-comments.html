@@ -61,13 +61,21 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .frame{width:calc(var(--fw) * 1px);height:calc(var(--fh) * 1px);transform:scale(var(--s));transform-origin:top left;
   border-radius:48px;overflow:hidden;position:relative;background:var(--bg);color:var(--text);
   box-shadow:0 0 0 10px #1a1a1e,0 18px 40px rgba(0,0,0,.25);font-family:var(--ui)}
+.frame.dk{--bg:#0f1117;--surface:#181a23;--chip:#1e2130;--text:#e4e4e7;--dim:#8b8b97;--faint:#55556a;--accent:#7c6bf5;--accent-text:#b9acff;--border:rgba(255,255,255,.08);--hl:rgba(255,204,0,.28);--pdfbg:#0f1117}
+.sel{background:rgba(10,132,255,.35)}
+.fb{position:absolute;right:12px;bottom:10px;width:46px;height:46px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;color:var(--accent-text);font-size:16px;z-index:4}
+.ncard{margin:8px 20px;padding:12px 14px;border-radius:14px;background:var(--surface);border:.5px solid var(--border);display:flex;gap:12px;align-items:center}
+.ncard .q{font-weight:900;font-size:18px;color:var(--accent-text)}
+.ncard b{font-size:14px;display:block;color:var(--text)}
+.ncard span{font-size:11.5px;color:var(--dim)}
+.plabel{font:600 11px var(--ui);color:var(--faint);margin-bottom:10px}
 .shot{width:100%;height:100%;object-fit:cover;display:block}
-.status{height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-size:15px;font-weight:600}
+.status{height:calc(var(--top,62px) - 6px);display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-size:15px;font-weight:600}
 .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000}
 .nav{display:flex;align-items:center;gap:8px;padding:0 6px;height:44px}
 .nav .ib{width:44px;height:44px;display:grid;place-items:center;color:var(--accent-text);font-size:19px;font-weight:600;background:none;border:0;cursor:pointer}
 .nav .t{flex:1;text-align:center;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.screen{position:absolute;inset:91px 0 0 0;display:flex;flex-direction:column}
+.screen{position:absolute;inset:var(--top,62px) 0 0 0;display:flex;flex-direction:column}
 .body{flex:1;position:relative;overflow:hidden}
 .notesrow{padding:8px 20px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
 .notesrow b{color:var(--text);font-weight:600}
@@ -82,7 +90,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .read{padding:18px 24px;font-family:var(--serif);font-size:18px;line-height:1.5;color:var(--text)}
 .read p{color:var(--text);margin:0 0 14px;max-width:none}
 .read h3{font-family:var(--ui);font-size:19px;margin:0 0 12px}
-.trow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:.5px solid var(--border);font-size:16px}
+.trow{font-family:var(--ui);display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:.5px solid var(--border);font-size:16px}
 .trow span:last-child{font-variant-numeric:tabular-nums}
 .pbreak{border-top:.5px solid var(--border);margin:18px 0 10px;padding-top:6px;font:11px var(--ui);color:var(--faint)}
 mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer}
@@ -92,10 +100,10 @@ mark.c{background:var(--hl-c);box-shadow:inset 0 -2px 0 #e0a800}
 
 /* page view (PDFKit) */
 .pdf{position:absolute;inset:0;background:var(--pdfbg);overflow:hidden;padding:6px 0}
-.sheet{background:var(--paper);color:var(--paper-ink);margin:0 auto;width:100%;height:520px;box-shadow:0 1px 4px rgba(0,0,0,.25);position:relative;padding:38px 36px;font-family:Georgia,serif;font-size:8.6px;line-height:1.55}
+.sheet{background:var(--paper);color:var(--paper-ink);margin:0 auto;width:100%;height:540px;box-shadow:0 1px 4px rgba(0,0,0,.25);position:relative;padding:38px 36px;font-family:Georgia,serif;font-size:8.6px;line-height:1.55}
 .sheet h4{font:700 10px var(--ui);margin:0 0 9px}
 .sheet .l{white-space:nowrap}
-.sheet .tr{display:flex;justify-content:space-between;border-bottom:.4px solid #ccc;padding:3px 0}
+.sheet .tr{display:flex;justify-content:space-between;padding:1px 0;max-width:230px}
 .sheet mark{background:rgba(255,204,0,.42)}
 .pin{position:absolute;width:18px;height:18px;border-radius:3px;background:#ffd23f;border:1px solid #c79a00;display:grid;place-items:center;font:700 10px var(--ui);color:#5a4300;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.25)}
 
@@ -169,7 +177,7 @@ code{font-size:12px;background:var(--rule);padding:1px 5px;border-radius:4px}
 <section id="today">
   <div class="eyebrow">1 · Today, from source</div>
   <h2>What the reader does now</h2>
-  <p>Left: the Debug build on the iPhone 17 Simulator, opened with <code>-openTab books -showPDFReader</code> on the generated sample PDF from <code>LibraryPDFDebug</code> (not one of your files). Right: my redraw of the same screen, which the mock below builds on. Same scale. A highlight today has no comment. Tapping one gives <b>Copy · Remove highlight</b> and nothing else. The yellow on the page is a PDFKit highlight annotation, but it is drawn in memory each time the reader opens and never written to the file (<code>applyHighlights()</code>, <code>LibraryPDFReader.swift:377</code>).</p>
+  <p>Left: the Debug build on the iPhone 17 Simulator, opened with <code>-openTab books -showPDFReader</code> on the generated sample PDF from <code>LibraryPDFDebug</code> (not one of your files). Right: my redraw of the same screen, which the mock below builds on. Same scale, both in dark appearance as the Simulator ran, both showing a fresh selection with today's callout. A highlight today has no comment. Tapping one gives <b>Copy · Remove highlight</b> and nothing else. The yellow on the page is a PDFKit highlight annotation, but it is drawn in memory each time the reader opens and never written to the file (<code>applyHighlights()</code>, <code>LibraryPDFReader.swift:377</code>).</p>
   <div class="seg" role="group" aria-label="Today view">
     <button id="t-read" aria-pressed="true" onclick="today('read')">Reading view</button>
     <button id="t-orig" aria-pressed="false" onclick="today('orig')">Original page</button>
@@ -184,7 +192,7 @@ code{font-size:12px;background:var(--rule);padding:1px 5px;border-radius:4px}
   <p>Steps follow one highlight on page 4. Tap inside the phone: the yellow, the comment badge, the callout buttons, the ⋯ menu. The step buttons jump straight to a state.</p>
   <div class="seg" role="group" aria-label="Step" id="steps"></div>
   <div class="row">
-    <div class="fbox" id="flowBox" style="--fw:390;--fh:844"><div class="frame" id="phone"></div></div>
+    <div class="fbox" id="flowBox" style="--fw:390;--fh:844"><div class="frame" id="phone" style="--top:47px"></div></div>
     <div class="col" style="flex:1;min-width:min(100%,280px);gap:12px" id="stepNote"></div>
   </div>
 </section>
@@ -249,19 +257,19 @@ function today(v){
   document.getElementById('t-orig').setAttribute('aria-pressed', v==='orig');
   const shot = v==='read' ? 'Q462-sim-shots/today-reading.png' : 'Q462-sim-shots/today-original.png';
   document.getElementById('todayRow').innerHTML = `
-    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame"><img class="shot" alt="Simulator screenshot of today's ${v==='read'?'reading view':'original page'}" src="${shot}"></div></div>
+    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame dk"><img class="shot" alt="Simulator screenshot of today's ${v==='read'?'reading view':'original page'}" src="${shot}"></div></div>
       <div class="cap" style="--fw:402">Simulator, iPhone 17, Debug build</div></div>
-    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame">${chrome(v==='read'?todayRead():todayOrig(), v==='read', 'today')}</div></div>
+    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame dk">${chrome(v==='read'?todayRead():todayOrig(), v==='read', 'today')}</div></div>
       <div class="cap" style="--fw:402">Redraw from <code>LibraryPDFReader.swift</code></div></div>`;
   fit();
 }
 function todayRead(){
   return `<div class="read">${readingBody({today:true})}</div>
-  <div class="callout" style="left:96px;top:226px"><button>Copy</button><button>Remove highlight</button></div>`;
+  <div class="callout" style="left:84px;top:94px;border-radius:19px"><button>Copy</button><button>Highlight</button><button>❝ Add note</button></div>`;
 }
 function todayOrig(){
   return `<div class="pdf">${sheet({today:true})}</div>
-  <div class="callout" style="left:110px;top:150px"><button>Copy</button><button>Remove highlight</button></div>`;
+  <div class="callout" style="left:12px;top:18px"><button>Copy</button><button>Highlight</button><button class="acc">❝ Add note</button></div>`;
 }
 
 /* ---------- shared drawing ---------- */
@@ -270,8 +278,8 @@ function chrome(inner, reading, who){
   <div class="screen">
     <div class="nav"><button class="ib" aria-label="Back">‹</button><div class="t">GFR grant application, draft 3</div>
       <button class="ib" aria-label="More" ${who==='flow'?'onclick="toggleMenu()"':''}>⋯</button></div>
-    <div class="body">${inner}</div>
-    <div class="notesrow"><b>2 notes</b> from this PDF ›</div>
+    <div class="body">${inner}<div class="fb" aria-hidden="true">▤</div></div>
+    <div class="ncard"><span class="q">❝</span><div><b>No notes yet</b><span>Add note saves a quote and your voice from here.</span></div></div>
     <div class="dock"><span class="pg">p. 4 of 18</span><span class="sp"></span>
       <button class="tg" ${who==='flow'?'onclick="flip()"':''}>${reading?'Original page':'Reading view'}</button>
       ${reading?'<span class="aa">Aa</span>':''}
@@ -286,29 +294,31 @@ function hl(o){
 }
 function readingBody(o){
   const inl = (!o.today && S.comment && S.inline && !S.removed) ? `<span class="inlinec">${esc(S.comment)}</span>` : '';
-  return `<h3>4. Budget</h3>
-  <p>The project runs for eighteen months. Costs below are for the first phase only; phase two is costed in Annex B.</p>
+  const first = o.today ? `<span class="sel">The project runs for eighteen months.</span>` : `The project runs for eighteen months.`;
+  return `<div class="plabel">Page 4</div><h3>4. Budget</h3>
+  <p>${first} Costs below are for the first phase only; phase two is costed in Annex B.</p>
   <p>${hl(o)} covers two test sites and the replacement parts we expect to burn through.</p>${inl}
   <div class="trow"><span>Personnel</span><span>€42,000</span></div>
   <div class="trow"><span>Sensor integration and field tests</span><span>€18,000</span></div>
   <div class="trow"><span>Travel</span><span>€3,200</span></div>
   <div class="trow"><span>Total phase one</span><span>€63,200</span></div>
-  <div class="pbreak">Page 5</div>
-  <h3>5. Work plan</h3>
-  <p>Field work starts in month four, once the sensor housings pass the salt-spray test.</p>`;
+  <p style="margin-top:16px">We ask the panel to note that the field tests carry most of the technical risk.</p>
+  <div class="pbreak">Page 5</div>`;
 }
 function sheet(o){
   const pin = (!o.today && S.comment && !S.removed) ? `<span class="pin" style="right:8px;top:94px" onclick="go('view')" title="Comment">✎</span>` : '';
   const m = o.today ? `<mark>${TEXT_HL}</mark>` : (S.removed ? TEXT_HL : `<mark onclick="go('${S.comment?'view':'tap'}')" style="cursor:pointer">${TEXT_HL}</mark>`);
   return `<div class="sheet"><h4>4. Budget</h4>
-    <div class="l">The project runs for eighteen months. Costs below are for the first phase only;</div>
+    <div class="l">${o.today?'<span class="sel">The project runs for eighteen months.</span>':'The project runs for eighteen months.'} Costs below are for the first phase only;</div>
     <div class="l">phase two is costed in Annex B.</div><br>
     <div class="l">${m} covers two test sites</div>
     <div class="l">and the replacement parts we expect to burn through.</div><br>
     <div class="tr"><span>Personnel</span><span>€42,000</span></div>
     <div class="tr"><span>Sensor integration and field tests</span><span>€18,000</span></div>
     <div class="tr"><span>Travel</span><span>€3,200</span></div>
-    <div class="tr"><b>Total phase one</b><b>€63,200</b></div>${pin}</div>`;
+    <div class="tr"><span>Total phase one</span><span>€63,200</span></div><br>
+    <div class="l">We ask the panel to note that the field tests carry most of the technical risk.</div>${pin}</div>
+    <div class="sheet" style="margin-top:10px;height:200px"><h4>Section 5</h4><div class="l">This section sets out the plan for one part of the work and who carries it,</div></div>`;
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
