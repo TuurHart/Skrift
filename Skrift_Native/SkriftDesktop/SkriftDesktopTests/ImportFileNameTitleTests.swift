@@ -10,8 +10,8 @@ final class ImportFileNameTitleTests: XCTestCase {
     func testRealNamesAreKeptWithoutTheExtension() {
         XCTAssertEqual(NoteTitle.importName("Interview with Jan.m4a"), "Interview with Jan")
         XCTAssertEqual(NoteTitle.importName("Hotel Du Vin.mp3"), "Hotel Du Vin")
-        XCTAssertEqual(NoteTitle.importName("WhatsApp Audio 2025-12-18 at 18.30.44.opus"),
-                       "WhatsApp Audio 2025-12-18 at 18.30.44")
+        // D211 (Q457, supersedes D176 for messenger names): never a title.
+        XCTAssertNil(NoteTitle.importName("WhatsApp Audio 2025-12-18 at 18.30.44.opus"))
         XCTAssertEqual(NoteTitle.importName("Dinner idea"), "Dinner idea", "no extension is fine")
     }
 
