@@ -3,7 +3,8 @@ import PDFKit
 
 /// Q404 (Q6 mock "PDF reader", D207): the PDF's reading view. A PDF with a usable text layer
 /// (`PDFReflow.isUsable`) reads as reflowed text in the article reader's text view; the real page
-/// is one tap away. A scan or a garbled extraction has no reading view and no toggle.
+/// is one tap away. Q461: a scanned or garbled page is read by on-device text recognition first
+/// (`LibraryPDFScan.swift`); only when that too yields no usable text is there no reading view.
 extension LibraryPDF {
     /// Each page's text layer, in page order. nil when the file is not a readable PDF.
     static func pageStrings(url: URL) -> [String]? {
@@ -51,9 +52,14 @@ extension LibraryPDF {
     /// call it off the main thread for a long PDF. Q459: shaped from each page's line geometry
     /// (column order, no running headers/footers, tables as rows); the quality check still reads
     /// the raw text layer.
-    static func readingDoc(url: URL) -> ArticleDoc? {
+    static func readingDoc(url: URL, scanCache: URL? = nil) -> ArticleDoc? {
         guard let doc = PDFDocument(url: url), doc.pageCount > 0 else { return nil }
         let pages = (0..<doc.pageCount).compactMap { doc.page(at: $0) }
+        // Q461: a scanned or garbled page reads by on-device text recognition (LibraryPDFScan.swift).
+        if let scanned = scannedLayouts(url: url, pages: pages, texts: pages.map { $0.string ?? "" }, cache: scanCache) {
+            guard PDFReflow.isUsable(pages: scanned.map(PDFReflow.pageText)) else { return nil }
+            return readingDoc(blocks: PDFReflow.reflow(layout: scanned))
+        }
         guard PDFReflow.isUsable(pages: pages.map { $0.string ?? "" }) else { return nil }
         return readingDoc(blocks: PDFReflow.reflow(layout: pages.map(layout(of:))))
     }
