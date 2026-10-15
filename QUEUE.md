@@ -3331,7 +3331,7 @@ gate+: yes
 do: Tuur picked (a) on Q447 (2026-10-15, D211): a messenger or machine filename (WhatsApp/Signal/Telegram audio names, recorder patterns, UUIDs) is never a note title on ANY door — share sheet (already, Q440 `IngressDispatch.clipTitle`), Files importer, Open-in, AirDrop, Mac drop/folder ingest. Use the one shared rule (`IngressDispatch.clipTitle` or move it to `NoteTitle`) everywhere `NoteTitle.importName` titles from a filename; a real name like "kiln idea.m4a" still becomes the title. Flip `ImportFileNameTitleTests` to D211 (Tuur approved this assertion change in the same answer) and report it as needs hand-merge. Desktop test `MessengerNameNeverTitleTests` covering Files and Mac paths.
 check: `grep -rqE "class MessengerNameNeverTitleTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q458 [auto] (todo) real-shaped PDF fixtures with expected reading text (synthetic, generated)
+### Q458 [auto] (doing) real-shaped PDF fixtures with expected reading text (synthetic, generated)
 spec: D213 C4
 needs: -
 gate+: yes
@@ -3379,7 +3379,7 @@ gate+: yes
 do: Build `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html` (signed 2026-10-15, Tuur: "beautiful! my pick is A, rows below"): the calm sheet filling the system sheet in the app's Apple-style look, light/dark; ✕ top left, Save as the nav-bar button top right; the item card, then option A: a Settings-style card BELOW it with a "Rating" row (pill on the right) and a "From" row; the in-place green "Saved" receipt that closes after 0.9 s (no separate green-circle card); "Already in Skrift" as a notes-list row; "Can't import" as the iOS empty state. The From row is C123: an optional sender name with roster autocomplete (D37), remembered per chat when the share carries a hint, stored as a new additive field on the capture inbox entry and written into the note as a person mention (links when on the roster, exports into people: when linked). Delete the old forced-dark sheet, the Sk monogram and the big glowing Save. Phone test `ShareSheetSenderTests` (sender reaches the note as a mention). Screenshots of every state on the iPhone 17 sim beside the mock, LOOK, list every colour/type/spacing difference in the report.
 check: `plan/mtest.sh ShareSheetSenderTests`
 
-### Q465 [auto] (todo) capture camera: the .5x chip really zooms out (virtual back camera)
+### Q465 [auto] (doing) capture camera: the .5x chip really zooms out (virtual back camera)
 spec: C100 C221
 needs: Q456
 gate+: yes
@@ -4945,3 +4945,5 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 11:59 Q470 -> doing — worker out
 - 2026-10-15 12:01 Q466 -> done — gate 59s @440764fe
 - 2026-10-15 12:03 Q469 -> done — gate 60s @54b121f7
+- 2026-10-15 12:03 Q458 -> doing — worker out
+- 2026-10-15 12:03 Q465 -> doing — worker out
