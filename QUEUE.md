@@ -3379,7 +3379,7 @@ gate+: yes
 do: Build `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html` (signed 2026-10-15, Tuur: "beautiful! my pick is A, rows below"): the calm sheet filling the system sheet in the app's Apple-style look, light/dark; ✕ top left, Save as the nav-bar button top right; the item card, then option A: a Settings-style card BELOW it with a "Rating" row (pill on the right) and a "From" row; the in-place green "Saved" receipt that closes after 0.9 s (no separate green-circle card); "Already in Skrift" as a notes-list row; "Can't import" as the iOS empty state. The From row is C123: an optional sender name with roster autocomplete (D37), remembered per chat when the share carries a hint, stored as a new additive field on the capture inbox entry and written into the note as a person mention (links when on the roster, exports into people: when linked). Delete the old forced-dark sheet, the Sk monogram and the big glowing Save. Phone test `ShareSheetSenderTests` (sender reaches the note as a mention). Screenshots of every state on the iPhone 17 sim beside the mock, LOOK, list every colour/type/spacing difference in the report.
 check: `plan/mtest.sh ShareSheetSenderTests`
 
-### Q465 [auto] (doing) capture camera: the .5x chip really zooms out (virtual back camera)
+### Q465 [auto] (done) capture camera: the .5x chip really zooms out (virtual back camera)
 spec: C100 C221
 needs: Q456
 gate+: yes
@@ -4950,3 +4950,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:06 Q470 -> tuur — approve: -shm checked by presence only (store + -wal still byte+mtime exact); wt/Q470 a4ab03cc, hand-merge on yes
 - 2026-10-15 12:06 Q471 -> doing — worker out
 - 2026-10-15 12:10 Q462 -> doing — mockup agent out
+- 2026-10-15 12:32 Q465 -> done — gate 278s @facc651b
