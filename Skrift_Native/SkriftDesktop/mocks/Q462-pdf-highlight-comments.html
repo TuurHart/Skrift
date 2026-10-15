@@ -1,0 +1,438 @@
+<title>PDF Highlight Comments</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* Layout: a working board. Top = "today, from source" (sim shot beside a redraw, same scale);
+   middle = one clickable iPhone 13 frame (390x844 pt) walking the new flow; bottom = the share fork A/B + the question.
+   Skrift tokens transcribed from Shared/UI/Palette.swift + DesignSystem/Theme.swift, same set as Q351. */
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --chip:#ebebf0; --elev:#ebebf0;
+  --text:#1c1c1e; --dim:#6c6c72; --faint:#a3a3aa;
+  --accent:#6c5ce0; --accent-text:#6051c8; --accent-soft:rgba(108,92,224,.13);
+  --border:rgba(0,0,0,.09); --red:#dc2626; --green:#0f9d72;
+  --page:#ecebf1; --ink:#1c1c22; --ink2:#5d5c69; --rule:rgba(28,28,34,.12);
+  --pick-bg:#fff1c9; --pick-ink:#6b4a00; --pick-line:#e0a800;
+  --paper:#ffffff; --paper-ink:#1f1f1f; --hl:rgba(255,204,0,.42); --hl-c:rgba(255,204,0,.62);
+  --callout:#1c1c1e; --callout-accent:#c9bfff; --scrim:rgba(0,0,0,.32); --pdfbg:#f5f5f7;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  --serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --chip:#1e2130; --elev:#1e2130;
+  --text:#e4e4e7; --dim:#8b8b97; --faint:#55556a;
+  --accent:#7c6bf5; --accent-text:#b9acff; --accent-soft:rgba(124,107,245,.13);
+  --border:rgba(255,255,255,.08); --red:#ef4444; --green:#34d399;
+  --page:#08090d; --ink:#e8e8ee; --ink2:#9a99a8; --rule:rgba(255,255,255,.1);
+  --pick-bg:#2e2510; --pick-ink:#f1c668; --pick-line:#b8860b;
+  --paper:#ffffff; --paper-ink:#1f1f1f; --hl:rgba(255,204,0,.28); --hl-c:rgba(255,204,0,.45);
+  --scrim:rgba(0,0,0,.55); --pdfbg:#0f1117;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --chip:#1e2130; --elev:#1e2130;
+  --text:#e4e4e7; --dim:#8b8b97; --faint:#55556a;
+  --accent:#7c6bf5; --accent-text:#b9acff; --accent-soft:rgba(124,107,245,.13);
+  --border:rgba(255,255,255,.08); --red:#ef4444; --green:#34d399;
+  --page:#08090d; --ink:#e8e8ee; --ink2:#9a99a8; --rule:rgba(255,255,255,.1);
+  --pick-bg:#2e2510; --pick-ink:#f1c668; --pick-line:#b8860b;
+  --paper:#ffffff; --paper-ink:#1f1f1f; --hl:rgba(255,204,0,.28); --hl-c:rgba(255,204,0,.45);
+  --scrim:rgba(0,0,0,.55); --pdfbg:#0f1117;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--ui);margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:20px 60px;display:flex;flex-direction:column;gap:34px}
+h1{font-size:26px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 4px;text-wrap:balance}
+p{margin:0;line-height:1.5;max-width:66ch;color:var(--ink2)}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:600}
+.pick{display:inline-block;background:var(--pick-bg);color:var(--pick-ink);border:1px solid var(--pick-line);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:5px;vertical-align:middle}
+section{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cap{font-size:12px;color:var(--ink2);max-width:calc(var(--fw) * var(--s) * 1px)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:600 13px var(--ui);padding:8px 12px;border-radius:999px;border:1px solid var(--rule);background:transparent;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* phone frame: drawn at real points, scaled as a whole so the sim shot and the redraw share one scale */
+.fbox{width:calc(var(--fw) * var(--s) * 1px);height:calc(var(--fh) * var(--s) * 1px);flex:none}
+.frame{width:calc(var(--fw) * 1px);height:calc(var(--fh) * 1px);transform:scale(var(--s));transform-origin:top left;
+  border-radius:48px;overflow:hidden;position:relative;background:var(--bg);color:var(--text);
+  box-shadow:0 0 0 10px #1a1a1e,0 18px 40px rgba(0,0,0,.25);font-family:var(--ui)}
+.frame.dk{--bg:#0f1117;--surface:#181a23;--chip:#1e2130;--text:#e4e4e7;--dim:#8b8b97;--faint:#55556a;--accent:#7c6bf5;--accent-text:#b9acff;--border:rgba(255,255,255,.08);--hl:rgba(255,204,0,.28);--pdfbg:#0f1117}
+.sel{background:rgba(10,132,255,.35)}
+.fb{position:absolute;right:12px;bottom:10px;width:46px;height:46px;border-radius:50%;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;color:var(--accent-text);font-size:16px;z-index:4}
+.ncard{margin:8px 20px;padding:12px 14px;border-radius:14px;background:var(--surface);border:.5px solid var(--border);display:flex;gap:12px;align-items:center}
+.ncard .q{font-weight:900;font-size:18px;color:var(--accent-text)}
+.ncard b{font-size:14px;display:block;color:var(--text)}
+.ncard span{font-size:11.5px;color:var(--dim)}
+.plabel{font:600 11px var(--ui);color:var(--faint);margin-bottom:10px}
+.shot{width:100%;height:100%;object-fit:cover;display:block}
+.status{height:calc(var(--top,62px) - 6px);display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-size:15px;font-weight:600}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000}
+.nav{display:flex;align-items:center;gap:8px;padding:0 6px;height:44px}
+.nav .ib{width:44px;height:44px;display:grid;place-items:center;color:var(--accent-text);font-size:19px;font-weight:600;background:none;border:0;cursor:pointer}
+.nav .t{flex:1;text-align:center;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen{position:absolute;inset:var(--top,62px) 0 0 0;display:flex;flex-direction:column}
+.body{flex:1;position:relative;overflow:hidden}
+.notesrow{padding:8px 20px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
+.notesrow b{color:var(--text);font-weight:600}
+.dock{display:flex;align-items:center;gap:6px;padding:10px 20px 34px;border-top:.5px solid var(--border);background:var(--bg)}
+.dock .pg{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dock .sp{flex:1}
+.dock .tg{font-size:12.5px;font-weight:600;color:var(--accent-text);padding:0 6px;min-height:38px;background:none;border:0;cursor:pointer;font-family:var(--ui)}
+.dock .aa{width:36px;height:38px;font-weight:600;font-size:14px;color:var(--dim);display:grid;place-items:center}
+.dock .add{display:flex;gap:6px;align-items:center;color:var(--accent-text);font-weight:600;font-size:13px;padding:9px 15px;border-radius:999px;background:color-mix(in srgb,var(--accent) 18%,transparent);border:.5px solid color-mix(in srgb,var(--accent) 25%,transparent);white-space:nowrap}
+
+/* reading view */
+.read{padding:18px 24px;font-family:var(--serif);font-size:18px;line-height:1.5;color:var(--text)}
+.read p{color:var(--text);margin:0 0 14px;max-width:none}
+.read h3{font-family:var(--ui);font-size:19px;margin:0 0 12px}
+.trow{font-family:var(--ui);display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:.5px solid var(--border);font-size:16px}
+.trow span:last-child{font-variant-numeric:tabular-nums}
+.pbreak{border-top:.5px solid var(--border);margin:18px 0 10px;padding-top:6px;font:11px var(--ui);color:var(--faint)}
+mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer}
+mark.c{background:var(--hl-c);box-shadow:inset 0 -2px 0 #e0a800}
+.cmark{display:inline-grid;place-items:center;width:20px;height:18px;margin-left:3px;border-radius:5px;background:#e0a800;color:#fff;font:700 11px var(--ui);vertical-align:2px;cursor:pointer}
+.inlinec{display:block;margin:6px 0 14px;padding-left:12px;border-left:3px solid #e0a800;font:italic 14.5px/1.45 var(--ui);color:var(--dim)}
+
+/* page view (PDFKit) */
+.pdf{position:absolute;inset:0;background:var(--pdfbg);overflow:hidden;padding:6px 0}
+.sheet{background:var(--paper);color:var(--paper-ink);margin:0 auto;width:100%;height:540px;box-shadow:0 1px 4px rgba(0,0,0,.25);position:relative;padding:38px 36px;font-family:Georgia,serif;font-size:8.6px;line-height:1.55}
+.sheet h4{font:700 10px var(--ui);margin:0 0 9px}
+.sheet .l{white-space:nowrap}
+.sheet .tr{display:flex;justify-content:space-between;padding:1px 0;max-width:230px}
+.sheet mark{background:rgba(255,204,0,.42)}
+.pin{position:absolute;width:18px;height:18px;border-radius:3px;background:#ffd23f;border:1px solid #c79a00;display:grid;place-items:center;font:700 10px var(--ui);color:#5a4300;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+
+/* the dark callout (SelectionCallout) */
+.callout{position:absolute;display:flex;background:var(--callout);border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:5;white-space:nowrap}
+.callout button{font:500 13px var(--ui);color:#fff;background:none;border:0;padding:0 12px;min-height:38px;cursor:pointer}
+.callout button+button{border-left:.5px solid rgba(255,255,255,.2)}
+.callout button.acc{color:var(--callout-accent);font-weight:700}
+.callout button.new{color:#ffd23f;font-weight:700}
+
+/* sheets */
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:8}
+.sheetup{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;z-index:9;padding:8px 18px 34px;display:flex;flex-direction:column;gap:12px}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--faint);opacity:.5;margin:0 auto 4px}
+.shead{display:flex;align-items:center;gap:10px}
+.shead .st{flex:1;font-weight:700;font-size:15px}
+.shead .sub{font-size:11px;color:var(--faint);font-weight:400}
+.txtbtn{font:600 15px var(--ui);color:var(--accent-text);background:none;border:0;cursor:pointer;padding:8px 2px}
+.txtbtn.dim{color:var(--dim);font-weight:500}
+.txtbtn.red{color:var(--red)}
+.quote{padding-left:14px;border-left:3px solid color-mix(in srgb,var(--accent) 65%,transparent);font:italic 15px/1.45 var(--ui);color:color-mix(in srgb,var(--text) 78%,transparent)}
+.quote.hl{border-left-color:#e0a800}
+textarea{width:100%;min-height:96px;border:0;background:transparent;resize:none;font:16px/1.45 var(--ui);color:var(--text);outline:none;padding:0}
+textarea::placeholder{color:var(--faint)}
+.hr{height:.5px;background:var(--border)}
+.small{font-size:11.5px;color:var(--dim);line-height:1.4}
+.toast{position:absolute;left:14px;right:14px;bottom:110px;background:#1c1c1e;color:#fff;border-radius:14px;padding:13px 14px;font-weight:700;font-size:13.5px;z-index:12;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.menu{position:absolute;right:10px;top:40px;width:270px;background:var(--surface);border-radius:13px;box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:10;overflow:hidden}
+.menu button{display:flex;justify-content:space-between;width:100%;padding:13px 16px;font:15px var(--ui);color:var(--text);background:none;border:0;border-top:.5px solid var(--border);cursor:pointer;text-align:left}
+.menu button:first-child{border-top:0}
+.menu button.newi{background:var(--pick-bg);color:var(--pick-ink);font-weight:600}
+.share{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;z-index:11;padding:14px 16px 34px;display:flex;flex-direction:column;gap:12px}
+.file{display:flex;gap:12px;align-items:center}
+.file .ic{width:40px;height:50px;border-radius:5px;background:#fff;border:1px solid #ddd;position:relative;flex:none}
+.file .ic::after{content:"PDF";position:absolute;bottom:4px;left:0;right:0;text-align:center;font:700 8px var(--ui);color:#d33}
+.file .ic i{position:absolute;left:6px;right:6px;top:12px;height:4px;background:rgba(255,204,0,.7)}
+.file b{font-size:14px;display:block}
+.file span{font-size:12px;color:var(--dim)}
+.apps{display:flex;gap:14px}
+.apps div{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--dim)}
+.apps i{width:58px;height:58px;border-radius:14px;background:var(--chip);display:block}
+
+/* notes under the flow */
+.why{background:var(--surface);color:var(--text);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;max-width:440px;border:1px solid var(--rule)}
+.why p{color:var(--dim);font-size:13.5px}
+.why h3{margin:0;font-size:15px}
+.fork{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.opt{background:var(--surface);color:var(--text);border-radius:12px;padding:16px;border:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;min-width:0}
+.opt.picked{border:2px solid var(--pick-line)}
+.opt ul{margin:0;padding-left:18px;color:var(--dim);font-size:13.5px;line-height:1.5}
+.opt h3{margin:0;font-size:16px}
+.ask{background:var(--ink);color:var(--page);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.ask p{color:var(--page);opacity:.85}
+.ask h2{color:var(--page)}
+ol.picks{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;max-width:72ch;line-height:1.5}
+ol.picks li{color:var(--ink2)}
+ol.picks b{color:var(--ink)}
+code{font-size:12px;background:var(--rule);padding:1px 5px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:8px">
+  <div class="eyebrow">Q462 · SPEC D212 · mock for the sitting · iPhone</div>
+  <h1>Comment on a PDF highlight, then share the PDF with your thoughts in it</h1>
+  <p>D212: highlights and your comments become real annotations in the PDF, so the file you hand someone carries them. Every <span class="pick">Pick</span> tag below is a choice I made that you can overrule.</p>
+</header>
+
+<!-- ============ 1. TODAY ============ -->
+<section id="today">
+  <div class="eyebrow">1 · Today, from source</div>
+  <h2>What the reader does now</h2>
+  <p>Left: the Debug build on the iPhone 17 Simulator, opened with <code>-openTab books -showPDFReader</code> on the generated sample PDF from <code>LibraryPDFDebug</code> (not one of your files). Right: my redraw of the same screen, which the mock below builds on. Same scale, both in dark appearance as the Simulator ran, both showing a fresh selection with today's callout. A highlight today has no comment. Tapping one gives <b>Copy · Remove highlight</b> and nothing else. The yellow on the page is a PDFKit highlight annotation, but it is drawn in memory each time the reader opens and never written to the file (<code>applyHighlights()</code>, <code>LibraryPDFReader.swift:377</code>).</p>
+  <div class="seg" role="group" aria-label="Today view">
+    <button id="t-read" aria-pressed="true" onclick="today('read')">Reading view</button>
+    <button id="t-orig" aria-pressed="false" onclick="today('orig')">Original page</button>
+  </div>
+  <div class="row" id="todayRow"></div>
+</section>
+
+<!-- ============ 2. THE FLOW ============ -->
+<section id="flow">
+  <div class="eyebrow">2 · The mock · iPhone 13, 390 × 844</div>
+  <h2>Tap through it</h2>
+  <p>Steps follow one highlight on page 4. Tap inside the phone: the yellow, the comment badge, the callout buttons, the ⋯ menu. The step buttons jump straight to a state.</p>
+  <div class="seg" role="group" aria-label="Step" id="steps"></div>
+  <div class="row">
+    <div class="fbox" id="flowBox" style="--fw:390;--fh:844"><div class="frame" id="phone" style="--top:47px"></div></div>
+    <div class="col" style="flex:1;min-width:min(100%,280px);gap:12px" id="stepNote"></div>
+  </div>
+</section>
+
+<!-- ============ 3. SHARE FORK ============ -->
+<section id="fork">
+  <div class="eyebrow">3 · Share: which file carries them?</div>
+  <h2>Two ways to put them in the PDF</h2>
+  <div class="fork">
+    <div class="opt" id="optA">
+      <h3>A · The PDF in Library carries them</h3>
+      <div class="small">Every highlight and comment is written into the file you imported, as you make it.</div>
+      <ul>
+        <li>Share sends the file as it is. Name unchanged: <i>GFR grant application, draft 3.pdf</i>.</li>
+        <li>If you open the file in Files or on the Mac, the highlights are already there.</li>
+        <li>The file you imported is changed for good. Removing a highlight rewrites it again.</li>
+        <li>Highlights live in two places: the synced record and the file. They must be kept in step.</li>
+      </ul>
+      <button class="txtbtn" onclick="setOpt('A');go('share')">Show A in the phone</button>
+    </div>
+    <div class="opt picked" id="optB">
+      <h3>B · Only the shared copy carries them <span class="pick">Pick</span></h3>
+      <div class="small">Library keeps the file exactly as you imported it. Share makes a fresh copy with everything written in.</div>
+      <ul>
+        <li>Share sends <i>GFR grant application, draft 3 (highlights).pdf</i>, built at that moment.</li>
+        <li>The synced highlight list stays the one truth (D207). The copy is made from it.</li>
+        <li>Opening the Library file in another app shows no highlights.</li>
+        <li>Share again later and the copy has your newest comments.</li>
+      </ul>
+      <button class="txtbtn" onclick="setOpt('B');go('share')">Show B in the phone</button>
+    </div>
+  </div>
+  <div class="ask">
+    <div class="eyebrow" style="color:var(--page);opacity:.7">The question for you</div>
+    <h2>When you share, should the PDF in your Library itself carry the highlights and comments (A), or only the copy you send (B)?</h2>
+    <p>The mock defaults to B. Everything else on this page works either way.</p>
+  </div>
+</section>
+
+<!-- ============ 4. PICKS ============ -->
+<section id="picks">
+  <div class="eyebrow">4 · Choices you might overrule</div>
+  <ol class="picks">
+    <li><b>A comment is typed, short, and private to the highlight.</b> It sits next to "Add note" and does not replace it: Add note is still the quote plus your voice, and becomes a Skrift note. Comment is a line of text that lives on the highlight and goes into the PDF.</li>
+    <li><b>Your Skrift notes never go into the shared PDF.</b> Only highlights and their comments do. A voice note made from a passage stays in Skrift, even when you share that PDF.</li>
+    <li><b>A commented highlight shows a small badge, and the comment opens on tap.</b> The reading view does not print comments inline under the paragraph, and the page view uses a sticky-note pin in the margin. Step 3 has a switch to see the inline version instead.</li>
+    <li><b>Comment is the second item in the highlight's callout,</b> between Copy and Remove highlight. Selecting fresh text still offers Copy · Highlight · ❝ Add note. To comment on new text you highlight it first, then tap it.</li>
+  </ol>
+  <p class="small">Under the hood (for the build item, not a decision): <code>SourceHighlight</code> gains an optional <code>comment</code>, synced the same way as today. On the page, the comment is the highlight annotation's text (the PDF <code>Contents</code> field), which is where PDF apps keep an annotation's note. How each other app (Preview, Acrobat, Files) displays it is unverified until a shared file is opened in them.</p>
+</section>
+
+</div>
+
+<script>
+const S = {step:'tap', opt:'B', comment:'', draft:'', inline:false, removed:false, menu:false, toast:''};
+const TEXT_HL = 'Sensor integration and field tests: €18,000';
+const DEFAULT_C = 'Ask Rui if the second test site is still Sines. If not, this line drops by a third.';
+
+/* ---------- today ---------- */
+function today(v){
+  document.getElementById('t-read').setAttribute('aria-pressed', v==='read');
+  document.getElementById('t-orig').setAttribute('aria-pressed', v==='orig');
+  const shot = v==='read' ? 'Q462-sim-shots/today-reading.png' : 'Q462-sim-shots/today-original.png';
+  document.getElementById('todayRow').innerHTML = `
+    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame dk"><img class="shot" alt="Simulator screenshot of today's ${v==='read'?'reading view':'original page'}" src="${shot}"></div></div>
+      <div class="cap" style="--fw:402">Simulator, iPhone 17, Debug build</div></div>
+    <div class="col"><div class="fbox" style="--fw:402;--fh:874"><div class="frame dk">${chrome(v==='read'?todayRead():todayOrig(), v==='read', 'today')}</div></div>
+      <div class="cap" style="--fw:402">Redraw from <code>LibraryPDFReader.swift</code></div></div>`;
+  fit();
+}
+function todayRead(){
+  return `<div class="read">${readingBody({today:true})}</div>
+  <div class="callout" style="left:84px;top:94px;border-radius:19px"><button>Copy</button><button>Highlight</button><button>❝ Add note</button></div>`;
+}
+function todayOrig(){
+  return `<div class="pdf">${sheet({today:true})}</div>
+  <div class="callout" style="left:12px;top:18px"><button>Copy</button><button>Highlight</button><button class="acc">❝ Add note</button></div>`;
+}
+
+/* ---------- shared drawing ---------- */
+function chrome(inner, reading, who, over){
+  return `<div class="island"></div><div class="status"><span>9:41</span><span>●●● ▮</span></div>
+  <div class="screen">
+    <div class="nav"><button class="ib" aria-label="Back">‹</button><div class="t">GFR grant application, draft 3</div>
+      <button class="ib" aria-label="More" ${who==='flow'?'onclick="toggleMenu()"':''}>⋯</button></div>
+    <div class="body">${inner}<div class="fb" aria-hidden="true">▤</div></div>
+    <div class="ncard"><span class="q">❝</span><div><b>No notes yet</b><span>Add note saves a quote and your voice from here.</span></div></div>
+    <div class="dock"><span class="pg">p. 4 of 18</span><span class="sp"></span>
+      <button class="tg" ${who==='flow'?'onclick="flip()"':''}>${reading?'Original page':'Reading view'}</button>
+      ${reading?'<span class="aa">Aa</span>':''}
+      <span class="add">＋ Add note</span></div>
+    ${over||''}
+  </div>`;
+}
+function hl(o){
+  if (o.today || S.removed) return o.today ? `<mark>${TEXT_HL}</mark>` : TEXT_HL;
+  const has = !!S.comment;
+  const badge = has && !S.inline ? `<span class="cmark" onclick="go('view');event.stopPropagation()" title="Comment">✎</span>` : '';
+  return `<mark class="${has?'c':''}" onclick="go('${has?'view':'tap'}')">${TEXT_HL}</mark>${badge}`;
+}
+function readingBody(o){
+  const inl = (!o.today && S.comment && S.inline && !S.removed) ? `<span class="inlinec">${esc(S.comment)}</span>` : '';
+  const first = o.today ? `<span class="sel">The project runs for eighteen months.</span>` : `The project runs for eighteen months.`;
+  return `<div class="plabel">Page 4</div><h3>4. Budget</h3>
+  <p>${first} Costs below are for the first phase only; phase two is costed in Annex B.</p>
+  <p>${hl(o)} covers two test sites and the replacement parts we expect to burn through.</p>${inl}
+  <div class="trow"><span>Personnel</span><span>€42,000</span></div>
+  <div class="trow"><span>Sensor integration and field tests</span><span>€18,000</span></div>
+  <div class="trow"><span>Travel</span><span>€3,200</span></div>
+  <div class="trow"><span>Total phase one</span><span>€63,200</span></div>
+  <p style="margin-top:16px">We ask the panel to note that the field tests carry most of the technical risk.</p>
+  <div class="pbreak">Page 5</div>`;
+}
+function sheet(o){
+  const pin = (!o.today && S.comment && !S.removed) ? `<span class="pin" style="right:8px;top:94px" onclick="go('view')" title="Comment">✎</span>` : '';
+  const m = o.today ? `<mark>${TEXT_HL}</mark>` : (S.removed ? TEXT_HL : `<mark onclick="go('${S.comment?'view':'tap'}')" style="cursor:pointer">${TEXT_HL}</mark>`);
+  return `<div class="sheet"><h4>4. Budget</h4>
+    <div class="l">${o.today?'<span class="sel">The project runs for eighteen months.</span>':'The project runs for eighteen months.'} Costs below are for the first phase only;</div>
+    <div class="l">phase two is costed in Annex B.</div><br>
+    <div class="l">${m} covers two test sites</div>
+    <div class="l">and the replacement parts we expect to burn through.</div><br>
+    <div class="tr"><span>Personnel</span><span>€42,000</span></div>
+    <div class="tr"><span>Sensor integration and field tests</span><span>€18,000</span></div>
+    <div class="tr"><span>Travel</span><span>€3,200</span></div>
+    <div class="tr"><span>Total phase one</span><span>€63,200</span></div><br>
+    <div class="l">We ask the panel to note that the field tests carry most of the technical risk.</div>${pin}</div>
+    <div class="sheet" style="margin-top:10px;height:200px"><h4>Section 5</h4><div class="l">This section sets out the plan for one part of the work and who carries it,</div></div>`;
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------- the flow ---------- */
+const STEPS = [
+  ['tap','1 Tap a highlight'],['write','2 Write a comment'],['read','3 Reading view'],
+  ['page','4 Page view'],['view','5 Edit or remove'],['share','6 Share']
+];
+let mode = 'read';
+function go(s){
+  if (s==='write' && !S.draft) S.draft = S.comment || DEFAULT_C;
+  if (['read','view','share'].includes(s) && !S.comment && !S.removed) S.comment = DEFAULT_C;
+  if (s==='page') { mode='orig'; if(!S.comment && !S.removed) S.comment = DEFAULT_C; }
+  if (s==='read') mode='read';
+  S.step = s; S.menu = false; render();
+}
+function flip(){ mode = mode==='read'?'orig':'read'; S.step = mode==='read'?'read':'page'; render(); }
+function toggleMenu(){ S.menu = !S.menu; render(); }
+function setOpt(o){ S.opt=o; document.getElementById('optA').classList.toggle('picked',o==='A'); document.getElementById('optB').classList.toggle('picked',o==='B'); }
+function save(){ const t=document.getElementById('cbox'); S.comment=(t?t.value:S.draft).trim(); S.draft=''; S.removed=false; toast(S.comment?'Comment saved':'Comment deleted'); go(mode==='read'?'read':'page'); }
+function delComment(){ S.comment=''; S.draft=''; toast('Comment deleted'); go(mode==='read'?'read':'page'); }
+function askRemove(){ S.step='confirm'; render(); }
+function removeHl(){ S.removed=true; S.comment=''; toast('Highlight and comment removed'); S.step=mode==='read'?'read':'page'; render(); }
+function restore(){ S.removed=false; S.comment=DEFAULT_C; go('read'); }
+function toast(t){ S.toast=t; setTimeout(()=>{ if(S.toast===t){S.toast='';render();} },2200); }
+function doShare(){ S.step='shared'; render(); }
+
+function overlay(){
+  const st = S.step;
+  if (st==='tap') {
+    const pos = mode==='read' ? 'left:40px;top:180px' : 'left:40px;top:150px';
+    return `<div class="callout" style="${pos}"><button onclick="toast('Copied');render()">Copy</button><button class="new" onclick="go('write')">${S.comment?'Edit comment':'Comment'}</button><button onclick="askRemove()">Remove highlight</button></div>`;
+  }
+  if (st==='write') return `<div class="scrim" onclick="go('${mode==='read'?'read':'page'}')"></div>
+    <div class="sheetup"><div class="grab"></div>
+      <div class="shead"><button class="txtbtn dim" onclick="S.draft='';go('${mode==='read'?'read':'page'}')">Cancel</button>
+        <div class="st" style="text-align:center">Comment<div class="sub">p. 4 · goes into the PDF when you share</div></div>
+        <button class="txtbtn" onclick="save()">Save</button></div>
+      <div class="quote hl">${TEXT_HL}</div>
+      <div class="hr"></div>
+      <textarea id="cbox" aria-label="Comment" placeholder="Your comment on this highlight">${esc(S.draft)}</textarea>
+      ${S.comment?'<button class="txtbtn red" style="align-self:flex-start" onclick="delComment()">Delete comment</button>':''}
+    </div>`;
+  if (st==='view' && S.comment) return `<div class="scrim" onclick="go('${mode==='read'?'read':'page'}')"></div>
+    <div class="sheetup"><div class="grab"></div>
+      <div class="shead"><div class="st">Comment<div class="sub">p. 4 · edited today 10:14</div></div>
+        <button class="txtbtn" onclick="go('write')">Edit</button></div>
+      <div class="quote hl">${TEXT_HL}</div>
+      <div style="font-size:16px;line-height:1.45">${esc(S.comment)}</div>
+      <div class="hr"></div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="txtbtn red" onclick="delComment()">Delete comment</button>
+        <button class="txtbtn dim" onclick="askRemove()">Remove highlight</button></div>
+    </div>`;
+  if (st==='confirm') return `<div class="scrim"></div>
+    <div class="sheetup"><div class="grab"></div>
+      <div style="font-weight:700;font-size:16px">Remove this highlight?</div>
+      <div class="small">${S.comment?'Its comment goes too. ':''}It also leaves any PDF you share from now on.</div>
+      <button class="txtbtn red" style="text-align:left" onclick="removeHl()">Remove highlight${S.comment?' and comment':''}</button>
+      <button class="txtbtn dim" style="text-align:left" onclick="go('${mode==='read'?'read':'page'}')">Keep it</button>
+    </div>`;
+  if (st==='share' || st==='shared') {
+    const name = S.opt==='A' ? 'GFR grant application, draft 3.pdf' : 'GFR grant application, draft 3 (highlights).pdf';
+    const sub = S.opt==='A' ? 'The Library file itself · 3 highlights, 2 comments' : 'A new copy · 3 highlights, 2 comments · Library file unchanged';
+    return `<div class="scrim" onclick="go('read')"></div>
+    <div class="share"><div class="grab"></div>
+      <div class="file"><div class="ic"><i></i></div><div style="min-width:0"><b>${name}</b><span>${sub}</span></div></div>
+      <div class="small" style="background:var(--pick-bg);color:var(--pick-ink);padding:8px 10px;border-radius:8px">Option ${S.opt} · <a href="#fork" style="color:inherit">switch in section 3</a></div>
+      <div class="apps"><div><i></i>AirDrop</div><div><i></i>Messages</div><div><i></i>Mail</div><div><i></i>Save to Files</div></div>
+      ${st==='shared'?'<div class="small" style="color:var(--green);font-weight:600">Sent (mock). Your Skrift notes on this PDF were not included.</div>':'<button class="txtbtn" style="text-align:left" onclick="doShare()">AirDrop to Rui (mock)</button>'}
+    </div>`;
+  }
+  return '';
+}
+function menuHtml(){
+  if (!S.menu) return '';
+  return `<div class="menu"><button onclick="S.menu=false;go('share')" class="newi"><span>Share PDF with highlights</span><span>↑</span></button>
+    <button onclick="S.menu=false;toast('Sent to a note (today)');render()"><span>Send to a note</span><span>✎</span></button>
+    <button onclick="S.menu=false;toast('Moved to a note (today)');render()"><span>Add to a note instead</span><span>▤</span></button></div>`;
+}
+function render(){
+  document.getElementById('steps').innerHTML = STEPS.map(([k,l])=>`<button aria-pressed="${S.step===k||(k==='view'&&S.step==='confirm')||(k==='share'&&S.step==='shared')}" onclick="go('${k}')">${l}</button>`).join('');
+  const ov = overlay(), inBody = S.step==='tap';
+  const inner = (mode==='read' ? `<div class="read">${readingBody({})}</div>` : `<div class="pdf">${sheet({})}</div>`) + (inBody?ov:'');
+  const over = (inBody?'':ov) + menuHtml() + (S.toast?`<div class="toast">${S.toast}</div>`:'');
+  document.getElementById('phone').innerHTML = chrome(inner, mode==='read', 'flow', over);
+  document.getElementById('stepNote').innerHTML = notes();
+  if (S.step==='write') { const t=document.getElementById('cbox'); if(t){ t.oninput=()=>{S.draft=t.value}; } }
+}
+function notes(){
+  const n = {
+    tap:`<h3>Tap a highlight</h3><p>The callout gains <b>Comment</b> in the middle (<span class="pick">Pick</span>). When the highlight already has one it reads <b>Edit comment</b>. Same callout on the reading view and the page view, as today (<code>SourceMenu.highlightItems</code>).</p>`,
+    write:`<h3>Write a comment</h3><p>A short sheet: the highlighted words in the yellow quote idiom, a plain text field under a hairline (no box, per the no-bubbles rule). Typed, not voice <span class="pick">Pick</span>. "Add note" in the dock still does voice.</p>`,
+    read:`<h3>Reading view</h3><p>A commented highlight is a deeper yellow with a small badge after it <span class="pick">Pick</span>. Tap either to read the comment.</p><button class="txtbtn" onclick="S.inline=!S.inline;render()">${S.inline?'Show the badge instead':'Show the comment inline instead'}</button>`,
+    page:`<h3>Page view</h3><p>On the real page the highlight keeps today's yellow and gets a sticky-note pin in the right margin, beside its line <span class="pick">Pick</span>. This is the drawing that ends up in the shared file.</p>`,
+    view:`<h3>Edit or remove</h3><p>Tapping the badge or pin opens the comment. <b>Edit</b> reopens the writing sheet. <b>Delete comment</b> keeps the yellow. <b>Remove highlight</b> asks first when a comment would go with it, because that is the one place words are lost.</p>`,
+    confirm:`<h3>Remove, with a comment on it</h3><p>Only this case asks. A highlight without a comment still goes in one tap, as today.</p>`,
+    share:`<h3>Share PDF with highlights</h3><p>New first row in the ⋯ menu (yellow here so you can see it). It opens the iOS share sheet with one PDF. Option <b>${S.opt}</b> is showing: ${S.opt==='A'?'the Library file itself.':'a fresh copy, named “(highlights)”.'}</p>`,
+    shared:`<h3>Sent</h3><p>Your Skrift notes on this PDF stay in Skrift <span class="pick">Pick</span>.</p>`
+  }[S.step] || '';
+  const reset = S.removed ? `<button class="txtbtn" onclick="restore()">Bring the highlight back</button>` : '';
+  return `<div class="why">${n}${reset}</div>`;
+}
+
+/* ---------- scale: one factor per row so frames stay at true relative size ---------- */
+function fit(){
+  const vw = Math.min(document.documentElement.clientWidth, 1080) - 32;
+  const two = Math.min(0.72, (vw - 24) / (402*2 + 20));
+  document.querySelectorAll('#todayRow .fbox, #todayRow .cap').forEach(e=>e.style.setProperty('--s', two));
+  document.querySelectorAll('#todayRow .frame').forEach(e=>e.style.setProperty('--s', two));
+  const one = Math.min(0.85, (vw - 20) / 390);
+  const fb = document.getElementById('flowBox'); fb.style.setProperty('--s', one);
+}
+window.addEventListener('resize', fit);
+today('read'); go('tap'); fit();
+</script>
