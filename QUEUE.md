@@ -3379,6 +3379,13 @@ gate+: yes
 do: Build `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html` (signed 2026-10-15, Tuur: "beautiful! my pick is A, rows below"): the calm sheet filling the system sheet in the app's Apple-style look, light/dark; ✕ top left, Save as the nav-bar button top right; the item card, then option A: a Settings-style card BELOW it with a "Rating" row (pill on the right) and a "From" row; the in-place green "Saved" receipt that closes after 0.9 s (no separate green-circle card); "Already in Skrift" as a notes-list row; "Can't import" as the iOS empty state. The From row is C123: an optional sender name with roster autocomplete (D37), remembered per chat when the share carries a hint, stored as a new additive field on the capture inbox entry and written into the note as a person mention (links when on the roster, exports into people: when linked). Delete the old forced-dark sheet, the Sk monogram and the big glowing Save. Phone test `ShareSheetSenderTests` (sender reaches the note as a mention). Screenshots of every state on the iPhone 17 sim beside the mock, LOOK, list every colour/type/spacing difference in the report.
 check: `plan/mtest.sh ShareSheetSenderTests`
 
+### Q465 [auto] (todo) capture camera: the .5x chip really zooms out (virtual back camera)
+spec: C100 C221
+needs: Q456
+gate+: yes
+do: Found by Q456: the capture camera uses builtInWideAngleCamera (min zoom 1.0), so the .5x chip Tuur sees on the iPhone 17 Pro never reaches the ultra-wide. Switch the back camera to the virtual device (builtInTripleCamera, else builtInDualWideCamera, else wide) so zoom factors map to the real lenses, keep the Q456 gesture-start pinch, and show only the chips the device can do (.5x only when the virtual device exposes the ultra-wide). Phone test `CameraLensChipsTests` for the chip list per device type. Device feel is Tuur's.
+check: `plan/mtest.sh CameraLensChipsTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4872,3 +4879,4 @@ check: `plan/mtest.sh ShareSheetSenderTests`
 - 2026-10-15 09:29 Q456 -> doing — worker out
 - 2026-10-15 11:03 Q453 -> done — gate green (1905 tests) + AppendPlayerReloadTests rc=0 on merged head 166e88fa, re-run after the session restart killed the first accept
 - 2026-10-15 11:03 Q311 -> tuur — recheck after Q453 (needs Dev 192)
+- 2026-10-15 11:04 Q465 added
