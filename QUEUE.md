@@ -3291,7 +3291,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (screenshots): a brand-new note shows tag, rating and Personal stacked on three rows, and tapping Done on the keyboard bar reveals the bottom tab bar (Notes/Library/Review/Settings) over the note; the same note reopened shows the signed layout (title, grey meta line, then `○○○ Not rated · Personal · + tag` on ONE row) with no tab bar. Two code paths draw the open note. Make the new-note path use the exact same view as the reopened note (the Q358 build of `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`) and delete the duplicate; the tab bar is hidden in every open-note state. Then grep for any other place that draws a note differently for new vs existing (quick note, capture, share-opened, iPad) and fold those into the same view; list what you found. Phone test `NoteScreenParityTests`: the new-note and reopened-note screens build the same header view type and hide the tab bar. Screenshot both states on the iPhone 17 sim, LOOK, put them in `plan/reads/note-parity/`.
 check: `plan/mtest.sh NoteScreenParityTests`
 
-### Q452 [tuur] (doing) mockup: more typing space when the keyboard is up
+### Q452 [tuur] (tuur) mockup: more typing space when the keyboard is up
 spec: C113 C234
 needs: Q451
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
@@ -3317,7 +3317,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
 check: Tuur clicked through it and said go.
 
-### Q456 [auto] (todo) capture camera: smooth pinch zoom, no fake drag handle, one recording status line
+### Q456 [auto] (doing) capture camera: smooth pinch zoom, no fake drag handle, one recording status line
 spec: C221 C100
 needs: -
 gate+: yes
@@ -3372,7 +3372,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` with Tuur's sign-off notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
 check: `plan/mtest.sh PDFAnnotationExportTests`
 
-### Q464 [auto] (todo) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
+### Q464 [auto] (doing) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
 spec: C66 C75 C123 C127 D37
 needs: Q455
 gate+: yes
@@ -4867,3 +4867,6 @@ check: `plan/mtest.sh ShareSheetSenderTests`
 - 2026-10-15 09:10 Q455 -> done — Tuur 2026-10-15: beautiful — pick A, rows below
 - 2026-10-15 09:10 Q464 added
 - 2026-10-15 09:26 Q450 -> done — hand-merged (Tuur approved both flips on Q442 (2026-10-15))
+- 2026-10-15 09:29 Q452 -> tuur — mock https://claude.ai/artifact/PHfGiLSgsDnECruxvpfFCD — pick A, B or C
+- 2026-10-15 09:29 Q464 -> doing — worker out
+- 2026-10-15 09:29 Q456 -> doing — worker out
