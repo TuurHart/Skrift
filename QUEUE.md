@@ -3271,7 +3271,7 @@ gate+: yes
 do: Q441 parses `.eml` attachments (`EmailShare.Message.attachments` in `Skrift_Native/Shared/Ingress/EmailShare.swift`) but stores none, on phone or Mac. Store each attachment the way a note's file attachments are stored since Q385 (the same synced asset kind and `[[file_…]]`-style body marker the attachments lane uses; read FEATURES.md "attachments" and the Q385/Q392 findings in plan/RUN.md first), placed after the email body in attachment order. Also route `.eml` through `ingestEmailCapture` in the Mac folder-ingest path (`IngestService.swift`, the folder walk) like the direct drop. Test `EmailAttachmentsTests` (desktop target) on the `ingress/email` fixture with two attachments: the note carries both, in order.
 check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q449 [auto] (doing) copy-edit v2: accept small word drops; fall back to unedited only on a translation, a lost name or number, an invented name, or the shrink guard (D209)
+### Q449 [auto] (done) copy-edit v2: accept small word drops; fall back to unedited only on a translation, a lost name or number, an invented name, or the shrink guard (D209)
 spec: C35 C177 C33 D209
 needs: Q424
 gate+: yes
@@ -4849,3 +4849,4 @@ check: `plan/mtest.sh PDFAnnotationExportTests`
 - 2026-10-15 08:50 Q462 added
 - 2026-10-15 08:50 Q463 added
 - 2026-10-15 08:50 Q447 -> done — Tuur 2026-10-15: (a) never a title, every door → D211
+- 2026-10-15 08:57 Q449 -> done — hand-merged (Tuur D209 2026-10-15: C35 harness test now checks names+numbers only; copy-edit-v2 registry updated)
