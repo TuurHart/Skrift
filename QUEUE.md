@@ -3291,7 +3291,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (screenshots): a brand-new note shows tag, rating and Personal stacked on three rows, and tapping Done on the keyboard bar reveals the bottom tab bar (Notes/Library/Review/Settings) over the note; the same note reopened shows the signed layout (title, grey meta line, then `○○○ Not rated · Personal · + tag` on ONE row) with no tab bar. Two code paths draw the open note. Make the new-note path use the exact same view as the reopened note (the Q358 build of `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`) and delete the duplicate; the tab bar is hidden in every open-note state. Then grep for any other place that draws a note differently for new vs existing (quick note, capture, share-opened, iPad) and fold those into the same view; list what you found. Phone test `NoteScreenParityTests`: the new-note and reopened-note screens build the same header view type and hide the tab bar. Screenshot both states on the iPhone 17 sim, LOOK, put them in `plan/reads/note-parity/`.
 check: `plan/mtest.sh NoteScreenParityTests`
 
-### Q452 [tuur] (tuur) mockup: more typing space when the keyboard is up
+### Q452 [tuur] (done) mockup: more typing space when the keyboard is up
 spec: C113 C234
 needs: Q451
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
@@ -3385,6 +3385,13 @@ needs: Q456
 gate+: yes
 do: Found by Q456: the capture camera uses builtInWideAngleCamera (min zoom 1.0), so the .5x chip Tuur sees on the iPhone 17 Pro never reaches the ultra-wide. Switch the back camera to the virtual device (builtInTripleCamera, else builtInDualWideCamera, else wide) so zoom factors map to the real lenses, keep the Q456 gesture-start pinch, and show only the chips the device can do (.5x only when the virtual device exposes the ultra-wide). Phone test `CameraLensChipsTests` for the chip list per device type. Device feel is Tuur's.
 check: `plan/mtest.sh CameraLensChipsTests`
+
+### Q466 [auto] (todo) typing: the note follows the caret so the header scrolls away like Apple Notes (Q452 pick)
+spec: C113 C234
+needs: Q452
+gate+: yes
+do: Tuur on the Q452 mock (2026-10-15): keep today's header exactly as built (title, grey meta line, the one rating/Personal/tag row) and let it scroll away like Apple Notes, nothing folds or collapses. While he types with the keyboard up, the note scrolls so the caret stays just above the keyboard bar, which pushes the header off the top as soon as the text needs the room; dragging down brings it back. Read the Q452 finding (`grep -n 'finding: Q452' plan/RUN.md`): the header already scrolls with the note, so this is only the caret-follow while the note is short (MemoPageView / NoteBodyView). No sticky or collapsing header. Phone test `TypingScrollTests`: with the keyboard up, typing past the visible area scrolls the header out and keeps the caret visible. Screenshot on the iPhone 17 sim with the keyboard up after a few lines, LOOK.
+check: `plan/mtest.sh TypingScrollTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4880,3 +4887,5 @@ check: `plan/mtest.sh CameraLensChipsTests`
 - 2026-10-15 11:03 Q453 -> done — gate green (1905 tests) + AppendPlayerReloadTests rc=0 on merged head 166e88fa, re-run after the session restart killed the first accept
 - 2026-10-15 11:03 Q311 -> tuur — recheck after Q453 (needs Dev 192)
 - 2026-10-15 11:04 Q465 added
+- 2026-10-15 11:07 Q452 -> done — Tuur 2026-10-15: keep today's header, let it scroll away like Apple Notes
+- 2026-10-15 11:07 Q466 added
