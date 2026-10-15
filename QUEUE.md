@@ -3414,7 +3414,7 @@ gate+: yes
 do: Found by Q454: copy-edit escrows picture paragraphs (`ImageMarkerReinsert`, and v2 by paragraph index) but not `[[vid_NNN]]` / `[[file_NNN]]` attachment markers, so a model pass can drop or move them. Treat attachment-marker paragraphs exactly like picture paragraphs in BOTH v1 (live) and copy-edit v2 (`Shared/CopyEditV2/`): stripped before the model, reinserted by paragraph index. Desktop test `AttachmentMarkerEscrowTests` over a note with a leading `[[vid_1]]` and a mid `[[file_1]]`; the copy-edit harnesses stay 0 unexplained.
 check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q470 [auto] (doing) DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly stops flaking on the SQLite -shm size
+### Q470 [auto] (tuur) DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly stops flaking on the SQLite -shm size
 spec: D203
 needs: -
 gate+: yes
@@ -4947,3 +4947,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:03 Q469 -> done — gate 60s @54b121f7
 - 2026-10-15 12:03 Q458 -> doing — worker out
 - 2026-10-15 12:03 Q465 -> doing — worker out
+- 2026-10-15 12:06 Q470 -> tuur — approve: -shm checked by presence only (store + -wal still byte+mtime exact); wt/Q470 a4ab03cc, hand-merge on yes
