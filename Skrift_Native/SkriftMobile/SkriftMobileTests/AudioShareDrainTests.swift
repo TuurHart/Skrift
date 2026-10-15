@@ -242,10 +242,9 @@ final class AudioShareDrainTests: XCTestCase {
         await CaptureInboxDrainer.drain(into: repo)
 
         let memo = repo.memo(id: id)
-        XCTAssertEqual(memo?.sharedContent?.type, .text, "text file → text capture, not a file card")
-        XCTAssertEqual(memo?.sharedContent?.fileName, "Meeting Notes.md", "provenance kept")
-        XCTAssertNil(memo?.sharedContent?.text, "no pinned quote block — the text IS the body")
-        XCTAssertEqual(memo?.annotationText, "my ramble about this\n\n# Standup\n\n- decided X",
+        XCTAssertNil(memo?.sharedContent, "D171: a .md is a typed note, no capture card")
+        XCTAssertEqual(memo?.title, "Standup", "title = the first heading")
+        XCTAssertEqual(memo?.transcript, "my ramble about this\n\n# Standup\n\n- decided X",
                        "ramble first, file content as the body")
     }
 
