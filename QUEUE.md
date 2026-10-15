@@ -3338,21 +3338,21 @@ gate+: yes
 do: Tuur 2026-10-15: the PDF reading view is not useful until it handles real layouts (D213), and today nothing proves its quality (only hand-made strings in `PDFReflowTests`). Generate synthetic PDFs (never his files; a script in `test-fixtures/pdf/generate.py` or Swift, committed) into `test-fixtures/pdf/`: two-column paper, report with running headers/footers and page numbers, page with a figure + caption, a 5-column table, a scanned page (text rendered to an image only), a single-column book page as control. Each gets `<name>.expect.md`: the reading text a careful human would want (order, headings, figure place marked `[figure: caption]`, table as rows, no headers/footers). `PDFReadingGoldenTests` (phone target) runs today's reflow on each and records per-fixture word-order similarity + header/footer leakage into `plan/reads/pdf-reading-baseline.md`; register today's failures as expected (C5 style) so later items flip them.
 check: `test $(ls test-fixtures/pdf/*.pdf | wc -l) -ge 6 && plan/mtest.sh PDFReadingGoldenTests`
 
-### Q459 [auto] (doing) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
+### Q459 [auto] (stuck) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
 spec: D213
 needs: Q458
 gate+: yes
 do: First add a STRUCTURE metric to `PDFReadingGoldenTests` (Q458 finding: word order + leakage cannot see structure; figure-caption and table-5col pass today while wrong): per fixture, compare the headings, `[figure: …]` lines and table rows of the reading view against `expect.md`, and register today's structure failures in `expected-failures.json`. Then make the reading view match the goldens for layout: read text by line geometry (PDFKit selections / line bounds) instead of raw `page.string`, so a two-column page reads left column then right; drop lines that repeat at the same position on most pages (running headers/footers) and bare page numbers; keep tables of any width as rows (`Shared/Pipeline/PDFReflow.swift` holds the pure rules, `LibraryPDFReflow.swift` the PDFKit side). Flip the matching expected failures in `PDFReadingGoldenTests`; the control fixture must stay identical.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q460 [auto] (todo) PDF reading view: figures shown inline where they sit on the page
+### Q460 [auto] (doing) PDF reading view: figures shown inline where they sit on the page
 spec: D213
 needs: Q459
 gate+: yes
 do: Images and figures are dropped today. Also measure (Q459 doubt): each word now costs one PDFSelection; time the reading view of a generated 300-page text PDF and write the number into plan/reads/pdf-reading-structure.md; if it is over ~3 s on the iPhone 17 sim, batch the geometry per line. Crop each figure region from the page (PDFKit page image within the figure's bounds, or the embedded image) and show it inline in the reading view at its place, with its caption, using the same image block the article reader uses (Q351 build). Flip the figure fixture in `PDFReadingGoldenTests`. Screenshot the reading view of the figure fixture on the iPhone 17 sim, LOOK, `plan/reads/pdf-reading/`.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q461 [auto] (todo) PDF reading view for scanned PDFs: on-device text recognition
+### Q461 [auto] (doing) PDF reading view for scanned PDFs: on-device text recognition
 spec: D213 C120
 needs: Q459
 gate+: yes
@@ -4965,3 +4965,6 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:40 Q472 added
 - 2026-10-15 12:40 Q472 -> doing — worker out
 - 2026-10-15 12:48 Q472 -> done — gate 64s @48504f6b
+- 2026-10-15 12:56 Q459 -> stuck — gate weakened: modified QUEUE.md 
+- 2026-10-15 12:56 Q460 -> doing — worker out
+- 2026-10-15 12:56 Q461 -> doing — worker out
