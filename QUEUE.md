@@ -3258,7 +3258,7 @@ gate+: yes
 do: Q445 fixed the Mac (`VaultExporter.shownBody` splits off the frontmatter and runs `BodyV2Legacy.shown` on the body only). The iPad/phone exporter has the same pattern: `Skrift_Native/SkriftMobile/Services/Export/ObsidianPublisher.swift` runs `BodyV2Legacy.shown(markdown).text` over the whole compiled markdown, so a note opening with a picture fuses the closing `---` onto the first sentence and loses the stamp. Move the body-only split into ONE shared function in `Skrift_Native/Shared/Export/` used by both exporters (C239, no twin), delete the Mac-only copy. Test `PicAtStartPublisherTests` (phone target) on corpus `pic-at-start`; keep `PicAtStartExportTests` green.
 check: `plan/mtest.sh PicAtStartPublisherTests`
 
-### Q447 [tuur] (tuur) decide: may a messenger filename ever be a title? C126 says never; D176 keeps it on the Files importer
+### Q447 [tuur] (done) decide: may a messenger filename ever be a title? C126 says never; D176 keeps it on the Files importer
 spec: C126 D176
 needs: -
 do: -
@@ -3323,6 +3323,54 @@ needs: -
 gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (Q221 confirmed): in the capture camera sheet pinch zoom is very jumpy (it compounds); the sheet shows a grab-handle pill at its top that drags nothing; and the recording status draws twice on top of itself (`Recording · 0:17 — still listening` over a second `Recording`). Fix: pinch sets zoom from the zoom factor at gesture start × scale, clamped to the device range (no compounding); remove the pill or make the sheet actually draggable (remove it); render one status line. Phone test `CaptureCameraZoomTests` for the zoom math. Camera hardware can't be proven on the sim; say so and leave the device feel to Tuur.
 check: `plan/mtest.sh CaptureCameraZoomTests`
+
+### Q457 [auto] (todo) a messenger filename is never a title, on every door (D211)
+spec: C126 D211
+needs: -
+gate+: yes
+do: Tuur picked (a) on Q447 (2026-10-15, D211): a messenger or machine filename (WhatsApp/Signal/Telegram audio names, recorder patterns, UUIDs) is never a note title on ANY door — share sheet (already, Q440 `IngressDispatch.clipTitle`), Files importer, Open-in, AirDrop, Mac drop/folder ingest. Use the one shared rule (`IngressDispatch.clipTitle` or move it to `NoteTitle`) everywhere `NoteTitle.importName` titles from a filename; a real name like "kiln idea.m4a" still becomes the title. Flip `ImportFileNameTitleTests` to D211 (Tuur approved this assertion change in the same answer) and report it as needs hand-merge. Desktop test `MessengerNameNeverTitleTests` covering Files and Mac paths.
+check: `grep -rqE "class MessengerNameNeverTitleTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q458 [auto] (todo) real-shaped PDF fixtures with expected reading text (synthetic, generated)
+spec: D213 C4
+needs: -
+gate+: yes
+do: Tuur 2026-10-15: the PDF reading view is not useful until it handles real layouts (D213), and today nothing proves its quality (only hand-made strings in `PDFReflowTests`). Generate synthetic PDFs (never his files; a script in `test-fixtures/pdf/generate.py` or Swift, committed) into `test-fixtures/pdf/`: two-column paper, report with running headers/footers and page numbers, page with a figure + caption, a 5-column table, a scanned page (text rendered to an image only), a single-column book page as control. Each gets `<name>.expect.md`: the reading text a careful human would want (order, headings, figure place marked `[figure: caption]`, table as rows, no headers/footers). `PDFReadingGoldenTests` (phone target) runs today's reflow on each and records per-fixture word-order similarity + header/footer leakage into `plan/reads/pdf-reading-baseline.md`; register today's failures as expected (C5 style) so later items flip them.
+check: `test        0 -ge 6 && plan/mtest.sh PDFReadingGoldenTests`
+
+### Q459 [auto] (todo) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
+spec: D213
+needs: Q458
+gate+: yes
+do: Make the reading view match the `test-fixtures/pdf/*.expect.md` goldens for layout: read text by line geometry (PDFKit selections / line bounds) instead of raw `page.string`, so a two-column page reads left column then right; drop lines that repeat at the same position on most pages (running headers/footers) and bare page numbers; keep tables of any width as rows (`Shared/Pipeline/PDFReflow.swift` holds the pure rules, `LibraryPDFReflow.swift` the PDFKit side). Flip the matching expected failures in `PDFReadingGoldenTests`; the control fixture must stay identical.
+check: `plan/mtest.sh PDFReadingGoldenTests`
+
+### Q460 [auto] (todo) PDF reading view: figures shown inline where they sit on the page
+spec: D213
+needs: Q459
+gate+: yes
+do: Images and figures are dropped today. Crop each figure region from the page (PDFKit page image within the figure's bounds, or the embedded image) and show it inline in the reading view at its place, with its caption, using the same image block the article reader uses (Q351 build). Flip the figure fixture in `PDFReadingGoldenTests`. Screenshot the reading view of the figure fixture on the iPhone 17 sim, LOOK, `plan/reads/pdf-reading/`.
+check: `plan/mtest.sh PDFReadingGoldenTests`
+
+### Q461 [auto] (todo) PDF reading view for scanned PDFs: on-device text recognition
+spec: D213 C120
+needs: Q459
+gate+: yes
+do: A scanned or image-only PDF gets no reading view today (`PDFReflow` usable-check fails). Run on-device Vision text recognition (VNRecognizeTextRequest, accurate, languages en + nl, never a network call, C120) per page when PDFKit text is missing or garbled, cache the result beside the library item, show a 'Reading the scan…' progress line while it runs, and feed the recognised lines through the same layout rules. Flip the scan fixture in `PDFReadingGoldenTests`.
+check: `plan/mtest.sh PDFReadingGoldenTests`
+
+### Q462 [tuur] (todo) mockup: comment on a PDF highlight and share the PDF with your highlights and comments
+spec: D212
+needs: -
+do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html`, iPhone frames, drawn from source (`LibraryPDFReader.swift`, `SourceHighlight`, Highlight in the reading and page views). Tuur 2026-10-15 (D212): highlights should go INTO the PDF as real annotations with his comments, so he can share the PDF later with his thoughts. Show: adding a comment to a highlight (and editing/removing it), how commented highlights look in the reading view and the page view, and a 'Share PDF with highlights' action (does the library PDF itself carry the annotations, or only the shared copy? show both options and ask). One agent writes this file.
+check: Tuur clicked through it and said go.
+
+### Q463 [auto] (todo) build PDF highlight comments and annotated PDF sharing per the mock
+spec: D212
+needs: Q462
+gate+: yes
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` with Tuur's sign-off notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
+check: `plan/mtest.sh PDFAnnotationExportTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4793,3 +4841,11 @@ check: `plan/mtest.sh CaptureCameraZoomTests`
 - 2026-10-15 08:42 Q455 -> doing — worker out
 - 2026-10-15 08:42 Q449 -> doing — worker out
 - 2026-10-15 08:42 Q451 -> doing — worker out
+- 2026-10-15 08:50 Q457 added
+- 2026-10-15 08:50 Q458 added
+- 2026-10-15 08:50 Q459 added
+- 2026-10-15 08:50 Q460 added
+- 2026-10-15 08:50 Q461 added
+- 2026-10-15 08:50 Q462 added
+- 2026-10-15 08:50 Q463 added
+- 2026-10-15 08:50 Q447 -> done — Tuur 2026-10-15: (a) never a title, every door → D211
