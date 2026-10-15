@@ -74,7 +74,10 @@ extension PipelineFile {
                                                                         body: transcript),
                                       media: mediaSource, sharedType: sc?.type.rawValue,
                                       isCaptureRow: sourceType == .capture,
-                                      hasAudio: sourceType == .audio && !path.isEmpty))
+                                      hasAudio: sourceType == .audio && !path.isEmpty),
+            // Q471: a voice / video share's sender rides the synced lead text (C123); the
+            // phone's `Memo.annotationText` reaches this row inside the metadata JSON.
+            lead: sourceType == .capture ? nil : Self.rawMetaString(audioMetadataJSON, key: "annotationText"))
     }
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).

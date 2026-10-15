@@ -56,7 +56,9 @@ enum MemoExporter {
             destination: memo.destination,
             spoken: !memo.audioFilename.isEmpty,
             kind: SourceKind.of(memo),                     // typed → `Typed-note` (Q142)
-            linkStems: linkStems)
+            linkStems: linkStems,
+            // Q471: a voice / video share's sender rides the lead text (C123).
+            lead: capture ? nil : memo.annotationText)
     }
 
     // MARK: - Title / body helpers
