@@ -20,6 +20,9 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     /// sheet clamps pinch zoom to what the hardware can actually do. The mock keeps
     /// the default.
     @Published private(set) var zoomRange: ClosedRange<CGFloat> = 0.5...CameraZoom.uiCeiling
+    /// Which camera is active; drives which zoom chips the sheet shows. Zoom is in display
+    /// units (1 = the wide lens), see `CameraLens`.
+    @Published private(set) var lens: CameraLens = .tripleBack
 
     let mock: Bool
     let session = AVCaptureSession()
@@ -29,6 +32,8 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private var pendingOffsets: [Double] = []
     private var videoDevice: AVCaptureDevice?
     private var videoInput: AVCaptureDeviceInput?
+    /// `videoZoomFactor` that frames display 1x on the active device (sessionQueue only).
+    private nonisolated(unsafe) var zoomBase: CGFloat = 1
     private var lastCaptureAt: Date?
     /// Session inputs/outputs are built once; configure() after a stop() just
     /// restarts the session. Touched only on `sessionQueue`, like the session.
@@ -52,13 +57,13 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                 self.configured = true
                 self.session.beginConfiguration()
                 self.session.sessionPreset = .photo
-                if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                if let (device, kind) = Self.pickDevice(position: .back),
                    let input = try? AVCaptureDeviceInput(device: device),
                    self.session.canAddInput(input) {
                     self.session.addInput(input)
                     self.videoDevice = device
                     self.videoInput = input
-                    self.publishZoomRange(device)
+                    self.activate(device, kind: kind)
                 }
                 if self.session.canAddOutput(self.photoOutput) {
                     self.session.addOutput(self.photoOutput)
@@ -91,7 +96,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
             self.session.beginConfiguration()
             defer { self.session.commitConfiguration() }
 
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: target),
+            guard let (device, kind) = Self.pickDevice(position: target),
                   let input = try? AVCaptureDeviceInput(device: device) else {
                 Task { @MainActor in self.position = previous }
                 return
@@ -102,15 +107,9 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                 self.session.addInput(input)
                 self.videoInput = input
                 self.videoDevice = device
-                self.publishZoomRange(device)
-                // Shared AVCaptureDevice instances keep their last zoom factor;
-                // reset to 1× so the flip always lands on a predictable framing.
-                do {
-                    try device.lockForConfiguration()
-                    device.videoZoomFactor = max(device.minAvailableVideoZoomFactor,
-                                                 min(1, device.maxAvailableVideoZoomFactor))
-                    device.unlockForConfiguration()
-                } catch {}
+                // activate() resets to display 1x: shared AVCaptureDevice instances keep
+                // their last zoom factor, so a flip must always land on a known framing.
+                self.activate(device, kind: kind)
             } else {
                 // Target rejected — put the previous camera back and revert the UI.
                 if let oldInput, self.session.canAddInput(oldInput) {
@@ -121,21 +120,47 @@ final class PhotoCaptureService: NSObject, ObservableObject {
         }
     }
 
-    private nonisolated func publishZoomRange(_ device: AVCaptureDevice) {
-        let range = CameraZoom.range(deviceMin: device.minAvailableVideoZoomFactor,
-                                     deviceMax: device.maxAvailableVideoZoomFactor)
-        Task { @MainActor [weak self] in self?.zoomRange = range }
+    /// Back: the virtual device (triple, else dual-wide) so zoom below 1x reaches the real
+    /// ultra-wide; else the plain wide. Front: the wide selfie camera.
+    private nonisolated static func pickDevice(position: AVCaptureDevice.Position) -> (AVCaptureDevice, CameraLens)? {
+        if position == .front {
+            return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front).map { ($0, .front) }
+        }
+        if let d = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) { return (d, .tripleBack) }
+        if let d = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) { return (d, .dualWideBack) }
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back).map { ($0, .wideBack) }
     }
 
-    /// Set the optical/digital zoom factor (e.g. 0.5/1/2). Device-only; clamped
+    /// Make `device` the active camera: compute the display-1x base, publish the display
+    /// range + lens, and frame display 1x. Session queue only.
+    private nonisolated func activate(_ device: AVCaptureDevice, kind: CameraLens) {
+        let switchOver = device.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat(truncating: $0) }
+        let base = CameraLens.baseFactor(hasUltraWide: kind.hasUltraWide, firstSwitchOver: switchOver)
+        zoomBase = base
+        let range = CameraZoom.range(deviceMin: device.minAvailableVideoZoomFactor / base,
+                                     deviceMax: device.maxAvailableVideoZoomFactor / base)
+        Task { @MainActor [weak self] in
+            self?.zoomRange = range
+            self?.lens = kind
+        }
+        do {
+            try device.lockForConfiguration()
+            device.videoZoomFactor = max(device.minAvailableVideoZoomFactor,
+                                         min(base, device.maxAvailableVideoZoomFactor))
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
+    /// Set the zoom in display units (0.5/1/2; 1 = the wide lens). Device-only; clamped
     /// to the camera's supported range. No-op in the camera-less mock.
     func setZoom(_ factor: CGFloat) {
         guard !mock else { return }
         sessionQueue.async { [weak self] in
-            guard let device = self?.videoDevice else { return }
+            guard let self, let device = self.videoDevice else { return }
             do {
                 try device.lockForConfiguration()
-                let clamped = max(device.minAvailableVideoZoomFactor, min(factor, device.maxAvailableVideoZoomFactor))
+                let clamped = max(device.minAvailableVideoZoomFactor,
+                                  min(factor * self.zoomBase, device.maxAvailableVideoZoomFactor))
                 device.videoZoomFactor = clamped
                 device.unlockForConfiguration()
             } catch {}
