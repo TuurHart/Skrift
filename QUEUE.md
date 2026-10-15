@@ -480,7 +480,7 @@ Also, in the same Dev window: does the sidebar's left edge cut the first letter 
 check: On the Mac, type a heading and a link in a note. Does the brief flash while typing feel fine, or should it go?
 ask: On the Mac, type a heading and a link in a note. The styling can lag up to a second behind your typing. Does that bother you? Also: right after typing, drag the sidebar or resize the window. Do any letters you just typed disappear?
 
-### Q64 [tuur] (tuur) iPhone 17 Pro: quick note full screen, ✎ opens a new note, toolbar stays
+### Q64 [tuur] (done) iPhone 17 Pro: quick note full screen, ✎ opens a new note, toolbar stays
 spec: C112 C114
 needs: Q47
 do: Q47's two device fixes are unverified (NoteRoute replaces the desyncable draft-id pair; NoteAccessoryBar intrinsicContentSize for the vanishing toolbar). Dev 190 is on the iPhone 17 Pro (Q407); tap ✎ right after launch and after a recovered recording exists; type a paragraph; check date, tags and importance show and the toolbar never leaves.
@@ -1683,7 +1683,7 @@ do: `MemoSaver.appendAudio` (`SkriftMobile/Features/Recording/MemoSaver.swift:65
 check: `perl -e 'alarm 900; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh && (cd Skrift_Native/SkriftDesktop && xcodegen generate >/dev/null && xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroValidation -quiet)`
 source: plan/reads/cleanup-audit.md MRC-c01 MRC-d17 (cleanup-audit P33)
 
-### Q221 [auto] (tuur) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
+### Q221 [auto] (done) camera pinch zoom compounds, and a media-services reset brings the Bluetooth mic back
 spec: C115
 needs: -
 gate+: no
@@ -2108,14 +2108,14 @@ do: (fill in)
 check: SPEC fixes to match the code: the Mac rotates live captions at 20 s (SPEC says 7 s); Open-in now routes via ImportKinds (C199 says 'silently ignored'); C145 gains the Files chooser and the long-audio offer. OK to update the SPEC wording?
 ask: Update the SPEC wording to match the code (Mac captions rotate at 20 s, Open-in routing, Files chooser)?
 
-### Q280 [tuur] (tuur) look (Q171): phone list header Import/Record/New-note row + filter date picker after the shared VerbRow/ChipRowStyle move — compile-checked only, never seen on a sim or device
+### Q280 [tuur] (done) look (Q171): phone list header Import/Record/New-note row + filter date picker after the shared VerbRow/ChipRowStyle move — compile-checked only, never seen on a sim or device
 spec: -
 needs: -
 do: On the iPhone 17 Pro (Dev 190, Q407), open the notes list and look at the Import / Record / New-note row and the filter's date picker, against how they looked before Q171.
 check: Look on the phone: the list header's Import / Record / New-note row and the filter date picker moved to shared code. Do they look the same as before?
 ask: On the phone, look at the top of the notes list: the Import, Record and New-note buttons, and the date picker in the filter. The code behind them moved. Do they look the same as before?
 
-### Q281 [tuur] (tuur) look (Q245): share a voice memo, a video, a URL and a photo into Skrift on the phone and check the share sheet cards look unchanged after the shared card-chrome refactor — compile-checked only
+### Q281 [tuur] (done) look (Q245): share a voice memo, a video, a URL and a photo into Skrift on the phone and check the share sheet cards look unchanged after the shared card-chrome refactor — compile-checked only
 spec: -
 needs: -
 do: On the iPhone 17 Pro (Dev 190, Q407), share into Skrift Dev a voice memo from Voice Memos, a video from Photos, a link from Safari and a photo from Photos; look at each share-sheet card.
@@ -2325,9 +2325,9 @@ gate+: yes
 do: It fails intermittently on the iPhone 17 sim (Vision OCR returns text: nil within the 10 s poll on a freshly erased or loaded simulator) — RUN.md Q13 finding; it blocked Q219's accept on 2026-10-04 though Q219 touched no OCR code. Make the test deterministic: inject a fake OCR recogniser for the save->searchable contract (the real Vision call belongs in a separate, tolerant test), or wait on the index notification instead of a fixed 10 s poll. This edits a protected test: report 'needs hand-merge' with the exact diff; do not weaken what the test proves (a saved photo's text is searchable without relaunch). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh`
 
-### Q311 [tuur] (tuur) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
+### Q311 [tuur] (todo) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 spec: -
-needs: -
+needs: Q453
 do: On the iPhone 17 Pro (Dev 190, Q407): open a voice note, ⋯ > Add recording, say a sentence, stop; play from a few seconds before the join.
 check: On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 ask: On the phone, open a voice note and add a recording to it. Play from just before the point where the two recordings meet. Does it run on without a silent gap, and does the word highlighting stay in time with your voice?
@@ -2769,7 +2769,7 @@ gate+: no
 do: Bump CFBundleVersion in both project.yml files (plists are generated). Phone: Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C; find its xcodebuild id with `xcrun xctrace list devices` — the xcodebuild id and the devicectl id differ), `-allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic -derivedDataPath build-device`, `xcrun devicectl device install app`, then string-grep a Q356 literal (e.g. `LibraryTypeChips` symbol or a new copy string) inside the installed product's .debug.dylib to prove it is today's binary. Mac: Debug SkriftDesktop build with `-derivedDataPath build-dev -skipMacroValidation`, quit only 'Skrift Dev' (never prod Skrift), ditto to '/Applications/Skrift Dev.app', open it, grep a Q365 literal (`ExportSession`) in the installed binary. Never touch /Applications/Skrift.app or prod data. Phone locked or not connected → report BLOCKED with the exact devicectl error; still do the Mac. Commit the version bump.
 check: Tuur's phone and Mac run the new Dev build (worker reports both grep hits).
 
-### Q375 [tuur] (tuur) look: the Library tab on Dev — shelf, podcast link, PDF share + reader, send to a note, jump back
+### Q375 [tuur] (done) look: the Library tab on Dev — shelf, podcast link, PDF share + reader, send to a note, jump back
 spec: C229 D90
 needs: Q374
 do: -
@@ -3117,9 +3117,9 @@ gate+: yes
 do: Write copy-edit v2 in `Skrift_Native/Shared/CopyEditV2/`: escrow (C29), pictures back by paragraph index with the 6-word anchor code unused (C30), lost link or changed quote byte ships unedited (C31), token budget and truncation (C32), shrink guard (C33), paragraph ledger and the spoken-wall break (C34), title / summary / share / conversation rules (C36), one `MemoEnhancement` per pass (C37), post-conditions (C177), tail order tags → name-link → compile (C178), one prompt source (C39). Register it in the Q423 harness; the app keeps calling v1 (C2). At most 1,070 lines (40% of 2,674, C3). Write `plan/reads/copyedit-v2.md`: v1 and v2 side by side for every note whose output changed.
 check: `test $(cat Skrift_Native/Shared/CopyEditV2/*.swift | wc -l) -le 1070 && test -s plan/reads/copyedit-v2.md`
 
-### Q425 [tuur] (tuur) read the copy-edit v2 corpus output
+### Q425 [tuur] (todo) read the copy-edit v2 corpus output
 spec: C8 C35
-needs: Q424
+needs: Q449
 do: -
 check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if present) and said it reads right.
 
@@ -3226,7 +3226,7 @@ gate+: yes
 do: An `.eml` / Mail share becomes a text capture: title = Subject, body = plain text, `recordedAt` = the Date header, sender per C123, attachments as files (C142). Selected text with its page URL is a text capture carrying the url and title, no fetch; a Maps link is a link capture with the place as location and title, no fetch (C144). Fixtures `ingress/email`, `ingress/selected-text`, `ingress/maps-link`; cases in `IngressDispatchTests`.
 check: `test -d test-fixtures/corpus/ingress/email && test -d test-fixtures/corpus/ingress/maps-link`
 
-### Q442 [tuur] (tuur) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
+### Q442 [tuur] (done) approve: flip NoteBodyTests.testClearingBodyCommitsNilTranscript to C261 (Q408)
 spec: C261 D163
 needs: Q408
 do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65). Same sitting, same kind: `AudioShareDrainTests.testTextFileBecomesNoteBody` (phone) still expects a shared `.md` to become a `.text` capture, but D171/Q286 made it a typed note; it has been red since Q286 (found by Q414). Flip it to the typed-note shape on the same yes.
@@ -3270,6 +3270,59 @@ needs: Q441
 gate+: yes
 do: Q441 parses `.eml` attachments (`EmailShare.Message.attachments` in `Skrift_Native/Shared/Ingress/EmailShare.swift`) but stores none, on phone or Mac. Store each attachment the way a note's file attachments are stored since Q385 (the same synced asset kind and `[[file_…]]`-style body marker the attachments lane uses; read FEATURES.md "attachments" and the Q385/Q392 findings in plan/RUN.md first), placed after the email body in attachment order. Also route `.eml` through `ingestEmailCapture` in the Mac folder-ingest path (`IngestService.swift`, the folder walk) like the direct drop. Test `EmailAttachmentsTests` (desktop target) on the `ingress/email` fixture with two attachments: the note carries both, in order.
 check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q449 [auto] (todo) copy-edit v2: accept small word drops; fall back to unedited only on a translation, a lost name or number, an invented name, or the shrink guard (D209)
+spec: C35 C177 C33 D209
+needs: Q424
+gate+: yes
+do: Tuur rejected Q424's all-or-nothing gate (D209): a model that drops a small word is the price of having a model. Loosen `CopyEditV2Gate` in `Skrift_Native/Shared/CopyEditV2/`: ship the model's edit even when it drops ordinary words; ship the original words unedited ONLY when the edit translates (language flip), loses a name or a number, invents a proper noun, re-paragraphs a typed note, or the C33 shrink guard fires. Keep fillers um/uh/eh removable. Re-run the harness, update `expected-differences-copyedit-v2.json` (still 0 unexplained; the code-switch translation must still be caught), and rewrite `plan/reads/copyedit-v2.md` so it lists which notes now ship the model's edit and which still fall back, with why.
+check: `grep -q 'D209' plan/reads/copyedit-v2.md`
+
+### Q450 [auto] (todo) flip the two stale phone tests Tuur approved (Q442)
+spec: C261 D171 D163
+needs: -
+do: Tuur said yes (Q442, 2026-10-15). In `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` change `testClearingBodyCommitsNilTranscript` to assert the C261 behaviour (clearing the body does NOT commit nil; the prior transcript stays, e.g. `XCTAssertEqual(coordinator.memo.transcript, "hello world")`), and in `AudioShareDrainTests.swift` change `testTextFileBecomesNoteBody` to expect the D171 typed-note shape for a shared .md. Touch nothing else. Report needs hand-merge: both files.
+check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh AudioShareDrainTests`
+
+### Q451 [auto] (todo) a new note and a reopened note render through one code path: one header row, no tab bar
+spec: C113 C234 C239 D115
+needs: -
+gate+: yes
+do: Tuur 2026-10-15 on Dev 191 (screenshots): a brand-new note shows tag, rating and Personal stacked on three rows, and tapping Done on the keyboard bar reveals the bottom tab bar (Notes/Library/Review/Settings) over the note; the same note reopened shows the signed layout (title, grey meta line, then `○○○ Not rated · Personal · + tag` on ONE row) with no tab bar. Two code paths draw the open note. Make the new-note path use the exact same view as the reopened note (the Q358 build of `Skrift_Native/SkriftDesktop/mocks/Q350-note-editor-apple.html`) and delete the duplicate; the tab bar is hidden in every open-note state. Then grep for any other place that draws a note differently for new vs existing (quick note, capture, share-opened, iPad) and fold those into the same view; list what you found. Phone test `NoteScreenParityTests`: the new-note and reopened-note screens build the same header view type and hide the tab bar. Screenshot both states on the iPhone 17 sim, LOOK, put them in `plan/reads/note-parity/`.
+check: `plan/mtest.sh NoteScreenParityTests`
+
+### Q452 [tuur] (todo) mockup: more typing space when the keyboard is up
+spec: C113 C234
+needs: Q451
+do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q452-typing-space.html`, iPhone 17 Pro frames: today's open note with the keyboard up (drawn from source after Q451: title, meta line, the one rating/Personal/tag row, keyboard bar) leaves about a quarter of the screen for text (Tuur 2026-10-15). Show 2-3 options that give typing real estate while the keyboard is up: e.g. the header collapses to one slim line once he types, the rating/Personal/tag row scrolls away with the text, the keyboard bar slims. Compare with Apple Notes, which shows only text while typing. One agent writes this file.
+check: Tuur clicked through it and picked one.
+
+### Q453 [auto] (todo) after Add recording the open note's player plays across the join without reopening the note
+spec: C223 C26
+needs: -
+gate+: yes
+do: Tuur 2026-10-15 on Dev 191 (Q311 failed): record a voice note, ⋯ › Add recording, say more, stop, play from before the join: playback STOPS at the old end; only after leaving and reopening the note does the player play the appended audio. The player keeps the old asset/duration after the append. Make the open note's player reload the merged audio (and the shifted word timings, C223) as soon as the append lands, on phone and iPad (and check the Mac Add recording path does the same). Phone test `AppendPlayerReloadTests`: after an append the open note's player item duration equals the merged file's.
+check: `plan/mtest.sh AppendPlayerReloadTests`
+
+### Q454 [auto] (todo) a shared video lands as an inline video attachment like Apple Notes, not a 'Photo' file card (D210)
+spec: C71 C63 D210 D202
+needs: -
+gate+: yes
+do: Tuur 2026-10-15 on Dev 191: sharing a video into Skrift Dev makes a note that says Video but shows a `Photo · JPEG image · 117 KB` FILE CARD at the top (the frame), not the video. D210: a shared or imported video becomes the same inline video attachment a note gets from the Q385 attachments build (inline play, small by default, D202), with its transcript as the body; the frame is the attachment's poster, never a separate photo card. The synced `source.<ext>` movie (D188) is that attachment's file. Same on the Mac import path. Phone test `SharedVideoAttachmentTests`: a shared movie yields one video attachment marker and no photo card. Screenshot the note on the sim, LOOK.
+check: `plan/mtest.sh SharedVideoAttachmentTests`
+
+### Q455 [tuur] (todo) mockup: the share sheet and its 'Saved' confirmation, redrawn
+spec: C66 C75 C127
+needs: -
+do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
+check: Tuur clicked through it and said go.
+
+### Q456 [auto] (todo) capture camera: smooth pinch zoom, no fake drag handle, one recording status line
+spec: C221 C100
+needs: -
+gate+: yes
+do: Tuur 2026-10-15 on Dev 191 (Q221 confirmed): in the capture camera sheet pinch zoom is very jumpy (it compounds); the sheet shows a grab-handle pill at its top that drags nothing; and the recording status draws twice on top of itself (`Recording · 0:17 — still listening` over a second `Recording`). Fix: pinch sets zoom from the zoom factor at gesture start × scale, clamped to the device range (no compounding); remove the pill or make the sheet actually draggable (remove it); render one status line. Phone test `CaptureCameraZoomTests` for the zoom math. Camera hardware can't be proven on the sim; say so and leave the device feel to Tuur.
+check: `plan/mtest.sh CaptureCameraZoomTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4721,3 +4774,19 @@ check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-10-14 16:41 Q424 -> doing — worker out
 - 2026-10-14 17:07 Q424 -> done — gate 53s @2a4feffb
 - 2026-10-14 17:08 Q425 -> tuur — awaiting sitting
+- 2026-10-15 08:39 Q449 added
+- 2026-10-15 08:39 Q450 added
+- 2026-10-15 08:39 Q451 added
+- 2026-10-15 08:39 Q452 added
+- 2026-10-15 08:39 Q453 added
+- 2026-10-15 08:39 Q454 added
+- 2026-10-15 08:39 Q455 added
+- 2026-10-15 08:39 Q456 added
+- 2026-10-15 08:40 Q442 -> done — Tuur 2026-10-15: flip both tests, yes — applied by Q450
+- 2026-10-15 08:40 Q425 -> todo — Tuur 2026-10-15: no — don't fall back on any dropped word; re-read after Q449 (D209)
+- 2026-10-15 08:40 Q311 -> todo — Tuur 2026-10-15: fails — playback stops at the join until the note is reopened → Q453, recheck after
+- 2026-10-15 08:40 Q64 -> done — Tuur 2026-10-15: pencil opens a fresh note, keyboard bar stays (layout issues → Q451/Q452)
+- 2026-10-15 08:40 Q280 -> done — Tuur 2026-10-15: they look good
+- 2026-10-15 08:40 Q281 -> done — Tuur 2026-10-15: voice memo fine; video lands as a Photo card → Q454; share sheet + confirmation ugly → Q455
+- 2026-10-15 08:40 Q221 -> done — Tuur 2026-10-15: zoom very jumpy, fake drag pill, doubled status → Q456; BT mic via in-app feedback
+- 2026-10-15 08:40 Q375 -> done — Tuur 2026-10-15: the library looks really good (PDF highlight question answered in chat)
