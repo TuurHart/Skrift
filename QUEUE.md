@@ -3393,6 +3393,27 @@ gate+: yes
 do: Tuur on the Q452 mock (2026-10-15): keep today's header exactly as built (title, grey meta line, the one rating/Personal/tag row) and let it scroll away like Apple Notes, nothing folds or collapses. While he types with the keyboard up, the note scrolls so the caret stays just above the keyboard bar, which pushes the header off the top as soon as the text needs the room; dragging down brings it back. Read the Q452 finding (`grep -n 'finding: Q452' plan/RUN.md`): the header already scrolls with the note, so this is only the caret-follow while the note is short (MemoPageView / NoteBodyView). No sticky or collapsing header. Phone test `TypingScrollTests`: with the keyboard up, typing past the visible area scrolls the header out and keeps the caret visible. Screenshot on the iPhone 17 sim with the keyboard up after a few lines, LOOK.
 check: `plan/mtest.sh TypingScrollTests`
 
+### Q467 [auto] (todo) iPad export converts [[vid_]] and [[file_]] markers instead of printing them
+spec: C57 C58 C61 C239
+needs: -
+gate+: yes
+do: Found by Q454: the iPad/phone `ObsidianPublisher` never converts `[[vid_NNN]]` / `[[file_NNN]]` attachment markers (a Q385 gap), so an iPad export prints them as raw text, while the Mac `MacNoteAttachments.convertMarkers` handles them. Move marker conversion for attachments into ONE shared function in `Skrift_Native/Shared/Export/` used by both exporters (C239), copying the attachment file beside the note under the same ownership rule (C58). Phone test `PublisherAttachmentMarkerTests`: an iPad export of a note with a file and a video attachment contains no `[[file_`/`[[vid_` text.
+check: `plan/mtest.sh PublisherAttachmentMarkerTests`
+
+### Q468 [auto] (todo) a video note exports its poster frame to the vault again (C63) and the card is named sensibly
+spec: C63 C71 D210
+needs: Q454
+gate+: yes
+do: Found by Q454: with D210 the kept movie is a `[[vid_N]]` attachment whose marker is dropped on vault export (no movie in the vault, C63, right), but the vault now gets NO frame either; C63 says a video note exports markdown + audio + the frame. Write the poster frame as an image embed in its place on vault export (both exporters, shared code), never the movie. Also: a machine-named share shows the card title "Video" over "Video · 0:06"; title the card from the note title or the date instead. Desktop test `VideoNoteVaultFrameTests`.
+check: `grep -rqE "class VideoNoteVaultFrameTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q469 [auto] (todo) polish protects [[vid_]] and [[file_]] markers like pictures
+spec: C29 C30 C31
+needs: Q454
+gate+: yes
+do: Found by Q454: copy-edit escrows picture paragraphs (`ImageMarkerReinsert`, and v2 by paragraph index) but not `[[vid_NNN]]` / `[[file_NNN]]` attachment markers, so a model pass can drop or move them. Treat attachment-marker paragraphs exactly like picture paragraphs in BOTH v1 (live) and copy-edit v2 (`Shared/CopyEditV2/`): stripped before the model, reinserted by paragraph index. Desktop test `AttachmentMarkerEscrowTests` over a note with a leading `[[vid_1]]` and a mid `[[file_1]]`; the copy-edit harnesses stay 0 unexplained.
+check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4891,3 +4912,6 @@ check: `plan/mtest.sh TypingScrollTests`
 - 2026-10-15 11:07 Q466 added
 - 2026-10-15 11:07 Q466 -> doing — worker out
 - 2026-10-15 11:08 Q456 -> done — gate 86s @7365e533
+- 2026-10-15 11:09 Q467 added
+- 2026-10-15 11:09 Q468 added
+- 2026-10-15 11:09 Q469 added
