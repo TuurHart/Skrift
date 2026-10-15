@@ -3393,7 +3393,7 @@ gate+: yes
 do: Tuur on the Q452 mock (2026-10-15): keep today's header exactly as built (title, grey meta line, the one rating/Personal/tag row) and let it scroll away like Apple Notes, nothing folds or collapses. While he types with the keyboard up, the note scrolls so the caret stays just above the keyboard bar, which pushes the header off the top as soon as the text needs the room; dragging down brings it back. Read the Q452 finding (`grep -n 'finding: Q452' plan/RUN.md`): the header already scrolls with the note, so this is only the caret-follow while the note is short (MemoPageView / NoteBodyView). No sticky or collapsing header. Phone test `TypingScrollTests`: with the keyboard up, typing past the visible area scrolls the header out and keeps the caret visible. Screenshot on the iPhone 17 sim with the keyboard up after a few lines, LOOK.
 check: `plan/mtest.sh TypingScrollTests`
 
-### Q467 [auto] (todo) iPad export converts [[vid_]] and [[file_]] markers instead of printing them
+### Q467 [auto] (doing) iPad export converts [[vid_]] and [[file_]] markers instead of printing them
 spec: C57 C58 C61 C239
 needs: -
 gate+: yes
@@ -4915,3 +4915,4 @@ check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDes
 - 2026-10-15 11:09 Q467 added
 - 2026-10-15 11:09 Q468 added
 - 2026-10-15 11:09 Q469 added
+- 2026-10-15 11:20 Q467 -> doing — worker out
