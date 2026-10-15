@@ -154,7 +154,7 @@ enum MacNoteAttachments {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
         let entries = working.map { manifest(in: $0) } ?? []
         let dir = working.map { folder(in: $0) }
-        let r = NoteAttachment.convertMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
+        let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile) { source, preferred in
             guard let dir else { return nil }
             let file = dir.appendingPathComponent(source)
             guard FileManager.default.fileExists(atPath: file.path) else { return nil }

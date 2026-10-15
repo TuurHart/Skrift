@@ -148,6 +148,13 @@ struct ObsidianPublisher {
     var photosProvider: (UUID) -> [String: Data] = { _ in [:] }
     /// The original audio blob (fetched only when a write actually happens).
     var audioProvider: (UUID) -> Data? = { _ in nil }
+    /// D199: the bytes of one `[[vid_NNN]]` / `[[file_NNN]]` attachment (a video or file in the
+    /// note body), by manifest entry. Asked only when a write actually happens. nil = not on this
+    /// device; the embed then points at nothing, like a photo whose blob has not synced.
+    var attachmentProvider: (Memo, NoteAttachmentEntry) -> VaultAsset.Source? = { _, entry in
+        let url = NoteAttachmentStore.fileURL(entry)
+        return FileManager.default.fileExists(atPath: url.path) ? .file(url) : nil
+    }
     /// C63 / C136: the kept source movie of a video note (the file `MemoSaver.keepMovie` wrote,
     /// or the iPad's materialized copy of the synced `video` asset). Only a PORTFOLIO export
     /// asks; nil when the note has none or the file is not on this device.
@@ -179,6 +186,16 @@ struct ObsidianPublisher {
             audioProvider: { id in
                 NotesRepository.shared.assets(forMemo: id)
                     .first { $0.kind == MemoAsset.Kind.audio }?.blob
+            },
+            attachmentProvider: { memo, entry in
+                // The recordings copy first (no bytes in memory); the synced asset when this
+                // device only has the row (an iPad that has not materialized the file).
+                let url = NoteAttachmentStore.fileURL(entry)
+                if FileManager.default.fileExists(atPath: url.path) { return .file(url) }
+                return NotesRepository.shared.assets(forMemo: memo.id)
+                    .first { ($0.kind == MemoAsset.Kind.file || $0.kind == MemoAsset.Kind.video)
+                        && $0.filename == entry.filename && !$0.blob.isEmpty }
+                    .map { .data($0.blob) }
             }
         )
     }
@@ -251,9 +268,19 @@ struct ObsidianPublisher {
         // Photo markers → real embeds, names derived from the MANIFEST alone so the
         // heavy blobs are only fetched when a write actually happens.
         let manifest = memo.metadata?.imageManifest ?? []
-        let (converted, embedNames) = Self.convertPhotoMarkers(
+        let (photoConverted, embedNames) = Self.convertPhotoMarkers(
             ExportBody.shown(markdown), manifest: manifest, stem: stem,
             profile: profile)
+        // D199 / C57: `[[vid_NNN]]` / `[[file_NNN]]` → embeds of the file copied beside the note,
+        // through the same shared conversion the Mac runs. Names come from the manifest alone.
+        let attachmentEntries = memo.metadata?.attachmentManifest ?? []
+        var attachmentPlan: [(entry: NoteAttachmentEntry, embedName: String)] = []
+        let (converted, _) = ExportBody.convertAttachmentMarkers(
+            photoConverted, manifest: attachmentEntries, stem: stem, profile: profile) { source, preferred in
+            guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
+            attachmentPlan.append((entry, preferred))
+            return preferred
+        }
 
         // Cheap unchanged check BEFORE touching any blob: candidate vs on-disk,
         // volatile stamp lines aside.
@@ -268,8 +295,15 @@ struct ObsidianPublisher {
 
         // A real write — now the blobs.
         let photoBlobs = embedNames.isEmpty ? [:] : photosProvider(memo.id)
-        let attachments: [VaultAsset] = embedNames.compactMap { source, embedName in
+        var attachments: [VaultAsset] = embedNames.compactMap { source, embedName in
             photoBlobs[source].map { VaultAsset(name: embedName, source: .data($0)) }
+        }
+        // C58: attachments ride the same `commit` as photos, so its ownership pass settles their
+        // names and never clobbers a vault file this device does not own.
+        for (entry, embedName) in attachmentPlan {
+            if let source = attachmentProvider(memo, entry) {
+                attachments.append(VaultAsset(name: embedName, source: source))
+            }
         }
         var audio: VaultAsset?
         if memo.includeAudioInExport, !memo.audioFilename.isEmpty, let blob = audioProvider(memo.id) {
