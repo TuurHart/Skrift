@@ -192,6 +192,14 @@ enum IngressDispatch {
         return name
     }
 
+    /// D210: the name a shared or imported video's attachment shows ("kiln test.mov"); a machine
+    /// name (`shared_<uuid>.mov`, a messenger's) reads "Video". Both apps' video imports.
+    static func shownVideoName(_ url: URL) -> String {
+        guard let title = clipTitle(url.lastPathComponent) else { return "Video" }
+        let ext = url.pathExtension
+        return ext.isEmpty ? title : title + "." + ext
+    }
+
     // MARK: Dispatch
 
     static func dispatch(_ items: [Item]) -> Outcome {

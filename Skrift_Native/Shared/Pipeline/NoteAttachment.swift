@@ -135,6 +135,42 @@ enum NoteAttachment {
         return edits.isEmpty ? text : BodyV2Text.normalised(Sanitiser.nsReplace(text, edits: edits))
     }
 
+    // MARK: A shared or imported video (D210)
+
+    /// D210: a shared or imported video is the note's inline video attachment, its transcript the
+    /// body. Its file is the kept movie (`VideoKeep.filename`, synced as the `video` asset D188
+    /// names by `MemoMetadata.videoFilename`), so the attachment and the kept movie are one file
+    /// and one asset. The frame is the block's poster (`NotePoster`), never a photo.
+    static func keptMovieEntry(filename: String, originalName: String, byteCount: Int,
+                               durationSeconds: Double?) -> NoteAttachmentEntry {
+        NoteAttachmentEntry(kind: Kind.video, filename: filename,
+                            name: originalName.isEmpty ? "Video" : originalName,
+                            uti: uti(forFilename: filename), byteCount: byteCount,
+                            durationSeconds: durationSeconds)
+    }
+
+    /// True when `filename` is a kept movie's name (`video_<uuid>.<ext>`, no `_NNN`), not a video
+    /// the person attached in the body (`video_<uuid>_NNN.<ext>`). The kept movie never goes to
+    /// the vault (C63: the portfolio export copies it), and its bytes are the kept-movie asset.
+    static func isKeptMovie(_ filename: String) -> Bool {
+        let stem = (filename as NSString).deletingPathExtension
+        guard stem.hasPrefix("video_") else { return false }
+        return UUID(uuidString: String(stem.dropFirst("video_".count))) != nil
+    }
+
+    /// `body` with the kept movie's marker as its first paragraph (the top of the note, C12),
+    /// unless the body already holds it. nil body = the marker alone; no kept-movie entry = the
+    /// body unchanged. Every transcript write of a video note calls this, so a re-transcription
+    /// never loses the video.
+    static func leadingKeptMovie(_ body: String?, manifest: [NoteAttachmentEntry]) -> String? {
+        guard let i = manifest.firstIndex(where: { $0.kind == Kind.video && isKeptMovie($0.filename) })
+        else { return body }
+        let marker = literal(kind: Kind.video, number: i + 1)
+        let text = (body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.contains(marker) { return body }
+        return text.isEmpty ? marker : marker + "\n\n" + text
+    }
+
     // MARK: Small / large (D202: Apple's switch, SMALL by default, synced per attachment)
 
     enum Size: String, Equatable, Hashable { case small, large }

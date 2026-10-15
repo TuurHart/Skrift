@@ -180,7 +180,10 @@ enum AssetMaterializer {
         // whatever the destination. Personal never goes to Claude, but it syncs through his own
         // iCloud like every other note; filing never deletes the blob. Only the PORTFOLIO export
         // copies the movie out (`ObsidianPublisher`).
+        // D210: a video note's movie is also its attachment entry (same file, same asset), so the
+        // loop above already captured it.
         if let movie = memo.metadata?.videoFilename, !movie.isEmpty,
+           !(memo.metadata?.attachmentManifest ?? []).contains(where: { $0.filename == movie }),
            captureFile(movie, kind: MemoAsset.Kind.video, memoID: memo.id,
                        existing: existing, context: context) { dirty = true }
         if let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty,
