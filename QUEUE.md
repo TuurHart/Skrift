@@ -3304,7 +3304,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (Q311 failed): record a voice note, ⋯ › Add recording, say more, stop, play from before the join: playback STOPS at the old end; only after leaving and reopening the note does the player play the appended audio. The player keeps the old asset/duration after the append. Make the open note's player reload the merged audio (and the shifted word timings, C223) as soon as the append lands, on phone and iPad (and check the Mac Add recording path does the same). Phone test `AppendPlayerReloadTests`: after an append the open note's player item duration equals the merged file's.
 check: `plan/mtest.sh AppendPlayerReloadTests`
 
-### Q454 [auto] (doing) a shared video lands as an inline video attachment like Apple Notes, not a 'Photo' file card (D210)
+### Q454 [auto] (done) a shared video lands as an inline video attachment like Apple Notes, not a 'Photo' file card (D210)
 spec: C71 C63 D210 D202
 needs: -
 gate+: yes
@@ -4916,3 +4916,4 @@ check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDes
 - 2026-10-15 11:09 Q468 added
 - 2026-10-15 11:09 Q469 added
 - 2026-10-15 11:20 Q467 -> doing — worker out
+- 2026-10-15 11:30 Q454 -> done — hand-merged (Tuur D210 2026-10-15 supersedes C71 frame-as-photo: four assertions moved to the D210 shape (gate green in the worker tree))
