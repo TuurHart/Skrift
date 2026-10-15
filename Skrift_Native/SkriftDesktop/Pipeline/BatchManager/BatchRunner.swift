@@ -128,7 +128,8 @@ struct BatchRunner {
                 pf.titleSuggested = nil
                 pf.compiledText = nil
             }
-            pf.transcript = newTranscript
+            // D210: a video note's movie leads the body as its inline video block.
+            pf.transcript = NoteAttachment.leadingKeptMovie(newTranscript, manifest: keptMovieManifest(pf))
             pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
             didTranscribe = true
             pf.transcribeStatus = .done
@@ -162,6 +163,7 @@ struct BatchRunner {
                                                               manifest: imageManifest, source: .speech,
                                                               clipStarts: clipStarts))
             }
+            pf.transcript = NoteAttachment.leadingKeptMovie(pf.transcript, manifest: keptMovieManifest(pf))
             // Retain the diarization so a speaker's voice can be enrolled later from the
             // review screen (slice their audio by these segments → embedSpeaker) without
             // re-diarizing. Persisted on the PipelineFile (SwiftData) only.
@@ -325,5 +327,10 @@ struct BatchRunner {
         if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
         // The capture rung of the shared C25 ladder — the export names files with it too.
         return NoteTitle.captureTitle(sc)
+    }
+
+    /// D210: the row's attachment list, read for its kept movie (a video import's inline block).
+    private func keptMovieManifest(_ pf: PipelineFile) -> [NoteAttachmentEntry] {
+        pf.workingFolder.map { MacNoteAttachments.manifest(in: $0) } ?? []
     }
 }

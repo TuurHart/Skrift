@@ -639,7 +639,21 @@ struct IngestService: Sendable {
         // existing `[[img_001]]` marker pipeline shows the frame in review and
         // exports it. Mirrors the phone's video import (`MemoSaver.processVideo`).
         // A failed grab never fails the ingest (the audio is the point) but is logged.
-        if writeFrame { do {
+        //
+        // D210: when the movie was kept it IS the note's inline video attachment instead
+        // (`attachment_manifest.json`, the phone's shape; its frame is the block's poster),
+        // so no frame picture is written. A bundle's video keeps the bundle's frame.
+        let keptMovie = FileManager.default.fileExists(atPath: kept.path)
+        if writeFrame, keptMovie, let memoID = UUID(uuidString: id) {
+            let entry = NoteAttachment.keptMovieEntry(
+                filename: VideoKeep.filename(memoID: memoID, sourceExtension: sourceExt),
+                originalName: IngressDispatch.shownVideoName(url),
+                byteCount: Int(VideoKeep.byteCount(of: kept) ?? 0),
+                durationSeconds: NoteAttachment.videoDuration(of: kept))
+            if let data = try? JSONEncoder().encode([entry]) {
+                try? data.write(to: folder.appendingPathComponent(MacNoteAttachments.manifestName), options: .atomic)
+            }
+        } else if writeFrame { do {
             try await Self.offMain { try Self.writeVideoThumbnail(from: url, into: folder) }
         } catch {
             Self.log.error("video thumbnail failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
