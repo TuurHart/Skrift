@@ -82,6 +82,7 @@ struct CameraSheet: View {
                 Spacer()
                 // Front camera: no preset row — there's no 0.5× ultrawide and
                 // preset zoom is pointless at arm's length (pinch still works).
+                // Back: only the chips this device can really reach (CameraLens.chips).
                 if camera.position == .back {
                     zoomSelector.padding(.bottom, 12)
                 }
@@ -104,7 +105,7 @@ struct CameraSheet: View {
 
     private var zoomSelector: some View {
         HStack(spacing: 6) {
-            ForEach([CGFloat(0.5), 1, 2], id: \.self) { factor in
+            ForEach(CameraLens.chips(for: camera.lens, displayRange: camera.zoomRange), id: \.self) { factor in
                 let on = abs(zoom - factor) < 0.25
                 Button { setZoom(factor) } label: {
                     Text(factor == 0.5 ? ".5×" : (factor == 1 ? "1×" : "2×"))
