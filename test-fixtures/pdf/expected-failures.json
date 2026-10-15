@@ -1,0 +1,6 @@
+{
+  "_schema": "fixture -> failing metrics today (order, leak), registered C5 style by Q458. A later item that fixes one removes it here; PDFReadingGoldenTests fails on any unregistered failure and on any registered one that passes.",
+  "report-headers": ["leak"],
+  "scanned-page": ["order"],
+  "two-column-paper": ["leak"]
+}
