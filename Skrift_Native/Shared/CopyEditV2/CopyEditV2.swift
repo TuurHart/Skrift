@@ -136,7 +136,8 @@ enum CopyEditV2 {
 
         static let linkRegex = try! NSRegularExpression(pattern: #"\[\[([^\]\n]+)\]\]"#)
         static let memoRegex = try! NSRegularExpression(pattern: #"^memo:([0-9A-Fa-f\-]{36})\|([^\]\n|]*)$"#)
-        static let pictureRegex = try! NSRegularExpression(pattern: #"\[\[img_\d+\]\]"#)
+        /// Pictures and `[[vid_/file_NNN]]` attachments: held alike, by paragraph index (C30, Q469).
+        static let pictureRegex = AttachmentMarkerEscrow.anyMarkerRegex
 
         init(_ text: String) {
             // 1. Links → the text they show. A memo-link shows its title snapshot (v1's escrow,
@@ -145,7 +146,7 @@ enum CopyEditV2 {
             var links: [Link] = []
             for m in Self.linkRegex.matches(in: text, range: NSRange(location: 0, length: ns.length)).reversed() {
                 let inner = (text as NSString).substring(with: m.range(at: 1))
-                if inner.range(of: #"^img_\d+$"#, options: .regularExpression) != nil { continue }   // a picture
+                if inner.range(of: #"^(?:img|vid|file)_\d+$"#, options: .regularExpression) != nil { continue }   // a picture or attachment
                 let link: Link
                 let n = inner as NSString
                 if let mm = Self.memoRegex.firstMatch(in: inner, range: NSRange(location: 0, length: n.length)) {
