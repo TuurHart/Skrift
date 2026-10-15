@@ -3400,7 +3400,7 @@ gate+: yes
 do: Found by Q454: the iPad/phone `ObsidianPublisher` never converts `[[vid_NNN]]` / `[[file_NNN]]` attachment markers (a Q385 gap), so an iPad export prints them as raw text, while the Mac `MacNoteAttachments.convertMarkers` handles them. Move marker conversion for attachments into ONE shared function in `Skrift_Native/Shared/Export/` used by both exporters (C239), copying the attachment file beside the note under the same ownership rule (C58). Phone test `PublisherAttachmentMarkerTests`: an iPad export of a note with a file and a video attachment contains no `[[file_`/`[[vid_` text.
 check: `plan/mtest.sh PublisherAttachmentMarkerTests`
 
-### Q468 [auto] (doing) a video note exports its poster frame to the vault again (C63) and the card is named sensibly
+### Q468 [auto] (done) a video note exports its poster frame to the vault again (C63) and the card is named sensibly
 spec: C63 C71 D210
 needs: Q454
 gate+: yes
@@ -4931,3 +4931,4 @@ check: `cd Skrift_Native/SkriftDesktop && xcodebuild test -project SkriftDesktop
 - 2026-10-15 11:40 Q470 added
 - 2026-10-15 11:40 Q467 -> doing — re-accept after unrelated flake (DevEraMergeTests 3/3 green alone)
 - 2026-10-15 11:43 Q467 -> done — gate 62s @5ecf3a79
+- 2026-10-15 11:50 Q468 -> done — gate 59s @fdbc9ce2
