@@ -16,6 +16,10 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     /// Which camera feeds the session (CameraSheet's flip button toggles it).
     /// Reverted if a switch fails so the UI stays truthful.
     @Published private(set) var position: AVCaptureDevice.Position = .back
+    /// The active camera's supported zoom range (capped at the UI ceiling), so the
+    /// sheet clamps pinch zoom to what the hardware can actually do. The mock keeps
+    /// the default.
+    @Published private(set) var zoomRange: ClosedRange<CGFloat> = 0.5...CameraZoom.uiCeiling
 
     let mock: Bool
     let session = AVCaptureSession()
@@ -54,6 +58,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                     self.session.addInput(input)
                     self.videoDevice = device
                     self.videoInput = input
+                    self.publishZoomRange(device)
                 }
                 if self.session.canAddOutput(self.photoOutput) {
                     self.session.addOutput(self.photoOutput)
@@ -97,6 +102,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                 self.session.addInput(input)
                 self.videoInput = input
                 self.videoDevice = device
+                self.publishZoomRange(device)
                 // Shared AVCaptureDevice instances keep their last zoom factor;
                 // reset to 1× so the flip always lands on a predictable framing.
                 do {
@@ -113,6 +119,12 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                 Task { @MainActor in self.position = previous }
             }
         }
+    }
+
+    private nonisolated func publishZoomRange(_ device: AVCaptureDevice) {
+        let range = CameraZoom.range(deviceMin: device.minAvailableVideoZoomFactor,
+                                     deviceMax: device.maxAvailableVideoZoomFactor)
+        Task { @MainActor [weak self] in self?.zoomRange = range }
     }
 
     /// Set the optical/digital zoom factor (e.g. 0.5/1/2). Device-only; clamped

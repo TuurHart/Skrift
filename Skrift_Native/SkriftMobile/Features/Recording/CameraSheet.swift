@@ -16,15 +16,15 @@ struct CameraSheet: View {
     let onDone: () -> Void
 
     @State private var zoom: CGFloat = 1
-    @State private var zoomBase: CGFloat = 1
+    /// The zoom when the current pinch began; nil between pinches.
+    @State private var pinchStart: CGFloat?
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule().fill(Color.skElev).frame(width: 38, height: 5).padding(.top, 12)
-
+            // No grab-handle pill: the sheet is a fixed overlay, nothing drags.
             viewfinder
                 .clipShape(.rect(cornerRadius: 18, style: .continuous))
-                .padding(.top, 14)
+                .padding(.top, 16)
                 .padding(.horizontal, 16)
 
             // Shutter centered on screen; thumbnails left, Done right.
@@ -89,12 +89,16 @@ struct CameraSheet: View {
         }
         .contentShape(Rectangle())
         .gesture(
-            // Scale is relative to the gesture start, so multiply a snapshot of
-            // the zoom at gesture-start (not the live value) — otherwise it
-            // feeds back on itself and jumps straight to the limits.
+            // Scale is relative to the gesture start, so multiply the zoom
+            // snapshotted when the pinch began (not the live value) — otherwise
+            // it feeds back on itself and jumps straight to the limits.
             MagnificationGesture()
-                .onChanged { scale in setZoom(zoomBase * scale) }
-                .onEnded { _ in zoomBase = zoom }
+                .onChanged { scale in
+                    let start = pinchStart ?? zoom
+                    pinchStart = start
+                    setZoom(CameraZoom.pinched(start: start, scale: scale, range: zoomLimits))
+                }
+                .onEnded { _ in pinchStart = nil }
         )
     }
 
@@ -138,14 +142,18 @@ struct CameraSheet: View {
         camera.flipCamera()
         // The service resets the new device to 1× — mirror that here.
         zoom = 1
-        zoomBase = 1
+        pinchStart = nil
+    }
+
+    /// The device range, floored at 1× on the front camera (no ultrawide there).
+    private var zoomLimits: ClosedRange<CGFloat> {
+        let r = camera.zoomRange
+        let lo = camera.position == .front ? max(r.lowerBound, 1) : r.lowerBound
+        return lo...max(lo, r.upperBound)
     }
 
     private func setZoom(_ factor: CGFloat) {
-        // The front camera has no 0.5× ultrawide — floor pinch zoom at 1×.
-        let floor: CGFloat = camera.position == .front ? 1 : 0.5
-        zoom = max(floor, min(factor, 5))
-        zoomBase = zoom   // keep the pinch baseline in sync with button taps
+        zoom = CameraZoom.clamp(factor, to: zoomLimits)
         camera.setZoom(zoom)
     }
 }
