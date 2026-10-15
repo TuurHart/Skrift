@@ -65,6 +65,9 @@ enum LaunchFlags {
     static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
     static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
     static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
+    /// Q460 (DEBUG): `-showPDFFile <path>` puts that PDF on the shelf and opens its reading view
+    /// (the D213 fixtures' screenshots). Screenshots only.
+    static var showPDFFile: String? { args.stringValue("-showPDFFile") }
     /// Q355 (DEBUG): two articles on the shelf (no network: the text is built in); `-showArticleReader`
     /// opens one with a sentence selected, `-showArticleCapture` opens Add note on it,
     /// `-showArticleToast` raises the "No article text on that page" toast. Screenshots only.
