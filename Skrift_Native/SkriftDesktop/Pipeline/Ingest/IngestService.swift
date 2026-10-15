@@ -644,12 +644,16 @@ struct IngestService: Sendable {
         // (`attachment_manifest.json`, the phone's shape; its frame is the block's poster),
         // so no frame picture is written. A bundle's video keeps the bundle's frame.
         let keptMovie = FileManager.default.fileExists(atPath: kept.path)
+        // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
+        // it), then a filename date, then the file's creation date, then now.
+        let embedded = await AudioMetadata.recordingDate(of: url)
+        let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
         if writeFrame, keptMovie, let memoID = UUID(uuidString: id) {
             let entry = NoteAttachment.keptMovieEntry(
                 filename: VideoKeep.filename(memoID: memoID, sourceExtension: sourceExt),
                 originalName: IngressDispatch.shownVideoName(url),
                 byteCount: Int(VideoKeep.byteCount(of: kept) ?? 0),
-                durationSeconds: NoteAttachment.videoDuration(of: kept))
+                durationSeconds: NoteAttachment.videoDuration(of: kept), capturedAt: recorded)
             if let data = try? JSONEncoder().encode([entry]) {
                 try? data.write(to: folder.appendingPathComponent(MacNoteAttachments.manifestName), options: .atomic)
             }
@@ -658,11 +662,6 @@ struct IngestService: Sendable {
         } catch {
             Self.log.error("video thumbnail failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
         } }
-
-        // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
-        // it), then a filename date, then the file's creation date, then now.
-        let embedded = await AudioMetadata.recordingDate(of: url)
-        let recorded = FilenameDate.ladder(embedded: embedded, fileAt: url) ?? Date()
 
         // sourceType .audio: it's now an audio file. Keep the original (video) filename
         // so the title isn't "original" and it's recognizable in the queue.

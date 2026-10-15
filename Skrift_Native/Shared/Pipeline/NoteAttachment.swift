@@ -142,11 +142,20 @@ enum NoteAttachment {
     /// names by `MemoMetadata.videoFilename`), so the attachment and the kept movie are one file
     /// and one asset. The frame is the block's poster (`NotePoster`), never a photo.
     static func keptMovieEntry(filename: String, originalName: String, byteCount: Int,
-                               durationSeconds: Double?) -> NoteAttachmentEntry {
+                               durationSeconds: Double?, capturedAt: Date? = nil) -> NoteAttachmentEntry {
         NoteAttachmentEntry(kind: Kind.video, filename: filename,
                             name: originalName.isEmpty ? "Video" : originalName,
                             uti: uti(forFilename: filename), byteCount: byteCount,
-                            durationSeconds: durationSeconds)
+                            durationSeconds: durationSeconds, capturedAt: capturedAt.map(ISO8601.string(from:)))
+    }
+
+    /// The card's title (Q468). A machine-named share's entry is called "Video", which the card's
+    /// second line ("Video · 0:06") already says; it reads as the date it was filmed instead
+    /// ("15 Oct 2026"). Any other name stays as it is.
+    static func cardTitle(_ entry: NoteAttachmentEntry) -> String {
+        guard entry.kind == Kind.video, entry.name == "Video",
+              let when = entry.capturedAt.flatMap(ISO8601.lenientDate(from:)) else { return entry.name }
+        return when.formatted(.dateTime.day().month(.abbreviated).year())
     }
 
     /// True when `filename` is a kept movie's name (`video_<uuid>.<ext>`, no `_NNN`), not a video
@@ -353,7 +362,7 @@ enum NoteAttachment {
     }
 
     static func card(_ entry: NoteAttachmentEntry) -> Card {
-        Card(title: entry.name, subtitle: subtitle(entry), badge: badge(entry), badgeHex: badgeHex(entry),
+        Card(title: cardTitle(entry), subtitle: subtitle(entry), badge: badge(entry), badgeHex: badgeHex(entry),
              thumb: entry.kind == Kind.video)
     }
 
