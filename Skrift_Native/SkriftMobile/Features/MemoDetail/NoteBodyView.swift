@@ -2359,7 +2359,6 @@ final class NoteBodyTextView: UITextView {
         let target = TypingScroll.targetOffset(
             current: contentOffset.y, headerHeight: headerHeight, adjustedTop: adjustedContentInset.top,
             caretBottom: caret.maxY, boundsHeight: bounds.height, bottomCover: cover)
-        DevLog.log("typingScroll: cur \(contentOffset.y) target \(String(describing: target)) hdr \(headerHeight) adjT \(adjustedContentInset.top) adjB \(adjustedContentInset.bottom) bounds \(bounds.height) caretMaxY \(caret.maxY) cover \(cover) room \(typingRoom) cs \(contentSize.height)")
         guard let y = target else { return }
         let room = TypingScroll.roomNeeded(offset: y, contentHeight: contentSize.height - typingRoom,
                                            boundsHeight: bounds.height, bottomCover: cover)
@@ -2372,11 +2371,17 @@ final class NoteBodyTextView: UITextView {
         setContentOffset(CGPoint(x: contentOffset.x, y: y), animated: animated)
     }
 
-    override func setContentOffset(_ contentOffset: CGPoint, animated: Bool) {
-        if typingRoom > 0, abs(contentOffset.y - self.contentOffset.y) > 3 {
-            DevLog.log("typingScroll: setContentOffset \(contentOffset.y) anim \(animated) from \(self.contentOffset.y) stack \(Thread.callStackSymbols.dropFirst().prefix(7).map { $0.split(separator: " ", omittingEmptySubsequences: true).dropFirst(3).prefix(3).joined(separator: " ") })")
+    /// While typing room is held, UITextView's own `_scrollToSelectionIfNeeded` (sim, Q466) pushed
+    /// the caret line to the TOP of the view on every Return, because the room under the text made
+    /// that offset reachable. A caret that is already on screen needs no scroll: leave it.
+    /// A caret off screen (typing past the visible area) still gets UIKit's own follow.
+    override func scrollRectToVisible(_ rect: CGRect, animated: Bool) {
+        if typingRoom > 0, let end = selectedTextRange?.end {
+            let caret = caretRect(for: end)
+            let visible = bounds.inset(by: adjustedContentInset)
+            if !caret.isNull, !caret.isInfinite, visible.contains(caret) { return }
         }
-        super.setContentOffset(contentOffset, animated: animated)
+        super.scrollRectToVisible(rect, animated: animated)
     }
 
     /// Editing ended: give the borrowed room back.

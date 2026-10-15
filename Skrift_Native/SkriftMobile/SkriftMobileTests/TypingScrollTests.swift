@@ -69,6 +69,20 @@ final class TypingScrollTests: XCTestCase {
         }
     }
 
+    /// Sim (Q466): UITextView's own scroll-to-selection shoved the caret line to the top of the view
+    /// on every Return once the typing room made that offset reachable.
+    func testAVisibleCaretIsNotScrolledAwayByUIKitsOwnFollow() {
+        let (tv, window) = makeNote()
+        withExtendedLifetime(window) {
+            type(3, into: tv)
+            XCTAssertGreaterThan(tv.typingRoom, 0)
+            let before = tv.contentOffset.y
+            let caret = tv.caretRect(for: tv.selectedTextRange!.end)
+            tv.scrollRectToVisible(caret.insetBy(dx: 0, dy: -300), animated: false)
+            XCTAssertEqual(tv.contentOffset.y, before, accuracy: 0.5, "the caret is on screen: no scroll")
+        }
+    }
+
     func testNothingMovesOnceTheHeaderIsAlreadyOff() {
         XCTAssertNil(TypingScroll.targetOffset(current: 400, headerHeight: 220, adjustedTop: 100,
                                                caretBottom: 500, boundsHeight: 852, bottomCover: 336))
