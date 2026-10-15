@@ -3342,7 +3342,7 @@ check: `test $(ls test-fixtures/pdf/*.pdf | wc -l) -ge 6 && plan/mtest.sh PDFRea
 spec: D213
 needs: Q458
 gate+: yes
-do: Make the reading view match the `test-fixtures/pdf/*.expect.md` goldens for layout: read text by line geometry (PDFKit selections / line bounds) instead of raw `page.string`, so a two-column page reads left column then right; drop lines that repeat at the same position on most pages (running headers/footers) and bare page numbers; keep tables of any width as rows (`Shared/Pipeline/PDFReflow.swift` holds the pure rules, `LibraryPDFReflow.swift` the PDFKit side). Flip the matching expected failures in `PDFReadingGoldenTests`; the control fixture must stay identical.
+do: First add a STRUCTURE metric to `PDFReadingGoldenTests` (Q458 finding: word order + leakage cannot see structure; figure-caption and table-5col pass today while wrong): per fixture, compare the headings, `[figure: …]` lines and table rows of the reading view against `expect.md`, and register today's structure failures in `expected-failures.json`. Then make the reading view match the goldens for layout: read text by line geometry (PDFKit selections / line bounds) instead of raw `page.string`, so a two-column page reads left column then right; drop lines that repeat at the same position on most pages (running headers/footers) and bare page numbers; keep tables of any width as rows (`Shared/Pipeline/PDFReflow.swift` holds the pure rules, `LibraryPDFReflow.swift` the PDFKit side). Flip the matching expected failures in `PDFReadingGoldenTests`; the control fixture must stay identical.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
 ### Q460 [auto] (todo) PDF reading view: figures shown inline where they sit on the page
