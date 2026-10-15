@@ -11,16 +11,61 @@ extension LibraryPDF {
         return (0..<doc.pageCount).map { doc.page(at: $0)?.string ?? "" }
     }
 
-    /// The reading view's text as the article reader's doc, or nil (real page only). Synchronous;
-    /// call it off the main thread for a long PDF.
-    static func readingDoc(url: URL) -> ArticleDoc? {
-        guard let pages = pageStrings(url: url) else { return nil }
-        return readingDoc(pages: pages)
+    /// Q459 (D213): one page's printed lines with their word positions, for `PDFReflow`'s layout
+    /// rules. PDFKit's own line selections give the lines; each word's box comes from a selection
+    /// of its character range (`page.characterBounds(at:)` does not share `page.string`'s indices).
+    /// x from the page box's left edge, y from its bottom edge.
+    static func layout(of page: PDFPage) -> PDFReflow.PageLayout {
+        let box = page.bounds(for: .mediaBox)
+        let full = (page.string ?? "") as NSString
+        func isSpace(_ i: Int) -> Bool {
+            UnicodeScalar(full.character(at: i)).map { CharacterSet.whitespacesAndNewlines.contains($0) } ?? false
+        }
+        var lines: [PDFReflow.Line] = []
+        for sel in page.selection(for: box)?.selectionsByLine() ?? [] {
+            var words: [PDFReflow.Word] = []
+            for t in 0..<sel.numberOfTextRanges(on: page) {
+                let range = sel.range(at: t, on: page)
+                guard range.location != NSNotFound, NSMaxRange(range) <= full.length else { continue }
+                var i = range.location
+                while i < NSMaxRange(range) {
+                    if isSpace(i) { i += 1; continue }
+                    var j = i
+                    while j < NSMaxRange(range), !isSpace(j) { j += 1 }
+                    let word = NSRange(location: i, length: j - i)
+                    if let b = page.selection(for: word)?.bounds(for: page), !b.isNull, !b.isEmpty {
+                        words.append(PDFReflow.Word(text: full.substring(with: word),
+                                                    minX: Double(b.minX - box.minX), maxX: Double(b.maxX - box.minX)))
+                    }
+                    i = j
+                }
+            }
+            let r = sel.bounds(for: page)
+            guard !words.isEmpty, !r.isNull else { continue }
+            lines.append(PDFReflow.Line(words: words, minY: Double(r.minY - box.minY), maxY: Double(r.maxY - box.minY)))
+        }
+        return PDFReflow.PageLayout(width: Double(box.width), height: Double(box.height), lines: lines)
     }
 
+    /// The reading view's text as the article reader's doc, or nil (real page only). Synchronous;
+    /// call it off the main thread for a long PDF. Q459: shaped from each page's line geometry
+    /// (column order, no running headers/footers, tables as rows); the quality check still reads
+    /// the raw text layer.
+    static func readingDoc(url: URL) -> ArticleDoc? {
+        guard let doc = PDFDocument(url: url), doc.pageCount > 0 else { return nil }
+        let pages = (0..<doc.pageCount).compactMap { doc.page(at: $0) }
+        guard PDFReflow.isUsable(pages: pages.map { $0.string ?? "" }) else { return nil }
+        return readingDoc(blocks: PDFReflow.reflow(layout: pages.map(layout(of:))))
+    }
+
+    /// The text-only path (no geometry): `page.string` per page.
     static func readingDoc(pages: [String]) -> ArticleDoc? {
         guard PDFReflow.isUsable(pages: pages) else { return nil }
-        let blocks = PDFReflow.reflow(pages: pages).map { b -> ArticleDoc.Block in
+        return readingDoc(blocks: PDFReflow.reflow(pages: pages))
+    }
+
+    private static func readingDoc(blocks reflowed: [PDFReflow.Block]) -> ArticleDoc? {
+        let blocks = reflowed.map { b -> ArticleDoc.Block in
             let kind: ArticleDoc.Block.Kind
             switch b.kind {
             case .heading: kind = .heading
