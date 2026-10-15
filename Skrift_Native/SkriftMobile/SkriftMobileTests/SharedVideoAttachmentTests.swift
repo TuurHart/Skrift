@@ -73,6 +73,9 @@ final class SharedVideoAttachmentTests: XCTestCase {
         XCTAssertEqual(markers.first?.number, 1)
         XCTAssertTrue(body.hasPrefix("[[vid_001]]\n\n"), body)
         XCTAssertTrue(body.contains("kiln"))
+        // The list row and the derived title never read the marker ("vid_001 Well I might…").
+        XCTAssertFalse(NoteSnippet.plain(body).contains("vid_"))
+        XCTAssertEqual(NoteTitle.firstLine(body)?.hasPrefix("well I might"), true)
         XCTAssertNotNil(NoteAttachment.entry(kind: NoteAttachment.Kind.video, number: 1, manifest: entries))
         XCTAssertEqual(meta.sourceType, MemoMetadata.Source.video)
 
