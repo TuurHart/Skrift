@@ -3338,7 +3338,7 @@ gate+: yes
 do: Tuur 2026-10-15: the PDF reading view is not useful until it handles real layouts (D213), and today nothing proves its quality (only hand-made strings in `PDFReflowTests`). Generate synthetic PDFs (never his files; a script in `test-fixtures/pdf/generate.py` or Swift, committed) into `test-fixtures/pdf/`: two-column paper, report with running headers/footers and page numbers, page with a figure + caption, a 5-column table, a scanned page (text rendered to an image only), a single-column book page as control. Each gets `<name>.expect.md`: the reading text a careful human would want (order, headings, figure place marked `[figure: caption]`, table as rows, no headers/footers). `PDFReadingGoldenTests` (phone target) runs today's reflow on each and records per-fixture word-order similarity + header/footer leakage into `plan/reads/pdf-reading-baseline.md`; register today's failures as expected (C5 style) so later items flip them.
 check: `test $(ls test-fixtures/pdf/*.pdf | wc -l) -ge 6 && plan/mtest.sh PDFReadingGoldenTests`
 
-### Q459 [auto] (todo) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
+### Q459 [auto] (doing) PDF reading view: right column order, no running headers/footers or page numbers, wide tables kept
 spec: D213
 needs: Q458
 gate+: yes
@@ -4954,3 +4954,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 12:35 Q457 -> done — hand-merged (Tuur Q447 (a) 2026-10-15 → D211: ImportFileNameTitleTests WhatsApp-name assertion flipped)
 - 2026-10-15 12:39 Q458 -> done — gate 53s @7b990562
 - 2026-10-15 12:40 Q471 -> done — gate 59s @e1959e07
+- 2026-10-15 12:40 Q459 -> doing — worker out
