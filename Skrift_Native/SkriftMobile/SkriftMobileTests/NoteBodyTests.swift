@@ -73,7 +73,8 @@ final class NoteBodyTests: XCTestCase {
         tv.attributedText = NSAttributedString(string: "   ")
         coordinator.textViewDidChange(tv)
         coordinator.commitDraft()
-        XCTAssertNil(coordinator.memo.transcript)
+        XCTAssertEqual(coordinator.memo.transcript, "hello world",
+                       "C261: clearing the body does not commit nil; the prior transcript stays")
     }
 
     // MARK: draft-target pinning (P0 2026-07-10: raw draft clobbered the polished copy-edit)
