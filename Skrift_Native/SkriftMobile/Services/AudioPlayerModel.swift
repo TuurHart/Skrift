@@ -41,6 +41,51 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         didSet { FeedbackAudioGate.refresh() }   // Q299: voice notes off while a memo plays
     }
 
+    /// Q453: posted (on the main actor) when a memo's audio file was REPLACED IN PLACE at the
+    /// same URL: "Add recording" splices the take onto the note's own `memo_<id>.m4a`
+    /// (`AudioClipMerge.append`). `object` is the file URL. `load(_:)` is a no-op for an
+    /// unchanged URL, so without this the open note kept the pre-append player and playback
+    /// stopped at the old end until the note was reopened.
+    static let audioFileDidChange = Notification.Name("SkriftAudioFileDidChange")
+
+    private var fileChangeObserver: NSObjectProtocol?
+
+    override init() {
+        super.init()
+        fileChangeObserver = NotificationCenter.default.addObserver(
+            forName: Self.audioFileDidChange, object: nil, queue: .main) { [weak self] note in
+            guard let changed = note.object as? URL else { return }
+            MainActor.assumeIsolated { self?.reloadIfSameFile(changed) }
+        }
+    }
+
+    deinit {
+        if let fileChangeObserver { NotificationCenter.default.removeObserver(fileChangeObserver) }
+    }
+
+    /// Q453: re-open the loaded file when `changed` is it, keeping the position and, when it
+    /// was playing, playing on (now past the old end). A no-op for any other file.
+    func reloadIfSameFile(_ changed: URL) {
+        guard let url, url.standardizedFileURL.path == changed.standardizedFileURL.path,
+              let fresh = try? AVAudioPlayer(contentsOf: url), fresh.duration > 0 else { return }
+        let wasPlaying = isPlaying
+        let at = player?.currentTime ?? currentTime
+        player?.delegate = nil
+        player?.stop()
+        fresh.delegate = self
+        fresh.enableRate = true
+        fresh.rate = rate
+        fresh.currentTime = min(at, fresh.duration)
+        player = fresh
+        duration = fresh.duration
+        currentTime = fresh.currentTime
+        if wasPlaying, !fresh.play() {
+            isPlaying = false
+            if Self.nowPlaying === self { Self.nowPlaying = nil }
+            stopTimer()
+        }
+    }
+
     /// Point the player at a memo's audio (or clear it). No-op if it's already
     /// loaded, so swiping back to a page doesn't restart it.
     ///
