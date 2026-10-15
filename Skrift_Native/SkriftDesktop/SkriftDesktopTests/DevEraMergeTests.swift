@@ -1,3 +1,4 @@
+import SQLite3
 import XCTest
 import SwiftData
 import Foundation
@@ -427,17 +428,33 @@ final class DevEraMergeTests: XCTestCase {
             memo(ctx, id: id, device: mac, recorded: day(-1))
             try ctx.save()
         }
-        func snapshot() throws -> [String: Data] {
-            var out: [String: Data] = [:]
+        // Fold the seeding connection's WAL into the main file so the source is quiescent before we
+        // snapshot it (otherwise the seed container's own shutdown can move -wal/-shm under us).
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(source.appendingPathComponent(DevEraMerge.storeFileName).path, &db), SQLITE_OK)
+        sqlite3_wal_checkpoint_v2(db, nil, SQLITE_CHECKPOINT_TRUNCATE, nil, nil)
+        sqlite3_close(db)
+        /// Per file: bytes and mtime for the store and its -wal (the data-carrying files). The -shm is
+        /// only a memory-mapped index whose size follows checkpoint timing under load, so it counts by
+        /// presence, not content. A file appearing or vanishing also fails the comparison.
+        struct FileState: Equatable { var bytes: Data?; var mtime: Date? }
+        func snapshot() throws -> [String: FileState] {
+            var out: [String: FileState] = [:]
             for name in try FileManager.default.contentsOfDirectory(atPath: source.path) {
                 let url = source.appendingPathComponent(name)
                 var isDir: ObjCBool = false
                 if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), !isDir.boolValue {
-                    out[name] = try Data(contentsOf: url)
+                    if name.hasSuffix("-shm") {
+                        out[name] = FileState(bytes: nil, mtime: nil)
+                    } else {
+                        let mtime = try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+                        out[name] = FileState(bytes: try Data(contentsOf: url), mtime: mtime)
+                    }
                 }
             }
             return out
         }
+        XCTAssertNotNil(try snapshot()[DevEraMerge.storeFileName]?.bytes, "seeded store exists")
         let before = try snapshot()
 
         let copy = try DevEraMerge.openOldStoreCopy(sourceDir: source,
@@ -445,7 +462,7 @@ final class DevEraMergeTests: XCTestCase {
         let old = ModelContext(copy), prod = try store()
         let (_, j) = try merge(old, prod)
         XCTAssertEqual(j.insertedNoteIDs, [id])
-        XCTAssertEqual(try snapshot(), before, "source store files unchanged")
+        XCTAssertEqual(try snapshot(), before, "source store, -wal and file set unchanged (bytes + mtime)")
     }
 
     func testMissingOldStoreThrows() {
