@@ -3393,7 +3393,7 @@ gate+: yes
 do: Tuur on the Q452 mock (2026-10-15): keep today's header exactly as built (title, grey meta line, the one rating/Personal/tag row) and let it scroll away like Apple Notes, nothing folds or collapses. While he types with the keyboard up, the note scrolls so the caret stays just above the keyboard bar, which pushes the header off the top as soon as the text needs the room; dragging down brings it back. Read the Q452 finding (`grep -n 'finding: Q452' plan/RUN.md`): the header already scrolls with the note, so this is only the caret-follow while the note is short (MemoPageView / NoteBodyView). No sticky or collapsing header. Phone test `TypingScrollTests`: with the keyboard up, typing past the visible area scrolls the header out and keeps the caret visible. Screenshot on the iPhone 17 sim with the keyboard up after a few lines, LOOK.
 check: `plan/mtest.sh TypingScrollTests`
 
-### Q467 [auto] (stuck) iPad export converts [[vid_]] and [[file_]] markers instead of printing them
+### Q467 [auto] (doing) iPad export converts [[vid_]] and [[file_]] markers instead of printing them
 spec: C57 C58 C61 C239
 needs: -
 gate+: yes
@@ -3413,6 +3413,13 @@ needs: Q454
 gate+: yes
 do: Found by Q454: copy-edit escrows picture paragraphs (`ImageMarkerReinsert`, and v2 by paragraph index) but not `[[vid_NNN]]` / `[[file_NNN]]` attachment markers, so a model pass can drop or move them. Treat attachment-marker paragraphs exactly like picture paragraphs in BOTH v1 (live) and copy-edit v2 (`Shared/CopyEditV2/`): stripped before the model, reinserted by paragraph index. Desktop test `AttachmentMarkerEscrowTests` over a note with a leading `[[vid_1]]` and a mid `[[file_1]]`; the copy-edit harnesses stay 0 unexplained.
 check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q470 [auto] (todo) DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly stops flaking on the SQLite -shm size
+spec: D203
+needs: -
+gate+: yes
+do: The gate went red once on `SkriftDesktopTests.DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly` (DevEraMergeTests.swift:448: XCTAssertEqual on a file-size map containing `memo_cloud.store-shm: 32768 bytes`) during the full suite at machine load ~108, while the same class passed 3/3 alone on the same head (2026-10-15). The assertion compares SQLite side-file sizes, which change with checkpoint timing. Make it prove what C/D203 needs (the old store is opened as a COPY only, never written): compare the main store file bytes/hash and mtime, and assert -wal/-shm are untouched only if they existed before; or open the original read-only and check it. Do not weaken it to nothing. Report needs hand-merge: DevEraMergeTests.swift.
+check: `cd Skrift_Native/SkriftDesktop && xcodebuild test -project SkriftDesktop.xcodeproj -scheme UnitTests -destination platform=macOS -skipPackagePluginValidation -skipMacroValidation -only-testing:SkriftDesktopTests/DevEraMergeTests -quiet`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4921,3 +4928,5 @@ check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDes
 - 2026-10-15 11:38 Q467 -> stuck — gate failed — .queue/Q467.gate.log
 - 2026-10-15 11:38 Q468 -> doing — worker out
 - 2026-10-15 11:38 Q469 -> doing — worker out
+- 2026-10-15 11:40 Q470 added
+- 2026-10-15 11:40 Q467 -> doing — re-accept after unrelated flake (DevEraMergeTests 3/3 green alone)
