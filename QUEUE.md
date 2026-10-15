@@ -3407,7 +3407,7 @@ gate+: yes
 do: Found by Q454: with D210 the kept movie is a `[[vid_N]]` attachment whose marker is dropped on vault export (no movie in the vault, C63, right), but the vault now gets NO frame either; C63 says a video note exports markdown + audio + the frame. Write the poster frame as an image embed in its place on vault export (both exporters, shared code), never the movie. Also: a machine-named share shows the card title "Video" over "Video · 0:06"; title the card from the note title or the date instead. Desktop test `VideoNoteVaultFrameTests`.
 check: `grep -rqE "class VideoNoteVaultFrameTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q469 [auto] (doing) polish protects [[vid_]] and [[file_]] markers like pictures
+### Q469 [auto] (done) polish protects [[vid_]] and [[file_]] markers like pictures
 spec: C29 C30 C31
 needs: Q454
 gate+: yes
@@ -4944,3 +4944,4 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 11:59 Q457 -> doing — worker out
 - 2026-10-15 11:59 Q470 -> doing — worker out
 - 2026-10-15 12:01 Q466 -> done — gate 59s @440764fe
+- 2026-10-15 12:03 Q469 -> done — gate 60s @54b121f7
