@@ -3271,7 +3271,7 @@ gate+: yes
 do: Q441 parses `.eml` attachments (`EmailShare.Message.attachments` in `Skrift_Native/Shared/Ingress/EmailShare.swift`) but stores none, on phone or Mac. Store each attachment the way a note's file attachments are stored since Q385 (the same synced asset kind and `[[file_…]]`-style body marker the attachments lane uses; read FEATURES.md "attachments" and the Q385/Q392 findings in plan/RUN.md first), placed after the email body in attachment order. Also route `.eml` through `ingestEmailCapture` in the Mac folder-ingest path (`IngestService.swift`, the folder walk) like the direct drop. Test `EmailAttachmentsTests` (desktop target) on the `ingress/email` fixture with two attachments: the note carries both, in order.
 check: `grep -rqE "class EmailAttachmentsTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q449 [auto] (todo) copy-edit v2: accept small word drops; fall back to unedited only on a translation, a lost name or number, an invented name, or the shrink guard (D209)
+### Q449 [auto] (doing) copy-edit v2: accept small word drops; fall back to unedited only on a translation, a lost name or number, an invented name, or the shrink guard (D209)
 spec: C35 C177 C33 D209
 needs: Q424
 gate+: yes
@@ -3284,7 +3284,7 @@ needs: -
 do: Tuur said yes (Q442, 2026-10-15). In `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` change `testClearingBodyCommitsNilTranscript` to assert the C261 behaviour (clearing the body does NOT commit nil; the prior transcript stays, e.g. `XCTAssertEqual(coordinator.memo.transcript, "hello world")`), and in `AudioShareDrainTests.swift` change `testTextFileBecomesNoteBody` to expect the D171 typed-note shape for a shared .md. Touch nothing else. Report needs hand-merge: both files.
 check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh AudioShareDrainTests`
 
-### Q451 [auto] (todo) a new note and a reopened note render through one code path: one header row, no tab bar
+### Q451 [auto] (doing) a new note and a reopened note render through one code path: one header row, no tab bar
 spec: C113 C234 C239 D115
 needs: -
 gate+: yes
@@ -3311,7 +3311,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191: sharing a video into Skrift Dev makes a note that says Video but shows a `Photo · JPEG image · 117 KB` FILE CARD at the top (the frame), not the video. D210: a shared or imported video becomes the same inline video attachment a note gets from the Q385 attachments build (inline play, small by default, D202), with its transcript as the body; the frame is the attachment's poster, never a separate photo card. The synced `source.<ext>` movie (D188) is that attachment's file. Same on the Mac import path. Phone test `SharedVideoAttachmentTests`: a shared movie yields one video attachment marker and no photo card. Screenshot the note on the sim, LOOK.
 check: `plan/mtest.sh SharedVideoAttachmentTests`
 
-### Q455 [tuur] (todo) mockup: the share sheet and its 'Saved' confirmation, redrawn
+### Q455 [tuur] (doing) mockup: the share sheet and its 'Saved' confirmation, redrawn
 spec: C66 C75 C127
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
@@ -4790,3 +4790,6 @@ check: `plan/mtest.sh CaptureCameraZoomTests`
 - 2026-10-15 08:40 Q281 -> done — Tuur 2026-10-15: voice memo fine; video lands as a Photo card → Q454; share sheet + confirmation ugly → Q455
 - 2026-10-15 08:40 Q221 -> done — Tuur 2026-10-15: zoom very jumpy, fake drag pill, doubled status → Q456; BT mic via in-app feedback
 - 2026-10-15 08:40 Q375 -> done — Tuur 2026-10-15: the library looks really good (PDF highlight question answered in chat)
+- 2026-10-15 08:42 Q455 -> doing — worker out
+- 2026-10-15 08:42 Q449 -> doing — worker out
+- 2026-10-15 08:42 Q451 -> doing — worker out
