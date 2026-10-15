@@ -32,11 +32,13 @@ struct ShareFeedbackView: View {
             } trailing: {
                 trailing
             }
+            // On the content only: a container identifier leaks onto the nav-bar buttons (Q43).
             content
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("share-feedback-\(a11yKind)")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.skBg.ignoresSafeArea())
-        .accessibilityIdentifier("share-feedback-\(a11yKind)")
     }
 
     @ViewBuilder private var trailing: some View {

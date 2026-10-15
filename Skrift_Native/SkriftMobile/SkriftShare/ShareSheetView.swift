@@ -39,6 +39,7 @@ struct ShareSheetView: View {
     @State private var senderName: String = ""
     @State private var saved = false
     @State private var toast: RatingToast?
+    @State private var menuHeight: CGFloat = 0
     @FocusState private var focus: Field?
     private enum Field { case thought, sender }
     /// B1 chooser: N shared voice notes → one note (default, clips merged in order) or N notes.
@@ -456,8 +457,11 @@ struct ShareSheetView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             if focus == .sender, !suggestions.isEmpty {
+                // Hangs BELOW the From row (mock: top at the card's bottom − 4 pt). An offset
+                // by the menu's own height; an alignment guide here was ignored on iOS 26.
                 suggestionMenu
-                    .alignmentGuide(.bottom) { $0[.top] + 4 }
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { menuHeight = $0 }
+                    .offset(y: menuHeight - 4)
                     .padding(.trailing, 16)
             }
         }
