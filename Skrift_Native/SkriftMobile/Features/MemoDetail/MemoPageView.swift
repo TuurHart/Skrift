@@ -158,7 +158,11 @@ struct MemoPageView: View {
         .onChange(of: macPolish?.copyedit) { _, _ in recomputeSpans() }
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
-        .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
+        // Q453 (C223): an append writes the clip's shifted timings with its text; re-read them.
+        .onChange(of: memo.transcript) { _, _ in
+            timings = WordTimingsStore().load(for: memo.id) ?? []
+            recomputeSpans()
+        }
         // The viewer for a shared-document (.file) capture and for the editor's inline
         // photos is UIKit-presented (`MarkupQuickLook`, P2#12) — no SwiftUI cover here:
         // the zoom transition needs transitionViewFor, which a cover can't provide. Markup

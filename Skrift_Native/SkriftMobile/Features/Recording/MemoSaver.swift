@@ -637,6 +637,10 @@ struct MemoSaver {
         } else {
             merge = try? await Self.appendAudio(base: memoURL, addition: clip)
         }
+        // Q453: an open note's player re-opens the spliced file now, not at the next note open.
+        if merge != nil, !isFirstRecording {
+            NotificationCenter.default.post(name: AudioPlayerModel.audioFileDidChange, object: memoURL)
+        }
         var mergedDuration = merge?.merged ?? priorDuration
         // Shift the appended clip's word-timings by the PRECISE base duration the
         // clip was spliced at — not the (possibly-estimated) memo.duration.
