@@ -3324,7 +3324,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191 (Q221 confirmed): in the capture camera sheet pinch zoom is very jumpy (it compounds); the sheet shows a grab-handle pill at its top that drags nothing; and the recording status draws twice on top of itself (`Recording · 0:17 — still listening` over a second `Recording`). Fix: pinch sets zoom from the zoom factor at gesture start × scale, clamped to the device range (no compounding); remove the pill or make the sheet actually draggable (remove it); render one status line. Phone test `CaptureCameraZoomTests` for the zoom math. Camera hardware can't be proven on the sim; say so and leave the device feel to Tuur.
 check: `plan/mtest.sh CaptureCameraZoomTests`
 
-### Q457 [auto] (todo) a messenger filename is never a title, on every door (D211)
+### Q457 [auto] (doing) a messenger filename is never a title, on every door (D211)
 spec: C126 D211
 needs: -
 gate+: yes
@@ -3414,7 +3414,7 @@ gate+: yes
 do: Found by Q454: copy-edit escrows picture paragraphs (`ImageMarkerReinsert`, and v2 by paragraph index) but not `[[vid_NNN]]` / `[[file_NNN]]` attachment markers, so a model pass can drop or move them. Treat attachment-marker paragraphs exactly like picture paragraphs in BOTH v1 (live) and copy-edit v2 (`Shared/CopyEditV2/`): stripped before the model, reinserted by paragraph index. Desktop test `AttachmentMarkerEscrowTests` over a note with a leading `[[vid_1]]` and a mid `[[file_1]]`; the copy-edit harnesses stay 0 unexplained.
 check: `grep -rqE "class AttachmentMarkerEscrowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q470 [auto] (todo) DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly stops flaking on the SQLite -shm size
+### Q470 [auto] (doing) DevEraMergeTests.testOldStoreIsOpenedAsACopyOnly stops flaking on the SQLite -shm size
 spec: D203
 needs: -
 gate+: yes
@@ -4941,3 +4941,5 @@ check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop
 - 2026-10-15 11:50 Q468 -> done — gate 59s @fdbc9ce2
 - 2026-10-15 11:54 Q471 added
 - 2026-10-15 11:59 Q464 -> done — gate 102s @1960c00a
+- 2026-10-15 11:59 Q457 -> doing — worker out
+- 2026-10-15 11:59 Q470 -> doing — worker out
