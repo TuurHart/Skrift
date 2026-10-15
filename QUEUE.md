@@ -3428,7 +3428,7 @@ gate+: yes
 do: Found by Q464: the share sheet's From name is stored as `CaptureInboxEntry.senderName` and the drain appends "From <name>". On a capture it lands in the body, so the Sanitiser links it and `people:` gets it; on an audio or video note it lands in `annotationText`, which `MemoExporter` never exports, so a voice-note sender never reaches `people:` (C123: "exports into people: when linked"). Make the sender a person mention that the name-linker sees and that exports, on both apps, in one shared place. Test `SenderPeopleExportTests` (desktop): a shared voice note with a roster sender exports that canonical in `people:`.
 check: `grep -rqE "class SenderPeopleExportTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q472 [auto] (doing) install Dev 192 on the iPhone 17 Pro and the Mac
+### Q472 [auto] (done) install Dev 192 on the iPhone 17 Pro and the Mac
 spec: -
 needs: -
 gate+: yes
@@ -4964,3 +4964,4 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:40 Q459 -> doing — worker out
 - 2026-10-15 12:40 Q472 added
 - 2026-10-15 12:40 Q472 -> doing — worker out
+- 2026-10-15 12:48 Q472 -> done — gate 64s @48504f6b
