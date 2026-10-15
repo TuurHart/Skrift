@@ -26,13 +26,18 @@ enum ExportBody {
     /// DROPPED, never printed (C196).
     static func convertAttachmentMarkers(_ markdown: String, manifest: [NoteAttachmentEntry], stem: String,
                                          profile: ExportProfile,
+                                         poster: ((_ keptMovie: String, _ preferredName: String) -> String?)? = nil,
                                          place: (_ source: String, _ preferredName: String) -> String?)
         -> (markdown: String, placed: Int) {
         guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
         // C63 / D210: a video note's own kept movie never goes into the vault (only the portfolio
-        // export copies it, by filename), so its marker drops like a missing file's. Both engines.
+        // export copies it, by filename). Its marker becomes an image embed of the poster frame
+        // (`VideoExportFrame`, named `<stem>_frame.jpg`) when the engine can make one (`poster`
+        // answers the written name, nil = no frame), else it drops like a missing file's. Both engines.
         return NoteAttachment.convertMarkers(markdown, manifest: manifest, stem: stem, profile: profile) { source, preferred in
-            NoteAttachment.isKeptMovie(source) ? nil : place(source, preferred)
+            NoteAttachment.isKeptMovie(source)
+                ? poster?(source, VideoExportFrame.exportName(stem: stem))
+                : place(source, preferred)
         }
     }
 }
