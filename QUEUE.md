@@ -3311,7 +3311,7 @@ gate+: yes
 do: Tuur 2026-10-15 on Dev 191: sharing a video into Skrift Dev makes a note that says Video but shows a `Photo · JPEG image · 117 KB` FILE CARD at the top (the frame), not the video. D210: a shared or imported video becomes the same inline video attachment a note gets from the Q385 attachments build (inline play, small by default, D202), with its transcript as the body; the frame is the attachment's poster, never a separate photo card. The synced `source.<ext>` movie (D188) is that attachment's file. Same on the Mac import path. Phone test `SharedVideoAttachmentTests`: a shared movie yields one video attachment marker and no photo card. Screenshot the note on the sim, LOOK.
 check: `plan/mtest.sh SharedVideoAttachmentTests`
 
-### Q455 [tuur] (tuur) mockup: the share sheet and its 'Saved' confirmation, redrawn
+### Q455 [tuur] (done) mockup: the share sheet and its 'Saved' confirmation, redrawn
 spec: C66 C75 C127
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html`, iPhone frames. Tuur 2026-10-15: the share sheet (`SkriftShare/ShareSheetView.swift`) and the confirmation after Save (`ShareFeedbackView.swift`) both look ugly. Draw today's two screens from source, then a calmer version in the app's Apple-style look (D190, the notes list and editor): for a voice memo, a video, a link, a photo, plus the 'Already in Skrift' and 'Skrift can't import this' states. Keep the rating and the sender name field position open as a question on the page. One agent writes this file.
@@ -3371,6 +3371,13 @@ needs: Q462
 gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` with Tuur's sign-off notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
 check: `plan/mtest.sh PDFAnnotationExportTests`
+
+### Q464 [auto] (todo) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
+spec: C66 C75 C123 C127 D37
+needs: Q455
+gate+: yes
+do: Build `Skrift_Native/SkriftDesktop/mocks/Q455-share-sheet.html` (signed 2026-10-15, Tuur: "beautiful! my pick is A, rows below"): the calm sheet filling the system sheet in the app's Apple-style look, light/dark; ✕ top left, Save as the nav-bar button top right; the item card, then option A: a Settings-style card BELOW it with a "Rating" row (pill on the right) and a "From" row; the in-place green "Saved" receipt that closes after 0.9 s (no separate green-circle card); "Already in Skrift" as a notes-list row; "Can't import" as the iOS empty state. The From row is C123: an optional sender name with roster autocomplete (D37), remembered per chat when the share carries a hint, stored as a new additive field on the capture inbox entry and written into the note as a person mention (links when on the roster, exports into people: when linked). Delete the old forced-dark sheet, the Sk monogram and the big glowing Save. Phone test `ShareSheetSenderTests` (sender reaches the note as a mention). Screenshots of every state on the iPhone 17 sim beside the mock, LOOK, list every colour/type/spacing difference in the report.
+check: `plan/mtest.sh ShareSheetSenderTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -4857,3 +4864,5 @@ check: `plan/mtest.sh PDFAnnotationExportTests`
 - 2026-10-15 09:08 Q455 -> tuur — mock https://claude.ai/artifact/KTg3QUv6mJqCZPd8NnEuoc — question: rating + sender placement A or B
 - 2026-10-15 09:08 Q452 -> doing — worker out
 - 2026-10-15 09:08 Q454 -> doing — worker out
+- 2026-10-15 09:10 Q455 -> done — Tuur 2026-10-15: beautiful — pick A, rows below
+- 2026-10-15 09:10 Q464 added
