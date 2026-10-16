@@ -3449,7 +3449,7 @@ gate+: yes
 do: Found by Q473: `Audiobook.highlights` syncs as one blob, last-writer-wins by modifiedAt, so highlights or comments made on the phone and the iPad while offline lose one device's side (data loss, same shape as C267 for vocab). Merge per highlight id: union adds, a removal is a tombstone with a stamp (pruned after 90 days like names), a comment edit is LWW per highlight. Follow the Q410 vocab ledger pattern (`Shared/Pipeline/VocabularyLedger.swift`, `VocabularySyncCore.sync`); old blobs without stamps fall back to today's behaviour once. The Q473 rebuild then runs from the merged list. Test `HighlightMergeTests` (phone target): two offline adds both survive; a remove on one device beats an older add; comment edits LWW.
 check: `plan/mtest.sh HighlightMergeTests`
 
-### Q475 [auto] (todo) Add a podcast episode sheet: the feedback bubble covers the Paste button
+### Q475 [auto] (dead) Add a podcast episode sheet: the feedback bubble covers the Paste button
 spec: -
 needs: -
 gate+: yes
@@ -5003,3 +5003,4 @@ check: `plan/mtest.sh PodcastAddSheetLayoutTests`
 - 2026-10-16 14:56 Q473 -> done — gate 68s @d8142be0
 - 2026-10-16 14:56 Q474 -> doing — worker out
 - 2026-10-16 15:02 Q475 added
+- 2026-10-16 15:03 Q475 -> dead — Tuur 2026-10-16: not a bug, the bubble can be moved
