@@ -3435,6 +3435,13 @@ gate+: yes
 do: Same recipe as Q444 (read `grep -n "finding: Q444" plan/RUN.md`): bump SKRIFT_BUILD to 192 in both project.yml files, Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C, xcodebuild id is the same), install with devicectl, string-grep a Q464 literal (`ShareSender`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or any real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
 check: Report shows build 192 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 192.
 
+### Q473 [auto] (doing) every device rebuilds its Library PDF from the synced highlights
+spec: D212 D214
+needs: Q463
+gate+: yes
+do: Tuur 2026-10-16 (go): the annotated Library PDF must be the same on phone, iPad and Mac. Today the book-file sync uploads a file once (AudiobookCloudSync upload-once, built for immutable audiobook audio), so only the device that highlighted has the annotated file (Q463 finding). Do NOT re-upload the PDF. Instead, on EVERY device, rebuild the local Library PDF from the hidden pristine original (`PDFAnnotationExport.pristine`) plus the synced `Audiobook.highlights` list whenever that list changes by sync (and on first download, creating the pristine backup there), using the same `LibraryHighlights.writeIntoPDF` atomic path. Two devices editing offline then converge because the file is regenerated from the merged list. Skip the rewrite when nothing changed. Spoken-comment audio still stays local (only its words sync); say so in FEATURES.md. Test `PDFAnnotationSyncRebuildTests` (phone target): a highlight list arriving by sync rewrites the local file so PDFKit reads back the annotation and comment; the pristine backup stays byte-identical; an unchanged list writes nothing.
+check: `plan/mtest.sh PDFAnnotationSyncRebuildTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4976,3 +4983,5 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-16 11:50 Q462 -> done — Tuur 2026-10-16: rest looks really good; voice comments too; share asks with or without edits (D214)
 - 2026-10-16 11:50 Q463 -> doing — worker out
 - 2026-10-16 12:22 Q463 -> done — gate 98s @bc2dee38
+- 2026-10-16 14:38 Q473 added
+- 2026-10-16 14:38 Q473 -> doing — worker out
