@@ -3449,6 +3449,13 @@ gate+: yes
 do: Found by Q473: `Audiobook.highlights` syncs as one blob, last-writer-wins by modifiedAt, so highlights or comments made on the phone and the iPad while offline lose one device's side (data loss, same shape as C267 for vocab). Merge per highlight id: union adds, a removal is a tombstone with a stamp (pruned after 90 days like names), a comment edit is LWW per highlight. Follow the Q410 vocab ledger pattern (`Shared/Pipeline/VocabularyLedger.swift`, `VocabularySyncCore.sync`); old blobs without stamps fall back to today's behaviour once. The Q473 rebuild then runs from the merged list. Test `HighlightMergeTests` (phone target): two offline adds both survive; a remove on one device beats an older add; comment edits LWW.
 check: `plan/mtest.sh HighlightMergeTests`
 
+### Q475 [auto] (todo) Add a podcast episode sheet: the feedback bubble covers the Paste button
+spec: -
+needs: -
+gate+: yes
+do: Tuur 2026-10-16 screenshot (Dev 192, iPhone 17 Pro, Library › + › Add a podcast episode): the FeedbackKit floating bubble sits on top of the button to the right of the link field, so only its first letter "P" (Paste) shows. Keep the bubble clear of controls in this sheet: inset the field row, or move/hide the bubble while a sheet with a trailing control is up (check how other sheets handle it; Q464 noted the bubble over the share-sheet demos too). Fix it where the bubble placement is decided so every sheet benefits. Screenshot the sheet on the iPhone 17 sim, LOOK, and confirm the whole Paste button shows. Phone test `PodcastAddSheetLayoutTests` (the trailing button frame does not intersect the bubble frame).
+check: `plan/mtest.sh PodcastAddSheetLayoutTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -4995,3 +5002,4 @@ check: `plan/mtest.sh HighlightMergeTests`
 - 2026-10-16 14:53 Q474 added
 - 2026-10-16 14:56 Q473 -> done — gate 68s @d8142be0
 - 2026-10-16 14:56 Q474 -> doing — worker out
+- 2026-10-16 15:02 Q475 added
