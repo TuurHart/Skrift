@@ -3435,7 +3435,7 @@ gate+: yes
 do: Same recipe as Q444 (read `grep -n "finding: Q444" plan/RUN.md`): bump SKRIFT_BUILD to 192 in both project.yml files, Debug build for the iPhone 17 Pro (devicectl UDID 00008150-001658662223C01C, xcodebuild id is the same), install with devicectl, string-grep a Q464 literal (`ShareSender`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or any real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
 check: Report shows build 192 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 192.
 
-### Q473 [auto] (doing) every device rebuilds its Library PDF from the synced highlights
+### Q473 [auto] (done) every device rebuilds its Library PDF from the synced highlights
 spec: D212 D214
 needs: Q463
 gate+: yes
@@ -4993,3 +4993,4 @@ check: `plan/mtest.sh HighlightMergeTests`
 - 2026-10-16 14:38 Q473 added
 - 2026-10-16 14:38 Q473 -> doing — worker out
 - 2026-10-16 14:53 Q474 added
+- 2026-10-16 14:56 Q473 -> done — gate 68s @d8142be0
