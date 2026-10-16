@@ -3352,7 +3352,7 @@ gate+: yes
 do: Images and figures are dropped today. Also measure (Q459 doubt): each word now costs one PDFSelection; time the reading view of a generated 300-page text PDF and write the number into plan/reads/pdf-reading-structure.md; if it is over ~3 s on the iPhone 17 sim, batch the geometry per line. Crop each figure region from the page (PDFKit page image within the figure's bounds, or the embedded image) and show it inline in the reading view at its place, with its caption, using the same image block the article reader uses (Q351 build). Flip the figure fixture in `PDFReadingGoldenTests`. Screenshot the reading view of the figure fixture on the iPhone 17 sim, LOOK, `plan/reads/pdf-reading/`.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q461 [auto] (doing) PDF reading view for scanned PDFs: on-device text recognition
+### Q461 [auto] (done) PDF reading view for scanned PDFs: on-device text recognition
 spec: D213 C120
 needs: Q459
 gate+: yes
@@ -4971,3 +4971,5 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:59 Q459 -> done — gate 61s @5a70b0ea
 - 2026-10-15 12:59 Q462 -> tuur — mock https://claude.ai/artifact/CefrZozLqfihZdJdZv4scv — A (Library PDF carries highlights) or B (only the shared copy)
 - 2026-10-15 13:20 Q460 -> done — gate 110s @32f54cf3
+- 2026-10-15 13:25 Q461 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-10-16 11:05 Q461 -> done — gate 64s @545a0b39
