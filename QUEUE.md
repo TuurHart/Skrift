@@ -3345,7 +3345,7 @@ gate+: yes
 do: First add a STRUCTURE metric to `PDFReadingGoldenTests` (Q458 finding: word order + leakage cannot see structure; figure-caption and table-5col pass today while wrong): per fixture, compare the headings, `[figure: …]` lines and table rows of the reading view against `expect.md`, and register today's structure failures in `expected-failures.json`. Then make the reading view match the goldens for layout: read text by line geometry (PDFKit selections / line bounds) instead of raw `page.string`, so a two-column page reads left column then right; drop lines that repeat at the same position on most pages (running headers/footers) and bare page numbers; keep tables of any width as rows (`Shared/Pipeline/PDFReflow.swift` holds the pure rules, `LibraryPDFReflow.swift` the PDFKit side). Flip the matching expected failures in `PDFReadingGoldenTests`; the control fixture must stay identical.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q460 [auto] (doing) PDF reading view: figures shown inline where they sit on the page
+### Q460 [auto] (done) PDF reading view: figures shown inline where they sit on the page
 spec: D213
 needs: Q459
 gate+: yes
@@ -4970,3 +4970,4 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 12:56 Q461 -> doing — worker out
 - 2026-10-15 12:59 Q459 -> done — gate 61s @5a70b0ea
 - 2026-10-15 12:59 Q462 -> tuur — mock https://claude.ai/artifact/CefrZozLqfihZdJdZv4scv — A (Library PDF carries highlights) or B (only the shared copy)
+- 2026-10-15 13:20 Q460 -> done — gate 110s @32f54cf3

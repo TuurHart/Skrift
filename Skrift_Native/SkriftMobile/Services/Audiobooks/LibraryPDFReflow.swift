@@ -1,5 +1,6 @@
 import Foundation
 import PDFKit
+import UIKit
 
 /// Q404 (Q6 mock "PDF reader", D207): the PDF's reading view. A PDF with a usable text layer
 /// (`PDFReflow.isUsable`) reads as reflowed text in the article reader's text view; the real page
@@ -55,13 +56,39 @@ extension LibraryPDF {
     static func readingDoc(url: URL, scanCache: URL? = nil) -> ArticleDoc? {
         guard let doc = PDFDocument(url: url), doc.pageCount > 0 else { return nil }
         let pages = (0..<doc.pageCount).compactMap { doc.page(at: $0) }
+        let image: (PDFReflow.Block) -> Data? = { block in
+            guard let region = block.region, block.page >= 1, block.page <= pages.count else { return nil }
+            return figureImage(page: pages[block.page - 1], region: region)
+        }
         // Q461: a scanned or garbled page reads by on-device text recognition (LibraryPDFScan.swift).
         if let scanned = scannedLayouts(url: url, pages: pages, texts: pages.map { $0.string ?? "" }, cache: scanCache) {
             guard PDFReflow.isUsable(pages: scanned.map(PDFReflow.pageText)) else { return nil }
-            return readingDoc(blocks: PDFReflow.reflow(layout: scanned))
+            return readingDoc(blocks: PDFReflow.reflow(layout: scanned), image: image)
         }
         guard PDFReflow.isUsable(pages: pages.map { $0.string ?? "" }) else { return nil }
-        return readingDoc(blocks: PDFReflow.reflow(layout: pages.map(layout(of:))))
+        return readingDoc(blocks: PDFReflow.reflow(layout: pages.map(layout(of:))), image: image)
+    }
+
+    /// Q460 (D213): a figure's picture: its page drawn at `scale` points-to-pixels, cropped to the
+    /// figure's region (PDF points from the page box's bottom-left corner). PNG, nil when empty.
+    static func figureImage(page: PDFPage, region: PDFReflow.Block.Region, scale: CGFloat = 2) -> Data? {
+        let box = page.bounds(for: .mediaBox)
+        guard region.width >= 1, region.height >= 1, box.width >= 1, box.height >= 1 else { return nil }
+        let size = CGSize(width: region.width, height: region.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            let cg = ctx.cgContext
+            // UIKit is y-down, PDF y-up: flip, then put the region's bottom-left at the origin.
+            cg.translateBy(x: 0, y: size.height)
+            cg.scaleBy(x: 1, y: -1)
+            cg.translateBy(x: -CGFloat(region.minX), y: -CGFloat(region.minY))
+            page.draw(with: .mediaBox, to: cg)
+        }
+        return image.pngData()
     }
 
     /// The text-only path (no geometry): `page.string` per page.
@@ -70,7 +97,8 @@ extension LibraryPDF {
         return readingDoc(blocks: PDFReflow.reflow(pages: pages))
     }
 
-    private static func readingDoc(blocks reflowed: [PDFReflow.Block]) -> ArticleDoc? {
+    private static func readingDoc(blocks reflowed: [PDFReflow.Block],
+                                   image: (PDFReflow.Block) -> Data? = { _ in nil }) -> ArticleDoc? {
         let blocks = reflowed.map { b -> ArticleDoc.Block in
             let kind: ArticleDoc.Block.Kind
             switch b.kind {
@@ -78,8 +106,10 @@ extension LibraryPDF {
             case .paragraph: kind = .paragraph
             case .row: kind = .row
             case .page: kind = .page
+            case .figure: kind = .figure
             }
-            return ArticleDoc.Block(kind: kind, text: b.text, page: b.page)
+            return ArticleDoc.Block(kind: kind, text: b.text, page: b.page,
+                                    image: b.kind == .figure ? image(b) : nil)
         }
         guard !blocks.isEmpty else { return nil }
         return ArticleDoc(url: "", title: "", site: "", publisher: nil, byline: nil, published: nil, blocks: blocks)
