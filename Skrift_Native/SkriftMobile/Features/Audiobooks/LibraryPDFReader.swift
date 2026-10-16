@@ -33,6 +33,12 @@ struct LibraryPDFReaderView: View {
     /// The page to open on after a flip between the reading view and the real page.
     @State private var resumePage: Int?
     @State private var highlights: [SourceHighlight] = []
+    /// Q463 (Q462 mock): the comment sheet, the remove-with-comment question, and the share question.
+    @State private var commentRequest: HighlightCommentRequest?
+    @State private var confirmRemove: UUID?
+    @State private var askShare = false
+    @State private var shareFile: PDFShareFile?
+    @State private var shareFailed = false
 
     private var store: AudiobookLibraryStore { .shared }
     private var url: URL { store.audioURL(of: book, fileIndex: 0) }
@@ -54,8 +60,9 @@ struct LibraryPDFReaderView: View {
                                         addHighlight(picked.text, page: LibraryPDF.page(atWord: picked.word, in: doc),
                                                      word: picked.word)
                                     },
-                                    onRemoveHighlight: removeHighlight,
-                                    onOpenNote: { _ in })
+                                    onRemoveHighlight: requestRemove,
+                                    onOpenNote: { _ in },
+                                    onComment: { openComment($0) })
                         .accessibilityIdentifier("library-pdf-reading-view")
                 } else {
                     PDFKitReader(url: url, startPage: startPage, model: model)
@@ -63,16 +70,7 @@ struct LibraryPDFReaderView: View {
                     if let selection = model.selection {
                         SelectionCallout(anchor: selection.rect, items: calloutItems(for: selection))
                     } else if let tapped = model.tappedHighlight {
-                        SelectionCallout(anchor: tapped.rect, items: [
-                            SelectionCallout.Item(title: SourceMenu.copy, id: "library-pdf-highlight-copy") {
-                                UIPasteboard.general.string = tapped.text
-                                model.tappedHighlight = nil
-                            },
-                            SelectionCallout.Item(title: SourceMenu.removeHighlight, id: "library-pdf-highlight-remove") {
-                                removeHighlight(tapped.id)
-                                model.tappedHighlight = nil
-                            },
-                        ])
+                        SelectionCallout(anchor: tapped.rect, items: highlightCalloutItems(for: tapped))
                     }
                 }
             }
@@ -111,6 +109,49 @@ struct LibraryPDFReaderView: View {
         .fullScreenCover(item: $capture, onDismiss: { model.clearSelection(); textModel.clearSelection() }) { request in
             PDFCaptureView(book: book, request: request) { capture = nil }
         }
+        // Q463: a tap on a commented highlight (or its pin) on the real page opens its comment.
+        .onChange(of: model.tappedHighlight) { _, tapped in
+            guard let tapped, highlights.first(where: { $0.id == tapped.id })?.hasComment == true else { return }
+            model.tappedHighlight = nil
+            openComment(tapped.id)
+        }
+        .sheet(item: $commentRequest, onDismiss: refreshHighlights) { request in
+            HighlightCommentSheet(book: book, highlightID: request.highlightID, editing: request.editing,
+                                  onRemove: { id in
+                                      commentRequest = nil
+                                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { requestRemove(id) }
+                                  },
+                                  onFinish: { commentRequest = nil })
+                .presentationDetents([.medium, .large])
+        }
+        // Mock "Remove this highlight?": asked only when a comment would go with it.
+        .confirmationDialog("Remove this highlight?", isPresented: Binding(
+            get: { confirmRemove != nil }, set: { if !$0 { confirmRemove = nil } }), titleVisibility: .visible) {
+            Button("Remove highlight and comment", role: .destructive) {
+                if let id = confirmRemove { removeHighlight(id) }
+                confirmRemove = nil
+            }
+            .accessibilityIdentifier("library-pdf-remove-confirm")
+            Button("Keep it", role: .cancel) { confirmRemove = nil }
+        } message: {
+            Text("Its comment goes too. It also leaves any PDF you share from now on.")
+        }
+        // D214: every share asks: with his highlights and comments, or the clean PDF.
+        .confirmationDialog(SourceMenu.shareAsk, isPresented: $askShare, titleVisibility: .visible) {
+            Button(SourceMenu.shareWithHighlights) { share(.annotated) }
+                .accessibilityIdentifier("library-pdf-share-annotated")
+            Button(SourceMenu.shareClean) { share(.clean) }
+                .accessibilityIdentifier("library-pdf-share-clean")
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(shareMessage)
+        }
+        .sheet(item: $shareFile) { file in
+            ShareSheet(items: [file.url]).presentationDetents([.medium, .large])
+        }
+        .alert("The PDF could not be prepared", isPresented: $shareFailed) {
+            Button("OK", role: .cancel) {}
+        }
         .accessibilityIdentifier("library-pdf-reader")
     }
 
@@ -132,8 +173,25 @@ struct LibraryPDFReaderView: View {
         checked = true
         #if DEBUG
         if mode == .reading { await LibraryPDFDebug.readingAppeared(model: textModel) }
+        if let step = LaunchFlags.pdfCommentStep { await showCommentStep(step) }
         #endif
     }
+
+    #if DEBUG
+    /// Q463 screenshots: one step of the Q462 mock on the sample highlight (`-pdfCommentStep`).
+    private func showCommentStep(_ step: String) async {
+        try? await Task.sleep(for: .milliseconds(1500))
+        guard let h = highlights.first else { return }
+        switch step {
+        case "tap": model.showMenu(forHighlight: h.id)
+        case "write": commentRequest = HighlightCommentRequest(highlightID: h.id, editing: true)
+        case "view": commentRequest = HighlightCommentRequest(highlightID: h.id, editing: false)
+        case "confirm": confirmRemove = h.id
+        case "share": askShare = true
+        default: break
+        }
+    }
+    #endif
 
     /// The mock's callout over a selection on the real page: Copy · Highlight · ❝ Add note
     /// (Remove highlight instead of Highlight when the selection sits in one).
@@ -141,7 +199,7 @@ struct LibraryPDFReaderView: View {
         var items = [SelectionCallout.Item(title: SourceMenu.copy, id: "library-pdf-copy") { model.copySelection() }]
         if let inside = model.highlightID(containing: selection) {
             items.append(SelectionCallout.Item(title: SourceMenu.removeHighlight, id: "library-pdf-remove-highlight") {
-                removeHighlight(inside)
+                requestRemove(inside)
                 model.clearSelection()
             })
         } else {
@@ -154,6 +212,66 @@ struct LibraryPDFReaderView: View {
             startCapture()
         })
         return items
+    }
+
+    /// The mock's callout on a tapped highlight: Copy · Comment · Remove highlight.
+    private func highlightCalloutItems(for tapped: PDFReaderModel.TappedHighlight) -> [SelectionCallout.Item] {
+        let has = highlights.first(where: { $0.id == tapped.id })?.hasComment == true
+        return [
+            SelectionCallout.Item(title: SourceMenu.copy, id: "library-pdf-highlight-copy") {
+                UIPasteboard.general.string = tapped.text
+                model.tappedHighlight = nil
+            },
+            SelectionCallout.Item(title: has ? SourceMenu.editComment : SourceMenu.comment,
+                                  id: "library-pdf-highlight-comment", tint: Color(hex: 0xffd23f)) {
+                model.tappedHighlight = nil
+                commentRequest = HighlightCommentRequest(highlightID: tapped.id, editing: true)
+            },
+            SelectionCallout.Item(title: SourceMenu.removeHighlight, id: "library-pdf-highlight-remove") {
+                model.tappedHighlight = nil
+                requestRemove(tapped.id)
+            },
+        ]
+    }
+
+    /// A commented highlight opens on its comment; one without opens the writing sheet.
+    private func openComment(_ id: UUID) {
+        let has = LibraryHighlights.highlight(id, bookID: book.id, store: store)?.hasComment == true
+        textModel.clearSelection()
+        commentRequest = HighlightCommentRequest(highlightID: id, editing: !has)
+    }
+
+    /// Remove highlight: one tap when it has no comment; asks first when a comment would go too.
+    private func requestRemove(_ id: UUID) {
+        if LibraryHighlights.highlight(id, bookID: book.id, store: store)?.hasComment == true {
+            confirmRemove = id
+        } else {
+            removeHighlight(id)
+        }
+    }
+
+    private func refreshHighlights() {
+        highlights = LibraryHighlights.list(book.id, store: store)
+        model.highlights = highlights
+    }
+
+    private var shareMessage: String {
+        let list = LibraryHighlights.list(book.id, store: store)
+        return "With highlights: a new copy, \(PDFAnnotationExport.summary(list)). "
+            + "The PDF in your Library stays as you imported it. Your Skrift notes are never included."
+    }
+
+    /// Writes a fresh copy (annotated or clean) into tmp and hands it to the share sheet. The
+    /// Library file is only read.
+    private func share(_ variant: PDFAnnotationExport.Variant) {
+        do {
+            let out = try PDFAnnotationExport.write(source: url, highlights: LibraryHighlights.list(book.id, store: store),
+                                                    variant: variant, title: book.title,
+                                                    into: PDFAnnotationExport.shareDirectory())
+            shareFile = PDFShareFile(url: out)
+        } catch {
+            shareFailed = true
+        }
     }
 
     private func toggleMode() {
@@ -214,6 +332,9 @@ struct LibraryPDFReaderView: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
             Menu {
+                // Q463 (mock `.menu .newi`, D214): Share PDF asks with or without highlights each time.
+                Button { askShare = true } label: { Label(SourceMenu.sharePDF, systemImage: "square.and.arrow.up") }
+                    .accessibilityIdentifier("library-pdf-share")
                 // Q356 (mock `srcMenu`): the PDF stays here; a new note links back to this page.
                 Button {
                     var here = store.book(id: book.id) ?? book
@@ -239,6 +360,7 @@ struct LibraryPDFReaderView: View {
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("More")
+            .accessibilityIdentifier("library-pdf-more")
         }
         .padding(.horizontal, 6)
     }
@@ -300,6 +422,12 @@ struct PDFJumpRequest: Identifiable {
     let id = UUID()
     let book: Audiobook
     let page: Int
+}
+
+/// Q463: the copy handed to the share sheet.
+struct PDFShareFile: Identifiable {
+    let id = UUID()
+    let url: URL
 }
 
 /// What the capture screen opens with.
@@ -386,18 +514,16 @@ final class PDFReaderModel: ObservableObject {
             guard let p = doc.page(at: i) else { continue }
             for a in p.annotations where a.userName?.hasPrefix(Self.annotationPrefix) == true { p.removeAnnotation(a) }
         }
-        let yellow = UIColor(red: 1, green: 0.8, blue: 0, alpha: 0.42)
-        for h in highlights {
-            guard let number = h.page, let page = doc.page(at: number - 1) else { continue }
-            guard let match = doc.findString(h.text, withOptions: [.caseInsensitive]).first(where: { $0.pages.first == page })
-            else { continue }
-            for line in match.selectionsByLine() {
-                let a = PDFAnnotation(bounds: line.bounds(for: page), forType: .highlight, withProperties: nil)
-                a.color = yellow
-                a.userName = Self.annotationPrefix + h.id.uuidString
-                page.addAnnotation(a)
-            }
-        }
+        // Q463: the same drawing the shared copy gets (yellow per line, a pin beside a commented one).
+        PDFAnnotationExport.annotate(doc, with: highlights) { Self.annotationPrefix + $0.id.uuidString }
+    }
+
+    /// Screenshots: the menu a tap on this highlight opens, without a touch.
+    func showMenu(forHighlight id: UUID) {
+        guard let view = pdfView, let doc = view.document, let h = highlights.first(where: { $0.id == id }),
+              let n = h.page, let page = doc.page(at: n - 1),
+              let a = page.annotations.first(where: { $0.userName == Self.annotationPrefix + id.uuidString }) else { return }
+        tappedHighlight = TappedHighlight(id: id, text: h.text, rect: view.convert(a.bounds, from: page))
     }
 
     /// A tap at `point` (PDF view coordinates): opens a stored highlight's menu, or closes it.
@@ -414,7 +540,9 @@ final class PDFReaderModel: ObservableObject {
             tappedHighlight = nil
             return
         }
-        tappedHighlight = TappedHighlight(id: id, text: h.text, rect: view.convert(a.bounds, from: page))
+        // A pin's tap anchors on the highlight's first line, not the margin square.
+        let anchor = page.annotations.first { $0.userName == name && $0.type == "Highlight" }?.bounds ?? a.bounds
+        tappedHighlight = TappedHighlight(id: id, text: h.text, rect: view.convert(anchor, from: page))
     }
 }
 
@@ -512,6 +640,8 @@ private struct SelectionCallout: View {
         let title: String
         let id: String
         var accent = false
+        /// Q463 (mock `.callout .new`): Comment in amber.
+        var tint: Color? = nil
         let action: () -> Void
     }
 
@@ -525,8 +655,8 @@ private struct SelectionCallout: View {
                     if i > 0 { Rectangle().fill(.white.opacity(0.2)).frame(width: 0.5, height: 38) }
                     Button(action: item.action) {
                         Text(item.title)
-                            .font(.system(size: 13, weight: item.accent ? .bold : .medium))
-                            .foregroundStyle(item.accent ? Color(hex: 0xc9bfff) : .white)
+                            .font(.system(size: 13, weight: item.accent || item.tint != nil ? .bold : .medium))
+                            .foregroundStyle(item.tint ?? (item.accent ? Color(hex: 0xc9bfff) : .white))
                             .padding(.horizontal, 12).frame(minHeight: 38)
                     }
                     .accessibilityIdentifier(item.id)

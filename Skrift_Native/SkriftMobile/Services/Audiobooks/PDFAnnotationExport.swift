@@ -49,7 +49,11 @@ enum PDFAnnotationExport {
 
     /// Adds one highlight annotation per line of each stored highlight; the first line carries the
     /// comment (so a comment list shows it once). A commented highlight also gets a margin pin.
-    static func annotate(_ doc: PDFDocument, with highlights: [SourceHighlight]) {
+    /// `tag` names each annotation (`userName`): the reader tags its in-memory drawing with the
+    /// highlight's id so a tap finds it; the shared copy leaves them untagged. One drawing, so the
+    /// page view shows what the shared file will.
+    static func annotate(_ doc: PDFDocument, with highlights: [SourceHighlight],
+                         tag: ((SourceHighlight) -> String)? = nil) {
         for h in highlights {
             guard let number = h.page, let page = doc.page(at: number - 1),
                   let match = doc.findString(h.text, withOptions: [.caseInsensitive]).first(where: { $0.pages.first == page })
@@ -62,6 +66,7 @@ enum PDFAnnotationExport {
                 a.color = highlightColor
                 if i == 0, let comment { a.contents = comment }
                 if i == 0 { a.modificationDate = h.commentedAt ?? h.createdAt }
+                if let tag { a.userName = tag(h) }
                 page.addAnnotation(a)
             }
             if let comment {
@@ -70,6 +75,7 @@ enum PDFAnnotationExport {
                 pin.iconType = .comment
                 pin.color = pinColor
                 pin.contents = comment
+                if let tag { pin.userName = tag(h) }
                 page.addAnnotation(pin)
             }
         }

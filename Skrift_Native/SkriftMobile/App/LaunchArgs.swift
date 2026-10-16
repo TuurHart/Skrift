@@ -65,6 +65,10 @@ enum LaunchFlags {
     static var seedLibraryPDF: Bool { args.boolFlag("-seedLibraryPDF") }
     static var showPDFReader: Bool { args.boolFlag("-showPDFReader") }
     static var showPDFToast: Bool { args.boolFlag("-showPDFToast") }
+    /// Q463 (DEBUG): with `-showPDFReader`, seed a comment on the sample highlight and open one step
+    /// of the Q462 mock: `tap` (the highlight's callout), `write`, `view`, `confirm`, `share`, or
+    /// `badge` (no sheet, the commented highlight). Screenshots only.
+    static var pdfCommentStep: String? { args.stringValue("-pdfCommentStep") }
     /// Q460 (DEBUG): `-showPDFFile <path>` puts that PDF on the shelf and opens its reading view
     /// (the D213 fixtures' screenshots). Screenshots only.
     static var showPDFFile: String? { args.stringValue("-showPDFFile") }
