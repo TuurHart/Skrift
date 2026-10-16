@@ -3463,6 +3463,13 @@ gate+: yes
 do: Tuur 2026-10-16 (Dev 192, Library › Add a podcast episode): pasting https://open.spotify.com/episode/2eDqhsYCs70lRUrjw2oYGn showed "This episode is only on Spotify and has no public feed". Wrong: Spotify oEmbed (https://open.spotify.com/oembed?url=…) names it "Andrew Ng on the delusion of AI doom", og:description "Economist Podcasts · Episode", released 2026-10-14; it is in the public Babbage feed (https://feeds.acast.com/public/shows/e421d786-ec36-4148-aa99-7a3b2928a779, slug andrew-ng-on-the-ai-doom-delusion) and the Economist Podcasts feed. Resolve a Spotify episode: read title + show from oEmbed / page meta, find the show via the iTunes Search API (entity=podcast, then its feedUrl; try the show name and "<show> from <publisher>" variants), then match the episode in the feed by normalised title (and date ±2 days). Only when that fails say it is Spotify-only. WIDENED 2026-10-16 (Tuur: "can't add shit, have u tested this properly?" — no: only PodcastFeedTests on hand-made data): one resolver chain for Spotify, Deezer (link.deezer.com short link → deezer.com/episode/<id> → api.deezer.com/episode/<id>), Acast pages, Overcast, Pocket Casts and any page with an RSS alternate link; an honest per-app message when all fail; a REAL-LINK fixture set under test-fixtures/podcast-links/ recorded once from real links (incl. Tuur's Spotify and Deezer links). Also accept an Acast episode page link (shows.acast.com/<show>/episodes/<slug>) by reading its feed. No Spotify scraping beyond the public oEmbed/meta (no login). Test `SpotifyFeedResolveTests` (phone target) on recorded oEmbed + iTunes + feed fixtures for this episode (no live network in tests).
 check: `plan/mtest.sh SpotifyFeedResolveTests`
 
+### Q477 [auto] (doing) install Dev 193 on the iPhone 17 Pro and the Mac
+spec: -
+needs: -
+gate+: yes
+do: Same recipe as Q472 (`grep -n "finding: Q472" plan/RUN.md`): bump SKRIFT_BUILD (phone project.yml) AND CURRENT_PROJECT_VERSION (desktop project.yml) to 193; Debug build for the iPhone 17 Pro (00008150-001658662223C01C, same id for xcodebuild; phone needs -skipMacroValidation -skipPackagePluginValidation), install with devicectl, string-grep a Q476 literal (`lockedEpisodes`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
+check: Report shows build 193 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 193.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5015,3 +5022,5 @@ check: `plan/mtest.sh SpotifyFeedResolveTests`
 - 2026-10-16 15:04 Q476 -> doing — worker out
 - 2026-10-16 15:12 Q474 -> done — gate 77s @cbda3eef
 - 2026-10-16 15:28 Q476 -> done — gate 54s @e469a592
+- 2026-10-16 15:29 Q477 added
+- 2026-10-16 15:29 Q477 -> doing — worker out
