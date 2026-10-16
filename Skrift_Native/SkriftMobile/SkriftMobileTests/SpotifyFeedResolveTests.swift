@@ -38,12 +38,14 @@ final class SpotifyFeedResolveTests: XCTestCase {
     /// host + path + sorted query, the key the recorder wrote.
     private static func key(_ url: URL) -> String {
         let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let query = (comps?.queryItems ?? [])
-            .map { ($0.name, $0.value ?? "") }
-            .sorted { $0.0 == $1.0 ? $0.1 < $1.1 : $0.0 < $1.0 }
-            .map { "\($0.0)=\($0.1)" }
-            .joined(separator: "&")
-        return (url.host ?? "") + url.path + (query.isEmpty ? "" : "?" + query)
+        var pairs: [String] = []
+        for item in comps?.queryItems ?? [] {
+            pairs.append(item.name + "=" + (item.value ?? ""))
+        }
+        pairs.sort()
+        let query: String = pairs.joined(separator: "&")
+        let host: String = url.host ?? ""
+        return query.isEmpty ? host + url.path : host + url.path + "?" + query
     }
 
     /// Replays one folder: `fetch` and `redirect` answer from the manifest; everything else is recorded in `missing`.
@@ -122,7 +124,8 @@ final class SpotifyFeedResolveTests: XCTestCase {
     }
 
     /// Tuur's Deezer share link: link.deezer.com/s/… redirects to deezer.com/episode/947688582, whose page
-    /// names the show (Blindboy) and the episode; the public feed is found through the iTunes search.
+    /// names the episode ("Blindboy") and its show (Fashion Neurosis with Bella Freud); the public feed is
+    /// found through the iTunes search.
     func testDeezerShortLinkResolvesToTheEpisodeInThePublicFeed() async throws {
         try await assertResolves("deezer-fashion-neurosis")
     }

@@ -16,7 +16,6 @@ struct PodcastRefusal: Error, Equatable, LocalizedError {
     static let noPublicFeed = PodcastRefusal(message: "This show has no public feed, so Skrift can't take it.")
     static let spotifyExclusive = PodcastRefusal(message: "This episode is only on Spotify and has no public feed, so Skrift can't take it.")
     static let subscribersOnly = PodcastRefusal(message: "That episode is in the show's feed, but it is for subscribers only, so Skrift can't download it.")
-    static let subscribersOnly = PodcastRefusal(message: "That episode is in the show's feed, but it is for subscribers only, so Skrift can't download it.")
     /// A player-exclusive episode, named after the app so the person knows which link failed.
     static func appOnly(_ app: String) -> PodcastRefusal {
         PodcastRefusal(message: "Skrift can't read \(app)-only episodes: no public feed for this one turned up.")
@@ -574,9 +573,10 @@ extension PodcastResolver {
 
     // MARK: Deezer / Overcast pages
 
-    /// Deezer's episode page: `og:title` is the show, `og:description` the episode title.
+    /// Deezer's episode page: `og:title` is the episode title, `og:description` the show name
+    /// (recorded 2026-10-16: "Blindboy", an episode of "Fashion Neurosis with Bella Freud").
     static func deezerPage(fromMeta meta: [String: String]) -> (show: String, episode: String)? {
-        guard let show = meta["og:title"], let episode = meta["og:description"], !show.isEmpty, !episode.isEmpty else { return nil }
+        guard let episode = meta["og:title"], let show = meta["og:description"], !show.isEmpty, !episode.isEmpty else { return nil }
         return (show, episode)
     }
 

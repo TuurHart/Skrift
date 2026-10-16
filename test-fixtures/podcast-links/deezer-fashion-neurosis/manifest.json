@@ -3,7 +3,7 @@
   "expect": {
     "outcome": "episode",
     "feed": "https://feeds.megaphone.fm/fashionneurosis",
-    "episodeTitle": "Fashion Neurosis with Bella Freud"
+    "episodeTitle": "Blindboy"
   },
   "responses": {
     "link.deezer.com/s/34GX09Z75In2EBkZKHjWB": {
@@ -12,7 +12,7 @@
     "www.deezer.com/episode/947688582": {
       "file": "page.html"
     },
-    "itunes.apple.com/search?entity=podcastEpisode&limit=10&media=podcast&term=Fashion Neurosis with Bella Freud": {
+    "itunes.apple.com/search?entity=podcastEpisode&limit=10&media=podcast&term=Blindboy": {
       "file": "search-episode.json"
     },
     "feeds.megaphone.fm/fashionneurosis": {
