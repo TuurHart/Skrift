@@ -125,7 +125,7 @@ struct HighlightCommentSheet: View {
                 textButton("Cancel", color: .skTextDim, weight: .medium, id: "library-pdf-comment-cancel") { cancel() }
                 VStack(spacing: 1) {
                     Text("Comment").font(.system(size: 15, weight: .bold)).foregroundStyle(Color.skText)
-                    Text("\(pageLabel) \u{00B7} goes into the PDF when you share")
+                    Text("\(pageLabel) \u{00B7} goes into the PDF")
                         .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
                         .lineLimit(1).minimumScaleFactor(0.85)
                 }

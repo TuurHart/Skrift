@@ -82,6 +82,12 @@ struct LibraryPDFReaderView: View {
         }
         .background(Color.skBg.ignoresSafeArea())
         .task { await open() }
+        // Q463 (D214 corrected): leaving the reader writes his highlights and comments into the
+        // Library PDF itself, once per visit and only when they changed.
+        .onDisappear {
+            let id = book.id
+            Task { await LibraryHighlights.writeIntoPDF(bookID: id, store: .shared) }
+        }
         .sheet(isPresented: $showNotes) {
             BookNotesSheetHost(book: book) { memo in
                 showNotes = false
@@ -134,7 +140,7 @@ struct LibraryPDFReaderView: View {
             .accessibilityIdentifier("library-pdf-remove-confirm")
             Button("Keep it", role: .cancel) { confirmRemove = nil }
         } message: {
-            Text("Its comment goes too. It also leaves any PDF you share from now on.")
+            Text("Its comment goes too, and it leaves the PDF when you close it.")
         }
         // D214: every share asks: with his highlights and comments, or the clean PDF.
         .confirmationDialog(SourceMenu.shareAsk, isPresented: $askShare, titleVisibility: .visible) {
@@ -164,8 +170,11 @@ struct LibraryPDFReaderView: View {
         model.page = startPage
         let file = url
         let cache = LibraryPDF.scanCacheURL(for: file)
-        scanning = await Task.detached(priority: .userInitiated) { LibraryPDF.needsRecognition(url: file, cache: cache) }.value
-        let doc = await Task.detached(priority: .userInitiated) { LibraryPDF.readingDoc(url: file, scanCache: cache) }.value
+        // Q463: the text is read from the untouched original once the file carries his annotations,
+        // so rewriting the Library file never invalidates the scan cache (keyed on size + mtime).
+        let source = PDFAnnotationExport.pristine(file)
+        scanning = await Task.detached(priority: .userInitiated) { LibraryPDF.needsRecognition(url: source, cache: cache) }.value
+        let doc = await Task.detached(priority: .userInitiated) { LibraryPDF.readingDoc(url: source, scanCache: cache) }.value
         scanning = false
         readingDoc = doc
         mode = PDFReaderMode.resolved(hasReadingView: doc != nil,
@@ -257,15 +266,16 @@ struct LibraryPDFReaderView: View {
 
     private var shareMessage: String {
         let list = LibraryHighlights.list(book.id, store: store)
-        return "With highlights: a new copy, \(PDFAnnotationExport.summary(list)). "
-            + "The PDF in your Library stays as you imported it. Your Skrift notes are never included."
+        return "With highlights: \(PDFAnnotationExport.summary(list)), as real PDF annotations. "
+            + "Clean: the PDF as you imported it. Your Skrift notes are never included."
     }
 
-    /// Writes a fresh copy (annotated or clean) into tmp and hands it to the share sheet. The
-    /// Library file is only read.
+    /// Hands the share sheet a copy: the Library file with his annotations (brought up to date
+    /// first), or the untouched original kept beside it.
     private func share(_ variant: PDFAnnotationExport.Variant) {
         do {
-            let out = try PDFAnnotationExport.write(source: url, highlights: LibraryHighlights.list(book.id, store: store),
+            let list = LibraryHighlights.list(book.id, store: store).filter { $0.page != nil }
+            let out = try PDFAnnotationExport.share(file: url, highlights: list,
                                                     variant: variant, title: book.title,
                                                     into: PDFAnnotationExport.shareDirectory())
             shareFile = PDFShareFile(url: out)
@@ -512,7 +522,9 @@ final class PDFReaderModel: ObservableObject {
         guard let view = pdfView, let doc = view.document else { return }
         for i in 0..<doc.pageCount {
             guard let p = doc.page(at: i) else { continue }
-            for a in p.annotations where a.userName?.hasPrefix(Self.annotationPrefix) == true { p.removeAnnotation(a) }
+            // Ours: the in-memory drawing, and (Q463) the copy written into the file on the last leave.
+            for a in p.annotations where a.userName?.hasPrefix(Self.annotationPrefix) == true
+                || a.userName == PDFAnnotationExport.persistedAuthor { p.removeAnnotation(a) }
         }
         // Q463: the same drawing the shared copy gets (yellow per line, a pin beside a commented one).
         PDFAnnotationExport.annotate(doc, with: highlights) { Self.annotationPrefix + $0.id.uuidString }

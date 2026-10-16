@@ -55,6 +55,22 @@ enum LibraryHighlights {
         store.update(book)
     }
 
+    /// Q463 (D214 corrected): leaving the PDF reader writes his highlights and comments into the
+    /// Library PDF itself (off the main thread; a no-op when nothing changed since the last write).
+    /// Returns whether the file was rewritten.
+    @discardableResult
+    static func writeIntoPDF(bookID: UUID, store: AudiobookLibraryStore) async -> Bool {
+        guard let book = store.book(id: bookID), book.kind == .pdf else { return false }
+        let file = store.audioURL(of: book, fileIndex: 0)
+        let list = book.highlights?.filter { $0.page != nil } ?? []
+        return await Task.detached(priority: .utility) {
+            do { return try PDFAnnotationExport.writeBack(file: file, highlights: list) } catch {
+                DevLog.log("PDF annotation write failed: \(error)")
+                return false
+            }
+        }.value
+    }
+
     /// Where a spoken comment's audio lives: `comments/` inside the Library item's folder.
     static func commentAudioURL(_ name: String, bookID: UUID, store: AudiobookLibraryStore) -> URL {
         store.folder(for: bookID).appendingPathComponent("comments", isDirectory: true)
