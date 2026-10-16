@@ -3365,7 +3365,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html`, iPhone frames, drawn from source (`LibraryPDFReader.swift`, `SourceHighlight`, Highlight in the reading and page views). Tuur 2026-10-15 (D212): highlights should go INTO the PDF as real annotations with his comments, so he can share the PDF later with his thoughts. Show: adding a comment to a highlight (and editing/removing it), how commented highlights look in the reading view and the page view, and a 'Share PDF with highlights' action (does the library PDF itself carry the annotations, or only the shared copy? show both options and ask). One agent writes this file.
 check: Tuur clicked through it and said go.
 
-### Q463 [auto] (doing) build PDF highlight comments and annotated PDF sharing per the mock
+### Q463 [auto] (done) build PDF highlight comments and annotated PDF sharing per the mock
 spec: D212
 needs: Q462
 gate+: yes
@@ -4975,3 +4975,4 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-16 11:05 Q461 -> done — gate 64s @545a0b39
 - 2026-10-16 11:50 Q462 -> done — Tuur 2026-10-16: rest looks really good; voice comments too; share asks with or without edits (D214)
 - 2026-10-16 11:50 Q463 -> doing — worker out
+- 2026-10-16 12:22 Q463 -> done — gate 98s @bc2dee38
