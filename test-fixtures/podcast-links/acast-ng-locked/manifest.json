@@ -1,0 +1,13 @@
+{
+  "link": "https://shows.acast.com/theeconomistbabbage/episodes/andrew-ng-on-the-ai-doom-delusion",
+  "expect": {
+    "outcome": "subscribersOnly",
+    "feed": "https://feeds.acast.com/public/shows/theeconomistbabbage",
+    "episodeTitle": "Andrew Ng on the delusion of AI doom"
+  },
+  "responses": {
+    "feeds.acast.com/public/shows/theeconomistbabbage": {
+      "file": "feed.xml"
+    }
+  }
+}

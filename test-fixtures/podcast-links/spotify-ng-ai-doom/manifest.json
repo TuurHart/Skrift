@@ -1,0 +1,31 @@
+{
+  "link": "https://open.spotify.com/episode/2eDqhsYCs70lRUrjw2oYGn",
+  "expect": {
+    "outcome": "subscribersOnly",
+    "feed": "https://access.acast.com/rss/ec380acc-fe13-46a0-991f-a1e508d126f8",
+    "episodeTitle": "Andrew Ng on the delusion of AI doom"
+  },
+  "responses": {
+    "open.spotify.com/oembed?url=https://open.spotify.com/episode/2eDqhsYCs70lRUrjw2oYGn": {
+      "file": "oembed.json"
+    },
+    "open.spotify.com/episode/2eDqhsYCs70lRUrjw2oYGn": {
+      "file": "page.html"
+    },
+    "itunes.apple.com/search?entity=podcastEpisode&limit=10&media=podcast&term=Andrew Ng on the delusion of AI doom": {
+      "file": "search-episode.json"
+    },
+    "itunes.apple.com/search?entity=podcast&limit=10&media=podcast&term=Economist Podcasts": {
+      "file": "r4"
+    },
+    "itunes.apple.com/search?entity=podcast&limit=10&media=podcast&term=Economist Podcasts from The Economist": {
+      "file": "r5"
+    },
+    "itunes.apple.com/search?entity=podcast&limit=10&media=podcast&term=Economist Podcasts from Economist": {
+      "file": "r6"
+    },
+    "access.acast.com/rss/ec380acc-fe13-46a0-991f-a1e508d126f8": {
+      "file": "feed.xml"
+    }
+  }
+}

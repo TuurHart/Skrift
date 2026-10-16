@@ -1,0 +1,19 @@
+{
+  "link": "https://podcasts.apple.com/us/podcast/the-blindboy-podcast/id1300577518?i=1000796223903",
+  "expect": {
+    "outcome": "episode",
+    "feed": "https://feeds.acast.com/public/shows/9d5c107b-68d6-4c1b-8c80-45ee6a84c947",
+    "episodeTitle": "The Importance of Supporting Striking Workers"
+  },
+  "responses": {
+    "itunes.apple.com/lookup?entity=podcast&id=1300577518": {
+      "file": "lookup-show.json"
+    },
+    "itunes.apple.com/lookup?entity=podcastEpisode&id=1300577518&limit=200": {
+      "file": "lookup-episodes.json"
+    },
+    "feeds.acast.com/public/shows/9d5c107b-68d6-4c1b-8c80-45ee6a84c947": {
+      "file": "feed.xml"
+    }
+  }
+}

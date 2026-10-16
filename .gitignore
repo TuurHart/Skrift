@@ -93,6 +93,8 @@ test-fixtures/*
 !test-fixtures/mac-authored-memos/
 # Q353: the saved NRC Het Uur feed (trimmed, public RSS) the phone podcast tests parse.
 !test-fixtures/podcasts/
+# Q476: real podcast-link recordings (one folder per link: manifest + saved responses), public data.
+!test-fixtures/podcast-links/
 # Q355: two saved article pages + one video page (hand-written, small) the phone article tests parse.
 !test-fixtures/articles/
 # Q458 (D213): generated real-shaped PDFs + their expected reading text (generate.py, synthetic).

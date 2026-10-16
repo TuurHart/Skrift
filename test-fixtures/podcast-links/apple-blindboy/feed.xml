@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="/global/feed/rss.xslt" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/" xmlns:podaccess="https://access.acast.com/schema/1.0/" xmlns:acast="https://schema.acast.com/1.0/">
+   <script src="https://feeds.acast.com/global/feed/xslt-polyfill.min.js" xmlns="http://www.w3.org/1999/xhtml"></script>
+    <channel>
+		<ttl>60</ttl>
+		<generator>acast.com</generator>
+		<title>The Blindboy Podcast</title>
+		<link>https://twitter.com/Rubberbandits</link>
+		<atom:link href="https://feeds.acast.com/public/shows/9d5c107b-68d6-4c1b-8c80-45ee6a84c947" rel="self" type="application/rss+xml"/>
+		<language>en</language>
+		<copyright>Blindboyboatclub</copyright>
+		<itunes:keywords>fiction, art,comedy,factual</itunes:keywords>
+		<itunes:author>Blindboyboatclub</itunes:author>
+		<itunes:subtitle>Hosted by Blindboyboatclub, who is an artist and author. An eclectic podcast containing short fiction, interviews and comedy.</itunes:subtitle>
+		<itunes:summary><![CDATA[Hosted by Blindboyboatclub, who is an artist and author. An eclectic podcast containing short fiction, interviews and comedy.<hr><p style='color:grey; font-size:0.75em;'> Hosted on Acast. See <a style='color:grey;' target='_blank' rel='noopener noreferrer' href='https://acast.com/privacy'>acast.com/privacy</a> for more information.</p>]]></itunes:summary>
+		<description><![CDATA[Hosted by Blindboyboatclub, who is an artist and author. An eclectic podcast containing short fiction, interviews and comedy.<hr><p style='color:grey; font-size:0.75em;'> Hosted on Acast. See <a style='color:grey;' target='_blank' rel='noopener noreferrer' href='https://acast.com/privacy'>acast.com/privacy</a> for more information.</p>]]></description>
+		<itunes:explicit>true</itunes:explicit>
+		<itunes:owner>
+			<itunes:name>Blindboyboatclub</itunes:name>
+			<itunes:email>blindboypodcast@gmail.com</itunes:email>
+		</itunes:owner>
+		<acast:showId>9d5c107b-68d6-4c1b-8c80-45ee6a84c947</acast:showId>
+		<acast:showUrl>blindboy</acast:showUrl>
+		<acast:signature key="EXAMPLE" algorithm="aes-256-cbc"><![CDATA[wbG1Z7+6h9QOi+CR1Dv0uQ==]]></acast:signature>
+		<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmStkiTEE0CNxIPxmLPEYNwN8JcQ4bXX8FAQw6qUVW5tXhItbJeDFCms6g/S+7uRWuy149fCgrICmeajbnXORXdWuM1vDpdrpuF9ZxdvdcfCHlCXk+F4W/yvYQ84+R3ZEbw==]]></acast:settings>
+        <acast:network id="c5a111ad-1db1-22bf-8e69-59fe0c03a720" slug="david-chambers-the-blindboy-podcast"><![CDATA[David Chambers - The Blindboy Podcast]]></acast:network>
+		<acast:importedFeed>https://rss.acast.com/blindboy</acast:importedFeed>
+		<itunes:type>episodic</itunes:type>
+			<itunes:image href="https://assets.pippa.io/shows/620e5a91bbc31323491225e8/show-cover.jpg"/>
+			<image>
+				<url>https://assets.pippa.io/shows/620e5a91bbc31323491225e8/show-cover.jpg</url>
+				<link>https://twitter.com/Rubberbandits</link>
+				<title>The Blindboy Podcast</title>
+			</image>
+			<itunes:new-feed-url>https://feeds.acast.com/public/shows/9d5c107b-68d6-4c1b-8c80-45ee6a84c947</itunes:new-feed-url>
+		<item>
+			<title>The Importance of Supporting Striking Workers </title>
+			<itunes:title>The Importance of Supporting Striking Workers </itunes:title>
+			<pubDate>Tue, 13 Oct 2026 23:38:18 GMT</pubDate>
+			<itunes:duration>1:04:28</itunes:duration>
+			<enclosure url="https://sphinx.acast.com/p/acast/s/blindboy/e/6acec0ea3dc1c1be4ac40950/media.mp3" length="154737949" type="audio/mpeg"/>
+			<guid isPermaLink="false">6acec0ea3dc1c1be4ac40950</guid>
+			<itunes:explicit>true</itunes:explicit>
+			<link>https://shows.acast.com/blindboy/episodes/the-importance-of-supporting-striking-workers</link>
+			<acast:episodeId>6acec0ea3dc1c1be4ac40950</acast:episodeId>
+			<acast:showId>9d5c107b-68d6-4c1b-8c80-45ee6a84c947</acast:showId>
+			<acast:episodeUrl>the-importance-of-supporting-striking-workers</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz98KqnlmuyV6jWQfksldkRDUPRpUhiqwuhubLPXobkn1jm2DP85fTlzyqQvRYKB2htfRWAkMd0fbGxcKOkI/jH4VCTeuDe3HoHksh3dv6qkZ7dQu0Pfgy4AIvLuaoJYT9fCqtppSGPACGEHCA8Dx+HpPiLoXwHjSd7lXmY3lfYkVS+ikd43zihlIUFNsGvfDAudLPr9bsguSgNtNsR8t3R1qj+jv+AngrXdAb1NN6u/5oiPvn0kk8HBIzSTV4wbYn91Y96I6ftqJqgc2w6EvQHI7clxLYQq0Idf9i8vYqLPvzj4aLZtYXbELg6mHahbk5ygJ7kJ//qNOX7t0gV+UMAyewdm0XboOMO5iGnV5c/mE26soBq7u8TmXH94uua9pZM]]></acast:settings>
+			<itunes:subtitle>Irelands revolutionary history of boycotts and strikes. Reimagining the wren for Limerick </itunes:subtitle>
+			<itunes:episodeType>full</itunes:episodeType>
+			<itunes:season>1</itunes:season>
+			<itunes:episode>478</itunes:episode>
+			<itunes:image href="https://assets.pippa.io/shows/620e5a91bbc31323491225e8/show-cover.jpg"/>
+			<description><![CDATA[Irelands revolutionary history of boycotts and strikes. Reimagining the wren for Limerick <hr><p style='color:grey; font-size:0.75em;'> Hosted on Acast. See <a style='color:grey;' target='_blank' rel='noopener noreferrer' href='https://acast.com/privacy'>acast.com/privacy</a> for more information.</p>]]></description>
+			<itunes:summary><![CDATA[Irelands revolutionary history of boycotts and strikes. Reimagining the wren for Limerick <hr><p style='color:grey; font-size:0.75em;'> Hosted on Acast. See <a style='color:grey;' target='_blank' rel='noopener noreferrer' href='https://acast.com/privacy'>acast.com/privacy</a> for more information.</p>]]></itunes:summary>
+		</item>
+</channel></rss>
