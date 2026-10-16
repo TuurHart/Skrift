@@ -99,6 +99,12 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// Q404 (D207): highlights without a note on a PDF or an article. Synced: they ride this same
     /// blob (never stripped by `sanitizedForSync`), so the carrier needs no schema change.
     var highlights: [SourceHighlight]? = nil
+    /// Q474 (C267): removed highlights' tombstones, highlight id (uuidString) → when it was removed,
+    /// so two devices' lists merge per highlight (`SourceHighlights.merged`) instead of one whole
+    /// list overwriting the other. Additive and optional in the same blob: an older build ignores
+    /// the key. A synced blob WITHOUT the key was written by a pre-Q474 build, and the receiver
+    /// falls back to whole-blob LWW for that one adopt (`AudiobookCloudSync.mergedHighlights`).
+    var highlightRemovals: [String: Date]? = nil
 
     /// The kind to show and branch on: nil means a book.
     var sourceKind: LibrarySourceKind { kind ?? .book }
@@ -136,6 +142,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         copy.epubFilenames = nil
         copy.epubChapters = nil
         copy.detectedChapters = nil
+        // Q474: always carry the tombstone key (empty when nothing was removed), so a receiver
+        // can tell this blob merges per highlight from one a pre-Q474 build wrote.
+        copy.highlightRemovals = highlightRemovals ?? [:]
         return copy
     }
 
@@ -225,7 +234,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         // (the Odyssey device report). The sync blob still never carries them: every
         // send path encodes `sanitizedForSync()`, which nils all of them first.
         case epubFilename, epubFilenames, epubChapters
-        case kind, publishedAt, sourceURL, site, highlights
+        case kind, publishedAt, sourceURL, site, highlights, highlightRemovals
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -247,6 +256,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         sourceURL = try c.decodeIfPresent(String.self, forKey: .sourceURL)
         site = try c.decodeIfPresent(String.self, forKey: .site)
         highlights = (try? c.decodeIfPresent([SourceHighlight].self, forKey: .highlights)) ?? nil
+        highlightRemovals = (try? c.decodeIfPresent([String: Date].self, forKey: .highlightRemovals)) ?? nil
         // An unknown raw value (a kind a newer build wrote) reads as nil = book, never a failed decode.
         kind = (try? c.decodeIfPresent(LibrarySourceKind.self, forKey: .kind)) ?? nil
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
@@ -292,6 +302,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(sourceURL, forKey: .sourceURL)
         try c.encodeIfPresent(site, forKey: .site)
         try c.encodeIfPresent(highlights, forKey: .highlights)
+        try c.encodeIfPresent(highlightRemovals, forKey: .highlightRemovals)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)

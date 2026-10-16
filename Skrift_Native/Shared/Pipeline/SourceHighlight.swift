@@ -21,9 +21,13 @@ struct SourceHighlight: Codable, Equatable, Sendable, Identifiable {
     var commentAudio: String? = nil
     /// When the comment was last written (the comment sheet's "edited …" line).
     var commentedAt: Date? = nil
+    /// Q474 (C267): when the comment last changed, a clear included (`commentedAt` goes nil on a
+    /// clear). Two devices' copies of one highlight keep the later comment. Additive and optional.
+    var commentStampedAt: Date? = nil
 
     init(id: UUID = UUID(), text: String, page: Int?, word: Int, createdAt: Date = Date(),
-         comment: String? = nil, commentAudio: String? = nil, commentedAt: Date? = nil) {
+         comment: String? = nil, commentAudio: String? = nil, commentedAt: Date? = nil,
+         commentStampedAt: Date? = nil) {
         self.id = id
         self.text = text
         self.page = page
@@ -32,7 +36,11 @@ struct SourceHighlight: Codable, Equatable, Sendable, Identifiable {
         self.comment = comment
         self.commentAudio = commentAudio
         self.commentedAt = commentedAt
+        self.commentStampedAt = commentStampedAt
     }
+
+    /// The comment's LWW clock: the change stamp, else (a pre-Q474 copy) when it was written.
+    var commentClock: Date { commentStampedAt ?? commentedAt ?? .distantPast }
 
     /// The comment, trimmed; nil when there is none or it is blank.
     var commentText: String? {
@@ -73,8 +81,41 @@ enum SourceHighlights {
             out.comment = blank ? nil : text
             out.commentAudio = audio
             out.commentedAt = (blank && audio == nil) ? nil : now
+            out.commentStampedAt = now
             return out
         }
+    }
+
+    /// Q474 (C267): how long a removal's tombstone is kept (like a removed name).
+    static let removalLifetime: TimeInterval = 90 * 86_400
+
+    /// Q474 (C267): merge two devices' copies of one source's highlights per highlight id, so
+    /// highlights or comments made offline on two devices both survive. `removals` = highlight id
+    /// (uuidString) → when it was removed. Adds union; a removal beats any copy created at or
+    /// before it; a highlight on both sides keeps the later comment (`commentClock`). Tombstones
+    /// older than `removalLifetime` are dropped after they are applied. Commutative: the result is
+    /// ordered by (createdAt, id), so every device reaches the same list in any sync order.
+    static func merged(_ mine: [SourceHighlight], removals myRemovals: [String: Date],
+                       with theirs: [SourceHighlight], removals theirRemovals: [String: Date],
+                       now: Date = Date()) -> (highlights: [SourceHighlight], removals: [String: Date]) {
+        let removals = myRemovals.merging(theirRemovals) { max($0, $1) }
+        var byID: [UUID: SourceHighlight] = [:]
+        for h in mine + theirs {
+            guard let have = byID[h.id] else { byID[h.id] = h; continue }
+            byID[h.id] = laterComment(have, h)
+        }
+        let kept = byID.values
+            .filter { h in removals[h.id.uuidString].map { $0 < h.createdAt } ?? true }
+            .sorted { ($0.createdAt, $0.id.uuidString) < ($1.createdAt, $1.id.uuidString) }
+        let live = removals.filter { now.timeIntervalSince($0.value) < removalLifetime }
+        return (kept, live)
+    }
+
+    /// Of two copies of one highlight, the one whose comment changed last (ties broken by the
+    /// comment text, so the pick never depends on which side is "mine").
+    private static func laterComment(_ a: SourceHighlight, _ b: SourceHighlight) -> SourceHighlight {
+        if a.commentClock != b.commentClock { return a.commentClock > b.commentClock ? a : b }
+        return (a.comment ?? "", a.commentAudio ?? "") >= (b.comment ?? "", b.commentAudio ?? "") ? a : b
     }
 
     /// The occurrence of `needle` in `haystack` (inside `within`, if given) whose word index is
