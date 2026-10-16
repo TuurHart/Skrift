@@ -15,6 +15,7 @@ struct PodcastRefusal: Error, Equatable, LocalizedError {
     static let notAFeed = PodcastRefusal(message: "That link isn't a podcast feed Skrift can read.")
     static let noPublicFeed = PodcastRefusal(message: "This show has no public feed, so Skrift can't take it.")
     static let spotifyExclusive = PodcastRefusal(message: "This episode is only on Spotify and has no public feed, so Skrift can't take it.")
+    static let subscribersOnly = PodcastRefusal(message: "That episode is in the show's feed, but it is for subscribers only, so Skrift can't download it.")
     static let episodeNotInFeed = PodcastRefusal(message: "That episode isn't in the show's public feed any more.")
     static let notALink = PodcastRefusal(message: "Paste a podcast link, from Apple Podcasts, Spotify or a feed address.")
     static let noAudio = PodcastRefusal(message: "That episode has no audio file Skrift can download.")

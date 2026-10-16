@@ -1,0 +1,19 @@
+{
+  "link": "https://overcast.fm/+HfJiJmHrg",
+  "expect": {
+    "outcome": "episode",
+    "feed": "https://feeds.simplecast.com/5nKJV82u",
+    "episodeTitle": "Dingaling-Rich Environment"
+  },
+  "responses": {
+    "overcast.fm/+HfJiJmHrg": {
+      "file": "page.html"
+    },
+    "itunes.apple.com/search?entity=podcastEpisode&limit=10&media=podcast&term=Dingaling-Rich Environment": {
+      "file": "search-episode.json"
+    },
+    "feeds.simplecast.com/5nKJV82u": {
+      "file": "feed.xml"
+    }
+  }
+}

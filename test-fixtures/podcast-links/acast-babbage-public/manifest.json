@@ -1,0 +1,13 @@
+{
+  "link": "https://shows.acast.com/theeconomistbabbage/episodes/trailer-tocqueville-road-trip",
+  "expect": {
+    "outcome": "episode",
+    "feed": "https://feeds.acast.com/public/shows/theeconomistbabbage",
+    "episodeTitle": "Trailer: Tocqueville Road Trip"
+  },
+  "responses": {
+    "feeds.acast.com/public/shows/theeconomistbabbage": {
+      "file": "feed.xml"
+    }
+  }
+}

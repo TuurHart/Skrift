@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/template/rss.xsl"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/" xmlns:podaccess="https://access.acast.com/schema/1.0/" xmlns:acast="https://schema.acast.com/1.0/">
+   <channel>
+		<ttl>60</ttl>
+		<generator>acast.com</generator>
+		<title>Babbage from The Economist</title>
+		<link>https://www.economist.com/</link>
+		<atom:link href="https://access.acast.com/rss/e421d786-ec36-4148-aa99-7a3b2928a779/default" rel="self" type="application/rss+xml"/>
+
+    <language>en</language>
+		<copyright>Copyright © The Economist Newspaper Limited 2023. All rights reserved.</copyright>
+		<itunes:keywords><![CDATA[Science & technology,Artificial intelligence]]></itunes:keywords>
+		<itunes:author>The Economist</itunes:author>
+		<itunes:subtitle>Learn about the latest innovations and discoveries in science and technology.</itunes:subtitle>
+		<itunes:summary>&lt;p&gt;Babbage is &lt;em&gt;The Economist&lt;/em&gt;’s weekly podcast on science and technology—named after Charles Babbage, the grandfather of computing. Explore the science changing the way we live from AI to genetics, particle physics and space travel with Alok Jha. This award-winning podcast features in-depth interviews with top scientists and special episodes investigating wellness trends. Published every Wednesday.&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;em&gt;If you’re already a subscriber to The Economist, you’ll have full access to all our shows as part of your subscription.&lt;/em&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;em&gt;For more information about Economist Podcasts+, including how to get access, please visit our FAQs page here &lt;/em&gt;&lt;a href=&quot;https://myaccount.economist.com/s/article/What-is-Economist-Podcasts&quot; rel=&quot;noopener noreferrer&quot; target=&quot;_blank&quot;&gt;&lt;em&gt;https://myaccount.economist.com/s/article/What-is-Economist-Podcasts&lt;/em&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;hr&gt;&lt;p style=&apos;color:grey; font-size:0.75em;&apos;&gt; Hosted on Acast. See &lt;a style=&apos;color:grey;&apos; target=&apos;_blank&apos; rel=&apos;noopener noreferrer&apos; href=&apos;https://acast.com/privacy&apos;&gt;acast.com/privacy&lt;/a&gt; for more information.&lt;/p&gt;</itunes:summary>
+		<description>&lt;p&gt;Babbage is &lt;em&gt;The Economist&lt;/em&gt;’s weekly podcast on science and technology—named after Charles Babbage, the grandfather of computing. Explore the science changing the way we live from AI to genetics, particle physics and space travel with Alok Jha. This award-winning podcast features in-depth interviews with top scientists and special episodes investigating wellness trends. Published every Wednesday.&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;em&gt;If you’re already a subscriber to The Economist, you’ll have full access to all our shows as part of your subscription.&lt;/em&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;em&gt;For more information about Economist Podcasts+, including how to get access, please visit our FAQs page here &lt;/em&gt;&lt;a href=&quot;https://myaccount.economist.com/s/article/What-is-Economist-Podcasts&quot; rel=&quot;noopener noreferrer&quot; target=&quot;_blank&quot;&gt;&lt;em&gt;https://myaccount.economist.com/s/article/What-is-Economist-Podcasts&lt;/em&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;hr&gt;&lt;p style=&apos;color:grey; font-size:0.75em;&apos;&gt; Hosted on Acast. See &lt;a style=&apos;color:grey;&apos; target=&apos;_blank&apos; rel=&apos;noopener noreferrer&apos; href=&apos;https://acast.com/privacy&apos;&gt;acast.com/privacy&lt;/a&gt; for more information.&lt;/p&gt;</description>
+		<itunes:explicit>false</itunes:explicit>
+		<itunes:owner>
+			<itunes:name>The Economist</itunes:name>
+			<itunes:email>podcasts@economist.com</itunes:email>
+		</itunes:owner>
+		<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+		<acast:showUrl>theeconomistbabbage</acast:showUrl>
+		<acast:signature key="EXAMPLE" algorithm="aes-256-cbc"><![CDATA[wbG1Z7+6h9QOi+CR1Dv0uQ==]]></acast:signature>
+		<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmStkiTEE0CNxIPxmLPEYNwN8JcQ4bXX8FAQw6qUVW5tXhItbJeDFCms6g/S+7uRWuy149fCgrICmeajbnXORXdWuM1vDpdrpuF9ZxdvdcfCHlCXk+F4W/yvYQ84+R3ZEbw==]]></acast:settings>
+		<acast:network id="807caab7-4464-43dd-8fb0-0d9c7bfec348" slug="economist"><![CDATA[The Economist Newspaper Ltd]]></acast:network>
+		<acast:importedFeed>http://rss.acast.cloud/theeconomistbabbage</acast:importedFeed>
+		<itunes:type>episodic</itunes:type>
+		<itunes:image href="https://assets.pippa.io/shows/62e286a934d4d9fe5e874247/1750675350938-4624db2c-2a94-4916-bb7b-a1fb22291771.jpeg"/>
+
+  <image>
+			<url>https://assets.pippa.io/shows/62e286a934d4d9fe5e874247/1750675350938-4624db2c-2a94-4916-bb7b-a1fb22291771.jpeg</url>
+			<link>https://www.economist.com/</link>
+			<title>Babbage from The Economist</title>
+		</image>
+			<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>Andrew Ng on the delusion of AI doom</itunes:title>
+			<pubDate>Wed, 14 Oct 2026 14:00:00 GMT</pubDate>
+			<itunes:duration>40:33</itunes:duration>
+			<guid isPermaLink="false">6acf5b2fb9a0305b852ec273</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://shows.acast.com/theeconomistbabbage/episodes/andrew-ng-on-the-ai-doom-delusion</link>
+			<acast:episodeId>6acf5b2fb9a0305b852ec273</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>andrew-ng-on-the-ai-doom-delusion</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9Xe6OXTbsrdKrMfAhZ+63BwEgMV6r3FZOTyvKuyBKBVkfu3rfkx6TO69shttEBVPH9XBrfpi+q6sUftTUOii6LewLvd88uDPPHWOKvNZqEqdnrtTxl1Yb1IhOVm0cGkc7/yzyeFgxTSSlY61DJ7HYzvYREwylVFgIciitQgb6v3OHaMyKu4/Woa74jMb11EXh1gHWEda9adGxpAfrIgomozdJLUVQRNaMstgkq+mil0C8RhUnjc3607mGBh1Tdk21Mg53Zj+KV0yJ/qicreLipg==]]></acast:settings>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>Will AI destroy humanity? Amid doom-laden debates on the trajectory of the technology, our guest has a refreshingly optimistic perspective. Andrew Ng is the co-founder of Google Brain and one of the architects of modern AI. Unlike many of the other AI heavyweights, however, he doesn’t think the technology poses the existential threat to humans that everyone else is warning about. What makes him so positive?</p><br><p>Guests and hosts:</p><ul><li>Alex Hern, AI writer at <em>The Economist</em></li><li>Andrew Ng, co-founder of Google Brain, Coursera and LearnVector</li><li>Alok Jha, <em>The Economist</em>’s science and technology editor </li></ul><p><br></p><p>Watch Alex’s full interview with Andrew Ng on <em>The Economist</em>’s “<u><a href="https://www.economist.com/insider/inside-tech/why-one-of-the-worlds-most-influential-computer-scientists-believes-ai-wont-destroy-humanity?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">Inside Tech</a></u>”.</p><br><p>Topics covered:</p><ul><li>AI existential risk</li><li>AI jobs apocalypse </li><li>Artificial general intelligence </li></ul><p><br></p><p>Transcripts of our podcasts are available via <u><a href="http://economist.com/podcasts" rel="noopener noreferrer" target="_blank">economist.com/podcasts</a></u>.</p><br><p>Listen to what matters most, from global politics and business to science and technology—<u><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank">subscribe to </a></u><em><u><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank">The Economist</a></u></em>.</p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>The 2026 Nobel prizes for science</itunes:title>
+			<pubDate>Wed, 07 Oct 2026 18:54:58 GMT</pubDate>
+			<itunes:duration>38:29</itunes:duration>
+			<guid isPermaLink="false">6ac67b7b9fea6e0a64d223c6</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://shows.acast.com/theeconomistbabbage/episodes/the-2026-nobel-prizes-for-science</link>
+			<acast:episodeId>6ac67b7b9fea6e0a64d223c6</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>the-2026-nobel-prizes-for-science</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9wrSwoIEs5zYtRpic4CmCguHOqaZuf2oLvt9N1MjRzCvLHy8hggcKOMbHU5zD9snbPPyn9CRHOdBYo5HVy1PYpXpTNIOlqwNLIliRbeLykxkyzM5gbtbNLlTrdTRfauFdq6MDYtFM66LIkv3eiuCzbWrRZfdzdtqf2I2i1smrkm5tBOOcL9sKAoJafkwS0yiAW9NBy3xHqQL1HwxRHy+683TugUSiIfMH9HcMgWUV01SIbyStA7pzIwCztYC6+FSgVncV5ZaRXaI+0f/5XFLmgA==]]></acast:settings>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>Six more scientists have joined the esteemed ranks of Nobel laureates this week. Their work spanned <u><a href="https://www.economist.com/science-and-technology/2026/10/05/the-nobel-for-medicine-goes-to-lighting-up-the-brain?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">optogenetics</a></u>, <u><a href="https://www.economist.com/science-and-technology/2026/10/06/a-nobel-for-the-strangest-telescope-ever-built?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">neutrino detection</a></u> and <u><a href="https://www.economist.com/science-and-technology/2026/10/07/a-nobel-for-illuminating-lifes-asymmetry?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">mirror-image molecules</a></u>. How will their discoveries change the world?</p><br><p>Guests and hosts:</p><ul><li>Geoff Carr, senior editor for science and technology at <em>The Economist</em></li><li>Sam Wikeley, <em>The Economist</em>’s science correspondent</li><li>Nikita Ostrovsky, science and tech writer at <em>The Economist</em></li><li>Alok Jha, <em>The Economist</em>’s science and technology editor</li></ul><p><br></p><p>Topics covered:</p><ul><li>Optogenetics</li><li>Neutrino astronomy</li><li>Life’s asymmetry</li></ul><p><br></p><p>For more, listen to our September 2025 episode, “<u><a href="https://www.economist.com/podcasts/2025/09/03/juno-the-hunt-for-the-universes-most-elusive-particles" rel="noopener noreferrer" target="_blank">JUNO: the hunt for the universe’s most elusive particles</a></u>”.</p><br><p>Transcripts of our podcasts are available via <u><a href="http://economist.com/podcasts" rel="noopener noreferrer" target="_blank">economist.com/podcasts</a></u>.</p><br><p>Listen to what matters most, from global politics and business to science and technology—<u><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank">subscribe to </a></u><em><u><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank">The Economist</a></u></em>.</p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>Nobel prizes: the 2025 science awards</itunes:title>
+			<pubDate>Wed, 08 Oct 2025 18:32:58 GMT</pubDate>
+			<itunes:duration>36:58</itunes:duration>
+			<guid isPermaLink="false">68e6a912f513ad2b812ba716</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://shows.acast.com/theeconomistbabbage/episodes/nobel-prizes-the-2025-science-awards</link>
+			<acast:episodeId>68e6a912f513ad2b812ba716</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>nobel-prizes-the-2025-science-awards</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9i+jargxr+Z+jVE9yJC778zhTQHU6gZEVV13nQX7pAdNBrtvjlIh81qQ1etf40wZTpcwyHZZ49hPDiLKdaiMgGZ7HScc+0HJ6QLFF51DouzhJnBVKmZdlPcLd+RO74U3d7CQm8GGcC19MM9prJjjXbXI5h2Q7nbvwVidI5Fi9dO7yTIiXP7RAjlmMQNivKWC/bOP8qWeYrpyYUxNnDUQ+r/KbNNl8yL/Mz9c81JKmhqECYr5dtITwLMGau1yg9TFmA2tLBlHH6S1EDp29+7tUEDOyEOgK2nJRcf7sJ0qytiQ=]]></acast:settings>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>Since 1901, the Nobel prizes have been the pinnacle of scientific achievement. This week, nine more scientists joined the ranks of Albert Einstein and Marie Curie, as they were recognised for their work in <a href="https://www.economist.com/science-and-technology/2025/10/06/a-nobel-prize-in-physiology-for-immune-tolerance?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">immunology</a>, <a href="https://www.economist.com/science-and-technology/2025/10/07/a-nobel-for-the-physics-that-ushered-in-quantum-computing?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">quantum computing</a> and inventing a <a href="https://www.economist.com/science-and-technology/2025/10/08/a-chemistry-nobel-for-crystals-that-absorb-other-chemicals?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">new class of materials</a>. Who are the scientists who earned those coveted phone calls from Stockholm?</p><br><p>Host: Alok Jha, <em>The Economist</em>’s science and technology editor. Guests: <em>The Economist</em>’s Natasha Loder, Geoff Carr and Tim Cross.</p><br><p><em>Transcripts of our podcasts are available via </em><a href="http://economist.com/podcasts" rel="noopener noreferrer" target="_blank"><em>economist.com/podcasts</em></a><em>.</em></p><br><p><em>Listen to what matters most, from global politics and business to science and technology—</em><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank"><em>subscribe to Economist Podcasts+</em></a><em>.</em></p><br><p><em>For more information about how to access Economist Podcasts+, please visit our </em><a href="https://myaccount.economist.com/s/article/What-is-Economist-Podcasts" rel="noopener noreferrer" target="_blank"><em>FAQs page</em></a><em> or watch </em><a href="https://www.youtube.com/watch?v=Gczo71bg1uY" rel="noopener noreferrer" target="_blank"><em>our video </em></a><em>explaining how to link your account.</em></p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>The 2024 Nobel prizes: a triumph for AI</itunes:title>
+			<pubDate>Wed, 09 Oct 2024 18:36:58 GMT</pubDate>
+			<itunes:duration>34:53</itunes:duration>
+			<guid isPermaLink="false">6706cd4bc6c20d9c39202a61</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://shows.acast.com/theeconomistbabbage/episodes/the-2024-nobel-prizes-a-triumph-for-ai</link>
+			<acast:episodeId>6706cd4bc6c20d9c39202a61</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>the-2024-nobel-prizes-a-triumph-for-ai</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9P0WuKowgz0WH/t0fJSwhpZIn5f66xUCGatgllKsg76IVfCFMEVxDMv04Wsk5HQzXbnY8Yws5U01GPz9l4yCn4QPMabfEOAko1D8ziuLHjZaA/u8SlVRWNqz5ynvFf0rMQ7pRKyWIlrzpisqo0aTFQoBqzvmoFpW9vmhRgvKJlU/UGM9fqRS7gSpp5QWvhOL5jT/exgyQPxyaPwndC/BKpwOUjDbCQU0axNGYjvSYoyArP3rdd5wwRxaEsTcATGkuMpVFPkR+wytg1DBjAJF9CA==]]></acast:settings>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>It’s been a big year for artificial intelligence—sealed by winning the highest accolades in the scientific world: the Nobel prizes. The innovations that <a href="https://www.economist.com/podcasts/2024/03/13/how-machines-learn" rel="noopener noreferrer" target="_blank">underlie machine learning</a> were recognised in the <a href="https://www.economist.com/science-and-technology/2024/10/08/ai-researchers-receive-the-nobel-prize-for-physics?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">physics prize</a>. And one of the most important <a href="https://www.economist.com/podcasts/2023/09/20/ai-will-revolutionise-research-but-could-it-transform-science-altogether" rel="noopener noreferrer" target="_blank">scientific applications</a> of machine learning won the <a href="https://www.economist.com/science-and-technology/2024/10/09/googles-deepmind-researchers-among-recipients-of-nobel-prize-for-chemistry?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">chemistry prize</a>. In the award for <a href="https://www.economist.com/science-and-technology/2024/10/07/a-nobel-prize-for-the-discovery-of-micro-rna?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">physiology or medicine</a>, meanwhile, the discovery of micro-RNAs offers hope for a new generation of therapeutics. In this episode, we examine the winning discoveries and investigate how they could transform the world.</p><br><p>Host: Alok Jha, <em>The Economist</em>’s science and technology editor. Contributors: <em>The Economist</em>’s Natasha Loder, Geoff Carr and Emilie Steinmark.</p><br><p><em>Transcripts of our podcasts are available via </em><a href="http://economist.com/podcasts" rel="noopener noreferrer" target="_blank"><em>economist.com/podcasts</em></a><em>.</em></p><br><p><em>Listen to what matters most, from global politics and business to science and technology—</em><a href="https://subscribenow.economist.com/podcasts-plus" rel="noopener noreferrer" target="_blank"><em>subscribe to Economist Podcasts+</em></a><em>.</em></p><br><p><em>For more information about how to access Economist Podcasts+, please visit our </em><a href="https://myaccount.economist.com/s/article/What-is-Economist-Podcasts" rel="noopener noreferrer" target="_blank"><em>FAQs page</em></a><em> or watch </em><a href="https://www.youtube.com/watch?v=Gczo71bg1uY" rel="noopener noreferrer" target="_blank"><em>our video</em></a><em> explaining how to link your account.</em></p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>Babbage: The 2023 Nobel prizes in science</itunes:title>
+			<pubDate>Wed, 04 Oct 2023 19:18:29 GMT</pubDate>
+			<itunes:duration>37:31</itunes:duration>
+			<guid isPermaLink="false">651dba850832100010d9c4db</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://shows.acast.com/theeconomistbabbage/episodes/babbage-the-2023-nobel-prizes-in-science</link>
+			<acast:episodeId>651dba850832100010d9c4db</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>babbage-the-2023-nobel-prizes-in-science</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9YqyYd93wvX2EYboXnsSsRXmK6ViMkgJ9pLPkOPjzRjqwxZecf65VwzbawJyOEp1leldykwQGgA2J+UJYnuZ/Z38tETi2Yg04vPZdvGXsNIJ051Btro56Fi+vaU5J3tAEAXly053HAhSHGk1X7ah8N39PFSko0Ssy8qWWVhJi/HqG1kKfEyEsF57nw+krlMRJTm6eoxoDsDoLp2uZUSB5Rrcr7dU2ebpMfuvwK5Txxwl/rtO/6vt+ssH0gIDPzQ89JC4WUjEFyY0PzRRR3siQqaR8PvJDO3pIysy1ZERZzoQ=]]></acast:settings>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>This year’s Nobel prizes in science recognised the former underdogs behind <a href="https://www.economist.com/science-and-technology/2023/10/02/a-nobel-prize-in-physiology-for-mrna-vaccines?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">mRNA vaccines</a>, how to <a href="https://www.economist.com/science-and-technology/2023/10/03/a-nobel-prize-for-electron-watchers?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">watch electrons</a> and a <a href="https://www.economist.com/science-and-technology/2023/10/04/a-nobel-prize-for-quantum-dottiness?utm_campaign=a.io&amp;utm_medium=audio.podcast.np&amp;utm_source=babbage&amp;utm_content=discovery.content.anonymous.tr_shownotes_na-na_article&amp;utm_term=sa.listeners" rel="noopener noreferrer" target="_blank">new class of material</a> that could revolutionise both solar panels and cancer treatments. How have these achievements had an impact beyond the lab?</p><br><p>Host: Alok Jha, <em>The Economist</em>’s science and technology editor. Contributors: Katalin Karikó and Drew Weissman, this year’s co-laureates in medicine or physiology; Jon Marangos, a professor of laser physics at Imperial College London; Judy Giordan, the president of the American Chemical Society; and Natasha Loder, <em>The Economist</em>’s health editor.</p><br><p>Sign up for Economist Podcasts+ now and get 50% off your subscription with our <a href="http://www.economist.com/podcastsplus-babbage" rel="noopener noreferrer" target="_blank">limited time offer</a>. You will not be charged until Economist Podcasts+ launches.</p><br><p>If you’re already a subscriber to <em>The Economist</em>, you’ll have full access to all our shows as part of your subscription.</p><br><p>For more information about Economist Podcasts+, including how to get access, please visit our <a href="https://myaccount.economist.com/s/article/What-is-Economist-Podcasts" rel="noopener noreferrer" target="_blank">FAQs page</a>.</p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>Babbage: Nobel minds</itunes:title>
+			<pubDate>Wed, 07 Oct 2020 18:40:17 GMT</pubDate>
+			<itunes:duration>27:27</itunes:duration>
+			<guid isPermaLink="false">2d0d5b57-4e78-4342-ad47-8da9a79c260b</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://www.economist.com/podcasts/2020/10/07/nobel-minds-the-groundbreaking-science-honoured-by-the-2020-prizes</link>
+			<acast:episodeId>2d0d5b57-4e78-4342-ad47-8da9a79c260b</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>babbage-nobelminds</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRCuMn00r7fYo9xKFopW0xgOQxZho72cxoLssJf1BCGySg3KqdsNq/ulZ/4h+GWxd48eR7EWn/nnU5Mk8MW8ZzgZdKdQSM/gQzbVDqNuNt72HJAhfsrlSrJCrf69iKh2vl1xH/GMTy1FnKa2YkfXIr7QVNsLQKS41kA8KqQrhNdR3L+XLwMlE6quEvT8WoZTi+OH+YCRFESBcfmYchp/c6S+9YlQ4osZeCMuobTWZWMqGgSKm4r3BSFOVluDSHqf7WIUJNYipQtb7HqYHtIFGIb3P9LSKLAIdW2k/3aVfTwFc]]></acast:settings>
+			<itunes:subtitle>Host Kenneth Cukier explores the science honoured in this year’s Nobel prizes. Our correspondents assess the life-saving impact of the identification of hepatitis C, speak to one of this year’s winners for physics, Andrea Ghez, about her work unveiling...</itunes:subtitle>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[<p>Host Kenneth Cukier explores the science honoured in this year’s Nobel prizes. Our correspondents assess the life-saving impact of the <a href="https://www.economist.com/science-and-technology/2020/10/05/the-nobel-prize-for-medicine-goes-for-identifying-hepatitis-c?utm_campaign=babbage&amp;utm_medium=podcast&amp;utm_source=third-party-host&amp;utm_content=show-notes" rel="noopener noreferrer" target="_blank">identification of hepatitis C</a>, speak to one of this year’s winners for physics, Andrea Ghez, about her work unveiling the <a href="https://www.economist.com/science-and-technology/2020/10/06/black-holes-suck-in-the-nobel-prize-for-physics?utm_campaign=babbage&amp;utm_medium=podcast&amp;utm_source=third-party-host&amp;utm_content=show-notes" rel="noopener noreferrer" target="_blank">mysteries of the cosmos</a>, and hear from Jennifer Doudna, co-developer of CRISPR-Cas9, on the <a href="https://www.economist.com/science-and-technology/2020/10/07/a-tool-for-editing-genomes-wins-the-nobel-prize-for-chemistry?utm_campaign=babbage&amp;utm_medium=podcast&amp;utm_source=third-party-host&amp;utm_content=show-notes" rel="noopener noreferrer" target="_blank">potential of genome editing</a>. Plus, can the awards adapt to modern science?</p><br><p>Please subscribe to <em>The Economist</em> for full access to print, digital and audio editions:</p><p><a href="http://www.economist.com/podcastoffer?utm_campaign=babbage&amp;utm_medium=podcast&amp;utm_source=third-party-host&amp;utm_content=show-notes" rel="noopener noreferrer" target="_blank">www.economist.com/podcastoffer</a></p>]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+<podaccess:item locked="true" tier="2e84e086-02e5-4c81-bf40-5879dee9b9fd" ads="true" spons="true" premium="true"><itunes:title>Babbage: The Nobel winners explained</itunes:title>
+			<pubDate>Wed, 03 Oct 2018 20:00:00 GMT</pubDate>
+			<itunes:duration>16:22</itunes:duration>
+			<guid isPermaLink="false">d2bca513-c825-43e0-917c-989452b3c2c7</guid>
+			<itunes:explicit>false</itunes:explicit>
+			<link>https://play.acast.com/s/theeconomistbabbage/babbage-thenobelwinnersexplained</link>
+			<acast:episodeId>d2bca513-c825-43e0-917c-989452b3c2c7</acast:episodeId>
+			<acast:showId>e421d786-ec36-4148-aa99-7a3b2928a779</acast:showId>
+			<acast:episodeUrl>babbage-thenobelwinnersexplained</acast:episodeUrl>
+			<acast:settings><![CDATA[FYjHyZbXWHZ7gmX8Pp1rmRbkUlg2iR8fDtnl1O71B2N8B7jZZH+7YdsHlGFxMJ/JB5ewwSWwnDfITsERRlXnRPdjbJm7d4qQ2rUK1Oh2E65gYDhVAjVZ14DHwOhC8Pz9hzNXxJ5nvULfWliFRRcwWY/ZobLI6Mp9sE3iVrSOyMNCxIfC+vH8SixFutQOej3CAt2cJiK4mikY/YRzdsQHR7h+hWklYviThFo/pRVHkrX12MGCKVC5+tHB0s+eMwO0d2lx+l6qqjpGnVWFl0/2jIjoQpXZUPFWRrazTR4Gf7X8S4E7sJTHbiNrai1RvHWu]]></acast:settings>
+			<itunes:subtitle><![CDATA[Economist science correspondents break down the discoveries that won this year's Nobel prizes. Tristan Harris, a former design ethicist at Google, discusses the dangerous ways that the tech industry competes for our attention. And: the story of bl...]]></itunes:subtitle>
+			<itunes:episodeType>full</itunes:episodeType>
+						<itunes:summary><![CDATA[Economist science correspondents break down the discoveries that won this year's Nobel prizes. Tristan Harris, a former design ethicist at Google, discusses the dangerous ways that the tech industry competes for our attention. And: the story of blackest fish in the deep ocean. Kenneth Cukier hosts]]></itunes:summary>
+				  <podaccess:premium locked="true"/>
+
+</podaccess:item>
+</channel></rss>

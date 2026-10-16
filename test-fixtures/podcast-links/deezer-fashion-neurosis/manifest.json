@@ -1,0 +1,22 @@
+{
+  "link": "https://link.deezer.com/s/34GX09Z75In2EBkZKHjWB",
+  "expect": {
+    "outcome": "episode",
+    "feed": "https://feeds.megaphone.fm/fashionneurosis",
+    "episodeTitle": "Fashion Neurosis with Bella Freud"
+  },
+  "responses": {
+    "link.deezer.com/s/34GX09Z75In2EBkZKHjWB": {
+      "redirect": "https://www.deezer.com/pt/episode/947688582?host=6877048881&utm_campaign=clipboard-generic&utm_source=user_sharing&utm_content=talk_episode-947688582&deferredFl=1"
+    },
+    "www.deezer.com/episode/947688582": {
+      "file": "page.html"
+    },
+    "itunes.apple.com/search?entity=podcastEpisode&limit=10&media=podcast&term=Fashion Neurosis with Bella Freud": {
+      "file": "search-episode.json"
+    },
+    "feeds.megaphone.fm/fashionneurosis": {
+      "file": "feed.xml"
+    }
+  }
+}
