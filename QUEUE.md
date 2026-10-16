@@ -3359,17 +3359,17 @@ gate+: yes
 do: A scanned or image-only PDF gets no reading view today (`PDFReflow` usable-check fails). Run on-device Vision text recognition (VNRecognizeTextRequest, accurate, languages en + nl, never a network call, C120) per page when PDFKit text is missing or garbled, cache the result beside the library item, show a 'Reading the scan…' progress line while it runs, and feed the recognised lines through the same layout rules. Flip the scan fixture in `PDFReadingGoldenTests`.
 check: `plan/mtest.sh PDFReadingGoldenTests`
 
-### Q462 [tuur] (tuur) mockup: comment on a PDF highlight and share the PDF with your highlights and comments
+### Q462 [tuur] (done) mockup: comment on a PDF highlight and share the PDF with your highlights and comments
 spec: D212
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html`, iPhone frames, drawn from source (`LibraryPDFReader.swift`, `SourceHighlight`, Highlight in the reading and page views). Tuur 2026-10-15 (D212): highlights should go INTO the PDF as real annotations with his comments, so he can share the PDF later with his thoughts. Show: adding a comment to a highlight (and editing/removing it), how commented highlights look in the reading view and the page view, and a 'Share PDF with highlights' action (does the library PDF itself carry the annotations, or only the shared copy? show both options and ask). One agent writes this file.
 check: Tuur clicked through it and said go.
 
-### Q463 [auto] (todo) build PDF highlight comments and annotated PDF sharing per the mock
+### Q463 [auto] (doing) build PDF highlight comments and annotated PDF sharing per the mock
 spec: D212
 needs: Q462
 gate+: yes
-do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` with Tuur's sign-off notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q462-pdf-highlight-comments.html` (signed 2026-10-16, Tuur: "the rest looks really good", D214) with two changes from his sign-off: (1) a comment can be typed OR voice-recorded: a mic button in the comment sheet records, transcribes on-device with the app's existing transcription engine, and stores the audio plus its transcript on the highlight; the PDF annotation contents carry the transcript; (2) the share action asks every time: share the PDF with my highlights and comments, or the clean PDF. The Library's PDF file itself stays untouched. Original notes: a comment field on `SourceHighlight` (additive, synced), written into the PDF as real PDFKit highlight annotations with the comment as the annotation contents, so Preview/Files/other apps show them; the share action hands over that annotated PDF. Never lose the untouched original (C273 spirit). Phone test `PDFAnnotationExportTests`: a highlight with a comment round-trips through the written PDF (PDFKit reads back a .highlight annotation with that contents on that page).
 check: `plan/mtest.sh PDFAnnotationExportTests`
 
 ### Q464 [auto] (done) build the calm share sheet per the Q455 mock, option A (rating + From rows), with the sender field
@@ -4973,3 +4973,5 @@ check: Report shows build 192 installed on the phone (devicectl app list) and th
 - 2026-10-15 13:20 Q460 -> done — gate 110s @32f54cf3
 - 2026-10-15 13:25 Q461 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-16 11:05 Q461 -> done — gate 64s @545a0b39
+- 2026-10-16 11:50 Q462 -> done — Tuur 2026-10-16: rest looks really good; voice comments too; share asks with or without edits (D214)
+- 2026-10-16 11:50 Q463 -> doing — worker out
