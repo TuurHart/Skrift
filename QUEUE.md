@@ -3456,7 +3456,7 @@ gate+: yes
 do: Tuur 2026-10-16 screenshot (Dev 192, iPhone 17 Pro, Library › + › Add a podcast episode): the FeedbackKit floating bubble sits on top of the button to the right of the link field, so only its first letter "P" (Paste) shows. Keep the bubble clear of controls in this sheet: inset the field row, or move/hide the bubble while a sheet with a trailing control is up (check how other sheets handle it; Q464 noted the bubble over the share-sheet demos too). Fix it where the bubble placement is decided so every sheet benefits. Screenshot the sheet on the iPhone 17 sim, LOOK, and confirm the whole Paste button shows. Phone test `PodcastAddSheetLayoutTests` (the trailing button frame does not intersect the bubble frame).
 check: `plan/mtest.sh PodcastAddSheetLayoutTests`
 
-### Q476 [auto] (doing) a Spotify episode link finds the show's public feed instead of saying Spotify-only
+### Q476 [auto] (done) a Spotify episode link finds the show's public feed instead of saying Spotify-only
 spec: C72 D90
 needs: -
 gate+: yes
@@ -5014,3 +5014,4 @@ check: `plan/mtest.sh SpotifyFeedResolveTests`
 - 2026-10-16 15:04 Q476 added
 - 2026-10-16 15:04 Q476 -> doing — worker out
 - 2026-10-16 15:12 Q474 -> done — gate 77s @cbda3eef
+- 2026-10-16 15:28 Q476 -> done — gate 54s @e469a592
