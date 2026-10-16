@@ -9,7 +9,8 @@ import UIKit
 ///
 /// Q404 (D207): a PDF with a usable text layer opens as a reading view (the page's text reflowed
 /// in the article reader's text view, at the Aa size), with "Original page" in the dock to flip to
-/// the real page (remembered per PDF). A scan, or a poor extraction, shows the real page only.
+/// the real page (remembered per PDF). Q461: a scan, or a poor extraction, is read by on-device
+/// text recognition first ("Reading the scan…" while it runs, cached beside the item).
 struct LibraryPDFReaderView: View {
     let book: Audiobook
     /// A jump-back from a note opens the page the note came from and does NOT move the book's own
@@ -26,6 +27,8 @@ struct LibraryPDFReaderView: View {
     @State private var showTextSettings = false
     @State private var readingDoc: ArticleDoc?
     @State private var checked = false
+    /// Q461: on-device text recognition is reading a scanned page ("Reading the scan…").
+    @State private var scanning = false
     @State private var mode: PDFReaderMode.Mode = .original
     /// The page to open on after a flip between the reading view and the real page.
     @State private var resumePage: Int?
@@ -40,7 +43,7 @@ struct LibraryPDFReaderView: View {
             navBar
             ZStack {
                 if !checked {
-                    Color.clear
+                    if scanning { PDFScanProgressLine() } else { Color.clear }
                 } else if mode == .reading, let doc = readingDoc {
                     ArticleTextView(doc: doc, fontSize: fontSize, lineHeight: lineHeight, noteQuotes: [],
                                     highlights: highlights,
@@ -119,7 +122,10 @@ struct LibraryPDFReaderView: View {
         model.pageCount = max(1, LibraryPDF.pageCount(of: book))
         model.page = startPage
         let file = url
-        let doc = await Task.detached(priority: .userInitiated) { LibraryPDF.readingDoc(url: file) }.value
+        let cache = LibraryPDF.scanCacheURL(for: file)
+        scanning = await Task.detached(priority: .userInitiated) { LibraryPDF.needsRecognition(url: file, cache: cache) }.value
+        let doc = await Task.detached(priority: .userInitiated) { LibraryPDF.readingDoc(url: file, scanCache: cache) }.value
+        scanning = false
         readingDoc = doc
         mode = PDFReaderMode.resolved(hasReadingView: doc != nil,
                                       prefersOriginal: PDFReaderMode.prefersOriginal(bookID: book.id))
