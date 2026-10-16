@@ -201,6 +201,22 @@ enum AudiobookCloudSync {
                                  defaults: defaults, library: library)
     }
 
+    // MARK: - Highlights merge (Q474, C267)
+
+    /// This device's highlights merged with a synced blob's, per highlight id. nil when the blob
+    /// carries no tombstone key: a pre-Q474 build wrote it, so the receive keeps today's whole-blob
+    /// LWW for that adopt, and the next blob this device sends carries the key.
+    static func mergedHighlights(local: Audiobook, remote: Audiobook,
+                                 now: Date = Date()) -> (highlights: [SourceHighlight], removals: [String: Date])? {
+        guard let theirRemovals = remote.highlightRemovals else { return nil }
+        return SourceHighlights.merged(local.highlights ?? [], removals: local.highlightRemovals ?? [:],
+                                       with: remote.highlights ?? [], removals: theirRemovals, now: now)
+    }
+
+    private static func sameHighlights(_ a: Audiobook, _ b: Audiobook) -> Bool {
+        (a.highlights ?? []) == (b.highlights ?? []) && (a.highlightRemovals ?? [:]) == (b.highlightRemovals ?? [:])
+    }
+
     // MARK: - Reconcile (both directions, idempotent)
 
     /// Single-flight guard. `reconcile` fires from ≥5 places (launch, foreground,
@@ -240,13 +256,34 @@ enum AudiobookCloudSync {
             // Q473: whether this pass changed the PDF's highlight list (rebuild its file below).
             var highlightsArrived = false
             if let local = library.book(id: remote.id) {
+                // Q474 (C267): highlights merge per highlight on every pass, newer blob or not;
+                // nil = the blob predates the merge, so it keeps the whole-blob LWW below.
+                let merge = mergedHighlights(local: local, remote: remote)
                 // LWW by modifiedAt — adopt the remote position/rate/etc. if newer.
                 // (modifiedAt, not lastPlayedAt, so a speed-only change also wins.)
                 if remote.modifiedAt > local.modifiedAt {
                     // Local-only text/chapter fields survive the adopt (2026-07-22:
                     // whole-blob LWW erased them via an older writer).
-                    library.update(remote.keepingLocalTextFields(from: local))
-                    highlightsArrived = (remote.highlights ?? []) != (local.highlights ?? [])
+                    var adopted = remote.keepingLocalTextFields(from: local)
+                    if let merge {
+                        adopted.highlights = merge.highlights.isEmpty ? nil : merge.highlights
+                        adopted.highlightRemovals = merge.removals
+                        // This device held something the carrier lacks: stamp past it so SEND writes it back.
+                        if !sameHighlights(adopted, remote) {
+                            adopted.modifiedAt = remote.modifiedAt.addingTimeInterval(0.001)
+                        }
+                    }
+                    library.update(adopted)
+                    highlightsArrived = (adopted.highlights ?? []) != (local.highlights ?? [])
+                } else if let merge {
+                    var updated = local
+                    updated.highlights = merge.highlights.isEmpty ? nil : merge.highlights
+                    updated.highlightRemovals = merge.removals
+                    if !sameHighlights(updated, local) {
+                        updated.modifiedAt = local.modifiedAt.addingTimeInterval(0.001)
+                        library.update(updated)
+                        highlightsArrived = (updated.highlights ?? []) != (local.highlights ?? [])
+                    }
                 }
             } else {
                 // First appearance on this device: strip any legacy blob's local-only

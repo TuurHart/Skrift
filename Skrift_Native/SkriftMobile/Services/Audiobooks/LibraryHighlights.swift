@@ -2,6 +2,8 @@ import Foundation
 
 /// Q404 (D207): highlights on a Library source, stored inside its synced record (`Audiobook.highlights`).
 /// Adding or removing one moves `modifiedAt`, the carrier's LWW key, so it reaches his other devices.
+/// Q474: the receiving device merges the list per highlight (`SourceHighlights.merged`), so a
+/// removal leaves a tombstone in `Audiobook.highlightRemovals` and a comment edit a stamp.
 @MainActor
 enum LibraryHighlights {
     static func list(_ bookID: UUID, store: AudiobookLibraryStore) -> [SourceHighlight] {
@@ -31,6 +33,8 @@ enum LibraryHighlights {
             try? FileManager.default.removeItem(at: commentAudioURL(audio, bookID: bookID, store: store))
         }
         book.highlights = after.isEmpty ? nil : after
+        // Q474 (C267): the tombstone, so a sync merge with another device's older copy keeps it removed.
+        book.highlightRemovals = (book.highlightRemovals ?? [:]).merging([id.uuidString: now]) { max($0, $1) }
         book.modifiedAt = max(now, book.modifiedAt.addingTimeInterval(0.001))
         store.update(book)
     }
