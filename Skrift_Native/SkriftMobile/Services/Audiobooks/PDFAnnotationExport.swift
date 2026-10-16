@@ -74,6 +74,9 @@ enum PDFAnnotationExport {
             return false
         }
         guard let doc = PDFDocument(url: backup) else { throw ExportError.unreadable }
+        // Q473: a file that reached this device already annotated (an older build uploaded the
+        // Library file after a write) would otherwise draw every highlight twice.
+        stripPersisted(doc)
         annotate(doc, with: highlights) { _ in persistedAuthor }
         let temp = file.deletingLastPathComponent().appendingPathComponent(".writing-\(UUID().uuidString).pdf")
         guard doc.write(to: temp) else {
@@ -88,6 +91,30 @@ enum PDFAnnotationExport {
         }
         try? next.write(to: stampFile, options: .atomic)
         return true
+    }
+
+    /// Q473 (D214): every device holding the Library PDF rebuilds it from the hidden original plus
+    /// the synced highlight list (the book-file sync uploads the file once, so the annotated file
+    /// itself never travels). `fileIsFresh`: the sync just downloaded the file, so it is the clean
+    /// original again and the last write's stamp no longer describes it. Same atomic path as the
+    /// reader's leave, and a no-op when the list matches what the file already carries.
+    @discardableResult
+    static func rebuildFromSync(file: URL, highlights: [SourceHighlight], fileIsFresh: Bool) throws -> Bool {
+        guard FileManager.default.fileExists(atPath: file.path) else { return false }
+        if fileIsFresh {
+            try? FileManager.default.removeItem(at: stampURL(for: file))
+            // A fresh download with nothing to draw is already the right file.
+            if highlights.isEmpty { return false }
+        }
+        return try writeBack(file: file, highlights: highlights)
+    }
+
+    /// Removes the annotations Skrift itself wrote (author `persistedAuthor`).
+    static func stripPersisted(_ doc: PDFDocument) {
+        for i in 0..<doc.pageCount {
+            guard let page = doc.page(at: i) else { continue }
+            for a in page.annotations where a.userName == persistedAuthor { page.removeAnnotation(a) }
+        }
     }
 
     // MARK: - Share

@@ -189,6 +189,11 @@ enum AudiobookCloudSync {
         if !refs.isEmpty {
             await downloadBook(book, refs: refs, folder: folder, transport: t)
         }
+        // Q473: a re-downloaded PDF is the clean original again; redraw his highlights into it.
+        if book.sourceKind == .pdf, refs.contains(where: { $0.filename == book.audioFilename }),
+           FileManager.default.fileExists(atPath: folder.appendingPathComponent(book.audioFilename).path) {
+            await LibraryHighlights.rebuildPDFFromSync(bookID: bookID, store: library, fileIsFresh: true)
+        }
         // Re-downloaded audio has a new mtime → re-pull + re-stamp the transcripts so
         // read-along works again here (force it past the applied-signature guard).
         defaults.removeObject(forKey: transcriptAppliedKey(bookID))
@@ -232,6 +237,8 @@ enum AudiobookCloudSync {
         // once the source has stamped `audioUploadedAt`.
         for record in records {
             guard let remote = record.book else { continue }
+            // Q473: whether this pass changed the PDF's highlight list (rebuild its file below).
+            var highlightsArrived = false
             if let local = library.book(id: remote.id) {
                 // LWW by modifiedAt — adopt the remote position/rate/etc. if newer.
                 // (modifiedAt, not lastPlayedAt, so a speed-only change also wins.)
@@ -239,6 +246,7 @@ enum AudiobookCloudSync {
                     // Local-only text/chapter fields survive the adopt (2026-07-22:
                     // whole-blob LWW erased them via an older writer).
                     library.update(remote.keepingLocalTextFields(from: local))
+                    highlightsArrived = (remote.highlights ?? []) != (local.highlights ?? [])
                 }
             } else {
                 // First appearance on this device: strip any legacy blob's local-only
@@ -252,6 +260,16 @@ enum AudiobookCloudSync {
                 }
                 if !missing.isEmpty {
                     await downloadBook(remote, refs: missing, folder: folder, transport: transport)
+                }
+                // Q473 (D214): the PDF's annotated file never travels (upload-once), so rebuild
+                // it here from the hidden original + the synced list when the list changed or
+                // the file just landed.
+                if remote.sourceKind == .pdf {
+                    let landed = missing.contains { $0.filename == remote.audioFilename }
+                        && FileManager.default.fileExists(atPath: folder.appendingPathComponent(remote.audioFilename).path)
+                    if highlightsArrived || landed {
+                        await LibraryHighlights.rebuildPDFFromSync(bookID: remote.id, store: library, fileIsFresh: landed)
+                    }
                 }
                 // Read-along transcript sidecars (once the audio is present to re-stamp against).
                 await receiveTranscripts(remote, record: record, folder: folder,
@@ -410,8 +428,11 @@ enum AudiobookCloudSync {
 
     private static func audioParts(for book: Audiobook, folder: URL) -> [AudiobookAudioPart] {
         var parts = book.files.enumerated().map { index, name in
-            AudiobookAudioPart(recordName: recordName(bookID: book.id, index: index),
-                               filename: name, fileURL: folder.appendingPathComponent(name))
+            // Q473: a PDF uploads its untouched original (the hidden backup once one exists), so
+            // every receiver starts clean and draws the synced highlights itself.
+            let url = folder.appendingPathComponent(name)
+            return AudiobookAudioPart(recordName: recordName(bookID: book.id, index: index), filename: name,
+                                      fileURL: book.sourceKind == .pdf ? PDFAnnotationExport.pristine(url) : url)
         }
         if book.hasCover {
             parts.append(AudiobookAudioPart(recordName: coverRecordName(book.id),
