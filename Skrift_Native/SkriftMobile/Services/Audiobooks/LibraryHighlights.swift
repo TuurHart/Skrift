@@ -71,6 +71,25 @@ enum LibraryHighlights {
         }.value
     }
 
+    /// Q473 (D214): a sync changed this PDF's highlight list, or just downloaded the file. Rebuild
+    /// the Library PDF here from the hidden original plus the synced list (off the main thread;
+    /// a no-op when nothing changed). Spoken-comment audio stays on the device that recorded it:
+    /// only its words ride the list. Returns whether the file was rewritten.
+    @discardableResult
+    static func rebuildPDFFromSync(bookID: UUID, store: AudiobookLibraryStore, fileIsFresh: Bool) async -> Bool {
+        guard let book = store.book(id: bookID), book.kind == .pdf else { return false }
+        let file = store.audioURL(of: book, fileIndex: 0)
+        let list = book.highlights?.filter { $0.page != nil } ?? []
+        return await Task.detached(priority: .utility) {
+            do {
+                return try PDFAnnotationExport.rebuildFromSync(file: file, highlights: list, fileIsFresh: fileIsFresh)
+            } catch {
+                DevLog.log("PDF annotation rebuild failed: \(error)")
+                return false
+            }
+        }.value
+    }
+
     /// Where a spoken comment's audio lives: `comments/` inside the Library item's folder.
     static func commentAudioURL(_ name: String, bookID: UUID, store: AudiobookLibraryStore) -> URL {
         store.folder(for: bookID).appendingPathComponent("comments", isDirectory: true)
