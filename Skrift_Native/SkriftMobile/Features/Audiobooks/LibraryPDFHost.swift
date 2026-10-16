@@ -132,10 +132,14 @@ enum LibraryPDFDebug {
     /// Q404: what the screenshots select (the mock's selection, beside the stored highlight).
     private static var originalSelection: String { "The project runs for eighteen months." }
     private static var readingSelection: String { "project runs for eighteen months. Costs below" }
+    /// Q463: the Q462 mock's comment.
+    private static var sampleComment: String {
+        "Ask Rui if the second test site is still Sines. If not, this line drops by a third."
+    }
 
     /// Q404: on `-showPDFReader`, select the mock's words in the reading view and raise its menu.
     static func readingAppeared(model: ArticleReaderModel) async {
-        guard LaunchFlags.showPDFReader else { return }
+        guard LaunchFlags.showPDFReader, LaunchFlags.pdfCommentStep == nil else { return }
         try? await Task.sleep(for: .milliseconds(900))
         guard let tv = model.textView else { return }
         let r = (tv.text as NSString).range(of: readingSelection)
@@ -174,6 +178,13 @@ enum LibraryPDFDebug {
             LibraryHighlights.add(sampleSelection, page: 4, word: 0, bookID: g.id, store: store)
             grant = store.book(id: g.id)
         }
+        if let step = LaunchFlags.pdfCommentStep, let g = grant,
+           let h = LibraryHighlights.list(g.id, store: store).first {
+            // Q463: the Q462 mock's comment on the budget line (none for the first callout).
+            LibraryHighlights.setComment(step == "tap" ? nil : sampleComment, audio: nil, on: h.id,
+                                         bookID: g.id, store: store)
+            grant = store.book(id: g.id)
+        }
         if LaunchFlags.showPDFReader, let g = grant {
             // Q404: `-pdfOriginal` opens the real page; otherwise the reading view.
             PDFReaderMode.setPrefersOriginal(ProcessInfo.processInfo.arguments.contains("-pdfOriginal"), bookID: g.id)
@@ -184,7 +195,7 @@ enum LibraryPDFDebug {
 
     /// Selects the budget line on the open reader so the callout can be screenshotted.
     static func selectSampleIfAsked(in view: PDFView, model: PDFReaderModel) {
-        guard LaunchFlags.showPDFReader, let doc = view.document else { return }
+        guard LaunchFlags.showPDFReader, LaunchFlags.pdfCommentStep == nil, let doc = view.document else { return }
         for match in doc.findString(originalSelection, withOptions: [.literal]).prefix(1) {
             view.setCurrentSelection(match, animate: false)
             // A programmatic selection is not drawn without a first responder; a touch selection is.

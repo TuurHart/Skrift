@@ -334,6 +334,10 @@ struct ArticleTextView: UIViewRepresentable {
     let onHighlight: (ArticleSelection) -> Void
     let onRemoveHighlight: (UUID) -> Void
     let onOpenNote: (UUID) -> Void
+    /// Q463 (Q462 mock): the PDF reading view's comments. Set, a highlight's menu gains Comment, a
+    /// commented highlight draws deeper with a badge after it, and a tap on either opens its comment.
+    /// Nil (articles): the highlight menu stays Copy · Remove highlight.
+    var onComment: ((UUID) -> Void)? = nil
 
     static let noteKey = NSAttributedString.Key("skriftNoteID")
     /// Q404: a stored highlight's id on its painted range (a tap there opens its menu).
@@ -418,7 +422,8 @@ struct ArticleTextView: UIViewRepresentable {
             renderedWidth = textWidth(tv)
             let built = ArticleLayout.build(parent.doc, fontSize: parent.fontSize, lineHeight: parent.lineHeight,
                                             noteQuotes: parent.noteQuotes, highlights: parent.highlights,
-                                            header: parent.header, serifBody: parent.serifBody, width: renderedWidth)
+                                            header: parent.header, serifBody: parent.serifBody, width: renderedWidth,
+                                            commentBadges: parent.onComment != nil)
             tv.attributedText = built.text
             parent.model.wordStarts = built.wordStarts
             parent.model.wordCount = parent.doc.wordCount
@@ -521,6 +526,11 @@ struct ArticleTextView: UIViewRepresentable {
             }
             var range = NSRange()
             if let id = tv.textStorage.attribute(ArticleTextView.highlightKey, at: index, effectiveRange: &range) as? UUID {
+                // Q463: a commented highlight (or its badge) opens its comment straight away.
+                if let onComment = parent.onComment, parent.highlights.first(where: { $0.id == id })?.hasComment == true {
+                    onComment(id)
+                    return
+                }
                 tappedHighlight = (id, (tv.text as NSString).substring(with: range))
                 menu?.presentEditMenu(with: UIEditMenuConfiguration(identifier: nil, sourcePoint: location))
             }
@@ -539,12 +549,15 @@ struct ArticleTextView: UIViewRepresentable {
             guard let tv = interaction.view as? UITextView else { return nil }
             guard let hit = tappedHighlight else { return selectionMenu(tv, range: tv.selectedRange) }
             tappedHighlight = nil
-            return UIMenu(children: [
-                UIAction(title: SourceMenu.copy) { _ in UIPasteboard.general.string = hit.text },
-                UIAction(title: SourceMenu.removeHighlight, attributes: .destructive) { [weak self] _ in
-                    self?.parent.onRemoveHighlight(hit.id)
-                },
-            ])
+            var items: [UIMenuElement] = [UIAction(title: SourceMenu.copy) { _ in UIPasteboard.general.string = hit.text }]
+            if let onComment = parent.onComment {
+                let has = parent.highlights.first(where: { $0.id == hit.id })?.hasComment == true
+                items.append(UIAction(title: has ? SourceMenu.editComment : SourceMenu.comment) { _ in onComment(hit.id) })
+            }
+            items.append(UIAction(title: SourceMenu.removeHighlight, attributes: .destructive) { [weak self] _ in
+                self?.parent.onRemoveHighlight(hit.id)
+            })
+            return UIMenu(children: items)
         }
     }
 }
@@ -602,6 +615,35 @@ enum ArticleLayout {
 
     static var ruleColor: UIColor { UIColor(Color.skBorder) }
 
+    /// Q463 (mock `mark.c`): a commented highlight is a deeper yellow with an amber underline.
+    static func commentedColor() -> UIColor {
+        UIColor { $0.userInterfaceStyle == .dark
+            ? UIColor(red: 1, green: 0.8, blue: 0, alpha: 0.45)
+            : UIColor(red: 1, green: 0.8, blue: 0, alpha: 0.62) }
+    }
+
+    static let commentAmber = UIColor(red: 0xe0 / 255, green: 0xa8 / 255, blue: 0, alpha: 1)
+
+    /// Q463 (mock `.cmark`): the comment badge, an amber rounded square with a white pencil.
+    static func commentBadge(height: CGFloat) -> NSTextAttachment {
+        let size = CGSize(width: 20, height: 18)
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            commentAmber.setFill()
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 5).fill()
+            let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
+            if let pencil = UIImage(systemName: "pencil", withConfiguration: config)?
+                .withTintColor(.white, renderingMode: .alwaysOriginal) {
+                let r = CGRect(x: (size.width - pencil.size.width) / 2, y: (size.height - pencil.size.height) / 2,
+                               width: pencil.size.width, height: pencil.size.height)
+                pencil.draw(in: r)
+            }
+        }
+        let a = NSTextAttachment(image: image)
+        a.bounds = CGRect(x: 0, y: -3, width: size.width, height: size.height)
+        a.accessibilityLabel = "Comment"
+        return a
+    }
+
     /// UTF-16 offsets of each whitespace-split word from `from` on. Q460: a figure's picture (the
     /// attachment character) is not a word, so the count stays `ArticleDoc.wordCount`'s.
     static func wordStarts(_ s: NSString, from: Int) -> [Int] {
@@ -618,7 +660,8 @@ enum ArticleLayout {
 
     static func build(_ doc: ArticleDoc, fontSize: Double, lineHeight: Double,
                       noteQuotes: [ArticleTextView.NoteQuote], highlights: [SourceHighlight],
-                      header: Bool = true, serifBody: Bool = false, width: CGFloat = 0) -> Built {
+                      header: Bool = true, serifBody: Bool = false, width: CGFloat = 0,
+                      commentBadges: Bool = false) -> Built {
         let out = NSMutableAttributedString()
         let text = UIColor(Color.skText), dim = UIColor(Color.skTextDim), faint = UIColor(Color.skTextFaint)
 
@@ -740,6 +783,7 @@ enum ArticleLayout {
             glyphs.append((r.location + r.length, q.memoID))
         }
         let starts = wordStarts(ns, from: bodyStart)
+        var badges: [(at: Int, id: UUID)] = []
         for h in highlights {
             var within = bodyRange
             if let page = h.page {
@@ -748,7 +792,22 @@ enum ArticleLayout {
             }
             guard let r = SourceHighlights.range(of: h.text, near: h.word, in: out.string,
                                                  wordStarts: starts, within: within) else { continue }
-            out.addAttributes([.backgroundColor: highlightColor(), ArticleTextView.highlightKey: h.id], range: r)
+            if commentBadges, h.hasComment {
+                out.addAttributes([.backgroundColor: commentedColor(), ArticleTextView.highlightKey: h.id,
+                                   .underlineStyle: NSUnderlineStyle.thick.rawValue, .underlineColor: commentAmber], range: r)
+                badges.append((r.location + r.length, h.id))
+            } else {
+                out.addAttributes([.backgroundColor: highlightColor(), ArticleTextView.highlightKey: h.id], range: r)
+            }
+        }
+        // Q463: the comment badge after a commented highlight (hair space + the attachment, which
+        // `wordStarts` counts as a space, so the word count holds). It opens the comment too.
+        for b in badges.sorted(by: { $0.at > $1.at }) {
+            let badge = NSMutableAttributedString(string: "\u{200A}")
+            badge.append(NSAttributedString(attachment: commentBadge(height: size)))
+            badge.addAttribute(ArticleTextView.highlightKey, value: b.id, range: NSRange(location: 0, length: badge.length))
+            out.insert(badge, at: b.at)
+            glyphs = glyphs.map { $0.at >= b.at ? ($0.at + badge.length, $0.memo) : $0 }
         }
         // Q381 (mock `.hlq`): a ❝ after the end of a noted sentence, accent colour, 0.8 em, no
         // background; it opens the note too. Hair space (not a word break) keeps the word count.

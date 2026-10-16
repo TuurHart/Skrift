@@ -12,14 +12,35 @@ struct SourceHighlight: Codable, Equatable, Sendable, Identifiable {
     /// Words of the source text before the highlight (the occurrence to paint when the words repeat).
     var word: Int
     var createdAt: Date
+    /// Q463 (D212, D214): his comment on this highlight, typed or the transcript of a spoken one.
+    /// It becomes the PDF annotation's contents when he shares the PDF with his highlights.
+    /// Additive and optional, so an older build decodes the record unchanged.
+    var comment: String? = nil
+    /// Q463 (D214): the spoken comment's audio, a file name inside the Library item's folder
+    /// (`comments/`). Kept on this device; the transcript in `comment` is what syncs and what the PDF carries.
+    var commentAudio: String? = nil
+    /// When the comment was last written (the comment sheet's "edited …" line).
+    var commentedAt: Date? = nil
 
-    init(id: UUID = UUID(), text: String, page: Int?, word: Int, createdAt: Date = Date()) {
+    init(id: UUID = UUID(), text: String, page: Int?, word: Int, createdAt: Date = Date(),
+         comment: String? = nil, commentAudio: String? = nil, commentedAt: Date? = nil) {
         self.id = id
         self.text = text
         self.page = page
         self.word = word
         self.createdAt = createdAt
+        self.comment = comment
+        self.commentAudio = commentAudio
+        self.commentedAt = commentedAt
     }
+
+    /// The comment, trimmed; nil when there is none or it is blank.
+    var commentText: String? {
+        guard let c = comment?.trimmingCharacters(in: .whitespacesAndNewlines), !c.isEmpty else { return nil }
+        return c
+    }
+
+    var hasComment: Bool { commentText != nil || commentAudio != nil }
 }
 
 /// The list rules: add (trimmed, one space, no blanks, no duplicate range), remove, and find the
@@ -39,6 +60,21 @@ enum SourceHighlights {
 
     static func removing(_ id: UUID, from list: [SourceHighlight]) -> [SourceHighlight] {
         list.filter { $0.id != id }
+    }
+
+    /// Q463: set (or, with a blank text and no audio, clear) the comment on one highlight.
+    static func commenting(_ id: UUID, comment: String?, audio: String?, in list: [SourceHighlight],
+                           now: Date = Date()) -> [SourceHighlight] {
+        list.map { h in
+            guard h.id == id else { return h }
+            var out = h
+            let text = comment?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let blank = (text ?? "").isEmpty
+            out.comment = blank ? nil : text
+            out.commentAudio = audio
+            out.commentedAt = (blank && audio == nil) ? nil : now
+            return out
+        }
     }
 
     /// The occurrence of `needle` in `haystack` (inside `within`, if given) whose word index is
