@@ -3442,7 +3442,7 @@ gate+: yes
 do: Tuur 2026-10-16 (go): the annotated Library PDF must be the same on phone, iPad and Mac. Today the book-file sync uploads a file once (AudiobookCloudSync upload-once, built for immutable audiobook audio), so only the device that highlighted has the annotated file (Q463 finding). Do NOT re-upload the PDF. Instead, on EVERY device, rebuild the local Library PDF from the hidden pristine original (`PDFAnnotationExport.pristine`) plus the synced `Audiobook.highlights` list whenever that list changes by sync (and on first download, creating the pristine backup there), using the same `LibraryHighlights.writeIntoPDF` atomic path. Two devices editing offline then converge because the file is regenerated from the merged list. Skip the rewrite when nothing changed. Spoken-comment audio still stays local (only its words sync); say so in FEATURES.md. Test `PDFAnnotationSyncRebuildTests` (phone target): a highlight list arriving by sync rewrites the local file so PDFKit reads back the annotation and comment; the pristine backup stays byte-identical; an unchanged list writes nothing.
 check: `plan/mtest.sh PDFAnnotationSyncRebuildTests`
 
-### Q474 [auto] (todo) highlights from two devices merge per highlight, never last-writer-wins
+### Q474 [auto] (doing) highlights from two devices merge per highlight, never last-writer-wins
 spec: C267 D214
 needs: Q473
 gate+: yes
@@ -4994,3 +4994,4 @@ check: `plan/mtest.sh HighlightMergeTests`
 - 2026-10-16 14:38 Q473 -> doing — worker out
 - 2026-10-16 14:53 Q474 added
 - 2026-10-16 14:56 Q473 -> done — gate 68s @d8142be0
+- 2026-10-16 14:56 Q474 -> doing — worker out
