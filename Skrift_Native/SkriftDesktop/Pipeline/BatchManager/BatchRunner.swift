@@ -26,8 +26,15 @@ enum BatchRunnerError: LocalizedError {
 /// host-tests with stubs. Mirrors `backend/services/batch_manager.py` (one
 /// model-grouped run; no mid-flight gates). The caller persists the PipelineFile +
 /// writes the compiled.md / word-timing sidecars.
+///
+/// MAIN ACTOR (Q505): every row it mutates belongs to a main-actor `ModelContext`. As a plain
+/// struct in Swift 5.9 mode its `async run` executed on the global executor (SE-0338), so it
+/// changed SwiftData rows off their context's thread — the heap corruption behind the desktop
+/// suite's SwiftData-dealloc crashes, and the same writes in the Mac's real Process path. The
+/// engines stay off main: each model call is an await into its own actor.
+@MainActor
 struct BatchRunner {
-    private static let log = Logger(subsystem: "com.skrift.desktop", category: "batch")
+    nonisolated private static let log = Logger(subsystem: "com.skrift.desktop", category: "batch")
 
     var transcriber: Transcribing
     var enhancer: Enhancing
@@ -371,7 +378,7 @@ struct BatchRunner {
     /// Title fallback chain for an empty-annotation capture:
     /// urlTitle → first 8 words of text snippet → image filename → "Capture".
     /// Only used when the user typed no annotation in the share sheet.
-    static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
+    nonisolated static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
         // Honor a title the phone pre-set (unlikely for captures, but consistent).
         if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
         // The capture rung of the shared C25 ladder — the export names files with it too.
