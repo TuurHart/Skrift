@@ -3672,7 +3672,7 @@ gate+: yes
 do: Q486 added MemoEnhancement.isStale(for:) (transcriptEditedAt > enhancedAt), but only the phone note page honours it: the phone/iPad vault exporter, WallPrinter and the list cache still read the newest copy-edit, so a note he re-edited after the Mac polished it exports and lists the old polish. Route every reader of the Mac polish through one shared accessor that returns nil when stale (fall back to his raw, as the note page does). Test `StalePolishReadersTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh StalePolishReadersTests`
 
-### Q507 [auto] (todo) A: import writes rows on the main actor, file work stays off main
+### Q507 [auto] (done) A: import writes rows on the main actor, file work stays off main
 spec: C5 C294
 needs: Q505
 gate+: yes
@@ -5315,3 +5315,4 @@ check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDe
 - 2026-10-23 19:53 Q506 -> done — gate 64s @7800be13
 - 2026-10-23 19:57 Q508 added
 - 2026-10-23 19:59 Q489 -> done — gate 117s @1d30a93d
+- 2026-10-23 20:00 Q507 -> done — gate 87s @29ecb51d
