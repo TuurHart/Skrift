@@ -1945,6 +1945,7 @@ struct NoteBodyView: UIViewRepresentable {
                 wordsChanged = true
             }
             memo.transcriptUserEdited = true         // Mac trusts it → no re-transcribe
+            if wordsChanged { memo.transcriptEditedAt = Date() }   // C153: an older polish goes stale
             rebuildWordRanges()
             onCommit(wordsChanged)
         }

@@ -52,6 +52,14 @@ final class MemoEnhancement {
         self.processedAt = processedAt
     }
 
+    /// C153: this polish was made before the raw words were last edited, so it describes words
+    /// that are gone. The raw edit shows until the next pass lands (a pass stamps `enhancedAt`
+    /// after the edit). A note with no raw-edit stamp is never stale.
+    func isStale(for memo: Memo) -> Bool {
+        guard let rawEdit = memo.transcriptEditedAt else { return false }
+        return rawEdit > enhancedAt
+    }
+
     /// True when there's actually polished content to prefer (an empty enhancement — e.g. a
     /// placeholder row — falls back to the raw transcript everywhere).
     var hasContent: Bool {
