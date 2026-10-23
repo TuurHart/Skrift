@@ -3236,7 +3236,7 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioS
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
-check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger`.
+check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480), plus any field later items add (check plan/RUN.md for "NEW synced field").
 
 ### Q444 [auto] (done) install Dev 191 (Q408–Q422) on the iPhone 17 Pro and the Mac
 spec: -
