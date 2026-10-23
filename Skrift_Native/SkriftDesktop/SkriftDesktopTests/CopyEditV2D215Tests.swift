@@ -175,14 +175,15 @@ final class CopyEditV2D215Tests: XCTestCase {
     }
 
     func testCorpusTypedTasksKeepsEveryBox() async throws {
-        let r = try XCTUnwrap(try await results()["typed-tasks"])
+        let recs = try await results()
+        let r = try XCTUnwrap(recs["typed-tasks"])
         let input = try XCTUnwrap(r.input), body = try XCTUnwrap(r.body)
         let boxes = #"^\s*- \[[ xX]\]"#
         XCTAssertEqual(Self.lines(input, matching: boxes).count, 6)
         // Name-linking may wrap "Mariam" in the shipped body; the box and its state are what D215 keeps.
         XCTAssertEqual(Self.lines(body, matching: boxes).map { String($0.prefix(5)) },
                        Self.lines(input, matching: boxes).map { String($0.prefix(5)) }, body)
-        let pic = try XCTUnwrap(try await results()["pic-in-task-list"]?.body)
+        let pic = try XCTUnwrap(recs["pic-in-task-list"]?.body)
         XCTAssertEqual(Self.lines(pic, matching: boxes).count, 4, pic)
     }
 
@@ -204,7 +205,8 @@ final class CopyEditV2D215Tests: XCTestCase {
     }
 
     func testCorpusTypedListStaysAList() async throws {
-        let r = try XCTUnwrap(try await results()["typed-dutch-boodschappen"])
+        let recs = try await results()
+        let r = try XCTUnwrap(recs["typed-dutch-boodschappen"])
         let body = try XCTUnwrap(r.body)
         XCTAssertEqual(Self.lines(body, matching: #"^- "#).count, 5, body)
         XCTAssertTrue(body.contains("haar verjaardag"), "his words in the list stay his (\"Ria haar\" never becomes \"Ria's\")")
