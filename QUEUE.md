@@ -3123,7 +3123,7 @@ needs: Q449
 do: -
 check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if present) and said it reads right.
 
-### Q426 [auto] (todo) swap: Mac and iPad polish call copy-edit v2
+### Q426 [auto] (done) swap: Mac and iPad polish call copy-edit v2
 spec: C2 C28 C38 C39
 needs: Q425 Q478
 gate+: yes
@@ -5296,3 +5296,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:27 Q500 -> todo
 - 2026-10-23 19:27 Q507 added
 - 2026-10-23 19:30 Q487 -> done — gate 187s @df83c527
+- 2026-10-23 19:33 Q426 -> done — gate 187s @37df776f
