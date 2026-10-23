@@ -1137,10 +1137,7 @@ enum BookAlignmentRunner {
             // instead of failing the whole book or vanishing.
             var unreadable: [String: String] = [:]
             for entry in archive where entry.type == .file {
-                var data = Data()
-                // ZIPFoundation's closure `extract` RETURNS the CRC and never compares it —
-                // the caller must, or a corrupted part reads as garbage text.
-                if let crc = try? archive.extract(entry, consumer: { data.append($0) }), crc == entry.checksum {
+                if let data = try? VerifiedZip.data(entry, in: archive) {   // CRC-checked (Q502)
                     entries[entry.path] = data
                 } else {
                     unreadable[entry.path] = "damaged inside the ePub file"

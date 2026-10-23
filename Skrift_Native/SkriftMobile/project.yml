@@ -120,6 +120,8 @@ targets:
       # Model download: the resumable/streaming replacement for #hubDownloader().
       # APP TARGETS ONLY — it imports MLXLMCommon, which test bundles don't link.
       - path: ../Shared/ModelDownload
+      # Zip: the one CRC-checked zip reader (Q502) — APP TARGETS ONLY, it imports ZIPFoundation.
+      - path: ../Shared/Zip
       # Retrieval brain (P8): engine protocol + gist/chunker + index core — platform-neutral.
       - path: ../Shared/Retrieval
       # RetrievalEngine: the CoreML-LLM-bound GemmaEmbedder — APP targets only,

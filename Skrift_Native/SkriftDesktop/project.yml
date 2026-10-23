@@ -107,6 +107,8 @@ targets:
       # Model download: the resumable/streaming replacement for #hubDownloader().
       # APP TARGETS ONLY — it imports MLXLMCommon, which test bundles don't link.
       - path: ../Shared/ModelDownload
+      # Zip: the one CRC-checked zip reader (Q502) — APP TARGETS ONLY, it imports ZIPFoundation.
+      - path: ../Shared/Zip
       # Session: the shared LockGate (per-device unlock state for locked notes).
       - path: ../Shared/Session
       # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
