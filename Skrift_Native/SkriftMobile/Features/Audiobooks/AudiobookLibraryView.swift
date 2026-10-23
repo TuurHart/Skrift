@@ -40,6 +40,9 @@ struct AudiobookLibraryView: View {
     @ObservedObject private var openInBridge = BookFileImportBridge.shared
     @State private var openInQueue: [URL] = []
     @State private var pendingImport: PendingAudiobookImport?
+    /// Further books from the same pick that each want their tags confirmed (C293: a pick
+    /// of several books is several books) — shown one after another.
+    @State private var confirmQueue: [PendingAudiobookImport] = []
     @State private var importError: String?
     /// Partial-import notice: the book imported but N parts were skipped (unreadable).
     @State private var importNotice: String?
@@ -151,7 +154,10 @@ struct AudiobookLibraryView: View {
         .onAppear { takeOpenIn() }
         .background { BookNoteCountsFeed(counts: $noteCounts) }
         .onChange(of: openInBridge.requestID) { _, _ in takeOpenIn() }
-        .onChange(of: pendingImport?.id) { _, id in if id == nil { startNextOpenIn() } }
+        .onChange(of: pendingImport?.id) { _, id in
+            guard id == nil else { return }
+            if !confirmQueue.isEmpty { pendingImport = confirmQueue.removeFirst() } else { startNextOpenIn() }
+        }
         .sheet(item: $pendingImport, onDismiss: {
             // A0 fires here — after the confirm sheet is fully down (a direct
             // sheet-to-sheet swap drops the second presentation on iOS 26). Only
@@ -602,13 +608,23 @@ struct AudiobookLibraryView: View {
         importing = true
         defer { importing = false }
         do {
-            let pending = try await AudiobookImporter.importBook(from: urls, libraryDirectory: store.directory)
-            if pending.needsConfirmation {
-                pendingImport = pending   // skipped-parts notice fires after the sheet resolves
-            } else {
-                store.add(pending.book)
-                importNotice = Self.skippedNotice(pending.skippedParts)
+            // C293: several distinct books in one pick become several entries, never one.
+            let result = try await AudiobookImporter.importBooks(from: urls, libraryDirectory: store.directory)
+            var skipped: [String] = []
+            for pending in result.books {
+                if pending.needsConfirmation {
+                    confirmQueue.append(pending)   // skipped-parts notice fires after its sheet resolves
+                } else {
+                    store.add(pending.book)
+                    skipped += pending.skippedParts
+                }
             }
+            importNotice = Self.skippedNotice(skipped)
+            if !result.failures.isEmpty {
+                importError = "Couldn\u{2019}t import "
+                    + result.failures.map { "\($0.name): \($0.reason)" }.joined(separator: "; ")
+            }
+            if pendingImport == nil, !confirmQueue.isEmpty { pendingImport = confirmQueue.removeFirst() }
         } catch {
             importError = error.localizedDescription
         }
