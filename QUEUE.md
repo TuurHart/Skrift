@@ -3679,6 +3679,13 @@ gate+: yes
 do: Same bug class as Q505: `struct IngestService: Sendable` has nonisolated async funcs (ingestReport/ingestFile/ingestAudio/ingestVideo/ingestNote/attachPictures/...) that insert PipelineFile rows into the CALLER'S context (the Sidebar passes mainContext), so drag-drop and import write the main context off the main thread. Split it: file work (copy, video export, hashing) stays off main so the old P1 freeze does not come back, inserts and row mutations run on the main actor. Test `IngestIsolationTests` (desktop): every insert happens on the main thread with a probe.
 check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q508 [auto] (todo) B: a Mac edit to a conversation note survives every re-derivation
+spec: C261 C47
+needs: Q489
+gate+: yes
+do: Q489 made a Mac body edit survive re-derivation (MacEditRoundTrip.adopt / settle into pf.enhancedCopyedit, de-linked) but skips conversation rows, so his Mac edit to a diarized note is still replaced by the old polish on a phone tag edit, a roster change, the open-note refresh or Redo. Extend the same rule to conversation bodies (speaker turns keep their headers; de-link per turn). Test `MacConversationEditKeptTests` (desktop): each of the four paths keeps his edit in sanitised, the compile and the cloud copy.
+check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5306,3 +5313,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:48 Q505 -> done — gate 164s @c3a965b9
 - 2026-10-23 19:50 Q490 -> stuck — gate failed — .queue/Q490.gate.log
 - 2026-10-23 19:53 Q506 -> done — gate 64s @7800be13
+- 2026-10-23 19:57 Q508 added
