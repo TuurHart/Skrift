@@ -3484,7 +3484,7 @@ gate+: yes
 do: Today photo offsets are wall-clock (RecordView). Make the recording clock stop during an interruption (call, Siri, alarm) and have photo offsets read that clock, so a picture taken after a call lands at its spoken place. Add corpus fixture `pic-after-interruption`. Test `InterruptionClockTests` (phone target).
 check: `plan/mtest.sh InterruptionClockTests`
 
-### Q480 [auto] (todo) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
+### Q480 [auto] (stuck) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
 spec: C151 D46
 needs: -
 gate+: yes
@@ -3581,7 +3581,7 @@ gate+: yes
 do: A whole ePub import ingests every section or reports which parts it skipped and why; no silent partial ingest. Fixture: an ePub with a deliberately malformed mid-file section. Test `EpubSkipReportTests` (phone).
 check: `plan/mtest.sh EpubSkipReportTests`
 
-### Q494 [auto] (todo) C: a long book import shows real progress and whether you can keep listening
+### Q494 [auto] (done) C: a long book import shows real progress and whether you can keep listening
 spec: C290
 needs: -
 gate+: yes
@@ -5230,3 +5230,5 @@ check: `plan/mtest.sh ZipCRCTests`
 - 2026-10-23 17:24 Q502 added
 - 2026-10-23 17:28 Q478 -> done — hand-merged (D215 2026-10-23: expected-differences-copyedit-v2.json additive registrations as the item asked)
 - 2026-10-23 17:35 Q493 -> done — gate 126s @33a80cb9
+- 2026-10-23 17:38 Q480 -> stuck — gate failed — .queue/Q480.gate.log
+- 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
