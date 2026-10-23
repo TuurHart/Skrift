@@ -30,6 +30,12 @@ final class ExportSession: @unchecked Sendable {
         return ledger
     }
 
+    /// This run's ledger for `root` if the run already opened it, else nil (nothing decoded).
+    func ledgerIfOpen(for root: URL) -> ExportLedger? {
+        lock.lock(); defer { lock.unlock() }
+        return ledgers[root.standardizedFileURL.path]
+    }
+
     /// The live roster, read from names.json once per run.
     var people: [Person] {
         lock.lock(); defer { lock.unlock() }

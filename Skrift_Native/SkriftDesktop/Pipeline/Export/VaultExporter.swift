@@ -91,10 +91,16 @@ enum VaultExporter {
     }
 
     /// C163: the destination-move step of `export`, judged before anything is written.
+    /// Only a row whose last export (`pf.exported`) lies under the other home has anything to
+    /// move, so a run without a re-filed note never decodes that home's ledger (Q365: one
+    /// decode and one write per run). The ledger is the run's when it already has it open, else
+    /// a standalone one that writes only when `removeOld` changes it.
     static func destinationMove(_ pf: PipelineFile, id: UUID, settings: AppSettings,
                                 session: ExportSession?) -> MoveStep {
-        guard let old = otherHome(for: pf, settings: settings) else { return .none }
-        let ledger = session?.ledger(for: old) ?? .default(for: old)
+        guard let old = otherHome(for: pf, settings: settings), let last = pf.exported,
+              URL(fileURLWithPath: last).standardizedFileURL.path.hasPrefix(old.standardizedFileURL.path + "/")
+        else { return .none }
+        let ledger = session?.ledgerIfOpen(for: old) ?? .default(for: old)
         switch DestinationMove.verdict(id: id, oldHome: old, ledger: ledger) {
         case .nothingThere:
             return .none
