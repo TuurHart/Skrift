@@ -3526,7 +3526,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html` with Tuur's sign-off notes, phone and Mac: surface CloudKit quota / sign-in errors on the list within a minute, mark unsynced notes, detect an iCloud account switch, stop syncing and say so. Tests `SyncHealthTests` (desktop: injected quota error → state; account change → stopped).
 check: `grep -rqE "class SyncHealthTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q486 [auto] (todo) B: a phone edit newer than the Mac's polish sends the note back to pending
+### Q486 [auto] (done) B: a phone edit newer than the Mac's polish sends the note back to pending
 spec: C153
 needs: -
 gate+: yes
@@ -3658,12 +3658,12 @@ gate+: yes
 do: Q481 polishes only an appended block (BatchRunner.polishAppendedBlock) and Q483 turns spoken hashtags into tags through SpokenHashtags.shownBody, but the append path never calls shownBody, so "hashtag x" said in an added recording stays words. Call shownBody on the spliced body in polishAppendedBlock (and the phone path if it has one). Test `AppendSpokenHashtagTests` (desktop).
 check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q505 [auto] (todo) the desktop suite stops crashing in SwiftData dealloc
+### Q505 [auto] (done) the desktop suite stops crashing in SwiftData dealloc
 spec: C5
 needs: -
 gate+: yes
 do: The suite crash (8 in an hour on 2026-10-23, SwiftData SIGSEGV in _swift_release_dealloc under PipelineFile.*Status setters) is a SwiftData thread-confinement violation, not container lifetime (lane A disproved that: retaining both containers still crashed 1 of 30). BatchRunner is a plain nonisolated struct and the project builds in Swift 5.9 mode, so its async run executes on the global executor (SE-0338) while every caller (CopyEditCorpusRun, CopyEditV2Mac.corpusStep, ProcessingCoordinator) hands it PipelineFile rows from a main-actor ModelContext. Production bug too: the Mac's Process / Re-transcribe path. Make BatchRunner @MainActor (pure statics nonisolated); engines stay awaited on their own actors. Test `BatchRunnerIsolationTests` (desktop): run executes on the main thread with a probe transcriber. Report the stress loop numbers before and after (baseline 5 of 100).
-check: `grep -rqE "class BatchRunnerIsolationTests" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+check: `grep -rqE "class BatchRunnerIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q506 [auto] (todo) B: every reader skips a polish older than his last raw edit
 spec: C152 C261
@@ -5300,3 +5300,7 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:36 Q500 -> done — gate 155s @2746cf4f
 - 2026-10-23 19:39 Q488 -> done — gate 166s @2b57c83e
 - 2026-10-23 19:39 Q486 -> todo
+- 2026-10-23 19:42 Q486 -> done — gate 193s @3f18139a
+- 2026-10-23 19:45 Q505 -> stuck — check failed — .queue/Q505.check.log
+- 2026-10-23 19:45 Q505 -> todo
+- 2026-10-23 19:48 Q505 -> done — gate 164s @c3a965b9
