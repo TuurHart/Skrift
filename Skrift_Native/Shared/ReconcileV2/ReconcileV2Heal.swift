@@ -3,28 +3,31 @@ import SwiftData
 
 extension ReconcileV2 {
 
-    /// What assets exist, read from ONE blob-free fetch (memo id, kind, filename). An asset row
+    /// What assets exist, read from ONE blob-free fetch (memo id, kind, filename, size). An asset row
     /// faults in its whole blob when touched, so the sweep decides from this index whether a
     /// memo's blobs are needed at all; an unchanged store fetches none (R29), and a manifest that
     /// names a photo whose blob never synced costs nothing either.
     final class AssetIndex {
         private let context: ModelContext
-        private var names: [UUID: [String: Set<String>]]?   // memo → kind → filenames
+        private var names: [UUID: [String: [String: Int]]]?   // memo → kind → filename → bytes
         private var loaded: [UUID: [MemoAsset]] = [:]
 
         init(_ context: ModelContext) { self.context = context }
 
-        func has(_ memoID: UUID, _ kind: String, named filename: String? = nil) -> Bool {
+        /// `minBytes`: an asset smaller than this holds nothing worth reading (an empty timings
+        /// list is `[]`), so a note whose timings asset is empty costs no fetch every sweep.
+        func has(_ memoID: UUID, _ kind: String, named filename: String? = nil, minBytes: Int = 1) -> Bool {
             if names == nil {
                 ReconcileWork.bump(\.assetIndexFetches)
                 var d = FetchDescriptor<MemoAsset>()
-                d.propertiesToFetch = [\.memoID, \.kind, \.filename]
-                var built: [UUID: [String: Set<String>]] = [:]
-                for a in (try? context.fetch(d)) ?? [] { built[a.memoID, default: [:]][a.kind, default: []].insert(a.filename) }
+                d.propertiesToFetch = [\.memoID, \.kind, \.filename, \.byteCount]
+                var built: [UUID: [String: [String: Int]]] = [:]
+                for a in (try? context.fetch(d)) ?? [] { built[a.memoID, default: [:]][a.kind, default: [:]][a.filename] = a.byteCount }
                 names = built
             }
             guard let files = names?[memoID]?[kind] else { return false }
-            return filename.map(files.contains) ?? true
+            if let filename { return (files[filename] ?? 0) >= minBytes }
+            return files.values.contains { $0 >= minBytes }
         }
 
         /// The memo's asset rows WITH their blobs: fetched at most once per memo per sweep.
@@ -45,12 +48,11 @@ extension ReconcileV2 {
 
         /// Run every heal; true when one wrote something.
         static func run(memo: Memo, row: PipelineFile, assets: AssetIndex, transcriptChanged: Bool) -> Bool {
-            let fetch = { assets.blobs(for: memo.id) }
             var wrote = false
             if let folder = row.workingFolder {
                 wrote = linkThumbnail(memo, folder, assets) || wrote
                 wrote = keptMovie(memo, folder, assets) || wrote
-                wrote = MacNoteAttachments.materializeMissing(memo: memo, pf: row, fetchAssets: fetch) || wrote
+                wrote = attachments(memo, folder, assets) || wrote
                 wrote = photos(memo, folder, assets) || wrote
             }
             wrote = timings(memo, row, assets) || wrote
@@ -77,6 +79,30 @@ extension ReconcileV2 {
                   let movie = assets.blobs(for: memo.id).first(where: { $0.kind == MemoAsset.Kind.video && $0.filename == name }),
                   !movie.blob.isEmpty else { return false }
             return write(movie.blob, to: folder.appendingPathComponent(VideoKeep.macSourceName(forAssetFilename: name)))
+        }
+
+        /// D199: the body's videos and files, under `attachments/` with their manifest. A file
+        /// whose asset has not synced is skipped by name (the index), so it costs no fetch.
+        static func attachments(_ memo: Memo, _ folder: URL, _ assets: AssetIndex) -> Bool {
+            let entries = memo.metadata?.attachmentManifest ?? []
+            guard !entries.isEmpty else { return false }
+            let fm = FileManager.default
+            let dir = MacNoteAttachments.folder(in: folder)
+            let kinds = [MemoAsset.Kind.file, MemoAsset.Kind.video]
+            let missing = Set(entries.map(\.filename).filter { name in
+                !name.isEmpty && !NoteAttachment.isKeptMovie(name)
+                    && !fm.fileExists(atPath: dir.appendingPathComponent(name).path)
+                    && kinds.contains { assets.has(memo.id, $0, named: name) }
+            })
+            var wrote = false
+            for a in missing.isEmpty ? [] : assets.blobs(for: memo.id)
+            where missing.contains(a.filename) && kinds.contains(a.kind) && !a.blob.isEmpty {
+                wrote = write(a.blob, to: dir.appendingPathComponent(a.filename)) || wrote
+            }
+            if MacNoteAttachments.manifest(in: folder) != entries, let data = try? JSONEncoder().encode(entries) {
+                wrote = write(data, to: folder.appendingPathComponent(MacNoteAttachments.manifestName)) || wrote
+            }
+            return wrote
         }
 
         /// Photos the memo's manifest names but the folder lacks (a picture added while editing a
@@ -113,7 +139,7 @@ extension ReconcileV2 {
         /// own ASR timings are never replaced) and only beside a finished transcript.
         static func timings(_ memo: Memo, _ row: PipelineFile, _ assets: AssetIndex) -> Bool {
             guard row.wordTimingsJSON?.isEmpty ?? true, row.transcribeStatus == .done,
-                  !(row.transcript ?? "").isEmpty, assets.has(memo.id, MemoAsset.Kind.wordTimings),
+                  !(row.transcript ?? "").isEmpty, assets.has(memo.id, MemoAsset.Kind.wordTimings, minBytes: 3),
                   let words = Ingest.decodeTimings(assets.blobs(for: memo.id)) else { return false }
             row.wordTimings = words
             return true
