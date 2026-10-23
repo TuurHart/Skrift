@@ -3650,7 +3650,7 @@ needs: Q495
 do: -
 check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is still being transcribed is blocked with "Add it now, it matches up on its own once the book is transcribed" shown only before the job starts; or (b) restore the signed audiobook A0 promise (add any time, the text waits and matches up after transcription) and drop C291. His answer lands in SPEC Decisions.
 
-### Q504 [auto] (todo) A: an appended block also turns spoken hashtags into tags
+### Q504 [auto] (done) A: an appended block also turns spoken hashtags into tags
 spec: C275 C152
 needs: Q483
 gate+: yes
@@ -5252,3 +5252,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 17:56 Q495 -> done — gate 60s @886afdac
 - 2026-10-23 18:30 Q504 added
 - 2026-10-23 18:35 Q483 -> done — gate 144s @a9691c2a
+- 2026-10-23 18:40 Q504 -> done — gate 84s @c67910ce
