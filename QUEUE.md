@@ -3477,6 +3477,159 @@ gate+: yes
 do: Tuur on Q425 (2026-10-23, D215, "all four as recommended") on the read `plan/reads/copyedit-v2.md`: (1) checkbox lines (`- [ ]` / `- [x]`) never reach the model: hold them aside like pictures and put them back in place, so typed-tasks keeps every box and its state; (2) a note under 40 words that loses a full sentence (any whole input sentence absent from the output) falls back to his words, catching voice-en-paragraphed-by-pauses and voice-en-raw-title; (3) his spelling stays: tell the model in the ONE prompt source (`PolishPrompts`, C39) to keep the writer's spelling and dialect, and add a gate check that no input word was replaced by a spelling variant (colour→color, apologising→apologizing), falling back if so; (4) typed list lines (`- `, `* `, `1. `) stay list lines: hold list blocks aside when the note is typed, or fall back when the output loses list structure (typed-dutch-boodschappen). Fillers and "okay so" may still go. A changed prompt means new model outputs: record them with the Q424 recorder (`-recordcopyeditv2 <corpus> -isolatedRun`, raw Debug binary, never -corpus, never /Applications/*); never fabricate. Update `expected-differences-copyedit-v2.json` and rewrite `plan/reads/copyedit-v2.md` showing those four notes now. Test `CopyEditV2D215Tests` (desktop target).
 check: `grep -rqE "class CopyEditV2D215Tests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q479 [auto] (todo) A: an interruption pauses the recording clock, so photos land where they were taken
+spec: C149
+needs: -
+gate+: yes
+do: Today photo offsets are wall-clock (RecordView). Make the recording clock stop during an interruption (call, Siri, alarm) and have photo offsets read that clock, so a picture taken after a call lands at its spoken place. Add corpus fixture `pic-after-interruption`. Test `InterruptionClockTests` (phone target).
+check: `plan/mtest.sh InterruptionClockTests`
+
+### Q480 [auto] (todo) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
+spec: C151 D46
+needs: -
+gate+: yes
+do: Store the ASR language mode each transcript was made with (additive synced field) and add a plain ⋯ menu item "Transcribe again in Dutch" / "in English" (the other language) on phone and Mac, re-running ASR on that note only; the global setting stays the default. Add corpus fixture `voice-nl-recorded-in-english-mode`. Test `TranscribeAgainLanguageTests` (phone target).
+check: `plan/mtest.sh TranscribeAgainLanguageTests`
+
+### Q481 [auto] (todo) A: text appended to a polished note shows up and only the new block gets polished
+spec: C152 C223
+needs: -
+gate+: yes
+do: Today an append writes only the raw transcript (MemoSaver) while every screen shows the polished body, so new words are invisible. Make appended text (Add recording, capture ramble) appear in the body he sees, mark the note for a pass, and have that pass polish only the new block (the earlier polish stays). Add corpus fixture `voice-en-append-after-polish`. Tests `AppendAfterPolishTests` (desktop) for the pass and a phone test for the visible body.
+check: `grep -rqE "class AppendAfterPolishTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q482 [auto] (todo) A: a Mac recording's word timings and diarization reach the phone, so karaoke works everywhere
+spec: C245 R34
+needs: -
+gate+: yes
+do: A phone take's word timings ride to the Mac as assets; a Mac take's do not ride back (R34). Write the Mac take's word timings (and diarization, when any) as the same synced MemoAsset kinds the phone uses, so the phone's karaoke works on Mac recordings. Test `MacTimingsAssetTests` (desktop): a Mac recording yields a wordTimings asset in the same shape the phone writes.
+check: `grep -rqE "class MacTimingsAssetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q483 [auto] (todo) A: a spoken hashtag becomes a real tag, by rule
+spec: C275 C85
+needs: -
+gate+: yes
+do: By rule, never the model: "hashtag motivation" / "hashtag motivatie" → `#motivation` / `#motivatie` in the shown body; a run of spoken hashtags at the end becomes one tag line and a trailing "Okay" after them is dropped; the raw transcript keeps the words; custom vocab applies ("C and C" → CNC when CNC is a vocab word). One shared function in Skrift_Native/Shared used on both apps. Add synthetic corpus fixture `voice-spoken-hashtags` (EN + NL, including "Hashtag production. C and C hashtag design hashtag GFR. Okay." → `#production #cnc #design #gfr`). Test `SpokenHashtagTests` (desktop).
+check: `grep -rqE "class SpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q484 [tuur] (todo) B: mockup: sync health on the list and the note
+spec: C155 D48 R47
+needs: -
+do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html`, phone + Mac frames drawn from source: a CloudKit quota or sign-in failure showing on the notes list within a minute, a note marked "not synced yet", and an iCloud account switch noticed (syncing stops, it says so). Reuse existing banner/pill styles. One agent writes this file.
+check: Tuur clicked through it and said go.
+
+### Q485 [auto] (todo) B: build sync health per the mock
+spec: C155 D48 R47
+needs: Q484
+gate+: yes
+do: Build to `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html` with Tuur's sign-off notes, phone and Mac: surface CloudKit quota / sign-in errors on the list within a minute, mark unsynced notes, detect an iCloud account switch, stop syncing and say so. Tests `SyncHealthTests` (desktop: injected quota error → state; account change → stopped).
+check: `grep -rqE "class SyncHealthTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q486 [auto] (todo) B: a phone edit newer than the Mac's polish sends the note back to pending
+spec: C153
+needs: -
+gate+: yes
+do: A raw edit whose stamp is newer than the row's `enhancedAt` sets the Mac row back to pending; the phone shows the edit until the next pass lands. Test `RawEditPendingTests` (desktop) including the post-run race (edit lands while a pass runs → the pass result is discarded, C38).
+check: `grep -rqE "class RawEditPendingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q487 [auto] (todo) B: a purge deletes the polish row and every asset; an orphan Mac row is trashed
+spec: C157
+needs: -
+gate+: yes
+do: Today `NotesRepository` purge keeps the MemoEnhancement. A purge deletes the note's polish row and every MemoAsset; on the next sweep a Mac row whose memo is gone is trashed (never its vault file). Tests `PurgeCascadeTests` (phone) and `OrphanRowSweepTests` (desktop).
+check: `grep -rqE "class OrphanRowSweepTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q488 [auto] (todo) B: a picture removed from a note leaves the vault on the next export
+spec: C158 C14 C54
+needs: -
+gate+: yes
+do: When a picture marker is removed from the body, the next export removes that image file from the vault if it is ours and untouched (C54 ownership); the manifest entry stays (C14). Shared export code, both exporters. Add corpus fixture `pic-deleted-after-export`. Test `RemovedPictureExportTests` (desktop).
+check: `grep -rqE "class RemovedPictureExportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q489 [auto] (todo) B: a roster change re-links every processed note once and re-exports the stale vault files
+spec: C159 C283 D32
+needs: -
+gate+: yes
+do: Add, alias or rename re-derives links for every processed row on the Mac once, deterministically, and re-exports the untouched vault files we own whose links or `people:` went stale; a rename rewrites `[[Old]]` → `[[New]]` and `people:`; edited or foreign files are never touched. Add corpus fixtures `voice-en-bruno-before-roster` ×3 and a rename golden. Test `RosterReexportTests` (desktop).
+check: `grep -rqE "class RosterReexportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q490 [auto] (todo) B: changing a note's destination moves its exported file; retitle and folder switch never move files
+spec: C163 C164
+needs: -
+gate+: yes
+do: Destination change: remove the old file when ours and untouched, write the new one; if the old file was edited or moved, refuse and name the file; a Personal note never stays in the portfolio. A retitle never renames the exported file; switching the vault folder never moves old exports (new notes go to the new folder; Settings says so). Tests `DestinationMoveTests` and `RetitleNoRenameTests` (desktop).
+check: `grep -rqE "class DestinationMoveTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q491 [auto] (todo) B: frontmatter carries editedAt
+spec: C284 D12
+needs: -
+gate+: yes
+do: Add `editedAt` to the vault frontmatter beside `created` and `duration` on both exporters (shared compiler), stable key order. Update export goldens only through the harness record flag and register the change. Test `EditedAtFrontmatterTests` (desktop).
+check: `grep -rqE "class EditedAtFrontmatterTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q492 [auto] (todo) B: a query mid-sweep never sees a half-swapped note
+spec: C294
+needs: -
+gate+: yes
+do: Guard the reconcile sweep's await points against actor reentrancy so a query during a sweep sees each memo either before or after its swap, never between. Test `SweepReentrancyTests` (desktop): concurrency stress with interleaved reads.
+check: `grep -rqE "class SweepReentrancyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q493 [auto] (todo) C: an ePub import reads every part or says exactly what it skipped
+spec: C289
+needs: -
+gate+: yes
+do: A whole ePub import ingests every section or reports which parts it skipped and why; no silent partial ingest. Fixture: an ePub with a deliberately malformed mid-file section. Test `EpubSkipReportTests` (phone).
+check: `plan/mtest.sh EpubSkipReportTests`
+
+### Q494 [auto] (todo) C: a long book import shows real progress and whether you can keep listening
+spec: C290
+needs: -
+gate+: yes
+do: A long ePub/book import shows real progress (parts done / total) in the existing import UI style and states whether listening can continue meanwhile. Test `BookImportProgressTests` (phone).
+check: `plan/mtest.sh BookImportProgressTests`
+
+### Q495 [auto] (todo) C: ePub upload is blocked while the same book is still transcribing
+spec: C291
+needs: -
+gate+: yes
+do: Block adding an ePub to a book whose whole-book transcription is still running, with a clear message. Test `EpubUploadGuardTests` (phone).
+check: `plan/mtest.sh EpubUploadGuardTests`
+
+### Q496 [auto] (todo) C: the model download checks the real file, not a size floor
+spec: C292
+needs: -
+gate+: yes
+do: The model-download completeness check verifies the downloaded files by expected byte count or hash, not a size floor; a truncated-but-over-floor download counts as incomplete and resumes. Test `ResumableModelDownloaderTests` gains the truncated case (new test file if the existing class is protected: `ModelDownloadCompletenessTests`).
+check: `grep -rqE "class ModelDownloadCompletenessTests\b" Skrift_Native -r`
+
+### Q497 [auto] (todo) C: importing several books at once never merges them
+spec: C293
+needs: -
+gate+: yes
+do: Multi-select import of several distinct books yields one library entry per book. Fixture with 2+ distinct books. Test `MultiBookImportTests` (phone).
+check: `plan/mtest.sh MultiBookImportTests`
+
+### Q498 [auto] (todo) C: a book title never repeats its author
+spec: C297
+needs: -
+gate+: yes
+do: An imported book named "Title — Author" (with an author byline) becomes title "Title" with the author in its own field. Test `BookTitleAuthorTests` (phone).
+check: `plan/mtest.sh BookTitleAuthorTests`
+
+### Q499 [auto] (todo) C: unsharing an audiobook leaves no phantom library entry
+spec: C298
+needs: -
+gate+: yes
+do: An entry with no local audio and no cloud carrier is removed at the next library load, with a log line. Test `PhantomEntryTests` (phone): unshare then reload shows no empty row.
+check: `plan/mtest.sh PhantomEntryTests`
+
+### Q500 [auto] (todo) C: directory accessors create their folder once per launch
+spec: C280
+needs: -
+gate+: yes
+do: `AppPaths`-style accessors call createDirectory at most once per process launch (cache the result), never on every access, on both apps. Test `DirectoryCreateOnceTests` (desktop) counting createDirectory calls across repeated access.
+check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5035,3 +5188,26 @@ check: `grep -rqE "class CopyEditV2D215Tests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-10-23 15:29 Q478 added
 - 2026-10-23 15:29 Q425 -> done — Tuur 2026-10-23: all four as recommended → D215, applied by Q478
 - 2026-10-23 15:29 Q478 -> doing — worker out
+- 2026-10-23 15:34 Q479 added
+- 2026-10-23 15:34 Q480 added
+- 2026-10-23 15:34 Q481 added
+- 2026-10-23 15:34 Q482 added
+- 2026-10-23 15:34 Q483 added
+- 2026-10-23 15:34 Q484 added
+- 2026-10-23 15:34 Q485 added
+- 2026-10-23 15:34 Q486 added
+- 2026-10-23 15:34 Q487 added
+- 2026-10-23 15:34 Q488 added
+- 2026-10-23 15:34 Q489 added
+- 2026-10-23 15:34 Q490 added
+- 2026-10-23 15:34 Q491 added
+- 2026-10-23 15:34 Q492 added
+- 2026-10-23 15:34 Q493 added
+- 2026-10-23 15:34 Q494 added
+- 2026-10-23 15:34 Q495 added
+- 2026-10-23 15:34 Q496 added
+- 2026-10-23 15:34 Q497 added
+- 2026-10-23 15:34 Q498 added
+- 2026-10-23 15:34 Q499 added
+- 2026-10-23 15:34 Q500 added
+- 2026-10-23 15:36 plan: resync — 22 items for the 23 unqueued clauses (C149 C151 C152 C153 C155 C157 C158 C159 C163 C164 C245 C275 C280 C283 C284 C289–C294 C297 C298) in lanes A (recording/capture) B (sync/export) C (library/books); C160/C162 dropped (D183/D185); C296 covered by the perf lane
