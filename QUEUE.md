@@ -3658,7 +3658,7 @@ gate+: yes
 do: Q481 polishes only an appended block (BatchRunner.polishAppendedBlock) and Q483 turns spoken hashtags into tags through SpokenHashtags.shownBody, but the append path never calls shownBody, so "hashtag x" said in an added recording stays words. Call shownBody on the spliced body in polishAppendedBlock (and the phone path if it has one). Test `AppendSpokenHashtagTests` (desktop).
 check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q505 [auto] (todo) the desktop suite stops crashing in SwiftData dealloc
+### Q505 [auto] (done) the desktop suite stops crashing in SwiftData dealloc
 spec: C5
 needs: -
 gate+: yes
@@ -5303,3 +5303,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:42 Q486 -> done — gate 193s @3f18139a
 - 2026-10-23 19:45 Q505 -> stuck — check failed — .queue/Q505.check.log
 - 2026-10-23 19:45 Q505 -> todo
+- 2026-10-23 19:48 Q505 -> done — gate 164s @c3a965b9
