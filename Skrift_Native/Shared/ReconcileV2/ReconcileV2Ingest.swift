@@ -23,6 +23,17 @@ extension ReconcileV2 {
             return memo.audioFilename.isEmpty ? .typed : nil
         }
 
+        /// C42, the one trust rule for the phone's words on a Mac row: an audio row takes them only
+        /// when they are final and trusted (`userEdited || confidence ≥ 0.7`), else the Mac's own
+        /// ASR fills it; a typed note's words are its body. First contact and the reflect both ask.
+        nonisolated static func phoneWords(_ memo: Memo, audio: Bool) -> String? {
+            guard audio else { return memo.transcript }
+            guard memo.transcriptStatus == .done,
+                  Memo.isTrustedTranscript(userEdited: memo.transcriptUserEdited, confidence: memo.transcriptConfidence)
+            else { return nil }
+            return memo.transcript
+        }
+
         /// The row's filename and the legacy-row match key: the memo's own, else `memo_<uuid>.m4a`.
         nonisolated static func audioFilename(for memo: Memo) -> String {
             memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
@@ -82,8 +93,7 @@ extension ReconcileV2 {
                 p.mediaSource = SourceKind.mediaMarker(in: blob)
                 // C42: the phone's words stand in for the Mac's ASR only when trusted, and the
                 // sidecars (timings, diarization) only ever ride a trusted transcript.
-                if !words.isEmpty, Memo.isTrustedTranscript(userEdited: memo.transcriptUserEdited,
-                                                            confidence: memo.transcriptConfidence) {
+                if !words.isEmpty, phoneWords(memo, audio: true) != nil {
                     (p.transcript, p.languageMode) = (words, memo.transcriptLanguageMode)
                     p.wordTimings = decodeTimings(assets) ?? []
                     p.segments = decodeDiarization(assets) ?? []

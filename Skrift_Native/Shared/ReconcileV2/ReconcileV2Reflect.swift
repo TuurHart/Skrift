@@ -65,7 +65,8 @@ extension ReconcileV2 {
                row.enhancedTitle != chosen {
                 row.enhancedTitle = chosen; content = true
             }
-            if let t = memo.transcript, row.transcript != t {
+            // C42: an untrusted phone transcript never lands on an audio row; it stays the Mac's.
+            if let t = Ingest.phoneWords(memo, audio: row.sourceType == .audio), row.transcript != t {
                 row.transcript = t
                 row.transcriptLanguageMode = memo.transcriptLanguageMode
                 content = true
