@@ -3123,9 +3123,10 @@ needs: Q449
 do: -
 check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if present) and said it reads right.
 
-### Q426 [auto] (stuck) swap: Mac and iPad polish call copy-edit v2
+### Q426 [auto] (todo) swap: Mac and iPad polish call copy-edit v2
 spec: C2 C28 C38 C39
 needs: Q425 Q478
+gate+: yes
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
 check: `! grep -rnE --exclude=CopyEditPipeline.swift "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
 
@@ -3525,7 +3526,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html` with Tuur's sign-off notes, phone and Mac: surface CloudKit quota / sign-in errors on the list within a minute, mark unsynced notes, detect an iCloud account switch, stop syncing and say so. Tests `SyncHealthTests` (desktop: injected quota error → state; account change → stopped).
 check: `grep -rqE "class SyncHealthTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q486 [auto] (todo) B: a phone edit newer than the Mac's polish sends the note back to pending
+### Q486 [auto] (stuck) B: a phone edit newer than the Mac's polish sends the note back to pending
 spec: C153
 needs: -
 gate+: yes
@@ -3623,7 +3624,7 @@ gate+: yes
 do: An entry with no local audio and no cloud carrier is removed at the next library load, with a log line. Test `PhantomEntryTests` (phone): unshare then reload shows no empty row.
 check: `plan/mtest.sh PhantomEntryTests`
 
-### Q500 [auto] (stuck) C: directory accessors create their folder once per launch
+### Q500 [auto] (todo) C: directory accessors create their folder once per launch
 spec: C280
 needs: -
 gate+: yes
@@ -5283,3 +5284,6 @@ check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/S
 - 2026-10-23 19:23 Q499 -> done — gate 219s @b7f70ca0
 - 2026-10-23 19:23 Q426 -> stuck — touched protected: Skrift_Native/SkriftDesktop/SkriftDesktopTests/CopyEditV2SwapTests.swift Skrift_Native/SkriftMobile/SkriftMobileTests/PolishV2Tests.swift 
 - 2026-10-23 19:27 Q502 -> done — gate 93s @f7529efa
+- 2026-10-23 19:27 Q486 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-10-23 19:27 Q426 -> todo
+- 2026-10-23 19:27 Q500 -> todo
