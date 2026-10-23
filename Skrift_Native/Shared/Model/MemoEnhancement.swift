@@ -58,6 +58,23 @@ final class MemoEnhancement {
         self.processedAt = processedAt
     }
 
+    /// C153: this polish was made before the raw words were last edited, so it describes words
+    /// that are gone. The raw edit shows until the next pass lands (a pass stamps `enhancedAt`
+    /// after the edit). A note with no raw-edit stamp is never stale.
+    func isStale(for memo: Memo) -> Bool {
+        guard let rawEdit = memo.transcriptEditedAt else { return false }
+        return rawEdit > enhancedAt
+    }
+
+    /// Q506 (C153, C261): the ONE way a reader takes the Mac's polish for `memo` — the note
+    /// page, the vault exporter, the wall printer and the list all ask here. nil when there is
+    /// none or it is stale (made before his last raw edit): the reader then uses his raw words,
+    /// as the note page does, until the next pass lands.
+    static func current(_ e: MemoEnhancement?, for memo: Memo) -> MemoEnhancement? {
+        guard let e, !e.isStale(for: memo) else { return nil }
+        return e
+    }
+
     /// True when there's actually polished content to prefer (an empty enhancement — e.g. a
     /// placeholder row — falls back to the raw transcript everywhere).
     var hasContent: Bool {

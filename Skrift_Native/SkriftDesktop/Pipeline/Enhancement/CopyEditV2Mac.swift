@@ -20,6 +20,7 @@ enum CopyEditV2Mac {
         if src != .share, body.isEmpty { pf.enhanceStatus = .done; return }   // nothing to enhance
         pf.enhanceStatus = .processing
         let snapshot = pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript
+        let rawSnapshot = pf.transcript   // a reflected raw edit discards the run too (C153)
         let p = settings.prompts
         var input = CopyEditV2.PassInput(
             body: body, source: src,
@@ -30,7 +31,7 @@ enum CopyEditV2Mac {
                                                                    existingTitle: pf.enhancedTitle)
         }
         let pass = try await CopyEditV2.runPass(input, generate: generate) {
-            (pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript) != snapshot
+            (pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript) != snapshot || pf.transcript != rawSnapshot
         }
         if pass.discarded { pf.enhanceStatus = .pending; return }   // C38: an edit during the run wins
         if src != .share { pf.enhancedCopyedit = pass.copyedit }

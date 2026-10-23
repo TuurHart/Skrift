@@ -72,9 +72,13 @@ enum MemoCloudUpdate {
         // advanced the watermark without applying).
         var contentChanged = false
 
-        // Path 2 — the phone edited the polished copy-edit / title / summary.
+        // Path 2 — the phone edited the polished copy-edit / title / summary. A copy-edit made
+        // before a later raw edit is of words that are gone (C153): never adopt it.
+        var copyeditAdopted = false
         if let e = phoneEnh {
-            if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; contentChanged = true }
+            if pf.enhancedCopyedit != e.copyedit, !e.isStale(for: memo) {
+                pf.enhancedCopyedit = e.copyedit; contentChanged = true; copyeditAdopted = true
+            }
             // C152: words appended on the phone after the polish. They show already (they are
             // in the copy-edit above); the row goes back for a pass that polishes only them.
             let pending = e.pendingBlock.isEmpty ? nil : e.pendingBlock
@@ -109,6 +113,16 @@ enum MemoCloudUpdate {
             pf.transcript = t
             pf.transcriptLanguageMode = memo.transcriptLanguageMode   // C151: the stamp rides with the words
             contentChanged = true
+            // C153: a raw edit newer than the polish sends a polished row back to pending, and
+            // the stale copy-edit stops being the body, so the edit shows until the next pass.
+            // An older build stamps no `transcriptEditedAt`; the words changed here, so the
+            // memo's own edit time stands in. A run in flight is left to its own guard (C38).
+            if !copyeditAdopted, let e = enhancement, e.hasContent, pf.enhanceStatus == .done,
+               (memo.transcriptEditedAt ?? memo.lastEditedAt) > e.enhancedAt {
+                pf.enhanceStatus = .pending
+                pf.enhancedCopyedit = nil
+                pf.pendingPolishBlock = nil   // the whole note is polished again, not a block (C152)
+            }
         }
 
         // The metadata BLOB changed (book fields edited, photo OCR landed, …) — refresh the

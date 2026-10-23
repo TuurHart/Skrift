@@ -134,6 +134,12 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight migration.
     var editedAt: Date? = nil
 
+    /// When the user last edited the RAW transcript (C153). A polish older than this was made
+    /// from words he has since changed: every device shows the raw edit and the Mac re-polishes
+    /// (`MemoEnhancement.isStale(for:)`). Distinct from `editedAt`, which a title or tag edit
+    /// also moves. ADDITIVE, nil default → lightweight migration + CloudKit schema deploy.
+    var transcriptEditedAt: Date? = nil
+
     // D185: unused, kept for CloudKit + older builds. Note reminders were removed (phone, iPad,
     // Mac); nothing reads or writes this any more, and it no longer holds a note off the fading
     // clock. The property stays so the CloudKit schema and older installed builds keep working.

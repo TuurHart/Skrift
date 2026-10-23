@@ -238,7 +238,8 @@ struct ObsidianPublisher {
                                  profile: profile)
         // ONE title ladder with the Mac (C25 via `ExportNaming`): user title → the Mac's
         // suggested title → first body line → …, so both name the same note the same file.
-        let enhancement = enhancementProvider(memo.id)
+        // Q506: a polish older than his last raw edit is not exported; his words are.
+        let enhancement = MemoEnhancement.current(enhancementProvider(memo.id), for: memo)
         let title = MemoExporter.exportTitle(for: memo, people: people, enhancement: enhancement)
         let fallback = memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
 
@@ -260,7 +261,7 @@ struct ObsidianPublisher {
                 stems[id] = PublishOutcome.stem(ofRelativePath: rel)
             } else if let target = memoProvider(id) {
                 stems[id] = ExportNaming.stem(title: MemoExporter.exportTitle(for: target, people: people,
-                                                                              enhancement: enhancementProvider(id)),
+                                                                              enhancement: MemoEnhancement.current(enhancementProvider(id), for: target)),
                                               filename: target.audioFilename)
             }
         }
@@ -305,8 +306,14 @@ struct ObsidianPublisher {
             return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
         }
 
-        // A real write — now the blobs.
-        let photoBlobs = embedNames.isEmpty ? [:] : photosProvider(memo.id)
+        // A real write — now the blobs. C158: a picture whose marker left the body has its
+        // vault copy removed when ours and untouched, judged against the same blob.
+        let removedPictures = profile.removedPictures(ExportBody.shown(markdown),
+                                                      manifest: manifest.map(\.filename), stem: stem)
+        let photoBlobs = embedNames.isEmpty && removedPictures.isEmpty ? [:] : photosProvider(memo.id)
+        let removedAssets: [VaultAsset] = removedPictures.compactMap { p in
+            photoBlobs[p.source].map { VaultAsset(name: p.embedName, source: .data($0)) }
+        }
         var attachments: [VaultAsset] = embedNames.compactMap { source, embedName in
             photoBlobs[source].map { VaultAsset(name: embedName, source: .data($0)) }
         }
@@ -336,7 +343,8 @@ struct ObsidianPublisher {
         }
 
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
-                                  attachments: attachments, audio: audio, documents: documents)
+                                  attachments: attachments, audio: audio, documents: documents,
+                                  removedAttachments: removedAssets)
         return PublishReport(r.outcome, relativePath: relPath, assetCount: attachments.count)
     }
 
