@@ -482,7 +482,7 @@ struct RecordView: View {
                 // A closure, not `service.elapsed`: passing the value would make
                 // this whole overlay re-render at every timer tick just to keep a
                 // capture offset fresh; the sheet reads it at shutter time instead.
-                recordingOffset: { service.elapsed },
+                recordingOffset: { service.recordingOffset },
                 onDone: {
                     showCamera = false
                     camera.stop()   // camera off between uses; reopening restarts it

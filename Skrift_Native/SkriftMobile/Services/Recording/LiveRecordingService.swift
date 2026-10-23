@@ -25,6 +25,9 @@ final class LiveRecordingService {
     private(set) var isRecording = false
     private(set) var isPaused = false
     private(set) var elapsed: TimeInterval = 0
+    /// The take's clock read NOW (C149), for a photo's offset: exact at shutter time, where
+    /// `elapsed` is up to a tick stale. Not observed — nothing re-renders on it.
+    var recordingOffset: TimeInterval { clock.reading() }
     /// Rolling level history (newest last) for the live waveform bars.
     private(set) var waveform: [Float] = []
     /// The shared rolling level window (`RecordingCore.Meter`) behind `waveform`.
@@ -160,15 +163,25 @@ final class LiveRecordingService {
     /// True between interruption `.began` and its recovery (`.ended` /
     /// foreground re-arm). The watchdog stands down while the system owns the
     /// mic — a rebuild mid-interruption cannot succeed and just churns retries.
-    @ObservationIgnored private var interruptionActive = false
+    @ObservationIgnored private var interruptionActive = false {
+        didSet {
+            guard interruptionActive != oldValue else { return }
+            clock.setInterrupted(interruptionActive)
+            // Re-anchor the Live Activity's timer too, or it runs the call's length ahead.
+            if !interruptionActive, isRecording, !isPaused, !mock {
+                RecordingActivityManager.shared.resume(elapsed: clock.reading())
+            }
+        }
+    }
     /// When the watchdog first saw the engine stopped (nil = capture healthy).
     @ObservationIgnored private var stallSince: Date?
     /// Last rebuild attempt — the watchdog defers to the rebuild ladder's own
     /// backoff window instead of double-driving it.
     @ObservationIgnored private var lastRebuildAttemptAt: Date?
     @ObservationIgnored private var noticeClearTimer: Timer?
-    @ObservationIgnored private var segmentStart: Date?
-    @ObservationIgnored private var accumulated: TimeInterval = 0
+    /// Seconds of take (C149): stops for a pause AND for an interruption, so it stays on the
+    /// file's timeline. `elapsed` is its 4 Hz published copy; a photo reads it exactly.
+    @ObservationIgnored private var clock = RecordingCore.Clock()
     /// Auto-off for live captions (Settings → Recording; 0 = never): after
     /// this many recorded seconds the live stream quietly drops to save
     /// battery — the one-shot pass at stop transcribes regardless. Captured at
@@ -475,7 +488,6 @@ final class LiveRecordingService {
         // auto-off (the timer) left on a reused service from a prior recording — so a
         // long recording's auto-off never silences the NEXT one (2026-06-22).
         liveTranscription = UserDefaults.standard.object(forKey: PrefKey.liveTranscription) as? Bool ?? PrefKey.liveTranscriptionDefault
-        accumulated = 0
         elapsed = 0
         waveform = []
         meter = RecordingCore.Meter(width: Self.waveformBars)
@@ -517,7 +529,7 @@ final class LiveRecordingService {
         isRecording = true
         isPaused = false
         Self.activeService = self
-        segmentStart = Date()
+        clock.start()
         startDisplayTimer()
         if !mock { RecordingActivityManager.shared.start() }
     }
@@ -548,7 +560,7 @@ final class LiveRecordingService {
 
     func pause() {
         guard isRecording, !isPaused else { return }
-        accumulate()
+        clock.setPaused(true)
         isPaused = true
         tapPaused = true
         if !mock { engine?.pause(); RecordingActivityManager.shared.pause(); DevLog.log("record pause") }
@@ -556,7 +568,7 @@ final class LiveRecordingService {
 
     func resume() {
         guard isRecording, isPaused else { return }
-        segmentStart = Date()
+        clock.setPaused(false)
         isPaused = false
         tapPaused = false
         if !mock {
@@ -592,7 +604,8 @@ final class LiveRecordingService {
 
     func stop() -> Result? {
         guard isRecording else { return nil }
-        accumulate()
+        clock.stop()
+        elapsed = clock.reading()
         stopTimers()
         teardownRecoveryObservers()
         var duration = elapsed
@@ -1630,8 +1643,7 @@ final class LiveRecordingService {
     }
 
     private func tick() {
-        let live = segmentStart.map { Date().timeIntervalSince($0) } ?? 0
-        elapsed = accumulated + (isPaused ? 0 : live)
+        elapsed = clock.reading()
         if !autoOffFired, autoOffSeconds > 0, isRecording, liveTranscription,
            elapsed >= Double(autoOffSeconds) {
             autoOffFired = true
@@ -1642,8 +1654,8 @@ final class LiveRecordingService {
         if mock { mockTick() } else { watchdogTick() }
     }
 
-    /// Last-resort capture watchdog, driven by the display timer: `elapsed` is
-    /// wall-clock, so a dead engine otherwise LOOKS alive (timer counting,
+    /// Last-resort capture watchdog, driven by the display timer: `elapsed` only
+    /// stops for a pause or an interruption, so a dead engine otherwise LOOKS alive (timer counting,
     /// file silently not growing — how a half-captured message slips out
     /// looking fine). If the engine sits stopped mid-recording with no rebuild
     /// in flight and no interruption owning the mic, rebuild — this catches
@@ -1691,12 +1703,5 @@ final class LiveRecordingService {
         meter.push(value)
         waveform = meter.bars
         RecordingActivityManager.shared.update(level: value)
-    }
-
-    private func accumulate() {
-        if let start = segmentStart {
-            accumulated += Date().timeIntervalSince(start)
-            segmentStart = nil
-        }
     }
 }

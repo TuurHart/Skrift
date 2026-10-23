@@ -53,6 +53,61 @@ enum RecordingCore {
             : String(format: "%d:%02d", m, s)
     }
 
+    /// The recording clock: seconds of TAKE, the timeline the audio file and its word times
+    /// live on. It runs only while the take captures — a user pause and an interruption (call,
+    /// Siri, alarm: the system owns the mic, nothing lands in the file) each stop it, and it
+    /// runs again once neither holds (C149). Photo offsets read it, so a picture snapped after
+    /// a call lands where it was taken instead of the call's length later.
+    struct Clock {
+        private var banked: TimeInterval = 0
+        private var runningSince: Date?
+        private var started = false
+        private(set) var isPaused = false
+        private(set) var isInterrupted = false
+
+        init() {}
+
+        mutating func start(at now: Date = Date()) {
+            banked = 0
+            started = true
+            isPaused = false
+            isInterrupted = false
+            runningSince = now
+        }
+
+        mutating func setPaused(_ on: Bool, at now: Date = Date()) {
+            isPaused = on
+            settle(at: now)
+        }
+
+        mutating func setInterrupted(_ on: Bool, at now: Date = Date()) {
+            isInterrupted = on
+            settle(at: now)
+        }
+
+        mutating func stop(at now: Date = Date()) {
+            settle(at: now)
+            if let since = runningSince { banked += now.timeIntervalSince(since) }
+            runningSince = nil
+            started = false
+        }
+
+        /// Seconds of take at `now`.
+        func reading(at now: Date = Date()) -> TimeInterval {
+            banked + (runningSince.map { max(0, now.timeIntervalSince($0)) } ?? 0)
+        }
+
+        private mutating func settle(at now: Date) {
+            let runs = started && !isPaused && !isInterrupted
+            if runs, runningSince == nil {
+                runningSince = now
+            } else if !runs, let since = runningSince {
+                banked += max(0, now.timeIntervalSince(since))
+                runningSince = nil
+            }
+        }
+    }
+
     /// A rolling window of levels for the live waveform, newest last. Fixed width so the bars
     /// scroll rather than rescale — a meter that re-fits its own history reads as noise.
     struct Meter {
