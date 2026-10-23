@@ -3505,7 +3505,7 @@ gate+: yes
 do: A phone take's word timings ride to the Mac as assets; a Mac take's do not ride back (R34). Write the Mac take's word timings (and diarization, when any) as the same synced MemoAsset kinds the phone uses, so the phone's karaoke works on Mac recordings. Test `MacTimingsAssetTests` (desktop): a Mac recording yields a wordTimings asset in the same shape the phone writes.
 check: `grep -rqE "class MacTimingsAssetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q483 [auto] (todo) A: a spoken hashtag becomes a real tag, by rule
+### Q483 [auto] (done) A: a spoken hashtag becomes a real tag, by rule
 spec: C275 C85
 needs: -
 gate+: yes
@@ -5251,3 +5251,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 17:51 Q503 -> tuur — awaiting sitting
 - 2026-10-23 17:56 Q495 -> done — gate 60s @886afdac
 - 2026-10-23 18:30 Q504 added
+- 2026-10-23 18:35 Q483 -> done — gate 144s @a9691c2a
