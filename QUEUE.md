@@ -3574,7 +3574,7 @@ gate+: yes
 do: Guard the reconcile sweep's await points against actor reentrancy so a query during a sweep sees each memo either before or after its swap, never between. Test `SweepReentrancyTests` (desktop): concurrency stress with interleaved reads.
 check: `grep -rqE "class SweepReentrancyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q493 [auto] (todo) C: an ePub import reads every part or says exactly what it skipped
+### Q493 [auto] (done) C: an ePub import reads every part or says exactly what it skipped
 spec: C289
 needs: -
 gate+: yes
@@ -5229,3 +5229,4 @@ check: no test class ZipCRCTests
 - 2026-10-23 17:24 Q501 added
 - 2026-10-23 17:24 Q502 added
 - 2026-10-23 17:28 Q478 -> done — hand-merged (D215 2026-10-23: expected-differences-copyedit-v2.json additive registrations as the item asked)
+- 2026-10-23 17:35 Q493 -> done — gate 126s @33a80cb9
