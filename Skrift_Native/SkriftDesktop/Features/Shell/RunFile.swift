@@ -487,6 +487,7 @@ enum RunFile {
                 let bookWords = book.blocks.map { $0.text.split(separator: " ").count }.reduce(0, +)
                 log("== ALIGNCHECK \(URL(fileURLWithPath: epubPath).lastPathComponent) ==")
                 log("book: \(book.blocks.count) blocks, \(bookWords) words, toc \(book.toc.count) entries, drm \(book.drm)")
+                for skip in book.skipped { log("skipped part: \(skip.part) — \(skip.reason)") }
 
                 struct Sidecar: Decodable {
                     struct W: Decodable { let word: String; let start: Double; let end: Double }

@@ -3236,7 +3236,7 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioS
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
-check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger`.
+check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480), plus any field later items add (check plan/RUN.md for "NEW synced field").
 
 ### Q444 [auto] (done) install Dev 191 (Q408–Q422) on the iPhone 17 Pro and the Mac
 spec: -
@@ -3470,21 +3470,21 @@ gate+: yes
 do: Same recipe as Q472 (`grep -n "finding: Q472" plan/RUN.md`): bump SKRIFT_BUILD (phone project.yml) AND CURRENT_PROJECT_VERSION (desktop project.yml) to 193; Debug build for the iPhone 17 Pro (00008150-001658662223C01C, same id for xcodebuild; phone needs -skipMacroValidation -skipPackagePluginValidation), install with devicectl, string-grep a Q476 literal (`lockedEpisodes`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
 check: Report shows build 193 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 193.
 
-### Q478 [auto] (doing) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
+### Q478 [auto] (done) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
 spec: C29 C33 C35 C177 D209 D215
 needs: -
 gate+: yes
 do: Tuur on Q425 (2026-10-23, D215, "all four as recommended") on the read `plan/reads/copyedit-v2.md`: (1) checkbox lines (`- [ ]` / `- [x]`) never reach the model: hold them aside like pictures and put them back in place, so typed-tasks keeps every box and its state; (2) a note under 40 words that loses a full sentence (any whole input sentence absent from the output) falls back to his words, catching voice-en-paragraphed-by-pauses and voice-en-raw-title; (3) his spelling stays: tell the model in the ONE prompt source (`PolishPrompts`, C39) to keep the writer's spelling and dialect, and add a gate check that no input word was replaced by a spelling variant (colour→color, apologising→apologizing), falling back if so; (4) typed list lines (`- `, `* `, `1. `) stay list lines: hold list blocks aside when the note is typed, or fall back when the output loses list structure (typed-dutch-boodschappen). Fillers and "okay so" may still go. A changed prompt means new model outputs: record them with the Q424 recorder (`-recordcopyeditv2 <corpus> -isolatedRun`, raw Debug binary, never -corpus, never /Applications/*); never fabricate. Update `expected-differences-copyedit-v2.json` and rewrite `plan/reads/copyedit-v2.md` showing those four notes now. Test `CopyEditV2D215Tests` (desktop target).
 check: `grep -rqE "class CopyEditV2D215Tests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q479 [auto] (todo) A: an interruption pauses the recording clock, so photos land where they were taken
+### Q479 [auto] (done) A: an interruption pauses the recording clock, so photos land where they were taken
 spec: C149
 needs: -
 gate+: yes
 do: Today photo offsets are wall-clock (RecordView). Make the recording clock stop during an interruption (call, Siri, alarm) and have photo offsets read that clock, so a picture taken after a call lands at its spoken place. Add corpus fixture `pic-after-interruption`. Test `InterruptionClockTests` (phone target).
 check: `plan/mtest.sh InterruptionClockTests`
 
-### Q480 [auto] (todo) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
+### Q480 [auto] (stuck) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
 spec: C151 D46
 needs: -
 gate+: yes
@@ -3574,14 +3574,14 @@ gate+: yes
 do: Guard the reconcile sweep's await points against actor reentrancy so a query during a sweep sees each memo either before or after its swap, never between. Test `SweepReentrancyTests` (desktop): concurrency stress with interleaved reads.
 check: `grep -rqE "class SweepReentrancyTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q493 [auto] (todo) C: an ePub import reads every part or says exactly what it skipped
+### Q493 [auto] (done) C: an ePub import reads every part or says exactly what it skipped
 spec: C289
 needs: -
 gate+: yes
 do: A whole ePub import ingests every section or reports which parts it skipped and why; no silent partial ingest. Fixture: an ePub with a deliberately malformed mid-file section. Test `EpubSkipReportTests` (phone).
 check: `plan/mtest.sh EpubSkipReportTests`
 
-### Q494 [auto] (todo) C: a long book import shows real progress and whether you can keep listening
+### Q494 [auto] (done) C: a long book import shows real progress and whether you can keep listening
 spec: C290
 needs: -
 gate+: yes
@@ -3595,7 +3595,7 @@ gate+: yes
 do: Block adding an ePub to a book whose whole-book transcription is still running, with a clear message. Test `EpubUploadGuardTests` (phone).
 check: `plan/mtest.sh EpubUploadGuardTests`
 
-### Q496 [auto] (todo) C: the model download checks the real file, not a size floor
+### Q496 [auto] (done) C: the model download checks the real file, not a size floor
 spec: C292
 needs: -
 gate+: yes
@@ -3629,6 +3629,20 @@ needs: -
 gate+: yes
 do: `AppPaths`-style accessors call createDirectory at most once per process launch (cache the result), never on every access, on both apps. Test `DirectoryCreateOnceTests` (desktop) counting createDirectory calls across repeated access.
 check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q501 [auto] (todo) copy-edit v2 keeps headings and bold labels
+spec: C34 C116 D215
+needs: Q478
+gate+: yes
+do: Found by Q478: the polish model drops a leading `# heading` and bold labels like `**Pros:**` (corpus applenote-headings-checklist), which D215 (keep his structure: checkboxes, lists) did not name. Hold heading lines and the markup of bold/italic spans aside the way `CopyEditV2.HeldLines` holds checkboxes and lists, or fall back to his words when the output loses a heading or a bold span. Also close the 40-word gap: the sentence-lost rule (<40 words) and the shrink guard (>40) leave exactly 40 uncovered; make one of them inclusive. Model outputs only through the existing recorder; never fabricate. Test `CopyEditV2FormattingTests` (desktop).
+check: `grep -rqE "class CopyEditV2FormattingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q502 [auto] (todo) C: every unzip checks the CRC (book bundles, ePubs, the Mac harness)
+spec: C107 C289
+needs: Q493
+gate+: yes
+do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other ZIPFoundation `Archive` use: grep for `Archive(`) checks `crc == entry.checksum` and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test `ZipCRCTests` (phone target) with a generated archive whose entry bytes were flipped.
+check: `plan/mtest.sh ZipCRCTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5211,3 +5225,11 @@ check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 15:34 Q499 added
 - 2026-10-23 15:34 Q500 added
 - 2026-10-23 15:36 plan: resync — 22 items for the 23 unqueued clauses (C149 C151 C152 C153 C155 C157 C158 C159 C163 C164 C245 C275 C280 C283 C284 C289–C294 C297 C298) in lanes A (recording/capture) B (sync/export) C (library/books); C160/C162 dropped (D183/D185); C296 covered by the perf lane
+- 2026-10-23 17:24 Q479 -> done — gate 265s @b91dad8c
+- 2026-10-23 17:24 Q501 added
+- 2026-10-23 17:24 Q502 added
+- 2026-10-23 17:28 Q478 -> done — hand-merged (D215 2026-10-23: expected-differences-copyedit-v2.json additive registrations as the item asked)
+- 2026-10-23 17:35 Q493 -> done — gate 126s @33a80cb9
+- 2026-10-23 17:38 Q480 -> stuck — gate failed — .queue/Q480.gate.log
+- 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
+- 2026-10-23 17:45 Q496 -> done — gate 114s @12d664de

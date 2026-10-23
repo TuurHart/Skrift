@@ -74,20 +74,14 @@ actor MLXPolishEngine: PolishEngine {
 
     // MARK: - PolishEngine
 
-    /// True once the model weights are actually on disk (not merely a config/tokenizer
-    /// partial). Probes the HF blob store — the library's own cache path, so it can never
-    /// drift from where `#hubDownloader()` writes — and reuses `ModelInventory.sizeOnDisk`
-    /// (the cited pattern). Advisory only: the download path is idempotent, so a wrong read
-    /// costs a Settings label, never correctness. Exact detection is device-owed to confirm.
+    /// True once every model file is on disk at its exact expected byte count (C292) —
+    /// `ResumableModelDownloader` records the Hub's sizes when it downloads and checks each
+    /// file against them. A truncated download is never "downloaded", however big. The
+    /// download path is idempotent, so a false here only means the next polish resumes it.
     func isModelOnDisk() async -> Bool {
-        guard let repoID = Repo.ID(rawValue: modelRepo) else { return false }
-        let blobs = HubCache.default.blobsDirectory(repo: repoID, kind: .model)
-        return (ModelInventory.sizeOnDisk(blobs) ?? 0) > Self.modelDiskFloorBytes
+        ResumableModelDownloader().isComplete(id: modelRepo,
+                                              revision: PolishPrompts.revision(for: modelRepo))
     }
-
-    /// Weights present (not just a partial). 0.5 GB is far above any config/tokenizer and
-    /// far below the full ~4.6 GB, so a half-fetched repo reads as not-downloaded.
-    private static let modelDiskFloorBytes: Int64 = 500_000_000
 
     /// Fetch (idempotent) = load the container with a progress handler; it downloads what's
     /// missing and keeps it cached. Loading into memory here means the following `polish`
@@ -227,6 +221,11 @@ actor MLXPolishEngine: PolishEngine {
                     HubCache.default.repoDirectory(repo: repoID, kind: .model)] {
             if fm.fileExists(atPath: dir.path) { try? fm.removeItem(at: dir) }
         }
+        // And the copy `ResumableModelDownloader` actually loads from — `isModelOnDisk`
+        // reads it, so leaving it would keep the card on "Downloaded" after Remove.
+        let snapshot = ResumableModelDownloader().snapshotDirectory(
+            id: modelRepo, revision: PolishPrompts.revision(for: modelRepo))
+        if fm.fileExists(atPath: snapshot.path) { try? fm.removeItem(at: snapshot) }
         Self.log.info("polish model removed from disk")
     }
 

@@ -141,7 +141,9 @@ struct AppTabView: View {
         // prompt over the seeded book (Add is inert here — render-only hooks).
         .sheet(isPresented: $showSeededText) {
             if let book = AudiobookSession.shared.book ?? AudiobookLibraryStore.shared.sortedByRecent.first {
-                BookTextSheet(book: book, busyMessage: nil) {}
+                BookTextSheet(book: book, busy: LaunchFlags.showTextProgress
+                              ? BookTextProgress(stage: "Matching the text… (file 7 of 12)", done: 8, total: 15)
+                              : nil) {}
             }
         }
         .sheet(isPresented: $showSeededTextPrompt) {
