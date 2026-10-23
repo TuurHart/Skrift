@@ -28,6 +28,8 @@ enum CopyEditV2 {
         case typedReparagraphed = "a typed note was re-paragraphed (C34)"
         case linkLost = "a link did not survive (C31)"
         case quoteChanged = "the quote block changed (C31)"
+        case respelled = "a word was respelled: his spelling stays (D215)"
+        case sentenceLost = "a short note lost a whole sentence (D215)"
     }
 
     /// The paragraph ledger (C34): text paragraphs in → from the model → shipped.
@@ -71,12 +73,15 @@ enum CopyEditV2 {
     private static func editProse(_ text: String, spoken: Bool, prompt: String,
                                   generate: Generate) async throws -> Result {
         let held = Held(text)
-        let input = held.prose
+        // D215: checkbox lines, and a typed note's list lines, never reach the model.
+        let lines = HeldLines(held.prose, typed: !spoken)
+        let input = lines.prose
         guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return Result(text: text, fallback: nil, ledger: nil, calledModel: false)   // pictures only
+            return Result(text: text, fallback: nil, ledger: nil, calledModel: false)   // pictures / held lines only
         }
         let cap = PolishPrompts.copyEditTokenBudget(forInput: input)
-        let out = try await generate(prompt, input, cap).trimmingCharacters(in: .whitespacesAndNewlines)
+        let out = try await generate(PolishPrompts.keepingSpelling(prompt), input, cap)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         let inParas = paragraphs(input).count, modelParas = paragraphs(out).count
         /// C31 / C32 / C33: the ORIGINAL body, byte for byte.
         func unedited(_ why: Fallback) -> Result {
@@ -89,7 +94,7 @@ enum CopyEditV2 {
         /// own paragraph by index (C30).
         func uneditedWords(_ why: Fallback) -> Result {
             let shaped = spoken ? PolishPrompts.ensureParagraphs(input) : input
-            guard let linked = held.reattachLinks(shaped) else { return unedited(why) }
+            guard let linked = held.reattachLinks(lines.putBack(shaped)) else { return unedited(why) }
             log.warning("copy-edit v2: \(why.rawValue, privacy: .public) — the words ship unedited")
             return Result(text: held.placePictures(linked), fallback: why,
                           ledger: Ledger(input: inParas, model: modelParas, shipped: paragraphs(shaped).count),
@@ -104,9 +109,9 @@ enum CopyEditV2 {
         let shipped = paragraphs(shaped).count
         if spoken, shipped < inParas { return uneditedWords(.paragraphsLost) }
         if !spoken, shipped != inParas { return uneditedWords(.typedReparagraphed) }
-        guard let linked = held.reattachLinks(shaped) else { return unedited(.linkLost) }
+        guard let linked = held.reattachLinks(lines.putBack(shaped)) else { return unedited(.linkLost) }
         let ledger = Ledger(input: inParas, model: modelParas, shipped: shipped)
-        log.log("copy-edit v2 paragraphs: \(ledger.line, privacy: .public) (pictures: \(held.pictures.count))")
+        log.log("copy-edit v2 paragraphs: \(ledger.line, privacy: .public) (pictures: \(held.pictures.count), held line blocks: \(lines.blocks.count))")
         return Result(text: held.placePictures(linked), fallback: nil, ledger: ledger, calledModel: true)
     }
 
