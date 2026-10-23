@@ -26,7 +26,10 @@ enum EPubParse {
 
     // MARK: - Public entry point
 
-    static func parse(entries: [String: Data]) throws -> EPubBook {
+    /// `unreadable`: archive paths the zip layer could not extract (damaged entry), each with
+    /// its reason — a spine file among them is reported in `EPubBook.skipped`, never dropped
+    /// silently (C289).
+    static func parse(entries: [String: Data], unreadable: [String: String] = [:]) throws -> EPubBook {
         guard let containerData = entries["META-INF/container.xml"] else {
             throw ParseError.missingContainer
         }
@@ -55,12 +58,26 @@ enum EPubParse {
             .filter { $0.localName == "itemref" }
             .compactMap { $0.attributes["idref"] }
 
+        // C289: every spine part is either read or named in `skipped` with its reason.
         var blocks: [EPubBlock] = []
+        var skipped: [EPubSkip] = []
         for id in spineIDs {
-            guard let item = manifest[id] else { continue }
+            guard let item = manifest[id] else {
+                skipped.append(EPubSkip(part: id, reason: "listed in the reading order but missing from the book’s manifest"))
+                continue
+            }
             let path = resolvePath(base: opfDir, href: item.href)
-            guard let data = entries[path] else { continue }
-            blocks.append(contentsOf: parseSpineBody(data: data, sourceFile: path))
+            guard let data = entries[path] else {
+                skipped.append(EPubSkip(part: path, reason: unreadable[path] ?? "missing from the ePub file"))
+                continue
+            }
+            let body = parseSpineBody(data: data, sourceFile: path)
+            if body.blocks.isEmpty && !body.wellFormed {
+                // A well-formed part with no text is a cover or image page; a malformed one the
+                // lenient pass also got nothing from is a part we failed to read.
+                skipped.append(EPubSkip(part: path, reason: "couldn’t be read as text"))
+            }
+            blocks.append(contentsOf: body.blocks)
         }
 
         let drm = evaluateDRM(entries)
@@ -80,7 +97,7 @@ enum EPubParse {
             let t = flattenText(titleNode).trimmingCharacters(in: .whitespacesAndNewlines)
             if !t.isEmpty { title = t }
         }
-        return EPubBook(blocks: blocks, toc: toc, drm: drm, title: title)
+        return EPubBook(blocks: blocks, toc: toc, drm: drm, title: title, skipped: skipped)
     }
 
     // MARK: - Manifest item
@@ -95,14 +112,14 @@ enum EPubParse {
 
     private static let blockTags: Set<String> = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "blockquote"]
 
-    private static func parseSpineBody(data: Data, sourceFile: String) -> [EPubBlock] {
+    private static func parseSpineBody(data: Data, sourceFile: String) -> (blocks: [EPubBlock], wellFormed: Bool) {
         if let root = parseXMLTree(data) {
             let body = findFirst(root, localName: "body") ?? root
             var blocks: [EPubBlock] = []
             collectBlocks(body, sourceFile: sourceFile, into: &blocks)
-            return blocks
+            return (blocks, true)
         }
-        return lenientParse(data: data, sourceFile: sourceFile)
+        return (lenientParse(data: data, sourceFile: sourceFile), false)
     }
 
     /// True when `node` (script/style/img/a footnote marker/a footnote body) must never
@@ -492,6 +509,21 @@ struct EPubBlock: Equatable, Sendable {
     let sourceFile: String
 }
 
+/// One ePub part (spine file) the import did not read, and why (C289).
+struct EPubSkip: Equatable, Sendable {
+    /// Archive path of the part, or its manifest id when the manifest has no such item.
+    let part: String
+    let reason: String
+
+    /// One sentence for the attach outcome naming every skipped part; nil when none were.
+    static func summary(_ skips: [EPubSkip]) -> String? {
+        guard !skips.isEmpty else { return nil }
+        let list = skips.map { "\(($0.part as NSString).lastPathComponent) (\($0.reason))" }.joined(separator: "; ")
+        let count = skips.count == 1 ? "1 part" : "\(skips.count) parts"
+        return "Skrift skipped \(count) of this ePub: \(list)."
+    }
+}
+
 struct EPubTOCEntry: Equatable, Sendable {
     let title: String
     let sourceFile: String
@@ -510,4 +542,6 @@ struct EPubBook: Equatable, Sendable {
     /// OPF `dc:title`, when present — display name for attached-text UI ("Book text"
     /// sheet rows). nil = caller falls back to the filename. Additive 2026-07-22.
     var title: String? = nil
+    /// Spine parts not read, each with its reason (C289). Empty = every part was read.
+    var skipped: [EPubSkip] = []
 }

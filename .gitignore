@@ -99,6 +99,8 @@ test-fixtures/*
 !test-fixtures/articles/
 # Q458 (D213): generated real-shaped PDFs + their expected reading text (generate.py, synthetic).
 !test-fixtures/pdf/
+# Q493: synthetic ePub fixtures (generate.py, byte-stable, a few KB) the phone book-import tests read.
+!test-fixtures/epub/
 
 # Archived old apps (post-convergence move 2026-06) — re-ignore the build
 # artifacts + personal config that the anchored root patterns above no longer

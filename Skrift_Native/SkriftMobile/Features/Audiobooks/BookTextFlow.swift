@@ -27,7 +27,7 @@ struct BookTextFlow: ViewModifier {
     @State private var attachError: String?
     /// Every file's verdict came back rejected; carries the just-attached filename so
     /// Remove detaches exactly that text (multi-text semantics).
-    @State private var rejected: (book: Audiobook, filename: String)?
+    @State private var rejected: (book: Audiobook, filename: String, skips: String?)?
 
     /// ePub (falling back to its raw UTI if the extension lookup ever fails)
     /// + plain text — a book's text can arrive either way.
@@ -59,6 +59,37 @@ struct BookTextFlow: ViewModifier {
             }
     }
 
+    /// The attach outcome alert's text; nil = every file rejected (the Keep/Remove alert).
+    /// C289: whatever the verdict, every ePub part the import skipped is named.
+    static func outcomeText(_ summary: BookAlignmentRunner.AttachSummary) -> String? {
+        // Better no info than bad info (feedback_no_bad_information.md): a
+        // DRM-protected ePub parses to little or no readable text, so alignment
+        // against it is meaningless — say so up front rather than let a silent
+        // "no match" read as a bug (sweep E finding #6).
+        let drmPrefix: String
+        if case .protected = summary.drm {
+            drmPrefix = "This ePub looks DRM-protected, so Skrift may not be able to read its text. "
+        } else {
+            drmPrefix = ""
+        }
+        let text: String
+        if summary.deferredWhileTranscribing {
+            text = drmPrefix + "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
+        } else if summary.totalFiles == 0 {
+            text = drmPrefix + "No transcript yet — the text will align on its own when transcription finishes."
+        } else if summary.alignedFiles == 0 {
+            return nil
+        } else if summary.alignedFiles == summary.totalFiles {
+            text = summary.totalFiles == 1
+                ? "The text matches this audiobook. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
+                : "All \(summary.totalFiles) files match this text. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
+        } else {
+            text = "The text matches \(summary.alignedFiles) of \(summary.totalFiles) audio files — most likely one book of a multi-book audiobook. Where it matches, read-along and captures use the published text and chapters come from its table of contents; the other files keep the transcript."
+        }
+        guard let skips = EPubSkip.summary(summary.skippedParts) else { return text }
+        return text + "\n\n" + skips
+    }
+
     private func runAttach(url: URL, book: Audiobook) async {
         // The busy message persists for the whole run and follows the runner's live
         // stages (a 13 h book's matching takes minutes — a static line read as hung,
@@ -69,28 +100,10 @@ struct BookTextFlow: ViewModifier {
             let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id) { stage in
                 Task { @MainActor in busyMessage = stage }
             }
-            // Better no info than bad info (feedback_no_bad_information.md): a
-            // DRM-protected ePub parses to little or no readable text, so alignment
-            // against it is meaningless — say so up front rather than let a silent
-            // "no match" read as a bug (sweep E finding #6).
-            let drmPrefix: String
-            if case .protected = summary.drm {
-                drmPrefix = "This ePub looks DRM-protected, so Skrift may not be able to read its text. "
+            if let text = Self.outcomeText(summary) {
+                outcome = text
             } else {
-                drmPrefix = ""
-            }
-            if summary.deferredWhileTranscribing {
-                outcome = drmPrefix + "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
-            } else if summary.totalFiles == 0 {
-                outcome = drmPrefix + "No transcript yet — the text will align on its own when transcription finishes."
-            } else if summary.alignedFiles == 0 {
-                rejected = (book, url.lastPathComponent)
-            } else if summary.alignedFiles == summary.totalFiles {
-                outcome = summary.totalFiles == 1
-                    ? "The text matches this audiobook. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
-                    : "All \(summary.totalFiles) files match this text. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
-            } else {
-                outcome = "The text matches \(summary.alignedFiles) of \(summary.totalFiles) audio files — most likely one book of a multi-book audiobook. Where it matches, read-along and captures use the published text and chapters come from its table of contents; the other files keep the transcript."
+                rejected = (book, url.lastPathComponent, EPubSkip.summary(summary.skippedParts))
             }
         } catch {
             attachError = error.localizedDescription
@@ -107,7 +120,7 @@ extension View {
     /// The three attach-outcome alerts, hung off the SHEET's content (they must
     /// originate from the topmost presented controller to show over it).
     func bookTextAlerts(outcome: Binding<String?>, attachError: Binding<String?>,
-                        rejected: Binding<(book: Audiobook, filename: String)?>) -> some View {
+                        rejected: Binding<(book: Audiobook, filename: String, skips: String?)?>) -> some View {
         self
             .alert("Book text attached", isPresented: outcome.isPresent) {
                 Button("OK", role: .cancel) {}
@@ -130,7 +143,8 @@ extension View {
                     }
                 }
             } message: { _ in
-                Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now.")
+                Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now."
+                     + (rejected.wrappedValue?.skips.map { "\n\n" + $0 } ?? ""))
             }
     }
 }

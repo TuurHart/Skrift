@@ -366,6 +366,8 @@ enum BookAlignmentRunner {
         /// user (sweep E finding #6: previously computed and stored on `EPubBook.drm`
         /// but read nowhere but a debug log line on the Mac).
         var drm: EPubDRMVerdict = .none
+        /// ePub parts that were not read, each with its reason (C289) — the outcome names them.
+        var skippedParts: [EPubSkip] = []
     }
 
     /// True while the whole-book transcribe job is live for `bookID` — the window in
@@ -442,7 +444,7 @@ enum BookAlignmentRunner {
                 perFile: perFile, toc: epubBook.toc, title: epubBook.title,
                 transcriptSigs: transcriptSignatures(for: Array(perFile.keys), book: book, bookID: bookID,
                                                      folder: folder, store: transcriptStore),
-                drm: epubBook.drm)
+                drm: epubBook.drm, skipped: epubBook.skipped)
         }.value
         progress?("Placing chapters…")
 
@@ -460,7 +462,7 @@ enum BookAlignmentRunner {
         )
         return AttachSummary(alignedFiles: outcome.aligned,
                              totalFiles: outcome.total, deferredWhileTranscribing: deferring,
-                             drm: outcome.drm)
+                             drm: outcome.drm, skippedParts: outcome.skipped)
     }
 
     // MARK: Incremental re-align
@@ -567,6 +569,9 @@ enum BookAlignmentRunner {
                     DevLog.log("bookAlign[\(bookID)] re-parse failed for \(textName) — skipping re-align")
                     continue
                 }
+                if !epubBook.skipped.isEmpty {
+                    DevLog.log("bookAlign[\(bookID)] \(textName) skipped parts: \(epubBook.skipped.map { "\($0.part) — \($0.reason)" })")
+                }
                 let alignBlocks = mergeBlocksByFile(epubBook.blocks)
                 let perFile = await alignText(
                     named: textName, blocks: alignBlocks, book: book, bookID: bookID, folder: folder,
@@ -601,6 +606,7 @@ enum BookAlignmentRunner {
         var title: String?
         var transcriptSigs: [Int: String] = [:]
         var drm: EPubDRMVerdict = .none
+        var skipped: [EPubSkip] = []
 
         /// Files with a covered transcript that were aligned against this text.
         var total: Int { perFile.count }
@@ -1089,12 +1095,20 @@ enum BookAlignmentRunner {
         if url.pathExtension.lowercased() == "epub" {
             let archive = try Archive(url: url, accessMode: .read)
             var entries: [String: Data] = [:]
+            // A damaged entry is left out and named, so its part lands in `skipped` (C289)
+            // instead of failing the whole book or vanishing.
+            var unreadable: [String: String] = [:]
             for entry in archive where entry.type == .file {
                 var data = Data()
-                _ = try archive.extract(entry) { data.append($0) }
-                entries[entry.path] = data
+                // ZIPFoundation's closure `extract` RETURNS the CRC and never compares it —
+                // the caller must, or a corrupted part reads as garbage text.
+                if let crc = try? archive.extract(entry, consumer: { data.append($0) }), crc == entry.checksum {
+                    entries[entry.path] = data
+                } else {
+                    unreadable[entry.path] = "damaged inside the ePub file"
+                }
             }
-            return try EPubParse.parse(entries: entries)
+            return try EPubParse.parse(entries: entries, unreadable: unreadable)
         }
         let data = try Data(contentsOf: url)
         guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
