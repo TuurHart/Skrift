@@ -3498,7 +3498,7 @@ gate+: yes
 do: Today an append writes only the raw transcript (MemoSaver) while every screen shows the polished body, so new words are invisible. Make appended text (Add recording, capture ramble) appear in the body he sees, mark the note for a pass, and have that pass polish only the new block (the earlier polish stays). Add corpus fixture `voice-en-append-after-polish`. Tests `AppendAfterPolishTests` (desktop) for the pass and a phone test for the visible body.
 check: `grep -rqE "class AppendAfterPolishTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q482 [auto] (todo) A: a Mac recording's word timings and diarization reach the phone, so karaoke works everywhere
+### Q482 [auto] (done) A: a Mac recording's word timings and diarization reach the phone, so karaoke works everywhere
 spec: C245 R34
 needs: -
 gate+: yes
@@ -5253,3 +5253,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:30 Q504 added
 - 2026-10-23 18:35 Q483 -> done — gate 144s @a9691c2a
 - 2026-10-23 18:40 Q504 -> done — gate 84s @c67910ce
+- 2026-10-23 18:42 Q482 -> done — hand-merged (R34 fixed by this item: RoundTripParityTests pre-registered XCTExpectFailure flips to a plain assertion (C5))
