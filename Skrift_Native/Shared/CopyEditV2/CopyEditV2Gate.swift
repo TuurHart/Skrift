@@ -50,14 +50,15 @@ extension CopyEditV2 {
             "ja", "nou",
         ])
 
-        /// D215: a note under this many words that loses a whole sentence falls back (above it,
-        /// the C33 shrink guard looks).
+        /// D215: a note of at most this many words that loses a whole sentence falls back; above
+        /// it, the C33 shrink guard (`lostTooMuch`, over 40 words) looks. Inclusive (Q501), so a
+        /// note of exactly 40 words is covered by one of the two.
         static let shortNoteWords = 40
 
-        /// D215: in a note under 40 words, the input sentences the output no longer says — more
+        /// D215: in a note of up to 40 words, the input sentences the output no longer says — more
         /// than half of a sentence's words (fillers and discourse words aside) gone from the output.
         static func lostSentences(input: String, output: String) -> [String] {
-            guard input.split(whereSeparator: \.isWhitespace).count < shortNoteWords else { return [] }
+            guard input.split(whereSeparator: \.isWhitespace).count <= shortNoteWords else { return [] }
             let kept = Set(words(output))
             return sentences(input).filter { s in
                 let content = Set(words(s)).subtracting(discourse)

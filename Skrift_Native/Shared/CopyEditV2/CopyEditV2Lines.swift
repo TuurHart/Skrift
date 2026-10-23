@@ -2,8 +2,9 @@ import Foundation
 
 extension CopyEditV2 {
     /// D215: lines the model never sees, held aside like pictures and put back in place.
-    /// Checkbox lines (`- [ ]` / `- [x]`) always, so a task keeps its box and its state; every
-    /// list line (`- `, `* `, `1. `) of a TYPED note, so a typed list stays a list. A run of
+    /// Checkbox lines (`- [ ]` / `- [x]`) and heading lines (`# …` to `###### …`, Q501) always,
+    /// so a task keeps its box and its state and a heading stays his; every list line (`- `,
+    /// `* `, `1. `) of a TYPED note, so a typed list stays a list. A run of
     /// held lines is one block: a block that was a paragraph of its own returns as one after the
     /// same number of edited paragraphs; a block inside a paragraph returns inside the same-index
     /// edited paragraph, at its line when the paragraph kept its line count, else at its edge.
@@ -26,9 +27,11 @@ extension CopyEditV2 {
 
         static let checkboxRegex = try! NSRegularExpression(pattern: #"^[ \t]*(?:[-*+]|\d+[.)])[ \t]+\[[ xX]\]"#)
         static let listRegex = try! NSRegularExpression(pattern: #"^[ \t]*(?:[-*+]|\d+[.)])[ \t]+\S"#)
+        static let headingRegex = try! NSRegularExpression(pattern: #"^[ ]{0,3}#{1,6}[ \t]+\S"#)
 
         static func isHeld(_ line: String, typed: Bool) -> Bool {
             let r = NSRange(location: 0, length: (line as NSString).length)
+            if headingRegex.firstMatch(in: line, range: r) != nil { return true }
             return (typed ? listRegex : checkboxRegex).firstMatch(in: line, range: r) != nil
         }
 
@@ -86,6 +89,60 @@ extension CopyEditV2 {
             let head = inside.filter { $0.line == 0 }.flatMap(\.lines)
             let tail = inside.filter { $0.line != 0 }.flatMap(\.lines)
             return (head + lines + tail).joined(separator: "\n")
+        }
+    }
+}
+
+extension CopyEditV2 {
+    /// Q501 (D215): bold and italic markup the model never sees. Each `**x**` / `__x__` / `*x*` /
+    /// `_x_` span reaches the model as its bare text and is wrapped back around the first
+    /// case-insensitive match of that text, in order; a span whose text the edit no longer says
+    /// means the formatting was lost, and the note ships his words. `_` counts only between
+    /// non-word characters, so snake_case and URLs are left alone.
+    struct HeldEmphasis {
+        struct Span: Equatable { let marker: String; let text: String }
+
+        /// What the model reads: the text with each span's markup out. Byte-identical when none.
+        let prose: String
+        let spans: [Span]
+
+        static let regex = try! NSRegularExpression(pattern:
+            #"(\*\*)(?=\S)([^\n]+?)(?<=\S)\*\*"#
+            + #"|(?<![_\w])(__)(?=\S)([^\n]+?)(?<=\S)__(?![_\w])"#
+            + #"|(?<![*\w])(\*)(?=[^\s*])([^*\n]+?)(?<=\S)\*(?![*\w])"#
+            + #"|(?<![_\w])(_)(?=[^\s_])([^_\n]+?)(?<=\S)_(?![_\w])"#)
+
+        init(_ text: String) {
+            let ns = text as NSString
+            var spans: [Span] = []
+            var out = "", last = 0
+            for m in Self.regex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+                let pair = [(1, 2), (3, 4), (5, 6), (7, 8)].first { m.range(at: $0.0).location != NSNotFound }!
+                let marker = ns.substring(with: m.range(at: pair.0)), inner = ns.substring(with: m.range(at: pair.1))
+                out += ns.substring(with: NSRange(location: last, length: m.range.location - last)) + inner
+                last = m.range.location + m.range.length
+                spans.append(Span(marker: marker, text: inner))
+            }
+            out += ns.substring(from: last)
+            prose = spans.isEmpty ? text : out
+            self.spans = spans
+        }
+
+        /// Every span's markup back around its text in `edited`, in order; the edited casing is
+        /// kept. nil = a span's text did not survive the edit.
+        func putBack(_ edited: String) -> String? {
+            guard !spans.isEmpty else { return edited }
+            let ns = NSMutableString(string: edited)
+            var from = 0
+            for span in spans {
+                let r = ns.range(of: span.text, options: .caseInsensitive,
+                                 range: NSRange(location: from, length: ns.length - from))
+                guard r.location != NSNotFound else { return nil }
+                let wrapped = span.marker + ns.substring(with: r) + span.marker
+                ns.replaceCharacters(in: r, with: wrapped)
+                from = r.location + (wrapped as NSString).length
+            }
+            return ns as String
         }
     }
 }
