@@ -1,6 +1,7 @@
 ---
 title: "Two businesses in one room"
 date: 2026-09-17
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

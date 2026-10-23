@@ -82,7 +82,7 @@ final class MirroredNoteFieldsTests: XCTestCase {
     /// and the reminder are row state.
     func testOnlyFrontmatterFieldsForceARecompile() {
         XCTAssertEqual(Set(MirroredNoteFields.all.filter(\.recompiles).map(\.name)),
-                       ["tags", "significance", "destination"])
+                       ["tags", "significance", "destination", "editedAt"])
         XCTAssertEqual(Set(MirroredNoteFields.all.filter { !$0.recompiles }.map(\.name)),
                        ["locked", "remindAt"])
     }

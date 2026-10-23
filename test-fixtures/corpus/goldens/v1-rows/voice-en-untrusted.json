@@ -34,7 +34,7 @@
         "temperatureUnit" : "°C"
       }
     },
-    "compiledText" : "---\ntitle: \"memo_07267FEF-605E-52FB-9030-DFC9A51FA3DE\"\ndate: 2026-08-28\nauthor: Corpus Author\nsource: Voice-memo\nsummary:\ntags:\npeople:\nsignificance: 0.5\nlocation: \"Kralingse Plas\"\nweather: \"Windy, 12°C\"\ndayPeriod: morning\nlastTouched:\n---\n\nWind noise the whole way so this is probably garbage. Something about the the chain on the cargo bike and and the front light that flickers.",
+    "compiledText" : "---\ntitle: \"memo_07267FEF-605E-52FB-9030-DFC9A51FA3DE\"\ndate: 2026-08-28\neditedAt:\nauthor: Corpus Author\nsource: Voice-memo\nsummary:\ntags:\npeople:\nsignificance: 0.5\nlocation: \"Kralingse Plas\"\nweather: \"Windy, 12°C\"\ndayPeriod: morning\nlastTouched:\n---\n\nWind noise the whole way so this is probably garbage. Something about the the chain on the cargo bike and and the front light that flickers.",
     "deletedAt" : null,
     "destinationRaw" : "personal",
     "diarizationSegmentsJSON" : null,
@@ -59,6 +59,7 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/07267FEF-605E-52FB-9030-DFC9A51FA3DE_memo_07267FEF-605E-52FB-9030-DFC9A51FA3DE.m4a/original.m4a",
     "pendingPolishBlock" : null,

@@ -58,6 +58,7 @@ extension CompilerInput {
                      metadata: CompilerMetadata?,
                      sharedContent: SharedContent?,
                      rawRecordedAt: String?,
+                     editedAt: Date? = nil,
                      destination: NoteDestination,
                      spoken: Bool,
                      kind: SourceKind? = nil,
@@ -100,6 +101,7 @@ extension CompilerInput {
             destination: destination,
             voice: !spoken ? .written : (work.fromCopyedit ? .cleaned : .raw),
             kind: kind)
+        input.editedAt = editedAt
         input.setLinkStems(linkStems)
         return input
     }

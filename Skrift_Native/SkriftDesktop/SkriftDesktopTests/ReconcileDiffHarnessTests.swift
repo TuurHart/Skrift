@@ -136,7 +136,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             "transcribeStatus": pf.transcribeStatus.rawValue, "sanitiseStatus": pf.sanitiseStatus.rawValue,
             "enhanceStatus": pf.enhanceStatus.rawValue, "exportStatus": pf.exportStatus.rawValue,
             "uploadedAt": date(pf.uploadedAt), "lastActivityAt": date(pf.lastActivityAt),
-            "syncedSourceEditedAt": date(pf.syncedSourceEditedAt),
+            "syncedSourceEditedAt": date(pf.syncedSourceEditedAt), "memoEditedAt": date(pf.memoEditedAt),
             "syncedSourceDeletedAt": date(pf.syncedSourceDeletedAt),
             "locked": pf.locked, "remindAt": date(pf.remindAt), "imageOCRText": opt(pf.imageOCRText),
             "transcript": opt(pf.transcript), "sanitised": opt(pf.sanitised),

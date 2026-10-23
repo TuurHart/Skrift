@@ -81,6 +81,7 @@
     ],
     "locked" : false,
     "mediaSource" : "share-audio",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_memo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30.m4a/original.m4a",
     "pendingPolishBlock" : null,

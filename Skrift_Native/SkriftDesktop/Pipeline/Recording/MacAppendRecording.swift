@@ -123,6 +123,7 @@ enum MacAppendRecording {
             wt.byteCount = data.count
         }
         memo.markEdited(now)
+        pf.memoEditedAt = memo.editedAt   // C284: the export's `editedAt:` without waiting for a sweep
         try cloud.save()
         // The polished body moved too: write it back now, as a Mac body edit does
         // (`MacCloudEditSync`), so the sweep can't revert the copy-edit to the cloud's older one.

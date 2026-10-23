@@ -1,6 +1,7 @@
 ---
 title: "Saturday workshop debrief"
 date: 2026-08-19
+editedAt:
 author: Tiuri
 source: Voice-memo
 summary: "Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45."

@@ -63,6 +63,7 @@
     ],
     "locked" : false,
     "mediaSource" : "video",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/80426BF7-A423-5FC2-BA1B-EFEE489DF617_memo_80426BF7-A423-5FC2-BA1B-EFEE489DF617.m4a/original.m4a",
     "pendingPolishBlock" : null,

@@ -1,6 +1,7 @@
 ---
 title: "capture_F1922133-BE45-58AF-B6B2-BEABBB91BA00"
 date: 2026-07-28
+editedAt:
 author: Tiuri
 source: capture-image
 summary:
