@@ -57,6 +57,7 @@
     "mediaSource" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_FDA21613-E326-5919-98D2-8205AD1580C2",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

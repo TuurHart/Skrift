@@ -120,6 +120,7 @@ struct BatchRunner {
             // summary, suggested title, compiled draft — so the run below can't mix stale
             // state with the fresh transcript.
             if retranscribe {
+                pf.pendingPolishBlock = nil   // C152: a fresh transcript gets a whole pass
                 pf.diarizationSegments = []
                 pf.sanitised = nil
                 pf.ambiguousNames = nil
@@ -178,6 +179,14 @@ struct BatchRunner {
         let transcript = pf.transcript ?? ""
         guard !transcript.isEmpty else {
             pf.enhanceStatus = .done   // nothing to enhance (e.g. empty/cancelled)
+            return
+        }
+
+        // C152: words appended to an already-polished note. Polish ONLY that block; the
+        // earlier polish (copy-edit, title, summary) stays as it was.
+        if !didTranscribe, let block = pf.pendingPolishBlock, !block.isEmpty,
+           AppendPolish.showsPolishedBody(pf.enhancedCopyedit ?? "") {
+            try await polishAppendedBlock(pf, block: block, transcript: transcript)
             return
         }
 
@@ -272,6 +281,32 @@ struct BatchRunner {
         pf.enhanceStatus = .done
 
         // 5. Compile the review draft (body precedence: sanitised → copy-edit → transcript).
+        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
+    }
+
+    /// C152: copy-edit `block` alone and splice it over the raw tail of the shown body, then
+    /// re-link + recompile. A conversation is never copy-edited (its turns stay verbatim), and a
+    /// body whose tail he has since edited is left alone (`AppendPolish.splice` → nil); either
+    /// way the block is no longer pending. Edited WHILE the model ran → discard, stay pending.
+    private func polishAppendedBlock(_ pf: PipelineFile, block: String, transcript: String) async throws {
+        let before = pf.enhancedCopyedit ?? ""
+        let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
+        pf.enhanceStatus = .processing
+        var body = before
+        if !isConversation {
+            let polished = try await enhancer.copyEdit(block, prompts: settings.prompts,
+                                                       modelRepo: settings.enhancementModelRepo)
+            guard (pf.enhancedCopyedit ?? "") == before else {
+                Self.log.warning("file \(pf.id, privacy: .public): body edited during the appended-block polish — discarded, stays pending")
+                pf.enhanceStatus = .pending
+                return
+            }
+            body = AppendPolish.splice(copyedit: before, pending: block, polished: polished) ?? before
+        }
+        pf.enhancedCopyedit = body
+        pf.pendingPolishBlock = nil
+        pf.relinkNames(working: body, isConversation: isConversation, people: people)
+        pf.enhanceStatus = .done
         pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
     }
 

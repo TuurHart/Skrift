@@ -1,0 +1,63 @@
+{
+  "id": "F9A27E06-759F-59DD-AE5A-B76DCAF47963",
+  "slug": "voice-en-append-after-polish",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "polished",
+    "append"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-17T15:05:00+01:00",
+  "createdAt": "2026-09-17T15:05:00+01:00",
+  "editedAt": null,
+  "duration": 7.38,
+  "audio": "audio.m4a",
+  "transcript": "so um the pricing for the glaze workshop I think we should go with forty five euros per person because the clay and the firing are like included",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.92,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-17T15:05:00+01:00",
+    "tags": [
+      "workshop"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": {
+    "copyedit": "I think we should price the glaze workshop at forty-five euros per person, because the clay and the firing are included.",
+    "title": "Glaze workshop pricing",
+    "summary": "Price the glaze workshop at 45 euros per person, clay and firing included.",
+    "enhancedAt": "2026-09-17T16:00:00+01:00",
+    "processedAt": "2026-09-17T16:00:00+01:00",
+    "enhancedByDeviceID": "corpus-mac-0001"
+  },
+  "expect": {
+    "note": "A polished note gets Add recording (append.m4a, appendDuration s). The raw transcript gains the clip's words after a blank line (C223); the polished body he sees gains them too, raw, as the pending block (C152). The Mac's pass copy-edits ONLY that block: the earlier polish, title and summary stay.",
+    "append": "append.m4a",
+    "appendDuration": 3.44,
+    "appendRaw": "oh and uh we should cap it at eight people so everyone gets a wheel",
+    "appendPolished": "We should cap it at eight people so everyone gets a wheel.",
+    "rawAfterAppend": "so um the pricing for the glaze workshop I think we should go with forty five euros per person because the clay and the firing are like included\n\noh and uh we should cap it at eight people so everyone gets a wheel",
+    "bodyAfterAppend": "I think we should price the glaze workshop at forty-five euros per person, because the clay and the firing are included.\n\noh and uh we should cap it at eight people so everyone gets a wheel",
+    "bodyAfterPass": "I think we should price the glaze workshop at forty-five euros per person, because the clay and the firing are included.\n\nWe should cap it at eight people so everyone gets a wheel."
+  }
+}
