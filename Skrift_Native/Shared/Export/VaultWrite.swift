@@ -377,13 +377,18 @@ struct VaultWriter {
         var outcome: VaultWriteOutcome
         var markdownURL: URL
         var audioURL: URL?
+        /// C158: vault pictures this write removed because the body no longer shows them.
+        var removedAttachments: [String] = []
     }
 
     /// Write `markdown` (pre-stamp) for `id` at the assessed path. Skips everything —
     /// file AND assets — when the content is equivalent to what's already there.
+    /// `removedAttachments` (C158): pictures the body no longer shows, named as an earlier
+    /// export placed them, with the bytes we placed. On a real write each vault copy that is
+    /// still byte-identical to those bytes (ours, untouched) is removed; anything else stays.
     func commit(markdown: String, id: UUID, relativePath: String,
                 attachments: [VaultAsset] = [], audio: VaultAsset? = nil,
-                documents: [VaultAsset] = []) throws -> Result {
+                documents: [VaultAsset] = [], removedAttachments: [VaultAsset] = []) throws -> Result {
         let dest = root.appendingPathComponent(relativePath)
 
         // WHERE the media goes. The vault keeps its subfolders (`Images/`, `Recordings/`,
@@ -437,10 +442,17 @@ struct VaultWriter {
             }
         }
 
+        var removed: [String] = []
+        for a in removedAttachments {
+            if let gone = VaultAttachmentOwnership.removeOwned(a, from: folder(attachmentsFolder), id: id) {
+                removed.append(gone.lastPathComponent)
+            }
+        }
+
         let created = existing == nil
         return Result(outcome: created ? .created(relativePath: relativePath)
                                        : .updated(relativePath: relativePath),
-                      markdownURL: dest, audioURL: audioURL)
+                      markdownURL: dest, audioURL: audioURL, removedAttachments: removed)
     }
 
     /// Would `commit(markdown:...)` with no attachments come back `.unchanged`? The same
@@ -599,6 +611,26 @@ enum VaultAttachmentOwnership {
             name = next
         }
         return name
+    }
+
+    /// C158: remove the vault copy of `asset` from `dir` when it is ours and untouched — at its
+    /// preferred name or the id8 name a foreign collision gave it, byte-identical to the bytes
+    /// we placed. Returns the file removed, nil when nothing qualified (gone already, edited in
+    /// the vault, or someone else's file). Never removes anything that differs.
+    @discardableResult
+    static func removeOwned(_ asset: VaultAsset, from dir: URL, id: UUID,
+                            fileManager fm: FileManager = .default) -> URL? {
+        for name in [asset.name, disambiguated(asset.name, id: id)] {
+            let url = dir.appendingPathComponent(name)
+            guard fm.fileExists(atPath: url.path), asset.source.isIdentical(to: url, fm: fm) else { continue }
+            var coordError: NSError?
+            var removed = false
+            NSFileCoordinator().coordinate(writingItemAt: url, options: .forDeleting, error: &coordError) { u in
+                removed = (try? fm.removeItem(at: u)) != nil
+            }
+            if removed { return url }
+        }
+        return nil
     }
 
     private static func disambiguated(_ preferredName: String, id: UUID) -> String {

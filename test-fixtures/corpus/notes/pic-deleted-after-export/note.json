@@ -1,0 +1,65 @@
+{
+  "id": "95E067D4-A26F-530D-A7EB-8F86D4B9A421",
+  "slug": "pic-deleted-after-export",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "pictures",
+    "deleted-after-export"
+  ],
+  "title": "Kiln shelf layout",
+  "recordedAt": "2026-09-20T10:00:00+01:00",
+  "createdAt": "2026-09-20T10:00:00+01:00",
+  "editedAt": "2026-09-21T09:00:00+01:00",
+  "duration": 0,
+  "audio": null,
+  "transcript": "Top shelf holds the small bowls.\n\n[[img_001]]\n\nBottom shelf takes the platters.\n\n[[img_002]]",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 1.0,
+  "transcriptUserEdited": true,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-20T10:00:00+01:00",
+    "tags": [],
+    "imageManifest": [
+      {
+        "filename": "photo_001.jpg",
+        "offsetSeconds": 0
+      },
+      {
+        "filename": "photo_002.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    "photo_001.jpg",
+    "photo_002.jpg"
+  ],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "C158 (Q488). Exported once with both pictures; then he deletes the second picture, so its marker leaves the body and the manifest keeps both entries (C14). The next export removes <stem>_002.jpg from the vault when it is still byte-identical to photo_002.jpg (ours, untouched); <stem>_001.jpg stays. An edited or foreign file at that name is never removed. Read by RemovedPictureExportTests only; not in manifest.json.",
+    "transcriptAfterDelete": "Top shelf holds the small bowls.\n\n[[img_001]]\n\nBottom shelf takes the platters.",
+    "removedNumbers": [
+      2
+    ],
+    "keptNumbers": [
+      1
+    ]
+  }
+}
