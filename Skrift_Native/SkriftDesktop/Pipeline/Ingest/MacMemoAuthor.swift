@@ -95,6 +95,7 @@ enum MacMemoAuthor {
             markTranscribed(memo, transcript: t, userEdited: pf.isLocalRecording)
         }
         ctx.insert(memo)
+        if capture == nil, !(pf.transcript ?? "").isEmpty { syncTimingAssets(from: pf, memoID: id, in: ctx) }
 
         // Audio only for an audio row: a note's `path` is its markdown, a capture's a folder.
         if shape.hasAudio, let audioURL, FileManager.default.fileExists(atPath: audioURL.path),
@@ -188,6 +189,7 @@ enum MacMemoAuthor {
             guard memo.sharedContentData == nil else { continue }   // a capture's text is its annotation
             guard (memo.transcript ?? "").isEmpty else { continue }
             markTranscribed(memo, transcript: t)
+            syncTimingAssets(from: pf, memoID: memo.id, in: ctx)   // C245: karaoke on the phone too
             count += 1
         }
         if count > 0 {
@@ -402,6 +404,23 @@ enum MacMemoAuthor {
         memo.transcriptStatus = .done
         memo.transcriptConfidence = 1.0
         memo.transcriptUserEdited = userEdited
+    }
+
+    /// C245 / R34: the take's word timings, and its diarization when it was split, ride to the
+    /// phone as the same `MemoAsset` kinds, names and shapes the phone uploads
+    /// (`TimingAssets`), so karaoke and the speaker turns work on a Mac recording everywhere.
+    /// Does not save: the callers save once.
+    static func syncTimingAssets(from pf: PipelineFile, memoID: UUID, in ctx: ModelContext) {
+        if let blob = TimingAssets.wordTimingsBlob(pf.wordTimings) {
+            TimingAssets.upsert(kind: MemoAsset.Kind.wordTimings, filename: TimingAssets.wordTimingsFilename(for: memoID),
+                                blob: blob, memoID: memoID, in: ctx)
+        }
+        let turnNames = SpeakerTranscript.parse(pf.transcript)?.map(\.name) ?? []
+        if let d = TimingAssets.diarization(segments: pf.diarizationSegments, turnNames: turnNames),
+           let blob = TimingAssets.diarizationBlob(d) {
+            TimingAssets.upsert(kind: MemoAsset.Kind.diarization, filename: TimingAssets.diarizationFilename(for: memoID),
+                                blob: blob, memoID: memoID, in: ctx)
+        }
     }
 
     /// Best-effort audio duration off the materialized file. `PipelineFile` carries no duration
