@@ -32,6 +32,10 @@ enum ReconcileV2 {
         var stranded = 0
         /// Existing rows seen with a memo for the first time (their watermark was baselined).
         var newlyLinked = 0
+        /// Never-seen memos left for the background ingest (`deferNew`), by id.
+        var pendingNewIDs: [UUID] = []
+        /// Rows whose watermark moved to a phone polish they had already (R44); saved, not re-exported.
+        var watermarked = 0
         /// R40 / C52: the store could not be read, so nothing was pulled. Never an empty list.
         var fetchFailure: String?
     }
@@ -52,6 +56,16 @@ enum ReconcileV2 {
         var now = Date()
         /// The root every working folder is written under (`<id>_<file>`, `<id>_note`, `capture_<id>`).
         var outputDir: URL
+        /// Memos whose background ingest is running: not ingested again, not orphans.
+        var inFlight: Set<UUID> = []
+    }
+
+    /// What the pass around the sweep reuses from it, so nothing is fetched twice.
+    struct Snapshot {
+        var memos: [Memo] = []
+        var rows: [PipelineFile] = []
+        /// Row ids that have a memo right now (matched, or made this sweep).
+        var rowsWithMemo: Set<String> = []
     }
 
     // MARK: - the sweep
@@ -61,13 +75,23 @@ enum ReconcileV2 {
     static func sweep(cloud: ModelContext, local: ModelContext, context ctx: Context,
                       fetchMemos: (ModelContext) throws -> [Memo] = { try $0.fetch(FetchDescriptor<Memo>()) })
         -> Outcome {
+        run(cloud: cloud, local: local, context: ctx, deferNew: false, fetchMemos: fetchMemos).outcome
+    }
+
+    /// The sweep, and what it read. `deferNew`: never-seen memos are NOT ingested here; their ids
+    /// come back in `pendingNewIDs` for the app's background ingest (`Ingest.prepare` off the main
+    /// actor, then `Ingest.commit` on it), so a first enable with a big backlog never writes
+    /// hundreds of folders on the main thread.
+    static func run(cloud: ModelContext, local: ModelContext, context ctx: Context, deferNew: Bool,
+                    fetchMemos: (ModelContext) throws -> [Memo]) -> (outcome: Outcome, snapshot: Snapshot) {
         let inputs: Inputs
         switch read(cloud: cloud, local: local, fetchMemos: fetchMemos) {
         case .failure(let message):
             AppLog.cloudkit.error("reconcile v2: store read failed, nothing pulled: \(message, privacy: .public)")
-            return Outcome(fetchFailure: message)
+            return (Outcome(fetchFailure: message), Snapshot())
         case .success(let read): inputs = read
         }
+        var snapshot = Snapshot(memos: inputs.memos, rows: inputs.rows)
 
         var outcome = Outcome()
         let held = EditConflictHold.refresh(memos: inputs.memos, in: cloud,
@@ -79,9 +103,10 @@ enum ReconcileV2 {
         for memo in inputs.memos {
             let enhancement = inputs.enhancements[memo.id]
             guard let row = matcher.row(for: memo) else {
-                if memo.deletedAt == nil, NoteConsent.isRated(memo) { fresh.append(memo) }
+                if memo.deletedAt == nil, NoteConsent.isRated(memo), !ctx.inFlight.contains(memo.id) { fresh.append(memo) }
                 continue
             }
+            snapshot.rowsWithMemo.insert(row.id)
             let reflected = held.contains(row.id) ? Reflect.Result()
                 : Reflect.apply(memo: memo, enhancement: enhancement, to: row, context: ctx)
             let healed = memo.deletedAt == nil
@@ -92,36 +117,28 @@ enum ReconcileV2 {
             }
             if healed && !reflected.changed { row.lastActivityAt = ctx.now }
             if reflected.changed || healed { outcome.updatedIDs.append(row.id) }
+            if reflected.watermarked { outcome.watermarked += 1 }
         }
 
-        for memo in fresh {
-            do {
-                guard let row = try Ingest.row(for: memo, assets: assets.blobs(for: memo.id), context: ctx) else {
-                    outcome.stranded += 1
-                    AppLog.cloudkit.error("reconcile v2: rated memo \(memo.id, privacy: .public) still has no row (waiting for its audio)")
-                    continue
-                }
-                local.insert(row)
-                outcome.created += 1
-                // A fresh row takes everything the cloud already knows, this Mac's own polish
-                // included (C46: the only copy of it may be in the cloud).
-                if Reflect.apply(memo: memo, enhancement: inputs.enhancements[memo.id], to: row,
-                                 context: ctx, freshRow: true).changed {
-                    outcome.updatedIDs.append(row.id)
-                }
-            } catch {
-                outcome.ingestFailures += 1
-                AppLog.cloudkit.error("reconcile v2: ingest of \(memo.id, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+        if deferNew {
+            outcome.pendingNewIDs = fresh.map(\.id)
+        } else {
+            let prepared = fresh.map { memo in
+                Ingest.attempt(memo.id) { try Ingest.prepare(memo, assets: assets.blobs(for: memo.id), outputDir: ctx.outputDir) }
             }
+            let rows = Ingest.commit(prepared, memos: inputs.memos, enhancements: inputs.enhancements,
+                                     into: local, context: ctx, outcome: &outcome, save: false)
+            snapshot.rows += rows
+            snapshot.rowsWithMemo.formUnion(rows.map(\.id))
         }
 
-        if outcome.created > 0 || !outcome.updatedIDs.isEmpty || outcome.newlyLinked > 0 {
+        if outcome.created > 0 || !outcome.updatedIDs.isEmpty || outcome.newlyLinked > 0 || outcome.watermarked > 0 {
             ReconcileWork.bump(\.saves)
             do { try local.save() } catch {
                 AppLog.cloudkit.error("reconcile v2: save failed: \(String(describing: error), privacy: .public)")
             }
         }
-        return outcome
+        return (outcome, snapshot)
     }
 
     // MARK: - reading

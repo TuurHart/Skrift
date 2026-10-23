@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 extension ReconcileV2 {
 
@@ -14,7 +15,7 @@ extension ReconcileV2 {
         /// - typed: neither — words somebody typed.
         enum Kind: Equatable { case audio, capture, typed }
 
-        static func kind(of memo: Memo, hasAudioAsset: Bool) -> Kind? {
+        nonisolated static func kind(of memo: Memo, hasAudioAsset: Bool) -> Kind? {
             if hasAudioAsset { return .audio }
             if jsonObject(memo.sharedContentData) != nil { return .capture }
             // A named audio file whose blob has not synced: NOT a typed note (it would strand its
@@ -23,26 +24,47 @@ extension ReconcileV2 {
         }
 
         /// The row's filename and the legacy-row match key: the memo's own, else `memo_<uuid>.m4a`.
-        static func audioFilename(for memo: Memo) -> String {
+        nonisolated static func audioFilename(for memo: Memo) -> String {
             memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
         }
 
-        /// The row for `memo`, its folder written under `context.outputDir`; nil = nothing to
-        /// ingest yet (an audio memo whose blob has not arrived).
-        static func row(for memo: Memo, assets: [MemoAsset], context ctx: Context) throws -> PipelineFile? {
+        /// A row's fields, its folder already written. Sendable: `prepare` may run on a background
+        /// context (the first-enable ingest), `commit` builds the row on the main actor.
+        struct Prepared: Sendable {
+            var id: String, filename: String, path: String, size: Int, sourceType: SourceType
+            var mediaSource: String?, transcript: String?, languageMode: String?
+            var wordTimings: [WordTiming] = [], segments: [DiarizedSegment] = []
+            var metadataJSON: Data, uploadedAt: Date?, title: String?, significance: Double?
+        }
+
+        /// One prepared memo: its fields, nothing yet (an audio memo whose blob has not arrived),
+        /// or the error that stopped it.
+        enum Attempt: Sendable { case ready(UUID, Prepared), waiting(UUID), failed(UUID, String) }
+
+        nonisolated static func attempt(_ id: UUID, _ work: () throws -> Prepared?) -> Attempt {
+            do { return try work().map { .ready(id, $0) } ?? .waiting(id) } catch { return .failed(id, String(describing: error)) }
+        }
+
+        /// Write `memo`'s working folder under `outputDir` and return the row's fields; nil =
+        /// nothing to ingest yet. File writes only, no SwiftData row: safe off the main actor.
+        nonisolated static func prepare(_ memo: Memo, assets: [MemoAsset], outputDir: URL) throws -> Prepared? {
             let audio = assets.first { $0.kind == MemoAsset.Kind.audio }
             guard let kind = kind(of: memo, hasAudioAsset: audio != nil) else { return nil }
             let id = memo.id.uuidString
             let blob = jsonObject(memo.metadataData)
             let words = memo.transcriptStatus == .done ? (memo.transcript ?? "") : ""
             let fm = FileManager.default
-            let row: PipelineFile
+            var p: Prepared
             let folder: URL
+            func base(_ filename: String, _ path: String, _ size: Int, _ type: SourceType) -> Prepared {
+                Prepared(id: id, filename: filename, path: path, size: size, sourceType: type,
+                         metadataJSON: metadataJSON(for: memo), uploadedAt: nil, title: nil, significance: nil)
+            }
 
             switch kind {
             case .audio:
                 let filename = audioFilename(for: memo)
-                folder = ctx.outputDir.appendingPathComponent("\(id)_\(filename)", isDirectory: true)
+                folder = outputDir.appendingPathComponent("\(id)_\(filename)", isDirectory: true)
                 try fm.createDirectory(at: folder, withIntermediateDirectories: true)
                 let ext = (filename as NSString).pathExtension
                 let original = folder.appendingPathComponent("original.\(ext.isEmpty ? "m4a" : ext)")
@@ -56,32 +78,32 @@ extension ReconcileV2 {
                     try? movie.blob.write(to: folder.appendingPathComponent(VideoKeep.macSourceName(forAssetFilename: name)))
                 }
                 let size = ((try? fm.attributesOfItem(atPath: original.path))?[.size] as? Int) ?? bytes.count
-                row = PipelineFile(id: id, filename: filename, path: original.path, size: size, sourceType: .audio)
-                if let marker = SourceKind.mediaMarker(in: blob) { row.mediaSource = marker }
+                p = base(filename, original.path, size, .audio)
+                p.mediaSource = SourceKind.mediaMarker(in: blob)
                 // C42: the phone's words stand in for the Mac's ASR only when trusted, and the
                 // sidecars (timings, diarization) only ever ride a trusted transcript.
                 if !words.isEmpty, Memo.isTrustedTranscript(userEdited: memo.transcriptUserEdited,
                                                             confidence: memo.transcriptConfidence) {
-                    setTranscript(row, words, mode: memo.transcriptLanguageMode)
-                    if let timings = decodeTimings(assets) { row.wordTimings = timings }
-                    if let segments = decodeDiarization(assets) { row.diarizationSegments = segments }
+                    (p.transcript, p.languageMode) = (words, memo.transcriptLanguageMode)
+                    p.wordTimings = decodeTimings(assets) ?? []
+                    p.segments = decodeDiarization(assets) ?? []
                 }
 
             case .typed:
                 // Shaped like an imported note: the words in `original.md`, the transcript done.
-                folder = ctx.outputDir.appendingPathComponent("\(id)_note", isDirectory: true)
+                folder = outputDir.appendingPathComponent("\(id)_note", isDirectory: true)
                 try fm.createDirectory(at: folder, withIntermediateDirectories: true)
                 let dest = folder.appendingPathComponent("original.md")
                 try Data(words.utf8).write(to: dest)
-                row = PipelineFile(id: id, filename: "\(id).md", path: dest.path, size: words.utf8.count, sourceType: .note)
+                p = base("\(id).md", dest.path, words.utf8.count, .note)
                 if let media = (blob?["mediaSource"] as? String)?.trimmingCharacters(in: .whitespaces), !media.isEmpty {
-                    row.mediaSource = media
+                    p.mediaSource = media
                 }
-                setTranscript(row, words, mode: nil)
+                p.transcript = words
 
             case .capture:
                 let name = "capture_\(id)"
-                folder = ctx.outputDir.appendingPathComponent(name, isDirectory: true)
+                folder = outputDir.appendingPathComponent(name, isDirectory: true)
                 try fm.createDirectory(at: folder, withIntermediateDirectories: true)
                 if let doc = assets.first(where: { $0.kind == MemoAsset.Kind.document }), !doc.blob.isEmpty {
                     let dir = folder.appendingPathComponent("files", isDirectory: true)
@@ -92,23 +114,78 @@ extension ReconcileV2 {
                    !thumb.filename.isEmpty, !thumb.filename.contains("/") {
                     try? thumb.blob.write(to: folder.appendingPathComponent(thumb.filename))
                 }
-                row = PipelineFile(id: id, filename: name, path: folder.path, size: 0, sourceType: .capture)
+                p = base(name, folder.path, 0, .capture)
                 // The annotation is the body; non-nil even when empty, so nothing is ever heard.
-                setTranscript(row, memo.annotationText ?? "", mode: nil)
+                p.transcript = memo.annotationText ?? ""
             }
 
-            row.audioMetadataJSON = metadataJSON(for: memo)
             if kind != .capture {
                 // C188: the CONTENT date (a video keeps its filming date), never ingest time. A
                 // capture keeps its arrival time and carries no title of its own.
-                row.uploadedAt = memo.recordedAt
-                if let title = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
-                    row.enhancedTitle = title
-                }
+                p.uploadedAt = memo.recordedAt
+                if let title = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty { p.title = title }
             }
-            if memo.significance > 0 { row.significance = memo.significance }
+            if memo.significance > 0 { p.significance = memo.significance }
             try writePhotos(assets.filter { $0.kind == MemoAsset.Kind.photo }.sorted { $0.filename < $1.filename },
                             manifest: (blob?["imageManifest"] as? [[String: Any]]) ?? [], into: folder)
+            return p
+        }
+
+        /// The rows for prepared memos, on the main actor: insert, first contact, then the fresh
+        /// reflect (C46: the cloud's polish, this Mac's own included, may be the only copy). A
+        /// memo trashed or un-rated while it was prepared, or that already has a row, is skipped.
+        /// `save`: false inside the sweep (it saves once); true for the background ingest's commit.
+        @discardableResult
+        static func commit(_ attempts: [Attempt], memos: [Memo], enhancements: [UUID: MemoEnhancement],
+                           into local: ModelContext, context ctx: Context, outcome: inout Outcome,
+                           save: Bool) -> [PipelineFile] {
+            let byID = Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let have = Set(((try? local.fetch(FetchDescriptor<PipelineFile>())) ?? []).map(\.id))
+            var rows: [PipelineFile] = []
+            for a in attempts {
+                switch a {
+                case .failed(let id, let message):
+                    outcome.ingestFailures += 1
+                    AppLog.cloudkit.error("reconcile v2: ingest of \(id, privacy: .public) failed: \(message, privacy: .public)")
+                case .waiting(let id):
+                    if let m = byID[id], m.deletedAt == nil, NoteConsent.isRated(m) {
+                        outcome.stranded += 1
+                        AppLog.cloudkit.error("reconcile v2: rated memo \(id, privacy: .public) still has no row (waiting for its audio)")
+                    }
+                case .ready(let id, let p):
+                    guard let memo = byID[id], memo.deletedAt == nil, NoteConsent.isRated(memo), !have.contains(p.id) else { continue }
+                    let row = makeRow(p, memo: memo)
+                    local.insert(row)
+                    outcome.created += 1
+                    rows.append(row)
+                    if Reflect.apply(memo: memo, enhancement: enhancements[id], to: row, context: ctx, freshRow: true).changed {
+                        outcome.updatedIDs.append(row.id)
+                    }
+                }
+            }
+            if save, !rows.isEmpty {
+                ReconcileWork.bump(\.saves)
+                do { try local.save() } catch {
+                    AppLog.cloudkit.error("reconcile v2: ingest save failed: \(String(describing: error), privacy: .public)")
+                }
+            }
+            return rows
+        }
+
+        static func makeRow(_ p: Prepared, memo: Memo) -> PipelineFile {
+            let row = PipelineFile(id: p.id, filename: p.filename, path: p.path, size: p.size, sourceType: p.sourceType)
+            row.audioMetadataJSON = p.metadataJSON
+            if let d = p.uploadedAt { row.uploadedAt = d }
+            if let m = p.mediaSource { row.mediaSource = m }
+            if let t = p.title { row.enhancedTitle = t }
+            if let s = p.significance { row.significance = s }
+            if let t = p.transcript {
+                row.transcript = t
+                row.transcriptLanguageMode = p.languageMode
+                row.transcribeStatus = .done
+            }
+            if !p.wordTimings.isEmpty { row.wordTimings = p.wordTimings }
+            if !p.segments.isEmpty { row.diarizationSegments = p.segments }
             firstContact(row, memo: memo)
             return row
         }
@@ -124,19 +201,13 @@ extension ReconcileV2 {
             ExportAudioMirror.pull(memo, into: row)
         }
 
-        private static func setTranscript(_ row: PipelineFile, _ text: String, mode: String?) {
-            row.transcript = text
-            row.transcriptLanguageMode = mode
-            row.transcribeStatus = .done
-        }
-
-        static func decodeTimings(_ assets: [MemoAsset]) -> [WordTiming]? {
+        nonisolated static func decodeTimings(_ assets: [MemoAsset]) -> [WordTiming]? {
             guard let a = assets.first(where: { $0.kind == MemoAsset.Kind.wordTimings }), !a.blob.isEmpty,
                   let words = try? JSONDecoder().decode([WordTiming].self, from: a.blob), !words.isEmpty else { return nil }
             return words
         }
 
-        static func decodeDiarization(_ assets: [MemoAsset]) -> [DiarizedSegment]? {
+        nonisolated static func decodeDiarization(_ assets: [MemoAsset]) -> [DiarizedSegment]? {
             guard let a = assets.first(where: { $0.kind == MemoAsset.Kind.diarization }), !a.blob.isEmpty,
                   let d = try? JSONDecoder().decode(PhoneDiarizationBlob.self, from: a.blob), !d.segments.isEmpty
             else { return nil }
@@ -147,7 +218,7 @@ extension ReconcileV2 {
         /// C41: the manifest is written even when no photo blob has arrived yet, so the photo
         /// heal of a later sweep finds the names it waits for (v1 wrote none, and its second sweep
         /// wrote it as a "heal" — `pic-missing-file`).
-        private static func writePhotos(_ photos: [MemoAsset], manifest: [[String: Any]], into folder: URL) throws {
+        nonisolated private static func writePhotos(_ photos: [MemoAsset], manifest: [[String: Any]], into folder: URL) throws {
             guard !photos.isEmpty || !manifest.isEmpty else { return }
             var saved: [[String: Any]] = []
             if !photos.isEmpty {
@@ -175,8 +246,12 @@ extension ReconcileV2 {
         /// (source, tags, dates, duration, trust flags, title, rating, annotation, shared
         /// content). Sorted keys: the same memo always gives the same bytes, so the reflect can
         /// compare bytes.
-        static func metadataJSON(for memo: Memo) -> Data {
-            if let hit = metadataCache[memo.id], hit.key == MetadataKey(memo) { return hit.json }
+        nonisolated static func metadataJSON(for memo: Memo) -> Data {
+            let key = MetadataKey(memo)
+            cacheLock.lock()
+            let hit = metadataCache[memo.id]
+            cacheLock.unlock()
+            if let hit, hit.key == key { return hit.json }
             ReconcileWork.bump(\.metadataSerialisations)
             var dict = jsonObject(memo.metadataData) ?? [:]
             dict["source"] = "mobile"
@@ -191,7 +266,9 @@ extension ReconcileV2 {
             if let a = memo.annotationText { dict["annotationText"] = a }
             if let sc = jsonObject(memo.sharedContentData) { dict["sharedContent"] = sc }
             let json = (try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys])) ?? Data("{}".utf8)
-            metadataCache[memo.id] = (MetadataKey(memo), json)
+            cacheLock.lock()
+            metadataCache[memo.id] = (key, json)
+            cacheLock.unlock()
             return json
         }
 
@@ -212,17 +289,19 @@ extension ReconcileV2 {
                 (title, significance, annotation) = (m.title, m.significance, m.annotationText)
             }
         }
-        private static var metadataCache: [UUID: (key: MetadataKey, json: Data)] = [:]
+        /// Locked: `prepare` builds metadata off the main actor while the sweep reads it on it.
+        nonisolated(unsafe) private static var metadataCache: [UUID: (key: MetadataKey, json: Data)] = [:]
+        nonisolated private static let cacheLock = NSLock()
 
         /// The photos' OCR text joined, for search (`imageManifest[].text`). nil when none.
-        static func ocrText(for memo: Memo) -> String? {
+        nonisolated static func ocrText(for memo: Memo) -> String? {
             let texts = (memo.metadata?.imageManifest ?? [])
                 .compactMap { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             return texts.isEmpty ? nil : texts.joined(separator: "\n")
         }
 
-        static func jsonObject(_ data: Data?) -> [String: Any]? {
+        nonisolated static func jsonObject(_ data: Data?) -> [String: Any]? {
             data.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
         }
     }

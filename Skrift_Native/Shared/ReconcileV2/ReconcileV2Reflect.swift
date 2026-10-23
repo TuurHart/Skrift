@@ -12,6 +12,8 @@ extension ReconcileV2 {
             var changed = false
             /// The raw transcript changed — the diarization heal looks again (R57).
             var transcriptChanged = false
+            /// Only the watermark moved: a phone polish already on the row, stamped later (R44).
+            var watermarked = false
         }
 
         /// `freshRow`: the row was made this sweep, so an enhancement this Mac wrote is adopted
@@ -88,6 +90,13 @@ extension ReconcileV2 {
             let ocr = Ingest.ocrText(for: memo)
             if row.imageOCRText != ocr { row.imageOCRText = ocr; meta = true }   // C188: never recompiles
 
+            // R44: a phone polish this reflect SAW is seen, even when its text was already the row's
+            // (nothing to adopt). The watermark the Mac's write-back measures "unseen" against moves
+            // to its stamp, so the Mac's next polish is not refused over identical words.
+            if let e = phone, !content, e.enhancedAt > (row.syncedSourceEditedAt ?? .distantPast) {
+                row.syncedSourceEditedAt = e.enhancedAt
+                result.watermarked = true
+            }
             guard content || meta || trashChanged else { return result }
             if content {
                 if !copyeditAdopted && !rawWins {
