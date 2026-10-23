@@ -3491,7 +3491,7 @@ gate+: yes
 do: Store the ASR language mode each transcript was made with (additive synced field) and add a plain ⋯ menu item "Transcribe again in Dutch" / "in English" (the other language) on phone and Mac, re-running ASR on that note only; the global setting stays the default. Add corpus fixture `voice-nl-recorded-in-english-mode`. Test `TranscribeAgainLanguageTests` (phone target).
 check: `plan/mtest.sh TranscribeAgainLanguageTests`
 
-### Q481 [auto] (todo) A: text appended to a polished note shows up and only the new block gets polished
+### Q481 [auto] (done) A: text appended to a polished note shows up and only the new block gets polished
 spec: C152 C223
 needs: -
 gate+: yes
@@ -5233,3 +5233,4 @@ check: `plan/mtest.sh ZipCRCTests`
 - 2026-10-23 17:38 Q480 -> stuck — gate failed — .queue/Q480.gate.log
 - 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
 - 2026-10-23 17:45 Q496 -> done — gate 114s @12d664de
+- 2026-10-23 17:48 Q481 -> done — hand-merged (D163 port: a new stored PipelineFile field added to ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null), mechanical)
