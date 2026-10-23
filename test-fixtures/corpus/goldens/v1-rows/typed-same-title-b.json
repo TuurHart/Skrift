@@ -81,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Cone 5, grey body, blue #3. Matte but the colour is RIGHT.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-04T07:00:00.000Z",
     "wordTimingsJSON" : null

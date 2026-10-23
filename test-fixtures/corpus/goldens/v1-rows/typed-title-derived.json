@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "First line becomes the title if nothing else does.\n\nSecond paragraph is just here so the first line is clearly a line.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-05T17:00:00.000Z",
     "wordTimingsJSON" : null

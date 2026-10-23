@@ -69,6 +69,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Dit is die veerpont bij Enkhuizen, tijden staan onderaan. Voor het IJsselmeer-weekend met Lotte.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

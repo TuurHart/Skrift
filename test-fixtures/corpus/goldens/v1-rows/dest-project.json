@@ -81,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Finished the wide blue bowl, the first one that came out right. [[img_001]] Cone five, grey body, blue number three.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-12T11:00:00.000Z",
     "wordTimingsJSON" : [

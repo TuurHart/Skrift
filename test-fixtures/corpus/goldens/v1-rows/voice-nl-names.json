@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Pieter-Jan, of PJ zoals iedereen hem noemt, komt zaterdag helpen met de wielen. Sam ook, de Zweedse Sam, niet die andere. En Rose stuurt de nieuwe versie van de site door.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-16T04:00:00.000Z",
     "wordTimingsJSON" : [

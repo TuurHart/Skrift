@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Idea: a 'repair diary' card that goes home with every overhauled bike — what was done, photos, the date. Lotte says people would keep it.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-11T18:00:00.000Z",
     "wordTimingsJSON" : null

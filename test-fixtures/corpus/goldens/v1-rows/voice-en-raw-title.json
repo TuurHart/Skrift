@@ -66,6 +66,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "A voice note whose stored title looks like a raw filename. The list must not show memo_ garbage; a generated or first-line title wins over a raw one.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-14T18:00:00.000Z",
     "wordTimingsJSON" : [

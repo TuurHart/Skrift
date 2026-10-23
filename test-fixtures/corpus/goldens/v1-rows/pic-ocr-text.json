@@ -80,6 +80,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Snapped the supplier's price board so I stop guessing. [[img_001]] Grey body went up again.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-09T19:00:00.000Z",
     "wordTimingsJSON" : [

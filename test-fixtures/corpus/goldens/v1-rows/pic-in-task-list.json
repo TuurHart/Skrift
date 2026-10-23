@@ -81,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Parts to order for the cargo bike:\n\n- [ ] chain, 1/8\n- [ ] the rear hub, this one [[img_001]]\n- [ ] brake pads, four\n- [x] new bell",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-05T13:00:00.000Z",
     "wordTimingsJSON" : [

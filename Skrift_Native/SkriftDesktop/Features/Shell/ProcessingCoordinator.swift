@@ -624,7 +624,7 @@ final class ProcessingCoordinator {
     /// voice-enrollment slices; a stale sanitised body kept showing the OLD text
     /// when a fresh run failed midway.)
     ///
-    /// `mode` (C151): ⋯ › "Transcribe again in Dutch / English" — this note only, in that ASR
+    /// `mode` (C151): the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) — this note only, in that ASR
     /// language mode; nil = the setting (plain Re-transcribe).
     func retranscribe(_ pf: PipelineFile, context: ModelContext, in mode: ASRLanguageMode? = nil) async {
         guard !isRunning else { lastError = Self.busyMessage; return }

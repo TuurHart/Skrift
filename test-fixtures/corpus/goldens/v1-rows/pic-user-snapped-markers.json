@@ -87,6 +87,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Moved the markers myself in the editor so they sit on sentence ends.\n\n[[img_001]]\n\nThis paragraph is after the first picture.\n\n[[img_002]]\n\nAnd this one after the second.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-06T06:00:00.000Z",
     "wordTimingsJSON" : [

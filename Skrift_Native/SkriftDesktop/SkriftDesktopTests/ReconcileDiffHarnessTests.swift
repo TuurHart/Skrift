@@ -140,6 +140,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             "syncedSourceDeletedAt": date(pf.syncedSourceDeletedAt),
             "locked": pf.locked, "remindAt": date(pf.remindAt), "imageOCRText": opt(pf.imageOCRText),
             "transcript": opt(pf.transcript), "sanitised": opt(pf.sanitised),
+            "transcriptLanguageMode": opt(pf.transcriptLanguageMode),
             "ambiguousNamesJSON": blob(pf.ambiguousNamesJSON), "nameResolutionsData": blob(pf.nameResolutionsData),
             "legacyUnlinkedNames": pf.legacyUnlinkedNames, "legacyNamePicksJSON": blob(pf.legacyNamePicksJSON),
             "wordTimingsJSON": blob(pf.wordTimingsJSON), "diarizationSegmentsJSON": blob(pf.diarizationSegmentsJSON),

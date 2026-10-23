@@ -70,6 +70,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Price is what you say when you have stopped apologising.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-17T10:00:00.000Z",
     "wordTimingsJSON" : [

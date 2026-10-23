@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Order kiln wash.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-14T01:00:00.000Z",
     "wordTimingsJSON" : [

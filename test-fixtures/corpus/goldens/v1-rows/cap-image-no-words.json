@@ -80,6 +80,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

@@ -80,6 +80,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "How the shelves go back in after cleaning. Photo from the manual.\n\n[[img_001]]\n\nBottom shelf gets the posts at 15 cm, not 10.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-13T21:00:00.000Z",
     "wordTimingsJSON" : null

@@ -69,6 +69,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "First thought. The blue is closer at cone five than at six.\n\nSecond thought, unrelated. Bruno's frame builder in Porto does lugged steel and I want one.\n\nThird. Lotte's birthday is in three weeks and I have nothing.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-27T12:00:00.000Z",
     "wordTimingsJSON" : [

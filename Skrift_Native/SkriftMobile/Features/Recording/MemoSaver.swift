@@ -956,7 +956,7 @@ struct MemoSaver {
     /// The global language setting — what a transcript without its own stamp was made with.
     static func settingMode() -> ASRLanguageMode { .from(multilingual: ASRLanguageStore.isMultilingual()) }
 
-    /// C151 / D46: ⋯ › "Transcribe again in Dutch / English" offers itself on a voice note with
+    /// C151 / D46: the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) offers itself on a voice note with
     /// its audio and a finished transcript. Not on a conversation (its speaker turns are the only
     /// copy of the diarization), a capture, a book quote, or a transcript the user edited — a
     /// new pass would run over their words.

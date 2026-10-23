@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "So Bruno, um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

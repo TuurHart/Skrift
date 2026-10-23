@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Overhaul checklist, in order\n\n1. Strip the drivetrain, degrease, photograph the wear.\n2. Bearings: headset, bottom bracket, both hubs.\n3. Cables and housing, full length, no reuse.\n4. Brakes — pads and alignment.\n5. Wheels true, spoke tension logged.\n6. Test ride, then the tag gets the DATE.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-13T12:00:00.000Z",
     "wordTimingsJSON" : null

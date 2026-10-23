@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "I typed [[img_001]] by hand to see what happens. There is no photo.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-10T08:00:00.000Z",
     "wordTimingsJSON" : null

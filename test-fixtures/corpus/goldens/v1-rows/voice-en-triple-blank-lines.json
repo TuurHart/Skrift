@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Part one about the trailer hitch.\n\n\n\nPart two after a very long pause about the invoice for Hendrik.\n\n\nPart three.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-26T02:00:00.000Z",
     "wordTimingsJSON" : [

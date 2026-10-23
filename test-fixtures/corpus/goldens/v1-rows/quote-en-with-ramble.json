@@ -72,6 +72,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> The potter's wheel does not care what you meant to make. It records what your hands did.\n\nThis is the whole studio in two sentences. I keep meaning the blue bowl and my hands keep making the safe one.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-18T20:00:00.000Z",
     "wordTimingsJSON" : [

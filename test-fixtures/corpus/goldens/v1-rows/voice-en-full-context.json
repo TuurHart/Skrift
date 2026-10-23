@@ -89,6 +89,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Rode out to the lake in the rain to think. The website should have the bikes on the front page. Rose is right about the fonts though.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-16T21:00:00.000Z",
     "wordTimingsJSON" : [

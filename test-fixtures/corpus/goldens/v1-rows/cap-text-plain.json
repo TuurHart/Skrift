@@ -66,6 +66,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

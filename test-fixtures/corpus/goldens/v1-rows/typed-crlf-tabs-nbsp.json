@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Line one with a trailing space \r\nLine two after CRLF\r\n\r\n\tIndented with a tab\n\nNon breaking spaces here and three blank lines follow\n\n\n\nEnd.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-03T14:00:00.000Z",
     "wordTimingsJSON" : null

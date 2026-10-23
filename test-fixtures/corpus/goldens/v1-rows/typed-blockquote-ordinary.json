@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> The pot you want is the pot you can't make yet.\n\nSomeone said that at the fair and I wrote it on my hand. It is exactly the blue-glaze problem.\n\n> Also: stop apologising to customers for the price. Just say the number.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-14T05:00:00.000Z",
     "wordTimingsJSON" : null

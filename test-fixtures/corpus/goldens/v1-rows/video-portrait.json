@@ -80,6 +80,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "[[img_001]]\n\nAdvice to future me, recorded on the balcony: do not say yes to a workshop before checking the calendar.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-02T18:30:00.000Z",
     "wordTimingsJSON" : [

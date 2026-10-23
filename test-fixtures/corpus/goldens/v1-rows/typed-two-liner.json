@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Call the clay supplier about the 20 kg bags.\nAsk if they still do the grey body.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-19T21:00:00.000Z",
     "wordTimingsJSON" : null

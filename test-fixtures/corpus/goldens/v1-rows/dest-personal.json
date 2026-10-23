@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Private thought. Not sure the studio makes me happy or just busy. Personal, vault only.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-13T04:00:00.000Z",
     "wordTimingsJSON" : [

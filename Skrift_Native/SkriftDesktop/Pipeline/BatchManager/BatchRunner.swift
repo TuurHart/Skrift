@@ -87,7 +87,7 @@ struct BatchRunner {
             }
             let result: TranscriptionResult
             do {
-                // C151: ⋯ › "Transcribe again in Dutch / English" names the mode; else the setting.
+                // C151: the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) names the mode; else the setting.
                 if let languageMode {
                     result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest,
                                                               mode: languageMode)

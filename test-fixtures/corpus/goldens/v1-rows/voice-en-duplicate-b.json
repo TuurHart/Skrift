@@ -65,6 +65,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Duplicate check. Same words twice, two different recordings, forty seconds apart.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-05T09:00:40.000Z",
     "wordTimingsJSON" : [

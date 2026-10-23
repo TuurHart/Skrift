@@ -87,6 +87,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Front and back of the same bowl, [[img_001]] [[img_002]] the green edge is only on the side that faced the element.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-11T05:00:00.000Z",
     "wordTimingsJSON" : [
