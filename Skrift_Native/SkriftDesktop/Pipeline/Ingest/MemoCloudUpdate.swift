@@ -75,6 +75,14 @@ enum MemoCloudUpdate {
         // Path 2 — the phone edited the polished copy-edit / title / summary.
         if let e = phoneEnh {
             if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; contentChanged = true }
+            // C152: words appended on the phone after the polish. They show already (they are
+            // in the copy-edit above); the row goes back for a pass that polishes only them.
+            let pending = e.pendingBlock.isEmpty ? nil : e.pendingBlock
+            if pf.pendingPolishBlock != pending {
+                pf.pendingPolishBlock = pending
+                if pending != nil, pf.enhanceStatus == .done { pf.enhanceStatus = .pending }
+                contentChanged = true
+            }
             if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; contentChanged = true }
             if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; contentChanged = true }
         }

@@ -66,6 +66,7 @@
     "mediaSource" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

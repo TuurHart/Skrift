@@ -702,6 +702,8 @@ struct MemoSaver {
                         manifest: memo.metadata?.imageManifest ?? [], source: .speech, userEdited: true))
                     memo.transcriptUserEdited = true
                     memo.markEdited()
+                    // C152: the shown polished body gets the pictures too (nothing to polish).
+                    showInPolishedBody(block, memo: memo, needsPolish: false)
                 }
                 try? FileManager.default.removeItem(at: clip)
             } else {
@@ -736,6 +738,9 @@ struct MemoSaver {
         memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
         memo.transcriptStatus = .done
         memo.markEdited()
+        // C152: a polished note shows its copy-edit, so the new words go there too, marked as
+        // the block the next pass polishes (the earlier polish stays).
+        showInPolishedBody(appended, memo: memo, needsPolish: true)
         DevLog.log("append LANDED: +\(newText.count) chars (existing=\(existing.count)) → total \(memo.transcript?.count ?? 0)")
 
         // Shift the new clip's word timings past the prior audio + append to the sidecar.
@@ -746,6 +751,16 @@ struct MemoSaver {
         repository.save()
         autoCopyIfEnabled(memo.transcript)   // the COMBINED transcript, not just the clip
         try? FileManager.default.removeItem(at: clip)
+    }
+
+    /// C152: join an appended block onto the polished body the note shows, when it shows one.
+    /// Same eligibility as the screen's polish (`MemoPageView.macPolish`): not a capture, a
+    /// book quote or a conversation.
+    private func showInPolishedBody(_ block: String, memo: Memo, needsPolish: Bool) {
+        guard !memo.isShareCapture, memo.captureQuote == nil,
+              SpeakerTranscript.parse(memo.transcript) == nil,
+              let e = repository.enhancement(forMemo: memo.id), e.hasContent else { return }
+        e.appendBlock(block, needsPolish: needsPolish, deviceID: DeviceID.current())
     }
 
     /// Q346: make `clip` the audio of a typed note that had none. Copies it to the note's own

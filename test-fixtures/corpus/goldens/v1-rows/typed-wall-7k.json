@@ -53,6 +53,7 @@
     "mediaSource" : "typed",
     "nameResolutionsData" : null,
     "path" : "$OUT/9FFAEC30-619B-55A0-A841-C5EBB3C439F6_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

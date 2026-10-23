@@ -106,6 +106,7 @@ enum MacCloudWriteBack {
         enhancement.copyedit = copyedit
         enhancement.title = title
         enhancement.summary = summary
+        enhancement.pendingBlock = pf.pendingPolishBlock ?? ""   // C152: "" once a pass polished it
         enhancement.enhancedByDeviceID = deviceID
         enhancement.enhancedAt = now
         if passRan { enhancement.processedAt = now }
