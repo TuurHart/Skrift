@@ -238,7 +238,8 @@ struct ObsidianPublisher {
                                  profile: profile)
         // ONE title ladder with the Mac (C25 via `ExportNaming`): user title → the Mac's
         // suggested title → first body line → …, so both name the same note the same file.
-        let enhancement = enhancementProvider(memo.id)
+        // Q506: a polish older than his last raw edit is not exported; his words are.
+        let enhancement = MemoEnhancement.current(enhancementProvider(memo.id), for: memo)
         let title = MemoExporter.exportTitle(for: memo, people: people, enhancement: enhancement)
         let fallback = memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
 
@@ -260,7 +261,7 @@ struct ObsidianPublisher {
                 stems[id] = PublishOutcome.stem(ofRelativePath: rel)
             } else if let target = memoProvider(id) {
                 stems[id] = ExportNaming.stem(title: MemoExporter.exportTitle(for: target, people: people,
-                                                                              enhancement: enhancementProvider(id)),
+                                                                              enhancement: MemoEnhancement.current(enhancementProvider(id), for: target)),
                                               filename: target.audioFilename)
             }
         }

@@ -214,8 +214,13 @@ struct WallCardView: View {
     }
 
     private var bodyText: String {
-        let repo = NotesRepository.shared
-        let polished = repo.enhancement(forMemo: memo.id)
+        Self.printedBody(memo, enhancement: NotesRepository.shared.enhancement(forMemo: memo.id))
+    }
+
+    /// The words the card prints: the Mac's polish when it is current, else his raw (Q506 —
+    /// a polish older than his last raw edit never prints).
+    static func printedBody(_ memo: Memo, enhancement: MemoEnhancement?) -> String {
+        let polished = MemoEnhancement.current(enhancement, for: memo)
         let text = (polished?.hasContent == true ? polished?.copyedit : nil)
             ?? memo.transcript ?? ""
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
