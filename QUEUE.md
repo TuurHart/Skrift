@@ -3721,6 +3721,13 @@ gate+: yes
 do: Two gaps Q511 found in the export v2 path that the swap (Q436) must not inherit: (1) on the iPad v2 path a .file capture's document is not exported (no document provider there yet) — give ObsidianPublisher's v2 branch the same document placement the Mac has; (2) VaultExporter.exportV2 lacks v1's Q365 unchanged-skip before placing pictures (it relies on the writer's unchanged check after placing, so a re-export of 50 unchanged notes reads image bytes) — restore the skip so MacExportWorkTests' counts hold with ExportV2.isLive true. Test `ExportV2SwapGapsTests` (desktop) runs both with isLive forced on in the test.
 check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q514 [auto] (todo) A: an untrusted phone transcript never lands on the Mac row
+spec: C42
+needs: Q512
+gate+: yes
+do: C42 says an untrusted `.done` phone transcript (not userEdited, confidence < 0.7) is not adopted and the Mac re-transcribes. Today (v1 and v2 alike) the gate holds only in Ingest.prepare: the fresh-row reflect then copies memo.transcript onto the row, so the untrusted words sit on the Mac row (and show in its body) until the Mac re-transcribes; golden v1-rows/voice-en-untrusted.json records it. Make the reflect honour the same trust rule (one shared predicate), leave the row's transcript empty and pending until the Mac's own ASR fills it. The v2 row golden for voice-en-untrusted changes: register it in expected-differences-rows.json with C42 (hand-merge). Test `UntrustedTranscriptRowTests` (desktop).
+check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5371,3 +5378,4 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 22:15 Q431 -> done — gate 130s @7644128d
 - 2026-10-23 22:20 Q512 -> done — gate 131s @722c50cb
 - 2026-10-23 22:35 Q513 -> done — gate 94s @83d0605d
+- 2026-10-23 22:40 Q514 added
