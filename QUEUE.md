@@ -3554,7 +3554,7 @@ gate+: yes
 do: Add, alias or rename re-derives links for every processed row on the Mac once, deterministically, and re-exports the untouched vault files we own whose links or `people:` went stale; a rename rewrites `[[Old]]` → `[[New]]` and `people:`; edited or foreign files are never touched. Add corpus fixtures `voice-en-bruno-before-roster` ×3 and a rename golden. Test `RosterReexportTests` (desktop).
 check: `grep -rqE "class RosterReexportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q490 [auto] (todo) B: changing a note's destination moves its exported file; retitle and folder switch never move files
+### Q490 [auto] (done) B: changing a note's destination moves its exported file; retitle and folder switch never move files
 spec: C163 C164
 needs: -
 gate+: yes
@@ -5317,3 +5317,4 @@ check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDe
 - 2026-10-23 19:59 Q489 -> done — gate 117s @1d30a93d
 - 2026-10-23 20:00 Q507 -> done — gate 87s @29ecb51d
 - 2026-10-23 20:00 Q490 -> todo
+- 2026-10-23 20:02 Q490 -> done — gate 87s @937e8190
