@@ -86,7 +86,7 @@ enum MacCloudMetaSync {
             memo.destination = d
             // D188: the movie syncs whatever the destination and filing never deletes it; this only
             // heals a movie that was not written yet (a pre-D188 Personal video). Idempotent.
-            if let ctx = memo.modelContext { MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx) }
+            if let ctx = memo.modelContext { ReconcileV2.Author.keptMovie(pf, memo: memo, in: ctx) }   // Q431
             return true
         }
     }
