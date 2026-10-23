@@ -3650,6 +3650,13 @@ needs: Q495
 do: -
 check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is still being transcribed is blocked with "Add it now, it matches up on its own once the book is transcribed" shown only before the job starts; or (b) restore the signed audiobook A0 promise (add any time, the text waits and matches up after transcription) and drop C291. His answer lands in SPEC Decisions.
 
+### Q504 [auto] (todo) A: an appended block also turns spoken hashtags into tags
+spec: C275 C152
+needs: Q483
+gate+: yes
+do: Q481 polishes only an appended block (BatchRunner.polishAppendedBlock) and Q483 turns spoken hashtags into tags through SpokenHashtags.shownBody, but the append path never calls shownBody, so "hashtag x" said in an added recording stays words. Call shownBody on the spliced body in polishAppendedBlock (and the phone path if it has one). Test `AppendSpokenHashtagTests` (desktop).
+check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5243,3 +5250,4 @@ check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is sti
 - 2026-10-23 17:51 Q503 added
 - 2026-10-23 17:51 Q503 -> tuur — awaiting sitting
 - 2026-10-23 17:56 Q495 -> done — gate 60s @886afdac
+- 2026-10-23 18:30 Q504 added
