@@ -3630,6 +3630,13 @@ gate+: yes
 do: `AppPaths`-style accessors call createDirectory at most once per process launch (cache the result), never on every access, on both apps. Test `DirectoryCreateOnceTests` (desktop) counting createDirectory calls across repeated access.
 check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q501 [auto] (todo) copy-edit v2 keeps headings and bold labels
+spec: C34 C116 D215
+needs: Q478
+gate+: yes
+do: Found by Q478: the polish model drops a leading `# heading` and bold labels like `**Pros:**` (corpus applenote-headings-checklist), which D215 (keep his structure: checkboxes, lists) did not name. Hold heading lines and the markup of bold/italic spans aside the way `CopyEditV2.HeldLines` holds checkboxes and lists, or fall back to his words when the output loses a heading or a bold span. Also close the 40-word gap: the sentence-lost rule (<40 words) and the shrink guard (>40) leave exactly 40 uncovered; make one of them inclusive. Model outputs only through the existing recorder; never fabricate. Test `CopyEditV2FormattingTests` (desktop).
+check: `grep -rqE "class CopyEditV2FormattingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5212,3 +5219,4 @@ check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 15:34 Q500 added
 - 2026-10-23 15:36 plan: resync — 22 items for the 23 unqueued clauses (C149 C151 C152 C153 C155 C157 C158 C159 C163 C164 C245 C275 C280 C283 C284 C289–C294 C297 C298) in lanes A (recording/capture) B (sync/export) C (library/books); C160/C162 dropped (D183/D185); C296 covered by the perf lane
 - 2026-10-23 17:24 Q479 -> done — gate 265s @b91dad8c
+- 2026-10-23 17:24 Q501 added
