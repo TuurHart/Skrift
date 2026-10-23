@@ -3624,7 +3624,7 @@ gate+: yes
 do: An entry with no local audio and no cloud carrier is removed at the next library load, with a log line. Test `PhantomEntryTests` (phone): unshare then reload shows no empty row.
 check: `plan/mtest.sh PhantomEntryTests`
 
-### Q500 [auto] (todo) C: directory accessors create their folder once per launch
+### Q500 [auto] (done) C: directory accessors create their folder once per launch
 spec: C280
 needs: -
 gate+: yes
@@ -5297,3 +5297,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:27 Q507 added
 - 2026-10-23 19:30 Q487 -> done — gate 187s @df83c527
 - 2026-10-23 19:33 Q426 -> done — gate 187s @37df776f
+- 2026-10-23 19:36 Q500 -> done — gate 155s @2746cf4f
