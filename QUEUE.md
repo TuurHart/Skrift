@@ -3123,7 +3123,7 @@ needs: Q449
 do: -
 check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if present) and said it reads right.
 
-### Q426 [auto] (todo) swap: Mac and iPad polish call copy-edit v2
+### Q426 [auto] (stuck) swap: Mac and iPad polish call copy-edit v2
 spec: C2 C28 C38 C39
 needs: Q425 Q478
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
@@ -3637,7 +3637,7 @@ gate+: yes
 do: Found by Q478: the polish model drops a leading `# heading` and bold labels like `**Pros:**` (corpus applenote-headings-checklist), which D215 (keep his structure: checkboxes, lists) did not name. Hold heading lines and the markup of bold/italic spans aside the way `CopyEditV2.HeldLines` holds checkboxes and lists, or fall back to his words when the output loses a heading or a bold span. Also close the 40-word gap: the sentence-lost rule (<40 words) and the shrink guard (>40) leave exactly 40 uncovered; make one of them inclusive. Model outputs only through the existing recorder; never fabricate. Test `CopyEditV2FormattingTests` (desktop).
 check: `grep -rqE "class CopyEditV2FormattingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q502 [auto] (stuck) C: every unzip checks the CRC (book bundles, ePubs, the Mac harness)
+### Q502 [auto] (done) C: every unzip checks the CRC (book bundles, ePubs, the Mac harness)
 spec: C107 C289
 needs: Q493
 gate+: yes
@@ -5281,3 +5281,5 @@ check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/S
 - 2026-10-23 19:16 Q500 -> stuck — gate failed — .queue/Q500.gate.log
 - 2026-10-23 19:16 Q506 added
 - 2026-10-23 19:23 Q499 -> done — gate 219s @b7f70ca0
+- 2026-10-23 19:23 Q426 -> stuck — touched protected: Skrift_Native/SkriftDesktop/SkriftDesktopTests/CopyEditV2SwapTests.swift Skrift_Native/SkriftMobile/SkriftMobileTests/PolishV2Tests.swift 
+- 2026-10-23 19:27 Q502 -> done — gate 93s @f7529efa
