@@ -38,7 +38,27 @@ final class ReconcileDiffHarnessTests: XCTestCase {
         }
     }
 
-    static let engines: [SweepEngine] = [V1SweepEngine()]
+    /// v2 (Q429) = `ReconcileV2.sweep` in `Shared/ReconcileV2/`, beside v1 (C2).
+    struct V2SweepEngine: SweepEngine {
+        let name = "v2"
+        func sweep(cloud: ModelContext, local: ModelContext, people: [Person],
+                   upload: UploadService, now: Date) -> MemoCloudReconciler.SweepOutcome {
+            let v2 = ReconcileV2.sweep(cloud: cloud, local: local,
+                                       context: .init(people: people, author: ReconcileDiffHarnessTests.author,
+                                                      thisDeviceID: ReconcileDiffHarnessTests.device, now: now,
+                                                      outputDir: upload.outputDir))
+            var out = MemoCloudReconciler.SweepOutcome()
+            out.created = v2.created
+            out.updatedIDs = v2.updatedIDs
+            out.ingestFailures = v2.ingestFailures
+            out.stranded = v2.stranded
+            out.newlyLinked = v2.newlyLinked
+            out.fetchFailure = v2.fetchFailure
+            return out
+        }
+    }
+
+    static let engines: [SweepEngine] = [V1SweepEngine(), V2SweepEngine()]
 
     // MARK: - fixed inputs (the golden must not depend on the clock, the machine or a temp path)
 
@@ -262,7 +282,8 @@ final class ReconcileDiffHarnessTests: XCTestCase {
                     missing.append(entry.slug); continue
                 }
                 let diffs = Self.differingFields(try XCTUnwrap(recs[entry.slug]), golden)
-                let registered = expected[entry.slug] ?? []
+                // v1 is the detector: it reproduces its own golden; registrations are v2's.
+                let registered = engine.name == "v1" ? [] : (expected[entry.slug] ?? [])
                 if diffs.isEmpty {
                     identical += 1
                     if !registered.isEmpty { matchedBug.append("\(entry.slug): still equals v1 on registered \(registered)") }
@@ -314,8 +335,10 @@ final class ReconcileDiffHarnessTests: XCTestCase {
     ///   ingest writes no `image_manifest.json` (`UploadService.saveImages` returns early with zero
     ///   photos); the second sweep's `MemoPhotoMaterializer` writes it, reports a heal and bumps
     ///   `lastActivityAt`. The third sweep is a no-op.
-    static let secondSweepConflicts: [String: Set<String>] = [
-        "pic-missing-file": ["lastActivityAt", "folder"],
+    /// Per engine: v2 writes the manifest at ingest (C41), so it has none.
+    static let secondSweepConflicts: [String: [String: Set<String>]] = [
+        "v1": ["pic-missing-file": ["lastActivityAt", "folder"]],
+        "v2": [:],
     ]
 
     func testSecondSweepChangesNothing_C41() throws {
@@ -325,7 +348,8 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             let first = try records(run)
             let again = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, upload: run.upload,
                                      now: Self.now.addingTimeInterval(3600))
-            let conflictIDs = Set(run.manifest.notes.filter { Self.secondSweepConflicts[$0.slug] != nil }.map(\.id))
+            let conflicts = Self.secondSweepConflicts[engine.name] ?? [:]
+            let conflictIDs = Set(run.manifest.notes.filter { conflicts[$0.slug] != nil }.map(\.id))
             XCTAssertEqual(again.created, 0, "\(engine.name): second sweep created rows")
             XCTAssertEqual(Set(again.updatedIDs).subtracting(conflictIDs), [], "\(engine.name): second sweep rewrote rows")
             XCTAssertEqual(again.ingestFailures, 0, "\(engine.name)")
@@ -333,7 +357,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             let second = try records(run)
             for (slug, rec) in first {
                 let diffs = Self.differingFields(rec, try XCTUnwrap(second[slug]))
-                if let known = Self.secondSweepConflicts[slug] {
+                if let known = conflicts[slug] {
                     XCTAssertEqual(Set(diffs), known,
                                    "\(engine.name) \(slug): known C41 conflict changed shape or was fixed — update secondSweepConflicts")
                 } else {

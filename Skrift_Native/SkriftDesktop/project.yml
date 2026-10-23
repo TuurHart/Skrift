@@ -98,6 +98,8 @@ targets:
       - path: ../Shared/BodyV2
       # Copy-edit v2 (Q424): beside v1 until the swap (C2).
       - path: ../Shared/CopyEditV2
+      # Reconcile v2 (Q429): beside v1 until the swap (C2). Mac-only: it builds `PipelineFile` rows.
+      - path: ../Shared/ReconcileV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
       - path: ../Shared/Corpus
       - path: ../Shared/Recording
@@ -239,6 +241,8 @@ targets:
       - path: ../Shared/BodyV2
       # Copy-edit v2 (Q424): beside v1 until the swap (C2).
       - path: ../Shared/CopyEditV2
+      # Reconcile v2 (Q429): beside v1 until the swap (C2). Mac-only: it builds `PipelineFile` rows.
+      - path: ../Shared/ReconcileV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
       - path: ../Shared/Corpus
       - path: ../Shared/Recording
