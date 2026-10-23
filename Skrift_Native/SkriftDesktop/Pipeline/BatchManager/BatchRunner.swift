@@ -228,6 +228,9 @@ struct BatchRunner {
             Self.log.warning("file \(pf.id, privacy: .public): quote block mutated by copy-edit — keeping the unedited transcript")
             copyedit = transcript
         }
+        // C275: spoken hashtags become real tags, by rule, in the body he sees (never in a
+        // conversation's verbatim turns, never inside a book quote).
+        if !isConversation { copyedit = SpokenHashtags.shownBody(copyedit, vocabulary: settings.customWords) }
         if bodyEditedMidRun() {
             Self.log.warning("file \(pf.id, privacy: .public): body edited during copy-edit — stale run discarded, reprocess to re-derive")
             pf.enhanceStatus = .pending
