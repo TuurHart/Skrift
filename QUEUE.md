@@ -3150,7 +3150,7 @@ gate+: yes
 do: Write the reconcile sweep v2 in `Skrift_Native/Shared/ReconcileV2/`: memo → row mapping without fake multipart (C44), trust (C42), kinds from the caller (C43), late assets healed by content hash without faulting unchanged blobs (C45), stamp-to-stamp LWW with ±5 s skew (C46), per-field reflect (C47), duplicates (C48), names and vocab before memos (C185), store-resolved writers (C186-C188), re-export rules (C189), asset materialisation (C190), guarded await points (C294). Register it in the Q428 harness; the app keeps calling v1. At most 2,119 lines (40% of 5,297, C3). Write `plan/reads/reconcile-v2.md` listing every row that changed.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && test -s plan/reads/reconcile-v2.md`
 
-### Q430 [tuur] (todo) read the reconcile v2 row diff
+### Q430 [tuur] (dead) read the reconcile v2 row diff
 spec: C8
 needs: Q429
 do: -
@@ -5347,3 +5347,4 @@ check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 20:22 Q434 -> done — hand-merged (Q434's own harness registration: engines = [V1Engine(), V2Engine()] in ExportDiffHarnessTests and v2 ids added to expected-differences-export.json (no id removed); Tuur reads the diff in Q435)
 - 2026-10-23 20:23 Q511 added
 - 2026-10-23 20:28 Q510 -> done — gate 69s @0a277300
+- 2026-10-23 21:52 Q430 -> dead — Tuur 2026-10-23: dropped the read (no context); conductor accepts on the harness (v2 108 identical, 1 expected, 0 unexplained)
