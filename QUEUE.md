@@ -3130,7 +3130,7 @@ gate+: yes
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
 check: `! grep -rnE --exclude=CopyEditPipeline.swift "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
 
-### Q427 [tuur] (todo) delete v1 copy-edit after the tag
+### Q427 [tuur] (done) delete v1 copy-edit after the tag
 spec: C2 C252
 needs: Q426
 do: Tag the current commit `v1-copyedit`, then in ONE commit delete the v1 copy-edit code (`PolishEscrow`, the anchor code in `ImageMarkerReinsert`, v1's paths in `EnhancementService`) and the tests that pin it. This touches protected tests on purpose, so accept parks it stuck; Tuur approves the diff in the sitting.
@@ -5348,3 +5348,4 @@ check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 20:23 Q511 added
 - 2026-10-23 20:28 Q510 -> done — gate 69s @0a277300
 - 2026-10-23 21:52 Q430 -> dead — Tuur 2026-10-23: dropped the read (no context); conductor accepts on the harness (v2 108 identical, 1 expected, 0 unexplained)
+- 2026-10-23 21:55 Q427 -> done — hand-merged (Tuur approved the v1 copy-edit deletion 2026-10-23 (tag v1-copyedit); v1-only tests deleted with their code)
