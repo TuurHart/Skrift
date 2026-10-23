@@ -106,18 +106,9 @@ enum MacOrphanTranscription {
         memo.transcriptConfidence = result.confidence
         memo.transcriptMarkersInjected = result.markersInjected
         memo.transcriptStatus = text.isEmpty ? .failed : .done
-        guard !result.wordTimings.isEmpty, let data = try? JSONEncoder().encode(result.wordTimings) else { return }
-        let memoID = memo.id
-        let kind = MemoAsset.Kind.wordTimings
-        let existing = try? context.fetch(FetchDescriptor<MemoAsset>(
-            predicate: #Predicate { $0.memoID == memoID && $0.kind == kind }))
-        if let wt = existing?.first {
-            wt.blob = data
-            wt.byteCount = data.count
-        } else {
-            // The phone's sidecar name (`WordTimingsStore.filename(for:)`).
-            context.insert(MemoAsset(memoID: memoID, kind: kind, filename: "wt_\(memoID.uuidString).json", blob: data))
-        }
+        guard let data = TimingAssets.wordTimingsBlob(result.wordTimings) else { return }
+        TimingAssets.upsert(kind: MemoAsset.Kind.wordTimings, filename: TimingAssets.wordTimingsFilename(for: memo.id),
+                            blob: data, memoID: memo.id, in: context)
     }
 
     private static func stillAdoptable(_ memo: Memo, thisDevice: String, now: Date) -> Bool {
