@@ -3477,7 +3477,7 @@ gate+: yes
 do: Tuur on Q425 (2026-10-23, D215, "all four as recommended") on the read `plan/reads/copyedit-v2.md`: (1) checkbox lines (`- [ ]` / `- [x]`) never reach the model: hold them aside like pictures and put them back in place, so typed-tasks keeps every box and its state; (2) a note under 40 words that loses a full sentence (any whole input sentence absent from the output) falls back to his words, catching voice-en-paragraphed-by-pauses and voice-en-raw-title; (3) his spelling stays: tell the model in the ONE prompt source (`PolishPrompts`, C39) to keep the writer's spelling and dialect, and add a gate check that no input word was replaced by a spelling variant (colour→color, apologising→apologizing), falling back if so; (4) typed list lines (`- `, `* `, `1. `) stay list lines: hold list blocks aside when the note is typed, or fall back when the output loses list structure (typed-dutch-boodschappen). Fillers and "okay so" may still go. A changed prompt means new model outputs: record them with the Q424 recorder (`-recordcopyeditv2 <corpus> -isolatedRun`, raw Debug binary, never -corpus, never /Applications/*); never fabricate. Update `expected-differences-copyedit-v2.json` and rewrite `plan/reads/copyedit-v2.md` showing those four notes now. Test `CopyEditV2D215Tests` (desktop target).
 check: `grep -rqE "class CopyEditV2D215Tests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q479 [auto] (todo) A: an interruption pauses the recording clock, so photos land where they were taken
+### Q479 [auto] (done) A: an interruption pauses the recording clock, so photos land where they were taken
 spec: C149
 needs: -
 gate+: yes
@@ -5211,3 +5211,4 @@ check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 15:34 Q499 added
 - 2026-10-23 15:34 Q500 added
 - 2026-10-23 15:36 plan: resync — 22 items for the 23 unqueued clauses (C149 C151 C152 C153 C155 C157 C158 C159 C163 C164 C245 C275 C280 C283 C284 C289–C294 C297 C298) in lanes A (recording/capture) B (sync/export) C (library/books); C160/C162 dropped (D183/D185); C296 covered by the perf lane
+- 2026-10-23 17:24 Q479 -> done — gate 265s @b91dad8c
