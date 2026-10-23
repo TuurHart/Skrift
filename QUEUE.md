@@ -3117,7 +3117,7 @@ gate+: yes
 do: Write copy-edit v2 in `Skrift_Native/Shared/CopyEditV2/`: escrow (C29), pictures back by paragraph index with the 6-word anchor code unused (C30), lost link or changed quote byte ships unedited (C31), token budget and truncation (C32), shrink guard (C33), paragraph ledger and the spoken-wall break (C34), title / summary / share / conversation rules (C36), one `MemoEnhancement` per pass (C37), post-conditions (C177), tail order tags → name-link → compile (C178), one prompt source (C39). Register it in the Q423 harness; the app keeps calling v1 (C2). At most 1,070 lines (40% of 2,674, C3). Write `plan/reads/copyedit-v2.md`: v1 and v2 side by side for every note whose output changed.
 check: `test $(cat Skrift_Native/Shared/CopyEditV2/*.swift | wc -l) -le 1070 && test -s plan/reads/copyedit-v2.md`
 
-### Q425 [tuur] (tuur) read the copy-edit v2 corpus output
+### Q425 [tuur] (done) read the copy-edit v2 corpus output
 spec: C8 C35
 needs: Q449
 do: -
@@ -3125,7 +3125,7 @@ check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if pres
 
 ### Q426 [auto] (todo) swap: Mac and iPad polish call copy-edit v2
 spec: C2 C28 C38 C39
-needs: Q425
+needs: Q425 Q478
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
 check: `! grep -rnE "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
 
@@ -3469,6 +3469,12 @@ needs: -
 gate+: yes
 do: Same recipe as Q472 (`grep -n "finding: Q472" plan/RUN.md`): bump SKRIFT_BUILD (phone project.yml) AND CURRENT_PROJECT_VERSION (desktop project.yml) to 193; Debug build for the iPhone 17 Pro (00008150-001658662223C01C, same id for xcodebuild; phone needs -skipMacroValidation -skipPackagePluginValidation), install with devicectl, string-grep a Q476 literal (`lockedEpisodes`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
 check: Report shows build 193 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 193.
+
+### Q478 [auto] (doing) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
+spec: -
+needs: -
+do: (fill in)
+check: (fill in)
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5025,3 +5031,6 @@ check: Report shows build 193 installed on the phone (devicectl app list) and th
 - 2026-10-16 15:29 Q477 added
 - 2026-10-16 15:29 Q477 -> doing — worker out
 - 2026-10-16 15:35 Q477 -> done — gate 55s @4f9cece8
+- 2026-10-23 15:29 Q478 added
+- 2026-10-23 15:29 Q425 -> done — Tuur 2026-10-23: all four as recommended → D215, applied by Q478
+- 2026-10-23 15:29 Q478 -> doing — worker out
