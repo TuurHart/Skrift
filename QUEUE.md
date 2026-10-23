@@ -3588,7 +3588,7 @@ gate+: yes
 do: A long ePub/book import shows real progress (parts done / total) in the existing import UI style and states whether listening can continue meanwhile. Test `BookImportProgressTests` (phone).
 check: `plan/mtest.sh BookImportProgressTests`
 
-### Q495 [auto] (todo) C: ePub upload is blocked while the same book is still transcribing
+### Q495 [auto] (done) C: ePub upload is blocked while the same book is still transcribing
 spec: C291
 needs: -
 gate+: yes
@@ -5242,3 +5242,4 @@ check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is sti
 - 2026-10-23 17:48 Q481 -> done — hand-merged (D163 port: a new stored PipelineFile field added to ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null), mechanical)
 - 2026-10-23 17:51 Q503 added
 - 2026-10-23 17:51 Q503 -> tuur — awaiting sitting
+- 2026-10-23 17:56 Q495 -> done — gate 60s @886afdac
