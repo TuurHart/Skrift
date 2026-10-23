@@ -1,0 +1,1 @@
+Test note whose tag list carries a literal [] entry — the 2026-07-27 shape that archived as a real tag.
