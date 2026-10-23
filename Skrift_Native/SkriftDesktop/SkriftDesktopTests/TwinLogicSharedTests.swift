@@ -30,7 +30,7 @@ final class TwinLogicSharedTests: XCTestCase {
         XCTAssertEqual(ThemePreference.colorScheme(""), .dark)
     }
 
-    // setexp-36: the 75-word summary floor (iPad PolishEscrow, Mac AppSettings/BatchRunner).
+    // setexp-36: the 75-word summary floor (iPad PolishV2, Mac AppSettings/BatchRunner).
     func testSummaryRuleThresholdAndWordCount() {
         XCTAssertEqual(SummaryRule.defaultMinWords, 75)
         XCTAssertEqual(SummaryRule.wordCount("  one two\nthree\tfour  "), 4)

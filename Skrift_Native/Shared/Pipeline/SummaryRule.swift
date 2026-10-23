@@ -3,7 +3,7 @@ import Foundation
 /// The short-note summary rule (Q172, setexp-36): a note under this many words gets no
 /// Gemma summary (user 2026-06-15). ONE constant and ONE word count for the Mac's
 /// `BatchRunner` (via `AppSettings.effectiveSummaryMinWords`, which may override the
-/// default) and the iPad's `PolishEscrow`. A manual "Redo summary" ignores it.
+/// default) and the iPad's `PolishV2`. A manual "Redo summary" ignores it.
 enum SummaryRule {
     static let defaultMinWords = 75
 

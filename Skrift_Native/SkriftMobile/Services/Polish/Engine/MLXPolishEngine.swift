@@ -110,7 +110,7 @@ actor MLXPolishEngine: PolishEngine {
     /// Polish a RAW transcript → the three pieces the Mac writes, through copy-edit v2 (Q426):
     /// the same `CopyEditV2.runPass` as the Mac — quote, links, pictures, held lines and
     /// emphasis escrowed, the guards and the fallbacks, title and summary over the same prose,
-    /// summary only past the word threshold. `PolishEscrow` (v1) stays until Q427 deletes it.
+    /// summary only past the word threshold.
     func polish(transcript: String, source: CopyEditV2.Source,
                 onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult {
         onStep(.copyEdit, 0.05)

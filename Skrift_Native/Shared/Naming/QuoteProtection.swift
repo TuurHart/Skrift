@@ -7,7 +7,7 @@ import Foundation
 /// (contract C1; the phone writes no `[[ ]]` and no attribution — the Mac owns
 /// both). The quote is the author's literal words and must reach the export
 /// BYTE-IDENTICAL, so it never goes through the LLM: the copy-edit path strips
-/// the leading block (the same strip/reinsert idea as `ImageMarkerReinsert`),
+/// the leading block (held aside like the pictures copy-edit v2 holds),
 /// edits only the ramble, reinserts the quote, and then BYTE-ASSERTS it — any
 /// mismatch falls back to the fully-unedited body (skip-all), the same way
 /// conversation-mode transcripts already skip copy-edit. Pure + host-testable.

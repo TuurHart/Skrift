@@ -2,13 +2,11 @@ import Foundation
 
 /// Q434 (C2): the Mac's export through export v2 (`Shared/ExportV2`). The same write path as
 /// `VaultExporter.export` — the gate, the destination move, the writer's assess and commit, the
-/// ownership-safe asset copies — with v2 compiling the note. Only the export harness calls it
-/// until the swap; the app keeps calling v1.
+/// ownership-safe asset copies — with v2 compiling the note. `export` routes here when
+/// `ExportV2.isLive` (off until the swap, Q436); the export harness calls it directly.
 extension VaultExporter {
-    /// `createdAt` / `heGaveTitle` come from the synced memo, which this row does not mirror yet.
     @discardableResult
-    static func exportV2(_ pf: PipelineFile, settings: AppSettings, session: ExportSession? = nil,
-                         createdAt: Date? = nil, heGaveTitle: Bool = false) throws -> Result {
+    static func exportV2(_ pf: PipelineFile, settings: AppSettings, session: ExportSession? = nil) throws -> Result {
         if let failure = ExportGate.check(gateFacts(for: pf, settings: settings, processed: true),
                                           device: .mac, scope: .engine) {
             throw ExportError(failure)
@@ -40,7 +38,6 @@ extension VaultExporter {
         let working = pf.workingFolder
         let imagesDir = working?.appendingPathComponent("images")
         let place = owned(id)
-        let entries = imagesDir.map(pictureEntries) ?? []
 
         // R38: a `.file` capture's document goes with the note, named by its stem.
         var documents: [VaultAsset] = []
@@ -58,23 +55,8 @@ extension VaultExporter {
             documents.append(VaultAsset(name: safe + "." + movie.pathExtension, source: .file(movie)))
         }
 
-        let people = session?.people ?? NamesStore.shared.livePeople()
-        var input = pf.compilerInput(people: people)
-        // Memo-links follow the files this vault's ledger holds (sticky across retitles), as v1's do.
-        let linked = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
-        if !MemoLinkSyntax.occurrences(in: linked).isEmpty, let context = pf.modelContext {
-            input.setLinkStems(MemoLinkStems.map(context, ledger: writer.ledger))
-        }
-        var note = ExportV2.Note(input: input, title: pf.exportTitle)
-        note.heGaveTitle = heGaveTitle
-        note.createdAt = createdAt
-        note.duration = pf.sourceType == .audio && pf.durationSeconds > 0 ? pf.durationSeconds : nil
-        note.people = people
-        note.author = settings.authorName
-        note.pictureManifest = entries.map(\.filename)
-        note.pictureText = Dictionary(uniqueKeysWithValues: entries.enumerated().compactMap { i, e in
-            e.text.map { (i + 1, $0) } })
-        note.attachments = working.map { MacNoteAttachments.manifest(in: $0) } ?? []
+        var note = v2Note(pf, people: session?.people ?? NamesStore.shared.livePeople(),
+                          author: settings.authorName, linkLedger: writer.ledger)
         note.documentName = documentName
         let attachmentsDir = working.map { MacNoteAttachments.folder(in: $0) }
 
@@ -125,6 +107,30 @@ extension VaultExporter {
                                   documents: documents, removedAttachments: removed)
         return Result(outcome: r.outcome, markdownURL: r.markdownURL, audioURL: r.audioURL,
                       imageCount: count, removedPictures: r.removedAttachments)
+    }
+
+    /// What export v2 reads about a Mac row — the one builder the export and its tests share.
+    /// `created:` and "he gave this title" are the memo's, mirrored onto the row (Q511).
+    static func v2Note(_ pf: PipelineFile, people: [Person], author: String,
+                       linkLedger: ExportLedger? = nil) -> ExportV2.Note {
+        var input = pf.compilerInput(people: people)
+        // Memo-links follow the files this vault's ledger holds (sticky across retitles), as v1's do.
+        let linked = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
+        if !MemoLinkSyntax.occurrences(in: linked).isEmpty, let context = pf.modelContext {
+            input.setLinkStems(MemoLinkStems.map(context, ledger: linkLedger))
+        }
+        let entries = pf.workingFolder.map { pictureEntries(imagesDir: $0.appendingPathComponent("images")) } ?? []
+        var note = ExportV2.Note(input: input, title: pf.exportTitle)
+        note.heGaveTitle = pf.memoTitleIsHis
+        note.createdAt = pf.memoCreatedAt
+        note.duration = pf.sourceType == .audio && pf.durationSeconds > 0 ? pf.durationSeconds : nil
+        note.people = people
+        note.author = author
+        note.pictureManifest = entries.map(\.filename)
+        note.pictureText = Dictionary(uniqueKeysWithValues: entries.enumerated().compactMap { i, e in
+            e.text.map { (i + 1, $0) } })
+        note.attachments = pf.workingFolder.map { MacNoteAttachments.manifest(in: $0) } ?? []
+        return note
     }
 
     /// `image_manifest.json`'s entries (filename + OCR text), else the sorted `images/` listing.

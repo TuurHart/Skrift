@@ -192,6 +192,8 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.tags = m.tags                 // as MemoCloudIngest now leaves them
         pf.significance = m.significance
         pf.memoEditedAt = m.editedAt     // the editedAt mirror's first-contact adopt (C284)
+        pf.memoCreatedAt = m.createdAt   // Q511: the createdAt / titleIsHis mirrors' adopt
+        pf.memoTitleIsHis = !(m.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return pf
     }
 

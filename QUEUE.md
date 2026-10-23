@@ -3130,7 +3130,7 @@ gate+: yes
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
 check: `! grep -rnE --exclude=CopyEditPipeline.swift "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
 
-### Q427 [tuur] (todo) delete v1 copy-edit after the tag
+### Q427 [tuur] (done) delete v1 copy-edit after the tag
 spec: C2 C252
 needs: Q426
 do: Tag the current commit `v1-copyedit`, then in ONE commit delete the v1 copy-edit code (`PolishEscrow`, the anchor code in `ImageMarkerReinsert`, v1's paths in `EnhancementService`) and the tests that pin it. This touches protected tests on purpose, so accept parks it stuck; Tuur approves the diff in the sitting.
@@ -3150,7 +3150,7 @@ gate+: yes
 do: Write the reconcile sweep v2 in `Skrift_Native/Shared/ReconcileV2/`: memo → row mapping without fake multipart (C44), trust (C42), kinds from the caller (C43), late assets healed by content hash without faulting unchanged blobs (C45), stamp-to-stamp LWW with ±5 s skew (C46), per-field reflect (C47), duplicates (C48), names and vocab before memos (C185), store-resolved writers (C186-C188), re-export rules (C189), asset materialisation (C190), guarded await points (C294). Register it in the Q428 harness; the app keeps calling v1. At most 2,119 lines (40% of 5,297, C3). Write `plan/reads/reconcile-v2.md` listing every row that changed.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && test -s plan/reads/reconcile-v2.md`
 
-### Q430 [tuur] (todo) read the reconcile v2 row diff
+### Q430 [tuur] (dead) read the reconcile v2 row diff
 spec: C8
 needs: Q429
 do: -
@@ -3164,7 +3164,7 @@ check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/Sk
 
 ### Q432 [tuur] (todo) delete v1 reconcile after the tag
 spec: C2 C252
-needs: Q431
+needs: Q431 Q512
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-reconcile >/dev/null`
 
@@ -3190,7 +3190,7 @@ check: Tuur read `plan/reads/export-v2.md` and said go.
 
 ### Q436 [auto] (todo) swap: iPad and Mac export call the v2 compiler
 spec: C2 C61
-needs: Q435 Q511
+needs: Q435 Q511 Q513
 do: Point the shared export engine (iPad and Mac) at the v2 compiler. `Shared/Export/Compiler.swift` stays in place for Q437 to delete.
 check: `grep -rqE "ExportV2" Skrift_Native/Shared/Export Skrift_Native/SkriftDesktop`
 
@@ -3693,19 +3693,33 @@ gate+: yes
 do: The phone renders a conversation note from memo.transcript, not the Mac's copy-edit, so his edit to a diarized note on the Mac reaches the cloud MemoEnhancement but never his phone's view (pre-existing; found in Q508). Show the current (non-stale, MemoEnhancement.current) copy-edit for conversations the same way as for prose, keeping speaker turns and the turn gutter. Test `PhoneConversationPolishTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneConversationPolishTests`
 
-### Q510 [auto] (todo) reconcile v2 covers the whole sweep before the swap
+### Q510 [auto] (done) reconcile v2 covers the whole sweep before the swap
 spec: C52 C157 C187 C190 C191 C3
 needs: Q429
 gate+: yes
 do: Q429's reconcile v2 left these on v1: triggers/coalescer/fresh context wiring (C52), MacMemoAuthor backfill + reflectTranscripts, orphan-row trash (C157, Q487's rules incl. the quarter refusal), the background first-enable ingest, the unrated projection (C187), the phone materializer (C190), the cloudKitMacSync default (C191). Bring each into Skrift_Native/Shared/ReconcileV2 (or name why it stays outside the sweep) so Q431's swap replaces v1 whole. Keep the one synchronous main-actor sweep and the harness green (v2 unexplained 0). Also close R44's gap: a later-stamped phone polish with identical text must not be refused. Total stays within 2,119 lines; append the changes to plan/reads/reconcile-v2.md.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && grep -qi 'C157' plan/reads/reconcile-v2.md && grep -qi 'C190' plan/reads/reconcile-v2.md`
 
-### Q511 [auto] (todo) C: export v2 swap prerequisites (Mac row mirrors createdAt and his-title; iPad publisher can call v2)
+### Q511 [auto] (done) C: export v2 swap prerequisites (Mac row mirrors createdAt and his-title; iPad publisher can call v2)
 spec: C64 C25 D12 C2
 needs: Q434
 gate+: yes
 do: Q434's export v2 reads memo.createdAt and "he typed the title" off the memo in the harness, but the Mac's PipelineFile mirrors neither, and the iPad publisher (ObsidianPublisher) is not wired to v2. Mirror both onto the Mac row (pull-only, like Q491's editedAt; new stored PipelineFile fields need the ReconcileDiffHarnessTests.fields line + all v1-rows goldens re-recorded by flag — hand-merge D163; include reconcile v2's Reflect field table). Give ObsidianPublisher and VaultExporter a v2 path behind one switch that stays OFF (the swap, Q436, flips it after Tuur reads Q435). Test `ExportV2InputsTests` (desktop): a synced memo's createdAt and title origin reach ExportV2.Note on the Mac exactly as the harness builds them.
 check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q512 [auto] (todo) A: app code stops calling v1 reconcile files (route to reconcile v2)
+spec: C2 C3
+needs: Q431
+gate+: yes
+do: After Q431 the app still calls v1 reconcile files: MacCloudWriteBack (resolve/upsert/memoID; MetaSync, EditSync, ProcessingCoordinator write-back, NoteBody, VaultExporter, LiveRecordingSession, MacAppendRecording, WayOutRules, MacEmbeddingSnapshot, PipelineFile+BodyNormalise), MirroredNoteFields (MetaSync push), MemoCloudUpdate.resanitiseAndCompile (BatchRunner, RosterRelink, MacAppendRecording), MemoCloudIngest.metadataJSON/ocrText (MemoNoteProjection, MacLocationStamp), and the MemoCloudReconciler statics in ReconcileTriggers.swift. Route each to its reconcile v2 equivalent (Writers, Reflect.recompile, Ingest) or move the static into ReconcileV2, so Q432 can delete v1 without touching app code. Keep the harness green and Shared/ReconcileV2 within 2,119 lines. Write the list of v1 files no app code references any more into plan/reads/reconcile-v2.md.
+check: `! grep -rqE "MacCloudWriteBack\.|MemoCloudUpdate\.|MemoCloudIngest\." Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Features && test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119`
+
+### Q513 [auto] (todo) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
+spec: C57 C58 C2
+needs: Q511
+gate+: yes
+do: Two gaps Q511 found in the export v2 path that the swap (Q436) must not inherit: (1) on the iPad v2 path a .file capture's document is not exported (no document provider there yet) — give ObsidianPublisher's v2 branch the same document placement the Mac has; (2) VaultExporter.exportV2 lacks v1's Q365 unchanged-skip before placing pictures (it relies on the writer's unchanged check after placing, so a re-export of 50 unchanged notes reads image bytes) — restore the skip so MacExportWorkTests' counts hold with ExportV2.isLive true. Test `ExportV2SwapGapsTests` (desktop) runs both with isLive forced on in the test.
+check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5346,3 +5360,9 @@ check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
 - 2026-10-23 20:22 Q434 -> done — hand-merged (Q434's own harness registration: engines = [V1Engine(), V2Engine()] in ExportDiffHarnessTests and v2 ids added to expected-differences-export.json (no id removed); Tuur reads the diff in Q435)
 - 2026-10-23 20:23 Q511 added
+- 2026-10-23 20:28 Q510 -> done — gate 69s @0a277300
+- 2026-10-23 21:52 Q430 -> dead — Tuur 2026-10-23: dropped the read (no context); conductor accepts on the harness (v2 108 identical, 1 expected, 0 unexplained)
+- 2026-10-23 21:55 Q427 -> done — hand-merged (Tuur approved the v1 copy-edit deletion 2026-10-23 (tag v1-copyedit); v1-only tests deleted with their code)
+- 2026-10-23 21:57 Q512 added
+- 2026-10-23 21:57 Q513 added
+- 2026-10-23 21:59 Q511 -> done — hand-merged (D163 port: new stored fields memoCreatedAt + memoTitleIsHis in ReconcileDiffHarnessTests.fields, 101 v1-rows goldens re-recorded by flag, MirroredNoteFieldsTests + MemoCloudUpdateTests.baselined ported)
