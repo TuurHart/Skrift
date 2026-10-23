@@ -3644,6 +3644,12 @@ gate+: yes
 do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other ZIPFoundation `Archive` use: grep for `Archive(`) checks `crc == entry.checksum` and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test `ZipCRCTests` (phone target) with a generated archive whose entry bytes were flipped.
 check: `plan/mtest.sh ZipCRCTests`
 
+### Q503 [tuur] (tuur) decide: ePub add while the book transcribes — blocked (C291, built) or waits (signed A0 mock)?
+spec: C291 D-A0
+needs: Q495
+do: -
+check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is still being transcribed is blocked with "Add it now, it matches up on its own once the book is transcribed" shown only before the job starts; or (b) restore the signed audiobook A0 promise (add any time, the text waits and matches up after transcription) and drop C291. His answer lands in SPEC Decisions.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5234,3 +5240,5 @@ check: `plan/mtest.sh ZipCRCTests`
 - 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
 - 2026-10-23 17:45 Q496 -> done — gate 114s @12d664de
 - 2026-10-23 17:48 Q481 -> done — hand-merged (D163 port: a new stored PipelineFile field added to ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null), mechanical)
+- 2026-10-23 17:51 Q503 added
+- 2026-10-23 17:51 Q503 -> tuur — awaiting sitting
