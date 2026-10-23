@@ -84,6 +84,21 @@ enum ExportOutcomeCopy {
         ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
     }
 
+    /// C163 (Q490): a re-file refused because the file exported to the old destination was
+    /// edited or filed away there. Names the file and says where the note stays. Sticky.
+    static func destinationMoveRefused(_ outcome: VaultWriteOutcome, from old: NoteDestination,
+                                       to new: NoteDestination) -> Message {
+        let name = noteName(forRelativePath: outcome.relativePath)
+        let place = old.isPortfolio ? "the portfolio" : "your vault"
+        let why: String
+        switch outcome {
+        case .movedAway: why = "“\(name)” was filed elsewhere in \(place)"
+        default:         why = "You've edited “\(name)” in \(place)"
+        }
+        return .init(text: "\(why), so Skrift can't move it to \(new.label). It stays a \(old.label) note.",
+                     stickiness: .sticky)
+    }
+
     /// The call both apps make: the name comes from the engine's own outcome, and
     /// `assetCount` is the files (photos, documents) the write placed beside the note.
     static func message(for outcome: VaultWriteOutcome, assetCount: Int? = nil) -> Message {

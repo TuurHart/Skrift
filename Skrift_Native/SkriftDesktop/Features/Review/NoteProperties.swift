@@ -90,8 +90,24 @@ struct NoteProperties: View {
                 if DestinationSettings.isEnabled {
                     DestinationRowView(
                         destination: Binding(get: { file.destination },
-                                             set: { file.destination = $0 }),
-                        onPick: { MacCloudMetaSync.setDestination($0, for: file) },
+                                             set: { new in
+                                                 // C163 (Q490): an exported note whose old file was
+                                                 // edited or filed away there stays put, and says why.
+                                                 if let refusal = VaultExporter.destinationChangeRefusal(
+                                                     file, to: new, settings: SettingsStore.shared.load()) {
+                                                     coordinator?.lastError = refusal
+                                                     return
+                                                 }
+                                                 file.destination = new
+                                             }),
+                        onPick: { picked in
+                            guard file.destination == picked else { return }   // refused above
+                            MacCloudMetaSync.setDestination(picked, for: file)
+                            // C163: an exported note moves now: the old file goes, the new one is written.
+                            if file.exportStatus == .done, let coordinator, let ctx = file.modelContext {
+                                Task { await coordinator.export(file, context: ctx) }
+                            }
+                        },
                         style: .mac)
                 }
                 // Tags (D139, `tag-ui-revamp.html`): inline field, `✕` on hover, library-wide

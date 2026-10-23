@@ -228,6 +228,32 @@ struct ObsidianPublisher {
         let scope = destination.openScope(manage: manageScope)
         defer { scope.close() }
 
+        // C163 (Q490): re-filed to the other destination since this device exported it? Edited
+        // or filed away there refuses the move, named, and nothing is written. Ours and
+        // untouched is removed once the new home has agreed to take the note (below).
+        var oldScope: ExportDestinationRoot.Scope?
+        defer { oldScope?.close() }
+        var removeOld: (() -> Void)?
+        let otherDestination: NoteDestination = memo.destination.isPortfolio ? .personal : .portfolio
+        if let other = ExportDestinationRoot.resolve(
+            for: otherDestination, vault: vaultProvider,
+            portfolioFolder: portfolioFolderProvider, portfolioScopeRoot: portfolioScopeRoot) {
+            let oldHome = VaultLayout.home(forPicked: other.picked, profile: other.profile)
+            if oldHome.standardizedFileURL != VaultLayout.home(forPicked: vaultRoot, profile: profile).standardizedFileURL {
+                oldScope = other.openScope(manage: manageScope)
+                let oldLedger = ExportLedger.default(for: oldHome)
+                switch DestinationMove.verdict(id: memo.id, oldHome: oldHome, ledger: oldLedger) {
+                case .nothingThere:
+                    break
+                case .refuse(let outcome):
+                    return PublishReport(outcome, relativePath: outcome.relativePath)
+                case .remove(let rel):
+                    removeOld = { DestinationMove.removeOld(relativePath: rel, id: memo.id, oldHome: oldHome,
+                                                            ledger: oldLedger) }
+                }
+            }
+        }
+
         // Resolve the PICK into the folder Skrift owns — the same call the Mac makes, or the
         // two apps would write to different places in one vault again (iOS at the picked
         // root, the Mac inside `Skrift/`). That divergence is the whole thing we're removing.
@@ -250,6 +276,7 @@ struct ObsidianPublisher {
         case .proceed(let rel, _):
             relPath = rel
         }
+        removeOld?()
         let stem = PublishOutcome.stem(ofRelativePath: relPath)
 
         // Memo-link stems: the ledger's sticky filename first (rename-safe), else the

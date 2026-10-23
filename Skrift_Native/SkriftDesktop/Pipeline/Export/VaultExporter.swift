@@ -15,6 +15,8 @@ enum VaultExporter {
         let markdownURL: URL
         let audioURL: URL?
         let imageCount: Int
+        /// C163: `outcome` is about the OLD file a destination move left, and the move was refused.
+        var refusedMove = false
         /// C158: vault pictures this export removed because the body no longer shows them.
         var removedPictures: [String] = []
     }
@@ -67,6 +69,54 @@ enum VaultExporter {
         guard !picked.isEmpty else { return nil }
         return VaultLayout.home(forPicked: URL(fileURLWithPath: picked),
                                 profile: ExportProfile.of(pf.destination))
+    }
+
+    /// The folder Skrift owns for the destination this note is NOT in now — where an export
+    /// from before a re-file lives. nil when that destination has no folder picked here, or
+    /// when both destinations resolve to the same folder (then there is nothing to move).
+    static func otherHome(for pf: PipelineFile, settings: AppSettings) -> URL? {
+        let other: NoteDestination = pf.destination.isPortfolio ? .personal : .portfolio
+        let probe = PipelineFile(id: pf.id, filename: pf.filename)
+        probe.destination = other
+        guard let otherHome = exportHome(for: probe, settings: settings),
+              otherHome.standardizedFileURL != exportHome(for: pf, settings: settings)?.standardizedFileURL
+        else { return nil }
+        return otherHome
+    }
+
+    enum MoveStep {
+        case none
+        case removeOld(relativePath: String, home: URL, ledger: ExportLedger)
+        case refused(Result)
+    }
+
+    /// C163: the destination-move step of `export`, judged before anything is written.
+    static func destinationMove(_ pf: PipelineFile, id: UUID, settings: AppSettings,
+                                session: ExportSession?) -> MoveStep {
+        guard let old = otherHome(for: pf, settings: settings) else { return .none }
+        let ledger = session?.ledger(for: old) ?? .default(for: old)
+        switch DestinationMove.verdict(id: id, oldHome: old, ledger: ledger) {
+        case .nothingThere:
+            return .none
+        case .remove(let rel):
+            return .removeOld(relativePath: rel, home: old, ledger: ledger)
+        case .refuse(let outcome):
+            return .refused(Result(outcome: outcome, markdownURL: old.appendingPathComponent(outcome.relativePath),
+                                   audioURL: nil, imageCount: 0, refusedMove: true))
+        }
+    }
+
+    /// The pick-time check (the Mac's destination row): may `pf` be re-filed to `destination`?
+    /// nil = yes (nothing exported, or the old file can go); else the shared refusal sentence.
+    static func destinationChangeRefusal(_ pf: PipelineFile, to destination: NoteDestination,
+                                         settings: AppSettings) -> String? {
+        guard destination != pf.destination, pf.exportStatus == .done else { return nil }
+        let probe = PipelineFile(id: pf.id, filename: pf.filename)
+        probe.destination = destination
+        guard let old = otherHome(for: probe, settings: settings) else { return nil }
+        guard case .refuse(let outcome) = DestinationMove.verdict(id: ledgerID(for: pf), oldHome: old,
+                                                                 ledger: .default(for: old)) else { return nil }
+        return ExportOutcomeCopy.destinationMoveRefused(outcome, from: pf.destination, to: destination).text
     }
 
     /// The id the stamp and the export ledger key this row on. A synced memo's row id IS the
@@ -189,6 +239,11 @@ enum VaultExporter {
         try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
 
         let id = ledgerID(for: pf)
+        // C163 (Q490): re-filed to the other destination since it was exported? Edited or filed
+        // elsewhere there refuses the move, named, and nothing is written anywhere. Ours and
+        // untouched is removed below, once the new home has agreed to take the note.
+        let move = destinationMove(pf, id: id, settings: settings, session: session)
+        if case .refused(let refusal) = move { return refusal }
         // Folder names are the engine's now, not settings — see VaultWriter.
         let writer = VaultWriter(root: vaultURL, ledger: session?.ledger(for: vaultURL) ?? .default(for: vaultURL),
                                  profile: profile)
@@ -208,6 +263,9 @@ enum VaultExporter {
         case .proceed(let rel, let creates):
             relPath = rel
             rewritesOurOwnFile = !creates
+        }
+        if case .removeOld(let rel, let old, let ledger) = move {
+            DestinationMove.removeOld(relativePath: rel, id: id, oldHome: old, ledger: ledger)
         }
         // The stem the ENGINE chose — sticky across retitles, collision-resolved —
         // names the attachments too, so embeds always match their files.
