@@ -53,6 +53,7 @@
     "mediaSource" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_7768BEA5-AC15-549E-8E29-23602152D2F3",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

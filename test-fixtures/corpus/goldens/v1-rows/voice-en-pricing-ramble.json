@@ -62,6 +62,7 @@
     "mediaSource" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/AE9D9978-31DC-511D-A056-180D903EE183_memo_AE9D9978-31DC-511D-A056-180D903EE183.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

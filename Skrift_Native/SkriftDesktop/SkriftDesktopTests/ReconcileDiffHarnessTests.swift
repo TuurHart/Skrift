@@ -146,6 +146,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             "wordTimingsJSON": blob(pf.wordTimingsJSON), "diarizationSegmentsJSON": blob(pf.diarizationSegmentsJSON),
             "enhancedTitle": opt(pf.enhancedTitle), "titleSuggested": opt(pf.titleSuggested),
             "enhancedCopyedit": opt(pf.enhancedCopyedit), "enhancedSummary": opt(pf.enhancedSummary),
+            "pendingPolishBlock": opt(pf.pendingPolishBlock),
             "tags": pf.tags, "tagSuggestions": opt(pf.tagSuggestions), "significance": opt(pf.significance),
             "destinationRaw": pf.destinationRaw, "exported": opt(pf.exported), "compiledText": opt(pf.compiledText),
             "includeAudioInExport": pf.includeAudioInExport, "error": opt(pf.error),

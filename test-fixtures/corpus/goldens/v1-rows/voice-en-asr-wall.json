@@ -58,6 +58,7 @@
     "mediaSource" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/6A8AA850-C92A-57B3-8838-58EC161DCACA_memo_6A8AA850-C92A-57B3-8838-58EC161DCACA.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

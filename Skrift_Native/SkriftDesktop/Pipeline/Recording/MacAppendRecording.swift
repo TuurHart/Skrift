@@ -84,9 +84,12 @@ enum MacAppendRecording {
                 source: .speech, userEdited: true))
             // A polished note shows its copy-edit; the new words go there too, so the body you
             // look at holds them (the Mac editor's own rule: write the layer that is shown).
-            if let copy = pf.enhancedCopyedit,
-               !copy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                pf.enhancedCopyedit = joined(copy, words)
+            if let copy = pf.enhancedCopyedit, AppendPolish.showsPolishedBody(copy) {
+                let next = AppendPolish.appended(copyedit: copy, pending: pf.pendingPolishBlock ?? "", block: words)
+                pf.enhancedCopyedit = next.copyedit
+                // C152: and the note goes back for a pass that polishes only the new block.
+                pf.pendingPolishBlock = next.pending
+                if pf.enhanceStatus == .done { pf.enhanceStatus = .pending }
             }
             pf.transcriptUserEdited = true
             pf.transcribeStatus = .done

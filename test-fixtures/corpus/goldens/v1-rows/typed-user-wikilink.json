@@ -50,6 +50,7 @@
     "mediaSource" : "typed",
     "nameResolutionsData" : null,
     "path" : "$OUT/476EF17D-8877-5147-8190-66112EE04738_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",

@@ -26,7 +26,8 @@
   "voice-mix-code-switch": ["C35", "C177"],
   "edge-tag-case-dupes": ["C35"],
   "typed-wall-one-paragraph": ["C34"],
-  "typed-headings-and-tags": ["C34"],
+  "typed-headings-and-tags": ["Q501"],
+  "typed-heading-only": ["Q501"],
   "typed-tasks": ["D215"],
   "typed-dutch-boodschappen": ["D215"],
   "typed-numbered-list": ["D215"],
@@ -50,7 +51,8 @@
     "C178": "title and summary read prose with no [[ ]]: picture markers out, wikilinks to their shown text. New title calls, recorded once with -recordcopyeditv2. typed-user-wikilink: v1 sent [[Lotte Vos]] to the model and shipped '[[Lotte Vos]] Vos'.",
     "C177": "a failed post-condition ships the words unedited: a proper noun the input never says (typed-title-derived: v1 shipped an invented essay on the Dutch language), a flipped language, or no words at all (whitespace / picture-only: v1 called the model on nothing and shipped an invented Dutch essay and title).",
     "C35": "D209 (Q449): the edit ships when it drops ordinary words (okay, so, yeah, colour, whole phrases: those notes now equal v1 and left this file); the words ship unedited only when the edit loses a name or a number (edge-tag-case-dupes: \"typed three times\" lost its three) or translates (voice-mix-code-switch).",
-    "C34": "a typed note is never re-paragraphed: typed-headings-and-tags (the model merged 10 typed paragraphs into 5) and typed-wall-one-paragraph (the model split one typed paragraph) ship as typed.",
+    "C34": "a typed note is never re-paragraphed: typed-wall-one-paragraph (the model split one typed paragraph) ships as typed.",
+    "Q501": "Q501, D215: heading lines never reach the model and come back in place (held like checkboxes), and bold/italic markup is held while its words are edited. typed-heading-only keeps '# Just a heading' (v1 stripped the mark) with no model call; typed-headings-and-tags keeps all five headings and now ships the edit (it used to fall back as re-paragraphed, C34); applenote-headings-checklist keeps '# Touring bike build', '## Frame', '## Parts' and '**Pros:**' / '**Cons:**'. 2 new model outputs recorded with -recordcopyeditv2.",
     "D215": "Q478, D215 (Tuur 2026-10-23): the copy-edit keeps tasks, sentences, spelling and lists. Checkbox lines, and a typed note's list lines, never reach the model and come back in place (typed-tasks keeps every box and its state; typed-dutch-boodschappen, typed-numbered-list, applenote-dutch keep their lists as typed; applenote-headings-checklist keeps its boxes). A note under 40 words that loses a whole sentence ships his words (voice-en-paragraphed-by-pauses, voice-en-raw-title). His spelling stays: the prompt now carries PolishPrompts.keepSpelling and a respelled word falls back (voice-en-names-all-tiers keeps colour, typed-blockquote-ordinary keeps apologising). The changed prompt means every copy-edit output was re-recorded with -recordcopyeditv2 (77 new model outputs); the rest differ from v1 only in the new model's commas and dashes (typed-wall-7k, voice-en-asr-wall, voice-en-eight-minutes and six more)."
   }
 }

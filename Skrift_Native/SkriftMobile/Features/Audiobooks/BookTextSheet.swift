@@ -509,19 +509,26 @@ struct BookTextSheet: View {
 
     // MARK: - Add + footer
 
+    /// C291: while this book transcribes, the row is disabled and says why.
     private var addRow: some View {
         Button(action: onAdd) {
-            Text("\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
+            Text(transcribingThisBook
+                 ? BookTextDisplay.addBlockedWhileTranscribing
+                 : "\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.skAccent)
+                .foregroundStyle(transcribingThisBook ? Color.skTextFaint : Color.skAccent)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
                     RoundedRectangle.sk(14)
-                        .strokeBorder(Color.skAccent.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                        .strokeBorder((transcribingThisBook ? Color.skBorder : Color.skAccent.opacity(0.45)),
+                                      style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                 )
         }
         .buttonStyle(.plain)
+        .disabled(transcribingThisBook)
         .accessibilityIdentifier("book-text-add")
         .accessibilityLabel("Add book text")
     }
@@ -645,6 +652,11 @@ enum BookTextDisplay {
     static func addRowLabel(hasTexts: Bool) -> String {
         hasTexts ? "Add another text\u{2026}" : "Add book text\u{2026}"
     }
+
+    /// C291: the one sentence for "you can't add a text right now" — the disabled Add row,
+    /// the A0 prompt's Add card and the attach error all say exactly this.
+    static let addBlockedWhileTranscribing =
+        "This book is still transcribing. Add its text once transcription finishes."
 
     /// Wall-seconds to transcribe the untranscribed remainder of a book, from the
     /// job's real measured per-device throughput. nil until a rate exists or when

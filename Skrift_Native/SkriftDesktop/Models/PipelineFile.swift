@@ -125,6 +125,9 @@ final class PipelineFile {
     var enhancedTitle: String?
     var titleSuggested: String?
     var enhancedCopyedit: String?
+    /// C152: raw words appended to `enhancedCopyedit` after its polish, which the next pass
+    /// copy-edits alone (`AppendPolish`). Mirrors `MemoEnhancement.pendingBlock`. nil = none.
+    var pendingPolishBlock: String? = nil
     var enhancedSummary: String?
     var tags: [String] = []
     /// Deterministic tag candidates. Refined to the richer Record<word,[tags]>

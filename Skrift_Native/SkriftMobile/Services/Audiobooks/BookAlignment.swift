@@ -380,11 +380,6 @@ enum BookAlignmentRunner {
     struct AttachSummary: Equatable {
         var alignedFiles: Int
         var totalFiles: Int
-        /// True when the book was mid-transcription at attach time: the file was copied
-        /// in and recorded, but NO alignment ran (matching a moving partial transcript
-        /// wastes minutes and yields misleading verdicts) — the transcription job's
-        /// finish call to `alignIfNeeded` does the real pass. Drives the outcome copy.
-        var deferredWhileTranscribing: Bool = false
         /// `EPubParse.evaluateDRM`'s verdict for the attached file — surfaced to the
         /// user (sweep E finding #6: previously computed and stored on `EPubBook.drm`
         /// but read nowhere but a debug log line on the Mac).
@@ -394,22 +389,23 @@ enum BookAlignmentRunner {
     }
 
     /// True while the whole-book transcribe job is live for `bookID` — the window in
-    /// which alignment must wait (Tuur 2026-07-22: "what happens if I upload an epub
-    /// while the book is still transcribing?" — it deferred implicitly at best; now
-    /// it defers deliberately, with copy that says so).
+    /// which adding a text is refused (C291; Tuur 2026-07-22: "what happens if I upload
+    /// an epub while the book is still transcribing?" — "it should not").
     @MainActor
-    private static func isTranscribing(_ bookID: UUID) -> Bool {
+    static func isTranscribing(_ bookID: UUID) -> Bool {
         BookTranscriptionJob.shared.isWorking(on: bookID)
     }
 
     enum AttachError: LocalizedError, Equatable {
         case bookMissing
+        case stillTranscribing
         case copyFailed
         case unreadable
 
         var errorDescription: String? {
             switch self {
             case .bookMissing: return "That audiobook couldn’t be found."
+            case .stillTranscribing: return BookTextDisplay.addBlockedWhileTranscribing
             case .copyFailed: return "The file couldn’t be copied into Skrift."
             case .unreadable: return "That file doesn’t look like a readable ePub or text file."
             }
@@ -426,16 +422,17 @@ enum BookAlignmentRunner {
     /// entries (its position in `attachedTextFilenames` — and so its collision tie-break rank —
     /// is unchanged). Rejected-everywhere still writes sidecars (verdict recorded) — the UI
     /// decides what to tell the user from `AttachSummary`/the sidecars' verdicts.
+    /// `transcribing` is the job-state check (C291), a parameter only so a test can drive it.
     static func attach(bookFileAt url: URL, bookID: UUID,
-                       progress: (@Sendable (BookTextProgress) -> Void)? = nil) async throws -> AttachSummary {
+                       progress: (@Sendable (BookTextProgress) -> Void)? = nil,
+                       transcribing: @MainActor @Sendable (UUID) -> Bool = { isTranscribing($0) }) async throws -> AttachSummary {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else {
             throw AttachError.bookMissing
         }
-        // Mid-transcription: copy + record the text, but DEFER alignment — matching a
-        // moving partial transcript wastes minutes and its verdicts mislead ("doesn't
-        // look like this audiobook" on a barely-covered file). The job's finish call
-        // to `alignIfNeeded` runs the real pass over the full transcript.
-        let deferring = await isTranscribing(bookID)
+        // C291: no text joins a book while its transcription runs — refused before anything
+        // is copied, so the book is exactly as it was. The Add buttons are disabled in that
+        // window too; this catches a pick that was already in flight when the job started.
+        if await transcribing(bookID) { throw AttachError.stillTranscribing }
         let folder = AudiobookPaths.folder(for: bookID)
         let filename = url.lastPathComponent
         let dest = folder.appendingPathComponent(filename)
@@ -443,8 +440,7 @@ enum BookAlignmentRunner {
         // Bare closure (no explicit `() throws -> T in` signature) so the compiler infers the
         // async+throws effects from the `let outcome: TextAlignOutcome =` context — matches
         // `AudiobookImporter.importSingleFile`'s exact "copy + parse off main" shape.
-        let matchCount = deferring ? 0 : book.files.count
-        let total = BookTextProgress.total(files: matchCount, copying: true)
+        let total = BookTextProgress.total(files: book.files.count, copying: true)
         let outcome: TextAlignOutcome = try await Task.detached(priority: .userInitiated) {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -461,7 +457,7 @@ enum BookAlignmentRunner {
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
 
             let transcriptStore = BookTranscriptStore()
-            let indices = deferring ? [] : Array(book.files.indices)
+            let indices = Array(book.files.indices)
             let perFile = await alignText(named: filename, blocks: alignBlocks, book: book, bookID: bookID,
                                           folder: folder, indices: indices, store: transcriptStore,
                                           progress: { stage, matched in
@@ -489,7 +485,7 @@ enum BookAlignmentRunner {
         )
         progress?(BookTextProgress(stage: "Done", done: total, total: total))
         return AttachSummary(alignedFiles: outcome.aligned,
-                             totalFiles: outcome.total, deferredWhileTranscribing: deferring,
+                             totalFiles: outcome.total,
                              drm: outcome.drm, skippedParts: outcome.skipped)
     }
 

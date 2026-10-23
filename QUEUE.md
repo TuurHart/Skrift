@@ -3236,7 +3236,7 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioS
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
-check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480), plus any field later items add (check plan/RUN.md for "NEW synced field").
+check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480) and `MemoEnhancement.pendingBlock` (Q481), plus any field later items add (check plan/RUN.md for "NEW synced field").
 
 ### Q444 [auto] (done) install Dev 191 (Q408–Q422) on the iPhone 17 Pro and the Mac
 spec: -
@@ -3491,21 +3491,21 @@ gate+: yes
 do: Store the ASR language mode each transcript was made with (additive synced field) and add a plain ⋯ menu item "Transcribe again in Dutch" / "in English" (the other language) on phone and Mac, re-running ASR on that note only; the global setting stays the default. Add corpus fixture `voice-nl-recorded-in-english-mode`. Test `TranscribeAgainLanguageTests` (phone target).
 check: `plan/mtest.sh TranscribeAgainLanguageTests`
 
-### Q481 [auto] (todo) A: text appended to a polished note shows up and only the new block gets polished
+### Q481 [auto] (done) A: text appended to a polished note shows up and only the new block gets polished
 spec: C152 C223
 needs: -
 gate+: yes
 do: Today an append writes only the raw transcript (MemoSaver) while every screen shows the polished body, so new words are invisible. Make appended text (Add recording, capture ramble) appear in the body he sees, mark the note for a pass, and have that pass polish only the new block (the earlier polish stays). Add corpus fixture `voice-en-append-after-polish`. Tests `AppendAfterPolishTests` (desktop) for the pass and a phone test for the visible body.
 check: `grep -rqE "class AppendAfterPolishTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q482 [auto] (todo) A: a Mac recording's word timings and diarization reach the phone, so karaoke works everywhere
+### Q482 [auto] (done) A: a Mac recording's word timings and diarization reach the phone, so karaoke works everywhere
 spec: C245 R34
 needs: -
 gate+: yes
 do: A phone take's word timings ride to the Mac as assets; a Mac take's do not ride back (R34). Write the Mac take's word timings (and diarization, when any) as the same synced MemoAsset kinds the phone uses, so the phone's karaoke works on Mac recordings. Test `MacTimingsAssetTests` (desktop): a Mac recording yields a wordTimings asset in the same shape the phone writes.
 check: `grep -rqE "class MacTimingsAssetTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q483 [auto] (todo) A: a spoken hashtag becomes a real tag, by rule
+### Q483 [auto] (done) A: a spoken hashtag becomes a real tag, by rule
 spec: C275 C85
 needs: -
 gate+: yes
@@ -3588,7 +3588,7 @@ gate+: yes
 do: A long ePub/book import shows real progress (parts done / total) in the existing import UI style and states whether listening can continue meanwhile. Test `BookImportProgressTests` (phone).
 check: `plan/mtest.sh BookImportProgressTests`
 
-### Q495 [auto] (todo) C: ePub upload is blocked while the same book is still transcribing
+### Q495 [auto] (done) C: ePub upload is blocked while the same book is still transcribing
 spec: C291
 needs: -
 gate+: yes
@@ -3602,7 +3602,7 @@ gate+: yes
 do: The model-download completeness check verifies the downloaded files by expected byte count or hash, not a size floor; a truncated-but-over-floor download counts as incomplete and resumes. Test `ResumableModelDownloaderTests` gains the truncated case (new test file if the existing class is protected: `ModelDownloadCompletenessTests`).
 check: `grep -rqE "class ModelDownloadCompletenessTests\b" Skrift_Native -r`
 
-### Q497 [auto] (todo) C: importing several books at once never merges them
+### Q497 [auto] (done) C: importing several books at once never merges them
 spec: C293
 needs: -
 gate+: yes
@@ -3630,7 +3630,7 @@ gate+: yes
 do: `AppPaths`-style accessors call createDirectory at most once per process launch (cache the result), never on every access, on both apps. Test `DirectoryCreateOnceTests` (desktop) counting createDirectory calls across repeated access.
 check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q501 [auto] (todo) copy-edit v2 keeps headings and bold labels
+### Q501 [auto] (done) copy-edit v2 keeps headings and bold labels
 spec: C34 C116 D215
 needs: Q478
 gate+: yes
@@ -3643,6 +3643,19 @@ needs: Q493
 gate+: yes
 do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other ZIPFoundation `Archive` use: grep for `Archive(`) checks `crc == entry.checksum` and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test `ZipCRCTests` (phone target) with a generated archive whose entry bytes were flipped.
 check: `plan/mtest.sh ZipCRCTests`
+
+### Q503 [tuur] (tuur) decide: ePub add while the book transcribes — blocked (C291, built) or waits (signed A0 mock)?
+spec: C291 D-A0
+needs: Q495
+do: -
+check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is still being transcribed is blocked with "Add it now, it matches up on its own once the book is transcribed" shown only before the job starts; or (b) restore the signed audiobook A0 promise (add any time, the text waits and matches up after transcription) and drop C291. His answer lands in SPEC Decisions.
+
+### Q504 [auto] (done) A: an appended block also turns spoken hashtags into tags
+spec: C275 C152
+needs: Q483
+gate+: yes
+do: Q481 polishes only an appended block (BatchRunner.polishAppendedBlock) and Q483 turns spoken hashtags into tags through SpokenHashtags.shownBody, but the append path never calls shownBody, so "hashtag x" said in an added recording stays words. Call shownBody on the spliced body in polishAppendedBlock (and the phone path if it has one). Test `AppendSpokenHashtagTests` (desktop).
+check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5233,3 +5246,13 @@ check: `plan/mtest.sh ZipCRCTests`
 - 2026-10-23 17:38 Q480 -> stuck — gate failed — .queue/Q480.gate.log
 - 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
 - 2026-10-23 17:45 Q496 -> done — gate 114s @12d664de
+- 2026-10-23 17:48 Q481 -> done — hand-merged (D163 port: a new stored PipelineFile field added to ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null), mechanical)
+- 2026-10-23 17:51 Q503 added
+- 2026-10-23 17:51 Q503 -> tuur — awaiting sitting
+- 2026-10-23 17:56 Q495 -> done — gate 60s @886afdac
+- 2026-10-23 18:30 Q504 added
+- 2026-10-23 18:35 Q483 -> done — gate 144s @a9691c2a
+- 2026-10-23 18:40 Q504 -> done — gate 84s @c67910ce
+- 2026-10-23 18:42 Q482 -> done — hand-merged (R34 fixed by this item: RoundTripParityTests pre-registered XCTExpectFailure flips to a plain assertion (C5))
+- 2026-10-23 18:46 Q501 -> done — hand-merged (D215 extension asked by Q501: expected-differences-copyedit-v2.json registrations moved/added for headings + bold)
+- 2026-10-23 18:52 Q497 -> done — gate 74s @4fd69d33
