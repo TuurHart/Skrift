@@ -3663,7 +3663,7 @@ spec: C5
 needs: -
 gate+: yes
 do: The suite crash (8 in an hour on 2026-10-23, SwiftData SIGSEGV in _swift_release_dealloc under PipelineFile.*Status setters) is a SwiftData thread-confinement violation, not container lifetime (lane A disproved that: retaining both containers still crashed 1 of 30). BatchRunner is a plain nonisolated struct and the project builds in Swift 5.9 mode, so its async run executes on the global executor (SE-0338) while every caller (CopyEditCorpusRun, CopyEditV2Mac.corpusStep, ProcessingCoordinator) hands it PipelineFile rows from a main-actor ModelContext. Production bug too: the Mac's Process / Re-transcribe path. Make BatchRunner @MainActor (pure statics nonisolated); engines stay awaited on their own actors. Test `BatchRunnerIsolationTests` (desktop): run executes on the main thread with a probe transcriber. Report the stress loop numbers before and after (baseline 5 of 100).
-check: `grep -rqE "class BatchRunnerIsolationTests" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+check: `grep -rqE "class BatchRunnerIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q506 [auto] (todo) B: every reader skips a polish older than his last raw edit
 spec: C152 C261
@@ -5301,3 +5301,5 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:39 Q488 -> done — gate 166s @2b57c83e
 - 2026-10-23 19:39 Q486 -> todo
 - 2026-10-23 19:42 Q486 -> done — gate 193s @3f18139a
+- 2026-10-23 19:45 Q505 -> stuck — check failed — .queue/Q505.check.log
+- 2026-10-23 19:45 Q505 -> todo
