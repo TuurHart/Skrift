@@ -2,8 +2,7 @@ import Foundation
 
 /// Q426 (C2, C28): the iPad's polish through copy-edit v2 — the same `CopyEditV2.runPass` and
 /// `CopyEditV2.turn` the Mac runs, so a note reads alike whichever device polished it. Pure
-/// (the model is a closure), so the phone tests drive it without MLX. `PolishEscrow` (v1)
-/// stays in place until Q427 deletes it.
+/// (the model is a closure), so the phone tests drive it without MLX.
 enum PolishV2 {
     /// The three prompts from the iPad's ONE source (`PolishPromptsStore`: the synced blob or
     /// the shared default, C39).

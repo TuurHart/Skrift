@@ -1,8 +1,8 @@
 import XCTest
 
 /// Q469 (gate+, C29, C30): `[[vid_N]]` / `[[file_N]]` attachment markers are held like picture
-/// paragraphs in BOTH copy-edits — stripped before the model, returned after the same-index
-/// text paragraph of the output. MLX-free: the model is a stub that records what it saw.
+/// paragraphs by copy-edit v2 — stripped before the model, returned after the same-index
+/// text paragraph of the output (v1's own escrow went with v1, Q427). MLX-free: the model is a stub that records what it saw.
 final class AttachmentMarkerEscrowTests: XCTestCase {
     /// A video import's kept movie leads (Q454); a file sits mid-paragraph.
     static let body = """
@@ -45,36 +45,6 @@ final class AttachmentMarkerEscrowTests: XCTestCase {
         }
     }
 
-    // MARK: - v1 (live)
-
-    func testV1HoldsAttachmentsLikePictures() async throws {
-        let seen = Seen()
-        let out = try await CopyEditPipeline.copyEdit(Self.body, prompts: AppSettings.Prompts()) { _, text, _ in
-            seen.inputs.append(text); return Self.edit
-        }
-        Self.assertProseOnly(seen.inputs)
-        XCTAssertEqual(out, Self.expected)
-    }
-
-    func testV1AModelThatMergesParagraphsStillKeepsEveryMarker() async throws {
-        let wall = "We drove up to the farm and fed the goats. Here is the invoice for the trailer. Then we drove home."
-        let out = try await CopyEditPipeline.copyEdit(Self.body, prompts: AppSettings.Prompts()) { _, _, _ in wall }
-        XCTAssertTrue(out.hasPrefix("[[vid_1]]\n\n"), out)
-        XCTAssertEqual(NoteAttachment.markers(in: out).count, 2, "neither marker is lost: \(out)")
-    }
-
-    func testV1PicturesAndAttachmentsTogether() async throws {
-        let body = "[[vid_1]]\n\nfirst we fed the goats [[img_001]] by the barn.\n\nthe invoice [[file_1]] is here."
-        let seen = Seen()
-        let out = try await CopyEditPipeline.copyEdit(body, prompts: AppSettings.Prompts()) { _, text, _ in
-            seen.inputs.append(text); return "First we fed the goats by the barn.\n\nThe invoice is here."
-        }
-        XCTAssertFalse(seen.inputs[0].contains("[["), seen.inputs[0])
-        XCTAssertTrue(out.hasPrefix("[[vid_1]]\n\n"), out)
-        XCTAssertTrue(out.contains("[[img_001]]"), out)
-        XCTAssertTrue(out.hasSuffix("The invoice is here.\n\n[[file_1]]"), out)
-    }
-
     // MARK: - v2
 
     func testV2HoldsAttachmentsLikePictures() async throws {
@@ -94,20 +64,5 @@ final class AttachmentMarkerEscrowTests: XCTestCase {
         let r = try await CopyEditV2.copyEdit(Self.body, spoken: true, prompt: "P") { _, _, _ in Self.edit }
         XCTAssertNotEqual(r.fallback, .linkLost)
         XCTAssertEqual(NoteAttachment.markers(in: r.text).map(\.number), [1, 1])
-    }
-
-    // MARK: - the escrow itself
-
-    func testHoldIsTheIdentityWithoutAttachments() {
-        let text = "a picture [[img_001]] and [[memo:00000000-0000-0000-0000-000000000000|a link]]\n\n\nkept"
-        let held = AttachmentMarkerEscrow.hold(text)
-        XCTAssertEqual(held.prose, text, "notes without attachments reach the model byte for byte (recorded keys)")
-        XCTAssertEqual(AttachmentMarkerEscrow.place(held.markers, in: "edited"), "edited")
-    }
-
-    func testPlacementClampsToTheEnd() {
-        let held = AttachmentMarkerEscrow.hold("one.\n\ntwo.\n\nthree [[file_002]]")
-        XCTAssertEqual(held.markers, [.init(marker: "[[file_002]]", after: 3)])
-        XCTAssertEqual(AttachmentMarkerEscrow.place(held.markers, in: "One, two, three."), "One, two, three.\n\n[[file_002]]")
     }
 }

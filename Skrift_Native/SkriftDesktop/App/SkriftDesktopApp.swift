@@ -46,7 +46,6 @@ struct SkriftDesktopApp: App {
         RunFile.runAsrSweepIfRequested()
         RunFile.runVaultExportIfRequested()
         RunFile.runProcessFileIfRequested()
-        RunFile.runRecordCopyEditIfRequested()
         RunFile.runRecordCopyEditV2IfRequested()
         RunFile.runIngestFileIfRequested()
         RunFile.runRecordIngestIfRequested()

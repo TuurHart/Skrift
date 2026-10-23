@@ -3,10 +3,10 @@ import AVFoundation
 import Foundation
 import SwiftData
 
-/// Q423: v1's Process verb over the whole synthetic corpus, on an in-memory scratch store
+/// Q423: the Process verb over the whole synthetic corpus, on an in-memory scratch store
 /// (never the live Dev store, C166). One driver for both sides of the copy-edit harness:
-/// the DEBUG `-recordcopyedit` flag runs it with the live MLX model wrapped in
-/// `ModelOutputCache.recording`; `CopyEditDiffHarnessTests` runs it MLX-free with the
+/// the DEBUG `-recordcopyeditv2` flag runs it with the live MLX model wrapped in
+/// `ModelOutputCache.recording`; the copy-edit harness tests run it MLX-free with the
 /// recorded outputs replayed.
 ///
 /// Per note: an unrated note gets Process pressed first, which floors it to 0.1 (C40); the
@@ -89,11 +89,11 @@ enum CopyEditCorpusRun {
         }
     }
 
-    /// One row's Process: (row, v1's runner, audio, picture manifest, clip starts). nil = v1's
-    /// `BatchRunner.run`; copy-edit v2 passes `CopyEditV2Mac.corpusStep` (Q424).
+    /// One row's Process: (row, the runner, audio, picture manifest, clip starts). nil =
+    /// `BatchRunner.run` with `enhancer`; the v2 harness passes `CopyEditV2Mac.corpusStep` (Q424).
     typealias RowStep = @MainActor (PipelineFile, BatchRunner, URL?, [ImageManifestEntry], [Double]) async throws -> Void
 
-    /// Run every manifest note of `corpus` through v1's Process with `enhancer` (or `step`).
+    /// Run every manifest note of `corpus` through Process with `enhancer` (or `step`).
     /// `scratch` holds the in-memory store's media + the Mac rows' working folders.
     static func run(corpus: URL, enhancer: Enhancing, scratch: URL, step: RowStep? = nil,
                     progress: (String) -> Void = { _ in }) async throws -> [Result] {
