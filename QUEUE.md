@@ -3662,8 +3662,8 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 spec: C5
 needs: -
 gate+: yes
-do: The desktop UnitTests run crashed 8 times between 17:54 and 19:00 on 2026-10-23 (~/Library/Logs/DiagnosticReports/xctest-2026-10-23-*.ips): EXC_BAD_ACCESS/SIGSEGV (one SIGABRT) inside SwiftData during _swift_release_dealloc, reached from PipelineFile.transcribeStatus.setter / enhanceStatus.setter (BatchRunner.run via CopyEditV2Mac.corpusStep, CopyEditV2HarnessTests) or from a runloop observer under XCTWaiter. Each crash marks the running test failed and turns the gate red (Q500 failed this way). Q483's CommitOnceCache lock did not remove it. Lead suspect: 56 sites build `ModelContext(try ModelContainer(...))` and keep no reference to the container (CopyEditCorpusRun.run lines ~100-104 plus 30 test files); a ModelContext does not reliably keep its container alive, so the store can be freed while models still change. Prove or kill that suspect first (a stress loop of the crashing harness, e.g. CopyEditV2HarnessTests + ReconcileDiffHarnessTests repeated, before and after). Fix at the root: one helper that returns a context whose container is retained for the context's lifetime (production CopyEditCorpusRun and a test helper), and route every site through it. No assertion changes. Test `ModelContainerLifetimeTests` (desktop) shows a context outliving its builder's scope stays usable.
-check: `grep -rqE "class ModelContainerLifetimeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "ModelContext\((try )?ModelContainer\(" Skrift_Native --include=*.swift`
+do: The suite crash (8 in an hour on 2026-10-23, SwiftData SIGSEGV in _swift_release_dealloc under PipelineFile.*Status setters) is a SwiftData thread-confinement violation, not container lifetime (lane A disproved that: retaining both containers still crashed 1 of 30). BatchRunner is a plain nonisolated struct and the project builds in Swift 5.9 mode, so its async run executes on the global executor (SE-0338) while every caller (CopyEditCorpusRun, CopyEditV2Mac.corpusStep, ProcessingCoordinator) hands it PipelineFile rows from a main-actor ModelContext. Production bug too: the Mac's Process / Re-transcribe path. Make BatchRunner @MainActor (pure statics nonisolated); engines stay awaited on their own actors. Test `BatchRunnerIsolationTests` (desktop): run executes on the main thread with a probe transcriber. Report the stress loop numbers before and after (baseline 5 of 100).
+check: `grep -rqE "class BatchRunnerIsolationTests" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q506 [auto] (todo) B: every reader skips a polish older than his last raw edit
 spec: C152 C261
@@ -3671,6 +3671,13 @@ needs: Q486
 gate+: yes
 do: Q486 added MemoEnhancement.isStale(for:) (transcriptEditedAt > enhancedAt), but only the phone note page honours it: the phone/iPad vault exporter, WallPrinter and the list cache still read the newest copy-edit, so a note he re-edited after the Mac polished it exports and lists the old polish. Route every reader of the Mac polish through one shared accessor that returns nil when stale (fall back to his raw, as the note page does). Test `StalePolishReadersTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh StalePolishReadersTests`
+
+### Q507 [auto] (todo) A: import writes rows on the main actor, file work stays off main
+spec: C5 C294
+needs: Q505
+gate+: yes
+do: Same bug class as Q505: `struct IngestService: Sendable` has nonisolated async funcs (ingestReport/ingestFile/ingestAudio/ingestVideo/ingestNote/attachPictures/...) that insert PipelineFile rows into the CALLER'S context (the Sidebar passes mainContext), so drag-drop and import write the main context off the main thread. Split it: file work (copy, video export, hashing) stays off main so the old P1 freeze does not come back, inserts and row mutations run on the main actor. Test `IngestIsolationTests` (desktop): every insert happens on the main thread with a probe.
+check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5287,3 +5294,4 @@ check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/S
 - 2026-10-23 19:27 Q486 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-23 19:27 Q426 -> todo
 - 2026-10-23 19:27 Q500 -> todo
+- 2026-10-23 19:27 Q507 added
