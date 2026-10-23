@@ -3145,7 +3145,7 @@ check: `test $(ls test-fixtures/corpus/goldens/v1-rows | wc -l) -ge 100 && grep 
 
 ### Q429 [auto] (todo) reconcile v2 beside v1
 spec: C41 C42 C43 C44 C45 C46 C47 C48 C52 C185 C186 C187 C188 C189 C190 C191 C294 C2 C3
-needs: Q427 Q428
+needs: Q428
 gate+: yes
 do: Write the reconcile sweep v2 in `Skrift_Native/Shared/ReconcileV2/`: memo → row mapping without fake multipart (C44), trust (C42), kinds from the caller (C43), late assets healed by content hash without faulting unchanged blobs (C45), stamp-to-stamp LWW with ±5 s skew (C46), per-field reflect (C47), duplicates (C48), names and vocab before memos (C185), store-resolved writers (C186-C188), re-export rules (C189), asset materialisation (C190), guarded await points (C294). Register it in the Q428 harness; the app keeps calling v1. At most 2,119 lines (40% of 5,297, C3). Write `plan/reads/reconcile-v2.md` listing every row that changed.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && test -s plan/reads/reconcile-v2.md`
@@ -3177,7 +3177,7 @@ check: `test $(ls test-fixtures/corpus/goldens/v1-export | wc -l) -ge 100 && gre
 
 ### Q434 [auto] (todo) export compiler v2 beside v1
 spec: C53 C54 C55 C56 C57 C58 C59 C60 C61 C62 C63 C64 C129 C130 C131 C132 C133 C134 C135 C136 C137 C192 C193 C194 C195 C196 C2 C3
-needs: Q432 Q433
+needs: Q433
 gate+: yes
 do: Write the export compiler v2 in `Skrift_Native/Shared/ExportV2/` per the export and portfolio clauses as re-baselined to two destinations (D189): a pure compiler (C56), `VaultLayout.home` (C53, C192), ownership and stamp rules (C54, C55, C193), images and attachments (C57, C58), memo-links (C59), quotes (C60), export gates (C61), Personal → vault and Portfolio → `_inbox/` (C62, C133), video and audio (C63, C136, C195), dates (C64). Register it in the Q433 harness; the app keeps calling `Shared/Export/Compiler.swift`. At most 1,094 lines (40% of 2,734, C3). Write `plan/reads/export-v2.md` with every export that changed.
 check: `test $(cat Skrift_Native/Shared/ExportV2/*.swift | wc -l) -le 1094 && test -s plan/reads/export-v2.md`
