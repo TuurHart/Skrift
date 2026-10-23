@@ -3175,7 +3175,7 @@ gate+: yes
 do: Re-baseline the `dest-*` corpus fixtures to D189: `dest-project`, `dest-idea`, `dest-inspiration-credit` become Portfolio plus that tag, exported to `<portfolio root>/_inbox/<slug>.md`. Record v1's export of every corpus note on both profiles as `test-fixtures/corpus/goldens/v1-export/<slug>.<vault|portfolio>.md`. `ExportDiffHarnessTests` (desktop target) classes each identical / expected-different / unexplained (C5) and checks portfolio frontmatter is flat YAML per C130 (one line per value, no `: ` in a plain value, block lists, none of the forbidden keys). Pin C57 (`typed-same-title-a/b` give distinct image files), C64 (a note recorded at 23:30 local gets the same `date:` from the phone and Mac paths), C65 (no snap call in any exporter).
 check: `test $(ls test-fixtures/corpus/goldens/v1-export | wc -l) -ge 100 && grep -rqE "class ExportDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q434 [auto] (todo) export compiler v2 beside v1
+### Q434 [auto] (done) export compiler v2 beside v1
 spec: C53 C54 C55 C56 C57 C58 C59 C60 C61 C62 C63 C64 C129 C130 C131 C132 C133 C134 C135 C136 C137 C192 C193 C194 C195 C196 C2 C3
 needs: Q433
 gate+: yes
@@ -5337,3 +5337,4 @@ check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 &&
 - 2026-10-23 20:09 Q509 -> done — gate 49s @e43ef3fa
 - 2026-10-23 20:15 Q510 added
 - 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
+- 2026-10-23 20:22 Q434 -> done — hand-merged (Q434's own harness registration: engines = [V1Engine(), V2Engine()] in ExportDiffHarnessTests and v2 ids added to expected-differences-export.json (no id removed); Tuur reads the diff in Q435)
