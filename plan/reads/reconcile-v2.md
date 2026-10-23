@@ -1,6 +1,6 @@
 # Reconcile v2 beside v1 — every row that changed
 
-1 of 109 corpus rows changes. v1 = the recorded row golden (`goldens/v1-rows/<slug>.json`, every stored `PipelineFile` field plus the working folder's files). v2 = `ReconcileV2.sweep` in `Skrift_Native/Shared/ReconcileV2/` (873 lines, 16% of v1's 5,297; budget 2,119, C3). The app still calls v1 (C2).
+1 of 109 corpus rows changes. v1 = the recorded row golden (`goldens/v1-rows/<slug>.json`, every stored `PipelineFile` field plus the working folder's files). v2 = `ReconcileV2.sweep` in `Skrift_Native/Shared/ReconcileV2/` (873 lines at Q429, 1,262 after Q510; v1 is 5,297, budget 2,119, C3). The app still calls v1 (C2).
 
 Harness (`ReconcileDiffHarnessTests`, Q428): v1 identical 109; v2 identical 108, expected-different 1, unexplained 0. The second and third sweeps change nothing in v2 (C41); v1 still has its one known second-sweep heal (`pic-missing-file`).
 
@@ -29,6 +29,21 @@ Checked by the harness (row-for-row) or a v2 test: one row per rated live memo, 
 
 Writers (Mac → phone, `ReconcileV2.Writers`): resolve the memo through the store, a Mac recording included (C186); rating / title / destination are events on the memo; clearing a rating writes 0; no meta write bumps the edit time; a Mac trash stamps `trashSeenAt` (C188). Pass order as data: names, vocabulary, prompts, sweep, notify, save + re-export, author backfill, transcript reflect, index (C185). Re-export only rows already exported, unlocked and live (C189).
 
-## Not in v2 yet
+## Q510: the whole pass
 
-v2 is the sweep and its writers. These stay v1 until the swap and are not diffed here: the triggers + coalescer + fresh context (C52, the wiring), the Mac's own memos (`MacMemoAuthor.backfill` / `reflectTranscripts`), the orphan-row trash after the first import (C157), the background ingest of a large first enable (v2 ingests inline, on the main actor), the unrated-note projection (C187, `MemoNoteProjection`), the edit-conflict bookkeeping (v2 calls the shared `EditConflictHold`), the phone's asset materializer (C190) and `cloudKitMacSync` defaulting on (C191, a setting). C191's default is unchanged code.
+v2 now covers the pass around the sweep, not only the sweep: 1,262 lines (24% of 5,297; budget 2,119). Still one synchronous main-actor sweep with no `await` in `Shared/ReconcileV2/` (C294). Harness unchanged: v2 identical 108, expected-different 1, unexplained 0. Tests `ReconcileV2PassTests`.
+
+| piece | now | why / clause |
+|---|---|---|
+| Orphan-row trash | in v2 (`ReconcileV2.Orphans`) | C157 with Q487's refusals: no memos in the store, or more than a quarter of the linked rows (and more than two) at once, is refused and logged; never before the first import; an in-flight ingest is never an orphan |
+| Mac's own memos: author backfill + transcript reflect | in v2 (`ReconcileV2.Author`) | Q397: only rows this Mac captured, only after the first import, never a phone row; the take's words reach its memo once, never a capture's, never another device's, no edit-time bump (C188); timings and diarization ride as the phone's assets (C245) |
+| Background first-enable ingest | in v2 as two synchronous halves | `run(deferNew: true)` returns the never-seen ids; `Ingest.prepare` writes folders (nonisolated, safe on a background context); `Ingest.commit` makes the rows on the main actor. The one `await` (the detached task between them) belongs to the app wiring, so the v2 folder stays await-free. The test runs prepare on a detached task and gets the same rows as the inline sweep |
+| Names / vocabulary / prompts before memos | in v2's pass as its `carriers` step | C185: the pass runs them first (a test checks no memo was fetched yet); the carriers themselves are app singletons |
+| Triggers, coalescer, fresh context | stays in the wiring | C52 is WHEN and THROUGH WHAT the pass runs (NSApplication / CloudKit notifications, `ReconcileCoalescer`, `freshCloudContext`). A host-less sweep must not depend on app lifecycle; at the swap the wiring calls `ReconcileV2.pass` instead of v1 |
+| Unrated-note projection | stays outside | C187 renders a never-rated memo as a transient row at VIEW time; the sweep's whole rule for it is "no row", which the harness and the C41 test check |
+| Phone asset materializer | stays outside | C190 is the phone's sweep (blobs to files on the phone); the Mac's heals follow the same never-overwrite rule and are in v2 (`Heal`) |
+| `cloudKitMacSync` default on | stays a setting | C191 is the gate the wiring checks before any pass, not sweep logic. Now pinned by a test (never set = on, explicit off honoured) |
+
+**R44 closed.** v2's reflect now records every phone polish it SEES: when a later-stamped phone polish carries words the row already has (nothing to adopt), the row's watermark still moves to its stamp. The Mac's next polish is then written, not refused as "newer, unseen". The row is saved but not re-exported (`watermarked`, not `updatedIDs`).
+
+Still outside v2 after Q510: the edit-conflict bookkeeping (v2 calls the shared `EditConflictHold`), the notice + re-export + connections index (the pass returns `reexportIDs`; the app does the export).
