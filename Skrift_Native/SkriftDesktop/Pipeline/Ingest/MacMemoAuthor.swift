@@ -232,8 +232,10 @@ enum MacMemoAuthor {
     /// finished its first CloudKit import (`CloudFirstImport`). A row ingested from a phone memo
     /// carries the phone's id; on a fresh store its Memo simply has not downloaded yet, and
     /// authoring it would upload a Mac-shaped twin under that id that the phone never heals.
+    /// C157: never a trashed row — a row trashed because its memo was purged elsewhere would
+    /// otherwise be re-authored on the same pass and come back on every device.
     static func mayBackfill(_ pf: PipelineFile, firstImportDone: Bool) -> Bool {
-        firstImportDone && pf.isLocalCapture
+        firstImportDone && pf.isLocalCapture && pf.deletedAt == nil
     }
 
     /// The reconcile's `backfill` (Q364): a row whose id is already a key in `memosByID` (the
