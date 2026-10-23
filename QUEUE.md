@@ -3686,7 +3686,7 @@ gate+: yes
 do: Q489 made a Mac body edit survive re-derivation (MacEditRoundTrip.adopt / settle into pf.enhancedCopyedit, de-linked) but skips conversation rows, so his Mac edit to a diarized note is still replaced by the old polish on a phone tag edit, a roster change, the open-note refresh or Redo. Extend the same rule to conversation bodies (speaker turns keep their headers; de-link per turn). Test `MacConversationEditKeptTests` (desktop): each of the four paths keeps his edit in sanitised, the compile and the cloud copy.
 check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q509 [auto] (todo) B: the phone shows a Mac edit to a conversation note
+### Q509 [auto] (done) B: the phone shows a Mac edit to a conversation note
 spec: C47 C152
 needs: Q508
 gate+: yes
@@ -5327,3 +5327,4 @@ check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMo
 - 2026-10-23 20:02 Q490 -> done — gate 87s @937e8190
 - 2026-10-23 20:03 Q509 added
 - 2026-10-23 20:04 Q508 -> done — gate 76s @50d9771c
+- 2026-10-23 20:09 Q509 -> done — gate 49s @e43ef3fa
