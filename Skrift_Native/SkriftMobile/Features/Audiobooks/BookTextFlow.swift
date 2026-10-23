@@ -73,9 +73,7 @@ struct BookTextFlow: ViewModifier {
             drmPrefix = ""
         }
         let text: String
-        if summary.deferredWhileTranscribing {
-            text = drmPrefix + "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
-        } else if summary.totalFiles == 0 {
+        if summary.totalFiles == 0 {
             text = drmPrefix + "No transcript yet — the text will align on its own when transcription finishes."
         } else if summary.alignedFiles == 0 {
             return nil
