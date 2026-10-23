@@ -99,6 +99,7 @@ enum MemoCloudUpdate {
         // Path 3 — the phone edited the RAW transcript.
         if let t = memo.transcript, pf.transcript != t {
             pf.transcript = t
+            pf.transcriptLanguageMode = memo.transcriptLanguageMode   // C151: the stamp rides with the words
             contentChanged = true
         }
 

@@ -228,6 +228,8 @@ final class ProcessingCoordinator {
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
                                      clipStarts: hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : [],
                                      retranscribe: retranscribeIDs.contains(pf.id),
+                                     languageMode: retranscribeIDs.contains(pf.id)
+                                        ? languageRequests.removeValue(forKey: pf.id) : nil,
                                      requireSplit: isSplit,
                                      cancelCheck: cancelCheck)
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
@@ -401,6 +403,9 @@ final class ProcessingCoordinator {
     private(set) var splitNotices: [String: String] = [:]
     private var splitNoticeTokens: [String: Int] = [:]
     private var splitFlags: [String: SplitCancelFlag] = [:]
+    /// C151: a re-transcribe that names its language mode ("Transcribe again in Dutch"), by
+    /// file id, consumed by the pass that runs it.
+    private var languageRequests: [String: ASRLanguageMode] = [:]
 
     #if DEBUG
     /// Snapshot helper: force the split progress / notice states for the headless renders.
@@ -618,7 +623,10 @@ final class ProcessingCoordinator {
     /// stale state with the fresh transcript. (Stale diarization segments fed wrong
     /// voice-enrollment slices; a stale sanitised body kept showing the OLD text
     /// when a fresh run failed midway.)
-    func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
+    ///
+    /// `mode` (C151): ⋯ › "Transcribe again in Dutch / English" — this note only, in that ASR
+    /// language mode; nil = the setting (plain Re-transcribe).
+    func retranscribe(_ pf: PipelineFile, context: ModelContext, in mode: ASRLanguageMode? = nil) async {
         guard !isRunning else { lastError = Self.busyMessage; return }
         // Missing audio file is an ERROR on the row, not a silent clear (C51/R9) — checked
         // before touching anything, so a re-transcribe over a deleted file leaves the note
@@ -639,6 +647,7 @@ final class ProcessingCoordinator {
         pf.enhanceStatus = .pending
         pf.error = nil
         try? context.save()
+        if let mode { languageRequests[pf.id] = mode } else { languageRequests[pf.id] = nil }
         await process(fileIDs: [pf.id], context: context, retranscribeIDs: [pf.id])
     }
 

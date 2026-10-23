@@ -37,7 +37,8 @@ actor TranscriptionService: Transcribing {
 
     // MARK: - Model lifecycle
 
-    func ensureLoaded() async throws {
+    /// `mode`: an explicit per-note mode (C151 "Transcribe again in …"); nil = the setting.
+    func ensureLoaded(mode: ASRLanguageMode? = nil) async throws {
         installMemoryObserverIfNeeded()
         // Transcription mode (Settings): English (the v3 default, clean English seams)
         // vs Multilingual (melChunkContext off — stops the v3 decoder drifting to its
@@ -46,13 +47,15 @@ actor TranscriptionService: Transcribing {
         // Reads the SHARED store, so the key name and the config derivation are the same
         // ones the Mac uses (`ASRLanguageMode`) — they used to be inlined per app, which
         // is how the Mac ended up permanently English-tuned.
-        let multilingual = ASRLanguageStore.isMultilingual()
+        let multilingual = mode?.isMultilingual ?? ASRLanguageStore.isMultilingual()
         if asr != nil, multilingual == loadedMultilingual { return }
-        if asr != nil { asr = nil; models = nil }   // mode changed → rebuild below
         if let loadTask {
+            // A load already in flight may be for the OTHER mode: wait, then check again.
             try await loadTask.value
-            return
+            if multilingual == loadedMultilingual { return }
+            return try await ensureLoaded(mode: .from(multilingual: multilingual))
         }
+        if asr != nil { asr = nil; models = nil }   // mode changed → rebuild below
         let task = Task<Void, Error> {
             await MainActor.run { ModelLoadStatus.shared.set(.preparing(nil)) }
             let mlConfig = MLModelConfiguration()
@@ -136,10 +139,18 @@ actor TranscriptionService: Transcribing {
     // MARK: - Transcription
 
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
+        try await transcribe(audioURL: audioURL, imageManifest: imageManifest,
+                             mode: .from(multilingual: ASRLanguageStore.isMultilingual()))
+    }
+
+    /// C151: one pass in `mode`, whatever the setting says. The result carries the mode so the
+    /// note can store it.
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry],
+                    mode: ASRLanguageMode) async throws -> TranscriptionResult {
         isTranscribing = true
         TranscriptionActivity.begin()   // the embedder yields the ANE while this runs
         defer { isTranscribing = false; TranscriptionActivity.end() }
-        try await ensureLoaded()
+        try await ensureLoaded(mode: mode)
         guard let asr else {
             throw ASRError.notInitialized
         }
@@ -152,7 +163,7 @@ actor TranscriptionService: Transcribing {
         // The tail (phantom guard → BPE merge → vocab rescore → timings → markers) is
         // the SHARED `ASRPostProcess` — one copy with the Mac. RMS decodes the ENTIRE
         // file, so it stays lazy: only a suspiciously tiny transcript pays for it.
-        return await ASRPostProcess.finish(
+        var finished = await ASRPostProcess.finish(
             rawText: result.text,
             tokens: (result.tokenTimings ?? []).map {
                 RawToken(token: $0.token, startTime: $0.startTime, endTime: $0.endTime)
@@ -168,6 +179,8 @@ actor TranscriptionService: Transcribing {
                     text: text, tokenTimings: result.tokenTimings ?? [],
                     audioURL: audioURL)
             })
+        finished.languageMode = mode
+        return finished
     }
 
     /// Direct PCM transcribe (the whole-book chunk path): same engine, same

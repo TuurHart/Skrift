@@ -93,6 +93,7 @@ enum MacMemoAuthor {
             // fresh local recording, IS the "a person edited this take" signal — no new
             // parameter needs to reach this call from `ArrivalPath.run`, which is frozen.
             markTranscribed(memo, transcript: t, userEdited: pf.isLocalRecording)
+            memo.transcriptLanguageMode = pf.transcriptLanguageMode
         }
         ctx.insert(memo)
 
@@ -188,6 +189,7 @@ enum MacMemoAuthor {
             guard memo.sharedContentData == nil else { continue }   // a capture's text is its annotation
             guard (memo.transcript ?? "").isEmpty else { continue }
             markTranscribed(memo, transcript: t)
+            memo.transcriptLanguageMode = pf.transcriptLanguageMode   // C151: the stamp rides with the words
             count += 1
         }
         if count > 0 {

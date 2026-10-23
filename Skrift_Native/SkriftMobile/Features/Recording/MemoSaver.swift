@@ -936,6 +936,7 @@ struct MemoSaver {
                 manifest: memo.metadata?.attachmentManifest ?? [])
             memo.transcriptConfidence = result.confidence
             memo.transcriptMarkersInjected = result.markersInjected
+            memo.transcriptLanguageMode = (result.languageMode ?? Self.settingMode()).rawValue
             memo.transcriptStatus = text.isEmpty ? .failed : .done
             repository.save()
             autoCopyIfEnabled(memo.transcript)
@@ -950,6 +951,64 @@ struct MemoSaver {
                 repository.save()
             }
         }
+    }
+
+    /// The global language setting — what a transcript without its own stamp was made with.
+    static func settingMode() -> ASRLanguageMode { .from(multilingual: ASRLanguageStore.isMultilingual()) }
+
+    /// C151 / D46: ⋯ › "Transcribe again in Dutch / English" offers itself on a voice note with
+    /// its audio and a finished transcript. Not on a conversation (its speaker turns are the only
+    /// copy of the diarization), a capture, a book quote, or a transcript the user edited — a
+    /// new pass would run over their words.
+    static func canTranscribeAgain(_ memo: Memo) -> Bool {
+        memo.audioURL != nil && memo.transcriptStatus == .done && !memo.transcriptUserEdited
+            && !memo.isShareCapture && !memo.isBookCapture
+            && !SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource)
+    }
+
+    /// The mode this note's transcript was made with (its stamp, else the setting).
+    static func recordedMode(_ memo: Memo) -> ASRLanguageMode {
+        .recorded(memo.transcriptLanguageMode, default: settingMode())
+    }
+
+    /// C151: re-run ASR on THIS note's audio in `mode`; the global setting stays the default for
+    /// everything else. Nothing changes unless the new pass returns words: then the transcript,
+    /// confidence, timings and stamp are replaced (through the same body-v2 commit a recording
+    /// gets) and the note is marked edited, so the Mac adopts the new words and polishes them.
+    /// A failure leaves the note exactly as it was.
+    @discardableResult
+    func transcribeAgain(id: UUID, in mode: ASRLanguageMode) async -> Bool {
+        guard let memo = repository.memo(id: id), let url = memo.audioURL else { return false }
+        let manifest = memo.metadata?.imageManifest ?? []
+        let result: TranscriptionResult
+        do {
+            result = try await transcriber.transcribe(audioURL: url, imageManifest: manifest, mode: mode)
+        } catch {
+            DevLog.log("transcribeAgain[\(id)] \(mode.rawValue) FAILED: \(error)")
+            return false
+        }
+        var storedText = result.text
+        var storedTimings = result.wordTimings
+        if UserDefaults.standard.bool(forKey: FillerFilter.settingKey) {   // as runTranscription
+            let stripped = FillerFilter.strip(transcript: storedText, words: storedTimings)
+            storedText = stripped.text
+            storedTimings = stripped.words
+        }
+        let text = storedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let memo = repository.memo(id: id) else { return false }
+        if !storedTimings.isEmpty { wordTimings.write(storedTimings, for: id) }
+        memo.transcript = NoteAttachment.leadingKeptMovie(BodyV2.committed(BodyV2.Input(
+            text: storedText, words: storedTimings, manifest: manifest,
+            source: storedTimings.isEmpty ? .typed : .speech,
+            clipStarts: MixedBundle.breakStarts(memo.metadata?.clipManifest ?? []))),
+            manifest: memo.metadata?.attachmentManifest ?? [])
+        memo.transcriptConfidence = result.confidence
+        memo.transcriptMarkersInjected = result.markersInjected
+        memo.transcriptLanguageMode = (result.languageMode ?? mode).rawValue
+        memo.transcriptStatus = .done
+        memo.markEdited()
+        repository.save()
+        return true
     }
 
     /// Re-transcribe recordings orphaned at `.transcribing` by a process kill.

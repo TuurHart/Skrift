@@ -94,6 +94,10 @@ final class PipelineFile {
 
     // Transcription / sanitisation
     var transcript: String?
+    /// C151: the ASR language mode (`ASRLanguageMode.rawValue`) `transcript` was made in —
+    /// the Mac's own pass stamps it, a phone transcript brings the phone's stamp. Rides to the
+    /// Memo with the words. ADDITIVE, nil default (= unstamped).
+    var transcriptLanguageMode: String? = nil
     var sanitised: String?
     /// `[AmbiguousOccurrence]` stored as a JSON blob (struct arrays trap SwiftData).
     var ambiguousNamesJSON: Data?
