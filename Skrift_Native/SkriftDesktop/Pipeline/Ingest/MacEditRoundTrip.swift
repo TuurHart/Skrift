@@ -15,14 +15,21 @@ enum MacEditRoundTrip {
 
     /// `before` (the stored polish) goes through the SAME process + unlink trip as the live
     /// body, because re-linking is not byte-stable (short-name demotion), so only a real body
-    /// change registers (Q42).
+    /// change registers (Q42). `conversation` (Q508): the stored body is speaker turns, linked
+    /// by the turn linker (headers claim their speaker, same-speaker turns merge); the de-link
+    /// works turn by turn already (`**[[Bruno Costa]]:**` → `**Bruno:**`), so only the linker
+    /// the comparison re-links with differs.
     static func compute(body: String, before: String?, people: [Person],
-                        neverLink: Set<String>, namePicks: [String: String]) -> Result {
+                        neverLink: Set<String>, namePicks: [String: String],
+                        conversation: Bool = false) -> Result {
         let raw = Sanitiser.unlinkToSpoken(body, people: people)
-        let beforeRoundTripped = before.map {
-            Sanitiser.unlinkToSpoken(Sanitiser.process(text: $0, people: people,
-                                                       neverLink: neverLink,
-                                                       namePicks: namePicks).sanitised, people: people)
+        let beforeRoundTripped = before.map { text -> String in
+            let linked = conversation
+                ? Sanitiser.processConversation(text: text, people: people, neverLink: neverLink,
+                                                namePicks: namePicks).sanitised
+                : Sanitiser.process(text: text, people: people, neverLink: neverLink,
+                                    namePicks: namePicks).sanitised
+            return Sanitiser.unlinkToSpoken(linked, people: people)
         }
         return Result(raw: raw, bodyMoved: beforeRoundTripped != raw)
     }
@@ -41,12 +48,12 @@ enum MacEditRoundTrip {
 
     /// `body` (the linked body) against `working` (the copy-edit → transcript it should derive
     /// from), both linked with `people` and the note's name decisions: a difference is his edit,
-    /// adopted. A conversation keeps its turns (its linker is not this round trip's).
+    /// adopted. A conversation is compared through the turn linker, so its headers stay turns.
     static func settle(_ pf: PipelineFile, body: String?, working: String, linkedWith people: [Person],
                        neverLink: Set<String>, namePicks: [String: String]) {
-        guard let body, !working.isEmpty,
-              !SpeakerTranscript.isConversation(working, source: pf.noteSource) else { return }
-        adopt(compute(body: body, before: working, people: people, neverLink: neverLink, namePicks: namePicks),
+        guard let body, !working.isEmpty else { return }
+        adopt(compute(body: body, before: working, people: people, neverLink: neverLink, namePicks: namePicks,
+                      conversation: SpeakerTranscript.isConversation(working, source: pf.noteSource)),
               into: pf)
     }
 
@@ -59,10 +66,11 @@ enum MacEditRoundTrip {
 
     /// `compute` on a background executor: the main actor only awaits the result.
     static func offMain(body: String, before: String?, people: [Person],
-                        neverLink: Set<String>, namePicks: [String: String]) async -> Result {
+                        neverLink: Set<String>, namePicks: [String: String],
+                        conversation: Bool = false) async -> Result {
         await Task.detached(priority: .userInitiated) {
             compute(body: body, before: before, people: people,
-                    neverLink: neverLink, namePicks: namePicks)
+                    neverLink: neverLink, namePicks: namePicks, conversation: conversation)
         }.value
     }
 }

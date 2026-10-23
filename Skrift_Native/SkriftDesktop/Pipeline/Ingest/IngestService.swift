@@ -114,7 +114,7 @@ struct IngestService: Sendable {
     /// their own (C68: N photos, one note) and a text is a note of its own. What a bundle accepts
     /// and the ordering/placement are `MixedBundle`'s, shared with the phone.
     @discardableResult
-    func ingest(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> [PipelineFile] {
+    @MainActor func ingest(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> [PipelineFile] {
         let report = try await ingestReport(localURLs: localURLs, combineAudio: combineAudio, into: context)
         for url in report.skipped {
             Self.log.error("not imported: \(url.lastPathComponent, privacy: .public)")
@@ -123,7 +123,7 @@ struct IngestService: Sendable {
     }
 
     /// `ingest`, plus the files that did not become a note (see `IngestReport`).
-    func ingestReport(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> IngestReport {
+    @MainActor func ingestReport(localURLs: [URL], combineAudio: Bool = false, into context: ModelContext) async throws -> IngestReport {
         var report = IngestReport()
         // Q186 / C68: every file's bundle role from the ONE accept set (`MixedBundle.member`).
         // The container probe is file I/O, so off the caller's actor.
@@ -230,7 +230,7 @@ struct IngestService: Sendable {
     ///   every picture + video frame lands in `images/` at its offset.
     /// `note` is nil only when no speech item yields audio (every video silent / unreadable):
     /// the caller then treats the pictures and texts as if there were no bundle.
-    private func ingestSpeechNote(_ speech: [URL], videos: Set<URL>, pictures: [URL], dropOrder: [URL],
+    @MainActor private func ingestSpeechNote(_ speech: [URL], videos: Set<URL>, pictures: [URL], dropOrder: [URL],
                                   into context: ModelContext) async throws
         -> (note: PipelineFile?, merged: Bool, skipped: [URL]) {
         let isVideo = { (u: URL) in videos.contains(u) }
@@ -314,7 +314,7 @@ struct IngestService: Sendable {
 
     /// The bundle's texts become `pf`'s annotation (C68). Returns the texts that could not be
     /// read.
-    private func annotate(_ pf: PipelineFile, withTexts texts: [URL]) async throws -> [URL] {
+    @MainActor private func annotate(_ pf: PipelineFile, withTexts texts: [URL]) async throws -> [URL] {
         let read: [(URL, String?)] = try await Self.offMain {
             texts.map { ($0, try? String(contentsOf: $0, encoding: .utf8)) }
         }
@@ -386,7 +386,7 @@ struct IngestService: Sendable {
     }
 
     /// A bundle's pictures go in the audio note's own working folder (next to `original.m4a`).
-    private func attachPictures(_ placements: [MixedBundle.Placement], to pf: PipelineFile) async throws -> [URL] {
+    @MainActor private func attachPictures(_ placements: [MixedBundle.Placement], to pf: PipelineFile) async throws -> [URL] {
         guard !placements.isEmpty else { return [] }
         return try await writePictures(placements, into: URL(fileURLWithPath: pf.path).deletingLastPathComponent())
     }
@@ -394,7 +394,7 @@ struct IngestService: Sendable {
     /// Pictures with no clip to ride on become ONE note whose body is one picture paragraph each
     /// (C68, C12/C13). A capture-shaped working folder, like a phone image share; the body is
     /// already text, so there is nothing to transcribe.
-    private func ingestPictureNote(_ pictures: [URL], into context: ModelContext) async throws -> (PipelineFile?, [URL]) {
+    @MainActor private func ingestPictureNote(_ pictures: [URL], into context: ModelContext) async throws -> (PipelineFile?, [URL]) {
         let ordered = MixedBundle.ordered(pictures.map {
             MixedBundle.Item(url: $0, kind: .picture, date: Self.importDate(of: $0, kind: .picture))
         })
@@ -418,7 +418,7 @@ struct IngestService: Sendable {
         pf.transcribeStatus = .done
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return (pf, failed)
     }
 
@@ -434,7 +434,7 @@ struct IngestService: Sendable {
     /// N clips → ONE audio PipelineFile: merged in order to `original.m4a`, named and dated
     /// from the FIRST clip (the date ladder is C70's, same as a single import). `audioOf` maps a
     /// bundle VIDEO to its extracted audio track (C68); a plain clip is its own audio.
-    private func ingestMergedAudio(_ clips: [URL], audioOf: [URL: URL] = [:],
+    @MainActor private func ingestMergedAudio(_ clips: [URL], audioOf: [URL: URL] = [:],
                                    into context: ModelContext) async throws -> PipelineFile {
         let sources = clips.map { audioOf[$0] ?? $0 }
         let first = clips[0]
@@ -464,7 +464,7 @@ struct IngestService: Sendable {
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 
@@ -492,16 +492,41 @@ struct IngestService: Sendable {
     }
 
     /// Run throwing file work on a detached task so a slow copy never parks the
-    /// caller's actor.
+    /// caller's actor (Q507: the importer's methods run on the main actor now, so this is
+    /// what keeps copies, merges and reads off it).
     private static func offMain<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
-        try await Task.detached(priority: .userInitiated) { try work() }.value
+        try await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            IngestService.threadProbe?(.fileWork, Thread.isMainThread)
+            #endif
+            return try work()
+        }.value
     }
+
+    /// Q507: the ONE way a row enters the caller's context. Main actor: the Sidebar and every
+    /// other caller pass a main-actor context (`mainContext`), and SwiftData rows must only
+    /// be touched on their context's thread — `IngestService` used to insert from the global
+    /// executor (a nonisolated struct's async methods, Swift 5.9 mode), the bug Q505 fixed in
+    /// `BatchRunner`.
+    @MainActor func insert(_ pf: PipelineFile, into context: ModelContext) {
+        #if DEBUG
+        Self.threadProbe?(.insert, Thread.isMainThread)
+        #endif
+        context.insert(pf)
+    }
+
+    #if DEBUG
+    enum ThreadProbeEvent: Sendable { case insert, fileWork }
+    /// Q507 test seam (`IngestIsolationTests`): told on which thread each row insert and each
+    /// piece of off-main file work ran.
+    nonisolated(unsafe) static var threadProbe: (@Sendable (ThreadProbeEvent, Bool) -> Void)?
+    #endif
 
     /// A single file → one PipelineFile (audio, video, or Apple-Note markdown).
     /// Unsupported types are skipped (returns nil). A video container is probed for
     /// an actual video track: if present, its audio is extracted; if absent (an
     /// audio-only `.mp4`/`.mov`), it's ingested as plain audio.
-    func ingestFile(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor func ingestFile(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         // Q439 / C238: what the file IS is the ONE shared dispatcher's call (a phone share of
         // the same file goes through it too); a refusal is an honest skip (C77).
         guard let plan = Self.dispatchPlan(for: url) else { return nil }
@@ -542,7 +567,7 @@ struct IngestService: Sendable {
     /// phone's drainer applies the same rule), a PDF / document a document capture. A book has
     /// no Mac ingest here and anything outside the accepted list is refused; both are reported
     /// as skipped, never silently.
-    private func ingestDocument(_ url: URL, ext: String, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor private func ingestDocument(_ url: URL, ext: String, into context: ModelContext) async throws -> PipelineFile? {
         // C142 (Q441): an `.eml` is a text capture (Subject, body, Date header), as on the phone.
         if EmailShare.isEmailFile(url.lastPathComponent),
            let pf = try await ingestEmailCapture(url, into: context) { return pf }
@@ -568,7 +593,7 @@ struct IngestService: Sendable {
         }
     }
 
-    private func ingestAudio(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
+    @MainActor private func ingestAudio(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let folder = try makeFolder(id: id, filename: filename)
@@ -588,7 +613,7 @@ struct IngestService: Sendable {
                               sourceType: .audio, uploadedAt: recorded)
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 
@@ -600,7 +625,7 @@ struct IngestService: Sendable {
     /// `MemoAsset` only while the note is filed Inspiration / Idea / Project (C63/C148).
     /// `writeFrame: false` when the video is one note of a bundle: the bundle writes its frame
     /// at its place among the bundle's pictures instead.
-    private func ingestVideo(_ url: URL, writeFrame: Bool = true, into context: ModelContext) async throws -> PipelineFile {
+    @MainActor private func ingestVideo(_ url: URL, writeFrame: Bool = true, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let folder = try makeFolder(id: id, filename: filename)
@@ -670,7 +695,7 @@ struct IngestService: Sendable {
         pf.mediaSource = "video"   // unified source taxonomy → video glyph + label
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 
@@ -678,7 +703,7 @@ struct IngestService: Sendable {
     /// for what went wrong, glyph "video", no audio and no words - the phone's
     /// `MemoSaver.processVideo` failure shape (C202, "Video had no audio track", identical).
     /// A `.note` row, so nothing downstream tries to read audio it does not have.
-    private func ingestFailedVideo(_ url: URL, title: String, into context: ModelContext) async throws -> PipelineFile {
+    @MainActor private func ingestFailedVideo(_ url: URL, title: String, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let folder = try makeFolder(id: id, filename: filename)
@@ -691,7 +716,7 @@ struct IngestService: Sendable {
         pf.enhancedTitle = title
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 
@@ -700,7 +725,7 @@ struct IngestService: Sendable {
         pf.sourceType == .note && pf.mediaSource == "video" && pf.transcribeStatus == .error
     }
 
-    private func ingestNote(_ url: URL, typed: Bool, into context: ModelContext) async throws -> PipelineFile {
+    @MainActor private func ingestNote(_ url: URL, typed: Bool, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let folder = try makeFolder(id: id, filename: filename)
@@ -743,7 +768,7 @@ struct IngestService: Sendable {
         // neither flag reads as a legacy RATED row (`NoteConsent.isRated`).
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 
@@ -924,7 +949,7 @@ struct IngestService: Sendable {
     /// exports, audio recordings, AND video clips (e.g. dropping a folder of voice
     /// memos / self-recorded videos). Skips subfolders (an Apple Notes export's
     /// `Attachments/` images aren't notes).
-    private func ingestFolder(_ url: URL, into context: ModelContext) async throws
+    @MainActor private func ingestFolder(_ url: URL, into context: ModelContext) async throws
         -> (created: [PipelineFile], skipped: [(url: URL, reason: String)]) {
         let items = ((try? FileManager.default.contentsOfDirectory(
             at: url, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? [])

@@ -28,9 +28,12 @@ enum SettingsCopy {
                 : "Pick your Skrift folder so this iPhone can read your vault. Notes are written to it by your Mac (and iPad) once they've been processed."
         }
         return canProcess
-            ? "Notes, audio and photos go into “\(folderName)”. A note you edit or move in Obsidian is left alone — Skrift never overwrites your version."
+            ? "Notes, audio and photos go into “\(folderName)”. A note you edit or move in Obsidian is left alone — Skrift never overwrites your version. \(folderSwitchLine)"
             : "This iPhone reads “\(folderName)”; it doesn't write to it. Your Mac and iPad put notes there once they've processed them."
     }
+
+    /// C164 (Q490): switching the folder moves nothing that was already exported.
+    static let folderSwitchLine = "Picking another folder never moves notes already exported; new exports go to the new one."
 
     // ── Destinations (setexp-67) ──
     static let destinationsToggleLabel = "Separate destinations"

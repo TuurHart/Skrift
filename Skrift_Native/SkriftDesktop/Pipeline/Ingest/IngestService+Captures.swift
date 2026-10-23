@@ -12,7 +12,7 @@ extension IngestService {
 
     /// A dropped `.txt`: the file's text IS the body of a text capture, no document kept. An
     /// oversized, non-UTF-8 or blank file stays a document capture, as on the phone.
-    func ingestTextCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor func ingestTextCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let body = await Task.detached(priority: .userInitiated) { () -> String? in
             guard let data = try? Data(contentsOf: url) else { return nil }
             return SharedTextFile.body(of: data)
@@ -30,7 +30,7 @@ extension IngestService {
     /// readable message; the caller then keeps it as a document, never a husk. Q448: the
     /// message's attachments are stored as the note's file attachments (`[[file_NNN]]` after
     /// the body, in attachment order), the way a picked file is since Q385.
-    func ingestEmailCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor func ingestEmailCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let mail = await Task.detached(priority: .userInitiated) { () -> EmailShare.Message? in
             guard let data = try? Data(contentsOf: url) else { return nil }
             return EmailShare.parse(data)
@@ -46,7 +46,7 @@ extension IngestService {
     /// A dropped document: copied under the capture's `files/` (the Mac opens the real file),
     /// and a PDF's embedded text goes in `sharedContent.text` so it is searchable. A scanned
     /// PDF has no text and stays findable by its name.
-    func ingestDocumentCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor func ingestDocumentCapture(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         // An unreadable file is REPORTED as skipped (ImportReport), not thrown past the rest of the drop.
         guard let data = await Task.detached(priority: .userInitiated, operation: { try? Data(contentsOf: url) }).value else { return nil }
         let ext = url.pathExtension.lowercased()
@@ -64,7 +64,7 @@ extension IngestService {
     /// one GET for title / description / thumbnail / article text. A failed fetch keeps a bare
     /// link card titled by its HOST, never the raw URL (C72). A failed GET is retried up to three
     /// times with backoff (`RetryingLinkFetcher`, Q266) before the drop settles for that card.
-    func ingestLink(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
+    @MainActor func ingestLink(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let linkFetcher = RetryingLinkFetcher(base: self.linkFetcher, sleep: linkRetrySleep)
         guard Self.dispatchPlan(for: url)?.kind == .url else { return nil }   // Q439: the shared dispatcher
         let raw = url.absoluteString
@@ -101,7 +101,7 @@ extension IngestService {
     /// Writes one capture's working folder and inserts its row: `sharedContent` + the body in
     /// the metadata blob (what a phone capture's synced blob carries), the body as the
     /// transcript (so transcription is `.done`, there is nothing to hear), unrated (D159).
-    private func makeCapture(shared initial: SharedContent, body: String, location: LocationInfo?,
+    @MainActor private func makeCapture(shared initial: SharedContent, body: String, location: LocationInfo?,
                              document: (data: Data, ext: String)?, thumbnail: Data?,
                              recordedAt: Date? = nil,
                              emailAttachments: [EmailShare.Attachment] = [],
@@ -159,7 +159,7 @@ extension IngestService {
         pf.transcribeStatus = .done
         pf.isLocalRecording = isLocalRecording
         pf.isLocalImport = !isLocalRecording
-        context.insert(pf)
+        insert(pf, into: context)
         return pf
     }
 }

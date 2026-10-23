@@ -81,9 +81,13 @@ final class MacCloudEditSync {
             ?? pf.enhancedCopyedit
         let neverLink = Set(pf.unlinkedNames)
         let namePicks = pf.namePicks
+        // Q508: a diarized note's body is speaker turns, compared through the turn linker.
+        let conversation = SpeakerTranscript.isConversation(
+            CompilerInput.workingBody(raw: pf.transcript, copyedit: pf.enhancedCopyedit).text, source: pf.noteSource)
         Task { @MainActor [weak self, weak pf] in
             let trip = await MacEditRoundTrip.offMain(body: body, before: before, people: people,
-                                                      neverLink: neverLink, namePicks: namePicks)
+                                                      neverLink: neverLink, namePicks: namePicks,
+                                                      conversation: conversation)
             guard let self, let pf, self.flushGeneration[id] == generation else { return }
             self.flushGeneration[id] = nil
             MacEditRoundTrip.adopt(trip, into: pf)

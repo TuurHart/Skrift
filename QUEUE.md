@@ -3143,7 +3143,7 @@ gate+: yes
 do: Seed the corpus, run the v1 sweep, and record every Mac row field by field as `test-fixtures/corpus/goldens/v1-rows/<slug>.json` (C44). `ReconcileDiffHarnessTests` (desktop target) runs each registered sweep engine and classes rows identical / expected-different / unexplained (C5), and asserts a second sweep changes nothing (C41). Pin C52: launch, activation and CloudKit import each trigger one coalesced sweep through a fresh context, no timer, and a failed cloud fetch is logged and surfaced (R40).
 check: `test $(ls test-fixtures/corpus/goldens/v1-rows | wc -l) -ge 100 && grep -rqE "class ReconcileDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q429 [auto] (todo) reconcile v2 beside v1
+### Q429 [auto] (done) reconcile v2 beside v1
 spec: C41 C42 C43 C44 C45 C46 C47 C48 C52 C185 C186 C187 C188 C189 C190 C191 C294 C2 C3
 needs: Q428
 gate+: yes
@@ -3158,7 +3158,7 @@ check: Tuur read `plan/reads/reconcile-v2.md` and said go.
 
 ### Q431 [auto] (todo) swap: the Mac sweep calls reconcile v2
 spec: C2 C52
-needs: Q430
+needs: Q430 Q510
 do: Point `MemoCloudReconciler`'s callers (launch, activation, CloudKit import, `CloudFirstImport`, `MacNoteOpenWork`) at reconcile v2. The v1 code stays in place for Q432 to delete.
 check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Pipeline`
 
@@ -3554,7 +3554,7 @@ gate+: yes
 do: Add, alias or rename re-derives links for every processed row on the Mac once, deterministically, and re-exports the untouched vault files we own whose links or `people:` went stale; a rename rewrites `[[Old]]` → `[[New]]` and `people:`; edited or foreign files are never touched. Add corpus fixtures `voice-en-bruno-before-roster` ×3 and a rename golden. Test `RosterReexportTests` (desktop).
 check: `grep -rqE "class RosterReexportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q490 [auto] (stuck) B: changing a note's destination moves its exported file; retitle and folder switch never move files
+### Q490 [auto] (done) B: changing a note's destination moves its exported file; retitle and folder switch never move files
 spec: C163 C164
 needs: -
 gate+: yes
@@ -3672,19 +3672,33 @@ gate+: yes
 do: Q486 added MemoEnhancement.isStale(for:) (transcriptEditedAt > enhancedAt), but only the phone note page honours it: the phone/iPad vault exporter, WallPrinter and the list cache still read the newest copy-edit, so a note he re-edited after the Mac polished it exports and lists the old polish. Route every reader of the Mac polish through one shared accessor that returns nil when stale (fall back to his raw, as the note page does). Test `StalePolishReadersTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh StalePolishReadersTests`
 
-### Q507 [auto] (todo) A: import writes rows on the main actor, file work stays off main
+### Q507 [auto] (done) A: import writes rows on the main actor, file work stays off main
 spec: C5 C294
 needs: Q505
 gate+: yes
 do: Same bug class as Q505: `struct IngestService: Sendable` has nonisolated async funcs (ingestReport/ingestFile/ingestAudio/ingestVideo/ingestNote/attachPictures/...) that insert PipelineFile rows into the CALLER'S context (the Sidebar passes mainContext), so drag-drop and import write the main context off the main thread. Split it: file work (copy, video export, hashing) stays off main so the old P1 freeze does not come back, inserts and row mutations run on the main actor. Test `IngestIsolationTests` (desktop): every insert happens on the main thread with a probe.
 check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q508 [auto] (todo) B: a Mac edit to a conversation note survives every re-derivation
+### Q508 [auto] (done) B: a Mac edit to a conversation note survives every re-derivation
 spec: C261 C47
 needs: Q489
 gate+: yes
 do: Q489 made a Mac body edit survive re-derivation (MacEditRoundTrip.adopt / settle into pf.enhancedCopyedit, de-linked) but skips conversation rows, so his Mac edit to a diarized note is still replaced by the old polish on a phone tag edit, a roster change, the open-note refresh or Redo. Extend the same rule to conversation bodies (speaker turns keep their headers; de-link per turn). Test `MacConversationEditKeptTests` (desktop): each of the four paths keeps his edit in sanitised, the compile and the cloud copy.
 check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q509 [auto] (done) B: the phone shows a Mac edit to a conversation note
+spec: C47 C152
+needs: Q508
+gate+: yes
+do: The phone renders a conversation note from memo.transcript, not the Mac's copy-edit, so his edit to a diarized note on the Mac reaches the cloud MemoEnhancement but never his phone's view (pre-existing; found in Q508). Show the current (non-stale, MemoEnhancement.current) copy-edit for conversations the same way as for prose, keeping speaker turns and the turn gutter. Test `PhoneConversationPolishTests` (phone, plan/mtest.sh).
+check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneConversationPolishTests`
+
+### Q510 [auto] (todo) reconcile v2 covers the whole sweep before the swap
+spec: C52 C157 C187 C190 C191 C3
+needs: Q429
+gate+: yes
+do: Q429's reconcile v2 left these on v1: triggers/coalescer/fresh context wiring (C52), MacMemoAuthor backfill + reflectTranscripts, orphan-row trash (C157, Q487's rules incl. the quarter refusal), the background first-enable ingest, the unrated projection (C187), the phone materializer (C190), the cloudKitMacSync default (C191). Bring each into Skrift_Native/Shared/ReconcileV2 (or name why it stays outside the sweep) so Q431's swap replaces v1 whole. Keep the one synchronous main-actor sweep and the harness green (v2 unexplained 0). Also close R44's gap: a later-stamped phone polish with identical text must not be refused. Total stays within 2,119 lines; append the changes to plan/reads/reconcile-v2.md.
+check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && grep -qi 'C157' plan/reads/reconcile-v2.md && grep -qi 'C190' plan/reads/reconcile-v2.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5315,3 +5329,11 @@ check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDe
 - 2026-10-23 19:53 Q506 -> done — gate 64s @7800be13
 - 2026-10-23 19:57 Q508 added
 - 2026-10-23 19:59 Q489 -> done — gate 117s @1d30a93d
+- 2026-10-23 20:00 Q507 -> done — gate 87s @29ecb51d
+- 2026-10-23 20:00 Q490 -> todo
+- 2026-10-23 20:02 Q490 -> done — gate 87s @937e8190
+- 2026-10-23 20:03 Q509 added
+- 2026-10-23 20:04 Q508 -> done — gate 76s @50d9771c
+- 2026-10-23 20:09 Q509 -> done — gate 49s @e43ef3fa
+- 2026-10-23 20:15 Q510 added
+- 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
