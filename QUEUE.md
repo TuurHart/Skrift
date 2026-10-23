@@ -3630,7 +3630,7 @@ gate+: yes
 do: `AppPaths`-style accessors call createDirectory at most once per process launch (cache the result), never on every access, on both apps. Test `DirectoryCreateOnceTests` (desktop) counting createDirectory calls across repeated access.
 check: `grep -rqE "class DirectoryCreateOnceTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q501 [auto] (todo) copy-edit v2 keeps headings and bold labels
+### Q501 [auto] (done) copy-edit v2 keeps headings and bold labels
 spec: C34 C116 D215
 needs: Q478
 gate+: yes
@@ -5254,3 +5254,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:35 Q483 -> done — gate 144s @a9691c2a
 - 2026-10-23 18:40 Q504 -> done — gate 84s @c67910ce
 - 2026-10-23 18:42 Q482 -> done — hand-merged (R34 fixed by this item: RoundTripParityTests pre-registered XCTExpectFailure flips to a plain assertion (C5))
+- 2026-10-23 18:46 Q501 -> done — hand-merged (D215 extension asked by Q501: expected-differences-copyedit-v2.json registrations moved/added for headings + bold)
