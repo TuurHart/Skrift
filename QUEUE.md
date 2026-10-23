@@ -3190,7 +3190,7 @@ check: Tuur read `plan/reads/export-v2.md` and said go.
 
 ### Q436 [auto] (todo) swap: iPad and Mac export call the v2 compiler
 spec: C2 C61
-needs: Q435
+needs: Q435 Q511
 do: Point the shared export engine (iPad and Mac) at the v2 compiler. `Shared/Export/Compiler.swift` stays in place for Q437 to delete.
 check: `grep -rqE "ExportV2" Skrift_Native/Shared/Export Skrift_Native/SkriftDesktop`
 
@@ -3699,6 +3699,13 @@ needs: Q429
 gate+: yes
 do: Q429's reconcile v2 left these on v1: triggers/coalescer/fresh context wiring (C52), MacMemoAuthor backfill + reflectTranscripts, orphan-row trash (C157, Q487's rules incl. the quarter refusal), the background first-enable ingest, the unrated projection (C187), the phone materializer (C190), the cloudKitMacSync default (C191). Bring each into Skrift_Native/Shared/ReconcileV2 (or name why it stays outside the sweep) so Q431's swap replaces v1 whole. Keep the one synchronous main-actor sweep and the harness green (v2 unexplained 0). Also close R44's gap: a later-stamped phone polish with identical text must not be refused. Total stays within 2,119 lines; append the changes to plan/reads/reconcile-v2.md.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && grep -qi 'C157' plan/reads/reconcile-v2.md && grep -qi 'C190' plan/reads/reconcile-v2.md`
+
+### Q511 [auto] (todo) C: export v2 swap prerequisites (Mac row mirrors createdAt and his-title; iPad publisher can call v2)
+spec: C64 C25 D12 C2
+needs: Q434
+gate+: yes
+do: Q434's export v2 reads memo.createdAt and "he typed the title" off the memo in the harness, but the Mac's PipelineFile mirrors neither, and the iPad publisher (ObsidianPublisher) is not wired to v2. Mirror both onto the Mac row (pull-only, like Q491's editedAt; new stored PipelineFile fields need the ReconcileDiffHarnessTests.fields line + all v1-rows goldens re-recorded by flag — hand-merge D163; include reconcile v2's Reflect field table). Give ObsidianPublisher and VaultExporter a v2 path behind one switch that stays OFF (the swap, Q436, flips it after Tuur reads Q435). Test `ExportV2InputsTests` (desktop): a synced memo's createdAt and title origin reach ExportV2.Note on the Mac exactly as the harness builds them.
+check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5338,3 +5345,4 @@ check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 &&
 - 2026-10-23 20:15 Q510 added
 - 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
 - 2026-10-23 20:22 Q434 -> done — hand-merged (Q434's own harness registration: engines = [V1Engine(), V2Engine()] in ExportDiffHarnessTests and v2 ids added to expected-differences-export.json (no id removed); Tuur reads the diff in Q435)
+- 2026-10-23 20:23 Q511 added
