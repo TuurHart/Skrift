@@ -3609,7 +3609,7 @@ gate+: yes
 do: Multi-select import of several distinct books yields one library entry per book. Fixture with 2+ distinct books. Test `MultiBookImportTests` (phone).
 check: `plan/mtest.sh MultiBookImportTests`
 
-### Q498 [auto] (todo) C: a book title never repeats its author
+### Q498 [auto] (done) C: a book title never repeats its author
 spec: C297
 needs: -
 gate+: yes
@@ -5256,3 +5256,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:42 Q482 -> done — hand-merged (R34 fixed by this item: RoundTripParityTests pre-registered XCTExpectFailure flips to a plain assertion (C5))
 - 2026-10-23 18:46 Q501 -> done — hand-merged (D215 extension asked by Q501: expected-differences-copyedit-v2.json registrations moved/added for headings + bold)
 - 2026-10-23 18:52 Q497 -> done — gate 74s @4fd69d33
+- 2026-10-23 18:55 Q498 -> done — gate 65s @7533abc9
