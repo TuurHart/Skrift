@@ -3164,7 +3164,7 @@ check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/Sk
 
 ### Q432 [tuur] (todo) delete v1 reconcile after the tag
 spec: C2 C252
-needs: Q431
+needs: Q431 Q512
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
 check: `git rev-parse -q --verify refs/tags/v1-reconcile >/dev/null`
 
@@ -3190,7 +3190,7 @@ check: Tuur read `plan/reads/export-v2.md` and said go.
 
 ### Q436 [auto] (todo) swap: iPad and Mac export call the v2 compiler
 spec: C2 C61
-needs: Q435 Q511
+needs: Q435 Q511 Q513
 do: Point the shared export engine (iPad and Mac) at the v2 compiler. `Shared/Export/Compiler.swift` stays in place for Q437 to delete.
 check: `grep -rqE "ExportV2" Skrift_Native/Shared/Export Skrift_Native/SkriftDesktop`
 
@@ -3706,6 +3706,20 @@ needs: Q434
 gate+: yes
 do: Q434's export v2 reads memo.createdAt and "he typed the title" off the memo in the harness, but the Mac's PipelineFile mirrors neither, and the iPad publisher (ObsidianPublisher) is not wired to v2. Mirror both onto the Mac row (pull-only, like Q491's editedAt; new stored PipelineFile fields need the ReconcileDiffHarnessTests.fields line + all v1-rows goldens re-recorded by flag — hand-merge D163; include reconcile v2's Reflect field table). Give ObsidianPublisher and VaultExporter a v2 path behind one switch that stays OFF (the swap, Q436, flips it after Tuur reads Q435). Test `ExportV2InputsTests` (desktop): a synced memo's createdAt and title origin reach ExportV2.Note on the Mac exactly as the harness builds them.
 check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q512 [auto] (todo) A: app code stops calling v1 reconcile files (route to reconcile v2)
+spec: C2 C3
+needs: Q431
+gate+: yes
+do: After Q431 the app still calls v1 reconcile files: MacCloudWriteBack (resolve/upsert/memoID; MetaSync, EditSync, ProcessingCoordinator write-back, NoteBody, VaultExporter, LiveRecordingSession, MacAppendRecording, WayOutRules, MacEmbeddingSnapshot, PipelineFile+BodyNormalise), MirroredNoteFields (MetaSync push), MemoCloudUpdate.resanitiseAndCompile (BatchRunner, RosterRelink, MacAppendRecording), MemoCloudIngest.metadataJSON/ocrText (MemoNoteProjection, MacLocationStamp), and the MemoCloudReconciler statics in ReconcileTriggers.swift. Route each to its reconcile v2 equivalent (Writers, Reflect.recompile, Ingest) or move the static into ReconcileV2, so Q432 can delete v1 without touching app code. Keep the harness green and Shared/ReconcileV2 within 2,119 lines. Write the list of v1 files no app code references any more into plan/reads/reconcile-v2.md.
+check: `! grep -rqE "MacCloudWriteBack\.|MemoCloudUpdate\.|MemoCloudIngest\." Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Features && test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119`
+
+### Q513 [auto] (todo) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
+spec: C57 C58 C2
+needs: Q511
+gate+: yes
+do: Two gaps Q511 found in the export v2 path that the swap (Q436) must not inherit: (1) on the iPad v2 path a .file capture's document is not exported (no document provider there yet) — give ObsidianPublisher's v2 branch the same document placement the Mac has; (2) VaultExporter.exportV2 lacks v1's Q365 unchanged-skip before placing pictures (it relies on the writer's unchanged check after placing, so a re-export of 50 unchanged notes reads image bytes) — restore the skip so MacExportWorkTests' counts hold with ExportV2.isLive true. Test `ExportV2SwapGapsTests` (desktop) runs both with isLive forced on in the test.
+check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5349,3 +5363,5 @@ check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 20:28 Q510 -> done — gate 69s @0a277300
 - 2026-10-23 21:52 Q430 -> dead — Tuur 2026-10-23: dropped the read (no context); conductor accepts on the harness (v2 108 identical, 1 expected, 0 unexplained)
 - 2026-10-23 21:55 Q427 -> done — hand-merged (Tuur approved the v1 copy-edit deletion 2026-10-23 (tag v1-copyedit); v1-only tests deleted with their code)
+- 2026-10-23 21:57 Q512 added
+- 2026-10-23 21:57 Q513 added
