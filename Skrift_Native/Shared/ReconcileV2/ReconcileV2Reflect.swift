@@ -148,6 +148,10 @@ extension ReconcileV2 {
             Field("destination", recompiles: true, pull: { set($1, \.destination, $0.destination) }),
             Field("locked", recompiles: false, pull: { set($1, \.locked, $0.locked) }),
             Field("editedAt", recompiles: true, pull: { set($1, \.memoEditedAt, $0.editedAt) }),   // C284
+            // D12 / C130 (Q511): in the frontmatter only through export v2, so they recompile when it is live.
+            Field("createdAt", recompiles: ExportV2.isLive, pull: { set($1, \.memoCreatedAt, $0.createdAt) }),
+            Field("titleIsHis", recompiles: ExportV2.isLive, pull: {
+                set($1, \.memoTitleIsHis, !($0.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }),
             Field("remindAt", recompiles: false, pull: { set($1, \.remindAt, $0.remindAt) }),
         ]
     }

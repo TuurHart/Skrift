@@ -81,10 +81,12 @@ final class MirroredNoteFieldsTests: XCTestCase {
     /// Only the fields that reach the exported frontmatter force a recompile; the lock flag
     /// and the reminder are row state.
     func testOnlyFrontmatterFieldsForceARecompile() {
+        // Q511: `createdAt` and `titleIsHis` reach the frontmatter only through export v2.
+        let v2Only: Set<String> = ["createdAt", "titleIsHis"]
         XCTAssertEqual(Set(MirroredNoteFields.all.filter(\.recompiles).map(\.name)),
-                       ["tags", "significance", "destination", "editedAt"])
+                       Set(["tags", "significance", "destination", "editedAt"]).union(ExportV2.isLive ? v2Only : []))
         XCTAssertEqual(Set(MirroredNoteFields.all.filter { !$0.recompiles }.map(\.name)),
-                       ["locked", "remindAt"])
+                       Set(["locked", "remindAt"]).union(ExportV2.isLive ? [] : v2Only))
     }
 
     /// Every pull is a no-op when the two sides already agree — the whole seam is
