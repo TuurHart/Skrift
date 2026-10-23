@@ -166,6 +166,10 @@ struct ObsidianPublisher {
     /// C63 / D210: the poster frame (JPEG) a video note puts in the vault in place of its movie.
     /// nil = make it from `movieProvider`'s file. Asked only when a write actually happens.
     var posterProvider: ((Memo) -> Data?)? = nil
+    /// R38 (Q513): the bytes of a `.file` capture's shared document (its synced `document`
+    /// asset). nil = none on this device; export v2 then leaves the document out, never a
+    /// dangling embed.
+    var documentProvider: (Memo) -> Data? = { _ in nil }
     /// Test hook — nil uses the per-root default ledger.
     var ledgerOverride: ExportLedger? = nil
 
@@ -199,6 +203,10 @@ struct ObsidianPublisher {
                     .first { ($0.kind == MemoAsset.Kind.file || $0.kind == MemoAsset.Kind.video)
                         && $0.filename == entry.filename && !$0.blob.isEmpty }
                     .map { .data($0.blob) }
+            },
+            documentProvider: { memo in
+                NotesRepository.shared.assets(forMemo: memo.id)
+                    .first { $0.kind == MemoAsset.Kind.document && !$0.blob.isEmpty }?.blob
             }
         )
     }
@@ -303,10 +311,19 @@ struct ObsidianPublisher {
         let converted: String
         let embedNames: [(String, String)]
         let removedPictures: [PlacedPicture]
-        if ExportV2.isLive {
+        var document: VaultAsset?
+        if ExportV2.routes {
             // Q511: export v2, the swap switch (off until Q436). Names come from the manifest alone.
-            let out = ExportV2.compile(Self.v2Note(memo, people: people, author: author, enhancement: enhancement,
-                                                   linkStems: stems, title: title),
+            var note = Self.v2Note(memo, people: people, author: author, enhancement: enhancement,
+                                   linkStems: stems, title: title)
+            // R38 (Q513): a `.file` capture's document goes with the note, as on the Mac.
+            if memo.isShareCapture, let sc = memo.sharedContent, sc.type == .file,
+               let source = sc.fileName ?? sc.filePath, let blob = documentProvider(memo) {
+                let name = ExportV2.documentName(stem: stem, sourceName: source)
+                note.documentName = name
+                document = VaultAsset(name: name, source: .data(blob))
+            }
+            let out = ExportV2.compile(note,
                                        profile: profile, stem: stem,
                                        placeAttachment: { source, preferred in
                 guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
@@ -387,7 +404,7 @@ struct ObsidianPublisher {
         // C63 / C136 / D172: a video filed Inspiration / Idea / Project brings its movie, beside
         // the note like the picture. The Obsidian vault never gets it (a 200 MB clip has no
         // business in a notes folder), and a Personal note never reaches this branch.
-        var documents: [VaultAsset] = []
+        var documents: [VaultAsset] = document.map { [$0] } ?? []
         if profile == .portfolio, memo.destination.isPortfolio, let movie = movieProvider(memo) {
             documents.append(VaultAsset(name: stem + "." + movie.pathExtension, source: .file(movie)))
         }

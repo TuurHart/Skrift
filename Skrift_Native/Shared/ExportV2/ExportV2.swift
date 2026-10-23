@@ -21,6 +21,19 @@ enum ExportV2 {
     /// Q436 flips it.
     static let isLive = false
 
+    /// Test hook (Q513): forces the export ROUTING on or off without flipping `isLive`, which
+    /// other rules (the mirrored fields' recompile) read once at launch. nil = follow `isLive`.
+    nonisolated(unsafe) static var routingOverride: Bool? = nil
+    /// Does an export go through v2 right now? `isLive`, unless a test forced the routing.
+    static var routes: Bool { routingOverride ?? isLive }
+
+    /// R38: a shared document's exported name — the note's stem plus the document's extension,
+    /// never the extension twice (`blue-3.txt` stays `blue-3.txt`). One rule for the Mac and the iPad.
+    static func documentName(stem: String, sourceName: String) -> String {
+        let ext = (sourceName as NSString).pathExtension.isEmpty ? "pdf" : (sourceName as NSString).pathExtension
+        return stem.lowercased().hasSuffix("." + ext.lowercased()) ? stem : stem + "." + ext
+    }
+
     /// What v2 reads about a note. `input` is the one shared `CompilerInput` both apps build
     /// (body precedence, voice, name-linking, memo-link stems: `CompilerInput.make`); the rest
     /// is what v1 never carried.

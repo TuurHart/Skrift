@@ -22,13 +22,15 @@ extension VaultExporter {
         let writer = VaultWriter(root: home, ledger: session?.ledger(for: home) ?? .default(for: home), profile: profile)
         let capture = captureDate(for: pf)
         let relPath: String
+        let rewritesOurOwnFile: Bool
         switch writer.assess(id: id, title: pf.exportTitle, filenameFallback: pf.filename,
                              recordedAt: MemoDate.isUnknown(capture) ? nil : capture) {
         case .refused(let outcome):
             return Result(outcome: outcome, markdownURL: home.appendingPathComponent(outcome.relativePath),
                           audioURL: nil, imageCount: 0)
-        case .proceed(let rel, _):
+        case .proceed(let rel, let creates):
             relPath = rel
+            rewritesOurOwnFile = !creates
         }
         if case .removeOld(let rel, let old, let ledger) = move {
             DestinationMove.removeOld(relativePath: rel, id: id, oldHome: old, ledger: ledger)
@@ -46,8 +48,7 @@ extension VaultExporter {
            let doc = (try? FileManager.default.contentsOfDirectory(at: working.appendingPathComponent("files"),
                                                                     includingPropertiesForKeys: nil))?
                .first(where: { !$0.lastPathComponent.hasPrefix(".") }) {
-            let ext = doc.pathExtension.isEmpty ? "pdf" : doc.pathExtension
-            let name = safe.lowercased().hasSuffix("." + ext.lowercased()) ? safe : safe + "." + ext
+            let name = ExportV2.documentName(stem: safe, sourceName: doc.lastPathComponent)
             documents.append(VaultAsset(name: name, source: .file(doc)))
             documentName = name
         }
@@ -60,36 +61,61 @@ extension VaultExporter {
         note.documentName = documentName
         let attachmentsDir = working.map { MacNoteAttachments.folder(in: $0) }
 
-        var out = ExportV2.compile(note, profile: profile, stem: safe, placePicture: { source, name in
-            guard let file = imagesDir?.appendingPathComponent(source),
-                  FileManager.default.fileExists(atPath: file.path) else { return nil }
-            return place(file, name, attDir)?.lastPathComponent
-        }, placeAttachment: { source, name in
-            guard let file = attachmentsDir?.appendingPathComponent(source),
-                  FileManager.default.fileExists(atPath: file.path) else { return nil }
-            return place(file, name, attDir)?.lastPathComponent
-        }, poster: { _, name in
-            guard let working, let frame = MacNoteAttachments.posterFrame(in: working) else { return nil }
-            return place(frame, name, attDir)?.lastPathComponent
-        })
+        /// The v2 compile with every asset going through `placer` (the ownership copy, or a dry run).
+        func compile(_ placer: Placer) -> ExportV2.Output {
+            ExportV2.compile(note, profile: profile, stem: safe, placePicture: { source, name in
+                guard let file = imagesDir?.appendingPathComponent(source),
+                      FileManager.default.fileExists(atPath: file.path) else { return nil }
+                return placer(file, name, attDir)?.lastPathComponent
+            }, placeAttachment: { source, name in
+                guard let file = attachmentsDir?.appendingPathComponent(source),
+                      FileManager.default.fileExists(atPath: file.path) else { return nil }
+                return placer(file, name, attDir)?.lastPathComponent
+            }, poster: { _, name in
+                guard let working, let frame = MacNoteAttachments.posterFrame(in: working) else { return nil }
+                return placer(frame, name, attDir)?.lastPathComponent
+            })
+        }
+        let legacyCapture = pf.sourceType == .capture && !(pf.transcript ?? "").contains("[[img_")
+        let noteAttachmentsDir: URL? = pf.sourceType == .note && !pf.path.isEmpty
+            ? URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("Attachments") : nil
+        let noteAttachments = noteAttachmentsDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+
+        // Q365 (G9), as v1: the skip check BEFORE any picture is placed. The ledger says we wrote
+        // this very file, the dry compile equals what is there, and every asset already sits at its
+        // name looking current → `.unchanged` without reading a single image byte. A legacy capture
+        // and an Apple Note place assets outside the compile, so they always take the full path.
+        if rewritesOurOwnFile, !legacyCapture, !noteAttachments,
+           let entry = writer.ledger.entry(for: id), entry.relativePath == relPath {
+            var planned: [(src: URL, dest: URL)] = []
+            let dry = compile { src, name, dir in
+                let dest = dir.appendingPathComponent(name)
+                planned.append((src, dest))
+                return dest
+            }
+            if planned.allSatisfy({ assetLooksCurrent(source: $0.src, vaultCopy: $0.dest, writtenAt: entry.exportedAt) }),
+               writer.isUnchanged(markdown: dry.markdown, id: id, relativePath: relPath) {
+                return Result(outcome: .unchanged(relativePath: relPath),
+                              markdownURL: home.appendingPathComponent(relPath),
+                              audioURL: nil, imageCount: dry.pictures.count + dry.attachments)
+            }
+        }
+
+        var out = compile(place)
         var count = out.pictures.count + out.attachments
         // A legacy marker-less capture: its pictures under their own names, as the block embeds them.
-        if let imagesDir, pf.sourceType == .capture, !(pf.transcript ?? "").contains("[[img_"),
-           FileManager.default.fileExists(atPath: imagesDir.path) {
+        if let imagesDir, legacyCapture, FileManager.default.fileExists(atPath: imagesDir.path) {
             let (md, copied) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: out.markdown,
                                                        id: id, place: place)
             out.markdown = md
             count += copied
         }
         // An Apple Note's `(Attachments/x)` refs, in this profile's embed (R51).
-        if pf.sourceType == .note, !pf.path.isEmpty {
-            let src = URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("Attachments")
-            if FileManager.default.fileExists(atPath: src.path) {
-                let (md, copied) = convertNoteAttachments(out.markdown, attachmentsSrc: src, into: attDir, id: id,
-                                                          place: place, profile: profile)
-                out.markdown = md
-                count += copied
-            }
+        if noteAttachments, let src = noteAttachmentsDir {
+            let (md, copied) = convertNoteAttachments(out.markdown, attachmentsSrc: src, into: attDir, id: id,
+                                                      place: place, profile: profile)
+            out.markdown = md
+            count += copied
         }
 
         var audio: VaultAsset?
