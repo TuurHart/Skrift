@@ -1,39 +1,28 @@
 import XCTest
 
-/// Q423 (gate+): the copy-edit harness — the copy-edit twin of `BodyDiffHarnessTests` and
+/// Q423 (gate+): the copy-edit harness's shared half — the twin of `BodyDiffHarnessTests` and
 /// `ReconcileDiffHarnessTests`. MLX-free.
 ///
-/// C7 / C286: every model call v1 made over the synthetic corpus was recorded once by the MLX
-/// app (`-recordcopyedit`) as `test-fixtures/corpus/goldens/model/<sha256(prompt+input)>.txt`;
-/// v1's shipped title, summary and body per note are `goldens/v1-copyedit/<slug>.txt`.
-/// C5: every registered engine replays those outputs over the seeded corpus and each note is
-/// classed identical / expected-different / unexplained against v1's golden; a cache miss
-/// fails and prints its key. C30, C35, C40 are pinned on top.
+/// C7 / C286: every model call was recorded once by the MLX app as
+/// `test-fixtures/corpus/goldens/model/<sha256(prompt+input)>.txt`; v1's shipped title, summary
+/// and body per note stay as `goldens/v1-copyedit/<slug>.txt`, the reference every engine is
+/// classed against (C5). v1 itself was deleted after the `v1-copyedit` tag (Q427, C2); the one
+/// engine left is copy-edit v2 (`CopyEditV2HarnessTests`), which runs C5, C30 and C35 over the
+/// corpus. This file keeps the corpus paths, the cache, the C30 / C35 rules and C40.
 ///
-/// Re-record (v1 only, synthetic corpus only, in-memory store, MLX app built in Debug):
+/// Re-record (synthetic corpus only, in-memory store, MLX app built in Debug):
 /// `"<derived data>/Build/Products/Debug/Skrift Dev.app/Contents/MacOS/Skrift Dev"
-///  -isolatedRun -recordcopyedit <repo>/test-fixtures/corpus`
+///  -isolatedRun -recordcopyeditv2 <repo>/test-fixtures/corpus`
 @MainActor
 final class CopyEditDiffHarnessTests: XCTestCase {
 
     // MARK: - the engine protocol
 
-    /// One copy-edit implementation runnable over the corpus (v1 today; v2 registers here).
+    /// One copy-edit implementation runnable over the corpus (copy-edit v2 is the one left).
     protocol CopyEditEngine {
         var name: String { get }
         @MainActor func run(corpus: URL, cache: ModelOutputCache, scratch: URL) async throws -> [CopyEditCorpusRun.Result]
     }
-
-    /// v1 = the shipping `BatchRunner` + `CopyEditPipeline` with the recorded outputs replayed.
-    struct V1CopyEditEngine: CopyEditEngine {
-        let name = "v1"
-        func run(corpus: URL, cache: ModelOutputCache, scratch: URL) async throws -> [CopyEditCorpusRun.Result] {
-            try await CopyEditCorpusRun.run(corpus: corpus, enhancer: GenerateEnhancer(generate: cache.replay),
-                                            scratch: scratch)
-        }
-    }
-
-    static let engines: [CopyEditEngine] = [V1CopyEditEngine()]
 
     static var corpusRoot: URL { CorpusSeed.fixtureRoot(file: #filePath) }
     static var goldenDir: URL { corpusRoot.appendingPathComponent("goldens/v1-copyedit", isDirectory: true) }
@@ -41,71 +30,13 @@ final class CopyEditDiffHarnessTests: XCTestCase {
         ModelOutputCache(directory: corpusRoot.appendingPathComponent("goldens/model", isDirectory: true))
     }
 
-    /// slug → [SPEC id] where a NON-v1 engine is expected to differ from v1's golden. v1 is the
-    /// golden itself, so the matched-bug rule (C5) applies to every other engine.
+    /// slug → [SPEC id] where an engine is expected to differ from v1's golden (C5).
     static func loadExpectedDifferences() throws -> [String: [String]] {
         let url = corpusRoot.appendingPathComponent("expected-differences-copyedit.json")
         let obj = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any] ?? [:]
         var out: [String: [String]] = [:]
         for (key, value) in obj where !key.hasPrefix("_") { out[key] = (value as? [String]) ?? [] }
         return out
-    }
-
-    // MARK: - one replayed run per engine (cached: the corpus run is the expensive part)
-
-    private static var runs: [String: [String: CopyEditCorpusRun.Result]] = [:]
-
-    private func results(_ engine: CopyEditEngine) async throws -> [String: CopyEditCorpusRun.Result] {
-        if let done = Self.runs[engine.name] { return done }
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: Self.corpusRoot.appendingPathComponent("manifest.json").path),
-                          "corpus not generated — run test-fixtures/corpus/generate.py")
-        let scratch = FileManager.default.temporaryDirectory
-            .appendingPathComponent("q423_\(engine.name)_\(UUID().uuidString)", isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: scratch) }
-        do {
-            let list = try await engine.run(corpus: Self.corpusRoot, cache: Self.cache, scratch: scratch)
-            let bySlug = Dictionary(list.map { ($0.slug, $0) }, uniquingKeysWith: { a, _ in a })
-            Self.runs[engine.name] = bySlug
-            return bySlug
-        } catch let miss as ModelOutputCache.Miss {
-            print("CopyEditDiffHarness[\(engine.name)] CACHE MISS key=\(miss.key)")
-            XCTFail("\(engine.name): \(miss.localizedDescription)")
-            throw miss
-        }
-    }
-
-    // MARK: - C5 / C7 / C286: every engine against v1's golden
-
-    func testEveryNoteAgainstV1Golden_C5() async throws {
-        let expected = try Self.loadExpectedDifferences()
-        let manifest = try JSONDecoder().decode(CorpusSeed.Manifest.self,
-                                                from: Data(contentsOf: Self.corpusRoot.appendingPathComponent("manifest.json")))
-        for engine in Self.engines {
-            let recs = try await results(engine)
-            var identical = 0, expectedDifferent = 0
-            var unexplained: [String] = [], matchedBug: [String] = [], missing: [String] = []
-            for entry in manifest.notes {
-                guard let golden = try? String(contentsOf: Self.goldenDir.appendingPathComponent("\(entry.slug).txt"),
-                                               encoding: .utf8) else { missing.append(entry.slug); continue }
-                let mine = try XCTUnwrap(recs[entry.slug], entry.slug).record
-                let registered = engine.name == "v1" ? [] : (expected[entry.slug] ?? [])
-                if mine == golden {
-                    identical += 1
-                    if !registered.isEmpty { matchedBug.append("\(entry.slug): still equals v1 on registered \(registered)") }
-                } else if registered.isEmpty {
-                    let a = CopyEditCorpusRun.Result.fields(of: mine), b = CopyEditCorpusRun.Result.fields(of: golden)
-                    let diffs = Set(a.keys).union(b.keys).filter { a[$0] != b[$0] }.sorted()
-                    unexplained.append("\(entry.slug): \(diffs.joined(separator: ", "))")
-                } else {
-                    expectedDifferent += 1
-                }
-            }
-            print("CopyEditDiffHarness[\(engine.name)]: identical \(identical), expected-different \(expectedDifferent), unexplained \(unexplained.count)")
-            XCTAssertTrue(missing.isEmpty, "\(engine.name): no golden for \(missing) — re-record with -recordcopyedit")
-            XCTAssertTrue(unexplained.isEmpty, "\(engine.name) unexplained (C5):\n" + unexplained.joined(separator: "\n"))
-            XCTAssertTrue(matchedBug.isEmpty, "\(engine.name) unfixed registered bugs (C5):\n" + matchedBug.joined(separator: "\n"))
-            XCTAssertGreaterThanOrEqual(identical + expectedDifferent, 100, "\(engine.name): the whole corpus is classed")
-        }
     }
 
     /// C7: the key is sha256(prompt + input), and a miss names its key instead of passing silently.
@@ -171,27 +102,6 @@ final class CopyEditDiffHarnessTests: XCTestCase {
 
     static let c30Slugs = ["pic-wall", "pic-three-spread"]
 
-    /// v1's 6-word anchors (R3) break C30 on these notes. Self-expiring: if v1 stops breaking
-    /// it on one, the test fails until the entry is removed.
-    static let v1KnownC30Violations: Set<String> = ["pic-wall", "pic-three-spread"]
-
-    func testPicturesReturnAfterSameIndexParagraph_C30() async throws {
-        for engine in Self.engines {
-            let recs = try await results(engine)
-            for slug in Self.c30Slugs {
-                let r = try XCTUnwrap(recs[slug], slug)
-                let input = try XCTUnwrap(r.input, "\(slug): no row"), body = try XCTUnwrap(r.body, slug)
-                XCTAssertFalse(Self.pictureIndex(input).isEmpty, "\(slug): the input has pictures")
-                let bad = Self.c30Violations(input: input, output: body)
-                if engine.name == "v1", Self.v1KnownC30Violations.contains(slug) {
-                    XCTAssertFalse(bad.isEmpty, "v1 \(slug): now satisfies C30 — drop it from v1KnownC30Violations")
-                } else {
-                    XCTAssertEqual(bad, [], "\(engine.name) \(slug) breaks C30")
-                }
-            }
-        }
-    }
-
     /// The rule itself, on a hand-made case (so the pin is not only as good as v1's data).
     func testC30RuleOnAHandMadeCase() {
         let input = "One two.\n\n[[img_001]]\n\nThree four.\n\nFive.\n\n[[img_002]]"
@@ -233,31 +143,6 @@ final class CopyEditDiffHarnessTests: XCTestCase {
 
     static let c35Slugs = ["voice-en-pricing-ramble", "voice-mix-code-switch"]
 
-    /// Words v1's recorded copy-edit drops on the C35 notes (self-expiring: a word v1 keeps
-    /// again fails the test until removed here).
-    /// Recorded 2026-10-14: v1 drops the discourse words of the English ramble and TRANSLATES
-    /// the English half of the code-switch note into Dutch ("the" → "de", "so that's six
-    /// people" → "dat zijn zes mensen") — a C35 break ("nothing translated").
-    static let v1KnownC35Losses: [String: Set<String>] = [
-        "voice-en-pricing-ramble": ["okay", "so", "yeah"],
-        "voice-mix-code-switch": ["the", "like", "so", "that's", "six", "people"],
-    ]
-
-    func testNumbersNamesAndWordsSurvive_C35() async throws {
-        for engine in Self.engines {
-            let recs = try await results(engine)
-            for slug in Self.c35Slugs {
-                let r = try XCTUnwrap(recs[slug], slug)
-                let input = try XCTUnwrap(r.input, "\(slug): no row"), body = try XCTUnwrap(r.body, slug)
-                XCTAssertNil(r.error, "\(slug)")
-                let lost = Set(Self.c35Lost(input: input, output: body))
-                let known = engine.name == "v1" ? (Self.v1KnownC35Losses[slug] ?? []) : []
-                XCTAssertEqual(lost.subtracting(known), [], "\(engine.name) \(slug) lost words (C35)\nbody:\n\(body)")
-                XCTAssertEqual(known.subtracting(lost), [], "\(engine.name) \(slug): keeps a registered loss again — update v1KnownC35Losses")
-            }
-        }
-    }
-
     func testC35RuleOnAHandMadeCase() {
         XCTAssertEqual(Self.c35Lost(input: "Um, Jack said fifteen, uh, fifteen percent", output: "[[Jack Smith|Jack]] said fifteen percent."), [])
         XCTAssertEqual(Self.c35Lost(input: "zes mensen, six people", output: "six people"), ["zes", "mensen"])
@@ -275,17 +160,19 @@ final class CopyEditDiffHarnessTests: XCTestCase {
             if note.deletedAt == nil, !NoteConsent.isRated(note.significance) { unrated.append(entry.slug) }
         }
         XCTAssertGreaterThanOrEqual(unrated.count, 3, "the corpus carries unrated notes")
-        for engine in Self.engines {
-            let recs = try await results(engine)
-            for slug in unrated {
-                let r = try XCTUnwrap(recs[slug], slug)
-                XCTAssertEqual(r.significance ?? -1, NoteConsent.processFloor, "\(engine.name) \(slug): Process floors to 0.1")
-                XCTAssertTrue(r.hasRow, "\(engine.name) \(slug): a floored note gets its Mac row")
-            }
-            for (slug, r) in recs where r.hasRow {
-                XCTAssertFalse(r.needsProcessingAfter && r.error == nil,
-                               "\(engine.name) \(slug): processed, yet the Mac would pick it up again (C40)")
-            }
+        let scratch = FileManager.default.temporaryDirectory.appendingPathComponent("q427_c40_\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let list = try await CopyEditV2HarnessTests.V2Engine(calls: CopyEditV2HarnessTests.Calls())
+            .run(corpus: Self.corpusRoot, cache: Self.cache, scratch: scratch)
+        let recs = Dictionary(list.map { ($0.slug, $0) }, uniquingKeysWith: { a, _ in a })
+        for slug in unrated {
+            let r = try XCTUnwrap(recs[slug], slug)
+            XCTAssertEqual(r.significance ?? -1, NoteConsent.processFloor, "\(slug): Process floors to 0.1")
+            XCTAssertTrue(r.hasRow, "\(slug): a floored note gets its Mac row")
+        }
+        for (slug, r) in recs where r.hasRow {
+            XCTAssertFalse(r.needsProcessingAfter && r.error == nil,
+                           "\(slug): processed, yet the Mac would pick it up again (C40)")
         }
         // A rated note is never lowered by Process.
         XCTAssertEqual(NoteConsent.flooredByProcess(0.7), 0.7)

@@ -50,8 +50,7 @@ actor EnhancementService: Enhancing {
 
     /// Copy-edit / title / summary through copy-edit v2 (Q426, C2): the deterministic steps
     /// live in the MLX-free `Shared/CopyEditV2` (the corpus harness replays them); this actor
-    /// only owns the model and the one generate call. v1 (`CopyEditPipeline`) stays in place
-    /// for the v1 harness until Q427 deletes it.
+    /// only owns the model and the one generate call.
     func copyEdit(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await copyEdit(transcript, spoken: true, prompts: prompts, modelRepo: modelRepo)
     }
@@ -80,7 +79,7 @@ actor EnhancementService: Enhancing {
     }
 
     /// One deterministic instruct turn: the prompt + the text as a single user message.
-    /// Returns the model's RAW output (`CopyEditPipeline` trims).
+    /// Returns the model's RAW output (copy-edit v2 trims).
     func generate(prompt: String, text: String, maxTokens: Int) async throws -> String {
         guard let container else { throw EnhancementError.notLoaded }
         let session = ChatSession(

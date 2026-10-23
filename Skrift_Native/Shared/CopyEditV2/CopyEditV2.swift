@@ -1,9 +1,9 @@
 import Foundation
 import os
 
-/// Copy-edit v2 (Q424): the ONE copy-edit both polishers will run, beside v1 until the swap
-/// (C2 — the apps still call `CopyEditPipeline` / `PolishEscrow`). Pure: the model is a closure,
-/// so the corpus harness replays recorded outputs MLX-free.
+/// Copy-edit v2 (Q424): the ONE copy-edit both polishers run — the Mac's `EnhancementService`
+/// and the iPad's `PolishV2` (Q426); v1 was deleted after the `v1-copyedit` tag (Q427, C2).
+/// Pure: the model is a closure, so the corpus harness replays recorded outputs MLX-free.
 ///
 /// One call: quote held back (C29) → links escrowed to their shown text and pictures held by
 /// paragraph index (C29, C30) → the model, with the input-sized budget (C32) → guards: truncation
