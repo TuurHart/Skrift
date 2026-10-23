@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// User-configurable settings, persisted to `AppPaths.settingsFile`. Mirrors the
 /// subset of `backend/config/settings.py` the native app needs.
@@ -104,6 +105,30 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// (`PolishPromptsSyncCore`). nil = never edited (treated as distantPast;
     /// optional for legacy decode).
     var promptsModifiedAt: Date? = nil
+    /// C39 (Q426): which prompt layout this file was last migrated to. nil = written before
+    /// copy-edit v2 took over; `migratingStalePrompts` runs once and stamps `currentPromptsSchema`.
+    var promptsSchema: Int? = nil
+    static let currentPromptsSchema = 2
+
+    /// C39: the prompt is ONE source (`PolishPrompts` + the synced override blob); a stale
+    /// local copy never silently wins. A prompt this Mac never edited (`promptsModifiedAt` nil)
+    /// that is not today's default is a snapshot of an older default that `user_settings.json`
+    /// kept — it is reset to the current `PolishPrompts` text. An edited prompt is his override
+    /// and rides the synced blob, so it stays. nil = nothing to migrate (already done).
+    func migratingStalePrompts() -> (settings: AppSettings, reset: [String])? {
+        guard (promptsSchema ?? 1) < Self.currentPromptsSchema else { return nil }
+        var s = self
+        var reset: [String] = []
+        if promptsModifiedAt == nil {
+            let fresh = Prompts()
+            if prompts.copyEdit != fresh.copyEdit { reset.append("copy-edit") }
+            if prompts.title != fresh.title { reset.append("title") }
+            if prompts.summary != fresh.summary { reset.append("summary") }
+            s.prompts = fresh
+        }
+        s.promptsSchema = Self.currentPromptsSchema
+        return (s, reset)
+    }
 
     // ── CloudKit-Mac sync (MAC_CLOUDKIT_PLAN.md 8d) ──
     // When on, the Mac reconciles memos synced over CloudKit (from the phone's note store)
@@ -182,6 +207,14 @@ final class SettingsStore {
         s.noteFolder = (("~/Hackerman/Obsidian_LLM_Test_Vault") as NSString).expandingTildeInPath
         #endif
         return s
+    }
+
+    /// C39: run `migratingStalePrompts` once at launch and save the result (logged).
+    func migrateStalePromptsOnce() {
+        guard let (migrated, reset) = load().migratingStalePrompts() else { return }
+        save(migrated)
+        Logger(subsystem: "com.skrift.desktop", category: "settings").info(
+            "prompts migrated to schema \(AppSettings.currentPromptsSchema, privacy: .public); stale local copies reset: \(reset.isEmpty ? "none" : reset.joined(separator: ", "), privacy: .public)")
     }
 
     @discardableResult
