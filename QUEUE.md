@@ -3533,7 +3533,7 @@ gate+: yes
 do: A raw edit whose stamp is newer than the row's `enhancedAt` sets the Mac row back to pending; the phone shows the edit until the next pass lands. Test `RawEditPendingTests` (desktop) including the post-run race (edit lands while a pass runs → the pass result is discarded, C38).
 check: `grep -rqE "class RawEditPendingTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q487 [auto] (todo) B: a purge deletes the polish row and every asset; an orphan Mac row is trashed
+### Q487 [auto] (done) B: a purge deletes the polish row and every asset; an orphan Mac row is trashed
 spec: C157
 needs: -
 gate+: yes
@@ -5295,3 +5295,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:27 Q426 -> todo
 - 2026-10-23 19:27 Q500 -> todo
 - 2026-10-23 19:27 Q507 added
+- 2026-10-23 19:30 Q487 -> done — gate 187s @df83c527
