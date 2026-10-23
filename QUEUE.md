@@ -3156,7 +3156,7 @@ needs: Q429
 do: -
 check: Tuur read `plan/reads/reconcile-v2.md` and said go.
 
-### Q431 [auto] (todo) swap: the Mac sweep calls reconcile v2
+### Q431 [auto] (done) swap: the Mac sweep calls reconcile v2
 spec: C2 C52
 needs: Q430 Q510
 do: Point `MemoCloudReconciler`'s callers (launch, activation, CloudKit import, `CloudFirstImport`, `MacNoteOpenWork`) at reconcile v2. The v1 code stays in place for Q432 to delete.
@@ -5368,3 +5368,4 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 21:59 Q511 -> done — hand-merged (D163 port: new stored fields memoCreatedAt + memoTitleIsHis in ReconcileDiffHarnessTests.fields, 101 v1-rows goldens re-recorded by flag, MirroredNoteFieldsTests + MemoCloudUpdateTests.baselined ported)
 - 2026-10-23 22:02 Q431 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-23 22:10 Q431 -> todo
+- 2026-10-23 22:15 Q431 -> done — gate 130s @7644128d
