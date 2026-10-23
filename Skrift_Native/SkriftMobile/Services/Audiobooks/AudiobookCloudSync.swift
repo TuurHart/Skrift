@@ -107,6 +107,29 @@ enum AudiobookCloudSync {
         }
     }
 
+    /// C298: an entry with none of its files on this device AND no cloud carrier can never
+    /// play or re-download — what an unshare leaves on a device that never had (or had
+    /// freed) the audio. Removed with a log line; runs at every library load (`reconcile`,
+    /// launch and foreground), before the synced-records check so it runs with none left.
+    /// An article is never one: with no text file it is "Getting the text…" and refetches
+    /// from its URL. Returns the dropped ids.
+    @discardableResult
+    static func dropPhantoms(library: AudiobookLibraryStore = .shared,
+                             repository: NotesRepository = .shared) -> [UUID] {
+        let fm = FileManager.default
+        var dropped: [UUID] = []
+        for book in library.books where !book.files.isEmpty && book.kind != .article {
+            guard repository.audiobookRecord(bookID: book.id) == nil else { continue }
+            let folder = library.folder(for: book.id)
+            let anyLocal = book.files.contains { fm.fileExists(atPath: folder.appendingPathComponent($0).path) }
+            guard !anyLocal else { continue }
+            DevLog.log("library: dropped phantom entry \(book.id) '\(book.title)' — no local file, no cloud carrier")
+            library.remove(book)
+            dropped.append(book.id)
+        }
+        return dropped
+    }
+
     /// A book is "synced" exactly when a carrier exists — the toggle's state, no flag.
     static func isSynced(bookID: UUID, repository: NotesRepository = .shared) -> Bool {
         repository.audiobookRecord(bookID: bookID) != nil
@@ -233,6 +256,7 @@ enum AudiobookCloudSync {
         if PerfLibrary.isActive { return }   // Q313: raw CloudKit audiobook transfer stays off
         #endif
         if isReconciling { rerunRequested = true; return }
+        dropPhantoms(library: library, repository: repository)
         isReconciling = true
         defer { isReconciling = false }
         repeat {
