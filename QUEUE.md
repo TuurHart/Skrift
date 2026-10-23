@@ -3700,7 +3700,7 @@ gate+: yes
 do: Q429's reconcile v2 left these on v1: triggers/coalescer/fresh context wiring (C52), MacMemoAuthor backfill + reflectTranscripts, orphan-row trash (C157, Q487's rules incl. the quarter refusal), the background first-enable ingest, the unrated projection (C187), the phone materializer (C190), the cloudKitMacSync default (C191). Bring each into Skrift_Native/Shared/ReconcileV2 (or name why it stays outside the sweep) so Q431's swap replaces v1 whole. Keep the one synchronous main-actor sweep and the harness green (v2 unexplained 0). Also close R44's gap: a later-stamped phone polish with identical text must not be refused. Total stays within 2,119 lines; append the changes to plan/reads/reconcile-v2.md.
 check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && grep -qi 'C157' plan/reads/reconcile-v2.md && grep -qi 'C190' plan/reads/reconcile-v2.md`
 
-### Q511 [auto] (todo) C: export v2 swap prerequisites (Mac row mirrors createdAt and his-title; iPad publisher can call v2)
+### Q511 [auto] (done) C: export v2 swap prerequisites (Mac row mirrors createdAt and his-title; iPad publisher can call v2)
 spec: C64 C25 D12 C2
 needs: Q434
 gate+: yes
@@ -5365,3 +5365,4 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 21:55 Q427 -> done — hand-merged (Tuur approved the v1 copy-edit deletion 2026-10-23 (tag v1-copyedit); v1-only tests deleted with their code)
 - 2026-10-23 21:57 Q512 added
 - 2026-10-23 21:57 Q513 added
+- 2026-10-23 21:59 Q511 -> done — hand-merged (D163 port: new stored fields memoCreatedAt + memoTitleIsHis in ReconcileDiffHarnessTests.fields, 101 v1-rows goldens re-recorded by flag, MirroredNoteFieldsTests + MemoCloudUpdateTests.baselined ported)
