@@ -3707,7 +3707,7 @@ gate+: yes
 do: Q434's export v2 reads memo.createdAt and "he typed the title" off the memo in the harness, but the Mac's PipelineFile mirrors neither, and the iPad publisher (ObsidianPublisher) is not wired to v2. Mirror both onto the Mac row (pull-only, like Q491's editedAt; new stored PipelineFile fields need the ReconcileDiffHarnessTests.fields line + all v1-rows goldens re-recorded by flag — hand-merge D163; include reconcile v2's Reflect field table). Give ObsidianPublisher and VaultExporter a v2 path behind one switch that stays OFF (the swap, Q436, flips it after Tuur reads Q435). Test `ExportV2InputsTests` (desktop): a synced memo's createdAt and title origin reach ExportV2.Note on the Mac exactly as the harness builds them.
 check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q512 [auto] (todo) A: app code stops calling v1 reconcile files (route to reconcile v2)
+### Q512 [auto] (done) A: app code stops calling v1 reconcile files (route to reconcile v2)
 spec: C2 C3
 needs: Q431
 gate+: yes
@@ -5369,3 +5369,4 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 22:02 Q431 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-10-23 22:10 Q431 -> todo
 - 2026-10-23 22:15 Q431 -> done — gate 130s @7644128d
+- 2026-10-23 22:20 Q512 -> done — gate 131s @722c50cb
