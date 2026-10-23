@@ -12,11 +12,53 @@ enum AudiobookMetadataDefaults {
         -> (title: String, author: String, needsConfirmation: Bool) {
         let cleanTitle = normalized(title)
         let cleanAuthor = normalized(author)
+        var resolvedTitle = cleanTitle ?? filenameTitle(filename)
+        var resolvedAuthor = cleanAuthor ?? ""
+        if cleanAuthor == nil, cleanTitle == nil, let split = splitTitleAuthor(resolvedTitle) {
+            // "Title — Author.m4b" with no tags: pre-fill both fields of the confirm sheet.
+            (resolvedTitle, resolvedAuthor) = split
+        }
         return (
-            title: cleanTitle ?? filenameTitle(filename),
-            author: cleanAuthor ?? "",
+            title: titleWithoutAuthor(resolvedTitle, author: resolvedAuthor),
+            author: resolvedAuthor,
             needsConfirmation: cleanTitle == nil || cleanAuthor == nil
         )
+    }
+
+    /// C297: a title never repeats its author. "Sapiens — Yuval Noah Harari", "Sapiens by
+    /// Yuval Noah Harari" or "Yuval Noah Harari - Sapiens" with that author → "Sapiens".
+    /// Case-insensitive; a title that would be left empty is kept as it was.
+    static func titleWithoutAuthor(_ title: String, author: String) -> String {
+        let a = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !a.isEmpty else { return title }
+        var t = title
+        for sep in [" \u{2014} ", " \u{2013} ", " - ", ", by ", " by ", ", "] {
+            if let r = t.range(of: sep + a, options: [.caseInsensitive, .anchored, .backwards]) {
+                t = String(t[..<r.lowerBound])
+                break
+            }
+        }
+        for sep in [" \u{2014} ", " \u{2013} ", " - ", ": "] {
+            if let r = t.range(of: a + sep, options: [.caseInsensitive, .anchored]) {
+                t = String(t[r.upperBound...])
+                break
+            }
+        }
+        let trimmed = t.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? title : trimmed
+    }
+
+    /// "Title — Author" (em or en dash, exactly one) → its two halves; nil otherwise. Only
+    /// for a filename with no tags, where the confirm sheet shows the guess for checking.
+    static func splitTitleAuthor(_ s: String) -> (title: String, author: String)? {
+        for sep in [" \u{2014} ", " \u{2013} "] {
+            let parts = s.components(separatedBy: sep)
+            guard parts.count == 2 else { continue }
+            let t = parts[0].trimmingCharacters(in: .whitespaces)
+            let a = parts[1].trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty, !a.isEmpty { return (t, a) }
+        }
+        return nil
     }
 
     /// "The_Beginning_of_Infinity.m4b" → "The Beginning of Infinity".
