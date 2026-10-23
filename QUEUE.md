@@ -3595,7 +3595,7 @@ gate+: yes
 do: Block adding an ePub to a book whose whole-book transcription is still running, with a clear message. Test `EpubUploadGuardTests` (phone).
 check: `plan/mtest.sh EpubUploadGuardTests`
 
-### Q496 [auto] (todo) C: the model download checks the real file, not a size floor
+### Q496 [auto] (done) C: the model download checks the real file, not a size floor
 spec: C292
 needs: -
 gate+: yes
@@ -5232,3 +5232,4 @@ check: `plan/mtest.sh ZipCRCTests`
 - 2026-10-23 17:35 Q493 -> done — gate 126s @33a80cb9
 - 2026-10-23 17:38 Q480 -> stuck — gate failed — .queue/Q480.gate.log
 - 2026-10-23 17:42 Q494 -> done — gate 125s @584c72ce
+- 2026-10-23 17:45 Q496 -> done — gate 114s @12d664de
