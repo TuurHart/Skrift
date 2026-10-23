@@ -154,6 +154,19 @@ enum PolishPrompts {
     Output only the cleaned text.
     """
 
+    /// D215: the writer's spelling stays (no colour→color). Copy-edit v2 adds this rule to
+    /// whatever copy-edit prompt it runs, the default or the user's synced override (C39: the
+    /// text lives here, v2 owns none). Kept out of `copyEdit` itself while v1 still runs that
+    /// prompt: v1's recorded corpus outputs are keyed by its exact bytes (C7).
+    static let keepSpelling = """
+    Keep the writer's own spelling and dialect: British spelling stays British (colour, apologising, organise), Dutch stays Dutch. Fixing spelling means fixing typos only; never change one correct spelling into another.
+    """
+
+    /// `prompt` with the keep-spelling rule appended once.
+    static func keepingSpelling(_ prompt: String) -> String {
+        prompt.contains(keepSpelling) ? prompt : prompt + "\n\n" + keepSpelling
+    }
+
     static let summary = """
     Summarize this in 1–3 sentences (30–60 words) as personal notes — the kind of thing you'd jot in a journal, not a report.
 

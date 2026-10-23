@@ -36,7 +36,83 @@ extension CopyEditV2 {
             if !newProperNouns(input: input, output: output).isEmpty { return .newProperNoun }
             if languageFlipped(input: input, output: output) { return .languageFlip }
             if !lostNamesOrNumbers(input: input, output: output).isEmpty { return .nameOrNumberLost }
+            if !respelled(input: input, output: output).isEmpty { return .respelled }
+            if !lostSentences(input: input, output: output).isEmpty { return .sentenceLost }
             return nil
+        }
+
+        // MARK: - D215: his sentences and his spelling
+
+        /// Words a copy-edit may drop as a whole sentence ("Yeah.", "Okay so."): fillers and
+        /// discourse words. D215: dropping fillers and "okay so" stays.
+        static let discourse: Set<String> = fillers.union([
+            "okay", "ok", "oke", "oké", "so", "yeah", "yep", "yes", "right", "well", "anyway", "alright",
+            "ja", "nou",
+        ])
+
+        /// D215: a note under this many words that loses a whole sentence falls back (above it,
+        /// the C33 shrink guard looks).
+        static let shortNoteWords = 40
+
+        /// D215: in a note under 40 words, the input sentences the output no longer says — more
+        /// than half of a sentence's words (fillers and discourse words aside) gone from the output.
+        static func lostSentences(input: String, output: String) -> [String] {
+            guard input.split(whereSeparator: \.isWhitespace).count < shortNoteWords else { return [] }
+            let kept = Set(words(output))
+            return sentences(input).filter { s in
+                let content = Set(words(s)).subtracting(discourse)
+                guard !content.isEmpty else { return false }
+                return content.filter(kept.contains).count * 2 < content.count
+            }
+        }
+
+        /// The sentences of a text: split after . ! ? … and at every line break.
+        static func sentences(_ s: String) -> [String] {
+            s.replacingOccurrences(of: #"(?<=[.!?…])\s+"#, with: "\n", options: .regularExpression)
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        }
+
+        /// British / American pairs no suffix rule reaches.
+        private static let spellingPairs: [String: String] = [
+            "grey": "gray", "greys": "grays", "greyish": "grayish", "tyre": "tire", "tyres": "tires",
+            "aluminium": "aluminum", "programme": "program", "programmes": "programs", "plough": "plow",
+            "mould": "mold", "moulds": "molds", "sceptical": "skeptical", "defence": "defense",
+            "offence": "offense", "licence": "license", "pretence": "pretense", "jewellery": "jewelry",
+            "whisky": "whiskey", "draught": "draft", "storey": "story", "pyjamas": "pajamas",
+        ]
+
+        /// The spelling-neutral form of a word: colour/color, apologising/apologizing,
+        /// centre/center, travelling/traveling, analyse/analyze, catalogue/catalog → one key.
+        static func spellingKey(_ w: String) -> String {
+            if let us = spellingPairs[w] { return us }
+            var k = w
+            for (pattern, template) in spellingRules {
+                k = k.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+            }
+            return k
+        }
+
+        private static let spellingRules: [(String, String)] = [
+            (#"^(\p{L}{3,})our(s|ed|ing|ite|ites|able|er|ers|ful|less)?$"#, "$1or$2"),
+            (#"^(\p{L}{3,})is(e|es|ed|ing|er|ers|ation|ations)$"#, "$1iz$2"),
+            (#"^(\p{L}{2,})ys(e|es|ed|ing)$"#, "$1yz$2"),
+            (#"^(\p{L}{3,})(t|b)re(s)?$"#, "$1$2er$3"),
+            (#"^(\p{L}{3,}[aeiou])ll(ing|ed|er|ers)$"#, "$1l$2"),
+            (#"^(\p{L}{3,})ogue(s)?$"#, "$1og$2"),
+        ]
+
+        /// D215: input words the output replaced by a spelling variant ("colour→color"): the input
+        /// word is gone, and the output says a word the input never did with the same spelling key.
+        static func respelled(input: String, output: String) -> [String] {
+            let inWords = Set(words(input)), outWords = Set(words(output))
+            var byKey: [String: String] = [:]
+            for w in outWords.subtracting(inWords) { byKey[spellingKey(w)] = w }
+            guard !byKey.isEmpty else { return [] }
+            return inWords.subtracting(outWords).sorted().compactMap { w in
+                byKey[spellingKey(w)].map { "\(w)→\($0)" }
+            }
         }
 
         /// Lower-cased words, curly apostrophes read as straight ones.

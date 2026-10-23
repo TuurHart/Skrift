@@ -1,0 +1,1 @@
+The June bug reached the Mac with an empty metadata blob and rendered as a raw wall.

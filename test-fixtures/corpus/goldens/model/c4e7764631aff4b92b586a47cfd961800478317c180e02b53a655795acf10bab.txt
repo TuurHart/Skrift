@@ -1,0 +1,5 @@
+Moved the markers myself in the editor so they sit on sentence ends.
+
+This paragraph is after the first picture.
+
+And this one after the second.
