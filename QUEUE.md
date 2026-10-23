@@ -3471,10 +3471,11 @@ do: Same recipe as Q472 (`grep -n "finding: Q472" plan/RUN.md`): bump SKRIFT_BUI
 check: Report shows build 193 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 193.
 
 ### Q478 [auto] (doing) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
-spec: -
+spec: C29 C33 C35 C177 D209 D215
 needs: -
-do: (fill in)
-check: (fill in)
+gate+: yes
+do: Tuur on Q425 (2026-10-23, D215, "all four as recommended") on the read `plan/reads/copyedit-v2.md`: (1) checkbox lines (`- [ ]` / `- [x]`) never reach the model: hold them aside like pictures and put them back in place, so typed-tasks keeps every box and its state; (2) a note under 40 words that loses a full sentence (any whole input sentence absent from the output) falls back to his words, catching voice-en-paragraphed-by-pauses and voice-en-raw-title; (3) his spelling stays: tell the model in the ONE prompt source (`PolishPrompts`, C39) to keep the writer's spelling and dialect, and add a gate check that no input word was replaced by a spelling variant (colour→color, apologising→apologizing), falling back if so; (4) typed list lines (`- `, `* `, `1. `) stay list lines: hold list blocks aside when the note is typed, or fall back when the output loses list structure (typed-dutch-boodschappen). Fillers and "okay so" may still go. A changed prompt means new model outputs: record them with the Q424 recorder (`-recordcopyeditv2 <corpus> -isolatedRun`, raw Debug binary, never -corpus, never /Applications/*); never fabricate. Update `expected-differences-copyedit-v2.json` and rewrite `plan/reads/copyedit-v2.md` showing those four notes now. Test `CopyEditV2D215Tests` (desktop target).
+check: `grep -rqE "class CopyEditV2D215Tests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
