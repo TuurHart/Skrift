@@ -90,6 +90,7 @@ targets:
       # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Ingress: the ONE share / drop dispatcher (C238, C198), shared with the phone.
@@ -233,6 +234,7 @@ targets:
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Q438: the ONE share / drop dispatcher (pure, Foundation + UTType), IngressDispatchTests.
@@ -328,6 +330,7 @@ targets:
       - path: Features/Shell/MacFeedbackScreens.swift
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Q439: IngestService calls the shared dispatcher.

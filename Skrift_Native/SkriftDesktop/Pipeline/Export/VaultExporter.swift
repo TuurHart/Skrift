@@ -522,6 +522,7 @@ enum VaultExporter {
                 // name — a foreign file occupied it, so keep the reference pointed at what
                 // we actually wrote.
                 out = out.replacingOccurrences(of: "[[\(originalName)]]", with: "[[\(written.lastPathComponent)]]")
+                    .replacingOccurrences(of: "](\(originalName))", with: "](\(written.lastPathComponent))")
             }
         }
         return (out, copied)
@@ -532,8 +533,9 @@ enum VaultExporter {
     /// embeds/links (`![[x]]` / `[[x]]`). Robust to spaces in the renamed files (the
     /// wikilink form sidesteps markdown URL escaping). Returns rewritten md + copies.
     /// `id` disambiguates a name collision with a file this device doesn't own (C58).
+    /// `profile` (Q434, export v2): the portfolio's `![](x)` / `[x](x)`; nil = v1's wiki form.
     static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL, id: UUID,
-                                       place: Placer? = nil) -> (String, Int) {
+                                       place: Placer? = nil, profile: ExportProfile? = nil) -> (String, Int) {
         let fm = FileManager.default
         guard let rx = try? NSRegularExpression(pattern: "(!?)\\[[^\\]]*\\]\\(Attachments/([^)]+)\\)") else {
             return (markdown, 0)
@@ -551,7 +553,10 @@ enum VaultExporter {
                 Self.logCopyFailure(name: name); continue
             }
             copied += 1
-            replacements.append((m.range, "\(bang)[[\(written.lastPathComponent)]]"))
+            let out = written.lastPathComponent
+            replacements.append((m.range, profile == .portfolio
+                ? (bang.isEmpty ? "[\(out)](\(out))" : "![](\(out))")
+                : "\(bang)[[\(out)]]"))
         }
         return (Sanitiser.nsReplace(markdown, edits: replacements), copied)
     }

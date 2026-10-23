@@ -2,16 +2,22 @@
   "_schema": "`<slug>.<vault|portfolio>` -> array of SPEC ids (R# required-difference rows, or the clause id C130 where no R row exists). Read by ExportDiffHarnessTests (Q433, C5): a v2 export that differs from goldens/v1-export/<key>.md on a key listed here is expected-different; the SAME key with no diff is a matched-bug (fail); a diff on an unlisted key is unexplained (fail). The C130/R51 ids on `.portfolio` keys must equal v1's own frontmatter breaches exactly (testV1PortfolioFrontmatterBreachesAreExactlyTheRegisteredRows).",
   "_notes": {
     "C130": "v1's portfolio frontmatter breaches C130: `title:` is written on every note though C130 allows it only when HE gave one (the corpus rows are unpolished, so it is the row's filename stem), and `url:` / `book:` / `chapter:` / `bookAuthor:` are keys outside the C130 list; pic-at-start (body opens with [[img_001]]) exports with its closing `---` fused onto the first sentence and skriftID/skriftHash lost, on BOTH profiles (found by Q433). No R row exists for these; the clause is the registration.",
-    "R51": "`people:` written inline (`people: [[A]], [[B]]`) instead of a block list of plain names; and cap-image-no-words' `![[…]]` embed on the portfolio."
+    "R51": "`people:` written inline (`people: [[A]], [[B]]`) instead of a block list of plain names; and cap-image-no-words' `![[…]]` embed on the portfolio.",
+    "D12": "Export v2 (Q434) writes `created:` (the note's createdAt, local date-time like editedAt) and `duration:` (whole seconds of the recording, empty for a note without one) on every vault export, after `editedAt:` (D12, C56, R38). The portfolio's key list (C130) has neither.",
+    "C25": "Export v2 (Q434) writes the C25 ladder's title in `title:`, the same one the file is named by; v1 wrote the row's filename stem (`memo_<UUID>`, `capture_<UUID>`, the bare UUID) for a note without a polished title. One line always (a text capture's derived title kept its line breaks).",
+    "R38": "Export v2 (Q434): a `.file` capture's shared document goes with the note, named by the note's stem (Documents/ in the vault, beside the note on the portfolio): a PDF embedded, any other file linked.",
+    "R50": "Export v2 (Q434): a tag never carries Obsidian's leading `#` (in YAML a bare `- #studio` is a comment, an empty tag), a vault tag with `: ` is quoted, a portfolio tag reworded (C130)."
   },
   "applenote-headings-checklist.portfolio": [
     "R51"
   ],
   "cap-file-pdf.portfolio": [
-    "C130"
+    "C130",
+    "R38"
   ],
   "cap-file-txt.portfolio": [
-    "C130"
+    "C130",
+    "R38"
   ],
   "cap-image-no-words.portfolio": [
     "C130",
@@ -22,7 +28,8 @@
     "R51"
   ],
   "cap-image-voice-ramble.portfolio": [
-    "C130"
+    "C130",
+    "R51"
   ],
   "cap-text-article.portfolio": [
     "C130"
@@ -194,7 +201,8 @@
     "C130"
   ],
   "typed-tags-with-spaces.portfolio": [
-    "C130"
+    "C130",
+    "R50"
   ],
   "typed-tasks.portfolio": [
     "C130",
@@ -303,5 +311,391 @@
   "voice-nl-names.portfolio": [
     "C130",
     "R51"
+  ],
+  "applenote-headings-checklist.vault": [
+    "D12"
+  ],
+  "applenote-with-attachment.vault": [
+    "D12"
+  ],
+  "cap-file-pdf.vault": [
+    "C25",
+    "D12",
+    "R38"
+  ],
+  "cap-file-txt.vault": [
+    "C25",
+    "D12",
+    "R38"
+  ],
+  "cap-image-no-words.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-image-typed-note.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-image-voice-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-text-article.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-text-plain.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-dutch-annotation.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-instagram.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-link-only.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-no-title.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-voice-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-with-title.vault": [
+    "C25",
+    "D12"
+  ],
+  "cap-url-youtube.vault": [
+    "C25",
+    "D12"
+  ],
+  "conv-dutch.vault": [
+    "C25",
+    "D12"
+  ],
+  "conv-one-unnamed.vault": [
+    "C25",
+    "D12"
+  ],
+  "conv-three-speakers.vault": [
+    "C25",
+    "D12"
+  ],
+  "conv-two-named.vault": [
+    "C25",
+    "D12"
+  ],
+  "conv-with-picture.vault": [
+    "C25",
+    "D12"
+  ],
+  "dest-idea.vault": [
+    "C25",
+    "D12"
+  ],
+  "dest-inspiration-credit.vault": [
+    "C25",
+    "D12"
+  ],
+  "dest-personal.vault": [
+    "C25",
+    "D12"
+  ],
+  "dest-project.vault": [
+    "C25",
+    "D12"
+  ],
+  "edge-emoji-title-tags.vault": [
+    "D12"
+  ],
+  "edge-literal-marker-typed.vault": [
+    "C25",
+    "D12"
+  ],
+  "edge-old-rated-never-exported.vault": [
+    "C25",
+    "D12"
+  ],
+  "edge-quote-in-name-roster-word.vault": [
+    "C25",
+    "D12"
+  ],
+  "edge-tag-case-dupes.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-at-end.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-at-start.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-in-blockquote.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-in-task-list.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-manifest-no-marker.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-mid-sentence.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-missing-file.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-nl.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-ocr-text.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-shared-no-timestamp.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-three-spread.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-two-same-second.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-user-snapped-markers.vault": [
+    "C25",
+    "D12"
+  ],
+  "pic-wall.vault": [
+    "C25",
+    "D12"
+  ],
+  "quote-en-with-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "quote-missing-book-metadata.vault": [
+    "C25",
+    "D12"
+  ],
+  "quote-nl-with-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "quote-only-no-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "quote-with-names.vault": [
+    "C25",
+    "D12"
+  ],
+  "share-signal-single.vault": [
+    "C25",
+    "D12"
+  ],
+  "share-voicememo-named.vault": [
+    "D12"
+  ],
+  "share-whatsapp-thread.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-blockquote-ordinary.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-bracket-tag-bug.vault": [
+    "C25",
+    "D12",
+    "R50"
+  ],
+  "typed-crlf-tabs-nbsp.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-heading-only.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-headings-and-tags.vault": [
+    "D12"
+  ],
+  "typed-hostile-title.vault": [
+    "D12"
+  ],
+  "typed-memo-links.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-numbered-list.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-reminder.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-reserved-word-tags.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-same-title-a.vault": [
+    "D12"
+  ],
+  "typed-same-title-b.vault": [
+    "D12"
+  ],
+  "typed-tags-with-spaces.vault": [
+    "C25",
+    "D12",
+    "R50"
+  ],
+  "typed-tasks.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-title-derived.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-title-set.vault": [
+    "D12"
+  ],
+  "typed-two-liner.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-unicode-emoji.vault": [
+    "D12"
+  ],
+  "typed-urls-in-prose.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-user-wikilink.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-wall-7k.vault": [
+    "D12"
+  ],
+  "typed-wall-one-paragraph.vault": [
+    "C25",
+    "D12"
+  ],
+  "typed-whitespace-only.vault": [
+    "C25",
+    "D12"
+  ],
+  "video-landscape.vault": [
+    "C25",
+    "D12"
+  ],
+  "video-no-speech.vault": [
+    "C25",
+    "D12"
+  ],
+  "video-portrait.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-asr-wall.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-duplicate-a.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-duplicate-b.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-eight-minutes.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-failed.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-full-context.vault": [
+    "D12"
+  ],
+  "voice-en-names-all-tiers.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-paragraphed-by-pauses.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-pricing-ramble.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-processed-no-content.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-rated-floor.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-rated-max.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-raw-title.vault": [
+    "D12"
+  ],
+  "voice-en-three-words.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-triple-blank-lines.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-untrusted-but-edited.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-untrusted.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-en-with-mac-polish.vault": [
+    "D12"
+  ],
+  "voice-mix-code-switch.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-nl-kiln.vault": [
+    "C25",
+    "D12"
+  ],
+  "voice-nl-names.vault": [
+    "C25",
+    "D12"
   ]
 }

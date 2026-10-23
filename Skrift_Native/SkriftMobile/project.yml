@@ -103,6 +103,7 @@ targets:
       # Memo/MemoAsset) — the Mac→CloudKit write-back (MAC_CLOUDKIT_PLAN.md).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       # Pipeline: pure parity algorithms both apps must run identically (vocab
       # parsing/trust, fusion, voice match, BPE merge, image markers).
