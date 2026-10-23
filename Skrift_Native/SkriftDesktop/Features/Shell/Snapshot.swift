@@ -1639,10 +1639,14 @@ enum Snapshot {
             if let old = try? ctx.fetch(FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == rowID })), !old.isEmpty {
                 for o in old { ctx.delete(o) }
             }
-            guard let pf = try? MemoCloudIngest.ingest(memo: memo, assets: assets, upload: upload,
-                                                       into: ctx) else {
+            // Q431: v2's ingest (the gates the sweep applies: live and rated).
+            guard memo.deletedAt == nil, NoteConsent.isRated(memo),
+                  let prepared = try? ReconcileV2.Ingest.prepare(memo, assets: assets, outputDir: upload.outputDir) else {
                 print("renderCaptureCorpus: \(w.name) — ingest returned nil"); continue
             }
+            let pf = ReconcileV2.Ingest.makeRow(prepared, memo: memo)
+            ctx.insert(pf)
+            try? ctx.save()
             if !w.rated { pf.significance = 0 }
             let coordinator = ProcessingCoordinator()
             let view = NoteDisplayView(file: pf, coordinator: coordinator, scrollable: false)

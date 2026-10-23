@@ -41,7 +41,7 @@ extension ReconcileV2 {
         result.authored = Author.backfill(result.snapshot.rows, into: cloud, memosByID: &memosByID,
                                           firstImportDone: firstImportDone, context: ctx)
         result.reflectedTranscripts = Author.reflectTranscripts(result.snapshot.rows, into: cloud,
-                                                                memosByID: memosByID, context: ctx)
+                                                                memosByID: memosByID, deviceID: ctx.thisDeviceID)
         if result.authored + result.reflectedTranscripts > 0 { save(cloud, "author / reflect") }
         result.reexportIDs = reexportIDs(updated: result.sweep.updatedIDs, rows: result.snapshot.rows)
         return result
@@ -100,7 +100,7 @@ extension ReconcileV2 {
             for row in rows where mayBackfill(row, firstImportDone: true) && !row.path.isEmpty {
                 guard let id = UUID(uuidString: row.id), memosByID[id] == nil else { continue }
                 do {
-                    if let memo = try author(row, into: cloud, context: ctx) { memosByID[id] = memo; count += 1 }
+                    if let memo = try author(row, into: cloud, deviceID: ctx.thisDeviceID) { memosByID[id] = memo; count += 1 }
                 } catch {
                     AppLog.cloudkit.error("reconcile v2: authoring \(row.id, privacy: .public) failed: \(String(describing: error), privacy: .public)")
                 }
@@ -110,8 +110,9 @@ extension ReconcileV2 {
 
         /// The memo a Mac row becomes: the phone's shape (C71, R36) — metadata, audio, photos,
         /// attachments, a capture's document, a video's kept movie. Never floors the rating
-        /// (D159: rating is consent). Idempotent: an id that has a memo is left alone. Does not save.
-        static func author(_ row: PipelineFile, into cloud: ModelContext, context ctx: Context) throws -> Memo? {
+        /// (D159: rating is consent). Idempotent: an id that has a memo is left alone. Does not
+        /// save. The one author for every door (the sweep's backfill, a take's arrival, an import).
+        static func author(_ row: PipelineFile, into cloud: ModelContext, deviceID: String = "") throws -> Memo? {
             guard let id = UUID(uuidString: row.id) else { return nil }
             ReconcileWork.bump(\.memoFetches)
             guard try cloud.fetchCount(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == id })) == 0 else { return nil }
@@ -124,7 +125,7 @@ extension ReconcileV2 {
                             recordedAt: row.uploadedAt, significance: row.significance ?? 0,
                             metadataData: shape.metadata, sharedContentData: Memo.encodeJSON(capture),
                             annotationText: capture == nil || words.isEmpty ? nil : words,
-                            recordingDeviceID: ctx.thisDeviceID.isEmpty ? DeviceID.current() : ctx.thisDeviceID)
+                            recordingDeviceID: deviceID.isEmpty ? DeviceID.current() : deviceID)
             if capture == nil, let text = IngestService.bundleAnnotation(in: row.audioMetadataJSON) { memo.annotationText = text }
             ExportAudioMirror.push(row, to: memo)
             if capture != nil {
@@ -157,9 +158,16 @@ extension ReconcileV2 {
         /// device's memos, only when the memo has no words yet, never a capture (its words are its
         /// annotation), and never the rough caption seed of a take still decoding. No edit-time
         /// bump (C188). Word timings and diarization ride along as the phone's assets (C245).
+        /// `memosByID` nil = fetch the rows' memos (a caller outside the pass, e.g. after a run).
         static func reflectTranscripts(_ rows: [PipelineFile], into cloud: ModelContext,
-                                       memosByID: [UUID: Memo], context ctx: Context) -> Int {
-            let me = ctx.thisDeviceID.isEmpty ? DeviceID.current() : ctx.thisDeviceID
+                                       memosByID given: [UUID: Memo]? = nil, deviceID: String = "") -> Int {
+            let me = deviceID.isEmpty ? DeviceID.current() : deviceID
+            let memosByID = given ?? {
+                let ids = rows.compactMap { UUID(uuidString: $0.id) }
+                ReconcileWork.bump(\.memoFetches)
+                let memos = (try? cloud.fetch(FetchDescriptor<Memo>(predicate: #Predicate { ids.contains($0.id) }))) ?? []
+                return Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            }()
             var count = 0
             for row in rows where row.transcribeStatus == .done {
                 guard let words = row.transcript, !words.isEmpty, let id = UUID(uuidString: row.id),

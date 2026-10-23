@@ -131,7 +131,7 @@ extension MemoCloudReconciler {
         // local PipelineFile that doesn't have one yet (the +Upload button / drag-drop / folder
         // import — none of those mint a Memo at ingest time) and reflects a Mac-completed
         // transcript onto an already-authored Memo so it reaches the phone. One Memo fetch for
-        // all of it (`MemoCloudReconciler.pass`). Author/reflect failures are logged inside and
+        // all of it (`ReconcileV2.pass`). Author/reflect failures are logged inside and
         // never take down the ingest/reflect sweep this function exists for.
         // C159/C283 (Q489): a roster change since the last pass (synced in above, or a Mac names
         // edit) re-links every processed row once, BEFORE the sweep, so every row is linked with
@@ -147,17 +147,11 @@ extension MemoCloudReconciler {
                 try? local.save()
             }
         }
-        let pass: PassOutcome
-        do {
-            pass = try MemoCloudReconciler.pass(from: cloudContext, into: local, people: people,
-                                                author: settings.authorName, thisDeviceID: thisDevice,
-                                                deferNewIngest: deferIngest,
-                                                firstImportDone: firstCloudImportDone)
-        } catch {
-            AppLog.cloudkit.error("reconcile: pass FAILED: \(error)")
-            MacSyncMonitor.shared.reportSweep(failure: error.localizedDescription)
-            return 0
-        }
+        // Q431 (C2): the pass is reconcile v2 (`Shared/ReconcileV2`); v1 stays in place until
+        // Q432 deletes it. The carriers above ran first (C185), the roster re-link too.
+        let (context, pass) = v2Pass(cloud: cloudContext, local: local, people: people, author: settings.authorName,
+                                     thisDevice: thisDevice, outputDir: AppPaths.audioOutputDirectory,
+                                     firstImportDone: firstCloudImportDone, deferIngest: deferIngest)
         let outcome = pass.sweep
         // R40 / C168: a sweep that could not read the store pulled nothing. The sweep logged it;
         // the sync state shows it ("couldn't start" + this text as the detail line) until a
@@ -179,25 +173,25 @@ extension MemoCloudReconciler {
         NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
         // A phone edit re-linked + recompiled an existing row (Part B, saved by the pass). If it
         // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
-        let reexport = Array(Set(outcome.updatedIDs).union(relinked))
+        let reexport = Array(Set(pass.reexportIDs).union(relinked))
         if !reexport.isEmpty {
             reexportEdited(reexport, in: local, cloud: cloudContext, settings: settings)
         }
         // The lifecycle sweep reuses this pass's memo snapshot on an open (G12) instead of its
         // own full fetch; it still runs only when a person opened the app (v3 doctrine).
-        LifecycleSweepScheduler.reconcileDidFetch(memos: pass.memos, context: cloudContext)
+        LifecycleSweepScheduler.reconcileDidFetch(memos: pass.snapshot.allMemos, context: cloudContext)
         // The Connections index sweep, AFTER the cloud work, so just-imported memos index in
         // the same pass — from the rows + memos this pass already fetched (G11). Self-gated
         // (consent + model on disk) and hash-diffed ⇒ a redundant fire is nearly free.
         ConnectionsIndexService.shared.sweepSoon(
-            local, reuse: .init(files: pass.localFiles, memos: pass.memos, enhancements: pass.enhancements))
+            local, reuse: .init(files: pass.snapshot.rows, memos: pass.snapshot.allMemos,
+                                enhancements: pass.snapshot.enhancements))
 
         if !outcome.pendingNewIDs.isEmpty {
-            ingestInBackground(outcome.pendingNewIDs, container: cloud, people: people,
-                               author: settings.authorName, thisDeviceID: thisDevice)
+            ingestInBackground(outcome.pendingNewIDs, container: cloud, context: context)
         }
         if !perfLibrary {
-            adoptOrphanedTranscriptions(pass.memos, container: cloud, context: cloudContext,
+            adoptOrphanedTranscriptions(pass.snapshot.allMemos, container: cloud, context: cloudContext,
                                         thisDevice: thisDevice)
         }
         return outcome.created
@@ -232,34 +226,65 @@ extension MemoCloudReconciler {
         }
     }
 
-    /// G3: read the new memos' blobs + write their working folders on a background context,
-    /// then insert all rows on the main actor with ONE save. `ingestInFlight` keeps an
-    /// overlapping sweep from ingesting the same memo meanwhile.
+    /// G3: read the new memos' blobs + write their working folders on a background context
+    /// (`ReconcileV2.Ingest.prepare`, file work only), then make the rows on the main actor in
+    /// one synchronous block with ONE save (`ReconcileV2.Ingest.commit`, C294). The in-flight set
+    /// keeps an overlapping pass from ingesting the same memo or trashing its row meanwhile.
     private static let backgroundIngestBatch = 50
 
-    private static func ingestInBackground(_ ids: [UUID], container: ModelContainer, people: [Person],
-                                           author: String, thisDeviceID: String) {
-        ingestInFlight.formUnion(ids)
-        let upload = UploadService()
-        Task { @MainActor in
-            let local = SharedStore.container.mainContext
+    /// The pass exactly as `reconcile()` runs it (the headless `-reconcilepass` check runs it too).
+    static func v2Pass(cloud: ModelContext, local: ModelContext, people: [Person], author: String,
+                       thisDevice: String, outputDir: URL, firstImportDone: Bool,
+                       deferIngest: Bool) -> (ReconcileV2.Context, ReconcileV2.PassOutcome) {
+        let context = ReconcileV2.Context(people: people, author: author, thisDeviceID: thisDevice, now: Date(),
+                                          outputDir: outputDir, inFlight: ReconcileV2.ingestInFlight)
+        return (context, ReconcileV2.pass(cloud: cloud, local: local, context: context,
+                                          firstImportDone: firstImportDone, deferNew: deferIngest))
+    }
+
+    /// Returns the ingest's task (rows created), so a headless check can wait for it.
+    @discardableResult
+    static func ingestInBackground(_ ids: [UUID], container: ModelContainer,
+                                   local given: ModelContext? = nil,
+                                   context: ReconcileV2.Context, indexAfter: Bool = true) -> Task<Int, Never> {
+        ReconcileV2.ingestInFlight.formUnion(ids)
+        let outputDir = context.outputDir
+        return Task { @MainActor in
+            let local = given ?? SharedStore.container.mainContext
             var created = 0
             // Batches of 50: each gets a fresh background context (so at most 50 memos' blobs
             // are held at once on a first-enable backlog) and ONE main-actor save.
             for start in stride(from: 0, to: ids.count, by: backgroundIngestBatch) {
                 let chunk = Array(ids[start..<min(start + backgroundIngestBatch, ids.count)])
-                let prepared = await MemoCloudReconciler.prepareInBackground(ids: chunk, container: container,
-                                                                             upload: upload)
-                let outcome = MemoCloudReconciler.commitPrepared(prepared, cloud: ModelContext(container),
-                                                                 into: local, people: people, author: author,
-                                                                 thisDeviceID: thisDeviceID, upload: upload)
-                ingestInFlight.subtract(chunk)
+                let attempts = await Task.detached(priority: .userInitiated) { () -> [ReconcileV2.Ingest.Attempt] in
+                    let bg = ModelContext(container)
+                    let memos = (try? bg.fetch(FetchDescriptor<Memo>(predicate: #Predicate { chunk.contains($0.id) }))) ?? []
+                    let byID = Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+                    return chunk.map { id in
+                        guard let memo = byID[id] else { return .waiting(id) }
+                        let assets = (try? bg.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == id }))) ?? []
+                        return ReconcileV2.Ingest.attempt(id) { try ReconcileV2.Ingest.prepare(memo, assets: assets, outputDir: outputDir) }
+                    }
+                }.value
+                // Fresh memos and polish, read now: a memo trashed or un-rated meanwhile is skipped.
+                let cloud = ModelContext(container)
+                let memos = MemoDuplicates.canonicalRows((try? cloud.fetch(FetchDescriptor<Memo>(
+                    predicate: #Predicate { chunk.contains($0.id) }))) ?? [])
+                let enhancements = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(
+                    predicate: #Predicate { chunk.contains($0.memoID) }))) ?? []
+                var outcome = ReconcileV2.Outcome()
+                ReconcileV2.Ingest.commit(attempts, memos: memos,
+                                          enhancements: Dictionary(enhancements.map { ($0.memoID, $0) },
+                                                                   uniquingKeysWith: { a, _ in a }),
+                                          into: local, context: context, outcome: &outcome, save: true)
+                ReconcileV2.ingestInFlight.subtract(chunk)
                 created += outcome.created
                 AppLog.cloudkit.log(
                     "reconcile: background ingest \(outcome.created, privacy: .public) of \(chunk.count, privacy: .public), stranded \(outcome.stranded, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
                 NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
             }
-            if created > 0 { ConnectionsIndexService.shared.sweepSoon(local) }
+            if created > 0, indexAfter { ConnectionsIndexService.shared.sweepSoon(local) }
+            return created
         }
     }
 

@@ -63,6 +63,9 @@ enum ReconcileV2 {
     /// What the pass around the sweep reuses from it, so nothing is fetched twice.
     struct Snapshot {
         var memos: [Memo] = []
+        /// Every memo row read, clones included (the lifecycle sweep reuses it).
+        var allMemos: [Memo] = []
+        var enhancements: [MemoEnhancement] = []
         var rows: [PipelineFile] = []
         /// Row ids that have a memo right now (matched, or made this sweep).
         var rowsWithMemo: Set<String> = []
@@ -91,7 +94,8 @@ enum ReconcileV2 {
             return (Outcome(fetchFailure: message), Snapshot())
         case .success(let read): inputs = read
         }
-        var snapshot = Snapshot(memos: inputs.memos, rows: inputs.rows)
+        var snapshot = Snapshot(memos: inputs.memos, allMemos: inputs.allMemos,
+                                enhancements: Array(inputs.enhancements.values), rows: inputs.rows)
 
         var outcome = Outcome()
         let held = EditConflictHold.refresh(memos: inputs.memos, in: cloud,
@@ -140,6 +144,11 @@ enum ReconcileV2 {
         }
         return (outcome, snapshot)
     }
+
+    /// The memos whose background ingest is running in the app (`Ingest.prepare` off the main
+    /// actor, then `Ingest.commit`): the app passes this set as `Context.inFlight`, so an
+    /// overlapping pass neither ingests them twice nor trashes their rows as orphans.
+    static var ingestInFlight: Set<UUID> = []
 
     // MARK: - reading
 

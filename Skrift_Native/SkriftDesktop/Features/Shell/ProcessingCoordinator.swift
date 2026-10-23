@@ -323,7 +323,7 @@ final class ProcessingCoordinator {
         }
         // Push the words onto the synced Memos so they reach the phone.
         if let cloudCtx = MemoCloudStore.container?.mainContext {
-            let reflected = (try? MacMemoAuthor.reflectTranscripts(files: targets, into: cloudCtx)) ?? 0
+            let reflected = ReconcileV2.Author.reflectTranscripts(targets, into: cloudCtx)   // Q431
             try? cloudCtx.save()
             // The quiet sidebar row renders the MEMO (`WayOutRules.displayTitle` over
             // the sidebar's own fetched array), while the pane renders this row live —

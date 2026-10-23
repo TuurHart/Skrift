@@ -114,9 +114,10 @@ enum CopyEditCorpusRun {
             memo.significance = NoteConsent.flooredByProcess(memo.significance)
         }
         try cloud.save()
-        let upload = UploadService(outputDir: scratch.appendingPathComponent("out"))
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, people: people, author: author,
-                                                thisDeviceID: device, now: now, upload: upload)
+        // Q431: the sweep is reconcile v2 (its rows are field-identical to v1's on the corpus).
+        let outcome = ReconcileV2.sweep(cloud: cloud, local: local,
+                                        context: .init(people: people, author: author, thisDeviceID: device, now: now,
+                                                       outputDir: scratch.appendingPathComponent("out")))
 
         let memoByID = Dictionary(memos.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { a, _ in a })
         let rows = try local.fetch(FetchDescriptor<PipelineFile>())
