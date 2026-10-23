@@ -291,6 +291,7 @@ struct BatchRunner {
     /// re-link + recompile. A conversation is never copy-edited (its turns stay verbatim), and a
     /// body whose tail he has since edited is left alone (`AppendPolish.splice` → nil); either
     /// way the block is no longer pending. Edited WHILE the model ran → discard, stay pending.
+    /// C275 (Q504): the spliced body gets the same spoken-hashtag rule as a whole pass.
     private func polishAppendedBlock(_ pf: PipelineFile, block: String, transcript: String) async throws {
         let before = pf.enhancedCopyedit ?? ""
         let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
@@ -304,7 +305,9 @@ struct BatchRunner {
                 pf.enhanceStatus = .pending
                 return
             }
-            body = AppendPolish.splice(copyedit: before, pending: block, polished: polished) ?? before
+            if let spliced = AppendPolish.splice(copyedit: before, pending: block, polished: polished) {
+                body = SpokenHashtags.shownBody(spliced, vocabulary: settings.customWords)
+            }
         }
         pf.enhancedCopyedit = body
         pf.pendingPolishBlock = nil
