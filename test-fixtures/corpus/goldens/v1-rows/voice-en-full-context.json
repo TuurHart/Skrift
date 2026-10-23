@@ -71,8 +71,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/9FF0A9E9-BB9A-5033-B1FB-303172664B5E_memo_9FF0A9E9-BB9A-5033-B1FB-303172664B5E.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -89,6 +91,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Rode out to the lake in the rain to think. The website should have the bikes on the front page. Rose is right about the fonts though.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-16T21:00:00.000Z",
     "wordTimingsJSON" : [

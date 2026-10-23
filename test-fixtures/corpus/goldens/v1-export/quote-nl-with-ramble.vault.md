@@ -1,6 +1,7 @@
 ---
 title: "memo_391B226E-7EDB-54CD-AEAF-1DCF889D50D5"
 date: 2026-07-18
+editedAt:
 author: Tiuri
 source: Audiobook-quote
 book: "Het Ambacht"

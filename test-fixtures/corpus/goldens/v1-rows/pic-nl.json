@@ -62,8 +62,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/F63BC807-470E-5D9A-BCB6-A42354F646AD_memo_F63BC807-470E-5D9A-BCB6-A42354F646AD.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -79,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Dit is de scheur waar Hendrik het over had, [[img_001]] van de rand tot aan de voet. Ik denk de klei, niet de glazuur. Eh, volgende keer langzamer stoken.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-07T16:00:00.000Z",
     "wordTimingsJSON" : [

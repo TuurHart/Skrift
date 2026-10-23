@@ -68,8 +68,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/7DE3F39D-EEFB-5EA3-B496-0298D738D840_memo_7DE3F39D-EEFB-5EA3-B496-0298D738D840.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -85,6 +87,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "The crack runs from the rim all the way down to the [[img_001]] foot, so it is the body not the glaze. I will fire the next one slower.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-13T08:00:00.000Z",
     "wordTimingsJSON" : [

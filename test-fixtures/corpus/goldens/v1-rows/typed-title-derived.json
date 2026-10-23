@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/2F6E68F2-8192-52B8-990D-DCDA427EEC93_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "First line becomes the title if nothing else does.\n\nSecond paragraph is just here so the first line is clearly a line.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-05T17:00:00.000Z",
     "wordTimingsJSON" : null

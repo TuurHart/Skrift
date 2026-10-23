@@ -79,6 +79,14 @@ enum MemoCloudUpdate {
             if pf.enhancedCopyedit != e.copyedit, !e.isStale(for: memo) {
                 pf.enhancedCopyedit = e.copyedit; contentChanged = true; copyeditAdopted = true
             }
+            // C152: words appended on the phone after the polish. They show already (they are
+            // in the copy-edit above); the row goes back for a pass that polishes only them.
+            let pending = e.pendingBlock.isEmpty ? nil : e.pendingBlock
+            if pf.pendingPolishBlock != pending {
+                pf.pendingPolishBlock = pending
+                if pending != nil, pf.enhanceStatus == .done { pf.enhanceStatus = .pending }
+                contentChanged = true
+            }
             if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; contentChanged = true }
             if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; contentChanged = true }
         }
@@ -103,6 +111,7 @@ enum MemoCloudUpdate {
         // Path 3 — the phone edited the RAW transcript.
         if let t = memo.transcript, pf.transcript != t {
             pf.transcript = t
+            pf.transcriptLanguageMode = memo.transcriptLanguageMode   // C151: the stamp rides with the words
             contentChanged = true
             // C153: a raw edit newer than the polish sends a polished row back to pending, and
             // the stale copy-edit stops being the body, so the edit shows until the next pass.
@@ -112,6 +121,7 @@ enum MemoCloudUpdate {
                (memo.transcriptEditedAt ?? memo.lastEditedAt) > e.enhancedAt {
                 pf.enhanceStatus = .pending
                 pf.enhancedCopyedit = nil
+                pf.pendingPolishBlock = nil   // the whole note is polished again, not a block (C152)
             }
         }
 

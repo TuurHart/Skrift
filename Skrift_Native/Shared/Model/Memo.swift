@@ -92,6 +92,11 @@ final class Memo {
     /// True when `[[img_NNN]]` markers are already injected — tells the Mac not
     /// to re-inject them.
     var transcriptMarkersInjected: Bool = false
+    /// C151 / D46: the ASR language mode (`ASRLanguageMode.rawValue`, "english" /
+    /// "multilingual") this transcript was made with, so "Transcribe again in Dutch /
+    /// English" knows which way to go. ADDITIVE, nil default (= before the stamp; read
+    /// through `ASRLanguageMode.recorded(_:default:)`) → lightweight migration + CloudKit-safe.
+    var transcriptLanguageMode: String? = nil
 
     /// Manual importance rating (0–1, snapped to 0.1), mirroring the desktop review
     /// slider. **Gates processing, not sync: CloudKit mirrors every memo; 0 = unrated, the

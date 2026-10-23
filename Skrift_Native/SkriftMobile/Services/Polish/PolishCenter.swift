@@ -207,7 +207,7 @@ final class PolishCenter {
             }
             switch part {
             case .title: e.title = out
-            case .copyEdit: e.copyedit = out
+            case .copyEdit: e.copyedit = SpokenHashtags.shownBody(out, vocabulary: CustomVocabularyStore.words())   // C275
             case .summary: e.summary = out
             }
             e.enhancedByDeviceID = DeviceID.current()
@@ -367,7 +367,8 @@ final class PolishCenter {
             repository.context.insert(fresh)
             return fresh
         }()
-        enhancement.copyedit = result.copyedit
+        // C275: spoken hashtags become real tags, by rule, in the body he reads (raw keeps the words).
+        enhancement.copyedit = SpokenHashtags.shownBody(result.copyedit, vocabulary: CustomVocabularyStore.words())
         enhancement.title = result.title
         enhancement.summary = result.summary
         enhancement.enhancedByDeviceID = DeviceID.current()

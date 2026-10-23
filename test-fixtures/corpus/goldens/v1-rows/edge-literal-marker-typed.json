@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/5E8EA60A-9C08-5BA7-A980-C3250A1988C6_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "I typed [[img_001]] by hand to see what happens. There is no photo.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-10T08:00:00.000Z",
     "wordTimingsJSON" : null

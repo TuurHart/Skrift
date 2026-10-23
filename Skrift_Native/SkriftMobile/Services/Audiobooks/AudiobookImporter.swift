@@ -12,11 +12,53 @@ enum AudiobookMetadataDefaults {
         -> (title: String, author: String, needsConfirmation: Bool) {
         let cleanTitle = normalized(title)
         let cleanAuthor = normalized(author)
+        var resolvedTitle = cleanTitle ?? filenameTitle(filename)
+        var resolvedAuthor = cleanAuthor ?? ""
+        if cleanAuthor == nil, cleanTitle == nil, let split = splitTitleAuthor(resolvedTitle) {
+            // "Title — Author.m4b" with no tags: pre-fill both fields of the confirm sheet.
+            (resolvedTitle, resolvedAuthor) = split
+        }
         return (
-            title: cleanTitle ?? filenameTitle(filename),
-            author: cleanAuthor ?? "",
+            title: titleWithoutAuthor(resolvedTitle, author: resolvedAuthor),
+            author: resolvedAuthor,
             needsConfirmation: cleanTitle == nil || cleanAuthor == nil
         )
+    }
+
+    /// C297: a title never repeats its author. "Sapiens — Yuval Noah Harari", "Sapiens by
+    /// Yuval Noah Harari" or "Yuval Noah Harari - Sapiens" with that author → "Sapiens".
+    /// Case-insensitive; a title that would be left empty is kept as it was.
+    static func titleWithoutAuthor(_ title: String, author: String) -> String {
+        let a = author.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !a.isEmpty else { return title }
+        var t = title
+        for sep in [" \u{2014} ", " \u{2013} ", " - ", ", by ", " by ", ", "] {
+            if let r = t.range(of: sep + a, options: [.caseInsensitive, .anchored, .backwards]) {
+                t = String(t[..<r.lowerBound])
+                break
+            }
+        }
+        for sep in [" \u{2014} ", " \u{2013} ", " - ", ": "] {
+            if let r = t.range(of: a + sep, options: [.caseInsensitive, .anchored]) {
+                t = String(t[r.upperBound...])
+                break
+            }
+        }
+        let trimmed = t.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? title : trimmed
+    }
+
+    /// "Title — Author" (em or en dash, exactly one) → its two halves; nil otherwise. Only
+    /// for a filename with no tags, where the confirm sheet shows the guess for checking.
+    static func splitTitleAuthor(_ s: String) -> (title: String, author: String)? {
+        for sep in [" \u{2014} ", " \u{2013} "] {
+            let parts = s.components(separatedBy: sep)
+            guard parts.count == 2 else { continue }
+            let t = parts[0].trimmingCharacters(in: .whitespaces)
+            let a = parts[1].trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty, !a.isEmpty { return (t, a) }
+        }
+        return nil
     }
 
     /// "The_Beginning_of_Infinity.m4b" → "The Beginning of Infinity".
@@ -53,8 +95,8 @@ struct PendingAudiobookImport: Identifiable {
 /// cover art / chapter list via AVAsset metadata), and build the `Audiobook`
 /// record. The copy + tag read run off the main actor (book files are big).
 ///
-/// MULTI-SELECT (Bound-style): picking several files at once imports them as
-/// ONE book — sorted by filename (Finder-style numeric order), each file
+/// MULTI-SELECT (Bound-style): the parts of ONE book picked at once import as
+/// ONE book (`importBooks` first splits a pick into distinct books, C293) — sorted by filename (Finder-style numeric order), each file
 /// becoming a chapter. Book-level tags come from the first file's ALBUM tag
 /// (the title tag on file-per-chapter rips is usually the chapter's name).
 enum AudiobookImporter {
@@ -70,6 +112,98 @@ enum AudiobookImporter {
             case .emptySelection: return "No files were selected."
             }
         }
+    }
+
+    // MARK: - Several books in one pick (C293)
+
+    /// What the grouping needs to know about one picked file, read without copying it.
+    struct PickedFile: Sendable, Equatable {
+        let url: URL
+        /// ALBUM tag (the book on a file-per-chapter rip), nil when absent or unreadable.
+        let album: String?
+        /// A whole book on its own: an .m4b, or a file carrying its own chapter track.
+        let wholeBook: Bool
+    }
+
+    /// The outcome of a pick that may hold several books.
+    struct MultiImport {
+        var books: [PendingAudiobookImport] = []
+        /// Each book that could not be imported, named by its first file, with the reason.
+        var failures: [ImportReport.Problem] = []
+    }
+
+    /// Picked files → one group per distinct book, so several books picked together are never
+    /// merged into one (C293). A whole-book file stands alone; parts group by ALBUM tag; parts
+    /// with no album group by folder, and join the folder's one album group when there is
+    /// exactly one (a stray untagged chapter). Groups keep the order their first file was picked.
+    static func bookGroups(_ files: [PickedFile]) -> [[URL]] {
+        var keys: [String] = []
+        var groups: [String: [PickedFile]] = [:]
+        func add(_ key: String, _ f: PickedFile) {
+            if groups[key] == nil { keys.append(key); groups[key] = [] }
+            groups[key]?.append(f)
+        }
+        for f in files {
+            if f.wholeBook {
+                add("whole:" + f.url.path, f)
+            } else if let album = f.album?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !album.isEmpty {
+                add("album:" + album, f)
+            } else {
+                add("folder:" + f.url.deletingLastPathComponent().path, f)
+            }
+        }
+        // A folder group of untagged parts joins the ONE album group living in that folder.
+        for key in keys where key.hasPrefix("folder:") {
+            let folder = String(key.dropFirst("folder:".count))
+            let albumKeys = keys.filter { k in
+                k.hasPrefix("album:") && groups[k]!.contains { $0.url.deletingLastPathComponent().path == folder }
+            }
+            if albumKeys.count == 1, let parts = groups[key] {
+                groups[albumKeys[0]]?.append(contentsOf: parts)
+                groups[key] = nil
+            }
+        }
+        return keys.compactMap { groups[$0]?.map(\.url) }
+    }
+
+    /// Read just enough of a picked file to group it: album tag + whether it carries chapters.
+    static func probe(_ url: URL) async -> PickedFile {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        if url.pathExtension.lowercased() == "m4b" { return PickedFile(url: url, album: nil, wholeBook: true) }
+        let asset = makeAsset(url: url)
+        let common = (try? await asset.load(.commonMetadata)) ?? []
+        var album = await stringValue(in: common, identifier: .commonIdentifierAlbumName)
+        if album == nil {
+            let all = (try? await asset.load(.metadata)) ?? []
+            album = await stringValue(in: all, identifier: .iTunesMetadataAlbum)
+        }
+        let chaptered = ((try? await asset.load(.availableChapterLocales)) ?? []).isEmpty == false
+        return PickedFile(url: url, album: album, wholeBook: chaptered)
+    }
+
+    /// Several picked files → one pending import PER DISTINCT BOOK (C293). One book's files
+    /// still become one multi-part book exactly as `importBook` makes it. A book that fails
+    /// is named in `failures`; the others still import.
+    static func importBooks(from sources: [URL], libraryDirectory: URL) async throws -> MultiImport {
+        guard !sources.isEmpty else { throw ImportError.emptySelection }
+        var picked: [PickedFile] = []
+        for url in sources { picked.append(await probe(url)) }
+        let groups = sources.count == 1 ? [sources] : bookGroups(picked)
+        if groups.count > 1 { DevLog.log("audiobook import: \(sources.count) files → \(groups.count) books") }
+        var result = MultiImport()
+        var firstError: Error?
+        for group in groups {
+            do {
+                result.books.append(try await importBook(from: group, libraryDirectory: libraryDirectory))
+            } catch {
+                firstError = firstError ?? error
+                result.failures.append(ImportReport.Problem(name: group[0].lastPathComponent,
+                                                            reason: error.localizedDescription))
+            }
+        }
+        if result.books.isEmpty, let firstError { throw firstError }
+        return result
     }
 
     /// One or more picked files → ONE pending audiobook. A single file keeps

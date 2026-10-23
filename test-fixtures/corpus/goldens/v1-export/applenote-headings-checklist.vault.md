@@ -1,6 +1,7 @@
 ---
 title: "Touring bike build"
 date: 2026-07-15
+editedAt:
 author: Tiuri
 source: Apple-Note
 summary:

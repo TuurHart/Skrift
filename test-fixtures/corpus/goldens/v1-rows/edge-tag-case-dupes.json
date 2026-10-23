@@ -50,8 +50,10 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/C19EDFDE-C842-5460-83E5-6D59EFE10FFE_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -69,6 +71,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Tag case: Glaze and glaze and GLAZE typed three times.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-08T05:00:00.000Z",
     "wordTimingsJSON" : null

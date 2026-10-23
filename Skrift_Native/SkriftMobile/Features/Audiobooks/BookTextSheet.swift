@@ -20,9 +20,9 @@ struct BookTextSheet: View {
     /// taller than .medium — opening there read as "cut off" (Tuur, b111).
     @State private var detent: PresentationDetent
 
-    init(book: Audiobook, busyMessage: String? = nil, onAdd: @escaping () -> Void) {
+    init(book: Audiobook, busy: BookTextProgress? = nil, onAdd: @escaping () -> Void) {
         self.book = book
-        self.busyMessage = busyMessage
+        self.busy = busy
         self.onAdd = onAdd
         // Cheap record-only check — never `textSummary` here (it decodes every
         // sidecar; see `summary` below).
@@ -32,7 +32,7 @@ struct BookTextSheet: View {
     /// a plain view overlay on the presenting view is invisible once this `.sheet` covers the
     /// screen (only UIKit-level presentations like `.alert`/`.fileImporter` stack over a sheet
     /// automatically), so the busy message needs to render from inside the sheet itself.
-    var busyMessage: String?
+    var busy: BookTextProgress?
     /// Opens the SAME fileImporter flow the library owns — this sheet never presents its own
     /// picker.
     var onAdd: () -> Void
@@ -58,7 +58,7 @@ struct BookTextSheet: View {
     /// the presenting view handing in a new busy state (attach in flight), or a background
     /// re-align ending. Drives the `.task(id:)` reload.
     private var summaryReloadKey: String {
-        "\(busyFilename ?? "-")|\(busyMessage ?? "-")|\(textActivity.isActive(book.id))|\(removingTranscript)"
+        "\(busyFilename ?? "-")|\(busy?.stage ?? "-")|\(textActivity.isActive(book.id))|\(removingTranscript)"
     }
 
     private var perText: [BookTextSummary.PerText] { summary?.perText ?? [] }
@@ -100,14 +100,25 @@ struct BookTextSheet: View {
             // One status toast: the presenting view's attach stage wins; otherwise a
             // background re-align (schema heal / re-check) running for this book. The
             // standing reassurance line is true for both (Tuur 2026-07-22: "didn't know
-            // if I could keep listening" - playback is genuinely unaffected).
-            if let message = busyMessage ?? (textActivity.isActive(book.id) ? textActivity.stage : nil) {
-                VStack(spacing: 3) {
-                    Text(message)
+            // if I could keep listening" - playback is genuinely unaffected). C290: the bar and
+            // count are real steps done of the run's total, not a spinner.
+            if let progress = busy ?? (textActivity.isActive(book.id) ? textActivity.progress : nil) {
+                VStack(spacing: 6) {
+                    Text(progress.stage)
                         .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
-                    Text("You can keep listening while this runs.")
+                    if let count = progress.countLine {
+                        ThinProgressBar(fraction: progress.fraction, height: 4)
+                            .frame(width: 220)
+                            .accessibilityHidden(true)
+                        Text(count)
+                            .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                            .monospacedDigit()
+                    }
+                    Text(BookTextProgress.listeningLine)
                         .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("book-text-progress")
                 .padding(.horizontal, 16).padding(.vertical, 10)
                 .background(Color.skElev, in: RoundedRectangle.sk(16))
                 .transition(.opacity)
@@ -498,19 +509,26 @@ struct BookTextSheet: View {
 
     // MARK: - Add + footer
 
+    /// C291: while this book transcribes, the row is disabled and says why.
     private var addRow: some View {
         Button(action: onAdd) {
-            Text("\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
+            Text(transcribingThisBook
+                 ? BookTextDisplay.addBlockedWhileTranscribing
+                 : "\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.skAccent)
+                .foregroundStyle(transcribingThisBook ? Color.skTextFaint : Color.skAccent)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
                     RoundedRectangle.sk(14)
-                        .strokeBorder(Color.skAccent.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                        .strokeBorder((transcribingThisBook ? Color.skBorder : Color.skAccent.opacity(0.45)),
+                                      style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                 )
         }
         .buttonStyle(.plain)
+        .disabled(transcribingThisBook)
         .accessibilityIdentifier("book-text-add")
         .accessibilityLabel("Add book text")
     }
@@ -634,6 +652,11 @@ enum BookTextDisplay {
     static func addRowLabel(hasTexts: Bool) -> String {
         hasTexts ? "Add another text\u{2026}" : "Add book text\u{2026}"
     }
+
+    /// C291: the one sentence for "you can't add a text right now" — the disabled Add row,
+    /// the A0 prompt's Add card and the attach error all say exactly this.
+    static let addBlockedWhileTranscribing =
+        "This book is still transcribing. Add its text once transcription finishes."
 
     /// Wall-seconds to transcribe the untranscribed remainder of a book, from the
     /// job's real measured per-device throughput. nil until a rate exists or when

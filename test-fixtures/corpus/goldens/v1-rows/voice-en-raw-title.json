@@ -49,8 +49,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/1C63ED4A-69E3-542C-B989-1E95EA8F5FEE_memo_1C63ED4A-69E3-542C-B989-1E95EA8F5FEE.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -66,6 +68,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "A voice note whose stored title looks like a raw filename. The list must not show memo_ garbage; a generated or first-line title wins over a raw one.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-14T18:00:00.000Z",
     "wordTimingsJSON" : [

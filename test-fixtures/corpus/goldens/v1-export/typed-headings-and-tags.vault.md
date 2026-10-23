@@ -1,6 +1,7 @@
 ---
 title: "October workshop plan"
 date: 2026-09-18
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

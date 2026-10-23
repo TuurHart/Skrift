@@ -40,6 +40,12 @@ final class MemoEnhancement {
     /// simply carry nil. See `isProcessed`.
     var processedAt: Date? = nil
 
+    /// C152: raw words appended to `copyedit` AFTER its polish (Add recording, a capture
+    /// ramble) — the tail of `copyedit` no pass has polished yet. The next pass copy-edits
+    /// only this block and splices it back (`AppendPolish`); the earlier polish stays. Empty =
+    /// nothing pending. ADDITIVE, empty default → CloudKit-safe.
+    var pendingBlock: String = ""
+
     init(memoID: UUID, copyedit: String = "", title: String = "", summary: String = "",
          enhancedByDeviceID: String = "", enhancedAt: Date = Date(),
          processedAt: Date? = nil) {

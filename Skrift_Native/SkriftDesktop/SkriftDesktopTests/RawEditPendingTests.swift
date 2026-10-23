@@ -38,6 +38,7 @@ final class RawEditPendingTests: XCTestCase {
     func testRawEditNewerThanThePolishSendsTheRowBackToPending() {
         let id = UUID(), t0 = Date()
         let pf = polishedRow(id, at: t0)
+        pf.pendingPolishBlock = "an appended block of the old words"
         let m = memo(id, transcript: "Edited words.", editedAt: t0.addingTimeInterval(60),
                      rawEditedAt: t0.addingTimeInterval(60))
 
@@ -47,6 +48,7 @@ final class RawEditPendingTests: XCTestCase {
         XCTAssertNil(pf.enhancedCopyedit, "the stale copy-edit no longer wins the body")
         XCTAssertEqual(pf.sanitised, "Edited words.", "the Mac shows the raw edit until the pass lands")
         XCTAssertEqual(pf.transcript, "Edited words.")
+        XCTAssertNil(pf.pendingPolishBlock, "the whole note is polished again, not a block (C152)")
     }
 
     func testAnOlderBuildWithoutTheRawStampFallsBackToTheMemoEditTime() {

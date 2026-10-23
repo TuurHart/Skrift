@@ -39,6 +39,10 @@ enum MemoCloudReconciler {
         /// nothing. Logged here and shown by the app (`MacSyncMonitor.reportSweep`), never
         /// swallowed into an empty memo list that looks like "nothing new".
         var fetchFailure: String?
+        /// Rows this sweep saw their memo for the first time (a Mac capture the backfill
+        /// authored): their `syncedSourceEditedAt` baseline is set — a change to save, not a
+        /// reason to re-export.
+        var newlyLinked = 0
     }
 
     /// Sweep every `Memo` in `cloudContext` into `localContext` (the pipeline store): fetch each
@@ -85,6 +89,8 @@ enum MemoCloudReconciler {
         var enhancements: [MemoEnhancement] = []
         /// The local rows after the sweep (pre-sweep fetch + rows this sweep created).
         var localFiles: [PipelineFile] = []
+        /// The rows that have a memo right now: matched to one, or created from one this sweep.
+        var rowsWithMemo: Set<String> = []
     }
 
     /// The memo ids whose blob-reading ingest runs on a background context right now
@@ -147,6 +153,7 @@ enum MemoCloudReconciler {
         // monologue, every typed note — then never reaches `fetchAssets()`.
         let assetKinds = AssetKindIndex(cloudContext)
         var newMemos: [Memo] = []
+        var rowsWithMemo: Set<String> = []
         for memo in memos {
             let memoID = memo.id
             let id = memo.id.uuidString
@@ -170,6 +177,7 @@ enum MemoCloudReconciler {
             } ?? false
             let byFilename = filenameRowIsAnothersMemo ? nil : filenameRow
             if let pf = fileByID[id] ?? byFilename {
+                rowsWithMemo.insert(pf.id)
                 // Already have a row — reflect a phone edit into it (no-op when up to date).
                 let applied = held.contains(id) ? false
                     : MemoCloudUpdate.apply(memo: memo, enhancement: enhancementByMemo[memoID], to: pf,
@@ -192,6 +200,13 @@ enum MemoCloudReconciler {
                 // unable to enroll a voice from a phone-diarized conversation).
                 let diarHealed = MemoCloudIngest.adoptLateDiarization(
                     memo: memo, pf: pf, assetKinds: { assetKinds.kinds(memoID) }, fetchAssets: fetchAssets)
+                // C157: a row with a watermark has had a memo, so it can become an orphan. An
+                // ingested row has one from birth; a Mac capture gets it the first time its
+                // authored memo is seen, baselined as the ingest does.
+                if pf.syncedSourceEditedAt == nil {
+                    pf.syncedSourceEditedAt = memo.lastEditedAt
+                    outcome.newlyLinked += 1
+                }
                 let anyHeal = healed || timingsHealed || diarHealed
                 if anyHeal && !applied { pf.lastActivityAt = now }
                 if applied || anyHeal { outcome.updatedIDs.append(pf.id) }
@@ -226,9 +241,10 @@ enum MemoCloudReconciler {
                                  people: people, author: author, thisDeviceID: thisDeviceID,
                                  now: now, upload: upload, outcome: &outcome)
             localFiles.append(contentsOf: created)
+            rowsWithMemo.formUnion(created.map(\.id))
         }
         let snapshot = SweepSnapshot(allMemos: allMemos, memos: memos, enhancements: enhancements,
-                                     localFiles: localFiles)
+                                     localFiles: localFiles, rowsWithMemo: rowsWithMemo)
         return (outcome, snapshot)
     }
 
@@ -351,10 +367,40 @@ enum MemoCloudReconciler {
     }
 
     /// What one reconcile pass did, plus the fetches it made (for reuse by the callers).
+    /// C157: trash every LIVE row that once had a memo (`syncedSourceEditedAt` set) and has none now. Never touches the
+    /// vault — a trashed row leaves its exported file (C156) — and Restore brings it back.
+    /// Refuses (and logs) when the cloud store holds no memos or when more than a quarter of
+    /// the linked rows would go at once: that is a different or half-downloaded store, not a
+    /// purge, which only ever takes notes one by one out of the trash.
+    @discardableResult
+    static func trashOrphans(_ files: [PipelineFile], rowsWithMemo: Set<String>, memoCount: Int,
+                             now: Date) -> Int {
+        let linked = files.filter {
+            $0.deletedAt == nil && $0.syncedSourceEditedAt != nil
+        }
+        let orphans = linked.filter { pf in
+            !rowsWithMemo.contains(pf.id)
+                && !(UUID(uuidString: pf.id).map { ingestInFlight.contains($0) } ?? false)
+        }
+        guard !orphans.isEmpty else { return 0 }
+        guard memoCount > 0, orphans.count <= 2 || orphans.count * 4 <= linked.count else {
+            AppLog.cloudkit.error("reconcile: \(orphans.count, privacy: .public) of \(linked.count, privacy: .public) linked rows have no memo (store holds \(memoCount, privacy: .public)) — not trashing them, this looks like a different store, not a purge")
+            return 0
+        }
+        for pf in orphans {
+            pf.deletedAt = now
+            pf.lastActivityAt = now
+        }
+        AppLog.cloudkit.info("reconcile: trashed \(orphans.count, privacy: .public) rows whose memo is gone")
+        return orphans.count
+    }
+
     struct PassOutcome {
         var sweep: SweepOutcome
         var authored = 0
         var reflectedTranscripts = 0
+        /// Live rows trashed this pass because their memo is gone (C157).
+        var orphansTrashed = 0
         /// Every `Memo` row the pass fetched (duplicates included).
         var memos: [Memo] = []
         var enhancements: [MemoEnhancement] = []
@@ -384,8 +430,15 @@ enum MemoCloudReconciler {
                                  enhancements: snapshot.enhancements, localFiles: snapshot.localFiles)
         // R40: nothing was read, so there is nothing to author or reflect from.
         if outcome.fetchFailure != nil { return result }
+        // C157: a live row whose memo is gone (purged on another device) goes to the trash —
+        // before the backfill, which would otherwise author the memo back. Only once the first
+        // import is done: before it, a missing memo may simply not have downloaded yet.
+        if firstImportDone {
+            result.orphansTrashed = trashOrphans(snapshot.localFiles, rowsWithMemo: snapshot.rowsWithMemo,
+                                                 memoCount: snapshot.memos.count, now: now)
+        }
         // A phone edit re-linked + recompiled an existing row (Part B). Persist it.
-        if !outcome.updatedIDs.isEmpty {
+        if !outcome.updatedIDs.isEmpty || outcome.newlyLinked > 0 || result.orphansTrashed > 0 {
             do {
                 ReconcileWork.bump(\.saves)
                 try localContext.save()

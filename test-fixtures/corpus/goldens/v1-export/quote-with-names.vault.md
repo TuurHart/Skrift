@@ -1,6 +1,7 @@
 ---
 title: "memo_10B65155-D4EE-55E5-B973-B37ACB70D9CF"
 date: 2026-07-16
+editedAt:
 author: Tiuri
 source: Audiobook-quote
 book: "Small Shops"

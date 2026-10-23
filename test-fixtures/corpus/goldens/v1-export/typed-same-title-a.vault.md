@@ -1,6 +1,7 @@
 ---
 title: "Glaze test"
 date: 2026-09-05
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

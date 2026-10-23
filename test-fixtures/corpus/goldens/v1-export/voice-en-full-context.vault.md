@@ -1,6 +1,7 @@
 ---
 title: "Rain ride to Kralingen"
 date: 2026-08-16
+editedAt:
 author: Tiuri
 source: Voice-memo
 summary:

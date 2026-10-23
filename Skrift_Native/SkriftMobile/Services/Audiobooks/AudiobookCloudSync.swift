@@ -107,6 +107,103 @@ enum AudiobookCloudSync {
         }
     }
 
+    /// C298: an entry with none of its files on this device AND no cloud carrier can never
+    /// play or re-download — what an unshare leaves on a device that never had (or had
+    /// freed) the audio. Checked at every library load (`reconcile`: launch, foreground),
+    /// before the synced-records check so it runs with none left. Three guards, because a
+    /// wrong "no carrier" would cost bookmarks and hours of whole-book transcript:
+    /// - only while `healthy` (signed in + the last CloudKit import succeeded) — a mirror
+    ///   reset or sign-in hiccup that briefly empties the carriers never counts;
+    /// - only on a SECOND sighting at least `confirmAfter` (24 h) after the first, both
+    ///   healthy (first-seen per id in `defaults`; cleared the moment the entry recovers);
+    /// - never deleted: the entry leaves the library and its folder moves to
+    ///   `<library>/.removed/<id>-<stamp>/`, pruned after `quarantineDays`.
+    /// An article is never a phantom: with no text file it is "Getting the text…" and
+    /// refetches from its URL. Returns the dropped ids.
+    @discardableResult
+    static func dropPhantoms(library: AudiobookLibraryStore = .shared,
+                             repository: NotesRepository = .shared,
+                             healthy: Bool,
+                             defaults: UserDefaults = .standard,
+                             now: Date = Date()) -> [UUID] {
+        pruneQuarantine(library: library, now: now)
+        guard healthy else { return [] }
+        let fm = FileManager.default
+        var firstSeen = (defaults.dictionary(forKey: phantomFirstSeenKey) as? [String: Double]) ?? [:]
+        var stillPhantom: Set<String> = []
+        var dropped: [UUID] = []
+        for book in library.books where !book.files.isEmpty && book.kind != .article {
+            guard repository.audiobookRecord(bookID: book.id) == nil else { continue }
+            let folder = library.folder(for: book.id)
+            let anyLocal = book.files.contains { fm.fileExists(atPath: folder.appendingPathComponent($0).path) }
+            guard !anyLocal else { continue }
+            let key = book.id.uuidString
+            guard let seen = firstSeen[key] else {
+                firstSeen[key] = now.timeIntervalSince1970   // first sighting: remember, keep
+                stillPhantom.insert(key)
+                continue
+            }
+            guard now.timeIntervalSince1970 - seen >= phantomConfirmAfter else {
+                stillPhantom.insert(key)
+                continue
+            }
+            let parked = quarantine(folder: folder, bookID: book.id, library: library, now: now)
+            if parked == nil, fm.fileExists(atPath: folder.path) {
+                stillPhantom.insert(key)   // could not park it: keep the entry rather than lose the folder
+                continue
+            }
+            DevLog.log("library: dropped phantom entry \(book.id) '\(book.title)' — no local file, no cloud carrier"
+                       + (parked.map { "; folder kept at \($0.path)" } ?? ""))
+            library.remove(book)   // the folder already moved, so this removes the entry only
+            dropped.append(book.id)
+        }
+        // An entry that recovered (file or carrier back) forgets its sighting.
+        firstSeen = firstSeen.filter { stillPhantom.contains($0.key) }
+        defaults.set(firstSeen, forKey: phantomFirstSeenKey)
+        return dropped
+    }
+
+    static let phantomFirstSeenKey = "audiobookPhantomFirstSeen"
+    static let phantomConfirmAfter: TimeInterval = 24 * 3600
+    static let quarantineDays: Double = 30
+
+    /// `<library>/.removed` — where a dropped phantom's folder waits out `quarantineDays`.
+    static func quarantineRoot(_ library: AudiobookLibraryStore) -> URL {
+        library.directory.appendingPathComponent(".removed", isDirectory: true)
+    }
+
+    /// Move the book's folder (if any) into quarantine, stamped now; returns where it went.
+    private static func quarantine(folder: URL, bookID: UUID, library: AudiobookLibraryStore, now: Date) -> URL? {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: folder.path) else { return nil }
+        let root = quarantineRoot(library)
+        let stamp = Int(now.timeIntervalSince1970)
+        let dest = root.appendingPathComponent("\(bookID.uuidString)-\(stamp)", isDirectory: true)
+        do {
+            try fm.createDirectory(at: root, withIntermediateDirectories: true)
+            try fm.moveItem(at: folder, to: dest)
+            try? fm.setAttributes([.modificationDate: now], ofItemAtPath: dest.path)
+            return dest
+        } catch {
+            DevLog.log("library: could not quarantine \(folder.lastPathComponent): \(error)")
+            return nil
+        }
+    }
+
+    /// Delete quarantined folders older than `quarantineDays` (by the stamp set when parked).
+    static func pruneQuarantine(library: AudiobookLibraryStore, now: Date = Date()) {
+        let fm = FileManager.default
+        let root = quarantineRoot(library)
+        guard let items = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        for item in items {
+            let parked = (try? item.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? now
+            if now.timeIntervalSince(parked) > quarantineDays * 86_400 {
+                try? fm.removeItem(at: item)
+                DevLog.log("library: pruned quarantined folder \(item.lastPathComponent)")
+            }
+        }
+    }
+
     /// A book is "synced" exactly when a carrier exists — the toggle's state, no flag.
     static func isSynced(bookID: UUID, repository: NotesRepository = .shared) -> Bool {
         repository.audiobookRecord(bookID: bookID) != nil
@@ -233,6 +330,8 @@ enum AudiobookCloudSync {
         if PerfLibrary.isActive { return }   // Q313: raw CloudKit audiobook transfer stays off
         #endif
         if isReconciling { rerunRequested = true; return }
+        dropPhantoms(library: library, repository: repository,
+                     healthy: CloudSyncMonitor.shared.isCloudHealthy, defaults: defaults)
         isReconciling = true
         defer { isReconciling = false }
         repeat {

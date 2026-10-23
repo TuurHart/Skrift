@@ -63,8 +63,10 @@
     ],
     "locked" : false,
     "mediaSource" : "video",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/4A17A76D-6ECF-5B59-81AC-6872C5C4B682_memo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -80,6 +82,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "[[img_001]]\n\nAdvice to future me, recorded on the balcony: do not say yes to a workshop before checking the calendar.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-02T18:30:00.000Z",
     "wordTimingsJSON" : [

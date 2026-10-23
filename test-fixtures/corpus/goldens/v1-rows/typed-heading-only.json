@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/9079068D-CD80-52D0-915A-E3B75EDB6088_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "# Just a heading",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-02T04:00:00.000Z",
     "wordTimingsJSON" : null

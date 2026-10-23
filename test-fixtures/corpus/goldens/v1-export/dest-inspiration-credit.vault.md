@@ -1,6 +1,7 @@
 ---
 title: "capture_7768BEA5-AC15-549E-8E29-23602152D2F3"
 date: 2026-07-11
+editedAt:
 author: Tiuri
 source: capture-url
 url: https://example-studio.be/avonden

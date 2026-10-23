@@ -49,8 +49,10 @@
     ],
     "locked" : true,
     "mediaSource" : "applenote",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/5210FEAE-7C4E-5974-9926-1FA90C36497F_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -66,6 +68,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Ideeën\n\n- de Ålesund-appeltaart laten bezorgen (kan dat?)\n- een dag zonder werkplaats\n- de blauwe kom, als hij lukt\n\nNiet: gereedschap. Nooit meer gereedschap.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-14T14:00:00.000Z",
     "wordTimingsJSON" : null

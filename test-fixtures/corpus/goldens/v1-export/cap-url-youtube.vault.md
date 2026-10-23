@@ -1,6 +1,7 @@
 ---
 title: "capture_EE54A5E9-43F8-55C4-AFBC-82808A875F53"
 date: 2026-08-02
+editedAt:
 author: Tiuri
 source: capture-url
 url: https://www.youtube.com/watch?v=dQw4w9WgXcQ

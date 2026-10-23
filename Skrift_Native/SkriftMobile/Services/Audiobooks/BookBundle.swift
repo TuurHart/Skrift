@@ -16,6 +16,8 @@ enum BookBundle {
         case missingManifest
         case unsupportedBundle
         case missingAudio(String)
+        /// An entry's bytes do not match its recorded CRC-32 (Q502) — nothing was kept.
+        case damaged(String)
         /// The same book landed in the library (e.g. via sync) after it was offered.
         case alreadyInLibrary
 
@@ -25,6 +27,7 @@ enum BookBundle {
             case .missingManifest:    return "This book file is missing its details."
             case .unsupportedBundle:  return "This book was shared from a newer version of Skrift."
             case .missingAudio(let n): return "The audio file \(n) is missing from this book."
+            case .damaged(let n):     return "\(n) is damaged inside this book file, so nothing was added. Ask for the book to be sent again."
             case .alreadyInLibrary:   return "This book is already in your books."
             }
         }
@@ -157,8 +160,12 @@ enum BookBundle {
         guard let entry = archive[BookBundleManifest.Dir.manifest] else {
             throw BundleError.missingManifest
         }
-        var data = Data()
-        _ = try archive.extract(entry) { data.append($0) }
+        let data: Data
+        do {
+            data = try VerifiedZip.data(entry, in: archive)
+        } catch {
+            throw BundleError.damaged(BookBundleManifest.Dir.manifest)
+        }
 
         guard let manifest = try? JSONDecoder().decode(BookBundleManifest.self, from: data) else {
             throw BundleError.missingManifest
@@ -177,9 +184,7 @@ enum BookBundle {
 
         guard let archive = try? Archive(url: url, accessMode: .read),
               let entry = archive[name] else { return nil }
-        var data = Data()
-        guard (try? archive.extract(entry, consumer: { data.append($0) })) != nil else { return nil }
-        return data
+        return try? VerifiedZip.data(entry, in: archive)   // a damaged cover shows the placeholder
     }
 
     /// Unpack a bundle into `folder` (the receiving device's book folder) and
@@ -203,6 +208,13 @@ enum BookBundle {
             throw BundleError.unreadableArchive
         }
         let fm = FileManager.default
+        // Never a partial unpack (Q502): on any failure everything this pass wrote goes again —
+        // the whole folder when this pass created it.
+        let folderExisted = fm.fileExists(atPath: folder.path)
+        var writtenFiles: [URL] = []
+        func undo() {
+            if folderExisted { writtenFiles.forEach { try? fm.removeItem(at: $0) } } else { try? fm.removeItem(at: folder) }
+        }
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
 
         let payload = Array(manifest.entryPaths.dropFirst())
@@ -213,6 +225,7 @@ enum BookBundle {
         for path in payload {
             guard let entry = archive[path] else {
                 if path.hasPrefix("\(BookBundleManifest.Dir.audio)/") {
+                    undo()
                     throw BundleError.missingAudio(sourceName(for: path))
                 }
                 continue
@@ -221,7 +234,13 @@ enum BookBundle {
             // someone renames the file to .zip; on disk a book folder is flat.
             let target = folder.appendingPathComponent(sourceName(for: path))
             try? fm.removeItem(at: target)
-            _ = try archive.extract(entry, to: target)
+            do {
+                try VerifiedZip.extract(entry, in: archive, to: target)
+            } catch {
+                undo()
+                throw BundleError.damaged(sourceName(for: path))
+            }
+            writtenFiles.append(target)
             written += Int64(entry.uncompressedSize)
             progress?(total > 0 ? min(1, Double(written) / Double(total)) : 1)
         }

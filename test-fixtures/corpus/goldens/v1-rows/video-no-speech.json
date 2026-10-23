@@ -63,8 +63,10 @@
     ],
     "locked" : false,
     "mediaSource" : "video",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_memo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -80,6 +82,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "[[img_001]]",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-23T02:00:00.000Z",
     "wordTimingsJSON" : null

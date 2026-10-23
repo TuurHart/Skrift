@@ -191,6 +191,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.transcript = m.transcript
         pf.tags = m.tags                 // as MemoCloudIngest now leaves them
         pf.significance = m.significance
+        pf.memoEditedAt = m.editedAt     // the editedAt mirror's first-contact adopt (C284)
         return pf
     }
 

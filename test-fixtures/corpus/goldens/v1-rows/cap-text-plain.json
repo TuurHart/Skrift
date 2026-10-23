@@ -49,8 +49,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_6A3AE681-57AD-5464-9AF2-1094C838025E",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -66,6 +68,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

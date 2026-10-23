@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/0CEAE094-5C11-5C3D-9D08-CBFC242ED49D_memo_0CEAE094-5C11-5C3D-9D08-CBFC242ED49D.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Private thought. Not sure the studio makes me happy or just busy. Personal, vault only.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-13T04:00:00.000Z",
     "wordTimingsJSON" : [

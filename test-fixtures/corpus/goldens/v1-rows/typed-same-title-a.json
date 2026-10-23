@@ -64,8 +64,10 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/5C6FF01E-C7B6-542B-877C-952A269B857A_note/original.md",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -81,6 +83,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Cone 6, grey body, blue #3. Edges went green again.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-05T00:00:00.000Z",
     "wordTimingsJSON" : null

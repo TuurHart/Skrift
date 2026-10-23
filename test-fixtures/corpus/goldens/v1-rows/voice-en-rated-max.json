@@ -55,8 +55,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/C6DD134F-4B24-5A67-A07B-0B427A469228_memo_C6DD134F-4B24-5A67-A07B-0B427A469228.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -73,6 +75,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "This is the one. If the studio only ever makes one thing it should be the blue bowl, the wide one, and everything else is a way to pay for that.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-22T13:00:00.000Z",
     "wordTimingsJSON" : [

@@ -54,8 +54,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -71,6 +73,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

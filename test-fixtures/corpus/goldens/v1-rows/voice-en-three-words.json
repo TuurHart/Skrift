@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD_memo_68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Order kiln wash.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-14T01:00:00.000Z",
     "wordTimingsJSON" : [

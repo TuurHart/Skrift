@@ -1,6 +1,7 @@
 ---
 title: "Q4: plan / budget * draft? <v2> \"final\" | really"
 date: 2026-09-02
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

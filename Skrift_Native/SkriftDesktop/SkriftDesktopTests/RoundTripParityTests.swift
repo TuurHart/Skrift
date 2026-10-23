@@ -56,9 +56,7 @@ final class RoundTripParityTests: XCTestCase {
             compared += 1
         }
         XCTAssertGreaterThan(compared, 20, "the corpus must exercise this path")
-        // SPEC R34 / C245 — pre-registered: today the Mac authors WITHOUT the timings.
-        XCTExpectFailure("R34: MacMemoAuthor.author attaches the audio only (MacMemoAuthor.swift:92); v2 must carry wordTimings + diarization") {
-            XCTAssertEqual(timingsLost, 0, "Mac-authored memos lost their word timings: \(timingsLost) of \(compared)")
-        }
+        // SPEC R34 / C245 — fixed by Q482: the Mac authors its takes WITH the timings (`TimingAssets`).
+        XCTAssertEqual(timingsLost, 0, "Mac-authored memos lost their word timings: \(timingsLost) of \(compared)")
     }
 }

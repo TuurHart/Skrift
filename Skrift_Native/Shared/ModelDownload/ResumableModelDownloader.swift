@@ -52,14 +52,15 @@ public struct ResumableModelDownloader: Downloader {
         progressHandler: @Sendable @escaping (Progress) -> Void
     ) async throws -> URL {
         let rev = revision ?? "main"
-        let dir = root
-            .appendingPathComponent(id.replacingOccurrences(of: "/", with: "--"), isDirectory: true)
-            .appendingPathComponent(rev, isDirectory: true)
+        let dir = snapshotDirectory(id: id, revision: rev)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         let wanted = try await manifest(id: id, revision: rev)
             .filter { file in patterns.isEmpty || patterns.contains { Self.glob($0, matches: file.name) } }
         guard !wanted.isEmpty else { throw DownloadError.emptyManifest(id) }
+        // Record what "whole" means BEFORE fetching, so `isComplete` can check each file's
+        // exact byte count offline later (C292) — never a size floor.
+        try Self.writeExpected(wanted, in: dir)
 
         let total = wanted.reduce(Int64(0)) { $0 + $1.size }
         let progress = Progress(totalUnitCount: total)
@@ -82,6 +83,42 @@ public struct ResumableModelDownloader: Downloader {
         return dir
     }
 
+    // MARK: - Completeness (C292)
+
+    /// Where `download` puts this repo + revision.
+    public func snapshotDirectory(id: String, revision: String) -> URL {
+        root.appendingPathComponent(id.replacingOccurrences(of: "/", with: "--"), isDirectory: true)
+            .appendingPathComponent(revision, isDirectory: true)
+    }
+
+    /// True only when every file the last download asked for is on disk at its exact
+    /// expected byte count. A truncated file is incomplete however large it is; no record
+    /// of what was asked for (never downloaded here) is incomplete too. Offline — reads
+    /// the record `download` wrote, never the network.
+    public func isComplete(id: String, revision: String) -> Bool {
+        Self.isComplete(dir: snapshotDirectory(id: id, revision: revision))
+    }
+
+    static let expectedFilename = ".skrift-expected.json"
+
+    static func isComplete(dir: URL) -> Bool {
+        guard let files = readExpected(in: dir), !files.isEmpty else { return false }
+        return files.allSatisfy { sizeOnDisk(dir.appendingPathComponent($0.name)) == $0.size }
+    }
+
+    static func writeExpected(_ files: [RemoteFile], in dir: URL) throws {
+        let data = try JSONEncoder().encode(files.map { Expected(name: $0.name, size: $0.size) })
+        try data.write(to: dir.appendingPathComponent(expectedFilename), options: .atomic)
+    }
+
+    static func readExpected(in dir: URL) -> [RemoteFile]? {
+        guard let data = try? Data(contentsOf: dir.appendingPathComponent(expectedFilename)),
+              let rows = try? JSONDecoder().decode([Expected].self, from: data) else { return nil }
+        return rows.map { RemoteFile(name: $0.name, size: $0.size) }
+    }
+
+    private struct Expected: Codable { let name: String; let size: Int64 }
+
     // MARK: - One file, resumably
 
     private func fetch(_ file: RemoteFile, id: String, revision: String, into dir: URL,
@@ -93,7 +130,17 @@ public struct ResumableModelDownloader: Downloader {
         // Already whole? Trust SIZE, never mere existence — a truncated file that merely
         // exists is exactly what poisoned the iPad's cache.
         if Self.sizeOnDisk(dest) == file.size { try? fm.removeItem(at: partial); return }
-        if fm.fileExists(atPath: dest.path) { try? fm.removeItem(at: dest) }
+        if fm.fileExists(atPath: dest.path) {
+            // A short file in place (an older build, or a copy cut off) still holds good
+            // bytes: make it the partial and resume from its end rather than refetch it all.
+            let short = Self.sizeOnDisk(dest)
+            if short < file.size, short > Self.sizeOnDisk(partial) {
+                try? fm.removeItem(at: partial)
+                if (try? fm.moveItem(at: dest, to: partial)) == nil { try? fm.removeItem(at: dest) }
+            } else {
+                try? fm.removeItem(at: dest)
+            }
+        }
 
         // Adopt anything the stock downloader already fetched. Switching to this
         // downloader must not cost a device 8.9 GB it is holding two directories away

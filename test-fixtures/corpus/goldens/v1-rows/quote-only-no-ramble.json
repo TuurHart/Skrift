@@ -53,8 +53,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/1255822E-0BD2-5670-B214-7A9BA89F20CB_memo_1255822E-0BD2-5670-B214-7A9BA89F20CB.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -70,6 +72,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Price is what you say when you have stopped apologising.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-17T10:00:00.000Z",
     "wordTimingsJSON" : [

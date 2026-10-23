@@ -48,8 +48,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/FF3AEE2F-2713-5D0F-ACF7-BD347E20E733_memo_FF3AEE2F-2713-5D0F-ACF7-BD347E20E733.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -65,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Fire it slower than you think you need to.\n\nThe June bug: this reached the Mac with an EMPTY metadata blob and rendered as a raw > wall.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-16T17:00:00.000Z",
     "wordTimingsJSON" : [

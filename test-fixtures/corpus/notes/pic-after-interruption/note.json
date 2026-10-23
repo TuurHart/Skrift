@@ -1,0 +1,63 @@
+{
+  "id": "5616399D-6F21-5DA9-A755-9944010D7E44",
+  "slug": "pic-after-interruption",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "interruption"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-18T11:20:00+01:00",
+  "createdAt": "2026-09-18T11:20:00+01:00",
+  "editedAt": null,
+  "duration": 11.47,
+  "audio": "audio.m4a",
+  "transcript": "We are loading the kiln for the second firing today. Sorry, that was the supplier on the phone. The glaze tiles from last week came out a deep even blue. [[img_001]] Next time I will try the darker oxide.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.93,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.55,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-18T11:20:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_5616399D-6F21-5DA9-A755-9944010D7E44_001.jpg",
+        "offsetSeconds": 7.09
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_5616399D-6F21-5DA9-A755-9944010D7E44_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A phone call cut in after the first sentence and held the mic for callSeconds; the picture was snapped while the third sentence was spoken. The recording clock stops for an interruption, so the manifest offset is the RECORDING-clock moment (offsetSeconds) and the picture lands after the third sentence. The wall clock would read offsetSeconds + callSeconds, past the last word, and drop the picture after the fourth.",
+    "callStartsAt": 3.018,
+    "callSeconds": 40.0,
+    "wallClockOffset": 47.09
+  }
+}

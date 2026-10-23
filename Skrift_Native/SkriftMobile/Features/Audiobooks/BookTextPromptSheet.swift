@@ -62,7 +62,10 @@ struct BookTextPromptSheet: View {
                 (Text("② Add the real book ").foregroundStyle(Color.skText)
                  + Text("(optional)").foregroundStyle(Color.skTextFaint).fontWeight(.regular))
                     .font(.system(size: 13.5, weight: .semibold))
-                Text("Have the ePub? Add it now — it waits for the transcript and matches up on its own the moment transcription finishes. Published words, real chapters.")
+                // C291: no text joins a book mid-transcription — say so instead of offering it.
+                Text(transcribingThisBook
+                     ? BookTextDisplay.addBlockedWhileTranscribing
+                     : "Have the ePub? Add it now — it matches up on its own once the book is transcribed. Published words, real chapters.")
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
                     .fixedSize(horizontal: false, vertical: true)
                 Button {
@@ -78,6 +81,8 @@ struct BookTextPromptSheet: View {
                         )
                 }
                 .padding(.top, 7)
+                .disabled(transcribingThisBook)
+                .opacity(transcribingThisBook ? 0.4 : 1)
                 .accessibilityIdentifier("book-text-prompt-add")
             }
 

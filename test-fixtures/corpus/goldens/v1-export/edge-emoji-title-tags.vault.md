@@ -1,6 +1,7 @@
 ---
 title: "🔥 Kiln day"
 date: 2026-07-09
+editedAt:
 author: Tiuri
 source: Voice-memo
 summary:

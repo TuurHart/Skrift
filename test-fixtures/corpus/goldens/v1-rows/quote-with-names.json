@@ -53,8 +53,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/10B65155-D4EE-55E5-B973-B37ACB70D9CF_memo_10B65155-D4EE-55E5-B973-B37ACB70D9CF.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -70,6 +72,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Every workshop has a Jack: the one who knows a better way and never shows up.\n\nMine has two. Rose says that is a management problem, not a Jack problem.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-16T00:00:00.000Z",
     "wordTimingsJSON" : [

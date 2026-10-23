@@ -124,22 +124,33 @@ actor EmbeddingIndex {
                 continue
             }
 
+            // C294: every `await` comes BEFORE the swap. This is an actor, so a query can run at
+            // each suspension point; the old loop deleted the memo's rows first and inserted the
+            // new ones between awaits, so a query in that window saw the memo half-swapped (no
+            // rows, or a gist with some of its chunks). Now all vectors are computed into locals,
+            // then the old rows go and the new ones land in one synchronous block (no suspension
+            // point, so no query can interleave): a query sees the memo before or after, never
+            // between.
             try await engine.prepare()
-            existing[snap.id]?.forEach { context.delete($0) }
-
             let gistVector = try await engine.embed(gist, isQuery: false)
+            var chunkVectors: [(chunk: MemoGist.Chunk, vector: [Float])] = []
+            for chunk in MemoGist.chunks(body: body) {
+                chunkVectors.append((chunk, try await engine.embed(chunk.text, isQuery: false)))
+            }
+
+            existing[snap.id]?.forEach { context.delete($0) }
             context.insert(MemoEmbedding(memoID: snap.id, chunkIndex: 0,
                                          charStart: 0, charEnd: 0,
                                          vector: gistVector, textHash: hash,
                                          modelRev: engine.modelRev))
-            for (i, chunk) in MemoGist.chunks(body: body).enumerated() {
-                let v = try await engine.embed(chunk.text, isQuery: false)
+            for (i, cv) in chunkVectors.enumerated() {
                 context.insert(MemoEmbedding(memoID: snap.id, chunkIndex: i + 1,
-                                             charStart: chunk.start, charEnd: chunk.end,
-                                             vector: v, textHash: hash,
+                                             charStart: cv.chunk.start, charEnd: cv.chunk.end,
+                                             vector: cv.vector, textHash: hash,
                                              modelRev: engine.modelRev))
             }
             try context.save()
+            vectorCache = nil   // a query cached between memos must not outlive this swap
             stats.embedded += 1
         }
 

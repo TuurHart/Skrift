@@ -53,6 +53,8 @@ enum CorpusSeed {
         let transcriptConfidence: Double?
         let transcriptUserEdited: Bool
         let transcriptMarkersInjected: Bool
+        /// C151: optional — absent in notes generated before the stamp (nil = unstamped).
+        let transcriptLanguageMode: String?
         let significance: Double
         let tags: [String]
         let destination: String
@@ -216,6 +218,7 @@ enum CorpusSeed {
         memo.trashSeenAt = date(n.trashSeenAt)
         memo.keptAt = date(n.keptAt)
         memo.remindAt = date(n.remindAt)
+        memo.transcriptLanguageMode = n.transcriptLanguageMode
         return memo
     }
 

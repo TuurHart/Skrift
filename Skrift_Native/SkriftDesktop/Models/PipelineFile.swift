@@ -67,6 +67,9 @@ final class PipelineFile {
     /// re-link+recompile runs once per edit and never loops. Additive/optional → lightweight
     /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
     var syncedSourceEditedAt: Date?
+    /// C284: the synced `Memo.editedAt` (nil = never edited), mirrored by `MirroredNoteFields`
+    /// so the Mac's export writes the same `editedAt:` as the phone's. ADDITIVE, nil default.
+    var memoEditedAt: Date? = nil
 
     /// Trash-state sync watermark: the `Memo.deletedAt` this row last reflected. Lets the
     /// reconciler mirror a phone trash/restore onto `deletedAt` WITHOUT clobbering a Mac-local
@@ -94,6 +97,10 @@ final class PipelineFile {
 
     // Transcription / sanitisation
     var transcript: String?
+    /// C151: the ASR language mode (`ASRLanguageMode.rawValue`) `transcript` was made in —
+    /// the Mac's own pass stamps it, a phone transcript brings the phone's stamp. Rides to the
+    /// Memo with the words. ADDITIVE, nil default (= unstamped).
+    var transcriptLanguageMode: String? = nil
     var sanitised: String?
     /// `[AmbiguousOccurrence]` stored as a JSON blob (struct arrays trap SwiftData).
     var ambiguousNamesJSON: Data?
@@ -121,6 +128,9 @@ final class PipelineFile {
     var enhancedTitle: String?
     var titleSuggested: String?
     var enhancedCopyedit: String?
+    /// C152: raw words appended to `enhancedCopyedit` after its polish, which the next pass
+    /// copy-edits alone (`AppendPolish`). Mirrors `MemoEnhancement.pendingBlock`. nil = none.
+    var pendingPolishBlock: String? = nil
     var enhancedSummary: String?
     var tags: [String] = []
     /// Deterministic tag candidates. Refined to the richer Record<word,[tags]>

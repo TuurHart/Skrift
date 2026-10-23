@@ -84,9 +84,12 @@ enum MacAppendRecording {
                 source: .speech, userEdited: true))
             // A polished note shows its copy-edit; the new words go there too, so the body you
             // look at holds them (the Mac editor's own rule: write the layer that is shown).
-            if let copy = pf.enhancedCopyedit,
-               !copy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                pf.enhancedCopyedit = joined(copy, words)
+            if let copy = pf.enhancedCopyedit, AppendPolish.showsPolishedBody(copy) {
+                let next = AppendPolish.appended(copyedit: copy, pending: pf.pendingPolishBlock ?? "", block: words)
+                pf.enhancedCopyedit = next.copyedit
+                // C152: and the note goes back for a pass that polishes only the new block.
+                pf.pendingPolishBlock = next.pending
+                if pf.enhanceStatus == .done { pf.enhanceStatus = .pending }
             }
             pf.transcriptUserEdited = true
             pf.transcribeStatus = .done
@@ -120,6 +123,7 @@ enum MacAppendRecording {
             wt.byteCount = data.count
         }
         memo.markEdited(now)
+        pf.memoEditedAt = memo.editedAt   // C284: the export's `editedAt:` without waiting for a sweep
         try cloud.save()
         // The polished body moved too: write it back now, as a Mac body edit does
         // (`MacCloudEditSync`), so the sweep can't revert the copy-edit to the cloud's older one.

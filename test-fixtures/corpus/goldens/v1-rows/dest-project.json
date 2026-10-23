@@ -63,8 +63,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/FCC313B3-F5BF-5922-9A07-411451726DDE_memo_FCC313B3-F5BF-5922-9A07-411451726DDE.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -81,6 +83,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Finished the wide blue bowl, the first one that came out right. [[img_001]] Cone five, grey body, blue number three.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-12T11:00:00.000Z",
     "wordTimingsJSON" : [

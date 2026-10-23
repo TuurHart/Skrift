@@ -107,6 +107,10 @@ enum Compiler {
             // plain YAML scalar — Obsidian then rejects the whole frontmatter.
             "title: \(yamlQuoted(title))",
             "date: \(date)",
+            // C284 / D12: when the words last changed, beside the date. Vault only — the
+            // portfolio's key list is C130's and has no such key. Empty = never edited.
+            profile == .portfolio ? nil
+                : "editedAt:" + (input.editedAt.map { " " + ExportNaming.localDateTime($0) } ?? ""),
             // `author:` is the note's author. DROPPED on the portfolio (Tuur's brief, confirmed
             // 2026-08-27 against the real item frontmatter, which has no such key): everything
             // in the portfolio is his by that portfolio's hard rule, so the field could only ever

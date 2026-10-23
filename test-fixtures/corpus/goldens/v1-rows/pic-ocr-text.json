@@ -63,8 +63,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/C9CEC17D-4A3B-5A70-AE05-02867C62125A_memo_C9CEC17D-4A3B-5A70-AE05-02867C62125A.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -80,6 +82,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Snapped the supplier's price board so I stop guessing. [[img_001]] Grey body went up again.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-09T19:00:00.000Z",
     "wordTimingsJSON" : [

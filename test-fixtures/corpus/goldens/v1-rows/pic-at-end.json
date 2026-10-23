@@ -62,8 +62,10 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_memo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3.m4a/original.m4a",
+    "pendingPolishBlock" : null,
     "remindAt" : null,
     "sanitised" : null,
     "sanitiseStatus" : "pending",
@@ -79,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Finished the Gazelle overhaul, new chain, new cables, wheels trued. Here it is. [[img_001]]",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-11T22:00:00.000Z",
     "wordTimingsJSON" : [

@@ -206,6 +206,12 @@ struct NoteActions: View {
         }
         if canRetranscribe {
             Button(NoteMenuItem.retranscribe.label) { Task { await coordinator.retranscribe(file, context: ctx) } }
+            // C151: the other ASR language mode, this note only (the setting stays the default).
+            let recorded = ASRLanguageMode.recorded(file.transcriptLanguageMode, default: .from(
+                multilingual: SettingsStore.shared.load().transcriptionIsMultilingual))
+            Button(ASRLanguageMode.transcribeAgainLabel(recordedIn: recorded)) {
+                Task { await coordinator.retranscribe(file, context: ctx, in: recorded.other) }
+            }
         }
         if redoOffered {
             Menu(NoteMenuItem.redo.label) {
