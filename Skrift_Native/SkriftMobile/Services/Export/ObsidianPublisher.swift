@@ -305,8 +305,14 @@ struct ObsidianPublisher {
             return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
         }
 
-        // A real write — now the blobs.
-        let photoBlobs = embedNames.isEmpty ? [:] : photosProvider(memo.id)
+        // A real write — now the blobs. C158: a picture whose marker left the body has its
+        // vault copy removed when ours and untouched, judged against the same blob.
+        let removedPictures = profile.removedPictures(ExportBody.shown(markdown),
+                                                      manifest: manifest.map(\.filename), stem: stem)
+        let photoBlobs = embedNames.isEmpty && removedPictures.isEmpty ? [:] : photosProvider(memo.id)
+        let removedAssets: [VaultAsset] = removedPictures.compactMap { p in
+            photoBlobs[p.source].map { VaultAsset(name: p.embedName, source: .data($0)) }
+        }
         var attachments: [VaultAsset] = embedNames.compactMap { source, embedName in
             photoBlobs[source].map { VaultAsset(name: embedName, source: .data($0)) }
         }
@@ -336,7 +342,8 @@ struct ObsidianPublisher {
         }
 
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
-                                  attachments: attachments, audio: audio, documents: documents)
+                                  attachments: attachments, audio: audio, documents: documents,
+                                  removedAttachments: removedAssets)
         return PublishReport(r.outcome, relativePath: relPath, assetCount: attachments.count)
     }
 

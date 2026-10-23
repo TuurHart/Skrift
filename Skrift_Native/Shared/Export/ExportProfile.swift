@@ -145,8 +145,7 @@ extension ExportProfile {
                 continue
             }
             let source = manifest[n - 1]
-            let ext = (source as NSString).pathExtension
-            let preferred = "\(stem)_\(String(format: "%03d", n)).\(ext.isEmpty ? "jpg" : ext)"
+            let preferred = Self.pictureName(stem: stem, number: n, source: source)
             guard let written = place(source, preferred) else {
                 replacements.append((m.range, ""))   // picture could not be placed → drop
                 continue
@@ -155,5 +154,25 @@ extension ExportProfile {
             replacements.append((m.range, imageMarkdown(written)))
         }
         return (Sanitiser.nsReplace(markdown, edits: replacements), placed)
+    }
+
+    /// The vault name of manifest picture `number` (1-based): `<stem>_NNN.<ext>`, jpg when the
+    /// source has no extension. The one naming rule for placing a picture and for removing it.
+    static func pictureName(stem: String, number: Int, source: String) -> String {
+        let ext = (source as NSString).pathExtension
+        return "\(stem)_\(String(format: "%03d", number)).\(ext.isEmpty ? "jpg" : ext)"
+    }
+
+    /// C158: the manifest pictures `markdown` (still holding its `[[img_NNN]]` markers) no
+    /// longer shows, each with the name an earlier export gave its vault copy. The manifest
+    /// keeps the entry (C14); only the vault copy may go, and only when ours and untouched
+    /// (`VaultWriter.commit(removedAttachments:)`).
+    func removedPictures(_ markdown: String, manifest: [String], stem: String) -> [PlacedPicture] {
+        let shown = Set(BodyV2Marker.numbers(in: markdown))
+        return manifest.enumerated().compactMap { i, source in
+            let n = i + 1
+            guard !source.isEmpty, !shown.contains(n) else { return nil }
+            return PlacedPicture(source: source, embedName: Self.pictureName(stem: stem, number: n, source: source))
+        }
     }
 }

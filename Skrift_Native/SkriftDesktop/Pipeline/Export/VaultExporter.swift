@@ -15,6 +15,8 @@ enum VaultExporter {
         let markdownURL: URL
         let audioURL: URL?
         let imageCount: Int
+        /// C158: vault pictures this export removed because the body no longer shows them.
+        var removedPictures: [String] = []
     }
 
     /// When this note was CAPTURED — what the portfolio names an entry by. The phone's
@@ -274,9 +276,25 @@ enum VaultExporter {
         // Phase 2 — stamp + atomic coordinated write (or skip everything when the
         // content is already current: no mtime churn for iCloud to chew on).
         let r = try writer.commit(markdown: finalMarkdown, id: id, relativePath: relPath,
-                                  audio: audio, documents: documents)
+                                  audio: audio, documents: documents,
+                                  removedAttachments: removedPictures(compiled, for: pf, safe: safe, profile: profile))
         return Result(outcome: r.outcome, markdownURL: r.markdownURL,
-                      audioURL: r.audioURL, imageCount: imageCount)
+                      audioURL: r.audioURL, imageCount: imageCount, removedPictures: r.removedAttachments)
+    }
+
+    /// C158: the pictures whose marker left the body, as the bytes we placed them from (the
+    /// manifest entry and its file stay, C14). A legacy marker-less capture keeps its own
+    /// copy-under-original-name path and never has `<stem>_NNN` copies to remove.
+    static func removedPictures(_ compiled: String, for pf: PipelineFile, safe: String,
+                                profile: ExportProfile) -> [VaultAsset] {
+        guard let imagesDir = pf.workingFolder?.appendingPathComponent("images"),
+              !(pf.sourceType == .capture && !compiled.contains("[[img_")) else { return [] }
+        return profile.removedPictures(compiled, manifest: pictureManifest(imagesDir: imagesDir), stem: safe)
+            .compactMap { p in
+                let src = imagesDir.appendingPathComponent(p.source)
+                return FileManager.default.fileExists(atPath: src.path)
+                    ? VaultAsset(name: p.embedName, source: .file(src)) : nil
+            }
     }
 
     /// Places one picture/attachment: `(source file, preferred name, folder) -> URL written`
