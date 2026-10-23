@@ -3641,8 +3641,8 @@ check: `grep -rqE "class CopyEditV2FormattingTests\b" Skrift_Native/SkriftDeskto
 spec: C107 C289
 needs: Q493
 gate+: yes
-do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other Archive use: grep for ) checks  and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test  (phone target) with a generated archive whose entry bytes were flipped.
-check: no test class ZipCRCTests
+do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other ZIPFoundation `Archive` use: grep for `Archive(`) checks `crc == entry.checksum` and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test `ZipCRCTests` (phone target) with a generated archive whose entry bytes were flipped.
+check: `plan/mtest.sh ZipCRCTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
