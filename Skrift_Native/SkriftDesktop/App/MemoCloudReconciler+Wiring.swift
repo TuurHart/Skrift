@@ -133,6 +133,20 @@ extension MemoCloudReconciler {
         // transcript onto an already-authored Memo so it reaches the phone. One Memo fetch for
         // all of it (`MemoCloudReconciler.pass`). Author/reflect failures are logged inside and
         // never take down the ingest/reflect sweep this function exists for.
+        // C159/C283 (Q489): a roster change since the last pass (synced in above, or a Mac names
+        // edit) re-links every processed row once, BEFORE the sweep, so every row is linked with
+        // the roster the sweep reflects with. The rows already in the vault are re-exported after
+        // it, with the phone-edited ones, through the same gate and the engine's edit guard. The
+        // row fetch happens only when the roster did change.
+        var relinked: [String] = []
+        if RosterRelink.hasChanged(people) {
+            relinked = RosterRelink.runIfChanged((try? local.fetch(FetchDescriptor<PipelineFile>())) ?? [],
+                                                 people: people, author: settings.authorName)
+            if !relinked.isEmpty {
+                AppLog.cloudkit.log("reconcile: roster changed, re-linked \(relinked.count, privacy: .public) notes")
+                try? local.save()
+            }
+        }
         let pass: PassOutcome
         do {
             pass = try MemoCloudReconciler.pass(from: cloudContext, into: local, people: people,
@@ -165,15 +179,6 @@ extension MemoCloudReconciler {
         NotificationCenter.default.post(name: .cloudMemosDidChangeFromSync, object: nil)
         // A phone edit re-linked + recompiled an existing row (Part B, saved by the pass). If it
         // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
-        // C159/C283 (Q489): a roster change since the last pass (synced in above, or a Mac
-        // names edit) re-links every processed row once; the ones already in the vault are
-        // re-exported with the rest, through the same gate and the engine's edit guard.
-        let relinked = RosterRelink.runIfChanged(pass.localFiles, people: NamesStore.shared.livePeople(),
-                                                 author: settings.authorName)
-        if !relinked.isEmpty {
-            AppLog.cloudkit.log("reconcile: roster changed, re-linked \(relinked.count, privacy: .public) notes")
-            try? local.save()
-        }
         let reexport = Array(Set(outcome.updatedIDs).union(relinked))
         if !reexport.isEmpty {
             reexportEdited(reexport, in: local, cloud: cloudContext, settings: settings)

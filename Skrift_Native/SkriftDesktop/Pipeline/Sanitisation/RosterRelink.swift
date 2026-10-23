@@ -50,6 +50,12 @@ enum RosterRelink {
         return changed
     }
 
+    /// Has the live roster changed since the last run (or never run)? Cheap: no rows read.
+    static func hasChanged(_ people: [Person], defaults: UserDefaults = .standard) -> Bool {
+        let last = defaults.data(forKey: rosterKey).flatMap { try? JSONDecoder().decode([Person].self, from: $0) }
+        return last.map { fingerprint($0) != fingerprint(people.filter { !$0.isDeleted }) } ?? true
+    }
+
     /// The trigger: re-link when the roster changed since the last run, record the new one,
     /// and return the changed ids (empty when nothing ran). The FIRST call on a Mac only
     /// records the roster — there is no earlier roster to have changed from, and re-linking

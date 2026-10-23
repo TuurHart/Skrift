@@ -350,6 +350,9 @@ final class ProcessingCoordinator {
         // never sees the polish. Log it so it's diagnosable (a durable retry queue is the
         // documented Phase-2 follow-up). A `nil` return is an intentional skip (not a synced
         // memo / nothing to write), not a failure.
+        // Q489: a Mac body edit still only in `sanitised` goes out as his words, never the old
+        // polish (a Redo title after an edit used to push the copy-edit it replaced).
+        MacEditRoundTrip.settle(pf, linkedWith: NamesStore.shared.livePeople())
         do {
             // `passRan: true` — the guard above already proved `enhanceStatus == .done`,
             // so reaching here IS "a pass ran on this file", empty result or not.

@@ -118,6 +118,65 @@ final class MacBodyEditKeptTests: XCTestCase {
         XCTAssertTrue(pf.sanitised?.contains("[[Bruno Almeida") == true)
     }
 
+    // MARK: - a phone edit's recompile (same rule)
+
+    /// The memo as the phone holds it, with a tag he just added there.
+    private func phoneMemoWithNewTag(_ pf: PipelineFile) throws -> Memo {
+        let m = Memo(id: try XCTUnwrap(UUID(uuidString: pf.id)), audioFilename: pf.filename, recordedAt: Date(),
+                     transcript: pf.transcript, transcriptStatus: .done, transcriptConfidence: 0.9,
+                     significance: 0.6)
+        m.tags = ["studio"]
+        return m
+    }
+
+    func testAPhoneTagEditKeepsAMacEditStillInThePause() throws {
+        let pf = processedRow()
+        typeOnTheMac(pf, people: [bruno])
+
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: try phoneMemoWithNewTag(pf), enhancement: nil, to: pf,
+                                            people: [bruno], author: "Tuur", thisDeviceID: "mac-test"))
+
+        XCTAssertEqual(pf.tags, ["studio"], "the phone's tag landed")
+        assertKept(pf, linkedTo: "[[Bruno Costa")
+        XCTAssertEqual(pf.enhancedCopyedit, edited)
+    }
+
+    func testAPhoneTagEditKeepsAWrittenBackMacEdit() throws {
+        let pf = processedRow()
+        let ctx = try cloud(for: pf)
+        typeOnTheMac(pf, people: [bruno])
+        try writeBack(pf, people: [bruno], cloud: ctx)
+        let id = try XCTUnwrap(UUID(uuidString: pf.id))
+        let own = try XCTUnwrap(try ctx.fetch(FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == id })).first)
+
+        MemoCloudUpdate.apply(memo: try phoneMemoWithNewTag(pf), enhancement: own, to: pf,
+                              people: [bruno], author: "Tuur", thisDeviceID: "mac-test")
+
+        assertKept(pf, linkedTo: "[[Bruno Costa")
+    }
+
+    // MARK: - the Redo write-back (same rule)
+
+    func testARedoWriteBackSendsHisWordsNotTheOldPolish() throws {
+        // `ProcessingCoordinator.writeBackEnhancement`: settle, then upsert the copy-edit.
+        let pf = processedRow()
+        let ctx = try cloud(for: pf)
+        typeOnTheMac(pf, people: [bruno])
+        pf.enhancedTitle = "Rent and kiln"   // the Redo title
+
+        MacEditRoundTrip.settle(pf, linkedWith: [bruno])
+        try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-test", passRan: true)
+
+        XCTAssertEqual(try cloudCopy(pf, ctx), edited, "the phone gets his edit, not the polish it replaced")
+    }
+
+    func testSettleLeavesAFreshPolishAlone() throws {
+        // After a pass or a Redo copy-edit the body is derived from the new copy-edit: no edit.
+        let pf = processedRow()
+        MacEditRoundTrip.settle(pf, linkedWith: [bruno])
+        XCTAssertEqual(pf.enhancedCopyedit, polish)
+    }
+
     // MARK: - the open note (same rule)
 
     func testTheOpenNoteKeepsAnEditOnASyncedRosterChange() {
