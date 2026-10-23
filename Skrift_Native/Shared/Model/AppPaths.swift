@@ -10,6 +10,31 @@ enum AppPaths {
     /// in both containers; only the base directory differs per platform.
     static let namesFileName = "names.json"
 
+    // MARK: - Create once (C280)
+
+    private static let createLock = NSLock()
+    nonisolated(unsafe) private static var createdPaths: Set<String> = []
+    nonisolated(unsafe) private static var createCalls = 0
+
+    /// R93/C280: the ONE place a directory accessor creates its folder — at most once per
+    /// path per process launch, however often the accessor is read (99+ call sites read
+    /// `recordingsDirectory`). Returns `dir` so an accessor is one expression.
+    @discardableResult
+    static func ensureDirectory(_ dir: URL) -> URL {
+        let key = dir.standardizedFileURL.path
+        createLock.lock(); defer { createLock.unlock() }
+        guard createdPaths.insert(key).inserted else { return dir }
+        createCalls += 1
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// How many times `ensureDirectory` actually called `createDirectory` this launch.
+    static var createDirectoryCallCount: Int {
+        createLock.lock(); defer { createLock.unlock() }
+        return createCalls
+    }
+
     #if os(iOS)
     // iOS: bundle-id namespaced containers give dev ("com.skrift.mobile.dev") and
     // prod their own sandboxes for free — no path suffixing needed. Audio, photos,
@@ -26,9 +51,7 @@ enum AppPaths {
         #else
         let folder = "recordings"
         #endif
-        let dir = documentsDirectory.appendingPathComponent(folder, isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
+        return ensureDirectory(documentsDirectory.appendingPathComponent(folder, isDirectory: true))
     }()
 
     static var namesFile: URL {
@@ -50,12 +73,11 @@ enum AppPaths {
     private static let dataSuffix = ""
     #endif
 
-    static var appSupportDirectory: URL {
+    /// C280: `static let` — created once per launch, never on each of its many reads.
+    static let appSupportDirectory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = base.appendingPathComponent("Skrift\(dataSuffix)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
+        return ensureDirectory(base.appendingPathComponent("Skrift\(dataSuffix)", isDirectory: true))
+    }()
 
     static var namesFile: URL {
         #if DEBUG
@@ -102,27 +124,24 @@ enum AppPaths {
     /// Documents so it is dev/prod-suffixed like every other store: a Dev take must never
     /// land in the real library. The file leaves here the moment `IngestService` copies it
     /// into its working folder, so this stays a staging area, not a second library.
-    static var recordingsDirectory: URL {
+    static let recordingsDirectory: URL = {
         #if DEBUG
         let folder = PerfLibrary.isActive ? "recordings_perf" : "recordings"   // Q313
         #else
         let folder = "recordings"
         #endif
-        let dir = appSupportDirectory.appendingPathComponent(folder, isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
+        return ensureDirectory(appSupportDirectory.appendingPathComponent(folder, isDirectory: true))
+    }()
 
-    static var audioOutputDirectory: URL {
+    static let audioOutputDirectory: URL = {
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         #if DEBUG
         let perfSuffix = PerfLibrary.isActive ? " Perf" : ""   // Q313: perf working folders stay apart from the Dev ones
         #else
         let perfSuffix = ""
         #endif
-        let dir = base.appendingPathComponent("Voice Transcription Pipeline Audio Output\(dataSuffix)\(perfSuffix)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
+        return ensureDirectory(base.appendingPathComponent(
+            "Voice Transcription Pipeline Audio Output\(dataSuffix)\(perfSuffix)", isDirectory: true))
+    }()
     #endif
 }
