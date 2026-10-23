@@ -56,6 +56,7 @@ struct BatchRunner {
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = [],
              clipStarts: [Double] = [],
              stopAfterTranscribe: Bool = false, retranscribe: Bool = false,
+             languageMode: ASRLanguageMode? = nil,
              requireSplit: Bool = false, cancelCheck: (@Sendable () -> Bool)? = nil) async throws {
         // Captures (C3) never transcribe or diarize — their annotation is already text.
         // Enhancement-lite runs on the annotation: title + tags + summary, NO copy-edit
@@ -86,7 +87,13 @@ struct BatchRunner {
             }
             let result: TranscriptionResult
             do {
-                result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+                // C151: the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) names the mode; else the setting.
+                if let languageMode {
+                    result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest,
+                                                              mode: languageMode)
+                } else {
+                    result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+                }
             } catch {
                 // A failed ASR pass is a transcribe-stage error on the row — the OLD
                 // transcript/derivatives haven't been touched yet, so they stay put (C51/R9).
@@ -132,6 +139,7 @@ struct BatchRunner {
             // D210: a video note's movie leads the body as its inline video block.
             pf.transcript = NoteAttachment.leadingKeptMovie(newTranscript, manifest: keptMovieManifest(pf))
             pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
+            if let mode = result.languageMode ?? languageMode { pf.transcriptLanguageMode = mode.rawValue }
             didTranscribe = true
             pf.transcribeStatus = .done
         }

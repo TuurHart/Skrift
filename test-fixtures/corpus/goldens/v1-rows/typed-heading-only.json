@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "# Just a heading",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-02T04:00:00.000Z",
     "wordTimingsJSON" : null

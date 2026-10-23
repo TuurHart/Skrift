@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Wind noise, but I fixed the text by hand: the chain on the cargo bike skips under load, and the front light flickers when the dynamo is cold.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-28T05:00:00.000Z",
     "wordTimingsJSON" : [

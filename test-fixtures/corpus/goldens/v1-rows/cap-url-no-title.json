@@ -68,6 +68,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Bookmarking this before I lose it.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

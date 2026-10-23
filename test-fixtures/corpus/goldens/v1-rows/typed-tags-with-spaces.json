@@ -73,6 +73,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Tags with spaces and hashes: does the export keep them as one tag each?",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-11T09:00:00.000Z",
     "wordTimingsJSON" : null

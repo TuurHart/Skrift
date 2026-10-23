@@ -73,6 +73,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "The photo for this one never made it across. [[img_001]] Should show a placeholder, not crash, not drop the marker.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-09T02:00:00.000Z",
     "wordTimingsJSON" : [

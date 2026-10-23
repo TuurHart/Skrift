@@ -35,16 +35,23 @@ actor TranscriptionService: Transcribing {
     private init() {}
 
     /// Load Parakeet v3 (multilingual incl. EN+NL). First call downloads from HF.
-    func ensureLoaded(onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
+    /// `mode`: an explicit per-note mode (C151 "Transcribe again in …"); nil = the setting.
+    func ensureLoaded(mode explicit: ASRLanguageMode? = nil,
+                      onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
         // The language mode is baked into the manager's config, so a change must rebuild
         // it (mirrors the phone). Settings → Transcription; syncs from the other devices.
-        let mode = ASRLanguageMode.from(
+        let mode = explicit ?? ASRLanguageMode.from(
             multilingual: SettingsStore.shared.load().transcriptionIsMultilingual)
         if asr != nil, loadedMultilingual == mode.isMultilingual { return }
+        if let loadTask {
+            // A load already in flight may be for the OTHER mode: wait, then check again.
+            try await loadTask.value
+            if loadedMultilingual == mode.isMultilingual { return }
+            return try await ensureLoaded(mode: mode, onProgress: onProgress)
+        }
         if asr != nil {
             asr = nil
         }
-        if let loadTask { try await loadTask.value; return }
         let task = Task<Void, Error> {
             // The recording pane's model line (Q165): the phone's ModelLoadStatus, same states.
             await MainActor.run {
@@ -96,9 +103,17 @@ actor TranscriptionService: Transcribing {
     }
 
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry] = []) async throws -> TranscriptionResult {
+        try await transcribe(audioURL: audioURL, imageManifest: imageManifest,
+                             mode: .from(multilingual: SettingsStore.shared.load().transcriptionIsMultilingual))
+    }
+
+    /// C151: one pass in `mode`, whatever the setting says. The result carries the mode so the
+    /// note can store it.
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry],
+                    mode: ASRLanguageMode) async throws -> TranscriptionResult {
         isTranscribing = true
         defer { isTranscribing = false }
-        try await ensureLoaded()
+        try await ensureLoaded(mode: mode)
         guard let asr else { throw ASRError.notInitialized }
 
         let inputURL = Self.preprocessed(audioURL) ?? audioURL   // high-pass + normalize, else original
@@ -111,7 +126,7 @@ actor TranscriptionService: Transcribing {
         // the SHARED `ASRPostProcess` — one copy with the phone, so the order those
         // passes run in can't drift between the apps. RMS reads the ORIGINAL file, not
         // the preprocessed one, and only for a suspiciously tiny transcript.
-        return await ASRPostProcess.finish(
+        var finished = await ASRPostProcess.finish(
             rawText: result.text,
             tokens: (result.tokenTimings ?? []).map {
                 RawToken(token: $0.token, startTime: $0.startTime, endTime: $0.endTime)
@@ -129,6 +144,8 @@ actor TranscriptionService: Transcribing {
                     text: text, tokenTimings: result.tokenTimings ?? [],
                     audioURL: audioURL, words: customWords)
             })
+        finished.languageMode = mode
+        return finished
     }
 
     /// High-pass + normalize the original into a 16 kHz mono `processed.wav` next to

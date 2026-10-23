@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Deze week\n\n- [ ] Marco bellen over de bedrading (echt)\n- [x] Order the grey clay body\n- [ ] Rose the website feedback\n- [ ] Mariam: yes to the Saturday, propose 18 Oct\n- [x] Chain for the Gazelle, black\n- [ ] Blue glaze test at cone 6 with the new body",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-17T18:00:00.000Z",
     "wordTimingsJSON" : null

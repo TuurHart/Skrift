@@ -68,6 +68,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "The title is the test. Slashes, colons, stars, quotes and a pipe — the vault filename must be safe and stable.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-02T21:00:00.000Z",
     "wordTimingsJSON" : null

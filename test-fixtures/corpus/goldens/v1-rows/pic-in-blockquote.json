@@ -81,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> The pot you want is the pot you can't make yet. [[img_001]]\n\nSaw it written on the wall at the fair and photographed it.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-04T20:00:00.000Z",
     "wordTimingsJSON" : [

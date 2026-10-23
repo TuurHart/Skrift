@@ -72,6 +72,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Een goede reparatie is er een die je over een jaar niet meer ziet.\n\nDat is precies het probleem met de website: die laat de reparaties zien. Niemand wil reparaties zien. Ze willen de fiets zien.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-18T03:00:00.000Z",
     "wordTimingsJSON" : [

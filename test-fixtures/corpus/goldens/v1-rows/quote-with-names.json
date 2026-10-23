@@ -72,6 +72,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Every workshop has a Jack: the one who knows a better way and never shows up.\n\nMine has two. Rose says that is a management problem, not a Jack problem.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-16T00:00:00.000Z",
     "wordTimingsJSON" : [

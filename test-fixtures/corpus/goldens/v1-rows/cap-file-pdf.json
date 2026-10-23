@@ -75,6 +75,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

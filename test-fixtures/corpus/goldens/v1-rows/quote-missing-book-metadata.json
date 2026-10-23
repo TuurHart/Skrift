@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "> Fire it slower than you think you need to.\n\nThe June bug: this reached the Mac with an EMPTY metadata blob and rendered as a raw > wall.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-16T17:00:00.000Z",
     "wordTimingsJSON" : [

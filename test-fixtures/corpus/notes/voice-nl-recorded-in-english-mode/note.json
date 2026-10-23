@@ -1,0 +1,53 @@
+{
+  "id": "9EEB9216-B6DC-5EA0-A491-EE0C5A8B345A",
+  "slug": "voice-nl-recorded-in-english-mode",
+  "kind": "voice",
+  "lang": "nl",
+  "shape": [
+    "voice",
+    "dutch",
+    "language-mode"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-19T08:40:00+01:00",
+  "createdAt": "2026-09-19T08:40:00+01:00",
+  "editedAt": null,
+  "duration": 9.15,
+  "audio": "audio.m4a",
+  "transcript": "Vandaag heb ik the oven for the twee they care opgestookt. The glazier tackles van for a whack sane mooi deep blue geworden. Follow the care probe ear rick at donkey oxide.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.71,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "transcriptLanguageMode": "english",
+  "significance": 0.4,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-19T08:40:00+01:00",
+    "tags": [
+      "glaze"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A Dutch ramble recorded while the global setting was English: the transcript carries mode english and reads as English drift. The note offers 'Transcribe again in Dutch'; that pass runs in Multilingual, replaces the transcript with the Dutch words, stamps the note multilingual and leaves the global setting on English. Afterwards the note offers 'Transcribe again in English'.",
+    "offeredBefore": "Transcribe again in Dutch",
+    "offeredAfter": "Transcribe again in English",
+    "multilingualTranscript": "Vandaag heb ik de oven voor de tweede keer opgestookt. De glazuurtegels van vorige week zijn mooi diepblauw geworden. Volgende keer probeer ik het donkere oxide."
+  }
+}

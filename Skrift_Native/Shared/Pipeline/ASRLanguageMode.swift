@@ -47,6 +47,31 @@ enum ASRLanguageMode: String, CaseIterable, Sendable, Identifiable {
 
     /// The one-line explanation under the control.
     static let footer = "English is cleanest for English-only speech. Multilingual stops the model drifting to English on other languages — pick it if you mix languages. This setting syncs to your other devices."
+
+    // ── per note (C151, D46) ──
+
+    /// The mode a note's transcript was made with: its stored stamp, else the global setting
+    /// (a transcript from before the stamp existed was made with whatever the device had then;
+    /// the setting is the best guess, and the verb below still offers the other one).
+    static func recorded(_ stamp: String?, default fallback: ASRLanguageMode) -> ASRLanguageMode {
+        stamp.flatMap(ASRLanguageMode.init(rawValue:)) ?? fallback
+    }
+
+    /// The mode "Transcribe again" switches to.
+    var other: ASRLanguageMode { isMultilingual ? .english : .multilingual }
+
+    /// The language a person names for this mode in the per-note verb. Multilingual is what a
+    /// Dutch note needs (D46: a recognition mode, Parakeet never translates), so it reads Dutch.
+    var spokenLanguage: String { isMultilingual ? "Dutch" : "English" }
+
+    /// ⋯ › "Transcribe again in Dutch" on a note made in English mode, "… in English" on one
+    /// made in Multilingual. One wording for both apps.
+    static func transcribeAgainLabel(recordedIn mode: ASRLanguageMode) -> String {
+        "Transcribe again in \(mode.other.spokenLanguage)"
+    }
+
+    /// Said when the new pass fails or hears nothing; the note is left as it was.
+    static let transcribeAgainFailed = "Couldn't transcribe again. The note is unchanged."
 }
 
 /// The phone/iPad's local store for the language mode — a Bool plus its own LWW stamp,

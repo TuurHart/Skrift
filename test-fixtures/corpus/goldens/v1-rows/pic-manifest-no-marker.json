@@ -81,6 +81,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Recorded on an older build that did not inject markers yet. The photo is in the manifest at twelve seconds.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-08T09:00:00.000Z",
     "wordTimingsJSON" : [

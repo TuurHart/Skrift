@@ -87,6 +87,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "The crack runs from the rim all the way down to the [[img_001]] foot, so it is the body not the glaze. I will fire the next one slower.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-08-13T08:00:00.000Z",
     "wordTimingsJSON" : [

@@ -71,6 +71,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Kiln idea, quick. What if the glazing evening is the product and the workshop is the free part. People pay to come back.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-10T06:40:00.000Z",
     "wordTimingsJSON" : [

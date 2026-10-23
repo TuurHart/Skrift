@@ -70,6 +70,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "He needs a dedicated 16 A line from the fuse box, about nine metres, and he will not touch the old junction box. Quote: €640 plus the box. He can do it the week of the 12th.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-06T10:00:00.000Z",
     "wordTimingsJSON" : null

@@ -88,6 +88,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "**Fenna de Wit:** What did the frame builder say about the lugs?\n\n**Speaker 2:** He can do them but not before spring, and he wants a deposit.\n\n**Fenna de Wit:** How much?\n\n**Speaker 2:** Four hundred. And he only takes a bank transfer, no card.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-21T16:00:00.000Z",
     "wordTimingsJSON" : [

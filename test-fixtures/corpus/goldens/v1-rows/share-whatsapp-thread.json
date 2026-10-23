@@ -100,6 +100,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Hé Fenna, ik heb de oven bekeken, die bedrading achter is echt niet oké.\n\nEn de aansluiting in de meterkast is ook te licht voor wat jij erop wilt zetten.\n\nKijk, dit is wat ik bedoel, zie je die verkleuring bij de klemmen?\n\n[[img_001]]\n\nOkay so if you want I can come by Thursday with Marco, he said he has an hour.\n\nLet me know, and don't fire it before then, please.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-14T17:30:44.000Z",
     "wordTimingsJSON" : [

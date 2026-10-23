@@ -14,12 +14,20 @@ struct TranscriptionResult: Sendable {
     let durationMs: Int
     let wordTimings: [WordTiming]
     let markersInjected: Bool
+    /// C151: the ASR language mode this pass ran in, stored on the note. nil = the engine
+    /// did not say (old stubs); the caller then stamps the mode it asked for.
+    var languageMode: ASRLanguageMode? = nil
 }
 
 /// Transcription seam: the real FluidAudio engine (each app's
 /// `TranscriptionService`) conforms; tests + UI use a stub/seeded transcriber.
 protocol Transcribing: Sendable {
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult
+    /// C151: transcribe in an EXPLICIT language mode, whatever the global setting says
+    /// ("Transcribe again in Dutch / English"). A requirement with a default below, so the
+    /// real engines honour it through `any Transcribing` and stubs need not.
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry],
+                    mode: ASRLanguageMode) async throws -> TranscriptionResult
     /// Transcribe raw PCM directly — the whole-book chunk path (phone). No
     /// temp-file round-trip, no image markers, and no custom-vocab rescore.
     /// A REQUIREMENT (with a spill-to-WAV default below) so a conformer's
@@ -30,6 +38,15 @@ protocol Transcribing: Sendable {
 extension Transcribing {
     func transcribe(audioURL: URL) async throws -> TranscriptionResult {
         try await transcribe(audioURL: audioURL, imageManifest: [])
+    }
+
+    /// Default for conformers with one mode (stubs, seeded transcribers): the plain pass,
+    /// stamped with the mode that was asked for.
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry],
+                    mode: ASRLanguageMode) async throws -> TranscriptionResult {
+        var result = try await transcribe(audioURL: audioURL, imageManifest: imageManifest)
+        result.languageMode = mode
+        return result
     }
 
     /// Q219 / C239: the ONE retrying file transcribe (append-to-memo and capture dictation).

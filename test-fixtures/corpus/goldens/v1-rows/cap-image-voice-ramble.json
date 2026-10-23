@@ -84,6 +84,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "This is the, the lamp base from the market, the matte blue, um, electric kiln cone five he said.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

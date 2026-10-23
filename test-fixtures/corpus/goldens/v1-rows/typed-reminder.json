@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Pick up the fired pieces from Ines before she closes for the holidays.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-09-08T13:00:00.000Z",
     "wordTimingsJSON" : null

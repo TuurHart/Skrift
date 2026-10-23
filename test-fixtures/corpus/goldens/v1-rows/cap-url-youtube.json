@@ -70,6 +70,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Throwing wide bowls, the trick at 4:10 with the rib.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

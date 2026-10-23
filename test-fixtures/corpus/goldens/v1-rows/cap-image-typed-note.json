@@ -83,6 +83,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "Whiteboard van het overleg met Lotte: de indeling van de zaterdag.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "$WALL_CLOCK",
     "wordTimingsJSON" : null

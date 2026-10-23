@@ -31,6 +31,8 @@ struct UploadService: Sendable {
         /// Non-nil → set the transcript AND mark transcribe `.done` (a trusted phone
         /// transcript, a typed note's text, or a capture's annotation). nil → leave transcribe `.pending`.
         var transcript: String? = nil
+        /// C151: the phone transcript's language-mode stamp, carried with its words.
+        var transcriptLanguageMode: String? = nil
         var wordTimings: [WordTiming] = []
         var diarizationSegments: [DiarizedSegment] = []
     }
@@ -122,6 +124,7 @@ struct UploadService: Sendable {
                Memo.isTrustedTranscript(userEdited: memo.transcriptUserEdited,
                                         confidence: memo.transcriptConfidence) {
                 prepared.transcript = words   // → commit marks transcribe .done
+                prepared.transcriptLanguageMode = memo.transcriptLanguageMode
                 // Optional ADDITIVE sidecars, only meaningful for a trusted transcript (the Mac
                 // would otherwise re-ASR + re-diarize): the phone's word-timings drive Mac
                 // karaoke/read-along; its diarization lets the Mac enroll a speaker's voice
@@ -225,6 +228,7 @@ struct UploadService: Sendable {
             if let sig = p.significance { pf.significance = sig }
             if let tr = p.transcript {
                 pf.transcript = tr
+                pf.transcriptLanguageMode = p.transcriptLanguageMode
                 pf.transcribeStatus = .done
             }
             if !p.wordTimings.isEmpty { pf.wordTimings = p.wordTimings }

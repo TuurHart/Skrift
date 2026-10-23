@@ -67,6 +67,7 @@
     "titleSuggested" : null,
     "transcribeStatus" : "done",
     "transcript" : "The rose bushes by the door will need cutting back and I will do it Sunday. Sam is coming Sunday too.",
+    "transcriptLanguageMode" : null,
     "transcriptUserEdited" : false,
     "uploadedAt" : "2026-07-08T22:00:00.000Z",
     "wordTimingsJSON" : [
