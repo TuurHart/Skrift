@@ -93,8 +93,10 @@ enum AppURLHandler {
         // the audio is never lost.
         if longRoute == .audiobook, !clips.isEmpty {
             let store = library ?? AudiobookLibraryStore.shared
-            if let pending = try? await AudiobookImporter.importBook(from: clips, libraryDirectory: store.directory) {
-                store.add(pending.book)
+            // C293: clips of one book stay one book; distinct books (album tags) stay apart.
+            if let result = try? await AudiobookImporter.importBooks(from: clips, libraryDirectory: store.directory) {
+                for pending in result.books { store.add(pending.book) }
+                for problem in result.failures { report.addFailed(problem.name, problem.reason) }
                 TabSelectionBridge.shared.select(.books)
                 return nil   // a book, not a note: no memo to jump to
             }
