@@ -1,45 +1,41 @@
-# Copy-edit v2 after your "no" (Q449, D209)
+# Copy-edit v2 after your four D215 calls (Q478)
 
-What changed: a dropped ordinary word no longer sends your words back unedited. The model's
-edit now ships unless it translates, loses a name or a number, invents a name, re-paragraphs a
-typed note, or shrinks a long note under 55% (C33). Fillers um/uh/eh still go.
+## The four notes now
 
-On the 81 corpus notes that get a copy-edit: **74 now ship the model's edit, 7 still fall
-back** (was 20 under Q424). Harness against v1: identical 80, expected-different 29,
-unexplained 0.
+| Your call | Note | Ships now |
+|---|---|---|
+| 1. Checkboxes never reach the model | typed-tasks | All six boxes, ticked ones still ticked: `- [ ] Marco bellen…`, `- [x] Order the grey clay body`… Only "Mariam" gets linked. |
+| 2. A short note losing a sentence falls back | voice-en-paragraphed-by-pauses | Your words: "First thought.", "Second thought, unrelated." and "Third." are back. |
+| | voice-en-raw-title | Your words: "A voice note whose stored title looks like a raw filename." is back. |
+| 3. Your spelling stays | voice-en-names-all-tiers | "rose gold is not a colour" (was "color"). The rest of the edit ships. |
+| | typed-blockquote-ordinary | "stop apologising" (was "apologizing"). |
+| 4. A typed list stays a list | typed-dutch-boodschappen | Your five list lines as typed, "tante Ria haar verjaardag" included (was one prose paragraph with "Ria's"). |
 
-## Still falls back to your words (7)
+Fillers and "okay so" still go: voice-en-pricing-ramble ships "Walking back from the shop, I think I've decided on the prices."
+
+## How
+
+1. Checkbox lines, and every list line (`- `, `* `, `1. `) of a typed note, are held aside like pictures and put back in place. The model only sees the rest.
+2. A note under 40 words falls back to your words when more than half the words of any sentence are gone. A sentence of only fillers ("Yeah.", "Okay.") may go.
+3. The copy-edit prompt gets one added line, stored in `PolishPrompts.keepSpelling`: keep the writer's own spelling and dialect. The gate also falls back when a word comes back respelled (colour→color, apologising→apologizing, centre→center, grey→gray). On the corpus the prompt line alone was enough: no note fell back on spelling.
+4. The changed prompt meant new model outputs for every copy-edit: 77 recorded with the live model. The other differences from v1 are commas and dashes (typed-wall-7k: "rent," → "rent").
+
+## Falls back to your words (13 of 81)
 
 | Note | Why |
 |---|---|
-| voice-mix-code-switch | Translation: the model turned the English half into Dutch and lost "six". Still caught. |
-| typed-crlf-tabs-nbsp | Translation: the model wrote a Dutch paragraph the note never said. |
-| typed-title-derived | Invented names: the model wrote an essay about the Dutch language. |
-| edge-tag-case-dupes | Lost number: "typed three times" lost its "three". |
-| typed-headings-and-tags | Typed note re-paragraphed: the model merged 10 paragraphs into 5. |
-| typed-wall-one-paragraph | Typed note re-paragraphed: the model split your one paragraph. |
-| typed-tags-with-spaces | Flagged as a language flip, but really a dropped phrase: losing "Tags with spaces and hashes" halved its English marker words. |
-
-## Now ships the model's edit, with words dropped (13)
-
-| Note | What the edit drops |
-|---|---|
-| voice-en-pricing-ramble | okay, so, yeah, and the fillers. Ships "Walking back from the shop, I think I've decided on the prices." |
-| voice-en-with-mac-polish | so, and, see, fillers |
-| voice-en-names-all-tiers | "colour" becomes "color" |
-| typed-blockquote-ordinary | "apologising" becomes "apologizing" |
-| quote-missing-book-metadata | this |
-| typed-wall-7k, voice-en-asr-wall, voice-en-eight-minutes, pic-wall | the opening "Okay so" |
-| typed-dutch-boodschappen | your list becomes one prose paragraph; "Ria haar" becomes "Ria's" |
-| typed-tasks | **every checkbox: tasks come back as plain list lines, done or not** |
-| voice-en-paragraphed-by-pauses | whole phrases: "First thought.", "Second thought, unrelated.", "Third." |
-| voice-en-raw-title | a whole sentence: "A voice note whose stored title looks like a raw filename." |
-
-The other 61 notes ship the edit with no word dropped.
+| voice-en-paragraphed-by-pauses, voice-en-raw-title | Lost a whole sentence (call 2). |
+| typed-numbered-list | Lost a sentence: the model mangled the one line it saw, "Overhaul checklist, in order". The list was held and is unchanged. |
+| typed-dutch-boodschappen, applenote-dutch | The model merged your two prose paragraphs, so the typed note ships as typed. The lists were held anyway. |
+| typed-wall-one-paragraph | The model split your one typed paragraph. |
+| voice-mix-code-switch | Translation: the English half turned Dutch and lost "six". Still caught. |
+| typed-crlf-tabs-nbsp | The gate read the model's output as a language flip. |
+| typed-title-derived, edge-tag-case-dupes | Invented names. |
+| voice-en-duplicate-a, voice-en-duplicate-b | Lost the numbers "two" and "forty" (new with this prompt). |
+| quote-with-names | Lost "two" (new with this prompt). |
 
 ## For you to judge
 
-1. typed-tasks loses its checkboxes, and with them which tasks are done. D209 does not list
-   that as damage, so it ships.
-2. voice-en-raw-title and voice-en-paragraphed-by-pauses drop whole sentences in notes under
-   40 words, where the shrink guard does not look.
+1. applenote-headings-checklist: the model drops the bold from `**Pros:**` / `**Cons:**` and the `#` from the first heading. No rule catches lost formatting. v1 drops the heading too.
+
+Harness against v1: identical 62, expected-different 47, unexplained 0.
