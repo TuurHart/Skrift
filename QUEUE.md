@@ -3540,7 +3540,7 @@ gate+: yes
 do: Today `NotesRepository` purge keeps the MemoEnhancement. A purge deletes the note's polish row and every MemoAsset; on the next sweep a Mac row whose memo is gone is trashed (never its vault file). Tests `PurgeCascadeTests` (phone) and `OrphanRowSweepTests` (desktop).
 check: `grep -rqE "class OrphanRowSweepTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q488 [auto] (todo) B: a picture removed from a note leaves the vault on the next export
+### Q488 [auto] (done) B: a picture removed from a note leaves the vault on the next export
 spec: C158 C14 C54
 needs: -
 gate+: yes
@@ -5298,3 +5298,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:30 Q487 -> done — gate 187s @df83c527
 - 2026-10-23 19:33 Q426 -> done — gate 187s @37df776f
 - 2026-10-23 19:36 Q500 -> done — gate 155s @2746cf4f
+- 2026-10-23 19:39 Q488 -> done — gate 166s @2b57c83e
