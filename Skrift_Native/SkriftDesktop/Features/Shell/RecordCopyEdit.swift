@@ -10,7 +10,7 @@ extension RunFile {
     ///
     /// The corpus path is this flag's value, NOT `-corpus`: `-corpus` also seeds the app's own
     /// store at launch, and that launch sweep holds the same memo ids in the process-wide
-    /// `MemoCloudReconciler.ingestInFlight`, so the scratch sweep skipped every rated note.
+    /// `ReconcileV2.ingestInFlight`, so the scratch sweep skipped every rated note.
     /// Refuses without `-isolatedRun` (never the live Dev store). Run the RAW binary from the
     /// build's derived data, never `open -a`. v1's `-recordcopyedit` went with v1 (Q427); its
     /// goldens (`goldens/v1-copyedit/`) stay as the reference v2 is classed against (C5).

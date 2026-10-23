@@ -12,7 +12,7 @@ final class BackfillGuardTests: XCTestCase {
 
     private var scratch: URL!
 
-    private lazy var upload = UploadService(outputDir: scratch.appendingPathComponent("out", isDirectory: true))
+    private lazy var upload = scratch.appendingPathComponent("out", isDirectory: true)
 
     override func setUpWithError() throws {
         scratch = FileManager.default.temporaryDirectory
@@ -55,9 +55,8 @@ final class BackfillGuardTests: XCTestCase {
     }
 
     private func pass(_ s: (cloud: ModelContext, local: ModelContext),
-                      firstImportDone: Bool) throws -> MemoCloudReconciler.PassOutcome {
-        try MemoCloudReconciler.pass(from: s.cloud, into: s.local, thisDeviceID: "mac-test",
-                                     upload: upload, firstImportDone: firstImportDone)
+                      firstImportDone: Bool) throws -> ReconcileV2.PassOutcome {
+        V2.pass(s.cloud, into: s.local, device: "mac-test", outputDir: upload, firstImportDone: firstImportDone)
     }
 
     // MARK: - The guard
@@ -108,9 +107,9 @@ final class BackfillGuardTests: XCTestCase {
         let pf = PipelineFile(id: UUID().uuidString, filename: "take.m4a",
                               path: try audioFile("take.m4a").path, sourceType: .audio)
         pf.isLocalRecording = true
-        XCTAssertTrue(MacMemoAuthor.mayBackfill(pf, firstImportDone: true))
-        XCTAssertFalse(MacMemoAuthor.mayBackfill(pf, firstImportDone: false))
-        XCTAssertFalse(MacMemoAuthor.mayBackfill(try phoneRow(0), firstImportDone: true))
+        XCTAssertTrue(ReconcileV2.Author.mayBackfill(pf, firstImportDone: true))
+        XCTAssertFalse(ReconcileV2.Author.mayBackfill(pf, firstImportDone: false))
+        XCTAssertFalse(ReconcileV2.Author.mayBackfill(try phoneRow(0), firstImportDone: true))
     }
 
     /// The pass's default is the safe one: no flag passed, nothing authored.
@@ -118,8 +117,7 @@ final class BackfillGuardTests: XCTestCase {
         let s = try stores()
         s.local.insert(try localImport())
         try s.local.save()
-        let outcome = try MemoCloudReconciler.pass(from: s.cloud, into: s.local,
-                                                   thisDeviceID: "mac-test", upload: upload)
+        let outcome = V2.pass(s.cloud, into: s.local, device: "mac-test", outputDir: upload)
         XCTAssertEqual(outcome.authored, 0)
     }
 

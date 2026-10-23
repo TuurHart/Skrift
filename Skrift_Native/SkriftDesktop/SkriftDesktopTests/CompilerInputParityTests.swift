@@ -8,6 +8,7 @@ import Foundation
 /// same body and the same `voice:`. Before the fix a TITLE-ONLY polish read `cleaned` on the
 /// phone and `raw` on the Mac (setexp-88), and the phone's export ignored the note's unlink
 /// decisions (R37). The phone target's twin class runs the same cases through `MemoExporter`.
+@MainActor
 final class CompilerInputParityTests: XCTestCase {
 
     private let mac = "q155-mac"
@@ -42,8 +43,7 @@ final class CompilerInputParityTests: XCTestCase {
         pf.transcript = raw
         pf.transcribeStatus = .done
         pf.syncedSourceEditedAt = Date()
-        _ = MemoCloudUpdate.apply(memo: m, enhancement: enh, to: pf, people: [hendri],
-                                  author: "Me", thisDeviceID: mac, isFreshRow: true)
+        _ = V2.reflect(m, enhancement: enh, to: pf, people: [hendri], author: "Me", device: mac, freshRow: true)
         return pf
     }
 

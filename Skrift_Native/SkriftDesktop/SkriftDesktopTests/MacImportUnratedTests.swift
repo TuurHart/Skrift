@@ -84,7 +84,7 @@ final class MacImportUnratedTests: XCTestCase {
         let ctx = try pipelineContext()
         let cloud = try cloudContext()
         let pf = try await importOne(work: work, ctx: ctx)
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
         XCTAssertEqual(try cloud.fetch(FetchDescriptor<Memo>()).first?.significance, 0)
     }
 

@@ -3,6 +3,7 @@ import SwiftData
 
 /// `MacMemoAuthor` never floors the rating (D159, 2026-09-30): an import authors unrated like a
 /// recording. (Before D159 an import floored to 0.1.)
+@MainActor
 final class MacMemoAuthorSignificanceTests: XCTestCase {
 
     private func ctx() throws -> ModelContext {
@@ -16,7 +17,7 @@ final class MacMemoAuthorSignificanceTests: XCTestCase {
     func testImportStaysUnrated() throws {
         let c = try ctx()
         let pf = PipelineFile(id: UUID().uuidString, filename: "a.m4a", path: "", size: 1, sourceType: .audio)
-        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
+        let memo = try V2.author(pf, into: c)
         XCTAssertEqual(memo?.significance, 0)
     }
 
@@ -27,7 +28,7 @@ final class MacMemoAuthorSignificanceTests: XCTestCase {
     func testRecordingStaysUnrated() throws {
         let c = try ctx()
         let pf = PipelineFile(id: UUID().uuidString, filename: "memo_x.m4a", path: "", size: 1, sourceType: .audio)
-        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
+        let memo = try V2.author(pf, into: c)
         XCTAssertEqual(memo?.significance, 0, "a recording is unrated until it's judged")
     }
 
@@ -36,7 +37,7 @@ final class MacMemoAuthorSignificanceTests: XCTestCase {
         let c = try ctx()
         let pf = PipelineFile(id: UUID().uuidString, filename: "b.m4a", path: "", size: 1, sourceType: .audio)
         pf.significance = 0.7
-        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: c)
+        let memo = try V2.author(pf, into: c)
         XCTAssertEqual(memo?.significance, 0.7)
     }
 }

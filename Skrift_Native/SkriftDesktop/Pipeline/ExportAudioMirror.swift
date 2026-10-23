@@ -6,9 +6,9 @@ import Foundation
 /// update, Mac → phone as an EVENT when the switch is flipped (`MacCloudMetaSync.setIncludeAudio`),
 /// never on the passive pass — a stale row must not clobber a newer phone choice.
 ///
-/// Kept apart from `MirroredNoteFields` for the reason `NameResolutionsMirror` is: that list's
-/// tests pin its exact members. The callers are the same three seams: `MemoCloudIngest`,
-/// `MemoCloudUpdate`, `MacCloudMetaSync`. No recompile: the audio rides the export's asset
+/// Kept apart from `ReconcileV2.Fields` for the reason `NameResolutionsMirror` is: that list's
+/// tests pin its exact members. The callers are the same three seams: `ReconcileV2.Ingest`,
+/// `ReconcileV2.Reflect`, `MacCloudMetaSync`. No recompile: the audio rides the export's asset
 /// lane, not the note's markdown.
 enum ExportAudioMirror {
 

@@ -117,7 +117,7 @@ final class MacAuthoredMemoShapeTests: XCTestCase {
     private func authorAll() throws -> ModelContext {
         let ctx = try cloudContext()
         for (pf, audio) in try rows(in: makeTempDir()) {
-            XCTAssertNotNil(try MacMemoAuthor.author(for: pf, audioURL: audio, into: ctx), pf.filename)
+            XCTAssertNotNil(try V2.author(pf, into: ctx), pf.filename)
         }
         return ctx
     }
@@ -215,7 +215,7 @@ final class MacAuthoredMemoShapeTests: XCTestCase {
         XCTAssertEqual(pf.sourceType, .capture)
 
         let cloud = try cloudContext()
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
         let id = try XCTUnwrap(UUID(uuidString: pf.id))
         let m = try memo(id, cloud)
         XCTAssertEqual(m.audioFilename, "")

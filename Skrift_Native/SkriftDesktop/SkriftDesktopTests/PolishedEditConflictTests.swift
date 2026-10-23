@@ -10,6 +10,7 @@ import Foundation
 /// Two in-memory stores stand in for the iPhone and the Mac; `meet` plays CloudKit: the `Memo`
 /// row and the enhancement row merge newest-wins (the loss the heads prevent) and each device's
 /// `MemoEditHead` is copied as-is.
+@MainActor
 final class PolishedEditConflictTests: XCTestCase {
 
     private let phone = "PHONE-DEVICE", mac = "MAC-DEVICE"
@@ -237,8 +238,7 @@ final class PolishedEditConflictTests: XCTestCase {
         pf.enhancedTitle = "Bathroom tiles"
         pf.enhancedSummary = "Hexagon tiles."
         pf.enhanceStatus = .done
-        try MacCloudWriteBack.upsert(for: pf, into: m, deviceID: mac, now: Date(timeIntervalSince1970: 1_800),
-                                     passRan: true)
+        try V2.upsert(pf, into: m, device: mac, now: Date(timeIntervalSince1970: 1_800), passRan: true)
         XCTAssertEqual(polish(id, m), "A fresh Mac polish.")
         XCTAssertTrue(heads(m).isEmpty, "the Mac's polish write is its output, not a user edit")
         XCTAssertFalse(EditConflicts.recordEdit(memo(id, m)!, in: m, device: mac),

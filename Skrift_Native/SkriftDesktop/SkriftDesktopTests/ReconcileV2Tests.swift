@@ -107,10 +107,8 @@ final class ReconcileV2Tests: XCTestCase {
         let pf = try XCTUnwrap(try row(memo.id))
         XCTAssertEqual(pf.enhancedCopyedit, "Kiln loaded (phone).")
 
-        // v1 compares the phone's stamp to THIS Mac's clock and refuses, forever.
+        // v1 compared the phone's stamp to THIS Mac's clock and refused, forever (deleted at Q432).
         pf.enhancedCopyedit = "Kiln loaded. (Mac pass)"
-        let v1 = try XCTUnwrap(try MacCloudWriteBack.upsert(for: pf, into: cloud, deviceID: device, now: Date()))
-        XCTAssertEqual(v1.copyedit, "Kiln loaded (phone).", "v1 refused the Mac's newer polish (R44)")
 
         // v2 compares stamp to stamp: the row has seen that polish, so the Mac's write lands,
         // stamped after the one it replaces.

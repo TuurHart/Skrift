@@ -9,6 +9,7 @@ import SwiftData
 /// `MemoCloudIngest` row → `VaultExporter` / `Compiler.compile(file:)`). Before the fix the
 /// iPad named it from the transcript's first line and the Mac's `date:` was the UTC day.
 /// The phone target's twin class asserts the same two literals through `MemoExporter`.
+@MainActor
 final class ExportNamingParityTests: XCTestCase {
 
     private static let noteID = UUID(uuidString: "3B6912FA-AAD7-5203-96C4-D7D2B1050AAA")!
@@ -76,11 +77,8 @@ final class ExportNamingParityTests: XCTestCase {
                                                        configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         let id = memo.id
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == id }))
-        let row = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                           upload: UploadService(outputDir: makeTempDir()),
-                                                           into: pipeline))
-        MemoCloudUpdate.apply(memo: memo, enhancement: enh, to: row, people: [], author: "",
-                              thisDeviceID: "q153-mac", isFreshRow: true)
+        let row = try XCTUnwrap(try V2.ingest(memo, assets: assets, outputDir: makeTempDir(), into: pipeline))
+        V2.reflect(memo, enhancement: enh, to: row, people: [], author: "", device: "q153-mac", freshRow: true)
 
         let vault = makeTempDir()
         var settings = AppSettings.default

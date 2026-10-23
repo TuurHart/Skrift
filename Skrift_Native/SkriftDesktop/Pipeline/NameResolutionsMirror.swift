@@ -4,11 +4,11 @@ import Foundation
 /// the synced `Memo` — one shared blob on both sides (`NameResolutions`, C81 / D20 / R37), so
 /// a decision made on any device is honoured by the `Sanitiser` on every other.
 ///
-/// Kept apart from `MirroredNoteFields` on purpose: that list's tests pin its exact members,
+/// Kept apart from `ReconcileV2.Fields` on purpose: that list's tests pin its exact members,
 /// and this field has a third behaviour the plain mirror does not — moving the Mac's
 /// pre-2026-10 decisions (`PipelineFile.legacyUnlinkedNames` / `legacyNamePicksJSON`) out
-/// once. The callers are the same three seams: `MemoCloudIngest` (first contact),
-/// `MemoCloudUpdate` (phone → Mac), `MacCloudMetaSync` (Mac → phone).
+/// once. The callers are the same three seams: `ReconcileV2.Ingest` (first contact),
+/// `ReconcileV2.Reflect` (phone → Mac), `MacCloudMetaSync` (Mac → phone).
 enum NameResolutionsMirror {
 
     /// phone → Mac (first contact and every live update). Returns true when it changed the

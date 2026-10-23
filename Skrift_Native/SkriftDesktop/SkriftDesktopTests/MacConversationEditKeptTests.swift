@@ -25,7 +25,7 @@ final class MacConversationEditKeptTests: XCTestCase {
         pf.enhancedCopyedit = turns
         pf.enhancedTitle = "Kiln week"
         pf.enhanceStatus = .done
-        MemoCloudUpdate.resanitiseAndCompile(pf, people: [bruno, lotte], author: "Tuur")
+        ReconcileV2.Reflect.recompile(pf, people: [bruno, lotte], author: "Tuur")
         XCTAssertTrue(pf.sanitised?.contains("**[[Bruno Costa]]:**") == true, "a linked header: \(pf.sanitised ?? "")")
         return pf
     }
@@ -71,7 +71,7 @@ final class MacConversationEditKeptTests: XCTestCase {
         RosterRelink.relink([pf], linkedWith: [bruno, lotte], people: [renamed, lotte], author: "Tuur")
 
         assertKept(pf, header: "[[Bruno Almeida]]")
-        try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-test")
+        try V2.upsert(pf, into: ctx, device: "mac-test")
         XCTAssertTrue(try cloudCopy(pf, ctx)?.contains("and the shelves") == true, "the cloud copy is his edit")
     }
 
@@ -83,8 +83,7 @@ final class MacConversationEditKeptTests: XCTestCase {
                      significance: 0.6)
         m.tags = ["studio"]
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf, people: [bruno, lotte],
-                                            author: "Tuur", thisDeviceID: "mac-test"))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [bruno, lotte], author: "Tuur", device: "mac-test"))
 
         XCTAssertEqual(pf.tags, ["studio"])
         assertKept(pf, header: "[[Bruno Costa]]")
@@ -111,7 +110,7 @@ final class MacConversationEditKeptTests: XCTestCase {
         typeOnTheMac(pf)
 
         MacEditRoundTrip.settle(pf, linkedWith: [bruno, lotte])
-        try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-test", passRan: true)
+        try V2.upsert(pf, into: ctx, device: "mac-test", passRan: true)
 
         let copy = try XCTUnwrap(try cloudCopy(pf, ctx))
         XCTAssertTrue(copy.contains("and the shelves"), copy)

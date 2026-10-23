@@ -3,7 +3,7 @@ import SwiftData
 import os
 
 /// Mac→phone metadata write-back — the second half of "widen the narrow Mac→phone channel".
-/// The enhancement carrier (`MacCloudWriteBack`) only ever carried body/title/summary, so tags
+/// The enhancement carrier (`ReconcileV2.Writers`) only ever carried body/title/summary, so tags
 /// and importance edited on the Mac never reached the phone (and were frozen at first ingest the
 /// other way). Both are plain `Memo` fields that already sync, so — exactly like delete-sync —
 /// the Mac just writes them onto the synced `Memo`, and the phone reflects them.
@@ -11,7 +11,7 @@ import os
 /// App-only + gated like the reconcile loop (`cloudKitMacSyncEnabled` + a container); a no-op
 /// otherwise. Writes each file's CURRENT `tags`/`significance` (set moments earlier by the review
 /// UI) onto its memo. No `lastEditedAt` bump — these are synced fields on their own, and NOT
-/// bumping it keeps the reconciler's text-reflect echo-quiet. `MemoCloudUpdate` reflects the phone
+/// bumping it keeps the reconciler's text-reflect echo-quiet. `ReconcileV2.Reflect` reflects the phone
 /// direction with a plain value compare, so a Mac write converges it (no clobber loop).
 @MainActor
 enum MacCloudMetaSync {

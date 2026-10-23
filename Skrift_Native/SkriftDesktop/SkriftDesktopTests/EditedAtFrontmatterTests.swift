@@ -6,6 +6,7 @@ import Foundation
 /// local time like `date:` — right after `date:`, written by the ONE shared compiler for both
 /// exporters. Never edited → `editedAt:` empty. The portfolio profile keeps C130's key list, so
 /// it has no `editedAt`.
+@MainActor
 final class EditedAtFrontmatterTests: XCTestCase {
 
     private let edited = ISO8601DateFormatter().date(from: "2026-09-13T20:00:00Z")!
@@ -58,7 +59,7 @@ final class EditedAtFrontmatterTests: XCTestCase {
         let memo = Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a")
         memo.editedAt = edited
         let pf = PipelineFile(id: id.uuidString, filename: "memo_\(id.uuidString).m4a", sourceType: .audio)
-        let field = try XCTUnwrap(MirroredNoteFields.all.first { $0.name == "editedAt" })
+        let field = try XCTUnwrap(ReconcileV2.Fields.all.first { $0.name == "editedAt" })
         XCTAssertTrue(field.pull(memo, pf))
         XCTAssertFalse(field.pull(memo, pf), "idempotent")
         XCTAssertEqual(pf.memoEditedAt, edited)

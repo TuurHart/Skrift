@@ -7,9 +7,9 @@ import Foundation
 /// `App/` (no `MemoCloudStore`, no `ModelContext` mutation —
 /// callers fetch/save), so it compiles into the MLX-free `SkriftDesktopTests`
 /// bundle exactly like `DesktopTrash` — see `Pipeline/DesktopTrash.swift` for
-/// the sibling precedent this follows. `MacCloudWriteBack` (Pipeline/Ingest,
-/// LANE_AUTHOR's — read-only use of its pure `memoID(for:)` helper) is also
-/// visible to both targets, so the mac-only test below can call it directly.
+/// the sibling precedent this follows. `ReconcileV2.Writers` (Shared/ReconcileV2,
+/// read-only use of its pure `memoID(for:)` helper) is also visible to both
+/// targets, so the mac-only test below can call it directly.
 enum WayOutRules {
 
     // MARK: - ② the Queue band
@@ -19,7 +19,7 @@ enum WayOutRules {
     /// local take (`isQuietLocalTake` — the unrated-take doctrine, 2026-07-28): a
     /// Mac recording nobody has rated yet still renders here, exactly like an
     /// unrated phone memo, even though its transcript-bearing row already exists.
-    /// `MemoCloudIngest` always sets an ingested row's id to `memo.id.uuidString`
+    /// `ReconcileV2.Ingest` always sets an ingested row's id to `memo.id.uuidString`
     /// — a legacy/local-upload `PipelineFile.id` that ISN'T a well-formed UUID can
     /// never collide with one, so it's naturally excluded from the lookup map
     /// with no extra filtering needed (same as the old `ingested` Set).
@@ -143,9 +143,9 @@ enum WayOutRules {
 
     /// A trashed `PipelineFile` with no backing `Memo` — a Mac-local upload from
     /// before captures synced (Q5's transitional tail, dissolved once step ⑤
-    /// ships `MacMemoAuthor`). NOTE: `PipelineFile.id` defaults to a random UUID
+    /// ships `ReconcileV2.Author`). NOTE: `PipelineFile.id` defaults to a random UUID
     /// string for a LOCAL upload too (`PipelineFile.init`), not just a CloudKit-
-    /// ingested one — so `MacCloudWriteBack.memoID(for:)` (designed for callers
+    /// ingested one — so `ReconcileV2.Writers.memoID(for:)` (designed for callers
     /// who already know a file is memo-sourced) can derive a UUID-shaped
     /// *candidate* from either kind of row. The only real test is whether that
     /// candidate is a memo that's ACTUALLY in `memoIDs` (the live cloud fetch).

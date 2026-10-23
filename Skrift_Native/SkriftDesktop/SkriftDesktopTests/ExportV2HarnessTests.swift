@@ -16,9 +16,7 @@ extension ExportDiffHarnessTests {
                 for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
             try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: scratch.appendingPathComponent("v2-phone"))
             let roster = try ExportDiffHarnessTests.roster(root)
-            MemoCloudReconciler.sweep(from: cloud, into: pipeline, people: roster, author: "Tiuri",
-                                      thisDeviceID: "corpus-mac-0001",
-                                      upload: UploadService(outputDir: scratch.appendingPathComponent("v2-mac-work")))
+            V2.sweep(cloud, into: pipeline, people: roster, author: "Tiuri", device: "corpus-mac-0001", outputDir: scratch.appendingPathComponent("v2-mac-work"))
             let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
             ExportDiffHarnessTests.nameLink(rows, people: roster)
             let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })

@@ -6,7 +6,7 @@ import AVFoundation
 import os
 
 /// Desktop-side ingest for locally-picked files/folders (the +Upload button and
-/// drag-drop). Mirrors `UploadService`'s on-disk layout — one `<id>_<filename>/`
+/// drag-drop). Mirrors `ReconcileV2.Ingest`'s on-disk layout — one `<id>_<filename>/`
 /// folder per note with `original.<ext>` — so desktop and phone ingest produce
 /// identical PipelineFiles. Pure (FileManager + ModelContext, no engines) so it
 /// unit-tests host-less.
@@ -309,7 +309,7 @@ struct IngestService: Sendable {
     }
 
     /// The metadata-blob key a bundle's text rides under — the same key a synced phone memo's
-    /// blob carries (`MemoCloudIngest.metadataJSON`), so `MacMemoAuthor` hands it to the memo.
+    /// blob carries (`ReconcileV2.Ingest.metadataJSON`), so `ReconcileV2.Author` hands it to the memo.
     static let annotationKey = "annotationText"
 
     /// The bundle's texts become `pf`'s annotation (C68). Returns the texts that could not be
@@ -641,7 +641,7 @@ struct IngestService: Sendable {
         // file nobody kept.
         //
         // It lives in the WORKING FOLDER beside `original.m4a` (local disk). It becomes a synced
-        // `MemoAsset` (`Kind.video`, C63/C148/D188) whatever the destination - `MacMemoAuthor`
+        // `MemoAsset` (`Kind.video`, C63/C148/D188) whatever the destination - `ReconcileV2.Author`
         // writes it - because Personal means "never goes to Claude", not "never to iCloud". A
         // movie over `VideoKeep.maxBytes` (~200 MB) is not kept at all. Only the PORTFOLIO
         // export copies it out (Inspiration / Idea / Project); the vault never sees it.
