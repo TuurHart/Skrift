@@ -3526,7 +3526,7 @@ gate+: yes
 do: Build to `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html` with Tuur's sign-off notes, phone and Mac: surface CloudKit quota / sign-in errors on the list within a minute, mark unsynced notes, detect an iCloud account switch, stop syncing and say so. Tests `SyncHealthTests` (desktop: injected quota error → state; account change → stopped).
 check: `grep -rqE "class SyncHealthTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q486 [auto] (stuck) B: a phone edit newer than the Mac's polish sends the note back to pending
+### Q486 [auto] (todo) B: a phone edit newer than the Mac's polish sends the note back to pending
 spec: C153
 needs: -
 gate+: yes
@@ -5299,3 +5299,4 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:33 Q426 -> done — gate 187s @37df776f
 - 2026-10-23 19:36 Q500 -> done — gate 155s @2746cf4f
 - 2026-10-23 19:39 Q488 -> done — gate 166s @2b57c83e
+- 2026-10-23 19:39 Q486 -> todo
