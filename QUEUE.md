@@ -3560,7 +3560,7 @@ gate+: yes
 do: Destination change: remove the old file when ours and untouched, write the new one; if the old file was edited or moved, refuse and name the file; a Personal note never stays in the portfolio. A retitle never renames the exported file; switching the vault folder never moves old exports (new notes go to the new folder; Settings says so). Tests `DestinationMoveTests` and `RetitleNoRenameTests` (desktop).
 check: `grep -rqE "class DestinationMoveTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q491 [auto] (todo) B: frontmatter carries editedAt
+### Q491 [auto] (done) B: frontmatter carries editedAt
 spec: C284 D12
 needs: -
 gate+: yes
@@ -5258,3 +5258,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:52 Q497 -> done — gate 74s @4fd69d33
 - 2026-10-23 18:55 Q498 -> done — gate 65s @7533abc9
 - 2026-10-23 18:57 Q500 -> stuck — gate failed — .queue/Q500.gate.log
+- 2026-10-23 19:00 Q491 -> done — hand-merged (Q491 asked for goldens re-recorded by the harness flag: 99 vault export + 101 row goldens gain editedAt/memoEditedAt; 3 test lines ported (D163))
