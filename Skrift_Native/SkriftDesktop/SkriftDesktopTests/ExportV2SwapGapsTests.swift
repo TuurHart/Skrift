@@ -116,7 +116,7 @@ final class ExportV2SwapGapsTests: XCTestCase {
         XCTAssertEqual(ExportV2.documentName(stem: "Notes", sourceName: "scan"), "Notes.pdf")
     }
 
-    func testTheSwitchItselfStaysOff() {
-        XCTAssertFalse(ExportV2.isLive, "Q436 flips it; only the routing is forced here")
+    func testTheSwitchIsOn() {
+        XCTAssertTrue(ExportV2.isLive, "Q436")
     }
 }

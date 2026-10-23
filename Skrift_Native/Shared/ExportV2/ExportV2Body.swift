@@ -16,8 +16,9 @@ extension ExportV2 {
                                          people: note.people)
             } else {
                 // R49 before the memo-links leave as `[[stem|Title]]` (C59).
-                body = MemoLinkSyntax.exportRewrite(escapingUnresolved(body, people: note.people),
-                                                    resolveStem: input.memoLinkResolver)
+                body = MemoLinkSyntax.exportRewrite(
+                    escapesUnknownLinks ? escapingUnresolved(body, people: note.people) : body,
+                    resolveStem: input.memoLinkResolver)
             }
             // A body stored before body v2 reads as it shows (Q13); a v2 body passes unchanged (C65).
             body = BodyV2Legacy.shown(body).text

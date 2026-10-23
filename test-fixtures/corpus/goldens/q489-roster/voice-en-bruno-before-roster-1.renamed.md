@@ -2,6 +2,8 @@
 title: "Coffee with Bruno"
 date: 
 editedAt:
+created:
+duration:
 author: Tuur
 source: Voice-memo
 summary:

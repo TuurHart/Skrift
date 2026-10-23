@@ -3,8 +3,7 @@ import XCTest
 
 /// Q511: the iPad's export v2 input (`ObsidianPublisher.v2Note`), built from the memo the way the
 /// Mac builds it from its row: the recording's day (C64), created and duration (D12), whether he
-/// typed the title (C130), each picture's OCR (R38). The publisher calls v2 only once
-/// `ExportV2.isLive` is on (Q436).
+/// typed the title (C130), each picture's OCR (R38). The publisher calls v2 since Q436.
 final class ExportV2PhoneInputsTests: XCTestCase {
 
     private func memo(title: String?) -> Memo {
@@ -42,7 +41,7 @@ final class ExportV2PhoneInputsTests: XCTestCase {
         XCTAssertFalse(ExportV2.compile(n, profile: .portfolio, stem: "s").markdown.contains("title:"))
     }
 
-    func testTheSwapSwitchIsOff() {
-        XCTAssertFalse(ExportV2.isLive)
+    func testTheSwapSwitchIsOn() {
+        XCTAssertTrue(ExportV2.isLive, "Q436")
     }
 }

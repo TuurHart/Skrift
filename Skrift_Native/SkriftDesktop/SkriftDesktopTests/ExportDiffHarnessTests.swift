@@ -95,7 +95,7 @@ final class ExportDiffHarnessTests: XCTestCase {
                     pf.destination = profile.destination
                     defer { pf.destinationRaw = kept }
                     do {
-                        let r = try VaultExporter.export(pf, settings: settings, session: session)
+                        let r = try VaultExporter.exportV1(pf, settings: settings, session: session)
                         let md = (try? String(contentsOf: r.markdownURL, encoding: .utf8)) ?? ""
                         let rel = String(r.markdownURL.standardizedFileURL.path
                             .dropFirst(exportRoot.standardizedFileURL.path.count + 1))

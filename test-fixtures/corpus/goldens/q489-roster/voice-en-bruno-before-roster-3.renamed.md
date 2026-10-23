@@ -2,6 +2,8 @@
 title: "Studio rent"
 date: 
 editedAt:
+created:
+duration:
 author: Tuur
 source: Voice-memo
 summary:

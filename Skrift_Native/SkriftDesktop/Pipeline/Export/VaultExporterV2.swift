@@ -3,7 +3,7 @@ import Foundation
 /// Q434 (C2): the Mac's export through export v2 (`Shared/ExportV2`). The same write path as
 /// `VaultExporter.export` — the gate, the destination move, the writer's assess and commit, the
 /// ownership-safe asset copies — with v2 compiling the note. `export` routes here when
-/// `ExportV2.isLive` (off until the swap, Q436); the export harness calls it directly.
+/// `ExportV2.routes` (on since the swap, Q436); the export harness calls it directly.
 extension VaultExporter {
     @discardableResult
     static func exportV2(_ pf: PipelineFile, settings: AppSettings, session: ExportSession? = nil) throws -> Result {
