@@ -3143,7 +3143,7 @@ gate+: yes
 do: Seed the corpus, run the v1 sweep, and record every Mac row field by field as `test-fixtures/corpus/goldens/v1-rows/<slug>.json` (C44). `ReconcileDiffHarnessTests` (desktop target) runs each registered sweep engine and classes rows identical / expected-different / unexplained (C5), and asserts a second sweep changes nothing (C41). Pin C52: launch, activation and CloudKit import each trigger one coalesced sweep through a fresh context, no timer, and a failed cloud fetch is logged and surfaced (R40).
 check: `test $(ls test-fixtures/corpus/goldens/v1-rows | wc -l) -ge 100 && grep -rqE "class ReconcileDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q429 [auto] (todo) reconcile v2 beside v1
+### Q429 [auto] (done) reconcile v2 beside v1
 spec: C41 C42 C43 C44 C45 C46 C47 C48 C52 C185 C186 C187 C188 C189 C190 C191 C294 C2 C3
 needs: Q428
 gate+: yes
@@ -5336,3 +5336,4 @@ check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 &&
 - 2026-10-23 20:04 Q508 -> done — gate 76s @50d9771c
 - 2026-10-23 20:09 Q509 -> done — gate 49s @e43ef3fa
 - 2026-10-23 20:15 Q510 added
+- 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
